@@ -629,8 +629,12 @@ def _quotes(lines):
             parts.append(lines[j])
             j += 1
         text = " ".join(parts)
-        match = re.fullmatch(r'(?:quote\s*:\s*)?[“"‘]?(.*?)[”"’]?\s*(?:by\s*|author\s*:\s*)(.+?)\s*tags\s*:\s*(.+)', text, re.I)
-        fields = {"quote": match[1].strip('“”"‘’ '), "author": match[2], "tags": match[3]} if match else {}
+        quote_text = re.sub(r'^quote\s*:\s*', '', text, flags=re.I)
+        closing = {'“': '”', '"': '"', '‘': '’'}.get(quote_text[:1])
+        suffix = r'\s*(?:[-–—]\s*)?(?:by\s+|author\s*:\s*)(.+?)\s+tags\s*:\s*(.+)'
+        match = (re.fullmatch(re.escape(quote_text[0]) + r'(.*)' + re.escape(closing) + suffix, quote_text, re.I)
+                 if closing else re.fullmatch(r'quote\s*:\s*(.+)\s+' + suffix, text, re.I))
+        fields = {"quote": match[1].strip(), "author": match[2], "tags": match[3]} if match else {}
         if fields:
             fields["author"] = re.sub(r"\s*\(about\)\s*$", "", fields["author"], flags=re.I)
         records.append(_record(fields, "quote"))
@@ -1218,6 +1222,103 @@ def _native_link_label_surface(content, exclusions):
     return labels
 
 
+def _exclude_html_record_text(content, patterns):
+    """Mask rendered text matches while retaining the DOM record owners."""
+    from .dynamic_lists import scoped_html, visible_html_text
+    from bs4 import NavigableString
+
+    soup = scoped_html(content)
+    nodes = list(soup.strings)
+    prefix = '\ue028anchor-text'
+    while prefix in content or prefix in unescape(content):
+        prefix += '-'
+    originals = [str(node) for node in nodes]
+    source_spans = [[(offset, offset + 1) for offset in range(len(str(node)))]
+                    if node.find_parent(['pre', 'textarea']) else
+                    [(match.start(), match.end()) for match in re.finditer(r'\s+|\S', str(node))]
+                    for node in nodes]
+    values = [str(node) if node.find_parent(['pre', 'textarea']) else re.sub(r'\s+', ' ', str(node))
+              for node in nodes]
+    tokens = {prefix + str(index) + '\ue029': index for index in range(len(nodes))}
+    token_nodes = []
+    for node, token in zip(nodes, tokens):
+        replacement = NavigableString(token)
+        node.replace_with(replacement)
+        token_nodes.append(replacement)
+    layout = visible_html_text(str(soup))
+    parts, positions, cursor = [], [], 0
+    for match in re.finditer(re.escape(prefix) + r'\d+\ue029', layout):
+        parts.append(layout[cursor:match.start()])
+        positions.extend([None] * (match.start() - cursor))
+        index = tokens[match[0]]
+        parts.append(values[index])
+        positions.extend((index, offset) for offset in range(len(values[index])))
+        cursor = match.end()
+    parts.append(layout[cursor:])
+    positions.extend([None] * (len(layout) - cursor))
+    expanded = ''.join(parts)
+    # Apply the existing visible-text owner's final line trimming after tokens
+    # have been expanded, keeping the mapping back to actual text nodes.
+    pieces, mapped = [], []
+    for line in re.finditer(r'[^\n]+', expanded):
+        start = line.start() + len(line[0]) - len(line[0].lstrip())
+        end = line.start() + len(line[0].rstrip())
+        if start < end:
+            if pieces:
+                pieces.append('\n')
+                mapped.append(None)
+            pieces.append(expanded[start:end])
+            mapped.extend(positions[start:end])
+    surface = ''.join(pieces)
+    removed = set()
+    for pattern in patterns:
+        for match in reversed(list(re.finditer(pattern, surface, re.I | re.M))):
+            removed.update(position for position in mapped[match.start():match.end()] if position is not None)
+            surface = surface[:match.start()] + ' ' + surface[match.end():]
+            mapped[match.start():match.end()] = [None]
+    if not removed:
+        return content
+    for index, node in enumerate(token_nodes):
+        offsets = {offset for position, (start, end) in enumerate(source_spans[index])
+                   if (index, position) in removed for offset in range(start, end)}
+        node.replace_with(''.join(' ' if offset in offsets else char
+                                  for offset, char in enumerate(originals[index])))
+    return str(soup)
+
+
+def _structured_record_view(content, contract, *, representation=None,
+                            allow_closed_title_cards=False, visible=None, text_patterns=()):
+    """Use the same format and record owners for count and anchor scopes."""
+    from .reference_quality import is_html_document_or_fragment
+
+    schema = contract['schema']
+    native = representation == 'html' or (representation != 'plain_text' and is_html_document_or_fragment(content))
+    if native and text_patterns:
+        content = _exclude_html_record_text(content, text_patterns)
+        visible = None
+    native_tables = (_html_record_tables(content, schema,
+                     allow_closed_title_cards=allow_closed_title_cards)
+                     if native and schema not in {'body_text', 'page_identity', 'table_row'} else None)
+    record_content = native_tables[1] if native_tables is not None else content
+    if visible is None or native_tables is not None:
+        visible = _visible(record_content, schema, representation='html' if native else representation)
+    if not native:
+        for pattern in text_patterns:
+            visible = re.sub(pattern, _CARD_BOUNDARY, visible, flags=re.I | re.M)
+    if schema == 'table_row':
+        from .structured_tables import parse_table_records
+        records = parse_table_records(visible if text_patterns and not native else content, visible,
+                                      contract, representation=representation)
+    elif representation != 'plain_text' and schema == 'name_description' and (html_records := _html_list_descriptions(
+            record_content, allow_closed_title_cards=allow_closed_title_cards)) is not None:
+        records = html_records
+    else:
+        records = ([] if schema in {'body_text', 'page_identity'} else _parse_records(
+            visible, schema, allow_closed_title_cards=allow_closed_title_cards,
+            literal=native or representation == 'plain_text'))
+    return (native_tables[0] if native_tables is not None else []) + records
+
+
 def _validate_visible_control(control):
     """Validate the narrowly opted-in ordinary control attribute surface."""
     if (not isinstance(control, dict) or set(control) != {"selector", "attribute"}
@@ -1265,14 +1366,12 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError("Unsupported stable acceptance contract")
     if set(contract) - ACCEPTANCE_CONTRACT_FIELDS:
         raise ValueError("Unknown stable acceptance contract fields")
-    if contract.get("stable_text_role", "required") not in {"required", "diagnostic"}:
+    if (not isinstance(contract.get("stable_text_role", "required"), str)
+            or contract.get("stable_text_role", "required") not in {"required", "diagnostic"}):
         raise ValueError("Invalid stable text role")
-    if contract.get('content_scope', 'legacy') not in {'legacy', 'target_content', 'full_page_stable_coverage'}:
+    if (not isinstance(contract.get('content_scope', 'legacy'), str)
+            or contract.get('content_scope', 'legacy') not in {'legacy', 'target_content', 'full_page_stable_coverage'}):
         raise ValueError('Invalid stable content scope')
-    if contract.get('content_scope') == 'target_content' and any(
-            re.search(r'(^|[ >])(nav|footer)([ >.#:]|$)', a.get('source_location', ''), re.I)
-            for a in contract.get('stable_text_anchors', [])):
-        raise ValueError('Excluded navigation/footer cannot supply target-content anchors')
     exclusions = contract.get('text_exclusions', {})
     if (not isinstance(exclusions, dict)
             or set(exclusions) - {'html_selectors', 'text_patterns'}):
@@ -1387,6 +1486,10 @@ def validate_acceptance_contract(contract: dict) -> None:
         if "visible_control" in anchor:
             _validate_visible_control(anchor["visible_control"])
         ids.add(anchor["id"])
+    if contract.get('content_scope') == 'target_content' and any(
+            re.search(r'(^|[ >])(nav|footer)([ >.#:]|$)', anchor.get('source_location', ''), re.I)
+            for anchor in anchors):
+        raise ValueError('Excluded navigation/footer cannot supply target-content anchors')
     if contract["schema"] == "body_text" and not anchors and not patterns:
         raise ValueError("Stable body-text contracts require text anchors or page patterns")
     if contract["schema"] in {"named_link", "linked_product"}:
@@ -1598,7 +1701,6 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         content = normalize_native_markdown_layout(content)
     from .reference_quality import is_html_document_or_fragment as native_html_surface
     native_html = representation == 'html' or (representation != 'plain_text' and native_html_surface(content))
-    literal_records = native_html or representation == 'plain_text'
     match_representation = 'html' if native_html else representation
     schema = contract["schema"]
     count_policy = contract.get("record_count_policy")
@@ -1730,32 +1832,13 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     else:
         excluded_entries = []
         source_mismatches = []
-        native_tables = (_html_record_tables(content, schema,
-                         allow_closed_title_cards=allow_closed_title_cards)
-                         if native_html and schema not in {'body_text', 'page_identity', 'table_row'}
-                         else None)
-        record_content = native_tables[1] if native_tables is not None else content
-        record_visible = (_visible(record_content, schema, representation='html')
-                          if native_tables is not None else visible)
-        if schema == 'table_row':
-            from .structured_tables import parse_table_records
-            records = parse_table_records(content, visible, contract, representation=representation)
-        elif representation != 'plain_text' and schema == 'name_description' and (html_records := _html_list_descriptions(
-                record_content, allow_closed_title_cards=allow_closed_title_cards)) is not None:
-            records = html_records
-        else:
-            records = (
-                []
-                if schema in {"body_text", "page_identity"}
-                else _parse_records(
-                    record_visible,
-                    schema,
-                    allow_closed_title_cards=allow_closed_title_cards,
-                    literal=literal_records,
-                )
-            )
-        if native_tables is not None:
-            records = native_tables[0] + records
+        records = _structured_record_view(content, contract, representation=representation,
+            allow_closed_title_cards=allow_closed_title_cards, visible=visible)
+    anchor_records = records
+    if exclusions and (SCHEMA_FIELDS[schema] or schema == 'table_row') and schema not in {'named_link', 'linked_product'}:
+        anchor_records = _structured_record_view(non_record_content, contract, representation=representation,
+            allow_closed_title_cards=allow_closed_title_cards,
+            text_patterns=exclusions.get('text_patterns', []))
     anchors = []
     control_soup = None
     if representation != 'plain_text' and any("visible_control" in a for a in contract.get("stable_text_anchors", [])):
@@ -1786,12 +1869,12 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             selected_surface = (anchor_visible if anchor_visible is not None else visible) + "\n" + control_text
             if non_record_visible is not None:
                 selected_non_record = non_record_visible + "\n" + control_text
-        matched = _anchor_matches(anchor, records, visible, schema,
+        matched = _anchor_matches(anchor, anchor_records, visible, schema,
                                   selected_non_record, selected_surface, registered_words,
                                   representation=match_representation, contract=contract)
         if original_markdown_visible is not None:
             literal_matches = _anchor_matches(
-                anchor, records, visible, schema, non_record_visible,
+                anchor, anchor_records, visible, schema, non_record_visible,
                 original_markdown_visible, registered_words, representation=match_representation, contract=contract)
             matched = [value for value in anchor["alternatives"]
                        if value in matched or value in literal_matches]
@@ -1799,7 +1882,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             if native_labels is None:
                 native_labels = _native_link_label_surface(content, exclusions) or ''
             if native_labels:
-                matched = _anchor_matches(anchor, records, visible, schema,
+                matched = _anchor_matches(anchor, anchor_records, visible, schema,
                                           anchor_visible=native_labels, representation=match_representation, contract=contract)
         anchors.append({**anchor, "matched": matched, "pass": bool(matched)})
     anchor_errors = ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]

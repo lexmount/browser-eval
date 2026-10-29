@@ -60148,6 +60148,5452 @@
       "expected_metrics": {
         "stable_complete_record_count": 2
       }
+    },
+    {
+      "id": "quote-owner-0-markdown",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“Stand by me” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by me",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-0-plain_text",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“Stand by me” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by me",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-0-html",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<article><p>“Stand by me” by Alice Tags: friendship</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by me",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-hash-0",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "3f227c2e4410af33d4d6ace39623df9937fdfce5ebf358434b5bf5a6053ab8dc"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand by me” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by me",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-1-markdown",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand — by me | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“Stand — by me” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand — by me",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-1-plain_text",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand — by me | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“Stand — by me” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand — by me",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-1-html",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand — by me | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<article><p>“Stand — by me” by Alice Tags: friendship</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand — by me",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-hash-1",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "19357f05abd86ad1d3da00a636bc6496e2026cf2b882d7646d4e6ee7c027ccfb"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand — by me” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand — by me",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-2-markdown",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Tags: friendship — by the sea | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“Tags: friendship — by the sea” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Tags: friendship — by the sea",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-2-plain_text",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Tags: friendship — by the sea | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“Tags: friendship — by the sea” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Tags: friendship — by the sea",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-2-html",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Tags: friendship — by the sea | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<article><p>“Tags: friendship — by the sea” by Alice Tags: friendship</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Tags: friendship — by the sea",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-hash-2",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "59472e2b3ffe14a4e01f5cfb0482776be81f66b8f7f24fba957c2b532371b7fb"
+            ]
+          }
+        }
+      },
+      "artifact": "“Tags: friendship — by the sea” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Tags: friendship — by the sea",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-3-markdown",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| A \"word\" by the sea | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“A \"word\" by the sea” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "A \"word\" by the sea",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-3-plain_text",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| A \"word\" by the sea | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“A \"word\" by the sea” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "A \"word\" by the sea",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-3-html",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| A \"word\" by the sea | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<article><p>“A &quot;word&quot; by the sea” by Alice Tags: friendship</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "A \"word\" by the sea",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-hash-3",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "ede83a7b5ce341620952db1678074e9ea61ecd337fe8b5049af93c1cb0900ee5"
+            ]
+          }
+        }
+      },
+      "artifact": "“A \"word\" by the sea” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "A \"word\" by the sea",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-4-markdown",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| By and by, words matter | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“By and by, words matter” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "By and by, words matter",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-4-plain_text",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| By and by, words matter | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“By and by, words matter” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "By and by, words matter",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-4-html",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| By and by, words matter | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "<article><p>“By and by, words matter” by Alice Tags: friendship</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "By and by, words matter",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-hash-4",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "b6f91d0160afc2724775ca575ec4eb715407383b384e7a037653f8e9af5cc4ad"
+            ]
+          }
+        }
+      },
+      "artifact": "“By and by, words matter” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "By and by, words matter",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-explicit-columns",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by me",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-shortened-hash",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "0915ff07124815e11efe14e6309df7f3c8fa1af93a6344b0637b3b3a5cd6ed53"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand by me” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "quote-owner-anchor-correct",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“Stand by me” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "quote-owner-anchor-shortened",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand | me” by Alice | friendship |"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "“Stand by me” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "quote-owner-unquoted",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Quote: Stand by me by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by me",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-author-label",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "“Stand by me” Author: Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by me",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-dash-author",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "“Stand by me” — by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by me",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-ascii",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "\"Stand by me\" by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by me",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-single",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "‘Stand by me’ by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "Stand by me",
+              "author": "Alice",
+              "tags": "friendship"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "quote-owner-unclosed",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "“Stand by me by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "quote-owner-distinct",
+      "root_cause": "4409310330",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "“Stand by me” by Alice Tags: friendship\n“Stand by you” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-no-match-inline-word",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "<table><tr><th>name</th><th>price</th></tr><tr><td>Widget</td><td>$10</td></tr></table>"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "NeverMatchingToken"
+            ]
+          }
+        }
+      },
+      "artifact": "<article><p>Wid<strong>get</strong></p><p>$10</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Widget",
+              "price": "$10"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "anchor-scope-no-match-link-punctuation",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "<table><tr><th>name</th><th>price</th></tr><tr><td>Widget—Pro</td><td>$10</td></tr></table>"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "NeverMatchingToken"
+            ]
+          }
+        }
+      },
+      "artifact": "<article><p><a href=\"/item\">Widget</a>—<span>Pro</span></p><p>$10</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Widget—Pro",
+              "price": "$10"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "anchor-scope-no-match-pre-price",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "<table><tr><th>name</th><th>price</th></tr><tr><td>Widget</td><td>$10</td></tr></table>"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "NeverMatchingToken"
+            ]
+          }
+        }
+      },
+      "artifact": "<article><p>Widget</p><pre>  $10  </pre></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Widget",
+              "price": "$10"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "anchor-scope-no-match-table-spaces",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "<table><tr><th>name</th><th>price</th></tr><tr><td>Widget   Pro</td><td>$10</td></tr></table>"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "NeverMatchingToken"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>name</th><th>price</th></tr><tr><td>Widget   Pro</td><td>$10</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Widget   Pro",
+              "price": "$10"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "anchor-scope-no-match-table-pre",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "<table><tr><th>name</th><th>price</th></tr><tr><td>Widget \n Pro</td><td>$10</td></tr></table>"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "NeverMatchingToken"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>name</th><th>price</th></tr><tr><td><pre>Widget \n Pro</pre></td><td>$10</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Widget \n Pro",
+              "price": "$10"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "anchor-scope-no-match-table-literal",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "<table><tr><th>name</th><th>price</th></tr><tr><td>[Widget](/other)</td><td>$10</td></tr></table>"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "NeverMatchingToken"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>name</th><th>price</th></tr><tr><td><code>[Widget](/other)</code></td><td>$10</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "[Widget](/other)",
+              "price": "$10"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "anchor-scope-product-css-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>name</th><th>price</th></tr><tr><td>Widget</td><td>$10</td></tr></table></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-product-css-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<main><table><tr><th>name</th><th>price</th></tr><tr><td>Widget</td><td>$10</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-product-css-mixed-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>name</th><th>price</th></tr><tr><td>Widget</td><td>$10</td></tr></table></div><main><table><tr><th>name</th><th>price</th></tr><tr><td>Other</td><td>$10</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-product-css-mixed-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>name</th><th>price</th></tr><tr><td>Other</td><td>$10</td></tr></table></div><main><table><tr><th>name</th><th>price</th></tr><tr><td>Widget</td><td>$10</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-product-text-html-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>name</th><th>price</th></tr><tr><td>Widget</td><td>$10</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-product-text-html-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>name</th><th>price</th></tr><tr><td>Widget</td><td>$10</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-product-text-markdown-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "| name | price |\n| --- | --- |\n| Widget | $10 |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-product-text-markdown-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "| name | price |\n| --- | --- |\n| Widget | $10 |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-product-text-plain_text-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget\n$10"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "Widget\n$10",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-product-text-plain_text-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget\n$10"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "Widget\n$10",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-catalog_product-css-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| title | price | description | reviews |\n| --- | --- | --- | --- |\n| Widget | $10 | Useful device | 3 reviews |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>title</th><th>price</th><th>description</th><th>reviews</th></tr><tr><td>Widget</td><td>$10</td><td>Useful device</td><td>3 reviews</td></tr></table></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-catalog_product-css-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| title | price | description | reviews |\n| --- | --- | --- | --- |\n| Widget | $10 | Useful device | 3 reviews |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<main><table><tr><th>title</th><th>price</th><th>description</th><th>reviews</th></tr><tr><td>Widget</td><td>$10</td><td>Useful device</td><td>3 reviews</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-catalog_product-css-mixed-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| title | price | description | reviews |\n| --- | --- | --- | --- |\n| Widget | $10 | Useful device | 3 reviews |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>title</th><th>price</th><th>description</th><th>reviews</th></tr><tr><td>Widget</td><td>$10</td><td>Useful device</td><td>3 reviews</td></tr></table></div><main><table><tr><th>title</th><th>price</th><th>description</th><th>reviews</th></tr><tr><td>Other</td><td>$10</td><td>Useful device</td><td>3 reviews</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-catalog_product-css-mixed-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| title | price | description | reviews |\n| --- | --- | --- | --- |\n| Widget | $10 | Useful device | 3 reviews |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>title</th><th>price</th><th>description</th><th>reviews</th></tr><tr><td>Other</td><td>$10</td><td>Useful device</td><td>3 reviews</td></tr></table></div><main><table><tr><th>title</th><th>price</th><th>description</th><th>reviews</th></tr><tr><td>Widget</td><td>$10</td><td>Useful device</td><td>3 reviews</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-catalog_product-text-html-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| title | price | description | reviews |\n| --- | --- | --- | --- |\n| Widget | $10 | Useful device | 3 reviews |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>title</th><th>price</th><th>description</th><th>reviews</th></tr><tr><td>Widget</td><td>$10</td><td>Useful device</td><td>3 reviews</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-catalog_product-text-html-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| title | price | description | reviews |\n| --- | --- | --- | --- |\n| Widget | $10 | Useful device | 3 reviews |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>title</th><th>price</th><th>description</th><th>reviews</th></tr><tr><td>Widget</td><td>$10</td><td>Useful device</td><td>3 reviews</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-catalog_product-text-markdown-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| title | price | description | reviews |\n| --- | --- | --- | --- |\n| Widget | $10 | Useful device | 3 reviews |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "| title | price | description | reviews |\n| --- | --- | --- | --- |\n| Widget | $10 | Useful device | 3 reviews |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-catalog_product-text-markdown-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| title | price | description | reviews |\n| --- | --- | --- | --- |\n| Widget | $10 | Useful device | 3 reviews |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "| title | price | description | reviews |\n| --- | --- | --- | --- |\n| Widget | $10 | Useful device | 3 reviews |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-catalog_product-text-plain_text-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget\n$10\nUseful device\n3 reviews"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "Widget\n$10\nUseful device\n3 reviews",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-catalog_product-text-plain_text-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget\n$10\nUseful device\n3 reviews"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "Widget\n$10\nUseful device\n3 reviews",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-earthquake-css-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| magnitude | location | time | depth |\n| --- | --- | --- | --- |\n| 4.1 | Pacific coast | 2026-01-01T12:00:00Z | 12 km |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>magnitude</th><th>location</th><th>time</th><th>depth</th></tr><tr><td>4.1</td><td>Pacific coast</td><td>2026-01-01T12:00:00Z</td><td>12 km</td></tr></table></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-earthquake-css-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| magnitude | location | time | depth |\n| --- | --- | --- | --- |\n| 4.1 | Pacific coast | 2026-01-01T12:00:00Z | 12 km |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<main><table><tr><th>magnitude</th><th>location</th><th>time</th><th>depth</th></tr><tr><td>4.1</td><td>Pacific coast</td><td>2026-01-01T12:00:00Z</td><td>12 km</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-earthquake-css-mixed-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| magnitude | location | time | depth |\n| --- | --- | --- | --- |\n| 4.1 | Pacific coast | 2026-01-01T12:00:00Z | 12 km |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>magnitude</th><th>location</th><th>time</th><th>depth</th></tr><tr><td>4.1</td><td>Pacific coast</td><td>2026-01-01T12:00:00Z</td><td>12 km</td></tr></table></div><main><table><tr><th>magnitude</th><th>location</th><th>time</th><th>depth</th></tr><tr><td>4.1</td><td>Northern coast</td><td>2026-01-02T12:00:00Z</td><td>12 km</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-earthquake-css-mixed-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| magnitude | location | time | depth |\n| --- | --- | --- | --- |\n| 4.1 | Pacific coast | 2026-01-01T12:00:00Z | 12 km |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>magnitude</th><th>location</th><th>time</th><th>depth</th></tr><tr><td>4.1</td><td>Northern coast</td><td>2026-01-02T12:00:00Z</td><td>12 km</td></tr></table></div><main><table><tr><th>magnitude</th><th>location</th><th>time</th><th>depth</th></tr><tr><td>4.1</td><td>Pacific coast</td><td>2026-01-01T12:00:00Z</td><td>12 km</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-earthquake-text-html-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| magnitude | location | time | depth |\n| --- | --- | --- | --- |\n| 4.1 | Pacific coast | 2026-01-01T12:00:00Z | 12 km |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>magnitude</th><th>location</th><th>time</th><th>depth</th></tr><tr><td>4.1</td><td>Pacific coast</td><td>2026-01-01T12:00:00Z</td><td>12 km</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-earthquake-text-html-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| magnitude | location | time | depth |\n| --- | --- | --- | --- |\n| 4.1 | Pacific coast | 2026-01-01T12:00:00Z | 12 km |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Pacific coast"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>magnitude</th><th>location</th><th>time</th><th>depth</th></tr><tr><td>4.1</td><td>Pacific coast</td><td>2026-01-01T12:00:00Z</td><td>12 km</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-earthquake-text-markdown-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| magnitude | location | time | depth |\n| --- | --- | --- | --- |\n| 4.1 | Pacific coast | 2026-01-01T12:00:00Z | 12 km |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "| magnitude | location | time | depth |\n| --- | --- | --- | --- |\n| 4.1 | Pacific coast | 2026-01-01T12:00:00Z | 12 km |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-earthquake-text-markdown-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| magnitude | location | time | depth |\n| --- | --- | --- | --- |\n| 4.1 | Pacific coast | 2026-01-01T12:00:00Z | 12 km |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Pacific coast"
+            ]
+          }
+        }
+      },
+      "artifact": "| magnitude | location | time | depth |\n| --- | --- | --- | --- |\n| 4.1 | Pacific coast | 2026-01-01T12:00:00Z | 12 km |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-earthquake-text-plain_text-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "4.1\nPacific coast\n2026-01-01T12:00:00Z\n12 km"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "4.1\nPacific coast\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-earthquake-text-plain_text-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "4.1\nPacific coast\n2026-01-01T12:00:00Z\n12 km"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Pacific coast"
+            ]
+          }
+        }
+      },
+      "artifact": "4.1\nPacific coast\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-quote-css-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>quote</th><th>author</th><th>tags</th></tr><tr><td>Stand by me</td><td>Alice</td><td>friendship</td></tr></table></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-quote-css-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<main><table><tr><th>quote</th><th>author</th><th>tags</th></tr><tr><td>Stand by me</td><td>Alice</td><td>friendship</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-quote-css-mixed-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>quote</th><th>author</th><th>tags</th></tr><tr><td>Stand by me</td><td>Alice</td><td>friendship</td></tr></table></div><main><table><tr><th>quote</th><th>author</th><th>tags</th></tr><tr><td>Another thought</td><td>Alice</td><td>friendship</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-quote-css-mixed-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>quote</th><th>author</th><th>tags</th></tr><tr><td>Another thought</td><td>Alice</td><td>friendship</td></tr></table></div><main><table><tr><th>quote</th><th>author</th><th>tags</th></tr><tr><td>Stand by me</td><td>Alice</td><td>friendship</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-quote-text-html-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>quote</th><th>author</th><th>tags</th></tr><tr><td>Stand by me</td><td>Alice</td><td>friendship</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-quote-text-html-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Stand by me"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>quote</th><th>author</th><th>tags</th></tr><tr><td>Stand by me</td><td>Alice</td><td>friendship</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-quote-text-markdown-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-quote-text-markdown-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Stand by me"
+            ]
+          }
+        }
+      },
+      "artifact": "| quote | author | tags |\n| --- | --- | --- |\n| Stand by me | Alice | friendship |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-quote-text-plain_text-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "“Stand by me” by Alice Tags: friendship"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand by me” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-quote-text-plain_text-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "“Stand by me” by Alice Tags: friendship"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Stand by me"
+            ]
+          }
+        }
+      },
+      "artifact": "“Stand by me” by Alice Tags: friendship",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-review-css-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| date | text |\n| --- | --- |\n| 2026-01-01 | Useful response |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>date</th><th>text</th></tr><tr><td>2026-01-01</td><td>Useful response</td></tr></table></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-review-css-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| date | text |\n| --- | --- |\n| 2026-01-01 | Useful response |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<main><table><tr><th>date</th><th>text</th></tr><tr><td>2026-01-01</td><td>Useful response</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-review-css-mixed-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| date | text |\n| --- | --- |\n| 2026-01-01 | Useful response |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>date</th><th>text</th></tr><tr><td>2026-01-01</td><td>Useful response</td></tr></table></div><main><table><tr><th>date</th><th>text</th></tr><tr><td>2026-01-02</td><td>Useful response</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-review-css-mixed-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| date | text |\n| --- | --- |\n| 2026-01-01 | Useful response |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>date</th><th>text</th></tr><tr><td>2026-01-02</td><td>Useful response</td></tr></table></div><main><table><tr><th>date</th><th>text</th></tr><tr><td>2026-01-01</td><td>Useful response</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-review-text-html-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| date | text |\n| --- | --- |\n| 2026-01-01 | Useful response |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>date</th><th>text</th></tr><tr><td>2026-01-01</td><td>Useful response</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-review-text-html-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| date | text |\n| --- | --- |\n| 2026-01-01 | Useful response |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Useful response"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>date</th><th>text</th></tr><tr><td>2026-01-01</td><td>Useful response</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-review-text-markdown-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| date | text |\n| --- | --- |\n| 2026-01-01 | Useful response |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "| date | text |\n| --- | --- |\n| 2026-01-01 | Useful response |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-review-text-markdown-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| date | text |\n| --- | --- |\n| 2026-01-01 | Useful response |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Useful response"
+            ]
+          }
+        }
+      },
+      "artifact": "| date | text |\n| --- | --- |\n| 2026-01-01 | Useful response |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-review-text-plain_text-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "2026-01-01\nUseful response"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "2026-01-01\nUseful response",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-review-text-plain_text-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "2026-01-01\nUseful response"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Useful response"
+            ]
+          }
+        }
+      },
+      "artifact": "2026-01-01\nUseful response",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-api_operation-css-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| method | path | summary |\n| --- | --- | --- |\n| GET | /items | List current items |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>method</th><th>path</th><th>summary</th></tr><tr><td>GET</td><td>/items</td><td>List current items</td></tr></table></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-api_operation-css-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| method | path | summary |\n| --- | --- | --- |\n| GET | /items | List current items |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<main><table><tr><th>method</th><th>path</th><th>summary</th></tr><tr><td>GET</td><td>/items</td><td>List current items</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-api_operation-css-mixed-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| method | path | summary |\n| --- | --- | --- |\n| GET | /items | List current items |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>method</th><th>path</th><th>summary</th></tr><tr><td>GET</td><td>/items</td><td>List current items</td></tr></table></div><main><table><tr><th>method</th><th>path</th><th>summary</th></tr><tr><td>GET</td><td>/other</td><td>List current items</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-api_operation-css-mixed-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| method | path | summary |\n| --- | --- | --- |\n| GET | /items | List current items |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>method</th><th>path</th><th>summary</th></tr><tr><td>GET</td><td>/other</td><td>List current items</td></tr></table></div><main><table><tr><th>method</th><th>path</th><th>summary</th></tr><tr><td>GET</td><td>/items</td><td>List current items</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-api_operation-text-html-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| method | path | summary |\n| --- | --- | --- |\n| GET | /items | List current items |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>method</th><th>path</th><th>summary</th></tr><tr><td>GET</td><td>/items</td><td>List current items</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-api_operation-text-html-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| method | path | summary |\n| --- | --- | --- |\n| GET | /items | List current items |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "List current items"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>method</th><th>path</th><th>summary</th></tr><tr><td>GET</td><td>/items</td><td>List current items</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-api_operation-text-markdown-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| method | path | summary |\n| --- | --- | --- |\n| GET | /items | List current items |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "| method | path | summary |\n| --- | --- | --- |\n| GET | /items | List current items |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-api_operation-text-markdown-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| method | path | summary |\n| --- | --- | --- |\n| GET | /items | List current items |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "List current items"
+            ]
+          }
+        }
+      },
+      "artifact": "| method | path | summary |\n| --- | --- | --- |\n| GET | /items | List current items |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-api_operation-text-plain_text-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "GET /items\nList current items"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "GET /items\nList current items",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-api_operation-text-plain_text-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "GET /items\nList current items"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "List current items"
+            ]
+          }
+        }
+      },
+      "artifact": "GET /items\nList current items",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-name_description-css-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | description |\n| --- | --- |\n| Widget | Useful device |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>name</th><th>description</th></tr><tr><td>Widget</td><td>Useful device</td></tr></table></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-name_description-css-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | description |\n| --- | --- |\n| Widget | Useful device |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<main><table><tr><th>name</th><th>description</th></tr><tr><td>Widget</td><td>Useful device</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-name_description-css-mixed-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | description |\n| --- | --- |\n| Widget | Useful device |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>name</th><th>description</th></tr><tr><td>Widget</td><td>Useful device</td></tr></table></div><main><table><tr><th>name</th><th>description</th></tr><tr><td>Other</td><td>Useful device</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-name_description-css-mixed-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | description |\n| --- | --- |\n| Widget | Useful device |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>name</th><th>description</th></tr><tr><td>Other</td><td>Useful device</td></tr></table></div><main><table><tr><th>name</th><th>description</th></tr><tr><td>Widget</td><td>Useful device</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-name_description-text-html-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | description |\n| --- | --- |\n| Widget | Useful device |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>name</th><th>description</th></tr><tr><td>Widget</td><td>Useful device</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-name_description-text-html-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | description |\n| --- | --- |\n| Widget | Useful device |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>name</th><th>description</th></tr><tr><td>Widget</td><td>Useful device</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-name_description-text-markdown-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | description |\n| --- | --- |\n| Widget | Useful device |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "| name | description |\n| --- | --- |\n| Widget | Useful device |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-name_description-text-markdown-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | description |\n| --- | --- |\n| Widget | Useful device |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "| name | description |\n| --- | --- |\n| Widget | Useful device |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-name_description-text-plain_text-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget\nUseful device"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "Widget\nUseful device",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-name_description-text-plain_text-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget\nUseful device"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "Widget\nUseful device",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-taxonomy_family-css-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| family |\n| --- |\n| Newidae |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>family</th></tr><tr><td>Newidae</td></tr></table></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-taxonomy_family-css-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| family |\n| --- |\n| Newidae |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<main><table><tr><th>family</th></tr><tr><td>Newidae</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-taxonomy_family-css-mixed-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| family |\n| --- |\n| Newidae |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>family</th></tr><tr><td>Newidae</td></tr></table></div><main><table><tr><th>family</th></tr><tr><td>Oldidae</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-taxonomy_family-css-mixed-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| family |\n| --- |\n| Newidae |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>family</th></tr><tr><td>Oldidae</td></tr></table></div><main><table><tr><th>family</th></tr><tr><td>Newidae</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-taxonomy_family-text-html-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| family |\n| --- |\n| Newidae |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>family</th></tr><tr><td>Newidae</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-taxonomy_family-text-html-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| family |\n| --- |\n| Newidae |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Newidae"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>family</th></tr><tr><td>Newidae</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-taxonomy_family-text-markdown-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| family |\n| --- |\n| Newidae |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "| family |\n| --- |\n| Newidae |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-taxonomy_family-text-markdown-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| family |\n| --- |\n| Newidae |"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Newidae"
+            ]
+          }
+        }
+      },
+      "artifact": "| family |\n| --- |\n| Newidae |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-taxonomy_family-text-plain_text-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Newidae"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "Newidae",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-taxonomy_family-text-plain_text-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Newidae"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Newidae"
+            ]
+          }
+        }
+      },
+      "artifact": "Newidae",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-table_row-css-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "name",
+              "type": "text"
+            },
+            {
+              "name": "price",
+              "label": "price",
+              "type": "currency_usd"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": "table tr",
+            "cell_selector": "td",
+            "start_pattern": "^name$",
+            "end_pattern": "^Footer$",
+            "plain_row_pattern": "(?P<name>[^\\t]+)\\t(?P<price>\\$\\d+)"
+          },
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>name</th><th>price</th></tr><tr><td>Widget</td><td>$10</td></tr></table></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-table_row-css-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "name",
+              "type": "text"
+            },
+            {
+              "name": "price",
+              "label": "price",
+              "type": "currency_usd"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": "table tr",
+            "cell_selector": "td",
+            "start_pattern": "^name$",
+            "end_pattern": "^Footer$",
+            "plain_row_pattern": "(?P<name>[^\\t]+)\\t(?P<price>\\$\\d+)"
+          },
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<main><table><tr><th>name</th><th>price</th></tr><tr><td>Widget</td><td>$10</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-table_row-css-mixed-excluded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "name",
+              "type": "text"
+            },
+            {
+              "name": "price",
+              "label": "price",
+              "type": "currency_usd"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": "table tr",
+            "cell_selector": "td",
+            "start_pattern": "^name$",
+            "end_pattern": "^Footer$",
+            "plain_row_pattern": "(?P<name>[^\\t]+)\\t(?P<price>\\$\\d+)"
+          },
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>name</th><th>price</th></tr><tr><td>Widget</td><td>$10</td></tr></table></div><main><table><tr><th>name</th><th>price</th></tr><tr><td>Other</td><td>$10</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-table_row-css-mixed-included",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "name",
+              "type": "text"
+            },
+            {
+              "name": "price",
+              "label": "price",
+              "type": "currency_usd"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": "table tr",
+            "cell_selector": "td",
+            "start_pattern": "^name$",
+            "end_pattern": "^Footer$",
+            "plain_row_pattern": "(?P<name>[^\\t]+)\\t(?P<price>\\$\\d+)"
+          },
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><table><tr><th>name</th><th>price</th></tr><tr><td>Other</td><td>$10</td></tr></table></div><main><table><tr><th>name</th><th>price</th></tr><tr><td>Widget</td><td>$10</td></tr></table></main>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "anchor-scope-table_row-text-html-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "name",
+              "type": "text"
+            },
+            {
+              "name": "price",
+              "label": "price",
+              "type": "currency_usd"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": "table tr",
+            "cell_selector": "td",
+            "start_pattern": "^name$",
+            "end_pattern": "^Footer$",
+            "plain_row_pattern": "(?P<name>[^\\t]+)\\t(?P<price>\\$\\d+)"
+          },
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>name</th><th>price</th></tr><tr><td>Widget</td><td>$10</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-table_row-text-html-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "name",
+              "type": "text"
+            },
+            {
+              "name": "price",
+              "label": "price",
+              "type": "currency_usd"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": "table tr",
+            "cell_selector": "td",
+            "start_pattern": "^name$",
+            "end_pattern": "^Footer$",
+            "plain_row_pattern": "(?P<name>[^\\t]+)\\t(?P<price>\\$\\d+)"
+          },
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "<table><tr><th>name</th><th>price</th></tr><tr><td>Widget</td><td>$10</td></tr></table>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-table_row-text-markdown-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "name",
+              "type": "text"
+            },
+            {
+              "name": "price",
+              "label": "price",
+              "type": "currency_usd"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": "table tr",
+            "cell_selector": "td",
+            "start_pattern": "^name$",
+            "end_pattern": "^Footer$",
+            "plain_row_pattern": "(?P<name>[^\\t]+)\\t(?P<price>\\$\\d+)"
+          },
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "| name | price |\n| --- | --- |\n| Widget | $10 |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-table_row-text-markdown-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "| name | price |\n| --- | --- |\n| Widget | $10 |"
+              ]
+            }
+          ],
+          "table_columns": [
+            {
+              "name": "name",
+              "label": "name",
+              "type": "text"
+            },
+            {
+              "name": "price",
+              "label": "price",
+              "type": "currency_usd"
+            }
+          ],
+          "record_identity_fields": [
+            "name"
+          ],
+          "table_scope": {
+            "row_selector": "table tr",
+            "cell_selector": "td",
+            "start_pattern": "^name$",
+            "end_pattern": "^Footer$",
+            "plain_row_pattern": "(?P<name>[^\\t]+)\\t(?P<price>\\$\\d+)"
+          },
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "| name | price |\n| --- | --- |\n| Widget | $10 |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-product-reported-card",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget\n$10"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\">Widget<br>$10</div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-product-inline-split",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget\n$10"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "<article><p>Wid<strong>get</strong></p><p>$10</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-product-cross-field",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget\n$10"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget\\s+\\$10"
+            ]
+          }
+        }
+      },
+      "artifact": "<article><p>Widget</p><p>$10</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-product-encoded",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget\n$10"
+              ]
+            }
+          ],
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "<article><p>Wid&#103;et</p><p>$10</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-named_link-css-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget"
+              ]
+            }
+          ],
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/[a-z]+",
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"included\"><article><a href=\"https://example.test/item/widget\">Widget</a></article></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-named_link-text-html-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget"
+              ]
+            }
+          ],
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/[a-z]+",
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "<article><a href=\"https://example.test/item/widget\">Widget</a></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-named_link-text-markdown-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget"
+              ]
+            }
+          ],
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/[a-z]+",
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "[Widget](https://example.test/item/widget)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-named_link-css-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget"
+              ]
+            }
+          ],
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/[a-z]+",
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><article><a href=\"https://example.test/item/widget\">Widget</a></article></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-named_link-text-html-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget"
+              ]
+            }
+          ],
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/[a-z]+",
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "<article><a href=\"https://example.test/item/widget\">Widget</a></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-named_link-text-markdown-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget"
+              ]
+            }
+          ],
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/[a-z]+",
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "[Widget](https://example.test/item/widget)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-linked_product-css-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget"
+              ]
+            }
+          ],
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/[a-z]+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"included\"><article><a href=\"https://example.test/item/widget\">Widget</a><p>$10</p></article></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-linked_product-text-html-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget"
+              ]
+            }
+          ],
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/[a-z]+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "<article><a href=\"https://example.test/item/widget\">Widget</a><p>$10</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-linked_product-text-markdown-False",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget"
+              ]
+            }
+          ],
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/[a-z]+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "text_exclusions": {
+            "text_patterns": [
+              "Absent token"
+            ]
+          }
+        }
+      },
+      "artifact": "[Widget](https://example.test/item/widget)\n$10",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-linked_product-css-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget"
+              ]
+            }
+          ],
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/[a-z]+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "text_exclusions": {
+            "html_selectors": [
+              ".excluded"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"excluded\"><article><a href=\"https://example.test/item/widget\">Widget</a><p>$10</p></article></div>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-linked_product-text-html-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget"
+              ]
+            }
+          ],
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/[a-z]+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "<article><a href=\"https://example.test/item/widget\">Widget</a><p>$10</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "anchor-scope-linked_product-text-markdown-True",
+      "root_cause": "4409310348",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [
+            {
+              "id": "record",
+              "alternatives": [
+                "Widget"
+              ]
+            }
+          ],
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/[a-z]+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "text_exclusions": {
+            "text_patterns": [
+              "Widget"
+            ]
+          }
+        }
+      },
+      "artifact": "[Widget](https://example.test/item/widget)\n$10",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
     }
   ]
 }
