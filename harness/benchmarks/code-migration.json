@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "fcd65afc089222d0dbcbc6c7646ac61266c8b60dd03835dd4eae3e9da109a6ed"
+          "after_sha256": "4d9ef25c193b7f12d0f3d8404e4d2435daeb24e1bc58750eda3a8816a7abd4d0"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -3424,6 +3424,56 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_linked_contract_validation.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "labeled-reviews-labeled-markdown",
+            "labeled-reviews-labeled-html",
+            "labeled-reviews-labeled-plain_text",
+            "labeled-reviews-labeled-None",
+            "labeled-reviews-zero-markdown",
+            "labeled-reviews-zero-html",
+            "labeled-reviews-zero-plain_text",
+            "labeled-reviews-zero-None",
+            "labeled-reviews-labeled-suffix-markdown",
+            "labeled-reviews-labeled-suffix-html",
+            "labeled-reviews-labeled-suffix-plain_text",
+            "labeled-reviews-labeled-suffix-None",
+            "labeled-reviews-native-markdown",
+            "labeled-reviews-native-html",
+            "labeled-reviews-native-plain_text",
+            "labeled-reviews-native-None",
+            "labeled-reviews-singular-markdown",
+            "labeled-reviews-singular-html",
+            "labeled-reviews-singular-plain_text",
+            "labeled-reviews-singular-None",
+            "labeled-reviews-bare-number-markdown",
+            "labeled-reviews-bare-number-html",
+            "labeled-reviews-bare-number-plain_text",
+            "labeled-reviews-bare-number-None",
+            "labeled-reviews-negative-markdown",
+            "labeled-reviews-negative-html",
+            "labeled-reviews-negative-plain_text",
+            "labeled-reviews-negative-None",
+            "labeled-reviews-fraction-markdown",
+            "labeled-reviews-fraction-html",
+            "labeled-reviews-fraction-plain_text",
+            "labeled-reviews-fraction-None",
+            "labeled-reviews-word-markdown",
+            "labeled-reviews-word-html",
+            "labeled-reviews-word-plain_text",
+            "labeled-reviews-word-None",
+            "labeled-reviews-rating-markdown",
+            "labeled-reviews-rating-html",
+            "labeled-reviews-rating-plain_text",
+            "labeled-reviews-rating-None"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_labeled_review_counts.py"
           ]
         }
       ]

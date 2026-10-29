@@ -70102,6 +70102,1146 @@
       "expected_metrics": {
         "stable_complete_record_count": 0
       }
+    },
+    {
+      "id": "labeled-reviews-labeled-markdown",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: 5",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "5"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-labeled-html",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<article><p>Title: Coat</p><p>Price: $19</p><p>Description: Warm winter coat</p><p>Reviews: 5</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "5"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-labeled-plain_text",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: 5",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "5"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-labeled-None",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: 5",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "5"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-zero-markdown",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nREVIEWS : 0",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "0"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-zero-html",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<article><p>Title: Coat</p><p>Price: $19</p><p>Description: Warm winter coat</p><p>REVIEWS : 0</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "0"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-zero-plain_text",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nREVIEWS : 0",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "0"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-zero-None",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nREVIEWS : 0",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "0"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-labeled-suffix-markdown",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: 5 reviews",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "5"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-labeled-suffix-html",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<article><p>Title: Coat</p><p>Price: $19</p><p>Description: Warm winter coat</p><p>Reviews: 5 reviews</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "5"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-labeled-suffix-plain_text",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: 5 reviews",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "5"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-labeled-suffix-None",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: 5 reviews",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "5"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-native-markdown",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\n5 reviews",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "5"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-native-html",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<article><p>Title: Coat</p><p>Price: $19</p><p>Description: Warm winter coat</p><p>5 reviews</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "5"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-native-plain_text",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\n5 reviews",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "5"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-native-None",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\n5 reviews",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "5"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-singular-markdown",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\n1 review",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "1"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-singular-html",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<article><p>Title: Coat</p><p>Price: $19</p><p>Description: Warm winter coat</p><p>1 review</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "1"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-singular-plain_text",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\n1 review",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "1"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-singular-None",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\n1 review",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1,
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "1"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "labeled-reviews-bare-number-markdown",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\n5",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-bare-number-html",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<article><p>Title: Coat</p><p>Price: $19</p><p>Description: Warm winter coat</p><p>5</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-bare-number-plain_text",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\n5",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-bare-number-None",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\n5",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-negative-markdown",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: -1",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-negative-html",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<article><p>Title: Coat</p><p>Price: $19</p><p>Description: Warm winter coat</p><p>Reviews: -1</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-negative-plain_text",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: -1",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-negative-None",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: -1",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-fraction-markdown",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: 5.5",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-fraction-html",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<article><p>Title: Coat</p><p>Price: $19</p><p>Description: Warm winter coat</p><p>Reviews: 5.5</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-fraction-plain_text",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: 5.5",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-fraction-None",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: 5.5",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-word-markdown",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: five",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-word-html",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<article><p>Title: Coat</p><p>Price: $19</p><p>Description: Warm winter coat</p><p>Reviews: five</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-word-plain_text",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: five",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-word-None",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: five",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-rating-markdown",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: 5 stars",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-rating-html",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "<article><p>Title: Coat</p><p>Price: $19</p><p>Description: Warm winter coat</p><p>Reviews: 5 stars</p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-rating-plain_text",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: 5 stars",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "labeled-reviews-rating-None",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "Explicit review labels own numeric counts; unlabelled numbers cannot supply a catalog review field.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Title: Coat\nPrice: $19\nDescription: Warm winter coat\nReviews: 5 stars",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
     }
   ]
 }

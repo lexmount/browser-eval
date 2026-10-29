@@ -552,9 +552,11 @@ def _products(lines, schema, *, literal=False):
                 if levels[end] is not None and levels[end] <= level:
                     break
                 line = lines[end]
-                count = re.fullmatch(r"(?:reviews\s*:\s*)?(\d+)\s*reviews?", line, re.I)
-                if count:
-                    fields["reviews"] = count[1]
+                count = _field(line, 'reviews')
+                labeled = re.match(rf"^(?:{_LABELS['reviews']})\s*:", line, re.I)
+                if (_valid_field('reviews', count)
+                        and (labeled or re.fullmatch(r"\d+\s*reviews?", line, re.I))):
+                    fields["reviews"] = re.match(r"\d+", count)[0]
                     end += 1
                     break
                 # Stop before any subsequent card, rather than borrowing its
