@@ -637,6 +637,17 @@ def task_measured(metrics: dict, task_kind: str | None = None) -> bool:
     return kind != 'file' or isinstance(metrics.get('raw_file_pass'), bool)
 
 
+def quoted_scalar_equivalence(value: str) -> str:
+    """Unify an existing quoted YAML scalar with its JSON key/value notation."""
+    def quoted_pair(match):
+        import json
+        key, scalar = match[1], match[2]
+        payload = scalar[1:-1].replace("''", "'")
+        return json.dumps(key, ensure_ascii=False) + ": " + json.dumps(payload, ensure_ascii=False)
+    return re.sub(r"(?m)^[ \t]*([a-z_][a-z0-9_.-]*)[ \t]*:[ \t]*('(?:[^'\n]|'')*')[ \t]*$",
+                  quoted_pair, value)
+
+
 def normalize_for_match(value: str, *, representation=None) -> str:
     from .reference_quality import clean_reference_text, visible_markdown_links, normalize_native_markdown_layout
     if representation is None:
@@ -706,13 +717,7 @@ def normalize_for_match(value: str, *, representation=None) -> str:
     # plain-text DOM extraction may put every menu label on a separate line.
     # Preserve an existing quoted scalar's exact key/value while unifying
     # JSON and YAML notation before layout whitespace is folded away.
-    def quoted_pair(match):
-        import json
-        key, scalar = match[1], match[2]
-        value = scalar[1:-1].replace("''", "'")
-        return json.dumps(key, ensure_ascii=False) + ": " + json.dumps(value, ensure_ascii=False)
-    normalized = re.sub(r"(?m)^[ \t]*([a-z_][a-z0-9_.-]*)[ \t]*:[ \t]*('(?:[^'\n]|'')*')[ \t]*$",
-                        quoted_pair, normalized)
+    normalized = quoted_scalar_equivalence(normalized)
     normalized = re.sub(r"\s+", " ", normalized).strip()
     # A serializer may leave layout whitespace before sentence punctuation at
     # an inline-link boundary. Never bridge a digit to punctuation: doing so

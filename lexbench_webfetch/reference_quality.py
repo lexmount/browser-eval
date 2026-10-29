@@ -675,7 +675,14 @@ def visible_markdown_links(text: str, *, include_image_alt: bool = False) -> str
     # ``</docs/start>`` renders as ``/docs/start``.  Require a second path
     # segment so raw HTML closing tags such as ``</div>`` remain markup rather
     # than becoming evidence-bearing prose.
-    return re.sub(r"<((?:/[^<>\s/]+){2,}(?:[?#][^<>\s]*)?)>", r"\1", visible)
+    relative_autolink = re.compile(r"<((?:/[^<>\s/]+){2,}(?:[?#][^<>\s]*)?)>")
+    if not relative_autolink.search(visible):
+        return visible
+    visible_literals = markdown_literal_spans(visible)
+    return relative_autolink.sub(
+        lambda match: match[0] if any(left <= match.start() < right for left, right in visible_literals) else match[1],
+        visible,
+    )
 
 
 def visible_mixed_html_text(text: str, *, excluded_html_selectors=()) -> str:

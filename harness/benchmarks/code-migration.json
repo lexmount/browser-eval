@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "8aff8779472f171a4b204dd571a6849e46bf3a48bea055f560933e8432feddc7"
+          "after_sha256": "badadf9b196a53001d5e40861106c373c4ff8475fa36ae81def0d47bd24c6bcf"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -80,7 +80,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "6c17c10c9fba0e4de3a79c8256f4cf37f725419dc3bd9dfc00896f1ad205784c"
+          "after_sha256": "d575a72b30df6e0e52c0486d6bf2971646516663ac0413566d264afdce91891b"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "7ab07b4c492404b304564b40c9bbf69dd198ebe36f189a1a5bb7224783ae1cad"
+          "after_sha256": "bc6afac370980780a098f92813a0686c12f27b9dc4cac35ade082ddab9b62053"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -2240,6 +2240,53 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_heading_cards_and_anchor_or.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "round21-relative-autolink-inline-literal",
+            "round21-relative-autolink-inline-not-autolink",
+            "round21-relative-autolink-fenced-literal",
+            "round21-relative-autolink-fenced-not-autolink",
+            "round21-relative-autolink-indented-literal",
+            "round21-relative-autolink-link-label-literal",
+            "round21-relative-autolink-actual-autolink",
+            "round21-relative-autolink-actual-autolink-not-code"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_relative_autolink_literals.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py",
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "code21-inline-literal-&amp;",
+            "code21-inline-not-decoded",
+            "code21-fence-literal-&amp;",
+            "code21-fence-not-decoded",
+            "code21-prose-&amp;",
+            "code21-prose-not-double-decoded",
+            "code21-fence-trailing-backslash",
+            "code21-inline-soft-line-backslash",
+            "code21-prose-new-escaped-stars",
+            "code21-prose-new-escaped-stars-distinct",
+            "code21-prose-new-real-emphasis",
+            "code21-prose-new-named-stars",
+            "code21-prose-new-named-stars-distinct",
+            "code21-prose-new-numeric-stars",
+            "code21-prose-new-escaped-amp",
+            "code21-prose-new-escaped-amp-distinct",
+            "code21-prose-new-emitted-ticks",
+            "code21-prose-new-emitted-ticks-distinct"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_code_entity_visibility.py"
           ]
         }
       ]

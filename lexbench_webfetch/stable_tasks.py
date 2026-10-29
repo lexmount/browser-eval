@@ -253,16 +253,45 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
     text = clean_reference_text(text)
     if projected_html or representation == 'html':
         return text.replace('\r\n', '\n')
+    from .reference_quality import markdown_literal_spans
+    literals = {}
+    marker = '\ue026stable-code'
+    while marker in text or marker in unescape(text):
+        marker += '-'
+    body_view = schema in {None, 'body_text', 'page_identity'}
+    spans = (_markdown_code_payloads(text) if body_view else
+             [(start, end, text[start:end]) for start, end in markdown_literal_spans(text)])
+    for start, end, payload in reversed(spans):
+        token = marker + str(len(literals)) + '\ue027'
+        literals[token] = payload
+        text = text[:start] + token + text[end:]
+    from .reference_quality import _markdown_unescape
+    def rendered_literal(match):
+        raw = match[0]
+        punctuation = match[1]
+        if punctuation is not None:
+            if schema == 'table_row' and punctuation in {'|', '\\'}:
+                return raw
+            if punctuation == '\\' and re.match(r'[ \t]*\n', text[match.end():]):
+                return raw
+        elif normalized_html:
+            return raw
+        value = _markdown_unescape(raw)
+        if value == raw:
+            return raw
+        token = marker + str(len(literals)) + '\ue027'
+        literals[token] = value
+        return token
+    text = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])'
+                  r'|&(?:#[xX][0-9a-fA-F]+|#\d+|[A-Za-z][A-Za-z0-9]*);',
+                  rendered_literal, text)
     # An actual inline HTML break in Markdown is layout. Preserve escaped
     # markup and code spans, and decode character references only afterward.
     text = re.sub(r'(`+|~{3,}).*?\1|(?<!\\)<br\s*/?>' if schema != "table_row" and not normalized_html else r'(`+|~{3,}).*?\1',
                   lambda m: m.group(0) if m.group(1) else " ", text,
                   flags=re.I | re.S)
-    # Decode one character-reference layer, as a browser does for both HTML
-    # and Markdown. In particular, ``&amp;`` is the visible ``&`` while an
-    # intentionally escaped ``&amp;amp;`` remains the literal text ``&amp;``.
-    if not projected_html and not normalized_html:
-        text = unescape(text)
+    # Escaped punctuation and references above are decoded once and restored
+    # after formatting; their emitted characters cannot introduce Markdown.
     # Extractors represent Markdown hard breaks using one or two backslashes.
     text = re.sub(r"\\{1,2}[ \t]*(?=\n)", "", text)
     text = (visible_markdown_links(without_markdown_images(text))
@@ -287,6 +316,8 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
     # text as ordinary emphasis, without flattening other punctuation.
     text = re.sub(r"(?<!\w)([*_])\s*([^\n]*?\S)\s*\1(?!\w)", r"\2", text)
     # Preserve newlines: flattening them would let one card borrow another's fields.
+    for token, literal in literals.items():
+        text = text.replace(token, literal)
     return text.replace("\r\n", "\n")
 
 
@@ -912,25 +943,27 @@ def _non_record_visible(content, contract, records, base_url, *, representation=
     return None
 
 
-def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundaries=False, representation=None):
+def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundaries=False, representation=None, rendered=False):
     """An atomic Latin label is a word, not part of another word.
 
     Native camel boundaries and fully covered chains of registered labels
     preserve adjacent UI text without accepting arbitrary word fragments.
     Longer declared text retains the existing exact-phrase containment rule.
     """
-    from .metrics import WORD_CHARACTERS, fact_in_text, normalize_for_match as normalize
+    from .metrics import WORD_CHARACTERS, fact_in_text, normalize_for_match as normalize, quoted_scalar_equivalence
     from .reference_quality import visible_markdown_links
-    normalize_for_match = lambda text: normalize(
-        text, representation='plain_text' if representation == 'html' else representation)
-    if representation not in {'plain_text', 'html'}:
+    def normalize_for_match(text):
+        if rendered and representation not in {'plain_text', 'html'}:
+            text = quoted_scalar_equivalence(unicodedata.normalize('NFKC', text).casefold())
+        return normalize(text, representation='plain_text' if rendered or representation == 'html' else representation)
+    if not rendered and representation not in {'plain_text', 'html'}:
         surface = visible_markdown_links(surface)
     surface = re.sub(r'(?<=[^\W\d_])(?=\d+\s+of\s+\d+\b)', ' ', surface)
     expected_value = _visible(value, representation='plain_text' if representation == 'html' else representation)
     expected = normalize_for_match(expected_value)
     # Only an explicit heading with a trailing fragment URL can supply this
     # additional surface; ordinary word suffixes remain significant.
-    if representation not in {'plain_text', 'html'}:
+    if not rendered and representation not in {'plain_text', 'html'}:
         surface = re.sub(r'(?m)^(#{1,6}\s+[^\n]+?)https?://[^\s]+#[^\s]*[ \t]*$',
                          r'\1', surface)
     folded = normalize_for_match(surface)
@@ -1084,7 +1117,8 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
     folded = normalize_for_match(anchor_visible if anchor_visible is not None else visible)
     return [value for value in anchor["alternatives"]
             if _stable_literal_match(anchor_visible if anchor_visible is not None else visible,
-                                     value, registered_words, representation=representation)]
+                                     value, registered_words, representation=representation,
+                                     rendered=schema in {'body_text', 'page_identity'})]
 
 
 def _native_link_label_surface(content, exclusions):
@@ -1422,14 +1456,13 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError("Invalid stable acceptance regex") from error
 
 
-def _pattern_text_surface(text, *, representation=None):
-    """Render code delimiters after visibility parsing, keeping literal payloads."""
-    if representation in {'plain_text', 'html'}:
-        return text
+def _markdown_code_payloads(text):
+    """Read displayed code payloads once, retaining their source ownership."""
     from .reference_quality import markdown_indented_code_contents, markdown_literal_spans
 
     indented = markdown_indented_code_contents(text)
-    for start, end in reversed(markdown_literal_spans(text)):
+    spans = []
+    for start, end in markdown_literal_spans(text):
         literal = text[start:end]
         opening = re.match(r'^ {0,3}(`{3,}|~{3,})([^\r\n]*)(?:\r?\n|$)', literal)
         if (start, end) in indented:
@@ -1445,6 +1478,15 @@ def _pattern_text_surface(text, *, representation=None):
             payload = literal[width:-width].replace('\n', ' ')
             if payload.startswith(' ') and payload.endswith(' ') and payload.strip(' '):
                 payload = payload[1:-1]
+        spans.append((start, end, payload))
+    return spans
+
+
+def _pattern_text_surface(text, *, representation=None):
+    """Render code delimiters only for a source view, not completed visible text."""
+    if representation in {'plain_text', 'html'}:
+        return text
+    for start, end, payload in reversed(_markdown_code_payloads(text)):
         text = text[:start] + payload + text[end:]
     return text
 
@@ -1479,6 +1521,15 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     minimum, maximum = contract["minimum_records"], contract.get("maximum_records")
     patterns = contract.get("page_patterns", [])
     visible = _visible(content, schema, representation=representation)
+    if schema in {'body_text', 'page_identity'} and not native_html and anchor_text is not None:
+        from .reference_quality import markdown_literal_spans
+        prose_markup = content
+        for start, end in reversed(markdown_literal_spans(content)):
+            prose_markup = prose_markup[:start] + ' ' + prose_markup[end:]
+        if not re.search(r'(?<!\\)</?[A-Za-z][\w:-]*(?:\s|/?>)', prose_markup):
+            # An entity-only projection is not a rendered HTML view. Decode
+            # the original Markdown once so emitted punctuation stays literal.
+            anchor_text = None
     # HTML normalization can also decode entities in Markdown. Preserve its
     # explicit link boundaries before matching atomic page labels.
     anchor_visible = _visible(
@@ -1533,7 +1584,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     text_surfaces = [text_surface]
     if original_markdown_visible is not None:
         text_surfaces.append(original_markdown_visible)
-    pattern_representation = ('plain_text' if representation == 'html' or native_html_surface(content)
+    completed_body_view = schema in {'body_text', 'page_identity'}
+    pattern_representation = ('plain_text' if completed_body_view or representation == 'html' or native_html_surface(content)
                               else representation)
     pattern_surfaces = [_pattern_text_surface(surface, representation=pattern_representation)
                         for surface in text_surfaces] if patterns else []
@@ -1541,7 +1593,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                                                for surface in pattern_surfaces)} for p in patterns]
     content_errors = (["page_identity_mismatch"] if not all(r["pass"] for r in page_results) else [])
     from .reference_quality import blocked_page_hits
-    blocked_page = bool(blocked_page_hits(text_surface, representation=representation))
+    blocked_page = bool(blocked_page_hits(text_surface, representation='plain_text' if completed_body_view else representation))
     errors = []
     if schema in {"named_link", "linked_product"}:
         link_diagnostics = []

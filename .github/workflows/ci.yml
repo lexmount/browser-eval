@@ -34,7 +34,13 @@ jobs:
           node-version: "22"
           cache: npm
       - run: make setup-test
+<<<<<<< HEAD
       - run: make ci-tests PYTEST_ARGS='-n 2 --dist loadfile --durations=20'
+=======
+      - name: Verify shared review guidance
+        run: uv run --frozen --no-sync python scripts/review_guidelines.py check
+      - run: make ci-tests PYTEST_ARGS='-n 4 --dist loadfile --durations=20'
+>>>>>>> 7fdd8a7 (fix(scoring): preserve rendered Markdown literals)
 
   package:
     name: Installation and packaging

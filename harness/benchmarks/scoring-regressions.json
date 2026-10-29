@@ -42390,6 +42390,596 @@
       },
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "round21-relative-autolink-inline-literal",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^</docs/start>$"
+          ]
+        }
+      },
+      "artifact": "`</docs/start>`",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Root-relative angle autolinks are projected only outside existing literal spans after link-label projection. Inline/fenced/indented code retains visible angles; earlier link rewrites cannot shift literal ownership, and actual autolinks still expose their paths."
+    },
+    {
+      "id": "round21-relative-autolink-inline-not-autolink",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^/docs/start$"
+          ]
+        }
+      },
+      "artifact": "`</docs/start>`",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Root-relative angle autolinks are projected only outside existing literal spans after link-label projection. Inline/fenced/indented code retains visible angles; earlier link rewrites cannot shift literal ownership, and actual autolinks still expose their paths."
+    },
+    {
+      "id": "round21-relative-autolink-fenced-literal",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^</docs/start>$"
+          ]
+        }
+      },
+      "artifact": "```text\n</docs/start>\n```",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Root-relative angle autolinks are projected only outside existing literal spans after link-label projection. Inline/fenced/indented code retains visible angles; earlier link rewrites cannot shift literal ownership, and actual autolinks still expose their paths."
+    },
+    {
+      "id": "round21-relative-autolink-fenced-not-autolink",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^/docs/start$"
+          ]
+        }
+      },
+      "artifact": "```text\n</docs/start>\n```",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Root-relative angle autolinks are projected only outside existing literal spans after link-label projection. Inline/fenced/indented code retains visible angles; earlier link rewrites cannot shift literal ownership, and actual autolinks still expose their paths."
+    },
+    {
+      "id": "round21-relative-autolink-indented-literal",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^</docs/start>$"
+          ]
+        }
+      },
+      "artifact": "    </docs/start>",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Root-relative angle autolinks are projected only outside existing literal spans after link-label projection. Inline/fenced/indented code retains visible angles; earlier link rewrites cannot shift literal ownership, and actual autolinks still expose their paths."
+    },
+    {
+      "id": "round21-relative-autolink-link-label-literal",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^</docs/start>$"
+          ]
+        }
+      },
+      "artifact": "[`</docs/start>`](/other)",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Root-relative angle autolinks are projected only outside existing literal spans after link-label projection. Inline/fenced/indented code retains visible angles; earlier link rewrites cannot shift literal ownership, and actual autolinks still expose their paths."
+    },
+    {
+      "id": "round21-relative-autolink-actual-autolink",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^/docs/start$"
+          ]
+        }
+      },
+      "artifact": "</docs/start>",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Root-relative angle autolinks are projected only outside existing literal spans after link-label projection. Inline/fenced/indented code retains visible angles; earlier link rewrites cannot shift literal ownership, and actual autolinks still expose their paths."
+    },
+    {
+      "id": "round21-relative-autolink-actual-autolink-not-code",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^</docs/start>$"
+          ]
+        }
+      },
+      "artifact": "</docs/start>",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Root-relative angle autolinks are projected only outside existing literal spans after link-label projection. Inline/fenced/indented code retains visible angles; earlier link rewrites cannot shift literal ownership, and actual autolinks still expose their paths."
+    },
+    {
+      "id": "code21-inline-literal-&amp;",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^\\&amp;\\s*$"
+          ]
+        }
+      },
+      "artifact": "`&amp;`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "code21-inline-not-decoded",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^\\&\\s*$"
+          ]
+        }
+      },
+      "artifact": "`&amp;`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "code21-fence-literal-&amp;",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^\\&amp;\\s*$"
+          ]
+        }
+      },
+      "artifact": "```text\n&amp;\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "code21-fence-not-decoded",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^\\&\\s*$"
+          ]
+        }
+      },
+      "artifact": "```text\n&amp;\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "code21-prose-&amp;",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^\\&\\s*$"
+          ]
+        }
+      },
+      "artifact": "&amp;",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "code21-prose-not-double-decoded",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^\\&\\s*$"
+          ]
+        }
+      },
+      "artifact": "&amp;amp;",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "code21-fence-trailing-backslash",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^path\\\\\\\nnext\\s*$"
+          ]
+        }
+      },
+      "artifact": "```text\npath\\\nnext\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "code21-inline-soft-line-backslash",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^path\\\\\\ next\\s*$"
+          ]
+        }
+      },
+      "artifact": "`path\\\nnext`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "code21-prose-new-escaped-stars",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^\\*literal\\*\\s*$"
+          ]
+        }
+      },
+      "artifact": "\\*literal\\*",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "code21-prose-new-escaped-stars-distinct",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^literal\\s*$"
+          ]
+        }
+      },
+      "artifact": "\\*literal\\*",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "code21-prose-new-real-emphasis",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^literal\\s*$"
+          ]
+        }
+      },
+      "artifact": "*literal*",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "code21-prose-new-named-stars",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^\\*literal\\*\\s*$"
+          ]
+        }
+      },
+      "artifact": "&ast;literal&ast;",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "code21-prose-new-named-stars-distinct",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^literal\\s*$"
+          ]
+        }
+      },
+      "artifact": "&ast;literal&ast;",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "code21-prose-new-numeric-stars",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^\\*literal\\*\\s*$"
+          ]
+        }
+      },
+      "artifact": "&#42;literal&#42;",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "code21-prose-new-escaped-amp",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^\\&amp;\\s*$"
+          ]
+        }
+      },
+      "artifact": "\\&amp;",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "code21-prose-new-escaped-amp-distinct",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^\\&\\s*$"
+          ]
+        }
+      },
+      "artifact": "\\&amp;",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "code21-prose-new-emitted-ticks",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^`literal`\\s*$"
+          ]
+        }
+      },
+      "artifact": "&#96;literal&#96;",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "code21-prose-new-emitted-ticks-distinct",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal Markdown code is shielded through prose entity, escape, hard-break and formatting transforms.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^literal\\s*$"
+          ]
+        }
+      },
+      "artifact": "&#96;literal&#96;",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }
