@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "f6952d708b46555e3426f83b3b04a35957364e6f8331a8e52cb0a67804500be1"
+          "after_sha256": "7b7a0941e46599c6134bb1359680bbea9477ecec57881ed408adfd3d1a552d0e"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "68f18b77b4b252eb8a99b177c37a123f817b42b5802cf3bb34e929dfb348a7c6"
+          "after_sha256": "372d9112c7779f08bf8334ee0a4e957e01075ef98884b5a0369913228919218f"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -2805,6 +2805,114 @@
           "tests": [
             "tests/benchmarks/webfetch/test_review_nested_frame_resources.py",
             "tests/benchmarks/webfetch/test_review_markdown_body_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "review31-document-base-generic-native-image",
+            "review31-document-base-generic-no-response-alias",
+            "review31-document-base-generic-native-link",
+            "review31-document-base-generic-native-srcset",
+            "review31-document-base-generic-relative",
+            "review31-document-base-generic-empty-first",
+            "review31-document-base-generic-inert-template",
+            "review31-document-base-generic-no-inert-alias",
+            "review31-document-base-generic-hidden-base",
+            "review31-document-base-generic-metadata-response-base",
+            "review31-document-base-generic-metadata-no-document-alias",
+            "review31-document-base-generic-invalid-first",
+            "review31-document-base-image-native-image",
+            "review31-document-base-image-no-response-alias",
+            "review31-document-base-image-native-link",
+            "review31-document-base-image-native-srcset",
+            "review31-document-base-image-relative",
+            "review31-document-base-image-empty-first",
+            "review31-document-base-image-inert-template",
+            "review31-document-base-image-no-inert-alias",
+            "review31-document-base-image-hidden-base",
+            "review31-document-base-image-metadata-response-base",
+            "review31-document-base-image-metadata-no-document-alias",
+            "review31-document-base-image-invalid-first",
+            "review31-document-base-generic-base-only",
+            "review31-document-base-generic-base-real-delivery",
+            "review31-document-base-generic-frame-base-only",
+            "review31-document-base-image-base-only",
+            "review31-document-base-image-base-real-delivery",
+            "review31-document-base-image-frame-base-only"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_document_base_resources.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "record-table-product-html",
+            "record-table-product-inferred",
+            "record-table-product-markdown",
+            "record-table-product-incomplete",
+            "record-table-catalog_product-html",
+            "record-table-catalog_product-inferred",
+            "record-table-catalog_product-markdown",
+            "record-table-catalog_product-incomplete",
+            "record-table-quote-html",
+            "record-table-quote-inferred",
+            "record-table-quote-markdown",
+            "record-table-quote-incomplete",
+            "record-table-review-html",
+            "record-table-review-inferred",
+            "record-table-review-markdown",
+            "record-table-review-incomplete",
+            "record-table-name_description-html",
+            "record-table-name_description-inferred",
+            "record-table-name_description-markdown",
+            "record-table-name_description-incomplete",
+            "record-table-api_operation-html",
+            "record-table-api_operation-inferred",
+            "record-table-api_operation-markdown",
+            "record-table-api_operation-incomplete",
+            "record-table-taxonomy_family-html",
+            "record-table-taxonomy_family-inferred",
+            "record-table-taxonomy_family-markdown",
+            "record-table-taxonomy_family-incomplete",
+            "record-table-earthquake-html",
+            "record-table-earthquake-inferred",
+            "record-table-earthquake-markdown",
+            "record-table-earthquake-incomplete",
+            "record-table-header-only",
+            "record-table-hidden-row",
+            "record-table-hidden-field",
+            "record-table-hidden-table",
+            "record-table-duplicate-header",
+            "record-table-wrong-price",
+            "record-table-wrong-reviews",
+            "record-table-header-literal-markdown",
+            "record-table-missing-header",
+            "record-table-thead-td",
+            "record-table-header-repeat",
+            "record-table-split-rows",
+            "record-table-split-tables",
+            "record-table-nested-price",
+            "record-table-span-price",
+            "record-table-native-formatting",
+            "record-table-cell-markdown-table",
+            "record-table-cell-json",
+            "record-table-literal-cell-payload",
+            "record-table-plain-html-is-literal",
+            "record-table-reordered-columns",
+            "record-table-native-reference-anchor",
+            "record-table-headerless-native-card",
+            "record-table-headerless-rows-cannot-borrow",
+            "record-table-headerless-labelled-cell-card",
+            "record-table-headerless-cells-cannot-borrow"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_record_tables.py"
           ]
         }
       ]

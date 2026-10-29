@@ -180,6 +180,8 @@ def _image_answer_candidates(content: str, *, base_url: str, representation=None
         content = _mask_resource_literals_and_comments(content)
     candidates = _image_content_candidates(content, representation=representation)
     if representation != 'plain_text':
+        candidates = _html_document_resource_candidates(candidates, content, base_url)
+    if representation != 'plain_text':
         candidates.extend(_inline_frame_candidates(content, base_url=base_url, images_only=True))
     return candidates
 
@@ -214,7 +216,7 @@ def _image_content_candidates(content: str, *, representation=None) -> list[tupl
                       for tag, attrs in attributes if tag == 'img' and attrs.get('src'))
     candidates.extend((value, 'content.html_image_file')
                       for tag, attrs in attributes for key, value in attrs.items()
-                      if key in {'src', 'href'} and not (tag == 'img' and key == 'src')
+                      if tag != 'base' and key in {'src', 'href'} and not (tag == 'img' and key == 'src')
                       and _looks_like_image_url(value))
     from .resource_urls import srcset_urls
     for tag, attrs in attributes:
@@ -264,6 +266,8 @@ class _ResourceHTMLParser(HTMLParser):
     def __init__(self, source: str | None = None) -> None:
         super().__init__(convert_charrefs=True)
         self.tags: list[tuple[str, dict[str, str]]] = []
+        self.base_href: str | None = None
+        self.base_inert_contexts: list[str] = []
         self.comment_ranges: list[tuple[int, int]] = []
         self.source = source
         self.line_starts = [0] + [match.end() for match in re.finditer('\n', source or '')]
@@ -287,10 +291,24 @@ class _ResourceHTMLParser(HTMLParser):
             return end + 2 if end >= 0 else -1
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        tag = tag.casefold()
+        if tag in {'template', 'textarea', 'iframe', 'xmp', 'noembed', 'noframes', 'plaintext'}:
+            self.base_inert_contexts.append(tag)
+        if tag == 'base' and self.base_href is None and not self.base_inert_contexts:
+            for key, value in attrs:
+                if key.casefold() == 'href':
+                    self.base_href = value or ''
+                    break
         selected = {key.casefold(): value for key, value in attrs
                     if key.casefold() in {'src', 'href', 'srcset'} and value}
         if selected:
             self.tags.append((tag.casefold(), selected))
+
+    def handle_endtag(self, tag: str) -> None:
+        tag = tag.casefold()
+        if tag in self.base_inert_contexts:
+            index = len(self.base_inert_contexts) - 1 - self.base_inert_contexts[::-1].index(tag)
+            del self.base_inert_contexts[index:]
 
 
 def _native_html_comment_mask(content: str) -> str:
@@ -341,13 +359,37 @@ class _InlineFrameLimitError(ValueError):
     """A returned document exceeds the supported resource traversal scope."""
 
 
-def _inline_document_base(document: str, inherited_base: str) -> str:
-    # A srcdoc document inherits its parent's base unless its first base href
-    # declares another one. Parse source attributes once, including head data.
-    for tag, attributes in _html_resource_attributes(document):
-        if tag == 'base' and attributes.get('href'):
-            return normalize_resource_url(attributes['href'], inherited_base) or inherited_base
-    return inherited_base
+def _html_document_base(document: str, inherited_base: str) -> str:
+    # Read the first href-bearing base, including empty hrefs and head data.
+    # Hidden base elements still apply; inert/raw-text examples do not.
+    parser = _ResourceHTMLParser()
+    parser.feed(document)
+    parser.close()
+    if parser.base_href is None:
+        return inherited_base
+    try:
+        resolved = join_answer_url(inherited_base, parser.base_href.strip())
+        if urlsplit(resolved).scheme in {'javascript', 'data'}:
+            return inherited_base
+        return resolved
+    except ValueError:
+        # Native HTML makes an invalid declared base unusable for relative
+        # resources, rather than adopting a later base or the response URL.
+        return 'about:blank'
+
+
+def _html_document_resource_candidates(candidates, document: str, base_url: str):
+    if not any('.html_' in source for _, source in candidates):
+        return candidates
+    document_base = _html_document_base(document, base_url)
+    resolved = []
+    for value, source in candidates:
+        if '.html_' not in source:
+            resolved.append((value, source))
+        elif absolute := normalize_resource_url(
+                value, document_base):
+            resolved.append((absolute, source))
+    return resolved
 
 
 def _inline_frame_candidates(
@@ -360,7 +402,7 @@ def _inline_frame_candidates(
     if not re.search(r'<iframe\b', content, re.I):
         return []
     from .dynamic_lists import scoped_html
-    pending = [(content, _inline_document_base(content, base_url))]
+    pending = [(content, _html_document_base(content, base_url))]
     candidates: list[tuple[str, str]] = []
     frame_count = 0
     while pending:
@@ -382,7 +424,7 @@ def _inline_frame_candidates(
             except ValueError:
                 declared_base_is_http = False
             frame_base = declared_base if declared_base_is_http else parent_base
-            document_base = _inline_document_base(document, frame_base)
+            document_base = _html_document_base(document, frame_base)
             if images_only:
                 raw_candidates = _image_content_candidates(document, representation='html')
             else:
@@ -449,8 +491,8 @@ def _markup_resource_candidates(content: str, source: str, *, representation=Non
     from .reference_quality import markdown_link_destinations
     from .resource_urls import srcset_urls
     attributes = _html_resource_attributes(content)
-    result = [(value, source + '.html_url') for _, attrs in attributes
-              for key, value in attrs.items() if key in {'href', 'src'}]
+    result = [(value, source + '.html_url') for tag, attrs in attributes
+              for key, value in attrs.items() if tag != 'base' and key in {'href', 'src'}]
     result.extend((url, source + '.html_srcset') for tag, attrs in attributes
                   if tag in {'img', 'source'} and attrs.get('srcset')
                   for url in srcset_urls(attrs['srcset']))
@@ -484,6 +526,8 @@ def _resource_answer_candidates(content: str, *, base_url: str, source='content'
     if representation == 'markdown':
         content = _mask_resource_literals_and_comments(content)
     candidates = _markup_resource_candidates(content, source, representation=representation)
+    if representation != 'plain_text':
+        candidates = _html_document_resource_candidates(candidates, content, base_url)
     if representation != 'html':
         candidates.extend((url, source + '.visible_file') for url in _visible_relative_resource_urls(content))
     candidates.extend(_inline_frame_candidates(content, base_url=base_url, images_only=False))

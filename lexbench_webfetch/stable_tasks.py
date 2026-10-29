@@ -396,6 +396,71 @@ def _record(fields, schema):
     return {"fields": fields, "valid": not errors, "errors": errors}
 
 
+def _column_record(headers, values, schema):
+    """Apply the same field and column rules to owned Markdown or HTML rows."""
+    record = _record(dict(zip(headers, values)), schema)
+    if len(values) != len(headers) or len(headers) != len(set(headers)):
+        record["valid"] = False
+        record["errors"].append("invalid_table_columns")
+    return record
+
+
+def _html_record_tables(content, schema, *, allow_closed_title_cards=False):
+    """Read native cell ownership before any line/card projection."""
+    from .dynamic_lists import scoped_html
+    from .structured_tables import _native_cell_text, _spanning_rows, _visible_markdown_scalar
+
+    soup = scoped_html(content)
+    tables = list(soup.find_all('table'))
+    if not tables:
+        return None
+    required = set(SCHEMA_FIELDS[schema])
+    blocked = _spanning_rows(soup)
+    records = []
+    for table in tables:
+        headers = None
+        rows = [(row, row.find_all(['th', 'td'], recursive=False))
+                for row in table.find_all('tr') if row.find_parent('table') is table]
+        def header_row(row, cells):
+            return bool(cells) and (all(cell.name == 'th' for cell in cells)
+                or (row.find_parent(['thead', 'table']) or table).name == 'thead')
+        has_header = any(header_row(row, cells) for row, cells in rows)
+        for row, cells in rows:
+            if not cells:
+                continue
+            values = [_visible_markdown_scalar(_native_cell_text(cell, table)) for cell in cells]
+            if header_row(row, cells):
+                labels = [_key(value).replace('review count', 'reviews') for value in values]
+                headers = labels if required <= set(labels) and id(row) not in blocked else None
+                continue
+            if headers is not None:
+                record = _column_record(headers, values, schema)
+                if id(row) in blocked:
+                    record['valid'] = False
+                    record['errors'].append('invalid_table_columns')
+                records.append(record)
+            elif not has_header and id(row) not in blocked:
+                # Headerless layout tables can contain existing native cards.
+                # Keep each cell isolated and let the established literal card
+                # parser recognize it without interpreting cell text as markup.
+                for cell in cells:
+                    card = scoped_html(str(cell))
+                    for nested in card.find_all('table'):
+                        nested.decompose()
+                    descriptions = (_html_list_descriptions(str(card),
+                        allow_closed_title_cards=allow_closed_title_cards)
+                        if schema == 'name_description' else None)
+                    records.extend(descriptions if descriptions is not None else _parse_records(
+                        _visible(str(card), schema, representation='html'), schema, literal=True,
+                        allow_closed_title_cards=allow_closed_title_cards))
+    # Tables own their rows, including incomplete or unqualified rows. Their
+    # flattened text cannot supply an independent card or another table's data.
+    for table in reversed(tables):
+        if table.parent is not None:
+            table.decompose()
+    return records, str(soup)
+
+
 def _table_records(lines, schema):
     """Explicit Markdown table headers own their columns, including empty cells."""
     from .structured_tables import _pipe_cells, _table_header_at
@@ -415,12 +480,7 @@ def _table_records(lines, schema):
             if _table_header_at(lines, j):
                 break
             values = [x.strip() for x in _pipe_cells(lines[j])]
-            fields = dict(zip(headers, values))
-            record = _record(fields, schema)
-            if len(values) != len(headers) or len(headers) != len(set(headers)):
-                record["valid"] = False
-                record["errors"].append("invalid_table_columns")
-            records.append(record)
+            records.append(_column_record(headers, values, schema))
             occupied.add(j)
             j += 1
     return records, occupied
@@ -1088,7 +1148,12 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
             reference_literal = representation in {'plain_text', 'html'} or reference_html
             reference_representation = 'html' if reference_html else representation
             reference_visible = _visible(value, schema, representation=reference_representation)
-            expected = _parse_records(reference_visible, schema, literal=reference_literal)
+            native_tables = (_html_record_tables(value, schema)
+                             if reference_html and schema != 'linked_product' else None)
+            expected = (native_tables[0] + _parse_records(
+                _visible(native_tables[1], schema, representation='html'), schema, literal=True)
+                if native_tables is not None else
+                _parse_records(reference_visible, schema, literal=reference_literal))
             if reference_literal and not expected:
                 # A declared table alternative has its own column mapping,
                 # independent of the answer's literal line representation.
@@ -1647,23 +1712,32 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     else:
         excluded_entries = []
         source_mismatches = []
+        native_tables = (_html_record_tables(content, schema,
+                         allow_closed_title_cards=allow_closed_title_cards)
+                         if native_html and schema not in {'body_text', 'page_identity', 'table_row'}
+                         else None)
+        record_content = native_tables[1] if native_tables is not None else content
+        record_visible = (_visible(record_content, schema, representation='html')
+                          if native_tables is not None else visible)
         if schema == 'table_row':
             from .structured_tables import parse_table_records
             records = parse_table_records(content, visible, contract, representation=representation)
         elif representation != 'plain_text' and schema == 'name_description' and (html_records := _html_list_descriptions(
-                content, allow_closed_title_cards=allow_closed_title_cards)) is not None:
+                record_content, allow_closed_title_cards=allow_closed_title_cards)) is not None:
             records = html_records
         else:
             records = (
                 []
                 if schema in {"body_text", "page_identity"}
                 else _parse_records(
-                    visible,
+                    record_visible,
                     schema,
                     allow_closed_title_cards=allow_closed_title_cards,
                     literal=literal_records,
                 )
             )
+        if native_tables is not None:
+            records = native_tables[0] + records
     anchors = []
     control_soup = None
     if representation != 'plain_text' and any("visible_control" in a for a in contract.get("stable_text_anchors", [])):
