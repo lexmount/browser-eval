@@ -49628,6 +49628,1360 @@
         "fact_coverage_pass": true,
         "content_pass": true
       }
+    },
+    {
+      "id": "review29-bare-comment-generic-hidden-target",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<!-- https://example.test/target.png -->",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": []
+      }
+    },
+    {
+      "id": "review29-bare-comment-generic-hidden-noise",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "![Target](https://example.test/target.png)\n<!-- https://example.test/noise.png -->",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/target.png"
+        ]
+      }
+    },
+    {
+      "id": "review29-bare-comment-generic-escaped-opener",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "\\<!-- https://example.test/target.png -->",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/target.png"
+        ]
+      },
+      "metadata": {
+        "answer_format": "markdown"
+      }
+    },
+    {
+      "id": "review29-bare-comment-generic-code-owned-opener",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "`<!--` https://example.test/target.png",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/target.png"
+        ]
+      },
+      "metadata": {
+        "answer_format": "markdown"
+      }
+    },
+    {
+      "id": "review29-bare-comment-generic-native-code-comment",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "`<!-- https://example.test/target.png -->`",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": []
+      },
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "review29-bare-comment-generic-native-eof-comment",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<!-- unclosed\nhttps://example.test/target.png",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": []
+      },
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "review29-bare-comment-generic-quoted-attribute",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!-- https://example.test/noise.png\">https://example.test/target.png</span>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/target.png"
+        ]
+      },
+      "metadata": {
+        "answer_format": "markdown"
+      }
+    },
+    {
+      "id": "review29-bare-comment-generic-native-literal-comment",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<p>&lt;!--</p><p>https://example.test/target.png</p><p>--&gt;</p>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/target.png"
+        ]
+      },
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "review29-bare-comment-image-hidden-target",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<!-- https://example.test/target.png -->",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": []
+      }
+    },
+    {
+      "id": "review29-bare-comment-image-hidden-noise",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "![Target](https://example.test/target.png)\n<!-- https://example.test/noise.png -->",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/target.png"
+        ]
+      }
+    },
+    {
+      "id": "review29-bare-comment-image-escaped-opener",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "\\<!-- https://example.test/target.png -->",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/target.png"
+        ]
+      },
+      "metadata": {
+        "answer_format": "markdown"
+      }
+    },
+    {
+      "id": "review29-bare-comment-image-code-owned-opener",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "`<!--` https://example.test/target.png",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/target.png"
+        ]
+      },
+      "metadata": {
+        "answer_format": "markdown"
+      }
+    },
+    {
+      "id": "review29-bare-comment-image-native-code-comment",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "`<!-- https://example.test/target.png -->`",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": []
+      },
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "review29-bare-comment-image-native-eof-comment",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<!-- unclosed\nhttps://example.test/target.png",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": []
+      },
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "review29-bare-comment-image-quoted-attribute",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<span title=\"<!-- https://example.test/noise.png\">https://example.test/target.png</span>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/target.png"
+        ]
+      },
+      "metadata": {
+        "answer_format": "markdown"
+      }
+    },
+    {
+      "id": "review29-bare-comment-image-native-literal-comment",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<p>&lt;!--</p><p>https://example.test/target.png</p><p>--&gt;</p>",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/target.png"
+        ]
+      },
+      "metadata": {
+        "answer_format": "html"
+      }
+    },
+    {
+      "id": "review29-bare-comment-generic-hidden-filename",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "<!-- <manual.pdf> -->",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": []
+      }
+    },
+    {
+      "id": "review29-bare-comment-generic-visible-filename",
+      "root_cause": "4408232590",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "bare-comment-resource",
+        "name": "Visible resource answer",
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "<manual.pdf>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/manual.pdf"
+        ]
+      }
+    },
+    {
+      "id": "comment29-attribute-double-attribute-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\">https://example.test/target.png</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-double-attribute-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\">https://example.test/target.png</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-single-attribute-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title='<!--'>https://example.test/target.png</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-single-attribute-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title='<!--'>https://example.test/target.png</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-quoted-greater-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"x > <!--\">https://example.test/target.png</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-quoted-greater-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"x > <!--\">https://example.test/target.png</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-closed-attribute-comment-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!-- noise -->\">https://example.test/target.png</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-closed-attribute-comment-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!-- noise -->\">https://example.test/target.png</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-attribute-backtick-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"` <!--\">https://example.test/target.png ` tail</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-attribute-backtick-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"` <!--\">https://example.test/target.png ` tail</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-multiline-attribute-fence-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"\n<!--\n```\n\">https://example.test/target.png</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-multiline-attribute-fence-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"\n<!--\n```\n\">https://example.test/target.png</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-real-hidden-target-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\">Other</span><!-- https://example.test/target.png -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment29-attribute-real-hidden-target-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\">Other</span><!-- https://example.test/target.png -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment29-attribute-real-hidden-noise-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<span title=\"<!--\">https://example.test/target.png</span><!-- https://example.test/noise.png -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-real-hidden-noise-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<span title=\"<!--\">https://example.test/target.png</span><!-- https://example.test/noise.png -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-attribute-only-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!-- https://example.test/target.png -->\">Other</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment29-attribute-attribute-only-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!-- https://example.test/target.png -->\">Other</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment29-attribute-relative-visible-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\"><manual.pdf></span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-relative-visible-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\"><manual.pdf></span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-relative-hidden-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\">Other</span><!-- <manual.pdf> -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment29-attribute-relative-hidden-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/manual.pdf"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\">Other</span><!-- <manual.pdf> -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment29-attribute-escaped-opener-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "\\<!-- https://example.test/target.png -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-escaped-opener-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "\\<!-- https://example.test/target.png -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-code-owned-resource-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\">`[Target](https://example.test/target.png)`</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment29-attribute-code-owned-resource-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<span title=\"<!--\">`[Target](https://example.test/target.png)`</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment29-attribute-code-before-real-comment-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "`<span title=\"` <!-- https://example.test/target.png -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment29-attribute-code-before-real-comment-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "`<span title=\"` <!-- https://example.test/target.png -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment29-attribute-fence-before-real-comment-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "```\n<span title=\"\n```\n<!-- https://example.test/target.png -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment29-attribute-fence-before-real-comment-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "```\n<span title=\"\n```\n<!-- https://example.test/target.png -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment29-attribute-literal-before-attribute-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "`<!--` <span title=\"<!--\">https://example.test/target.png</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-literal-before-attribute-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "`<!--` <span title=\"<!--\">https://example.test/target.png</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment29-attribute-real-comment-owned-ticks-inferred",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<!-- <span title=\"`\"> https://example.test/target.png ` -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment29-attribute-real-comment-owned-ticks-markdown",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "HTML tag attributes own their quoted comment and fence spellings; real comments and earlier literal code retain their source-order ownership.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<!-- <span title=\"`\"> https://example.test/target.png ` -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
     }
   ]
 }

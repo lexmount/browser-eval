@@ -470,7 +470,26 @@ def _same_inline_block(text, start, end):
     return True
 
 
+def _markdown_html_tag_spans(text, *, excluded_spans=()):
+    """Use the shared HTML tokenizer to keep quoted attributes opaque."""
+    from bs4.builder import HTMLTreeBuilder
+    from .dynamic_lists import _HTMLRanges
+
+    source = list(text)
+    for left, right in excluded_spans:
+        source[left:right] = ['\n' if char == '\n' else ' ' for char in text[left:right]]
+    for escape in re.finditer(r'\\+<', text):
+        if (len(escape[0]) - 1) % 2:
+            source[escape.end() - 1] = ' '
+    source = ''.join(source)
+    parser = _HTMLRanges(source, HTMLTreeBuilder.DEFAULT_EMPTY_ELEMENT_TAGS)
+    parser.feed(source)
+    parser.close()
+    return list(parser.starts.items())
+
+
 def _next_markdown_comment(text, cursor, stop, *, excluded_spans=()):
+    tags = None
     while cursor < stop:
         opening = text.find('<!--', cursor, stop)
         if opening < 0:
@@ -482,6 +501,12 @@ def _next_markdown_comment(text, cursor, stop, *, excluded_spans=()):
         if owner is not None or (opening - escape) % 2:
             cursor = owner if owner is not None else opening + 4
             continue
+        if tags is None:
+            tags = _markdown_html_tag_spans(text, excluded_spans=excluded_spans)
+        attribute_owner = next((right for left, right in tags if left <= opening < right), None)
+        if attribute_owner is not None:
+            cursor = attribute_owner
+            continue
         closing = text.find('-->', opening + 4)
         return opening, closing + 3 if closing >= 0 else len(text)
     return None
@@ -491,16 +516,17 @@ def markdown_inline_code_spans(text, *, excluded_spans=()):
     """Locate code spans within a single inline-content block."""
     spans = []
     runs = list(re.finditer(r'`+', text))
+    tags = _markdown_html_tag_spans(text, excluded_spans=excluded_spans) if '<!--' in text else []
     consumed = comment_cursor = 0
     for index, run in enumerate(runs):
-        if run.start() < consumed or any(left <= run.start() < right for left, right in excluded_spans):
+        if run.start() < consumed or any(left <= run.start() < right for left, right in (*excluded_spans, *tags)):
             continue
         # Earlier code spans have already consumed their comment-looking text.
         # A genuine comment owns its backticks, but cannot claim a code opener
         # that precedes it in this inline block.
         while comment_cursor <= run.start():
             comment = _next_markdown_comment(text, comment_cursor, run.start() + 1,
-                                             excluded_spans=excluded_spans)
+                                             excluded_spans=(*excluded_spans, *spans))
             if comment is None:
                 break
             comment_cursor = comment[1]
@@ -518,6 +544,8 @@ def markdown_inline_code_spans(text, *, excluded_spans=()):
             spans.append((run.start(), closing.end()))
             consumed = closing.end()
             comment_cursor = consumed
+            if tags:
+                tags = _markdown_html_tag_spans(text, excluded_spans=(*excluded_spans, *spans))
     return spans
 
 
@@ -530,13 +558,17 @@ def _markdown_fenced_and_comment_spans(text):
         comment = re.match(r'^ {0,3}<!--', line)
         if fence is None and offset < comment_end:
             pass
-        elif fence is None and comment:
+        elif (fence is None and comment
+              and _next_markdown_comment(text, offset, offset + comment.end(), excluded_spans=spans)):
             closing = text.find('-->', offset + comment.end())
             comment_end = closing + 3 if closing >= 0 else len(text)
             comments.append((offset, comment_end))
         elif fence is None:
             opening = re.match(r'^ {0,3}(`{3,}|~{3,})([^\r\n]*)', line)
-            if opening and not (opening[1][0] == '`' and '`' in opening[2]):
+            if (opening and not (opening[1][0] == '`' and '`' in opening[2])
+                    and not ('<!--' in text and any(
+                        left <= offset + opening.start(1) < right
+                        for left, right in _markdown_html_tag_spans(text, excluded_spans=spans)))):
                 fence = (offset, opening[1])
         elif re.fullmatch(r' {0,3}' + re.escape(fence[1][0])
                           + '{' + str(len(fence[1])) + r',}[ \t]*(?:\r?\n)?', line):

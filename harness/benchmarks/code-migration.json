@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "6620e5c32faf65158fd973dcc3bef3c099101c588bd5d4b7d49a4b69b74e4cbf"
+          "after_sha256": "f7d16f763c96018d30a09107b87b9479b6654390e6a8fa37fb25394ea7d389da"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -80,7 +80,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "26330e66285f978cf92b8f0cfcec93da9d06f34438b4233655e29de75dbc1d5c"
+          "after_sha256": "372e0bdba8f941c4d67332129bf60009767f02d9663df783a8be3a1c41416c5e"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -2656,6 +2656,70 @@
           "tests": [
             "tests/benchmarks/webfetch/test_review_fact_coverage_precision.py",
             "tests/test_adjudication_evidence.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py",
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "review29-bare-comment-generic-hidden-target",
+            "review29-bare-comment-generic-hidden-noise",
+            "review29-bare-comment-generic-escaped-opener",
+            "review29-bare-comment-generic-code-owned-opener",
+            "review29-bare-comment-generic-native-code-comment",
+            "review29-bare-comment-generic-native-eof-comment",
+            "review29-bare-comment-generic-quoted-attribute",
+            "review29-bare-comment-generic-native-literal-comment",
+            "review29-bare-comment-image-hidden-target",
+            "review29-bare-comment-image-hidden-noise",
+            "review29-bare-comment-image-escaped-opener",
+            "review29-bare-comment-image-code-owned-opener",
+            "review29-bare-comment-image-native-code-comment",
+            "review29-bare-comment-image-native-eof-comment",
+            "review29-bare-comment-image-quoted-attribute",
+            "review29-bare-comment-image-native-literal-comment",
+            "review29-bare-comment-generic-hidden-filename",
+            "review29-bare-comment-generic-visible-filename",
+            "comment29-attribute-double-attribute-inferred",
+            "comment29-attribute-double-attribute-markdown",
+            "comment29-attribute-single-attribute-inferred",
+            "comment29-attribute-single-attribute-markdown",
+            "comment29-attribute-quoted-greater-inferred",
+            "comment29-attribute-quoted-greater-markdown",
+            "comment29-attribute-closed-attribute-comment-inferred",
+            "comment29-attribute-closed-attribute-comment-markdown",
+            "comment29-attribute-attribute-backtick-inferred",
+            "comment29-attribute-attribute-backtick-markdown",
+            "comment29-attribute-multiline-attribute-fence-inferred",
+            "comment29-attribute-multiline-attribute-fence-markdown",
+            "comment29-attribute-real-hidden-target-inferred",
+            "comment29-attribute-real-hidden-target-markdown",
+            "comment29-attribute-real-hidden-noise-inferred",
+            "comment29-attribute-real-hidden-noise-markdown",
+            "comment29-attribute-attribute-only-inferred",
+            "comment29-attribute-attribute-only-markdown",
+            "comment29-attribute-relative-visible-inferred",
+            "comment29-attribute-relative-visible-markdown",
+            "comment29-attribute-relative-hidden-inferred",
+            "comment29-attribute-relative-hidden-markdown",
+            "comment29-attribute-escaped-opener-inferred",
+            "comment29-attribute-escaped-opener-markdown",
+            "comment29-attribute-code-owned-resource-inferred",
+            "comment29-attribute-code-owned-resource-markdown",
+            "comment29-attribute-code-before-real-comment-inferred",
+            "comment29-attribute-code-before-real-comment-markdown",
+            "comment29-attribute-fence-before-real-comment-inferred",
+            "comment29-attribute-fence-before-real-comment-markdown",
+            "comment29-attribute-literal-before-attribute-inferred",
+            "comment29-attribute-literal-before-attribute-markdown",
+            "comment29-attribute-real-comment-owned-ticks-inferred",
+            "comment29-attribute-real-comment-owned-ticks-markdown"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_bare_comment_resources.py",
+            "tests/benchmarks/webfetch/test_review_comment_attribute_ownership.py"
           ]
         }
       ]

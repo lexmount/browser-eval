@@ -152,6 +152,15 @@ def _looks_like_image_url(value: str) -> bool:
     return bool(re.search(rf"\.(?:{'|'.join(IMAGE_FILE_SUFFIXES)})$", path, re.I))
 
 
+def _mask_resource_literals_and_comments(content: str) -> str:
+    """Keep source ownership stable while masking code examples and comments."""
+    from .reference_quality import markdown_literal_spans, markdown_comment_spans
+    spans = sorted(set(markdown_literal_spans(content) + markdown_comment_spans(content)))
+    for start, end in reversed(spans):
+        content = content[:start] + re.sub(r'[^\r\n]', ' ', content[start:end]) + content[end:]
+    return content
+
+
 def _image_answer_candidates(content: str, *, base_url: str, representation=None) -> list[tuple[str, str]]:
     if representation is None:
         from .reference_quality import is_html_document_or_fragment, normalize_native_markdown_layout
@@ -168,9 +177,7 @@ def _image_answer_candidates(content: str, *, base_url: str, representation=None
         if isinstance(structured, (dict, list)):
             return _native_json_image_candidates(structured, base_url=base_url)
     if representation not in {'plain_text', 'html'}:
-        from .reference_quality import markdown_literal_spans
-        for start, end in reversed(markdown_literal_spans(content)):
-            content = content[:start] + re.sub(r'[^\n]', ' ', content[start:end]) + content[end:]
+        content = _mask_resource_literals_and_comments(content)
     candidates = _image_content_candidates(content, representation=representation)
     if representation != 'plain_text':
         candidates.extend(_inline_frame_candidates(content, base_url=base_url, images_only=True))
@@ -190,6 +197,8 @@ def _literal_resource_urls(content: str) -> list[str]:
 
 
 def _image_content_candidates(content: str, *, representation=None) -> list[tuple[str, str]]:
+    if representation == 'html':
+        content = _native_html_comment_mask(content)
     has_html = representation != 'plain_text' and bool(re.search(r'''<[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', content))
     if has_html:
         from .dynamic_lists import scoped_html
@@ -219,12 +228,15 @@ def _image_content_candidates(content: str, *, representation=None) -> list[tupl
                               for url in srcset_urls(source['srcset']))
     # HTML attributes are decoded above. Do not also admit their raw entity
     # spelling as a second bare candidate; plain URL answers remain literal.
-    from .reference_quality import markdown_links
-    if has_html:
+    from .reference_quality import markdown_links, _markdown_comment_mask
+    if representation == 'html':
+        from .dynamic_lists import visible_html_text
+        bare_content = visible_html_text(content)
+    elif has_html:
         from .reference_quality import visible_mixed_html_text
         bare_content = visible_mixed_html_text(content)
     else:
-        bare_content = content
+        bare_content = content if representation == 'plain_text' else _markdown_comment_mask(content)
     markup_links = markdown_links(bare_content)
     for link in markup_links:
         if markdown and not link.is_image and _looks_like_image_url(link.destination):
@@ -249,9 +261,20 @@ def _image_content_candidates(content: str, *, representation=None) -> list[tupl
 class _ResourceHTMLParser(HTMLParser):
     """Read native HTML attributes with HTML quoting and entity semantics."""
 
-    def __init__(self) -> None:
+    def __init__(self, source: str | None = None) -> None:
         super().__init__(convert_charrefs=True)
         self.tags: list[tuple[str, dict[str, str]]] = []
+        self.comment_ranges: list[tuple[int, int]] = []
+        self.source = source
+        self.line_starts = [0] + [match.end() for match in re.finditer('\n', source or '')]
+
+    def parse_comment(self, i: int, report: int = 1) -> int:
+        end = super().parse_comment(i, report)
+        if report and self.source is not None:
+            line, column = self.getpos()
+            start = self.line_starts[line - 1] + column
+            self.comment_ranges.append((start, start + end - i if end >= 0 else len(self.source)))
+        return end
 
     def parse_marked_section(self, i: int, report: int = 1) -> int:
         # HTMLParser rejects XML conditional sections that are valid opaque
@@ -268,6 +291,23 @@ class _ResourceHTMLParser(HTMLParser):
                     if key.casefold() in {'src', 'href', 'srcset'} and value}
         if selected:
             self.tags.append((tag.casefold(), selected))
+
+
+def _native_html_comment_mask(content: str) -> str:
+    """Use the existing HTML tokenizer, including EOF comments, before projection."""
+    if '<!--' not in content:
+        return content
+    parser = _ResourceHTMLParser(content)
+    parser.feed(content)
+    parser.close()
+    pieces, cursor = [], 0
+    for start, end in sorted(set(parser.comment_ranges)):
+        if start < cursor:
+            continue
+        pieces.extend([content[cursor:start], re.sub(r'[^\r\n]', ' ', content[start:end])])
+        cursor = end
+    pieces.append(content[cursor:])
+    return ''.join(pieces)
 
 
 def _html_resource_attributes(content: str) -> list[tuple[str, dict[str, str]]]:
@@ -389,6 +429,8 @@ def _native_json_resource_candidates(
 
 def _markup_resource_candidates(content: str, source: str, *, representation=None) -> list[tuple[str, str]]:
     """Apply one HTML, Markdown and literal URL reader to each answer surface."""
+    if representation == 'html':
+        content = _native_html_comment_mask(content)
     from .reference_quality import markdown_link_destinations
     from .resource_urls import srcset_urls
     attributes = _html_resource_attributes(content)
@@ -422,10 +464,10 @@ def _resource_answer_candidates(content: str, *, base_url: str, source='content'
         from .reference_quality import is_html_document_or_fragment, normalize_native_markdown_layout
         content = normalize_native_markdown_layout(content)
         representation = 'html' if is_html_document_or_fragment(content) else 'markdown'
+    if representation == 'html':
+        content = _native_html_comment_mask(content)
     if representation == 'markdown':
-        from .reference_quality import markdown_literal_spans
-        for start, end in reversed(markdown_literal_spans(content)):
-            content = content[:start] + re.sub(r'[^\n]', ' ', content[start:end]) + content[end:]
+        content = _mask_resource_literals_and_comments(content)
     candidates = _markup_resource_candidates(content, source, representation=representation)
     if representation != 'html':
         candidates.extend((url, source + '.visible_file') for url in _visible_relative_resource_urls(content))
@@ -435,7 +477,8 @@ def _resource_answer_candidates(content: str, *, base_url: str, source='content'
 
 def _bare_resource_urls(content: str) -> list[str]:
     """Scan literal answer text once, excluding parsed link/attribute syntax."""
-    from .reference_quality import markdown_links
+    from .reference_quality import markdown_links, _markdown_comment_mask
+    content = _markdown_comment_mask(content)
     visible = re.sub(r'''</?[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''',
                      " ", content, flags=re.S)
     for link in reversed(markdown_links(visible)):

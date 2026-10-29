@@ -113,7 +113,7 @@ build-backend = "setuptools.build_meta"
 include = ["harness*", "lexbench_webfetch*", "lexbench_websearch*"]
 
 [tool.setuptools.package-data]
-"harness.benchmarks" = ["data-lock.json", "code-migration.json", "scoring-regressions.json"]
+"harness.benchmarks" = ["data-lock.json", "code-migration.json", "scoring-regressions.json", "cards/*.md", "cards/*.json"]
 "harness.web_search" = ["messages.json", "data/*.json"]
 "harness" = ["licenses/*.txt"]
 "harness.trajectory_replay" = ["messages.json"]

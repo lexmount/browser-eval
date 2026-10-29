@@ -1,0 +1,145 @@
+{
+  "webfetch": {
+    "pretty_name": "LexBench Web Fetch",
+    "license": "apache-2.0",
+    "tags": [
+      "benchmark",
+      "evaluation",
+      "browser-eval",
+      "web-fetch",
+      "web-scraping",
+      "web-content-extraction",
+      "structured-data-extraction",
+      "document-extraction",
+      "resource-discovery",
+      "tool-evaluation"
+    ],
+    "task_categories": [
+      "other"
+    ],
+    "source_datasets": [
+      "original"
+    ],
+    "language_fields": [
+      "language",
+      "target_language",
+      "source_benchmark.risk_control.navigation_contract.target_language"
+    ],
+    "partitions": {
+      "webfetch": {
+        "field": "track",
+        "values": {
+          "web": "web-pages",
+          "document": "documents",
+          "image": "images",
+          "video": "videos",
+          "challenge": "challenge-pages",
+          "dynamic": "dynamic-examples"
+        }
+      }
+    },
+    "subsets": {
+      "web-pages": "Page bodies, documentation and structured records; category retains the original finer classification",
+      "documents": "Complete document text, including embedded documents, tables and appendices",
+      "images": "Requested image URLs or delivered image files; image understanding is outside the task",
+      "videos": "Declared video resources, playback or download entries, files and metadata",
+      "challenge-pages": "Target content or qualifying records on sites with observed access challenges",
+      "dynamic-examples": "Public asynchronous, client-rendered, embedded-state and embedded-frame examples",
+      "dynamic-content": "Content loaded after the initial response, including asynchronous requests and client-rendered records",
+      "popular-sites": "Task-relevant stable content and qualifying named records or links on widely used websites",
+      "access-restrictions": "Target content at URLs with previously observed access restrictions",
+      "articles": "Article bodies, titles, requested initial comments and post collections"
+    }
+  },
+  "websearch": {
+    "pretty_name": "LexBench Web Search",
+    "license": [
+      "apache-2.0",
+      "mit"
+    ],
+    "tags": [
+      "benchmark",
+      "evaluation",
+      "browser-eval",
+      "web-search",
+      "information-retrieval",
+      "search-ranking",
+      "retrieval-evaluation",
+      "serp",
+      "source-attribution",
+      "tool-evaluation"
+    ],
+    "task_categories": [
+      "text-retrieval"
+    ],
+    "source_datasets": [
+      "original",
+      "extended|google/simpleqa-verified"
+    ],
+    "language_fields": [
+      "language"
+    ],
+    "subsets": {
+      "scenarios-v1": "Scenario queries with the first reference edition",
+      "scenarios-v2": "The same scenario queries with qualified source-reference rules; not independent samples from v1",
+      "factual-v1": "SimpleQA Verified retrieval tasks; the independently versioned derivative supplies the same selected questions"
+    }
+  },
+  "webmainbench": {
+    "pretty_name": "LexBench WebMainBench",
+    "license": "apache-2.0",
+    "tags": [
+      "benchmark",
+      "evaluation",
+      "browser-eval",
+      "web-extraction",
+      "main-content-extraction",
+      "html-to-markdown",
+      "web-content-extraction",
+      "webmainbench"
+    ],
+    "task_categories": [
+      "other"
+    ],
+    "source_datasets": [
+      "extended|opendatalab/WebMainBench"
+    ],
+    "language_fields": [
+      "meta.language"
+    ],
+    "family": "main-content-extraction",
+    "subsets": {
+      "corrected-545": "Frozen HTML with corrected reference Markdown and feature-scope annotations"
+    }
+  },
+  "simpleqa-verified": {
+    "pretty_name": "LexBench SimpleQA Verified",
+    "license": [
+      "apache-2.0",
+      "mit"
+    ],
+    "tags": [
+      "benchmark",
+      "evaluation",
+      "browser-eval",
+      "web-search",
+      "information-retrieval",
+      "retrieval-evaluation",
+      "question-answering",
+      "simpleqa",
+      "factuality"
+    ],
+    "task_categories": [
+      "text-retrieval"
+    ],
+    "source_datasets": [
+      "extended|google/simpleqa-verified"
+    ],
+    "language_fields": [
+      "language"
+    ],
+    "subsets": {
+      "factual-v1": "Unchanged publisher questions of at most 128 Unicode code points, with reference answers and URLs"
+    }
+  }
+}
