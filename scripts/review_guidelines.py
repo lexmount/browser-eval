@@ -9,6 +9,7 @@ from pathlib import Path
 import re
 import subprocess
 import sys
+from tempfile import TemporaryDirectory
 
 
 REPOSITORY = "lexmount/ai-template-py"
@@ -112,10 +113,15 @@ def sync(source: Path, revision: str, targets: list[Path]) -> None:
             managed_path(root, path)
         check_routing(root)
     for root in targets:
-        for path, data in payloads.items():
-            destination = managed_path(root, path)
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            destination.write_bytes(data)
+        with TemporaryDirectory(prefix=".review-guidelines-", dir=root) as directory:
+            staged = Path(directory)
+            for path, data in payloads.items():
+                (staged / Path(path).name).write_bytes(data)
+            # Replace complete files on the same filesystem, publishing the lock last.
+            for path in payloads:
+                destination = managed_path(root, path)
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                (staged / Path(path).name).replace(destination)
         check(root, source)
 
 
