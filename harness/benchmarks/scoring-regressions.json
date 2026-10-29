@@ -72170,6 +72170,598 @@
         "answer_format": "html"
       },
       "expected_task_pass": true
+    },
+    {
+      "id": "linked-price-rupee",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "₹\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ],
+          "field_minimum_records": {
+            "price": 1
+          }
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n₹100",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "linked-price-dollar",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ],
+          "field_minimum_records": {
+            "price": 1
+          }
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n$100",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "linked-price-yen",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "円\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ],
+          "field_minimum_records": {
+            "price": 1
+          }
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n円100",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "linked-price-wrong-currency",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "₹\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ],
+          "field_minimum_records": {
+            "price": 1
+          }
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n$100",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "linked-price-missing-price",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "₹\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ],
+          "field_minimum_records": {
+            "price": 1
+          }
+        }
+      },
+      "artifact": "[Alpha](/item/1)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "linked-price-unavailable-required",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "₹\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ],
+          "field_minimum_records": {
+            "price": 1
+          }
+        }
+      },
+      "artifact": "[Alpha](/item/1)\nUnavailable",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "linked-price-unavailable-allowed",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "₹\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\nUnavailable",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "linked-price-bound-available-match",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "₹\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ],
+          "field_minimum_records": {
+            "price": 1
+          },
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "price",
+              "title",
+              "url"
+            ],
+            "record_hashes": [
+              "e2cc5aff211a9f4e7c115228a0dfe8a46b8fdf71bb9d942eb8c7e3c92a6aaba5"
+            ]
+          }
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n₹100",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "linked-price-bound-available-wrong",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "₹\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ],
+          "field_minimum_records": {
+            "price": 1
+          },
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "price",
+              "title",
+              "url"
+            ],
+            "record_hashes": [
+              "e2cc5aff211a9f4e7c115228a0dfe8a46b8fdf71bb9d942eb8c7e3c92a6aaba5"
+            ]
+          }
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n₹101",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "linked-price-bound-available-unavailable",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "₹\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "price",
+              "title",
+              "url"
+            ],
+            "record_hashes": [
+              "e2cc5aff211a9f4e7c115228a0dfe8a46b8fdf71bb9d942eb8c7e3c92a6aaba5"
+            ]
+          }
+        }
+      },
+      "artifact": "[Alpha](/item/1)\nUnavailable",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "linked-price-bound-unavailable-match",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "₹\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "price",
+              "title",
+              "url"
+            ],
+            "record_hashes": [
+              "7f19db08758763af88a8a70d488180f49bbf1c6ab6397c271a32c0e7e71fd9e9"
+            ]
+          }
+        }
+      },
+      "artifact": "[Alpha](/item/1)\nUnavailable",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "linked-price-bound-unavailable-wrong",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "₹\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "price",
+              "title",
+              "url"
+            ],
+            "record_hashes": [
+              "7f19db08758763af88a8a70d488180f49bbf1c6ab6397c271a32c0e7e71fd9e9"
+            ]
+          }
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n₹100",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "linked-price-bound-unavailable-required",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "₹\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ],
+          "field_minimum_records": {
+            "price": 1
+          },
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "price",
+              "title",
+              "url"
+            ],
+            "record_hashes": [
+              "7f19db08758763af88a8a70d488180f49bbf1c6ab6397c271a32c0e7e71fd9e9"
+            ]
+          }
+        }
+      },
+      "artifact": "[Alpha](/item/1)\nUnavailable",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "linked-price-completed-name-named_link-True",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "field_minimum_records": {
+            "title": 1,
+            "url": 1
+          },
+          "name_validation": "nonempty"
+        }
+      },
+      "artifact": "[A](/item/1)\n$10",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "linked-price-completed-name-named_link-False",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "field_minimum_records": {
+            "title": 1,
+            "url": 1
+          },
+          "name_validation": "nonempty"
+        }
+      },
+      "artifact": "[A](/foreign/1)\n$10",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "linked-price-completed-name-linked_product-True",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ],
+          "field_minimum_records": {
+            "title": 1,
+            "url": 1
+          },
+          "name_validation": "nonempty"
+        }
+      },
+      "artifact": "[A](/item/1)\n$10",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "linked-price-completed-name-linked_product-False",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "linked_price_requirements_follow_declared_extraction_and_existing_absence_hash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_exclusion_patterns": [],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ],
+          "field_minimum_records": {
+            "title": 1,
+            "url": 1
+          },
+          "name_validation": "nonempty"
+        }
+      },
+      "artifact": "[A](/foreign/1)\n$10",
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }

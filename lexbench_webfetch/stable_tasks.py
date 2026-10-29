@@ -1110,10 +1110,12 @@ def source_record_hash(fields, names, schema):
     """Hash already-extracted literal fields; render authored markup before binding.
 
     Keep the canonical typography, field ordering and JSON/SHA-256 encoding used
-    by frozen receipts. Literal Markdown is data, never an alternate spelling.
+    by frozen receipts. None shares the existing omitted-field empty string.
+    Literal Markdown is data, never an alternate spelling.
     """
     import json
-    values = [_record_field_key(fields.get(name, '')) for name in names]
+    values = [fields.get(name, '') for name in names]
+    values = [_record_field_key('' if value is None else value) for value in values]
     if schema == 'name_description':
         values = [value.replace(' ', '') for value in values]
     return hashlib.sha256(json.dumps(values, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()
@@ -1945,8 +1947,9 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         if schema == 'table_row':
             from .structured_tables import _valid
             return isinstance(value, str) and bool(value.strip()) and _valid(value, table_columns[field])
-        if field == 'url' and schema in {'named_link', 'linked_product'}:
-            return isinstance(value, str) and bool(named_entry_identity(value, contract))
+        if schema in {'named_link', 'linked_product'}:
+            # Complete linked records already passed their declared extraction rules.
+            return isinstance(value, str) and bool(value.strip())
         return _valid_field(field, value)
     for field, count in contract.get('field_minimum_records', {}).items():
         identities = {tuple(identity_key(r, key) for key in identity_fields)
