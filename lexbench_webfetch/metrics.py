@@ -811,8 +811,42 @@ def code_matching_blocks(content: str, *, representation=None) -> list[str]:
     marker = '\ue012code'
     while marker in content:
         marker += '_'
-    masked = content
     native_html = representation == 'html' or is_html_document_or_fragment(content)
+    fenced_blocks = []
+    if not native_html:
+        # A fence owns its payload before HTML/prose projection. Only the
+        # opening fence's quote-container depth applies to subsequent lines.
+        prepared, current, fence, quote_depth, offset = [], [], None, 0, 0
+        spans = markdown_literal_spans(content)
+        for raw in content.splitlines(keepends=True):
+            line = raw
+            prefix = r'^[ \t]*(?:>[ \t]?){' + str(quote_depth) + '}'
+            if fence is not None and quote_depth and line.strip() and not re.match(prefix, line):
+                fenced_blocks.append(''.join(current))
+                current, fence = [], None
+            if fence is not None:
+                if quote_depth:
+                    line = re.sub(prefix, '', line, count=1)
+                if re.fullmatch(r'[ \t]*' + re.escape(fence[0]) + '{' + str(len(fence)) + r',}[ \t]*', line.rstrip('\r\n')):
+                    fenced_blocks.append(''.join(current))
+                    current, fence = [], None
+                else:
+                    current.append(line)
+            else:
+                quoted = re.match(r'^[ \t]*((?:>[ \t]?)+)', line)
+                unquoted = line[quoted.end():] if quoted else line
+                opening = re.match(r'^[ \t]*(`{3,}|~{3,})[^\r\n]*', unquoted)
+                if opening:
+                    fence, quote_depth = opening[1], quoted[1].count('>') if quoted else 0
+                    line = unquoted
+                elif not any(start <= offset < end for start, end in spans):
+                    line = unquoted
+            prepared.append(line)
+            offset += len(raw)
+        if fence is not None:
+            fenced_blocks.append(''.join(current))
+        content = ''.join(prepared)
+    masked = content
     for start, end in reversed([] if native_html else markdown_literal_spans(content)):
         token = marker + str(len(literals)) + marker
         literals[token] = content[start:end]
@@ -837,7 +871,7 @@ def code_matching_blocks(content: str, *, representation=None) -> list[str]:
             if owner is not None and not isinstance(owner, Comment) and owner.find_parent('pre') is None:
                 blocks.extend(code_matching_blocks(literal, representation=representation))
     else:
-        text = re.sub(r'(?m)^[ \t]*(?:>[ \t]?)+', '', content)
+        text = content
         headers = {}
         def protect_header(match):
             token = marker + 'header' + str(len(headers)) + marker
@@ -848,21 +882,7 @@ def code_matching_blocks(content: str, *, representation=None) -> list[str]:
         text = visible_mixed_html_text(text)
         for token, header in headers.items():
             text = text.replace(token, header)
-        blocks, current, fence = [], [], None
-        for line in text.splitlines(keepends=True):
-            if fence is not None:
-                if re.fullmatch(r'[ \t]*' + re.escape(fence[0])
-                                + '{' + str(len(fence)) + r',}[ \t]*', line.rstrip('\r\n')):
-                    blocks.append(''.join(current))
-                    current, fence = [], None
-                else:
-                    current.append(line)
-            elif match := re.match(r'^[ \t]*(`{3,}|~{3,})[^\r\n]*', line):
-                fence = match[1]
-        if fence is not None:
-            blocks.append(''.join(current))
-        if not blocks:
-            blocks = [text]
+        blocks = fenced_blocks or [text]
     compact = []
     for block in blocks:
         lines = [line for line in block.splitlines() if line.strip()]

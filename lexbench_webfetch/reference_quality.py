@@ -209,6 +209,7 @@ class MarkdownLink:
 
 
 _MAX_MARKDOWN_LINK_SPAN = 8192
+_MARKDOWN_ANGLE_DESTINATION = re.compile(r"<(?:\\[^\r\n]|[^\\<>\r\n])*>")
 
 
 def _markdown_unescape(value):
@@ -254,6 +255,17 @@ def markdown_delimiter_pairs(text, *, maximum_span=None):
         if char == "\\":
             i += 2
             continue
+        if char == '<' and stacks['('] and stacks['('][-1] in destinations:
+            start = stacks['('][-1]
+            previous = i - 1
+            while previous > start and text[previous].isspace():
+                previous -= 1
+            if previous == start:
+                angle = _MARKDOWN_ANGLE_DESTINATION.match(
+                    text, i, len(text) if maximum_span is None else min(len(text), start + maximum_span))
+                if angle is not None:
+                    i = angle.end()
+                    continue
         if (char in titles and stacks['('] and stacks['('][-1] in destinations
                 and i > 0 and text[i - 1].isspace()):
             start = stacks['('][-1]
@@ -328,9 +340,14 @@ def markdown_links(text: str) -> list[MarkdownLink]:
         raw_destination = text[destination_start + 1:destination_end].strip()
         native_title = ""
         if raw_destination.startswith("<") and ">" in raw_destination:
-            close = raw_destination.index(">")
+            angle = _MARKDOWN_ANGLE_DESTINATION.match(raw_destination)
+            close = angle.end() - 1 if angle is not None else raw_destination.index(">")
             destination = raw_destination[1:close]
-            titled = re.fullmatch(r"\s+(['\"])(.*)\1", raw_destination[close + 1:], re.S)
+            remainder = raw_destination[close + 1:]
+            if remainder and re.fullmatch(r"\s+(?:(['\"])(.*)\1|\(.*\))", remainder, re.S) is None:
+                index += 1
+                continue
+            titled = re.fullmatch(r"\s+(['\"])(.*)\1", remainder, re.S)
             native_title = titled[2] if titled else ""
         else:
             # A quoted Markdown title is metadata, not part of the URL. Layout

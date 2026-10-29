@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "b0238586029b097ea53455c39fabedd715132b793e29a4e514cae40214d15a20"
+          "after_sha256": "053d0c63f8bb5fe44e7872b4d814232354aa70c173dd52476d2affb3a44cb65e"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -80,7 +80,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "d575a72b30df6e0e52c0486d6bf2971646516663ac0413566d264afdce91891b"
+          "after_sha256": "29a576627b9df0954daf63ed507539e927d931a432e4e3ded042c83e5fbdeae1"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -2399,6 +2399,45 @@
           "tests": [
             "tests/benchmarks/webfetch/test_review_inferred_resource_format.py",
             "tests/benchmarks/webfetch/test_metrics.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "round24-angle-destination-opening-parenthesis",
+            "round24-angle-destination-closing-parenthesis",
+            "round24-angle-destination-bare-unbalanced",
+            "round24-angle-destination-bare-partial",
+            "round24-angle-destination-title-parentheses",
+            "round24-angle-destination-malformed-suffix",
+            "round24-angle-destination-unclosed-title",
+            "round24-angle-destination-visible-label",
+            "round24-angle-destination-literal-code"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_angle_destination_parentheses.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "code24-fence-0-> output.txt",
+            "code24-fence-0-lost-> output.txt",
+            "code24-fence-2->> output.txt",
+            "code24-fence-2-lost->> output.txt",
+            "code24-actual-quote",
+            "code24-actual-quote-not-code",
+            "code24-indented-code",
+            "code24-indented-code-not-quote",
+            "code24-quoted-html-literal",
+            "code24-quoted-html-not-projection"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_code_quote_prefixes.py"
           ]
         }
       ]

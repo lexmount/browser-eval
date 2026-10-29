@@ -44801,6 +44801,426 @@
         "answer_format": "plain_text"
       },
       "expected_task_pass": true
+    },
+    {
+      "id": "round24-angle-destination-opening-parenthesis",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/a\\(b"
+        }
+      },
+      "artifact": "[Guide](<https://example.test/item/a(b>)",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "The existing delimiter index must consume angle-delimited destinations atomically: URL parentheses do not balance Markdown syntax. Reuse that scanner for escaped closing angles, and require a complete optional title/outer suffix so newly supported destinations cannot admit malformed links."
+    },
+    {
+      "id": "round24-angle-destination-closing-parenthesis",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/a\\)b"
+        }
+      },
+      "artifact": "[Guide](<https://example.test/item/a)b>)",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "The existing delimiter index must consume angle-delimited destinations atomically: URL parentheses do not balance Markdown syntax. Reuse that scanner for escaped closing angles, and require a complete optional title/outer suffix so newly supported destinations cannot admit malformed links."
+    },
+    {
+      "id": "round24-angle-destination-bare-unbalanced",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/a\\(b"
+        }
+      },
+      "artifact": "[Guide](https://example.test/item/a(b)",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "The existing delimiter index must consume angle-delimited destinations atomically: URL parentheses do not balance Markdown syntax. Reuse that scanner for escaped closing angles, and require a complete optional title/outer suffix so newly supported destinations cannot admit malformed links."
+    },
+    {
+      "id": "round24-angle-destination-bare-partial",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/a\\)b"
+        }
+      },
+      "artifact": "[Guide](https://example.test/item/a)b)",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "The existing delimiter index must consume angle-delimited destinations atomically: URL parentheses do not balance Markdown syntax. Reuse that scanner for escaped closing angles, and require a complete optional title/outer suffix so newly supported destinations cannot admit malformed links."
+    },
+    {
+      "id": "round24-angle-destination-title-parentheses",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/a\\(b"
+        }
+      },
+      "artifact": "[Guide](<https://example.test/item/a(b> \"Title ) (\")",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "The existing delimiter index must consume angle-delimited destinations atomically: URL parentheses do not balance Markdown syntax. Reuse that scanner for escaped closing angles, and require a complete optional title/outer suffix so newly supported destinations cannot admit malformed links."
+    },
+    {
+      "id": "round24-angle-destination-malformed-suffix",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/a\\(b"
+        }
+      },
+      "artifact": "[Guide](<https://example.test/item/a(b>garbage)",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "The existing delimiter index must consume angle-delimited destinations atomically: URL parentheses do not balance Markdown syntax. Reuse that scanner for escaped closing angles, and require a complete optional title/outer suffix so newly supported destinations cannot admit malformed links."
+    },
+    {
+      "id": "round24-angle-destination-unclosed-title",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/a\\(b"
+        }
+      },
+      "artifact": "[Guide](<https://example.test/item/a(b> \"unclosed)",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "The existing delimiter index must consume angle-delimited destinations atomically: URL parentheses do not balance Markdown syntax. Reuse that scanner for escaped closing angles, and require a complete optional title/outer suffix so newly supported destinations cannot admit malformed links."
+    },
+    {
+      "id": "round24-angle-destination-visible-label",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "stable_text_anchors": [],
+          "page_patterns": [
+            "^Guide$"
+          ]
+        }
+      },
+      "artifact": "[Guide](<https://example.test/item/a(b>)",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "The existing delimiter index must consume angle-delimited destinations atomically: URL parentheses do not balance Markdown syntax. Reuse that scanner for escaped closing angles, and require a complete optional title/outer suffix so newly supported destinations cannot admit malformed links."
+    },
+    {
+      "id": "round24-angle-destination-literal-code",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/a\\(b"
+        }
+      },
+      "artifact": "`[Guide](<https://example.test/item/a(b>)`",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "The existing delimiter index must consume angle-delimited destinations atomically: URL parentheses do not balance Markdown syntax. Reuse that scanner for escaped closing angles, and require a complete optional title/outer suffix so newly supported destinations cannot admit malformed links."
+    },
+    {
+      "id": "code24-fence-0-> output.txt",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Only a fenced block’s actual quote-container prefixes are removed; redirects and greater-than operators inside its payload remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^>output\\.txt$"
+          }
+        ]
+      },
+      "artifact": "```shell\n> output.txt\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code24-fence-0-lost-> output.txt",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Only a fenced block’s actual quote-container prefixes are removed; redirects and greater-than operators inside its payload remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^output\\.txt$"
+          }
+        ]
+      },
+      "artifact": "```shell\n> output.txt\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code24-fence-2->> output.txt",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Only a fenced block’s actual quote-container prefixes are removed; redirects and greater-than operators inside its payload remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^>>output\\.txt$"
+          }
+        ]
+      },
+      "artifact": "> > ```shell\n> > >> output.txt\n> > ```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code24-fence-2-lost->> output.txt",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Only a fenced block’s actual quote-container prefixes are removed; redirects and greater-than operators inside its payload remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^output\\.txt$"
+          }
+        ]
+      },
+      "artifact": "> > ```shell\n> > >> output.txt\n> > ```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code24-actual-quote",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Only a fenced block’s actual quote-container prefixes are removed; redirects and greater-than operators inside its payload remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^output\\.txt$"
+          }
+        ]
+      },
+      "artifact": "> output.txt",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code24-actual-quote-not-code",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Only a fenced block’s actual quote-container prefixes are removed; redirects and greater-than operators inside its payload remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^>output\\.txt$"
+          }
+        ]
+      },
+      "artifact": "> output.txt",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code24-indented-code",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Only a fenced block’s actual quote-container prefixes are removed; redirects and greater-than operators inside its payload remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^>output\\.txt$"
+          }
+        ]
+      },
+      "artifact": "    > output.txt",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code24-indented-code-not-quote",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Only a fenced block’s actual quote-container prefixes are removed; redirects and greater-than operators inside its payload remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^output\\.txt$"
+          }
+        ]
+      },
+      "artifact": "    > output.txt",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code24-quoted-html-literal",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Only a fenced block’s actual quote-container prefixes are removed; redirects and greater-than operators inside its payload remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^>x=\"<b>value</b>\"$"
+          }
+        ]
+      },
+      "artifact": "> ```shell\n> > x = \"<b>value</b>\"\n> ```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code24-quoted-html-not-projection",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Only a fenced block’s actual quote-container prefixes are removed; redirects and greater-than operators inside its payload remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^>x=\"value\"$"
+          }
+        ]
+      },
+      "artifact": "> ```shell\n> > x = \"<b>value</b>\"\n> ```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_task_measured": true
     }
   ]
 }
