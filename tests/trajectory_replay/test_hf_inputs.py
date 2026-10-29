@@ -377,3 +377,159 @@ def test_corrected_public_inputs_exclude_prior_responses_without_losing_rules(tm
     with patch("harness.trajectory_replay.webarena_replay.require_current_retrieval"):
         with pytest.raises(ValueError, match="fresh valid-observation qualification"):
             validate_qualification_dataset({}, path)
+
+
+@pytest.mark.parametrize("observed", [False, True])
+def test_public_projection_preserves_preparation_but_not_observation_rewrites(tmp_path, observed):
+    from harness.trajectory_replay.catalog_contracts import ACTION_OVERRIDES_SCHEMA
+    from harness.trajectory_replay.retrieval_acceptance import digest
+
+    catalog, suite, sites, calls, _ = inputs(tmp_path)
+    source = json.loads(catalog.read_text())
+    index = 3 if observed else 2
+    change = {"script": 'return {"answer": ["different"]}'} if observed else {"force": True}
+    changes = [
+        {
+            "task_id": 2,
+            "action_index": index,
+            "precondition_action_sha256": digest(calls[index - 1]),
+            "set": change,
+        }
+    ]
+    source["action_overrides_sha256"] = "a" * 64
+    row = source["rows"][1]
+    row["action_overrides"] = {
+        "schema": ACTION_OVERRIDES_SCHEMA,
+        "source_sha256": "a" * 64,
+        "amendments_sha256": digest(changes),
+        "amendments": changes,
+    }
+    dump(catalog, source)
+    arguments = {"catalog_sha256": file_sha256(catalog), "suite_sha256": file_sha256(suite)}
+    if observed:
+        with pytest.raises(ValueError, match="qualified observation action changed"):
+            public_catalog_inputs(catalog, suite, sites, **arguments)
+    else:
+        projected, _, _ = public_catalog_inputs(catalog, suite, sites, **arguments)
+        assert projected["rows"][1]["source_actions"][1]["force"] is True
+        assert projected["rows"][1]["source_actions"][2] == calls[2]
+
+
+@pytest.mark.parametrize(
+    "flags",
+    [
+        ["--action-timeout-ms", "0"],
+        ["--task-timeout-ms", "0"],
+        [],
+        ["--engine", "kitesurf"],
+        ["--engine", "kitesurf", "--binary", "browser"],
+    ],
+)
+def test_invalid_catalog_invocation_never_materializes_default_inputs(tmp_path, monkeypatch, flags):
+    from harness.trajectory_replay import catalog_runner
+
+    output = tmp_path / "run"
+    monkeypatch.setattr(catalog_runner, "verify_webarena_runtime_source", lambda: None)
+    monkeypatch.setattr(
+        "harness.trajectory_replay.catalog_binding.current_catalog_inputs",
+        lambda *a, **k: pytest.fail("inputs materialized before argument validation"),
+    )
+    argv = [
+        "catalog",
+        "--site-map",
+        "sites",
+        "--site-reset-receipt",
+        "reset",
+        "--environment-profile",
+        "environment",
+        "--output",
+        str(output),
+        *flags,
+    ]
+    with patch("sys.argv", argv), pytest.raises(ValueError):
+        catalog_runner.main()
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("selection", [None, 999])
+def test_default_catalog_output_is_private_and_only_created_after_validation(
+    tmp_path, monkeypatch, selection
+):
+    import os
+    from types import SimpleNamespace
+
+    from harness.trajectory_replay import catalog_runner
+
+    catalog, suite, sites, _, _, _ = export(tmp_path)
+    source_paths = {"catalog/full-812-v1.json": catalog, "suites/full-portable-v1.json": suite}
+    environment = dump(tmp_path / "environment.json", {})
+    binary = tmp_path / "browser"
+    binary.write_bytes(b"test binary")
+    output = tmp_path / "run"
+    monkeypatch.setattr(
+        catalog_runner, "verify_webarena_runtime_source", lambda: SimpleNamespace(revision="a" * 40)
+    )
+    monkeypatch.setattr(catalog_runner, "validate_environment_preparation", lambda *a: None)
+    monkeypatch.setattr(
+        catalog_runner, "load_corrections", lambda: SimpleNamespace(source_sha256="b" * 64)
+    )
+    monkeypatch.setattr(catalog_runner, "remote_benchmark", lambda *a: None)
+    monkeypatch.setattr(catalog_runner, "_recover_completed_attempts", lambda *a: {1, 2})
+    argv = [
+        "catalog",
+        "--site-map",
+        str(sites),
+        "--site-reset-receipt",
+        str(environment),
+        "--environment-profile",
+        str(environment),
+        "--output",
+        str(output),
+        "--binary",
+        str(binary),
+        "--backend",
+        "playwright",
+    ]
+    if selection is not None:
+        argv.extend(["--task-id", str(selection)])
+    prior = os.umask(0o022)
+    try:
+        with (
+            patch("sys.argv", argv),
+            patch(
+                "harness.benchmarks.data.definition_path",
+                side_effect=lambda track, relative, revision=None: source_paths[relative],
+            ),
+        ):
+            if selection is None:
+                catalog_runner.main()
+                assert output.stat().st_mode & 0o777 == 0o700
+                assert (output / "input-catalog.json").stat().st_mode & 0o777 == 0o600
+            else:
+                with pytest.raises(ValueError, match="catalog members"):
+                    catalog_runner.main()
+                assert not output.exists()
+    finally:
+        os.umask(prior)
+
+
+@pytest.mark.parametrize("change", ["insert", "remove", "reorder"])
+def test_public_projection_rejects_unqualified_observation_positions(tmp_path, change):
+    catalog, suite, sites, _, _ = inputs(tmp_path)
+    source = json.loads(catalog.read_text())
+    calls = source["rows"][1]["source_actions"]
+    if change == "insert":
+        calls.insert(0, {"action": "wait", "milliseconds": 1})
+    elif change == "remove":
+        calls.pop(0)
+    else:
+        calls.reverse()
+    dump(catalog, source)
+    with pytest.raises(ValueError, match="canonical actions"):
+        public_catalog_inputs(
+            catalog,
+            suite,
+            sites,
+            catalog_sha256=file_sha256(catalog),
+            suite_sha256=file_sha256(suite),
+        )

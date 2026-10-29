@@ -8,7 +8,7 @@ guide and are edited here.
 
 # Benchmark ownership
 
-Browser Eval owns benchmark scoring and input tooling as well as execution, evidence and reports. Keep the independent scorer APIs in `lexbench_webfetch/` and `lexbench_websearch/`; they must work without browsers or provider credentials. Shared dataset distribution and pinning belong in `harness/benchmarks/`.
+Browser Eval owns benchmark scoring and input tooling as well as execution, evidence and reports. Keep the independent scorer APIs in `src/lexbench_webfetch/` and `src/lexbench_websearch/`; they must work without browsers or provider credentials. Shared dataset distribution and pinning belong in `harness/benchmarks/`.
 
 Hugging Face owns versioned public benchmark definitions and redistributable reference inputs. `harness/benchmarks/data-lock.json` selects their repositories, full commits and file hashes. Change a selection through `make pin-dataset DATASET=<track> REV=<full-HF-commit>`; keep import bindings aligned and historical snapshots intact. Do not copy datasets into Git or reintroduce retired standalone scorer repositories as execution dependencies. Official upstream evaluators retain their pinned code dependencies. Full third-party references without redistribution rights remain external approved inputs.
 

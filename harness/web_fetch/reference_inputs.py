@@ -52,14 +52,13 @@ def benchmark_input_path(path: Path) -> Path:
             locked = datasets.binding("webfetch")
             if (binding.get("kind") == "huggingface_benchmark_binding"
                     and binding.get("repository") == "https://huggingface.co/datasets/" + locked["repository"]):
-                revision = binding["revision"]
+                matches = [datasets.binding("webfetch", binding["revision"])]
             elif (binding.get("kind") == "external_benchmark_binding"
                     and binding.get("repository") == "https://github.com/lexmount/lexbench-webfetch"):
                 matches = [item for item in [locked, *locked.get("history", [])]
                            if item.get("source_revision") == binding.get("revision")]
                 if not matches:
                     raise ValueError("Historical benchmark source is not recorded in the dataset lock")
-                revision = matches[0]["revision"]
             else:
                 raise ValueError("Invalid benchmark checkout binding")
             relative = absolute.relative_to(checkout)
@@ -70,8 +69,16 @@ def benchmark_input_path(path: Path) -> Path:
                 continue
             if path.is_symlink():
                 raise ValueError("Benchmark inputs must not be symlinked")
-            target = datasets.definition_path("webfetch", selected.as_posix(), revision)
-            if digest(target) != expected:
+            target = None
+            for item in matches:
+                specification = item["files"].get("definitions/" + selected.as_posix())
+                if specification is None or specification["sha256"] != expected:
+                    continue
+                candidate = datasets.definition_path("webfetch", selected.as_posix(), item["revision"])
+                if digest(candidate) == expected:
+                    target = candidate
+                    break
+            if target is None:
                 raise ValueError("Installed benchmark definition differs from checkout binding")
             return target.parent / relative.name if relative.name == 'dataset.json' else target
     return path

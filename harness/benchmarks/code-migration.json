@@ -52,7 +52,7 @@
         },
         "dynamic_lists.py": {
           "before_sha256": "c2d9bedf1c82818f88f4e5db3c52caa5a064ba1d6fddb3814d38fdea5601957c",
-          "after_sha256": "d5dc91fc5c2030d63a971763e9075496c361dd06dda41a5eeea17292574b0c79"
+          "after_sha256": "17c9a2622d7d722e6a3fcdb657edf128763a9c4ff593a245b5e6a4e1e9f8b81b"
         },
         "file_acceptance.py": {
           "before_sha256": "4f886206705c015baa3744d669cc851778aa595819394c5b149fd4803a9f40d1",
@@ -3637,6 +3637,21 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_attribute_code_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "root_cause": "The source-range parser rejected unsupported XML marked declarations retained by native document serialization; reuse the visibility declaration lexer without changing source offsets.",
+          "regression_ids": [
+            "xml-declaration-frame-target",
+            "xml-declaration-frame-non-target"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_attribute_code_ownership.py",
+            "tests/benchmarks/webfetch/test_acceptance_isolation.py",
+            "tests/benchmarks/webfetch/test_standalone_evaluation.py"
           ]
         }
       ]

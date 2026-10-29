@@ -12,7 +12,7 @@ The `factual-v1` configuration contains every question in the pinned 1,000-row p
 
 Publisher row order, question text and reference answer text are retained. Case IDs use `sqv-` followed by the publisher's `original_index`, preserving the link to OpenAI SimpleQA. Supporting URLs are split from the CSV field, deduplicated in order, and stripped of unmatched trailing closing parentheses. Topic and answer-type labels are retained. The publisher's `multi_step` and `requires_reasoning` fields are not part of these derived task records.
 
-[The source manifest](definitions/factual-source.json) records the exact publisher CSV revision and SHA-256, selection rule and expected counts. [The selection implementation](https://github.com/lexmount/browser-eval/blob/main/lexbench_websearch/simpleqa.py) rebuilds the population from that input. This release contains no search-provider rankings, relevance grades or measured results.
+[The source manifest](definitions/factual-source.json) records the exact publisher CSV revision and SHA-256, selection rule and expected counts. [The selection implementation](https://github.com/lexmount/browser-eval/blob/main/src/lexbench_websearch/simpleqa.py) rebuilds the population from that input. This release contains no search-provider rankings, relevance grades or measured results.
 
 ## Data and schema
 

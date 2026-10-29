@@ -37,7 +37,7 @@ def prepare_scorer() -> Path:
     revision = source["revision"]
     if len(revision) != 40 or any(character not in "0123456789abcdef" for character in revision):
         raise ValueError("WebMainBench scorer requires a full Git commit")
-    target = cache_home().parent / "benchmark-code/webmainbench" / revision
+    target = cache_home() / "benchmark-code/webmainbench" / revision
     if target.exists():
         verify_scorer_checkout(target, revision)
         return target

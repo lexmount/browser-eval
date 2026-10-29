@@ -144,11 +144,14 @@ def main() -> None:
                "cases": [{"file_id": r["track_id"], "page_type": r["meta"]["page_type"]} for r in selected]}
     if edition.get('schema_version') == 2:
         payload.update(schema_version=2, source_count=len(records),
-                       dataset_id=edition['dataset_id'],
                        cases=[{'file_id': r['track_id'], 'page_type': r['meta']['page_type'],
                                'url': r['url'], 'reference': r['groundtruth_content'],
                                'with': r['ground_truth'].get('with') or [],
                                'without': r['ground_truth'].get('without') or []} for r in selected])
+        if payload['scope'] == edition.get('scope'):
+            payload['dataset_id'] = edition['dataset_id']
+        else:
+            payload['parent_dataset_id'] = edition['dataset_id']
         if 'source_commit' in edition:
             payload['source_commit'] = edition['source_commit']
         else:

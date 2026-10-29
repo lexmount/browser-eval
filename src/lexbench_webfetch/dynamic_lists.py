@@ -147,13 +147,16 @@ def named_entry_source_pair_hash(title, url, contract, *, representation=None):
     return hashlib.sha256((_label_key(title, representation=representation) + '\0' + identity).encode()).hexdigest()
 
 
+_UNSUPPORTED_DECLARATION = re.compile(
+    r'<!\[(?!(?:temp|cdata|ignore|include|rcdata|if|else|endif)(?![-_.a-z0-9]))'
+    r'.*?(?:\]>|\Z)', re.I | re.S)
+
+
 def _without_unsupported_declarations(content):
     # Native document serialization can retain opaque XML marked declarations
     # rejected by html.parser. Preserve supported sections and remove only the
     # unsupported declarations before this non-executing visibility projection.
-    return re.sub(
-        r'<!\[(?!(?:temp|cdata|ignore|include|rcdata|if|else|endif)(?![-_.a-z0-9]))'
-        r'.*?(?:\]>|\Z)', '', content, flags=re.I | re.S)
+    return _UNSUPPORTED_DECLARATION.sub('', content)
 
 
 def scoped_html(content):
@@ -1111,6 +1114,14 @@ class _HTMLRanges(HTMLParser):
         self.open, self.ranges = [], {}
         self.starts, self.closes, self.comments = {}, {}, []
         self.text_ranges, self.pending_text = [], None
+
+    def parse_marked_section(self, i, report=1):
+        # Reuse the visibility lexer's opaque declaration extent without
+        # deleting source bytes and shifting later element/code offsets.
+        unsupported = _UNSUPPORTED_DECLARATION.match(self.rawdata, i)
+        if unsupported is not None:
+            return unsupported.end() if unsupported[0].endswith(']>') else -1
+        return super().parse_marked_section(i, report)
 
     def source_offset(self):
         line, column = self.getpos()

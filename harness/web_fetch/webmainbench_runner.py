@@ -107,17 +107,25 @@ def load_source(
     return records
 
 
-def selected_wcxb_input(source: Path | None = None, manifest: Path | None = None) -> tuple[Path, Path]:
-    """Select the locked data edition; explicit historical pairs stay explicit."""
+def selected_wcxb_input(source: Path | None = None, manifest: Path | None = None, *, profile: Path | None = None) -> tuple[Path, Path]:
+    """Use locked defaults only when no source edition was explicitly selected."""
     from harness.benchmarks.data import definition_path
-    if source is None:
+    default_source = source is None
+    if default_source:
         source = definition_path('wcxb', 'source')
     if manifest is None:
-        local = source.parent / 'tasks.json'
-        if local.is_file():
-            manifest = local
-        else:
+        if default_source:
             manifest = definition_path('wcxb', 'tasks.json')
+        else:
+            declared = json.loads(profile.read_bytes()).get('sample_manifest') if profile is not None else None
+            if declared:
+                path = Path(declared)
+                # Historical profiles name repository-relative input paths.
+                manifest = path if path.is_absolute() else ROOT / path
+            elif (source.parent / 'tasks.json').is_file():
+                manifest = source.parent / 'tasks.json'
+            else:
+                raise ValueError('An explicit WCXB source requires its manifest or a profile sample_manifest')
     return source, manifest
 
 
@@ -653,7 +661,7 @@ def main() -> None:
         args.dataset, args.expected_dataset_sha256, args.official_scorer_commit = selected_input(
             args.dataset, args.expected_dataset_sha256, args.official_scorer_commit)
     else:
-        args.dataset, args.case_ids_file = selected_wcxb_input(args.dataset, args.case_ids_file)
+        args.dataset, args.case_ids_file = selected_wcxb_input(args.dataset, args.case_ids_file, profile=args.profile)
     if args.benchmark == 'wcxb' and args.provider not in WCXB_PROVIDERS:
         parser.error(f'--provider {args.provider} is not in the WCXB method matrix')
     if args.benchmark == 'webmainbench' and args.provider not in PROVIDERS:

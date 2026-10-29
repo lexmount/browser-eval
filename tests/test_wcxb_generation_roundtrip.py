@@ -27,7 +27,11 @@ def test_generate_then_consume_qualified_edition(tmp_path, monkeypatch, scope, e
     selected_manifest = json.loads(output.read_text())
     assert selected_manifest['schema_version'] == 2
     assert selected_manifest['source_count'] == 504
-    assert selected_manifest['dataset_id'] == edition['dataset_id']
+    expected_id = {'qualified': edition['dataset_id'], 'full': 'wcxb-v1-test-full',
+                   'subset': 'wcxb-v1-test-stratified-200'}[scope]
+    assert selected_manifest['dataset_id'] == expected_id
+    if scope != 'qualified':
+        assert selected_manifest['parent_dataset_id'] == edition['dataset_id']
     assert 'source_commit' not in selected_manifest
     assert selected_manifest['source_sha256'] == edition['source_sha256']
     assert selected_manifest['size'] == len(selected_manifest['cases']) == expected

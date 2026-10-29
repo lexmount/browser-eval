@@ -512,13 +512,6 @@ def main() -> None:
         help="JSON selection for a large unresolved-only replay",
     )
     args = parser.parse_args()
-    from harness.trajectory_replay.report_inputs import replay_input_path
-    if args.catalog is None:
-        from harness.trajectory_replay.catalog_binding import current_catalog_inputs
-        args.catalog, args.portable_suite = current_catalog_inputs(
-            args.site_map, args.output / 'input-catalog.json', suite_path=args.portable_suite)
-    else:
-        args.portable_suite = replay_input_path(args.portable_suite, current='full-portable')
     webarena_runtime = verify_webarena_runtime_source()
     if args.action_timeout_ms < 1:
         raise ValueError("action timeout must be positive")
@@ -551,59 +544,69 @@ def main() -> None:
             raise ValueError("BrowserTool backend requires --cowagent repository")
         if str(args.cowagent) not in sys.path:
             sys.path.insert(0, str(args.cowagent))
-    catalog, sites, portable_tasks = load_catalog_inputs(
-        args.catalog,
-        args.portable_suite,
-        args.site_map,
-        action_overrides_path=args.action_overrides,
-    )
-    if args.action_overrides is None and (
-        catalog.get("action_overrides_sha256") is not None
-        or any(row.get("action_overrides") is not None for row in catalog.get("rows") or [])
-    ):
-        raise ValueError("catalog requires its versioned action overrides input")
-    validate_environment_preparation(args.site_reset_receipt, args.environment_profile)
-    environment_profile = json.loads(args.environment_profile.read_text(encoding="utf-8"))
-    corrections = load_corrections()
-    benchmark = remote_benchmark(sites)
-    if args.task_selection is not None and args.task_id:
-        raise ValueError("task selection file cannot be combined with explicit task IDs")
-    selected = _load_task_selection(args.task_selection) if args.task_selection else args.task_id
-    ids = _task_ids(list(catalog["task_ids"]), args.task_from, args.task_to, selected)
-    os.umask(0o077)
-    args.output.mkdir(parents=True, exist_ok=True)
-    root = repository_root(Path(__file__))
-    binding = {
-        "schema": RUN_SCHEMA,
-        "catalog_sha256": file_sha256(args.catalog),
-        "portable_suite_sha256": file_sha256(args.portable_suite),
-        "site_map_sha256": file_sha256(args.site_map),
-        "site_reset_receipt_sha256": file_sha256(args.site_reset_receipt),
-        "environment_profile_sha256": file_sha256(args.environment_profile),
-        "binary_sha256": file_sha256(args.binary) if args.binary is not None else None,
-        "engine": args.engine,
-        "backend": args.backend,
-        "action_timeout_ms": args.action_timeout_ms,
-        "task_timeout_ms": args.task_timeout_ms,
-        "corrections_sha256": corrections.source_sha256,
-        "webarena_revision": webarena_runtime.revision,
-        "runner_revision": subprocess.check_output(
-            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
-        ).strip(),
-        "cowagent_revision": (
-            subprocess.check_output(
-                ["git", "-C", str(args.cowagent), "rev-parse", "HEAD"], text=True
-            ).strip()
-            if args.backend == "browsertool"
-            else None
-        ),
-        "execution_order": ids,
-        "site_reset_between_tasks": False,
-        "run_count_per_task": 1,
-        "task_selection_sha256": (
-            file_sha256(args.task_selection) if args.task_selection is not None else None
-        ),
-    }
+    default_catalog = args.catalog is None
+    with tempfile.TemporaryDirectory() as staging:
+        from harness.trajectory_replay.report_inputs import replay_input_path
+        if args.catalog is None:
+            from harness.trajectory_replay.catalog_binding import current_catalog_inputs
+            args.catalog, args.portable_suite = current_catalog_inputs(
+                args.site_map, Path(staging) / 'input-catalog.json', suite_path=args.portable_suite)
+        else:
+            args.portable_suite = replay_input_path(args.portable_suite, current='full-portable')
+        catalog, sites, portable_tasks = load_catalog_inputs(
+            args.catalog,
+            args.portable_suite,
+            args.site_map,
+            action_overrides_path=args.action_overrides,
+        )
+        if args.action_overrides is None and (
+            catalog.get("action_overrides_sha256") is not None
+            or any(row.get("action_overrides") is not None for row in catalog.get("rows") or [])
+        ):
+            raise ValueError("catalog requires its versioned action overrides input")
+        validate_environment_preparation(args.site_reset_receipt, args.environment_profile)
+        environment_profile = json.loads(args.environment_profile.read_text(encoding="utf-8"))
+        corrections = load_corrections()
+        benchmark = remote_benchmark(sites)
+        if args.task_selection is not None and args.task_id:
+            raise ValueError("task selection file cannot be combined with explicit task IDs")
+        selected = (
+            _load_task_selection(args.task_selection) if args.task_selection else args.task_id
+        )
+        ids = _task_ids(list(catalog["task_ids"]), args.task_from, args.task_to, selected)
+        root = repository_root(Path(__file__))
+        binding = {
+            "schema": RUN_SCHEMA,
+            "catalog_sha256": file_sha256(args.catalog),
+            "portable_suite_sha256": file_sha256(args.portable_suite),
+            "site_map_sha256": file_sha256(args.site_map),
+            "site_reset_receipt_sha256": file_sha256(args.site_reset_receipt),
+            "environment_profile_sha256": file_sha256(args.environment_profile),
+            "binary_sha256": file_sha256(args.binary) if args.binary is not None else None,
+            "engine": args.engine,
+            "backend": args.backend,
+            "action_timeout_ms": args.action_timeout_ms,
+            "task_timeout_ms": args.task_timeout_ms,
+            "corrections_sha256": corrections.source_sha256,
+            "webarena_revision": webarena_runtime.revision,
+            "runner_revision": subprocess.check_output(
+                ["git", "-C", str(root), "rev-parse", "HEAD"], text=True
+            ).strip(),
+            "cowagent_revision": (
+                subprocess.check_output(
+                    ["git", "-C", str(args.cowagent), "rev-parse", "HEAD"], text=True
+                ).strip()
+                if args.backend == "browsertool"
+                else None
+            ),
+            "execution_order": ids,
+            "site_reset_between_tasks": False,
+            "run_count_per_task": 1,
+            "task_selection_sha256": (
+                file_sha256(args.task_selection) if args.task_selection is not None else None
+            ),
+        }
+        prepared_catalog = args.catalog.read_bytes() if default_catalog else None
     if remote_binding is not None:
         binding["remote_browser"] = remote_binding
         binding["request_bridge"] = {
@@ -618,10 +621,21 @@ def main() -> None:
     if args.action_overrides is not None:
         binding["action_overrides_sha256"] = file_sha256(args.action_overrides)
     binding_path = args.output / "inputs.json"
-    if binding_path.exists():
-        if json.loads(binding_path.read_text(encoding="utf-8")) != binding:
-            raise ValueError("resumed run inputs changed")
-    else:
+    if binding_path.exists() and json.loads(binding_path.read_text(encoding="utf-8")) != binding:
+        raise ValueError("resumed run inputs changed")
+    os.umask(0o077)
+    args.output.mkdir(parents=True, exist_ok=True)
+    if default_catalog:
+        from harness.web_fetch.safety import write_new_file
+        args.catalog = args.output / 'input-catalog.json'
+        if args.catalog.is_symlink():
+            raise ValueError('catalog input binding cannot be symlinked')
+        if args.catalog.exists():
+            if args.catalog.read_bytes() != prepared_catalog:
+                raise ValueError('existing run uses a different catalog input binding')
+        else:
+            write_new_file(args.catalog, prepared_catalog)
+    if not binding_path.exists():
         binding_path.write_text(json.dumps(binding, indent=2) + "\n", encoding="utf-8")
     progress = args.output / "progress.jsonl"
     done = _recover_completed_attempts(args.output, progress, ids)

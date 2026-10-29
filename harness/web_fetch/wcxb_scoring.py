@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import io
+import inspect
 import json
 import math
 import re
@@ -47,6 +48,32 @@ def word_f1(predicted: str, reference: str) -> tuple[float, float, float]:
 def snippet_check(text: str, snippets: list[str]) -> float:
     """Official case-insensitive literal substring fraction; no word gate."""
     return sum(snippet.lower() in text.lower() for snippet in snippets) / len(snippets) if snippets else 1.0
+
+
+METRIC_BINDINGS = Path(__file__).with_name('data') / 'wcxb-metric-bindings.json'
+
+
+def metric_implementation_binding(profile: dict, *, read=None) -> str:
+    """Bind local metric source while retaining the upstream provenance ID."""
+    upstream = profile.get('official_evaluator_sha256')
+    if upstream != UPSTREAM_EVALUATOR_SHA256:
+        raise ValueError('WCXB profile names unsupported official metric provenance')
+    try:
+        implementation = '\n'.join(inspect.getsource(function)
+                                   for function in (word_f1, snippet_check)).encode()
+    except (OSError, TypeError) as error:
+        raise ValueError('WCXB metric implementation source is unavailable') from error
+    actual = hashlib.sha256(implementation).hexdigest()
+    if 'metric_implementation_sha256' in profile:
+        expected = profile['metric_implementation_sha256']
+    else:
+        authority = json.loads((read or Path.read_bytes)(METRIC_BINDINGS))
+        if authority.get('schema_version') != 1:
+            raise ValueError('Unsupported WCXB metric implementation authority')
+        expected = authority.get('implementations', {}).get(upstream)
+    if not isinstance(expected, str) or not re.fullmatch('[0-9a-f]{64}', expected) or actual != expected:
+        raise ValueError('WCXB metric implementation binding mismatch')
+    return actual
 
 
 def digest(path: Path) -> str:
@@ -318,8 +345,9 @@ def _score(*, source, sample_manifest, evidence_root, profile_path, staging):
         or profile.get("primary_quality_case_count") != case_count
     ):
         raise ValueError("WCXB scoring must use the current qualified-case manifest")
-    if profile['official_evaluator_sha256'] != UPSTREAM_EVALUATOR_SHA256:
-        raise ValueError('WCXB profile names unsupported official metric provenance')
+    metric_hash = metric_implementation_binding(profile, read=inputs.read)
+    if certificate.get('metric_implementation_sha256', metric_hash) != metric_hash:
+        raise ValueError('WCXB certificate metric implementation binding mismatch')
     evaluator_hash = UPSTREAM_EVALUATOR_SHA256
     scorer_hash = hashlib.sha256(inputs.read(Path(__file__))).hexdigest()
     ground_truth = {r['track_id']: {
@@ -589,6 +617,7 @@ def _score(*, source, sample_manifest, evidence_root, profile_path, staging):
         "exclusions": sample.get("exclusions", []),
         "reference_audit": reference_audit,
         "official_evaluator_sha256": evaluator_hash,
+        "metric_implementation_sha256": metric_hash,
         "scorer_sha256": scorer_hash,
         "providers": summaries,
     }
@@ -621,7 +650,7 @@ def main(*, root: Path | None = None) -> None:
         "--profile", type=Path, required=True
     )
     args = parser.parse_args()
-    args.source, args.sample_manifest = selected_wcxb_input(args.source, args.sample_manifest)
+    args.source, args.sample_manifest = selected_wcxb_input(args.source, args.sample_manifest, profile=args.profile)
     score(
         source=args.source,
         sample_manifest=args.sample_manifest,

@@ -82,6 +82,91 @@ def test_extra_cached_definition_cannot_enter_the_next_run(download):
         data.snapshot("webfetch")
 
 
+def test_explicit_repair_preserves_invalid_cache_and_restores_locked_bytes(download, monkeypatch):
+    path = data.definition_path('webfetch', 'tasks.json')
+    root = path.parent.parent
+    (root / '.DS_Store').write_bytes(b'finder metadata')
+    data._resolve.cache_clear()
+    with pytest.raises(ValueError, match=r'extra=.*DS_Store.*--repair'):
+        data.snapshot('webfetch')
+    monkeypatch.setattr('sys.argv', ['datasets', '--repair', 'webfetch'])
+    data.main()
+    assert data.definition_path('webfetch', 'tasks.json').read_bytes() == b'{"cases":[{"id":"a"}]}'
+    assert not (root / '.DS_Store').exists()
+    retained = list(root.parent.glob(root.name + '.invalid-*'))
+    assert len(retained) == 1
+    assert (retained[0] / '.DS_Store').read_bytes() == b'finder metadata'
+    assert len(download[2]) == 2
+
+
+def test_offline_repair_leaves_original_cache_intact(download, monkeypatch):
+    path = data.definition_path('webfetch', 'tasks.json')
+    extra = path.parent.parent / '.DS_Store'
+    extra.write_bytes(b'preserve me')
+    monkeypatch.setenv('HF_HUB_OFFLINE', '1')
+    with pytest.raises(ValueError, match='requires online access'):
+        data.repair('webfetch')
+    assert extra.read_bytes() == b'preserve me'
+    assert len(download[2]) == 1
+
+
+def test_failed_repair_download_retains_original_snapshot(download, monkeypatch):
+    path = data.definition_path('webfetch', 'tasks.json')
+    root = path.parent.parent
+    (root / 'extra.json').write_bytes(b'old')
+    def unavailable(*args, **kwargs):
+        raise OSError('network unavailable')
+    monkeypatch.setattr(data, 'urlopen', unavailable)
+    with pytest.raises(OSError, match='network unavailable'):
+        data.repair('webfetch')
+    retained = list(root.parent.glob(root.name + '.invalid-*'))
+    assert (retained[0] / 'extra.json').read_bytes() == b'old'
+    assert (retained[0] / 'definitions/tasks.json').read_bytes() == b'{"cases":[{"id":"a"}]}'
+
+
+def test_directory_lookup_resolves_snapshot_once(tmp_path, monkeypatch):
+    files = {}
+    for index in range(50):
+        relative = f'definitions/source/{index}.html'
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(str(index).encode())
+        files[relative] = {'size': path.stat().st_size, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    monkeypatch.setattr(data, 'binding', lambda *args: {'files': files})
+    calls = []
+    def resolve(*args):
+        calls.append(args)
+        return tmp_path
+    monkeypatch.setattr(data, 'snapshot', resolve)
+    assert len(list(data.definition_path('wcxb', 'source').iterdir())) == 50
+    assert len(calls) == 1
+
+
+def test_lock_cache_is_defensive_and_invalidates_after_atomic_update(tmp_path, monkeypatch):
+    module = tmp_path / 'data.py'
+    lock = tmp_path / 'data-lock.json'
+    current = {'repository': 'Lexmount/test', 'revision': 'a' * 40, 'files': {'x': {'sha256': 'original'}}}
+    lock.write_text(json.dumps({'datasets': {'webfetch': current}}))
+    monkeypatch.setattr(data, '__file__', str(module))
+    original_read = type(lock).read_bytes
+    reads = []
+    def read(path):
+        if path == lock:
+            reads.append(path)
+        return original_read(path)
+    monkeypatch.setattr(type(lock), 'read_bytes', read)
+    first = data.binding('webfetch')
+    first['files']['x']['sha256'] = 'changed by caller'
+    assert data.binding('webfetch')['files']['x']['sha256'] == 'original'
+    assert len(reads) == 1
+    current['revision'] = 'b' * 40
+    replacement = tmp_path / 'replacement.json'
+    replacement.write_text(json.dumps({'datasets': {'webfetch': current}}))
+    replacement.replace(lock)
+    assert data.binding('webfetch')['revision'] == 'b' * 40
+    assert len(reads) == 2
+
+
 def test_downloaded_bytes_must_match_the_lock(download):
     download[0]["archive"]["sha256"] = "0" * 64
     with pytest.raises(ValueError, match="archive hash"):

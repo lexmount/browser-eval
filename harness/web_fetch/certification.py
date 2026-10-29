@@ -430,7 +430,7 @@ def run_wcxb(argv: list[str]) -> None:
     )
     args = parser.parse_args(argv)
 
-    args.dataset, args.sample_manifest = selected_wcxb_input(args.dataset, args.sample_manifest)
+    args.dataset, args.sample_manifest = selected_wcxb_input(args.dataset, args.sample_manifest, profile=args.profile)
 
     if args.output_root.exists():
         parser.error("WCXB output root must be new and immutable")
@@ -438,6 +438,8 @@ def run_wcxb(argv: list[str]) -> None:
 
     manifest = json.loads(args.sample_manifest.read_text())
     profile = json.loads(args.profile.read_text())
+    from harness.web_fetch.wcxb_scoring import metric_implementation_binding
+    metric_hash = metric_implementation_binding(profile)
     if (
         profile.get("comparison_kind") != "wcxb_frozen_html_to_markdown"
         or profile.get("providers") != list(WCXB_PROVIDERS)
@@ -567,6 +569,8 @@ def run_wcxb(argv: list[str]) -> None:
                 ).hexdigest(),
             }
         )
+    if metric_implementation_binding(profile) != metric_hash:
+        raise ValueError('WCXB metric implementation changed during certification')
     _, after = load_wcxb_source(args.dataset, manifest=args.sample_manifest)
     sample_after = hashlib.sha256(args.sample_manifest.read_bytes()).hexdigest()
     if after != before or sample_after != sample_before:
@@ -574,6 +578,7 @@ def run_wcxb(argv: list[str]) -> None:
     receipt = {
         "schema_version": 1,
         "benchmark": manifest["dataset_id"],
+        "metric_implementation_sha256": metric_hash,
         "source_sha256_before": before,
         "source_sha256_after": after,
         "sample_sha256_before": sample_before,

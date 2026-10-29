@@ -4,8 +4,8 @@ Browser Eval owns scoring, execution adapters, saved evidence and reports. Publi
 
 | Responsibility | Owner |
 | --- | --- |
-| Web Fetch task model, deterministic acceptance and offline scoring | `lexbench_webfetch/` in this repository |
-| Search acceptance, relevance metrics and offline scoring | `lexbench_websearch/` in this repository |
+| Web Fetch task model, deterministic acceptance and offline scoring | `src/lexbench_webfetch/` in this repository |
+| Search acceptance, relevance metrics and offline scoring | `src/lexbench_websearch/` in this repository |
 | Public task definitions and source/reference bindings | The [LexMount benchmark datasets on Hugging Face](https://huggingface.co/Lexmount) |
 | Download verification and dataset selection | `harness/benchmarks/` and its [data lock](../harness/benchmarks/data-lock.json) |
 | Provider calls, browser execution, evidence and reports | Existing track modules under `harness/` |
@@ -58,6 +58,8 @@ uv run --frozen lexbench-websearch list
 When upgrading an existing checkout, `uv sync --frozen` removes the retired standalone scorer distributions before installing the shared distribution.
 
 Downloads use full Hugging Face commits and verify the archive and every file. Public downloads need no access key. Cached definitions work with `HF_HUB_OFFLINE=1`; `BROWSER_EVAL_DATASET_CACHE` overrides the default `~/.browser-eval/datasets/`. Changing the evidence directory does not change the selected dataset cache.
+
+If validation reports extra, missing or corrupted cached files, run `uv run --frozen python -m harness.benchmarks.data --repair <track>` while online. Repair preserves the invalid directory beside the snapshot, then downloads and verifies the locked edition again. Offline repair leaves the existing files intact.
 
 The public Fetch definitions contain compact task contracts and reference hashes. Full third-party captures still require an approved matching input copy:
 

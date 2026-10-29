@@ -61,7 +61,7 @@ through configuration, registries or explicit parameters.
 | Web Fetch task execution and certification | `benchmark_runner.py`, `certification.py`, `reference_lifecycle.py` |
 | Browser adapters and results | [Provider contract](provider-contract.md), `harness/web_fetch/providers/` |
 | Web Fetch scoring and task acceptance | Local `lexbench_webfetch.scoring`, `lexbench_webfetch.metrics`, HF task configuration |
-| Search scoring and acceptance | Local `lexbench_websearch/` and HF query/reference definitions |
+| Search scoring and acceptance | Local `src/lexbench_websearch/` and HF query/reference definitions |
 | Dataset download, verification and version selection | `harness/benchmarks/` and `harness/benchmarks/data-lock.json` |
 | Bound artifact copying and aggregation | `artifacts.py`, `evidence.py`, `assembly.py` |
 | Reference and scoring corrections | `reference_revision.py`, `scoring_revision.py`, `rescoring.py` |

@@ -178,6 +178,8 @@ def test_certification_binds_complete_calls_and_never_overwrites(experiment):
             '--evidence-root', str(kwargs['output']), '--profile', str(kwargs['profile'])]
     result = timing.certify(args)
     assert result['physical_call_count'] == 8
+    from harness.web_fetch.wcxb_scoring import metric_implementation_binding
+    assert result['metric_implementation_sha256'] == metric_implementation_binding(authority)
     assert result['selected_round'] == 1
     assert result['complete'] is True
     previous = (kwargs['output'] / 'certification.json').read_bytes()

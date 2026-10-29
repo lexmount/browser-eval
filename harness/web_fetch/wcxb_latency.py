@@ -131,7 +131,7 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
             providers: dict, binaries: dict, wait_quiet_seconds: int = 0,
             inputs: tuple[Path, ...] = ()) -> dict:
     """Collect the full declared two-build crossover; never select by outcome."""
-    from harness.web_fetch.wcxb_scoring import participant_names, UPSTREAM_EVALUATOR_SHA256
+    from harness.web_fetch.wcxb_scoring import participant_names, UPSTREAM_EVALUATOR_SHA256, metric_implementation_binding
 
     if type(wait_quiet_seconds) is not int or wait_quiet_seconds < 0:
         raise ValueError('wait-quiet-seconds must be a nonnegative integer')
@@ -162,6 +162,9 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
             raise ValueError('Paired timing input, profile or binary changed')
 
     authority = json.loads(profile.read_bytes())
+    metric_hash = metric_implementation_binding(authority)
+    watched.append(Path(__file__).with_name('data') / 'wcxb-metric-bindings.json')
+    before[watched[-1]] = identity(watched[-1])
     participant_names(authority)
     if type(authority.get('concurrency', 1)) is not int or authority.get('concurrency', 1) != 1:
         raise ValueError('Paired timing requires serial execution')
@@ -226,6 +229,7 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
               'started_at': started, 'completed_at': datetime.now(timezone.utc).isoformat(),
               'case_count': len(selected), 'rounds': 2, 'selection': 'final round, all cases',
               'source_sha256': source_hash, 'manifest_sha256': before[manifest],
+              'metric_implementation_sha256': metric_hash,
               'binary_sha256': hashes, 'calls_sha256': identity(calls_path),
               'call_count': len(selected) * 4,
               'quiet_host_load_limit': max(4, (os.cpu_count() or 4) * .8),
@@ -248,7 +252,7 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
 
 def certify(argv=None) -> dict:
     """Bind the complete frozen timing receipt without changing any measured calls."""
-    from harness.web_fetch.wcxb_scoring import participant_names, UPSTREAM_EVALUATOR_SHA256
+    from harness.web_fetch.wcxb_scoring import participant_names, UPSTREAM_EVALUATOR_SHA256, metric_implementation_binding
 
     parser = argparse.ArgumentParser(description='Certify a complete WCXB paired latency cohort')
     parser.add_argument('--dataset', type=Path)
@@ -257,7 +261,7 @@ def certify(argv=None) -> dict:
     parser.add_argument('--profile', type=Path, required=True)
     args = parser.parse_args(argv)
     args.dataset, args.sample_manifest = webmainbench_runner.selected_wcxb_input(
-        args.dataset, args.sample_manifest)
+        args.dataset, args.sample_manifest, profile=args.profile)
     reject_evidence_symlinks(contained_path(args.dataset, 'test', reject_symlinks=True))
     certificate_path = args.evidence_root / 'certification.json'
     if certificate_path.exists() or certificate_path.is_symlink():
@@ -272,11 +276,14 @@ def certify(argv=None) -> dict:
     participant_names(authority)
     records, before = webmainbench_runner.load_wcxb_source(args.dataset, manifest=args.sample_manifest)
     selected, _ = validate_manifest(records, before, json.loads(raw[args.sample_manifest]))
+    metric_hash = metric_implementation_binding(authority)
     if (type(authority.get('case_count')) is not int or len(selected) != authority.get('case_count')
             or UPSTREAM_EVALUATOR_SHA256 != authority.get('official_evaluator_sha256')):
         raise ValueError('Paired timing scope or evaluator differs from profile')
     receipt, rows = load_full_paired_latency(args.evidence_root, authority,
                                             {row['track_id'] for row in selected})
+    if receipt.get('metric_implementation_sha256', metric_hash) != metric_hash:
+        raise ValueError('WCXB timing metric implementation binding mismatch')
     _, after = webmainbench_runner.load_wcxb_source(args.dataset, manifest=args.sample_manifest)
     reject_evidence_symlinks(contained_path(args.dataset, 'test', reject_symlinks=True))
     if (before != after or before != receipt['source_sha256']
@@ -288,6 +295,7 @@ def certify(argv=None) -> dict:
         if path.read_bytes() != original:
             raise ValueError('WCXB paired timing evidence changed during certification')
     certificate = {'schema_version': 1, 'kind': 'certified_wcxb_paired_latency',
+                   'metric_implementation_sha256': metric_hash,
                    'source_sha256_before': before, 'source_sha256_after': after,
                    'sample_sha256_before': receipt['manifest_sha256'],
                    'sample_sha256_after': receipt['manifest_sha256'],
@@ -315,7 +323,7 @@ def main(argv=None, *, root: Path | None = None) -> None:
     parser.add_argument('--config', type=Path, help='Provider config with release and pr role entries')
     parser.add_argument('--wait-quiet-seconds', type=int, default=0)
     args = parser.parse_args(argv)
-    args.dataset, args.manifest = webmainbench_runner.selected_wcxb_input(args.dataset, args.manifest)
+    args.dataset, args.manifest = webmainbench_runner.selected_wcxb_input(args.dataset, args.manifest, profile=args.profile)
     binaries = {'release': args.release.absolute(), 'pr': args.candidate.absolute()}
     if args.config:
         configs = json.loads(args.config.read_bytes())['providers']

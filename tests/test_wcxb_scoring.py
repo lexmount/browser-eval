@@ -244,6 +244,8 @@ def test_output_created_during_install_is_preserved(cohort, monkeypatch):
 
 @pytest.mark.parametrize("changed", ["profile", "source", "response"])
 def test_inputs_changed_during_scoring_reject_all_outputs(cohort, monkeypatch, changed):
+    # Fault injection targets the evidence guard, independently of code admission.
+    monkeypatch.setattr(scoring, 'metric_implementation_binding', lambda *args, **kwargs: '1' * 64)
     original = scoring.word_f1
     mutated = False
 
@@ -305,6 +307,8 @@ def test_command_uses_explicit_profile_outside_repository(cohort, tmp_path):
 
 @pytest.mark.parametrize("metric", [float('nan'), float('inf'), 1.1, True])
 def test_invalid_evaluator_metrics_never_produce_score_files(cohort, metric, monkeypatch):
+    # Exercise numeric validation separately from implementation admission.
+    monkeypatch.setattr(scoring, 'metric_implementation_binding', lambda *args, **kwargs: '1' * 64)
     monkeypatch.setattr(scoring, 'word_f1', lambda *args: (metric, 1., 1.))
     assert_failure_preserves_evidence(cohort, "invalid metrics")
 

@@ -10,13 +10,26 @@ import re
 import shutil
 import tarfile
 import tempfile
+from copy import deepcopy
 from functools import lru_cache
 from pathlib import Path
 from urllib.request import urlopen
+from uuid import uuid4
+
+
+@lru_cache(maxsize=2)
+def _read_lock(path: str, stamp: tuple[int, int, int]) -> dict:
+    return json.loads(Path(path).read_bytes())
+
+
+def _lock() -> dict:
+    path = Path(__file__).with_name("data-lock.json")
+    status = path.stat()
+    return _read_lock(str(path), (status.st_ino, status.st_mtime_ns, status.st_size))
 
 
 def binding(track: str, revision: str | None = None) -> dict:
-    lock = json.loads(Path(__file__).with_name("data-lock.json").read_bytes())
+    lock = _lock()
     current = lock["datasets"][track]
     choices = [current, *current.get("history", [])]
     selected = next((item for item in choices if revision is None or item["revision"] == revision), None)
@@ -26,7 +39,7 @@ def binding(track: str, revision: str | None = None) -> dict:
         raise ValueError("Dataset revision must be a full immutable commit")
     if not re.fullmatch(r"[\w.-]+/[\w.-]+", selected["repository"]):
         raise ValueError("Invalid Hugging Face repository")
-    return selected
+    return deepcopy(selected)
 
 
 def cache_home() -> Path:
@@ -45,6 +58,46 @@ def dependencies(track: str) -> dict[str, dict[str, str]]:
         result[name] = {key: selected[key] for key in ("repository", "revision")}
         pending.extend(selected.get("dataset_sources", {}).values())
     return result
+
+
+def _definition_bindings(selected: dict, *, composed: bool = True) -> dict:
+    """Compare effective input bytes, including independently composed datasets."""
+    # This receipt ledger records corrections; no collection or scorer reads it.
+    # A metadata-only HF release must not invalidate an unchanged input corpus.
+    def resources(item):
+        return {name: value for name, value in item["files"].items()
+                if name.startswith("definitions/")
+                and name != "definitions/scoring-revisions.json"}
+    result = resources(selected)
+    if not composed:
+        return result
+    for identity, source in selected.get("dataset_sources", {}).items():
+        source_binding = binding(source)
+        target, origin = selected["datasets"][identity], source_binding["datasets"][identity]
+        if any(target[key] != origin[key] for key in ("path", "count", "sha256")):
+            raise ValueError("Composed benchmark dataset identity differs")
+        for name, value in resources(source_binding).items():
+            # The root registry selects the named datasets. The composed registry
+            # describes its independent publication, not a second root selection.
+            if name != "definitions/registry.json":
+                result[name] = value
+    return result
+
+
+def legacy_dependencies(track: str, source_revision: str) -> dict[str, dict[str, str]]:
+    """Upgrade a known Git-pinned collection only when its inputs are unchanged."""
+    selected = binding(track)
+    choices = [selected, *selected.get("history", [])]
+    # The first published input edition for a Git pin binds that original source.
+    # Later HF corrections sharing its provenance must not bless changed inputs.
+    original = next((item for item in reversed(choices)
+                     if item.get("source_revision") == source_revision), None)
+    # The historical Git package read its bundled definitions. Applying today's
+    # composition to that side would replace the very old bytes we must compare.
+    if (original is None
+            or _definition_bindings(original, composed=False) != _definition_bindings(selected)):
+        raise ValueError("Legacy benchmark dataset source is unknown or its inputs changed")
+    return dependencies(track)
 
 
 def safe_path(root: Path, relative: str) -> Path:
@@ -87,16 +140,7 @@ def _resolve(track: str, revision: str, home: str) -> Path:
     selected = binding(track, revision)
     root = Path(home) / track / revision
     if root.exists() or root.is_symlink():
-        actual = set()
-        for path in root.rglob("*"):
-            if path.is_symlink():
-                raise ValueError("Dataset cache cannot contain symlinks")
-            if path.is_file():
-                actual.add(path.relative_to(root).as_posix())
-        if actual != set(selected["files"]):
-            raise ValueError("Dataset cache inventory differs from its locked snapshot")
-        for relative, expected in selected["files"].items():
-            verify_file(safe_path(root, relative), expected)
+        _verify_snapshot(root, selected)
         return root
     if os.environ.get("HF_HUB_OFFLINE", "").lower() in {"1", "true", "yes"}:
         raise FileNotFoundError("Pinned dataset is not cached; run python -m harness.benchmarks.data before going offline")
@@ -121,6 +165,41 @@ def _resolve(track: str, revision: str, home: str) -> Path:
     return root
 
 
+def _verify_snapshot(root: Path, selected: dict) -> None:
+    if root.is_symlink():
+        raise ValueError("Dataset cache cannot contain symlinks")
+    actual = set()
+    for path in root.rglob("*"):
+        if path.is_symlink():
+            raise ValueError("Dataset cache cannot contain symlinks")
+        if path.is_file():
+            actual.add(path.relative_to(root).as_posix())
+    expected = set(selected["files"])
+    if actual != expected:
+        raise ValueError("Dataset cache inventory differs from its locked snapshot; "
+                         f"extra={sorted(actual - expected)}, missing={sorted(expected - actual)}. "
+                         "Run python -m harness.benchmarks.data --repair <track> while online")
+    for relative, specification in selected["files"].items():
+        verify_file(safe_path(root, relative), specification)
+
+
+def repair(track: str, revision: str | None = None) -> Path:
+    """Preserve an invalid snapshot before restoring its immutable archive."""
+    selected = binding(track, revision)
+    root = cache_home() / track / selected["revision"]
+    if root.exists() or root.is_symlink():
+        try:
+            _verify_snapshot(root, selected)
+        except ValueError:
+            if os.environ.get("HF_HUB_OFFLINE", "").lower() in {"1", "true", "yes"}:
+                raise ValueError("Dataset repair requires online access; unset HF_HUB_OFFLINE "
+                                 f"and run python -m harness.benchmarks.data --repair {track}") from None
+            # The sibling is retained even if the subsequent download fails.
+            root.rename(root.with_name(root.name + ".invalid-" + uuid4().hex))
+    _resolve.cache_clear()
+    return snapshot(track, selected["revision"])
+
+
 def snapshot(track: str, revision: str | None = None) -> Path:
     selected = binding(track, revision)
     return _resolve(track, selected["revision"], str(cache_home()))
@@ -135,12 +214,13 @@ def definition_path(track: str, relative: str, revision: str | None = None) -> P
     members = {key: value for key, value in selected["files"].items() if key.startswith(name + "/")}
     if name not in selected["files"] and not members:
         raise FileNotFoundError("Unknown benchmark definition: " + relative)
-    path = safe_path(snapshot(track, revision), name)
+    root = snapshot(track, revision)
+    path = safe_path(root, name)
     if members:
         if not path.is_dir():
             raise ValueError("Dataset definition directory is missing")
         for key, value in members.items():
-            verify_file(safe_path(snapshot(track, revision), key), value)
+            verify_file(safe_path(root, key), value)
     else:
         verify_file(path, selected["files"][name])
     return path
@@ -148,7 +228,8 @@ def definition_path(track: str, relative: str, revision: str | None = None) -> P
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    tracks = json.loads(Path(__file__).with_name("data-lock.json").read_bytes())["datasets"]
+    tracks = _lock()["datasets"]
+    parser.add_argument("--repair", action="store_true", help="Quarantine invalid caches and restore locked inputs online")
     parser.add_argument("tracks", nargs="*", metavar="TRACK", help="Defaults to every registered dataset")
     args = parser.parse_args()
     prepared = set()
@@ -157,7 +238,7 @@ def main() -> None:
             parser.error("Unknown track: " + track)
         for source in dependencies(track):
             if source not in prepared:
-                snapshot(source)
+                (repair if args.repair else snapshot)(source)
                 print(source + ": " + binding(source)["revision"])
                 prepared.add(source)
 

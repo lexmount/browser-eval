@@ -3,15 +3,14 @@
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import tempfile
 import time
+import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
-
-from lexbench_websearch import inputs as benchmark_inputs
-from lexbench_websearch.scoring import evaluate
 
 from harness.record_io import read_completed_records
 from harness.web_fetch.config import ROOT, load_runtime_env
@@ -26,6 +25,8 @@ from harness.web_search.core import (
     write_json,
 )
 from harness.web_search.profiles import load_profile_bytes
+from lexbench_websearch import inputs as benchmark_inputs
+from lexbench_websearch.scoring import evaluate
 
 
 def call_budgets(profile):
@@ -148,7 +149,7 @@ def prepare_execution_revision(profile_path, output, revision_path, *, cohort="p
     verify_bundle(output / "implementation", [
         {"path": name, "sha256": sha} for name, sha in contract["implementation"].items()
     ])
-    validate_resume_datasets(contract)
+    selected_datasets = validate_resume_datasets(contract, output)
     raw = (output / "results.jsonl").read_bytes()
     rows = read_completed_records(output / "results.jsonl")
     if len({r["id"] for r in rows}) != len(rows):
@@ -193,7 +194,7 @@ def prepare_execution_revision(profile_path, output, revision_path, *, cohort="p
     write_json(archive / "contract.json", {"schema": "web-search-execution-revision-receipt/1", "previous_profile_sha256": digest(old_bytes), "profile_sha256": digest(new_bytes), "previous_results_sha256": digest(raw), "retained_result_ids": [r["id"] for r in retained], "superseded_result_ids": [r["id"] for r in rows if r["method"] in methods], "artifact_locations": locations, "resumed_at": datetime.now(UTC).isoformat()})
     (output / "profile.json").write_bytes(new_bytes)
     (output / "results.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in retained))
-    write_json(output / "run-contract.json", {**contract, "profile_sha256": digest(new_bytes), "implementation": sources, "resume_unit": "logical", "execution_revision": {"path": (archive / "execution-revision.json").relative_to(output).as_posix(), "sha256": digest(revision_bytes)}})
+    write_json(output / "run-contract.json", {**contract, "profile_sha256": digest(new_bytes), "implementation": sources, "installed_benchmark_datasets": selected_datasets, "resume_unit": "logical", "execution_revision": {"path": (archive / "execution-revision.json").relative_to(output).as_posix(), "sha256": digest(revision_bytes)}})
     return retained
 
 
@@ -336,14 +337,45 @@ def validate_resume_implementation(output, contract):
     current = collection_implementation()
     if current != contract["implementation"]:
         raise ValueError("Resume requires the same live collection implementation; start a new cohort")
-    validate_resume_datasets(contract)
+    validate_resume_datasets(contract, output)
 
 
-def validate_resume_datasets(contract):
+def validate_resume_datasets(contract, output=None):
     """Execution repairs retain the original benchmark inputs and scoring resources."""
-    from harness.benchmarks.data import dependencies
-    if contract.get("installed_benchmark_datasets") != dependencies("websearch"):
-        raise ValueError("Resume requires the same installed benchmark datasets; start a new cohort")
+    from harness.benchmarks.data import dependencies, legacy_dependencies
+    current = dependencies("websearch")
+    if "installed_benchmark_datasets" in contract:
+        if contract["installed_benchmark_datasets"] != current:
+            raise ValueError("Resume requires the same installed benchmark datasets; "
+                             "start a new cohort")
+        return current
+    required = {"pyproject.toml", "uv.lock", "dependencies/lexbench_websearch/inputs.py",
+                "dependencies/lexbench_websearch/scoring.py"}
+    implementation = contract.get("implementation", {})
+    if output is None or not required.issubset(implementation) or any(
+        name.startswith("lexbench_websearch/") for name in implementation
+    ):
+        raise ValueError("Resume requires the same installed benchmark datasets; "
+                         "start a new cohort")
+    frozen = Path(output) / "implementation"
+    verify_bundle(frozen, [{"path": name, "sha256": sha} for name, sha in implementation.items()])
+    try:
+        project = tomllib.loads((frozen / "pyproject.toml").read_text())
+        dependency_pin = re.compile(
+            r"lexbench-websearch\s*@\s*git\+https://github\.com/"
+            r"lexmount/lexbench-websearch\.git@([0-9a-f]{40})")
+        pins = [match[1] for item in project["project"]["dependencies"]
+                if (match := dependency_pin.fullmatch(item))]
+        packages = [item for item in tomllib.loads((frozen / "uv.lock").read_text())["package"]
+                    if item["name"] == "lexbench-websearch"]
+        if len(pins) != 1 or len(packages) != 1 or packages[0]["source"]["git"] != (
+            f"https://github.com/lexmount/lexbench-websearch.git?rev={pins[0]}#{pins[0]}"
+        ):
+            raise ValueError("Frozen benchmark dependency pins disagree")
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("Legacy benchmark dataset requires consistent "
+                         "frozen dependency pins") from error
+    return legacy_dependencies("websearch", pins[0])
 
 
 def prepare_resume(profile_path, output, *, retain_results=False, cohort="primary", validate_only=False):

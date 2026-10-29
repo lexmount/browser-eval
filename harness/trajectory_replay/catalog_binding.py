@@ -153,8 +153,9 @@ def current_catalog_inputs(
         if binding_path.read_text(encoding='utf-8') != payload:
             raise ValueError('existing run uses a different catalog input binding')
     else:
-        binding_path.parent.mkdir(parents=True, exist_ok=True)
-        binding_path.write_text(payload, encoding='utf-8')
+        from harness.web_fetch.safety import write_new_file
+        binding_path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        write_new_file(binding_path, payload.encode('utf-8'))
     load_catalog_inputs(binding_path, suite_path, site_map_path)
     return binding_path, suite_path
 
@@ -315,6 +316,13 @@ def public_catalog_inputs(
         if 'retrieval_contract' in public_row:
             from harness.trajectory_replay.retrieval_acceptance import digest, validate_contract
             validate_contract(row['retrieval_contract'], calls)
+            # Declared preparation amendments may stabilize execution, but the
+            # qualified observation must retain its exact step and instruction.
+            for observation in row['retrieval_contract']['sources']:
+                index = observation['step'] - 1
+                if (index >= len(effective)
+                        or digest(effective[index]) != observation['action_sha256']):
+                    raise ValueError(f'task {task_id}: qualified observation action changed')
             contract = public_row['retrieval_contract']
             contract['canonical_calls_sha256'] = digest(projected)
             for observation in contract['sources']:
