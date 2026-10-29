@@ -299,6 +299,8 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
     # CommonMark punctuation escapes preserve the same visible characters.
     # Remove them before date/field parsing (for example ``2023\-05\-18``).
     text = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])', lambda m: m[0] if schema == 'table_row' and m[1] in {'|', '\\'} else m[1], text)
+    from .metrics import native_punctuation_boundaries
+    text = native_punctuation_boundaries(text)
     if schema == "name_description":
         # Image-only card links intentionally contribute no visible title.
         # Remove their now-empty bullet line so blank-delimited card parsing

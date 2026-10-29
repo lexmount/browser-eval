@@ -52,9 +52,6 @@ IMAGE_FILE_SUFFIXES = ('png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif')
 
 def normalize_resource_url(value: str, base_url: str) -> str | None:
     value = value.strip().strip("<>\"'")
-    # Markdown serializers may escape punctuation inside literal HTML or URL
-    # text.  Those backslashes are presentation syntax, not URL bytes.
-    value = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])', r'\1', value)
     if not value or value.startswith(("data:", "blob:", "javascript:", "mailto:")):
         return None
     try:
@@ -648,6 +645,11 @@ def quoted_scalar_equivalence(value: str) -> str:
                   quoted_pair, value)
 
 
+def native_punctuation_boundaries(value: str) -> str:
+    """Separate a native styled punctuation node from its adjacent label."""
+    return re.sub(r'(?<!\w)([_*])([:;,.!?])\1(?=\w)', r'\2 ', value)
+
+
 def normalize_for_match(value: str, *, representation=None) -> str:
     from .reference_quality import clean_reference_text, visible_markdown_links, normalize_native_markdown_layout
     if representation is None:
@@ -670,7 +672,7 @@ def normalize_for_match(value: str, *, representation=None) -> str:
     normalized = re.sub(r'`([^`\n]+)`', r'\1', normalized)
     # Standalone punctuation emitted with emphasis is formatting, including
     # when the following word is adjacent. Preserve numeric/operator syntax.
-    normalized = re.sub(r'(?<!\w)([_*])([:;,.!?])\1(?=\w)', r'\2 ', normalized)
+    normalized = native_punctuation_boundaries(normalized)
     normalized = re.sub(r'\*\*(?=\S)([^*\n]*\S)\*\*', r'\1', normalized)
     def strip_single_emphasis(match: re.Match) -> str:
         inner = match.group(2)

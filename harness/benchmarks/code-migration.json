@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "badadf9b196a53001d5e40861106c373c4ff8475fa36ae81def0d47bd24c6bcf"
+          "after_sha256": "9bb0c84d24020475dd36664af3765bdf1e9d47c0921d2aa84022721924f79872"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "bc6afac370980780a098f92813a0686c12f27b9dc4cac35ade082ddab9b62053"
+          "after_sha256": "b9b7f7ba6341e05b0ff82ff2a6c898d54d8a8378a550bd22f979e8b1e668fb46"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -2287,6 +2287,62 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_code_entity_visibility.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py",
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "label22-styled",
+            "label22-escaped",
+            "label22-code",
+            "label22-code-not-style",
+            "label22-whole-word",
+            "label22-word-fragment"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_code_entity_visibility.py",
+            "tests/benchmarks/webfetch/test_stable_text_serialization.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "resource-query-backslash-plain-unescaped",
+            "resource-query-backslash-plain-literal",
+            "resource-query-backslash-html-unescaped",
+            "resource-query-backslash-html-literal",
+            "resource-query-backslash-metadata-unescaped",
+            "resource-query-backslash-metadata-literal",
+            "resource-query-backslash-json-unescaped",
+            "resource-query-backslash-json-literal",
+            "resource-query-backslash-bare-markdown-unescaped",
+            "resource-query-backslash-bare-markdown-literal",
+            "resource-query-backslash-markdown-unescaped",
+            "resource-query-backslash-markdown-literal",
+            "resource-query-backslash-markdown-once-unescaped",
+            "resource-query-backslash-markdown-once-literal",
+            "resource-query-backslash-target-only-target",
+            "resource-query-backslash-target-only-extra",
+            "resource-url-syntax-entity-plain-same",
+            "resource-url-syntax-entity-plain-distinct",
+            "resource-url-syntax-entity-metadata-same",
+            "resource-url-syntax-entity-metadata-distinct",
+            "resource-url-syntax-entity-html-once-same",
+            "resource-url-syntax-entity-html-once-distinct",
+            "resource-url-syntax-entity-markdown-once-same",
+            "resource-url-syntax-entity-markdown-once-distinct",
+            "resource-url-syntax-percent-5C-same",
+            "resource-url-syntax-percent-5C-distinct",
+            "resource-url-syntax-percent-255C-same",
+            "resource-url-syntax-percent-255C-distinct"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_resource_url_escapes.py"
           ]
         }
       ]

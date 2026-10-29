@@ -67,6 +67,21 @@ def test_entity_encoded_internal_marker_prefix_does_not_collide():
     assert evaluate_response(case('\ue026stable-code0\ue027 *literal*'), source.encode(), metadata={'answer_format': 'markdown'})['passed']
 
 
+@pytest.mark.parametrize('source,expected', [('_:_Daily', True), ('_:_Dailybreak', False)])
+def test_native_punctuation_boundary_keeps_whole_label_matching(source, expected):
+    contract = {'url': 'https://example.test/', 'acceptance_contract': {'version': 1, 'schema': 'body_text',
+        'minimum_records': 0, 'stable_text_anchors': [{'id': 'label', 'alternatives': ['Daily']}]}}
+    assert evaluate_response(contract, source.encode())['passed'] is expected
+
+
+@pytest.mark.parametrize('source,shown', [('_:_Daily', ': Daily'), (r'\_:\_Daily', '_:_Daily'),
+    ('`_:_Daily`', '_:_Daily'), ('&lowbar;:&lowbar;Daily', '_:_Daily')])
+def test_only_original_native_punctuation_markup_establishes_a_boundary(source, shown):
+    assert evaluate_response(case(shown), source.encode(), metadata={'answer_format': 'markdown'})['passed']
+    other = '_:_Daily' if shown == ': Daily' else ': Daily'
+    assert not evaluate_response(case(other), source.encode(), metadata={'answer_format': 'markdown'})['passed']
+
+
 def scoring_controls():
     selected = {'inline-literal-&amp;', 'inline-not-decoded', 'fence-literal-&amp;', 'fence-not-decoded',
                 'prose-&amp;', 'prose-not-double-decoded', 'fence-trailing-backslash', 'inline-soft-line-backslash'}

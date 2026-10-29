@@ -42980,6 +42980,979 @@
       },
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "label22-styled",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Native styled punctuation establishes label boundaries before protected literal punctuation is restored.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^:\\ Daily\\s*$"
+          ]
+        }
+      },
+      "artifact": "_:_Daily",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "label22-escaped",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Native styled punctuation establishes label boundaries before protected literal punctuation is restored.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^_:_Daily\\s*$"
+          ]
+        }
+      },
+      "artifact": "\\_:\\_Daily",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "label22-code",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Native styled punctuation establishes label boundaries before protected literal punctuation is restored.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^_:_Daily\\s*$"
+          ]
+        }
+      },
+      "artifact": "`_:_Daily`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "label22-code-not-style",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Native styled punctuation establishes label boundaries before protected literal punctuation is restored.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "^:\\ Daily\\s*$"
+          ]
+        }
+      },
+      "artifact": "`_:_Daily`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "label22-whole-word",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Native label punctuation supplies a boundary while word-fragment matches remain rejected.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "Daily"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "_:_Daily",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "label22-word-fragment",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Native label punctuation supplies a boundary while word-fragment matches remain rejected.",
+      "case": {
+        "url": "https://example.test/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "Daily"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "_:_Dailybreak",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-query-backslash-plain-unescaped",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/file.png?q=a\\&b=c",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a\\&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-backslash-plain-literal",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a\\&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/file.png?q=a\\&b=c",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a\\&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-backslash-html-unescaped",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"https://example.test/file.png?q=a\\&b=c\">File</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a\\&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-backslash-html-literal",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a\\&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"https://example.test/file.png?q=a\\&b=c\">File</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a\\&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-backslash-metadata-unescaped",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "https://example.test/file.png?q=a\\&b=c",
+            "title": "File"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a\\&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-backslash-metadata-literal",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a\\&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "https://example.test/file.png?q=a\\&b=c",
+            "title": "File"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a\\&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-backslash-json-unescaped",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"resources\": [\"https://example.test/file.png?q=a\\\\&b=c\"]}",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a\\&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-backslash-json-literal",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a\\&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"resources\": [\"https://example.test/file.png?q=a\\\\&b=c\"]}",
+      "metadata": {},
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a\\&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-backslash-bare-markdown-unescaped",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/file.png?q=a\\&b=c",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a\\&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-backslash-bare-markdown-literal",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a\\&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/file.png?q=a\\&b=c",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a\\&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-backslash-markdown-unescaped",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "[File](https://example.test/file.png?q=a\\&b=c)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-backslash-markdown-literal",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a\\&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "[File](https://example.test/file.png?q=a\\&b=c)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-backslash-markdown-once-unescaped",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "[File](https://example.test/file.png?q=a\\\\&b=c)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a\\&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-backslash-markdown-once-literal",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a\\&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "[File](https://example.test/file.png?q=a\\\\&b=c)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a\\&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-query-backslash-target-only-target",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&b=c"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "",
+      "metadata": {
+        "images": [
+          "https://example.test/file.png?q=a&b=c"
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "resource-query-backslash-target-only-extra",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource URL normalization must preserve literal query backslashes; Markdown destinations consume their own punctuation escapes exactly once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&b=c"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "",
+      "metadata": {
+        "images": [
+          "https://example.test/file.png?q=a&b=c",
+          "https://example.test/file.png?q=a\\&b=c"
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-url-syntax-entity-plain-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal resource URLs preserve entity spellings and percent layers; HTML and Markdown readers decode their source syntax once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&amp;b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/file.png?q=a&amp;b=c",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a&amp;b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-url-syntax-entity-plain-distinct",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal resource URLs preserve entity spellings and percent layers; HTML and Markdown readers decode their source syntax once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/file.png?q=a&amp;b=c",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a&amp;b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-url-syntax-entity-metadata-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal resource URLs preserve entity spellings and percent layers; HTML and Markdown readers decode their source syntax once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&amp;b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "https://example.test/file.png?q=a&amp;b=c",
+            "title": "File"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a&amp;b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-url-syntax-entity-metadata-distinct",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal resource URLs preserve entity spellings and percent layers; HTML and Markdown readers decode their source syntax once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "https://example.test/file.png?q=a&amp;b=c",
+            "title": "File"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a&amp;b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-url-syntax-entity-html-once-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal resource URLs preserve entity spellings and percent layers; HTML and Markdown readers decode their source syntax once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&amp;b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"https://example.test/file.png?q=a&amp;amp;b=c\">File</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a&amp;b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-url-syntax-entity-html-once-distinct",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal resource URLs preserve entity spellings and percent layers; HTML and Markdown readers decode their source syntax once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"https://example.test/file.png?q=a&amp;amp;b=c\">File</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a&amp;b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-url-syntax-entity-markdown-once-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal resource URLs preserve entity spellings and percent layers; HTML and Markdown readers decode their source syntax once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&amp;b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "[File](https://example.test/file.png?q=a&amp;amp;b=c)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a&amp;b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-url-syntax-entity-markdown-once-distinct",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal resource URLs preserve entity spellings and percent layers; HTML and Markdown readers decode their source syntax once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "[File](https://example.test/file.png?q=a&amp;amp;b=c)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a&amp;b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-url-syntax-percent-5C-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal resource URLs preserve entity spellings and percent layers; HTML and Markdown readers decode their source syntax once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a%5C&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/file.png?q=a%5C&b=c",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a%5C&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-url-syntax-percent-5C-distinct",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal resource URLs preserve entity spellings and percent layers; HTML and Markdown readers decode their source syntax once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a%255C&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/file.png?q=a%5C&b=c",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a%5C&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-url-syntax-percent-255C-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal resource URLs preserve entity spellings and percent layers; HTML and Markdown readers decode their source syntax once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a%255C&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/file.png?q=a%255C&b=c",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a%255C&b=c"
+        ]
+      }
+    },
+    {
+      "id": "resource-url-syntax-percent-255C-distinct",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal resource URLs preserve entity spellings and percent layers; HTML and Markdown readers decode their source syntax once.",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file.png?q=a%5C&b=c"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/file.png?q=a%255C&b=c",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file.png?q=a%255C&b=c"
+        ]
+      }
     }
   ]
 }
