@@ -51,9 +51,9 @@ Choose a workflow for its task contract, setup and runnable example.
 
 | Track | Benchmarks and task suites | Guide |
 | --- | --- | --- |
-| Web Fetch | [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch), [LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench), [LexBench WCXB](https://huggingface.co/datasets/Lexmount/lexbench-wcxb) | [Local example](examples/web_fetch/README.md) · [Full guide](src/harness/web_fetch/README.md) |
-| Web Search | [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch): scenario queries and [LexBench SimpleQA Verified](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) retrieval tasks | [Local example](examples/web_search/README.md) · [Full guide](src/harness/web_search/README.md) |
-| Browser Trajectory Replay | [Curated fixed-action tasks](https://huggingface.co/datasets/Lexmount/lexbench-trajectory-replay) and the separate [WebArena replay datasets](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay), with the pinned WebArena-Verified evaluator | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
+| Web Fetch | [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch), [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench), [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | [Local example](examples/web_fetch/README.md) · [Full guide](src/harness/web_fetch/README.md) |
+| Web Search | [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search): scenario queries and [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) retrieval tasks | [Local example](examples/web_search/README.md) · [Full guide](src/harness/web_search/README.md) |
+| Browser Trajectory Replay | [Curated fixed-action tasks](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) and the separate [WebArena replay datasets](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay), with the pinned WebArena-Verified evaluator | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
 
 ### Web Fetch
 
@@ -180,17 +180,18 @@ Published versions, changes and dependency snapshots are listed in [GitHub Relea
 
 | Resource | Role |
 | --- | --- |
-| [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch) | Versioned Web Fetch tasks, acceptance contracts and reference bindings |
-| [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch) | Versioned search queries and source references |
-| [LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench) | Reference-corrected WebMainBench tasks and correction provenance |
-| [LexBench SimpleQA Verified](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) | Length-qualified SimpleQA Verified retrieval tasks, with original answers |
-| [LexBench WCXB](https://huggingface.co/datasets/Lexmount/lexbench-wcxb) | Source-qualified frozen extraction inputs and references |
-| [LexBench Trajectory Replay](https://huggingface.co/datasets/Lexmount/lexbench-trajectory-replay) | Curated fixed-action tasks, trajectories and expected outputs |
-| [LexBench WebArena Replay](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay) | Separate human-recording, corrected-task and full official-task populations |
+| [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) | Versioned Web Fetch tasks, acceptance contracts and reference bindings |
+| [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) | Versioned search queries and source references |
+| [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) | Reference-corrected WebMainBench tasks and correction provenance |
+| [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) | Length-qualified SimpleQA Verified retrieval tasks, with original answers |
+| [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | Source-qualified frozen extraction inputs and references |
+| [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) | Original CDP and driver task catalogs and acceptance assets, with separate source editions |
+| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | Curated fixed-action tasks, trajectories and expected outputs |
+| [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | Separate human-recording, corrected-task and full official-task populations |
 | [Moli](https://github.com/lexmount/moli) | Browser evaluated through the same task contracts as other participants |
 | [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | CLI client for the Lexmount WebFetch service; separate from the evaluation harness |
 | Artifact Site ([Global .com](https://yours.lexmount.com/artifact-site) · [China .cn](https://yours.lexmount.cn/artifact-site)) | Report creation and sharing with access controls |
-| [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | Scenario design source for curated replay; separate protocol, driver and web-platform benchmarks |
+| [Headless task inputs](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) · [upstream code](https://github.com/lexmount/Lexbench-Headless-Browser) | Scenario design source for curated replay; separate protocol, driver and web-platform benchmarks |
 | [WebMainBench fork](https://github.com/lexmount/WebMainBench/tree/lex-main) · [upstream](https://github.com/opendatalab/WebMainBench) | Upstream attribution and source of the pinned extraction scorer |
 | [WebArena-Verified fork](https://github.com/lexmount/webarena-verified/tree/lex-main) · [upstream](https://github.com/ServiceNow/webarena-verified) | Official task attribution and pinned evaluator dependency for replay and experimental Agent integration |
 | [WCXB upstream](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | Source attribution for the qualified HF edition |

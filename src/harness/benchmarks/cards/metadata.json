@@ -1,6 +1,6 @@
 {
   "webfetch": {
-    "pretty_name": "LexBench Web Fetch",
+    "pretty_name": "LexBench-Web-Fetch",
     "license": "apache-2.0",
     "tags": [
       "benchmark",
@@ -49,10 +49,14 @@
       "popular-sites": "Task-relevant stable content and qualifying named records or links on widely used websites",
       "access-restrictions": "Target content at URLs with previously observed access restrictions",
       "articles": "Article bodies, titles, requested initial comments and post collections"
-    }
+    },
+    "repo_id": "Lexmount/LexBench-Web-Fetch",
+    "previous_repo_ids": [
+      "Lexmount/lexbench-webfetch"
+    ]
   },
   "websearch": {
-    "pretty_name": "LexBench Web Search",
+    "pretty_name": "LexBench-Web-Search",
     "license": [
       "apache-2.0",
       "mit"
@@ -83,10 +87,14 @@
       "scenarios-v1": "Scenario queries with the first reference edition",
       "scenarios-v2": "The same scenario queries with qualified source-reference rules; not independent samples from v1",
       "factual-v1": "SimpleQA Verified retrieval tasks; the independently versioned derivative supplies the same selected questions"
-    }
+    },
+    "repo_id": "Lexmount/LexBench-Web-Search",
+    "previous_repo_ids": [
+      "Lexmount/lexbench-websearch"
+    ]
   },
   "webmainbench": {
-    "pretty_name": "LexBench WebMainBench",
+    "pretty_name": "LexBench-WebMainBench",
     "license": "apache-2.0",
     "tags": [
       "benchmark",
@@ -110,10 +118,14 @@
     "family": "main-content-extraction",
     "subsets": {
       "corrected-545": "Frozen HTML with corrected reference Markdown and feature-scope annotations"
-    }
+    },
+    "repo_id": "Lexmount/LexBench-WebMainBench",
+    "previous_repo_ids": [
+      "Lexmount/lexbench-webmainbench"
+    ]
   },
   "simpleqa-verified": {
-    "pretty_name": "LexBench SimpleQA Verified",
+    "pretty_name": "LexBench-SimpleQA-Verified",
     "license": [
       "apache-2.0",
       "mit"
@@ -140,10 +152,14 @@
     ],
     "subsets": {
       "factual-v1": "Unchanged publisher questions of at most 128 Unicode code points, with reference answers and URLs"
-    }
+    },
+    "repo_id": "Lexmount/LexBench-SimpleQA-Verified",
+    "previous_repo_ids": [
+      "Lexmount/lexbench-simpleqa-verified"
+    ]
   },
   "wcxb": {
-    "pretty_name": "LexBench WCXB",
+    "pretty_name": "LexBench-WCXB",
     "license": "cc-by-4.0",
     "tags": [
       "benchmark",
@@ -166,7 +182,11 @@
     "category_field": "page_type",
     "subsets": {
       "qualified-test": "Source-qualified extraction tasks with unchanged upstream HTML and ground-truth text"
-    }
+    },
+    "repo_id": "Lexmount/LexBench-WCXB",
+    "previous_repo_ids": [
+      "Lexmount/lexbench-wcxb"
+    ]
   },
   "trajectory-replay": {
     "license": "apache-2.0",
@@ -184,7 +204,7 @@
       "name",
       "url"
     ],
-    "pretty_name": "LexBench Browser Trajectory Replay",
+    "pretty_name": "LexBench-Trajectory-Replay",
     "tags": [
       "benchmark",
       "evaluation",
@@ -196,7 +216,11 @@
     ],
     "subsets": {
       "curated-v1": "Repository-curated fixed actions on public sites, with explicit programmatic assertions"
-    }
+    },
+    "repo_id": "Lexmount/LexBench-Trajectory-Replay",
+    "previous_repo_ids": [
+      "Lexmount/lexbench-trajectory-replay"
+    ]
   },
   "webarena-replay": {
     "license": "apache-2.0",
@@ -214,7 +238,7 @@
       "name",
       "url"
     ],
-    "pretty_name": "LexBench WebArena Replay",
+    "pretty_name": "LexBench-WebArena-Replay",
     "tags": [
       "benchmark",
       "evaluation",
@@ -230,6 +254,64 @@
       "human-qualified-v1": "Eligible human-recorded tasks and fixed actions; a separate population from the other editions",
       "corrected-90-v1": "Historical corrected fixed-action inputs; qualification evidence retains its original external protocol",
       "full-812-v1": "Full task scope with portable and direct replay modes kept distinct; do not combine denominators across editions"
-    }
+    },
+    "repo_id": "Lexmount/LexBench-WebArena-Replay",
+    "previous_repo_ids": [
+      "Lexmount/lexbench-webarena-replay"
+    ]
+  },
+  "headless-browser": {
+    "pretty_name": "LexBench-Headless-Browser",
+    "repo_id": "Lexmount/LexBench-Headless-Browser",
+    "previous_repo_ids": [],
+    "license": [
+      "apache-2.0",
+      "bsd-3-clause"
+    ],
+    "tags": [
+      "benchmark",
+      "evaluation",
+      "browser-eval",
+      "headless-browser",
+      "browser-compatibility",
+      "cdp",
+      "web-platform",
+      "browser-automation",
+      "self-hosted-fixtures"
+    ],
+    "task_categories": [
+      "other"
+    ],
+    "source_datasets": [],
+    "language_fields": [
+      "language"
+    ],
+    "input_fields": [
+      "title",
+      "description"
+    ],
+    "family": "browser-protocol-and-web-platform",
+    "subsets": {
+      "scenario-specs": "Driver-neutral scenario specifications; a separate population from executable task subsets",
+      "l1.raw_cdp": "L1 cdp compatibility through raw_cdp; upstream task and grading contract unchanged",
+      "l1.agent_browser_tool": "L1 cdp compatibility through node_cdp_probe; upstream task and grading contract unchanged",
+      "l1.playwright": "L1 cdp compatibility through framework_playwright; upstream task and grading contract unchanged",
+      "l1.puppeteer": "L1 cdp compatibility through framework_puppeteer; upstream task and grading contract unchanged",
+      "l1.chrome_remote_interface": "L1 cdp compatibility through thin_chrome_remote_interface; upstream task and grading contract unchanged",
+      "l1.cdp_use": "L1 cdp compatibility through thin_cdp_use; upstream task and grading contract unchanged",
+      "l1.pydoll": "L1 cdp compatibility through thin_pydoll; upstream task and grading contract unchanged",
+      "l1.stagehand": "L1 cdp compatibility through framework_stagehand; upstream task and grading contract unchanged",
+      "l1.chrome_devtools_mcp": "L1 cdp compatibility through mcp_chrome_devtools; upstream task and grading contract unchanged",
+      "l1.chromedp": "L1 cdp compatibility through thin_chromedp; upstream task and grading contract unchanged",
+      "l1.rod": "L1 cdp compatibility through thin_rod; upstream task and grading contract unchanged",
+      "l1.chromiumoxide": "L1 cdp compatibility through thin_chromiumoxide; upstream task and grading contract unchanged",
+      "l1.ferrum": "L1 cdp compatibility through thin_ferrum; upstream task and grading contract unchanged",
+      "l1.agent_browser_scenarios": "L1 cdp compatibility through tool_agent_browser; upstream task and grading contract unchanged",
+      "l1.selenium": "L1 cdp compatibility through webdriver_selenium; upstream task and grading contract unchanged",
+      "l2.web_platform": "L2 web platform semantics through node_cdp_probe; upstream task and grading contract unchanged",
+      "l2.playwright": "L2 web platform semantics through framework_playwright; upstream task and grading contract unchanged",
+      "l2.puppeteer": "L2 web platform semantics through framework_puppeteer; upstream task and grading contract unchanged"
+    },
+    "default_language": "en"
   }
 }

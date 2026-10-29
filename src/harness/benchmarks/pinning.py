@@ -11,7 +11,7 @@ import re
 import shutil
 import tempfile
 from pathlib import Path
-from harness.benchmarks.data import fetch_archive, read_hf_file, unpack
+from harness.benchmarks.data import canonical_repository, fetch_archive, read_hf_file, unpack
 from harness.benchmarks.publication import CARDS, DatasetRelease
 
 
@@ -30,7 +30,9 @@ def validate_selected_binding(selected: dict, imported: dict | None = None) -> s
         raise ValueError("Dataset must select a full Hugging Face commit")
     if imported is not None:
         if (imported["revision"] != revision
-                or imported["repository"] != "https://huggingface.co/datasets/" + selected["repository"]):
+                or not imported["repository"].startswith("https://huggingface.co/datasets/")
+                or canonical_repository(imported["repository"].removeprefix("https://huggingface.co/datasets/"))
+                != canonical_repository(selected["repository"])):
             raise ValueError("Dataset lock and import binding disagree; run make pin-dataset")
         for relative, expected in imported.get("definition_files", {}).items():
             if selected["files"]["definitions/" + relative]["sha256"] != expected:
@@ -48,7 +50,7 @@ def pin(root: Path, track: str, revision: str) -> list[str]:
         registered = json.loads((CARDS / "metadata.json").read_bytes())
         if track not in registered:
             raise ValueError("Unknown benchmark track: " + track)
-        before = {"repository": "Lexmount/lexbench-" + track}
+        before = {"repository": registered[track]["repo_id"]}
     raw_manifest = read_hf_file(before["repository"], revision, "manifest.json", 2_000_000)
     manifest = json.loads(raw_manifest)
     if manifest.get("schema") != "browser-eval-dataset-release/1" or manifest.get("track") != track:

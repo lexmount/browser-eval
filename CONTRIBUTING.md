@@ -11,7 +11,7 @@ Include the task ID, method and versions, OS, command and sanitized error. Remov
 | Change | Where it belongs |
 | --- | --- |
 | Browser or provider adapter | Existing execution modules; see the [provider contract](docs/provider-contract.md) |
-| LexBench Web Fetch task requirements | Hugging Face task definitions, applied to every method |
+| LexBench-Web-Fetch task requirements | Hugging Face task definitions, applied to every method |
 | Scoring fix | Shared scorer, scenario regressions and a recorded correction reason |
 | New browser, version or sample size | Configuration or registry; reuse the runner and renderer |
 | New report instance | An external instance profile, evidence and report content; reuse its build and release commands |

@@ -1,6 +1,6 @@
-# LexBench Web Search
+# LexBench-Web-Search
 
-LexBench Web Search evaluates the pages a search API returns for fixed queries: whether useful results appear near the top, whether explicit source requirements are met, and whether known reference pages are found. The tasks cover general web search, named-site search and vertical search across English, Chinese and other languages.
+LexBench-Web-Search evaluates the pages a search API returns for fixed queries: whether useful results appear near the top, whether explicit source requirements are met, and whether known reference pages are found. The tasks cover general web search, named-site search and vertical search across English, Chinese and other languages.
 
 [Browser Eval](https://github.com/lexmount/browser-eval) maintains the scorer, provider adapters and evidence reports. This dataset supplies versioned query definitions, source attribution and qualified reference inputs. Use it to evaluate retrieval before an agent fetches pages or generates an answer. The harness turns saved results into HTML reports with query-level drilldown that readers can inspect, rebuild and share.
 
@@ -8,7 +8,7 @@ LexBench Web Search evaluates the pages a search API returns for fixed queries: 
 
 {{dataset_summary}}
 
-The scenario editions retain the same query population. Their reference qualifications and URL equivalences are versioned; they are not independent samples to concatenate. The [separate SimpleQA Verified retrieval edition](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) supplies factual questions, original answers and supporting URLs. Report its retrieval metrics separately from scenario relevance.
+The scenario editions retain the same query population. Their reference qualifications and URL equivalences are versioned; they are not independent samples to concatenate. The [separate SimpleQA Verified retrieval edition](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) supplies factual questions, original answers and supporting URLs. Report its retrieval metrics separately from scenario relevance.
 
 Each scenario includes an ID, query, language and search family. Where available, it also carries an information need, known-page anchors, source origin, derivation and reference qualifications. `origin` and `provenance_kind` distinguish copied queries, adaptations and authored controls. Reference observations retain their scope and evidence bindings.
 
@@ -71,7 +71,7 @@ The scenario inventory retains provenance for 80 queries from [Microck/websearch
 
 The screenshot transcriptions have no established original author or public post. They must not be attributed to a verified social-media author. Community posts retain their own terms; screenshots and full third-party articles are not redistributed. The [original attribution inventory and notices](https://github.com/lexmount/lexbench-websearch/blob/0e4c0cd7d828dc80f0a701886d208cc6c0d598e9/THIRD_PARTY.md) document these distinctions; the published definitions retain `sources.json` and `NOTICE.txt`.
 
-The companion factual edition derives from [Google's SimpleQA Verified](https://huggingface.co/datasets/google/simpleqa-verified), described by Haas et al. in [SimpleQA Verified: A Reliable Factuality Benchmark to Measure Parametric Knowledge](https://huggingface.co/datasets/google/simpleqa-verified), which builds on [OpenAI SimpleQA](https://github.com/openai/simple-evals) and its [paper](https://github.com/openai/simple-evals). The retrieval selection keeps questions of at most 128 Unicode characters. Question and answer text remain unchanged; supporting URL parsing removes unmatched closing parentheses. Both upstream datasets declare MIT licensing. This length-qualified derivative measures retrieval diagnostics; the official benchmark evaluates closed-book factuality. The independent [retrieval dataset card](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) provides its selection and licensing details.
+The companion factual edition derives from [Google's SimpleQA Verified](https://huggingface.co/datasets/google/simpleqa-verified), described by Haas et al. in [SimpleQA Verified: A Reliable Factuality Benchmark to Measure Parametric Knowledge](https://huggingface.co/datasets/google/simpleqa-verified), which builds on [OpenAI SimpleQA](https://github.com/openai/simple-evals) and its [paper](https://github.com/openai/simple-evals). The retrieval selection keeps questions of at most 128 Unicode characters. Question and answer text remain unchanged; supporting URL parsing removes unmatched closing parentheses. Both upstream datasets declare MIT licensing. This length-qualified derivative measures retrieval diagnostics; the official benchmark evaluates closed-book factuality. The independent [retrieval dataset card](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) provides its selection and licensing details.
 
 Thirteen scenario queries mention DeepSeek, reflecting documentation and community sources. The query mix provides uneven topic and language coverage. Known-page references omit other potentially useful pages. Preview relevance does not establish page truth, and lexical answer matches do not prove entailment. Publish source composition, grading scope and the chosen cutoff with comparisons; keep scenario and factual scores separate.
 
@@ -87,6 +87,6 @@ Cite this component and the upstream datasets you use:
   title = {Browser Eval: Benchmarking Browsers and Web Tools for AI Agents},
   note = {Web Search benchmark component},
   year = {2026},
-  url = {https://huggingface.co/datasets/Lexmount/lexbench-websearch}
+  url = {https://huggingface.co/datasets/Lexmount/LexBench-Web-Search}
 }
 ```

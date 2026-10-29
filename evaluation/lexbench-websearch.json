@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "kind": "huggingface_benchmark_binding",
-  "repository": "https://huggingface.co/datasets/Lexmount/lexbench-websearch",
+  "repository": "https://huggingface.co/datasets/Lexmount/LexBench-Web-Search",
   "revision": "c710f82aaa11c6e82cdf10ef019e0efeb9e795ff",
   "datasets": {
     "scenarios-v1": {

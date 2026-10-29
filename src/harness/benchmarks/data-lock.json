@@ -2,7 +2,7 @@
   "schema": "browser-eval-dataset-lock/1",
   "datasets": {
     "webfetch": {
-      "repository": "Lexmount/lexbench-webfetch",
+      "repository": "Lexmount/LexBench-Web-Fetch",
       "revision": "3d8aa5cf76711a5f1609d66addc8467a9b10224e",
       "source_revision": "5a5b9367118dcc25f126ee16ef4de2d7c666f190",
       "archive": {
@@ -201,7 +201,7 @@
       },
       "history": [
         {
-          "repository": "Lexmount/lexbench-webfetch",
+          "repository": "Lexmount/LexBench-Web-Fetch",
           "revision": "1ed1cd3acd80ba7277d9cc09f012b512d32f9c4f",
           "source_revision": "5a5b9367118dcc25f126ee16ef4de2d7c666f190",
           "archive": {
@@ -400,7 +400,7 @@
           }
         },
         {
-          "repository": "Lexmount/lexbench-webfetch",
+          "repository": "Lexmount/LexBench-Web-Fetch",
           "revision": "168e11fb58eecf54b00d234c4812496416dcf380",
           "source_revision": "5a5b9367118dcc25f126ee16ef4de2d7c666f190",
           "archive": {
@@ -599,7 +599,7 @@
           }
         },
         {
-          "repository": "Lexmount/lexbench-webfetch",
+          "repository": "Lexmount/LexBench-Web-Fetch",
           "revision": "0eb2b589e39901db00f7c920b36122c6a6166e16",
           "source_revision": "5a5b9367118dcc25f126ee16ef4de2d7c666f190",
           "archive": {
@@ -771,7 +771,7 @@
           }
         },
         {
-          "repository": "Lexmount/lexbench-webfetch",
+          "repository": "Lexmount/LexBench-Web-Fetch",
           "revision": "2f7dd9a06850e24d2b87aa3cd849f2bdaa616ef9",
           "source_revision": "d0e78e71cf5145217cb1f2b71420a7c4194d80dd",
           "archive": {
@@ -941,7 +941,7 @@
       ]
     },
     "websearch": {
-      "repository": "Lexmount/lexbench-websearch",
+      "repository": "Lexmount/LexBench-Web-Search",
       "revision": "c710f82aaa11c6e82cdf10ef019e0efeb9e795ff",
       "source_revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9",
       "archive": {
@@ -1037,7 +1037,7 @@
       },
       "history": [
         {
-          "repository": "Lexmount/lexbench-websearch",
+          "repository": "Lexmount/LexBench-Web-Search",
           "revision": "88d20204f13668a7a8a0b15014ac2971af7b8f86",
           "source_revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9",
           "archive": {
@@ -1133,7 +1133,7 @@
           }
         },
         {
-          "repository": "Lexmount/lexbench-websearch",
+          "repository": "Lexmount/LexBench-Web-Search",
           "revision": "ceef891eaa01adf91636a44b153b416489ce3161",
           "source_revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9",
           "archive": {
@@ -1229,7 +1229,7 @@
           }
         },
         {
-          "repository": "Lexmount/lexbench-websearch",
+          "repository": "Lexmount/LexBench-Web-Search",
           "revision": "e59f3ba45ae2f85a377a40cad683018875ae13ad",
           "source_revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9",
           "archive": {
@@ -1305,7 +1305,7 @@
           }
         },
         {
-          "repository": "Lexmount/lexbench-websearch",
+          "repository": "Lexmount/LexBench-Web-Search",
           "revision": "063ef2504dde261604ef3a9fee634cee0df90488",
           "source_revision": "f07a2e2ddf1c1c511cb3944659534301c86ff9c9",
           "archive": {
@@ -1383,7 +1383,7 @@
       ]
     },
     "simpleqa-verified": {
-      "repository": "Lexmount/lexbench-simpleqa-verified",
+      "repository": "Lexmount/LexBench-SimpleQA-Verified",
       "revision": "550ef09fa823ac4d9b3859ddefed3542b5b7e65c",
       "source_revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9",
       "archive": {
@@ -1430,7 +1430,7 @@
       },
       "history": [
         {
-          "repository": "Lexmount/lexbench-simpleqa-verified",
+          "repository": "Lexmount/LexBench-SimpleQA-Verified",
           "revision": "ab8b415656e3985b2916dc700087b6eb42f27462",
           "source_revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9",
           "archive": {
@@ -1477,7 +1477,7 @@
           }
         },
         {
-          "repository": "Lexmount/lexbench-simpleqa-verified",
+          "repository": "Lexmount/LexBench-SimpleQA-Verified",
           "revision": "901bb37be4539403d02dcd22e06364a2929edbca",
           "source_revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9",
           "archive": {
@@ -1524,7 +1524,7 @@
           }
         },
         {
-          "repository": "Lexmount/lexbench-simpleqa-verified",
+          "repository": "Lexmount/LexBench-SimpleQA-Verified",
           "revision": "85576796ca419c45fe1b58e9b1925128d76204cd",
           "source_revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9",
           "archive": {
@@ -1566,7 +1566,7 @@
       ]
     },
     "webmainbench": {
-      "repository": "Lexmount/lexbench-webmainbench",
+      "repository": "Lexmount/LexBench-WebMainBench",
       "revision": "180b3cc6177df75ac9107ea8c76e3506ee96c5c9",
       "source_revision": "65b49124b923e59f3cfcd839ee1af4628c36f340",
       "archive": {
@@ -1632,7 +1632,7 @@
       },
       "history": [
         {
-          "repository": "Lexmount/lexbench-webmainbench",
+          "repository": "Lexmount/LexBench-WebMainBench",
           "revision": "f57658628d167451dbe0f7fa0e18c1e3fa38e480",
           "source_revision": "65b49124b923e59f3cfcd839ee1af4628c36f340",
           "archive": {
@@ -1698,7 +1698,7 @@
           }
         },
         {
-          "repository": "Lexmount/lexbench-webmainbench",
+          "repository": "Lexmount/LexBench-WebMainBench",
           "revision": "e83527ad49f02ffc3ddc66f473f6e3e030e0a9c9",
           "source_revision": "65b49124b923e59f3cfcd839ee1af4628c36f340",
           "archive": {
@@ -1764,7 +1764,7 @@
           }
         },
         {
-          "repository": "Lexmount/lexbench-webmainbench",
+          "repository": "Lexmount/LexBench-WebMainBench",
           "revision": "bffabf6a90718d7f6a34a4c2dfed71d61268748f",
           "source_revision": "65b49124b923e59f3cfcd839ee1af4628c36f340",
           "archive": {
@@ -1818,7 +1818,7 @@
       ]
     },
     "wcxb": {
-      "repository": "Lexmount/lexbench-wcxb",
+      "repository": "Lexmount/LexBench-WCXB",
       "revision": "d1381fdd95505c48bc17911479a8182c0d442fb0",
       "source_revision": "c039d5ee9f5a3a984a0e167e63aacd04e76e78a9",
       "archive": {
@@ -5902,7 +5902,7 @@
       },
       "history": [
         {
-          "repository": "Lexmount/lexbench-wcxb",
+          "repository": "Lexmount/LexBench-WCXB",
           "revision": "0f5798e3d386892d50f2879afa7ea475dea76f35",
           "source_revision": "c039d5ee9f5a3a984a0e167e63aacd04e76e78a9",
           "archive": {
@@ -9988,7 +9988,7 @@
       ]
     },
     "trajectory-replay": {
-      "repository": "Lexmount/lexbench-trajectory-replay",
+      "repository": "Lexmount/LexBench-Trajectory-Replay",
       "revision": "27e3b11926a8c18b3b29ba83a2e391caabf49570",
       "source_revision": "5b7340e85e6db2b6945d3d2eb22e495c4d95e52f",
       "archive": {
@@ -10041,7 +10041,7 @@
       },
       "history": [
         {
-          "repository": "Lexmount/lexbench-trajectory-replay",
+          "repository": "Lexmount/LexBench-Trajectory-Replay",
           "revision": "8a8fe39634cc81db91a469b91e9838d5b535467a",
           "source_revision": "5b7340e85e6db2b6945d3d2eb22e495c4d95e52f",
           "archive": {
@@ -10096,7 +10096,7 @@
       ]
     },
     "webarena-replay": {
-      "repository": "Lexmount/lexbench-webarena-replay",
+      "repository": "Lexmount/LexBench-WebArena-Replay",
       "revision": "fc32333defbb032da76d7921623e4bd503c48f03",
       "source_revision": "c533e002d24dd01f7f59b5ea9d8b7a41740495b4",
       "archive": {
@@ -10211,7 +10211,7 @@
       },
       "history": [
         {
-          "repository": "Lexmount/lexbench-webarena-replay",
+          "repository": "Lexmount/LexBench-WebArena-Replay",
           "revision": "c056d320615953a38d3d84c496f1cdd52243a3f7",
           "source_revision": "c533e002d24dd01f7f59b5ea9d8b7a41740495b4",
           "archive": {
@@ -10326,7 +10326,7 @@
           }
         },
         {
-          "repository": "Lexmount/lexbench-webarena-replay",
+          "repository": "Lexmount/LexBench-WebArena-Replay",
           "revision": "066d16477cf24de6940dd7fb907264e4ee54f55c",
           "source_revision": "c533e002d24dd01f7f59b5ea9d8b7a41740495b4",
           "archive": {

@@ -14,8 +14,8 @@ Use the declared source for each benchmark and evaluator. The full commit in the
 
 | Dependency | Role | Version authority |
 | --- | --- | --- |
-| Web Fetch scoring (`src/lexbench_webfetch/`) | Task model, deterministic acceptance and frozen-input validation | Browser Eval source revision; [HF definitions](https://huggingface.co/datasets/Lexmount/lexbench-webfetch) selected by the [data lock](../src/harness/benchmarks/data-lock.json) |
-| Search scoring (`src/lexbench_websearch/`) | Source qualifications and retrieval/relevance metrics | Browser Eval source revision; [Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch) and [SimpleQA](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) definitions selected by the [data lock](../src/harness/benchmarks/data-lock.json) |
+| Web Fetch scoring (`src/lexbench_webfetch/`) | Task model, deterministic acceptance and frozen-input validation | Browser Eval source revision; [HF definitions](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) selected by the [data lock](../src/harness/benchmarks/data-lock.json) |
+| Search scoring (`src/lexbench_websearch/`) | Source qualifications and retrieval/relevance metrics | Browser Eval source revision; [Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) and [SimpleQA](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) definitions selected by the [data lock](../src/harness/benchmarks/data-lock.json) |
 | [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/) | HTML parsing | `pyproject.toml` and `uv.lock` |
 | [FastCDC](https://github.com/iscc/fastcdc-py) | Content chunking | `pyproject.toml` and `uv.lock` |
 
@@ -57,7 +57,7 @@ Prepare browser binaries, Docker images, site data, models and accounts separate
 
 ## Benchmark inputs and scorers
 
-The [corrected WebMainBench dataset](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench) supplies frozen HTML and references through the data lock. [OpenDataLab WebMainBench](https://github.com/opendatalab/WebMainBench) is the upstream source; its maintained [scorer fork](https://github.com/lexmount/WebMainBench/tree/lex-main) contains declared scoring corrections:
+The [corrected WebMainBench dataset](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) supplies frozen HTML and references through the data lock. [OpenDataLab WebMainBench](https://github.com/opendatalab/WebMainBench) is the upstream source; its maintained [scorer fork](https://github.com/lexmount/WebMainBench/tree/lex-main) contains declared scoring corrections:
 
 | Scorer | Version authority |
 | --- | --- |
@@ -68,9 +68,9 @@ Choose the scorer named by the experiment's [profile and correction records](../
 
 | Other inputs | Setup and version record |
 | --- | --- |
-| [Qualified WCXB inputs](https://huggingface.co/datasets/Lexmount/lexbench-wcxb) | Data lock and selected source manifest; runtime/scoring in Browser Eval |
-| [Curated replay definitions](https://huggingface.co/datasets/Lexmount/lexbench-trajectory-replay) | Data lock and selected task/trajectory hashes |
-| [WebArena replay tasks and recordings](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay) | Data lock and selected configuration; the pinned official evaluator remains a code dependency |
+| [Qualified WCXB inputs](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | Data lock and selected source manifest; runtime/scoring in Browser Eval |
+| [Curated replay definitions](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | Data lock and selected task/trajectory hashes |
+| [WebArena replay tasks and recordings](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | Data lock and selected configuration; the pinned official evaluator remains a code dependency |
 | WebArena sites | [Deployment and replay guide](webarena-fixed-trajectory-reproduction.md) |
 | Historical source pages | Import approved copies using [reference-input validation](reference-inputs.md) |
 

@@ -1,6 +1,6 @@
 # Replay WebArena recordings
 
-Benchmark inputs are published in [LexBench WebArena Replay on Hugging Face](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay). The data lock pins the current immutable revision. Formal measurement defaults to the eligible human-recording suite; qualification and diagnostics retain the complete candidate inventory. Explicit historical suite paths remain supported.
+Benchmark inputs are published in [LexBench-WebArena-Replay on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay). The data lock pins the current immutable revision. Formal measurement defaults to the eligible human-recording suite; qualification and diagnostics retain the complete candidate inventory. Explicit historical suite paths remain supported.
 
 Add `--no-report` to the replay CLI to retain scores and evidence without building local HTML. The report rebuild command reads the saved manifest and resolves its exact suite from the locked definitions; use `--suite` for other historical bundles. Report publication requires a separate explicit request and authorization.
 

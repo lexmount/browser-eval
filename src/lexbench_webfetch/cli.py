@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Inspect and verify LexBench Web Fetch inputs")
+    parser = argparse.ArgumentParser(description="Inspect and verify LexBench-Web-Fetch inputs")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("list", help="List the versioned suites")
     sub.add_parser("version", help="Show the installed scorer and published benchmark catalog edition")

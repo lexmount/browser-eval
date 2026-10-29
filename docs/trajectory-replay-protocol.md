@@ -168,7 +168,7 @@ The first single-host amd64 run is pre-registered in
 the four mixed Map/Wikipedia tasks (97, 268, 426, and 741) plus the two independently reproduced
 GET-XHR evaluator defects and the independently reproduced array-schema defect in task 811. The
 defect evidence is pinned in
-[the locked evaluator exclusions](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay/blob/main/definitions/annotations/human-evaluator-exclusions-v1.json). This engine-independent scope is
+[the locked evaluator exclusions](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay/blob/main/definitions/annotations/human-evaluator-exclusions-v1.json). This engine-independent scope is
 fixed before qualification and browser measurement; failures cannot remove further tasks afterward.
 
 Stateful sites are reset by removing and recreating their container from the pinned image before

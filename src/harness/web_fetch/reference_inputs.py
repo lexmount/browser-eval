@@ -53,7 +53,9 @@ def benchmark_input_path(path: Path) -> Path:
             from harness.benchmarks import data as datasets
             locked = datasets.binding("webfetch")
             if (binding.get("kind") == "huggingface_benchmark_binding"
-                    and binding.get("repository") == "https://huggingface.co/datasets/" + locked["repository"]):
+                    and binding.get("repository", "").startswith("https://huggingface.co/datasets/")
+                    and datasets.canonical_repository(binding.get("repository", "").removeprefix(
+                        "https://huggingface.co/datasets/")) == datasets.canonical_repository(locked["repository"])):
                 matches = [datasets.binding("webfetch", binding["revision"])]
             elif (binding.get("kind") == "external_benchmark_binding"
                     and binding.get("repository") == "https://github.com/lexmount/lexbench-webfetch"):

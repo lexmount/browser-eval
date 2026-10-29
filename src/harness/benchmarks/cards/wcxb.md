@@ -1,4 +1,4 @@
-# WCXB: qualified test set
+# LexBench-WCXB
 
 WCXB (Web Content eXtraction Benchmark) evaluates main-content extraction and boilerplate removal from saved web pages. This Lexmount distribution contains {{total_records}} source-qualified pages from Murrough Foley's upstream test split, with the original compressed HTML and ground-truth JSON files preserved byte for byte.
 
@@ -32,12 +32,12 @@ from huggingface_hub import snapshot_download
 
 revision = "<full-Hugging-Face-commit>"
 rows = load_dataset(
-    "Lexmount/lexbench-wcxb", "qualified-test",
+    "Lexmount/LexBench-WCXB", "qualified-test",
     split="test", revision=revision,
 )
 task = json.loads(rows[0]["task"])
 snapshot = Path(snapshot_download(
-    "Lexmount/lexbench-wcxb", repo_type="dataset", revision=revision,
+    "Lexmount/LexBench-WCXB", repo_type="dataset", revision=revision,
     allow_patterns=["definitions/**", "manifest.json", "LICENSE", "NOTICE", "THIRD_PARTY.md"],
 ))
 with gzip.open(snapshot / "definitions" / task["html_path"], "rt", encoding="utf-8") as stream:
@@ -94,7 +94,7 @@ Results on this qualified selection need their own denominator. They should not 
 
 ## Source, attribution and license
 
-The upstream benchmark is [Murrough Foley's Web Content Extraction Benchmark](https://github.com/Murrough-Foley/web-content-extraction-benchmark). This qualified distribution is maintained at [Lexmount/lexbench-wcxb](https://huggingface.co/datasets/Lexmount/lexbench-wcxb); Browser Eval supplies integration and scoring tools.
+The upstream benchmark is [Murrough Foley's Web Content Extraction Benchmark](https://github.com/Murrough-Foley/web-content-extraction-benchmark). This qualified distribution is maintained at [Lexmount/LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB); Browser Eval supplies integration and scoring tools.
 
 The upstream dataset is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), with copyright credited to Murrough Foley, 2026. Retain attribution, the license and the disclosed selection changes when redistributing or adapting this edition. Read [LICENSE](LICENSE), [NOTICE](NOTICE) and [THIRD_PARTY.md](THIRD_PARTY.md). Browser Eval's software license is separate from the dataset license.
 

@@ -1,6 +1,6 @@
 # Frozen reference inputs
 
-Self-authored Web Fetch task definitions are versioned in [LexBench Web Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/lexbench-webfetch). For a new integration, use the independent verifier and materialized export shipped with Browser Eval as described in [benchmark integration](benchmarks.md). The manifests below retain historical experiment bindings; changing them would change those experiments.
+Self-authored Web Fetch task definitions are versioned in [LexBench-Web-Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch). For a new integration, use the independent verifier and materialized export shipped with Browser Eval as described in [benchmark integration](benchmarks.md). The manifests below retain historical experiment bindings; changing them would change those experiments.
 
 To reproduce a historical run, you need its original input files as well as this checkout. Full datasets, pages, documents and rendered references are stored outside Git.
 

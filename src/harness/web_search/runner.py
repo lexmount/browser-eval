@@ -344,10 +344,14 @@ def validate_resume_implementation(output, contract):
 
 def validate_resume_datasets(contract, output=None):
     """Execution repairs retain the original benchmark inputs and scoring resources."""
-    from harness.benchmarks.data import dependencies, legacy_dependencies
+    from harness.benchmarks.data import canonical_repository, dependencies, legacy_dependencies
     current = dependencies("websearch")
     if "installed_benchmark_datasets" in contract:
-        if contract["installed_benchmark_datasets"] != current:
+        def normalized(selection):
+            return ({name: {**item, "repository": canonical_repository(item.get("repository"))}
+                     if isinstance(item, dict) else item for name, item in selection.items()}
+                    if isinstance(selection, dict) else selection)
+        if normalized(contract["installed_benchmark_datasets"]) != normalized(current):
             raise ValueError("Resume requires the same installed benchmark datasets; "
                              "start a new cohort")
         return current

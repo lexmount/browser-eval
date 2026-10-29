@@ -21,7 +21,7 @@ Run:
 
     ./examples/trajectory_replay/run.sh
 
-The default tasks come from [LexBench Trajectory Replay on Hugging Face](https://huggingface.co/datasets/Lexmount/lexbench-trajectory-replay), at the immutable revision in the code's data lock. The verified local cache works offline after the first download. An explicit `--suite` remains available on the Python CLI for historical inputs.
+The default tasks come from [LexBench-Trajectory-Replay on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay), at the immutable revision in the code's data lock. The verified local cache works offline after the first download. An explicit `--suite` remains available on the Python CLI for historical inputs.
 
 Use `./examples/trajectory_replay/run.sh --no-report` to save scores and evidence without generating local HTML. Build the report later with `uv run --frozen python examples/trajectory_replay/rebuild_report.py --artifacts <evidence-directory>`; it selects the exact suite bound by the saved manifest. Publishing a report requires a separate explicit request and authorization.
 
@@ -144,7 +144,9 @@ complex. Twenty-five retain the previous public suite's task definitions;
 five add cascading search, infinite scrolling, site search, version/language
 switching, and repository file search. Capability designs may come from
 [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser)
-and [Moli](https://github.com/lexmount/moli). Lexbench's local-fixture scenarios
+and [Moli](https://github.com/lexmount/moli). The original Headless task inputs are
+preserved in [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser).
+Lexbench's local-fixture scenarios
 are design references, not measured public targets. Every task
 declares a fixed reference action sequence, exact expected
 outputs, derivation, and source attribution. Expected outputs are unique; the

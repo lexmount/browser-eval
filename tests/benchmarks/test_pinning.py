@@ -38,7 +38,7 @@ def fixture(root, monkeypatch, defect=None, *, jsonl=False):
                 'archive': {'path': 'definitions.tar.gz', 'size': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()},
                 'files': {name: {'size': len(value), 'sha256': hashlib.sha256(value).hexdigest()}
                           for name, value in files.items()}}
-    before = {'repository': 'Lexmount/lexbench-websearch', 'revision': '0' * 40,
+    before = {'repository': 'Lexmount/LexBench-Web-Search', 'revision': '0' * 40,
               'archive': {'sha256': '0' * 64}, 'files': {}}
     if defect == 'legacy-known':
         before['history'] = [{'revision': 'a' * 40, 'archive': manifest.pop('archive')}]
@@ -72,7 +72,7 @@ def test_pin_updates_current_bindings_and_retains_prior_snapshot(tmp_path, monke
     assert selected['history'][0]['revision'] == '0' * 40
     assert json.loads(imported.read_text())['datasets']['sample']['count'] == 1
     assert pinning.validate_binding(tmp_path, 'lexbench-websearch') == 'a' * 40
-    assert json.loads(imported.read_text())['repository'] == 'https://huggingface.co/datasets/Lexmount/lexbench-websearch'
+    assert json.loads(imported.read_text())['repository'] == 'https://huggingface.co/datasets/Lexmount/LexBench-Web-Search'
 
 
 def test_first_selection_registers_a_supported_benchmark_without_fake_history(tmp_path, monkeypatch):
@@ -81,7 +81,7 @@ def test_first_selection_registers_a_supported_benchmark_without_fake_history(tm
     imported.unlink()
     pinning.pin(tmp_path, 'websearch', 'a' * 40)
     selected = json.loads(lock.read_text())['datasets']['websearch']
-    assert selected['repository'] == 'Lexmount/lexbench-websearch'
+    assert selected['repository'] == 'Lexmount/LexBench-Web-Search'
     assert selected['revision'] == 'a' * 40
     assert selected['datasets']['sample']['count'] == 1
     assert selected['history'] == []

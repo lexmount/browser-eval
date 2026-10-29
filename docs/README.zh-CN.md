@@ -51,9 +51,9 @@
 
 | 流程 | 对应评测集与任务集 | 使用指南 |
 | --- | --- | --- |
-| Web Fetch | [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch)、[LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench)、[LexBench WCXB](https://huggingface.co/datasets/Lexmount/lexbench-wcxb) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../src/harness/web_fetch/README.md) |
-| Web Search | [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch)：场景问题，以及 [LexBench SimpleQA Verified](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) 检索任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../src/harness/web_search/README.md) |
-| 轨迹重放 | [自建固定动作任务](https://huggingface.co/datasets/Lexmount/lexbench-trajectory-replay)和独立的 [WebArena 重放数据集](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay)，使用已固定版本的 WebArena-Verified 评测器 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
+| Web Fetch | [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch)、[LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench)、[LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../src/harness/web_fetch/README.md) |
+| Web Search | [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search)：场景问题，以及 [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) 检索任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../src/harness/web_search/README.md) |
+| 轨迹重放 | [自建固定动作任务](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay)和独立的 [WebArena 重放数据集](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay)，使用已固定版本的 WebArena-Verified 评测器 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
 
 ### Web Fetch
 
@@ -180,17 +180,18 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run
 
 | 资源 | 用途 |
 | --- | --- |
-| [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch) | Web Fetch 题目、验收要求和参考输入绑定 |
-| [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch) | 搜索问题和来源参考 |
-| [LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench) | 修正参考答案后的 WebMainBench 任务及修订依据 |
-| [LexBench SimpleQA Verified](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) | 按输入长度筛选的 SimpleQA Verified 检索任务，保留原始答案 |
-| [LexBench WCXB](https://huggingface.co/datasets/Lexmount/lexbench-wcxb) | 已核验来源的冻结提取输入和参考答案 |
-| [LexBench Trajectory Replay](https://huggingface.co/datasets/Lexmount/lexbench-trajectory-replay) | 自建固定动作任务、轨迹和预期输出 |
-| [LexBench WebArena Replay](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay) | 分开管理人工录制轨迹、修正题目和官方完整题目 |
+| [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) | Web Fetch 题目、验收要求和参考输入绑定 |
+| [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) | 搜索问题和来源参考 |
+| [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) | 修正参考答案后的 WebMainBench 任务及修订依据 |
+| [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) | 按输入长度筛选的 SimpleQA Verified 检索任务，保留原始答案 |
+| [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | 已核验来源的冻结提取输入和参考答案 |
+| [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) | 原始 CDP 与自动化驱动任务及验收材料，分开保留各来源版本 |
+| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | 自建固定动作任务、轨迹和预期输出 |
+| [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | 分开管理人工录制轨迹、修正题目和官方完整题目 |
 | [Moli](https://github.com/lexmount/moli) | 与其他参与者按相同任务规则评测的浏览器 |
 | [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | Lexmount WebFetch 服务的命令行客户端 |
 | Artifact Site（[全球站 .com](https://yours.lexmount.com/artifact-site) · [中国站 .cn](https://yours.lexmount.cn/artifact-site)） | 报告创建、分享和权限控制 |
-| [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) | 自建轨迹的场景设计来源；另有独立的协议、自动化驱动和 Web 平台评测 |
+| [Headless 任务输入](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) · [上游代码](https://github.com/lexmount/Lexbench-Headless-Browser) | 自建轨迹的场景设计来源；另有独立的协议、自动化驱动和 Web 平台评测 |
 | [WebMainBench 分支](https://github.com/lexmount/WebMainBench/tree/lex-main) · [上游](https://github.com/opendatalab/WebMainBench) | 上游署名和固定版本的提取评分器来源 |
 | [WebArena-Verified 分支](https://github.com/lexmount/webarena-verified/tree/lex-main) · [上游](https://github.com/ServiceNow/webarena-verified) | 官方题目来源及重放、实验性 Agent 集成使用的固定评测器依赖 |
 | [WCXB 上游](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | HF 核验版本的数据来源署名 |

@@ -1,4 +1,4 @@
-# LexBench Trajectory Replay
+# LexBench-Trajectory-Replay
 
 Fixed browser actions and deterministic checks for comparing browsers on the same work. The tasks cover reading public pages, forms, navigation history, delayed elements, search, and scrolling. Browser Eval executes the declared actions and checks the saved outputs against explicit assertions.
 
@@ -25,6 +25,8 @@ Each record includes a stable string ID, a readable title, difficulty and tags, 
 The canonical runtime file is `definitions/suites/curated-v1.json`. The dataset viewer exposes the same tasks in `definitions/datasets/curated-v1.json`, with language metadata for discovery. `definitions/registry.json` binds each configuration to its file hash and population. The publication bindings record the source suite hash; this edition preserves the original runtime suite bytes. Expected outputs are explicit task assertions; prior run responses are not part of this suite.
 
 Tasks were designed with reference to [Lexbench Headless Browser's scenario collection](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios). Browser Eval owns the current replay and scoring implementation. Each task retains its own public source link.
+
+[LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) preserves the original task catalogs and acceptance assets. Its CDP and driver tasks use the upstream runtime; this replay dataset contains Browser Eval's fixed-action adaptations.
 
 ## Use with Browser Eval
 

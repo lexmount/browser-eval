@@ -9,10 +9,14 @@ import json
 import re
 import subprocess
 import tarfile
+from fnmatch import fnmatchcase
 from dataclasses import dataclass, replace
 from pathlib import Path
 
 CARDS = Path(__file__).with_name("cards")
+HEADLESS_REPOSITORY = "https://github.com/lexmount/Lexbench-Headless-Browser"
+HEADLESS_INPUTS = ("tasks", "fixtures", "config", "manifest.json", "harness_pins.json",
+                   "LICENSE", "THIRD_PARTY_NOTICES.md")
 
 
 def digest(raw: bytes) -> str:
@@ -21,6 +25,93 @@ def digest(raw: bytes) -> str:
 
 def encoded(value: object) -> bytes:
     return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
+
+
+def _headless_definitions(checkout: Path, revision: str) -> dict[str, bytes]:
+    """Read original data blobs; Git export attributes cannot rewrite their bytes."""
+    tree = subprocess.check_output(
+        ["git", "ls-tree", "-rz", revision, "--", *HEADLESS_INPUTS], cwd=checkout)
+    entries = []
+    for entry in tree.split(b"\0"):
+        if not entry:
+            continue
+        attributes, raw_name = entry.split(b"\t", 1)
+        mode, kind, object_id = attributes.split()
+        name = raw_name.decode("utf-8")
+        if (kind != b"blob" or mode not in {b"100644", b"100755"}
+                or set(Path(name).parts) & {"runs", "reports", "generated", "private_artifacts"}):
+            raise ValueError("Unexpected headless input: " + name)
+        entries.append((name, object_id))
+    raw = subprocess.run(["git", "cat-file", "--batch"], cwd=checkout, check=True,
+                         input=b"\n".join(oid for _, oid in entries) + b"\n",
+                         capture_output=True).stdout
+    files, source_files, cursor = {}, {}, 0
+    for name, object_id in entries:
+        end = raw.index(b"\n", cursor)
+        header = raw[cursor:end].split()
+        if len(header) != 3 or header[:2] != [object_id, b"blob"]:
+            raise ValueError("Unavailable committed headless input: " + name)
+        size = int(header[2])
+        content = raw[end + 1:end + 1 + size]
+        cursor = end + size + 2
+        files["definitions/" + name] = content
+        source_files[name] = {"sha256": digest(content), "size": len(content)}
+        if name in {"LICENSE", "THIRD_PARTY_NOTICES.md"}:
+            files[name] = content
+    required = ("manifest.json", "harness_pins.json", "LICENSE", "THIRD_PARTY_NOTICES.md",
+                "config/browser_driver_bindings.json")
+    if any("definitions/" + name not in files for name in required):
+        raise ValueError("Incomplete upstream headless data contract")
+    manifest = json.loads(files["definitions/manifest.json"])
+    bindings = json.loads(files["definitions/config/browser_driver_bindings.json"])
+    datasets, used = {}, set()
+    for layer in manifest["layers"]:
+        for subset in layer["subsets"]:
+            identity, pattern = subset["subset_id"], subset["task_glob"]
+            if (not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", identity)
+                    or identity in datasets or identity == "scenario-specs"
+                    or not pattern.startswith("tasks/") or ".." in Path(pattern).parts
+                    or "**" in pattern):
+                raise ValueError("Unsafe or duplicate headless subset")
+            names = sorted(name for name in files if name.startswith("definitions/tasks/")
+                           and len(Path(name).parts[1:]) == len(Path(pattern).parts)
+                           and all(fnmatchcase(value, glob) for value, glob in
+                                   zip(Path(name).parts[1:], Path(pattern).parts)))
+            if not names or used.intersection(names):
+                raise ValueError("Missing or overlapping headless task population: " + identity)
+            used.update(names)
+            cases = [json.loads(files[name]) for name in names]
+            path = "viewer/" + identity + ".json"
+            payload = encoded({"cases": cases})
+            files["definitions/" + path] = payload
+            datasets[identity] = {"path": path, "sha256": digest(payload), "count": len(cases),
+                                  "id_field": "task_id", "driver": subset["driver"],
+                                  "layer": layer["layer_id"], "protocol": subset,
+                                  "source_paths": {case["task_id"]: name.removeprefix("definitions/")
+                                                   for case, name in zip(cases, names)}}
+    scenarios = sorted(name for name in files if name.startswith("definitions/tasks/scenarios/")
+                       and name.endswith(".json"))
+    cases = [json.loads(files[name]) for name in scenarios]
+    if not cases:
+        raise ValueError("Missing headless scenario specifications")
+    path, payload = "viewer/scenario-specs.json", encoded({"cases": cases})
+    files["definitions/" + path] = payload
+    datasets["scenario-specs"] = {"path": path, "sha256": digest(payload), "count": len(cases),
+                                 "id_field": "scenario_id", "population": "scenario-specifications",
+                                 "source_paths": {case["scenario_id"]: name.removeprefix("definitions/")
+                                                  for case, name in zip(cases, scenarios)}}
+    task_files = {name for name in files if name.startswith("definitions/tasks/") and name.endswith(".json")}
+    if task_files != used | set(scenarios):
+        raise ValueError("Unregistered headless task definitions")
+    source = {"repository": HEADLESS_REPOSITORY, "revision": revision,
+              "bench_id": manifest["bench_id"], "bench_version": manifest["bench_version"],
+              "task_count": len(used), "scenario_count": len(scenarios), "subset_count": len(datasets) - 1,
+              "fixture_count": sum(name.startswith("definitions/fixtures/") for name in files),
+              "config_count": sum(name.startswith("definitions/config/") for name in files),
+              "driver_count": len(bindings["driver_ids"]), "driver_ids": bindings["driver_ids"],
+              "file_count": len(entries)}
+    files["definitions/registry.json"] = encoded({"datasets": datasets, "source": source, "source_files": source_files})
+    return files
 
 
 @dataclass(frozen=True)
@@ -37,16 +128,18 @@ class DatasetRelease:
 
     @classmethod
     def from_git(cls, checkout: Path, track: str, revision: str) -> DatasetRelease:
-        if track not in json.loads((CARDS / "metadata.json").read_bytes()):
+        registered = json.loads((CARDS / "metadata.json").read_bytes())
+        if track not in registered:
             raise ValueError("Unknown benchmark track")
         if not re.fullmatch(r"[0-9a-f]{40}", revision):
             raise ValueError("A release requires a full Git commit")
         kind = subprocess.check_output(["git", "cat-file", "-t", revision], cwd=checkout, text=True).strip()
         if kind != "commit":
             raise ValueError("A release requires a Git commit, not a tree or blob")
-        prefix = f"src/lexbench_{track}/definitions/"
         hub = subprocess.run(["git", "cat-file", "-e", revision + ":definitions"],
                              cwd=checkout, capture_output=True).returncode == 0
+        if track == "headless-browser" and not hub:
+            return cls(track, revision, _headless_definitions(checkout, revision), HEADLESS_REPOSITORY)
         if hub:
             committed = subprocess.run(
                 ["git", "show", revision + ":manifest.json"],
@@ -60,8 +153,18 @@ class DatasetRelease:
                     or identity.get("track") != track):
                 raise ValueError("Hub source manifest does not match the requested benchmark track")
             prefix = "definitions/"
+        else:
+            prefixes = [value for value in (f"src/lexbench_{track}/definitions/", f"lexbench_{track}/definitions/")
+                        if subprocess.run(["git", "cat-file", "-e", revision + ":" + value.rstrip("/")],
+                                          cwd=checkout, capture_output=True).returncode == 0]
+            if len(prefixes) != 1:
+                raise ValueError("Source requires one committed definitions tree")
+            prefix = prefixes[0]
+        notices = subprocess.check_output(
+            ["git", "ls-tree", "--name-only", revision, "--", "LICENSE", "NOTICE",
+             "THIRD_PARTY.md", "THIRD_PARTY_NOTICES.md"], cwd=checkout, text=True).splitlines()
         raw = subprocess.run(
-            ["git", "archive", "--format=tar", revision, prefix, "LICENSE", "NOTICE", "THIRD_PARTY.md"],
+            ["git", "archive", "--format=tar", revision, prefix, *notices],
             cwd=checkout, check=True, capture_output=True,
         ).stdout
         files = {}
@@ -72,7 +175,7 @@ class DatasetRelease:
                 if not item.isfile():
                     raise ValueError("Public definitions cannot contain links or special files")
                 name = "definitions/" + item.name[len(prefix):] if item.name.startswith(prefix) else item.name
-                allowed = (Path(name).suffix in {".json", ".jsonl", ".txt", ".md"}
+                allowed = (track == "headless-browser" or Path(name).suffix in {".json", ".jsonl", ".txt", ".md"}
                            or Path(name).name in {"LICENSE", "NOTICE"}
                            or (track == "wcxb" and name.endswith(".html.gz")))
                 if name.startswith("definitions/") and not allowed:
@@ -87,7 +190,7 @@ class DatasetRelease:
                     if digest(content) != pointer[1].decode() or len(content) != int(pointer[2]):
                         raise ValueError("Materialize the exact committed LFS object: " + item.name)
                 files[name] = content
-        repository = f"https://huggingface.co/datasets/Lexmount/lexbench-{track}" if hub else None
+        repository = "https://huggingface.co/datasets/" + registered[track]["repo_id"] if hub else None
         return cls(track, revision, files, repository)
 
     def datasets(self) -> dict[str, dict]:
@@ -110,6 +213,12 @@ class DatasetRelease:
         body = (self.card_body if self.card_body is not None
                 else (CARDS / (self.track + ".md")).read_text(encoding="utf-8"))
         files = dict(self.files)
+        if self.track == "headless-browser":
+            registry = json.loads(files["definitions/registry.json"])
+            for name, binding in registry["source_files"].items():
+                content = files["definitions/" + name]
+                if digest(content) != binding["sha256"] or len(content) != binding["size"]:
+                    raise ValueError("Original headless input does not match inventory: " + name)
         configurations = []
         summary = []
         languages = set()
@@ -132,7 +241,7 @@ class DatasetRelease:
                     used_annotations.setdefault(identity, {})[case_id] = annotation
                     languages.update(annotation.get("languages", [language]))
                 else:
-                    language = "und"
+                    language = metadata.get("default_language", "und")
                     for field in metadata["language_fields"]:
                         value = case
                         for part in field.split("."):
@@ -153,6 +262,9 @@ class DatasetRelease:
                 }
                 row.update({key: case[key] for key in ("track", "category")
                             if case.get(key) not in (None, "")})
+                if "source_paths" in binding:
+                    row["source_path"] = binding["source_paths"][case_id]
+                    row.update({key: binding[key] for key in ("layer", "driver") if key in binding})
                 category_field = metadata.get("category_field")
                 if "category" not in row and category_field and case.get(category_field):
                     row["category"] = case[category_field]
@@ -182,6 +294,8 @@ class DatasetRelease:
         if self.tooling_revision is not None:
             manifest["tooling"] = {"repository": "https://github.com/lexmount/browser-eval",
                                    "revision": self.tooling_revision}
+        if self.track == "headless-browser":
+            manifest["upstream"] = json.loads(self.files["definitions/registry.json"])["source"]
         files["manifest.json"] = encoded(manifest)
         output.mkdir(parents=True, exist_ok=True)
         for name, raw in files.items():
@@ -215,6 +329,13 @@ class DatasetRelease:
             ids = [case[identity_field] for case in cases]
             if type(binding["count"]) is not int or len(ids) != binding["count"] or len(set(ids)) != len(ids):
                 raise ValueError("Dataset population mismatch: " + identity)
+            if "source_paths" in binding:
+                if set(binding["source_paths"]) != set(ids):
+                    raise ValueError("Source path population mismatch: " + identity)
+                for case in cases:
+                    original = self.files["definitions/" + binding["source_paths"][case[identity_field]]]
+                    if json.loads(original) != case:
+                        raise ValueError("Viewer projection differs from original task: " + identity)
             yield identity, binding, cases
 
     def _finish(self, output: Path, manifest: dict, configurations: list[dict], metadata: dict,
@@ -239,6 +360,11 @@ class DatasetRelease:
         table.extend(f"| `{row['config']}` | `{row['source_suite']}` | {row['count']:,} | {row['description']} |" for row in populations)
         body = body.replace("{{dataset_summary}}", "\n".join(table))
         body = body.replace("{{total_records}}", f"{sum(row['count'] for row in populations):,}")
+        if self.track == "headless-browser":
+            for key, value in manifest["upstream"].items():
+                if isinstance(value, (str, int)):
+                    replacement = f"{value:,}" if isinstance(value, int) else value
+                    body = body.replace("{{upstream_" + key + "}}", replacement)
         checkout = ""
         if self.tooling_revision is not None:
             body = body.replace("https://github.com/lexmount/browser-eval/blob/main/",

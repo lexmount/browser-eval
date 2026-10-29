@@ -12,6 +12,7 @@ import tarfile
 import tempfile
 from copy import deepcopy
 from functools import lru_cache
+from importlib.resources import files as package_files
 from pathlib import Path
 from urllib.parse import urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
@@ -59,6 +60,14 @@ def dependencies(track: str) -> dict[str, dict[str, str]]:
         result[name] = {key: selected[key] for key in ("repository", "revision")}
         pending.extend(selected.get("dataset_sources", {}).values())
     return result
+
+
+def canonical_repository(repository: str) -> str:
+    """Recognize recorded Hub moves without changing frozen commit identities."""
+    metadata = json.loads(package_files(__package__).joinpath("cards/metadata.json").read_bytes())
+    return next((item["repo_id"] for item in metadata.values()
+                 if repository == item["repo_id"] or repository in item.get("previous_repo_ids", [])),
+                repository)
 
 
 def _definition_bindings(selected: dict, *, composed: bool = True) -> dict:

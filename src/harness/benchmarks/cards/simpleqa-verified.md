@@ -1,4 +1,4 @@
-# LexBench SimpleQA Verified
+# LexBench-SimpleQA-Verified
 
 A {{total_records}}-question retrieval edition of [Google SimpleQA Verified](https://huggingface.co/datasets/google/simpleqa-verified), used by [Browser Eval](https://github.com/lexmount/browser-eval) to compare search tools. It retains publisher questions, reference answers and supporting URLs so a search result list can be checked for reference-page retrieval and answer-bearing text.
 
@@ -34,7 +34,7 @@ import json
 from datasets import load_dataset
 
 rows = load_dataset(
-    "Lexmount/lexbench-simpleqa-verified",
+    "Lexmount/LexBench-SimpleQA-Verified",
     "factual-v1",
     split="test",
     revision="YOUR_FULL_HF_COMMIT",
@@ -60,4 +60,4 @@ Cite both upstream works when using this derivative, and identify the selected d
 
 For the harness, cite [Browser Eval: Benchmarking Browsers and Web Tools for AI Agents](https://github.com/lexmount/browser-eval/blob/main/CITATION.cff).
 
-[LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch) contains the separate scenario-query suites. [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch) and [LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench) evaluate fetching and extraction with their own task populations.
+[LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) contains the separate scenario-query suites. [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) and [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) evaluate fetching and extraction with their own task populations.

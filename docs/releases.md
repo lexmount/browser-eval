@@ -30,7 +30,7 @@ Added cases can require a major benchmark edition even when accepting that editi
 
 Choose a stable software version after all changes in its declared release scope have landed on main and the integrated release checks pass. Version `1.0.0` establishes the documented compatibility contract; release preparation alone does not assign that version or create a tag.
 
-Web Fetch includes LexBench Web Fetch integration and independently selected WebMainBench and WCXB workflows. Search uses the separate HF Search and SimpleQA definitions with Browser Eval's local scorer. Publish the exact supported dataset editions and provider configurations with the release. Browser Trajectory Replay and Browser Use can remain available as experimental tracks with their own environment requirements.
+Web Fetch includes LexBench-Web-Fetch integration and independently selected WebMainBench and WCXB workflows. Search uses the separate HF Search and SimpleQA definitions with Browser Eval's local scorer. Publish the exact supported dataset editions and provider configurations with the release. Browser Trajectory Replay and Browser Use can remain available as experimental tracks with their own environment requirements.
 
 Web Fetch, Web Search / SERP, Browser Trajectory Replay and Browser Use have main-branch implementations. Validate the selected tracks together on the release commit before assigning a stable version. External references, browsers, self-hosted sites and provider accounts remain separate inputs.
 

@@ -1,6 +1,6 @@
-# LexBench Web Fetch
+# LexBench-Web-Fetch
 
-LexBench Web Fetch evaluates whether a browser, extraction tool or hosted fetch service returns the content an AI agent needs from a URL. Its {{total_records}} task entries cover page bodies, structured records with usable links, resource discovery and file delivery. Each task declares what the returned answer must contain, so the same acceptance rules apply to every participant.
+LexBench-Web-Fetch evaluates whether a browser, extraction tool or hosted fetch service returns the content an AI agent needs from a URL. Its {{total_records}} task entries cover page bodies, structured records with usable links, resource discovery and file delivery. Each task declares what the returned answer must contain, so the same acceptance rules apply to every participant.
 
 Use it to compare live-site fetching, diagnose incomplete extraction, or test a saved response after changing a parser. [Browser Eval](https://github.com/lexmount/browser-eval) provides the scorer, execution adapters, evidence storage and comparison reports. Scoring saved answers requires no browser, provider account or LLM judge.
 
@@ -44,7 +44,7 @@ import json
 from datasets import load_dataset
 
 tasks = load_dataset(
-    "Lexmount/lexbench-webfetch",
+    "Lexmount/LexBench-Web-Fetch",
     "web-pages",
     split="test",
     revision="<full-Hugging-Face-commit>",
@@ -126,16 +126,16 @@ These are curated workloads, not a representative sample of every website. The a
 
 ## Sources, related benchmarks and rights
 
-LexBench Web Fetch was developed as the Web Fetch benchmark component of [Browser Eval](https://github.com/lexmount/browser-eval). Its task definitions retain source URLs and reference bindings. Project-authored material uses Apache-2.0; original website text, documents, media and captures retain their source rights. Full captures, screenshots, private logs and measured provider outputs are excluded. A public URL or content hash is not permission to redistribute the underlying material. Read [THIRD_PARTY.md](THIRD_PARTY.md), [NOTICE](NOTICE) and the notices included with the selected snapshot.
+LexBench-Web-Fetch was developed as the Web Fetch benchmark component of [Browser Eval](https://github.com/lexmount/browser-eval). Its task definitions retain source URLs and reference bindings. Project-authored material uses Apache-2.0; original website text, documents, media and captures retain their source rights. Full captures, screenshots, private logs and measured provider outputs are excluded. A public URL or content hash is not permission to redistribute the underlying material. Read [THIRD_PARTY.md](THIRD_PARTY.md), [NOTICE](NOTICE) and the notices included with the selected snapshot.
 
 The following projects have separate populations and terms; they are not subsets of this catalog:
 
-- [WebMainBench](https://github.com/opendatalab/WebMainBench), maintained by OpenDataLab, evaluates main-content extraction from saved web pages. Browser Eval's [LexBench WebMainBench dataset](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench) records its selected corpus and corrections.
+- [WebMainBench](https://github.com/opendatalab/WebMainBench), maintained by OpenDataLab, evaluates main-content extraction from saved web pages. Browser Eval's [LexBench-WebMainBench dataset](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) records its selected corpus and corrections.
 - [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) is the Web Content Extraction Benchmark.
 - [WebArena](https://github.com/web-arena-x/webarena) and [WebArena-Verified](https://github.com/ServiceNow/webarena-verified) supply interactive tasks and evaluators used in separate browser workflows.
-- [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) evaluates headless-browser runtime and automation capabilities.
+- [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) preserves the task inputs for the [upstream Headless runtime](https://github.com/lexmount/Lexbench-Headless-Browser), which evaluates browser runtime and automation capabilities.
 
-For search evaluation, use [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch). [Moli](https://github.com/lexmount/moli) is one browser that can be evaluated with Web Fetch tasks, and [WebFetch CLI](https://github.com/lexmount/webfetch-cli) is a client for a hosted fetch service. Report creation and sharing are covered by [Browser Eval's reporting documentation](https://github.com/lexmount/browser-eval/blob/main/docs/report-hosting.md).
+For search evaluation, use [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search). [Moli](https://github.com/lexmount/moli) is one browser that can be evaluated with Web Fetch tasks, and [WebFetch CLI](https://github.com/lexmount/webfetch-cli) is a client for a hosted fetch service. Report creation and sharing are covered by [Browser Eval's reporting documentation](https://github.com/lexmount/browser-eval/blob/main/docs/report-hosting.md).
 
 ## Citation
 

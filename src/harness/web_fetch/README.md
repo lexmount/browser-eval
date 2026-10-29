@@ -1,6 +1,6 @@
 # Web Fetch
 
-Browser Eval owns this track's execution, evidence and report pipeline, and the independent scorer in `src/lexbench_webfetch/`. Public task definitions and reference bindings are versioned in [LexBench Web Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/lexbench-webfetch). See [benchmark integration](../../../docs/benchmarks.md) for input export and dataset selection.
+Browser Eval owns this track's execution, evidence and report pipeline, and the independent scorer in `src/lexbench_webfetch/`. Public task definitions and reference bindings are versioned in [LexBench-Web-Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch). See [benchmark integration](../../../docs/benchmarks.md) for input export and dataset selection.
 
 Fetch a page or file, score the returned content against declared requirements, and inspect the saved result. Start with the [local article example](../../../examples/web_fetch/README.md) for a runnable HTTP/Moli/Chromium comparison.
 
@@ -128,7 +128,7 @@ content requirement establishes the source scope.
 
 ## WCXB scoring
 
-Current qualified inputs come from [LexBench WCXB on Hugging Face](https://huggingface.co/datasets/Lexmount/lexbench-wcxb), selected by the [data lock](../benchmarks/data-lock.json). Browser Eval owns the runner and scorer. Existing experiment profiles keep their original source manifests and input hashes.
+Current qualified inputs come from [LexBench-WCXB on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-WCXB), selected by the [data lock](../benchmarks/data-lock.json). Browser Eval owns the runner and scorer. Existing experiment profiles keep their original source manifests and input hashes.
 
 `wcxb_scoring.py` owns certified frozen-HTML scoring. The maintained command is
 `scripts/score_wcxb_results.py`; the required `--profile` argument selects an

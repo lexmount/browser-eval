@@ -1,4 +1,4 @@
-# LexBench WebMainBench
+# LexBench-WebMainBench
 
 A reference-corrected edition of [OpenDataLab WebMainBench](https://huggingface.co/datasets/opendatalab/WebMainBench) with {{total_records}} frozen extraction tasks, used by [Browser Eval](https://github.com/lexmount/browser-eval). Each task supplies frozen HTML and a reference Markdown answer, so extractors can receive the same page bytes. This edition supports comparisons of main-content extraction, HTML-to-Markdown conversion and preservation of code, formulas and tables.
 
@@ -35,7 +35,7 @@ import json
 from datasets import load_dataset
 
 rows = load_dataset(
-    "Lexmount/lexbench-webmainbench",
+    "Lexmount/LexBench-WebMainBench",
     "corrected-545",
     split="test",
     revision="YOUR_FULL_HF_COMMIT",
@@ -58,4 +58,4 @@ Please cite the upstream work and identify this corrected dataset revision:
 
 For the execution and reporting harness, cite [Browser Eval: Benchmarking Browsers and Web Tools for AI Agents](https://github.com/lexmount/browser-eval/blob/main/CITATION.cff).
 
-Related datasets: [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch) covers additional fetch tasks; [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch) and its separate [SimpleQA Verified retrieval edition](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) cover search. Their task populations and evaluation contracts are separate from these extraction pages.
+Related datasets: [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) covers additional fetch tasks; [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) and its separate [SimpleQA Verified retrieval edition](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) cover search. Their task populations and evaluation contracts are separate from these extraction pages.

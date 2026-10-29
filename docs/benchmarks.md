@@ -34,13 +34,14 @@ Current datasets are published separately:
 
 | Dataset | Purpose |
 | --- | --- |
-| [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch) | URL-to-content tasks, acceptance contracts and reference bindings |
-| [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch) | Scenario queries and source qualifications |
-| [LexBench SimpleQA Verified](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) | A separate retrieval adaptation of the publisher's factual questions |
-| [LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench) | Corrected frozen-HTML extraction inputs and references |
-| [LexBench WCXB](https://huggingface.co/datasets/Lexmount/lexbench-wcxb) | Source-qualified extraction inputs, preserving selected upstream HTML and reference bytes |
-| [LexBench Trajectory Replay](https://huggingface.co/datasets/Lexmount/lexbench-trajectory-replay) | Curated fixed-action tasks and trajectories |
-| [LexBench WebArena Replay](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay) | Separate human-recording, corrected-task and full official-task configurations |
+| [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) | URL-to-content tasks, acceptance contracts and reference bindings |
+| [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) | Scenario queries and source qualifications |
+| [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) | A separate retrieval adaptation of the publisher's factual questions |
+| [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) | Corrected frozen-HTML extraction inputs and references |
+| [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | Source-qualified extraction inputs, preserving selected upstream HTML and reference bytes |
+| [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) | Original CDP and driver task catalogs and acceptance assets, retained as separate source editions |
+| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | Curated fixed-action tasks and trajectories |
+| [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | Separate human-recording, corrected-task and full official-task configurations |
 
 Dataset cards explain scope, schema, source terms and loading. Configuration counts and selected revisions come from the dataset registry and data lock. WebArena's full task configuration retains both portable and direct-only tasks; inclusion in that configuration does not establish portable replay qualification. The official evaluator remains a separately pinned dependency.
 
@@ -89,7 +90,9 @@ Author dataset changes in a checkout of the corresponding Hugging Face dataset. 
 
 For resource-only or raw-file tasks, declare `content_score_applicable: false` when no text answer is required; file/resource checks remain active. Fix scoring rules here and keep positive/negative controls with their scorer. Preserve prior measurements; a scoring or reference correction applies to the declared affected scope through the existing revision receipts. `src/harness/lexbench/` remains the historical headless-browser execution/report adapter, separate from the two scorer packages.
 
-The [curated replay dataset](https://huggingface.co/datasets/Lexmount/lexbench-trajectory-replay) records its adaptation from [Lexbench-Headless-Browser scenario designs](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios). The separate [WebArena replay dataset](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay) supplies task and recording editions for the [public replay runtime](../examples/trajectory_replay/public_webarena/README.md). Run both through Browser Eval; the upstream repositories provide attribution and the pinned official evaluator, not an alternative current installation path.
+The [curated replay dataset](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) records its adaptation from [Lexbench-Headless-Browser scenario designs](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios). The separate [WebArena replay dataset](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) supplies task and recording editions for the [public replay runtime](../examples/trajectory_replay/public_webarena/README.md). Run both through Browser Eval; the upstream repositories provide attribution and the pinned official evaluator, not an alternative current installation path.
+
+[LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) preserves the original Headless task inputs. Its CDP and driver tasks use the [upstream runtime](https://github.com/lexmount/Lexbench-Headless-Browser); Browser Eval's replay-ready adaptations have their own task and execution contracts.
 
 ## Benchmark editions
 
@@ -329,7 +332,7 @@ or renaming a participant requires data changes, without another renderer entry.
 
 ## WCXB inputs
 
-The runtime defaults to the qualified [HF edition](https://huggingface.co/datasets/Lexmount/lexbench-wcxb) selected by the data lock. Its source manifest records upstream identities and qualification exclusions; selected HTML and reference bytes are retained unchanged. Historical profiles keep their original manifests and input hashes. The [upstream WCXB project](https://github.com/Murrough-Foley/web-content-extraction-benchmark) remains the source attribution. Use Browser Eval's existing runner and scorer for current execution.
+The runtime defaults to the qualified [HF edition](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) selected by the data lock. Its source manifest records upstream identities and qualification exclusions; selected HTML and reference bytes are retained unchanged. Historical profiles keep their original manifests and input hashes. The [upstream WCXB project](https://github.com/Murrough-Foley/web-content-extraction-benchmark) remains the source attribution. Use Browser Eval's existing runner and scorer for current execution.
 
 ## WebMainBench runtime
 
@@ -339,4 +342,4 @@ The WebMainBench runner defaults to the corrected corpus selected by the data lo
 
 The local `lexbench_websearch` module loads its pinned public definitions through the shared dataset loader. The registry's `current` mapping selects named task suites; explicit dataset, field and hash references are resolved before collection. Historical standalone profiles preserve their original bytes and hashes.
 
-Search providers, annotation collection, latency/billing evidence, audits and reports remain in `src/harness/web_search/`. Report profiles and measured results stay beside external evidence. Change task data on Hugging Face and scorer code here; keep the existing source qualifications and paired scoring controls. The [Search dataset](https://huggingface.co/datasets/Lexmount/lexbench-websearch) and [SimpleQA retrieval edition](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) retain source attribution and derivation details.
+Search providers, annotation collection, latency/billing evidence, audits and reports remain in `src/harness/web_search/`. Report profiles and measured results stay beside external evidence. Change task data on Hugging Face and scorer code here; keep the existing source qualifications and paired scoring controls. The [Search dataset](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) and [SimpleQA retrieval edition](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) retain source attribution and derivation details.

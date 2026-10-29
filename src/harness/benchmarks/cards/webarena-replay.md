@@ -1,4 +1,4 @@
-# LexBench WebArena Replay
+# LexBench-WebArena-Replay
 
 WebArena task definitions paired with fixed browser actions for Browser Eval. These inputs compare browser execution on the same sequence of work. The pinned WebArena-Verified program evaluates task completion from the browser response and the self-hosted site's state.
 
