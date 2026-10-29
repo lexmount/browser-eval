@@ -1101,7 +1101,6 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
         text, representation='plain_text' if representation == 'html' else representation)
     if anchor.get('match_scope') == 'non_record_lines':
         if non_record_visible is not None:
-            folded = normalize_for_match(non_record_visible)
             return [value for value in anchor['alternatives']
                     if _stable_literal_match(non_record_visible, value, registered_words, representation=representation)]
         # A known record label cannot stand in for page context. This is a
@@ -1181,7 +1180,6 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
                        and _stable_literal_match(anchor_visible if anchor_visible is not None else visible,
                                                  value, registered_words, representation=representation))
         return [value for value in anchor['alternatives'] if value in matched]
-    folded = normalize_for_match(anchor_visible if anchor_visible is not None else visible)
     return [value for value in anchor["alternatives"]
             if _stable_literal_match(anchor_visible if anchor_visible is not None else visible,
                                      value, registered_words, representation=representation,
