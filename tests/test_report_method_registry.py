@@ -1,4 +1,6 @@
 """New methods and executable versions must not require renderer changes."""
+from harness.distribution import source_path
+
 import copy
 import json
 
@@ -258,7 +260,7 @@ def test_catalog_examples_do_not_assert_prior_run_settings():
                 yield from strings(item, (*path, str(index)))
         elif isinstance(value, str):
             yield '.'.join(path), value
-    root = Path(__file__).resolve().parents[1] / 'harness/web_fetch'
+    root = source_path('harness/web_fetch', root=Path(__file__).resolve().parents[1])
     catalog = json.loads((root / 'data/report-methods.json').read_text())
     violations = [(path, text) for path, text in strings(catalog)
                   if pattern.search(text) and not any(fnmatchcase(path, rule) for rule in allowed)]
@@ -405,8 +407,7 @@ def test_catalog_descriptions_do_not_claim_measured_run_settings():
     import re
     from fnmatch import fnmatchcase
     from pathlib import Path
-    data = json.loads((Path(__file__).resolve().parents[1] /
-                       'harness/web_fetch/data/report-methods.json').read_text())
+    data = json.loads((source_path('harness/web_fetch/data/report-methods.json', root=Path(__file__).resolve().parents[1])).read_text())
     def violations(value, path=()):
         if isinstance(value, dict):
             return [item for key, child in value.items()

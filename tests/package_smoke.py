@@ -63,7 +63,7 @@ def verify_package_tree(source_root: Path, package_root: Path, *, package_name='
         if owners:
             owner = max(owners, key=len)
             return source_root / directories[owner] / package[len(owner):].lstrip('.').replace('.', '/')
-        return source_root / package.replace('.', '/')
+        return source_root / directories.get('', '') / package.replace('.', '/')
 
     source = source_directory(package_name)
     if source.is_symlink() or package_root.is_symlink():

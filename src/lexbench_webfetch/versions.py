@@ -162,9 +162,9 @@ def freeze_release(dataset_path: Path, output: Path, **options) -> dict:
 
 def catalog_release(path: Path | None = None, *, require_current_scorer: bool = True) -> dict:
     """Read the published catalog edition and verify its complete suite bindings."""
-    from .benchmark import SUITES, read, registry, validate
+    from .benchmark import definitions, read, registry, validate
 
-    selected = path if path is not None else SUITES / "benchmark-release.json"
+    selected = path if path is not None else definitions() / "benchmark-release.json"
     if selected.is_symlink():
         raise ValueError("Catalog release rejects symlinks")
     release = read(selected)

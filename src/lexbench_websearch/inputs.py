@@ -4,11 +4,6 @@ import hashlib
 import json
 from pathlib import Path
 
-from harness.benchmarks.data import binding, cache_home
-
-DEFINITIONS = cache_home() / "websearch" / binding("websearch")["revision"] / "definitions"
-
-
 def digest(raw):
     return hashlib.sha256(raw).hexdigest()
 

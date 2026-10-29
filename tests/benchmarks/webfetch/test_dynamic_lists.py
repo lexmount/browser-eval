@@ -57,7 +57,7 @@ class DynamicListTests(unittest.TestCase):
             "[Malformed](http://[broken)",
         ])
         entries = extract_named_entries(content, contract, "https://example.com/")
-        self.assertEqual({entry["title"] for entry in entries}, {"One again", "Two"})
+        self.assertEqual({entry["title"] for entry in entries}, {"One", "Two"})
 
     def test_malformed_candidate_is_reported_without_discarding_valid_siblings(self):
         diagnostics = []

@@ -1,5 +1,7 @@
 """Exercise the report's public fixed-layout comparison components."""
 
+from harness.distribution import source_path
+
 import json
 import re
 import shutil
@@ -14,7 +16,7 @@ class MoliReportRenderContractTests(unittest.TestCase):
         if node is None:
             self.skipTest("Node.js is required for report component checks")
         root = Path(__file__).resolve().parents[1]
-        script = root / "harness/lexbench/assets/render_contract.cjs"
+        script = source_path("harness/lexbench/assets/render_contract.cjs", root=root)
         subprocess.run(
             [node, str(script), "--app", str(root / "scripts/moli_report/app.js")],
             check=True,

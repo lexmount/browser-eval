@@ -29,6 +29,24 @@ def _sites() -> dict[WebArenaSite, str]:
     }
 
 
+def _retrieval_contract(task_id, calls):
+    return {
+        "schema": "lex_replay_current_run_retrieval/1",
+        "task_id": task_id,
+        "canonical_calls_sha256": _json_sha256(calls),
+        "sources": [
+            {
+                "name": "observed",
+                "step": len(calls),
+                "action_sha256": _json_sha256(calls[-1]),
+                "decode": "json",
+            }
+        ],
+        "projection": {"source": "observed", "pointer": "/value"},
+    }
+
+
+
 def test_retrieval_contract_is_bound_to_executed_remote_calls() -> None:
     task_id = 108
     candidate = json.loads(
@@ -101,18 +119,16 @@ def test_embedded_retrieval_contract_validates_effective_calls_after_action_over
         "action": "evaluate",
         "script": "const value = 1; return value;",
     }
-    source_calls = [source_action]
-    contract = {
-        "task_id": task_id,
-        "canonical_calls_sha256": _json_sha256(source_calls),
-    }
+    observation = {"action": "evaluate", "script": 'return {"value": 1};'}
+    source_calls = [source_action, observation]
+    contract = _retrieval_contract(task_id, source_calls)
     amendment = {
         "task_id": task_id,
         "action_index": 1,
         "precondition_action_sha256": _json_sha256(source_action),
         "set": {"script_mode": "function_body"},
     }
-    effective_calls = [{**source_action, "script_mode": "function_body"}]
+    effective_calls = [{**source_action, "script_mode": "function_body"}, observation]
     overrides_sha256 = "a" * 64
     row = {
         "source_actions": source_calls,
@@ -162,7 +178,8 @@ def test_embedded_retrieval_contract_rebinds_its_recorded_deployment() -> None:
     sites = _sites()
     source_sites = {WebArenaSite.GITLAB: "https://old-gitlab.example.test"}
     calls = [{"action": "navigate", "url": "https://old-gitlab.example.test/owner/project"}]
-    contract = {"task_id": task_id}
+    calls.append({"action": "evaluate", "script": 'return {"value": 1};'})
+    contract = _retrieval_contract(task_id, calls)
     rebound = rebind_remote_calls(calls, sites, set(), source_sites)
     row = {
         "source_actions": calls,

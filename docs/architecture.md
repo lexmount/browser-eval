@@ -8,16 +8,16 @@ Browser Eval owns scoring, execution, evidence handling and local report generat
 
 | Track | Implementation | Running and reproduction |
 | --- | --- | --- |
-| Web Search | `harness/web_search/` | [Search guide](../harness/web_search/README.md) |
-| Web Fetch | `harness/web_fetch/` | [Web Fetch guide](../harness/web_fetch/README.md), [frozen HTML comparisons](../harness/web_fetch/HEADLESS.md) |
-| Browser Trajectory Replay | `harness/trajectory_replay/` | [Fixed-action examples](../examples/trajectory_replay/README.md) |
-| Browser Use | `harness/browser_use/` | [Autonomous Agent examples](../examples/browser_use/README.md) |
+| Web Search | `src/harness/web_search/` | [Search guide](../src/harness/web_search/README.md) |
+| Web Fetch | `src/harness/web_fetch/` | [Web Fetch guide](../src/harness/web_fetch/README.md), [frozen HTML comparisons](../src/harness/web_fetch/HEADLESS.md) |
+| Browser Trajectory Replay | `src/harness/trajectory_replay/` | [Fixed-action examples](../examples/trajectory_replay/README.md) |
+| Browser Use | `src/harness/browser_use/` | [Autonomous Agent examples](../examples/browser_use/README.md) |
 
 Public WebArena human-recording replay is isolated under
-`harness/trajectory_replay/public_webarena/` with its [own examples and release
+`src/harness/trajectory_replay/public_webarena/` with its [own examples and release
 contract](../examples/trajectory_replay/public_webarena/README.md).
 The curated replay tasks also record [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) as a scenario design source.
-`harness/lexbench/` adapts retained Lexbench comparisons; it does not define a
+`src/harness/lexbench/` adapts retained Lexbench comparisons; it does not define a
 fourth browser score or replace a track's execution and evaluator contracts.
 
 ## Data flow
@@ -51,28 +51,30 @@ See [metrics](metrics.md) and the track guide for acceptance and latency semanti
 
 ## Code boundaries
 
-Command files in `scripts/` expose stages owned by `harness/`. Extend the current
+All Python packages live under `src/`. `harness/` owns evaluation execution, evidence and reporting; `lexbench_webfetch/` and `lexbench_websearch/` own their benchmark contracts and scoring. `scripts/` contains command entry points.
+
+Command files in `scripts/` expose stages owned by `src/harness/`. Extend the current
 owner when adding a browser, task family, cohort or language. Select behavior
 through configuration, registries or explicit parameters.
 
 | Responsibility | Shared owner or boundary |
 | --- | --- |
-| JSONL framing and finalized/live readers | `harness/record_io.py` |
+| JSONL framing and finalized/live readers | `src/harness/record_io.py` |
 | Web Fetch task execution and certification | `benchmark_runner.py`, `certification.py`, `reference_lifecycle.py` |
-| Browser adapters and results | [Provider contract](provider-contract.md), `harness/web_fetch/providers/` |
+| Browser adapters and results | [Provider contract](provider-contract.md), `src/harness/web_fetch/providers/` |
 | Web Fetch scoring and task acceptance | Local `lexbench_webfetch.scoring`, `lexbench_webfetch.metrics`, HF task configuration |
 | Search scoring and acceptance | Local `src/lexbench_websearch/` and HF query/reference definitions |
-| Dataset download, verification and version selection | `harness/benchmarks/` and `harness/benchmarks/data-lock.json` |
+| Dataset download, verification and version selection | `src/harness/benchmarks/` and `src/harness/benchmarks/data-lock.json` |
 | Bound artifact copying and aggregation | `artifacts.py`, `evidence.py`, `assembly.py` |
 | Reference and scoring corrections | `reference_revision.py`, `scoring_revision.py`, `rescoring.py` |
 | WebMainBench certification, scoring and aggregation | `webmainbench_certification.py`, `webmainbench_scoring.py`, `webmainbench_assembly.py` |
 | WCXB scoring, paired timing and publication | `wcxb_scoring.py`, `wcxb_latency.py`, `wcxb_publication.py` |
 | Web Fetch report construction and rendering | `report_build.py`, `report.py` |
-| Common report assets, links, presentation and publication | `harness/reporting/` |
-| Generated-language inventory and absent-English notice | `harness/report_languages.py` |
-| Shared WebArena deployment and network capture | `harness/environments/webarena/` |
+| Common report assets, links, presentation and publication | `src/harness/reporting/` |
+| Generated-language inventory and absent-English notice | `src/harness/report_languages.py` |
+| Shared WebArena deployment and network capture | `src/harness/environments/webarena/` |
 
-Unqualified Python filenames in the table are under `harness/web_fetch/`.
+Unqualified Python filenames in the table are under `src/harness/web_fetch/`.
 Browser Use and trajectory replay own their Agent/action orchestration,
 qualification, evaluator calls and report stages in their respective modules.
 Shared environment code does not import either runner. The public replay's

@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -149,19 +150,22 @@ def test_current_scenario_version_contains_qualified_references_and_aliases():
 
 
 def test_distribution_contains_no_report_instances_or_approval_lists():
-    for path in inputs.DEFINITIONS.rglob("*.json"):
+    for path in inputs.definition_path(".").rglob("*.json"):
         data = json.loads(path.read_bytes())
         assert "approved_sha256" not in data
         assert "publication_target" not in data
         assert "materialized_profiles" not in data
-    assert not inputs.DEFINITIONS.joinpath("assessment-revisions.json").exists()
+    assert not inputs.definition_path(".").joinpath("assessment-revisions.json").exists()
 
 
-def test_benchmark_runtime_is_independent_of_harness_and_provider_clients():
+def test_benchmark_runtime_avoids_execution_tracks_and_provider_clients():
     import ast
 
     forbidden = {
-        "harness",
+        "harness.web_search",
+        "harness.web_fetch",
+        "harness.browser_use",
+        "harness.trajectory_replay",
         "requests",
         "httpx",
         "aiohttp",
@@ -169,7 +173,7 @@ def test_benchmark_runtime_is_independent_of_harness_and_provider_clients():
         "socket",
         "subprocess",
     }
-    for path in inputs.DEFINITIONS.parent.glob("*.py"):
+    for path in Path(inputs.__file__).parent.glob("*.py"):
         for node in ast.walk(ast.parse(path.read_text())):
             if isinstance(node, ast.Import):
                 modules = [alias.name for alias in node.names]
@@ -178,7 +182,7 @@ def test_benchmark_runtime_is_independent_of_harness_and_provider_clients():
             else:
                 continue
             assert not any(
-                module.split(".")[0] in forbidden
+                any(module == owner or module.startswith(owner + ".") for owner in forbidden)
                 or module in {"urllib.request", "http.client"}
                 for module in modules
             ), path.name

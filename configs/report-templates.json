@@ -2,7 +2,7 @@
   "schema_version": 1,
   "tracks": {
     "webfetch": {
-      "renderer": "harness/web_fetch/report.py",
+      "renderer": "src/harness/web_fetch/report.py",
       "entrypoint": "scripts/build_report.py",
       "example": "https://artifact-site.lexmount.cn/s/p3sFcZrww_nx?version=ver_8ea488f5197c4b57a94c0e7987587e26",
       "build": "uv run --frozen python scripts/build_report.py --profile /absolute/instance-profile.json --evidence /absolute/path --output reports/webfetch",
@@ -32,7 +32,7 @@
       "snapshot_audit_publish": "uv run --frozen python scripts/publish_artifact_hub.py --create --profile /absolute/publication-target.json --source /absolute/new-report --archive /absolute/package.zip --receipt /absolute/receipt.json --operation-journal /absolute/pending.json --snapshot-audit --visibility private"
     },
     "trajectory-replay": {
-      "renderer": "harness/trajectory_replay/webarena_report.py",
+      "renderer": "src/harness/trajectory_replay/webarena_report.py",
       "entrypoint": "scripts/build_webarena_replay_report.py",
       "build": "uv run --frozen python scripts/build_webarena_replay_report.py --profile /absolute/instance-profile.json --results /absolute/results.json --review /absolute/review.json --output /absolute/new-report",
       "check": "uv run --frozen python scripts/check_webarena_replay_report.py /absolute/new-report --profile /absolute/instance-profile.json",
@@ -41,7 +41,7 @@
       "package": "uv run --frozen python scripts/package_webarena_replay_artifact_site.py --report /absolute/new-report --profile /absolute/instance-profile.json --evidence /absolute/results.json --review /absolute/review.json --output /absolute/package.zip --attestation /absolute/attestation.json --visual-receipt /absolute/visual.json"
     },
     "browser-use": {
-      "renderer": "harness/browser_use/report.py",
+      "renderer": "src/harness/browser_use/report.py",
       "entrypoint": "scripts/build_browser_use_report.py",
       "build": "uv run --frozen python scripts/build_browser_use_report.py --profile /absolute/instance-profile.json --evidence /absolute/evidence --output /absolute/new-report",
       "check": "uv run --frozen python scripts/check_browser_use_report.py /absolute/new-report --profile /absolute/instance-profile.json --evidence /absolute/evidence --require-complete",
@@ -50,7 +50,7 @@
       "example": "https://artifact-hub.app.lexmount.com/s/7l77EeXPRfml?version=ver_ce4dd70fde2e444ab18d24bba3ee0e93"
     },
     "web-search": {
-      "renderer": "harness/web_search/report.py",
+      "renderer": "src/harness/web_search/report.py",
       "entrypoint": "scripts/build_search_report.py",
       "example": "examples/web_search/README.md",
       "example_version": 1,

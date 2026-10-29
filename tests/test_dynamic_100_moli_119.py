@@ -1,3 +1,5 @@
+from harness.distribution import source_path
+
 from lexbench_webfetch.inputs import definition_path
 import hashlib
 import json
@@ -533,8 +535,8 @@ def test_native_moli_report_describes_the_frozen_uniform_call():
 
 
 def test_local_audit_banner_has_no_pull_request_number():
-    report_source = (ROOT / "harness/web_fetch/report.py").read_text(encoding="utf-8")
-    translations = (ROOT / "harness/web_fetch/report_i18n.py").read_text(encoding="utf-8")
+    report_source = (source_path("harness/web_fetch/report.py", root=ROOT)).read_text(encoding="utf-8")
+    translations = (source_path("harness/web_fetch/report_i18n.py", root=ROOT)).read_text(encoding="utf-8")
     assert "PR #30" not in report_source
     assert "PR #30" not in translations
 

@@ -5,7 +5,7 @@ from lexbench_webfetch.composite_tasks import evaluate_composite_acceptance
 
 
 def contract():
-    path = benchmark.SUITES / 'annotation-revisions/review-550-20261023.json'
+    path = benchmark.definitions() / 'annotation-revisions/review-550-20261023.json'
     rows = benchmark.read(path)['changes']
     return next(r['set']['composite_acceptance'] for r in rows
                 if r['case_id'] == 'dynamic-043-en-stable-grommet-table')

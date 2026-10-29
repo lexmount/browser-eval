@@ -1,3 +1,5 @@
+from harness.distribution import source_path
+
 from lexbench_webfetch.inputs import definition_path
 import json
 import re
@@ -26,7 +28,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
             scripts.mkdir()
             (scripts / "run_webarena_full_chromium.py").write_text("")
             (scripts / "repair_webarena_case_42.py").write_text("")
-            harness = root / "harness" / "trajectory_replay"
+            harness = source_path("harness", root=root) / "trajectory_replay"
             harness.mkdir(parents=True)
             (harness / "full_catalog.py").write_text("")
             (harness / "writer.py").write_text(
@@ -93,7 +95,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
 
     def test_web_fetch_docs_do_not_recommend_system_python(self) -> None:
         for relative in ("README.md", "harness/web_fetch/README.md", "harness/web_fetch/HEADLESS.md"):
-            text = (ROOT / relative).read_text()
+            text = source_path(relative, root=ROOT).read_text()
             direct = re.findall(r"(?m)^\s*(?:python|python3)(?:\s|$)", text)
             self.assertEqual(direct, [], relative)
             unfrozen = re.findall(r"(?m)^\s*uv run (?!--frozen\b)", text)
@@ -192,17 +194,17 @@ class RuntimeEntrypointTests(unittest.TestCase):
             self.skipTest("Worker execution tests require Node with native TypeScript erasure")
         subprocess.run(
             [node, "--experimental-vm-modules", str(ROOT / "tests/test_dsh_worker.mjs"),
-             str(ROOT / "harness/web_fetch/workers/dsh_webfetch_worker.mts")],
+             str(source_path("harness/web_fetch/workers/dsh_webfetch_worker.mts", root=ROOT))],
             capture_output=True, text=True, check=True, timeout=30,
         )
 
     def test_openclaw_worker_does_not_publish_exception_stacks(self) -> None:
-        worker = (ROOT / 'harness/web_fetch/workers/openclaw_webfetch_worker.mts').read_text()
+        worker = (source_path('harness/web_fetch/workers/openclaw_webfetch_worker.mts', root=ROOT)).read_text()
         self.assertNotIn('error?.stack', worker)
         self.assertIn('content: message', worker)
 
     def test_langchain_worker_does_not_claim_unobserved_final_url(self) -> None:
-        worker = (ROOT / 'harness/web_fetch/workers/langchain_webbase_worker.py').read_text()
+        worker = (source_path('harness/web_fetch/workers/langchain_webbase_worker.py', root=ROOT)).read_text()
         self.assertNotIn('"final_url"', worker)
         self.assertIn('"document_metadata": metadata', worker)
 

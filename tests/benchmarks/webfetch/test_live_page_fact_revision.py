@@ -14,7 +14,7 @@ def revised_case(prefix):
     root = benchmark.suite('webfetch')[1]
     case = deepcopy(next(c for c in benchmark.read(root / 'tasks.json')['cases']
                          if c['id'].startswith(prefix)))
-    revision = benchmark.read(benchmark.SUITES / 'annotation-revisions/review-550-20261023.json')
+    revision = benchmark.read(benchmark.definitions() / 'annotation-revisions/review-550-20261023.json')
     change = next(c for c in revision['changes']
                   if c['suite'] == 'webfetch' and c['case_id'] == case['id'])
     apply_annotation_change(case, change, None)

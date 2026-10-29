@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from harness.trajectory_replay.public_webarena.diagnostics import site_origins
+from harness.trajectory_replay.report_inputs import replay_input_path
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -25,7 +26,7 @@ def test_recorded_outcome_audit_derives_per_trace_origins_by_official_ports():
 
 
 def test_historical_recorded_outcome_audit_binds_current_trace_sources():
-    suite_path = ROOT / "evaluation/browser-use-public/webarena-human-suite.json"
+    suite_path = replay_input_path(current="human-candidates")
     audit_path = (
         ROOT / "evaluation/browser-use-public/webarena-recorded-outcome-audit.json"
     )

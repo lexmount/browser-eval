@@ -577,9 +577,9 @@ def _resource_pattern_matches(pattern: str, url: str) -> bool:
 
 
 def _normalized_candidates(
-    candidates: list[tuple[str, str]], *, base_url: str,
+    candidates: list[tuple[str, str]], *, base_url: str, request_url: str | None = None,
 ) -> tuple[list[str], list[dict[str, Any]]]:
-    request_url = normalize_resource_url(base_url, base_url)
+    request_url = normalize_resource_url(request_url if request_url is not None else base_url, base_url)
     sources: dict[str, set[str]] = defaultdict(set)
     for raw_url, source in candidates:
         url = normalize_resource_url(raw_url, base_url)
@@ -608,13 +608,15 @@ def evaluate_resources(
     expected_resources: list[dict[str, Any]],
     *,
     base_url: str,
+    request_url: str | None = None,
     eligible: bool = True,
     output_contract: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Score resource discovery separately from document text extraction.
 
     Only URLs explicitly returned in content or structured metadata are eligible.
-    The request URL and provider final_url are deliberately excluded.
+    The original request URL is excluded independently of the response base.
+    Provider final_url metadata never introduces an answer candidate.
     """
     from .response_input import answer_format
     representation = answer_format(metadata)
@@ -654,7 +656,8 @@ def evaluate_resources(
                                                                representation=representation))
             except _InlineFrameLimitError as exc:
                 resource_error = str(exc)
-    normalized_candidates, candidate_evidence = _normalized_candidates(candidates, base_url=base_url)
+    normalized_candidates, candidate_evidence = _normalized_candidates(
+        candidates, base_url=base_url, request_url=request_url)
     results = []
     allowed_urls: set[str] = set()
     for index, resource in enumerate(expected_resources):

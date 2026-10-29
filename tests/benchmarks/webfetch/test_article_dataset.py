@@ -9,7 +9,10 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from lexbench_webfetch.article_dataset import compile_case, compile_dataset, DEFINITIONS
+from lexbench_webfetch.article_dataset import compile_case, compile_dataset
+from harness.benchmarks.data import definition_path
+
+DEFINITIONS = definition_path("webfetch", "evaluation/articles")
 from lexbench_webfetch.benchmark import public_task
 from lexbench_webfetch.evaluation import evaluate_response
 from lexbench_webfetch.models import EvalCase, validate_case

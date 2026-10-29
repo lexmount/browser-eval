@@ -1,6 +1,6 @@
 # WebArena environments
 
-`harness/environments/webarena/` maintains Docker and Rainbond environments. Tasks and evaluators come from the pinned `webarena-verified` dependency. Image identity has one authority: `evaluation/browser-use-public/webarena-environment-images.json`.
+`src/harness/environments/webarena/` maintains Docker and Rainbond environments. Tasks and evaluators come from the pinned `webarena-verified` dependency. Image identity has one authority: `evaluation/browser-use-public/webarena-environment-images.json`.
 
 `runtime.example.json` supplies local Docker hosts and ports. `site-delivery-contract.json` defines internal ports, initialization and read-only Map data mounts. Map is optional; a contract does not trigger download or deployment. Stateful sites recreate their initial databases from images without sharing writable database directories between slices. Rainbond GitLab needs its own 2 GiB `/dev/shm` memory mount.
 
@@ -28,8 +28,8 @@ Use the Map digest from the image lock. Persist `/map-data` and `/var/lib/postgr
 | Repository file | Container path |
 | --- | --- |
 | `deploy/webarena-rainbond/map-bootstrap.sh` | `/opt/map-bootstrap.sh` |
-| `harness/environments/webarena/map_setup.py` | `/opt/map_setup.py` |
-| `harness/environments/webarena/map_detail.py` | `/opt/map_detail.py` |
+| `src/harness/environments/webarena/map_setup.py` | `/opt/map_setup.py` |
+| `src/harness/environments/webarena/map_detail.py` | `/opt/map_detail.py` |
 | `deploy/webarena/site-delivery-contract.json` | `/opt/map-contract.json` |
 
 Startup links `/var/cache/renderd/tiles` to `/map-data/tiles` to preserve rendered tiles across recreation. Rendering concurrency is 2; a missing tile gets up to 120 seconds. Use container resource limits so other shared-node workloads do not cause tile rejection. Readiness checks `/tile/0/0/0.png` before admitting traffic. Startup also synchronizes gzip copies of compiled JavaScript; stale compressed assets would otherwise send remote browsers to `localhost`. Requests remain same-origin.

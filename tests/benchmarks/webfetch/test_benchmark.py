@@ -46,7 +46,7 @@ class PublicDefinitions(unittest.TestCase):
 
     def test_registered_revision_keeps_original_suites_and_has_new_dataset_ids(self):
         import copy
-        revision = bench.read(bench.SUITES/'annotation-revisions/serialization-20261021.json')
+        revision = bench.read(bench.definitions()/'annotation-revisions/serialization-20261021.json')
         changed = 0
         for identifier in revision['parents']:
             _, root = bench.suite(identifier)
@@ -91,7 +91,7 @@ class FrozenInputs(unittest.TestCase):
             'catalog_sha256': catalog_sha, 'dataset_sha256': sha, 'dataset': 'dataset.json',
             'files': {'dataset.json': sha}, 'trees': {'sources': {'article.json': ref_sha}}})
         self.bind_registry()
-        self.patch = patch.object(bench, 'SUITES', self.suites)
+        self.patch = patch.object(bench, 'definitions', return_value=self.suites)
         self.patch.start()
         self.addCleanup(self.patch.stop)
 

@@ -1,0 +1,3772 @@
+{
+  "schema": "browser-eval-code-migration/1",
+  "purpose": "Bind consolidated scorer code, dataset resolution and tested scoring corrections to their original sources.",
+  "sources": {
+    "webfetch": {
+      "repository": "https://github.com/lexmount/lexbench-webfetch",
+      "revision": "5a5b9367118dcc25f126ee16ef4de2d7c666f190",
+      "changes": {
+        "article_comments.py": {
+          "before_sha256": "de014a9188d2b587302889cb1a25e1d77eb282bc3e0a69dcacad7a95f0a4431f",
+          "after_sha256": "08c329ab47dba2c36b46e105db5d2781a3caa8b3403a73b99a4ebd13c4f1b0cd"
+        },
+        "article_dataset.py": {
+          "before_sha256": "8d661b165fc63a6b72352ee6592a99611579e700f1633dab2c0d70824d93447b",
+          "after_sha256": "97234b245099cec73f4329267fd458c43d626ced1cd0b128503bee27014c25d5"
+        },
+        "article_posts.py": {
+          "before_sha256": "da1323b63c4e213312adb0a5564c6ffbb443edbcb1a643ddcd4e3bde4d42e9c2",
+          "after_sha256": "8381d02ec6ce10b4e13e334ec29f85b3fc041997f49135c8eb8638a5f424846e"
+        },
+        "article_qualification.py": {
+          "before_sha256": "01898c4413933ac4f3028eeb5c5c470293cd2acaabb2ae1547a7095e6e458981",
+          "after_sha256": "73335df43733cf653c62c172083850d83b5802d2b3d71f58da4243e61f0d630e"
+        },
+        "article_text.py": {
+          "before_sha256": "d9984b8dfcdad0113ed69cec3723a85d23096890327cd845d3052d937817ae21",
+          "after_sha256": "ec6b27e7851c34835673f3832ea1d278da315dba90970c3fa9826688c027e30d"
+        },
+        "article_title.py": {
+          "before_sha256": "eb59008ffceffce093a32592e1e2e0d244feed8fed1ed9c0d6306b6353573c54",
+          "after_sha256": "a55c0ce27a48f6944f62dea6a9555fecda782439e225f5f00d196c775a349ed5"
+        },
+        "benchmark.py": {
+          "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
+          "after_sha256": "632f0eedba367e9ecdb8df4aedeea47352e13c423d5a452bd1f8d9d6a1e6c9de"
+        },
+        "body_coverage.py": {
+          "before_sha256": "a349a1db3d5de9d63d33443572c4d8f48afb8a7f88d03090625407fddf7b6137",
+          "after_sha256": "d7d4a23c7ac55391900a2dcb81cf2d3917aad5ef88ac181eed0ddaf5f3374384"
+        },
+        "cli.py": {
+          "before_sha256": "46b7bd246e8b56bc03c7d35309a7ec48419c37f54bb05bc6a144cfd3c527e194",
+          "after_sha256": "08e975634fa9dbd357476a9a1399d40b1e5e4cc8bce4c19be7afad1c91adae08"
+        },
+        "composite_tasks.py": {
+          "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
+          "after_sha256": "27212634eb538b536505c12c06f97745aaf7ac1f1370638b349bdc0366dece3e"
+        },
+        "dynamic_entry_matching.py": {
+          "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
+          "after_sha256": "f2dfe721af1b69bad9683e90b7ac2c5c9854e6c2a9a3f540857784aa98efcc97"
+        },
+        "dynamic_lists.py": {
+          "before_sha256": "c2d9bedf1c82818f88f4e5db3c52caa5a064ba1d6fddb3814d38fdea5601957c",
+          "after_sha256": "ce2c4d99ce459b761c91eca1c3418aeab210ffe360d5d2dfa4d2aeba0ca9b1d5"
+        },
+        "file_acceptance.py": {
+          "before_sha256": "4f886206705c015baa3744d669cc851778aa595819394c5b149fd4803a9f40d1",
+          "after_sha256": "c73e4c8ccab23d2767f9cbd8167fd4226acf6f3bcb0a14580c81d5092e3fadb3"
+        },
+        "inputs.py": {
+          "before_sha256": "d0cccd0be9ead93d40a56dcfa15ece74e96965beefb5032e0b6bbe23b5da9d44",
+          "after_sha256": "9064564b91921346ebf5bf7e5b9305ecc0e02db06b91f1fba55d71477a7435b5"
+        },
+        "list_verification.py": {
+          "before_sha256": "c311bb3ef9d46f21319b7eef35e34120580ec6cad720958b6336fe59e5a24bf7",
+          "after_sha256": "94f06d266b804cfad040a94ebdd486ebd95d566caf88b07f6bb5cb29a620a31f"
+        },
+        "metrics.py": {
+          "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
+          "after_sha256": "7250343ab59429d3981e73800e35155afbbe968c4b7e90e256696f4e46bd9159"
+        },
+        "models.py": {
+          "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
+          "after_sha256": "8f4fe37a17f6a5f8e2e38948ca44b8eaa0df033d9f92411dfddbc54f2b3863c9"
+        },
+        "ordered_tree.py": {
+          "before_sha256": "78c418fbe07188f3b7e8acbbccc64c16074208631517e77ca6edf7b7ceae166c",
+          "after_sha256": "ff00fcd2e9b0169715472113892fe6b6e858114b17fdd6a28dc27cd7599df405"
+        },
+        "reference_quality.py": {
+          "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
+          "after_sha256": "6541cee44b73a2308b0f94efb7f8b7d95a198940ee70b0c969e62ca81e168f1e"
+        },
+        "required_components.py": {
+          "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
+          "after_sha256": "666136bd21d6231770962a4b96176dbf0c071ee828ff1bbb1d2e720459b1a493"
+        },
+        "response_input.py": {
+          "before_sha256": "d45d0bac0d629e7314504a87ae890444f704b7a488af842b4d1e34dd912ec00d",
+          "after_sha256": "22580d7221dafa0044a43935f2fe8ce2826810c47059a5cbe344504f0f47e5c9"
+        },
+        "risk_control_dataset.py": {
+          "before_sha256": "59d2a1877f1a8b8ecf464113fbce70bf713d6d44414b83141880e71cccb7c1d6",
+          "after_sha256": "23aad2528d03a12a721359bc56920fdf5944994c91f7ba03391c7b3c02eb2f23"
+        },
+        "scoring.py": {
+          "before_sha256": "ea2602b5e2310886dc70c097ce783e2f88be7c88220e9dbf0715a723b3aff567",
+          "after_sha256": "919f94c4c14ce799c4dc40b3c78ba85ef8f209a80f72161082c750362677bead"
+        },
+        "scoring_regressions.py": {
+          "before_sha256": "a9dc2c0a86628e90bf5a23c9611adb48c9cf72c0f4941c6ed6412a5f95b37df9",
+          "after_sha256": "8be6dea59e7dea7049d4033b722baf65b374f79ab72922314e970c4f2081cf3c"
+        },
+        "stable_tasks.py": {
+          "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
+          "after_sha256": "8b8eebd4cbe07760473ee87774274e13bcaad774ceed6ecbad330c80c0c80131"
+        },
+        "structured_tables.py": {
+          "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
+          "after_sha256": "a57dcf3f5ef92077b7e4d07c1cf1ef308564cfb5385de813ba584a6546dad320"
+        },
+        "versions.py": {
+          "before_sha256": "be877ddbdefb9df073483b63400400301c59a05a86cffbd6efc721575149cd0f",
+          "after_sha256": "bfc9dd4c3405958ed113865269ec0e9a25d44e61405d552a8c09982ba42ff46d"
+        }
+      },
+      "corrections": [
+        {
+          "modules": [
+            "article_comments.py",
+            "article_posts.py",
+            "article_text.py",
+            "article_title.py",
+            "article_qualification.py",
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "article-image-only-post",
+            "article-linked-image-only-post",
+            "article-image-and-post-prose",
+            "article-image-only-quote",
+            "article-image-and-quote-prose",
+            "article-linked-post-prose",
+            "article-html-comment-hidden-post",
+            "article-visible-post",
+            "article-html-comment-hidden-comment",
+            "article-visible-comment",
+            "article-comment-class-repeated",
+            "article-comment-class-distinct",
+            "article-comment-data-comment-id-repeated",
+            "article-comment-data-comment-id-distinct",
+            "article-post-author-boundary-missing-body",
+            "article-post-author-boundary-complete",
+            "article-post_contract-visible",
+            "article-post_contract-noscript",
+            "article-title_contract-visible",
+            "article-title_contract-noscript",
+            "article-comment-code-colon",
+            "article-comment-code-double-tick",
+            "article-comment-code-multiline",
+            "article-comment-unmatched-ticks-real-heading",
+            "article-comment-code-bold-author",
+            "article-comment-code-linked-author",
+            "article-comment-code-pingback",
+            "article-comment-code-false-section",
+            "article-comment-code-html",
+            "article-comment-code-html-nested-backticks-0",
+            "article-comment-code-html-nested-backticks-1",
+            "article-comment-code-html-nested-backticks-2",
+            "article-comment-genuine-html-code-backticks",
+            "article-comment-genuine-colon",
+            "article-comment-genuine-body-code",
+            "article-comment-genuine-body-only-code",
+            "article-comment-genuine-multiline-body-code",
+            "article-comment-code-does-not-inflate-count",
+            "article-comment-empty-inline-code-body",
+            "article-post-leading-navigation-about",
+            "article-post-leading-navigation-wrong-host",
+            "article-post-leading-navigation-invalid-port",
+            "article-post-leading-navigation-multiple-links",
+            "article-post-leading-navigation-malformed-profile-post",
+            "article-post-leading-navigation-html",
+            "article-post-preserve-section-stop-author-prefix",
+            "article-post-preserve-section-stop-linked-profile",
+            "article-post-unheaded-boundary-empty",
+            "article-post-unheaded-boundary-complete",
+            "article-post-unmatched-ticks-real-author-prefix",
+            "article-post-unmatched-ticks-real-linked-profile",
+            "article-post-inline-code-genuine-body",
+            "article-post-inline-code-genuine-author",
+            "article-post-inline-code-genuine-native-author",
+            "article-title-inline-code-multiline",
+            "article-title-unmatched-ticks-real-heading",
+            "article-title-inline-code-double-tick-multiline",
+            "article-title-inline-code-real-heading",
+            "article-title-inline-code-mixed-text",
+            "article-title-inline-code-native-heading",
+            "article-comment-code-content-empty-language",
+            "article-comment-code-content-substantive",
+            "article-post-quoted-fence-empty-language",
+            "article-post-quoted-fence-visible-prose",
+            "article-post-section-unheaded-plain-empty",
+            "article-post-section-unheaded-plain-complete",
+            "article-post-section-linked-incomplete",
+            "article-post-section-linked-complete",
+            "article-post-visible-zero-width-space-html-body",
+            "article-post-visible-variation-selector-markdown-quote",
+            "article-post-visible-emoji-html-body",
+            "article-post-visible-emoji-joined-markdown-quote",
+            "article-post-quote-owner-outer-quote-require-original-unattributed-quote-only",
+            "article-post-quote-owner-outer-quote-require-original-unattributed-original",
+            "article-post-quote-owner-outer-quote-require-original-attributed-quote-only",
+            "article-post-quote-owner-outer-quote-allow-attributed-quote-only",
+            "article-post-quote-owner-nested-post-require-original-unattributed-quote-only",
+            "article-post-quote-owner-nested-post-allow-attributed-quote-only"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_migration_articles.py",
+            "tests/benchmarks/webfetch/test_review_article_boundaries.py",
+            "tests/benchmarks/webfetch/test_review_article_inline_code.py",
+            "tests/benchmarks/webfetch/test_review_article_visibility.py",
+            "tests/benchmarks/webfetch/test_review_post_quote_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py",
+            "dynamic_entry_matching.py",
+            "list_verification.py",
+            "metrics.py",
+            "body_coverage.py",
+            "stable_tasks.py",
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "migration-attached-field-label-complete",
+            "migration-attached-field-label-incomplete",
+            "migration-visible-record-complete",
+            "migration-visible-record-incomplete",
+            "migration-visible-product-name-complete",
+            "migration-visible-product-name-incomplete",
+            "migration-product-link-base-complete",
+            "migration-product-link-base-incomplete",
+            "migration-verified-query-identity-complete",
+            "migration-verified-query-identity-incomplete",
+            "migration-reserved-resource-path-complete",
+            "migration-reserved-resource-path-incomplete",
+            "migration-resource-html-entities-complete",
+            "migration-resource-html-entities-incomplete",
+            "migration2-joined-route-summary-complete",
+            "migration2-joined-route-summary-incomplete",
+            "migration2-malformed-caption-image-complete",
+            "migration2-malformed-caption-image-incomplete",
+            "migration2-product-price-owner-complete",
+            "migration2-product-price-owner-incomplete",
+            "migration2-decoded-resource-once-complete",
+            "migration2-decoded-resource-once-incomplete",
+            "migration2-image-alt-facts-complete",
+            "migration2-image-alt-facts-incomplete",
+            "migration2-hidden-comment-facts-complete",
+            "migration2-hidden-comment-facts-incomplete",
+            "migration2-image-alt-body-complete",
+            "migration2-image-alt-body-incomplete",
+            "migration2-hidden-comment-body-complete",
+            "migration2-hidden-comment-body-incomplete",
+            "migration3-image-heading-owner-complete",
+            "migration3-image-heading-owner-incomplete",
+            "migration3-generic-hidden-wrapper-complete",
+            "migration3-generic-hidden-wrapper-incomplete",
+            "migration3-balanced-product-link-complete",
+            "migration3-balanced-product-link-incomplete",
+            "migration3-product-section-owner-complete",
+            "migration3-product-section-owner-incomplete",
+            "migration3-exact-reference-name-complete",
+            "migration3-exact-reference-name-incomplete",
+            "migration3-unquoted-html-resource-complete",
+            "migration3-unquoted-html-resource-incomplete",
+            "migration3-visible-frame-ancestor-complete",
+            "migration3-visible-frame-ancestor-incomplete",
+            "migration3-json-markdown-resource-complete",
+            "migration3-json-markdown-resource-incomplete",
+            "migration3-literal-named-record-complete",
+            "migration3-literal-named-record-incomplete",
+            "migration3-literal-product-record-complete",
+            "migration3-literal-product-record-incomplete",
+            "migration4-scoped-malformed-sibling-complete",
+            "migration4-scoped-malformed-sibling-incomplete",
+            "migration4-selected-product-owner-complete",
+            "migration4-selected-product-owner-incomplete",
+            "migration4-visible-product-price-complete",
+            "migration4-visible-product-price-incomplete",
+            "migration4-visible-image-answer-complete",
+            "migration4-visible-image-answer-incomplete",
+            "migration4-image-attribute-syntax-complete",
+            "migration4-image-attribute-syntax-incomplete",
+            "literal-api-route-0",
+            "literal-api-route-1",
+            "literal-api-route-2",
+            "literal-api-route-3",
+            "literal-api-route-4",
+            "literal-api-route-5",
+            "literal-api-route-6",
+            "literal-api-route-7",
+            "literal-api-route-8",
+            "literal-api-body-url-False",
+            "literal-api-body-url-True",
+            "migration5-html-price-owner-complete",
+            "migration5-html-price-owner-incomplete",
+            "migration5-html-unavailable-owner-complete",
+            "migration5-html-unavailable-owner-incomplete",
+            "migration5-image-diagnostic-branches-complete",
+            "migration5-image-diagnostic-branches-incomplete",
+            "migration5-visible-compact-code-complete",
+            "migration5-visible-compact-code-incomplete"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_migration_entries.py",
+            "tests/benchmarks/webfetch/test_review_entry_surfaces.py",
+            "tests/benchmarks/webfetch/test_review_record_formats.py",
+            "tests/benchmarks/webfetch/test_review_owned_surfaces.py",
+            "tests/benchmarks/webfetch/test_review_literal_route_tuples.py",
+            "tests/benchmarks/webfetch/test_review_dom_owners.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py",
+            "structured_tables.py",
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "composite-field-report-omitted",
+            "composite-field-report-empty",
+            "composite-field-report-labeled-value",
+            "composite-field-report-missing-value",
+            "composite-malformed-url-table",
+            "composite-malformed-url-sibling-table",
+            "composite-malformed-url-linearized",
+            "composite-malformed-url-sibling-linearized",
+            "composite-malformed-url-wildcard",
+            "composite-malformed-url-sibling-wildcard",
+            "composite-image-label-wildcard",
+            "composite-visible-label-wildcard",
+            "composite-image-label-fixed",
+            "composite-visible-label-fixed",
+            "composite-native-section-after-complete",
+            "composite-native-section-after-missing",
+            "composite-native-section-before-complete",
+            "composite-native-section-before-missing",
+            "composite-multiple-tables-distinct",
+            "composite-multiple-tables-duplicate",
+            "composite-multiple-tables-incomplete",
+            "table-nested-field-cells-own",
+            "table-nested-field-cells-borrowed",
+            "table-nested-field-selectors-own",
+            "table-nested-field-selectors-borrowed",
+            "composite-query-delimiters-wildcard-plain-distinct",
+            "composite-query-delimiters-wildcard-plain-duplicate",
+            "composite-query-delimiters-wildcard-fields-distinct",
+            "composite-query-delimiters-wildcard-fields-duplicate",
+            "composite-query-delimiters-fixed-plain-distinct",
+            "composite-query-delimiters-fixed-plain-duplicate",
+            "composite-query-delimiters-fixed-fields-distinct",
+            "composite-query-delimiters-fixed-fields-duplicate",
+            "composite-name-policy-wildcard-name",
+            "composite-name-policy-wildcard-action",
+            "composite-name-policy-wildcard-url",
+            "composite-name-policy-wildcard-path",
+            "composite-name-policy-fixed-name",
+            "composite-name-policy-fixed-action",
+            "composite-name-policy-fixed-url",
+            "composite-name-policy-fixed-path",
+            "composite-role-span-colon-single",
+            "composite-role-span-colon-separate",
+            "composite-role-span-wide-colon-single",
+            "composite-role-span-wide-colon-separate",
+            "composite-role-span-spaces-single",
+            "composite-role-span-spaces-separate",
+            "composite-role-span-author-single",
+            "composite-role-span-author-separate",
+            "composite-role-span-byline-single",
+            "composite-role-span-byline-separate",
+            "table-header-boundary-markdown-complete",
+            "table-header-boundary-markdown-missing",
+            "table-header-boundary-tab-complete",
+            "table-header-boundary-tab-missing",
+            "native-independent-card-before-complete",
+            "native-independent-card-before-missing",
+            "native-independent-card-after-complete",
+            "native-independent-card-after-missing",
+            "field-assignment-named_link-0-complete",
+            "field-assignment-named_link-0-missing",
+            "field-assignment-named_link-1-complete",
+            "field-assignment-named_link-1-missing",
+            "field-assignment-field_report-0-complete",
+            "field-assignment-field_report-0-missing",
+            "field-assignment-field_report-1-complete",
+            "field-assignment-field_report-1-missing",
+            "field-owned-label-named_link-complete",
+            "field-owned-label-named_link-missing",
+            "field-owned-label-field_report-complete",
+            "field-owned-label-field_report-missing",
+            "field-disjoint-pattern-lookahead-complete",
+            "field-disjoint-pattern-lookahead-missing",
+            "field-disjoint-pattern-alternative-complete",
+            "field-disjoint-pattern-alternative-missing",
+            "field-wide-card-line-capacity-complete",
+            "field-wide-card-line-capacity-missing",
+            "field-wide-card-constraint-complete",
+            "field-wide-card-constraint-missing",
+            "stable-inline-word-suffix-whole",
+            "stable-inline-word-suffix-fragment",
+            "stable-inline-word-prefix-whole",
+            "stable-inline-word-prefix-fragment",
+            "catalog-inline-boundary-complete",
+            "catalog-inline-boundary-borrowed",
+            "catalog-declared-description-complete",
+            "catalog-declared-description-missing",
+            "catalog-orphan-price-complete",
+            "catalog-orphan-price-missing",
+            "shared-query-subset-wildcard-valid",
+            "shared-query-subset-wildcard-missing",
+            "shared-path-precedence-wildcard-distinct",
+            "shared-path-precedence-wildcard-duplicate",
+            "shared-query-subset-fixed-valid",
+            "shared-query-subset-fixed-missing",
+            "shared-path-precedence-fixed-distinct",
+            "shared-path-precedence-fixed-duplicate",
+            "composite-literal-wildcard-real",
+            "composite-literal-wildcard-backticks",
+            "composite-literal-wildcard-tildes",
+            "composite-literal-wildcard-inline",
+            "composite-literal-fixed-real",
+            "composite-literal-fixed-backticks",
+            "composite-literal-fixed-tildes",
+            "composite-literal-fixed-inline",
+            "stable-url-case-named_link-path-distinct",
+            "stable-url-case-named_link-path-duplicate",
+            "stable-url-case-named_link-query-distinct",
+            "stable-url-case-named_link-query-duplicate",
+            "stable-url-case-linked_product-path-distinct",
+            "stable-url-case-linked_product-path-duplicate",
+            "stable-url-case-linked_product-query-distinct",
+            "stable-url-case-linked_product-query-duplicate",
+            "composite-url-case-distinct",
+            "composite-url-case-duplicate",
+            "composite-native-literal-only",
+            "composite-native-literal-and-real",
+            "auxiliary-malformed-card-only",
+            "auxiliary-malformed-card-real-sibling",
+            "column-alias-collision-table",
+            "column-alias-collision-linked_table",
+            "column-alias-unique-assignment",
+            "column-alias-explicit-combined",
+            "nonrecord-excluded-text-only",
+            "nonrecord-independent-kept-text",
+            "nonrecord-excluded-html-only",
+            "nonrecord-target-main-label"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_migration_composites.py",
+            "tests/benchmarks/webfetch/test_review_composite_identity_fields.py",
+            "tests/benchmarks/webfetch/test_review_record_boundaries.py",
+            "tests/benchmarks/webfetch/test_review_link_identity_literals.py",
+            "tests/benchmarks/webfetch/test_review_owned_fields_exclusions.py"
+          ]
+        },
+        {
+          "modules": [
+            "scoring.py",
+            "models.py",
+            "scoring_regressions.py"
+          ],
+          "regression_ids": [
+            "contract-False-truncation-False",
+            "contract-False-truncation-True",
+            "contract-True-truncation-False",
+            "contract-True-truncation-True",
+            "delivery-nontext-resource-False",
+            "delivery-nontext-resource-True"
+          ],
+          "tests": [
+            "tests/benchmarks/test_review_runtime.py"
+          ]
+        },
+        {
+          "modules": [
+            "file_acceptance.py"
+          ],
+          "tests": [
+            "tests/benchmarks/test_media_acceptance.py"
+          ]
+        },
+        {
+          "modules": [
+            "risk_control_dataset.py"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_risk_control_compiler.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "reference4-opening-bracket-0",
+            "reference4-opening-bracket-1",
+            "reference4-opening-bracket-2",
+            "reference4-opening-bracket-3",
+            "reference4-opening-bracket-4",
+            "reference4-multiline-comment-False-False",
+            "reference4-multiline-comment-False-True",
+            "reference4-generic-tag-False-label-False",
+            "reference4-generic-tag-False-label-True",
+            "reference4-generic-tag-False-x-evidence-False",
+            "reference4-generic-tag-False-x-evidence-True",
+            "reference4-native-cell-fence-False-False",
+            "reference4-native-cell-fence-False-True",
+            "reference4-multiline-comment-True-False",
+            "reference4-multiline-comment-True-True",
+            "reference4-generic-tag-True-label-False",
+            "reference4-generic-tag-True-label-True",
+            "reference4-generic-tag-True-x-evidence-False",
+            "reference4-generic-tag-True-x-evidence-True",
+            "reference4-native-cell-fence-True-False",
+            "reference4-native-cell-fence-True-True",
+            "reference4-code-destination"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_reference_literals.py",
+            "tests/test_reference_quality.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_comments.py",
+            "article_posts.py"
+          ],
+          "regression_ids": [
+            "article-comment-heading-depth-markdown-3-peer",
+            "article-comment-heading-depth-markdown-3-deeper",
+            "article-comment-heading-depth-html-3-peer",
+            "article-comment-heading-depth-html-3-deeper",
+            "article-post-metadata-native-buttons-only",
+            "article-post-metadata-native-buttons-prose",
+            "article-post-metadata-cleaned-role-buttons-only",
+            "article-post-metadata-cleaned-role-buttons-prose"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_article_structure.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py",
+            "stable_tasks.py",
+            "structured_tables.py"
+          ],
+          "regression_ids": [
+            "integer-cell-table-malformed",
+            "integer-cell-table-grouped",
+            "integer-cell-linked_table-malformed",
+            "integer-cell-linked_table-grouped",
+            "table-delimiter-width-table",
+            "table-delimiter-width-linked_table",
+            "stable-empty-edge-complete",
+            "stable-empty-edge-missing",
+            "stable-html-root-visible",
+            "stable-html-root-hidden",
+            "optional-currency-empty",
+            "optional-currency-invalid",
+            "table-span-ordinary",
+            "table-span-colspan",
+            "table-span-scoped-displaced",
+            "table-span-scoped-expired"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_numeric_table_surfaces.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py",
+            "scoring.py",
+            "required_components.py",
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "migration6-owner-field-order-complete",
+            "migration6-owner-field-order-incomplete",
+            "migration6-response-base-components-complete",
+            "migration6-response-base-components-incomplete",
+            "migration6-compact-scope-control-complete",
+            "migration6-compact-scope-control-incomplete"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_field_order_and_redirects.py",
+            "tests/benchmarks/webfetch/test_review_dom_owners.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py",
+            "response_input.py",
+            "metrics.py",
+            "stable_tasks.py",
+            "scoring_regressions.py"
+          ],
+          "regression_ids": [
+            "runtime6-angle-title-False-False",
+            "runtime6-angle-title-False-True",
+            "runtime6-angle-title-True-False",
+            "runtime6-angle-title-True-True",
+            "runtime6-image",
+            "runtime6-inline-code",
+            "runtime6-fenced-code",
+            "runtime6-envelope-False-False",
+            "runtime6-envelope-False-True",
+            "runtime6-envelope-True-False",
+            "runtime6-envelope-True-True",
+            "runtime6-code-header-21-True",
+            "runtime6-code-header-18-True",
+            "runtime6-code-header-22-False",
+            "runtime6-code-header-41-False",
+            "runtime6-code-header-42-False"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_envelope_literals.py",
+            "tests/test_code_preservation.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "product-html-article-cross-card",
+            "product-html-article-complete",
+            "product-html-nested-complete",
+            "catalog_product-html-article-cross-card",
+            "catalog_product-html-article-complete",
+            "catalog_product-html-presentation-wrappers"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_product_html_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py",
+            "structured_tables.py"
+          ],
+          "regression_ids": [
+            "native-table-descendant-field-borrowed",
+            "native-table-descendant-field-own",
+            "composite-visible-identity-duplicate",
+            "composite-visible-identity-distinct",
+            "converted-table-rowspan-displaced",
+            "converted-table-rowspan-ordinary",
+            "adjacent-table-headers-complete",
+            "adjacent-table-headers-missing"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_table_projection_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "migration7-responsive-image-resource-complete",
+            "migration7-responsive-image-resource-incomplete",
+            "migration7-responsive-source-frame-complete",
+            "migration7-responsive-source-frame-incomplete"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_generic_srcset.py"
+          ]
+        },
+        {
+          "modules": [
+            "response_input.py",
+            "scoring.py",
+            "metrics.py",
+            "stable_tasks.py",
+            "body_coverage.py",
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "runtime7-plain-frontmatter",
+            "runtime7-markdown-frontmatter",
+            "runtime7-visible-label",
+            "runtime7-image-alt",
+            "runtime7-link-destination",
+            "runtime7-link-title",
+            "runtime7-literal-code",
+            "runtime7-formatted-label",
+            "runtime7-output-metadata",
+            "runtime7-plain-image",
+            "runtime7-plain-destination",
+            "runtime7-markdown-destination",
+            "runtime7-plain-html",
+            "runtime7-html-hidden",
+            "runtime7-plain-emphasis",
+            "runtime7-plain-frontmatter-pattern",
+            "runtime7-plain-json",
+            "runtime7-native-json",
+            "runtime7-body-1-plain_text",
+            "runtime7-body-2-plain_text",
+            "runtime7-body-3-plain_text",
+            "runtime7-body-4-plain_text",
+            "runtime7-body-5-plain_text",
+            "runtime7-stable-plain_text",
+            "runtime7-body-1-markdown",
+            "runtime7-body-2-markdown",
+            "runtime7-body-3-markdown",
+            "runtime7-body-4-markdown",
+            "runtime7-body-5-markdown",
+            "runtime7-stable-markdown",
+            "runtime7-delivered-length-0",
+            "runtime7-delivered-length-1",
+            "runtime7-delivered-length-2",
+            "runtime7-delivered-length-3",
+            "runtime7-raw-api-length"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_representation_scoring.py",
+            "tests/test_scoring.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "literal-surface-plain",
+            "literal-surface-inline",
+            "literal-surface-double-inline",
+            "literal-surface-triple-inline",
+            "literal-surface-payload-backtick",
+            "literal-surface-inline-space",
+            "literal-surface-multiline-inline",
+            "literal-surface-fenced",
+            "literal-surface-tilde-fenced",
+            "literal-surface-wrong-label",
+            "literal-surface-fence-language",
+            "literal-surface-literal-image",
+            "literal-surface-actual-image"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_literal_pattern_surface.py"
+          ]
+        },
+        {
+          "modules": [
+            "scoring_regressions.py"
+          ],
+          "tests": [
+            "tests/test_scoring_regressions.py",
+            "tests/benchmarks/webfetch/test_standalone_evaluation.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "mixed-descriptions-ordinary-first-incomplete",
+            "mixed-descriptions-ordinary-first-complete",
+            "mixed-descriptions-image-first-incomplete",
+            "mixed-descriptions-image-first-complete",
+            "description-representation-plain_text",
+            "description-representation-html",
+            "control-scope-target-footer-included",
+            "control-scope-target-footer-excluded",
+            "control-scope-text-pattern-included",
+            "control-scope-text-pattern-excluded"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_description_scopes.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py",
+            "structured_tables.py"
+          ],
+          "regression_ids": [
+            "combined-optional-capture-missing",
+            "combined-optional-capture-complete",
+            "caption-record-span-displaced",
+            "caption-record-span-ordinary",
+            "caption-excluded-span-displaced",
+            "caption-excluded-span-ordinary",
+            "caption-adjacent-unowned",
+            "caption-adjacent-owned",
+            "column-surface-boundary-cross-table",
+            "column-surface-boundary-same-table"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_caption_projection_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py",
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "migration8-scoped-visible-fallback-complete",
+            "migration8-scoped-visible-fallback-incomplete",
+            "migration8-mixed-source-cutoff-complete",
+            "migration8-mixed-source-cutoff-incomplete",
+            "migration8-incidental-product-markup-complete",
+            "migration8-incidental-product-markup-incomplete",
+            "migration8-optional-record-capture-complete",
+            "migration8-optional-record-capture-incomplete",
+            "migration8-bounded-resource-json-complete",
+            "migration8-bounded-resource-json-incomplete"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_source_order.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py",
+            "scoring.py",
+            "required_components.py",
+            "article_title.py",
+            "article_text.py",
+            "article_posts.py",
+            "article_comments.py"
+          ],
+          "regression_ids": [
+            "runtime8-operand",
+            "runtime8-lost-operand",
+            "runtime8-listing",
+            "runtime8-altered-listing",
+            "runtime8-partial-listing",
+            "runtime8-broken-sequence",
+            "runtime8-invented-listing",
+            "runtime8-plain-title",
+            "runtime8-plain-link-title",
+            "runtime8-markdown-link-title",
+            "runtime8-plain-html-title",
+            "runtime8-html-title",
+            "runtime8-wrong-code-title",
+            "runtime8-plain-comment",
+            "runtime8-unowned-comment",
+            "runtime8-plain-linked-author",
+            "runtime8-markdown-linked-author",
+            "runtime8-plain-post",
+            "runtime8-plain-post-no-author",
+            "runtime8-plain-markdown-post",
+            "runtime8-markdown-post",
+            "runtime8-comment-literal-0-plain_text",
+            "runtime8-post-literal-0-plain_text",
+            "runtime8-comment-literal-0-markdown",
+            "runtime8-post-literal-0-markdown",
+            "runtime8-html-comment-literal-0",
+            "runtime8-html-post-literal-0"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_component_representation.py",
+            "tests/test_fairness.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "runtime8-octal-operands",
+            "runtime8-lost-octal-operands",
+            "runtime8-numbered-octal-statement",
+            "runtime8-altered-numbered-octal-statement"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_octal_operands.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_posts.py"
+          ],
+          "regression_ids": [
+            "runtime8-boundary-0-False",
+            "runtime8-boundary-0-True",
+            "runtime8-boundary-2-False",
+            "runtime8-boundary-2-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_component_followups.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_text.py",
+            "article_title.py",
+            "article_comments.py",
+            "article_posts.py"
+          ],
+          "regression_ids": [
+            "runtime8-label-comment-0",
+            "runtime8-label-comment-1",
+            "runtime8-label-comment-2",
+            "runtime8-label-comment-3",
+            "runtime8-label-post-0",
+            "runtime8-label-post-1",
+            "runtime8-label-post-8",
+            "runtime8-label-post-9",
+            "runtime8-plain-non-author-False",
+            "runtime8-plain-non-author-True",
+            "runtime8-literal-title-format",
+            "runtime8-literal-title-code",
+            "runtime8-literal-title-code-wrong",
+            "runtime8-literal-title-escape"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_component_followups.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_title.py"
+          ],
+          "regression_ids": [
+            "runtime8-html-h1",
+            "runtime8-html-span",
+            "runtime8-html-wrapper",
+            "runtime8-html-markdown-text",
+            "runtime8-html-nested-title",
+            "runtime8-html-literal-heading",
+            "runtime8-html-wrong-heading"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_component_followups.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py",
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "source-surface-html-attributes-complete",
+            "source-surface-html-attributes-incomplete",
+            "source-surface-metadata-order-complete",
+            "source-surface-metadata-order-incomplete"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_source_surfaces.py"
+          ]
+        },
+        {
+          "modules": [
+            "models.py",
+            "ordered_tree.py",
+            "scoring.py",
+            "benchmark.py"
+          ],
+          "regression_ids": [
+            "tree8-exact",
+            "tree8-mismatch",
+            "tree8-failed",
+            "tree8-malformed",
+            "tree8-diagnostic"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_tree_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "scoring_regressions.py"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_receipt_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_posts.py",
+            "article_text.py",
+            "article_title.py"
+          ],
+          "regression_ids": [
+            "plain-post-reference-doc-inline-empty",
+            "plain-post-reference-p-2-paragraph-empty",
+            "plain-post-reference-p-2-paragraph-original",
+            "retained-code-11-empty",
+            "retained-code-11-unique",
+            "html-title-adjacency-split-word-wrong",
+            "html-title-adjacency-split-word-match",
+            "html-title-adjacency-cjk-match"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_article_boundaries_round9.py",
+            "tests/benchmarks/webfetch/test_article_labels.py",
+            "tests/benchmarks/webfetch/test_review_component_followups.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py",
+            "structured_tables.py"
+          ],
+          "regression_ids": [
+            "round9-table-integer-formatted",
+            "round9-table-integer-invalid",
+            "round9-table-token-formatted",
+            "round9-table-token-invalid",
+            "round9-linked_table-integer-formatted",
+            "round9-linked_table-integer-invalid",
+            "round9-linked_table-token-formatted",
+            "round9-linked_table-token-invalid",
+            "round9-table-alpha",
+            "round9-table-excluded",
+            "round9-table-details",
+            "round9-linearized-alpha",
+            "round9-linearized-excluded",
+            "round9-linearized-details",
+            "round9-native-destination-gamma",
+            "round9-native-destination-beta",
+            "round9-html-width-0",
+            "round9-html-width-2",
+            "round9-html-width-4",
+            "round9-markdown-width-0",
+            "round9-markdown-width-2",
+            "round9-markdown-width-4"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_table_scalar_admission.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py",
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "review9-dynamic-block-title",
+            "review9-dynamic-adjacent-title",
+            "review9-dynamic-wrong-title-boundary",
+            "review9-dynamic-image-tags",
+            "review9-dynamic-image-noise",
+            "review9-dynamic-image-json-answer",
+            "review9-dynamic-image-json-debug",
+            "review9-dynamic-image-json-requests",
+            "review9-dynamic-generic-json-answer",
+            "review9-dynamic-generic-json-debug",
+            "review9-dynamic-generic-json-requests",
+            "review9-dynamic-json-diagnostic-frame"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_image_json_and_titles.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "runtime9-markdown-entity",
+            "runtime9-markdown-decoded",
+            "runtime9-markdown-nested-entity",
+            "runtime9-markdown-nested-decoded",
+            "runtime9-plain-tags",
+            "runtime9-plain-stripped-tags",
+            "runtime9-plain-entity",
+            "runtime9-plain-decoded",
+            "runtime9-html-decoded",
+            "runtime9-html-raw-entity",
+            "runtime9-html-once",
+            "runtime9-html-twice",
+            "runtime9-html-literal-fence",
+            "runtime9-html-fence-raw-entity",
+            "runtime9-markdown-literal-tags",
+            "runtime9-markdown-stripped-tags",
+            "runtime9-plain-fence",
+            "runtime9-plain-interpreted-fence",
+            "runtime9-plain-listing",
+            "runtime9-plain-stripped-listing",
+            "runtime9-markdown-listing",
+            "runtime9-markdown-raw-listing",
+            "runtime9-markdown-rendered-entity",
+            "runtime9-markdown-once",
+            "runtime9-markdown-twice",
+            "runtime9-markdown-escaped-tags",
+            "runtime9-markdown-reparsed-tags",
+            "runtime9-html-rendered-tags",
+            "runtime9-html-unrendered-tags",
+            "runtime9-plain-code-container",
+            "runtime9-plain-interpreted-container",
+            "runtime9-html-inline-code",
+            "runtime9-html-inline-double-decode",
+            "runtime9-html-unfenced-code",
+            "runtime9-html-unfenced-double-decode",
+            "runtime9-html-code-one-owner",
+            "runtime9-html-code-separate-owners",
+            "runtime9-html-document-prose"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_code_representation.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py",
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "linktitle9-False-label",
+            "linktitle9-False-metadata",
+            "linktitle9-True-label",
+            "linktitle9-True-metadata",
+            "identity9-named_link-False",
+            "identity9-named_link-True",
+            "identity9-linked_product-False",
+            "identity9-linked_product-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_quoted_link_titles.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_text.py",
+            "article_title.py"
+          ],
+          "regression_ids": [
+            "post-html-prefix-inline-empty",
+            "post-html-prefix-inline-complete",
+            "comment-html-prefix-inline-empty",
+            "comment-html-prefix-inline-complete",
+            "title-hashes-literal-preserved",
+            "title-hashes-literal-not-truncated",
+            "title-hashes-heading-closers",
+            "title-hashes-heading-not-literal"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_article_dispatch_and_hashes.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "unsupported-fields-name_description-empty",
+            "unsupported-fields-name_description-declared",
+            "unsupported-fields-table-empty",
+            "unsupported-fields-table-declared",
+            "unsupported-fields-linked_table-empty",
+            "unsupported-fields-linked_table-declared",
+            "unsupported-fields-literals-empty",
+            "unsupported-fields-literals-declared",
+            "supported-fields-named_link-missing",
+            "supported-fields-named_link-present",
+            "supported-fields-field_report-missing",
+            "supported-fields-field_report-present"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_composite_field_support.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "regression_ids": [
+            "review10-dynamic-aux-last",
+            "review10-dynamic-aux-first",
+            "review10-dynamic-only-excluded",
+            "review10-dynamic-owned-price",
+            "review10-dynamic-foreign-heading-price",
+            "review10-dynamic-foreign-section-price",
+            "review10-dynamic-wrapped-heading-price",
+            "review10-dynamic-own-title-heading"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_auxiliary_names_and_sections.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "runtime10-picture-recall",
+            "runtime10-picture-unexpected",
+            "runtime10-picture-no-source",
+            "runtime10-picture-missing-source",
+            "runtime10-multiple-candidates",
+            "runtime10-unexpected-candidate",
+            "runtime10-video-not-image-recall",
+            "runtime10-video-not-unexpected-image",
+            "runtime10-audio-not-image-recall",
+            "runtime10-audio-not-unexpected-image",
+            "runtime10-orphan-not-image-recall",
+            "runtime10-orphan-not-unexpected-image",
+            "runtime10-nested-video-not-image-recall",
+            "runtime10-nested-video-not-unexpected-image",
+            "runtime10-hidden-picture-not-image-recall",
+            "runtime10-hidden-picture-not-unexpected-image",
+            "runtime10-hidden-source-not-image-recall",
+            "runtime10-hidden-source-not-unexpected-image",
+            "runtime10-closed-details-not-image-recall",
+            "runtime10-closed-details-not-unexpected-image"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_picture_image_answers.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "literal10-fence-True",
+            "literal10-fence-False",
+            "literal10-suffix-final",
+            "literal10-suffix-later",
+            "literal10-suffix-word",
+            "literal10-suffix-whole-word"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_literal_and_suffix_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "regression_ids": [
+            "review10-product-article-internal-section",
+            "review10-product-article-foreign-heading-section",
+            "review10-product-article-independent-article",
+            "review10-product-li-internal-section",
+            "review10-product-li-foreign-heading-section",
+            "review10-product-li-independent-article"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_auxiliary_names_and_sections.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py",
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "review10-admission-legacy-aux-first",
+            "review10-admission-legacy-aux-first-insufficient",
+            "review10-admission-legacy-metadata-aux-first",
+            "review10-admission-stable-metadata-aux-first",
+            "review10-admission-legacy-aux-last",
+            "review10-admission-legacy-aux-last-insufficient",
+            "review10-admission-legacy-metadata-aux-last",
+            "review10-admission-stable-metadata-aux-last"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_auxiliary_names_and_sections.py",
+            "tests/benchmarks/webfetch/test_review_exclusion_admission.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_title.py"
+          ],
+          "regression_ids": [
+            "title-paragraph-quote-lazy",
+            "title-paragraph-quote-blank",
+            "title-paragraph-quote-outside-heading",
+            "title-paragraph-quote-heading-block",
+            "title-paragraph-quote-code-block",
+            "title-paragraph-list-lazy",
+            "title-paragraph-list-blank",
+            "title-paragraph-list-outside-heading"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_title_paragraph_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "round11-field_report-12",
+            "round11-field_report-1,234",
+            "round11-field_report-1.5",
+            "round11-field_report-1,234.567",
+            "round11-named_link-1.234",
+            "round11-named_link-1.5",
+            "round11-patterned_card-12.",
+            "round11-patterned_card-1.5",
+            "round11-linear-first-complete",
+            "round11-linear-first-missing-owner",
+            "round11-linear-first-duplicate",
+            "round11-pipe-first-complete",
+            "round11-pipe-first-missing-owner",
+            "round11-pipe-first-duplicate",
+            "round11-linear-pipe-linear",
+            "round11-no-header-borrow-across-pipe",
+            "round11-fixed-integer-1.234",
+            "round11-fixed-integer-1.235"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_owned_integer_mixed_tables.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "regression_ids": [
+            "review11-dynamic-bold-layout",
+            "review11-dynamic-code-layout",
+            "review11-dynamic-native-price",
+            "review11-dynamic-invalid-price",
+            "review11-dynamic-foreign-heading",
+            "review11-dynamic-attribute-only",
+            "review11-dynamic-scope-formatted-price",
+            "review11-dynamic-scope-missing-price"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_mixed_product_fields.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "runtime11-table-matching",
+            "runtime11-table-unrelated",
+            "runtime11-table-split-fields",
+            "runtime11-table-wrong-value",
+            "runtime11-html-matching",
+            "runtime11-html-unrelated",
+            "runtime11-html-split-fields",
+            "runtime11-html-alternative-Alpha",
+            "runtime11-html-alternative-Beta",
+            "runtime11-base-host-markdown-False",
+            "runtime11-base-host-markdown-True",
+            "runtime11-base-host-html-False",
+            "runtime11-base-host-html-True",
+            "runtime11-base-directory-markdown-False",
+            "runtime11-base-directory-markdown-True",
+            "runtime11-base-directory-html-False",
+            "runtime11-base-directory-html-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_stable_anchor_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "integer-nonzero-group-field_report-dot-0",
+            "integer-nonzero-group-field_report-dot-1",
+            "integer-nonzero-group-field_report-comma-0",
+            "integer-nonzero-group-field_report-comma-1",
+            "integer-nonzero-group-field_report-space-0",
+            "integer-nonzero-group-field_report-space-1",
+            "integer-nonzero-group-table-dot-0",
+            "integer-nonzero-group-table-dot-1",
+            "integer-nonzero-group-patterned_card-comma-0",
+            "integer-nonzero-group-patterned_card-comma-1",
+            "integer-plain-padding-0",
+            "integer-plain-padding-00012",
+            "integer-unicode-group-fullwidth-0",
+            "integer-unicode-group-fullwidth-1",
+            "integer-unicode-group-arabic-0",
+            "integer-unicode-group-arabic-1"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_owned_integer_mixed_tables.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_text.py",
+            "article_title.py",
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "title-inline-block-blank-paragraph",
+            "title-inline-block-atx-boundary",
+            "title-inline-block-soft-line",
+            "title-selector-mixed-visible",
+            "title-selector-mixed-excluded",
+            "title-selector-code-literal",
+            "quote-soft-line-code-empty",
+            "quote-soft-line-code-visible",
+            "article-comment-code-fenced-heading",
+            "article-post-fenced-code-fake-author-prefix",
+            "article-post-fenced-code-fake-linked-profile",
+            "article-title-block-code-fenced-heading",
+            "article-comment-unmatched-ticks-real-heading",
+            "article-post-unmatched-ticks-real-author-prefix",
+            "article-post-unmatched-ticks-real-linked-profile",
+            "article-title-unmatched-ticks-real-heading"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_article_inline_blocks.py",
+            "tests/benchmarks/webfetch/test_review_article_inline_code.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "composite-visible-source-ordinary-fields-hidden",
+            "composite-visible-source-ordinary-fields-visible",
+            "composite-visible-source-ordinary-field-only-True",
+            "composite-visible-source-ordinary-field-only-False",
+            "composite-visible-source-wildcard-names-hidden",
+            "composite-visible-source-wildcard-names-visible",
+            "composite-visible-source-wildcard-fields-hidden",
+            "composite-visible-source-wildcard-fields-visible"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_composite_visible_sources.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "regression_ids": [
+            "review12-dynamic-markdown-aux-first",
+            "review12-dynamic-markdown-aux-last",
+            "review12-dynamic-html-aux-first",
+            "review12-dynamic-html-aux-last",
+            "review12-dynamic-scoped-aux-first",
+            "review12-dynamic-scoped-aux-last",
+            "review12-dynamic-scoped-excluded-only",
+            "review12-dynamic-markdown-excluded-only",
+            "review12-dynamic-scoped-one-owner-aux-first",
+            "review12-dynamic-scoped-one-owner-aux-last"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_product_admission.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "runtime12-product-reordered-False",
+            "runtime12-product-reordered-True",
+            "runtime12-product-wrong-order-False",
+            "runtime12-product-wrong-order-True",
+            "runtime12-review-reordered-False",
+            "runtime12-review-reordered-True",
+            "runtime12-review-wrong-order-False",
+            "runtime12-review-wrong-order-True",
+            "runtime12-markdown-excluded",
+            "runtime12-markdown-admitted",
+            "runtime12-markdown-mixed",
+            "runtime12-markdown-qualified",
+            "runtime12-markdown-same-url-False",
+            "runtime12-markdown-same-url-True",
+            "runtime12-html-excluded",
+            "runtime12-html-admitted",
+            "runtime12-html-mixed",
+            "runtime12-html-qualified",
+            "runtime12-html-same-url-False",
+            "runtime12-html-same-url-True",
+            "runtime12-scoped-html-excluded",
+            "runtime12-scoped-html-admitted",
+            "runtime12-scoped-html-mixed",
+            "runtime12-scoped-html-qualified",
+            "runtime12-scoped-html-same-url-False",
+            "runtime12-scoped-html-same-url-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_adjacent_tables_and_product_exclusions.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "integer-separator-boundary-fullwidth-decimal",
+            "integer-separator-boundary-fullwidth-integer",
+            "integer-separator-boundary-arabic-decimal",
+            "integer-separator-boundary-arabic-integer",
+            "integer-separator-boundary-fullwidth-comma",
+            "integer-separator-boundary-arabic-group",
+            "integer-separator-boundary-prose-period",
+            "integer-separator-boundary-prose-comma",
+            "integer-separator-boundary-owned-pattern-decimal",
+            "integer-separator-boundary-owned-pattern-integer"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_owned_integer_mixed_tables.py"
+          ]
+        },
+        {
+          "modules": [
+            "benchmark.py"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_catalog_validation_reuse.py",
+            "tests/benchmarks/webfetch/test_release_versions.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py",
+            "article_posts.py"
+          ],
+          "regression_ids": [
+            "markdown-indented-spaces",
+            "markdown-indented-tab",
+            "markdown-indented-paragraph-continuation",
+            "markdown-indented-loose-list-paragraph",
+            "markdown-indented-list-code",
+            "markdown-destination-escaped-parentheses",
+            "markdown-destination-escaped-entity",
+            "markdown-destination-escaped-entity-not-ampersand",
+            "markdown-destination-encoded-slash-kept",
+            "markdown-destination-encoded-slash-not-separator",
+            "post-terminal-semicolon-retained",
+            "post-terminal-semicolon-distinct"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_markdown_destinations_blocks.py",
+            "tests/test_reference_quality.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "regression_ids": [
+            "review13-dynamic-display-case",
+            "review13-dynamic-display-priority",
+            "review13-dynamic-display-inverse",
+            "review13-dynamic-display-equal-last-visible",
+            "review13-dynamic-display-equal-last-hidden",
+            "review13-dynamic-visibility-hidden",
+            "review13-dynamic-visibility-visible",
+            "review13-dynamic-opacity-hidden",
+            "review13-dynamic-opacity-visible",
+            "review13-dynamic-display-important-visible",
+            "review13-dynamic-display-invalid-first",
+            "review13-dynamic-display-invalid-last",
+            "review13-dynamic-visibility-invalid-first",
+            "review13-dynamic-visibility-invalid-last",
+            "review13-dynamic-opacity-invalid-first",
+            "review13-dynamic-opacity-invalid-last"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_inline_style_priority.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "regression_ids": [
+            "review13-record-url-markdown-literal-entity",
+            "review13-record-url-markdown-decoded-entity",
+            "review13-record-url-html-literal-entity",
+            "review13-record-url-html-decoded-entity",
+            "review13-record-url-metadata-literal-entity",
+            "review13-record-url-metadata-decoded-entity",
+            "review13-record-url-scoped-product-literal",
+            "review13-record-url-scoped-product-decoded"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_record_url_serialization.py"
+          ]
+        },
+        {
+          "modules": [
+            "response_input.py",
+            "dynamic_lists.py"
+          ],
+          "regression_ids": [
+            "review13-answer-join-literal-meta",
+            "review13-answer-join-literal-not-encoded",
+            "review13-answer-join-encoded-meta",
+            "review13-answer-join-encoded-not-literal",
+            "review13-answer-join-query-base",
+            "review13-answer-join-query-not-encoded"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_record_url_serialization.py",
+            "tests/benchmarks/webfetch/test_review_answer_url_join.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py",
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "answer-url-join-ordinary-True-True",
+            "answer-url-join-ordinary-True-False",
+            "answer-url-join-wildcard-True-True",
+            "answer-url-join-wildcard-True-False",
+            "answer-url-join-resource-literal-literal",
+            "answer-url-join-resource-literal-missing",
+            "answer-url-join-resource-encoded-literal",
+            "answer-url-join-resource-encoded-encoded"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_url_join_identity.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py",
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "runtime13-visible-plain-block",
+            "runtime13-visible-wrong-label",
+            "runtime13-visible-inner-indent",
+            "runtime13-visible-lost-inner-indent",
+            "runtime13-visible-literal-link",
+            "runtime13-visible-interpreted-link",
+            "runtime13-visible-block-before-prose",
+            "runtime13-visible-prose-after-block",
+            "runtime13-page-plain-block",
+            "runtime13-page-wrong-label",
+            "runtime13-page-inner-indent",
+            "runtime13-page-lost-inner-indent",
+            "runtime13-page-literal-link",
+            "runtime13-page-interpreted-link",
+            "runtime13-page-block-before-prose",
+            "runtime13-page-prose-after-block",
+            "runtime13-semicolon-False-False",
+            "runtime13-semicolon-False-True",
+            "runtime13-semicolon-True-False",
+            "runtime13-semicolon-True-True",
+            "runtime13-html-literal-visible-True",
+            "runtime13-html-literal-visible-False",
+            "runtime13-html-literal-page-True",
+            "runtime13-html-literal-page-False"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_indented_pattern_surface.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "native-card-layout-date-auto",
+            "native-card-layout-date-declared-markdown",
+            "native-card-layout-date-fully-indented",
+            "native-card-layout-date-fenced",
+            "native-card-layout-image-auto",
+            "native-card-layout-image-declared-markdown",
+            "native-card-layout-image-fully-indented",
+            "native-card-layout-image-fenced"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_card_indentation.py",
+            "tests/test_dynamic_entry_matching.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "regression_ids": [
+            "review14-dynamic-visibility-restored",
+            "review14-dynamic-visibility-still-hidden",
+            "review14-dynamic-visibility-important-restored",
+            "review14-dynamic-visibility-important-still-hidden",
+            "review14-dynamic-visibility-display-hard-hidden",
+            "review14-dynamic-visibility-opacity-hard-hidden"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_inherited_visibility.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "regression_ids": [
+            "review14-plain-literal-fields",
+            "review14-plain-literal-name-markers",
+            "review14-plain-product-fields",
+            "review14-plain-literal-product-price",
+            "review14-plain-metadata-fields",
+            "review14-plain-metadata-wrong-route",
+            "review14-html-markdown-not-anchor",
+            "review14-html-actual-anchor",
+            "review14-html-literal-markers-source-name",
+            "review14-html-actual-bold-source-name",
+            "review14-html-markdown-not-product",
+            "review14-html-actual-product",
+            "review14-html-literal-markers-price",
+            "review14-html-actual-bold-price",
+            "review14-html-literal-markers-exclusion",
+            "review14-html-actual-bold-exclusion"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_plain_linked_records.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py",
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "round14-image-literal-True-4-markdown",
+            "round14-image-literal-False-17-markdown",
+            "round14-image-noise-True-17",
+            "round14-image-noise-False-17",
+            "round14-image-real-extra-image",
+            "round14-image-real-image",
+            "round14-image-auto-native-image-card",
+            "round14-image-declared-indented-image-example",
+            "round14-image-html-real-backticks",
+            "round14-image-html-markdown-literal",
+            "round14-image-plain-markdown-literal",
+            "round14-image-plain-url-answer",
+            "round14-literal-html-name",
+            "round14-actual-html-format",
+            "round14-scope-native-name-True",
+            "round14-scope-native-name-False",
+            "round14-plain-literal-link",
+            "round14-plain-owned-fields",
+            "round14-default-inline-anchor",
+            "round14-literal-inline-anchor"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_image_literal_answers.py",
+            "tests/benchmarks/webfetch/test_review_composite_representation.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "runtime14-peer-heading",
+            "runtime14-enclosing-heading",
+            "runtime14-owned-subheading",
+            "runtime14-complete-before-peer",
+            "runtime14-price-first-peer",
+            "runtime14-price-first-owned",
+            "runtime14-html-peer",
+            "runtime14-html-owned",
+            "runtime14-html-card-peer",
+            "runtime14-html-card-owned",
+            "runtime14-named_link-relative-markdown",
+            "runtime14-named_link-absolute-markdown",
+            "runtime14-named_link-relative-html",
+            "runtime14-named_link-absolute-html",
+            "runtime14-named_link-literal-label",
+            "runtime14-named_link-plain-row",
+            "runtime14-named_link-markdown-rendered",
+            "runtime14-linked_product-relative-markdown",
+            "runtime14-linked_product-absolute-markdown",
+            "runtime14-linked_product-relative-html",
+            "runtime14-linked_product-absolute-html",
+            "runtime14-linked_product-literal-label",
+            "runtime14-linked_product-plain-row",
+            "runtime14-linked_product-markdown-rendered",
+            "runtime14-named-metadata",
+            "runtime14-native-auto",
+            "runtime14-native-markdown",
+            "runtime14-native-plain",
+            "runtime14-native-code",
+            "runtime14-native-fenced"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_catalog_sections_and_plain_links.py"
+          ]
+        },
+        {
+          "modules": [
+            "scoring.py",
+            "list_verification.py"
+          ],
+          "regression_ids": [
+            "legacy-answer-format-literal-markdown",
+            "legacy-answer-format-rendered-markdown",
+            "legacy-answer-format-literal-html",
+            "legacy-answer-format-rendered-html",
+            "legacy-answer-format-plain-field-lines",
+            "legacy-answer-format-plain-explicit-metadata"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_legacy_format_forwarding.py"
+          ]
+        },
+        {
+          "modules": [
+            "response_input.py"
+          ],
+          "regression_ids": [
+            "answer-url-dot-params-named-relative-current",
+            "answer-url-dot-params-named-shortened-reject",
+            "answer-url-dot-params-resource-relative-parent",
+            "answer-url-dot-params-resource-shortened-reject",
+            "answer-url-dot-params-named-absolute-equivalent",
+            "answer-url-dot-params-resource-encoded-distinct",
+            "answer-url-dot-params-resource-ordinary-parent",
+            "answer-url-dot-params-named-terminal-semicolon"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_answer_url_join.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "composite-visible-field-named_link-bold-exact",
+            "composite-visible-field-named_link-bold-distinct",
+            "composite-visible-field-field_report-pipe-exact",
+            "composite-visible-field-field_report-pipe-distinct",
+            "composite-visible-literal-destination-only",
+            "composite-visible-literal-visible-label",
+            "composite-visible-literal-encoded-url",
+            "composite-visible-literal-plain-literal-markup",
+            "composite-visible-literal-html-attribute",
+            "composite-visible-literal-inline-code",
+            "composite-visible-field-html-literal-None",
+            "composite-visible-field-html-distinct-None"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_composite_literal_fields.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "round15-native-base-anchor-False",
+            "round15-native-base-anchor-True",
+            "round15-native-base-table-False",
+            "round15-native-base-table-True",
+            "round15-native-adjacent-name-visible",
+            "round15-native-adjacent-name-attribute",
+            "round15-native-adjacent-name-hidden",
+            "round15-native-adjacent-name-two-records-False",
+            "round15-native-adjacent-name-two-records-True",
+            "round15-mixed-fields-visible-date-False",
+            "round15-mixed-fields-visible-date-True",
+            "round15-native-base-is-per-group"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_field_regressions.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "review15-dynamic-plain-html-literal",
+            "review15-dynamic-html-native-resource",
+            "review15-dynamic-plain-markdown-literal",
+            "review15-dynamic-markdown-native-resource",
+            "review15-dynamic-plain-json-literal",
+            "review15-dynamic-native-json-resource",
+            "review15-dynamic-plain-literal-uri",
+            "review15-dynamic-plain-typed-metadata",
+            "review15-dynamic-html-markdown-literal",
+            "review15-dynamic-html-label-not-collapsed",
+            "review15-dynamic-html-literal-label-pattern",
+            "review15-dynamic-html-literal-image-pattern",
+            "review15-dynamic-html-native-label-pattern",
+            "review15-dynamic-html-escaped-tag-one-pass",
+            "review15-dynamic-html-escaped-entity-one-pass",
+            "review15-dynamic-html-literal-destination-words",
+            "review15-dynamic-json-field-html",
+            "review15-dynamic-json-field-content"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_generic_resource_formats.py",
+            "tests/benchmarks/webfetch/test_review_rendered_html_patterns.py",
+            "tests/benchmarks/webfetch/test_review_record_formats.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "runtime15-literal-stars-price",
+            "runtime15-literal-italic-price",
+            "runtime15-literal-underscore-price",
+            "runtime15-literal-tag-price",
+            "runtime15-literal-link-price",
+            "runtime15-bold-price",
+            "runtime15-linked-price",
+            "runtime15-literal-title-stars",
+            "runtime15-literal-title-heading",
+            "runtime15-literal-title-list",
+            "runtime15-literal-title-number",
+            "runtime15-literal-title-link",
+            "runtime15-literal-title-tag",
+            "runtime15-formatted-title",
+            "runtime15-literal-catalog",
+            "runtime15-formatted-catalog",
+            "runtime15-literal-catalog-heading",
+            "runtime15-literal-description",
+            "runtime15-literal-list-description",
+            "runtime15-literal-review"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_html_record_text.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "native-cell-projection-escaped-literal",
+            "native-cell-projection-empty-markup",
+            "native-cell-projection-native-formatting",
+            "native-cell-projection-escaped-formatting-distinct"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_cell_projection.py",
+            "tests/benchmarks/webfetch/test_table_group_caption.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "review15-markdown-image-json-markdown-literal",
+            "review15-markdown-image-json-auto-answer",
+            "review15-markdown-image-json-typed-answer"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_generic_resource_formats.py",
+            "tests/benchmarks/webfetch/test_review_record_formats.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py",
+            "structured_tables.py"
+          ],
+          "regression_ids": [
+            "composite-dispatch-name_description-plain_text",
+            "composite-dispatch-name_description-html",
+            "composite-dispatch-table-plain_text",
+            "composite-dispatch-table-html",
+            "composite-dispatch-plain-tsv",
+            "composite-dispatch-table-literal-value-plain_text",
+            "composite-dispatch-table-literal-value-markdown",
+            "composite-dispatch-rendered-description-literal-tags"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_composite_dispatch_formats.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "runtime16-membership-0",
+            "runtime16-membership-1",
+            "runtime16-membership-2",
+            "runtime16-membership-3",
+            "runtime16-membership-4",
+            "runtime16-membership-5",
+            "runtime16-membership-6",
+            "runtime16-membership-7",
+            "runtime16-literal-binding-8",
+            "runtime16-literal-binding-9",
+            "runtime16-literal-binding-10",
+            "runtime16-literal-binding-11",
+            "runtime16-anchor-0",
+            "runtime16-anchor-1",
+            "runtime16-anchor-2",
+            "runtime16-anchor-3",
+            "runtime16-anchor-4",
+            "runtime16-anchor-5",
+            "runtime16-anchor-6",
+            "runtime16-anchor-7",
+            "runtime16-anchor-8",
+            "runtime16-anchor-9",
+            "runtime16-anchor-10",
+            "runtime16-anchor-11",
+            "runtime16-anchor-12",
+            "runtime16-anchor-13",
+            "runtime16-anchor-14",
+            "runtime16-anchor-15",
+            "runtime16-anchor-16",
+            "runtime16-anchor-17",
+            "runtime16-anchor-18",
+            "runtime16-anchor-19",
+            "runtime16-wrong-reference-20",
+            "runtime16-wrong-reference-21",
+            "runtime16-wrong-reference-22",
+            "runtime16-wrong-reference-23",
+            "runtime16-reference-layout-24",
+            "runtime16-reference-layout-25",
+            "runtime16-reference-layout-26",
+            "runtime16-reference-layout-27"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_literal_field_identity.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "round16-native-field-literal-stars",
+            "round16-native-field-stripped-stars",
+            "round16-native-field-literal-table-stars",
+            "round16-native-field-stripped-table-stars",
+            "round16-native-field-escaped-tag",
+            "round16-native-field-parsed-escaped-tag",
+            "round16-native-field-literal-entity",
+            "round16-native-field-double-decoded-entity",
+            "round16-native-field-actual-formatting",
+            "round16-native-field-actual-formatting-not-stars",
+            "round16-native-field-private-roundtrip",
+            "round16-native-field-private-not-normalized",
+            "round16-native-field-mixed-root-None",
+            "round16-native-field-mixed-root-html"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_field_literals.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "round17-native-description-incomplete-siblings",
+            "round17-native-description-two-complete-siblings",
+            "round17-native-description-one-complete-sibling",
+            "round17-native-description-scoped-two-complete",
+            "round17-native-description-outside-cannot-repair",
+            "round17-native-description-literal-native-fields",
+            "round17-native-description-scoped-nested-container",
+            "round17-native-description-plain-html-literal"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_description_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "runtime17-body-0",
+            "runtime17-body-1",
+            "runtime17-body-2",
+            "runtime17-body-3",
+            "runtime17-body-4",
+            "runtime17-body-5",
+            "runtime17-body-6",
+            "runtime17-body-7",
+            "runtime17-body-8",
+            "runtime17-body-9",
+            "runtime17-body-10",
+            "runtime17-body-11",
+            "runtime17-body-12",
+            "runtime17-body-13",
+            "runtime17-body-14",
+            "runtime17-body-15",
+            "runtime17-actual-format-16",
+            "runtime17-table-17",
+            "runtime17-table-18",
+            "runtime17-table-19",
+            "runtime17-table-20",
+            "runtime17-table-anchor-21",
+            "runtime17-table-anchor-22",
+            "runtime17-table-anchor-23",
+            "runtime17-table-anchor-24",
+            "runtime17-table-anchor-25",
+            "runtime17-table-anchor-26",
+            "runtime17-table-anchor-27",
+            "runtime17-table-anchor-28",
+            "runtime17-table-anchor-29"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_rendered_anchor_tables.py"
+          ]
+        },
+        {
+          "modules": [
+            "structured_tables.py",
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "table17-native-bold-literal",
+            "table17-native-bold-not-format",
+            "table17-native-link-literal",
+            "table17-native-link-not-label",
+            "table17-distinct-native-rows",
+            "table17-duplicate-native-rows",
+            "table17-linked-visible-exact",
+            "table17-linked-visible-distinct"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_table_literal_serialization.py"
+          ]
+        },
+        {
+          "modules": [
+            "structured_tables.py"
+          ],
+          "regression_ids": [
+            "numeric18-integer-large-max-at",
+            "numeric18-integer-large-max-outside",
+            "numeric18-integer-negative-min-at",
+            "numeric18-integer-negative-min-outside",
+            "numeric18-decimal-max-at",
+            "numeric18-decimal-max-outside",
+            "numeric18-decimal-negative-min-at",
+            "numeric18-decimal-negative-min-outside",
+            "numeric18-float-bound-min-at",
+            "numeric18-float-bound-min-outside"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_exact_table_bounds.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "round18-markdown-record-without-incidental-html",
+            "round18-markdown-record-with-incidental-html",
+            "round18-declared-markdown-retains-record",
+            "round18-incidental-html-attribute-is-not-field",
+            "round18-declared-html-requires-native-anchor",
+            "round18-mixed-native-and-markdown-records",
+            "round18-outside-native-label-cannot-repair-excluded-markdown",
+            "round18-mixed-native-literal-name"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_mixed_native_admission.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "native-row-membership-headers-only",
+            "native-row-membership-owned-description",
+            "native-table-header-row-cannot-supply-description"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_table_membership.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py"
+          ],
+          "regression_ids": [
+            "round19-linked-header-html-parentheses",
+            "round19-linked-header-pipe-parentheses",
+            "round19-linked-header-linearized-parentheses",
+            "round19-linked-header-html-wrong-parentheses",
+            "round19-linked-header-html-literal-stars",
+            "round19-linked-header-pipe-literal-stars-distinct",
+            "round19-linked-header-linearized-formatting-distinct",
+            "round19-linked-header-linearized-linked-header"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_linked_table_header_scalars.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "api19-html-heading-missing",
+            "api19-html-heading-complete",
+            "api19-html-fields-missing",
+            "api19-html-fields-complete"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_html_api_sections.py"
+          ]
+        },
+        {
+          "modules": [
+            "composite_tasks.py",
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "round20-field-report-bare-split-label",
+            "round20-field-report-colon-split-label",
+            "round20-named-qualified-split-label",
+            "round20-split-labels-cannot-borrow-owner",
+            "round20-split-labels-complete",
+            "round20-native-backticks-visible",
+            "round20-native-backticks-hidden",
+            "round20-mixed-native-hidden-block",
+            "round20-markdown-inline-code-is-visible",
+            "round20-plain-html-is-literal",
+            "round20-field-report-hidden-native-value",
+            "round20-mixed-native-quoted-close"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_split_field_native_visibility.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "heading20-native-missing",
+            "heading20-native-complete",
+            "anchor20-mixed-literal",
+            "anchor20-mixed-neither",
+            "anchor20-mixed-structured",
+            "anchor20-mixed-cross-record-price",
+            "anchor20-mixed-structure-still-required",
+            "anchor20-mixed-api-owned-fields"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_heading_cards_and_anchor_or.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "round21-relative-autolink-inline-literal",
+            "round21-relative-autolink-inline-not-autolink",
+            "round21-relative-autolink-fenced-literal",
+            "round21-relative-autolink-fenced-not-autolink",
+            "round21-relative-autolink-indented-literal",
+            "round21-relative-autolink-link-label-literal",
+            "round21-relative-autolink-actual-autolink",
+            "round21-relative-autolink-actual-autolink-not-code"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_relative_autolink_literals.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py",
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "code21-inline-literal-&amp;",
+            "code21-inline-not-decoded",
+            "code21-fence-literal-&amp;",
+            "code21-fence-not-decoded",
+            "code21-prose-&amp;",
+            "code21-prose-not-double-decoded",
+            "code21-fence-trailing-backslash",
+            "code21-inline-soft-line-backslash",
+            "code21-prose-new-escaped-stars",
+            "code21-prose-new-escaped-stars-distinct",
+            "code21-prose-new-real-emphasis",
+            "code21-prose-new-named-stars",
+            "code21-prose-new-named-stars-distinct",
+            "code21-prose-new-numeric-stars",
+            "code21-prose-new-escaped-amp",
+            "code21-prose-new-escaped-amp-distinct",
+            "code21-prose-new-emitted-ticks",
+            "code21-prose-new-emitted-ticks-distinct"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_code_entity_visibility.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py",
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "label22-styled",
+            "label22-escaped",
+            "label22-code",
+            "label22-code-not-style",
+            "label22-whole-word",
+            "label22-word-fragment"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_code_entity_visibility.py",
+            "tests/benchmarks/webfetch/test_stable_text_serialization.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "resource-query-backslash-plain-unescaped",
+            "resource-query-backslash-plain-literal",
+            "resource-query-backslash-html-unescaped",
+            "resource-query-backslash-html-literal",
+            "resource-query-backslash-metadata-unescaped",
+            "resource-query-backslash-metadata-literal",
+            "resource-query-backslash-json-unescaped",
+            "resource-query-backslash-json-literal",
+            "resource-query-backslash-bare-markdown-unescaped",
+            "resource-query-backslash-bare-markdown-literal",
+            "resource-query-backslash-markdown-unescaped",
+            "resource-query-backslash-markdown-literal",
+            "resource-query-backslash-markdown-once-unescaped",
+            "resource-query-backslash-markdown-once-literal",
+            "resource-query-backslash-target-only-target",
+            "resource-query-backslash-target-only-extra",
+            "resource-url-syntax-entity-plain-same",
+            "resource-url-syntax-entity-plain-distinct",
+            "resource-url-syntax-entity-metadata-same",
+            "resource-url-syntax-entity-metadata-distinct",
+            "resource-url-syntax-entity-html-once-same",
+            "resource-url-syntax-entity-html-once-distinct",
+            "resource-url-syntax-entity-markdown-once-same",
+            "resource-url-syntax-entity-markdown-once-distinct",
+            "resource-url-syntax-percent-5C-same",
+            "resource-url-syntax-percent-5C-distinct",
+            "resource-url-syntax-percent-255C-same",
+            "resource-url-syntax-percent-255C-distinct"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_resource_url_escapes.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "resource-url-backslash-underscore-markdown",
+            "resource-url-backslash-underscore-html"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_metrics.py",
+            "tests/benchmarks/webfetch/test_review_resource_url_escapes.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "resource-inferred-format-generic-inferred-active",
+            "resource-inferred-format-generic-inferred-fenced",
+            "resource-inferred-format-generic-inferred-inline",
+            "resource-inferred-format-generic-inferred-indented",
+            "resource-inferred-format-generic-inferred-fenced-html",
+            "resource-inferred-format-generic-markdown-active",
+            "resource-inferred-format-generic-markdown-fenced",
+            "resource-inferred-format-generic-markdown-inline",
+            "resource-inferred-format-generic-markdown-indented",
+            "resource-inferred-format-generic-markdown-fenced-html",
+            "resource-inferred-format-generic-inferred-native-html-image",
+            "resource-inferred-format-generic-inferred-native-html-literal-markdown",
+            "resource-inferred-format-generic-html-native-html-image",
+            "resource-inferred-format-generic-html-native-html-literal-markdown",
+            "resource-inferred-format-generic-native-json",
+            "resource-inferred-format-generic-plain-url",
+            "resource-inferred-format-image-inferred-active",
+            "resource-inferred-format-image-inferred-fenced",
+            "resource-inferred-format-image-inferred-inline",
+            "resource-inferred-format-image-inferred-indented",
+            "resource-inferred-format-image-inferred-fenced-html",
+            "resource-inferred-format-image-markdown-active",
+            "resource-inferred-format-image-markdown-fenced",
+            "resource-inferred-format-image-markdown-inline",
+            "resource-inferred-format-image-markdown-indented",
+            "resource-inferred-format-image-markdown-fenced-html",
+            "resource-inferred-format-image-inferred-native-html-image",
+            "resource-inferred-format-image-inferred-native-html-literal-markdown",
+            "resource-inferred-format-image-html-native-html-image",
+            "resource-inferred-format-image-html-native-html-literal-markdown",
+            "resource-inferred-format-image-native-json",
+            "resource-inferred-format-image-plain-url"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_inferred_resource_format.py",
+            "tests/benchmarks/webfetch/test_metrics.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "round24-angle-destination-opening-parenthesis",
+            "round24-angle-destination-closing-parenthesis",
+            "round24-angle-destination-bare-unbalanced",
+            "round24-angle-destination-bare-partial",
+            "round24-angle-destination-title-parentheses",
+            "round24-angle-destination-malformed-suffix",
+            "round24-angle-destination-unclosed-title",
+            "round24-angle-destination-visible-label",
+            "round24-angle-destination-literal-code"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_angle_destination_parentheses.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "code24-fence-0-> output.txt",
+            "code24-fence-0-lost-> output.txt",
+            "code24-fence-2->> output.txt",
+            "code24-fence-2-lost->> output.txt",
+            "code24-actual-quote",
+            "code24-actual-quote-not-code",
+            "code24-indented-code",
+            "code24-indented-code-not-quote",
+            "code24-quoted-html-literal",
+            "code24-quoted-html-not-projection"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_code_quote_prefixes.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "round25-parenthesized-title-bare-identity",
+            "round25-parenthesized-title-bare-binding-mismatch",
+            "round25-parenthesized-title-bare-binding-matching",
+            "round25-parenthesized-title-angle-identity",
+            "round25-parenthesized-title-angle-binding-mismatch",
+            "round25-parenthesized-title-angle-binding-matching",
+            "round25-parenthesized-title-unseparated-url-parentheses",
+            "round25-parenthesized-title-actual-url-parentheses",
+            "round25-parenthesized-title-nested-title-is-malformed"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_parenthesized_link_titles.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "code26-depth-1-blank-False-True",
+            "code26-depth-1-blank-False-False",
+            "code26-depth-1-blank-True-False",
+            "code26-depth-1-blank-True-True",
+            "code26-inline-not-fence",
+            "code26-valid-fence",
+            "code26-backtick-in-backtick-info",
+            "code26-backtick-in-tilde-info"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_code_quote_prefixes.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "resource-uri-punctuation-greater-markdown-same",
+            "resource-uri-punctuation-greater-markdown-shortened",
+            "resource-uri-punctuation-greater-html-same",
+            "resource-uri-punctuation-greater-html-shortened",
+            "resource-uri-punctuation-greater-metadata-same",
+            "resource-uri-punctuation-greater-metadata-shortened",
+            "resource-uri-punctuation-greater-plain-encoded-same",
+            "resource-uri-punctuation-greater-plain-encoded-shortened",
+            "resource-uri-punctuation-greater-autolink-same",
+            "resource-uri-punctuation-greater-autolink-shortened",
+            "resource-uri-punctuation-less-markdown-same",
+            "resource-uri-punctuation-less-markdown-shortened",
+            "resource-uri-punctuation-less-html-same",
+            "resource-uri-punctuation-less-html-shortened",
+            "resource-uri-punctuation-less-metadata-same",
+            "resource-uri-punctuation-less-metadata-shortened",
+            "resource-uri-punctuation-less-plain-encoded-same",
+            "resource-uri-punctuation-less-plain-encoded-shortened",
+            "resource-uri-punctuation-less-autolink-same",
+            "resource-uri-punctuation-less-autolink-shortened",
+            "resource-uri-punctuation-quotes-markdown-same",
+            "resource-uri-punctuation-quotes-markdown-shortened",
+            "resource-uri-punctuation-quotes-html-same",
+            "resource-uri-punctuation-quotes-html-shortened",
+            "resource-uri-punctuation-quotes-metadata-same",
+            "resource-uri-punctuation-quotes-metadata-shortened",
+            "resource-uri-punctuation-quotes-plain-encoded-same",
+            "resource-uri-punctuation-quotes-plain-encoded-shortened",
+            "resource-uri-punctuation-quotes-autolink-same",
+            "resource-uri-punctuation-quotes-autolink-shortened",
+            "resource-uri-punctuation-apostrophe-markdown-same",
+            "resource-uri-punctuation-apostrophe-markdown-shortened",
+            "resource-uri-punctuation-apostrophe-html-same",
+            "resource-uri-punctuation-apostrophe-html-shortened",
+            "resource-uri-punctuation-apostrophe-metadata-same",
+            "resource-uri-punctuation-apostrophe-metadata-shortened",
+            "resource-uri-punctuation-apostrophe-plain-encoded-same",
+            "resource-uri-punctuation-apostrophe-plain-encoded-shortened",
+            "resource-uri-punctuation-apostrophe-autolink-same",
+            "resource-uri-punctuation-apostrophe-autolink-shortened",
+            "resource-uri-punctuation-query-greater-markdown-same",
+            "resource-uri-punctuation-query-greater-markdown-shortened",
+            "resource-uri-punctuation-query-greater-html-same",
+            "resource-uri-punctuation-query-greater-html-shortened",
+            "resource-uri-punctuation-query-greater-metadata-same",
+            "resource-uri-punctuation-query-greater-metadata-shortened",
+            "resource-uri-punctuation-query-greater-plain-encoded-same",
+            "resource-uri-punctuation-query-greater-plain-encoded-shortened",
+            "resource-uri-punctuation-query-greater-autolink-same",
+            "resource-uri-punctuation-query-greater-autolink-shortened",
+            "resource-uri-punctuation-query-quotes-markdown-same",
+            "resource-uri-punctuation-query-quotes-markdown-shortened",
+            "resource-uri-punctuation-query-quotes-html-same",
+            "resource-uri-punctuation-query-quotes-html-shortened",
+            "resource-uri-punctuation-query-quotes-metadata-same",
+            "resource-uri-punctuation-query-quotes-metadata-shortened",
+            "resource-uri-punctuation-query-quotes-plain-encoded-same",
+            "resource-uri-punctuation-query-quotes-plain-encoded-shortened",
+            "resource-uri-punctuation-query-quotes-autolink-same",
+            "resource-uri-punctuation-query-quotes-autolink-shortened",
+            "resource-uri-punctuation-quote-looking-destination-same",
+            "resource-uri-punctuation-quote-looking-destination-shortened",
+            "resource-uri-punctuation-image-apostrophe-plain_text-same",
+            "resource-uri-punctuation-image-apostrophe-plain_text-shortened",
+            "resource-uri-punctuation-image-apostrophe-markdown-same",
+            "resource-uri-punctuation-image-apostrophe-markdown-shortened"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_resource_url_punctuation.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "round26-link-boundary-escaped-only-angle",
+            "round26-link-boundary-angle-newline",
+            "round26-link-boundary-label-destination-paragraph",
+            "round26-link-boundary-title-leading-paragraph",
+            "round26-link-boundary-title-trailing-paragraph",
+            "round26-link-boundary-native-label-paragraph",
+            "round26-link-boundary-label-wrap",
+            "round26-link-boundary-quoted-title-wrap",
+            "round26-link-boundary-escaped-backslash",
+            "round26-link-boundary-native-url-wrap",
+            "round26-link-boundary-comment-link-hidden",
+            "round26-link-boundary-comment-delimiters-cannot-close-label"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_link_paragraph_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "comment27-comment-before-body-fact",
+            "comment27-comment-before-body-coverage",
+            "comment27-hidden-comment-fact",
+            "comment27-hidden-comment-coverage",
+            "comment27-same-line-code-precedence-fact",
+            "comment27-comment-block-interrupts-fact",
+            "comment27-comment-owned-fence-fact",
+            "comment27-comment-hidden-fence-fact",
+            "comment27-comment-owned-indent-fact",
+            "comment27-comment-hidden-indent-fact",
+            "comment27-standalone-ticks-not-code-fact",
+            "comment27-standalone-ticks-not-code-coverage",
+            "comment27-valid-multiline-code-fact",
+            "comment27-valid-multiline-code-coverage",
+            "reference4-multiline-comment-False-True",
+            "reference4-multiline-comment-True-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_comment_code_ownership.py",
+            "tests/benchmarks/webfetch/test_review_reference_literals.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "code28-indent-fence-False",
+            "code28-indent-fence-False-separate",
+            "code28-inline-fence-False",
+            "code28-inline-fence-False-separate",
+            "code28-inline-separate",
+            "code28-same-owner",
+            "code28-quoted-indent",
+            "code28-comment-owned-fence",
+            "code28-mixed-html-code",
+            "code28-mixed-html-code-separate"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_code_owner_collection.py",
+            "tests/benchmarks/webfetch/test_review_code_quote_prefixes.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "runtime28-facts-rounded-up-False",
+            "runtime28-facts-above-two-thirds-False",
+            "runtime28-facts-equal-two-thirds-False",
+            "runtime28-facts-below-two-thirds-False",
+            "runtime28-facts-rounded-down-False",
+            "runtime28-facts-display-equal-False",
+            "runtime28-facts-above-one-third-False",
+            "runtime28-facts-equal-one-third-False",
+            "runtime28-facts-below-one-third-False",
+            "runtime28-facts-no-hits-False",
+            "runtime28-facts-complete-False",
+            "runtime28-facts-no-facts-False",
+            "runtime28-facts-rounded-up-True",
+            "runtime28-facts-above-two-thirds-True",
+            "runtime28-facts-equal-two-thirds-True",
+            "runtime28-facts-below-two-thirds-True",
+            "runtime28-facts-rounded-down-True",
+            "runtime28-facts-display-equal-True",
+            "runtime28-facts-above-one-third-True",
+            "runtime28-facts-equal-one-third-True",
+            "runtime28-facts-below-one-third-True",
+            "runtime28-facts-no-hits-True",
+            "runtime28-facts-complete-True",
+            "runtime28-facts-no-facts-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_fact_coverage_precision.py",
+            "tests/test_adjudication_evidence.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py",
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "review29-bare-comment-generic-hidden-target",
+            "review29-bare-comment-generic-hidden-noise",
+            "review29-bare-comment-generic-escaped-opener",
+            "review29-bare-comment-generic-code-owned-opener",
+            "review29-bare-comment-generic-native-code-comment",
+            "review29-bare-comment-generic-native-eof-comment",
+            "review29-bare-comment-generic-quoted-attribute",
+            "review29-bare-comment-generic-native-literal-comment",
+            "review29-bare-comment-image-hidden-target",
+            "review29-bare-comment-image-hidden-noise",
+            "review29-bare-comment-image-escaped-opener",
+            "review29-bare-comment-image-code-owned-opener",
+            "review29-bare-comment-image-native-code-comment",
+            "review29-bare-comment-image-native-eof-comment",
+            "review29-bare-comment-image-quoted-attribute",
+            "review29-bare-comment-image-native-literal-comment",
+            "review29-bare-comment-generic-hidden-filename",
+            "review29-bare-comment-generic-visible-filename",
+            "comment29-attribute-double-attribute-inferred",
+            "comment29-attribute-double-attribute-markdown",
+            "comment29-attribute-single-attribute-inferred",
+            "comment29-attribute-single-attribute-markdown",
+            "comment29-attribute-quoted-greater-inferred",
+            "comment29-attribute-quoted-greater-markdown",
+            "comment29-attribute-closed-attribute-comment-inferred",
+            "comment29-attribute-closed-attribute-comment-markdown",
+            "comment29-attribute-attribute-backtick-inferred",
+            "comment29-attribute-attribute-backtick-markdown",
+            "comment29-attribute-multiline-attribute-fence-inferred",
+            "comment29-attribute-multiline-attribute-fence-markdown",
+            "comment29-attribute-real-hidden-target-inferred",
+            "comment29-attribute-real-hidden-target-markdown",
+            "comment29-attribute-real-hidden-noise-inferred",
+            "comment29-attribute-real-hidden-noise-markdown",
+            "comment29-attribute-attribute-only-inferred",
+            "comment29-attribute-attribute-only-markdown",
+            "comment29-attribute-relative-visible-inferred",
+            "comment29-attribute-relative-visible-markdown",
+            "comment29-attribute-relative-hidden-inferred",
+            "comment29-attribute-relative-hidden-markdown",
+            "comment29-attribute-escaped-opener-inferred",
+            "comment29-attribute-escaped-opener-markdown",
+            "comment29-attribute-code-owned-resource-inferred",
+            "comment29-attribute-code-owned-resource-markdown",
+            "comment29-attribute-code-before-real-comment-inferred",
+            "comment29-attribute-code-before-real-comment-markdown",
+            "comment29-attribute-fence-before-real-comment-inferred",
+            "comment29-attribute-fence-before-real-comment-markdown",
+            "comment29-attribute-literal-before-attribute-inferred",
+            "comment29-attribute-literal-before-attribute-markdown",
+            "comment29-attribute-real-comment-owned-ticks-inferred",
+            "comment29-attribute-real-comment-owned-ticks-markdown"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_bare_comment_resources.py",
+            "tests/benchmarks/webfetch/test_review_comment_attribute_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py",
+            "reference_quality.py",
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "review30-nested-frame-generic-visible",
+            "review30-nested-frame-generic-hidden",
+            "review30-nested-frame-generic-declared-base",
+            "review30-nested-frame-generic-relative-base",
+            "review30-nested-frame-generic-relative-base-no-double-join",
+            "review30-nested-frame-generic-literal-example",
+            "review30-nested-frame-generic-budget-truncation",
+            "review30-nested-frame-image-visible",
+            "review30-nested-frame-image-hidden",
+            "review30-nested-frame-image-declared-base",
+            "review30-nested-frame-image-relative-base",
+            "review30-nested-frame-image-relative-base-no-double-join",
+            "review30-nested-frame-image-literal-example",
+            "review30-nested-frame-image-budget-truncation",
+            "markdown30-fence-quote-inferred",
+            "markdown30-fence-nested-quote-inferred",
+            "markdown30-fence-list-inferred",
+            "markdown30-fence-ordered-list-inferred",
+            "markdown30-fence-list-continuation-inferred",
+            "markdown30-fence-nested-list-inferred",
+            "markdown30-fence-quote-list-inferred",
+            "markdown30-fence-list-quote-inferred",
+            "markdown30-fence-quote-html-inferred",
+            "markdown30-fence-quote-ended-blank-inferred",
+            "markdown30-fence-quote-ended-text-inferred",
+            "markdown30-fence-nested-quote-ended-inferred",
+            "markdown30-fence-list-ended-inferred",
+            "markdown30-fence-quote-continued-inferred",
+            "markdown30-fence-list-continued-inferred",
+            "markdown30-fence-heading-before-list-inferred",
+            "markdown30-fence-thematic-before-root-inferred",
+            "markdown30-fence-paragraph-not-ordered-list-inferred",
+            "markdown30-body-comment-attribute-inferred",
+            "markdown30-body-quoted-greater-inferred",
+            "markdown30-body-closed-attribute-comment-inferred",
+            "markdown30-body-attribute-only-inferred",
+            "markdown30-body-real-comment-inferred",
+            "markdown30-body-code-before-comment-inferred",
+            "markdown30-body-code-inside-attribute-owner-inferred",
+            "markdown30-body-escaped-opener-inferred",
+            "markdown30-body-quote-code-comment-inferred",
+            "markdown30-body-comment-after-code-inferred",
+            "markdown30-fence-quote-markdown",
+            "markdown30-fence-nested-quote-markdown",
+            "markdown30-fence-list-markdown",
+            "markdown30-fence-ordered-list-markdown",
+            "markdown30-fence-list-continuation-markdown",
+            "markdown30-fence-nested-list-markdown",
+            "markdown30-fence-quote-list-markdown",
+            "markdown30-fence-list-quote-markdown",
+            "markdown30-fence-quote-html-markdown",
+            "markdown30-fence-quote-ended-blank-markdown",
+            "markdown30-fence-quote-ended-text-markdown",
+            "markdown30-fence-nested-quote-ended-markdown",
+            "markdown30-fence-list-ended-markdown",
+            "markdown30-fence-quote-continued-markdown",
+            "markdown30-fence-list-continued-markdown",
+            "markdown30-fence-heading-before-list-markdown",
+            "markdown30-fence-thematic-before-root-markdown",
+            "markdown30-fence-paragraph-not-ordered-list-markdown",
+            "markdown30-body-comment-attribute-markdown",
+            "markdown30-body-quoted-greater-markdown",
+            "markdown30-body-closed-attribute-comment-markdown",
+            "markdown30-body-attribute-only-markdown",
+            "markdown30-body-real-comment-markdown",
+            "markdown30-body-code-before-comment-markdown",
+            "markdown30-body-code-inside-attribute-owner-markdown",
+            "markdown30-body-escaped-opener-markdown",
+            "markdown30-body-quote-code-comment-markdown",
+            "markdown30-body-comment-after-code-markdown",
+            "markdown30-html-fence-text-html",
+            "markdown30-plain-comment-text-plain_text"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_nested_frame_resources.py",
+            "tests/benchmarks/webfetch/test_review_markdown_body_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "review31-document-base-generic-native-image",
+            "review31-document-base-generic-no-response-alias",
+            "review31-document-base-generic-native-link",
+            "review31-document-base-generic-native-srcset",
+            "review31-document-base-generic-relative",
+            "review31-document-base-generic-empty-first",
+            "review31-document-base-generic-inert-template",
+            "review31-document-base-generic-no-inert-alias",
+            "review31-document-base-generic-hidden-base",
+            "review31-document-base-generic-metadata-response-base",
+            "review31-document-base-generic-metadata-no-document-alias",
+            "review31-document-base-generic-invalid-first",
+            "review31-document-base-image-native-image",
+            "review31-document-base-image-no-response-alias",
+            "review31-document-base-image-native-link",
+            "review31-document-base-image-native-srcset",
+            "review31-document-base-image-relative",
+            "review31-document-base-image-empty-first",
+            "review31-document-base-image-inert-template",
+            "review31-document-base-image-no-inert-alias",
+            "review31-document-base-image-hidden-base",
+            "review31-document-base-image-metadata-response-base",
+            "review31-document-base-image-metadata-no-document-alias",
+            "review31-document-base-image-invalid-first",
+            "review31-document-base-generic-base-only",
+            "review31-document-base-generic-base-real-delivery",
+            "review31-document-base-generic-frame-base-only",
+            "review31-document-base-image-base-only",
+            "review31-document-base-image-base-real-delivery",
+            "review31-document-base-image-frame-base-only"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_document_base_resources.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "record-table-product-html",
+            "record-table-product-inferred",
+            "record-table-product-markdown",
+            "record-table-product-incomplete",
+            "record-table-catalog_product-html",
+            "record-table-catalog_product-inferred",
+            "record-table-catalog_product-markdown",
+            "record-table-catalog_product-incomplete",
+            "record-table-quote-html",
+            "record-table-quote-inferred",
+            "record-table-quote-markdown",
+            "record-table-quote-incomplete",
+            "record-table-review-html",
+            "record-table-review-inferred",
+            "record-table-review-markdown",
+            "record-table-review-incomplete",
+            "record-table-name_description-html",
+            "record-table-name_description-inferred",
+            "record-table-name_description-markdown",
+            "record-table-name_description-incomplete",
+            "record-table-api_operation-html",
+            "record-table-api_operation-inferred",
+            "record-table-api_operation-markdown",
+            "record-table-api_operation-incomplete",
+            "record-table-taxonomy_family-html",
+            "record-table-taxonomy_family-inferred",
+            "record-table-taxonomy_family-markdown",
+            "record-table-taxonomy_family-incomplete",
+            "record-table-earthquake-html",
+            "record-table-earthquake-inferred",
+            "record-table-earthquake-markdown",
+            "record-table-earthquake-incomplete",
+            "record-table-header-only",
+            "record-table-hidden-row",
+            "record-table-hidden-field",
+            "record-table-hidden-table",
+            "record-table-duplicate-header",
+            "record-table-wrong-price",
+            "record-table-wrong-reviews",
+            "record-table-header-literal-markdown",
+            "record-table-missing-header",
+            "record-table-thead-td",
+            "record-table-header-repeat",
+            "record-table-split-rows",
+            "record-table-split-tables",
+            "record-table-nested-price",
+            "record-table-span-price",
+            "record-table-native-formatting",
+            "record-table-cell-markdown-table",
+            "record-table-cell-json",
+            "record-table-literal-cell-payload",
+            "record-table-plain-html-is-literal",
+            "record-table-reordered-columns",
+            "record-table-native-reference-anchor",
+            "record-table-headerless-native-card",
+            "record-table-headerless-rows-cannot-borrow",
+            "record-table-headerless-labelled-cell-card",
+            "record-table-headerless-cells-cannot-borrow"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_record_tables.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "review32-raw-text-base-generic-title-response-base",
+            "review32-raw-text-base-generic-title-no-fake-base",
+            "review32-raw-text-base-generic-real-head-base",
+            "review32-raw-text-base-generic-textarea-picture",
+            "review32-raw-text-base-generic-noscript-base",
+            "review32-raw-text-base-generic-plaintext-frame-tail",
+            "review32-raw-text-base-generic-plaintext-picture-tail",
+            "review32-raw-text-base-generic-real-before-plaintext",
+            "review32-raw-text-base-generic-metadata-plaintext",
+            "review32-raw-text-base-generic-srcset-equal-value-owner",
+            "review32-raw-text-base-image-title-response-base",
+            "review32-raw-text-base-image-title-no-fake-base",
+            "review32-raw-text-base-image-real-head-base",
+            "review32-raw-text-base-image-textarea-picture",
+            "review32-raw-text-base-image-noscript-base",
+            "review32-raw-text-base-image-plaintext-frame-tail",
+            "review32-raw-text-base-image-plaintext-picture-tail",
+            "review32-raw-text-base-image-real-before-plaintext",
+            "review32-raw-text-base-image-metadata-plaintext",
+            "review32-raw-text-base-image-srcset-equal-value-owner"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_document_base_resources.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "native-card-family-earthquake-complete-html",
+            "native-card-family-earthquake-split-html",
+            "native-card-family-earthquake-adjacent-html",
+            "native-card-family-earthquake-adjacent-over-limit-html",
+            "native-card-family-earthquake-mixed-cannot-invent-second-html",
+            "native-card-family-earthquake-mixed-keeps-complete-html",
+            "native-card-family-earthquake-complete-inferred",
+            "native-card-family-earthquake-split-inferred",
+            "native-card-family-earthquake-adjacent-inferred",
+            "native-card-family-earthquake-adjacent-over-limit-inferred",
+            "native-card-family-earthquake-mixed-cannot-invent-second-inferred",
+            "native-card-family-earthquake-mixed-keeps-complete-inferred",
+            "native-card-family-earthquake-list-complete-li",
+            "native-card-family-earthquake-list-split-li",
+            "native-card-family-earthquake-list-complete-div",
+            "native-card-family-earthquake-list-split-div",
+            "native-card-family-earthquake-nested-split",
+            "native-card-family-earthquake-nested-complete",
+            "native-card-family-earthquake-presentation-wrappers",
+            "native-card-family-earthquake-hidden-complete-cannot-rescue-split",
+            "native-card-family-earthquake-markdown-complete",
+            "native-card-family-earthquake-markdown-adjacent",
+            "native-card-family-earthquake-layout-cell-complete",
+            "native-card-family-earthquake-layout-cell-split",
+            "native-card-family-quote-complete-html",
+            "native-card-family-quote-split-html",
+            "native-card-family-quote-adjacent-html",
+            "native-card-family-quote-adjacent-over-limit-html",
+            "native-card-family-quote-mixed-cannot-invent-second-html",
+            "native-card-family-quote-mixed-keeps-complete-html",
+            "native-card-family-quote-complete-inferred",
+            "native-card-family-quote-split-inferred",
+            "native-card-family-quote-adjacent-inferred",
+            "native-card-family-quote-adjacent-over-limit-inferred",
+            "native-card-family-quote-mixed-cannot-invent-second-inferred",
+            "native-card-family-quote-mixed-keeps-complete-inferred",
+            "native-card-family-quote-list-complete-li",
+            "native-card-family-quote-list-split-li",
+            "native-card-family-quote-list-complete-div",
+            "native-card-family-quote-list-split-div",
+            "native-card-family-quote-nested-split",
+            "native-card-family-quote-nested-complete",
+            "native-card-family-quote-presentation-wrappers",
+            "native-card-family-quote-hidden-complete-cannot-rescue-split",
+            "native-card-family-quote-markdown-complete",
+            "native-card-family-quote-markdown-adjacent",
+            "native-card-family-quote-layout-cell-complete",
+            "native-card-family-quote-layout-cell-split",
+            "native-card-family-api_operation-complete-html",
+            "native-card-family-api_operation-split-html",
+            "native-card-family-api_operation-adjacent-html",
+            "native-card-family-api_operation-adjacent-over-limit-html",
+            "native-card-family-api_operation-mixed-cannot-invent-second-html",
+            "native-card-family-api_operation-mixed-keeps-complete-html",
+            "native-card-family-api_operation-complete-inferred",
+            "native-card-family-api_operation-split-inferred",
+            "native-card-family-api_operation-adjacent-inferred",
+            "native-card-family-api_operation-adjacent-over-limit-inferred",
+            "native-card-family-api_operation-mixed-cannot-invent-second-inferred",
+            "native-card-family-api_operation-mixed-keeps-complete-inferred",
+            "native-card-family-api_operation-list-complete-li",
+            "native-card-family-api_operation-list-split-li",
+            "native-card-family-api_operation-list-complete-div",
+            "native-card-family-api_operation-list-split-div",
+            "native-card-family-api_operation-nested-split",
+            "native-card-family-api_operation-nested-complete",
+            "native-card-family-api_operation-presentation-wrappers",
+            "native-card-family-api_operation-hidden-complete-cannot-rescue-split",
+            "native-card-family-api_operation-markdown-complete",
+            "native-card-family-api_operation-markdown-adjacent",
+            "native-card-family-api_operation-layout-cell-complete",
+            "native-card-family-api_operation-layout-cell-split",
+            "native-card-family-product-existing-complete",
+            "native-card-family-catalog_product-existing-complete",
+            "native-card-family-review-existing-complete",
+            "native-card-family-name_description-existing-complete",
+            "native-card-family-taxonomy_family-existing-complete"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_card_family_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "record-scalar-product-markdown",
+            "record-scalar-product-html",
+            "record-scalar-product-plain_text",
+            "record-scalar-product-plain-backticks",
+            "record-scalar-catalog_product-markdown",
+            "record-scalar-catalog_product-html",
+            "record-scalar-catalog_product-plain_text",
+            "record-scalar-catalog_product-plain-backticks",
+            "record-scalar-earthquake-markdown",
+            "record-scalar-earthquake-html",
+            "record-scalar-earthquake-plain_text",
+            "record-scalar-earthquake-plain-backticks",
+            "record-scalar-quote-markdown",
+            "record-scalar-quote-html",
+            "record-scalar-quote-plain_text",
+            "record-scalar-review-markdown",
+            "record-scalar-review-html",
+            "record-scalar-review-plain_text",
+            "record-scalar-review-plain-backticks",
+            "record-scalar-api_operation-markdown",
+            "record-scalar-api_operation-html",
+            "record-scalar-api_operation-plain_text",
+            "record-scalar-api_operation-plain-backticks",
+            "record-scalar-name_description-markdown",
+            "record-scalar-name_description-html",
+            "record-scalar-name_description-plain_text",
+            "record-scalar-taxonomy_family-markdown",
+            "record-scalar-taxonomy_family-html",
+            "record-scalar-taxonomy_family-plain_text",
+            "record-scalar-taxonomy_family-plain-backticks",
+            "record-scalar-api-path",
+            "record-scalar-api-method",
+            "record-scalar-api-method-path",
+            "record-scalar-api-separate",
+            "record-scalar-literal-price-html-markdown",
+            "record-scalar-literal-price-html-html",
+            "record-scalar-literal-price-emphasis-markdown",
+            "record-scalar-literal-price-emphasis-html",
+            "record-scalar-literal-price-link-markdown",
+            "record-scalar-literal-price-link-html",
+            "record-scalar-literal-price-entity-markdown",
+            "record-scalar-literal-price-entity-html",
+            "record-scalar-literal-price-escape-markdown",
+            "record-scalar-literal-price-escape-html",
+            "record-scalar-literal-name-link",
+            "record-scalar-literal-name-shortened-link",
+            "record-scalar-literal-name-html",
+            "record-scalar-literal-name-shortened-html",
+            "record-scalar-literal-name-heading",
+            "record-scalar-literal-name-shortened-heading",
+            "record-scalar-literal-name-emphasis",
+            "record-scalar-literal-name-shortened-emphasis",
+            "record-scalar-literal-name-backtick",
+            "record-scalar-literal-name-shortened-backtick",
+            "record-scalar-escaped-backticks",
+            "record-scalar-entity-backticks",
+            "record-scalar-inline-json",
+            "record-scalar-code-header",
+            "record-scalar-code-cell-pipe",
+            "record-scalar-inline-newline-no-new-records",
+            "record-scalar-summary-literal-html"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_record_scalar_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "record-scalar-consumed-table-reported-split",
+            "record-scalar-consumed-table-reported-complete",
+            "record-scalar-consumed-table-product-split",
+            "record-scalar-consumed-table-product-complete-before",
+            "record-scalar-consumed-table-product-complete-after",
+            "record-scalar-consumed-table-catalog_product-split",
+            "record-scalar-consumed-table-catalog_product-complete-before",
+            "record-scalar-consumed-table-catalog_product-complete-after",
+            "record-scalar-consumed-table-earthquake-split",
+            "record-scalar-consumed-table-earthquake-complete-before",
+            "record-scalar-consumed-table-earthquake-complete-after",
+            "record-scalar-consumed-table-quote-split",
+            "record-scalar-consumed-table-quote-complete-before",
+            "record-scalar-consumed-table-quote-complete-after",
+            "record-scalar-consumed-table-review-split",
+            "record-scalar-consumed-table-review-complete-before",
+            "record-scalar-consumed-table-review-complete-after",
+            "record-scalar-consumed-table-api_operation-split",
+            "record-scalar-consumed-table-api_operation-complete-before",
+            "record-scalar-consumed-table-api_operation-complete-after",
+            "record-scalar-consumed-table-name_description-split",
+            "record-scalar-consumed-table-name_description-complete-before",
+            "record-scalar-consumed-table-name_description-complete-after"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_record_scalar_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "quote-owner-0-markdown",
+            "quote-owner-0-plain_text",
+            "quote-owner-0-html",
+            "quote-owner-hash-0",
+            "quote-owner-1-markdown",
+            "quote-owner-1-plain_text",
+            "quote-owner-1-html",
+            "quote-owner-hash-1",
+            "quote-owner-2-markdown",
+            "quote-owner-2-plain_text",
+            "quote-owner-2-html",
+            "quote-owner-hash-2",
+            "quote-owner-3-markdown",
+            "quote-owner-3-plain_text",
+            "quote-owner-3-html",
+            "quote-owner-hash-3",
+            "quote-owner-4-markdown",
+            "quote-owner-4-plain_text",
+            "quote-owner-4-html",
+            "quote-owner-hash-4",
+            "quote-owner-explicit-columns",
+            "quote-owner-shortened-hash",
+            "quote-owner-anchor-correct",
+            "quote-owner-anchor-shortened",
+            "quote-owner-unquoted",
+            "quote-owner-author-label",
+            "quote-owner-dash-author",
+            "quote-owner-ascii",
+            "quote-owner-single",
+            "quote-owner-unclosed",
+            "quote-owner-distinct"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_quote_and_anchor_scope.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "anchor-scope-no-match-inline-word",
+            "anchor-scope-no-match-link-punctuation",
+            "anchor-scope-no-match-pre-price",
+            "anchor-scope-no-match-table-spaces",
+            "anchor-scope-no-match-table-pre",
+            "anchor-scope-no-match-table-literal",
+            "anchor-scope-product-css-excluded",
+            "anchor-scope-product-css-included",
+            "anchor-scope-product-css-mixed-excluded",
+            "anchor-scope-product-css-mixed-included",
+            "anchor-scope-product-text-html-False",
+            "anchor-scope-product-text-html-True",
+            "anchor-scope-product-text-markdown-False",
+            "anchor-scope-product-text-markdown-True",
+            "anchor-scope-product-text-plain_text-False",
+            "anchor-scope-product-text-plain_text-True",
+            "anchor-scope-catalog_product-css-excluded",
+            "anchor-scope-catalog_product-css-included",
+            "anchor-scope-catalog_product-css-mixed-excluded",
+            "anchor-scope-catalog_product-css-mixed-included",
+            "anchor-scope-catalog_product-text-html-False",
+            "anchor-scope-catalog_product-text-html-True",
+            "anchor-scope-catalog_product-text-markdown-False",
+            "anchor-scope-catalog_product-text-markdown-True",
+            "anchor-scope-catalog_product-text-plain_text-False",
+            "anchor-scope-catalog_product-text-plain_text-True",
+            "anchor-scope-earthquake-css-excluded",
+            "anchor-scope-earthquake-css-included",
+            "anchor-scope-earthquake-css-mixed-excluded",
+            "anchor-scope-earthquake-css-mixed-included",
+            "anchor-scope-earthquake-text-html-False",
+            "anchor-scope-earthquake-text-html-True",
+            "anchor-scope-earthquake-text-markdown-False",
+            "anchor-scope-earthquake-text-markdown-True",
+            "anchor-scope-earthquake-text-plain_text-False",
+            "anchor-scope-earthquake-text-plain_text-True",
+            "anchor-scope-quote-css-excluded",
+            "anchor-scope-quote-css-included",
+            "anchor-scope-quote-css-mixed-excluded",
+            "anchor-scope-quote-css-mixed-included",
+            "anchor-scope-quote-text-html-False",
+            "anchor-scope-quote-text-html-True",
+            "anchor-scope-quote-text-markdown-False",
+            "anchor-scope-quote-text-markdown-True",
+            "anchor-scope-quote-text-plain_text-False",
+            "anchor-scope-quote-text-plain_text-True",
+            "anchor-scope-review-css-excluded",
+            "anchor-scope-review-css-included",
+            "anchor-scope-review-css-mixed-excluded",
+            "anchor-scope-review-css-mixed-included",
+            "anchor-scope-review-text-html-False",
+            "anchor-scope-review-text-html-True",
+            "anchor-scope-review-text-markdown-False",
+            "anchor-scope-review-text-markdown-True",
+            "anchor-scope-review-text-plain_text-False",
+            "anchor-scope-review-text-plain_text-True",
+            "anchor-scope-api_operation-css-excluded",
+            "anchor-scope-api_operation-css-included",
+            "anchor-scope-api_operation-css-mixed-excluded",
+            "anchor-scope-api_operation-css-mixed-included",
+            "anchor-scope-api_operation-text-html-False",
+            "anchor-scope-api_operation-text-html-True",
+            "anchor-scope-api_operation-text-markdown-False",
+            "anchor-scope-api_operation-text-markdown-True",
+            "anchor-scope-api_operation-text-plain_text-False",
+            "anchor-scope-api_operation-text-plain_text-True",
+            "anchor-scope-name_description-css-excluded",
+            "anchor-scope-name_description-css-included",
+            "anchor-scope-name_description-css-mixed-excluded",
+            "anchor-scope-name_description-css-mixed-included",
+            "anchor-scope-name_description-text-html-False",
+            "anchor-scope-name_description-text-html-True",
+            "anchor-scope-name_description-text-markdown-False",
+            "anchor-scope-name_description-text-markdown-True",
+            "anchor-scope-name_description-text-plain_text-False",
+            "anchor-scope-name_description-text-plain_text-True",
+            "anchor-scope-taxonomy_family-css-excluded",
+            "anchor-scope-taxonomy_family-css-included",
+            "anchor-scope-taxonomy_family-css-mixed-excluded",
+            "anchor-scope-taxonomy_family-css-mixed-included",
+            "anchor-scope-taxonomy_family-text-html-False",
+            "anchor-scope-taxonomy_family-text-html-True",
+            "anchor-scope-taxonomy_family-text-markdown-False",
+            "anchor-scope-taxonomy_family-text-markdown-True",
+            "anchor-scope-taxonomy_family-text-plain_text-False",
+            "anchor-scope-taxonomy_family-text-plain_text-True",
+            "anchor-scope-table_row-css-excluded",
+            "anchor-scope-table_row-css-included",
+            "anchor-scope-table_row-css-mixed-excluded",
+            "anchor-scope-table_row-css-mixed-included",
+            "anchor-scope-table_row-text-html-False",
+            "anchor-scope-table_row-text-html-True",
+            "anchor-scope-table_row-text-markdown-False",
+            "anchor-scope-table_row-text-markdown-True",
+            "anchor-scope-product-reported-card",
+            "anchor-scope-product-inline-split",
+            "anchor-scope-product-cross-field",
+            "anchor-scope-product-encoded",
+            "anchor-scope-named_link-css-False",
+            "anchor-scope-named_link-text-html-False",
+            "anchor-scope-named_link-text-markdown-False",
+            "anchor-scope-named_link-css-True",
+            "anchor-scope-named_link-text-html-True",
+            "anchor-scope-named_link-text-markdown-True",
+            "anchor-scope-linked_product-css-False",
+            "anchor-scope-linked_product-text-html-False",
+            "anchor-scope-linked_product-text-markdown-False",
+            "anchor-scope-linked_product-css-True",
+            "anchor-scope-linked_product-text-html-True",
+            "anchor-scope-linked_product-text-markdown-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_quote_and_anchor_scope.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_anchor_contract_validation.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "quote-owner-whitespace-markdown-False",
+            "quote-owner-whitespace-markdown-True",
+            "quote-owner-whitespace-html-False",
+            "quote-owner-whitespace-html-True",
+            "quote-owner-whitespace-plain_text-False",
+            "quote-owner-whitespace-plain_text-True",
+            "quote-owner-whitespace-inferred-False",
+            "quote-owner-whitespace-inferred-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_quote_and_anchor_scope.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "structured-link-product-prefix",
+            "structured-link-product-suffix",
+            "structured-link-product-both",
+            "structured-link-product-whole",
+            "structured-link-product-space-before",
+            "structured-link-product-space-after",
+            "structured-link-product-adjacent-labels",
+            "structured-link-product-multiword-label",
+            "structured-link-product-unicode",
+            "structured-link-product-space-equivalence",
+            "structured-link-catalog_product-prefix",
+            "structured-link-catalog_product-suffix",
+            "structured-link-catalog_product-both",
+            "structured-link-catalog_product-whole",
+            "structured-link-catalog_product-space-before",
+            "structured-link-catalog_product-space-after",
+            "structured-link-catalog_product-adjacent-labels",
+            "structured-link-catalog_product-multiword-label",
+            "structured-link-catalog_product-unicode",
+            "structured-link-catalog_product-space-equivalence",
+            "structured-link-quote-prefix",
+            "structured-link-quote-suffix",
+            "structured-link-quote-both",
+            "structured-link-quote-whole",
+            "structured-link-quote-space-before",
+            "structured-link-quote-space-after",
+            "structured-link-quote-adjacent-labels",
+            "structured-link-quote-multiword-label",
+            "structured-link-quote-unicode",
+            "structured-link-quote-space-equivalence",
+            "structured-link-earthquake-prefix",
+            "structured-link-earthquake-suffix",
+            "structured-link-earthquake-both",
+            "structured-link-earthquake-whole",
+            "structured-link-earthquake-space-before",
+            "structured-link-earthquake-space-after",
+            "structured-link-earthquake-adjacent-labels",
+            "structured-link-earthquake-multiword-label",
+            "structured-link-earthquake-unicode",
+            "structured-link-earthquake-space-equivalence",
+            "structured-link-api_operation-prefix",
+            "structured-link-api_operation-suffix",
+            "structured-link-api_operation-both",
+            "structured-link-api_operation-whole",
+            "structured-link-api_operation-space-before",
+            "structured-link-api_operation-space-after",
+            "structured-link-api_operation-adjacent-labels",
+            "structured-link-api_operation-multiword-label",
+            "structured-link-api_operation-unicode",
+            "structured-link-api_operation-space-equivalence",
+            "structured-link-review-prefix",
+            "structured-link-review-suffix",
+            "structured-link-review-both",
+            "structured-link-review-whole",
+            "structured-link-review-space-before",
+            "structured-link-review-space-after",
+            "structured-link-review-adjacent-labels",
+            "structured-link-review-multiword-label",
+            "structured-link-review-unicode",
+            "structured-link-review-space-equivalence",
+            "structured-link-name_description-prefix",
+            "structured-link-name_description-suffix",
+            "structured-link-name_description-both",
+            "structured-link-name_description-whole",
+            "structured-link-name_description-space-before",
+            "structured-link-name_description-space-after",
+            "structured-link-name_description-adjacent-labels",
+            "structured-link-name_description-multiword-label",
+            "structured-link-name_description-unicode",
+            "structured-link-name_description-space-equivalence",
+            "structured-link-taxonomy-suffix",
+            "structured-link-taxonomy-prefix",
+            "structured-link-taxonomy-whole",
+            "structured-link-product-html",
+            "structured-link-product-plain_text",
+            "structured-link-bullet-suffix",
+            "structured-link-bullet-inline-suffix",
+            "structured-link-bullet-hyphen",
+            "structured-link-bullet-prefix",
+            "structured-link-compact-path-summary",
+            "structured-link-numeric-adjacent-labels",
+            "structured-link-product-card-boundaries",
+            "structured-link-product-split-card",
+            "structured-link-earthquake-card-boundaries",
+            "structured-link-earthquake-split-card"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_structured_link_adjacency.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_linked_contract_validation.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "labeled-reviews-labeled-markdown",
+            "labeled-reviews-labeled-html",
+            "labeled-reviews-labeled-plain_text",
+            "labeled-reviews-labeled-None",
+            "labeled-reviews-zero-markdown",
+            "labeled-reviews-zero-html",
+            "labeled-reviews-zero-plain_text",
+            "labeled-reviews-zero-None",
+            "labeled-reviews-labeled-suffix-markdown",
+            "labeled-reviews-labeled-suffix-html",
+            "labeled-reviews-labeled-suffix-plain_text",
+            "labeled-reviews-labeled-suffix-None",
+            "labeled-reviews-native-markdown",
+            "labeled-reviews-native-html",
+            "labeled-reviews-native-plain_text",
+            "labeled-reviews-native-None",
+            "labeled-reviews-singular-markdown",
+            "labeled-reviews-singular-html",
+            "labeled-reviews-singular-plain_text",
+            "labeled-reviews-singular-None",
+            "labeled-reviews-bare-number-markdown",
+            "labeled-reviews-bare-number-html",
+            "labeled-reviews-bare-number-plain_text",
+            "labeled-reviews-bare-number-None",
+            "labeled-reviews-negative-markdown",
+            "labeled-reviews-negative-html",
+            "labeled-reviews-negative-plain_text",
+            "labeled-reviews-negative-None",
+            "labeled-reviews-fraction-markdown",
+            "labeled-reviews-fraction-html",
+            "labeled-reviews-fraction-plain_text",
+            "labeled-reviews-fraction-None",
+            "labeled-reviews-word-markdown",
+            "labeled-reviews-word-html",
+            "labeled-reviews-word-plain_text",
+            "labeled-reviews-word-None",
+            "labeled-reviews-rating-markdown",
+            "labeled-reviews-rating-html",
+            "labeled-reviews-rating-plain_text",
+            "labeled-reviews-rating-None"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_labeled_review_counts.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "schema-fields-supported-product",
+            "schema-fields-supported-catalog_product",
+            "schema-fields-supported-quote",
+            "schema-fields-supported-review",
+            "schema-fields-supported-api_operation",
+            "schema-fields-supported-taxonomy_family",
+            "schema-fields-supported-name_description",
+            "schema-fields-supported-earthquake",
+            "schema-fields-supported-named_link",
+            "schema-fields-missing-url-named_link",
+            "schema-fields-supported-linked_product",
+            "schema-fields-missing-url-linked_product",
+            "schema-fields-table-units",
+            "schema-fields-table-missing-units",
+            "schema-fields-table-price",
+            "schema-fields-table-missing-price",
+            "schema-fields-table-display_label",
+            "schema-fields-table-missing-display_label",
+            "schema-fields-table-family",
+            "schema-fields-table-missing-family",
+            "schema-fields-shipping-present",
+            "schema-fields-shipping-missing",
+            "schema-fields-shipping-invalid",
+            "schema-fields-empty-optional-column"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_schema_field_counts.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "api38-path-case-plain_text-repeated",
+            "api38-path-case-plain_text-distinct",
+            "api38-path-case-markdown-repeated",
+            "api38-path-case-markdown-distinct",
+            "api38-path-case-html-repeated",
+            "api38-path-case-html-distinct",
+            "api38-path-case-html-table-repeated",
+            "api38-path-case-html-table-distinct"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_api_path_identity.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_linked_declaration_scope.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "linked-price-rupee",
+            "linked-price-dollar",
+            "linked-price-yen",
+            "linked-price-wrong-currency",
+            "linked-price-missing-price",
+            "linked-price-unavailable-required",
+            "linked-price-unavailable-allowed",
+            "linked-price-bound-available-match",
+            "linked-price-bound-available-wrong",
+            "linked-price-bound-available-unavailable",
+            "linked-price-bound-unavailable-match",
+            "linked-price-bound-unavailable-wrong",
+            "linked-price-bound-unavailable-required",
+            "linked-price-completed-name-named_link-True",
+            "linked-price-completed-name-named_link-False",
+            "linked-price-completed-name-linked_product-True",
+            "linked-price-completed-name-linked_product-False"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_linked_price_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_entry_matching.py"
+          ],
+          "regression_ids": [
+            "attached-label-filename-word",
+            "attached-label-other-word",
+            "attached-label-long-word",
+            "attached-label-window-inside-word",
+            "attached-label-unicode-cjk-word",
+            "attached-label-unicode-latin-word",
+            "attached-label-unicode-greek-word",
+            "attached-label-underscore-word",
+            "attached-label-attached-name",
+            "attached-label-attached-both-labels",
+            "attached-label-explicit-labels",
+            "attached-label-compact-colons",
+            "attached-label-heading-before-label",
+            "attached-label-long-separated-label",
+            "attached-label-unicode-separated-label",
+            "attached-label-wrong-price",
+            "attached-label-attached-by",
+            "attached-label-attached-by-and-tags",
+            "attached-label-explicit-by",
+            "attached-label-long-preface-by",
+            "attached-label-wrong-author",
+            "attached-label-other-by-word"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_attached_label_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "attribute-code-visible-code-0-inferred",
+            "attribute-code-visible-code-0-markdown",
+            "attribute-code-visible-code-1-inferred",
+            "attribute-code-visible-code-1-markdown",
+            "attribute-code-visible-code-comment-0-inferred",
+            "attribute-code-visible-code-comment-0-markdown",
+            "attribute-code-visible-code-comment-1-inferred",
+            "attribute-code-visible-code-comment-1-markdown",
+            "attribute-code-attribute-only-0-inferred",
+            "attribute-code-attribute-only-0-markdown",
+            "attribute-code-attribute-only-comment-0-inferred",
+            "attribute-code-attribute-only-comment-0-markdown",
+            "attribute-code-single-quoted-0-inferred",
+            "attribute-code-single-quoted-0-markdown",
+            "attribute-code-single-quoted-1-inferred",
+            "attribute-code-single-quoted-1-markdown",
+            "attribute-code-quoted-greater-0-inferred",
+            "attribute-code-quoted-greater-0-markdown",
+            "attribute-code-double-backticks-0-inferred",
+            "attribute-code-double-backticks-0-markdown",
+            "attribute-code-earlier-code-0-inferred",
+            "attribute-code-earlier-code-0-markdown",
+            "attribute-code-earlier-code-1-inferred",
+            "attribute-code-earlier-code-1-markdown",
+            "attribute-code-earlier-code-2-inferred",
+            "attribute-code-earlier-code-2-markdown",
+            "attribute-code-escaped-tag-0-inferred",
+            "attribute-code-escaped-tag-0-markdown",
+            "attribute-code-escaped-tag-1-inferred",
+            "attribute-code-escaped-tag-1-markdown",
+            "attribute-code-real-comment-0-inferred",
+            "attribute-code-real-comment-0-markdown",
+            "attribute-code-attribute-comment-0-inferred",
+            "attribute-code-attribute-comment-0-markdown"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_attribute_code_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "root_cause": "The source-range parser rejected unsupported XML marked declarations retained by native document serialization; reuse the visibility declaration lexer without changing source offsets.",
+          "regression_ids": [
+            "xml-declaration-frame-target",
+            "xml-declaration-frame-non-target"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_attribute_code_ownership.py",
+            "tests/benchmarks/webfetch/test_acceptance_isolation.py",
+            "tests/benchmarks/webfetch/test_standalone_evaluation.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "root_cause": "Later duplicate links could replace the label at the first returned occurrence, allowing a later record to repair a selected earlier record.",
+          "regression_ids": [
+            "first-label-markdown-False",
+            "first-label-markdown-True",
+            "first-label-html-False",
+            "first-label-html-True",
+            "first-label-html-first-False",
+            "first-label-html-first-True",
+            "first-label-markdown-first-False",
+            "first-label-markdown-first-True",
+            "first-label-plain_text-False",
+            "first-label-plain_text-True",
+            "first-label-metadata-False",
+            "first-label-metadata-True",
+            "first-label-later-image-card-False",
+            "first-label-later-image-card-True",
+            "first-label-earlier-image-card",
+            "first-label-heading-owner-False",
+            "first-label-heading-owner-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_first_record_and_redirect_echo.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py",
+            "scoring.py"
+          ],
+          "root_cause": "The response URL was used both as the relative-link base and as the excluded request URL, allowing an echoed original request to count as discovered evidence after a redirect.",
+          "regression_ids": [
+            "redirect-resource-echo-only",
+            "redirect-resource-echo-fragment",
+            "redirect-resource-target-only",
+            "redirect-resource-relative-target",
+            "redirect-resource-html-relative-target",
+            "redirect-resource-metadata-echo",
+            "redirect-resource-metadata-target",
+            "redirect-resource-echo-and-target",
+            "redirect-resource-strict-echo-only",
+            "redirect-resource-strict-target-only",
+            "redirect-resource-strict-echo-and-target",
+            "redirect-resource-explicit-final-target",
+            "redirect-resource-relative-final-target",
+            "redirect-resource-final-metadata-only",
+            "redirect-resource-no-redirect-echo"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_first_record_and_redirect_echo.py"
+          ]
+        }
+      ]
+    },
+    "websearch": {
+      "repository": "https://github.com/lexmount/lexbench-websearch",
+      "revision": "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9",
+      "changes": {
+        "__init__.py": {
+          "before_sha256": "59ae744164e0235b61506730b36632405944503be2dc472c56d923dcaef3183f",
+          "after_sha256": "ac4d94c16e7f3fb3b280f542e2c2645a1d0b35b9e01cdb13b140d5bbf9057a97"
+        },
+        "cli.py": {
+          "before_sha256": "ca67f5578d2d417a62f96189e857be8b19249882dec37d874d9713c171a6b8ca",
+          "after_sha256": "fa586963437361f58433f92bcdd5eec770a3a3cae707537919cd40a2d3ac2194"
+        },
+        "evidence_quality.py": {
+          "before_sha256": "a78ced8f4f45674dcb61acc14998d508e59a361f8983a39d9ab2099d53bf6ef4",
+          "after_sha256": "ed55bf8f50dea09f0f91d60726fa09e6104b54f0f5fd049434e2525899be9d14"
+        },
+        "inputs.py": {
+          "before_sha256": "5883ac279964963ddcd662f47d555e22d1a9af8f4eb6e3b6a7af1988fd6b6ba7",
+          "after_sha256": "ccbba110cdd41d71786c2a60a37c8895006c3b96d9d5f7d6388211f5747f90a8"
+        },
+        "relevance.py": {
+          "before_sha256": "9379e0c98ac4106065588d93f41a48de9022f94c9f0dae99bd02778a496c9127",
+          "after_sha256": "4cfda9b3f803c4bbf4b6e8c02f8f8e871844ca81faf48dce12c1d69508ff3837"
+        },
+        "scoring.py": {
+          "before_sha256": "e2d7ef42b8d56bbf6a72596e2d60e40bf339b305f936302d5a23ea430efce47a",
+          "after_sha256": "e646c80583db48cfb42f1ef8ee5adb7cf62733dfcc16b6fb41ca2637d059f301"
+        },
+        "simpleqa.py": {
+          "before_sha256": "39cd02fa1b65b10a0bc38cdf9ab245878b8ef7d07705203d10f9f4c2fa5eef0d",
+          "after_sha256": "fb8c17cb78abdc0d2e13a7b5523367bf0b7e1fc9d2bda48941e62499d582a6e0"
+        },
+        "versions.py": {
+          "before_sha256": "27c10a5f86b4a8ac7841cc9dfbe77c2f724ea675a938bda3719ae05084c058e0",
+          "after_sha256": "89dc3d6c617659147e3600a3621b42b235fd68fb6d8b910a9f9e4b2ea68b0073"
+        }
+      },
+      "corrections": [
+        {
+          "modules": [
+            "scoring.py",
+            "evidence_quality.py"
+          ],
+          "tests": [
+            "tests/benchmarks/test_review_runtime.py"
+          ]
+        },
+        {
+          "modules": [
+            "relevance.py"
+          ],
+          "tests": [
+            "tests/benchmarks/websearch/test_relevance.py"
+          ]
+        }
+      ]
+    }
+  }
+}

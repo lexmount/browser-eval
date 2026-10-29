@@ -1,3 +1,5 @@
+from harness.distribution import source_path
+
 import asyncio
 import io
 import json
@@ -26,7 +28,7 @@ def test_langchain_native_requests_have_no_timeout_override():
          patch("importlib.metadata.version", return_value="fixture"), \
          patch("sys.stdin", io.StringIO(json.dumps(REQUEST) + "\n")), \
          patch("sys.stdout", new_callable=io.StringIO) as output:
-        runpy.run_path(str(ROOT / "harness/web_fetch/workers/langchain_webbase_worker.py"))
+        runpy.run_path(str(source_path("harness/web_fetch/workers/langchain_webbase_worker.py", root=ROOT)))
     assert seen[0]["requests_kwargs"] == {}
     assert len(seen) == 1
     assert json.loads(output.getvalue())["content"] == "all native text"
@@ -65,7 +67,7 @@ def test_crawl4ai_retains_native_capabilities_and_page_timeout_default(native_su
     with patch.dict(sys.modules, fake), patch("importlib.metadata.version", return_value="fixture"), \
          patch("sys.stdin", io.StringIO(json.dumps(REQUEST) + "\n")), \
          patch("sys.stdout", new_callable=io.StringIO) as output:
-        worker = runpy.run_path(str(ROOT / "harness/web_fetch/workers/crawl4ai_worker.py"))
+        worker = runpy.run_path(str(source_path("harness/web_fetch/workers/crawl4ai_worker.py", root=ROOT)))
         asyncio.run(worker["main"]())
     assert len(seen) == 1
     assert "page_timeout" not in seen[0]
@@ -122,19 +124,19 @@ export function createWebFetchTool(options) {
   return {execute: async (id, args) => ({details: {text: 'native answer', status: 200}, options, args})};
 }
 ''')
-    source = (ROOT / 'harness/web_fetch/workers/openclaw_webfetch_worker.mts').read_text()
+    source = (source_path('harness/web_fetch/workers/openclaw_webfetch_worker.mts', root=ROOT)).read_text()
     fixture_root = tmp_path / 'openclaw' / 'src/agents/tools'
     fixture_root.mkdir(parents=True)
     (fixture_root / 'web-fetch.ts').write_text(f'export {{ createWebFetchTool }} from {json.dumps(stub.as_uri())};')
     open_worker = tmp_path / 'openclaw.mts'
     open_worker.write_text(source)
-    env = dict(os.environ, OPENCLAW_REPO=str(tmp_path / 'openclaw'), BROWSER_EVAL_HARNESS_ROOT=str(ROOT))
+    env = dict(os.environ, OPENCLAW_REPO=str(tmp_path / 'openclaw'), BROWSER_EVAL_HARNESS_ROOT=str(source_path('harness', root=ROOT).parent))
     request = json.dumps(REQUEST) + '\n'
     result = subprocess.run([node, str(open_worker)], input=request, text=True, capture_output=True, env=env, timeout=5, check=True)
     answer = json.loads(result.stdout)
     assert answer['ok'], answer
     assert answer['raw_tool_response']['options']['config']['tools']['web']['fetch']['cacheTtlMinutes'] == 0
-    source = (ROOT / 'harness/web_fetch/workers/dsh_webfetch_worker.mts').read_text()
+    source = (source_path('harness/web_fetch/workers/dsh_webfetch_worker.mts', root=ROOT)).read_text()
     source = '\n'.join(line for line in source.splitlines() if '@deepseek-ai/' not in line or not line.startswith('import '))
     source = f'import {{Context, ToolCallId, SystemPrompt, ToolRuntime, WebRuntime, WebFetchHttp, ToolWeb, TimeoutPolicy}} from {json.dumps(stub.as_uri())};\n' + source
     deep_worker = tmp_path / 'deepseek.mts'
@@ -165,7 +167,7 @@ def test_cowagent_worker_keeps_native_url_only_and_real_debug_logs(tmp_path):
          patch("sys.stdin", io.StringIO(json.dumps(request) + "\n")), \
          patch("sys.stdout", new_callable=io.StringIO) as output, \
          patch("sys.stderr", new_callable=io.StringIO) as logs:
-        worker = runpy.run_path(str(ROOT / "harness/web_fetch/workers/cowagent_worker.py"))
+        worker = runpy.run_path(str(source_path("harness/web_fetch/workers/cowagent_worker.py", root=ROOT)))
         worker["main"]()
     assert calls == [{"url": request["url"]}]
     assert json.loads(output.getvalue())["content"] == "native answer"

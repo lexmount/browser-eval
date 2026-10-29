@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createPublicDnsLookup } from '../harness/web_fetch/workers/public_dns.mjs';
+import { createPublicDnsLookup } from '../src/harness/web_fetch/workers/public_dns.mjs';
 
 const response = payload => new Response(JSON.stringify(payload));
 test('same resolver rule queries A and AAAA and retains private answers for native validation', async () => {

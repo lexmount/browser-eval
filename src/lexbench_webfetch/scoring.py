@@ -301,7 +301,7 @@ def score_attempt(
                   content_check_coverage=round(hits / total, 4) if total else None)
     result.update(evaluate_resources(
         content, metadata or {}, case.get("expected_resources", []),
-        base_url=base_url, eligible=ok,
+        base_url=base_url, request_url=case['url'], eligible=ok,
         output_contract=case.get("resource_output_contract", {}),
     ))
     if case.get("expected_resources") or case.get("resource_output_contract"):

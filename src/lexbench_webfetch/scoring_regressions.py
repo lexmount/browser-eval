@@ -9,7 +9,6 @@ from typing import Any
 
 from .inputs import definition_path
 
-ROOT = Path(__file__).resolve().parents[2]
 FAILURE_MODES = {"false-positive", "false-negative"}
 SCORING_OPTION_FIELDS = ("metadata", "title", "final_url", "list_reference", "status_code")
 ROOT_CAUSE_CATEGORIES = {

@@ -87,15 +87,15 @@ def main() -> None:
                                 if args.list_reference else None), status_code=args.status_code,
                 title=args.title, final_url=args.final_url)
         elif args.command == "compile-access-restrictions":
-            from .risk_control_dataset import build, RISK
-            result = build(args.output, args.definition_dir or RISK, evidence_home=args.evidence_home)
+            from .risk_control_dataset import build
+            result = build(args.output, args.definition_dir, evidence_home=args.evidence_home)
         elif args.command == "compile-articles":
-            from .article_dataset import compile_dataset, DEFINITIONS
+            from .article_dataset import compile_dataset
             from .inputs import require_mutable_inputs
             require_mutable_inputs(args.output)
             if args.output.exists() or args.output.is_symlink():
                 raise ValueError("Output already exists; choose a new candidate dataset")
-            dataset = compile_dataset(args.evidence_home, args.definition_dir or DEFINITIONS)
+            dataset = compile_dataset(args.evidence_home, args.definition_dir)
             with args.output.open("x", encoding="utf-8") as output:
                 output.write(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
             result = {"dataset": str(args.output.resolve()), "case_count": dataset["case_count"]}

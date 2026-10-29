@@ -1,5 +1,7 @@
 """Release metadata agrees before packaging; project citations stay version-neutral."""
 
+from harness.distribution import source_path
+
 import importlib.metadata
 import os
 import re
@@ -58,7 +60,7 @@ def test_declared_benchmark_pins_match_lock_and_installation():
 
     project = source_project()
     assert not any(d.startswith("lexbench-") for d in project["dependencies"])
-    lock = json.loads((ROOT / "harness/benchmarks/data-lock.json").read_bytes())
+    lock = json.loads((source_path("harness/benchmarks/data-lock.json", root=ROOT)).read_bytes())
     for track in lock["datasets"]:
         assert validate_binding(ROOT, "lexbench-" + track) == lock["datasets"][track]["revision"]
 

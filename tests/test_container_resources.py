@@ -1,3 +1,5 @@
+from harness.distribution import source_path
+
 import hashlib
 from pathlib import Path
 from types import SimpleNamespace
@@ -24,7 +26,7 @@ def _client(*, os_type="linux", cgroup="2"):
         "Architecture": "arm64",
     }
     client.version.return_value = {"Version": "29.5.2"}
-    worker = Path(__file__).resolve().parents[1] / 'harness/web_fetch/providers/headless_worker.py'
+    worker = source_path('harness/web_fetch/providers/headless_worker.py', root=Path(__file__).resolve().parents[1])
     client.containers.run.return_value = hashlib.sha256(worker.read_bytes()).hexdigest().encode() + b'  worker.py\n'
     client.images.get.return_value = SimpleNamespace(
         id="sha256:image",

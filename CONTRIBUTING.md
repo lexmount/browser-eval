@@ -15,7 +15,7 @@ Include the task ID, method and versions, OS, command and sanitized error. Remov
 | Scoring fix | Shared scorer, scenario regressions and a recorded correction reason |
 | New browser, version or sample size | Configuration or registry; reuse the runner and renderer |
 | New report instance | An external instance profile, evidence and report content; reuse its build and release commands |
-| Reusable logic | `harness/`; `scripts/` stays a thin command entry point |
+| Reusable logic | `src/harness/`; `scripts/` stays a thin command entry point |
 
 Use English for identifiers, comments and docstrings. Store report interface text
 in language catalogs, and select it through the existing report language contract.
@@ -42,10 +42,10 @@ Select a published dataset with `make pin-dataset DATASET=<track> REV=<full-HF-c
 It verifies the archive and file hashes before updating the data lock and import bindings. Scorer changes belong in this repository and use the existing scenario regressions.
 Historical report certificates retain their original evaluator identities.
 
-Register Web Fetch products in `harness/web_fetch/data/report-methods.json`;
+Register Web Fetch products in `src/harness/web_fetch/data/report-methods.json`;
 executable versions and run parameters come from saved evidence. See
-[method metadata](harness/web_fetch/README.md#report-method-metadata) and
-[adding a method or release](harness/web_fetch/README.md#adding-a-method-or-release).
+[method metadata](src/harness/web_fetch/README.md#report-method-metadata) and
+[adding a method or release](src/harness/web_fetch/README.md#adding-a-method-or-release).
 
 ## PR and commit titles
 

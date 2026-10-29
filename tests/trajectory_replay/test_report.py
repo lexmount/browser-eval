@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import re
-from pathlib import Path
 
 from harness.trajectory_replay.report import (
     METRICS,
@@ -14,6 +13,7 @@ from harness.trajectory_replay.report import (
     _task_detail_body,
     write_latest_report,
 )
+from harness.trajectory_replay.report_inputs import replay_input_path
 
 
 def test_comparisons_are_neutral_for_displayed_ties_and_missing_values():
@@ -473,7 +473,7 @@ def test_detail_preserves_success_and_divergent_actual_calls():
 
 
 def test_all_published_suite_tasks_link_to_public_web_targets(tmp_path):
-    suite_file = Path(__file__).resolve().parents[2] / "examples/trajectory_replay/tasks.v4.json"
+    suite_file = replay_input_path(current="curated")
     raw_tasks = json.loads(suite_file.read_text(encoding="utf-8"))["tasks"]
     suite = [
         {

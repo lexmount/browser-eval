@@ -1096,9 +1096,13 @@ def _deduplicated_named_candidates(items, contract, base_url, diagnostics, *, re
             if isinstance(item, LocatedItem) and item.metadata:
                 if identity in positions:
                     continue
-                metadata_positions[identity] = min(metadata_positions.get(identity, position), position)
+                if identity in metadata_positions and metadata_positions[identity] < position:
+                    continue
+                metadata_positions[identity] = position
             else:
-                positions[identity] = min(positions.get(identity, position), position)
+                if identity in positions and positions[identity] < position:
+                    continue
+                positions[identity] = position
             candidates[identity] = entry
     return dict(sorted(candidates.items(), key=lambda item:
                        positions.get(item[0], metadata_positions.get(item[0], len(items)))))

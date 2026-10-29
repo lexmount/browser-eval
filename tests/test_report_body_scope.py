@@ -1,3 +1,5 @@
+from harness.distribution import source_path
+
 import copy
 import hashlib
 import html
@@ -1069,7 +1071,7 @@ class ReportBodyScopeTests(unittest.TestCase):
 
     def test_real_methodology_pngs_available_before_generate(self):
         from harness.web_fetch.report_build import build_report
-        assets=Path(__file__).resolve().parents[1]/'harness/web_fetch/assets/methodology'
+        assets=source_path('harness/web_fetch/assets/methodology', root=Path(__file__).resolve().parents[1])
         c=case();r=record(c)
         c['acceptance_contract']={'version':1,'schema':'product','minimum_records':1,'stable_text_anchors':[{'id':'title','alternatives':['商品']} ]}
         r['metrics']['acceptance_contract_sha256']=hashlib.sha256(json.dumps(c['acceptance_contract'],sort_keys=True,ensure_ascii=False).encode()).hexdigest()

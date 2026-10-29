@@ -9,8 +9,7 @@ from webarena_verified.types import WebArenaSite
 
 from harness.trajectory_replay.catalog_binding import (
     current_catalog_inputs,
-    public_catalog_inputs,
-    public_replay_calls,
+    rebind_catalog,
 )
 from harness.trajectory_replay.catalog_contracts import file_sha256, load_catalog_inputs
 from harness.trajectory_replay.remote_runtime import load_remote_sites, rebind_remote_calls
@@ -120,86 +119,19 @@ def inputs(tmp_path):
     return catalog, suite, sites_file, calls, source_sites
 
 
-def export(tmp_path):
+def bound_inputs(tmp_path):
     catalog, suite, sites, calls, source_sites = inputs(tmp_path)
-    projected, tasks, receipts = public_catalog_inputs(
-        catalog, suite, sites, catalog_sha256=file_sha256(catalog), suite_sha256=file_sha256(suite)
-    )
-    public_suite = dump(tmp_path / "public-suite.json", tasks)
-    projected["portable_suite_sha256"] = file_sha256(public_suite)
-    public_catalog = dump(tmp_path / "public-catalog.json", projected)
-    return public_catalog, public_suite, sites, receipts, calls, source_sites
-
-
-def test_public_inputs_keep_actions_rules_and_population_without_run_paths(tmp_path):
-    catalog, suite, sites, receipt, calls, source_sites = export(tmp_path)
-    loaded, bound_sites, tasks = load_catalog_inputs(catalog, suite, sites)
-    assert loaded["task_ids"] == [1, 2] and set(tasks) == {1}
-    text = catalog.read_text() + suite.read_text()
-    assert "private.invalid" not in text and "/private/tmp/" not in text
-    assert tasks[1].source["verified_evaluators"][0]["expected"]["response_cookies"] == {
-        "mode": "required"
-    }
-    assert tasks[1].tool_calls[1]["replay_mode"] == "snapshot_ref_semantics"
-    assert ":is(" not in tasks[1].tool_calls[1]["selector"]
-    assert receipt["tasks"][0]["source_actions_sha256"] == _json_sha256(calls)
-    assert (
-        receipt["tasks"][1]["source_retrieval_contract_sha256"]
-        != receipt["tasks"][1]["public_retrieval_contract_sha256"]
-    )
-    # This observation script is unchanged; only URL-bearing source actions change.
-    assert loaded["rows"][1]["retrieval_contract"]["canonical_calls_sha256"] != _json_sha256(calls)
-    assert loaded["rows"][1]["retrieval_contract"]["projection"] == {
-        "source": "observation",
-        "pointer": "/answer",
-    }
-
-
-@pytest.mark.parametrize("scheme", ["http", "https"])
-def test_public_origin_view_matches_original_under_explicit_deployment(tmp_path, scheme):
-    _, _, sites_path, calls, source_sites = inputs(tmp_path)
-    public_sites = load_remote_sites(sites_path)
-    projected = public_replay_calls(calls, source_sites, public_sites)
-    deployment = {
-        key: value.replace("http://public.example", f"{scheme}://deployment.invalid")
-        for key, value in public_sites.items()
-    }
-    assert rebind_remote_calls(
-        projected, deployment, set(), public_sites, origins_only=True
-    ) == rebind_remote_calls(calls, deployment, set(), source_sites, origins_only=True)
-    assert rebind_remote_calls(projected, deployment, set(), public_sites) == rebind_remote_calls(
-        calls, deployment, set(), source_sites
-    )
-
-
-def test_changed_authority_or_unportable_origin_is_rejected(tmp_path):
-    catalog, suite, sites, _, _ = inputs(tmp_path)
-    with pytest.raises(ValueError, match="authority changed"):
-        public_catalog_inputs(
-            catalog, suite, sites, catalog_sha256="0" * 64, suite_sha256=file_sha256(suite)
-        )
-    data = json.loads(suite.read_text())
-    data["tasks"][0]["source"]["private_note"] = "http://private.invalid:9999/run"
-    dump(suite, data)
-    source = json.loads(catalog.read_text())
-    source["portable_suite_sha256"] = file_sha256(suite)
-    dump(catalog, source)
-    with pytest.raises(ValueError, match="source deployment remains"):
-        public_catalog_inputs(
-            catalog,
-            suite,
-            sites,
-            catalog_sha256=file_sha256(catalog),
-            suite_sha256=file_sha256(suite),
-        )
+    projected = rebind_catalog(catalog, suite, sites)
+    public_catalog = dump(tmp_path / "rebound-catalog.json", projected)
+    return public_catalog, suite, sites, {}, calls, source_sites
 
 
 def test_lazy_current_defaults_and_explicit_historical_paths(tmp_path):
     from harness.trajectory_replay.public_webarena.suite import load_suite as human_suite
     from harness.trajectory_replay.suite import load_suite as curated_suite
 
-    original = Path(__file__).resolve().parents[2] / "examples/trajectory_replay/tasks.v4.json"
-    _, public_suite, _, _, _, _ = export(tmp_path)
+    original = replay_input_path(current="curated")
+    _, public_suite, _, _, _, _ = bound_inputs(tmp_path)
 
     def resolve(track, relative, revision=None):
         assert revision is None
@@ -228,7 +160,7 @@ def test_lazy_current_defaults_and_explicit_historical_paths(tmp_path):
 
 
 def test_current_catalog_rebinds_once_and_rejects_changed_resume_inputs(tmp_path):
-    catalog, suite, sites_path, _, _, _ = export(tmp_path)
+    catalog, suite, sites_path, _, _, _ = bound_inputs(tmp_path)
     source_paths = {"catalog/full-812-v1.json": catalog, "suites/full-portable-v1.json": suite}
 
     def resolve(track, relative, revision=None):
@@ -305,116 +237,6 @@ def test_replay_cli_report_option(public, no_report, tmp_path):
     assert run.call_args.kwargs["generate_report"] is not no_report
 
 
-@pytest.mark.parametrize("task_type", ["RETRIEVE", "MUTATE", "NAVIGATE"])
-def test_corrected_public_inputs_exclude_prior_responses_without_losing_rules(tmp_path, task_type):
-    from harness.trajectory_replay.catalog_binding import public_corrected_inputs
-
-    _, _, sites_path, calls, source_sites = inputs(tmp_path)
-    original = {
-        "id": "webarena-7",
-        "task_id": 7,
-        "task": {
-            "intent": "Read the entry",
-            "sites": ["reddit"],
-            "eval": [
-                {
-                    "expected": {
-                        "retrieved_data": ["independent reference"],
-                        "response_cookies": {"mode": "required"},
-                    }
-                }
-            ],
-        },
-        "tool_calls": calls,
-        "source": {"kind": "historical_seed", "response_sha256": "a" * 64},
-        "evaluation_input": {
-            "task_type": task_type,
-            "status": "SUCCESS",
-            "retrieved_data": ["PRIOR-OBSERVED-SECRET"],
-            "response": "OLD-RESPONSE-BODY",
-            "error_details": "old result",
-        },
-        "verification": {"status": "pass", "observation": "PRIOR-OBSERVED-SECRET"},
-    }
-    source = dump(
-        tmp_path / "corrected.json",
-        {
-            "schema": "lex_webarena_verified_trajectory_dataset/1",
-            "benchmark": "WebArena-Verified",
-            "benchmark_version": "historical",
-            "official_data_checksum": "b" * 64,
-            "selection_sha256": "c" * 64,
-            "semantics": {},
-            "trajectories": [original],
-        },
-    )
-    projected, receipt = public_corrected_inputs(
-        source,
-        load_remote_sites(sites_path),
-        dataset_sha256=file_sha256(source),
-        source_sites_by_task={7: source_sites},
-    )
-    public = projected["trajectories"][0]
-    assert public["evaluation_input"] == {"task_type": task_type}
-    assert public["task"] == original["task"]
-    assert public["source"] == original["source"]
-    assert public["tool_calls"] == public_replay_calls(
-        calls, source_sites, load_remote_sites(sites_path)
-    )
-    text = json.dumps({"definition": projected, "receipt": receipt})
-    assert "PRIOR-OBSERVED-SECRET" not in text and "OLD-RESPONSE-BODY" not in text
-    assert "independent reference" in text and "response_cookies" in text
-    assert receipt["tasks"][0]["historical_evaluation_input_sha256"] == _json_sha256(
-        original["evaluation_input"]
-    )
-    assert receipt["tasks"][0]["historical_qualification_sha256"] == _json_sha256(
-        original["verification"]
-    )
-    assert "observation_protocol" not in projected["provenance"]
-    from harness.trajectory_replay.webarena_replay import validate_qualification_dataset
-
-    path = dump(tmp_path / "public-corrected.json", projected)
-    with patch("harness.trajectory_replay.webarena_replay.require_current_retrieval"):
-        with pytest.raises(ValueError, match="fresh valid-observation qualification"):
-            validate_qualification_dataset({}, path)
-
-
-@pytest.mark.parametrize("observed", [False, True])
-def test_public_projection_preserves_preparation_but_not_observation_rewrites(tmp_path, observed):
-    from harness.trajectory_replay.catalog_contracts import ACTION_OVERRIDES_SCHEMA
-    from harness.trajectory_replay.retrieval_acceptance import digest
-
-    catalog, suite, sites, calls, _ = inputs(tmp_path)
-    source = json.loads(catalog.read_text())
-    index = 3 if observed else 2
-    change = {"script": 'return {"answer": ["different"]}'} if observed else {"force": True}
-    changes = [
-        {
-            "task_id": 2,
-            "action_index": index,
-            "precondition_action_sha256": digest(calls[index - 1]),
-            "set": change,
-        }
-    ]
-    source["action_overrides_sha256"] = "a" * 64
-    row = source["rows"][1]
-    row["action_overrides"] = {
-        "schema": ACTION_OVERRIDES_SCHEMA,
-        "source_sha256": "a" * 64,
-        "amendments_sha256": digest(changes),
-        "amendments": changes,
-    }
-    dump(catalog, source)
-    arguments = {"catalog_sha256": file_sha256(catalog), "suite_sha256": file_sha256(suite)}
-    if observed:
-        with pytest.raises(ValueError, match="qualified observation action changed"):
-            public_catalog_inputs(catalog, suite, sites, **arguments)
-    else:
-        projected, _, _ = public_catalog_inputs(catalog, suite, sites, **arguments)
-        assert projected["rows"][1]["source_actions"][1]["force"] is True
-        assert projected["rows"][1]["source_actions"][2] == calls[2]
-
-
 @pytest.mark.parametrize(
     "flags",
     [
@@ -460,7 +282,7 @@ def test_default_catalog_output_is_private_and_only_created_after_validation(
 
     from harness.trajectory_replay import catalog_runner
 
-    catalog, suite, sites, _, _, _ = export(tmp_path)
+    catalog, suite, sites, _, _, _ = bound_inputs(tmp_path)
     source_paths = {"catalog/full-812-v1.json": catalog, "suites/full-portable-v1.json": suite}
     environment = dump(tmp_path / "environment.json", {})
     binary = tmp_path / "browser"
@@ -513,23 +335,96 @@ def test_default_catalog_output_is_private_and_only_created_after_validation(
         os.umask(prior)
 
 
-@pytest.mark.parametrize("change", ["insert", "remove", "reorder"])
-def test_public_projection_rejects_unqualified_observation_positions(tmp_path, change):
-    catalog, suite, sites, _, _ = inputs(tmp_path)
-    source = json.loads(catalog.read_text())
-    calls = source["rows"][1]["source_actions"]
-    if change == "insert":
-        calls.insert(0, {"action": "wait", "milliseconds": 1})
-    elif change == "remove":
-        calls.pop(0)
+@pytest.mark.parametrize("changed", [False, True])
+def test_current_catalog_requires_frozen_suite_before_signing(tmp_path, changed):
+    catalog, suite, sites, _, _, _ = bound_inputs(tmp_path)
+    copy = tmp_path / "supplied-suite.json"
+    payload = json.loads(suite.read_bytes())
+    if changed:
+        payload["tasks"][0]["trajectory"]["actions"][0]["url"] += "unqualified"
+        dump(copy, payload)
     else:
-        calls.reverse()
+        copy.write_bytes(suite.read_bytes())
+    binding = tmp_path / "run/input-catalog.json"
+    with patch("harness.benchmarks.data.definition_path", return_value=catalog):
+        if changed:
+            with pytest.raises(ValueError, match="frozen portable suite"):
+                current_catalog_inputs(sites, binding, suite_path=copy)
+            assert not binding.parent.exists()
+        else:
+            selected, portable = current_catalog_inputs(sites, binding, suite_path=copy)
+            assert portable == copy
+            assert load_catalog_inputs(selected, portable, sites)[0]["task_ids"] == [1, 2]
+
+
+def test_catalog_mapping_reaches_retrieval_consumption_after_deployment_rebind(tmp_path):
+    from harness.trajectory_replay.catalog_runner import _bound_catalog_row
+    from harness.trajectory_replay.remote_execution import _read_retrieval_contract
+
+    catalog, suite, sites, _, _ = inputs(tmp_path)
+    source = json.loads(catalog.read_bytes())
+    source["source_site_urls"] = source["rows"][0]["source_site_urls"]
+    for row in source["rows"]:
+        row.pop("source_site_urls")
     dump(catalog, source)
-    with pytest.raises(ValueError, match="canonical actions"):
-        public_catalog_inputs(
-            catalog,
-            suite,
-            sites,
-            catalog_sha256=file_sha256(catalog),
-            suite_sha256=file_sha256(suite),
-        )
+    rebound = dump(tmp_path / "rebound.json", rebind_catalog(catalog, suite, sites))
+    loaded, deployment, tasks = load_catalog_inputs(rebound, suite, sites)
+    row = _bound_catalog_row(loaded, loaded["rows"][1], tasks, deployment)
+    assert row["source_site_urls"] == source["source_site_urls"]
+    candidate = _read_retrieval_contract(2, row, deployment)
+    assert candidate["tool_calls"] == source["rows"][1]["source_actions"]
+
+
+@pytest.mark.parametrize("observed", [False, True])
+def test_runtime_retrieval_preserves_preparation_but_not_qualified_observation(tmp_path, observed):
+    from harness.trajectory_replay.catalog_contracts import ACTION_OVERRIDES_SCHEMA
+    from harness.trajectory_replay.catalog_runner import _bound_catalog_row
+    from harness.trajectory_replay.remote_execution import _read_retrieval_contract
+
+    catalog, _, sites, calls, _ = inputs(tmp_path)
+    source = json.loads(catalog.read_bytes())
+    index = 3 if observed else 2
+    changes = [
+        {
+            "task_id": 2,
+            "action_index": index,
+            "precondition_action_sha256": _json_sha256(calls[index - 1]),
+            "set": {"script": "return 999"} if observed else {"force": True},
+        }
+    ]
+    source["action_overrides_sha256"] = "a" * 64
+    source["rows"][1]["action_overrides"] = {
+        "schema": ACTION_OVERRIDES_SCHEMA,
+        "source_sha256": "a" * 64,
+        "amendments_sha256": _json_sha256(changes),
+        "amendments": changes,
+    }
+    deployment = load_remote_sites(sites)
+    row = _bound_catalog_row(source, source["rows"][1], {}, deployment)
+    row["bound_calls_sha256"] = _json_sha256(row["actions"])
+    if observed:
+        with pytest.raises(ValueError, match="qualified observation action changed"):
+            _read_retrieval_contract(2, row, deployment)
+    else:
+        assert _read_retrieval_contract(2, row, deployment)["tool_calls"] == calls
+
+
+def test_default_catalog_explicit_overrides_are_rejected_before_loading(tmp_path, monkeypatch):
+    from harness.trajectory_replay import catalog_runner
+
+    argv = [
+        "catalog",
+        "--site-map",
+        "sites",
+        "--site-reset-receipt",
+        "reset",
+        "--environment-profile",
+        "environment",
+        "--output",
+        str(tmp_path / "run"),
+        "--action-overrides",
+        "overrides.json",
+    ]
+    with patch("sys.argv", argv), pytest.raises(ValueError, match="explicit qualified --catalog"):
+        catalog_runner.main()
+    assert not (tmp_path / "run").exists()

@@ -4,8 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_fetch.title_quality import add_title_quality, evaluate_titles, reference_title
+from harness.distribution import source_path
 from harness.web_fetch.report import ranking
+from harness.web_fetch.title_quality import add_title_quality, evaluate_titles, reference_title
 from tests.test_report_body_scope import case, record, table_cells
 
 
@@ -110,6 +111,6 @@ class TitleQualityTests(unittest.TestCase):
         root=Path(__file__).resolve().parents[1]
         obsolete='动态'+'网页正文'
         for directory in ('harness/web_fetch','scripts'):
-            for path in (root/directory).rglob('*'):
+            for path in (source_path(directory, root=root)).rglob('*'):
                 if path.suffix in {'.py','.html','.md'}:
                     self.assertNotIn(obsolete,path.read_text(),str(path))

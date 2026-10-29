@@ -51,8 +51,8 @@ Choose a workflow for its task contract, setup and runnable example.
 
 | Track | Benchmarks and task suites | Guide |
 | --- | --- | --- |
-| Web Fetch | [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch), [LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench), [LexBench WCXB](https://huggingface.co/datasets/Lexmount/lexbench-wcxb) | [Local example](examples/web_fetch/README.md) · [Full guide](harness/web_fetch/README.md) |
-| Web Search | [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch): scenario queries and [LexBench SimpleQA Verified](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) retrieval tasks | [Local example](examples/web_search/README.md) · [Full guide](harness/web_search/README.md) |
+| Web Fetch | [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch), [LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench), [LexBench WCXB](https://huggingface.co/datasets/Lexmount/lexbench-wcxb) | [Local example](examples/web_fetch/README.md) · [Full guide](src/harness/web_fetch/README.md) |
+| Web Search | [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch): scenario queries and [LexBench SimpleQA Verified](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) retrieval tasks | [Local example](examples/web_search/README.md) · [Full guide](src/harness/web_search/README.md) |
 | Browser Trajectory Replay | [Curated fixed-action tasks](https://huggingface.co/datasets/Lexmount/lexbench-trajectory-replay) and the separate [WebArena replay datasets](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay), with the pinned WebArena-Verified evaluator | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
 
 ### Web Fetch
@@ -170,7 +170,7 @@ English is the default; add `--language zh` when running or rebuilding for Chine
 
 When sharing is requested and publication is authorized, open Artifact Site ([Global .com](https://yours.lexmount.com/artifact-site) · [China .cn](https://yours.lexmount.cn/artifact-site)), install the skill offered there, and follow it to publish the local report and choose who can access it. Uploading is a separate action; creating a local report does not publish it.
 
-Scoring code ships with Browser Eval; dataset commits and file hashes are selected in [the data lock](harness/benchmarks/data-lock.json). Each report records its Browser Eval build and selected benchmark edition. See [versioning](docs/benchmarks.md#benchmark-editions) for comparison rules, [reference inputs](docs/reference-inputs.md) for historical data, and the [report guide](docs/report-hosting.md) for local builds and formal releases.
+Scoring code ships with Browser Eval; dataset commits and file hashes are selected in [the data lock](src/harness/benchmarks/data-lock.json). Each report records its Browser Eval build and selected benchmark edition. See [versioning](docs/benchmarks.md#benchmark-editions) for comparison rules, [reference inputs](docs/reference-inputs.md) for historical data, and the [report guide](docs/report-hosting.md) for local builds and formal releases.
 
 ## Versions
 

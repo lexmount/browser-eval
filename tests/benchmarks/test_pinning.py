@@ -1,4 +1,6 @@
 """Edition selection verifies inputs before changing any current binding."""
+from harness.distribution import source_path
+
 import hashlib
 import io
 import json
@@ -7,7 +9,7 @@ import copy
 
 import pytest
 
-from harness.benchmarks import pinning
+from harness.benchmarks import data, pinning
 
 
 def fixture(root, monkeypatch, defect=None, *, jsonl=False):
@@ -42,7 +44,7 @@ def fixture(root, monkeypatch, defect=None, *, jsonl=False):
         before['history'] = [{'revision': 'a' * 40, 'archive': manifest.pop('archive')}]
     if defect == 'legacy-unknown':
         manifest.pop('archive')
-    lock = root / 'harness/benchmarks/data-lock.json'
+    lock = source_path('harness/benchmarks/data-lock.json', root=root)
     lock.parent.mkdir(parents=True)
     lock.write_text(json.dumps({'datasets': {'websearch': before}}))
     imported = root / 'evaluation/lexbench-websearch.json'
@@ -58,7 +60,7 @@ def fixture(root, monkeypatch, defect=None, *, jsonl=False):
     def fetch(url, timeout):
         assert '/resolve/' + 'a' * 40 + '/' in url
         return io.BytesIO(json.dumps(manifest).encode() if url.endswith('manifest.json') else raw)
-    monkeypatch.setattr(pinning, 'urlopen', fetch)
+    monkeypatch.setattr(data, 'urlopen', fetch)
     return lock, imported
 
 
@@ -161,7 +163,7 @@ def test_pin_preserves_only_a_default_present_in_the_new_release(tmp_path, monke
 @pytest.mark.parametrize('difference', [None, 'path', 'sha256', 'count', 'format', 'id_field', 'missing', 'file'])
 def test_pin_checks_composed_sources_in_both_update_directions(tmp_path, monkeypatch, direction, difference):
     paths = fixture(tmp_path, monkeypatch)
-    with pinning.urlopen('https://example.com/resolve/' + 'a' * 40 + '/manifest.json', timeout=60) as response:
+    with data.urlopen('https://example.com/resolve/' + 'a' * 40 + '/manifest.json', timeout=60) as response:
         manifest = json.load(response)
     other = {'repository': 'Lexmount/other', 'revision': 'c' * 40,
              'datasets': copy.deepcopy(manifest['datasets']), 'files': copy.deepcopy(manifest['files'])}

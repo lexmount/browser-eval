@@ -29,7 +29,7 @@ def test_installed_optional_dependency_preserves_declared_source(tmp_path, monke
 def package(tmp_path, request):
     source, installed = tmp_path / 'source', tmp_path / 'installed'
     name = request.param
-    directory = name if name == 'harness' else 'src/' + name
+    directory = 'src/' + name
     (source / directory / 'example/data').mkdir(parents=True)
     (source / directory / 'example/__init__.py').write_text('VALUE = 1\n')
     (source / directory / 'example/data/tasks.json').write_text('{"task":"synthetic"}\n')

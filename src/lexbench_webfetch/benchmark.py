@@ -13,9 +13,11 @@ from .paths import contained_path, safe_identifier
 from .inputs import digest, load_manifest, verify_catalog
 from .annotation_revisions import apply_annotation_change
 
-from harness.benchmarks.data import binding as dataset_binding, cache_home, definition_path
+from harness.benchmarks.data import definition_path, resolve_definition_path
 
-SUITES = cache_home() / "webfetch" / dataset_binding("webfetch")["revision"] / "definitions"
+
+def definitions() -> Path:
+    return definition_path("webfetch", ".")
 
 # Full reference bodies and source-capture/review payloads stay in frozen inputs.
 PUBLIC_TASK_FIELDS = (
@@ -92,19 +94,12 @@ def public_task(case: dict) -> dict:
 
 
 def read(path: Path) -> dict:
-    try:
-        relative = path.relative_to(cache_home() / "webfetch")
-    except ValueError:
-        pass
-    else:
-        if len(relative.parts) >= 3 and relative.parts[1] == "definitions":
-            path = definition_path("webfetch", Path(*relative.parts[2:]).as_posix(),
-                                   revision=relative.parts[0])
+    path = resolve_definition_path("webfetch", path)
     return json.loads(path.read_text(encoding="utf-8"))
 
 
 def registry() -> dict:
-    document = read(SUITES / "registry.json")
+    document = read(definitions() / "registry.json")
     if document.get("schema_version") != 1:
         raise ValueError("Unsupported suite registry")
     ids = [row["id"] for row in document["suites"]]
@@ -118,7 +113,7 @@ def suite(identifier: str) -> tuple[dict, Path]:
     if len(matches) != 1:
         raise ValueError(f"Unknown suite: {identifier}")
     entry = matches[0]
-    root = contained_path(SUITES, entry.get("directory", identifier), reject_symlinks=True)
+    root = contained_path(definitions(), entry.get("directory", identifier), reject_symlinks=True)
     for relative, expected in entry["files"].items():
         if not re.fullmatch(r"[0-9a-f]{64}", expected):
             raise ValueError(f"Invalid SHA-256: {relative}")
@@ -150,7 +145,7 @@ def validate(identifier: str) -> dict:
         contained_path(root, relative, reject_symlinks=True)
         if not re.fullmatch(r"[0-9a-f]{64}", expected):
             raise ValueError(f"Invalid input SHA-256: {relative}")
-    for path in sorted((SUITES/'annotation-revisions').glob('*.json')):
+    for path in sorted((definitions()/'annotation-revisions').glob('*.json')):
         revision = read(path)
         if identifier in revision.get('parents', {}):
             apply_annotation_revision(identifier, tasks, revision['id'])
@@ -209,7 +204,7 @@ def review_input_files(definition, identifier):
         raise ValueError('Invalid revision review-input manifest')
     for files in manifests.values():
         for relative, sha256 in files.items():
-            contained_path(SUITES, relative)
+            contained_path(definitions(), relative)
             if (not isinstance(relative, str) or not relative.startswith('review-evidence/')
                     or Path(relative).as_posix() != relative
                     or not isinstance(sha256, str) or not re.fullmatch('[0-9a-f]{64}', sha256)):
@@ -219,7 +214,7 @@ def review_input_files(definition, identifier):
 
 def _review_annotation(definition, revision_path, identifier, root, changes):
     from .scoring_regressions import check_scoring_regressions
-    reviews_path = contained_path(SUITES, 'annotation-revisions/reviews.json', reject_symlinks=True)
+    reviews_path = contained_path(definitions(), 'annotation-revisions/reviews.json', reject_symlinks=True)
     if not reviews_path.is_file():
         raise ValueError('Annotation revision requires per-task evidence and controls')
     reviews = read(reviews_path)
@@ -297,7 +292,7 @@ def inspect_annotation_revision(identifier: str, revision: str) -> dict:
 
 def _apply_annotation_revision(identifier: str, dataset: dict, revision: str):
     safe_identifier(revision)
-    path = contained_path(SUITES, f'annotation-revisions/{revision}.json', reject_symlinks=True)
+    path = contained_path(definitions(), f'annotation-revisions/{revision}.json', reject_symlinks=True)
     definition = read(path)
     if (definition.get('schema_version') != 1
             or definition.get('kind') != 'score_only_annotation_revision'

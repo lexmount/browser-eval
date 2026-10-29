@@ -51,7 +51,8 @@ def test_wcxb_command_forwards_requested_language(tmp_path, monkeypatch, include
     monkeypatch.setattr(data, 'definition_path', lambda track, relative: tmp_path / 'locked' / relative)
     root = Path(__file__).resolve().parents[1]
     profile = tmp_path / 'instance.json'
-    profile.write_text(json.dumps({'comparison_kind': 'wcxb_frozen_html_to_markdown', 'sample_manifest': 'sample.json'}))
+    profile.write_text(json.dumps({'comparison_kind': 'wcxb_frozen_html_to_markdown',
+                                   'sample_manifest': str(tmp_path / 'locked/tasks.json')}))
     binding = {'kind': 'test-content'}
     (tmp_path / 'report-content-binding.json').write_text(json.dumps(binding))
     argv = [str(root / 'scripts/build_report.py'), '--language', language, '--profile', str(profile), '--wcxb', '--evidence', str(tmp_path),

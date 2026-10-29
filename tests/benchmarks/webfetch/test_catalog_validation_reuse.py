@@ -151,7 +151,7 @@ def catalog(tmp_path, monkeypatch):
             ],
         },
     )
-    monkeypatch.setattr(bench, "SUITES", root)
+    monkeypatch.setattr(bench, "definitions", lambda: root)
     return release_path, reviews_path, controls_path, suite / "tasks.json"
 
 

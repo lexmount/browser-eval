@@ -51,8 +51,8 @@
 
 | 流程 | 对应评测集与任务集 | 使用指南 |
 | --- | --- | --- |
-| Web Fetch | [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch)、[LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench)、[LexBench WCXB](https://huggingface.co/datasets/Lexmount/lexbench-wcxb) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../harness/web_fetch/README.md) |
-| Web Search | [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch)：场景问题，以及 [LexBench SimpleQA Verified](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) 检索任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../harness/web_search/README.md) |
+| Web Fetch | [LexBench Web Fetch](https://huggingface.co/datasets/Lexmount/lexbench-webfetch)、[LexBench WebMainBench](https://huggingface.co/datasets/Lexmount/lexbench-webmainbench)、[LexBench WCXB](https://huggingface.co/datasets/Lexmount/lexbench-wcxb) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../src/harness/web_fetch/README.md) |
+| Web Search | [LexBench Web Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch)：场景问题，以及 [LexBench SimpleQA Verified](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) 检索任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../src/harness/web_search/README.md) |
 | 轨迹重放 | [自建固定动作任务](https://huggingface.co/datasets/Lexmount/lexbench-trajectory-replay)和独立的 [WebArena 重放数据集](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay)，使用已固定版本的 WebArena-Verified 评测器 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
 
 ### Web Fetch
@@ -170,7 +170,7 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run
 
 明确要求分享并授权发布后，打开 Artifact Site（[全球站 .com](https://yours.lexmount.com/artifact-site) · [中国站 .cn](https://yours.lexmount.cn/artifact-site)），安装网站提供的 skill，按引导发布本地报告并设置访问权限。上传是独立操作，生成本地报告不会自动发布。
 
-评分代码随 Browser Eval 安装；数据集提交和文件哈希由[数据锁文件](../harness/benchmarks/data-lock.json)指定。报告记录 Browser Eval 构建版本和选定的评测版本。结果比较规则见[版本说明](benchmarks.md#benchmark-editions)，历史数据见[参考输入](reference-inputs.md)，本地构建与正式发布要求见[报告指南](report-hosting.md)。
+评分代码随 Browser Eval 安装；数据集提交和文件哈希由[数据锁文件](../src/harness/benchmarks/data-lock.json)指定。报告记录 Browser Eval 构建版本和选定的评测版本。结果比较规则见[版本说明](benchmarks.md#benchmark-editions)，历史数据见[参考输入](reference-inputs.md)，本地构建与正式发布要求见[报告指南](report-hosting.md)。
 
 ## 版本
 
@@ -196,7 +196,7 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run
 | [WCXB 上游](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | HF 核验版本的数据来源署名 |
 | [CowAgent](https://github.com/zhayujie/CowAgent)、[OpenClaw](https://github.com/openclaw/openclaw)、[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | Web Fetch 工具基线和实验性 Agent 集成 |
 
-Playwright、提取库和配套运行环境的来源与固定版本见[依赖说明](../docs/dependencies.md)，引用要求和数据权利见[第三方说明](../THIRD_PARTY.md)。引用 Browser Eval 时，也请引用实际使用的评测集与上游数据。
+Playwright、提取库和配套运行环境的来源与固定版本见[依赖说明](dependencies.md)，引用要求和数据权利见[第三方说明](../THIRD_PARTY.md)。引用 Browser Eval 时，也请引用实际使用的评测集与上游数据。
 
 ## 参与贡献
 
@@ -207,7 +207,7 @@ make setup-test
 make ci
 ```
 
-[代码结构](../docs/architecture.md) · [安全](../SECURITY.md) · [第三方内容](../THIRD_PARTY.md) · [Apache 2.0](../LICENSE)
+[代码结构](architecture.md) · [安全](../SECURITY.md) · [第三方内容](../THIRD_PARTY.md) · [Apache 2.0](../LICENSE)
 
 ## 引用 Browser Eval
 

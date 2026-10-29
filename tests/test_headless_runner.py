@@ -1,5 +1,7 @@
 """Headless cohort selection and identities, with synthetic providers only."""
 
+from harness.distribution import source_path
+
 import hashlib
 import json
 import sys
@@ -504,7 +506,7 @@ def test_synthetic_inputs_remain_non_release_after_selection_and_native_calls(tm
     from harness.web_fetch.reference_lifecycle import require_certifiable_evidence
     from harness.web_fetch.report_package import build
 
-    dataset = json.loads((runner.ROOT / 'harness/web_fetch/data/fixture-dataset.json').read_text())
+    dataset = json.loads((source_path('harness/web_fetch/data/fixture-dataset.json', root=runner.ROOT)).read_text())
     original = dataset['cases'][0]
     dataset['cases'] = [{**original, 'id': f'page-{index}',
                          'url': f'https://host-{index}.invalid/'} for index in range(5)]

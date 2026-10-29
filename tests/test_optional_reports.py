@@ -1,4 +1,6 @@
 """Public CLI runs and rescoring can save data independently of local HTML."""
+from harness.distribution import source_path
+
 import json
 import os
 import subprocess
@@ -7,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DATASET = ROOT / 'harness/web_fetch/data/fixture-dataset.json'
+DATASET = source_path('harness/web_fetch/data/fixture-dataset.json', root=ROOT)
 PROGRAM = '''
 import os
 import sys

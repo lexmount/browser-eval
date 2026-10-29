@@ -1,3 +1,5 @@
+from harness.distribution import source_path
+
 import json
 import base64
 import os
@@ -203,7 +205,7 @@ class SubprocessProviderTest(unittest.TestCase):
         thread.start()
         self.addCleanup(server.server_close)
         self.addCleanup(server.shutdown)
-        worker = Path(__file__).resolve().parents[1] / 'harness/web_fetch/workers/langchain_webbase_worker.py'
+        worker = source_path('harness/web_fetch/workers/langchain_webbase_worker.py', root=Path(__file__).resolve().parents[1])
         provider = SubprocessJsonlProvider('fixture', {'command': [sys.executable, str(worker)]})
         self.addCleanup(provider.__del__)
         url = f'http://127.0.0.1:{server.server_port}/'

@@ -4,8 +4,8 @@ Formal replay runs the same public WebArena human trajectories in both browsers,
 
 ## Code and dependencies
 
-- `harness/environments/webarena/` owns Docker and Rainbond site lifecycle, initialization and machine-readable receipts. `deploy/webarena/` contains deployment configurations and data-mount contracts.
-- `harness/trajectory_replay/public_webarena/` owns recording inventories, offline repairs, qualification gates, Chromium/Moli images, action replay, HAR, evaluator calls, one failure retry, first/final success statistics, evidence audit and separate report publication.
+- `src/harness/environments/webarena/` owns Docker and Rainbond site lifecycle, initialization and machine-readable receipts. `deploy/webarena/` contains deployment configurations and data-mount contracts.
+- `src/harness/trajectory_replay/public_webarena/` owns recording inventories, offline repairs, qualification gates, Chromium/Moli images, action replay, HAR, evaluator calls, one failure retry, first/final success statistics, evidence audit and separate report publication.
 
 WebArena-Verified 1.2.3 supplies tasks and evaluators as a dependency. Official images are pinned in `evaluation/browser-use-public/webarena-environment-images.json`.
 
@@ -27,8 +27,10 @@ Use a Linux x86-64 Docker host, Intel or AMD. The current formal 30-task suite u
 4. Run the frozen paired suite:
 
 ```text
+HUMAN_CANDIDATES="$(uv run --frozen python -c 'from harness.trajectory_replay.report_inputs import replay_input_path; print(replay_input_path(current="human-candidates"))')"
+
 uv run --frozen python -m harness.trajectory_replay.public_webarena.cli \
-  --suite evaluation/browser-use-public/webarena-human-suite.json \
+  --suite "$HUMAN_CANDIDATES" \
   --webarena-config <runtime-config> --env-file .env \
   --browser-docker-host unix:///var/run/docker.sock \
   --engines chromium,moli --failure-retries 1 \

@@ -14,7 +14,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+sys.path.append(str(ROOT / "src"))
 
 from lexbench_webfetch.paths import contained_path, safe_identifier
 from lexbench_webfetch.reference_quality import clean_reference_text

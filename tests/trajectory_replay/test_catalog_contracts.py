@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.distribution import source_path
 from harness.trajectory_replay.catalog_contracts import (
     ACCEPTANCE_SCHEMAS,
     RUN_SCHEMAS,
@@ -110,7 +111,9 @@ def test_environment_preparation_rejects_partial_component_restart(tmp_path):
 def test_repository_root_is_independent_of_current_working_directory():
     root = repository_root(Path(__file__))
     assert (root / "pyproject.toml").is_file()
-    assert (root / "harness/trajectory_replay/webarena_runtime_source.py").is_file()
+    assert source_path(
+        "harness/trajectory_replay/webarena_runtime_source.py", root=root
+    ).is_file()
 
 
 @pytest.mark.parametrize(

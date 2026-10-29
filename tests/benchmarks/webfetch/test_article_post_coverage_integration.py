@@ -5,7 +5,9 @@ import sys
 
 import pytest
 
-from lexbench_webfetch.article_dataset import DEFINITIONS
+from harness.benchmarks.data import definition_path
+
+DEFINITIONS = definition_path("webfetch", "evaluation/articles")
 from lexbench_webfetch.evaluation import evaluate_response
 
 

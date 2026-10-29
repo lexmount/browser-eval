@@ -43,13 +43,25 @@ def test_empty_tool_trace_cannot_pass_process_validation(monkeypatch):
 
 @pytest.mark.parametrize("generate_report", [False, True])
 @pytest.mark.parametrize("unexpected_diagnostic_error", [False, True])
+@pytest.mark.parametrize("with_smoke", [False, True])
 def test_run_saves_evidence_before_diagnostics_and_cleans_up(
-    tmp_path, monkeypatch, unexpected_diagnostic_error, generate_report
+    tmp_path, monkeypatch, unexpected_diagnostic_error, generate_report, with_smoke
 ):
     suite_path = tmp_path / "suite.json"
     suite_path.write_text("{}")
+    smoke_path = tmp_path / "selected-smoke.json"
+    smoke_raw = b'{"results":[{"status":"fail"}],"executed_at":"2026-09-01"}'
+    smoke_path.write_bytes(smoke_raw)
+    # A neighboring success must not be selected instead of the explicit evidence.
+    (suite_path.parent / "agent_smoke.json").write_text('{"results":[{"status":"pass"}]}')
     output = tmp_path / "artifacts"
-    task = BrowserTask("task", "Task", (), (), (), "simple", {}, {})
+    task = BrowserTask(
+        "task", "Task", ({"action": "navigate", "url": "{fixture_origin}/core.html"},),
+        (), (), "simple", {}, {},
+    )
+    monkeypatch.setattr(runner, "_start_fixture_server", lambda root: (
+        MagicMock(), MagicMock(), "http://fixture.test",
+    ))
     task.ground_truth["expected_outputs"] = {}
     monkeypatch.setattr(runner, "load_suite", lambda _: TaskSuite("test", (task,)))
     client = MagicMock()
@@ -94,6 +106,18 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
         attempts = (output / "attempts.jsonl").read_bytes()
         summary_bytes = (output / "summary.json").read_bytes()
         manifest = json.loads((output / "manifest.json").read_text())
+        if with_smoke:
+            assert manifest["agent_smoke"]["results"] == [{"status": "fail"}]
+            assert manifest["agent_smoke"]["provenance"]["source_sha256"] == (
+                hashlib.sha256(smoke_raw).hexdigest()
+            )
+        else:
+            assert "agent_smoke" not in manifest
+        from harness.trajectory_replay.report_inputs import replay_fixture_root
+        fixture_root = replay_fixture_root()
+        assert len(manifest["fixture_files"]) == 8
+        for name, digest in manifest["fixture_files"].items():
+            assert digest == hashlib.sha256((fixture_root / name).read_bytes()).hexdigest()
         assert len(attempts.splitlines()) == 2
         assert (
             manifest["artifact_provenance"]["attempts_sha256"]
@@ -116,6 +140,7 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
                 suite_path=suite_path,
                 output_dir=output,
                 reports_dir=tmp_path,
+                agent_smoke_path=smoke_path if with_smoke else None,
                 max_retries=0,
                 llm_diagnostics=True,
                 generate_report=generate_report,
@@ -127,6 +152,7 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
             suite_path=suite_path,
             output_dir=output,
             reports_dir=tmp_path,
+                agent_smoke_path=smoke_path if with_smoke else None,
             max_retries=0,
             llm_diagnostics=True,
             generate_report=generate_report,

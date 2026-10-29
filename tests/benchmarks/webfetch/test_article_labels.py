@@ -72,7 +72,9 @@ def test_whitespace_width_and_literal_emphasis_have_distinct_roles():
 
 def test_only_relevant_current_contracts_declare_labels():
     import json
-    from lexbench_webfetch.article_dataset import DEFINITIONS
+    from harness.benchmarks.data import definition_path
+
+    DEFINITIONS = definition_path("webfetch", "evaluation/articles")
     rules = json.loads((DEFINITIONS / 'rules.json').read_text())['rules']
     comments = [r['comment_contract'] for r in rules if 'comment_contract' in r]
     posts = [r['post_contract'] for r in rules if 'post_contract' in r]

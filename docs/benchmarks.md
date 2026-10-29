@@ -7,8 +7,8 @@ Browser Eval owns scoring, execution adapters, saved evidence and reports. Publi
 | Web Fetch task model, deterministic acceptance and offline scoring | `src/lexbench_webfetch/` in this repository |
 | Search acceptance, relevance metrics and offline scoring | `src/lexbench_websearch/` in this repository |
 | Public task definitions and source/reference bindings | The [LexMount benchmark datasets on Hugging Face](https://huggingface.co/Lexmount) |
-| Download verification and dataset selection | `harness/benchmarks/` and its [data lock](../harness/benchmarks/data-lock.json) |
-| Provider calls, browser execution, evidence and reports | Existing track modules under `harness/` |
+| Download verification and dataset selection | `src/harness/benchmarks/` and its [data lock](../src/harness/benchmarks/data-lock.json) |
+| Provider calls, browser execution, evidence and reports | Existing track modules under `src/harness/` |
 | Qualified WCXB inputs and curated/public replay definitions | Their HF editions; upstream projects retain source attribution |
 | WebMainBench and WebArena evaluator code | The selected scorer/evaluator dependency and its recorded source revision |
 
@@ -20,13 +20,13 @@ The README introduces the [design principles](../README.md#evaluation-approach) 
 
 ### Scoring evidence
 
-Retain the scorer identity and its input evidence separately from computed verdicts. For Search relevance, use named human annotations by default. If a model judge is explicitly selected, preserve its model, prompt, rubric, candidate evidence, raw responses and grades; label model-judged results accordingly. See the [Search scoring guide](../harness/web_search/README.md) and [Web Fetch scoring corrections](../harness/web_fetch/README.md#correct-a-score-or-reference) for their executable contracts.
+Retain the scorer identity and its input evidence separately from computed verdicts. For Search relevance, use named human annotations by default. If a model judge is explicitly selected, preserve its model, prompt, rubric, candidate evidence, raw responses and grades; label model-judged results accordingly. See the [Search scoring guide](../src/harness/web_search/README.md) and [Web Fetch scoring corrections](../src/harness/web_fetch/README.md#correct-a-score-or-reference) for their executable contracts.
 
 ### Independent verification
 
 Independent verification is opt-in. Declare its scope and retain the reviewer, protocol and hashes of the evidence reviewed. The default scope is machine failures; reviewing passes or the full matrix requires an explicit request. Reports state reviewed/total coverage and accepted unreviewed passes.
 
-When verification finds a defect, correct the shared cause in the reference, scorer or execution stage. Retain original evidence and official scores; record corrections separately and rescore or rerun the affected scope under the revised contract. A scorer-only correction can reuse valid saved outputs. Use the existing [Web Fetch review workflow](../harness/web_fetch/README.md#request-an-independent-review) and [replay protocol](trajectory-replay-protocol.md) for track-specific handling.
+When verification finds a defect, correct the shared cause in the reference, scorer or execution stage. Retain original evidence and official scores; record corrections separately and rescore or rerun the affected scope under the revised contract. A scorer-only correction can reuse valid saved outputs. Use the existing [Web Fetch review workflow](../src/harness/web_fetch/README.md#request-an-independent-review) and [replay protocol](trajectory-replay-protocol.md) for track-specific handling.
 
 ## Use benchmark inputs
 
@@ -71,11 +71,11 @@ uv run --frozen browser-harness-eval validate \
   --dataset /absolute/path/new-input-directory/dataset.json
 ```
 
-The export verifies the full dataset and declared reference files before materializing them. A formal live-site comparison uses the [certified runner](../harness/web_fetch/README.md) and the selected track's release gates. Ordinary CLI runs are diagnostic. For offline scoring of an existing answer, use `lexbench-webfetch score` or `lexbench-websearch score`; their help lists the task, response and evidence inputs.
+The export verifies the full dataset and declared reference files before materializing them. A formal live-site comparison uses the [certified runner](../src/harness/web_fetch/README.md) and the selected track's release gates. Ordinary CLI runs are diagnostic. For offline scoring of an existing answer, use `lexbench-webfetch score` or `lexbench-websearch score`; their help lists the task, response and evidence inputs.
 
 ## Historical bindings and new revisions
 
-[The data lock](../harness/benchmarks/data-lock.json) selects dataset commits, records archive/file hashes and retains earlier snapshots. [Fetch](../evaluation/lexbench-webfetch.json) and [Search](../evaluation/lexbench-websearch.json) import bindings preserve logical historical paths and exact definition hashes. Existing experiment profiles and certificates retain their original identities.
+[The data lock](../src/harness/benchmarks/data-lock.json) selects dataset commits, records archive/file hashes and retains earlier snapshots. [Fetch](../evaluation/lexbench-webfetch.json) and [Search](../evaluation/lexbench-websearch.json) import bindings preserve logical historical paths and exact definition hashes. Existing experiment profiles and certificates retain their original identities.
 
 Select a new published edition through one command:
 
@@ -87,7 +87,7 @@ The same command selects the other dataset keys registered in the lock, includin
 
 Author dataset changes in a checkout of the corresponding Hugging Face dataset. Commit the definitions and materialize any Git LFS files, then use `uv run --frozen python -m harness.benchmarks.publication --help` to build and publish the inspected commit. Install the optional `dataset-publish` extra and authenticate with `HF_TOKEN` for uploads; readers need no token. Preserve upstream attribution and redistribution terms. Scores, provider responses, model grades and private run directories do not belong in a dataset release.
 
-For resource-only or raw-file tasks, declare `content_score_applicable: false` when no text answer is required; file/resource checks remain active. Fix scoring rules here and keep positive/negative controls with their scorer. Preserve prior measurements; a scoring or reference correction applies to the declared affected scope through the existing revision receipts. `harness/lexbench/` remains the historical headless-browser execution/report adapter, separate from the two scorer packages.
+For resource-only or raw-file tasks, declare `content_score_applicable: false` when no text answer is required; file/resource checks remain active. Fix scoring rules here and keep positive/negative controls with their scorer. Preserve prior measurements; a scoring or reference correction applies to the declared affected scope through the existing revision receipts. `src/harness/lexbench/` remains the historical headless-browser execution/report adapter, separate from the two scorer packages.
 
 The [curated replay dataset](https://huggingface.co/datasets/Lexmount/lexbench-trajectory-replay) records its adaptation from [Lexbench-Headless-Browser scenario designs](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios). The separate [WebArena replay dataset](https://huggingface.co/datasets/Lexmount/lexbench-webarena-replay) supplies task and recording editions for the [public replay runtime](../examples/trajectory_replay/public_webarena/README.md). Run both through Browser Eval; the upstream repositories provide attribution and the pinned official evaluator, not an alternative current installation path.
 
@@ -102,7 +102,7 @@ Use the existing owner for each selection:
 
 | Benchmark | Version authority |
 | --- | --- |
-| LexBench datasets | `harness/benchmarks/data-lock.json`, corresponding import bindings and the Browser Eval scorer source commit |
+| LexBench datasets | `src/harness/benchmarks/data-lock.json`, corresponding import bindings and the Browser Eval scorer source commit |
 | WebMainBench | The data lock's corrected corpus, its upstream/correction provenance and the selected run profile's scorer commit |
 | WCXB | Qualified HF edition in the data lock, source manifest and unchanged HTML/reference hashes |
 | WebArena replay data | HF edition in the data lock and selected task/trajectory bindings |
@@ -339,4 +339,4 @@ The WebMainBench runner defaults to the corrected corpus selected by the data lo
 
 The local `lexbench_websearch` module loads its pinned public definitions through the shared dataset loader. The registry's `current` mapping selects named task suites; explicit dataset, field and hash references are resolved before collection. Historical standalone profiles preserve their original bytes and hashes.
 
-Search providers, annotation collection, latency/billing evidence, audits and reports remain in `harness/web_search/`. Report profiles and measured results stay beside external evidence. Change task data on Hugging Face and scorer code here; keep the existing source qualifications and paired scoring controls. The [Search dataset](https://huggingface.co/datasets/Lexmount/lexbench-websearch) and [SimpleQA retrieval edition](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) retain source attribution and derivation details.
+Search providers, annotation collection, latency/billing evidence, audits and reports remain in `src/harness/web_search/`. Report profiles and measured results stay beside external evidence. Change task data on Hugging Face and scorer code here; keep the existing source qualifications and paired scoring controls. The [Search dataset](https://huggingface.co/datasets/Lexmount/lexbench-websearch) and [SimpleQA retrieval edition](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) retain source attribution and derivation details.

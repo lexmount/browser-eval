@@ -78,10 +78,10 @@ markers = [
 [tool.ruff]
 line-length = 100
 include = [
-  "harness/environments/**/*.py",
+  "src/harness/environments/**/*.py",
   "tests/environments/**/*.py",
-  "harness/browser_use/**/*.py",
-  "harness/trajectory_replay/**/*.py",
+  "src/harness/browser_use/**/*.py",
+  "src/harness/trajectory_replay/**/*.py",
   "tests/browser_use/**/*.py",
   "tests/trajectory_replay/**/*.py",
 ]
@@ -98,31 +98,29 @@ ban-relative-imports = "all"
 "src/lexbench_webfetch/*.py" = ["TID252"]
 "src/lexbench_websearch/*.py" = ["TID252"]
 "tests/benchmarks/webfetch/*.py" = ["TID252"]
-"harness/trajectory_replay/report.py" = ["E501"]
-"harness/trajectory_replay/webarena_report.py" = ["E501"]
-"harness/browser_use/report.py" = ["E501"]
-"harness/browser_use/report_i18n.py" = ["E501"]
-"harness/trajectory_replay/public_webarena/report.py" = ["E501"]
-"harness/trajectory_replay/public_webarena/metrics.py" = ["F401", "I001"]
+"src/harness/trajectory_replay/report.py" = ["E501"]
+"src/harness/trajectory_replay/webarena_report.py" = ["E501"]
+"src/harness/browser_use/report.py" = ["E501"]
+"src/harness/browser_use/report_i18n.py" = ["E501"]
+"src/harness/trajectory_replay/public_webarena/report.py" = ["E501"]
+"src/harness/trajectory_replay/public_webarena/metrics.py" = ["F401", "I001"]
 
 [build-system]
 requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.package-dir]
-harness = "harness"
-lexbench_webfetch = "src/lexbench_webfetch"
-lexbench_websearch = "src/lexbench_websearch"
+"" = "src"
 
 [tool.setuptools.packages.find]
-where = [".", "src"]
+where = ["src"]
 include = ["harness*", "lexbench_webfetch*", "lexbench_websearch*"]
 
 [tool.setuptools.package-data]
 "harness.benchmarks" = ["data-lock.json", "code-migration.json", "scoring-regressions.json", "cards/*.md", "cards/*.json"]
 "harness.web_search" = ["messages.json", "data/*.json"]
 "harness" = ["licenses/*.txt"]
-"harness.trajectory_replay" = ["messages.json"]
+"harness.trajectory_replay" = ["messages.json", "resources/fixtures/*.html"]
 "harness.browser_use" = ["report-translations.json"]
 "harness.lexbench" = ["assets/*.js", "assets/*.cjs"]
 "harness.web_fetch" = ["report-translations.json", "data/*.json", "data/latency-certifiers/*.txt", "templates/*.html", "assets/methodology/*.png", "assets/*.js", "html_to_markdown.mjs"]

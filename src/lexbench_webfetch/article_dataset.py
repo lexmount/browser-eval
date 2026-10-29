@@ -17,9 +17,7 @@ from .models import EvalCase, validate_case
 from .paths import contained_path
 from .stable_tasks import validate_acceptance_contract
 
-from harness.benchmarks.data import binding, cache_home, definition_path
-
-DEFINITIONS = cache_home() / "webfetch" / binding("webfetch")["revision"] / "definitions/evaluation/articles"
+from harness.benchmarks.data import definition_path, resolve_definition_path
 
 
 def _acceptance(rule: dict) -> dict:
@@ -253,10 +251,10 @@ def compile_case(case: dict, rule: dict, evidence_home: Path) -> dict:
     return _qualify_components(case, rule, task, evidence_home)
 
 
-def compile_dataset(evidence_home: Path, definition_dir: Path = DEFINITIONS) -> dict:
+def compile_dataset(evidence_home: Path, definition_dir: Path | None = None) -> dict:
     """Compile the whole approved population, refusing unresolved or omitted cases."""
-    if definition_dir == DEFINITIONS:
-        definition_dir = definition_path("webfetch", "evaluation/articles")
+    definition_dir = (definition_path("webfetch", "evaluation/articles") if definition_dir is None
+                      else resolve_definition_path("webfetch", definition_dir))
     sources = {name: (definition_dir / name).read_bytes()
                for name in ("cohort.json", "rules.json")}
     cohort = json.loads(sources["cohort.json"])

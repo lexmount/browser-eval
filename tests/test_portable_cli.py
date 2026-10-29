@@ -1,4 +1,6 @@
 """Exercise the installed application's contract without repository resources."""
+from harness.distribution import source_path
+
 import json
 import os
 import shutil
@@ -56,7 +58,7 @@ main()
 def test_offline_example_runs_without_a_repository(tmp_path, unbound_diagnostics):
     root = Path(__file__).resolve().parents[1]
     installation = tmp_path / "installation"
-    shutil.copytree(root / "harness", installation / "harness",
+    shutil.copytree(source_path("harness", root=root), installation / "harness",
                     ignore=shutil.ignore_patterns("__pycache__"))
     # A shared case ID does not bind another dataset's source observation.
     (installation / "research").mkdir()

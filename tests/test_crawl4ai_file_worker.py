@@ -1,3 +1,5 @@
+from harness.distribution import source_path
+
 import asyncio
 import base64
 import importlib.util
@@ -38,7 +40,7 @@ class NativeFileWorkerTests(unittest.TestCase):
         }
         spec = importlib.util.spec_from_file_location(
             "file_worker_test",
-            Path(__file__).resolve().parents[1] / "harness/web_fetch/workers/crawl4ai_worker.py",
+            source_path("harness/web_fetch/workers/crawl4ai_worker.py", root=Path(__file__).resolve().parents[1]),
         )
         module = importlib.util.module_from_spec(spec)
         with patch.dict(sys.modules, modules):

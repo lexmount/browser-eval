@@ -141,7 +141,9 @@ def test_plain_navigation_comment_label_does_not_make_article_captions_comments(
 ])
 def test_published_comment_floors_accept_boundary_and_reject_one_fewer(number, expected):
     import json
-    from lexbench_webfetch.article_dataset import DEFINITIONS
+    from harness.benchmarks.data import definition_path
+
+    DEFINITIONS = definition_path("webfetch", "evaluation/articles")
     rules = json.loads((DEFINITIONS / 'rules.json').read_text())['rules']
     rule = next(row for row in rules if row['id'] == f'article-{number:03}')
     contract = rule['comment_contract']

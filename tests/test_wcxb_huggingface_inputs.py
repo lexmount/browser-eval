@@ -106,6 +106,7 @@ def test_qualified_edition_rejects_changed_bytes_or_declared_population(edition,
 
 def test_score_command_resolves_qualified_hf_inputs_by_default(edition, tmp_path, monkeypatch):
     source, manifest = edition
+    (tmp_path / 'profile.json').write_text('{}')
     monkeypatch.setattr(data, 'definition_path', lambda track, relative: manifest.parent / relative)
     called = {}
     monkeypatch.setattr(wcxb_scoring, 'score', lambda **args: called.update(args))

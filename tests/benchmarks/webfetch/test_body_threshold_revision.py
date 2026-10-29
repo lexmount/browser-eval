@@ -82,7 +82,7 @@ def test_published_revision_covers_all_legacy_bodies_and_keeps_bindings():
         _, root = bench.suite(identifier)
         data = bench.read(root / 'tasks.json')
         before = copy.deepcopy(data)
-        definition = bench.read(bench.SUITES / 'annotation-revisions' / (revision + '.json'))
+        definition = bench.read(bench.definitions() / 'annotation-revisions' / (revision + '.json'))
         operations = {r['case_id']: r['body_thresholds'] for r in definition['changes']
                       if r['suite'] == identifier and 'body_thresholds' in r}
         revised = copy.deepcopy(data)

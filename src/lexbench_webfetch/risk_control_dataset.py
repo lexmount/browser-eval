@@ -19,14 +19,7 @@ from lexbench_webfetch.composite_tasks import validate_composite_acceptance
 from .inputs import require_mutable_inputs, data_home, definition_path
 from lexbench_webfetch.paths import contained_path
 from lexbench_webfetch.stable_tasks import validate_acceptance_contract
-from harness.benchmarks.data import binding, cache_home
-
-RISK = cache_home() / "webfetch" / binding("webfetch")["revision"] / "definitions/evaluation/risk-control"
-COHORT = RISK / "qualification/cohort/cohort-manifest.json"
-MANIFEST = RISK / "qualification/cohort/input-manifest.json"
-RULE_FILES = (RISK / "first-30-rule-review.md", RISK / "remaining-70-rule-review.md")
-LIST_CONTRACTS = RISK / "list-contracts.json"
-BODY_CONTRACTS = RISK / "body-contracts.json"
+from harness.benchmarks.data import resolve_definition_path
 EXPECTED_RULE_HASHES = {
     "first-30-rule-review.md": "6945a6aa7b0d8d5990d8abf5d24fc41b5a42a22c70940a7c996d8698c6e9bf81",
     "remaining-70-rule-review.md": (
@@ -108,7 +101,8 @@ def visible_text_key(value: str) -> str:
 
 def parse_sections(rule_files=None) -> list[dict]:
     if rule_files is None:
-        rule_files = tuple(definition_path("evaluation/risk-control/" + path.name) for path in RULE_FILES)
+        rule_files = tuple(definition_path("evaluation/risk-control/" + name)
+                           for name in EXPECTED_RULE_HASHES)
     sections = []
     for path in rule_files:
         text = path.read_text()
@@ -306,10 +300,10 @@ def build(output: Path, definition_dir: Path | None = None, *, evidence_home: Pa
     require_mutable_inputs(output)
     if output.exists() or output.is_symlink():
         raise FileExistsError(output)
-    if definition_dir is None or definition_dir == RISK:
-        definition_dir = definition_path("evaluation/risk-control")
+    definition_dir = (definition_path("evaluation/risk-control") if definition_dir is None
+                      else resolve_definition_path("webfetch", definition_dir))
     rule_files = tuple(
-        contained_path(definition_dir, path.name, reject_symlinks=True) for path in RULE_FILES
+        contained_path(definition_dir, name, reject_symlinks=True) for name in EXPECTED_RULE_HASHES
     )
     cohort_path = contained_path(
         definition_dir, "qualification/cohort/cohort-manifest.json", reject_symlinks=True

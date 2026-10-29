@@ -14,8 +14,8 @@ Use the declared source for each benchmark and evaluator. The full commit in the
 
 | Dependency | Role | Version authority |
 | --- | --- | --- |
-| Web Fetch scoring (`src/lexbench_webfetch/`) | Task model, deterministic acceptance and frozen-input validation | Browser Eval source revision; [HF definitions](https://huggingface.co/datasets/Lexmount/lexbench-webfetch) selected by the [data lock](../harness/benchmarks/data-lock.json) |
-| Search scoring (`src/lexbench_websearch/`) | Source qualifications and retrieval/relevance metrics | Browser Eval source revision; [Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch) and [SimpleQA](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) definitions selected by the [data lock](../harness/benchmarks/data-lock.json) |
+| Web Fetch scoring (`src/lexbench_webfetch/`) | Task model, deterministic acceptance and frozen-input validation | Browser Eval source revision; [HF definitions](https://huggingface.co/datasets/Lexmount/lexbench-webfetch) selected by the [data lock](../src/harness/benchmarks/data-lock.json) |
+| Search scoring (`src/lexbench_websearch/`) | Source qualifications and retrieval/relevance metrics | Browser Eval source revision; [Search](https://huggingface.co/datasets/Lexmount/lexbench-websearch) and [SimpleQA](https://huggingface.co/datasets/Lexmount/lexbench-simpleqa-verified) definitions selected by the [data lock](../src/harness/benchmarks/data-lock.json) |
 | [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/) | HTML parsing | `pyproject.toml` and `uv.lock` |
 | [FastCDC](https://github.com/iscc/fastcdc-py) | Content chunking | `pyproject.toml` and `uv.lock` |
 
@@ -23,7 +23,7 @@ Use the declared source for each benchmark and evaluator. The full commit in the
 
 | Dependency | Repository and relevant branch | Required source |
 | --- | --- | --- |
-| WebArena-Verified evaluator | [lexmount/webarena-verified](https://github.com/lexmount/webarena-verified) | Git dependency in [pyproject.toml](../pyproject.toml) and [uv.lock](../uv.lock); [runtime source check](../harness/trajectory_replay/webarena_runtime_source.py) |
+| WebArena-Verified evaluator | [lexmount/webarena-verified](https://github.com/lexmount/webarena-verified) | Git dependency in [pyproject.toml](../pyproject.toml) and [uv.lock](../uv.lock); [runtime source check](../src/harness/trajectory_replay/webarena_runtime_source.py) |
 | CowAgent Web Fetch baseline | [zhayujie/CowAgent](https://github.com/zhayujie/CowAgent) | `cowagent_rev` in [bootstrap_oss_baselines.sh](../scripts/bootstrap_oss_baselines.sh); configured `expected_repo_revision` |
 | OpenClaw Web Fetch baseline | [openclaw/openclaw](https://github.com/openclaw/openclaw) | `openclaw_rev` in [bootstrap_oss_baselines.sh](../scripts/bootstrap_oss_baselines.sh); configured `expected_repo_revision` |
 | DeepSeek Harness Web Fetch baseline | [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness) | `dsh_rev` in [bootstrap_oss_baselines.sh](../scripts/bootstrap_oss_baselines.sh); configured `expected_repo_revision` |
@@ -61,10 +61,10 @@ The [corrected WebMainBench dataset](https://huggingface.co/datasets/Lexmount/le
 
 | Scorer | Version authority |
 | --- | --- |
-| Official default | `SCORER_COMMIT` in [webmainbench_scoring.py](../harness/web_fetch/webmainbench_scoring.py) |
+| Official default | `SCORER_COMMIT` in [webmainbench_scoring.py](../src/harness/web_fetch/webmainbench_scoring.py) |
 | Selected correction | `scorer_commit` in the selected experiment's correction binding; [existing binding](../evaluation/webmainbench-full/scoring-correction-binding.json) |
 
-Choose the scorer named by the experiment's [profile and correction records](../evaluation/webmainbench-full/). See the [scoring guide](../harness/web_fetch/WEBMAINBENCH.md); switching to another branch tip changes the evaluation.
+Choose the scorer named by the experiment's [profile and correction records](../evaluation/webmainbench-full). See the [scoring guide](../src/harness/web_fetch/WEBMAINBENCH.md); switching to another branch tip changes the evaluation.
 
 | Other inputs | Setup and version record |
 | --- | --- |
