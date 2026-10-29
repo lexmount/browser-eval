@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "7b7a0941e46599c6134bb1359680bbea9477ecec57881ed408adfd3d1a552d0e"
+          "after_sha256": "c56f04443b16089ea018394a259e43ec324293b1ce5318f5d3fbfdfa55ba9b55"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "8416af8ae6c80fba2ca2dac49df803b5af57585a42bd96e1ebeb55676ae770f4"
+          "after_sha256": "665451998af612366df339ce6a2bc4484fd8444e0d92f4f14b7a083b62a30a29"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -2913,6 +2913,123 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_native_record_tables.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "review32-raw-text-base-generic-title-response-base",
+            "review32-raw-text-base-generic-title-no-fake-base",
+            "review32-raw-text-base-generic-real-head-base",
+            "review32-raw-text-base-generic-textarea-picture",
+            "review32-raw-text-base-generic-noscript-base",
+            "review32-raw-text-base-generic-plaintext-frame-tail",
+            "review32-raw-text-base-generic-plaintext-picture-tail",
+            "review32-raw-text-base-generic-real-before-plaintext",
+            "review32-raw-text-base-generic-metadata-plaintext",
+            "review32-raw-text-base-generic-srcset-equal-value-owner",
+            "review32-raw-text-base-image-title-response-base",
+            "review32-raw-text-base-image-title-no-fake-base",
+            "review32-raw-text-base-image-real-head-base",
+            "review32-raw-text-base-image-textarea-picture",
+            "review32-raw-text-base-image-noscript-base",
+            "review32-raw-text-base-image-plaintext-frame-tail",
+            "review32-raw-text-base-image-plaintext-picture-tail",
+            "review32-raw-text-base-image-real-before-plaintext",
+            "review32-raw-text-base-image-metadata-plaintext",
+            "review32-raw-text-base-image-srcset-equal-value-owner"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_document_base_resources.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "native-card-family-earthquake-complete-html",
+            "native-card-family-earthquake-split-html",
+            "native-card-family-earthquake-adjacent-html",
+            "native-card-family-earthquake-adjacent-over-limit-html",
+            "native-card-family-earthquake-mixed-cannot-invent-second-html",
+            "native-card-family-earthquake-mixed-keeps-complete-html",
+            "native-card-family-earthquake-complete-inferred",
+            "native-card-family-earthquake-split-inferred",
+            "native-card-family-earthquake-adjacent-inferred",
+            "native-card-family-earthquake-adjacent-over-limit-inferred",
+            "native-card-family-earthquake-mixed-cannot-invent-second-inferred",
+            "native-card-family-earthquake-mixed-keeps-complete-inferred",
+            "native-card-family-earthquake-list-complete-li",
+            "native-card-family-earthquake-list-split-li",
+            "native-card-family-earthquake-list-complete-div",
+            "native-card-family-earthquake-list-split-div",
+            "native-card-family-earthquake-nested-split",
+            "native-card-family-earthquake-nested-complete",
+            "native-card-family-earthquake-presentation-wrappers",
+            "native-card-family-earthquake-hidden-complete-cannot-rescue-split",
+            "native-card-family-earthquake-markdown-complete",
+            "native-card-family-earthquake-markdown-adjacent",
+            "native-card-family-earthquake-layout-cell-complete",
+            "native-card-family-earthquake-layout-cell-split",
+            "native-card-family-quote-complete-html",
+            "native-card-family-quote-split-html",
+            "native-card-family-quote-adjacent-html",
+            "native-card-family-quote-adjacent-over-limit-html",
+            "native-card-family-quote-mixed-cannot-invent-second-html",
+            "native-card-family-quote-mixed-keeps-complete-html",
+            "native-card-family-quote-complete-inferred",
+            "native-card-family-quote-split-inferred",
+            "native-card-family-quote-adjacent-inferred",
+            "native-card-family-quote-adjacent-over-limit-inferred",
+            "native-card-family-quote-mixed-cannot-invent-second-inferred",
+            "native-card-family-quote-mixed-keeps-complete-inferred",
+            "native-card-family-quote-list-complete-li",
+            "native-card-family-quote-list-split-li",
+            "native-card-family-quote-list-complete-div",
+            "native-card-family-quote-list-split-div",
+            "native-card-family-quote-nested-split",
+            "native-card-family-quote-nested-complete",
+            "native-card-family-quote-presentation-wrappers",
+            "native-card-family-quote-hidden-complete-cannot-rescue-split",
+            "native-card-family-quote-markdown-complete",
+            "native-card-family-quote-markdown-adjacent",
+            "native-card-family-quote-layout-cell-complete",
+            "native-card-family-quote-layout-cell-split",
+            "native-card-family-api_operation-complete-html",
+            "native-card-family-api_operation-split-html",
+            "native-card-family-api_operation-adjacent-html",
+            "native-card-family-api_operation-adjacent-over-limit-html",
+            "native-card-family-api_operation-mixed-cannot-invent-second-html",
+            "native-card-family-api_operation-mixed-keeps-complete-html",
+            "native-card-family-api_operation-complete-inferred",
+            "native-card-family-api_operation-split-inferred",
+            "native-card-family-api_operation-adjacent-inferred",
+            "native-card-family-api_operation-adjacent-over-limit-inferred",
+            "native-card-family-api_operation-mixed-cannot-invent-second-inferred",
+            "native-card-family-api_operation-mixed-keeps-complete-inferred",
+            "native-card-family-api_operation-list-complete-li",
+            "native-card-family-api_operation-list-split-li",
+            "native-card-family-api_operation-list-complete-div",
+            "native-card-family-api_operation-list-split-div",
+            "native-card-family-api_operation-nested-split",
+            "native-card-family-api_operation-nested-complete",
+            "native-card-family-api_operation-presentation-wrappers",
+            "native-card-family-api_operation-hidden-complete-cannot-rescue-split",
+            "native-card-family-api_operation-markdown-complete",
+            "native-card-family-api_operation-markdown-adjacent",
+            "native-card-family-api_operation-layout-cell-complete",
+            "native-card-family-api_operation-layout-cell-split",
+            "native-card-family-product-existing-complete",
+            "native-card-family-catalog_product-existing-complete",
+            "native-card-family-review-existing-complete",
+            "native-card-family-name_description-existing-complete",
+            "native-card-family-taxonomy_family-existing-complete"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_native_card_family_boundaries.py"
           ]
         }
       ]

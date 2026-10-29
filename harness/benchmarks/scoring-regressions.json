@@ -55245,6 +55245,2491 @@
         "answer_format": "html"
       },
       "expected_task_pass": false
+    },
+    {
+      "id": "review32-raw-text-base-generic-title-response-base",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<title>Example <base href=\"https://assets.example/files/\"></title><img src=\"target.png\">",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review32-raw-text-base-generic-title-no-fake-base",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://assets.example/files/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<title>Example <base href=\"https://assets.example/files/\"></title><img src=\"target.png\">",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "review32-raw-text-base-generic-real-head-base",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://assets.example/files/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<title>Example <base href=\"https://assets.example/files/\"></title><base href=\"https://assets.example/files/\"><img src=\"target.png\">",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review32-raw-text-base-generic-textarea-picture",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<textarea><picture><source srcset=\"target.png 2x\"></picture></textarea>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "review32-raw-text-base-generic-noscript-base",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<noscript><base href=\"https://assets.example/files/\"></noscript><img src=\"target.png\">",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review32-raw-text-base-generic-plaintext-frame-tail",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<plaintext>Example </plaintext><iframe srcdoc=\"&lt;img src=&quot;target.png&quot;&gt;\"></iframe>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "review32-raw-text-base-generic-plaintext-picture-tail",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<plaintext>Example </plaintext><picture><source srcset=\"target.png 2x\"></picture>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "review32-raw-text-base-generic-real-before-plaintext",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<img src=\"target.png\"><plaintext>Example </plaintext><img src=\"noise.png\">",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review32-raw-text-base-generic-metadata-plaintext",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<plaintext><base href=\"https://assets.example/files/\"></plaintext>",
+      "metadata": {
+        "answer_format": "html",
+        "links": [
+          {
+            "url": "target.png"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review32-raw-text-base-generic-srcset-equal-value-owner",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<textarea><picture><source srcset=\"target.png 2x\"></picture></textarea><video><source srcset=\"target.png 2x\"></video>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review32-raw-text-base-image-title-response-base",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<title>Example <base href=\"https://assets.example/files/\"></title><img src=\"target.png\">",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review32-raw-text-base-image-title-no-fake-base",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://assets.example/files/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<title>Example <base href=\"https://assets.example/files/\"></title><img src=\"target.png\">",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "review32-raw-text-base-image-real-head-base",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://assets.example/files/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<title>Example <base href=\"https://assets.example/files/\"></title><base href=\"https://assets.example/files/\"><img src=\"target.png\">",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review32-raw-text-base-image-textarea-picture",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<textarea><picture><source srcset=\"target.png 2x\"></picture></textarea>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "review32-raw-text-base-image-noscript-base",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<noscript><base href=\"https://assets.example/files/\"></noscript><img src=\"target.png\">",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review32-raw-text-base-image-plaintext-frame-tail",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<plaintext>Example </plaintext><iframe srcdoc=\"&lt;img src=&quot;target.png&quot;&gt;\"></iframe>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "review32-raw-text-base-image-plaintext-picture-tail",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<plaintext>Example </plaintext><picture><source srcset=\"target.png 2x\"></picture>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "review32-raw-text-base-image-real-before-plaintext",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<img src=\"target.png\"><plaintext>Example </plaintext><img src=\"noise.png\">",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review32-raw-text-base-image-metadata-plaintext",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<plaintext><base href=\"https://assets.example/files/\"></plaintext>",
+      "metadata": {
+        "answer_format": "html",
+        "images": [
+          "target.png"
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_pass": true
+      }
+    },
+    {
+      "id": "review32-raw-text-base-image-srcset-equal-value-owner",
+      "root_cause": "4409052347",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "document-base-resource",
+        "url": "https://example.test/catalog/index.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/catalog/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<textarea><picture><source srcset=\"target.png 2x\"></picture></textarea><video><source srcset=\"target.png 2x\"></video>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_pass": false
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-complete-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>4.1</p><p>Pacific coast</p><p>2026-01-01T12:00:00Z</p><p>12 km</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-split-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>4.1</p><p>Pacific coast</p></article><article><p>2026-01-01T12:00:00Z</p><p>12 km</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-adjacent-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "maximum_records": 2
+        }
+      },
+      "artifact": "<article><p>4.1</p><p>Pacific coast</p><p>2026-01-01T12:00:00Z</p><p>12 km</p></article><article><p>5.2</p><p>Northern coast</p><p>2026-01-02T12:00:00Z</p><p>18 km</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-adjacent-over-limit-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>4.1</p><p>Pacific coast</p><p>2026-01-01T12:00:00Z</p><p>12 km</p></article><article><p>5.2</p><p>Northern coast</p><p>2026-01-02T12:00:00Z</p><p>18 km</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-mixed-cannot-invent-second-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>5.2</p><p>Northern coast</p><p>2026-01-02T12:00:00Z</p><p>18 km</p></article><article><p>4.1</p><p>Pacific coast</p></article><article><p>2026-01-01T12:00:00Z</p><p>12 km</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-mixed-keeps-complete-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>5.2</p><p>Northern coast</p><p>2026-01-02T12:00:00Z</p><p>18 km</p></article><article><p>4.1</p><p>Pacific coast</p></article><article><p>2026-01-01T12:00:00Z</p><p>12 km</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-complete-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>4.1</p><p>Pacific coast</p><p>2026-01-01T12:00:00Z</p><p>12 km</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-split-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>4.1</p><p>Pacific coast</p></article><article><p>2026-01-01T12:00:00Z</p><p>12 km</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-adjacent-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "maximum_records": 2
+        }
+      },
+      "artifact": "<article><p>4.1</p><p>Pacific coast</p><p>2026-01-01T12:00:00Z</p><p>12 km</p></article><article><p>5.2</p><p>Northern coast</p><p>2026-01-02T12:00:00Z</p><p>18 km</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-adjacent-over-limit-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>4.1</p><p>Pacific coast</p><p>2026-01-01T12:00:00Z</p><p>12 km</p></article><article><p>5.2</p><p>Northern coast</p><p>2026-01-02T12:00:00Z</p><p>18 km</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-mixed-cannot-invent-second-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>5.2</p><p>Northern coast</p><p>2026-01-02T12:00:00Z</p><p>18 km</p></article><article><p>4.1</p><p>Pacific coast</p></article><article><p>2026-01-01T12:00:00Z</p><p>12 km</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-mixed-keeps-complete-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>5.2</p><p>Northern coast</p><p>2026-01-02T12:00:00Z</p><p>18 km</p></article><article><p>4.1</p><p>Pacific coast</p></article><article><p>2026-01-01T12:00:00Z</p><p>12 km</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-list-complete-li",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<ul><li><p>4.1</p><p>Pacific coast</p><p>2026-01-01T12:00:00Z</p><p>12 km</p></li></ul>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-list-split-li",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<ul><li><p>4.1</p><p>Pacific coast</p></li><li><p>2026-01-01T12:00:00Z</p><p>12 km</p></li></ul>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-list-complete-div",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<div role=\"list\"><div role=\"listitem\"><p>4.1</p><p>Pacific coast</p><p>2026-01-01T12:00:00Z</p><p>12 km</p></div></div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-list-split-div",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<div role=\"list\"><div role=\"listitem\"><p>4.1</p><p>Pacific coast</p></div><div role=\"listitem\"><p>2026-01-01T12:00:00Z</p><p>12 km</p></div></div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-nested-split",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>4.1</p><p>Pacific coast</p><article><p>2026-01-01T12:00:00Z</p><p>12 km</p></article></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-nested-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "maximum_records": 2
+        }
+      },
+      "artifact": "<article><p>4.1</p><p>Pacific coast</p><p>2026-01-01T12:00:00Z</p><p>12 km</p><article><p>5.2</p><p>Northern coast</p><p>2026-01-02T12:00:00Z</p><p>18 km</p></article></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-presentation-wrappers",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><section><div><p>4.1</p><p>Pacific coast</p></div></section><div><div><p>2026-01-01T12:00:00Z</p><p>12 km</p></div></div></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-hidden-complete-cannot-rescue-split",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article hidden><p>5.2</p><p>Northern coast</p><p>2026-01-02T12:00:00Z</p><p>18 km</p></article><article><p>4.1</p><p>Pacific coast</p></article><article><p>2026-01-01T12:00:00Z</p><p>12 km</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-markdown-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "4.1\nPacific coast\n2026-01-01T12:00:00Z\n12 km",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-markdown-adjacent",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "maximum_records": 2
+        }
+      },
+      "artifact": "4.1\nPacific coast\n2026-01-01T12:00:00Z\n12 km\n5.2\nNorthern coast\n2026-01-02T12:00:00Z\n18 km",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-layout-cell-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<table><tr><td><article><p>4.1</p><p>Pacific coast</p><p>2026-01-01T12:00:00Z</p><p>12 km</p></article></td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-earthquake-layout-cell-split",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<table><tr><td><article><p>4.1</p><p>Pacific coast</p></article><article><p>2026-01-01T12:00:00Z</p><p>12 km</p></article></td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-quote-complete-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>“A new thought.”</p><p>by Alice</p><p>Tags: nature life</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-quote-split-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>“A new thought.”</p></article><article><p>by Alice</p><p>Tags: nature life</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-quote-adjacent-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "maximum_records": 2
+        }
+      },
+      "artifact": "<article><p>“A new thought.”</p><p>by Alice</p><p>Tags: nature life</p></article><article><p>“Another thought.”</p><p>by Bob</p><p>Tags: learning books</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-quote-adjacent-over-limit-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>“A new thought.”</p><p>by Alice</p><p>Tags: nature life</p></article><article><p>“Another thought.”</p><p>by Bob</p><p>Tags: learning books</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-quote-mixed-cannot-invent-second-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>“Another thought.”</p><p>by Bob</p><p>Tags: learning books</p></article><article><p>“A new thought.”</p></article><article><p>by Alice</p><p>Tags: nature life</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-quote-mixed-keeps-complete-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>“Another thought.”</p><p>by Bob</p><p>Tags: learning books</p></article><article><p>“A new thought.”</p></article><article><p>by Alice</p><p>Tags: nature life</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-quote-complete-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>“A new thought.”</p><p>by Alice</p><p>Tags: nature life</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-quote-split-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>“A new thought.”</p></article><article><p>by Alice</p><p>Tags: nature life</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-quote-adjacent-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "maximum_records": 2
+        }
+      },
+      "artifact": "<article><p>“A new thought.”</p><p>by Alice</p><p>Tags: nature life</p></article><article><p>“Another thought.”</p><p>by Bob</p><p>Tags: learning books</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-quote-adjacent-over-limit-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>“A new thought.”</p><p>by Alice</p><p>Tags: nature life</p></article><article><p>“Another thought.”</p><p>by Bob</p><p>Tags: learning books</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-quote-mixed-cannot-invent-second-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>“Another thought.”</p><p>by Bob</p><p>Tags: learning books</p></article><article><p>“A new thought.”</p></article><article><p>by Alice</p><p>Tags: nature life</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-quote-mixed-keeps-complete-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>“Another thought.”</p><p>by Bob</p><p>Tags: learning books</p></article><article><p>“A new thought.”</p></article><article><p>by Alice</p><p>Tags: nature life</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-quote-list-complete-li",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<ul><li><p>“A new thought.”</p><p>by Alice</p><p>Tags: nature life</p></li></ul>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-quote-list-split-li",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<ul><li><p>“A new thought.”</p></li><li><p>by Alice</p><p>Tags: nature life</p></li></ul>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-quote-list-complete-div",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<div role=\"list\"><div role=\"listitem\"><p>“A new thought.”</p><p>by Alice</p><p>Tags: nature life</p></div></div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-quote-list-split-div",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<div role=\"list\"><div role=\"listitem\"><p>“A new thought.”</p></div><div role=\"listitem\"><p>by Alice</p><p>Tags: nature life</p></div></div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-quote-nested-split",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>“A new thought.”</p><article><p>by Alice</p><p>Tags: nature life</p></article></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-quote-nested-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "maximum_records": 2
+        }
+      },
+      "artifact": "<article><p>“A new thought.”</p><p>by Alice</p><p>Tags: nature life</p><article><p>“Another thought.”</p><p>by Bob</p><p>Tags: learning books</p></article></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-quote-presentation-wrappers",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><section><div><p>“A new thought.”</p></div></section><div><div><p>by Alice</p><p>Tags: nature life</p></div></div></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-quote-hidden-complete-cannot-rescue-split",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article hidden><p>“Another thought.”</p><p>by Bob</p><p>Tags: learning books</p></article><article><p>“A new thought.”</p></article><article><p>by Alice</p><p>Tags: nature life</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-quote-markdown-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "“A new thought.”\nby Alice\nTags: nature life",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-quote-markdown-adjacent",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "maximum_records": 2
+        }
+      },
+      "artifact": "“A new thought.”\nby Alice\nTags: nature life\n“Another thought.”\nby Bob\nTags: learning books",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-quote-layout-cell-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<table><tr><td><article><p>“A new thought.”</p><p>by Alice</p><p>Tags: nature life</p></article></td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-quote-layout-cell-split",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<table><tr><td><article><p>“A new thought.”</p></article><article><p>by Alice</p><p>Tags: nature life</p></article></td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-complete-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>GET /items</p><p>List current items</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-split-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>GET /items</p></article><article><p>List current items</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-adjacent-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "maximum_records": 2
+        }
+      },
+      "artifact": "<article><p>GET /items</p><p>List current items</p></article><article><p>POST /items</p><p>Create an item</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-adjacent-over-limit-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>GET /items</p><p>List current items</p></article><article><p>POST /items</p><p>Create an item</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-mixed-cannot-invent-second-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>POST /items</p><p>Create an item</p></article><article><p>GET /items</p></article><article><p>List current items</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-mixed-keeps-complete-html",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>POST /items</p><p>Create an item</p></article><article><p>GET /items</p></article><article><p>List current items</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-complete-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>GET /items</p><p>List current items</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-split-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>GET /items</p></article><article><p>List current items</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-adjacent-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "maximum_records": 2
+        }
+      },
+      "artifact": "<article><p>GET /items</p><p>List current items</p></article><article><p>POST /items</p><p>Create an item</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-adjacent-over-limit-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>GET /items</p><p>List current items</p></article><article><p>POST /items</p><p>Create an item</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-mixed-cannot-invent-second-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>POST /items</p><p>Create an item</p></article><article><p>GET /items</p></article><article><p>List current items</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-mixed-keeps-complete-inferred",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>POST /items</p><p>Create an item</p></article><article><p>GET /items</p></article><article><p>List current items</p></article>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-list-complete-li",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<ul><li><p>GET /items</p><p>List current items</p></li></ul>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-list-split-li",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<ul><li><p>GET /items</p></li><li><p>List current items</p></li></ul>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-list-complete-div",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<div role=\"list\"><div role=\"listitem\"><p>GET /items</p><p>List current items</p></div></div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-list-split-div",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<div role=\"list\"><div role=\"listitem\"><p>GET /items</p></div><div role=\"listitem\"><p>List current items</p></div></div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-nested-split",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>GET /items</p><article><p>List current items</p></article></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-nested-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "maximum_records": 2
+        }
+      },
+      "artifact": "<article><p>GET /items</p><p>List current items</p><article><p>POST /items</p><p>Create an item</p></article></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-presentation-wrappers",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><section><div><p>GET /items</p></div></section><div><div><p>List current items</p></div></div></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-hidden-complete-cannot-rescue-split",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article hidden><p>POST /items</p><p>Create an item</p></article><article><p>GET /items</p></article><article><p>List current items</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-markdown-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "GET /items\nList current items",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-markdown-adjacent",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "maximum_records": 2
+        }
+      },
+      "artifact": "GET /items\nList current items\nPOST /items\nCreate an item",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-layout-cell-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<table><tr><td><article><p>GET /items</p><p>List current items</p></article></td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-api_operation-layout-cell-split",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<table><tr><td><article><p>GET /items</p></article><article><p>List current items</p></article></td></tr></table>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "native-card-family-product-existing-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>Coat</p><p>$19</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-catalog_product-existing-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><h2>Coat</h2><p>$19</p><p>Warm winter coat</p><p>3 reviews</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-review-existing-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>2026-01-01</p><p>Useful response</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-name_description-existing-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><h2>Coat</h2><p>Warm winter coat</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "native-card-family-taxonomy_family-existing-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409052356",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "maximum_records": 1
+        }
+      },
+      "artifact": "<article><p>Newidae</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
     }
   ]
 }

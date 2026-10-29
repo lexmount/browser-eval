@@ -149,3 +149,73 @@ def test_base_is_context_not_delivered_resource_evidence(image_only, delivery, s
     assert not passed
     assert metrics['resource_candidate_urls'] == []
     assert score(view(source + delivery), ASSET, image_only)[0]
+
+
+RAW_TEXT_ELEMENTS = ('title', 'textarea', 'script', 'style', 'xmp', 'iframe', 'noembed', 'noframes', 'noscript')
+
+
+@pytest.mark.parametrize('image_only', [False, True])
+@pytest.mark.parametrize('tag', RAW_TEXT_ELEMENTS)
+@pytest.mark.parametrize('representation', ['html', None])
+def test_raw_text_tag_examples_do_not_choose_the_document_base(image_only, tag, representation):
+    example = f'<{tag}>Example <base href="https://assets.example/files/"></{tag}>'
+    source = example + '<img src="target.png">'
+    assert score(source, ORIGINAL, image_only, representation)[0]
+    assert not score(source, ASSET, image_only, representation)[0]
+    assert score(example + '<base href="https://assets.example/files/"><img src="target.png">', ASSET, image_only, representation)[0]
+
+
+@pytest.mark.parametrize('image_only', [False, True])
+@pytest.mark.parametrize('tag', RAW_TEXT_ELEMENTS + ('plaintext',))
+@pytest.mark.parametrize('example', ['<img src="target.png">', '<a href="target.png">Download</a>',
+                                    '<picture><source srcset="target.png 2x"></picture>'])
+def test_raw_text_pseudo_resources_are_not_native_attributes(image_only, tag, example):
+    source = f'<{tag}>Example {example}</{tag}>'
+    assert not score(source, ORIGINAL, image_only)[0]
+    assert score('<head><base href="https://assets.example/files/"></head>' + example, ASSET, image_only)[0]
+
+
+@pytest.mark.parametrize('image_only', [False, True])
+def test_plaintext_owns_the_rest_even_after_a_literal_closing_tag(image_only):
+    source = '<plaintext><base href="https://assets.example/files/"></plaintext><img src="target.png">'
+    assert not score(source, ORIGINAL, image_only)[0]
+    assert not score(source, ASSET, image_only)[0]
+    metadata = {'images': ['target.png']} if image_only else {'links': [{'url': 'target.png'}]}
+    assert score(source, ORIGINAL, image_only, metadata=metadata)[0]
+
+
+@pytest.mark.parametrize('image_only', [False, True])
+def test_rcdata_nested_looking_tags_do_not_change_its_closing_owner(image_only):
+    source = ('<textarea><template></template><base href="https://ignored.example/"></textarea>'
+              '<base href="https://assets.example/files/"><img src="target.png">')
+    assert score(source, ASSET, image_only)[0]
+
+
+@pytest.mark.parametrize('image_only', [False, True])
+@pytest.mark.parametrize('tag', ['title', 'textarea', 'noscript', 'plaintext'])
+def test_raw_text_frame_examples_cannot_create_inline_documents(image_only, tag):
+    frame = '<iframe srcdoc="' + html.escape('<img src="target.png">', quote=True) + '"></iframe>'
+    assert not score(f'<{tag}>{frame}</{tag}>', ORIGINAL, image_only)[0]
+
+
+@pytest.mark.parametrize('image_only', [False, True])
+def test_picture_ownership_uses_positions_after_supported_declaration_cleanup(image_only):
+    source = '<![UNRECOGNIZED[ opaque ]]><picture><source srcset="target.png 2x"></picture>'
+    assert score(source, ORIGINAL, image_only)[0]
+
+
+@pytest.mark.parametrize('image_only', [False, True])
+@pytest.mark.parametrize('tail', ['frame', 'picture'])
+def test_plaintext_literal_terminator_cannot_activate_frame_or_picture_tail(image_only, tail):
+    markup = ('<iframe srcdoc="' + html.escape('<img src="target.png">', quote=True) + '"></iframe>') if tail == 'frame' else '<picture><source srcset="target.png 2x"></picture>'
+    source = '<plaintext>Example </plaintext>' + markup
+    passed, metrics = score(source, ORIGINAL, image_only)
+    assert not passed
+    assert metrics['resource_candidate_urls'] == []
+
+
+@pytest.mark.parametrize('image_only,expected', [(False, True), (True, False)])
+def test_equal_srcset_value_elsewhere_cannot_validate_a_raw_text_picture(image_only, expected):
+    source = ('<textarea><picture><source srcset="target.png 2x"></picture></textarea>'
+              '<video><source srcset="target.png 2x"></video>')
+    assert score(source, ORIGINAL, image_only)[0] is expected

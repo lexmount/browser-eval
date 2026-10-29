@@ -203,10 +203,16 @@ def _image_content_candidates(content: str, *, representation=None) -> list[tupl
         content = _native_html_comment_mask(content)
     has_html = representation != 'plain_text' and bool(re.search(r'''<[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', content))
     if has_html:
-        from .dynamic_lists import scoped_html
+        from .dynamic_lists import scoped_html, _without_unsupported_declarations
+        # Keep physical native tag ownership when the DOM projection reads
+        # picture sources; HTML text examples must not create source elements.
+        source_document = _without_unsupported_declarations(content)
+        source_parser = _ResourceHTMLParser()
+        source_parser.feed(source_document)
+        source_parser.close()
         # Image-answer contracts own visible output, unlike generic discovery
         # of URLs returned in a document. Use the same policy inside srcdoc.
-        visible_html = scoped_html(content)
+        visible_html = scoped_html(source_document)
         content = str(visible_html)
     markdown = representation not in {'plain_text', 'html'}
     candidates = [(url, "content.markdown_image")
@@ -226,6 +232,8 @@ def _image_content_candidates(content: str, *, representation=None) -> list[tupl
                           for url in srcset_urls(attrs['srcset']))
     if has_html:
         for source in visible_html.select('picture > source[srcset]'):
+            if (source.sourceline, source.sourcepos) not in source_parser.source_positions:
+                continue
             candidates.extend((url, 'content.html_picture_srcset')
                               for url in srcset_urls(source['srcset']))
     # HTML attributes are decoded above. Do not also admit their raw entity
@@ -261,13 +269,19 @@ def _image_content_candidates(content: str, *, representation=None) -> list[tupl
 
 
 class _ResourceHTMLParser(HTMLParser):
-    """Read native HTML attributes with HTML quoting and entity semantics."""
+    """Read native HTML attributes with HTML quoting and text ownership."""
+
+    # Reuse HTMLParser's literal-text mode for native raw text and RCDATA.
+    # Noscript follows the normal browser document's enabled scripting mode.
+    CDATA_CONTENT_ELEMENTS = ('script', 'style', 'title', 'textarea', 'xmp',
+                              'iframe', 'noembed', 'noframes', 'noscript', 'plaintext')
 
     def __init__(self, source: str | None = None) -> None:
         super().__init__(convert_charrefs=True)
         self.tags: list[tuple[str, dict[str, str]]] = []
         self.base_href: str | None = None
-        self.base_inert_contexts: list[str] = []
+        self.template_depth = 0
+        self.source_positions: set[tuple[int, int]] = set()
         self.comment_ranges: list[tuple[int, int]] = []
         self.source = source
         self.line_starts = [0] + [match.end() for match in re.finditer('\n', source or '')]
@@ -292,9 +306,11 @@ class _ResourceHTMLParser(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         tag = tag.casefold()
-        if tag in {'template', 'textarea', 'iframe', 'xmp', 'noembed', 'noframes', 'plaintext'}:
-            self.base_inert_contexts.append(tag)
-        if tag == 'base' and self.base_href is None and not self.base_inert_contexts:
+        if tag == 'source':
+            self.source_positions.add(self.getpos())
+        if tag == 'template':
+            self.template_depth += 1
+        if tag == 'base' and self.base_href is None and not self.template_depth:
             for key, value in attrs:
                 if key.casefold() == 'href':
                     self.base_href = value or ''
@@ -306,9 +322,15 @@ class _ResourceHTMLParser(HTMLParser):
 
     def handle_endtag(self, tag: str) -> None:
         tag = tag.casefold()
-        if tag in self.base_inert_contexts:
-            index = len(self.base_inert_contexts) - 1 - self.base_inert_contexts[::-1].index(tag)
-            del self.base_inert_contexts[index:]
+        if tag == 'template' and self.template_depth:
+            self.template_depth -= 1
+
+    def parse_endtag(self, i: int) -> int:
+        if self.cdata_elem == 'plaintext':
+            # Plaintext has no closing tag: the apparent terminator and all
+            # following markup are still literal output, through EOF.
+            return len(self.rawdata)
+        return super().parse_endtag(i)
 
 
 def _native_html_comment_mask(content: str) -> str:

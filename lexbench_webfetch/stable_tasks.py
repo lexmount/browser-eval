@@ -51,6 +51,9 @@ SCHEMA_FIELDS = {
     "linked_product": ("title", "url", "price"),
     "page_identity": (),
 }
+_NATIVE_CARD_SCHEMAS = frozenset({
+    'product', 'catalog_product', 'earthquake', 'quote', 'api_operation',
+})
 UNIQUE_FIELDS = {
     "table_row": (),
     "earthquake": ("time", "location"),
@@ -144,7 +147,7 @@ def _unwrap_links(text, schema):
     return "".join(output)
 
 
-def _product_html_owners(soup):
+def _html_record_owners(soup):
     """Keep semantic cards; nested feature lists remain presentation content."""
     return [node for node in soup.select('article, li, [role="listitem"]')
             if node.name == 'article' or node.get('role') == 'listitem' or not node.find_parent(
@@ -211,17 +214,17 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
                 node.insert_after("\n" + _CARD_BOUNDARY + "\n")
             _mark_html_headings(soup, include=lambda node: not inside_record(node))
             text = str(soup)
-        elif schema in {'api_operation', 'name_description'}:
+        elif schema == 'name_description':
             from .dynamic_lists import scoped_html
             soup = scoped_html(text)
             _mark_html_headings(soup)
             text = str(soup)
-        elif schema in {'product', 'catalog_product'}:
+        elif schema in _NATIVE_CARD_SCHEMAS:
             from .dynamic_lists import scoped_html
             soup = scoped_html(text)
-            if schema == 'catalog_product':
+            if schema in {'catalog_product', 'api_operation'}:
                 _mark_html_headings(soup)
-            owners = _product_html_owners(soup)
+            owners = _html_record_owners(soup)
             identities = {id(node) for node in owners}
             groups = {}
             for node in owners:
@@ -233,7 +236,7 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
                 for card in cards:
                     copy = scoped_html(str(card))
                     owner = copy.find()
-                    for nested in _product_html_owners(copy):
+                    for nested in _html_record_owners(copy):
                         if nested is not owner and nested.parent is not None:
                             nested.decompose()
                     chunks.append(visible_html_text(str(copy)))
@@ -880,7 +883,9 @@ def _parse_records(visible, schema, *, allow_closed_title_cards=False, literal=F
     elif schema in {"product", "catalog_product"}:
         records.extend(_product_records(remainder, schema, literal=literal))
     elif schema == "quote":
-        records.extend(_quotes(lines))
+        for block in remainder.split(_CARD_BOUNDARY):
+            records.extend(_quotes([_line(line, literal=literal)
+                                    for line in block.splitlines() if line.strip()]))
     elif schema == "review":
         for block in remainder.split(_CARD_BOUNDARY):
             records.extend(_reviews(block.splitlines(), literal=literal))
@@ -891,7 +896,8 @@ def _parse_records(visible, schema, *, allow_closed_title_cards=False, literal=F
         # contain METHOD /path, so retain its text within the new section.
         boundary = (r'(?m)(?=^' + _HTML_HEADING + r'[1-6]' + _HTML_HEADING + r'\s+)'
                     if literal else r'(?m)(?=^[ \t]{0,3}#{1,6}[ \t]+)')
-        sections = re.split(boundary, remainder)
+        sections = [section for block in remainder.split(_CARD_BOUNDARY)
+                    for section in re.split(boundary, block)]
         for section in sections:
             records.extend(_operations([_line(line, literal=literal) for line in section.splitlines() if line.strip()], literal=literal))
     elif schema == "name_description":
