@@ -57730,6 +57730,2424 @@
       "expected_metrics": {
         "stable_complete_record_count": 1
       }
+    },
+    {
+      "id": "record-scalar-product-markdown",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`Coat`\n`$19`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Coat",
+              "price": "$19"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-product-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p><code>Coat</code></p><p><code>$19</code></p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Coat",
+              "price": "$19"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-product-plain_text",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\n$19",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Coat",
+              "price": "$19"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-product-plain-backticks",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`Coat`\n`$19`",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-scalar-catalog_product-markdown",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`Coat`\n`$19`\n`Warm winter coat`\n`3 reviews`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-catalog_product-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p><code>Coat</code></p><p><code>$19</code></p><p><code>Warm winter coat</code></p><p><code>3 reviews</code></p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-catalog_product-plain_text",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\n$19\nWarm winter coat\n3 reviews",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "title": "Coat",
+              "price": "$19",
+              "description": "Warm winter coat",
+              "reviews": "3"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-catalog_product-plain-backticks",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`Coat`\n`$19`\n`Warm winter coat`\n`3 reviews`",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-scalar-earthquake-markdown",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`4.1`\n`Pacific coast`\n`2026-01-01T12:00:00Z`\n`12 km`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "magnitude": "4.1",
+              "location": "Pacific coast",
+              "time": "2026-01-01T12:00:00Z",
+              "depth": "12 km"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-earthquake-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p><code>4.1</code></p><p><code>Pacific coast</code></p><p><code>2026-01-01T12:00:00Z</code></p><p><code>12 km</code></p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "magnitude": "4.1",
+              "location": "Pacific coast",
+              "time": "2026-01-01T12:00:00Z",
+              "depth": "12 km"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-earthquake-plain_text",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "4.1\nPacific coast\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "magnitude": "4.1",
+              "location": "Pacific coast",
+              "time": "2026-01-01T12:00:00Z",
+              "depth": "12 km"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-earthquake-plain-backticks",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`4.1`\n`Pacific coast`\n`2026-01-01T12:00:00Z`\n`12 km`",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-scalar-quote-markdown",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`“A new thought.”`\n`by Alice`\n`Tags: nature life`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "A new thought.",
+              "author": "Alice",
+              "tags": "nature life"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-quote-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p><code>“A new thought.”</code></p><p><code>by Alice</code></p><p><code>Tags: nature life</code></p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "A new thought.",
+              "author": "Alice",
+              "tags": "nature life"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-quote-plain_text",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "“A new thought.”\nby Alice\nTags: nature life",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "quote": "A new thought.",
+              "author": "Alice",
+              "tags": "nature life"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-review-markdown",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`2026-01-01`\n`Useful response`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "date": "2026-01-01",
+              "text": "Useful response"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-review-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p><code>2026-01-01</code></p><p><code>Useful response</code></p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "date": "2026-01-01",
+              "text": "Useful response"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-review-plain_text",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "2026-01-01\nUseful response",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "date": "2026-01-01",
+              "text": "Useful response"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-review-plain-backticks",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`2026-01-01`\n`Useful response`",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-scalar-api_operation-markdown",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`GET`\n`/items`\n`List current items`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "List current items"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-api_operation-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p><code>GET</code></p><p><code>/items</code></p><p><code>List current items</code></p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "List current items"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-api_operation-plain_text",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "GET\n/items\nList current items",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "List current items"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-api_operation-plain-backticks",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`GET`\n`/items`\n`List current items`",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-scalar-name_description-markdown",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`Coat`\n`Warm winter coat`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Coat",
+              "description": "Warm winter coat"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-name_description-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p><code>Coat</code></p><p><code>Warm winter coat</code></p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Coat",
+              "description": "Warm winter coat"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-name_description-plain_text",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\nWarm winter coat",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Coat",
+              "description": "Warm winter coat"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-taxonomy_family-markdown",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`Newidae`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "family": "Newidae"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-taxonomy_family-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p><code>Newidae</code></p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "family": "Newidae"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-taxonomy_family-plain_text",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Newidae",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "family": "Newidae"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-taxonomy_family-plain-backticks",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`Newidae`",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-scalar-api-path",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "GET `/items` List current items",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "List current items"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-api-method",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`GET` /items List current items",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "List current items"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-api-method-path",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`GET /items` List current items",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "List current items"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-api-separate",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`GET` `/items` `List current items`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "List current items"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-literal-price-html-markdown",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\n`<strong>$19</strong>`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "record-scalar-literal-price-html-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>Coat</p><p><code>&lt;strong&gt;$19&lt;/strong&gt;</code></p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "record-scalar-literal-price-emphasis-markdown",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\n`**$19**`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "record-scalar-literal-price-emphasis-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>Coat</p><p><code>**$19**</code></p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "record-scalar-literal-price-link-markdown",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\n`[$19](/price)`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "record-scalar-literal-price-link-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>Coat</p><p><code>[$19](/price)</code></p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "record-scalar-literal-price-entity-markdown",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\n`&#36;19`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "record-scalar-literal-price-entity-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>Coat</p><p><code>&amp;#36;19</code></p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "record-scalar-literal-price-escape-markdown",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\n`\\$19`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "record-scalar-literal-price-escape-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<article><p>Coat</p><p><code>\\$19</code></p></article>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "record-scalar-literal-name-link",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "3a113037998f54bc0532f6135a206dc261027c5c802127dd353e982c24350518"
+            ]
+          }
+        }
+      },
+      "artifact": "`[Coat](/other)`\n`$19`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "[Coat](/other)",
+              "price": "$19"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-literal-name-shortened-link",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "3a113037998f54bc0532f6135a206dc261027c5c802127dd353e982c24350518"
+            ]
+          }
+        }
+      },
+      "artifact": "Coat\n$19",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-scalar-literal-name-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "ab8d489480faee891d64f54be64c727093ffa62650afe4732960db684cc80c49"
+            ]
+          }
+        }
+      },
+      "artifact": "`<strong>Coat</strong>`\n`$19`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "<strong>Coat</strong>",
+              "price": "$19"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-literal-name-shortened-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "ab8d489480faee891d64f54be64c727093ffa62650afe4732960db684cc80c49"
+            ]
+          }
+        }
+      },
+      "artifact": "Coat\n$19",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-scalar-literal-name-heading",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "6af7ddbe499b79fc69dfe0052895c8dffb108af0dae2564c51b0497d9bff5e0d"
+            ]
+          }
+        }
+      },
+      "artifact": "`# Coat`\n`$19`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "# Coat",
+              "price": "$19"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-literal-name-shortened-heading",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "6af7ddbe499b79fc69dfe0052895c8dffb108af0dae2564c51b0497d9bff5e0d"
+            ]
+          }
+        }
+      },
+      "artifact": "Coat\n$19",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-scalar-literal-name-emphasis",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "bc7499d68151768b351eaaaa77e8f38494fd0fbc0fabaa2b1e90271bf159ba08"
+            ]
+          }
+        }
+      },
+      "artifact": "`**Coat**`\n`$19`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "**Coat**",
+              "price": "$19"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-literal-name-shortened-emphasis",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "bc7499d68151768b351eaaaa77e8f38494fd0fbc0fabaa2b1e90271bf159ba08"
+            ]
+          }
+        }
+      },
+      "artifact": "Coat\n$19",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-scalar-literal-name-backtick",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "cee613adb87e3a3861bb184ae463dc71ea61be57102a828111c39c45c46e36e6"
+            ]
+          }
+        }
+      },
+      "artifact": "`` `Coat` ``\n`$19`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "`Coat`",
+              "price": "$19"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-literal-name-shortened-backtick",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "name",
+              "price"
+            ],
+            "record_hashes": [
+              "cee613adb87e3a3861bb184ae463dc71ea61be57102a828111c39c45c46e36e6"
+            ]
+          }
+        }
+      },
+      "artifact": "Coat\n$19",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-scalar-escaped-backticks",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\n\\`$19\\`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "record-scalar-entity-backticks",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\n&#96;$19&#96;",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "record-scalar-inline-json",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`{\"name\":\"Coat\",\"price\":\"$19\"}`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "record-scalar-code-header",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`| name | price |`\n| --- | --- |\n| Coat | $19 |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 0
+      }
+    },
+    {
+      "id": "record-scalar-code-cell-pipe",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "| `name` | `price` |\n| --- | --- |\n| `Coat | Jacket` | `$19` |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "name": "Coat | Jacket",
+              "price": "$19"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-inline-newline-no-new-records",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "`Alpha\n$10\nBeta\n$20`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "record-scalar-summary-literal-html",
+      "category": "structured-extraction",
+      "root_cause": "4409157392",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "GET `/items`\n`<strong>List</strong> [items](/docs)`",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "method": "GET",
+              "path": "/items",
+              "summary": "<strong>List</strong> [items](/docs)"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-reported-split",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Alpha\n\n| Name | Price |\n| --- | --- |\n| Beta | $20 |\n\n$10",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-reported-complete",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Alpha\n$10\n\n| Name | Price |\n| --- | --- |\n| Beta | $20 |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-product-split",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\n\n| name | price |\n| --- | --- |\n| Beta | $19 |\n\n$19",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-product-complete-before",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\n$19\n\n| name | price |\n| --- | --- |\n| Beta | $19 |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-product-complete-after",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "| name | price |\n| --- | --- |\n| Beta | $19 |\n\nCoat\n$19",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-catalog_product-split",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\n$19\n\n| title | price | description | reviews |\n| --- | --- | --- | --- |\n| Beta | $19 | Warm winter coat | 3 |\n\nWarm winter coat\n3 reviews",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-catalog_product-complete-before",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\n$19\nWarm winter coat\n3 reviews\n\n| title | price | description | reviews |\n| --- | --- | --- | --- |\n| Beta | $19 | Warm winter coat | 3 |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-catalog_product-complete-after",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "| title | price | description | reviews |\n| --- | --- | --- | --- |\n| Beta | $19 | Warm winter coat | 3 |\n\nCoat\n$19\nWarm winter coat\n3 reviews",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-earthquake-split",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "4.1\nPacific coast\n\n| magnitude | location | time | depth |\n| --- | --- | --- | --- |\n| 5.2 | Pacific coast | 2026-01-02T12:00:00Z | 12 km |\n\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-earthquake-complete-before",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "4.1\nPacific coast\n2026-01-01T12:00:00Z\n12 km\n\n| magnitude | location | time | depth |\n| --- | --- | --- | --- |\n| 5.2 | Pacific coast | 2026-01-02T12:00:00Z | 12 km |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-earthquake-complete-after",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "| magnitude | location | time | depth |\n| --- | --- | --- | --- |\n| 5.2 | Pacific coast | 2026-01-02T12:00:00Z | 12 km |\n\n4.1\nPacific coast\n2026-01-01T12:00:00Z\n12 km",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-quote-split",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "“A new thought.”\n\n| quote | author | tags |\n| --- | --- | --- |\n| A new statement. | Bob | nature life |\n\nby Alice\nTags: nature life",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-quote-complete-before",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "“A new thought.”\nby Alice\nTags: nature life\n\n| quote | author | tags |\n| --- | --- | --- |\n| A new statement. | Bob | nature life |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-quote-complete-after",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "| quote | author | tags |\n| --- | --- | --- |\n| A new statement. | Bob | nature life |\n\n“A new thought.”\nby Alice\nTags: nature life",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-review-split",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "2026-01-01\n\n| date | text |\n| --- | --- |\n| 2026-01-02 | Useful response |\n\nUseful response",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-review-complete-before",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "2026-01-01\nUseful response\n\n| date | text |\n| --- | --- |\n| 2026-01-02 | Useful response |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-review-complete-after",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "| date | text |\n| --- | --- |\n| 2026-01-02 | Useful response |\n\n2026-01-01\nUseful response",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-api_operation-split",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "GET\n/items\n\n| method | path | summary |\n| --- | --- | --- |\n| GET | /other | List current other |\n\nList current items",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-api_operation-complete-before",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "GET\n/items\nList current items\n\n| method | path | summary |\n| --- | --- | --- |\n| GET | /other | List current other |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-api_operation-complete-after",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "| method | path | summary |\n| --- | --- | --- |\n| GET | /other | List current other |\n\nGET\n/items\nList current items",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-name_description-split",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\n\n| name | description |\n| --- | --- |\n| Beta | Warm winter coat |\n\nWarm winter coat",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_complete_record_count": 1
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-name_description-complete-before",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Coat\nWarm winter coat\n\n| name | description |\n| --- | --- |\n| Beta | Warm winter coat |",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
+    },
+    {
+      "id": "record-scalar-consumed-table-name_description-complete-after",
+      "category": "structured-extraction",
+      "root_cause": "4409157399",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/records",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "| name | description |\n| --- | --- |\n| Beta | Warm winter coat |\n\nCoat\nWarm winter coat",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_complete_record_count": 2
+      }
     }
   ]
 }

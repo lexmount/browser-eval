@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "665451998af612366df339ce6a2bc4484fd8444e0d92f4f14b7a083b62a30a29"
+          "after_sha256": "f66a07472cb66ac51cfa32f2a65a3a4f56807ffd2fdb4d7e7ea91a785897debf"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -3030,6 +3030,110 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_native_card_family_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "record-scalar-product-markdown",
+            "record-scalar-product-html",
+            "record-scalar-product-plain_text",
+            "record-scalar-product-plain-backticks",
+            "record-scalar-catalog_product-markdown",
+            "record-scalar-catalog_product-html",
+            "record-scalar-catalog_product-plain_text",
+            "record-scalar-catalog_product-plain-backticks",
+            "record-scalar-earthquake-markdown",
+            "record-scalar-earthquake-html",
+            "record-scalar-earthquake-plain_text",
+            "record-scalar-earthquake-plain-backticks",
+            "record-scalar-quote-markdown",
+            "record-scalar-quote-html",
+            "record-scalar-quote-plain_text",
+            "record-scalar-review-markdown",
+            "record-scalar-review-html",
+            "record-scalar-review-plain_text",
+            "record-scalar-review-plain-backticks",
+            "record-scalar-api_operation-markdown",
+            "record-scalar-api_operation-html",
+            "record-scalar-api_operation-plain_text",
+            "record-scalar-api_operation-plain-backticks",
+            "record-scalar-name_description-markdown",
+            "record-scalar-name_description-html",
+            "record-scalar-name_description-plain_text",
+            "record-scalar-taxonomy_family-markdown",
+            "record-scalar-taxonomy_family-html",
+            "record-scalar-taxonomy_family-plain_text",
+            "record-scalar-taxonomy_family-plain-backticks",
+            "record-scalar-api-path",
+            "record-scalar-api-method",
+            "record-scalar-api-method-path",
+            "record-scalar-api-separate",
+            "record-scalar-literal-price-html-markdown",
+            "record-scalar-literal-price-html-html",
+            "record-scalar-literal-price-emphasis-markdown",
+            "record-scalar-literal-price-emphasis-html",
+            "record-scalar-literal-price-link-markdown",
+            "record-scalar-literal-price-link-html",
+            "record-scalar-literal-price-entity-markdown",
+            "record-scalar-literal-price-entity-html",
+            "record-scalar-literal-price-escape-markdown",
+            "record-scalar-literal-price-escape-html",
+            "record-scalar-literal-name-link",
+            "record-scalar-literal-name-shortened-link",
+            "record-scalar-literal-name-html",
+            "record-scalar-literal-name-shortened-html",
+            "record-scalar-literal-name-heading",
+            "record-scalar-literal-name-shortened-heading",
+            "record-scalar-literal-name-emphasis",
+            "record-scalar-literal-name-shortened-emphasis",
+            "record-scalar-literal-name-backtick",
+            "record-scalar-literal-name-shortened-backtick",
+            "record-scalar-escaped-backticks",
+            "record-scalar-entity-backticks",
+            "record-scalar-inline-json",
+            "record-scalar-code-header",
+            "record-scalar-code-cell-pipe",
+            "record-scalar-inline-newline-no-new-records",
+            "record-scalar-summary-literal-html"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_record_scalar_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "record-scalar-consumed-table-reported-split",
+            "record-scalar-consumed-table-reported-complete",
+            "record-scalar-consumed-table-product-split",
+            "record-scalar-consumed-table-product-complete-before",
+            "record-scalar-consumed-table-product-complete-after",
+            "record-scalar-consumed-table-catalog_product-split",
+            "record-scalar-consumed-table-catalog_product-complete-before",
+            "record-scalar-consumed-table-catalog_product-complete-after",
+            "record-scalar-consumed-table-earthquake-split",
+            "record-scalar-consumed-table-earthquake-complete-before",
+            "record-scalar-consumed-table-earthquake-complete-after",
+            "record-scalar-consumed-table-quote-split",
+            "record-scalar-consumed-table-quote-complete-before",
+            "record-scalar-consumed-table-quote-complete-after",
+            "record-scalar-consumed-table-review-split",
+            "record-scalar-consumed-table-review-complete-before",
+            "record-scalar-consumed-table-review-complete-after",
+            "record-scalar-consumed-table-api_operation-split",
+            "record-scalar-consumed-table-api_operation-complete-before",
+            "record-scalar-consumed-table-api_operation-complete-after",
+            "record-scalar-consumed-table-name_description-split",
+            "record-scalar-consumed-table-name_description-complete-before",
+            "record-scalar-consumed-table-name_description-complete-after"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_record_scalar_ownership.py"
           ]
         }
       ]

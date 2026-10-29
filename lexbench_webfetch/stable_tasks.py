@@ -256,14 +256,12 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
     text = clean_reference_text(text)
     if projected_html or representation == 'html':
         return text.replace('\r\n', '\n')
-    from .reference_quality import markdown_literal_spans
     literals = {}
     marker = '\ue026stable-code'
     while marker in text or marker in unescape(text):
         marker += '-'
     body_view = schema in {None, 'body_text', 'page_identity'}
-    spans = (_markdown_code_payloads(text) if body_view else
-             [(start, end, text[start:end]) for start, end in markdown_literal_spans(text)])
+    spans = _markdown_code_payloads(text, preserve_delimiters=not body_view)
     for start, end, payload in reversed(spans):
         token = marker + str(len(literals)) + '\ue027'
         literals[token] = payload
@@ -283,7 +281,8 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
         if value == raw:
             return raw
         token = marker + str(len(literals)) + '\ue027'
-        literals[token] = value
+        # Keep emitted delimiters opaque until an owned record scalar is read.
+        literals[token] = '\\' + value if not body_view and value in {'`', '\\'} else value
         return token
     text = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])'
                   r'|&(?:#[xX][0-9a-fA-F]+|#\d+|[A-Za-z][A-Za-z0-9]*);',
@@ -329,16 +328,22 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
 def _line(text, *, literal=False):
     if literal:
         return re.sub(r'^' + _HTML_HEADING + r'[1-6]' + _HTML_HEADING + r'\s*', '', text).strip()
-    return re.sub(r"^(?:\s*[#>]+\s*|\s*[-*+]\s+|\s*\d+[.)]\s+)", "", text).strip()
+    text = re.sub(r"^(?:\s*[#>]+\s*|\s*[-*+]\s+|\s*\d+[.)]\s+)", "", text)
+    return _render_inline_scalar(text)
 
 
-def _field(text, name, *, literal=False):
-    # Formatting tags sometimes survive a Markdown dump inside a visible
-    # scalar value (for example, ``or 9 x<strong>$1.21</strong>``). They do
-    # not change the field's displayed text. Strip only simple inline emphasis
-    # tags; keep every other tag/field boundary available for validation.
-    visible = text if literal else re.sub(r"</?(?:strong|b|em|i)>", "", text, flags=re.I)
-    return re.sub(rf"^(?:{_LABELS.get(name, name)})\s*:\s*", "", visible, flags=re.I).strip()
+def _render_inline_scalar(text, *, pipe_cell=False):
+    """Render an owned value after layout, without reinterpreting code payloads."""
+    from .article_text import mask_markdown_inline_code
+
+    text, restore_code = mask_markdown_inline_code(text)
+    text = re.sub(r"</?(?:strong|b|em|i)>", "", text, flags=re.I)
+    text = re.sub(r'\\(`)' if pipe_cell else r'\\([`\\])', r'\1', text)
+    return restore_code(text).strip()
+
+
+def _field(text, name):
+    return re.sub(rf"^(?:{_LABELS.get(name, name)})\s*:\s*", "", text, flags=re.I).strip()
 
 
 def _text(value, minimum=2):
@@ -467,13 +472,17 @@ def _html_record_tables(content, schema, *, allow_closed_title_cards=False):
 def _table_records(lines, schema):
     """Explicit Markdown table headers own their columns, including empty cells."""
     from .structured_tables import _pipe_cells, _table_header_at
+    from .article_text import mask_markdown_inline_code
+
+    masked = [mask_markdown_inline_code(line) for line in lines]
     records, occupied = [], set()
     required = set(SCHEMA_FIELDS[schema])
     for i in range(len(lines) - 1):
         if i in occupied or "|" not in lines[i]:
             continue
-        headers = [_key(x).replace("review count", "reviews") for x in _pipe_cells(lines[i])]
-        separator = _pipe_cells(lines[i + 1])
+        headers = [_key(masked[i][1](_render_inline_scalar(x, pipe_cell=True))).replace("review count", "reviews")
+                   for x in _pipe_cells(masked[i][0])]
+        separator = _pipe_cells(masked[i + 1][0])
         if (not required <= set(headers) or len(separator) != len(headers)
                 or not all(re.fullmatch(r"\s*:?-{3,}:?\s*", x) for x in separator)):
             continue
@@ -482,7 +491,8 @@ def _table_records(lines, schema):
         while j < len(lines) and "|" in lines[j] and lines[j].strip():
             if _table_header_at(lines, j):
                 break
-            values = [x.strip() for x in _pipe_cells(lines[j])]
+            values = [masked[j][1](_render_inline_scalar(x, pipe_cell=True)).strip()
+                      for x in _pipe_cells(masked[j][0])]
             records.append(_column_record(headers, values, schema))
             occupied.add(j)
             j += 1
@@ -493,26 +503,26 @@ def _product_start(lines, index, schema, *, literal=False):
     """Recognize the same supported title/price layouts at every card boundary."""
     if re.match(r"description\s*:", lines[index], re.I):
         return None
-    current = _field(lines[index], "price", literal=literal)
+    current = _field(lines[index], "price")
     price_first = bool(re.fullmatch(_MONEY, current, re.I))
     inline = None if price_first else re.fullmatch(rf"(.+?)\s*\|?\s+({_MONEY})", lines[index], re.I)
-    next_price = index + 1 < len(lines) and re.fullmatch(_MONEY, _field(lines[index + 1], "price", literal=literal), re.I)
+    next_price = index + 1 < len(lines) and re.fullmatch(_MONEY, _field(lines[index + 1], "price"), re.I)
     if not price_first and not inline and not next_price:
         return None
     title_field = "title" if schema == "catalog_product" else "name"
     if inline:
-        return {title_field: _field(inline[1].rstrip(" |"), title_field, literal=literal), "price": inline[2]}, index + 1
+        return {title_field: _field(inline[1].rstrip(" |"), title_field), "price": inline[2]}, index + 1
     if price_first:
         fields = {"price": current}
         if schema == "catalog_product" and index + 1 < len(lines):
             following = lines[index + 1]
-            if (not re.fullmatch(_MONEY, _field(following, 'price', literal=literal), re.I)
+            if (not re.fullmatch(_MONEY, _field(following, 'price'), re.I)
                     and not re.fullmatch(rf"(.+?)\s*\|?\s+({_MONEY})", following, re.I)):
-                fields[title_field] = _field(following, title_field, literal=literal)
+                fields[title_field] = _field(following, title_field)
                 return fields, index + 2
         return fields, index + 1
-    return {title_field: _field(lines[index], title_field, literal=literal),
-            "price": _field(lines[index + 1], "price", literal=literal)}, index + 2
+    return {title_field: _field(lines[index], title_field),
+            "price": _field(lines[index + 1], "price")}, index + 2
 
 
 def _products(lines, schema, *, literal=False):
@@ -548,7 +558,7 @@ def _products(lines, schema, *, literal=False):
                 # description or review count to repair this card.
                 if _product_start(lines, end, schema, literal=literal) is not None:
                     break
-                description.append(_field(line, "description", literal=literal))
+                description.append(_field(line, "description"))
                 end += 1
             fields["description"] = " ".join(description)
         else:
@@ -557,7 +567,7 @@ def _products(lines, schema, *, literal=False):
                 claimed_shipping.add(i-1)
             while end < len(lines) and re.match(r"(?:or(?=\s|\d)|financing\s*:|free shipping|shipping\s*:)", lines[end], re.I):
                 field = "shipping" if "shipping" in lines[end].casefold() else "financing"
-                fields[field] = re.sub(r'^or(?=\d)', 'or ', _field(lines[end], field, literal=literal)) if field == "financing" else lines[end]
+                fields[field] = re.sub(r'^or(?=\d)', 'or ', _field(lines[end], field)) if field == "financing" else lines[end]
                 if field == 'shipping':
                     claimed_shipping.add(end)
                 end += 1
@@ -650,7 +660,7 @@ def _reviews(lines, *, literal=False):
             if (re.match(r"(?:date\s*:\s*)?\d{4}-\d{2}-\d{2}", following, re.I)
                     or (heading and (int(heading[1]) if literal else len(heading[1])) <= context_level)):
                 break
-            text.append(_field(following, "text", literal=literal))
+            text.append(_field(following, "text"))
             j += 1
         fields["text"] = " ".join(text)
         records.append(_record(fields, "review"))
@@ -678,7 +688,7 @@ def _operations(lines, *, literal=False):
             if path:
                 fields["path"] = path[1]
                 summary = ([path[2]] if path[2] else []) + rest[1:]
-                fields["summary"] = " ".join(_field(s, "summary", literal=literal) for s in summary)
+                fields["summary"] = " ".join(_field(s, "summary") for s in summary)
         records.append(_record(fields, "api_operation"))
         i = j
     return records
@@ -697,8 +707,8 @@ def _descriptions(text, *, literal=False):
             end = following.start() if following else len(block)
             lines = [_line(line, literal=literal) for line in block[:end].splitlines() if line.strip()]
             if len(lines) >= 2:
-                records.append(_record({"name": _field(lines[0], "name", literal=literal),
-                    "description": " ".join(_field(line, "description", literal=literal) for line in lines[1:])},
+                records.append(_record({"name": _field(lines[0], "name"),
+                    "description": " ".join(_field(line, "description") for line in lines[1:])},
                     "name_description"))
             if following:
                 records.extend(_descriptions(block[end:], literal=literal))
@@ -708,8 +718,8 @@ def _descriptions(text, *, literal=False):
         for index, bullet in enumerate(bullets):
             end = bullets[index + 1].start() if index + 1 < len(bullets) else len(text)
             lines = [_line(line, literal=literal) for line in text[bullet.start():end].splitlines() if line.strip()]
-            records.append(_record({"name": _field(lines[0], "name", literal=literal),
-                "description": " ".join(_field(line, "description", literal=literal) for line in lines[1:])}, "name_description"))
+            records.append(_record({"name": _field(lines[0], "name"),
+                "description": " ".join(_field(line, "description") for line in lines[1:])}, "name_description"))
         return records
     # Both Markdown headings and blank-delimited plain cards express ownership.
     pattern = (r'(?m)^' + _HTML_HEADING + r'([1-6])' + _HTML_HEADING + r'\s+(.+)$'
@@ -725,16 +735,16 @@ def _descriptions(text, *, literal=False):
                 continue
             end = headings[index + 1].start() if index + 1 < len(headings) else len(text)
             body = [_line(line, literal=literal) for line in text[heading.end():end].splitlines() if line.strip()]
-            records.append(_record({"name": _field(heading[2], "name", literal=literal),
-                "description": " ".join(_field(line, "description", literal=literal) for line in body)}, "name_description"))
+            records.append(_record({"name": _field(_line(heading[2], literal=literal), "name"),
+                "description": " ".join(_field(line, "description") for line in body)}, "name_description"))
         return records
     blocks = re.split(r"\n\s*\n", text)
     for block in blocks:
         lines = [_line(line, literal=literal) for line in block.splitlines() if line.strip()]
         if len(lines) < 2:
             continue
-        fields = {"name": _field(lines[0], "name", literal=literal),
-                  "description": " ".join(_field(line, "description", literal=literal) for line in lines[1:])}
+        fields = {"name": _field(lines[0], "name"),
+                  "description": " ".join(_field(line, "description") for line in lines[1:])}
         records.append(_record(fields, "name_description"))
     return records
 
@@ -757,8 +767,8 @@ def _html_list_descriptions(content, *, allow_closed_title_cards=False):
     for item in items:
         lines = visible_html_text(str(item)).splitlines()
         if len(lines) >= 2:
-            records.append(_record({'name': _field(lines[0], 'name', literal=True),
-                                    'description': ' '.join(_field(line, 'description', literal=True) for line in lines[1:])},
+            records.append(_record({'name': _field(lines[0], 'name'),
+                                    'description': ' '.join(_field(line, 'description') for line in lines[1:])},
                                    'name_description'))
     # List ownership includes incomplete items and enclosing list labels.
     # Remove those subtrees before parsing independently owned non-list cards.
@@ -862,13 +872,13 @@ def _earthquakes(text, *, literal=False):
                 separated.append(line)
         lines = separated
         for i, line in enumerate(lines):
-            magnitude = _field(line, "magnitude", literal=literal)
+            magnitude = _field(line, "magnitude")
             if not _valid_field("magnitude", magnitude):
                 continue
             fields = {"magnitude": magnitude}
             for offset, name in enumerate(("location", "time", "depth"), 1):
                 if i + offset < len(lines):
-                    fields[name] = _field(lines[i + offset], name, literal=literal)
+                    fields[name] = _field(lines[i + offset], name)
             records.append(_record(fields, "earthquake"))
     return records
 
@@ -876,7 +886,7 @@ def _earthquakes(text, *, literal=False):
 def _parse_records(visible, schema, *, allow_closed_title_cards=False, literal=False):
     raw_lines = visible.splitlines()
     records, occupied = ([], set()) if literal else _table_records(raw_lines, schema)
-    remainder = "\n".join(line if i not in occupied else "" for i, line in enumerate(raw_lines))
+    remainder = "\n".join(line if i not in occupied else _CARD_BOUNDARY for i, line in enumerate(raw_lines))
     lines = [_line(line, literal=literal) for line in remainder.splitlines() if line.strip()]
     if schema == "earthquake":
         records.extend(_earthquakes(remainder, literal=literal))
@@ -930,7 +940,7 @@ def _parse_records(visible, schema, *, allow_closed_title_cards=False, literal=F
         records.extend(weak)
         records.extend(closed)
     elif schema == "taxonomy_family":
-        records.extend(_record({"family": _field(line, "family", literal=literal)}, schema) for line in lines
+        records.extend(_record({"family": _field(line, "family")}, schema) for line in lines
                        if re.fullmatch(r"(?:family\s*:\s*)?[A-Za-z]+idae", line, re.I))
     return records
 
@@ -1527,7 +1537,7 @@ def validate_acceptance_contract(contract: dict) -> None:
         raise ValueError("Invalid stable acceptance regex") from error
 
 
-def _markdown_code_payloads(text):
+def _markdown_code_payloads(text, *, preserve_delimiters=False):
     """Read displayed code payloads once, retaining their source ownership."""
     from .reference_quality import markdown_fenced_code_blocks, markdown_indented_code_contents, markdown_literal_spans
 
@@ -1537,7 +1547,9 @@ def _markdown_code_payloads(text):
     spans = []
     for start, end in markdown_literal_spans(text):
         literal = text[start:end]
-        if (start, end) in fenced:
+        if preserve_delimiters and ((start, end) in fenced or (start, end) in indented):
+            payload = literal
+        elif (start, end) in fenced:
             payload = fenced[start, end]
         elif (start, end) in indented:
             payload = indented[start, end]
@@ -1546,7 +1558,9 @@ def _markdown_code_payloads(text):
         else:
             width = len(re.match(r'`+', literal)[0])
             payload = literal[width:-width].replace('\n', ' ')
-            if payload.startswith(' ') and payload.endswith(' ') and payload.strip(' '):
+            if preserve_delimiters:
+                payload = literal[:width] + payload + literal[-width:]
+            elif payload.startswith(' ') and payload.endswith(' ') and payload.strip(' '):
                 payload = payload[1:-1]
         spans.append((start, end, payload))
     return spans
