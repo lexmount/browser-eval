@@ -12,7 +12,7 @@ Three jobs run independently:
 
 The Python suite uses two workers with `--dist loadfile`, keeping each test file in one process. Slow-test durations appear in the job log. Local `make ci` remains serial by default; use `make ci PYTEST_ARGS='-n 2 --dist loadfile --durations=20'` for the same test scheduling.
 
-OCR loads `.opencodereview/review-rules.md`: the shared guide copied from `lexmount/ai-template-py`, with its source commit in the first line, followed by Browser Eval's supplement. To update the shared section, copy the new upstream text in an ordinary PR and update the commit.
+OCR loads `docs/references/review-guidelines.md`: the shared guide copied from `lexmount/ai-template-py`, with its source commit in the first line, followed by Browser Eval's supplement. To update the shared section, copy the new upstream text in an ordinary PR and update the commit.
 
 The existing `Python 3.11` status succeeds only when all three jobs succeed. A failed, cancelled or skipped job fails that status. New commits cancel obsolete CI runs for the same pull request. Main and tag runs each have a unique concurrency group, so a newer run cannot replace an earlier pending run.
 

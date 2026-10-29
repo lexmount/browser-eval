@@ -1,12 +1,11 @@
-<!-- Shared section copied from lexmount/ai-template-py@c5639aabb15a26239f83ab25718b39c53af87385 (docs/references/review-guidelines.md); change it upstream, then copy it here. The Browser Eval supplement at the end is maintained in this repository. -->
+<!-- Shared section copied from lexmount/ai-template-py@7add9a555281432dd8430ebfe6e8a8f5489d0b10 (docs/references/review-guidelines.md); change it upstream, then copy it here. The Browser Eval supplement at the end is maintained in this repository. -->
 
 # Review Guidelines
 
 The canonical version of this document lives in `lexmount/ai-template-py` at
-`docs/references/review-guidelines.md`. Consumer repositories copy it into
-`.opencodereview/review-rules.md`, record the source commit in the first line and
-append their own supplement at the end. Change shared text here rather than in a
-copy.
+`docs/references/review-guidelines.md`. Consumer repositories copy it to the same
+path, record the source commit in the first line and append their own supplement
+at the end. Change shared text here rather than in a copy.
 
 OCR's official rules remain the foundation. This document adds shared review,
 scope, and feedback requirements. The repository supplement at the end of a

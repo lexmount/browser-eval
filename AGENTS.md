@@ -1,6 +1,6 @@
 # Code review
 
-Use the [review rules](.opencodereview/review-rules.md) that OCR loads. Their shared
+Use the [review guidelines](docs/references/review-guidelines.md) that OCR loads. Their shared
 section is copied from `lexmount/ai-template-py` at the commit named in the first
 line; change it there and copy it here. The Browser Eval supplement at the end is
 maintained in this repository.
