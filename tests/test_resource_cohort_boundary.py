@@ -165,6 +165,7 @@ def resource_population_fixture(tmp_path):
         row['provider_metadata']['client_resource']['cpu_ms'] = 100 if index == 5 else 1
         if index == 5:
             row['metrics']['content_pass'] = False
+            row['metrics']['acceptance_checks']['content'] = False
     for row in original:
         added = deepcopy(row)
         added['provider'] = 'other'
@@ -192,6 +193,7 @@ def test_resource_cohort_with_no_common_success_still_reports_complete_measureme
     for row in records:
         if row['provider'] == 'fixture':
             row['metrics']['content_pass'] = False
+            row['metrics']['acceptance_checks']['content'] = False
     summary = build_summary(dataset, records, batches)
     assert summary['common_pass_cases'] == []
     assert all(row['attempts'] == 6 for row in summary['rows'])
