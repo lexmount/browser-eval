@@ -2,7 +2,7 @@
   "rules": [
     {
       "path": "**",
-      "rule": "docs/references/review-guidelines.md",
+      "rule": ".opencodereview/review-rules.generated.md",
       "merge_system_rule": true
     }
   ]

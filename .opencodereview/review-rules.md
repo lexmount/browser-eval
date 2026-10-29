@@ -1,6 +1,6 @@
 # Browser Eval review supplement
 
-Read `docs/references/review-guidelines.md` for shared review criteria. The following requirements belong to Browser Eval and supplement the pinned common standard and OCR's built-in rules.
+Follow the repository review constraints in `AGENTS.md` and `CONTRIBUTING.md`. The following requirements belong to Browser Eval and supplement the shared criteria in `docs/references/review-guidelines.md` and OCR's built-in rules.
 
 ## Repository checks
 
