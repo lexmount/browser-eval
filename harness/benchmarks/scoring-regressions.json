@@ -48296,6 +48296,1338 @@
       "expected_metrics": {
         "word_recall": 1.0
       }
+    },
+    {
+      "id": "code28-indent-fence-False",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code matching collects every actual literal owner while retaining independent owner boundaries.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^required_code\\(\\)$"
+          }
+        ]
+      },
+      "artifact": "    required_code()\n\n```python\nother_code()\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code28-indent-fence-False-separate",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Code matching collects every actual literal owner while retaining independent owner boundaries.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^required_code\\(\\)other_code\\(\\)$"
+          }
+        ]
+      },
+      "artifact": "    required_code()\n\n```python\nother_code()\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code28-inline-fence-False",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code matching collects every actual literal owner while retaining independent owner boundaries.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^required_code\\(\\)$"
+          }
+        ]
+      },
+      "artifact": "`required_code()`\n\n```python\nother_code()\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code28-inline-fence-False-separate",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Code matching collects every actual literal owner while retaining independent owner boundaries.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^required_code\\(\\)other_code\\(\\)$"
+          }
+        ]
+      },
+      "artifact": "`required_code()`\n\n```python\nother_code()\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code28-inline-separate",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Code matching collects every actual literal owner while retaining independent owner boundaries.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^required_code\\(\\)other_code\\(\\)$"
+          }
+        ]
+      },
+      "artifact": "`required_code()` and `other_code()`",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code28-same-owner",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code matching collects every actual literal owner while retaining independent owner boundaries.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^required_code\\(\\)other_code\\(\\)$"
+          }
+        ]
+      },
+      "artifact": "```python\nrequired_code()\nother_code()\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code28-quoted-indent",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code matching collects every actual literal owner while retaining independent owner boundaries.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^>output\\.txt$"
+          }
+        ]
+      },
+      "artifact": ">     > output.txt\n\n```sh\nother_code()\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code28-comment-owned-fence",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Code matching collects every actual literal owner while retaining independent owner boundaries.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "required_code\\(\\)"
+          }
+        ]
+      },
+      "artifact": "<!--\n```python\nrequired_code()\n-->\nOther text",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code28-mixed-html-code",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Code matching collects every actual literal owner while retaining independent owner boundaries.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "^required_code\\(\\)$"
+          }
+        ]
+      },
+      "artifact": "<code>required_code()</code>\n\n```python\nother_code()\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code28-mixed-html-code-separate",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Code matching collects every actual literal owner while retaining independent owner boundaries.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "code",
+            "match_scope": "code_compact",
+            "pattern": "required_code\\(\\).*other_code\\(\\)"
+          }
+        ]
+      },
+      "artifact": "<code>required_code()</code>\n\n```python\nother_code()\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_task_measured": true
+    },
+    {
+      "id": "runtime28-facts-rounded-up-False",
+      "category": "reference-evidence",
+      "failure_mode": "false-positive",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.6667
+      },
+      "artifact": "Client manual\nAlpha requirement verified\nBeta requirement verified",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "fact_hits": 2,
+        "fact_total": 3,
+        "fact_coverage": 0.6667,
+        "fact_coverage_pass": false,
+        "content_pass": false
+      }
+    },
+    {
+      "id": "runtime28-facts-above-two-thirds-False",
+      "category": "reference-evidence",
+      "failure_mode": "false-positive",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.6666666666666667
+      },
+      "artifact": "Client manual\nAlpha requirement verified\nBeta requirement verified",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "fact_hits": 2,
+        "fact_total": 3,
+        "fact_coverage": 0.6667,
+        "fact_coverage_pass": false,
+        "content_pass": false
+      }
+    },
+    {
+      "id": "runtime28-facts-equal-two-thirds-False",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.6666666666666666
+      },
+      "artifact": "Client manual\nAlpha requirement verified\nBeta requirement verified",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 2,
+        "fact_total": 3,
+        "fact_coverage": 0.6667,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-below-two-thirds-False",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.6666666666666665
+      },
+      "artifact": "Client manual\nAlpha requirement verified\nBeta requirement verified",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 2,
+        "fact_total": 3,
+        "fact_coverage": 0.6667,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-rounded-down-False",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.33332
+      },
+      "artifact": "Client manual\nAlpha requirement verified",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 1,
+        "fact_total": 3,
+        "fact_coverage": 0.3333,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-display-equal-False",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.3333
+      },
+      "artifact": "Client manual\nAlpha requirement verified",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 1,
+        "fact_total": 3,
+        "fact_coverage": 0.3333,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-above-one-third-False",
+      "category": "reference-evidence",
+      "failure_mode": "false-positive",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.33333333333333337
+      },
+      "artifact": "Client manual\nAlpha requirement verified",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "fact_hits": 1,
+        "fact_total": 3,
+        "fact_coverage": 0.3333,
+        "fact_coverage_pass": false,
+        "content_pass": false
+      }
+    },
+    {
+      "id": "runtime28-facts-equal-one-third-False",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.3333333333333333
+      },
+      "artifact": "Client manual\nAlpha requirement verified",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 1,
+        "fact_total": 3,
+        "fact_coverage": 0.3333,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-below-one-third-False",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.33333333333333326
+      },
+      "artifact": "Client manual\nAlpha requirement verified",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 1,
+        "fact_total": 3,
+        "fact_coverage": 0.3333,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-no-hits-False",
+      "category": "reference-evidence",
+      "failure_mode": "false-positive",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.1
+      },
+      "artifact": "Client manual\n",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "fact_hits": 0,
+        "fact_total": 3,
+        "fact_coverage": 0.0,
+        "fact_coverage_pass": false,
+        "content_pass": false
+      }
+    },
+    {
+      "id": "runtime28-facts-complete-False",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 1
+      },
+      "artifact": "Client manual\nAlpha requirement verified\nBeta requirement verified\nGamma requirement verified",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 3,
+        "fact_total": 3,
+        "fact_coverage": 1.0,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-no-facts-False",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [],
+        "fact_coverage_threshold": 1
+      },
+      "artifact": "Client manual\n",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 0,
+        "fact_total": 0,
+        "fact_coverage": 1.0,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-rounded-up-True",
+      "category": "reference-evidence",
+      "failure_mode": "false-positive",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.6667,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Client manual"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Client manual\nAlpha requirement verified\nBeta requirement verified",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "fact_hits": 2,
+        "fact_total": 3,
+        "fact_coverage": 0.6667,
+        "fact_coverage_pass": false,
+        "content_pass": false
+      }
+    },
+    {
+      "id": "runtime28-facts-above-two-thirds-True",
+      "category": "reference-evidence",
+      "failure_mode": "false-positive",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.6666666666666667,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Client manual"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Client manual\nAlpha requirement verified\nBeta requirement verified",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "fact_hits": 2,
+        "fact_total": 3,
+        "fact_coverage": 0.6667,
+        "fact_coverage_pass": false,
+        "content_pass": false
+      }
+    },
+    {
+      "id": "runtime28-facts-equal-two-thirds-True",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.6666666666666666,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Client manual"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Client manual\nAlpha requirement verified\nBeta requirement verified",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 2,
+        "fact_total": 3,
+        "fact_coverage": 0.6667,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-below-two-thirds-True",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.6666666666666665,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Client manual"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Client manual\nAlpha requirement verified\nBeta requirement verified",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 2,
+        "fact_total": 3,
+        "fact_coverage": 0.6667,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-rounded-down-True",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.33332,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Client manual"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Client manual\nAlpha requirement verified",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 1,
+        "fact_total": 3,
+        "fact_coverage": 0.3333,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-display-equal-True",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.3333,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Client manual"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Client manual\nAlpha requirement verified",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 1,
+        "fact_total": 3,
+        "fact_coverage": 0.3333,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-above-one-third-True",
+      "category": "reference-evidence",
+      "failure_mode": "false-positive",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.33333333333333337,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Client manual"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Client manual\nAlpha requirement verified",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "fact_hits": 1,
+        "fact_total": 3,
+        "fact_coverage": 0.3333,
+        "fact_coverage_pass": false,
+        "content_pass": false
+      }
+    },
+    {
+      "id": "runtime28-facts-equal-one-third-True",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.3333333333333333,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Client manual"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Client manual\nAlpha requirement verified",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 1,
+        "fact_total": 3,
+        "fact_coverage": 0.3333,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-below-one-third-True",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.33333333333333326,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Client manual"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Client manual\nAlpha requirement verified",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 1,
+        "fact_total": 3,
+        "fact_coverage": 0.3333,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-no-hits-True",
+      "category": "reference-evidence",
+      "failure_mode": "false-positive",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 0.1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Client manual"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Client manual\n",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "fact_hits": 0,
+        "fact_total": 3,
+        "fact_coverage": 0.0,
+        "fact_coverage_pass": false,
+        "content_pass": false
+      }
+    },
+    {
+      "id": "runtime28-facts-complete-True",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact-0",
+            "alternatives": [
+              "Alpha requirement verified"
+            ]
+          },
+          {
+            "id": "fact-1",
+            "alternatives": [
+              "Beta requirement verified"
+            ]
+          },
+          {
+            "id": "fact-2",
+            "alternatives": [
+              "Gamma requirement verified"
+            ]
+          }
+        ],
+        "fact_coverage_threshold": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Client manual"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Client manual\nAlpha requirement verified\nBeta requirement verified\nGamma requirement verified",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 3,
+        "fact_total": 3,
+        "fact_coverage": 1.0,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
+    },
+    {
+      "id": "runtime28-facts-no-facts-True",
+      "category": "reference-evidence",
+      "failure_mode": "false-negative",
+      "root_cause": "fact_acceptance_uses_unrounded_fraction_not_reported_decimal",
+      "case": {
+        "url": "https://example.test/manual",
+        "min_content_chars": 1,
+        "required_facts": [],
+        "fact_coverage_threshold": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "identity",
+              "alternatives": [
+                "Client manual"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Client manual\n",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_hits": 0,
+        "fact_total": 0,
+        "fact_coverage": 1.0,
+        "fact_coverage_pass": true,
+        "content_pass": true
+      }
     }
   ]
 }

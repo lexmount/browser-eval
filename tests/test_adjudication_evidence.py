@@ -9,6 +9,37 @@ from harness.record_io import canonical_json_sha256
 from lexbench_webfetch.scoring import score_attempt
 
 
+@pytest.mark.parametrize('threshold,passed', [(.6667, False), (2 / 3, True), (.6666, True)])
+@pytest.mark.parametrize('stable', [False, True])
+def test_fact_evidence_uses_computed_outcome_not_rounded_display(threshold, passed, stable):
+    case = {'url': 'https://example.test/manual', 'min_content_chars': 1,
+            'required_facts': [{'id': name, 'alternatives': [name]} for name in ['Alpha', 'Beta', 'Gamma']],
+            'fact_coverage_threshold': threshold}
+    if stable:
+        case['acceptance_contract'] = {
+            'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [{'id': 'manual', 'alternatives': ['Client manual']}],
+        }
+    metrics = score_attempt(case, b'Client manual\nAlpha\nBeta', ok=True)
+    assert metrics['fact_coverage'] == .6667
+    assert metrics['fact_coverage_pass'] is passed
+    outcomes = current_rule_outcomes(case, {'ok': True, 'metrics': metrics})
+    assert outcomes['required_facts'] == {'passed': passed, 'matched': 2, 'total': 3}
+    assert outcomes['task_result']['passed'] is passed
+
+
+@pytest.mark.parametrize('unavailable', ['missing', None, 0, 1])
+def test_fact_evidence_requires_a_known_current_fact_outcome(unavailable):
+    case = {'url': 'https://example.test/', 'required_facts': [{'alternatives': ['Alpha']}]}
+    metrics = score_attempt(case, b'Alpha', ok=True)
+    if unavailable == 'missing':
+        del metrics['fact_coverage_pass']
+    else:
+        metrics['fact_coverage_pass'] = unavailable
+    with pytest.raises(ValueError, match='Required-fact outcome is unavailable'):
+        current_rule_outcomes(case, {'ok': True, 'metrics': metrics})
+
+
 @pytest.mark.parametrize("field,value", [
     ("captures_path", None), ("captures_path", []),
     ("captures_sha256", None), ("captures_sha256", 42),

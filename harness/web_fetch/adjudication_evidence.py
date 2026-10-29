@@ -27,8 +27,11 @@ def current_rule_outcomes(case, record):
     outcomes = {'task_result': {'passed': task_passed(record['ok'], m)},
                 'request_status': {'passed': bool(m.get('request_ok', record['ok']))}}
     if case.get('required_facts'):
+        fact_pass = m.get('fact_coverage_pass')
+        if type(fact_pass) is not bool:
+            raise ValueError('Required-fact outcome is unavailable; recompute current metrics')
         outcomes['required_facts'] = {
-            'passed': m['fact_coverage'] >= case.get('fact_coverage_threshold', 1.0),
+            'passed': fact_pass,
             'matched': m['fact_hits'], 'total': m['fact_total']}
     if case.get('expected_any'):
         outcomes['expected_any'] = {'passed': bool(m.get('matched_markers'))}

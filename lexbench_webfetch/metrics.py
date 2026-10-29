@@ -807,29 +807,36 @@ def code_matching_blocks(content: str, *, representation=None) -> list[str]:
     """Keep literal code and independent block boundaries while ignoring layout."""
     if representation == 'plain_text':
         return [re.sub(r'\s+', '', content)]
-    from .reference_quality import is_html_document_or_fragment, markdown_literal_spans, visible_mixed_html_text
+    from .reference_quality import is_html_document_or_fragment, markdown_comment_spans, markdown_literal_spans, visible_mixed_html_text
     literals = {}
     marker = '\ue012code'
     while marker in content:
         marker += '_'
     native_html = representation == 'html' or is_html_document_or_fragment(content)
     fenced_blocks = []
+    markdown_blocks = []
     if not native_html:
+        from .stable_tasks import _markdown_code_payloads
+        original = content
+        fenced_ranges = []
+        comments = markdown_comment_spans(content)
         # A fence owns its payload before HTML/prose projection. Only the
         # opening fence's quote-container depth applies to subsequent lines.
-        prepared, current, fence, quote_depth, offset = [], [], None, 0, 0
+        prepared, current, fence, quote_depth, offset, fence_start = [], [], None, 0, 0, 0
         spans = markdown_literal_spans(content)
         for raw in content.splitlines(keepends=True):
             line = raw
             prefix = r'^[ \t]*(?:>[ \t]?){' + str(quote_depth) + '}'
             if fence is not None and quote_depth and not re.match(prefix, line):
                 fenced_blocks.append(''.join(current))
+                fenced_ranges.append((fence_start, offset))
                 current, fence = [], None
             if fence is not None:
                 if quote_depth:
                     line = re.sub(prefix, '', line, count=1)
                 if re.fullmatch(r'[ \t]*' + re.escape(fence[0]) + '{' + str(len(fence)) + r',}[ \t]*', line.rstrip('\r\n')):
                     fenced_blocks.append(''.join(current))
+                    fenced_ranges.append((fence_start, offset + len(raw)))
                     current, fence = [], None
                 else:
                     current.append(line)
@@ -837,8 +844,10 @@ def code_matching_blocks(content: str, *, representation=None) -> list[str]:
                 quoted = re.match(r'^[ \t]*((?:>[ \t]?)+)', line)
                 unquoted = line[quoted.end():] if quoted else line
                 opening = re.match(r'^[ \t]*(`{3,}|~{3,})([^\r\n]*)', unquoted)
-                if opening and not (opening[1][0] == '`' and '`' in opening[2]):
+                if (opening and not (opening[1][0] == '`' and '`' in opening[2])
+                        and not any(left <= offset < right for left, right in comments)):
                     fence, quote_depth = opening[1], quoted[1].count('>') if quoted else 0
+                    fence_start = offset
                     line = unquoted
                 elif not any(start <= offset < end for start, end in spans):
                     line = unquoted
@@ -846,13 +855,18 @@ def code_matching_blocks(content: str, *, representation=None) -> list[str]:
             offset += len(raw)
         if fence is not None:
             fenced_blocks.append(''.join(current))
+            fenced_ranges.append((fence_start, len(original)))
+        owned = [(start, payload) for (start, _), payload in zip(fenced_ranges, fenced_blocks)]
+        owned.extend((start, payload) for start, end, payload in _markdown_code_payloads(original)
+                     if not any(start < right and left < end for left, right in fenced_ranges))
+        markdown_blocks = [payload for _, payload in sorted(owned)]
         content = ''.join(prepared)
     masked = content
     for start, end in reversed([] if native_html else markdown_literal_spans(content)):
         token = marker + str(len(literals)) + marker
         literals[token] = content[start:end]
         masked = masked[:start] + token + masked[end:]
-    if native_html or re.search(r'<(?:!doctype|html|body|pre)\b', masked, re.I):
+    if native_html or re.search(r'<(?:!doctype|html|body|pre|code)\b', masked, re.I):
         from bs4 import Comment
         from .dynamic_lists import scoped_html
         soup = scoped_html(masked)
@@ -883,7 +897,7 @@ def code_matching_blocks(content: str, *, representation=None) -> list[str]:
         text = visible_mixed_html_text(text)
         for token, header in headers.items():
             text = text.replace(token, header)
-        blocks = fenced_blocks or [text]
+        blocks = markdown_blocks or [text]
     compact = []
     for block in blocks:
         lines = [line for line in block.splitlines() if line.strip()]
@@ -986,7 +1000,9 @@ def evaluate_content(
             **({'match_scope': 'entry'} if identifier in entry_hits else {'match_scope': scope} if scope != 'body' else {}),
         })
     fact_hits = sum(item["pass"] for item in fact_results)
-    fact_coverage = round(fact_hits / len(fact_results), 4) if fact_results else 1.0
+    fact_fraction = fact_hits / len(fact_results) if fact_results else 1.0
+    fact_coverage_pass = fact_fraction >= fact_coverage_threshold
+    fact_coverage = round(fact_fraction, 4)
     # A reference can legitimately explain HTTP errors or CAPTCHA handling.
     # Such text is not evidence that the returned document is an error page.
     # Keep length, facts and structural gates active, including for short errors.
@@ -1010,7 +1026,7 @@ def evaluate_content(
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
     legacy_pass = bool(matched) if expected else True
     length_pass = len(visible_content) >= min_content_chars
-    content_pass = (legacy_pass and length_pass and fact_coverage >= fact_coverage_threshold
+    content_pass = (legacy_pass and length_pass and fact_coverage_pass
                     and not forbidden
                     and not encoding_corruption
                     and not script_shell)
@@ -1058,7 +1074,7 @@ def evaluate_content(
         "fact_total": len(fact_results),
         "fact_coverage": fact_coverage,
         "fact_coverage_threshold": fact_coverage_threshold,
-        "fact_coverage_pass": fact_coverage >= fact_coverage_threshold,
+        "fact_coverage_pass": fact_coverage_pass,
         "pattern_pass": all(item["pass"] for item in pattern_results),
         "forbidden_requirement_hits": forbidden,
         "diagnostic_hits": [item for item in (diagnostic_any or [])
@@ -1140,7 +1156,7 @@ def evaluate_content(
         # current-record contract instead of historical content markers.
         if acceptance_contract.get("schema") == "body_text":
             for error, passed in (
-                ("required_facts_missing", fact_coverage >= fact_coverage_threshold),
+                ("required_facts_missing", fact_coverage_pass),
                 ("expected_content_missing", legacy_pass),
             ):
                 if not passed:

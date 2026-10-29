@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "914a2319081c002c9f970b3f30b4973953d740782aee1f5780db44216f8c7bf5"
+          "after_sha256": "6620e5c32faf65158fd973dcc3bef3c099101c588bd5d4b7d49a4b69b74e4cbf"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -2600,6 +2600,62 @@
           "tests": [
             "tests/benchmarks/webfetch/test_review_comment_code_ownership.py",
             "tests/benchmarks/webfetch/test_review_reference_literals.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "code28-indent-fence-False",
+            "code28-indent-fence-False-separate",
+            "code28-inline-fence-False",
+            "code28-inline-fence-False-separate",
+            "code28-inline-separate",
+            "code28-same-owner",
+            "code28-quoted-indent",
+            "code28-comment-owned-fence",
+            "code28-mixed-html-code",
+            "code28-mixed-html-code-separate"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_code_owner_collection.py",
+            "tests/benchmarks/webfetch/test_review_code_quote_prefixes.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "runtime28-facts-rounded-up-False",
+            "runtime28-facts-above-two-thirds-False",
+            "runtime28-facts-equal-two-thirds-False",
+            "runtime28-facts-below-two-thirds-False",
+            "runtime28-facts-rounded-down-False",
+            "runtime28-facts-display-equal-False",
+            "runtime28-facts-above-one-third-False",
+            "runtime28-facts-equal-one-third-False",
+            "runtime28-facts-below-one-third-False",
+            "runtime28-facts-no-hits-False",
+            "runtime28-facts-complete-False",
+            "runtime28-facts-no-facts-False",
+            "runtime28-facts-rounded-up-True",
+            "runtime28-facts-above-two-thirds-True",
+            "runtime28-facts-equal-two-thirds-True",
+            "runtime28-facts-below-two-thirds-True",
+            "runtime28-facts-rounded-down-True",
+            "runtime28-facts-display-equal-True",
+            "runtime28-facts-above-one-third-True",
+            "runtime28-facts-equal-one-third-True",
+            "runtime28-facts-below-one-third-True",
+            "runtime28-facts-no-hits-True",
+            "runtime28-facts-complete-True",
+            "runtime28-facts-no-facts-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_fact_coverage_precision.py",
+            "tests/test_adjudication_evidence.py"
           ]
         }
       ]
