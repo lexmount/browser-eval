@@ -57,3 +57,41 @@ def scoring_controls():
                    'root_cause': 'Only a fenced block’s actual quote-container prefixes are removed; redirects and greater-than operators inside its payload remain literal.',
                    'case': case(expected), 'artifact': source, 'metadata': {'answer_format': representation},
                    'ok': True, 'expected_task_pass': passed}
+
+
+def boundary_cases():
+    for depth in [1, 2]:
+        prefix = '> ' * depth
+        shortened = '> ' * (depth - 1)
+        for boundary, joined in [(shortened, False), (prefix.rstrip(), True)]:
+            source = prefix + '```sh\n' + prefix + '> output.txt\n' + boundary + '\n' + prefix + 'tail\n' + prefix + '```'
+            for expected, passed in [('>output.txt', not joined), ('>output.txttail', joined)]:
+                yield f'depth-{depth}-blank-{joined}-{passed}', source, expected, passed
+    for identifier, source, expected, passed in [
+        ('inline-not-fence', '```sh```\n> output.txt', '>output.txt', False),
+        ('quoted-inline-not-fence', '> ```sh```\n> > output.txt', '>output.txt', False),
+        ('valid-fence', '```sh\n> output.txt\n```', '>output.txt', True),
+        ('valid-quoted-fence', '> ```sh\n> > output.txt\n> ```', '>output.txt', True),
+        ('backtick-in-backtick-info', '```sh`version\n> output.txt\n```', '>output.txt', False),
+        ('backtick-in-tilde-info', '~~~sh`version\n> output.txt\n~~~', '>output.txt', True),
+    ]:
+        yield identifier, source, expected, passed
+
+
+@pytest.mark.parametrize('identifier,source,expected,passed', list(boundary_cases()))
+def test_fence_delimiters_and_quote_container_boundaries(identifier, source, expected, passed):
+    result = evaluate_response(case(expected), source.encode(), metadata={'answer_format': 'markdown'})
+    assert result['measured']
+    assert result['passed'] is passed
+
+
+def boundary_controls():
+    for identifier, source, expected, passed in boundary_cases():
+        if identifier.startswith('depth-2') or identifier in {'quoted-inline-not-fence', 'valid-quoted-fence'}:
+            continue
+        yield {'id': 'code26-' + identifier, 'category': 'answer-surface',
+               'failure_mode': 'false-negative' if passed else 'false-positive',
+               'root_cause': ('A quoted fence ends when its quote container ends, including an unprefixed blank; '
+                              'a backtick fence opener cannot contain backticks in its info string.'),
+               'case': case(expected), 'artifact': source, 'metadata': {'answer_format': 'markdown'},
+               'ok': True, 'expected_task_pass': passed, 'expected_task_measured': True}

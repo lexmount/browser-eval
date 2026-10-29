@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "053d0c63f8bb5fe44e7872b4d814232354aa70c173dd52476d2affb3a44cb65e"
+          "after_sha256": "914a2319081c002c9f970b3f30b4973953d740782aee1f5780db44216f8c7bf5"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -80,7 +80,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "fb11bf55da0e0e74a6b76470dd24529b95d7e1a2aba11ac3c49322606923cdb7"
+          "after_sha256": "26330e66285f978cf92b8f0cfcec93da9d06f34438b4233655e29de75dbc1d5c"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -2457,6 +2457,149 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_parenthesized_link_titles.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "code26-depth-1-blank-False-True",
+            "code26-depth-1-blank-False-False",
+            "code26-depth-1-blank-True-False",
+            "code26-depth-1-blank-True-True",
+            "code26-inline-not-fence",
+            "code26-valid-fence",
+            "code26-backtick-in-backtick-info",
+            "code26-backtick-in-tilde-info"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_code_quote_prefixes.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "resource-uri-punctuation-greater-markdown-same",
+            "resource-uri-punctuation-greater-markdown-shortened",
+            "resource-uri-punctuation-greater-html-same",
+            "resource-uri-punctuation-greater-html-shortened",
+            "resource-uri-punctuation-greater-metadata-same",
+            "resource-uri-punctuation-greater-metadata-shortened",
+            "resource-uri-punctuation-greater-plain-encoded-same",
+            "resource-uri-punctuation-greater-plain-encoded-shortened",
+            "resource-uri-punctuation-greater-autolink-same",
+            "resource-uri-punctuation-greater-autolink-shortened",
+            "resource-uri-punctuation-less-markdown-same",
+            "resource-uri-punctuation-less-markdown-shortened",
+            "resource-uri-punctuation-less-html-same",
+            "resource-uri-punctuation-less-html-shortened",
+            "resource-uri-punctuation-less-metadata-same",
+            "resource-uri-punctuation-less-metadata-shortened",
+            "resource-uri-punctuation-less-plain-encoded-same",
+            "resource-uri-punctuation-less-plain-encoded-shortened",
+            "resource-uri-punctuation-less-autolink-same",
+            "resource-uri-punctuation-less-autolink-shortened",
+            "resource-uri-punctuation-quotes-markdown-same",
+            "resource-uri-punctuation-quotes-markdown-shortened",
+            "resource-uri-punctuation-quotes-html-same",
+            "resource-uri-punctuation-quotes-html-shortened",
+            "resource-uri-punctuation-quotes-metadata-same",
+            "resource-uri-punctuation-quotes-metadata-shortened",
+            "resource-uri-punctuation-quotes-plain-encoded-same",
+            "resource-uri-punctuation-quotes-plain-encoded-shortened",
+            "resource-uri-punctuation-quotes-autolink-same",
+            "resource-uri-punctuation-quotes-autolink-shortened",
+            "resource-uri-punctuation-apostrophe-markdown-same",
+            "resource-uri-punctuation-apostrophe-markdown-shortened",
+            "resource-uri-punctuation-apostrophe-html-same",
+            "resource-uri-punctuation-apostrophe-html-shortened",
+            "resource-uri-punctuation-apostrophe-metadata-same",
+            "resource-uri-punctuation-apostrophe-metadata-shortened",
+            "resource-uri-punctuation-apostrophe-plain-encoded-same",
+            "resource-uri-punctuation-apostrophe-plain-encoded-shortened",
+            "resource-uri-punctuation-apostrophe-autolink-same",
+            "resource-uri-punctuation-apostrophe-autolink-shortened",
+            "resource-uri-punctuation-query-greater-markdown-same",
+            "resource-uri-punctuation-query-greater-markdown-shortened",
+            "resource-uri-punctuation-query-greater-html-same",
+            "resource-uri-punctuation-query-greater-html-shortened",
+            "resource-uri-punctuation-query-greater-metadata-same",
+            "resource-uri-punctuation-query-greater-metadata-shortened",
+            "resource-uri-punctuation-query-greater-plain-encoded-same",
+            "resource-uri-punctuation-query-greater-plain-encoded-shortened",
+            "resource-uri-punctuation-query-greater-autolink-same",
+            "resource-uri-punctuation-query-greater-autolink-shortened",
+            "resource-uri-punctuation-query-quotes-markdown-same",
+            "resource-uri-punctuation-query-quotes-markdown-shortened",
+            "resource-uri-punctuation-query-quotes-html-same",
+            "resource-uri-punctuation-query-quotes-html-shortened",
+            "resource-uri-punctuation-query-quotes-metadata-same",
+            "resource-uri-punctuation-query-quotes-metadata-shortened",
+            "resource-uri-punctuation-query-quotes-plain-encoded-same",
+            "resource-uri-punctuation-query-quotes-plain-encoded-shortened",
+            "resource-uri-punctuation-query-quotes-autolink-same",
+            "resource-uri-punctuation-query-quotes-autolink-shortened",
+            "resource-uri-punctuation-quote-looking-destination-same",
+            "resource-uri-punctuation-quote-looking-destination-shortened",
+            "resource-uri-punctuation-image-apostrophe-plain_text-same",
+            "resource-uri-punctuation-image-apostrophe-plain_text-shortened",
+            "resource-uri-punctuation-image-apostrophe-markdown-same",
+            "resource-uri-punctuation-image-apostrophe-markdown-shortened"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_resource_url_punctuation.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "round26-link-boundary-escaped-only-angle",
+            "round26-link-boundary-angle-newline",
+            "round26-link-boundary-label-destination-paragraph",
+            "round26-link-boundary-title-leading-paragraph",
+            "round26-link-boundary-title-trailing-paragraph",
+            "round26-link-boundary-native-label-paragraph",
+            "round26-link-boundary-label-wrap",
+            "round26-link-boundary-quoted-title-wrap",
+            "round26-link-boundary-escaped-backslash",
+            "round26-link-boundary-native-url-wrap",
+            "round26-link-boundary-comment-link-hidden",
+            "round26-link-boundary-comment-delimiters-cannot-close-label"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_link_paragraph_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "comment27-comment-before-body-fact",
+            "comment27-comment-before-body-coverage",
+            "comment27-hidden-comment-fact",
+            "comment27-hidden-comment-coverage",
+            "comment27-same-line-code-precedence-fact",
+            "comment27-comment-block-interrupts-fact",
+            "comment27-comment-owned-fence-fact",
+            "comment27-comment-hidden-fence-fact",
+            "comment27-comment-owned-indent-fact",
+            "comment27-comment-hidden-indent-fact",
+            "comment27-standalone-ticks-not-code-fact",
+            "comment27-standalone-ticks-not-code-coverage",
+            "comment27-valid-multiline-code-fact",
+            "comment27-valid-multiline-code-coverage",
+            "reference4-multiline-comment-False-True",
+            "reference4-multiline-comment-True-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_comment_code_ownership.py",
+            "tests/benchmarks/webfetch/test_review_reference_literals.py"
           ]
         }
       ]

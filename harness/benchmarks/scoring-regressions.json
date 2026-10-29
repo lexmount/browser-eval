@@ -12008,7 +12008,7 @@
           }
         ]
       },
-      "artifact": "`\n<!-- Secret required phrase -->\n`",
+      "artifact": "`<!--\nSecret required phrase\n-->`",
       "ok": true,
       "expected_task_pass": true
     },
@@ -12178,7 +12178,7 @@
           ]
         }
       },
-      "artifact": "`\n<!-- Secret required phrase -->\n`",
+      "artifact": "`<!--\nSecret required phrase\n-->`",
       "ok": true,
       "expected_task_pass": true
     },
@@ -45434,6 +45434,2868 @@
       "category": "answer-surface",
       "failure_mode": "false-positive",
       "root_cause": "One shared optional-title suffix matcher must own delimiter indexing and metadata extraction for both bare and angle destinations. Parenthesized titles are metadata only after a separator, with escaped parentheses retained as payload; URL parentheses without that separator remain URL data, and title-only metadata cannot supply an absent visible row name."
+    },
+    {
+      "id": "code26-depth-1-blank-False-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "A quoted fence ends when its quote container ends, including an unprefixed blank; a backtick fence opener cannot contain backticks in its info string.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^>output\\.txt$"
+          }
+        ]
+      },
+      "artifact": "> ```sh\n> > output.txt\n\n> tail\n> ```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code26-depth-1-blank-False-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "A quoted fence ends when its quote container ends, including an unprefixed blank; a backtick fence opener cannot contain backticks in its info string.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^>output\\.txttail$"
+          }
+        ]
+      },
+      "artifact": "> ```sh\n> > output.txt\n\n> tail\n> ```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code26-depth-1-blank-True-False",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "A quoted fence ends when its quote container ends, including an unprefixed blank; a backtick fence opener cannot contain backticks in its info string.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^>output\\.txt$"
+          }
+        ]
+      },
+      "artifact": "> ```sh\n> > output.txt\n>\n> tail\n> ```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code26-depth-1-blank-True-True",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "A quoted fence ends when its quote container ends, including an unprefixed blank; a backtick fence opener cannot contain backticks in its info string.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^>output\\.txttail$"
+          }
+        ]
+      },
+      "artifact": "> ```sh\n> > output.txt\n>\n> tail\n> ```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code26-inline-not-fence",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "A quoted fence ends when its quote container ends, including an unprefixed blank; a backtick fence opener cannot contain backticks in its info string.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^>output\\.txt$"
+          }
+        ]
+      },
+      "artifact": "```sh```\n> output.txt",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code26-valid-fence",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "A quoted fence ends when its quote container ends, including an unprefixed blank; a backtick fence opener cannot contain backticks in its info string.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^>output\\.txt$"
+          }
+        ]
+      },
+      "artifact": "```sh\n> output.txt\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code26-backtick-in-backtick-info",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "A quoted fence ends when its quote container ends, including an unprefixed blank; a backtick fence opener cannot contain backticks in its info string.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^>output\\.txt$"
+          }
+        ]
+      },
+      "artifact": "```sh`version\n> output.txt\n```",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_task_measured": true
+    },
+    {
+      "id": "code26-backtick-in-tilde-info",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "A quoted fence ends when its quote container ends, including an unprefixed blank; a backtick fence opener cannot contain backticks in its info string.",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "literal-code",
+            "match_scope": "code_compact",
+            "pattern": "^>output\\.txt$"
+          }
+        ]
+      },
+      "artifact": "~~~sh`version\n> output.txt\n~~~",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_task_measured": true
+    },
+    {
+      "id": "resource-uri-punctuation-greater-markdown-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item%3E"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</item\\>>)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-greater-markdown-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</item\\>>)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-greater-html-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item%3E"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"/item&gt;\">Alpha</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-greater-html-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"/item&gt;\">Alpha</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-greater-metadata-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item%3E"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "/item>",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-greater-metadata-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "/item>",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-greater-plain-encoded-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item%3E"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/item%3E",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-greater-plain-encoded-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/item%3E",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-greater-autolink-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item%3E"
+            ]
+          }
+        ]
+      },
+      "artifact": "<https://example.test/item%3E>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-greater-autolink-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "<https://example.test/item%3E>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-less-markdown-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item%3C"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</item\\<>)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3C"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-less-markdown-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</item\\<>)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3C"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-less-html-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item%3C"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"/item&lt;\">Alpha</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3C"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-less-html-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"/item&lt;\">Alpha</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3C"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-less-metadata-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item%3C"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "/item<",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3C"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-less-metadata-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "/item<",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3C"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-less-plain-encoded-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item%3C"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/item%3C",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3C"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-less-plain-encoded-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/item%3C",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3C"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-less-autolink-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item%3C"
+            ]
+          }
+        ]
+      },
+      "artifact": "<https://example.test/item%3C>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3C"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-less-autolink-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "<https://example.test/item%3C>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item%3C"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-quotes-markdown-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/%22item%22"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</\"item\">)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-quotes-markdown-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</\"item\">)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-quotes-html-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/%22item%22"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"/&quot;item&quot;\">Alpha</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-quotes-html-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"/&quot;item&quot;\">Alpha</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-quotes-metadata-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/%22item%22"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "/\"item\"",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-quotes-metadata-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "/\"item\"",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-quotes-plain-encoded-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/%22item%22"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/%22item%22",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-quotes-plain-encoded-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/%22item%22",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-quotes-autolink-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/%22item%22"
+            ]
+          }
+        ]
+      },
+      "artifact": "<https://example.test/%22item%22>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-quotes-autolink-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "<https://example.test/%22item%22>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-apostrophe-markdown-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item'"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</item'>)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item'"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-apostrophe-markdown-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</item'>)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item'"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-apostrophe-html-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item'"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"/item&#x27;\">Alpha</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item'"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-apostrophe-html-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"/item&#x27;\">Alpha</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item'"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-apostrophe-metadata-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item'"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "/item'",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item'"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-apostrophe-metadata-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "/item'",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item'"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-apostrophe-plain-encoded-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item'"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/item'",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item'"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-apostrophe-plain-encoded-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/item'",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item'"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-apostrophe-autolink-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item'"
+            ]
+          }
+        ]
+      },
+      "artifact": "<https://example.test/item'>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item'"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-apostrophe-autolink-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "<https://example.test/item'>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/item'"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-greater-markdown-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item%3E"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</file?q=item\\>>)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-greater-markdown-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</file?q=item\\>>)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-greater-html-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item%3E"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"/file?q=item&gt;\">Alpha</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-greater-html-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"/file?q=item&gt;\">Alpha</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-greater-metadata-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item%3E"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "/file?q=item>",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-greater-metadata-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "/file?q=item>",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-greater-plain-encoded-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item%3E"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/file?q=item%3E",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-greater-plain-encoded-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/file?q=item%3E",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-greater-autolink-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item%3E"
+            ]
+          }
+        ]
+      },
+      "artifact": "<https://example.test/file?q=item%3E>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-greater-autolink-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item"
+            ]
+          }
+        ]
+      },
+      "artifact": "<https://example.test/file?q=item%3E>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=item%3E"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-quotes-markdown-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=%22item%22"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</file?q=\"item\">)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-quotes-markdown-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</file?q=\"item\">)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-quotes-html-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=%22item%22"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"/file?q=&quot;item&quot;\">Alpha</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-quotes-html-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item"
+            ]
+          }
+        ]
+      },
+      "artifact": "<a href=\"/file?q=&quot;item&quot;\">Alpha</a>",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-quotes-metadata-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=%22item%22"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "/file?q=\"item\"",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-quotes-metadata-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item"
+            ]
+          }
+        ]
+      },
+      "artifact": "",
+      "metadata": {
+        "links": [
+          {
+            "url": "/file?q=\"item\"",
+            "title": "Alpha"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-quotes-plain-encoded-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=%22item%22"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/file?q=%22item%22",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-quotes-plain-encoded-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/file?q=%22item%22",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-quotes-autolink-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=%22item%22"
+            ]
+          }
+        ]
+      },
+      "artifact": "<https://example.test/file?q=%22item%22>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-query-quotes-autolink-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Resource readers own source wrappers; decoded URI angle and quote characters remain URL data and never alias a shortened resource.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/file?q=item"
+            ]
+          }
+        ]
+      },
+      "artifact": "<https://example.test/file?q=%22item%22>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/file?q=%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-quote-looking-destination-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "A quote-looking bare Markdown destination is a URI, not a quoted source wrapper or optional title.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/%22item%22"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](\"item\")",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-quote-looking-destination-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "A quote-looking bare Markdown destination is a URI, not a quoted source wrapper or optional title.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](\"item\")",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/%22item%22"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-image-apostrophe-plain_text-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal and angle-wrapped image URI answers retain legal apostrophes.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/photo'.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "https://example.test/photo'.png",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/photo'.png"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-image-apostrophe-plain_text-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal and angle-wrapped image URI answers retain legal apostrophes.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/photo"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "https://example.test/photo'.png",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/photo'.png"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-image-apostrophe-markdown-same",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Literal and angle-wrapped image URI answers retain legal apostrophes.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/photo'.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<https://example.test/photo'.png>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/photo'.png"
+        ]
+      }
+    },
+    {
+      "id": "resource-uri-punctuation-image-apostrophe-markdown-shortened",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Literal and angle-wrapped image URI answers retain legal apostrophes.",
+      "case": {
+        "url": "https://example.test/base",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "https://example.test/photo"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<https://example.test/photo'.png>",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "resource_candidate_urls": [
+          "https://example.test/photo'.png"
+        ]
+      }
+    },
+    {
+      "id": "round26-link-boundary-escaped-only-angle",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "item",
+            "kind": "link",
+            "urls": [
+              "https://example.test/item%5C"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</item\\>)",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Angle-starting destinations must fail closed when the existing angle scanner has no valid close. Link destinations cannot cross a paragraph in their label/destination separator, URL or title; balanced multiline labels remain the established native-card extension, and the delimiter index and shared extractor enforce the same boundary while retaining single-newline native wrapping."
+    },
+    {
+      "id": "round26-link-boundary-angle-newline",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "item",
+            "kind": "link",
+            "urls": [
+              "https://example.test/itemnext"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</item\nnext>)",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Angle-starting destinations must fail closed when the existing angle scanner has no valid close. Link destinations cannot cross a paragraph in their label/destination separator, URL or title; balanced multiline labels remain the established native-card extension, and the delimiter index and shared extractor enforce the same boundary while retaining single-newline native wrapping."
+    },
+    {
+      "id": "round26-link-boundary-label-destination-paragraph",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "item",
+            "kind": "link",
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha]\n\n(/item)",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Angle-starting destinations must fail closed when the existing angle scanner has no valid close. Link destinations cannot cross a paragraph in their label/destination separator, URL or title; balanced multiline labels remain the established native-card extension, and the delimiter index and shared extractor enforce the same boundary while retaining single-newline native wrapping."
+    },
+    {
+      "id": "round26-link-boundary-title-leading-paragraph",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "item",
+            "kind": "link",
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](/item\n\n \"Title\")",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Angle-starting destinations must fail closed when the existing angle scanner has no valid close. Link destinations cannot cross a paragraph in their label/destination separator, URL or title; balanced multiline labels remain the established native-card extension, and the delimiter index and shared extractor enforce the same boundary while retaining single-newline native wrapping."
+    },
+    {
+      "id": "round26-link-boundary-title-trailing-paragraph",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "item",
+            "kind": "link",
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](/item \"Title\"\n\n)",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Angle-starting destinations must fail closed when the existing angle scanner has no valid close. Link destinations cannot cross a paragraph in their label/destination separator, URL or title; balanced multiline labels remain the established native-card extension, and the delimiter index and shared extractor enforce the same boundary while retaining single-newline native wrapping."
+    },
+    {
+      "id": "round26-link-boundary-native-label-paragraph",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "item",
+            "kind": "link",
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha\n\nBeta](/item)",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Angle-starting destinations must fail closed when the existing angle scanner has no valid close. Link destinations cannot cross a paragraph in their label/destination separator, URL or title; balanced multiline labels remain the established native-card extension, and the delimiter index and shared extractor enforce the same boundary while retaining single-newline native wrapping."
+    },
+    {
+      "id": "round26-link-boundary-label-wrap",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "item",
+            "kind": "link",
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha]\n(/item)",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Angle-starting destinations must fail closed when the existing angle scanner has no valid close. Link destinations cannot cross a paragraph in their label/destination separator, URL or title; balanced multiline labels remain the established native-card extension, and the delimiter index and shared extractor enforce the same boundary while retaining single-newline native wrapping."
+    },
+    {
+      "id": "round26-link-boundary-quoted-title-wrap",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "item",
+            "kind": "link",
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](/item\n \"Title\")",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Angle-starting destinations must fail closed when the existing angle scanner has no valid close. Link destinations cannot cross a paragraph in their label/destination separator, URL or title; balanced multiline labels remain the established native-card extension, and the delimiter index and shared extractor enforce the same boundary while retaining single-newline native wrapping."
+    },
+    {
+      "id": "round26-link-boundary-escaped-backslash",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "item",
+            "kind": "link",
+            "urls": [
+              "https://example.test/item%5C"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](</item\\\\>)",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Angle-starting destinations must fail closed when the existing angle scanner has no valid close. Link destinations cannot cross a paragraph in their label/destination separator, URL or title; balanced multiline labels remain the established native-card extension, and the delimiter index and shared extractor enforce the same boundary while retaining single-newline native wrapping."
+    },
+    {
+      "id": "round26-link-boundary-native-url-wrap",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "item",
+            "kind": "link",
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha](/it\nem)",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Angle-starting destinations must fail closed when the existing angle scanner has no valid close. Link destinations cannot cross a paragraph in their label/destination separator, URL or title; balanced multiline labels remain the established native-card extension, and the delimiter index and shared extractor enforce the same boundary while retaining single-newline native wrapping."
+    },
+    {
+      "id": "round26-link-boundary-comment-link-hidden",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "item",
+            "kind": "link",
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "<!-- [Hidden](/item \"Title\") -->",
+      "ok": true,
+      "expected_task_pass": false,
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Shared HTML-comment source ownership must precede delimiter indexing: comment-owned links supply no resource, and delimiters inside a comment cannot terminate or replace a visible link."
+    },
+    {
+      "id": "round26-link-boundary-comment-delimiters-cannot-close-label",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "resource",
+        "expected_resources": [
+          {
+            "id": "item",
+            "kind": "link",
+            "urls": [
+              "https://example.test/item"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Alpha <!-- ](/wrong) -->](/item \"Title\")",
+      "ok": true,
+      "expected_task_pass": true,
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Shared HTML-comment source ownership must precede delimiter indexing: comment-owned links supply no resource, and delimiters inside a comment cannot terminate or replace a visible link."
+    },
+    {
+      "id": "comment27-comment-before-body-fact",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Backticks already owned by HTML comments cannot open Markdown code; code opened before comment-like text retains its literal payload within the same inline block.",
+      "case": {
+        "url": "https://example.test/",
+        "ground_truth_main_content": "Required body",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required body"
+            ]
+          }
+        ]
+      },
+      "artifact": "<!-- ` -->\nRequired body ` here",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_task_measured": true,
+      "expected_metrics": {
+        "word_recall": 1.0
+      }
+    },
+    {
+      "id": "comment27-comment-before-body-coverage",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Backticks already owned by HTML comments cannot open Markdown code; code opened before comment-like text retains its literal payload within the same inline block.",
+      "case": {
+        "url": "https://example.test/",
+        "ground_truth_main_content": "Required body",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "required body",
+              "source_text": "required body",
+              "segmentation_method": "balanced_tokens_fallback"
+            }
+          ]
+        }
+      },
+      "artifact": "<!-- ` -->\nRequired body ` here",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_task_measured": true,
+      "expected_metrics": {
+        "word_recall": 1.0
+      }
+    },
+    {
+      "id": "comment27-hidden-comment-fact",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Backticks already owned by HTML comments cannot open Markdown code; code opened before comment-like text retains its literal payload within the same inline block.",
+      "case": {
+        "url": "https://example.test/",
+        "ground_truth_main_content": "Required body",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required body"
+            ]
+          }
+        ]
+      },
+      "artifact": "<!-- Required body ` -->\nOther output ` here",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_task_measured": true,
+      "expected_metrics": {
+        "word_recall": 0.0
+      }
+    },
+    {
+      "id": "comment27-hidden-comment-coverage",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Backticks already owned by HTML comments cannot open Markdown code; code opened before comment-like text retains its literal payload within the same inline block.",
+      "case": {
+        "url": "https://example.test/",
+        "ground_truth_main_content": "Required body",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "required body",
+              "source_text": "required body",
+              "segmentation_method": "balanced_tokens_fallback"
+            }
+          ]
+        }
+      },
+      "artifact": "<!-- Required body ` -->\nOther output ` here",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_task_measured": true,
+      "expected_metrics": {
+        "word_recall": 0.0
+      }
+    },
+    {
+      "id": "comment27-same-line-code-precedence-fact",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Backticks already owned by HTML comments cannot open Markdown code; code opened before comment-like text retains its literal payload within the same inline block.",
+      "case": {
+        "url": "https://example.test/",
+        "ground_truth_main_content": "Required body",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required body"
+            ]
+          }
+        ]
+      },
+      "artifact": "`before <!-- Required body ` -->\nOther output",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_task_measured": true,
+      "expected_metrics": {
+        "word_recall": 1.0
+      }
+    },
+    {
+      "id": "comment27-comment-block-interrupts-fact",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Backticks already owned by HTML comments cannot open Markdown code; code opened before comment-like text retains its literal payload within the same inline block.",
+      "case": {
+        "url": "https://example.test/",
+        "ground_truth_main_content": "Required body",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required body"
+            ]
+          }
+        ]
+      },
+      "artifact": "`before\n<!-- Required body ` -->\nOther output",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_task_measured": true,
+      "expected_metrics": {
+        "word_recall": 0.0
+      }
+    },
+    {
+      "id": "comment27-comment-owned-fence-fact",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Backticks already owned by HTML comments cannot open Markdown code; code opened before comment-like text retains its literal payload within the same inline block.",
+      "case": {
+        "url": "https://example.test/",
+        "ground_truth_main_content": "Required body",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required body"
+            ]
+          }
+        ]
+      },
+      "artifact": "<!--\n```text\n-->\nRequired body",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_task_measured": true,
+      "expected_metrics": {
+        "word_recall": 1.0
+      }
+    },
+    {
+      "id": "comment27-comment-hidden-fence-fact",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Backticks already owned by HTML comments cannot open Markdown code; code opened before comment-like text retains its literal payload within the same inline block.",
+      "case": {
+        "url": "https://example.test/",
+        "ground_truth_main_content": "Required body",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required body"
+            ]
+          }
+        ]
+      },
+      "artifact": "<!--\n```text\nRequired body -->\nOther output",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_task_measured": true,
+      "expected_metrics": {
+        "word_recall": 0.0
+      }
+    },
+    {
+      "id": "comment27-comment-owned-indent-fact",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Backticks already owned by HTML comments cannot open Markdown code; code opened before comment-like text retains its literal payload within the same inline block.",
+      "case": {
+        "url": "https://example.test/",
+        "ground_truth_main_content": "Required body",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required body"
+            ]
+          }
+        ]
+      },
+      "artifact": "<!--\n\n    Hidden note -->\nRequired body",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_task_measured": true,
+      "expected_metrics": {
+        "word_recall": 1.0
+      }
+    },
+    {
+      "id": "comment27-comment-hidden-indent-fact",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Backticks already owned by HTML comments cannot open Markdown code; code opened before comment-like text retains its literal payload within the same inline block.",
+      "case": {
+        "url": "https://example.test/",
+        "ground_truth_main_content": "Required body",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required body"
+            ]
+          }
+        ]
+      },
+      "artifact": "<!--\n\n    Required body -->\nOther output",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_task_measured": true,
+      "expected_metrics": {
+        "word_recall": 0.0
+      }
+    },
+    {
+      "id": "comment27-standalone-ticks-not-code-fact",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Backticks already owned by HTML comments cannot open Markdown code; code opened before comment-like text retains its literal payload within the same inline block.",
+      "case": {
+        "url": "https://example.test/",
+        "ground_truth_main_content": "Required body",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required body"
+            ]
+          }
+        ]
+      },
+      "artifact": "`\n<!-- Required body -->\n`",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_task_measured": true,
+      "expected_metrics": {
+        "word_recall": 0.0
+      }
+    },
+    {
+      "id": "comment27-standalone-ticks-not-code-coverage",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "root_cause": "Backticks already owned by HTML comments cannot open Markdown code; code opened before comment-like text retains its literal payload within the same inline block.",
+      "case": {
+        "url": "https://example.test/",
+        "ground_truth_main_content": "Required body",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "required body",
+              "source_text": "required body",
+              "segmentation_method": "balanced_tokens_fallback"
+            }
+          ]
+        }
+      },
+      "artifact": "`\n<!-- Required body -->\n`",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_task_measured": true,
+      "expected_metrics": {
+        "word_recall": 0.0
+      }
+    },
+    {
+      "id": "comment27-valid-multiline-code-fact",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Backticks already owned by HTML comments cannot open Markdown code; code opened before comment-like text retains its literal payload within the same inline block.",
+      "case": {
+        "url": "https://example.test/",
+        "ground_truth_main_content": "Required body",
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "Required body"
+            ]
+          }
+        ]
+      },
+      "artifact": "`<!--\nRequired body\n-->`",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_task_measured": true,
+      "expected_metrics": {
+        "word_recall": 1.0
+      }
+    },
+    {
+      "id": "comment27-valid-multiline-code-coverage",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "root_cause": "Backticks already owned by HTML comments cannot open Markdown code; code opened before comment-like text retains its literal payload within the same inline block.",
+      "case": {
+        "url": "https://example.test/",
+        "ground_truth_main_content": "Required body",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "required body",
+              "source_text": "required body",
+              "segmentation_method": "balanced_tokens_fallback"
+            }
+          ]
+        }
+      },
+      "artifact": "`<!--\nRequired body\n-->`",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_task_measured": true,
+      "expected_metrics": {
+        "word_recall": 1.0
+      }
     }
   ]
 }

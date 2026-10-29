@@ -30,8 +30,10 @@ def test_escaped_image_bang_keeps_its_existing_parity(value, image):
 
 
 @pytest.mark.parametrize('value,expected', [
-    ('`\n<!-- Secret required phrase -->\n`', True),
-    ('``\n<!-- Secret required phrase -->\n``', True),
+    ('`<!--\nSecret required phrase\n-->`', True),
+    ('``<!--\nSecret required phrase\n-->``', True),
+    ('`\n<!-- Secret required phrase -->\n`', False),
+    ('``\n<!-- Secret required phrase -->\n``', False),
     ('`\n<label hidden>Secret required phrase</label>\n`', True),
     ('| ```html\n<label hidden>Secret required phrase</label>\n```', True),
     ('| ```html\n<label hidden>Secret required phrase</label>', False),
@@ -95,7 +97,7 @@ def scoring_controls():
         for literal in (False, True):
             text = '<!-- Secret required phrase -->'
             if literal:
-                text = '`\n' + text + '\n`'
+                text = '`<!--\nSecret required phrase\n-->`'
             yield control(f'multiline-comment-{body}-{literal}', text, 'Secret required phrase', literal,
                           body=body, cause='Multiline code spans must be protected before nonliteral HTML comments are removed.')
         for tag in ('label', 'x-evidence'):

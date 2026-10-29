@@ -51,7 +51,7 @@ IMAGE_FILE_SUFFIXES = ('png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'avif')
 
 
 def normalize_resource_url(value: str, base_url: str) -> str | None:
-    value = value.strip().strip("<>\"'")
+    value = value.strip()
     if not value or value.startswith(("data:", "blob:", "javascript:", "mailto:")):
         return None
     try:
@@ -73,6 +73,7 @@ def normalize_resource_url(value: str, base_url: str) -> str | None:
                   lambda match: (character if (character := chr(int(match[0][1:], 16)))
                                  in unreserved else match[0].upper()), path)
     path = quote(path, safe="/:@!$&'()*+,;=-._~%")
+    query = re.sub(r'[<>"]', lambda match: quote(match[0]), query)
     return urlunsplit((parsed.scheme.lower(), netloc, path, query, ""))
 
 
@@ -181,9 +182,9 @@ def _literal_resource_urls(content: str) -> list[str]:
     result = []
     for line in content.splitlines():
         value = line.strip()
-        value = value[1:] if value.startswith('<') else value
-        value = value[:-1] if value.endswith('>') else value
-        if re.fullmatch(r'https?://[^\s<>"\']+', value, re.I):
+        if value.startswith('<') and value.endswith('>'):
+            value = value[1:-1]
+        if re.fullmatch(r'https?://[^\s<>"]+', value, re.I):
             result.append(value)
     return result
 
@@ -234,7 +235,7 @@ def _image_content_candidates(content: str, *, representation=None) -> list[tupl
     # Explicit image markup is typed evidence. A standalone HTTP URL may also
     # be the entire answer, including an extensionless CDN address. Every URL
     # with that syntax is admitted alike, without consulting target resources.
-    url_pattern = r"https?://[^\s<>'\")\]]+"
+    url_pattern = r"https?://[^\s<>\")\]]+"
     for line in bare_content.splitlines():
         literal_urls = _literal_resource_urls(line)
         if literal_urls:
@@ -439,7 +440,7 @@ def _bare_resource_urls(content: str) -> list[str]:
                      " ", content, flags=re.S)
     for link in reversed(markdown_links(visible)):
         visible = visible[:link.start] + " " + visible[link.end:]
-    return re.findall(r"https?://[^\s<>'\")\]]+", visible)
+    return re.findall(r"https?://[^\s<>\")\]]+", visible)
 
 
 def _resource_pattern_matches(pattern: str, url: str) -> bool:
@@ -821,7 +822,7 @@ def code_matching_blocks(content: str, *, representation=None) -> list[str]:
         for raw in content.splitlines(keepends=True):
             line = raw
             prefix = r'^[ \t]*(?:>[ \t]?){' + str(quote_depth) + '}'
-            if fence is not None and quote_depth and line.strip() and not re.match(prefix, line):
+            if fence is not None and quote_depth and not re.match(prefix, line):
                 fenced_blocks.append(''.join(current))
                 current, fence = [], None
             if fence is not None:
@@ -835,8 +836,8 @@ def code_matching_blocks(content: str, *, representation=None) -> list[str]:
             else:
                 quoted = re.match(r'^[ \t]*((?:>[ \t]?)+)', line)
                 unquoted = line[quoted.end():] if quoted else line
-                opening = re.match(r'^[ \t]*(`{3,}|~{3,})[^\r\n]*', unquoted)
-                if opening:
+                opening = re.match(r'^[ \t]*(`{3,}|~{3,})([^\r\n]*)', unquoted)
+                if opening and not (opening[1][0] == '`' and '`' in opening[2]):
                     fence, quote_depth = opening[1], quoted[1].count('>') if quoted else 0
                     line = unquoted
                 elif not any(start <= offset < end for start, end in spans):

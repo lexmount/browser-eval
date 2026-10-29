@@ -210,6 +210,7 @@ class MarkdownLink:
 
 _MAX_MARKDOWN_LINK_SPAN = 8192
 _MARKDOWN_ANGLE_DESTINATION = re.compile(r"<(?:\\[^\r\n]|[^\\<>\r\n])*>")
+_MARKDOWN_PARAGRAPH_BREAK = re.compile(r"\r?\n[ \t]*\r?\n")
 # Native converters may retain repeated quotes inside quoted metadata.
 _MARKDOWN_LINK_TITLE = re.compile(
     r"(?:(?P<quote>['\"])(?P<quoted>(?:\\[\s\S]|[^\\])*?)(?P=quote)"
@@ -220,10 +221,8 @@ _MARKDOWN_LINK_TITLE = re.compile(
 def _markdown_title_match(text, start=0, stop=None, *, complete=False):
     match = (_MARKDOWN_LINK_TITLE.fullmatch(text, start, len(text) if stop is None else stop)
              if complete else _MARKDOWN_LINK_TITLE.match(text, start, len(text) if stop is None else stop))
-    if match is not None:
-        payload = match['quoted'] if match['quote'] else match['parenthesized']
-        if not re.search(r'\r?\n[ \t]*\r?\n', payload):
-            return match
+    if match is not None and _MARKDOWN_PARAGRAPH_BREAK.search(text, start, match.end()) is None:
+        return match
     return None
 
 
@@ -256,14 +255,33 @@ def is_markdown_image_start(text: str, index: int) -> bool:
     return backslashes % 2 == 0
 
 
+def _markdown_comment_mask(text):
+    """Keep syntax offsets while removing actual, rather than code-owned, comments."""
+    if '<!--' not in text:
+        return text
+    pieces, cursor = [], 0
+    for left, right in markdown_comment_spans(text):
+        pieces.extend([text[cursor:left], re.sub(r'[^\r\n]', ' ', text[left:right])])
+        cursor = right
+    pieces.append(text[cursor:])
+    return ''.join(pieces)
+
+
 def markdown_delimiter_pairs(text, *, maximum_span=None):
     """Index escaped, nested Markdown delimiters once, including malformed prose."""
+    text = _markdown_comment_mask(text)
     pairs = {}
     stacks = {'[': [], '(': []}
     openings = {']': '[', ')': '('}
     label_ends, destinations = set(), set()
+    invalid_destinations = set()
+    paragraphs = list(_MARKDOWN_PARAGRAPH_BREAK.finditer(text))
+    paragraph_index, last_paragraph = 0, -1
     i = 0
     while i < len(text):
+        while paragraph_index < len(paragraphs) and paragraphs[paragraph_index].end() <= i:
+            last_paragraph = paragraphs[paragraph_index].start()
+            paragraph_index += 1
         char = text[i]
         if char == "\\":
             i += 2
@@ -279,12 +297,13 @@ def markdown_delimiter_pairs(text, *, maximum_span=None):
                 if angle is not None:
                     i = angle.end()
                     continue
+                invalid_destinations.add(start)
         if (char in '"\'(' and stacks['('] and stacks['('][-1] in destinations
                 and i > 0 and text[i - 1].isspace()):
             start = stacks['('][-1]
             title = _markdown_title_match(text, i, len(text) if maximum_span is None
                                        else min(len(text), start + maximum_span))
-            if title is not None:
+            if title is not None and start not in invalid_destinations and last_paragraph < start:
                 stacks['('].pop()
                 pairs[start] = title.end() - 1
                 i = title.end()
@@ -295,13 +314,18 @@ def markdown_delimiter_pairs(text, *, maximum_span=None):
                 while previous >= 0 and text[previous].isspace():
                     previous -= 1
                 if previous in label_ends:
-                    destinations.add(i)
+                    if last_paragraph >= previous:
+                        invalid_destinations.add(i)
+                    else:
+                        destinations.add(i)
             stacks[char].append(i)
         elif char in openings:
             opening = openings[char]
             if stacks[opening]:
                 start = stacks[opening].pop()
-                if maximum_span is None or i - start < maximum_span:
+                if ((maximum_span is None or i - start < maximum_span)
+                        and start not in invalid_destinations
+                        and not (start in destinations and last_paragraph >= start)):
                     pairs[start] = i
                     if char == ']':
                         label_ends.add(i)
@@ -312,15 +336,16 @@ def markdown_delimiter_pairs(text, *, maximum_span=None):
 def markdown_links(text: str) -> list[MarkdownLink]:
     """Return explicit balanced Markdown links without guessing from bare URLs."""
     links: list[MarkdownLink] = []
+    syntax = _markdown_comment_mask(text)
     # Attribute values are HTML metadata, even when they contain balanced
     # Markdown syntax. Keep tag bytes intact for the HTML-specific readers.
     tags = [match.span() for match in re.finditer(
-        r'''</?[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', text)]
+        r'''</?[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', syntax)]
     pieces, cursor = [], 0
     for left, right in tags:
-        pieces.extend([text[cursor:left], ' ' * (right - left)])
+        pieces.extend([syntax[cursor:left], ' ' * (right - left)])
         cursor = right
-    pieces.append(text[cursor:])
+    pieces.append(syntax[cursor:])
     pairs = markdown_delimiter_pairs(''.join(pieces), maximum_span=_MAX_MARKDOWN_LINK_SPAN)
     tag_index = 0
     index = 0
@@ -346,15 +371,18 @@ def markdown_links(text: str) -> list[MarkdownLink]:
             index += 1
             continue
         destination_end = pairs.get(destination_start)
-        if destination_end is None:
+        if destination_end is None or _MARKDOWN_PARAGRAPH_BREAK.search(text, label_end + 1, destination_end + 1):
             index += 1
             continue
         raw_label = text[start + 1:label_end]
         raw_destination = text[destination_start + 1:destination_end].strip()
         titled = None
-        if raw_destination.startswith("<") and ">" in raw_destination:
+        if raw_destination.startswith("<"):
             angle = _MARKDOWN_ANGLE_DESTINATION.match(raw_destination)
-            close = angle.end() - 1 if angle is not None else raw_destination.index(">")
+            if angle is None:
+                index += 1
+                continue
+            close = angle.end() - 1
             destination = raw_destination[1:close]
             remainder = raw_destination[close + 1:]
             if remainder:
@@ -432,6 +460,7 @@ def _same_inline_block(text, start, end):
             line = re.sub(r'^ {0,3}(?:>[ \t]?){1,' + str(quote_depth) + '}', '', line, count=1)
         fence = re.match(r'^ {0,3}(`{3,}|~{3,})(.*)$', line)
         if (not line.strip()
+                or re.match(r'^ {0,3}<!--', line)
                 or re.match(r'^ {0,3}(?:#{1,6}(?:[ \t]|$)|>)', line)
                 or re.match(r'^ {0,3}(?:[-+*]|' + ordered + r'[.)])[ \t]+\S', line)
                 or re.fullmatch(r' {0,3}(?:=+|-+|(?:\*[ \t]*){3,}|(?:_[ \t]*){3,}|(?:-[ \t]*){3,})[ \t]*', line)
@@ -441,13 +470,41 @@ def _same_inline_block(text, start, end):
     return True
 
 
+def _next_markdown_comment(text, cursor, stop, *, excluded_spans=()):
+    while cursor < stop:
+        opening = text.find('<!--', cursor, stop)
+        if opening < 0:
+            return None
+        owner = next((right for left, right in excluded_spans if left <= opening < right), None)
+        escape = opening
+        while escape and text[escape - 1] == '\\':
+            escape -= 1
+        if owner is not None or (opening - escape) % 2:
+            cursor = owner if owner is not None else opening + 4
+            continue
+        closing = text.find('-->', opening + 4)
+        return opening, closing + 3 if closing >= 0 else len(text)
+    return None
+
+
 def markdown_inline_code_spans(text, *, excluded_spans=()):
     """Locate code spans within a single inline-content block."""
     spans = []
     runs = list(re.finditer(r'`+', text))
-    consumed = 0
+    consumed = comment_cursor = 0
     for index, run in enumerate(runs):
         if run.start() < consumed or any(left <= run.start() < right for left, right in excluded_spans):
+            continue
+        # Earlier code spans have already consumed their comment-looking text.
+        # A genuine comment owns its backticks, but cannot claim a code opener
+        # that precedes it in this inline block.
+        while comment_cursor <= run.start():
+            comment = _next_markdown_comment(text, comment_cursor, run.start() + 1,
+                                             excluded_spans=excluded_spans)
+            if comment is None:
+                break
+            comment_cursor = comment[1]
+        if run.start() < comment_cursor:
             continue
         escape = run.start()
         while escape and text[escape - 1] == '\\':
@@ -460,15 +517,24 @@ def markdown_inline_code_spans(text, *, excluded_spans=()):
         if closing is not None and _same_inline_block(text, run.start(), closing.start()):
             spans.append((run.start(), closing.end()))
             consumed = closing.end()
+            comment_cursor = consumed
     return spans
 
 
-def _markdown_fenced_code_spans(text):
-    spans = []
+def _markdown_fenced_and_comment_spans(text):
+    """Track fences and block comments in source order, without nested claims."""
+    spans, comments = [], []
     fence = None
-    offset = 0
+    offset = comment_end = 0
     for line in text.splitlines(keepends=True):
-        if fence is None:
+        comment = re.match(r'^ {0,3}<!--', line)
+        if fence is None and offset < comment_end:
+            pass
+        elif fence is None and comment:
+            closing = text.find('-->', offset + comment.end())
+            comment_end = closing + 3 if closing >= 0 else len(text)
+            comments.append((offset, comment_end))
+        elif fence is None:
             opening = re.match(r'^ {0,3}(`{3,}|~{3,})([^\r\n]*)', line)
             if opening and not (opening[1][0] == '`' and '`' in opening[2]):
                 fence = (offset, opening[1])
@@ -479,7 +545,7 @@ def _markdown_fenced_code_spans(text):
         offset += len(line)
     if fence is not None:
         spans.append((fence[0], len(text)))
-    return spans
+    return spans, comments
 
 
 def _markdown_indented_code_blocks(text, *, excluded_spans=None):
@@ -489,7 +555,8 @@ def _markdown_indented_code_blocks(text, *, excluded_spans=None):
     if is_html_document_or_fragment(text):
         return []
     if excluded_spans is None:
-        excluded_spans = _markdown_fenced_code_spans(text)
+        fences, comments = _markdown_fenced_and_comment_spans(text)
+        excluded_spans = fences + comments
     spans, list_indents = [], []
     paragraph, previous_depth, empty_item = False, 0, False
     pending = None
@@ -584,7 +651,8 @@ def normalize_native_markdown_layout(text):
         return text
     from .composite_tasks import _DATE_OR_TIME
     lines = text.splitlines(keepends=True)
-    fences = _markdown_fenced_code_spans(text)
+    fences, comments = _markdown_fenced_and_comment_spans(text)
+    fences += comments
     offsets, offset = [], 0
     for line in lines:
         offsets.append(offset)
@@ -648,10 +716,20 @@ def _markdown_html_block_spans(text, *, excluded_spans=()):
 
 def markdown_literal_spans(text: str) -> list[tuple[int, int]]:
     """Locate block and inline literals before interpreting Markdown syntax."""
-    spans = _markdown_fenced_code_spans(text)
-    spans += markdown_indented_code_spans(text, excluded_spans=spans)
+    spans, comments = _markdown_fenced_and_comment_spans(text)
+    spans += markdown_indented_code_spans(text, excluded_spans=spans + comments)
     html_blocks = _markdown_html_block_spans(text, excluded_spans=spans)
-    return sorted(spans + markdown_inline_code_spans(text, excluded_spans=spans + html_blocks))
+    return sorted(spans + markdown_inline_code_spans(text, excluded_spans=spans + html_blocks + comments))
+
+
+def markdown_comment_spans(text: str) -> list[tuple[int, int]]:
+    """Locate hidden comments without claiming literal code or escaped openers."""
+    literals = markdown_literal_spans(text)
+    comments, cursor = [], 0
+    while comment := _next_markdown_comment(text, cursor, len(text), excluded_spans=literals):
+        comments.append(comment)
+        cursor = comment[1]
+    return comments
 
 
 def visible_markdown_links(text: str, *, include_image_alt: bool = False) -> str:
