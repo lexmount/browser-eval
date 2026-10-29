@@ -71242,6 +71242,766 @@
       "expected_metrics": {
         "stable_complete_record_count": 0
       }
+    },
+    {
+      "id": "schema-fields-supported-product",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "name": 1,
+            "price": 1,
+            "shipping": 1,
+            "financing": 1
+          }
+        }
+      },
+      "artifact": "|name|price|shipping|financing|\n|---|---|---|---|\n|Alpha|$10|Free shipping|or 9 x $1.11|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-supported-catalog_product",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "title": 1,
+            "price": 1,
+            "description": 1,
+            "reviews": 1
+          }
+        }
+      },
+      "artifact": "|title|price|description|reviews|\n|---|---|---|---|\n|Alpha|$10|Helpful description|3|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-supported-quote",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "quote": 1,
+            "author": 1,
+            "tags": 1
+          }
+        }
+      },
+      "artifact": "|quote|author|tags|\n|---|---|---|\n|A helpful quotation|Ada|insight|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-supported-review",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "date": 1,
+            "text": 1
+          }
+        }
+      },
+      "artifact": "|date|text|\n|---|---|\n|2026-10-29|A helpful review|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-supported-api_operation",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "api_operation",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "method": 1,
+            "path": 1,
+            "summary": 1
+          }
+        }
+      },
+      "artifact": "|method|path|summary|\n|---|---|---|\n|GET|/items|A helpful summary|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-supported-taxonomy_family",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "taxonomy_family",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "family": 1
+          }
+        }
+      },
+      "artifact": "|family|\n|---|\n|Cheloniidae|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-supported-name_description",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "name": 1,
+            "description": 1
+          }
+        }
+      },
+      "artifact": "|name|description|\n|---|---|\n|Alpha|A helpful description|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-supported-earthquake",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "earthquake",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "magnitude": 1,
+            "location": 1,
+            "time": 1,
+            "depth": 1
+          }
+        }
+      },
+      "artifact": "|magnitude|location|time|depth|\n|---|---|---|---|\n|5.1|Pacific ridge|2026-10-29T12:00:00Z|10 km|",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-supported-named_link",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "title": 1,
+            "url": 1
+          },
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+"
+        }
+      },
+      "artifact": "[Alpha](/item/1)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-missing-url-named_link",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "title": 1,
+            "url": 1
+          },
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+"
+        }
+      },
+      "artifact": "[Alpha](/foreign/1)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "schema-fields-supported-linked_product",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "title": 1,
+            "url": 1,
+            "price": 1
+          },
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ]
+        }
+      },
+      "artifact": "[Alpha](/item/1)\n$10",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-missing-url-linked_product",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "title": 1,
+            "url": 1,
+            "price": 1
+          },
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/item/\\d+",
+          "price_patterns": [
+            "\\$\\d+"
+          ],
+          "price_unavailable_patterns": [
+            "Unavailable"
+          ]
+        }
+      },
+      "artifact": "[Alpha](/foreign/1)\n$10",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "schema-fields-table-units",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "units": 1
+          },
+          "table_columns": [
+            {
+              "name": "identifier",
+              "label": "Identifier",
+              "type": "text"
+            },
+            {
+              "name": "units",
+              "label": "Value",
+              "type": "integer",
+              "allow_empty": false
+            }
+          ],
+          "record_identity_fields": [
+            "identifier"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Data$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<identifier>\\S+) (?P<units>\\S+)"
+          }
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td>7</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-table-missing-units",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "units": 1
+          },
+          "table_columns": [
+            {
+              "name": "identifier",
+              "label": "Identifier",
+              "type": "text"
+            },
+            {
+              "name": "units",
+              "label": "Value",
+              "type": "integer",
+              "allow_empty": false
+            }
+          ],
+          "record_identity_fields": [
+            "identifier"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Data$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<identifier>\\S+) (?P<units>\\S+)"
+          }
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td></td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "schema-fields-table-price",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "price": 1
+          },
+          "table_columns": [
+            {
+              "name": "identifier",
+              "label": "Identifier",
+              "type": "text"
+            },
+            {
+              "name": "price",
+              "label": "Value",
+              "type": "integer",
+              "allow_empty": false
+            }
+          ],
+          "record_identity_fields": [
+            "identifier"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Data$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<identifier>\\S+) (?P<price>\\S+)"
+          }
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td>7</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-table-missing-price",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "price": 1
+          },
+          "table_columns": [
+            {
+              "name": "identifier",
+              "label": "Identifier",
+              "type": "text"
+            },
+            {
+              "name": "price",
+              "label": "Value",
+              "type": "integer",
+              "allow_empty": false
+            }
+          ],
+          "record_identity_fields": [
+            "identifier"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Data$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<identifier>\\S+) (?P<price>\\S+)"
+          }
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td></td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "schema-fields-table-display_label",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "display_label": 1
+          },
+          "table_columns": [
+            {
+              "name": "identifier",
+              "label": "Identifier",
+              "type": "text"
+            },
+            {
+              "name": "display_label",
+              "label": "Value",
+              "type": "text",
+              "allow_empty": false
+            }
+          ],
+          "record_identity_fields": [
+            "identifier"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Data$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<identifier>\\S+) (?P<display_label>\\S+)"
+          }
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td>X</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-table-missing-display_label",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "display_label": 1
+          },
+          "table_columns": [
+            {
+              "name": "identifier",
+              "label": "Identifier",
+              "type": "text"
+            },
+            {
+              "name": "display_label",
+              "label": "Value",
+              "type": "text",
+              "allow_empty": false
+            }
+          ],
+          "record_identity_fields": [
+            "identifier"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Data$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<identifier>\\S+) (?P<display_label>\\S+)"
+          }
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td></td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "schema-fields-table-family",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "family": 1
+          },
+          "table_columns": [
+            {
+              "name": "identifier",
+              "label": "Identifier",
+              "type": "text"
+            },
+            {
+              "name": "family",
+              "label": "Value",
+              "type": "text",
+              "allow_empty": false
+            }
+          ],
+          "record_identity_fields": [
+            "identifier"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Data$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<identifier>\\S+) (?P<family>\\S+)"
+          }
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td>Oak</td></tr></table>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-table-missing-family",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "family": 1
+          },
+          "table_columns": [
+            {
+              "name": "identifier",
+              "label": "Identifier",
+              "type": "text"
+            },
+            {
+              "name": "family",
+              "label": "Value",
+              "type": "text",
+              "allow_empty": false
+            }
+          ],
+          "record_identity_fields": [
+            "identifier"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Data$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<identifier>\\S+) (?P<family>\\S+)"
+          }
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td></td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "schema-fields-shipping-present",
+      "category": "structured-extraction",
+      "failure_mode": "false-negative",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "shipping": 1
+          }
+        }
+      },
+      "artifact": "Alpha\n$10\nFree shipping",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "schema-fields-shipping-missing",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "shipping": 1
+          }
+        }
+      },
+      "artifact": "Alpha\n$10",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "schema-fields-shipping-invalid",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "shipping": 1
+          }
+        }
+      },
+      "artifact": "Alpha\n$10\nShipping: tomorrow",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "schema-fields-empty-optional-column",
+      "category": "structured-extraction",
+      "failure_mode": "false-positive",
+      "root_cause": "field_requirements_use_schema_supported_fields_and_declared_typed_columns",
+      "case": {
+        "url": "https://example.test/catalog",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "table_row",
+          "minimum_records": 1,
+          "field_minimum_records": {
+            "units": 1
+          },
+          "table_columns": [
+            {
+              "name": "identifier",
+              "label": "Identifier",
+              "type": "text"
+            },
+            {
+              "name": "units",
+              "label": "Value",
+              "type": "integer",
+              "allow_empty": true
+            }
+          ],
+          "record_identity_fields": [
+            "identifier"
+          ],
+          "table_scope": {
+            "row_selector": ".data",
+            "cell_selector": ":scope > td",
+            "start_pattern": "^Data$",
+            "end_pattern": "^End$",
+            "plain_row_pattern": "(?P<identifier>\\S+) (?P<units>\\S+)"
+          }
+        }
+      },
+      "artifact": "<table><tr class=\"data\"><td>Alpha</td><td></td></tr></table>",
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }

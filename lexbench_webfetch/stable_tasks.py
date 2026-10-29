@@ -502,7 +502,7 @@ def _table_records(lines, schema):
     return records, occupied
 
 
-def _product_start(lines, index, schema, *, literal=False):
+def _product_start(lines, index, schema):
     """Recognize the same supported title/price layouts at every card boundary."""
     if re.match(r"description\s*:", lines[index], re.I):
         return None
@@ -540,7 +540,7 @@ def _products(lines, schema, *, literal=False):
     claimed_shipping = set()
     i = 0
     while i < len(lines):
-        start = _product_start(lines, i, schema, literal=literal)
+        start = _product_start(lines, i, schema)
         if start is None:
             i += 1
             continue
@@ -561,7 +561,7 @@ def _products(lines, schema, *, literal=False):
                     break
                 # Stop before any subsequent card, rather than borrowing its
                 # description or review count to repair this card.
-                if _product_start(lines, end, schema, literal=literal) is not None:
+                if _product_start(lines, end, schema) is not None:
                     break
                 description.append(_field(line, "description"))
                 end += 1
@@ -677,7 +677,7 @@ def _reviews(lines, *, literal=False):
     return records
 
 
-def _operations(lines, *, literal=False):
+def _operations(lines):
     records, i = [], 0
     while i < len(lines):
         # Some native Markdown serializers emit METHOD[/path](target)Summary;
@@ -918,7 +918,7 @@ def _parse_records(visible, schema, *, allow_closed_title_cards=False, literal=F
         sections = [section for block in remainder.split(_CARD_BOUNDARY)
                     for section in re.split(boundary, block)]
         for section in sections:
-            records.extend(_operations([_line(line, literal=literal) for line in section.splitlines() if line.strip()], literal=literal))
+            records.extend(_operations([_line(line, literal=literal) for line in section.splitlines() if line.strip()]))
     elif schema == "name_description":
         # Scoped title-description-title cards and image-owned cards are two
         # ways to establish the same ownership boundary.  When the caller has
@@ -1410,7 +1410,16 @@ def validate_acceptance_contract(contract: dict) -> None:
     elif any(key in contract for key in ('table_columns', 'record_identity_fields', 'table_scope')):
         raise ValueError('Table declarations apply only to table-row contracts')
     field_counts = contract.get('field_minimum_records', {})
-    if not isinstance(field_counts, dict) or any(k not in _LABELS or type(v) is not int or v < 1 for k,v in field_counts.items()):
+    required_schema_fields = set(SCHEMA_FIELDS[contract['schema']])
+    schema_fields = required_schema_fields.copy()
+    if contract['schema'] == 'table_row':
+        schema_fields = {column['name'] for column in contract['table_columns']}
+    elif contract['schema'] == 'product':
+        schema_fields.update({'financing', 'shipping'})
+    if (not isinstance(field_counts, dict)
+            or any(type(value) is not int or value < 1 for value in field_counts.values())
+            or contract['schema'] not in {'body_text', 'page_identity'}
+            and not set(field_counts) <= schema_fields):
         raise ValueError('Invalid required field counts')
     minimum, maximum = contract.get("minimum_records"), contract.get("maximum_records")
     if contract["schema"] == "body_text":
@@ -1469,11 +1478,10 @@ def validate_acceptance_contract(contract: dict) -> None:
                 raise ValueError('Changing membership cannot bind historical records')
         else:
             fields, hashes = membership.get('fields'), membership.get('record_hashes')
-            schema_fields = set(SCHEMA_FIELDS[contract['schema']])
-            if (set(membership) != {'kind', 'fields', 'record_hashes'} or not schema_fields
+            if (set(membership) != {'kind', 'fields', 'record_hashes'} or not required_schema_fields
                     or not isinstance(fields, list) or not all(isinstance(f, str) for f in fields)
                     or fields != sorted(set(fields))
-                    or not schema_fields <= set(fields) <= schema_fields | {'financing', 'shipping'}
+                    or not required_schema_fields <= set(fields) <= schema_fields
                     or not isinstance(hashes, list) or not all(isinstance(h, str) for h in hashes)
                     or hashes != sorted(set(hashes)) or len(hashes) < minimum
                     or any(not re.fullmatch(r'[0-9a-f]{64}', h) for h in hashes)):
@@ -1929,9 +1937,18 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     unique = {tuple(identity_key(r, field) for field in identity_fields) for r in complete}
     record_warnings = []
     field_checks = []
+    table_columns = {column['name']: column for column in contract.get('table_columns', [])}
+    def populated(record, field):
+        value = record['fields'].get(field)
+        if schema == 'table_row':
+            from .structured_tables import _valid
+            return isinstance(value, str) and bool(value.strip()) and _valid(value, table_columns[field])
+        if field == 'url' and schema in {'named_link', 'linked_product'}:
+            return isinstance(value, str) and bool(named_entry_identity(value, contract))
+        return _valid_field(field, value)
     for field, count in contract.get('field_minimum_records', {}).items():
         identities = {tuple(identity_key(r, key) for key in identity_fields)
-                      for r in complete if _valid_field(field, r['fields'].get(field))}
+                      for r in complete if populated(r, field)}
         field_checks.append({'field': field, 'count': len(identities), 'minimum': count, 'pass': len(identities) >= count})
         if len(identities) < count:
             errors.append('missing_required_field:' + field)

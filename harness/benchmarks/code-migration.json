@@ -104,7 +104,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "4d9ef25c193b7f12d0f3d8404e4d2435daeb24e1bc58750eda3a8816a7abd4d0"
+          "after_sha256": "c91952c0a9a1614734402e7b143ca4ed86be2fc017c463677659d531ef085fd7"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -3474,6 +3474,40 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_labeled_review_counts.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "schema-fields-supported-product",
+            "schema-fields-supported-catalog_product",
+            "schema-fields-supported-quote",
+            "schema-fields-supported-review",
+            "schema-fields-supported-api_operation",
+            "schema-fields-supported-taxonomy_family",
+            "schema-fields-supported-name_description",
+            "schema-fields-supported-earthquake",
+            "schema-fields-supported-named_link",
+            "schema-fields-missing-url-named_link",
+            "schema-fields-supported-linked_product",
+            "schema-fields-missing-url-linked_product",
+            "schema-fields-table-units",
+            "schema-fields-table-missing-units",
+            "schema-fields-table-price",
+            "schema-fields-table-missing-price",
+            "schema-fields-table-display_label",
+            "schema-fields-table-missing-display_label",
+            "schema-fields-table-family",
+            "schema-fields-table-missing-family",
+            "schema-fields-shipping-present",
+            "schema-fields-shipping-missing",
+            "schema-fields-shipping-invalid",
+            "schema-fields-empty-optional-column"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_schema_field_counts.py"
           ]
         }
       ]
