@@ -230,13 +230,22 @@ class MetricsTest(unittest.TestCase):
 
     def test_resource_discovery_unescapes_commonmark_url_punctuation(self) -> None:
         result = evaluate_resources(
-            r'<img src="pic\_trulli.jpg">', {},
+            r'![Photo](pic\_trulli.jpg)', {},
             [{"id": "image", "kind": "image", "urls": ["pic_trulli.jpg"]}],
             base_url="https://example.test/gallery/page.html",
         )
         self.assertEqual(result["resource_recall"], 1.0)
         self.assertEqual(result["resource_results"][0]["matched_urls"],
                          ["https://example.test/gallery/pic_trulli.jpg"])
+
+    def test_resource_discovery_preserves_html_url_backslashes(self) -> None:
+        result = evaluate_resources(
+            r'<img src="pic\_trulli.jpg">', {},
+            [{"id": "image", "kind": "image", "urls": ["pic_trulli.jpg"]}],
+            base_url="https://example.test/gallery/page.html",
+        )
+        self.assertEqual(result["resource_recall"], 0.0)
+        self.assertEqual(result["resource_results"][0]["matched_urls"], [])
 
     def test_encoded_relative_file_autolink_resolves_against_source_page(self) -> None:
         expected = 'https://download.example.test/files/bbb_sunflower.mp4.zip'

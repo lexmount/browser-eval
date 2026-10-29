@@ -418,6 +418,9 @@ def _resource_answer_candidates(content: str, *, base_url: str, source='content'
             structured = None
         if isinstance(structured, (dict, list)):
             return _native_json_resource_candidates(content, base_url=base_url)
+        from .reference_quality import is_html_document_or_fragment, normalize_native_markdown_layout
+        content = normalize_native_markdown_layout(content)
+        representation = 'html' if is_html_document_or_fragment(content) else 'markdown'
     if representation == 'markdown':
         from .reference_quality import markdown_literal_spans
         for start, end in reversed(markdown_literal_spans(content)):

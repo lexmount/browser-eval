@@ -43953,6 +43953,854 @@
           "https://example.test/file.png?q=a%255C&b=c"
         ]
       }
+    },
+    {
+      "id": "resource-url-backslash-underscore-markdown",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Backslash punctuation escapes belong to Markdown destinations; raw HTML attributes do not remove their literal backslash.",
+      "case": {
+        "url": "https://example.test/gallery/page.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "pic_trulli.jpg"
+            ]
+          }
+        ]
+      },
+      "artifact": "![Photo](pic\\_trulli.jpg)",
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "resource-url-backslash-underscore-html",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Backslash punctuation escapes belong to Markdown destinations; raw HTML attributes do not remove their literal backslash.",
+      "case": {
+        "url": "https://example.test/gallery/page.html",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "pic_trulli.jpg"
+            ]
+          }
+        ]
+      },
+      "artifact": "<img src=\"pic\\_trulli.jpg\">",
+      "metadata": {
+        "answer_format": "html"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-generic-inferred-active",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Image](/target.png)",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "resource-inferred-format-generic-inferred-fenced",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "```\n[Image](/target.png)\n```",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-generic-inferred-inline",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "`[Image](/target.png)`",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-generic-inferred-indented",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "    [Image](/target.png)",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-generic-inferred-fenced-html",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "```html\n<img src=\"/target.png\">\n```",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-generic-markdown-active",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "[Image](/target.png)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "resource-inferred-format-generic-markdown-fenced",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "```\n[Image](/target.png)\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-generic-markdown-inline",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "`[Image](/target.png)`",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-generic-markdown-indented",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "    [Image](/target.png)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-generic-markdown-fenced-html",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "```html\n<img src=\"/target.png\">\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-generic-inferred-native-html-image",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<div>`<img src=\"/target.png\">`</div>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "resource-inferred-format-generic-inferred-native-html-literal-markdown",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<div>`[Image](/target.png)`</div>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-generic-html-native-html-image",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<div>`<img src=\"/target.png\">`</div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "resource-inferred-format-generic-html-native-html-literal-markdown",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "<div>`[Image](/target.png)`</div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-generic-native-json",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "{\"images\": [\"/target.png\"]}",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "resource-inferred-format-generic-plain-url",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ]
+      },
+      "artifact": "https://example.test/target.png",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "resource-inferred-format-image-inferred-active",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "[Image](/target.png)",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "resource-inferred-format-image-inferred-fenced",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "```\n[Image](/target.png)\n```",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-image-inferred-inline",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "`[Image](/target.png)`",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-image-inferred-indented",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "    [Image](/target.png)",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-image-inferred-fenced-html",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "```html\n<img src=\"/target.png\">\n```",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-image-markdown-active",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "[Image](/target.png)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "resource-inferred-format-image-markdown-fenced",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "```\n[Image](/target.png)\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-image-markdown-inline",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "`[Image](/target.png)`",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-image-markdown-indented",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "    [Image](/target.png)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-image-markdown-fenced-html",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "```html\n<img src=\"/target.png\">\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-image-inferred-native-html-image",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<div>`<img src=\"/target.png\">`</div>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "resource-inferred-format-image-inferred-native-html-literal-markdown",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<div>`[Image](/target.png)`</div>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-image-html-native-html-image",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<div>`<img src=\"/target.png\">`</div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "resource-inferred-format-image-html-native-html-literal-markdown",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "<div>`[Image](/target.png)`</div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "resource-inferred-format-image-native-json",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "{\"images\": [\"/target.png\"]}",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "resource-inferred-format-image-plain-url",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Undeclared resource answers infer HTML or Markdown after native JSON detection; Markdown literal examples do not deliver resources, and HTML backticks remain text.",
+      "case": {
+        "url": "https://example.test/page",
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "reject"
+        }
+      },
+      "artifact": "https://example.test/target.png",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
     }
   ]
 }

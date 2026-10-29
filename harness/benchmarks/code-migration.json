@@ -68,7 +68,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "9bb0c84d24020475dd36664af3765bdf1e9d47c0921d2aa84022721924f79872"
+          "after_sha256": "b0238586029b097ea53455c39fabedd715132b793e29a4e514cae40214d15a20"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -2343,6 +2343,62 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_resource_url_escapes.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "resource-url-backslash-underscore-markdown",
+            "resource-url-backslash-underscore-html"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_metrics.py",
+            "tests/benchmarks/webfetch/test_review_resource_url_escapes.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "regression_ids": [
+            "resource-inferred-format-generic-inferred-active",
+            "resource-inferred-format-generic-inferred-fenced",
+            "resource-inferred-format-generic-inferred-inline",
+            "resource-inferred-format-generic-inferred-indented",
+            "resource-inferred-format-generic-inferred-fenced-html",
+            "resource-inferred-format-generic-markdown-active",
+            "resource-inferred-format-generic-markdown-fenced",
+            "resource-inferred-format-generic-markdown-inline",
+            "resource-inferred-format-generic-markdown-indented",
+            "resource-inferred-format-generic-markdown-fenced-html",
+            "resource-inferred-format-generic-inferred-native-html-image",
+            "resource-inferred-format-generic-inferred-native-html-literal-markdown",
+            "resource-inferred-format-generic-html-native-html-image",
+            "resource-inferred-format-generic-html-native-html-literal-markdown",
+            "resource-inferred-format-generic-native-json",
+            "resource-inferred-format-generic-plain-url",
+            "resource-inferred-format-image-inferred-active",
+            "resource-inferred-format-image-inferred-fenced",
+            "resource-inferred-format-image-inferred-inline",
+            "resource-inferred-format-image-inferred-indented",
+            "resource-inferred-format-image-inferred-fenced-html",
+            "resource-inferred-format-image-markdown-active",
+            "resource-inferred-format-image-markdown-fenced",
+            "resource-inferred-format-image-markdown-inline",
+            "resource-inferred-format-image-markdown-indented",
+            "resource-inferred-format-image-markdown-fenced-html",
+            "resource-inferred-format-image-inferred-native-html-image",
+            "resource-inferred-format-image-inferred-native-html-literal-markdown",
+            "resource-inferred-format-image-html-native-html-image",
+            "resource-inferred-format-image-html-native-html-literal-markdown",
+            "resource-inferred-format-image-native-json",
+            "resource-inferred-format-image-plain-url"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_inferred_resource_format.py",
+            "tests/benchmarks/webfetch/test_metrics.py"
           ]
         }
       ]

@@ -83,6 +83,22 @@ def controls():
                 'expected_task_pass': expected,
                 'expected_metrics': {'resource_candidate_urls': [target]},
             }
+    for representation, artifact, expected in [
+        ('markdown', r'![Photo](pic\_trulli.jpg)', True),
+        ('html', r'<img src="pic\_trulli.jpg">', False),
+    ]:
+        yield {
+            'id': 'resource-url-backslash-underscore-' + representation,
+            'category': 'format-normalization',
+            'failure_mode': 'false-negative' if expected else 'false-positive',
+            'root_cause': ('Backslash punctuation escapes belong to Markdown destinations; '
+                           'raw HTML attributes do not remove their literal backslash.'),
+            'case': {'url': 'https://example.test/gallery/page.html', 'task_kind': 'resource',
+                     'content_score_applicable': False,
+                     'expected_resources': [{'urls': ['pic_trulli.jpg']}]},
+            'artifact': artifact, 'metadata': {'answer_format': representation},
+            'ok': True, 'expected_task_pass': expected,
+        }
 
 
 CONTROLS = list(controls())
