@@ -58,11 +58,8 @@ fixture-smoke: runtime-check
 
 test: test-python test-ui test-native-adapters
 
-.PHONY: review-check ci-tests
-review-check: runtime-check
-	$(PY) scripts/review_guidelines.py check
-
-ci-tests: review-check naming-check lint-check test fixture-smoke
+.PHONY: ci-tests
+ci-tests: naming-check lint-check test fixture-smoke
 
 ci: ci-tests package-check
 

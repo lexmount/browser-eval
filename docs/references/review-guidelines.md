@@ -1,17 +1,17 @@
+<!-- Shared section copied from lexmount/ai-template-py@7add9a555281432dd8430ebfe6e8a8f5489d0b10 (docs/references/review-guidelines.md); change it upstream, then copy it here. The Browser Eval supplement at the end is maintained in this repository. -->
+
 # Review Guidelines
 
 The canonical version of this document lives in `lexmount/ai-template-py` at
-`docs/references/review-guidelines.md`. Consumer repositories synchronize their
-copies with `scripts/review_guidelines.py` and pin the source revision in
-`review-guidelines.lock.json`. Change the canonical document rather than editing
-a synchronized copy. A consumer adds its own requirements only after the
-repository review supplement marker at the end of its copy; synchronization
-preserves that section.
+`docs/references/review-guidelines.md`. Consumer repositories copy it to the same
+path, record the source commit in the first line and append their own supplement
+at the end. Change shared text here rather than in a copy.
 
 OCR's official rules remain the foundation. This document adds shared review,
-scope, and feedback requirements. The repository supplement at the end of this
-document, when present, adds the consumer's domain requirements and entry points. Use the review language required by the user or
-repository; preserve code identifiers, commands, schema values, and product names.
+scope, and feedback requirements. The repository supplement at the end of a
+consumer's copy adds its domain requirements and entry points. Use the review
+language required by the user or repository; preserve code identifiers, commands,
+schema values, and product names.
 
 ## Establish the review basis
 
@@ -233,8 +233,6 @@ Touching more files during a fix does not require cleaning up every old problem
 in those files. The work can close when valid in-scope findings are resolved and
 necessary verification passes. Add task requirements only when the user or
 repository maintainer explicitly changes the goal.
-
-<!-- Repository review supplement: maintained locally; synchronization preserves the text below. -->
 
 ## Browser Eval review supplement
 
