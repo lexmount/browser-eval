@@ -152,11 +152,10 @@ def load_wcxb_source(root: Path, split: str = "test", *, manifest: Path | None =
     authority_path = manifest if manifest is not None else root.parent / 'tasks.json'
     authority = (json.loads(authority_path.read_bytes())
                  if manifest is not None or authority_path.is_file() else None)
-    if manifest is not None and not isinstance(authority, dict):
+    if (manifest is not None or authority is not None) and not isinstance(authority, dict):
         raise ValueError('Invalid WCXB source edition')
-    # Historical selections (unversioned or schema 1) use the full corpus.
-    # An explicitly paired selection must not inherit a neighboring edition.
-    if manifest is not None and authority.get('schema_version') in (None, 1):
+    # Discovered and explicit historical selections use the same full corpus.
+    if authority is not None and authority.get('schema_version') in (None, 1):
         authority = None
     if authority is not None:
         if (authority.get('schema_version') != 2 or authority.get('split') != split
@@ -168,10 +167,15 @@ def load_wcxb_source(root: Path, split: str = "test", *, manifest: Path | None =
     if len(records) != expected or len({r["track_id"] for r in records}) != expected:
         raise ValueError(f"Expected {expected} distinct WCXB {split} inputs, found {len(records)}")
     source_hash = inventory.hexdigest()
-    if authority is not None and (
-            source_hash != authority.get('source_sha256')
-            or {r['track_id'] for r in records} != {c['file_id'] for c in authority['cases']}):
-        raise ValueError('WCXB source differs from its qualified edition')
+    if authority is not None:
+        source_ids = {r['track_id'] for r in records}
+        declared_ids = {c['file_id'] for c in authority['cases']}
+        # A stratified selection is a subset of the bound source edition;
+        # full/qualified edition manifests still name its entire population.
+        matching_ids = (declared_ids <= source_ids if authority.get('scope') == 'stratified_sample'
+                        else declared_ids == source_ids)
+        if source_hash != authority.get('source_sha256') or not matching_ids:
+            raise ValueError('WCXB source differs from its qualified edition')
     return records, source_hash
 
 

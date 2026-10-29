@@ -73546,6 +73546,720 @@
       "expected_metrics": {
         "fact_coverage": 0.0
       }
+    },
+    {
+      "id": "attribute-code-visible-code-0-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-visible-code-0-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-visible-code-1-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^\">hello$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-visible-code-1-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^\">hello$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-visible-code-comment-0-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`\">hello `target`</span><!-- noise -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-visible-code-comment-0-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`\">hello `target`</span><!-- noise -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-visible-code-comment-1-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^\">hello$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`\">hello `target`</span><!-- noise -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-visible-code-comment-1-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^\">hello$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`\">hello `target`</span><!-- noise -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-attribute-only-0-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`target`\">hello</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-attribute-only-0-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`target`\">hello</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-attribute-only-comment-0-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`target`\">hello</span><!-- noise -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-attribute-only-comment-0-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`target`\">hello</span><!-- noise -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-single-quoted-0-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title='`'>hello `target`</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-single-quoted-0-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title='`'>hello `target`</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-single-quoted-1-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^'>hello$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title='`'>hello `target`</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-single-quoted-1-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^'>hello$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title='`'>hello `target`</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-quoted-greater-0-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"x > `\">hello `target`</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-quoted-greater-0-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"x > `\">hello `target`</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-double-backticks-0-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"``\">hello ``target``</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-double-backticks-0-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"``\">hello ``target``</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-earlier-code-0-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "`<span title=\"` <span title=\"`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-earlier-code-0-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "`<span title=\"` <span title=\"`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-earlier-code-1-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^<spantitle=\"$"
+          }
+        ]
+      },
+      "artifact": "`<span title=\"` <span title=\"`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-earlier-code-1-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^<spantitle=\"$"
+          }
+        ]
+      },
+      "artifact": "`<span title=\"` <span title=\"`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-earlier-code-2-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^\">hello$"
+          }
+        ]
+      },
+      "artifact": "`<span title=\"` <span title=\"`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-earlier-code-2-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^\">hello$"
+          }
+        ]
+      },
+      "artifact": "`<span title=\"` <span title=\"`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-escaped-tag-0-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro \\<span title=\"`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-escaped-tag-0-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro \\<span title=\"`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-escaped-tag-1-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^\">hello$"
+          }
+        ]
+      },
+      "artifact": "Intro \\<span title=\"`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-escaped-tag-1-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^\">hello$"
+          }
+        ]
+      },
+      "artifact": "Intro \\<span title=\"`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-real-comment-0-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`\">hello</span><!-- `target` -->",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-real-comment-0-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`\">hello</span><!-- `target` -->",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "attribute-code-attribute-comment-0-inferred",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`<!--`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": true
+    },
+    {
+      "id": "attribute-code-attribute-comment-0-markdown",
+      "root_cause": "4410744429",
+      "category": "answer-surface",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "required_patterns": [
+          {
+            "id": "source",
+            "match_scope": "code_compact",
+            "pattern": "^target$"
+          }
+        ]
+      },
+      "artifact": "Intro <span title=\"`<!--`\">hello `target`</span>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
     }
   ]
 }

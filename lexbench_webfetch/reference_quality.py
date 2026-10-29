@@ -516,7 +516,7 @@ def markdown_inline_code_spans(text, *, excluded_spans=()):
     """Locate code spans within a single inline-content block."""
     spans = []
     runs = list(re.finditer(r'`+', text))
-    tags = _markdown_html_tag_spans(text, excluded_spans=excluded_spans) if '<!--' in text else []
+    tags = _markdown_html_tag_spans(text, excluded_spans=excluded_spans) if '<' in text else []
     consumed = comment_cursor = 0
     for index, run in enumerate(runs):
         if run.start() < consumed or any(left <= run.start() < right for left, right in (*excluded_spans, *tags)):
@@ -544,7 +544,7 @@ def markdown_inline_code_spans(text, *, excluded_spans=()):
             spans.append((run.start(), closing.end()))
             consumed = closing.end()
             comment_cursor = consumed
-            if tags:
+            if '<' in text:
                 tags = _markdown_html_tag_spans(text, excluded_spans=(*excluded_spans, *spans))
     return spans
 

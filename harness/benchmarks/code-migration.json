@@ -80,7 +80,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "8dade9b3fa163cdbca8dc551c7ba16077b65803dedfb0577f030eb167386643d"
+          "after_sha256": "6541cee44b73a2308b0f94efb7f8b7d95a198940ee70b0c969e62ca81e168f1e"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -3593,6 +3593,50 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_attached_label_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "attribute-code-visible-code-0-inferred",
+            "attribute-code-visible-code-0-markdown",
+            "attribute-code-visible-code-1-inferred",
+            "attribute-code-visible-code-1-markdown",
+            "attribute-code-visible-code-comment-0-inferred",
+            "attribute-code-visible-code-comment-0-markdown",
+            "attribute-code-visible-code-comment-1-inferred",
+            "attribute-code-visible-code-comment-1-markdown",
+            "attribute-code-attribute-only-0-inferred",
+            "attribute-code-attribute-only-0-markdown",
+            "attribute-code-attribute-only-comment-0-inferred",
+            "attribute-code-attribute-only-comment-0-markdown",
+            "attribute-code-single-quoted-0-inferred",
+            "attribute-code-single-quoted-0-markdown",
+            "attribute-code-single-quoted-1-inferred",
+            "attribute-code-single-quoted-1-markdown",
+            "attribute-code-quoted-greater-0-inferred",
+            "attribute-code-quoted-greater-0-markdown",
+            "attribute-code-double-backticks-0-inferred",
+            "attribute-code-double-backticks-0-markdown",
+            "attribute-code-earlier-code-0-inferred",
+            "attribute-code-earlier-code-0-markdown",
+            "attribute-code-earlier-code-1-inferred",
+            "attribute-code-earlier-code-1-markdown",
+            "attribute-code-earlier-code-2-inferred",
+            "attribute-code-earlier-code-2-markdown",
+            "attribute-code-escaped-tag-0-inferred",
+            "attribute-code-escaped-tag-0-markdown",
+            "attribute-code-escaped-tag-1-inferred",
+            "attribute-code-escaped-tag-1-markdown",
+            "attribute-code-real-comment-0-inferred",
+            "attribute-code-real-comment-0-markdown",
+            "attribute-code-attribute-comment-0-inferred",
+            "attribute-code-attribute-comment-0-markdown"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_attribute_code_ownership.py"
           ]
         }
       ]

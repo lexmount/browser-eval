@@ -117,9 +117,15 @@ def main() -> None:
     args = parser.parse_args()
     if args.output.exists():
         parser.error("Sample manifest already exists")
+    edition_path = None
     if args.source is None:
-        args.source, _ = selected_wcxb_input()
-    records, source_hash = load_wcxb_source(args.source)
+        args.source, edition_path = selected_wcxb_input()
+    elif (args.source.parent / 'tasks.json').is_file():
+        edition_path = args.source.parent / 'tasks.json'
+    records, source_hash = load_wcxb_source(args.source, manifest=edition_path)
+    edition = json.loads(edition_path.read_bytes()) if edition_path is not None else {}
+    if edition.get('schema_version') == 2:
+        validate_manifest(records, source_hash, edition)
     if args.full_test and args.qualified_test:
         parser.error('Choose one test scope')
     if args.full_test or args.qualified_test:
@@ -136,6 +142,17 @@ def main() -> None:
                "algorithm": "all source-qualified test cases by file ID" if args.qualified_test else "all test cases by file ID" if args.full_test else "Hamilton proportional quotas by page type; within each type sort by SHA-256(seed:case_id)",
                "size": len(selected), "distribution": distribution,
                "cases": [{"file_id": r["track_id"], "page_type": r["meta"]["page_type"]} for r in selected]}
+    if edition.get('schema_version') == 2:
+        payload.update(schema_version=2, source_count=len(records),
+                       dataset_id=edition['dataset_id'],
+                       cases=[{'file_id': r['track_id'], 'page_type': r['meta']['page_type'],
+                               'url': r['url'], 'reference': r['groundtruth_content'],
+                               'with': r['ground_truth'].get('with') or [],
+                               'without': r['ground_truth'].get('without') or []} for r in selected])
+        if 'source_commit' in edition:
+            payload['source_commit'] = edition['source_commit']
+        else:
+            payload.pop('source_commit')
     if args.full_test:
         exclusions = full_test_exclusions(selected)
         payload['exclusions'] = exclusions
