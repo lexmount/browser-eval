@@ -34,6 +34,8 @@ jobs:
           node-version: "22"
           cache: npm
       - run: make setup-test
+      - name: Verify shared review guidance
+        run: uv run --frozen --no-sync python scripts/review_guidelines.py check
       - run: make ci-tests PYTEST_ARGS='-n 2 --dist loadfile --durations=20'
 
   package:
