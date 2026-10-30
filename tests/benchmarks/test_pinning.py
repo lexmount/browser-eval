@@ -186,8 +186,8 @@ def test_pin_checks_composed_sources_in_both_update_directions(tmp_path, monkeyp
         other['datasets']['sample'][difference] = replacements[difference]
     paths[0].write_text(json.dumps(lock))
     before = {path: path.read_bytes() for path in paths}
-    if difference:
-        with pytest.raises(ValueError, match='dataset source|source file'):
+    if difference or direction == 'source':
+        with pytest.raises(ValueError, match='dataset source|source file|explicit coordinated selection'):
             pinning.pin(tmp_path, 'websearch', 'a' * 40)
         assert {path: path.read_bytes() for path in paths} == before
     else:
@@ -346,6 +346,15 @@ def coordinated_fixture(root, monkeypatch, defect=None):
         imported.write_text(json.dumps({'repository': 'old', 'revision': 'old',
                                        'datasets': old_registry['datasets'], 'definition_files': {}}))
         paths.append(imported)
+    consumer = releases['websearch'][0]
+    provider = releases['simpleqa-verified'][0]
+    consumer['dataset_sources'] = {'factual-v1': 'simpleqa-verified'}
+    consumer['external_sources'] = {'simpleqa-verified': {
+        'repository': 'Lexmount/simpleqa-verified', 'revision': 'a' * 40,
+        'datasets': copy.deepcopy(provider['datasets']),
+        'files': {name: copy.deepcopy(value) for name, value in provider['files'].items()
+                  if name != 'definitions/registry.json'},
+    }}
     lock_path = source_path('harness/benchmarks/data-lock.json', root=root)
     lock_path.parent.mkdir(parents=True)
     lock_path.write_text(json.dumps(lock))
@@ -364,7 +373,7 @@ def coordinated_fixture(root, monkeypatch, defect=None):
 def test_composed_editions_cannot_be_pinned_in_either_single_order(tmp_path, monkeypatch, first):
     paths = coordinated_fixture(tmp_path, monkeypatch)
     before = {path: path.read_bytes() for path in paths}
-    with pytest.raises(ValueError, match='Incompatible dataset source'):
+    with pytest.raises(ValueError, match='source context|dataset source'):
         pinning.pin(tmp_path, first, 'a' * 40)
     assert {path: path.read_bytes() for path in paths} == before
 
@@ -443,7 +452,10 @@ def test_explicit_candidate_sources_never_fall_back_to_global_pins(tmp_path, mon
     release = pinning.DatasetRelease('websearch', 'c' * 40, {
         'definitions/registry.json': json.dumps({'datasets': selected['datasets']}).encode(),
     })
-    assert list(release.records()) == []  # Existing publication uses the global source normally.
+    with pytest.raises(ValueError, match='requires a recorded immutable binding'):
+        list(release.records())
+    complete = json.loads(paths[-1].read_bytes())['datasets']
+    assert list(release.records(selections=complete)) == []
     with pytest.raises(ValueError, match='External dataset descriptor differs'):
         list(release.records(selections={}))
     assert {path: path.read_bytes() for path in paths} == before
@@ -471,3 +483,168 @@ def test_new_composed_release_build_uses_explicit_candidate_before_pinning(tmp_p
         assert not output.exists()
     assert data.binding('simpleqa-verified')['revision'] == '0' * 40
     assert {path: path.read_bytes() for path in paths} == before
+
+
+@pytest.mark.parametrize('provider_state', ['matching', 'missing', 'old'])
+def test_first_selection_preserves_manifest_composition(tmp_path, monkeypatch, provider_state):
+    paths = coordinated_fixture(tmp_path, monkeypatch)
+    lock = json.loads(paths[-1].read_bytes())
+    lock['datasets']['websearch'] = {'repository': 'Lexmount/websearch'}
+    if provider_state == 'missing':
+        lock['datasets'].pop('simpleqa-verified')
+    paths[-1].write_text(json.dumps(lock))
+    if provider_state == 'matching':
+        pinning.pin(tmp_path, 'simpleqa-verified', 'a' * 40)
+    before = {path: path.read_bytes() for path in paths}
+    if provider_state == 'matching':
+        pinning.pin(tmp_path, 'websearch', 'a' * 40)
+        selected = json.loads(paths[-1].read_bytes())['datasets']['websearch']
+        assert selected['dataset_sources'] == {'factual-v1': 'simpleqa-verified'}
+        frozen = selected['external_sources']['simpleqa-verified']
+        assert frozen['revision'] == 'a' * 40
+        assert set(frozen['files']) == {'definitions/datasets/factual-v1.json',
+                                        'definitions/factual-source.json'}
+    else:
+        with pytest.raises(ValueError, match='source context|dataset source'):
+            pinning.pin(tmp_path, 'websearch', 'a' * 40)
+        assert {path: path.read_bytes() for path in paths} == before
+
+
+@pytest.mark.parametrize('field', ['repository', 'revision', 'receipt'])
+def test_unchanged_consumer_rejects_provider_context_changes(tmp_path, monkeypatch, field):
+    paths = coordinated_fixture(tmp_path, monkeypatch)
+    pinning.pin_many(tmp_path, [('websearch', 'a' * 40), ('simpleqa-verified', 'a' * 40)])
+    selected = json.loads(paths[-1].read_bytes())['datasets']
+    provider = selected['simpleqa-verified']
+    if field == 'receipt':
+        provider['files']['definitions/factual-source.json']['sha256'] = '0' * 64
+    else:
+        provider[field] = 'Other/Provider' if field == 'repository' else 'b' * 40
+    with pytest.raises(ValueError, match='External source context mismatch'):
+        pinning.validate_selections(selected)
+
+
+def test_metadata_only_provider_upgrade_requires_a_new_consumer_context(tmp_path, monkeypatch):
+    paths = coordinated_fixture(tmp_path, monkeypatch)
+    pinning.pin_many(tmp_path, [('websearch', 'a' * 40), ('simpleqa-verified', 'a' * 40)])
+    before = {path: path.read_bytes() for path in paths}
+    read, fetch = pinning.read_hf_file, pinning.fetch_archive
+    provider = json.loads(read('Lexmount/simpleqa-verified', 'a' * 40, 'manifest.json', 2_000_000))
+    original_archive = fetch('Lexmount/simpleqa-verified', 'a' * 40, provider['archive'])
+    with tarfile.open(fileobj=io.BytesIO(original_archive), mode='r:gz') as archive:
+        files = {entry.name: archive.extractfile(entry).read() for entry in archive}
+    files['definitions/factual-source.json'] = b'{"license":"updated upstream attribution"}'
+    stream = io.BytesIO()
+    with tarfile.open(fileobj=stream, mode='w:gz') as archive:
+        for name, value in files.items():
+            entry = tarfile.TarInfo(name)
+            entry.size = len(value)
+            archive.addfile(entry, io.BytesIO(value))
+    future_archive = stream.getvalue()
+    provider['files'] = {name: {'size': len(value), 'sha256': hashlib.sha256(value).hexdigest()}
+                         for name, value in files.items()}
+    provider['archive'].update(size=len(future_archive), sha256=hashlib.sha256(future_archive).hexdigest())
+    consumer = json.loads(read('Lexmount/websearch', 'a' * 40, 'manifest.json', 2_000_000))
+    context = consumer['external_sources']['simpleqa-verified']
+    context['revision'] = 'b' * 40
+    context['files']['definitions/factual-source.json'] = provider['files']['definitions/factual-source.json']
+    def future_manifest(repository, revision, *args):
+        if revision == 'b' * 40:
+            return json.dumps(consumer if repository.endswith('/websearch') else provider).encode()
+        return read(repository, revision, *args)
+    def future_blob(repository, revision, binding):
+        if revision == 'b' * 40 and repository.endswith('/simpleqa-verified'):
+            return future_archive
+        return fetch(repository, revision, binding)
+    monkeypatch.setattr(pinning, 'read_hf_file', future_manifest)
+    monkeypatch.setattr(pinning, 'fetch_archive', future_blob)
+    with pytest.raises(ValueError, match='External source context mismatch'):
+        pinning.pin(tmp_path, 'simpleqa-verified', 'b' * 40)
+    assert {path: path.read_bytes() for path in paths} == before
+    pinning.pin_many(tmp_path, [('websearch', 'b' * 40), ('simpleqa-verified', 'b' * 40)])
+    selected = json.loads(paths[-1].read_bytes())['datasets']
+    assert selected['simpleqa-verified']['datasets'] == provider['datasets']
+    assert selected['websearch']['external_sources']['simpleqa-verified']['revision'] == 'b' * 40
+
+
+@pytest.mark.parametrize('mode', [
+    'implicit', 'paired', 'self-contained', 'self-contained-mismatch', 'provider-only',
+    'provider-noop', 'implicit-other-context',
+])
+def test_legacy_composition_requires_owned_bytes_or_explicit_provider(tmp_path, monkeypatch, mode):
+    paths = coordinated_fixture(tmp_path, monkeypatch)
+    read, fetch = pinning.read_hf_file, pinning.fetch_archive
+    provider = json.loads(read('Lexmount/simpleqa-verified', 'a' * 40, 'manifest.json', 2_000_000))
+    consumer = json.loads(read('Lexmount/websearch', 'a' * 40, 'manifest.json', 2_000_000))
+    consumer.pop('external_sources')
+    def contents(manifest, repository):
+        raw = fetch(repository, 'a' * 40, manifest['archive'])
+        with tarfile.open(fileobj=io.BytesIO(raw), mode='r:gz') as archive:
+            return {entry.name: archive.extractfile(entry).read() for entry in archive}
+    provider_files = contents(provider, 'Lexmount/simpleqa-verified')
+    old_receipt = provider_files['definitions/factual-source.json']
+    provider_files['definitions/factual-source.json'] = b'{"license":"new receipt, same questions"}'
+    consumer_files = contents(consumer, 'Lexmount/websearch')
+    if mode.startswith('self-contained'):
+        consumer_files.update({name: value for name, value in provider_files.items()
+                               if name != 'definitions/registry.json'})
+        if mode.endswith('mismatch'):
+            consumer_files['definitions/factual-source.json'] = old_receipt
+    def pack(manifest, files):
+        stream = io.BytesIO()
+        with tarfile.open(fileobj=stream, mode='w:gz') as archive:
+            for name, value in files.items():
+                entry = tarfile.TarInfo(name)
+                entry.size = len(value)
+                archive.addfile(entry, io.BytesIO(value))
+        raw = stream.getvalue()
+        manifest['files'] = {name: {'size': len(value), 'sha256': hashlib.sha256(value).hexdigest()}
+                             for name, value in files.items()}
+        manifest['archive'].update(size=len(raw), sha256=hashlib.sha256(raw).hexdigest())
+        return raw
+    provider_archive = pack(provider, provider_files)
+    consumer_archive = pack(consumer, consumer_files)
+    lock = json.loads(paths[-1].read_bytes())
+    lock['datasets']['websearch'] = {'repository': 'Lexmount/websearch'}
+    lock['datasets']['simpleqa-verified'].update(
+        revision='b' * 40, datasets=provider['datasets'], files=provider['files'], archive=provider['archive'])
+    if mode == 'implicit-other-context':
+        lock['datasets']['websearch'].update(revision='c' * 40, external_sources={
+            'simpleqa-verified': {'repository': 'Lexmount/simpleqa-verified', 'revision': 'b' * 40,
+                'datasets': provider['datasets'], 'files': {
+                    name: value for name, value in provider['files'].items()
+                    if name != 'definitions/registry.json'}},
+        })
+    if mode.startswith('provider-'):
+        if mode == 'provider-only':
+            lock['datasets']['simpleqa-verified']['revision'] = 'a' * 40
+        lock['datasets']['websearch'].update(
+            revision='a' * 40, datasets=consumer['datasets'],
+            dataset_sources={'factual-v1': 'simpleqa-verified'})
+    paths[-1].write_text(json.dumps(lock))
+    def manifest(repository, revision, *args):
+        return json.dumps(consumer if repository.endswith('/websearch') else provider).encode()
+    def archive(repository, revision, binding):
+        return consumer_archive if repository.endswith('/websearch') else provider_archive
+    monkeypatch.setattr(pinning, 'read_hf_file', manifest)
+    monkeypatch.setattr(pinning, 'fetch_archive', archive)
+    before = {path: path.read_bytes() for path in paths}
+    selections = [('websearch', 'a' * 40)]
+    if mode == 'paired':
+        selections.append(('simpleqa-verified', 'b' * 40))
+    elif mode.startswith('provider-'):
+        selections = [('simpleqa-verified', 'b' * 40)]
+    if mode in {'implicit', 'implicit-other-context', 'self-contained-mismatch', 'provider-only'}:
+        with pytest.raises(ValueError, match='explicit coordinated selection|External definition differs'):
+            pinning.pin_many(tmp_path, selections)
+        assert {path: path.read_bytes() for path in paths} == before
+    else:
+        pinning.pin_many(tmp_path, selections)
+        selected = json.loads(paths[-1].read_bytes())['datasets']['websearch']
+        if mode == 'provider-noop':
+            assert selected == lock['datasets']['websearch']
+            return
+        context = selected['external_sources']['simpleqa-verified']
+        assert context['revision'] == 'b' * 40
+        assert context['datasets'] == provider['datasets']
+        assert context['files']['definitions/factual-source.json'] == provider['files']['definitions/factual-source.json']

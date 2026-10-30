@@ -16,7 +16,7 @@
         },
         "article_posts.py": {
           "before_sha256": "da1323b63c4e213312adb0a5564c6ffbb443edbcb1a643ddcd4e3bde4d42e9c2",
-          "after_sha256": "8381d02ec6ce10b4e13e334ec29f85b3fc041997f49135c8eb8638a5f424846e"
+          "after_sha256": "b79f12c1d1c3f44ea642376ed3adab2d5a45899e361daea28066fa10076dc671"
         },
         "article_qualification.py": {
           "before_sha256": "01898c4413933ac4f3028eeb5c5c470293cd2acaabb2ae1547a7095e6e458981",
@@ -32,7 +32,7 @@
         },
         "benchmark.py": {
           "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
-          "after_sha256": "70b0a9e13194c35916f4d3129a361b1472338d752b9e67c3440ad2b4e3ab04ea"
+          "after_sha256": "4290faf4b950c1f6017af3ad279f6575c53d9ff3ec5ce1146f29ecdf751cf50c"
         },
         "body_coverage.py": {
           "before_sha256": "a349a1db3d5de9d63d33443572c4d8f48afb8a7f88d03090625407fddf7b6137",
@@ -52,7 +52,7 @@
         },
         "dynamic_lists.py": {
           "before_sha256": "c2d9bedf1c82818f88f4e5db3c52caa5a064ba1d6fddb3814d38fdea5601957c",
-          "after_sha256": "13cc62579d7f1e253eb8f3182c802ffa99a99cebf7e8949db22052904df4a57a"
+          "after_sha256": "3524e3d915fca4c898be8b87fbd646f1f9597ad7107b7944c2e1188fbf4fedd2"
         },
         "file_acceptance.py": {
           "before_sha256": "4f886206705c015baa3744d669cc851778aa595819394c5b149fd4803a9f40d1",
@@ -3762,6 +3762,32 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_markdown_product_inline_html.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_posts.py"
+          ],
+          "root_cause": "A subsequent plain-text permalink could split an in-body reference into an attributed post without a paragraph boundary.",
+          "regression_ids": [
+            "plain-post-valid-reference-body-continuation",
+            "plain-post-valid-reference-paragraph"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_plain_post_and_declaration_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "root_cause": "The no-tag fast path bypassed the unsupported-declaration lexer before HTMLParser consumed marked sections.",
+          "regression_ids": [
+            "unsupported-declaration-only",
+            "unsupported-declaration-markdown-sibling"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_plain_post_and_declaration_boundaries.py"
           ]
         }
       ]

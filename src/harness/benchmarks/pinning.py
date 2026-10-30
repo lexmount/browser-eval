@@ -61,7 +61,37 @@ def pin_many(root: Path, selections: list[tuple[str, str]]) -> dict[str, list[st
         changes[track] = differences
         releases.append(release)
     validate_selections(candidate)
+    explicit = {track for track, _ in selections}
+    for track, previous in lock['datasets'].items():
+        if track in explicit or 'external_sources' in previous:
+            continue
+        for provider in previous.get('dataset_sources', {}).values():
+            old, new = lock['datasets'].get(provider, {}), candidate.get(provider, {})
+            if (old.get('revision') != new.get('revision')
+                    or canonical_repository(old.get('repository', ''))
+                    != canonical_repository(new.get('repository', ''))):
+                raise ValueError(
+                    'Legacy consumer requires an explicit coordinated selection: ' + track)
     for release in releases:
+        selected = candidate[release.track]
+        if 'external_sources' not in selected:
+            context = release.external_bindings(selections=candidate)
+            for provider, binding in context.items():
+                if provider not in explicit and any(
+                        name not in release.files for name in binding['files']):
+                    raise ValueError(
+                        'Legacy external source requires an explicit coordinated selection: ' + provider)
+            if context:
+                selected['external_sources'] = context
+                changes[release.track].extend(binding_changes({}, {'external_sources': context}))
+        if 'external_sources' in selected:
+            actual = release.external_bindings(selections=candidate)
+            expected = copy.deepcopy(selected['external_sources'])
+            for contexts in (actual, expected):
+                for context in contexts.values():
+                    context['repository'] = canonical_repository(context['repository'])
+            if actual != expected:
+                raise ValueError('External source context differs from candidate: ' + release.track)
         list(release.records(selections=candidate))
     lock["datasets"] = candidate
     updates[lock_path] = lock
@@ -93,8 +123,15 @@ def _prepare_pin(root: Path, track: str, revision: str, before: dict | None) -> 
         "datasets": manifest["datasets"],
         "files": {name: item for name, item in manifest["files"].items() if not name.startswith("data/")},
     }
-    for option in ("dataset_sources", "default_dataset", "scorer"):
-        if option in before:
+    for option in ("dataset_sources", "external_sources", "default_dataset", "scorer"):
+        if option in manifest and option in {"dataset_sources", "external_sources"}:
+            selected[option] = copy.deepcopy(manifest[option])
+        elif option == 'external_sources':
+            known = next((item for item in [before, *before.get('history', [])]
+                          if item.get('revision') == revision), {})
+            if option in known:
+                selected[option] = copy.deepcopy(known[option])
+        elif option in before:
             selected[option] = copy.deepcopy(before[option])
     previous = ([{k: v for k, v in before.items() if k != "history"}]
                 if "revision" in before else []) + before.get("history", [])
@@ -167,6 +204,16 @@ def validate_selections(selections: dict) -> None:
     """Check the composed inputs consumers will load before changing bindings."""
     for track, selected in selections.items():
         datasets = selected.get("datasets", {})
+        for source, expected in selected.get('external_sources', {}).items():
+            provider = selections.get(source, {})
+            if (canonical_repository(expected['repository'])
+                    != canonical_repository(provider.get('repository', ''))
+                    or expected['revision'] != provider.get('revision')
+                    or any(provider.get('datasets', {}).get(key) != value
+                           for key, value in expected['datasets'].items())
+                    or any(provider.get('files', {}).get(key) != value
+                           for key, value in expected['files'].items())):
+                raise ValueError(f'External source context mismatch: {track} -> {source}')
         default = selected.get("default_dataset")
         if default is not None and default not in datasets:
             raise ValueError(f"Default dataset is absent from {track}: {default}")

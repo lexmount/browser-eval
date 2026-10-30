@@ -288,3 +288,89 @@ def test_warm_single_definition_lookup_does_not_rehash_entire_snapshot(download,
     monkeypatch.setattr(data, '_verify_snapshot', lambda *args: pytest.fail('Single-file lookup walked entire snapshot'))
     assert data.definition_path('webfetch', 'tasks.json') == root / 'definitions/tasks.json'
     assert checked == ['definitions/tasks.json']
+
+
+@pytest.mark.parametrize('directory', ['.', 'group'])
+@pytest.mark.parametrize('mutation', ['same-size-change', 'delete', 'add-file', 'add-symlink', 'add-symlink-directory'])
+def test_warm_directory_lookup_rejects_changed_subtree(download, monkeypatch, tmp_path, directory, mutation):
+    selected, _, _ = download
+    content = b'{"cases":[{"id":"a"}]}'
+    name = 'definitions/group/tasks.json'
+    raw = archive([(name, content, 'file')])
+    selected['files'] = {name: {'size': len(content), 'sha256': hashlib.sha256(content).hexdigest()}}
+    selected['archive'] = {'path': 'definitions.tar.gz', 'size': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
+    monkeypatch.setattr(data, 'urlopen', lambda *args, **kwargs: io.BytesIO(raw))
+    root = data.definition_path('webfetch', directory)
+    target = root / ('group/tasks.json' if directory == '.' else 'tasks.json')
+    if mutation == 'same-size-change':
+        target.write_bytes(content.replace(b'"a"', b'"b"'))
+    elif mutation == 'delete':
+        target.unlink()
+    elif mutation == 'add-file':
+        (root / 'extra.json').write_text('{}')
+    elif mutation == 'add-symlink':
+        (root / 'alias.json').symlink_to(target)
+    else:
+        outside = tmp_path / 'outside'
+        outside.mkdir()
+        (outside / 'private.txt').write_text('outside must not be read')
+        (root / 'alias-directory').symlink_to(outside, target_is_directory=True)
+    with pytest.raises(ValueError, match='hash or size|inventory differs|symlinks'):
+        data.definition_path('webfetch', directory)
+
+
+def composed_binding_fixture():
+    descriptor = {'path': 'datasets/factual.json', 'count': 1, 'sha256': 'a' * 64}
+    files = {'definitions/datasets/factual.json': {'sha256': 'a' * 64, 'size': 10},
+             'definitions/factual-source.json': {'sha256': 'b' * 64, 'size': 20}}
+    provider = {'repository': 'Lexmount/LexBench-SimpleQA-Verified', 'revision': 'a' * 40,
+                'datasets': {'factual': descriptor}, 'files': files}
+    consumer = {'datasets': {'factual': descriptor}, 'dataset_sources': {'factual': 'simpleqa-verified'},
+                'files': {'definitions/registry.json': {'sha256': 'c' * 64, 'size': 30}},
+                'external_sources': {'simpleqa-verified': provider}}
+    return consumer, provider
+
+
+def test_historical_composition_uses_recorded_provider_not_live_selection(monkeypatch):
+    selected, provider = composed_binding_fixture()
+    monkeypatch.setattr(data, 'binding', lambda *args: pytest.fail('Historical composition consulted live selection'))
+    actual = data._definition_bindings(selected)
+    assert actual['definitions/factual-source.json'] == provider['files']['definitions/factual-source.json']
+    assert actual['definitions/datasets/factual.json'] == provider['files']['definitions/datasets/factual.json']
+
+
+def test_self_contained_historical_composition_preserves_own_bytes(monkeypatch):
+    selected, provider = composed_binding_fixture()
+    selected.pop('external_sources')
+    selected['files'].update(provider['files'])
+    monkeypatch.setattr(data, 'binding', lambda *args: pytest.fail('Historical composition consulted live selection'))
+    assert data._definition_bindings(selected) == selected['files']
+
+
+def test_unrecorded_delegation_requires_explicit_source_selection(monkeypatch):
+    selected, provider = composed_binding_fixture()
+    selected.pop('external_sources')
+    monkeypatch.setattr(data, 'binding', lambda *args: pytest.fail('Missing provenance inferred from live selection'))
+    with pytest.raises(ValueError, match='recorded source context'):
+        data._definition_bindings(selected)
+    actual = data._definition_bindings(selected, selections={'simpleqa-verified': provider})
+    assert actual == {**selected['files'], **provider['files']}
+
+
+@pytest.mark.parametrize('change', ['revision', 'dataset', 'receipt', 'missing-file', 'conflicting-own-file'])
+def test_recorded_composition_rejects_changed_explicit_graph_or_own_bytes(change):
+    from copy import deepcopy
+    selected, provider = composed_binding_fixture()
+    actual = deepcopy(provider)
+    if change == 'revision':
+        actual['revision'] = 'd' * 40
+    elif change == 'dataset':
+        actual['datasets']['factual']['sha256'] = 'd' * 64
+    elif change == 'receipt':
+        actual['files']['definitions/factual-source.json']['sha256'] = 'd' * 64
+    elif change == 'missing-file':
+        actual['files'].pop('definitions/factual-source.json')
+    else:
+        selected['files']['definitions/factual-source.json'] = {'sha256': 'd' * 64, 'size': 20}
+    with pytest.raises(ValueError, match='Composed benchmark'):
+        data._definition_bindings(selected, selections={'simpleqa-verified': actual})

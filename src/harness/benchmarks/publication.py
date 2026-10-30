@@ -134,6 +134,7 @@ class DatasetRelease:
     card_body: str | None = None
     language_annotations: dict | None = None
     tooling_revision: str | None = None
+    external_sources: dict | None = None
 
     @classmethod
     def from_git(cls, checkout: Path, track: str, revision: str) -> DatasetRelease:
@@ -190,7 +191,8 @@ class DatasetRelease:
                     raise ValueError("Materialize the exact committed LFS object: " + original_name)
             files[name] = content
         repository = "https://huggingface.co/datasets/" + registered[track]["repo_id"] if hub else None
-        return cls(track, revision, files, repository)
+        return cls(track, revision, files, repository,
+                   external_sources=identity.get("external_sources") if hub else None)
 
     def datasets(self) -> dict[str, dict]:
         registry = json.loads(self.files["definitions/registry.json"])
@@ -217,33 +219,65 @@ class DatasetRelease:
             return datasets
         return registry["datasets"]
 
-    def external_definitions(self, selections: dict | None = None) -> dict[str, str]:
-        """Validate composition descriptors before omitting another dataset's bytes."""
-        from harness.benchmarks.data import binding as selected_binding
-
+    def external_bindings(self, selections: dict | None = None) -> dict:
+        """Keep each delegated input attached to its published provider commit."""
         metadata = json.loads((CARDS / "metadata.json").read_bytes())[self.track]
         datasets = self.datasets()
-        omitted = {}
+        context = selections if selections is not None else self.external_sources
+        if context is not None and not isinstance(context, dict):
+            raise ValueError("External sources must be a provider mapping")
+        result = {}
         for identity, composition in metadata.get("external_datasets", {}).items():
             if identity not in datasets:
                 continue
-            source = (selected_binding(composition["source"]) if selections is None
-                      else selections.get(composition["source"], {}))
-            supplied = source.get("datasets", {}).get(identity)
-            if supplied != datasets[identity]:
+            provider = composition["source"]
+            descriptor = datasets[identity]
+            if (not isinstance(descriptor, dict) or not isinstance(descriptor.get("path"), str)
+                    or not isinstance(descriptor.get("sha256"), str)
+                    or not re.fullmatch(r"[0-9a-f]{64}", descriptor["sha256"])
+                    or type(descriptor.get("count")) is not int or descriptor["count"] <= 0):
+                raise ValueError("External dataset descriptor is invalid: " + identity)
+            paths = [descriptor["path"], *composition.get("resources", [])]
+            if context is None:
+                if any("definitions/" + path not in self.files for path in paths):
+                    raise ValueError("External source requires a recorded immutable binding or explicit selections: " + provider)
+                from harness.benchmarks.data import binding as selected_binding
+                source = selected_binding(provider)
+            else:
+                source = context.get(provider, {})
+            supplied = (source["datasets"].get(identity) if isinstance(source, dict)
+                        and isinstance(source.get("datasets"), dict) else None)
+            if (not isinstance(supplied, dict) or type(supplied.get("count")) is not int
+                    or supplied != descriptor):
                 raise ValueError("External dataset descriptor differs: " + identity)
-            paths = [supplied["path"], *composition.get("resources", [])]
+            if (not isinstance(source.get("repository"), str)
+                    or not re.fullmatch(r"[\w.-]+/[\w.-]+", source["repository"])
+                    or not isinstance(source.get("revision"), str)
+                    or not re.fullmatch(r"[0-9a-f]{40}", source["revision"])
+                    or not isinstance(source.get("files"), dict)):
+                raise ValueError("External source requires an immutable repository and revision: " + provider)
+            selected = result.setdefault(provider, {"repository": source["repository"],
+                "revision": source["revision"], "datasets": {}, "files": {}})
+            selected["datasets"][identity] = datasets[identity]
             for relative in paths:
+                if (not isinstance(relative, str) or not relative or Path(relative).is_absolute()
+                        or ".." in Path(relative).parts):
+                    raise ValueError("External definition path is unsafe")
                 name = "definitions/" + relative
                 expected = source["files"].get(name)
-                if (expected is None
-                        or (relative == supplied["path"] and expected["sha256"] != supplied["sha256"])
-                        or (name in self.files and (
-                        digest(self.files[name]) != expected["sha256"]
-                        or len(self.files[name]) != expected["size"]))):
+                if (not isinstance(expected, dict) or not isinstance(expected.get("sha256"), str)
+                        or not re.fullmatch(r"[0-9a-f]{64}", expected["sha256"])
+                        or type(expected.get("size")) is not int or expected["size"] < 0
+                        or (relative == datasets[identity]["path"] and expected["sha256"] != datasets[identity]["sha256"])
+                        or (name in self.files and (digest(self.files[name]) != expected["sha256"]
+                            or len(self.files[name]) != expected["size"]))):
                     raise ValueError("External definition differs: " + name)
-                omitted[name] = composition["source"]
-        return omitted
+                selected["files"][name] = {"sha256": expected["sha256"], "size": expected["size"]}
+        return result
+
+    def external_definitions(self, selections: dict | None = None) -> dict[str, str]:
+        return {name: provider for provider, selected in self.external_bindings(selections).items()
+                for name in selected["files"]}
 
     def viewer_datasets(self) -> set[str]:
         """Select current populations without changing historical definitions."""
@@ -277,7 +311,8 @@ class DatasetRelease:
 
         body = (self.card_body if self.card_body is not None
                 else (CARDS / (self.track + ".md")).read_text(encoding="utf-8"))
-        external = self.external_definitions(selections)
+        context = self.external_bindings(selections)
+        external = self.external_definitions(context)
         definition_files = {name: raw for name, raw in self.files.items() if name not in external}
         files = dict(definition_files)
         if self.track == "headless-browser":
@@ -294,7 +329,7 @@ class DatasetRelease:
         annotations = self.language_annotations
         if annotations is None:
             annotations = json.loads((CARDS / "languages.json").read_bytes()).get(self.track, {})
-        for identity, binding, cases in self.records(selections):
+        for identity, binding, cases in self.records(context):
             identity_field = binding.get("id_field", "id")
             groups = {}
             partition = metadata.get("partitions", {}).get(identity)
@@ -359,6 +394,7 @@ class DatasetRelease:
             "files": {name: {"sha256": digest(raw), "size": len(raw)} for name, raw in sorted(files.items())},
         }
         if external:
+            manifest["external_sources"] = context
             manifest["dataset_sources"] = {
                 identity: composition["source"] for identity, composition in
                 metadata.get("external_datasets", {}).items() if identity in self.datasets()

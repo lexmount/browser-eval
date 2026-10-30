@@ -13,12 +13,13 @@ from .paths import contained_path, safe_identifier
 from .inputs import digest, load_manifest, verify_catalog
 from .annotation_revisions import apply_annotation_change
 
-from harness.benchmarks.data import resolve_definition_path, snapshot
+from harness.benchmarks.data import resolve_definition_path
 
 
 def definitions() -> Path:
     """Locate the active namespace; read() and suite manifests verify consumed bytes."""
-    return snapshot("webfetch") / "definitions"
+    from harness.benchmarks.data import binding, cache_home
+    return cache_home() / "webfetch" / binding("webfetch")["revision"] / "definitions"
 
 # Full reference bodies and source-capture/review payloads stay in frozen inputs.
 PUBLIC_TASK_FIELDS = (
@@ -146,7 +147,13 @@ def validate(identifier: str) -> dict:
         contained_path(root, relative, reject_symlinks=True)
         if not re.fullmatch(r"[0-9a-f]{64}", expected):
             raise ValueError(f"Invalid input SHA-256: {relative}")
-    for path in sorted((definitions()/'annotation-revisions').glob('*.json')):
+    revisions = definitions() / 'annotation-revisions'
+    try:
+        revisions = resolve_definition_path('webfetch', revisions)
+    except FileNotFoundError:
+        if revisions.exists():
+            raise
+    for path in sorted(revisions.glob('*.json')):
         revision = read(path)
         if identifier in revision.get('parents', {}):
             apply_annotation_revision(identifier, tasks, revision['id'])

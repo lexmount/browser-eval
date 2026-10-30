@@ -1,6 +1,9 @@
 """A cache configured after import still goes through the verified input owner."""
 import hashlib
+import io
 import json
+import shutil
+import tarfile
 
 import pytest
 
@@ -98,9 +101,9 @@ def test_repeated_registry_reads_verify_consumed_file_without_rehashing_unrelate
         verified.append(path)
         return original(path, expected)
     monkeypatch.setattr(data, "verify_file", verify)
-    for _ in range(3):
+    for _ in range(4):
         assert benchmark.registry()["schema_version"] == 1
-    assert verified == [definitions / "registry.json"] * 3
+    assert verified == [definitions / "registry.json"] * 4
 
 
 def test_relative_installed_paths_are_verified_after_import(configured_cache, tmp_path, monkeypatch):
@@ -157,3 +160,115 @@ def test_risk_compiler_verifies_installed_inputs_before_parsing(configured_cache
     with pytest.raises(ValueError if corrupt else ParsedVerifiedRules,
                        match="hash or size" if corrupt else None):
         risk_control_dataset.build(tmp_path / "output", root if explicit else None)
+
+
+@pytest.mark.parametrize('explicit', [False, True])
+def test_benchmark_warm_registry_mutation_is_rejected(configured_cache, explicit):
+    definitions, _ = configured_cache
+    read = (lambda: benchmark.read(definitions / 'registry.json')) if explicit else benchmark.registry
+    assert read() == {'schema_version': 1, 'suites': []}
+    (definitions / 'registry.json').write_text('{"schema_version":1,"suites":[],"unbound":true}')
+    with pytest.raises(ValueError, match='hash or size'):
+        read()
+
+
+@pytest.mark.parametrize('defect', ['changed-member', 'extra-member'])
+def test_single_file_read_and_explicit_directory_have_distinct_integrity_scopes(
+    configured_cache, defect
+):
+    definitions, _ = configured_cache
+    assert benchmark.registry()['schema_version'] == 1
+    assert data.resolve_definition_path('webfetch', definitions) == definitions
+    if defect == 'changed-member':
+        (definitions / 'evaluation/articles/rules.json').write_text('{"unbound":true}')
+    else:
+        (definitions / 'unregistered.json').write_text('{"unbound":true}')
+    # Reading one unchanged file must not silently request the entire namespace.
+    assert benchmark.registry()['schema_version'] == 1
+    assert benchmark.read(definitions / 'registry.json')['schema_version'] == 1
+    # An explicitly requested directory continues to validate its complete inventory.
+    with pytest.raises(ValueError, match='hash or size|inventory differs'):
+        data.resolve_definition_path('webfetch', definitions)
+
+
+def test_lazy_namespace_materializes_cold_registry_then_rejects_warm_mutation(
+    configured_cache, monkeypatch
+):
+    definitions, _ = configured_cache
+    selected = data.binding('webfetch')
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode='w:gz') as archive:
+        for path in sorted(definitions.rglob('*')):
+            if path.is_file():
+                payload = path.read_bytes()
+                member = tarfile.TarInfo(path.relative_to(definitions.parent).as_posix())
+                member.size = len(payload)
+                archive.addfile(member, io.BytesIO(payload))
+    payload = buffer.getvalue()
+    selected['archive'] = {'path': 'definitions.tar.gz', 'size': len(payload),
+                           'sha256': hashlib.sha256(payload).hexdigest()}
+    shutil.rmtree(definitions.parent)
+    downloads = []
+    def fetch(repository, revision, specification):
+        downloads.append((repository, revision))
+        return payload
+    monkeypatch.delenv('HF_HUB_OFFLINE')
+    monkeypatch.setattr(data, 'fetch_archive', fetch)
+    assert benchmark.definitions() == definitions
+    assert not definitions.exists()
+    assert downloads == []
+    assert benchmark.registry() == {'schema_version': 1, 'suites': []}
+    assert definitions.is_dir()
+    assert downloads == [('Lexmount/fixture', 'a' * 40)]
+    (definitions / 'registry.json').write_text('{"schema_version":1,"suites":[],"unbound":true}')
+    with pytest.raises(ValueError, match='hash or size'):
+        benchmark.registry()
+    assert len(downloads) == 1
+
+
+def test_explicit_local_definition_override_remains_caller_owned(tmp_path, monkeypatch):
+    root = tmp_path / 'authoring'
+    root.mkdir()
+    path = root / 'registry.json'
+    monkeypatch.setattr(benchmark, 'definitions', lambda: root)
+    for marker in ['first', 'edited']:
+        path.write_text(json.dumps({'schema_version': 1, 'suites': [], 'marker': marker}))
+        assert benchmark.registry()['marker'] == marker
+
+
+
+@pytest.mark.parametrize('defect', ['deleted', 'changed', 'extra'])
+def test_benchmark_annotation_enumeration_rechecks_warm_directory(
+    configured_cache, monkeypatch, defect
+):
+    definitions, _ = configured_cache
+    selected = data.binding('webfetch')
+    documents = {
+        'sample/dataset-catalog.json': {'id': 'sample', 'case_count': 0, 'cases': [],
+                                        'dataset_sha256': '0' * 64},
+        'sample/tasks.json': {'id': 'sample', 'cases': []},
+        'annotation-revisions/revision.json': {'id': 'revision', 'parents': {}},
+    }
+    for relative, document in documents.items():
+        raw = json.dumps(document).encode()
+        path = definitions / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(raw)
+        selected['files']['definitions/' + relative] = {
+            'size': len(raw), 'sha256': hashlib.sha256(raw).hexdigest(),
+        }
+    monkeypatch.setattr(benchmark, 'suite', lambda identifier: (
+        {'dataset_id': 'sample', 'case_count': 0}, definitions / 'sample'))
+    monkeypatch.setattr(benchmark, 'load_manifest', lambda path: {
+        'catalog': 'dataset-catalog.json', 'files': {}, 'trees': {},
+    })
+    assert benchmark.validate('sample')['case_count'] == 0
+    revision = definitions / 'annotation-revisions/revision.json'
+    if defect == 'deleted':
+        revision.unlink()
+    elif defect == 'changed':
+        revision.write_text('{"id":"revision","parents":{},"unbound":true}')
+    else:
+        revision.with_name('unregistered.json').write_text('{"id":"unregistered","parents":{}}')
+    with pytest.raises((ValueError, FileNotFoundError), match='hash or size|inventory differs|Unknown'):
+        benchmark.validate('sample')

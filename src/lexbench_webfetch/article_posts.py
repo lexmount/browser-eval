@@ -123,8 +123,8 @@ def _post_headers(lines, contract, url, *, representation=None):
     """Identify permalink headers before parsing their owned body ranges.
 
     Plain text uses an author line followed by an allowed post permalink.
-    A failed URL only ends a prior body when its path matches the declared
-    post shape and the author begins a separate paragraph.
+    Later authors begin a separate paragraph. A failed URL only ends a prior
+    body when its path matches the declared post shape.
     """
     headers = []
     if representation == 'plain_text':
@@ -134,6 +134,8 @@ def _post_headers(lines, contract, url, *, representation=None):
                 continue
             author = lines[index - 1].strip()
             if not author or re.fullmatch(r'https?://\S+', author):
+                continue
+            if headers and index > 1 and lines[index - 2].strip():
                 continue
             try:
                 post_identity(destination, contract, url)
@@ -146,7 +148,7 @@ def _post_headers(lines, contract, url, *, representation=None):
                                  if lexical else None)
                 # Only a paragraph-leading post-shaped failure delimits an
                 # invalid record; ordinary reference links remain body prose.
-                if not headers or not post_path or (index > 1 and lines[index - 2].strip()):
+                if not headers or not post_path:
                     continue
             headers.append((index, index - 1, destination, author + '\n' + destination, author))
         return headers, len(lines)

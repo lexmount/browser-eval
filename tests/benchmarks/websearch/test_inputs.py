@@ -28,19 +28,41 @@ def test_every_dataset_has_unique_tasks_and_exact_attribution_coverage():
     assert set(tasks) == set(attributed)
 
 
-def test_missing_or_changed_dataset_bytes_fail_before_use(tmp_path, monkeypatch):
+@pytest.mark.parametrize("identity, source", [
+    ("scenarios-v1", "websearch"), ("factual-v1", "simpleqa-verified")
+])
+@pytest.mark.parametrize("change", ["missing", "same-size-change"])
+def test_missing_or_changed_dataset_bytes_fail_before_use(tmp_path, monkeypatch, identity, source, change):
     from harness.benchmarks import data
-    definitions = inputs.definition_path("registry.json").parent
-    (tmp_path / "definitions").mkdir()
-    (tmp_path / "definitions/registry.json").write_bytes(
-        (definitions / "registry.json").read_bytes()
-    )
-    (tmp_path / "definitions/datasets").mkdir()
-    for name in (definitions / "datasets").glob("*.json"):
-        (tmp_path / "definitions/datasets" / name.name).write_bytes(name.read_bytes() + b" ")
-    monkeypatch.setattr(data, "snapshot", lambda track, revision=None: tmp_path)
+
+    registry_bytes = inputs.definition_path("registry.json").read_bytes()
+    descriptor = json.loads(registry_bytes)["datasets"][identity]
+    canonical = data.binding(source)
+    raw = data.definition_path(source, descriptor["path"]).read_bytes()
+    assert inputs.digest(raw) == descriptor["sha256"]
+    assert inputs.digest(raw) == canonical["files"]["definitions/" + descriptor["path"]]["sha256"]
+    if source == "simpleqa-verified":
+        assert canonical["datasets"][identity] == descriptor
+        assert "definitions/" + descriptor["path"] not in data.binding("websearch")["files"]
+
+    roots = {track: tmp_path / track for track in {"websearch", source}}
+    registry = roots["websearch"] / "definitions/registry.json"
+    registry.parent.mkdir(parents=True)
+    registry.write_bytes(registry_bytes)
+    target = roots[source] / "definitions" / descriptor["path"]
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_bytes(raw)
+    # Isolate the resolved storage while retaining the real selected file hashes.
+    # Delegated facts exist only in their canonical SimpleQA root.
+    monkeypatch.setattr(data, "_resolve", lambda track, revision, home: roots[track])
+    assert inputs.load_dataset(identity) == json.loads(raw)
+    if change == "missing":
+        target.unlink()
+    else:
+        target.write_bytes(b"!" + raw[1:])
+        assert target.stat().st_size == len(raw)
     with pytest.raises(ValueError, match="hash or size mismatch"):
-        inputs.load_dataset("scenarios-v1")
+        inputs.load_dataset(identity)
 
 
 def test_profile_projection_requires_exact_dataset_and_field_binding():

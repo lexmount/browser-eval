@@ -70,10 +70,10 @@ def canonical_repository(repository: str) -> str:
                 repository)
 
 
-def _definition_bindings(selected: dict, *, composed: bool = True) -> dict:
-    """Compare effective input bytes, including independently composed datasets."""
-    # This receipt ledger records corrections; no collection or scorer reads it.
-    # A metadata-only HF release must not invalidate an unchanged input corpus.
+def _definition_bindings(selected: dict, *, composed: bool = True,
+                         selections: dict | None = None) -> dict:
+    """Compare recorded inputs without substituting today's provider edition."""
+    # This ledger records corrections; no collection or scorer executes it.
     def resources(item):
         return {name: value for name, value in item["files"].items()
                 if name.startswith("definitions/")
@@ -82,15 +82,37 @@ def _definition_bindings(selected: dict, *, composed: bool = True) -> dict:
     if not composed:
         return result
     for identity, source in selected.get("dataset_sources", {}).items():
-        source_binding = binding(source)
-        target, origin = selected["datasets"][identity], source_binding["datasets"][identity]
-        if any(target[key] != origin[key] for key in ("path", "count", "sha256")):
+        target = selected["datasets"][identity]
+        name = "definitions/" + target["path"]
+        recorded = selected.get("external_sources", {}).get(source)
+        supplied = selections.get(source) if selections is not None else None
+        if recorded is None and supplied is None:
+            # Self-contained historical editions retain their own actual bytes.
+            if name not in result or result[name]["sha256"] != target["sha256"]:
+                raise ValueError("Composed benchmark dataset requires recorded source context")
+            continue
+        provider = recorded if recorded is not None else supplied
+        if (not isinstance(provider, dict)
+                or not isinstance(provider.get("repository"), str)
+                or not re.fullmatch(r"[0-9a-f]{40}", provider.get("revision", ""))
+                or provider.get("datasets", {}).get(identity) != target):
             raise ValueError("Composed benchmark dataset identity differs")
-        for name, value in resources(source_binding).items():
-            # The root registry selects the named datasets. The composed registry
-            # describes its independent publication, not a second root selection.
-            if name != "definitions/registry.json":
-                result[name] = value
+        if recorded is not None and supplied is not None:
+            if (canonical_repository(recorded["repository"]) != canonical_repository(supplied.get("repository"))
+                    or recorded["revision"] != supplied.get("revision")
+                    or supplied.get("datasets", {}).get(identity) != target
+                    or any(supplied.get("files", {}).get(key) != value
+                           for key, value in recorded.get("files", {}).items())):
+                raise ValueError("Composed benchmark source differs from recorded context")
+        additions = resources(provider)
+        if name not in additions or additions[name]["sha256"] != target["sha256"]:
+            raise ValueError("Composed benchmark dataset source file binding differs")
+        for key, value in additions.items():
+            if key == "definitions/registry.json":
+                continue
+            if key in result and result[key] != value:
+                raise ValueError("Composed benchmark source conflicts with recorded bytes")
+            result[key] = value
     return result
 
 
@@ -111,7 +133,9 @@ def legacy_dependencies(track: str, source_revision: str) -> dict[str, dict[str,
     # The historical Git package read its bundled definitions. Applying today's
     # composition to that side would replace the very old bytes we must compare.
     if (original is None
-            or _definition_bindings(original, composed=False) != _definition_bindings(selected)):
+            or _definition_bindings(original, composed=False) != _definition_bindings(
+                selected, selections={source: binding(source)
+                                      for source in selected.get("dataset_sources", {}).values()})):
         raise ValueError("Legacy benchmark dataset source is unknown or its inputs changed")
     return dependencies(track)
 
@@ -273,8 +297,9 @@ def definition_path(track: str, relative: str, revision: str | None = None) -> P
     if members:
         if not path.is_dir():
             raise ValueError("Dataset definition directory is missing")
-        for key, value in members.items():
-            verify_file(safe_path(root, key), value)
+        _verify_snapshot(path, {"files": {
+            key.removeprefix(name + "/"): value for key, value in members.items()
+        }})
     else:
         verify_file(path, selected["files"][name])
     return path

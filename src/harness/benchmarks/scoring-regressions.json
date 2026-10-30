@@ -76184,6 +76184,218 @@
         "answer_format": "markdown"
       },
       "expected_task_pass": true
+    },
+    {
+      "id": "plain-post-valid-reference-body-continuation",
+      "category": "structured-extraction",
+      "root_cause": "Subsequent plain post permalinks were promoted from body reference lines without a record boundary.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/feed",
+        "expected_any": [],
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "\u4eca\u5929",
+              "\u5206\u4eab",
+              "\u52a0\u8f7d\u66f4\u591a",
+              "\u56de\u590d",
+              "\u5c55\u5f00",
+              "\u6536\u85cf",
+              "\u6628\u5929",
+              "\u67e5\u770b",
+              "\u67e5\u770b\u66f4\u591a",
+              "\u6ce8\u518c",
+              "\u70b9\u8d5e",
+              "\u767b\u5f55",
+              "\u8f6c\u53d1"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "\u4eca\u5929",
+              "\u6628\u5929",
+              "\u8be6\u60c5",
+              "\u67e5\u770b\u5e16\u5b50"
+            ],
+            "version": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.time",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "minimum_posts": 2,
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Alice\nhttps://example.test/p/1\nActual first body.\nSee this earlier post\nhttps://example.test/p/2\nFurther discussion.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "plain-post-valid-reference-paragraph",
+      "category": "structured-extraction",
+      "root_cause": "Subsequent plain post permalinks were promoted from body reference lines without a record boundary.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/feed",
+        "expected_any": [],
+        "source_benchmark": {
+          "post_contract": {
+            "ignored_labels": [
+              "bookmark",
+              "bookmarks",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "permalink",
+              "read more",
+              "replies",
+              "reply",
+              "report",
+              "repost",
+              "reposts",
+              "share",
+              "show more",
+              "sign in",
+              "today",
+              "view",
+              "views",
+              "yesterday",
+              "\u4eca\u5929",
+              "\u5206\u4eab",
+              "\u52a0\u8f7d\u66f4\u591a",
+              "\u56de\u590d",
+              "\u5c55\u5f00",
+              "\u6536\u85cf",
+              "\u6628\u5929",
+              "\u67e5\u770b",
+              "\u67e5\u770b\u66f4\u591a",
+              "\u6ce8\u518c",
+              "\u70b9\u8d5e",
+              "\u767b\u5f55",
+              "\u8f6c\u53d1"
+            ],
+            "unavailable_notices": [],
+            "non_author_labels": [
+              "today",
+              "yesterday",
+              "date",
+              "time",
+              "permalink",
+              "view post",
+              "post",
+              "\u4eca\u5929",
+              "\u6628\u5929",
+              "\u8be6\u60c5",
+              "\u67e5\u770b\u5e16\u5b50"
+            ],
+            "version": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/p/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.time",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "minimum_posts": 2,
+            "allow_empty_outer_with_quotes": true
+          }
+        }
+      },
+      "artifact": "Alice\nhttps://example.test/p/1\nActual first body.\n\nSee this earlier post\nhttps://example.test/p/2\nFurther discussion.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "unsupported-declaration-only",
+      "category": "answer-surface",
+      "root_cause": "The no-tag visibility fast path returned unsupported marked declarations before the existing declaration lexer ran.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<![bogus]>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "unsupported-declaration-markdown-sibling",
+      "category": "answer-surface",
+      "root_cause": "The no-tag visibility fast path returned unsupported marked declarations before the existing declaration lexer ran.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<![bogus]>\n[Valid](/item/2)",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
     }
   ]
 }

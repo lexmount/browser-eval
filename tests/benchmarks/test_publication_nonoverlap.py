@@ -61,12 +61,14 @@ def test_search_current_view_and_archive_delegate_factual_records(tmp_path, monk
     for path in ('definitions/registry.json', 'definitions/datasets/scenarios-v1.json'):
         assert (tmp_path / 'release' / path).read_bytes() == original[path]
     before = {'files': {name: {'sha256': digest(raw), 'size': len(raw)} for name, raw in original.items()},
-              'datasets': release.datasets(), 'dataset_sources': {'factual-v1': 'simpleqa-verified'}}
+              'datasets': release.datasets(), 'dataset_sources': {'factual-v1': 'simpleqa-verified'},
+              'external_sources': manifest['external_sources']}
     after = {**before, 'files': manifest['files']}
     assert data._definition_bindings(before) == data._definition_bindings(after)
     # A rebuilt already-delegated source does not need the absent local copies.
     filtered = {name: raw for name, raw in release.files.items() if name not in release.external_definitions()}
-    rebuilt = DatasetRelease('websearch', 'a' * 40, filtered, language_annotations={})
+    rebuilt = DatasetRelease('websearch', 'a' * 40, filtered, language_annotations={},
+                             external_sources=manifest['external_sources'])
     assert list(rebuilt.records()) == list(release.records())
     assert rebuilt.build(tmp_path / 'second')['datasets'] == manifest['datasets']
 

@@ -1201,11 +1201,11 @@ class _HTMLRanges(HTMLParser):
 
 
 def _visible_candidate_content(content):
+    content = _without_unsupported_declarations(content)
     if ('<!--' not in content
             and not re.search(r'''<[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', content)):
         return content
     from bs4 import BeautifulSoup
-    content = _without_unsupported_declarations(content)
     soup = BeautifulSoup(content, 'html.parser')
     lines = _line_starts(content)
     origins = {id(node): lines[node.sourceline - 1] + node.sourcepos
