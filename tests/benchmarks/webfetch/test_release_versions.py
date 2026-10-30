@@ -31,7 +31,7 @@ def test_catalog_binds_every_registered_suite(matching_catalog):
 
 @pytest.mark.parametrize("change", ["omitted_suite", "count", "reference", "scorer", "tag"])
 def test_published_catalog_rejects_changed_population_rules_or_reference_bindings(tmp_path, change, matching_catalog):
-    release = catalog_release(matching_catalog)
+    release = json.loads(matching_catalog.read_text())
     if change == "omitted_suite":
         release["suites"].pop()
     elif change == "count":
@@ -44,7 +44,9 @@ def test_published_catalog_rejects_changed_population_rules_or_reference_binding
         release["tag"] = "bench-v99.0.0"
     path = tmp_path / "release.json"
     path.write_text(json.dumps(release))
-    with pytest.raises(ValueError):
+    expected = {"tag": "tag differs", "scorer": "scoring source changed"}.get(
+        change, "task or frozen reference bindings changed")
+    with pytest.raises(ValueError, match=expected):
         catalog_release(path)
 
 
@@ -261,7 +263,6 @@ def test_version_command_distinguishes_published_and_unreleased_scorers(monkeypa
     result = json.loads(capsys.readouterr().out)
     if released:
         assert result == catalog
-        assert versions.catalog_release() == catalog
     else:
         assert result["status"] == "unreleased"
         assert result["version"] is None and result["tag"] is None

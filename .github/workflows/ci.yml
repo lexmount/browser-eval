@@ -16,8 +16,22 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  scope:
+    name: Select check scope
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    outputs:
+      docs_only: ${{ steps.scope.outputs.docs_only }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 2
+      - id: scope
+        run: bash scripts/ci_scope.sh >> "$GITHUB_OUTPUT"
+
   checks:
     name: Tests and static checks
+    needs: scope
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -30,14 +44,21 @@ jobs:
           version: "0.7.8"
           enable-cache: true
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: needs.scope.outputs.docs_only == 'false'
         with:
           node-version: "22"
           cache: npm
+      - run: make docs-check
+        if: needs.scope.outputs.docs_only == 'true'
       - run: make setup-test
-      - run: make ci-tests PYTEST_ARGS='-n 4 --dist loadfile --durations=20'
+        if: needs.scope.outputs.docs_only == 'false'
+      - run: make ci-tests PYTEST_ARGS='-n 4 --dist worksteal --durations=20'
+        if: needs.scope.outputs.docs_only == 'false'
 
   package:
     name: Installation and packaging
+    needs: scope
+    if: needs.scope.outputs.docs_only == 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -58,7 +79,6 @@ jobs:
       - run: npm ci
       - name: Verify base installation and fixture CLI
         run: |
-          uv sync --frozen
           uv run --frozen --no-sync python -m harness.web_fetch validate --providers fixture
           output="$(mktemp -d)/run"
           BROWSER_EVAL_REPORT_LANGUAGE=zh uv run --frozen --no-sync python -m harness.web_fetch run --providers fixture --delay 0 --output "$output"
@@ -67,6 +87,8 @@ jobs:
 
   browser:
     name: Rendered reference and report checks
+    needs: scope
+    if: needs.scope.outputs.docs_only == 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -90,11 +112,17 @@ jobs:
   test:
     name: Python 3.11
     if: ${{ always() }}
-    needs: [checks, package, browser]
+    needs: [scope, checks, package, browser]
     runs-on: ubuntu-latest
     timeout-minutes: 3
     steps:
-      - name: Require every check to succeed
+      - name: Require every applicable check to succeed
         env:
-          CHECK_RESULTS: ${{ join(needs.*.result, ' ') }}
-        run: test "$CHECK_RESULTS" = 'success success success'
+          DOCS_ONLY: ${{ needs.scope.outputs.docs_only }}
+          CHECK_RESULTS: ${{ needs.scope.result }} ${{ needs.checks.result }} ${{ needs.package.result }} ${{ needs.browser.result }}
+        run: |
+          case "$DOCS_ONLY" in
+            true) test "$CHECK_RESULTS" = 'success success skipped skipped' ;;
+            false) test "$CHECK_RESULTS" = 'success success success success' ;;
+            *) exit 1 ;;
+          esac
