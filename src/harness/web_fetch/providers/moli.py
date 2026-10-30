@@ -669,6 +669,7 @@ class MoliWebFetchProvider(Provider):
                     metadata=metadata,
                 )
             # Popen.__exit__ would wait without a bound; reap explicitly.
+            reap_failed = False
             try:
                 stopped = None
                 while True:
@@ -693,7 +694,9 @@ class MoliWebFetchProvider(Provider):
                         pass
                 if stopped:
                     terminate_owned_process_tree(process)
+                    reap_failed = True
                     await_owned_process_exit(process)
+                    reap_failed = False
                 if dns_broker is not None:
                     metadata["dns_queries"] = list(dns_broker.traces)
                 stdout_bytes = os.fstat(output.fileno()).st_size
@@ -721,7 +724,8 @@ class MoliWebFetchProvider(Provider):
                         _diagnostic_log_b64=base64.b64encode(diagnostic_raw).decode("ascii"),
                     )
             finally:
-                if process.poll() is None:
+                # A failed reap already spent the grace and raised.
+                if not reap_failed and process.poll() is None:
                     terminate_owned_process_tree(process)
                     await_owned_process_exit(process)
         if stopped == "timeout":

@@ -760,6 +760,7 @@ class HeadlessProvider(Provider):
                 if self._cancel_requested:
                     terminate_owned_process_tree(process)
             stopped = None
+            reap_failed = False
             try:
                 try:
                     process.stdin.write(json.dumps(request).encode())
@@ -790,7 +791,9 @@ class HeadlessProvider(Provider):
                         stopped = 'timeout'
                 if stopped:
                     terminate_owned_process_tree(process)
+                    reap_failed = True
                     await_owned_process_exit(process)
+                    reap_failed = False
                 stdout_bytes = os.fstat(stdout.fileno()).st_size
                 stderr_bytes = os.fstat(stderr.fileno()).st_size
                 stdout.seek(0); raw = stdout.read(limit+1)
@@ -798,8 +801,10 @@ class HeadlessProvider(Provider):
                 diagnostic = diagnostic_raw[:limit].decode('utf-8', 'replace')
             finally:
                 try:
-                    terminate_owned_process_tree(process)
-                    await_owned_process_exit(process)
+                    # A failed reap already spent the grace and raised.
+                    if not reap_failed:
+                        terminate_owned_process_tree(process)
+                        await_owned_process_exit(process)
                 finally:
                     if not process.stdin.closed:
                         try:

@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
-from harness.web_fetch.providers.base import ProcessCleanupError
+from harness.web_fetch.providers.base import ProcessCleanupError, await_owned_process_exit
 from harness.web_fetch.providers.headless import HeadlessProvider
 from harness.web_fetch.runner import IncompleteEvaluationError, run_evaluation
 
@@ -214,10 +214,15 @@ else:
                 # The process tree cannot be observed, so the kill is skipped.
                 with patch('harness.web_fetch.providers.headless.terminate_owned_process_tree',
                            return_value=False), \
-                        patch('harness.web_fetch.providers.headless.subprocess.Popen', side_effect=launch):
-                    with self.assertRaises(ProcessCleanupError):
+                        patch('harness.web_fetch.providers.headless.subprocess.Popen', side_effect=launch), \
+                        patch('harness.web_fetch.providers.headless.await_owned_process_exit',
+                              wraps=await_owned_process_exit) as reap:
+                    with self.assertRaises(ProcessCleanupError) as raised:
                         provider._run_local_worker(worker, {'url': 'https://example.test/slow'}, .2, 100_000)
                 self.assertLess(time.monotonic() - begin, 5)
+                # One bounded grace, one error: cleanup does not wait again.
+                self.assertEqual(reap.call_count, 1)
+                self.assertNotIsInstance(raised.exception.__context__, ProcessCleanupError)
                 self.assertIsNone(children[0].poll(), 'the unkilled worker is reported, not reaped')
             finally:
                 for child in children:
