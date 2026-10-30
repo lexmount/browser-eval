@@ -335,8 +335,6 @@ def with_measured_method_labels(render):
                     def label(version):
                         return versioned_method_label(registered, base, version)
                     messages = report_method_catalog(language)["messages"]
-                    messages = report_method_catalog(language)["messages"]
-                    messages = report_method_catalog(language)["messages"]
                     if len(counts) == 1:
                         value = label(next(iter(counts)))
                     elif None not in releases and len(set(releases)) == 1:

@@ -47,7 +47,6 @@ from harness.browser_use.selection import (
     report_selection_path,
     validate_against_official,
 )
-from harness.distribution import repository_root
 from harness.record_io import load_jsonl
 from harness.report_languages import (
     add_language_argument,
@@ -70,12 +69,6 @@ SITE_LABELS = {
     "reddit": "Reddit",
     "gitlab": "GitLab",
 }
-RESEARCH_ROOT = repository_root() / "research"
-
-
-def _finding_text(diagnosis: dict[str, Any], field: str) -> str:
-    value = diagnosis.get(field, {})
-    return str(value.get("zh") or value.get("en") or "") if isinstance(value, dict) else str(value)
 
 
 def _configure_engine_labels(profile: dict[str, Any]) -> None:
@@ -285,10 +278,6 @@ def _metric_stack(items: list[tuple[str, str, bool]]) -> Safe:
         rendered = _winner(value, won=won)
         lines.append(f"<span><b>{_e(label)}</b>{rendered}</span>")
     return Safe('<span class="metric-stack">' + "".join(lines) + "</span>")
-
-
-def _probability(value: float | None) -> str:
-    return "—" if value is None else f"{value:.3f}"
 
 
 def _table(
@@ -729,81 +718,11 @@ def _resolve_tasks(
     return tasks
 
 
-def _wilson_interval(successes: int, total: int, z: float = 1.96) -> tuple[float, float] | None:
-    if total <= 0:
-        return None
-    p = successes / total
-    denominator = 1 + z**2 / total
-    centre = (p + z**2 / (2 * total)) / denominator
-    spread = z * math.sqrt((p * (1 - p) + z**2 / (4 * total)) / total) / denominator
-    return max(0.0, centre - spread), min(1.0, centre + spread)
-
-
-def _task_family_summary(
-    tasks: list[dict[str, Any]], attempts: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
-    primary = {
-        (str(row["model"]), str(row["engine"]), int(row["task_id"])): float(row["score"]) == 1
-        for row in attempts
-    }
-    result = []
-    for kind in ("RETRIEVE", "NAVIGATE", "MUTATE"):
-        selected = [task for task in tasks if task["task_type"] == kind]
-        result.append(
-            {
-                "kind": kind,
-                "count": len(selected),
-                "scores": {
-                    model: {
-                        engine: sum(
-                            primary.get((model, engine, int(task["task_id"])), False)
-                            for task in selected
-                        )
-                        for engine in ENGINE_LABELS
-                    }
-                    for model in MODEL_LABELS
-                },
-            }
-        )
-    return result
-
-
 TASK_TYPE_COPY = {
     "RETRIEVE": ("信息提取", "从页面读取、筛选或汇总信息，不修改站点状态"),
     "NAVIGATE": ("页面导航", "打开符合指定条件的页面或列表"),
     "MUTATE": ("页面操作", "提交表单、修改记录、结账等会改变站点状态的任务"),
 }
-
-
-def _task_family_table(families: list[dict[str, Any]]) -> str:
-    headers = ["任务类型", "任务数", "测什么"] + [
-        f"{MODEL_LABELS[model]} · {ENGINE_LABELS[engine]}"
-        for model in MODEL_LABELS
-        for engine in ENGINE_LABELS
-    ]
-    rows: list[list[Any]] = []
-    for family in families:
-        kind = str(family["kind"])
-        copy = TASK_TYPE_COPY.get(kind)
-        if copy is None:
-            raise ValueError(f"unsupported Browser Use task type: {kind}")
-        label, description = copy
-        rows.append(
-            [
-                Safe(
-                    f'<a href="datasets/?f_kind={_e(kind)}"><strong>{_e(label)}</strong>'
-                    f'<span class="table-kicker">{_e(kind)}</span></a>'
-                ),
-                family["count"],
-                description,
-                *[
-                    f"{family['scores'][model][engine]}/{family['count']}"
-                    for model in MODEL_LABELS
-                    for engine in ENGINE_LABELS
-                ],
-            ]
-        )
-    return _table(headers, rows, table_id="task-family-table", classes="wide-data-table")
 
 
 def _failure_cause_table(verified_causes: dict[str, dict[str, Any]]) -> str:
@@ -870,33 +789,6 @@ def _external_interference_task_ids(
         for result_id in verified_causes
         if _cause_code(verified_causes, result_id).startswith(prefixes)
     }
-
-
-def _clean_subset_table(
-    attempts: list[dict[str, Any]], verified_causes: dict[str, dict[str, Any]]
-) -> str:
-    excluded = _external_interference_task_ids(verified_causes)
-    kept = [row for row in attempts if int(row["task_id"]) not in excluded]
-    summary = _primary_summary(kept)
-    return (
-        _table(
-            ["模型", "浏览器", "通过任务", "通过率"],
-            [
-                [
-                    MODEL_LABELS[model],
-                    ENGINE_LABELS[engine],
-                    f"{summary[model][engine]['passed']}/{summary[model][engine]['completed']}",
-                    _pct(summary[model][engine]["score"]),
-                ]
-                for model in MODEL_LABELS
-                for engine in ENGINE_LABELS
-            ],
-            table_id="clean-subset-table",
-            classes="core-comparison-table",
-        )
-        + '<p class="fine">这是事后诊断口径，不是官方新分数。它按任务统一剔除任一配置已证实受任务/evaluator、站点、共享环境或参考状态干扰的任务，保证各配置分母一致。</p>'
-        f'<p class="fine">本轮剔除 {len(excluded)} 题：{_e("、".join(f"#{task_id}" for task_id in sorted(excluded)))}。</p>'
-    )
 
 
 def _adoption_top3(evidence: dict[str, Any]) -> str:
@@ -1006,37 +898,6 @@ def _same_task_comparison(tasks: list[dict[str, Any]], attempts: list[dict[str, 
         f"<thead><tr><th>任务</th>{headers}</tr></thead>"
         f"<tbody>{''.join(rows)}</tbody></table></div></div></article>"
     )
-
-
-def _group_rows(
-    attempts: list[dict[str, Any]], tasks: list[dict[str, Any]], field: str
-) -> list[list[Any]]:
-    meta = {int(t["task_id"]): t for t in tasks}
-    grouped: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
-    for row in attempts:
-        value = meta[int(row["task_id"])][field]
-        value = value[0] if isinstance(value, list) else value
-        grouped[(str(value), str(row["model"]), str(row["engine"]))].append(row)
-    result = []
-    for value in sorted({key[0] for key in grouped}):
-        line: list[Any] = [SITE_LABELS.get(value, TIER_LABELS.get(value, value))]
-        for model in MODEL_LABELS:
-            passed_by_engine = {
-                engine: sum(float(x["score"]) == 1 for x in grouped[(value, model, engine)])
-                for engine in ENGINE_LABELS
-            }
-            winners = _best(passed_by_engine, higher=True)
-            for engine in ENGINE_LABELS:
-                items = grouped[(value, model, engine)]
-                line.append(
-                    _winner(
-                        f"{passed_by_engine[engine]}/{len(items)}" if items else "—",
-                        won=engine in winners,
-                        label="同组通过数更高",
-                    )
-                )
-        result.append(line)
-    return result
 
 
 def _action_duration_cards(attempts: list[dict[str, Any]]) -> str:
@@ -1464,31 +1325,6 @@ def _evidence_viewer_page() -> str:
         "})();</script>"
     )
     return _page(title="完整执行证据", active="analysis", body=body)
-
-
-def _english_page(body: str) -> str:
-    links = "".join(
-        f'<a href="en/index.html#{anchor}">{label}</a>'
-        for anchor, label in (
-            ("results", "Results"),
-            ("scope", "Scope"),
-            ("method", "Method"),
-            ("evidence", "Evidence"),
-            ("review", "Review"),
-            ("access", "Access"),
-        )
-    )
-    return (
-        '<!doctype html><html lang="en"><head><base href="../"><meta name="browser-eval-report" content="1"><meta charset="utf-8">'
-        '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        '<title>English edition · Browser Use evaluation</title><link rel="stylesheet" href="assets/style.css">'
-        '<script defer src="assets/report.js"></script></head><body><header class="top"><nav class="wrap">'
-        + links
-        + '<a href="">中文</a><button class="theme-toggle" onclick="theme()">Theme</button></nav></header>'
-        '<main class="page-main">'
-        + body
-        + '</main><footer class="footer"><div class="wrap"><p>Conclusions apply only to this preregistered sample, agent, model, and runtime configuration.</p></div></footer></body></html>'
-    )
 
 
 def _hero(eyebrow: str, title: str, lead: str) -> str:
