@@ -8,7 +8,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](../LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](../pyproject.toml)
 
-[特性](#特性) · [设计原则](#设计原则) · [评测流程](#评测流程) · [快速开始](#快速开始) · [报告](#报告) · [版本](#版本) · [相关仓库](#数据集与相关项目) · [参与贡献](../CONTRIBUTING.md)
+[特性](#特性) · [设计原则](#设计原则) · [评测流程](#评测流程) · [快速开始](#快速开始) · [报告](#报告) · [版本](#版本) · [数据集](#hugging-face-数据集) · [参与贡献](../CONTRIBUTING.md)
 
 </div>
 

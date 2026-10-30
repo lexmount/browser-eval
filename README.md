@@ -8,7 +8,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](pyproject.toml)
 
-[Features](#features) · [Approach](#evaluation-approach) · [Tracks](#evaluation-tracks) · [Quickstart](#quickstart) · [Reports](#reports) · [Versions](#versions) · [Related projects](#datasets-and-related-projects) · [Contributing](CONTRIBUTING.md)
+[Features](#features) · [Approach](#evaluation-approach) · [Tracks](#evaluation-tracks) · [Quickstart](#quickstart) · [Reports](#reports) · [Versions](#versions) · [Datasets](#datasets-on-hugging-face) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
