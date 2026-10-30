@@ -26,7 +26,9 @@ from harness.web_fetch.native_projection import (
 from harness.web_fetch.native_projection import native_answer_projection, native_fetch_diagnostics
 from harness.web_fetch.native_routes import NativeRoute, declared_input_media_kind
 from harness.web_fetch.network_dns import validate_dns_mode, validate_native_dns_library
-from harness.web_fetch.providers.base import Provider, terminate_owned_process_tree
+from harness.web_fetch.providers.base import (
+    Provider, await_owned_process_exit, terminate_owned_process_tree,
+)
 from harness.web_fetch.providers.headless import HeadlessProvider
 from harness.web_fetch.providers.http_client import inner_timeout_budget
 from harness.web_fetch.retrieval_hints import (
@@ -666,7 +668,9 @@ class MoliWebFetchProvider(Provider):
                     error_message=f"Cannot start Moli: {error}",
                     metadata=metadata,
                 )
-            with process:
+            # Popen.__exit__ would wait without a bound; reap explicitly.
+            reap_failed = False
+            try:
                 stopped = None
                 while True:
                     if os.fstat(output.fileno()).st_size > limit:
@@ -690,7 +694,9 @@ class MoliWebFetchProvider(Provider):
                         pass
                 if stopped:
                     terminate_owned_process_tree(process)
-                    process.wait()
+                    reap_failed = True
+                    await_owned_process_exit(process)
+                    reap_failed = False
                 if dns_broker is not None:
                     metadata["dns_queries"] = list(dns_broker.traces)
                 stdout_bytes = os.fstat(output.fileno()).st_size
@@ -717,6 +723,11 @@ class MoliWebFetchProvider(Provider):
                         diagnostic_log_process_completed=stopped is None,
                         _diagnostic_log_b64=base64.b64encode(diagnostic_raw).decode("ascii"),
                     )
+            finally:
+                # A failed reap already spent the grace and raised.
+                if not reap_failed and process.poll() is None:
+                    terminate_owned_process_tree(process)
+                    await_owned_process_exit(process)
         if stopped == "timeout":
             return ProviderResult(
                 False,
