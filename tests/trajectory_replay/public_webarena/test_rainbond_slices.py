@@ -5,6 +5,7 @@ import threading
 import urllib.error
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -1057,11 +1058,15 @@ def test_wait_site_treats_client_error_responses_as_ready(tmp_path, monkeypatch,
         calls.append(request.full_url)
         raise urllib.error.HTTPError(request.full_url, status, "status", {}, None)
 
-    # Deadline at 1s; two probes fall inside it, then the clock passes it.
-    monotonic = iter([0.0, 0.0, 0.5, 5.0])
+    # Deadline at 1s; two probes fall inside it, then the clock stays past it.
+    readings = [0.0, 0.0, 0.5]
+
+    def monotonic():
+        return readings.pop(0) if readings else 5.0
+
     monkeypatch.setattr("urllib.request.urlopen", urlopen)
     monkeypatch.setattr(
-        "harness.environments.webarena.rainbond.time.monotonic", lambda: next(monotonic)
+        "harness.environments.webarena.rainbond.time", SimpleNamespace(monotonic=monotonic)
     )
     if ready:
         pool._wait_site("http://site.test/")
