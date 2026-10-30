@@ -23,9 +23,9 @@ def test_http_diagnostics_observe_request_response_without_credentials(tmp_path)
     raw=base64.b64decode(result.metadata["_diagnostic_log_b64"])
     assert b"secret" not in raw
     rows=[json.loads(line) for line in raw.splitlines()]
-    assert [r["event"] for r in rows]==["http_request_started","http_response_received","collection_completed"]
+    assert [r["event"] for r in rows]==["http_request_started","http_headers_received","http_response_received","collection_completed"]
     assert rows[1]["status"]==response.status==503
-    assert rows[1]["body"]=='{"error":"actual failure"}'
+    assert rows[2]["body"]=='{"error":"actual failure"}'
     assert rows[1]["headers"]["x-request-id"]=="actual-id"
 
 def test_native_logging_is_observed_and_late_logs_do_not_mutate_evidence(tmp_path):
@@ -122,3 +122,30 @@ def test_runner_keeps_real_observations_for_every_outcome(tmp_path, outcome):
         assert b'late answer' not in raw
     assert record['ok'] == (outcome in {'content', 'unmatched', 'empty'})
     assert record['metrics']['content_pass'] == (outcome == 'content')
+
+
+@pytest.mark.parametrize("stage", ["connect_or_headers", "body"])
+def test_http_failure_retains_observed_stage_and_closes_response(tmp_path, stage):
+    sink = CallDiagnostics(tmp_path / "failed.jsonl", "failed")
+    class Response:
+        status = 200
+        headers = {}
+        closed = False
+        def geturl(self): return "https://fixture.invalid/"
+        def read(self, n): raise TimeoutError("body stalled")
+        def close(self): self.closed = True
+    response = Response()
+    with diagnostic_context(sink), patch("urllib.request.build_opener") as opener:
+        if stage == "body":
+            opener.return_value.open.return_value = response
+        else:
+            opener.return_value.open.side_effect = TimeoutError("connection stalled")
+        with pytest.raises(TimeoutError):
+            request("https://fixture.invalid/", timeout=30)
+    sink.finish(ProviderResult(False, "", error_type="timeout"))
+    rows = [json.loads(line) for line in sink.path.read_text().splitlines()]
+    failed = next(r for r in rows if r["event"] == "http_request_failed")
+    assert failed["phase"] == stage
+    assert any(r["event"] == "http_headers_received" for r in rows) == (stage == "body")
+    assert response.closed == (stage == "body")
+    assert not any(r["event"] == "http_response_received" for r in rows)

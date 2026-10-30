@@ -20,6 +20,8 @@ import urllib.request
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 
+from harness.web_fetch.diagnostics import emit
+
 DNS_ENDPOINT = "https://cloudflare-dns.com/dns-query"
 DNS_MODES = {"system", "public_doh"}
 _PATCH_LOCK = threading.Lock()
@@ -63,6 +65,8 @@ def configure_chromium_dns_profile(profile, mode):
 
 def lookup_public_dns(hostname, *, timeout, opener=None):
     """Resolve A and AAAA once each; no fallback or retry; leave safety to the product."""
+    if not math.isfinite(timeout) or timeout <= 0:
+        raise TimeoutError("DNS query exceeded shared deadline")
     try:
         literal = ipaddress.ip_address(hostname)
         return [(str(literal), 4 if literal.version == 4 else 6)]
@@ -78,13 +82,29 @@ def lookup_public_dns(hostname, *, timeout, opener=None):
         query = urllib.parse.urlencode({"name": hostname, "type": rrtype})
         request = urllib.request.Request(DNS_ENDPOINT + "?" + query,
                                          headers={"Accept": "application/dns-json"})
-        with opener(request, timeout=remaining) as response:
-            raw = response.read(65537)
+        started = time.monotonic()
+        phase = "connect_or_headers"
+        emit("doh_query_started", hostname=hostname, record_type=rrtype,
+             resolver=DNS_ENDPOINT, timeout_seconds=remaining)
+        try:
+            with opener(request, timeout=remaining) as response:
+                phase = "body"
+                emit("doh_headers_received", hostname=hostname, record_type=rrtype)
+                raw = response.read(65537)
+            if time.monotonic() >= deadline:
+                raise TimeoutError("DNS response arrived after shared deadline")
+        except Exception as error:
+            emit("doh_query_failed", hostname=hostname, record_type=rrtype,
+                 phase=phase, error_type=type(error).__name__, message=str(error),
+                 elapsed_ms=round((time.monotonic() - started) * 1000, 2))
+            raise
         if len(raw) > 65536:
             raise ValueError("DNS response exceeds 64 KiB")
         payload = json.loads(raw)
         if payload.get("Status") != 0 or payload.get("TC"):
             raise socket.gaierror("Public DNS returned an unsuccessful or truncated answer")
+        emit("doh_query_completed", hostname=hostname, record_type=rrtype,
+             elapsed_ms=round((time.monotonic() - started) * 1000, 2))
         for answer in payload.get("Answer", []):
             if answer.get("type") != rrtype:
                 continue
@@ -137,9 +157,17 @@ def public_dns_context(mode, timeout, *, resolver=None):
             raise TimeoutError("DNS query exceeded shared deadline")
         active = True
         try:
+            emit("dns_resolution_started", hostname=host, timeout_seconds=remaining)
             addresses = resolver(host, timeout=remaining)
+            if time.monotonic() >= deadline:
+                raise TimeoutError("DNS response arrived after shared deadline")
+        except Exception as error:
+            emit("dns_resolution_failed", hostname=host,
+                 error_type=error.__class__.__name__, message=str(error))
+            raise
         finally:
             active = False
+        emit("dns_resolution_completed", hostname=host, addresses=[value for value, _ in addresses])
         traces.append({"hostname": host, "addresses": [value for value, _ in addresses]})
         rows = []
         for address, version in addresses:

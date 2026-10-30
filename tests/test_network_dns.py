@@ -59,6 +59,47 @@ class NetworkDnsTests(unittest.TestCase):
         self.assertEqual(metadata['dns_resolutions'], Broker.traces)
         self.assertEqual(metadata['native_dns_binding']['library_sha256'], 'a'*64)
 
+    def test_late_final_family_answer_is_rejected(self):
+        clock = [0.0]
+        def open_response(request, timeout):
+            rrtype = 28 if "type=28" in request.full_url else 1
+            clock[0] += 0.6
+            data = "::1" if rrtype == 28 else "127.0.0.1"
+            return io.BytesIO(json.dumps({"Status": 0, "Answer": [
+                {"type": rrtype, "data": data}]}).encode())
+        with patch("harness.web_fetch.network_dns.time.monotonic", side_effect=lambda: clock[0]):
+            with self.assertRaisesRegex(TimeoutError, "after shared deadline"):
+                lookup_public_dns("fixture.example", timeout=1, opener=open_response)
+
+    def test_late_custom_resolution_cannot_start_target_connection(self):
+        clock = [0.0]
+        def resolver(host, timeout):
+            clock[0] = 2.0
+            return [("127.0.0.1", 4)]
+        with patch("harness.web_fetch.network_dns.time.monotonic", side_effect=lambda: clock[0]):
+            with public_dns_context("public_doh", 1, resolver=resolver):
+                with self.assertRaisesRegex(TimeoutError, "after shared deadline"):
+                    socket.getaddrinfo("fixture.example", 443)
+
+    def test_tls_failure_identifies_family_without_partial_answer_or_retry(self):
+        import ssl
+        from urllib.error import URLError
+        events, calls = [], []
+        def open_response(request, timeout):
+            calls.append(request.full_url)
+            if "type=28" in request.full_url:
+                raise URLError(ssl.SSLEOFError("TLS connection closed"))
+            return io.BytesIO(json.dumps({"Status": 0, "Answer": [
+                {"type": 1, "data": "203.0.113.1"}]}).encode())
+        with patch("harness.web_fetch.network_dns.emit", side_effect=lambda event, **fields: events.append((event, fields))):
+            with self.assertRaises(URLError):
+                lookup_public_dns("fixture.example", timeout=30, opener=open_response)
+        self.assertEqual(len(calls), 2)
+        failed = [fields for event, fields in events if event == "doh_query_failed"]
+        self.assertEqual(failed[0]["record_type"], 28)
+        self.assertEqual(failed[0]["phase"], "connect_or_headers")
+        self.assertIn("TLS connection closed", failed[0]["message"])
+
     def test_resolves_both_families_without_filtering_native_safety_input(self):
         calls = []
         def open_response(request, timeout):

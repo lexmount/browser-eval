@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import math
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -67,11 +68,18 @@ def request(
         final_headers.setdefault("Content-Type", "application/json")
     req = urllib.request.Request(url, data=data, headers=final_headers, method=method)
     emit("http_request_started", url=url, method=method, headers=final_headers, json_body=json_body, timeout=timeout)
+    started = time.monotonic()
+    phase = "connect_or_headers"
+    response = None
     try:
-        response = urllib.request.build_opener(HttpOnlyRedirectHandler()).open(req, timeout=timeout)
-    except urllib.error.HTTPError as error:
-        response = error
-    try:
+        try:
+            response = urllib.request.build_opener(HttpOnlyRedirectHandler()).open(req, timeout=timeout)
+        except urllib.error.HTTPError as error:
+            response = error
+        emit("http_headers_received", status=response.status, url=response.geturl(),
+             headers=dict(response.headers.items()),
+             elapsed_ms=round((time.monotonic() - started) * 1000, 2))
+        phase = "body"
         body = response.read(max_bytes + 1)
         if len(body) > max_bytes:
             raise ValueError(f"response exceeded max_bytes={max_bytes}")
@@ -82,5 +90,11 @@ def request(
             headers={key.lower(): value for key, value in response.headers.items()},
             body=body,
         )
+    except Exception as error:
+        emit("http_request_failed", url=url, phase=phase,
+             error_type=type(error).__name__, message=str(error),
+             elapsed_ms=round((time.monotonic() - started) * 1000, 2))
+        raise
     finally:
-        response.close()
+        if response is not None:
+            response.close()
