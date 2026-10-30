@@ -103,7 +103,7 @@ def _definition_bindings(selected: dict, *, composed: bool = True,
                     or supplied.get("datasets", {}).get(identity) != target
                     or any(supplied.get("files", {}).get(key) != value
                            for key, value in recorded.get("files", {}).items())):
-                raise ValueError("Composed benchmark source differs from recorded context")
+                raise ValueError("Composed benchmark dataset source differs from recorded context")
         additions = resources(provider)
         if name not in additions or additions[name]["sha256"] != target["sha256"]:
             raise ValueError("Composed benchmark dataset source file binding differs")

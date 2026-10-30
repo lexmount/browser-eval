@@ -942,8 +942,8 @@
     },
     "websearch": {
       "repository": "Lexmount/LexBench-Web-Search",
-      "revision": "8571cecddd3f237dabe87d3f6243fc54067fd012",
-      "source_revision": "c710f82aaa11c6e82cdf10ef019e0efeb9e795ff",
+      "revision": "76d9c2b685cc6da1f2a2aaceb7daa224e67155da",
+      "source_revision": "8571cecddd3f237dabe87d3f6243fc54067fd012",
       "archive": {
         "path": "definitions.tar.gz",
         "sha256": "40cfb66052edc8f1bd60de0fa7a44dd6224cce4c62c7d200944c833ebc9ed280",
@@ -1027,7 +1027,123 @@
       "dataset_sources": {
         "factual-v1": "simpleqa-verified"
       },
+      "external_sources": {
+        "simpleqa-verified": {
+          "datasets": {
+            "factual-v1": {
+              "count": 831,
+              "path": "datasets/factual-v1.json",
+              "sha256": "b3422267e0be4a68b71e533356e14531b6aba1d2e57ccde962e6e3e00327d253"
+            }
+          },
+          "files": {
+            "definitions/datasets/factual-v1.json": {
+              "sha256": "b3422267e0be4a68b71e533356e14531b6aba1d2e57ccde962e6e3e00327d253",
+              "size": 735667
+            },
+            "definitions/factual-source.json": {
+              "sha256": "b2f0f48cece8fa8c6449acd387a2936c23cf678801138d48b70952d24a2210db",
+              "size": 1032
+            }
+          },
+          "repository": "Lexmount/LexBench-SimpleQA-Verified",
+          "revision": "550ef09fa823ac4d9b3859ddefed3542b5b7e65c"
+        }
+      },
       "history": [
+        {
+          "repository": "Lexmount/LexBench-Web-Search",
+          "revision": "8571cecddd3f237dabe87d3f6243fc54067fd012",
+          "source_revision": "c710f82aaa11c6e82cdf10ef019e0efeb9e795ff",
+          "archive": {
+            "path": "definitions.tar.gz",
+            "sha256": "40cfb66052edc8f1bd60de0fa7a44dd6224cce4c62c7d200944c833ebc9ed280",
+            "size": 57558
+          },
+          "datasets": {
+            "factual-v1": {
+              "count": 831,
+              "path": "datasets/factual-v1.json",
+              "sha256": "b3422267e0be4a68b71e533356e14531b6aba1d2e57ccde962e6e3e00327d253"
+            },
+            "scenarios-v1": {
+              "count": 149,
+              "path": "datasets/scenarios-v1.json",
+              "sha256": "808d305f4ac1b9ccfdff46f89dbf7e5885a302347e31e8fe474dff741cc60c6c"
+            },
+            "scenarios-v2": {
+              "count": 149,
+              "path": "datasets/scenarios-v2.json",
+              "sha256": "754028737be6ee593525acfff5eec2510f9bf9c43e37a43c9162581fe4e32d68"
+            }
+          },
+          "files": {
+            "LICENSE": {
+              "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+              "size": 11358
+            },
+            "NOTICE": {
+              "sha256": "b39a80c9593188f8f4a7f6f8588adf92904ec88426effd7698ed5caa405b5d1c",
+              "size": 272
+            },
+            "THIRD_PARTY.md": {
+              "sha256": "73b1f44bf3419db695b792bd13b59572aaa8ff4966c2168d8cd124c77272cfd9",
+              "size": 1817
+            },
+            "definitions/NOTICE.txt": {
+              "sha256": "4787042ef9f5d9e353edd7c747ac15c0fe4a2a572f0dd3ce1f52cf8c6549215c",
+              "size": 3634
+            },
+            "definitions/benchmark-release.json": {
+              "sha256": "0d9d84ef66d1eab3c4907c639ba2174b769f430fbf8efd8b2cf924671081cf63",
+              "size": 2895
+            },
+            "definitions/contamination-patterns.json": {
+              "sha256": "e7fedfe9cc6f0f03c424cb8da76107240caeed1fd9fc069a3753defd6afdd2b8",
+              "size": 116
+            },
+            "definitions/datasets/scenarios-v1.json": {
+              "sha256": "808d305f4ac1b9ccfdff46f89dbf7e5885a302347e31e8fe474dff741cc60c6c",
+              "size": 93161
+            },
+            "definitions/datasets/scenarios-v2.json": {
+              "sha256": "754028737be6ee593525acfff5eec2510f9bf9c43e37a43c9162581fe4e32d68",
+              "size": 147320
+            },
+            "definitions/preview-rubric-v1.txt": {
+              "sha256": "db8e7e7cf040a4acd9d9ea919cf283a42169e864be2ea7b47167c04e26449e15",
+              "size": 1777
+            },
+            "definitions/preview-rubric-v2.txt": {
+              "sha256": "bb7eccc04890593f7080b22fcb46c1f3a75ed933c07425b769d086e18e5db843",
+              "size": 1766
+            },
+            "definitions/registry.json": {
+              "sha256": "4b1a17f5a5b19c423aa450c9ce8dac97fb1cf32ce6df56c20e68058126debd8d",
+              "size": 673
+            },
+            "definitions/scoring-regressions.json": {
+              "sha256": "f5079fb9b19fbe41602e486c3e6de56b75696f15dfdfec5ae2f19895fb119231",
+              "size": 49365
+            },
+            "definitions/scoring-revisions.json": {
+              "sha256": "f6ad8803a9d2b3bbdcccb9d7f9517314a0ee53de158059c2d6a3a34f92e31e5a",
+              "size": 17494
+            },
+            "definitions/sources.json": {
+              "sha256": "28de8222142da6f92ce772a4543f214541aab31ea19845831a1545286eb6239d",
+              "size": 132984
+            }
+          },
+          "dataset_sources": {
+            "factual-v1": "simpleqa-verified"
+          },
+          "source_editions": {
+            "f07a2e2ddf1c1c511cb3944659534301c86ff9c9": "063ef2504dde261604ef3a9fee634cee0df90488",
+            "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9": "e59f3ba45ae2f85a377a40cad683018875ae13ad",
+            "c710f82aaa11c6e82cdf10ef019e0efeb9e795ff": "8571cecddd3f237dabe87d3f6243fc54067fd012"
+          }
+        },
         {
           "repository": "Lexmount/LexBench-Web-Search",
           "revision": "c710f82aaa11c6e82cdf10ef019e0efeb9e795ff",
@@ -1472,7 +1588,8 @@
       "source_editions": {
         "f07a2e2ddf1c1c511cb3944659534301c86ff9c9": "063ef2504dde261604ef3a9fee634cee0df90488",
         "0e4c0cd7d828dc80f0a701886d208cc6c0d598e9": "e59f3ba45ae2f85a377a40cad683018875ae13ad",
-        "c710f82aaa11c6e82cdf10ef019e0efeb9e795ff": "8571cecddd3f237dabe87d3f6243fc54067fd012"
+        "c710f82aaa11c6e82cdf10ef019e0efeb9e795ff": "8571cecddd3f237dabe87d3f6243fc54067fd012",
+        "8571cecddd3f237dabe87d3f6243fc54067fd012": "76d9c2b685cc6da1f2a2aaceb7daa224e67155da"
       }
     },
     "simpleqa-verified": {

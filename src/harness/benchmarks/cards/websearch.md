@@ -2,7 +2,7 @@
 
 LexBench-Web-Search evaluates the pages a search API returns for fixed queries: whether useful results appear near the top, whether explicit source requirements are met, and whether known reference pages are found. The tasks cover general web search, named-site search and vertical search across English, Chinese and other languages.
 
-[Browser Eval](https://github.com/lexmount/browser-eval) maintains the scorer, provider adapters and evidence reports. This dataset supplies versioned query definitions, source attribution and qualified reference inputs. Use it to evaluate retrieval before an agent fetches pages or generates an answer. The harness turns saved results into HTML reports with query-level drilldown that readers can inspect, rebuild and share.
+[Browser Eval](https://github.com/lexmount/browser-eval) maintains the scorer, provider adapters and evidence reports. This dataset supplies versioned query definitions, source attribution and qualified reference inputs. Use it to evaluate retrieval before an agent fetches pages or generates an answer. The harness can turn saved results into local HTML reports with query-level drilldown that readers can inspect, rebuild and share.
 
 ## Dataset editions
 
@@ -11,6 +11,8 @@ LexBench-Web-Search evaluates the pages a search API returns for fixed queries: 
 The viewer contains the current scenario edition. Older scenario definitions remain in the archive for reproduction; they use the same queries and are not additional tasks.
 
 The [SimpleQA Verified retrieval dataset](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) owns factual questions, original answers, supporting URLs and the source receipt. This repository retains its composition descriptor but does not copy those records into its viewer or archive. Browser Eval resolves that descriptor to the separately pinned dataset. Report factual retrieval metrics separately from scenario relevance.
+
+`manifest.json` records each borrowed source's repository, full commit and file hashes under `external_sources`. Rebuilding a published edition uses those recorded sources, even when the companion dataset has a newer release.
 
 Each scenario includes an ID, query, language and search family. Where available, it also carries an information need, known-page anchors, source origin, derivation and reference qualifications. `origin` and `provenance_kind` distinguish copied queries, adaptations and authored controls. Reference observations retain their scope and evidence bindings.
 
