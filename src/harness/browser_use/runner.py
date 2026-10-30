@@ -256,6 +256,7 @@ def _run_attempt_locked(  # noqa: PLR0913
     agent_run_ms = 0.0
     evidence_finalize_ms = 0.0
     evaluation_ms = 0.0
+    cleanup_errors: list[str] = []
     started = time.perf_counter()
     try:
         session_setup_started = time.perf_counter()
@@ -327,12 +328,11 @@ def _run_attempt_locked(  # noqa: PLR0913
                     service._context.tracing.stop(path=str(trace_path)),
                 )
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            cleanup_errors.append(f"HAR/trace stop failed: {exc}")
         finally:
             evidence_finalize_ms += (time.perf_counter() - finalize_started) * 1000
     finally:
-        cleanup_errors: list[str] = []
         if sampler_started:
             try:
                 sampler.stop()

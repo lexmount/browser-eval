@@ -1238,3 +1238,13 @@ def test_failed_agent_attempt_records_agent_and_finalize_timing(
     assert "model provider failed" in row["error"]
     assert row["timings"]["agent_run_ms"] >= 20
     assert row["timings"]["evidence_finalize_ms"] >= 20
+
+
+def test_failed_attempt_records_har_and_trace_stop_errors(monkeypatch, tmp_path: Path) -> None:
+    kwargs = _install_fake_attempt_runtime(
+        monkeypatch, agent_error="model provider failed", trace_stop_error="trace file locked"
+    )
+
+    row = _run_attempt_locked(**kwargs, cowagent_repo=tmp_path, output_dir=tmp_path / "out")
+
+    assert row["cleanup_errors"] == ["HAR/trace stop failed: trace file locked"]
