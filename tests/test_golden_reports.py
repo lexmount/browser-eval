@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from harness.reporting import versions
 from harness.trajectory_replay.public_webarena.publication import stage_report
 from harness.web_fetch import call_boundary, runner
 from harness.web_fetch.providers.fixture import FixtureProvider
@@ -19,6 +20,17 @@ from tests.test_webmainbench_full_report import render_full_report
 from tests.test_webmainbench_report import sample_report_inputs
 from tests.trajectory_replay.test_webarena_report import build_replay_fixture
 from tests.wcxb_fixture import create_report_inputs
+
+# Reports record the revision and source hash of the builder. Both change with
+# every commit, which is what the snapshots must not depend on.
+PINNED_BUILDER = {"version": "0.0.0-golden", "revision": None,
+                  "source_sha256": "0" * 64, "modified": False}
+
+
+@pytest.fixture(autouse=True)
+def pinned_builder_identity(monkeypatch):
+    monkeypatch.setattr(versions, "software_identity", lambda: dict(PINNED_BUILDER))
+    monkeypatch.setattr(runner, "software_identity", lambda: dict(PINNED_BUILDER))
 
 
 @pytest.mark.parametrize("outcome", ["pass", "fail"])
