@@ -371,51 +371,6 @@ def stage_report(formal_root: Path, destination: Path) -> None:
         staged.rename(destination)
 
 
-def package_main(project_root: Path) -> None:
-    default_formal_root = (
-        Path.home() / ".browser-eval/evidence/current/formal/webarena-public-trajectories"
-    )
-    parser = argparse.ArgumentParser(
-        description="Build the standalone fixed-trajectory report bundle."
-    )
-    parser.add_argument("--formal-root", type=Path, default=default_formal_root)
-    parser.add_argument("--profile", type=Path, required=True)
-    parser.add_argument(
-        "--archive", type=Path, default=project_root / "publish/webarena-fixed-trajectory.zip"
-    )
-    parser.add_argument(
-        "--attestation",
-        type=Path,
-        default=project_root / "publish/webarena-fixed-trajectory-attestation.json",
-    )
-    args = parser.parse_args()
-    print(
-        json.dumps(
-            build(
-                args.formal_root,
-                args.archive,
-                args.attestation,
-                authority=args.profile,
-            ),
-            ensure_ascii=False,
-        )
-    )
-
-
-def check_main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Check the fixed-trajectory report structure and comparison semantics."
-    )
-    parser.add_argument("--formal-root", type=Path, required=True)
-    args = parser.parse_args()
-    result = check_report_bundle(args.formal_root.resolve())
-    print(
-        "REPORT SEMANTICS PASS: "
-        f"{result['pages']} pages, {result['metrics']} metrics, "
-        f"{result['ratio_modules']} ratio modules"
-    )
-
-
 def publish_current(
     profile: Path,
     formal_root: Path,

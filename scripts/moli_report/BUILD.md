@@ -56,7 +56,7 @@ Package the validated tree with `uv run --frozen python scripts/moli_report/pack
 
 ## Shared implementation boundary
 
-`src/harness/lexbench/report.py` owns report assembly; `resource_evidence.py`, `resource_summary.py`, `resource_matrix.py` and `charts.py` own matrix validation, Linux profile aggregation, matrix execution and resource charts. Their command scripts delegate to these modules. Actual measurement executes the declared frozen driver; reading and aggregating saved evidence does not execute it. Historical collectors and call bindings retain their original bytes and hashes.
+`src/harness/lexbench/report.py` owns report assembly; `resource_evidence.py`, `resource_summary.py`, `resource_matrix.py` and `charts.py` own matrix validation, Linux profile aggregation, matrix execution and resource charts. The `moli_report` command scripts delegate to these modules; render a standalone resource chart with `uv run --frozen python -m harness.lexbench.charts`. Actual measurement executes the declared frozen driver; reading and aggregating saved evidence does not execute it. Historical collectors and call bindings retain their original bytes and hashes.
 
 Moli and Web Fetch publishers use `src/harness/reporting/packs.py` for deterministic gzip packing and byte offsets. Their adapters retain different entry points and catalogs: Moli serves case evidence through fetch, while Web Fetch packs virtual HTML routes and applies its own privacy projection. The shared packer accepts ordered bytes and neither selects evidence nor changes it. Round-trip tests cover both filename/compression formats, binary and Unicode content, empty files and pack boundaries; publisher tests verify their public catalogs independently.
 

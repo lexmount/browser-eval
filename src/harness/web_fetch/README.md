@@ -996,8 +996,9 @@ uploading the package again. Publication work files use the configured data home
 ## Reference candidates
 
 `reference_freeze.py` owns candidate preparation and reviewed promotion as well
-as reference freezing. The command scripts delegate to that owner. Installed
-callers can inspect both interfaces without a repository checkout:
+as reference freezing. `scripts/run_certified_benchmark.py` runs freezing and
+postcheck through it. Promotion has no separate script; installed callers can
+inspect both interfaces without a repository checkout:
 
 ```bash
 uv run --frozen python -m harness.web_fetch.reference_freeze prepare-promotion --help
