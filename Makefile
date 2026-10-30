@@ -204,9 +204,7 @@ webmainbench-run: runtime-check
 
 webmainbench-score: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path/to/provider-shard is required' >&2; exit 2)
-	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
-	@test -n "$(SCORER)" || (echo 'SCORER=/absolute/path/to/pinned/WebMainBench is required' >&2; exit 2)
-	$(UV) run --frozen --extra webmainbench-eval python scripts/score_webmainbench_results.py --evidence "$(EVIDENCE)" --dataset "$(SOURCE)" --scorer-repo "$(SCORER)"
+	$(UV) run --frozen --extra webmainbench-eval python scripts/score_webmainbench_results.py --evidence "$(EVIDENCE)" $(if $(SOURCE),--dataset "$(SOURCE)",) $(if $(SCORER),--scorer-repo "$(SCORER)",) $(if $(DATASET_SHA256),--expected-dataset-sha256 "$(DATASET_SHA256)",) $(if $(REVISION),--revision "$(REVISION)",)
 
 webmainbench-review: runtime-check
 	@test -n "$(RUN_ROOT)" || (echo 'RUN_ROOT=/absolute/path/to/declared-provider-shards is required' >&2; exit 2)

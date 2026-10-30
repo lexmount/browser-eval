@@ -305,3 +305,11 @@ def test_publish_opens_a_review_pr_without_updating_main_or_creating_tags(tmp_pa
     assert result['state'] == 'review_pending'
     assert result['revision'] == 'b' * 40
     assert result['pull_request'].endswith('/discussions/7')
+
+
+@pytest.mark.parametrize("reference", ["os:getcwd", "harness.web_fetch.models", ""])
+def test_derived_viewer_fields_only_resolve_named_harness_functions(reference):
+    from harness.benchmarks.publication import _derived_field
+
+    with pytest.raises(ValueError, match="Invalid derived viewer field"):
+        _derived_field(reference)

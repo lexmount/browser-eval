@@ -50,8 +50,10 @@ class RuntimeConfig:
         lock = json.loads(lock_path.read_text(encoding="utf-8"))
         if lock.get("schema") != "lex_webarena_environment_images/1":
             raise ValueError("invalid WebArena image lock schema")
-        if lock.get("webarena_verified_version") != "1.2.3":
-            raise ValueError("image lock does not match webarena-verified 1.2.3")
+        if lock.get("webarena_verified_version") != WEBARENA_VERIFIED_VERSION:
+            raise ValueError(
+                f"image lock does not match webarena-verified {WEBARENA_VERIFIED_VERSION}"
+            )
         runtime_sites = payload.get("sites") or {}
         locked_sites = lock.get("images") or {}
         sites: dict[str, SiteConfig] = {}

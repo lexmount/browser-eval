@@ -512,18 +512,18 @@ def test_browser_images_expose_auditable_debian_mirror_overrides():
         )
         assert "ARG DEBIAN_MIRROR=http://deb.debian.org/debian" in dockerfile
         assert "ARG DEBIAN_SECURITY_MIRROR=http://deb.debian.org/debian-security" in dockerfile
-        assert "lex.browser-use-eval.debian-mirror" in dockerfile
-        assert "lex.browser-use-eval.debian-security-mirror" in dockerfile
+        assert "lex.browser-eval.debian-mirror" in dockerfile
+        assert "lex.browser-eval.debian-security-mirror" in dockerfile
 
 
 def test_environment_records_browser_image_build_source_labels():
     image = SimpleNamespace(
         id="sha256:image",
-        tags=["lex-browser-use-eval-chromium:local"],
+        tags=["lex-browser-eval-chromium:local"],
         attrs={
             "Config": {
                 "Labels": {
-                    "lex.browser-use-eval.debian-mirror": "http://mirror.example/debian",
+                    "lex.browser-eval.debian-mirror": "http://mirror.example/debian",
                     "unrelated": "excluded",
                 }
             }
@@ -547,7 +547,7 @@ def test_environment_records_browser_image_build_source_labels():
     result = _environment(client, {"chromium": container})
 
     assert result["images"]["chromium"]["build_source"] == {
-        "lex.browser-use-eval.debian-mirror": "http://mirror.example/debian"
+        "lex.browser-eval.debian-mirror": "http://mirror.example/debian"
     }
     assert result["browser_versions"]["chromium"] == "Chromium 152.0.7977.82"
 

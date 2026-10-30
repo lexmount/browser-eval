@@ -10,8 +10,8 @@ import urllib.request
 from typing import Any
 
 DEFAULT_BROWSER_IMAGES = {
-    "chromium": "lex-browser-use-eval-chromium:local",
-    "moli": "lex-browser-use-eval-moli:local",
+    "chromium": "lex-browser-eval-chromium:local",
+    "moli": "lex-browser-eval-moli:local",
 }
 ENGINE_PORTS = {"chromium": 9223, "moli": 9222}
 
@@ -76,14 +76,14 @@ def start_browser_container(
     memory: str,
     network: str,
 ) -> Any:
-    name = f"lex-browser-use-eval-{run_id}-{engine}"
+    name = f"lex-browser-eval-{run_id}-{engine}"
     options: dict[str, Any] = {
         "name": name,
         "detach": True,
         "ports": {f"{cdp_port}/tcp": ("127.0.0.1", None)},
         "labels": {
-            "lex.browser-use-eval.run": run_id,
-            "lex.browser-use-eval.engine": engine,
+            "lex.browser-eval.run": run_id,
+            "lex.browser-eval.engine": engine,
         },
         "mem_limit": memory,
         "pids_limit": 512,
