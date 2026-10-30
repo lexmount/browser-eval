@@ -2,7 +2,7 @@
 
 `src/harness/environments/webarena/` maintains Docker and Rainbond environments. Tasks and evaluators come from the pinned `webarena-verified` dependency. Image identity has one authority: `evaluation/browser-use-public/webarena-environment-images.json`.
 
-`runtime.example.json` supplies local Docker hosts and ports. `site-delivery-contract.json` defines internal ports, initialization and read-only Map data mounts. Map is optional; a contract does not trigger download or deployment. Stateful sites recreate their initial databases from images without sharing writable database directories between slices. Rainbond GitLab needs its own 2 GiB `/dev/shm` memory mount.
+`src/harness/environments/webarena/topology.json` is the single registry of WebArena site ports, container ports, default site credentials and the hosts that recorded frozen inputs (including the Colima gateway); code derives port maps, origins and redaction tables from it. `runtime.example.json` supplies the local Docker host, and its ports must match the registry. `site-delivery-contract.json` defines internal ports, initialization and read-only Map data mounts. Map is optional; a contract does not trigger download or deployment. Stateful sites recreate their initial databases from images without sharing writable database directories between slices. Rainbond GitLab needs its own 2 GiB `/dev/shm` memory mount.
 
 Copy runtime configuration outside Git, set `hostname` and use an absolute image-lock path:
 

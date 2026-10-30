@@ -8,24 +8,15 @@ import re
 from pathlib import Path
 from typing import Any
 
-_ORIGIN_REPLACEMENTS = {
-    "http://host.docker.internal:7770": "__SHOPPING__",
-    "http://host.docker.internal:7780/admin": "__SHOPPING_ADMIN__",
-    "http://host.docker.internal:7780": "__SHOPPING_ADMIN__",
-    "http://host.docker.internal:9999": "__REDDIT__",
-    "http://host.docker.internal:8023": "__GITLAB__",
-    "http://192.168.5.2:7770": "__SHOPPING__",
-    "http://192.168.5.2:7780/admin": "__SHOPPING_ADMIN__",
-    "http://192.168.5.2:7780": "__SHOPPING_ADMIN__",
-    "http://192.168.5.2:9999": "__REDDIT__",
-    "http://192.168.5.2:8023": "__GITLAB__",
-}
-_KNOWN_SECRET_VALUES = (
-    "Password.123",
-    "admin1234",
-    "test1234",
-    "hello1234",
+from harness.environments.webarena.topology import (
+    known_site_secrets,
+    public_host_replacements,
+    public_origin_replacements,
 )
+
+_ORIGIN_REPLACEMENTS = public_origin_replacements()
+_HOST_REPLACEMENTS = public_host_replacements()
+_KNOWN_SECRET_VALUES = known_site_secrets()
 _SENSITIVE_KEY = re.compile(
     r"(?:authorization|cookie|password|passwd|secret|token|storage_state|api[_-]?key)", re.I
 )
@@ -45,8 +36,8 @@ def sanitize_text(value: str) -> str:
         text = text.replace(origin, placeholder)
     for secret in _KNOWN_SECRET_VALUES:
         text = text.replace(secret, "[REDACTED]")
-    text = text.replace("host.docker.internal", "__BENCHMARK_HOST__")
-    text = text.replace("192.168.5.2", "__BENCHMARK_HOST__")
+    for host, placeholder in _HOST_REPLACEMENTS.items():
+        text = text.replace(host, placeholder)
     text = _BEARER.sub("Bearer [REDACTED]", text)
     text = _LOCAL_PATH.sub("<LOCAL_PATH>", text)
     return text

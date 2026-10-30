@@ -25,7 +25,6 @@ from harness.environments.browser import (
 )
 from harness.environments.webarena.har import CdpHarRecorder
 from harness.environments.webarena.runtime import (
-    SITE_PORTS,
     allow_official_container_hostname,
     browser_session_contract,
     browser_tool_config,
@@ -44,6 +43,7 @@ from harness.environments.webarena.runtime import (
     site_container_manager,
     verify_session_viewport,
 )
+from harness.environments.webarena.topology import SITE_PORTS
 from harness.resource_accounting import DockerStatsResources, ResourceSampler
 from harness.trajectory_replay.retrieval_acceptance import (
     PROTOCOL,

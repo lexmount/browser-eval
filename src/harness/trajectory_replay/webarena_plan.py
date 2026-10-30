@@ -10,9 +10,7 @@ from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
 from harness.environments.browser import configured_browser_images
-from harness.environments.webarena.runtime import (
-    SITE_PORTS,
-)
+from harness.environments.webarena.topology import SITE_PORTS
 from harness.trajectory_replay import webarena_corrections
 from harness.trajectory_replay.browser_use_seeds import (
     _authoritative_rows,

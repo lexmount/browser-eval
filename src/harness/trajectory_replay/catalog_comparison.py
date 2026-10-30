@@ -8,9 +8,9 @@ import json
 from pathlib import Path
 from typing import Any
 
+from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
 from harness.record_io import load_jsonl
 from harness.trajectory_replay.catalog_contracts import (
-    TRUSTED_RECORDED_HOSTS,
     apply_action_overrides,
     catalog_action_overrides,
     file_sha256,

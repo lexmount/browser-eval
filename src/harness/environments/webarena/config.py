@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from harness.environments.webarena.topology import TOPOLOGY
 from harness.web_fetch.safety import unlinked_path, write_new_file
 
 SITES = ("shopping_admin", "shopping", "reddit", "gitlab", "map", "wikipedia")
@@ -193,6 +194,8 @@ def verify_deployment_contract(root: Path) -> dict:
     ):
         raise ValueError("WebArena package version differs")
     sites = set(SITES)
+    if set(TOPOLOGY["sites"]) != sites:
+        raise ValueError("topology registry site inventory differs")
     if set(lock.get("images") or {}) != sites or set(runtime.get("sites") or {}) != sites:
         raise ValueError("site inventory differs")
     for path, config in (
@@ -220,6 +223,9 @@ def verify_deployment_contract(root: Path) -> dict:
             raise ValueError(f"site port differs: {site}")
         if urlparse(evaluation["control_urls"][site]).port != row["control_port"]:
             raise ValueError(f"control port differs: {site}")
+        registry = TOPOLOGY["sites"][site]
+        if (row["port"], row["control_port"]) != (registry["port"], registry["control_port"]):
+            raise ValueError(f"runtime template ports differ from the topology registry: {site}")
         if site in runtime["credentials_env"] and runtime["credentials_env"][site] != eval_row.get(
             "credentials_env"
         ):
