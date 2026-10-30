@@ -332,6 +332,37 @@ class MoliTests(unittest.TestCase):
         self.assertFalse(worker.is_alive())
         self.assertLessEqual(result.metadata["_answer_elapsed_ms"], 550)
 
+    def test_unconfirmed_kill_raises_instead_of_waiting_forever(self):
+        import subprocess
+        import time
+
+        from harness.web_fetch.providers.base import ProcessCleanupError
+
+        provider = self.provider("import time\ntime.sleep(20)")
+        self.assertEqual(provider.validate(), [])
+        children = []
+        original = subprocess.Popen
+
+        def launch(*args, **kwargs):
+            process = original(*args, **kwargs)
+            children.append(process)
+            return process
+
+        begin = time.monotonic()
+        try:
+            # The process tree cannot be observed, so the kill is skipped.
+            with patch("harness.web_fetch.providers.moli.terminate_owned_process_tree",
+                       return_value=False), \
+                    patch("harness.web_fetch.providers.moli.subprocess.Popen", side_effect=launch):
+                with self.assertRaises(ProcessCleanupError):
+                    provider.fetch(self.case, 0.3)
+            self.assertLess(time.monotonic() - begin, 5)
+        finally:
+            for child in children:
+                if child.poll() is None:
+                    child.kill()
+                child.wait()
+
     def test_ordinary_markdown_exposes_effective_url_from_debug_stderr(self):
         provider = self.provider(
             "import sys\n"

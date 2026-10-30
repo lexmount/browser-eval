@@ -24,7 +24,9 @@ from lexbench_webfetch.paths import validate_http_url
 from harness.web_fetch.markdown import converter_package, require_converter
 from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.network_dns import validate_dns_mode, validate_native_dns_library
-from harness.web_fetch.providers.base import Provider, terminate_owned_process_tree
+from harness.web_fetch.providers.base import (
+    Provider, await_owned_process_exit, terminate_owned_process_tree,
+)
 from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
 from harness.web_fetch.providers.runtime_identity import require_expected_provider_versions
 from harness.web_fetch.retrieval_hints import native_contract_for_case, plan_for_case
@@ -788,23 +790,25 @@ class HeadlessProvider(Provider):
                         stopped = 'timeout'
                 if stopped:
                     terminate_owned_process_tree(process)
-                    process.wait()
+                    await_owned_process_exit(process)
                 stdout_bytes = os.fstat(stdout.fileno()).st_size
                 stderr_bytes = os.fstat(stderr.fileno()).st_size
                 stdout.seek(0); raw = stdout.read(limit+1)
                 stderr.seek(0); diagnostic_raw = stderr.read(limit+1)
                 diagnostic = diagnostic_raw[:limit].decode('utf-8', 'replace')
             finally:
-                terminate_owned_process_tree(process)
-                process.wait()
-                if not process.stdin.closed:
-                    try:
-                        process.stdin.close()
-                    except BrokenPipeError:
-                        pass
-                with self._process_lock:
-                    if self._active_process is process:
-                        self._active_process = None
+                try:
+                    terminate_owned_process_tree(process)
+                    await_owned_process_exit(process)
+                finally:
+                    if not process.stdin.closed:
+                        try:
+                            process.stdin.close()
+                        except BrokenPipeError:
+                            pass
+                    with self._process_lock:
+                        if self._active_process is process:
+                            self._active_process = None
         return raw, diagnostic, stopped, process.returncode, stdout_bytes, stderr_bytes
 
 

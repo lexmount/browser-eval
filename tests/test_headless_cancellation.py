@@ -13,8 +13,9 @@ from unittest.mock import patch
 
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
+from harness.web_fetch.providers.base import ProcessCleanupError
 from harness.web_fetch.providers.headless import HeadlessProvider
-from harness.web_fetch.runner import run_evaluation
+from harness.web_fetch.runner import IncompleteEvaluationError, run_evaluation
 
 
 @unittest.skipUnless(os.name == 'posix', 'process-group worker contract')
@@ -194,6 +195,62 @@ else:
             server.shutdown()
             server.server_close()
             server_thread.join(1)
+
+    def test_unconfirmed_kill_raises_instead_of_waiting_forever(self):
+        with tempfile.TemporaryDirectory() as directory:
+            worker = Path(directory) / 'worker.py'
+            worker.write_text('import time\ntime.sleep(20)\n')
+            provider = HeadlessProvider('local', {'type': 'headless_markdown', 'engine': 'lightpanda'})
+            real_popen = subprocess.Popen
+            children = []
+
+            def launch(*args, **kwargs):
+                children.append(real_popen(*args, **kwargs))
+                return children[-1]
+
+            provider.begin_call()
+            begin = time.monotonic()
+            try:
+                # The process tree cannot be observed, so the kill is skipped.
+                with patch('harness.web_fetch.providers.headless.terminate_owned_process_tree',
+                           return_value=False), \
+                        patch('harness.web_fetch.providers.headless.subprocess.Popen', side_effect=launch):
+                    with self.assertRaises(ProcessCleanupError):
+                        provider._run_local_worker(worker, {'url': 'https://example.test/slow'}, .2, 100_000)
+                self.assertLess(time.monotonic() - begin, 5)
+                self.assertIsNone(children[0].poll(), 'the unkilled worker is reported, not reaped')
+            finally:
+                for child in children:
+                    child.kill()
+                    child.wait()
+
+    def test_surviving_worker_quarantines_the_provider(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            calls = []
+
+            class Unkillable(HeadlessProvider):
+                def fetch(self, case, timeout):
+                    calls.append(case.id)
+                    raise ProcessCleanupError('Worker process 1 is still running after a best-effort kill')
+
+            provider = Unkillable('local', {'type': 'headless_markdown', 'engine': 'obscura', 'binary': sys.executable})
+            cases = [EvalCase(name, name, 'https://example.test/' + name, 'web', [])
+                     for name in ('first', 'second')]
+            with patch('socket.getaddrinfo', return_value=[(2,1,6,'',('93.184.216.34',443))]), \
+                    self.assertRaises(IncompleteEvaluationError):
+                run_evaluation(output_dir=root / 'run',
+                    dataset_meta={'id': 'cleanup', 'cases': []},
+                    dataset_path=root / 'dataset.json', cases=cases,
+                    providers=[provider], provider_config_path=root / 'providers.json',
+                    runs=1, timeout=5, delay=0)
+            # Neither a retry nor the next case may overlap a live worker.
+            self.assertEqual(calls, ['first'])
+            records = [json.loads(line) for line in (root / 'run' / 'results.jsonl').read_text().splitlines()]
+            self.assertEqual([row['case_id'] for row in records], ['first'])
+            self.assertIn('ProcessCleanupError', records[0]['error_message'])
+            manifest = json.loads((root / 'run' / 'manifest.json').read_text())
+            self.assertIn('non_cancellable_call_still_running', manifest['unexecuted'][0]['reason'])
 
     def test_cleanup_grace_requires_an_actively_cancellable_local_route(self):
         for config in ({'engine': 'kitesurf'}, {'engine': 'chromium', 'resource_sample_interval_ms': 50}):

@@ -9,6 +9,7 @@ from lexbench_webfetch.response_input import answer_input
 
 from harness.web_fetch.diagnostics import diagnostic_context, emit
 from harness.web_fetch.models import ProviderResult
+from harness.web_fetch.providers.base import ProcessCleanupError
 
 
 def prepare_answer(result, case):
@@ -96,6 +97,9 @@ def fetch_with_deadline(provider, case, timeout, *, native_route_ledger=None):
                 late=None
             if isinstance(late,ProviderResult):
                 metadata.update(late.metadata)
+            elif isinstance(late, ProcessCleanupError):
+                # The answer is late, but a surviving worker must quarantine the provider.
+                raise late
         for key in ('links', 'images', 'videos', 'media', 'extras', 'file_evaluation'):
             metadata.pop(key, None)
         if case.task_kind == 'file':
