@@ -1364,6 +1364,7 @@ def _html_product_records(content, contract, base_url, diagnostics, *, represent
             content = content[:start] + token + content[start + len(link.label):]
     soup = scoped_html(content)
     # Native Markdown may retain HTML card containers around actual link text.
+    markdown_anchors = set()
     for node in ([] if representation == 'html' else list(soup.find_all(string=True))):
         if isinstance(node, Comment) or node.find_parent(['a', 'pre', 'code']):
             continue
@@ -1376,6 +1377,7 @@ def _html_product_records(content, contract, base_url, diagnostics, *, represent
             anchor = soup.new_tag('a', href=link.destination)
             anchor.string = (visible_html_text(labels[link.label])
                              if link.label in labels else link.label)
+            markdown_anchors.add(id(anchor))
             pieces.append(anchor)
             cursor = link.end
         pieces.append(soup.new_string(str(node)[cursor:]))
@@ -1445,9 +1447,14 @@ def _html_product_records(content, contract, base_url, diagnostics, *, represent
                 forward_fence = next((index for index in fences if index > branch_index), None)
                 start = max((index + 1 for index in fences if index < branch_index), default=0)
                 children = children[start:forward_fence]
-                fields = [_visible_product_field(
-                              child.get_text(' ', strip=True) if isinstance(child, Tag) else str(child), representation)
-                          for child in children if id(child) not in ancestry and not isinstance(child, Comment)]
+                fields = []
+                for child in children:
+                    if id(child) in ancestry or isinstance(child, Comment):
+                        continue
+                    value = child.get_text(' ', strip=True) if isinstance(child, Tag) else str(child)
+                    values = (value.splitlines() if id(anchor) in markdown_anchors
+                              and not isinstance(child, Tag) else [value])
+                    fields.extend(_visible_product_field(value, representation) for value in values)
                 if owner is anchor:
                     label = anchor.get_text(' ', strip=True)
                     fields.extend(match.group(0) for pattern in allowed + unavailable

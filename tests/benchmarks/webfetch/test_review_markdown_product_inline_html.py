@@ -80,6 +80,27 @@ def test_inline_label_preserves_declared_dom_scope(matched):
     assert check(source, case=case)[0] is matched
 
 
+@pytest.mark.parametrize('label', ['Widget', '<span>Widget</span>', '<strong>Widget</strong>'])
+@pytest.mark.parametrize('separator', ['\n', '\r\n', '\u2028'])
+@pytest.mark.parametrize('representation', [None, 'markdown'])
+def test_markdown_price_line_keeps_following_description(label, separator, representation):
+    source = separator.join(['[' + label + '](/product/1)', '$10.00', 'Description'])
+    passed, metrics = check(source, representation)
+    assert passed
+    assert metrics['stable_records'][0]['fields']['price'] == '$10.00'
+
+
+def test_multiline_markdown_fields_do_not_change_native_html_or_section_ownership():
+    first = '[<span>Widget</span>](/product/1)'
+    assert not check(first + '\n$10.00\nDescription', 'html')[0]
+    assert not check(first + '\n<section><h2>Shipping</h2><p>$10.00</p></section>')[0]
+    case = deepcopy(CASE)
+    case['acceptance_contract']['minimum_records'] = 2
+    second = '<article>[<span>Other</span>](/product/2)\n$20.00\nDescription</article>'
+    assert not check('<article>' + first + '</article>' + second, case=case)[0]
+    assert check('<article>' + first + '\n$10.00\nDescription</article>' + second, case=case)[0]
+
+
 @pytest.mark.parametrize('first_markdown', [False, True])
 @pytest.mark.parametrize('correct_first', [False, True])
 def test_conflicting_duplicates_keep_the_first_title_and_price(first_markdown, correct_first):
@@ -109,6 +130,8 @@ def controls():
     sources = [
         ('formatted-markdown', '[<span>Widget</span>](/product/1) $10.00', 'markdown', True),
         ('same-bytes-html', '[<span>Widget</span>](/product/1) $10.00', 'html', False),
+        ('price-line-description', '[<span>Widget</span>](/product/1)\n$10.00\nDescription', 'markdown', True),
+        ('description-section-price', '[<span>Widget</span>](/product/1)\n<section><h2>Shipping</h2><p>$10.00</p></section>', 'markdown', False),
     ]
     rows = [{'id': 'markdown-product-inline-html-' + name, 'category': 'structured-extraction',
              'root_cause': 'Parsing HTML before Markdown link ownership split inline-formatted labels across DOM text nodes.',
@@ -123,6 +146,15 @@ def controls():
                      'case': case, 'artifact': '[<span>' + first + '</span>](/product/1) $10.00\n<a href="/product/1">' + last + '</a> $10.00',
                      'expected_task_pass': correct_first,
                      'failure_mode': 'false-negative' if correct_first else 'false-positive'})
+    neighbor_case = deepcopy(CASE)
+    neighbor_case['acceptance_contract']['minimum_records'] = 2
+    rows.append({**deepcopy(rows[0]), 'id': 'markdown-product-inline-html-description-neighbor-card',
+                 'case': neighbor_case,
+                 'artifact': '<article>[<span>Widget</span>](/product/1)</article><article>[<span>Other</span>](/product/2)\n$20.00\nDescription</article>',
+                 'expected_task_pass': False, 'failure_mode': 'false-positive'})
+    for row in rows:
+        if 'description' in row['id']:
+            row['root_cause'] = 'Markdown-owned product text lines were treated as one DOM scalar after inline HTML selected card parsing.'
     return rows
 
 

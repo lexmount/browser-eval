@@ -76396,6 +76396,93 @@
         "answer_format": "markdown"
       },
       "expected_task_pass": true
+    },
+    {
+      "id": "markdown-product-inline-html-price-line-description",
+      "category": "structured-extraction",
+      "root_cause": "Markdown-owned product text lines were treated as one DOM scalar after inline HTML selected card parsing.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/product/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "[<span>Widget</span>](/product/1)\n$10.00\nDescription",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown-product-inline-html-description-section-price",
+      "category": "structured-extraction",
+      "root_cause": "Markdown-owned product text lines were treated as one DOM scalar after inline HTML selected card parsing.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/product/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "[<span>Widget</span>](/product/1)\n<section><h2>Shipping</h2><p>$10.00</p></section>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown-product-inline-html-description-neighbor-card",
+      "category": "structured-extraction",
+      "root_cause": "Markdown-owned product text lines were treated as one DOM scalar after inline HTML selected card parsing.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 2,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/product/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<article>[<span>Widget</span>](/product/1)</article><article>[<span>Other</span>](/product/2)\n$20.00\nDescription</article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
     }
   ]
 }

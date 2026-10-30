@@ -52,7 +52,7 @@
         },
         "dynamic_lists.py": {
           "before_sha256": "c2d9bedf1c82818f88f4e5db3c52caa5a064ba1d6fddb3814d38fdea5601957c",
-          "after_sha256": "3524e3d915fca4c898be8b87fbd646f1f9597ad7107b7944c2e1188fbf4fedd2"
+          "after_sha256": "7eae0d4cf4ad1a5de728ab05fe3ed86742ee66de8bad2a2dfbfb8397c6b9a049"
         },
         "file_acceptance.py": {
           "before_sha256": "4f886206705c015baa3744d669cc851778aa595819394c5b149fd4803a9f40d1",
@@ -3753,12 +3753,15 @@
           "modules": [
             "dynamic_lists.py"
           ],
-          "root_cause": "Inline HTML split Markdown link labels across DOM text nodes before their owning anchors were constructed.",
+          "root_cause": "Inline HTML split Markdown link labels across DOM text nodes before their owning anchors were constructed. Markdown-owned product text fields must also retain source line boundaries within the same card.",
           "regression_ids": [
             "markdown-product-inline-html-formatted-markdown",
             "markdown-product-inline-html-same-bytes-html",
             "markdown-product-inline-html-first-label-false",
-            "markdown-product-inline-html-first-label-true"
+            "markdown-product-inline-html-first-label-true",
+            "markdown-product-inline-html-price-line-description",
+            "markdown-product-inline-html-description-section-price",
+            "markdown-product-inline-html-description-neighbor-card"
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_markdown_product_inline_html.py"
