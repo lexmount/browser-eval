@@ -18,8 +18,12 @@ Public WebArena human-recording replay is isolated under
 contract](../examples/trajectory_replay/public_webarena/README.md).
 The curated replay tasks also record [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) as a scenario design source.
 The original CDP and driver inputs are versioned in [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser), with execution supplied by that upstream runtime.
-`src/harness/lexbench/` adapts retained Lexbench comparisons; it does not define a
-fourth browser score or replace a track's execution and evaluator contracts.
+Headless fixed-action scenarios are replayed by the upstream runner on local
+fixtures to assess browser/driver compatibility. The upstream
+benchmark also contains individual protocol and Web-platform probes.
+`src/harness/lexbench/` builds retained comparison reports from upstream results;
+it does not add an in-tree compatibility runner. Compatibility is an evaluation
+goal of these workloads, rather than a separate Browser Eval track.
 
 ## Data flow
 
