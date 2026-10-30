@@ -33,14 +33,14 @@ def metadata(output):
 
 def test_fetch_viewer_exposes_original_hierarchy_without_changing_execution_inputs(tmp_path):
     tracks = ["web", "document", "image", "video", "challenge", "dynamic"]
-    names = ["web-pages", "documents", "images", "videos", "challenge-pages", "dynamic-examples"]
+    names = ["general-web", "embedded-documents", "media-information", "media-information"]
     cases = [{"id": f"original-{track}", "track": track, "category": f"specific_{track}",
               "url": "https://example.test", "language": "en"} for track in tracks]
     source = release("webfetch", cases, identity="webfetch")
     manifest = source.build(tmp_path)
     assert {item["config_name"] for item in metadata(tmp_path)["configs"]} == set(names)
-    for track, name, case in zip(tracks, names, cases):
-        row, = exported_rows(tmp_path, name)
+    for track, name, case in zip(tracks[:4], names, cases[:4]):
+        row, = [row for row in exported_rows(tmp_path, name) if row['track'] == track]
         assert (row["id"], row["source_suite"], row["track"], row["category"]) == (
             case["id"], "webfetch", track, case["category"])
         assert json.loads(row["task"]) == case
@@ -49,7 +49,7 @@ def test_fetch_viewer_exposes_original_hierarchy_without_changing_execution_inpu
         assert {item.name: archive.extractfile(item).read() for item in archive} == source.files
     body = (tmp_path / "README.md").read_text()
     assert "{{dataset_summary}}" not in body and "{{total_records}}" not in body
-    assert "| `documents` | `webfetch` | 1 |" in body
+    assert "| `embedded-documents` | `webfetch` | 1 |" in body
 
 
 @pytest.mark.parametrize(("track", "case", "expected"), [
@@ -95,7 +95,7 @@ def test_published_instructions_can_name_an_available_immutable_toolkit(tmp_path
     result = replace(source, tooling_revision=revision).build(tmp_path)
     card = (tmp_path / "README.md").read_text()
     assert "git checkout " + revision in card
-    assert f"https://github.com/lexmount/browser-eval/blob/{revision}/harness/benchmarks/data-lock.json" in card
+    assert f"https://github.com/lexmount/browser-eval/blob/{revision}/src/harness/benchmarks/data-lock.json" in card
     assert result["tooling"]["revision"] == revision
     assert "{{tooling_checkout}}" not in card
     with pytest.raises(ValueError, match="full Git commit"):
@@ -124,3 +124,57 @@ def test_cards_explain_use_and_credit_sources_with_specific_discovery_terms(tmp_
     assert "arxiv:" not in text.lower()
     assert "```mermaid" not in text  # The Hub displays Mermaid as source rather than a diagram.
     assert not any(tag.startswith("arxiv:") for tag in metadata(tmp_path)["tags"])
+
+
+def full_fetch_release():
+    suites = {
+        'webfetch': [(track, count) for track, count in
+                     [('web', 100), ('document', 10), ('image', 10), ('video', 10), ('challenge', 10), ('dynamic', 10)]],
+        'dynamic-content': [('dynamic', 100)], 'popular-sites': [('challenge', 100)],
+        'access-restrictions': [('risk_control', 100)], 'articles': [('articles', 100)],
+    }
+    files, rows, sources = {}, [], {}
+    for identity, groups in suites.items():
+        cases = []
+        for track, count in groups:
+            for index in range(count):
+                kind = 'file' if (track == 'image' and index < 2) or (track == 'video' and index < 1) else 'body'
+                cases.append({'id': f'{identity}-{track}-{index}', 'track': track, 'task_kind': kind,
+                              'url': 'https://example.test', 'language': 'en'})
+        raw = encoded({'cases': cases})
+        directory = 'evaluation/' + identity
+        files['definitions/' + directory + '/tasks.json'] = raw
+        rows.append({'id': identity, 'directory': directory, 'case_count': len(cases),
+                     'files': {'tasks.json': hashlib.sha256(raw).hexdigest()}})
+        sources[identity] = cases
+    files['definitions/registry.json'] = encoded({'suites': rows})
+    return DatasetRelease('webfetch', '1' * 40, files, language_annotations={}), sources
+
+
+def test_current_fetch_viewer_has_seven_contract_categories_and_keeps_all_raw_inputs(tmp_path):
+    source, originals = full_fetch_release()
+    manifest = source.build(tmp_path)
+    expected = {'general-web': 100, 'dynamic-sites': 100, 'popular-sites': 100,
+                'access-restrictions': 100, 'embedded-documents': 10,
+                'media-information': 17, 'direct-media-files': 3}
+    assert {row['config']: row['count'] for row in manifest['viewer']['configurations']} == expected
+    assert [row['config'] for row in manifest['viewer']['configurations']] == list(expected)
+    assert [row['config_name'] for row in metadata(tmp_path)['configs']] == list(expected)
+    rows = [row for name in expected for row in exported_rows(tmp_path, name)]
+    primary = {case['id']: case for identity, cases in originals.items() for case in cases
+               if identity != 'articles' and not (identity == 'webfetch' and case['track'] in {'challenge', 'dynamic'})}
+    assert {row['id'] for row in rows} == set(primary)
+    assert len(rows) == len(primary) == 430
+    assert all(json.loads(row['task']) == primary[row['id']] for row in rows)
+    assert {row['benchmark_category'] for row in exported_rows(tmp_path, 'media-information')} == {'web_media'}
+    assert {row['benchmark_category'] for row in exported_rows(tmp_path, 'direct-media-files')} == {'media_file'}
+    assert sum(binding['count'] for binding in manifest['datasets'].values()) == 550
+    assert not (tmp_path / 'data/articles.jsonl').exists()
+    with tarfile.open(tmp_path / 'definitions.tar.gz') as archive:
+        assert {entry.name: archive.extractfile(entry).read() for entry in archive} == source.files
+
+
+def test_unknown_current_fetch_category_is_rejected(tmp_path):
+    source = release('webfetch', [{'id': 'unknown-category', 'track': 'unknown'}], identity='webfetch')
+    with pytest.raises(ValueError, match='Unregistered viewer task group'):
+        source.build(tmp_path)

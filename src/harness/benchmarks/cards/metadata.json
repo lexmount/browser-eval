@@ -27,32 +27,55 @@
     ],
     "partitions": {
       "webfetch": {
-        "field": "track",
+        "field": "benchmark_category",
         "values": {
-          "web": "web-pages",
-          "document": "documents",
-          "image": "images",
-          "video": "videos",
-          "challenge": "challenge-pages",
-          "dynamic": "dynamic-examples"
+          "web": "general-web",
+          "document": "embedded-documents",
+          "web_media": "media-information",
+          "media_file": "direct-media-files"
+        }
+      },
+      "dynamic-content": {
+        "field": "benchmark_category",
+        "values": {
+          "dynamic": "dynamic-sites"
+        }
+      },
+      "popular-sites": {
+        "field": "benchmark_category",
+        "values": {
+          "challenge": "popular-sites"
+        }
+      },
+      "access-restrictions": {
+        "field": "benchmark_category",
+        "values": {
+          "risk_control": "access-restrictions"
         }
       }
     },
     "subsets": {
-      "web-pages": "Page bodies, documentation and structured records; category retains the original finer classification",
-      "documents": "Complete document text, including embedded documents, tables and appendices",
-      "images": "Requested image URLs or delivered image files; image understanding is outside the task",
-      "videos": "Declared video resources, playback or download entries, files and metadata",
-      "challenge-pages": "Target content or qualifying records on sites with observed access challenges",
-      "dynamic-examples": "Public asynchronous, client-rendered, embedded-state and embedded-frame examples",
-      "dynamic-content": "Content loaded after the initial response, including asynchronous requests and client-rendered records",
+      "general-web": "Page bodies, documentation and structured records; original categories retain finer detail",
+      "dynamic-sites": "Content loaded after the initial response, including asynchronous requests and client-rendered records",
       "popular-sites": "Task-relevant stable content and qualifying named records or links on widely used websites",
       "access-restrictions": "Target content at URLs with previously observed access restrictions",
-      "articles": "Article bodies, titles, requested initial comments and post collections"
+      "embedded-documents": "Complete document text, including embedded documents, tables and appendices",
+      "media-information": "Requested image and video resources, links or metadata on webpages; media understanding is outside the task",
+      "direct-media-files": "Complete delivered image and video files under the declared file contracts",
+      "articles": "Article bodies, titles, requested initial comments and post collections; retained raw extension"
     },
     "repo_id": "Lexmount/LexBench-Web-Fetch",
     "previous_repo_ids": [
       "Lexmount/lexbench-webfetch"
+    ],
+    "viewer_exclude_tracks": {
+      "webfetch": [
+        "challenge",
+        "dynamic"
+      ]
+    },
+    "viewer_exclude_datasets": [
+      "articles"
     ]
   },
   "websearch": {

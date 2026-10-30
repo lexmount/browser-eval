@@ -356,6 +356,8 @@ class DatasetRelease:
             groups = {}
             partition = metadata.get("partitions", {}).get(identity)
             for case in cases:
+                if case.get('track') in metadata.get('viewer_exclude_tracks', {}).get(identity, []):
+                    continue
                 case_id = case[identity_field]
                 annotation = annotations.get(identity, {}).get(case_id)
                 if annotation is not None:
@@ -386,6 +388,9 @@ class DatasetRelease:
                 }
                 row.update({key: case[key] for key in ("track", "category")
                             if case.get(key) not in (None, "")})
+                if self.track == 'webfetch':
+                    from harness.web_fetch.models import report_family
+                    row['benchmark_category'] = report_family(case)
                 if "source_paths" in binding:
                     row["source_path"] = binding["source_paths"][case_id]
                     row.update({key: binding[key] for key in ("layer", "driver") if key in binding})
@@ -394,7 +399,7 @@ class DatasetRelease:
                     row["category"] = case[category_field]
                 name = identity
                 if partition:
-                    value = case.get(partition["field"])
+                    value = row.get(partition['field'], case.get(partition['field']))
                     if value not in partition["values"]:
                         raise ValueError("Unregistered viewer task group: " + str(value))
                     name = partition["values"][value]
@@ -477,6 +482,11 @@ class DatasetRelease:
     def _finish(self, output: Path, manifest: dict, configurations: list[dict], metadata: dict,
                 languages: set[str], body: str, yaml, definition_files: dict[str, bytes]) -> dict:
 
+        if self.track == 'webfetch':
+            order = {name: index for index, name in enumerate(metadata['subsets'])}
+            configurations.sort(key=lambda row: order.get(row['config_name'], len(order)))
+            manifest['viewer']['configurations'].sort(
+                key=lambda row: order.get(row['config'], len(order)))
         buffer = io.BytesIO()
         with gzip.GzipFile(fileobj=buffer, mode="wb", mtime=0, filename="") as compressed:
             with tarfile.open(fileobj=compressed, mode="w") as archive:
