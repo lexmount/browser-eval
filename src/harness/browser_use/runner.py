@@ -12,8 +12,9 @@ import sys
 import time
 import traceback
 import uuid
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 import docker
 from dotenv import dotenv_values
@@ -456,6 +457,51 @@ def _retry_required(primary: dict[str, Any]) -> bool:
     return float(primary.get("score") or 0) != 1.0
 
 
+def _run_engine_attempts(
+    *,
+    completed: dict[tuple[str, str, int, int], dict[str, Any]],
+    model: str,
+    engine: str,
+    task_id: int,
+    run_id: str,
+    stream: TextIO,
+    execute: Callable[[int], dict[str, Any]],
+) -> None:
+    """Run or resume one engine's primary attempt and its declared retry.
+
+    Fresh and resumed invocations share this loop, so an interrupted cohort
+    records the same physical calls as an uninterrupted one.
+    """
+    for attempt in (1, 2):
+        primary_key = (model, engine, task_id, 1)
+        if attempt == 2 and not _retry_required(completed[primary_key]):
+            break
+        key = (model, engine, task_id, attempt)
+        if key in completed:
+            print(
+                json.dumps(
+                    {
+                        "engine": engine,
+                        "task_id": task_id,
+                        "attempt": attempt,
+                        "status": "resume-skip",
+                        "score": completed[key]["score"],
+                    }
+                ),
+                flush=True,
+            )
+            continue
+        row = execute(attempt)
+        row["run_id"] = run_id
+        stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+        stream.flush()
+        completed[key] = row
+        visible = {
+            field: row[field] for field in ("engine", "task_id", "attempt", "status", "score")
+        }
+        print(json.dumps(visible), flush=True)
+
+
 def _write_or_validate_run_config(path: Path, planned: dict[str, Any]) -> None:
     if path.exists():
         existing = json.loads(path.read_text(encoding="utf-8"))
@@ -603,26 +649,14 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             ):
                 order = ("chromium", "moli") if task_index % 2 == 0 else ("moli", "chromium")
                 for engine in order:
-                    for attempt in (1, 2):
-                        primary_key = (args.model, engine, selected.task_id, 1)
-                        if attempt == 2 and not _retry_required(completed[primary_key]):
-                            break
-                        key = (args.model, engine, selected.task_id, attempt)
-                        if key in completed:
-                            print(
-                                json.dumps(
-                                    {
-                                        "engine": engine,
-                                        "task_id": selected.task_id,
-                                        "attempt": attempt,
-                                        "status": "resume-skip",
-                                        "score": completed[key]["score"],
-                                    }
-                                ),
-                                flush=True,
-                            )
-                            continue
-                        row = _run_attempt(
+                    _run_engine_attempts(
+                        completed=completed,
+                        model=args.model,
+                        engine=engine,
+                        task_id=selected.task_id,
+                        run_id=run_id,
+                        stream=stream,
+                        execute=lambda attempt, engine=engine, selected=selected: _run_attempt(
                             lock_path=execution_lock_path,
                             lock_namespace=physical_execution_lock_namespace,
                             benchmark=benchmark,
@@ -636,16 +670,8 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                             model=model,
                             sample_interval_ms=args.sample_interval_ms,
                             max_agent_steps=args.max_agent_steps,
-                        )
-                        row["run_id"] = run_id
-                        stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-                        stream.flush()
-                        completed[key] = row
-                        visible = {
-                            key: row[key]
-                            for key in ("engine", "task_id", "attempt", "status", "score")
-                        }
-                        print(json.dumps(visible), flush=True)
+                        ),
+                    )
     finally:
         for container in containers.values():
             try:

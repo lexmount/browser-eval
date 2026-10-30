@@ -17,6 +17,7 @@ from harness.browser_use.runner import (
     _retry_required,
     _run_attempt,
     _run_attempt_locked,
+    _run_engine_attempts,
     _scheduled_tasks,
     _user_prompt,
 )
@@ -1131,6 +1132,81 @@ def test_resumed_primary_uses_the_fresh_run_retry_rule(
     primary = _load_completed_attempts(attempts, "model-a")[("model-a", "chromium", 44, 1)]
 
     assert _retry_required(primary) is retry
+
+
+@pytest.mark.parametrize(
+    ("status", "score", "expected_calls"),
+    [
+        ("success", 1.0, []),
+        ("unsupported", 0.0, [2]),
+        ("failure", 0.0, [2]),
+    ],
+)
+def test_resumed_engine_loop_runs_the_retry_a_fresh_run_would_run(
+    tmp_path: Path, status: str, score: float, expected_calls: list[int]
+) -> None:
+    attempts = tmp_path / "attempts.jsonl"
+    primary = {
+        "model": "model-a",
+        "engine": "chromium",
+        "task_id": 44,
+        "attempt": 1,
+        "status": status,
+        "score": score,
+    }
+    attempts.write_text(json.dumps(primary) + "\n", encoding="utf-8")
+    completed = _load_completed_attempts(attempts, "model-a")
+    calls: list[int] = []
+
+    def execute(attempt: int) -> dict:
+        calls.append(attempt)
+        return {**primary, "attempt": attempt, "status": "success", "score": 1.0}
+
+    with attempts.open("a", encoding="utf-8") as stream:
+        _run_engine_attempts(
+            completed=completed,
+            model="model-a",
+            engine="chromium",
+            task_id=44,
+            run_id="resume",
+            stream=stream,
+            execute=execute,
+        )
+
+    assert calls == expected_calls
+    resumed = _load_completed_attempts(attempts, "model-a")
+    assert sorted(key[3] for key in resumed) == [1, *expected_calls]
+    assert all(resumed[("model-a", "chromium", 44, n)]["run_id"] == "resume" for n in calls)
+
+
+def test_fresh_engine_loop_retries_only_a_non_passing_primary(tmp_path: Path) -> None:
+    completed: dict = {}
+    calls: list[int] = []
+
+    def execute(attempt: int) -> dict:
+        calls.append(attempt)
+        return {
+            "model": "model-a",
+            "engine": "moli",
+            "task_id": 7,
+            "attempt": attempt,
+            "status": "unsupported" if attempt == 1 else "success",
+            "score": 0.0 if attempt == 1 else 1.0,
+        }
+
+    with (tmp_path / "attempts.jsonl").open("a", encoding="utf-8") as stream:
+        _run_engine_attempts(
+            completed=completed,
+            model="model-a",
+            engine="moli",
+            task_id=7,
+            run_id="fresh",
+            stream=stream,
+            execute=execute,
+        )
+
+    assert calls == [1, 2]
+    assert set(completed) == {("model-a", "moli", 7, 1), ("model-a", "moli", 7, 2)}
 
 
 class _FakeTracing:
