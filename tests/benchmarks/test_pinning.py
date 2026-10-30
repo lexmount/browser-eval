@@ -81,9 +81,9 @@ class FakeHub:
 
     def __call__(self, request, timeout):
         url = request if isinstance(request, str) else request.full_url
+        self.requests.append(url)
         if '/api/' not in url:
             return self.release(url, timeout)
-        self.requests.append(url)
         base = 'https://huggingface.co/api/datasets/Lexmount/LexBench-Web-Search/commits/'
         assert url.startswith(base)
         ref, _, page = url.removeprefix(base).partition('?p=')
@@ -109,7 +109,9 @@ def test_pin_accepts_a_commit_on_the_main_history(tmp_path, monkeypatch):
     (lock, _), hub = hub_fixture(tmp_path, monkeypatch)
     pinning.pin(tmp_path, 'websearch', 'a' * 40)
     assert json.loads(lock.read_bytes())['datasets']['websearch']['revision'] == 'a' * 40
-    assert len(hub.requests) == 2 and all('/commits/main' in url for url in hub.requests)
+    history = [url for url in hub.requests if '/api/' in url]
+    assert len(history) == 2 and all('/commits/main' in url for url in history)
+    assert any('/resolve/' + 'a' * 40 + '/' in url for url in hub.requests)
 
 
 @pytest.mark.parametrize('revision', ['e' * 40, 'f' * 40], ids=['pull-request-ref', 'unknown'])
@@ -119,7 +121,7 @@ def test_pin_rejects_a_commit_outside_the_main_history(tmp_path, monkeypatch, re
     with pytest.raises(ValueError, match="not on the dataset's main history"):
         pinning.pin(tmp_path, 'websearch', revision)
     assert {path: path.read_bytes() for path in paths} == before
-    assert all('/resolve/' not in url for url in hub.requests)
+    assert hub.requests and all('/api/' in url for url in hub.requests)
 
 
 def test_main_history_pagination_cannot_leave_the_configured_endpoint(monkeypatch):
