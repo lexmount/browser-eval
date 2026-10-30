@@ -2,13 +2,15 @@
 
 import json
 import re
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_use.publication import sanitize, sanitize_text
-from harness.environments.webarena import topology
+from harness.environments.webarena import runtime, topology
 from harness.environments.webarena.config import SITES, verify_deployment_contract
 from harness.trajectory_replay import remote_runtime
 from harness.trajectory_replay.public_webarena import webarena_environment
@@ -92,9 +94,11 @@ FROZEN_BOUND_CALLS_SHA256 = "6a2e9d5502b92dc4c1e709896beeed562870f3718fffa1f42c9
 
 
 def test_registry_reproduces_frozen_port_and_host_tables() -> None:
-    assert topology.SITE_PORTS == FROZEN_SITE_PORTS
-    assert list(topology.SITE_PORTS) == list(FROZEN_SITE_PORTS)
-    assert topology.READ_ONLY_PORTS == FROZEN_READ_ONLY_PORTS
+    assert runtime.SITE_PORTS == FROZEN_SITE_PORTS
+    assert list(runtime.SITE_PORTS) == list(FROZEN_SITE_PORTS)
+    assert all(type(site) is WebArenaSite for site in runtime.SITE_PORTS)
+    assert list(runtime.SITE_CREDENTIALS) == list(FROZEN_SITE_PORTS)
+    assert remote_runtime.READ_ONLY_PORTS == FROZEN_READ_ONLY_PORTS
     assert topology.LOCAL_RECORDED_HOSTS == FROZEN_LOCAL_HOSTS
     assert topology.TRUSTED_RECORDED_HOSTS == FROZEN_TRUSTED_HOSTS
     assert topology.RECORDED_PORT_SITES == FROZEN_RECORDED_PORT_SITES
@@ -224,3 +228,25 @@ def test_registry_rejects_shared_ports(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="ports must be unique: wikipedia"):
         topology._load(path)
+
+
+def test_registry_consumers_import_without_the_optional_webarena_evaluator() -> None:
+    program = """
+import importlib.abc
+import sys
+class BlockEvaluator(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname.split('.')[0] == 'webarena_verified':
+            raise ModuleNotFoundError(fullname)
+sys.meta_path.insert(0, BlockEvaluator())
+import harness.browser_use.publication
+import harness.environments.webarena.config
+import harness.environments.webarena.rainbond
+import harness.trajectory_replay.public_webarena.publication
+import harness.trajectory_replay.public_webarena.qualification
+from harness.environments.webarena.topology import site_url
+assert site_url('shopping_admin', 'h') == 'http://h:7780/admin'
+"""
+    result = subprocess.run([sys.executable, "-c", program], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+

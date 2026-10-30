@@ -34,6 +34,7 @@ from harness.environments.browser import (
 from harness.environments.webarena.har import CdpHarRecorder
 from harness.environments.webarena.runtime import (
     PHYSICAL_EXECUTION_LOCK_NAMESPACE,
+    SITE_PORTS,
     allow_official_container_hostname,
     browser_session_contract,
     browser_tool_config,
@@ -53,7 +54,7 @@ from harness.environments.webarena.runtime import (
     site_runtime_compatibility,
     verify_session_viewport,
 )
-from harness.environments.webarena.topology import CONTAINER_HOST_ALIAS, SITE_PORTS
+from harness.environments.webarena.topology import CONTAINER_HOST_ALIAS
 from harness.record_io import load_jsonl
 from harness.resource_accounting import (
     DockerStatsResources,

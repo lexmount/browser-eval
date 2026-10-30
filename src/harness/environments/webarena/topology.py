@@ -4,6 +4,9 @@ Every host, port, origin and redaction table used for WebArena sites is derived
 from ``topology.json``. Recording gateways are properties of the machines that
 recorded frozen catalogs and evidence, so they live in that data file rather than
 in code; they remain recognized only to rebind and redact historical inputs.
+
+The registry is keyed by site name and has no dependency on the optional
+WebArena evaluator package; ``runtime`` converts names to ``WebArenaSite``.
 """
 
 from __future__ import annotations
@@ -11,8 +14,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
-
-from webarena_verified.types.task import WebArenaSite
 
 TOPOLOGY_PATH = Path(__file__).with_name("topology.json")
 TOPOLOGY_SCHEMA = "lex_webarena_topology/1"
@@ -28,7 +29,6 @@ def _load(path: Path) -> dict[str, Any]:
         raise ValueError("WebArena topology must define sites")
     used: set[int] = set()
     for name, row in sites.items():
-        WebArenaSite(name)
         ports = (int(row["port"]), int(row["control_port"]))
         if len(set(ports)) != 2 or set(ports) & used:
             raise ValueError(f"WebArena topology ports must be unique: {name}")
@@ -53,19 +53,19 @@ RECORDING_GATEWAYS: tuple[str, ...] = tuple(_HOSTS["recording_gateways"])
 LOCAL_RECORDED_HOSTS = frozenset({HOST_LOOPBACK, CONTAINER_HOST_ALIAS, *RECORDING_GATEWAYS})
 TRUSTED_RECORDED_HOSTS = frozenset(_HOSTS["public_recorded_hosts"]) | LOCAL_RECORDED_HOSTS
 
-SITE_PORTS: dict[WebArenaSite, tuple[int, int]] = {
-    WebArenaSite(name): (int(row["port"]), int(row["control_port"]))
+MUTABLE_SITE_PORTS: dict[str, tuple[int, int]] = {
+    name: (int(row["port"]), int(row["control_port"]))
     for name, row in _SITES.items()
     if row["mutable"]
 }
-READ_ONLY_PORTS: dict[int, WebArenaSite] = {
-    int(row["port"]): WebArenaSite(name) for name, row in _SITES.items() if not row["mutable"]
+READ_ONLY_SITE_PORTS: dict[int, str] = {
+    int(row["port"]): name for name, row in _SITES.items() if not row["mutable"]
 }
-SITE_CREDENTIALS: dict[WebArenaSite, dict[str, str]] = {
-    WebArenaSite(name): dict(row["credentials"]) for name, row in _SITES.items() if row["mutable"]
+DEFAULT_SITE_CREDENTIALS: dict[str, dict[str, str]] = {
+    name: dict(row["credentials"]) for name, row in _SITES.items() if row["mutable"]
 }
-SITE_URL_SUFFIX: dict[WebArenaSite, str] = {
-    WebArenaSite(name): row["url_suffix"] for name, row in _SITES.items() if row.get("url_suffix")
+SITE_URL_SUFFIX: dict[str, str] = {
+    name: row["url_suffix"] for name, row in _SITES.items() if row.get("url_suffix")
 }
 SITE_CONTAINER_PORTS: dict[str, int] = {
     name: int(row["container_port"]) for name, row in _SITES.items() if row["mutable"]
@@ -82,23 +82,22 @@ INITIALIZER_READINESS_PORT: int = int(_SERVICES["initializer_readiness_port"])
 MAGENTO_ELASTICSEARCH_PORT: int = int(_SERVICES["magento_elasticsearch_port"])
 
 
-def site_origin(site: WebArenaSite | str, host: str) -> str:
-    """Return the scheme, host and port of one site at ``host``."""
-    return f"http://{host}:{_SITES[WebArenaSite(site).value]['port']}"
+def site_origin(site: str, host: str) -> str:
+    """Return the scheme, host and port of one site (a name or ``WebArenaSite``) at ``host``."""
+    return f"http://{host}:{_SITES[str(site)]['port']}"
 
 
-def site_url(site: WebArenaSite | str, host: str) -> str:
+def site_url(site: str, host: str) -> str:
     """Return a site's entry URL at ``host``, including its path suffix."""
-    site = WebArenaSite(site)
-    return site_origin(site, host) + SITE_URL_SUFFIX.get(site, "")
+    return site_origin(site, host) + SITE_URL_SUFFIX.get(str(site), "")
 
 
 def public_origin_replacements() -> dict[str, str]:
     """Map every recorded mutable-site origin to its public site token."""
     replacements: dict[str, str] = {}
     for host in (CONTAINER_HOST_ALIAS, *RECORDING_GATEWAYS):
-        for site in SITE_PORTS:
-            token = "__" + site.value.upper() + "__"
+        for site in MUTABLE_SITE_PORTS:
+            token = "__" + site.upper() + "__"
             replacements[site_url(site, host)] = token
             replacements[site_origin(site, host)] = token
     return replacements
@@ -112,4 +111,4 @@ def public_host_replacements() -> dict[str, str]:
 
 def known_site_secrets() -> tuple[str, ...]:
     """Return the WebArena site passwords that public evidence must never contain."""
-    return tuple(credentials["password"] for credentials in SITE_CREDENTIALS.values())
+    return tuple(credentials["password"] for credentials in DEFAULT_SITE_CREDENTIALS.values())

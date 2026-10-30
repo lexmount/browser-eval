@@ -125,7 +125,7 @@ include = ["harness*", "lexbench_webfetch*", "lexbench_websearch*"]
 "harness.lexbench" = ["assets/*.js", "assets/*.cjs"]
 "harness.web_fetch" = ["report-translations.json", "data/*.json", "data/latency-certifiers/*.txt", "templates/*.html", "assets/methodology/*.png", "assets/*.js", "html_to_markdown.mjs"]
 "harness.web_fetch.workers" = ["*.mts", "*.mjs", "*.c"]
-"harness.environments.webarena" = ["runtime/*.ini"]
+"harness.environments.webarena" = ["runtime/*.ini", "topology.json"]
 
 [tool.setuptools.data-files]
 "share/browser-harness-eval/provenance" = ["pyproject.toml", "uv.lock"]

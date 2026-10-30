@@ -32,13 +32,21 @@ from webarena_verified.types.task import WebArenaSite
 
 from harness.environments.webarena.topology import (
     CONTAINER_HOST_ALIAS,
+    DEFAULT_SITE_CREDENTIALS,
     HOST_LOOPBACK,
     MAGENTO_ELASTICSEARCH_PORT,
-    SITE_CREDENTIALS,
-    SITE_PORTS,
+    MUTABLE_SITE_PORTS,
     site_url,
 )
 from harness.resource_accounting import DockerStatsResources, ResourceSampler, delta_counters
+
+SITE_PORTS = {WebArenaSite(site): ports for site, ports in MUTABLE_SITE_PORTS.items()}
+
+
+SITE_CREDENTIALS = {
+    WebArenaSite(site): dict(credentials) for site, credentials in DEFAULT_SITE_CREDENTIALS.items()
+}
+
 
 SITE_AUTH_HEADERS = {
     WebArenaSite.SHOPPING: "X-M2-Customer-Auto-Login",

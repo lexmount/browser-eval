@@ -22,12 +22,11 @@ from webarena_verified.types.config import EnvironmentConfig, WebArenaVerifiedCo
 from webarena_verified.types.task import WebArenaSite
 
 from harness.distribution import repository_root
-from harness.environments.webarena.topology import (
-    LOCAL_RECORDED_HOSTS,
-    READ_ONLY_PORTS,
+from harness.environments.webarena.runtime import (
     SITE_CREDENTIALS,
     SITE_PORTS,
 )
+from harness.environments.webarena.topology import LOCAL_RECORDED_HOSTS, READ_ONLY_SITE_PORTS
 from harness.trajectory_replay.retrieval_acceptance import digest as retrieval_digest
 from harness.trajectory_replay.retrieval_acceptance import validate_contract
 from harness.web_fetch.safety import unlinked_path, write_new_file
@@ -35,6 +34,7 @@ from lexbench_webfetch.paths import contained_path
 
 COHORT_RESET_SCOPE = "once_before_method_cohort"
 METHOD_ID = re.compile(r"[a-z0-9][a-z0-9._-]{1,79}\Z")
+READ_ONLY_PORTS = {port: WebArenaSite(site) for port, site in READ_ONLY_SITE_PORTS.items()}
 SUPPORTED_REMOTE_SITES = frozenset(SITE_PORTS) | frozenset(READ_ONLY_PORTS.values())
 
 
