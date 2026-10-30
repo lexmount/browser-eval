@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/overview.png" alt="Browser Eval: Controlled tests. Verifiable results." width="640">
+<img src="docs/assets/overview.png" alt="Browser Eval: Find the right browser for your agent." width="640">
 
 **English** · [简体中文](docs/README.zh-CN.md)
 
@@ -30,8 +30,6 @@ Open the report path printed in the terminal. The example has one expected pass 
 
 Next, [try HTTP, Moli or Chromium on a local article](examples/web_fetch/README.md). Optional adapters, service credentials and live evaluation commands are covered in the track guides.
 
-The reusable ten-method Web Fetch cohort is selected with `--providers configured --provider-config configs/providers.example.json`; shared defaults are 30 seconds per call and one failure retry. See the [provider contract](docs/provider-contract.md#selected-native-cohort).
-
 ## Evaluation tracks
 
 Choose a workflow for its task contract, setup and runnable example.
@@ -51,6 +49,8 @@ Experimental [Browser Use](examples/browser_use/README.md) gives an Agent a task
 <summary>How each evaluation workflow runs</summary>
 
 ### Web Fetch
+
+The reusable ten-method Web Fetch cohort is selected with `--providers configured --provider-config configs/providers.example.json`; shared defaults are 30 seconds per call and one failure retry. See the [provider contract](docs/provider-contract.md#selected-native-cohort).
 
 ```mermaid
 flowchart LR

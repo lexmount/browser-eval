@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/overview.png" alt="Browser Eval：过程可控，结果可核验。" width="640">
+<img src="assets/overview.png" alt="Browser Eval：为你的 Agent 选对浏览器。" width="640">
 
 [English](../README.md) · **简体中文**
 
@@ -30,8 +30,6 @@ uv run --frozen browser-harness-eval run --delay 0
 
 接下来可以[用 HTTP、Moli 或 Chromium 读取本地文章](../examples/web_fetch/README.md)。可选适配器、服务凭据和在线评测命令见上面的各流程指南。
 
-使用 `--providers configured --provider-config configs/providers.example.json` 选择可复用的十种 Web Fetch 方法；默认每次调用 30 秒，失败允许重试一次。详见[适配器规则](provider-contract.md#selected-native-cohort)。
-
 ## 评测流程
 
 按任务选择评测流程，各指南提供任务约定、环境配置和可运行示例。
@@ -51,6 +49,8 @@ uv run --frozen browser-harness-eval run --delay 0
 <summary>展开各类评测的流程图</summary>
 
 ### Web Fetch
+
+使用 `--providers configured --provider-config configs/providers.example.json` 选择可复用的十种 Web Fetch 方法；默认每次调用 30 秒，失败允许重试一次。详见[适配器规则](provider-contract.md#selected-native-cohort)。
 
 ```mermaid
 flowchart LR
