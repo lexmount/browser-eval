@@ -62,7 +62,7 @@ The viewer has one `qualified-test` configuration and one `test` split. Its comm
 
 ## Scoring
 
-Browser Eval maintains the scoring implementation in [wcxb_scoring.py](https://github.com/lexmount/browser-eval/blob/main/harness/web_fetch/wcxb_scoring.py). Its pure metric functions preserve the pinned upstream evaluator's behavior; the original evaluator identity remains part of the provenance. Loading this dataset does not execute upstream Python code.
+Browser Eval maintains the scoring implementation in [wcxb_scoring.py](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_fetch/wcxb_scoring.py). Its pure metric functions preserve the pinned upstream evaluator's behavior; the original evaluator identity remains part of the provenance. Loading this dataset does not execute upstream Python code.
 
 Word precision, recall and F1 use lowercase Unicode `\w+` tokens. Matching counts repeated occurrences, so overlap is the multiset intersection between predicted and reference tokens. Precision measures how much returned text belongs to the reference; recall measures how much reference text was retained. F1 is their harmonic mean. Report the mean per-page scores and page-type breakdowns with their denominators.
 
@@ -82,7 +82,7 @@ boilerplate_occurrence = snippet_check(predicted, task["without"])
 
 {{tooling_checkout}}
 
-The [Web Fetch guide](https://github.com/lexmount/browser-eval/blob/main/harness/web_fetch/README.md) describes execution, saved evidence and report generation. A local HTML report is optional. If you choose to share a report, [Artifact Site hosting](https://github.com/lexmount/browser-eval/blob/main/docs/report-hosting.md) is available. Loading the data, scoring predictions and running local comparisons require no upload.
+The [Web Fetch guide](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_fetch/README.md) describes execution, saved evidence and report generation. A local HTML report is optional. If you choose to share a report, [Artifact Site hosting](https://github.com/lexmount/browser-eval/blob/main/docs/report-hosting.md) is available. Loading the data, scoring predictions and running local comparisons require no upload.
 
 ## Interpretation and limitations
 

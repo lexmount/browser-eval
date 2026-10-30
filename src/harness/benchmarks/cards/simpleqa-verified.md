@@ -46,7 +46,7 @@ query = task["query"]
 answer, supporting_urls = task["reference_answer"], task["reference_urls"]
 ```
 
-`definitions.tar.gz` contains the same definition bytes as `definitions/`. Browser Eval's [data lock](https://github.com/lexmount/browser-eval/blob/main/harness/benchmarks/data-lock.json) selects the installed snapshot. Follow the [Web Search guide](https://github.com/lexmount/browser-eval/blob/main/harness/web_search/README.md) to declare a profile, collect provider responses and build a report with saved evidence. The certified collector is `scripts/run_certified_benchmark.py web-search`.
+`definitions.tar.gz` contains the same definition bytes as `definitions/`. Browser Eval's [data lock](https://github.com/lexmount/browser-eval/blob/main/src/harness/benchmarks/data-lock.json) selects the installed snapshot. Follow the [Web Search guide](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_search/README.md) to declare a profile, collect provider responses and build a report with saved evidence. The certified collector is `scripts/run_certified_benchmark.py web-search`.
 
 Reference Hit@k tests whether a supplied supporting URL appears in the first k results; MRR@k measures the first such hit's reciprocal rank. Answer Match@k checks answer cues in returned text. Source references are not an exhaustive set of relevant pages, and lexical answer matches do not establish that a result correctly answers the question. Report these measures separately from graded relevance. Searchable copies of the dataset can also create contamination; Browser Eval exposes a separate contamination diagnostic while retaining the original results.
 

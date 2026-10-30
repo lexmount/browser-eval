@@ -946,8 +946,10 @@ def build(
             "dataset.html",
             t("Tests and sources", report_text('text_1825163793da2dc1')),
             dataset_context(dataset_profile, dataset_content, zh)
-            + '<p><a href="https://github.com/lexmount/lexbench-websearch">'
-            + t("LexBench Web Search: datasets, source attribution and scoring", report_text('text_ee89dfa0e1e48505'))
+            + '<p><a href="https://huggingface.co/datasets/Lexmount/LexBench-Web-Search">'
+            + t("LexBench Web Search: dataset and sources", report_text('text_ee89dfa0e1e48505'))
+            + '</a> · <a href="https://github.com/lexmount/browser-eval/tree/main/src/lexbench_websearch">'
+            + t("Scoring code", report_text("search_scoring_code"))
             + "</a></p>"
             + provenance_table(dataset_profile, zh)
             + authored_sections(authored, "dataset", lang)

@@ -268,3 +268,40 @@ def test_invalid_runtime_choices_fail_before_output(tmp_path, settings):
     with pytest.raises(ValueError, match='Default dataset|Scorer requires'):
         release.build(output)
     assert not output.exists()
+
+
+def test_publish_opens_a_review_pr_without_updating_main_or_creating_tags(tmp_path, monkeypatch, capsys):
+    import sys
+    from types import SimpleNamespace
+    from harness.benchmarks import publication
+
+    root, revision, _ = checkout(tmp_path, 'websearch')
+    output = tmp_path / 'proposal'
+    calls = []
+
+    class ReviewApi:
+        def repo_info(self, *, repo_id, repo_type):
+            assert (repo_id, repo_type) == ('Lexmount/Test-Dataset', 'dataset')
+            return SimpleNamespace(sha='a' * 40, siblings=[
+                SimpleNamespace(rfilename='.gitattributes'),
+                SimpleNamespace(rfilename='data/retired.jsonl')])
+
+        def upload_folder(self, **kwargs):
+            assert kwargs['create_pr'] is True
+            assert kwargs['parent_commit'] == 'a' * 40
+            assert kwargs['delete_patterns'] == ['data/retired.jsonl']
+            assert (kwargs['folder_path'] / 'manifest.json').is_file()
+            calls.append(kwargs)
+            return SimpleNamespace(oid='b' * 40,
+                pr_url='https://huggingface.co/datasets/Lexmount/Test-Dataset/discussions/7')
+        # No main-branch commit, merge, or tag operation is available here.
+
+    monkeypatch.setitem(sys.modules, 'huggingface_hub', SimpleNamespace(HfApi=ReviewApi))
+    monkeypatch.setattr(sys, 'argv', ['publication', '--checkout', str(root), '--track', 'websearch',
+        '--revision', revision, '--output', str(output), '--publish', 'Lexmount/Test-Dataset'])
+    publication.main()
+    result = json.loads(capsys.readouterr().out.splitlines()[-1])
+    assert len(calls) == 1
+    assert result['state'] == 'review_pending'
+    assert result['revision'] == 'b' * 40
+    assert result['pull_request'].endswith('/discussions/7')

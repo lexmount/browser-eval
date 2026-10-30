@@ -529,7 +529,7 @@ def main() -> None:
     parser.add_argument("--revision", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--tooling-revision", help="Full Browser Eval commit for executable examples and code links")
-    parser.add_argument("--publish", metavar="HF_REPOSITORY", help="Upload the built release to this dataset")
+    parser.add_argument("--publish", metavar="HF_REPOSITORY", help="Open a Hugging Face pull request for the built dataset")
     args = parser.parse_args()
     release = DatasetRelease.from_git(args.checkout, args.track, args.revision)
     if args.tooling_revision is not None:
@@ -544,8 +544,10 @@ def main() -> None:
         removed = [p.rfilename for p in info.siblings if p.rfilename not in current and p.rfilename != ".gitattributes"]
         commit = api.upload_folder(repo_id=args.publish, repo_type="dataset", folder_path=args.output,
                                    parent_commit=info.sha, delete_patterns=removed,
+                                   create_pr=True,
                                    commit_message="Publish verified " + args.track + " definitions")
-        print(json.dumps({"repository": args.publish, "revision": commit.oid}))
+        print(json.dumps({"repository": args.publish, "revision": commit.oid,
+                          "pull_request": commit.pr_url, "state": "review_pending"}))
 
 
 if __name__ == "__main__":

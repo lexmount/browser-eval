@@ -176,29 +176,45 @@ Scoring code ships with Browser Eval; dataset commits and file hashes are select
 
 Published versions, changes and dependency snapshots are listed in [GitHub Releases](https://github.com/lexmount/browser-eval/releases). See [version rules](docs/releases.md) for release policy and report provenance.
 
-## Datasets and related projects
+## Datasets on Hugging Face
 
-| Resource | Role |
+These links provide versioned tasks, acceptance contracts and reference inputs.
+
+| Dataset | Role |
 | --- | --- |
 | [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) | Versioned Web Fetch tasks, acceptance contracts and reference bindings |
 | [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) | Scenario search queries and source references; factual QA is provided by SimpleQA Verified |
 | [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) | Reference-corrected WebMainBench tasks and correction provenance |
 | [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) | Length-qualified SimpleQA Verified retrieval tasks, with original answers |
 | [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | Source-qualified frozen extraction inputs and references |
-| [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) · [code](https://github.com/lexmount/Lexbench-Headless-Browser) | Executable CDP, driver and web-platform tasks; scenario specifications retained as source inputs |
+| [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) | Executable CDP, driver and web-platform tasks; scenario specifications retained as source inputs |
 | [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | 30 tasks written in Browser Eval for live public websites, with fixed actions and exact checks |
 | [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | Full official task catalog; smaller replay editions retained as versioned source inputs |
-| [Moli](https://github.com/lexmount/moli) | Browser evaluated through the same task contracts as other participants |
-| [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | CLI client for the Lexmount WebFetch service; separate from the evaluation harness |
-| Artifact Site ([Global .com](https://yours.lexmount.com/artifact-site) · [China .cn](https://yours.lexmount.cn/artifact-site)) | Report creation and sharing with access controls |
-| [WebMainBench fork](https://github.com/lexmount/WebMainBench/tree/lex-main) · [upstream](https://github.com/opendatalab/WebMainBench) | Upstream attribution and source of the pinned extraction scorer |
-| [WebArena-Verified fork](https://github.com/lexmount/webarena-verified/tree/lex-main) · [upstream](https://github.com/ServiceNow/webarena-verified) | Official task attribution and pinned evaluator dependency for replay and experimental Agent integration |
-| [WCXB upstream](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | Source attribution for the qualified HF edition |
-| [CowAgent](https://github.com/zhayujie/CowAgent), [OpenClaw](https://github.com/openclaw/openclaw), [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | Web Fetch tool baselines and experimental Agent integration |
 
 Browser Eval wrote the 30 public-web replay tasks. Headless scenario designs informed some interactions; its executable cases and WebArena's tasks are not included in that suite. The task JSON fixes actions and expected outputs, while the target websites remain live.
 
+## Evaluation code and upstream sources
+
+Web Fetch and Web Search scoring code lives in this repository under [src/lexbench_webfetch/](src/lexbench_webfetch/) and [src/lexbench_websearch/](src/lexbench_websearch/). Install and run it through the quickstart above.
+
+| Component | Purpose | Code or source |
+| --- | --- | --- |
+| Headless Browser | Original CDP, driver and local-fixture runner | [Original repository](https://github.com/lexmount/Lexbench-Headless-Browser) |
+| WebMainBench | Pinned extraction scorer and upstream attribution | [Maintained fork](https://github.com/lexmount/WebMainBench/tree/lex-main) · [Upstream](https://github.com/opendatalab/WebMainBench) |
+| WebArena-Verified | Official evaluator for replay and experimental Agent integration | [Maintained fork](https://github.com/lexmount/webarena-verified/tree/lex-main) · [Upstream](https://github.com/ServiceNow/webarena-verified) |
+| WCXB | Original data source for the qualified HF edition | [Upstream](https://github.com/Murrough-Foley/web-content-extraction-benchmark) |
+
 [Dependency sources and pins](docs/dependencies.md) cover Playwright, extraction libraries and supporting runtimes. [Third-party notices](THIRD_PARTY.md) cover attribution and data rights. Cite the benchmark and upstream data used alongside Browser Eval.
+
+## Browsers and tools
+
+| Project | Type | Use |
+| --- | --- | --- |
+| [Moli](https://github.com/lexmount/moli) | Browser | Evaluated through the same task contracts as other participants |
+| [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | CLI client | Calls the Lexmount WebFetch service |
+| [CowAgent](https://github.com/zhayujie/CowAgent) | Agent framework | Web Fetch tool baseline and experimental Agent integration |
+| [OpenClaw](https://github.com/openclaw/openclaw) | Agent framework | Web Fetch tool baseline and experimental Agent integration |
+| [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | Agent framework | Web Fetch tool baseline and experimental Agent integration |
 
 ## Contribute
 

@@ -44,7 +44,7 @@ page = json.loads(rows[0]["task"])
 html, reference = page["html"], page["groundtruth_content"]
 ```
 
-For a raw-file download, `definitions.tar.gz` contains the same definition bytes as `definitions/`; verify them against `manifest.json`. Browser Eval selects its dataset and scorer through the [data lock](https://github.com/lexmount/browser-eval/blob/main/harness/benchmarks/data-lock.json). Its [benchmark guide](https://github.com/lexmount/browser-eval/blob/main/docs/benchmarks.md#webmainbench-runtime) explains the pinned runner and scorer. Execution starts at `scripts/run_webmainbench_benchmark.py`; `scripts/score_webmainbench_results.py` scores saved outputs.
+For a raw-file download, `definitions.tar.gz` contains the same definition bytes as `definitions/`; verify them against `manifest.json`. Browser Eval selects its dataset and scorer through the [data lock](https://github.com/lexmount/browser-eval/blob/main/src/harness/benchmarks/data-lock.json). Its [benchmark guide](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_fetch/WEBMAINBENCH.md) explains the pinned runner and scorer. Execution starts at `scripts/run_webmainbench_benchmark.py`; `scripts/score_webmainbench_results.py` scores saved outputs.
 
 The 545-page scorer measures text, code, formula and table edit similarity, plus table structural similarity (TEDS). Report the components, their applicable populations and the selected aggregation. The full upstream corpus's ROUGE evaluation is a separate protocol. Provider outputs and measured scores are not included in this dataset.
 

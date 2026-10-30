@@ -86,7 +86,16 @@ make pin-dataset DATASET=webfetch REV=<full-Hugging-Face-commit>
 
 The same command selects the other dataset keys registered in the lock, including `websearch`, `simpleqa-verified`, `webmainbench`, `wcxb`, `trajectory-replay` and `webarena-replay`. The command verifies the release before updating the lock and applicable import bindings. Keep current-version selections in these files, not in README prose.
 
-Author dataset changes in a checkout of the corresponding Hugging Face dataset. Commit the definitions and materialize any Git LFS files, then use `uv run --frozen python -m harness.benchmarks.publication --help` to build and publish the inspected commit. Install the optional `dataset-publish` extra and authenticate with `HF_TOKEN` for uploads; readers need no token. Preserve upstream attribution and redistribution terms. Scores, provider responses, model grades and private run directories do not belong in a dataset release.
+Author dataset changes in a checkout of the corresponding Hugging Face dataset. Commit the definitions and materialize any Git LFS files, then use `uv run --frozen python -m harness.benchmarks.publication --help` to build the inspected commit. `--publish` opens a Hugging Face pull request for review; it does not update dataset main or create a release tag. Install the optional `dataset-publish` extra and authenticate with `HF_TOKEN` for uploads; readers need no token. Preserve upstream attribution and redistribution terms. Scores, provider responses, model grades and private run directories do not belong in a dataset release.
+
+After review, merge the HF pull request and validate its merged commit. For a
+formal dataset release, assign a `vMAJOR.MINOR.PATCH` tag in that dataset repository
+and retain its exact target commit. Preserve existing historical tags and never
+move a published tag. Dataset version numbers are independent of Browser Eval's
+software version; an ordinary commit does not require a new release number.
+Update Browser Eval's data lock and import bindings in a GitHub PR using the
+reviewed full HF commit. Neither a dataset merge nor a moved branch updates
+existing runs or the selected input version automatically.
 
 For tracks that select a default dataset and an external scorer, the release
 manifest owns `default_dataset` and the scorer's repository and full commit.
@@ -139,7 +148,12 @@ scorer. Those runs retain their source hashes; they do not inherit the published
 catalog's version. `catalog_release()` deliberately rejects that mismatch by
 default. Reviewing or fixing code does not publish a benchmark release.
 
-Hugging Face release tags are optional labels for immutable dataset commits; a moving tag never replaces the recorded commit.
+Every run pins the full HF commit and input hashes, plus the software/scorer
+commit and scoring-source hashes. A dataset release tag is a readable label for
+that immutable commit; it never replaces the recorded commit. Intermediate
+snapshots remain reproducible without a tag. Matching version labels alone do
+not establish comparability: retain the selected task IDs, acceptance rules,
+execution controls and evidence alongside those identities.
 Browser Eval publishes software versions as `vMAJOR.MINOR.PATCH` and records the
 full Git commit for execution and report-building code.
 Reports reference their benchmark edition. A published build also records the hosting platform's immutable version ID.

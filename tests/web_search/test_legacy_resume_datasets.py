@@ -241,3 +241,16 @@ def test_public_legacy_revision_rejects_unproven_bundle_before_reference_calls(
     with pytest.raises(ValueError, match="dataset|hash mismatch"):
         runner.run(profile, output, resume=True, execution_revision=revision, certified=True)
     assert before == {p.relative_to(output): p.read_bytes() for p in output.rglob("*") if p.is_file()}
+
+
+
+def test_legacy_git_urls_are_provenance_only_not_runtime_dependencies(legacy_run, monkeypatch):
+    output, contract, _, _ = legacy_run
+    expected = data.dependencies('websearch')
+    def external_access(*args, **kwargs):
+        pytest.fail('Legacy identity validation must not install or execute retired code')
+    monkeypatch.setattr(runner.subprocess, 'run', external_access)
+    monkeypatch.setattr(runner, 'http_call', external_access)
+    monkeypatch.setattr(data, 'fetch_archive', external_access)
+    monkeypatch.setattr(runner.benchmark_inputs, 'implementation_sources', external_access)
+    assert runner.validate_resume_datasets(contract, output) == expected
