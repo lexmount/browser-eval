@@ -754,6 +754,19 @@ def test_login_context_does_not_retry_other_setup_errors(monkeypatch) -> None:
     assert calls == 1
 
 
+@pytest.mark.parametrize("missing", ["_context", "_page"])
+def test_login_context_requires_an_active_context_and_page(missing: str) -> None:
+    service = SimpleNamespace(
+        _context=SimpleNamespace(pages=[]),
+        _page=object(),
+        _submit=lambda callback: callback(),
+    )
+    setattr(service, missing, None)
+
+    with pytest.raises(RuntimeError, match="no active context and page"):
+        login_context(service, (), object(), ["http://official.test/start"])
+
+
 def test_container_host_gateway_returns_literal_ip() -> None:
     class Result:
         exit_code = 0

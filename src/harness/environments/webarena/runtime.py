@@ -610,9 +610,9 @@ def login_context(
 
     def login() -> None:
         context = service._context
-        assert context is not None
         primary_page = service._page
-        assert primary_page is not None
+        if context is None or primary_page is None:
+            raise RuntimeError("browser service has no active context and page before login")
         for existing_page in context.pages:
             if existing_page != primary_page:
                 existing_page.close()
