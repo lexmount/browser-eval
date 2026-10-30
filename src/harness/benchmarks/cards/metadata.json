@@ -77,8 +77,7 @@
       "text-retrieval"
     ],
     "source_datasets": [
-      "original",
-      "extended|google/simpleqa-verified"
+      "original"
     ],
     "language_fields": [
       "language"

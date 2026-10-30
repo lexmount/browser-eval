@@ -9,6 +9,7 @@ import pytest
 from importlib.resources import files
 
 from lexbench_websearch.inputs import definition_path
+from harness.benchmarks.data import binding, definition_path as locked_definition
 from lexbench_websearch.qualification import validate_regressions
 
 
@@ -23,7 +24,15 @@ def verify_receipt(receipt, package):
         # The recorded path is source-relative; installed distributions use the same modules.
         relative = Path(name).relative_to("src/lexbench_websearch")
         if relative.parts[0] == "definitions":
-            actual = definition_path(Path(*relative.parts[1:]).as_posix())
+            logical = Path(*relative.parts[1:]).as_posix()
+            if logical in {"datasets/factual-v1.json", "factual-source.json"}:
+                # These frozen receipt paths now have one canonical data owner.
+                canonical = binding("simpleqa-verified")
+                actual = locked_definition("simpleqa-verified", logical)
+                assert hashlib.sha256(actual.read_bytes()).hexdigest() == canonical["files"]["definitions/" + logical]["sha256"]
+                assert "definitions/" + logical not in binding("websearch")["files"]
+            else:
+                actual = definition_path(logical)
         else:
             actual = package / relative
         migration = json.loads(files("harness.benchmarks").joinpath("code-migration.json").read_bytes())
