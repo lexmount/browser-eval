@@ -343,7 +343,10 @@ def validate_resume_implementation(output, contract):
 
 
 def validate_resume_datasets(contract, output=None):
-    """Execution repairs retain the original benchmark inputs and scoring resources."""
+    """Execution repairs retain the original benchmark inputs and scoring resources.
+
+    Legacy Git URLs identify verified archived pins; they are never installed or executed.
+    """
     from harness.benchmarks.data import canonical_repository, dependencies, legacy_dependencies
     current = dependencies("websearch")
     if "installed_benchmark_datasets" in contract:

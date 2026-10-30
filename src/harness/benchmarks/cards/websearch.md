@@ -39,7 +39,7 @@ Given a frozen candidate pool and complete grades, the scorer computes:
 
 Duplicates add no gain; missing positions contribute zero. Queries with an all-zero pool stay in the population with nDCG zero. Aggregate over all declared queries and disclose the population. Known-page hits, reciprocal rank, source-domain checks and duplicate rate remain separate diagnostics. Anchor lists cover selected known pages; useful results outside those lists can still receive relevance credit.
 
-The [Search guide](https://github.com/lexmount/browser-eval/blob/main/harness/web_search/README.md) covers annotation receipts, source rules, retries, timing, billing and optional independent review. The [benchmark guide](https://github.com/lexmount/browser-eval/blob/main/docs/benchmarks.md) explains dataset/scorer identities and reproduction.
+The [Search guide](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_search/README.md) covers annotation receipts, source rules, retries, timing, billing and optional independent review. The [benchmark guide](https://github.com/lexmount/browser-eval/blob/main/docs/benchmarks.md) explains dataset/scorer identities and reproduction.
 
 ## Use the data and scorer
 
@@ -52,7 +52,7 @@ uv run --frozen lexbench-websearch validate scenarios
 uv run --frozen lexbench-websearch export scenarios > /tmp/scenarios.json
 ```
 
-Browser Eval's [data lock](https://github.com/lexmount/browser-eval/blob/main/harness/benchmarks/data-lock.json) selects exact Hugging Face commits and file hashes. The loader verifies those inputs; inspection and offline scoring require no search-provider key. Live collection uses the credentials and explicit profile described in the Search guide.
+Browser Eval's [data lock](https://github.com/lexmount/browser-eval/blob/main/src/harness/benchmarks/data-lock.json) selects exact Hugging Face commits and file hashes. The loader verifies those inputs; inspection and offline scoring require no search-provider key. Live collection uses the credentials and explicit profile described in the Search guide.
 
 For supplied ranking labels, the same deterministic metric implementation is available in Python:
 
@@ -73,7 +73,7 @@ The [October 22, 2026 search benchmark](https://browser.lexmount.com/blog/websea
 
 The scenario inventory retains provenance for 80 queries from [Microck/websearch-bench](https://github.com/Microck/websearch-bench), 7 exact community queries, 28 screenshot transcriptions, 14 community-derived queries and 20 curated queries. The [pinned upstream query file](https://github.com/Microck/websearch-bench/blob/7714e86b1b8d7b943037c38b04d4f6ba65566d5b/data/queries.jsonl) is MIT licensed. Its query text and intent are retained; upstream provider judgments and scores are not imported. Adaptations and authored additions carry their own derivation records.
 
-The screenshot transcriptions have no established original author or public post. They must not be attributed to a verified social-media author. Community posts retain their own terms; screenshots and full third-party articles are not redistributed. The [original attribution inventory and notices](https://github.com/lexmount/lexbench-websearch/blob/0e4c0cd7d828dc80f0a701886d208cc6c0d598e9/THIRD_PARTY.md) document these distinctions; the published definitions retain `sources.json` and `NOTICE.txt`.
+The screenshot transcriptions have no established original author or public post. They must not be attributed to a verified social-media author. Community posts retain their own terms; screenshots and full third-party articles are not redistributed. The release includes its [source inventory](definitions/sources.json) and [upstream notices](definitions/NOTICE.txt).
 
 The companion factual edition derives from [Google's SimpleQA Verified](https://huggingface.co/datasets/google/simpleqa-verified), described by Haas et al. in [SimpleQA Verified: A Reliable Factuality Benchmark to Measure Parametric Knowledge](https://huggingface.co/datasets/google/simpleqa-verified), which builds on [OpenAI SimpleQA](https://github.com/openai/simple-evals) and its [paper](https://github.com/openai/simple-evals). The retrieval selection keeps questions of at most 128 Unicode characters. Question and answer text remain unchanged; supporting URL parsing removes unmatched closing parentheses. Both upstream datasets declare MIT licensing. This length-qualified derivative measures retrieval diagnostics; the official benchmark evaluates closed-book factuality. The independent [retrieval dataset card](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) provides its selection and licensing details.
 

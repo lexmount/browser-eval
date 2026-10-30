@@ -8,7 +8,7 @@
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](../LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](../pyproject.toml)
 
-[特性](#特性) · [设计原则](#设计原则) · [评测流程](#评测流程) · [快速开始](#快速开始) · [报告](#报告) · [版本](#版本) · [相关仓库](#数据集与相关项目) · [参与贡献](../CONTRIBUTING.md)
+[特性](#特性) · [设计原则](#设计原则) · [评测流程](#评测流程) · [快速开始](#快速开始) · [报告](#报告) · [版本](#版本) · [数据集](#hugging-face-数据集) · [参与贡献](../CONTRIBUTING.md)
 
 </div>
 
@@ -176,29 +176,45 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run
 
 已发布版本、变更和依赖见[发布记录](https://github.com/lexmount/browser-eval/releases)。升版规则与报告版本绑定见[版本说明](releases.md)。
 
-## 数据集与相关项目
+## Hugging Face 数据集
 
-| 资源 | 用途 |
+下列链接提供版本化题目、验收要求和参考输入。
+
+| 数据集 | 用途 |
 | --- | --- |
 | [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) | Web Fetch 题目、验收要求和参考输入绑定 |
 | [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) | 搜索场景问题和来源要求；事实问答由 SimpleQA Verified 提供 |
 | [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) | 修正参考答案后的 WebMainBench 任务及修订依据 |
 | [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) | 按输入长度筛选的 SimpleQA Verified 检索任务，保留原始答案 |
 | [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | 已核验来源的冻结提取输入和参考答案 |
-| [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) · [代码](https://github.com/lexmount/Lexbench-Headless-Browser) | CDP、自动化驱动和 Web 平台的可执行任务；场景设计规格保留在原始文件中 |
+| [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) | CDP、自动化驱动和 Web 平台的可执行任务；场景设计规格保留在原始文件中 |
 | [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | Browser Eval 自建的 30 个公网任务，包含固定动作和确定性验收条件 |
 | [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | 官方完整任务集；较小的轨迹重放版本保留为版本化原始输入 |
-| [Moli](https://github.com/lexmount/moli) | 与其他参与者按相同任务规则评测的浏览器 |
-| [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | Lexmount WebFetch 服务的命令行客户端 |
-| Artifact Site（[全球站 .com](https://yours.lexmount.com/artifact-site) · [中国站 .cn](https://yours.lexmount.cn/artifact-site)） | 报告创建、分享和权限控制 |
-| [WebMainBench 分支](https://github.com/lexmount/WebMainBench/tree/lex-main) · [上游](https://github.com/opendatalab/WebMainBench) | 上游署名和固定版本的提取评分器来源 |
-| [WebArena-Verified 分支](https://github.com/lexmount/webarena-verified/tree/lex-main) · [上游](https://github.com/ServiceNow/webarena-verified) | 官方题目来源及重放、实验性 Agent 集成使用的固定评测器依赖 |
-| [WCXB 上游](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | HF 核验版本的数据来源署名 |
-| [CowAgent](https://github.com/zhayujie/CowAgent)、[OpenClaw](https://github.com/openclaw/openclaw)、[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | Web Fetch 工具基线和实验性 Agent 集成 |
 
 这 30 个公网轨迹任务由 Browser Eval 自建，部分交互设计借鉴了 Headless 的场景规格，没有导入 Headless 或 WebArena 的完整任务。任务文件固定了动作和预期输出，线上网页仍可能变化。
 
-Playwright、提取库和配套运行环境的来源与固定版本见[依赖说明](dependencies.md)，引用要求和数据权利见[第三方说明](../THIRD_PARTY.md)。引用 Browser Eval 时，也请引用实际使用的评测集与上游数据。
+## 评测代码与上游来源
+
+Web Fetch 和 Web Search 的评分代码分别位于本仓库的 [src/lexbench_webfetch/](../src/lexbench_webfetch/) 和 [src/lexbench_websearch/](../src/lexbench_websearch/)，安装和运行见上文快速开始。
+
+| 组件 | 用途 | 代码或来源 |
+| --- | --- | --- |
+| Headless Browser | 原始 CDP、驱动和本地测试站点的运行程序 | [原仓库](https://github.com/lexmount/Lexbench-Headless-Browser) |
+| WebMainBench | 固定版本的提取评分器及上游署名 | [维护分支](https://github.com/lexmount/WebMainBench/tree/lex-main) · [上游](https://github.com/opendatalab/WebMainBench) |
+| WebArena-Verified | 重放和实验性 Agent 集成使用的官方评测器 | [维护分支](https://github.com/lexmount/webarena-verified/tree/lex-main) · [上游](https://github.com/ServiceNow/webarena-verified) |
+| WCXB | HF 核验版本的原始数据来源 | [上游](https://github.com/Murrough-Foley/web-content-extraction-benchmark) |
+
+Playwright、提取库和配套运行环境的固定版本见[依赖说明](dependencies.md)，引用要求和数据权利见[第三方说明](../THIRD_PARTY.md)。引用 Browser Eval 时，也请引用实际使用的评测集与上游数据。
+
+## 浏览器与工具
+
+| 项目 | 类型 | 用途 |
+| --- | --- | --- |
+| [Moli](https://github.com/lexmount/moli) | 浏览器 | 按相同任务规则参与评测 |
+| [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | 命令行客户端 | 调用 Lexmount WebFetch 服务 |
+| [CowAgent](https://github.com/zhayujie/CowAgent) | Agent 框架 | Web Fetch 工具基线和实验性 Agent 集成 |
+| [OpenClaw](https://github.com/openclaw/openclaw) | Agent 框架 | Web Fetch 工具基线和实验性 Agent 集成 |
+| [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | Agent 框架 | Web Fetch 工具基线和实验性 Agent 集成 |
 
 ## 参与贡献
 

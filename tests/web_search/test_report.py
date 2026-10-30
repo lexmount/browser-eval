@@ -45,6 +45,16 @@ class ReportScenarios(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "versioned scoring authority"):
                 check(self.out, evidence_only=evidence_only)
 
+    def test_dataset_links_current_inputs_and_in_tree_scoring_in_both_languages(self):
+        build(self.out, source=self.root / "fixture", language="zh", include_english=True)
+        for route in ("dataset.html", "en/dataset.html"):
+            dom = BeautifulSoup((self.out / route).read_text(), "html.parser")
+            links = {a["href"] for a in dom.select("a[href]")}
+            self.assertIn("https://huggingface.co/datasets/Lexmount/LexBench-Web-Search", links)
+            self.assertIn("https://github.com/lexmount/browser-eval/tree/main/src/lexbench_websearch", links)
+            self.assertNotIn("https://github.com/lexmount/lexbench-websearch", links)
+        self.assertTrue(check(self.out))
+
     def test_dataset_can_link_hash_bound_original_query_sources(self):
         source = self.root / "original-query-source.txt"
         source.write_text("Original query inventory")

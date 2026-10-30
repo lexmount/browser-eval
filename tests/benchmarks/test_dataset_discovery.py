@@ -116,6 +116,9 @@ def test_cards_explain_use_and_credit_sources_with_specific_discovery_terms(tmp_
     assert tags <= set(metadata(tmp_path)["tags"])
     text = (tmp_path / "README.md").read_text()
     assert source in text
+    if track == 'websearch':
+        assert '(definitions/sources.json)' in text
+        assert '(definitions/NOTICE.txt)' in text
     assert "https://github.com/lexmount/browser-eval" in text
     assert "{{dataset_summary}}" not in text
     # Hub promotes direct paper links into a dataset-level ArXiv association.
@@ -178,3 +181,14 @@ def test_unknown_current_fetch_category_is_rejected(tmp_path):
     source = release('webfetch', [{'id': 'unknown-category', 'track': 'unknown'}], identity='webfetch')
     with pytest.raises(ValueError, match='Unregistered viewer task group'):
         source.build(tmp_path)
+
+
+def test_current_dataset_cards_link_to_existing_browser_eval_code_and_guides():
+    import re
+    from pathlib import Path
+    from harness.benchmarks.publication import CARDS
+
+    root = Path(__file__).resolve().parents[2]
+    for card in CARDS.glob('*.md'):
+        for target in re.findall(r'https://github.com/lexmount/browser-eval/blob/main/([^\s)#]+)', card.read_text()):
+            assert (root / target).exists(), (card.name, target)
