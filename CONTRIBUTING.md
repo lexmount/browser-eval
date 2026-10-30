@@ -83,6 +83,28 @@ make ci
 
 Development checks use Python 3.11 and Node.js 22. The base example does not need Node.js.
 
+Use focused checks while editing:
+
+```bash
+make docs-check
+make test-python TEST_PATHS=tests/web_search
+make test-python TEST_PATHS=tests/test_scoring_regressions.py PYTEST_ARGS='-k reference'
+```
+
+`TEST_PATHS` selects files or directories; `PYTEST_ARGS` adds pytest options.
+Without `TEST_PATHS`, Python tests cover the entire suite. `make docs-check`
+checks README navigation, citations, track naming and source-language policy;
+it needs neither Node.js nor downloaded benchmark data.
+
+CI uses this documentation check for PRs changing only the root README,
+contribution/security guidance, `AGENTS.md`, Markdown under `docs/`, or
+PNG/JPEG/WebP/GIF images under `docs/assets/`.
+Code, test, dependency, dataset-card and unknown paths keep the full
+test, installation and browser gates. Main pushes and tags always run all gates.
+Checks include every commit in the PR; a final documentation commit does not
+reduce the scope of earlier code changes. The required `Python 3.11` status
+rejects failed, cancelled or unexpectedly skipped checks.
+
 | Check | What it covers |
 | --- | --- |
 | `make lint-check` | Basic Python errors across the repository and configured Ruff rules for the declared tracks |
