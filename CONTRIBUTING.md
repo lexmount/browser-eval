@@ -39,7 +39,7 @@ changed task populations or requests require a major edition.
 ## Update Web Fetch dependencies and methods
 
 Select a published dataset with `make pin-dataset DATASET=<track> REV=<full-HF-commit>`.
-It verifies the archive and file hashes before updating the data lock and import bindings. Scorer changes belong in this repository and use the existing scenario regressions.
+It rejects commits outside the dataset's `main` history and verifies the archive and file hashes before updating the data lock and import bindings. Scorer changes belong in this repository and use the existing scenario regressions.
 Historical report certificates retain their original evaluator identities.
 
 Register Web Fetch products in `src/harness/web_fetch/data/report-methods.json`;
