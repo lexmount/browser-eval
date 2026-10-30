@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/overview.png" alt="Browser Eval — Same tasks. Clear comparisons." width="100%">
+<img src="docs/assets/overview.png" alt="Browser Eval: Controlled tests. Verifiable results." width="640">
 
 **English** · [简体中文](docs/README.zh-CN.md)
 
@@ -8,42 +8,29 @@
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](pyproject.toml)
 
-[Features](#features) · [Approach](#evaluation-approach) · [Tracks](#evaluation-tracks) · [Quickstart](#quickstart) · [Reports](#reports) · [Versions](#versions) · [Datasets](#datasets-on-hugging-face) · [Contributing](CONTRIBUTING.md)
+[Quickstart](#quickstart) · [Tracks](#evaluation-tracks) · [Approach](#evaluation-approach) · [Reports](#reports) · [Datasets and code](#datasets-and-code) · [Versions](#versions) · [Contributing](CONTRIBUTING.md)
 
 </div>
 
-Evaluate browsers and Web tools for AI agents through Web Fetch, Web Search and Browser Trajectory Replay. Compare task correctness, latency, resource use and recorded cost. Optionally turn the results into local reports you can inspect, rebuild and share, with drilldown to every individual result and its evidence.
+Benchmark browsers and Web tools for AI agents through fetching, search, browser compatibility tests and fixed trajectory replay. Compare correctness, latency, resource use and recorded cost. Optionally turn saved results into local reports you can inspect, rebuild and share, with drilldown to every individual result.
 
-## Features
+## Quickstart
 
-| Feature | What you get |
-| --- | --- |
-| Local evaluation | Run a configured comparison and save its evidence. Generate a local HTML report by default, or skip it with `--no-report`. |
-| Multiple benchmarks | Use integrated benchmarks or bring your own tasks, with the selected benchmark's scoring rules. [Benchmark integration](docs/benchmarks.md) |
-| Extensible participants | Compare browser engines, search APIs, hosted fetch services and extraction tools. Add participants through the existing [adapter contracts](docs/provider-contract.md). |
-| Inspectable evidence | Follow aggregate results down to individual responses, action traces and failure logs. |
-| Saved-run workflows | Rebuild reports and rescore saved outputs without repeating provider calls. |
-| Quality, performance and cost | Compare task success alongside latency, resource usage and recorded billing. |
-| Reproducible comparisons | Record task inputs, benchmark and software revisions, scoring code and run settings. |
-| Local reports and optional sharing | Inspect and rebuild HTML without an account. Publish to Artifact Site when sharing is requested and authorized. [Reports](#reports) |
+Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then run the offline example:
 
-## Evaluation approach
+```sh
+git clone https://github.com/lexmount/browser-eval.git
+cd browser-eval
+uv sync --frozen
+uv run --frozen browser-harness-eval validate
+uv run --frozen browser-harness-eval run --delay 0
+```
 
-Browser Eval aims for stable, reproducible results and a controlled, trustworthy evaluation process. Three principles guide the evaluation.
+Open the report path printed in the terminal. The example has one expected pass and one expected failure; it needs no browser, Docker or API key. Python 3.11–3.14 is supported; development uses 3.11.
 
-1. **Prefer definite answers and programmatic scoring wherever possible, with minimal reliance on LLMs as judges**
+Next, [try HTTP, Moli or Chromium on a local article](examples/web_fetch/README.md). Optional adapters, service credentials and live evaluation commands are covered in the track guides.
 
-    When a task has clear answers and acceptance criteria, use code to check the result and reduce variation from model judgment. This does not exclude LLM judges entirely: graded Web Search relevance is a suitable use, with an explicit rubric and retained scoring evidence and grades.
-
-2. **Do not introduce LLMs or Agents to execute the evaluation**
-
-    Web Fetch and Web Search call the tools being tested directly. Browsers are tested through fixed trajectory replay, rather than Browser Use with an Agent choosing the next step. Each participant receives the same work, removing the extra variation from LLM decisions and Agent planning during execution.
-
-3. **Make results easy to review and verify**
-
-    Use an LLM as a verifier to add a check of programmatic verdicts and their supporting evidence. Trigger verification only on request; it does not run by default. Generate local HTML reports with drilldown from aggregate metrics to every individual result, including raw responses, action traces, logs and scoring evidence. Reviewing every result manually is expensive, so reports must also support human sampling. Upload to Artifact Site only when publication is requested and authorized.
-
-The task flows follow below. See [evaluation design](docs/benchmarks.md#evaluation-design) for detailed scoring and verification requirements.
+The reusable ten-method Web Fetch cohort is selected with `--providers configured --provider-config configs/providers.example.json`; shared defaults are 30 seconds per call and one failure retry. See the [provider contract](docs/provider-contract.md#selected-native-cohort).
 
 ## Evaluation tracks
 
@@ -53,7 +40,15 @@ Choose a workflow for its task contract, setup and runnable example.
 | --- | --- | --- |
 | Web Fetch | [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch), [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench), [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | [Local example](examples/web_fetch/README.md) · [Full guide](src/harness/web_fetch/README.md) |
 | Web Search | [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search): scenario queries and [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) retrieval tasks | [Local example](examples/web_search/README.md) · [Full guide](src/harness/web_search/README.md) |
-| Browser Trajectory Replay | [Curated fixed-action tasks](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) and the separate [WebArena replay datasets](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay), with the pinned WebArena-Verified evaluator | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
+| Browser compatibility | [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser): CDP, driver and Web-platform behavior on local fixtures | [Pinned inputs and original runner](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser#execute-with-the-original-runner) |
+| Browser Trajectory Replay | [Curated fixed-action tasks](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) with explicit checks; [WebArena replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) with the official evaluator | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
+
+Use these suites or [bring your own tasks](docs/benchmarks.md). Add browsers and tools through the existing [adapter contracts](docs/provider-contract.md).
+
+Experimental [Browser Use](examples/browser_use/README.md) gives an Agent a task, lets it choose browser actions, and checks the recorded outcome with the task evaluator. It includes model and planning variation and is evaluated separately.
+
+<details>
+<summary>How each evaluation workflow runs</summary>
 
 ### Web Fetch
 
@@ -84,6 +79,21 @@ flowchart LR
 ```
 
 Relevance grading is scoring; optional verification reviews the resulting evidence and scores.
+
+### Browser compatibility
+
+LexBench-Headless-Browser runs predefined compatibility checks on local fixtures, covering CDP, drivers and Web platform behavior. Its original runner owns execution and grading; trajectory replay uses separate fixed-action tasks to complete website goals.
+
+```mermaid
+flowchart LR
+    A["Local fixtures<br/>Fixed tasks and driver bindings"]:::input --> B["Run CDP or<br/>driver commands"]:::run
+    B --> C["Save responses<br/>and measurements"]:::evidence
+    C --> D["Inline checks<br/>Subset-specific diagnostics"]:::score
+    classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
+    classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
+    classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
+    classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
+```
 
 ### Browser Trajectory Replay
 
@@ -116,42 +126,25 @@ flowchart LR
     classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
 ```
 
-### Inspect, rebuild and share
+</details>
 
-```mermaid
-flowchart LR
-    A["Saved results<br/>and evidence"]:::evidence -->|Optional build / rebuild| B["Local HTML report"]:::run
-    B --> C["Drill down to each result<br/>Responses · actions · logs"]:::evidence
-    B -. Requested and authorized .-> D["Share through<br/>Artifact Site"]:::evidence
-    A -. On request .-> V["LLM verifier"]:::score
-    V -. Review findings .-> B
-    classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
-    classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
-    classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
-    classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
-```
+## Evaluation approach
 
-Rebuild from valid saved evidence without new participant calls. Verification adds review findings and does not automatically replace scores.
+Browser Eval aims for stable, reproducible results and a controlled, trustworthy evaluation process. Three principles guide the evaluation.
 
-Experimental [Browser Use](examples/browser_use/README.md) gives an Agent a task, lets it choose browser actions, and checks the recorded outcome with the task evaluator. It includes model and planning variation and is evaluated separately.
+1. **Prefer definite answers and programmatic scoring wherever possible, with minimal reliance on LLMs as judges**
 
-## Quickstart
+    When a task has clear answers and acceptance criteria, use code to check the result and reduce variation from model judgment. This does not exclude LLM judges entirely: graded Web Search relevance is a suitable use, with an explicit rubric and retained scoring evidence and grades.
 
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then run the offline example:
+2. **Do not introduce LLMs or Agents to execute the evaluation**
 
-```sh
-git clone https://github.com/lexmount/browser-eval.git
-cd browser-eval
-uv sync --frozen
-uv run --frozen browser-harness-eval validate
-uv run --frozen browser-harness-eval run --delay 0
-```
+    Web Fetch and Web Search call tools directly; compatibility tests run fixed probes; trajectory replay follows fixed actions. Participants follow the same task contracts, avoiding extra variation from LLM decisions and Agent planning. Each run retains its task inputs, code revisions and execution settings.
 
-Open the report path printed in the terminal. The example has one expected pass and one expected failure; it needs no browser, Docker or API key. Python 3.11–3.14 is supported; development uses 3.11.
+3. **Make results easy to review and verify**
 
-Next, [try HTTP, Moli or Chromium on a local article](examples/web_fetch/README.md). Optional adapters, service credentials and live evaluation commands are covered in the track guides above.
+    Use an LLM as a verifier to add a check of programmatic verdicts and their supporting evidence. Trigger verification only on request; it does not run by default. Generate local HTML reports with drilldown from aggregate metrics to every individual result, including raw responses, action traces, logs and scoring evidence. Reviewing every result manually is expensive, so reports must also support human sampling. Upload to Artifact Site only when publication is requested and authorized.
 
-The reusable ten-method Web Fetch cohort is selected with `--providers configured --provider-config configs/providers.example.json`; shared defaults are 30 seconds per call and one failure retry. See the [provider contract](docs/provider-contract.md#selected-native-cohort).
+See [evaluation design](docs/benchmarks.md#evaluation-design) for detailed scoring and verification requirements.
 
 ## Reports
 
@@ -172,11 +165,30 @@ When sharing is requested and publication is authorized, open Artifact Site ([Gl
 
 Scoring code ships with Browser Eval; dataset commits and file hashes are selected in [the data lock](src/harness/benchmarks/data-lock.json). Each report records its Browser Eval build and selected benchmark edition. See [versioning](docs/benchmarks.md#benchmark-editions) for comparison rules, [reference inputs](docs/reference-inputs.md) for historical data, and the [report guide](docs/report-hosting.md) for local builds and formal releases.
 
-## Versions
+<details>
+<summary>Report drilldown, rebuilding and sharing</summary>
 
-Published versions, changes and dependency snapshots are listed in [GitHub Releases](https://github.com/lexmount/browser-eval/releases). See [version rules](docs/releases.md) for release policy and report provenance.
+```mermaid
+flowchart LR
+    A["Saved results<br/>and evidence"]:::evidence -->|Optional build / rebuild| B["Local HTML report"]:::run
+    B --> C["Drill down to each result<br/>Responses · actions · logs"]:::evidence
+    B -. Requested and authorized .-> D["Share through<br/>Artifact Site"]:::evidence
+    A -. On request .-> V["LLM verifier"]:::score
+    V -. Review findings .-> B
+    classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
+    classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
+    classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
+    classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
+```
 
-## Datasets on Hugging Face
+Rebuild from valid saved evidence without new participant calls. Verification adds review findings and does not automatically replace scores.
+
+</details>
+
+## Datasets and code
+
+<details>
+<summary>Hugging Face datasets</summary>
 
 These links provide versioned tasks, acceptance contracts and reference inputs.
 
@@ -193,7 +205,10 @@ These links provide versioned tasks, acceptance contracts and reference inputs.
 
 Browser Eval wrote the 30 public-web replay tasks. Headless scenario designs informed some interactions; its executable cases and WebArena's tasks are not included in that suite. The task JSON fixes actions and expected outputs, while the target websites remain live.
 
-## Evaluation code and upstream sources
+</details>
+
+<details>
+<summary>Evaluation code and upstream sources</summary>
 
 Web Fetch and Web Search scoring code lives in this repository under [src/lexbench_webfetch/](src/lexbench_webfetch/) and [src/lexbench_websearch/](src/lexbench_websearch/). Install and run it through the quickstart above.
 
@@ -206,7 +221,10 @@ Web Fetch and Web Search scoring code lives in this repository under [src/lexben
 
 [Dependency sources and pins](docs/dependencies.md) cover Playwright, extraction libraries and supporting runtimes. [Third-party notices](THIRD_PARTY.md) cover attribution and data rights. Cite the benchmark and upstream data used alongside Browser Eval.
 
-## Browsers and tools
+</details>
+
+<details>
+<summary>Browsers and tools</summary>
 
 | Project | Type | Use |
 | --- | --- | --- |
@@ -215,6 +233,12 @@ Web Fetch and Web Search scoring code lives in this repository under [src/lexben
 | [CowAgent](https://github.com/zhayujie/CowAgent) | Agent framework | Web Fetch tool baseline and experimental Agent integration |
 | [OpenClaw](https://github.com/openclaw/openclaw) | Agent framework | Web Fetch tool baseline and experimental Agent integration |
 | [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | Agent framework | Web Fetch tool baseline and experimental Agent integration |
+
+</details>
+
+## Versions
+
+Published versions, changes and dependency snapshots are listed in [GitHub Releases](https://github.com/lexmount/browser-eval/releases). See [version rules](docs/releases.md) for release policy and report provenance.
 
 ## Contribute
 
