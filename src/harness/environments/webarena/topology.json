@@ -57,6 +57,7 @@
       "mutable": false,
       "port": 3000,
       "control_port": 3001,
+      "container_port": 8080,
       "recorded_ports": [3000],
       "official_trace_ports": [3000]
     },

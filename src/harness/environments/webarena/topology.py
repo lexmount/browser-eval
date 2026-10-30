@@ -33,12 +33,15 @@ def _load(path: Path) -> dict[str, Any]:
         if len(set(ports)) != 2 or set(ports) & used:
             raise ValueError(f"WebArena topology ports must be unique: {name}")
         used.update(ports)
-        if row["port"] not in row["recorded_ports"] or row["port"] not in row[
-            "official_trace_ports"
-        ]:
+        if (
+            row["port"] not in row["recorded_ports"]
+            or row["port"] not in row["official_trace_ports"]
+        ):
             raise ValueError(f"WebArena recorded ports must include the site port: {name}")
-        if bool(row["mutable"]) != ("credentials" in row and "container_port" in row):
+        if bool(row["mutable"]) != ("credentials" in row):
             raise ValueError(f"only mutable WebArena sites carry credentials: {name}")
+        if row["mutable"] and "container_port" not in row:
+            raise ValueError(f"mutable WebArena sites need a container port: {name}")
     return payload
 
 
@@ -68,7 +71,7 @@ SITE_URL_SUFFIX: dict[str, str] = {
     name: row["url_suffix"] for name, row in _SITES.items() if row.get("url_suffix")
 }
 SITE_CONTAINER_PORTS: dict[str, int] = {
-    name: int(row["container_port"]) for name, row in _SITES.items() if row["mutable"]
+    name: int(row["container_port"]) for name, row in _SITES.items() if "container_port" in row
 }
 RECORDED_PORT_SITES: dict[int, str] = {
     port: name for name, row in _SITES.items() for port in row["recorded_ports"]

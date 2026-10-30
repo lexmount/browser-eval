@@ -12,7 +12,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from harness.environments.webarena.topology import TOPOLOGY
+from harness.environments.webarena.topology import (
+    ENV_CTRL_CONTAINER_PORT,
+    SITE_CONTAINER_PORTS,
+    TOPOLOGY,
+)
 from harness.web_fetch.safety import unlinked_path, write_new_file
 
 SITES = ("shopping_admin", "shopping", "reddit", "gitlab", "map", "wikipedia")
@@ -211,6 +215,8 @@ def verify_deployment_contract(root: Path) -> dict:
             raise ValueError("deployment must reference the canonical image lock")
     if set(delivery.get("components") or {}) != sites - {"wikipedia"}:
         raise ValueError("site delivery inventory differs")
+    if set(SITE_CONTAINER_PORTS) != set(delivery["components"]):
+        raise ValueError("topology registry container ports differ from site delivery")
     for site in sites:
         image = lock["images"][site]
         if not re.fullmatch(r".+@sha256:[a-f0-9]{64}", image.get("pinned", "")):
@@ -234,6 +240,13 @@ def verify_deployment_contract(root: Path) -> dict:
         if component is not None:
             if "image" in component or component.get("architecture") != image["architecture"]:
                 raise ValueError(f"site delivery must use the canonical image identity: {site}")
+            if (component.get("service_port"), component.get("control_port")) != (
+                SITE_CONTAINER_PORTS[site],
+                ENV_CTRL_CONTAINER_PORT,
+            ):
+                raise ValueError(
+                    f"site delivery container ports differ from the topology registry: {site}"
+                )
     map_site = delivery["components"]["map"]
     names = [Path(urlparse(url).path).name for url in map_site["data_urls"]]
     digests = map_site["data_archive_sha256"]

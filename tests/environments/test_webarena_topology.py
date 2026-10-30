@@ -108,6 +108,7 @@ def test_registry_reproduces_frozen_port_and_host_tables() -> None:
         "shopping_admin": 80,
         "reddit": 80,
         "gitlab": 8023,
+        "map": 8080,
     }
     assert set(topology.TOPOLOGY["sites"]) == set(SITES)
     assert sorted(remote_runtime.UNREBOUND_SOURCE_HOST.pattern.split("|")) == sorted(
@@ -191,10 +192,7 @@ def test_public_redaction_still_removes_every_site_password() -> None:
     assert topology.known_site_secrets() == FROZEN_SECRETS
 
 
-def test_deployment_contract_rejects_template_ports_that_leave_the_registry(
-    tmp_path: Path,
-) -> None:
-    assert verify_deployment_contract(ROOT)["status"] == "pass"
+def _copy_deployment_contract(root: Path) -> None:
     for relative in (
         "evaluation/browser-use-public/webarena-environment-images.json",
         "deploy/webarena/runtime.example.json",
@@ -202,9 +200,16 @@ def test_deployment_contract_rejects_template_ports_that_leave_the_registry(
         "examples/trajectory_replay/public_webarena/webarena.config.example.json",
         "examples/trajectory_replay/public_webarena/rainbond-pool.example.json",
     ):
-        target = tmp_path / relative
+        target = root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes((ROOT / relative).read_bytes())
+
+
+def test_deployment_contract_rejects_template_ports_that_leave_the_registry(
+    tmp_path: Path,
+) -> None:
+    assert verify_deployment_contract(ROOT)["status"] == "pass"
+    _copy_deployment_contract(tmp_path)
     runtime_path = tmp_path / "deploy/webarena/runtime.example.json"
     evaluation_path = (
         tmp_path / "examples/trajectory_replay/public_webarena/webarena.config.example.json"
@@ -217,6 +222,33 @@ def test_deployment_contract_rejects_template_ports_that_leave_the_registry(
     evaluation_path.write_text(json.dumps(evaluation), encoding="utf-8")
 
     with pytest.raises(ValueError, match="topology registry: reddit"):
+        verify_deployment_contract(tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("site", "field", "value"),
+    [
+        ("gitlab", "service_port", 80),
+        ("map", "service_port", 80),
+        ("reddit", "control_port", 8878),
+    ],
+)
+def test_deployment_contract_rejects_delivery_ports_that_leave_the_registry(
+    tmp_path: Path, site: str, field: str, value: int
+) -> None:
+    _copy_deployment_contract(tmp_path)
+    delivery_path = tmp_path / "deploy/webarena/site-delivery-contract.json"
+    delivery = json.loads(delivery_path.read_text(encoding="utf-8"))
+    assert (
+        delivery["components"][site]["service_port"],
+        delivery["components"][site]["control_port"],
+    ) == (topology.SITE_CONTAINER_PORTS[site], topology.ENV_CTRL_CONTAINER_PORT)
+    delivery["components"][site][field] = value
+    delivery_path.write_text(json.dumps(delivery), encoding="utf-8")
+
+    with pytest.raises(
+        ValueError, match=f"container ports differ from the topology registry: {site}"
+    ):
         verify_deployment_contract(tmp_path)
 
 
@@ -249,4 +281,3 @@ assert site_url('shopping_admin', 'h') == 'http://h:7780/admin'
 """
     result = subprocess.run([sys.executable, "-c", program], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
-
