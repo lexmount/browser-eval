@@ -14,6 +14,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -23,6 +24,8 @@ GOLDEN_DIR = Path(__file__).parent / "golden"
 BUILD_ROOT_TOKEN = b"<build-root>"
 PATH_INPUT_TOKEN = b"<path-bearing-input-sha256>"
 SOURCE_DIGEST_TOKEN = b"<source-sha256>"
+
+
 def normalized_routes(
     output: Path,
     build_root: Path,
@@ -67,8 +70,12 @@ def check_golden(
     actual = {route: hashlib.sha256(content).hexdigest() for route, content in routes.items()}
     keep = os.environ.get("GOLDEN_KEEP")
     if keep:
+        # Start from an empty directory so routes removed since a previous
+        # build cannot linger and hide the removal from ``diff -r``.
+        destination = Path(keep) / name
+        shutil.rmtree(destination, ignore_errors=True)
         for route, content in routes.items():
-            target = Path(keep) / name / route
+            target = destination / route
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(content)
     path = GOLDEN_DIR / f"{name}.json"
