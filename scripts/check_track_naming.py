@@ -3,6 +3,8 @@
 
 from __future__ import annotations
 
+from harness.distribution import source_path
+
 import re
 from pathlib import Path
 
@@ -90,16 +92,16 @@ def repository_contract_findings(root: Path) -> list[str]:
         )
     specialized_catalog_modules = sorted(
         path.relative_to(root).as_posix()
-        for path in (root / "harness" / "trajectory_replay").glob("*full*catalog*.py")
+        for path in (source_path("harness", root=root) / "trajectory_replay").glob("*full*catalog*.py")
     )
     if specialized_catalog_modules:
         findings.append(
             "catalog contracts belong in the shared pipeline, not full-dataset modules: "
             + ", ".join(specialized_catalog_modules)
         )
-    contracts_path = root / "harness" / "trajectory_replay" / "catalog_contracts.py"
+    contracts_path = source_path("harness", root=root) / "trajectory_replay" / "catalog_contracts.py"
     schema_implementation_paths = [
-        *(root / "harness" / "trajectory_replay").glob("*.py"),
+        *(source_path("harness", root=root) / "trajectory_replay").glob("*.py"),
         *(root / "scripts").glob("*.py"),
     ]
     legacy_schema_prefixes = (

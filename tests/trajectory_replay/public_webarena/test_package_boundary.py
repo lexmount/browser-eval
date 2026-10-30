@@ -7,15 +7,17 @@ import subprocess
 import sys
 from pathlib import Path
 
+from harness.trajectory_replay.report_inputs import replay_input_path
+
 ROOT = Path(__file__).resolve().parents[3]
 
 
 def test_suites_have_separate_task_contracts() -> None:
     curated = json.loads(
-        (ROOT / "examples/trajectory_replay/tasks.v4.json").read_text(encoding="utf-8")
+        (replay_input_path(current="curated")).read_text(encoding="utf-8")
     )
     webarena = json.loads(
-        (ROOT / "evaluation/browser-use-public/webarena-human-suite.json").read_text(
+        (replay_input_path(current="human-candidates")).read_text(
             encoding="utf-8"
         )
     )

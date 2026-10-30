@@ -10,7 +10,7 @@ Three jobs run independently:
 | Installation and packaging | Base installation and CLI language checks, sdist/pip installation, wheel smoke checks and all existing optional installation profiles |
 | Rendered reference and report checks | Chromium reference capture, report interactions and Web Search visual checks |
 
-The Python suite uses two workers with `--dist loadfile`, keeping each test file in one process. Slow-test durations appear in the job log. Local `make ci` remains serial by default; use `make ci PYTEST_ARGS='-n 2 --dist loadfile --durations=20'` for the same test scheduling.
+The Python suite uses the worker count configured in `ci.yml`, with `--dist loadfile` keeping each test file in one process. Slow-test durations appear in the job log. Local `make ci` remains serial by default; use `make ci PYTEST_ARGS='-n 4 --dist loadfile --durations=20'` for parallel test scheduling.
 
 OCR loads `docs/references/review-guidelines.md`: the shared guide copied from `lexmount/ai-template-py`, with its source commit in the first line, followed by Browser Eval's supplement. To update the shared section, copy the new upstream text in an ordinary PR and update the commit.
 

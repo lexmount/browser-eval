@@ -27,6 +27,31 @@ def verify_dependency_metadata(source_root: Path) -> None:
         raise ValueError('Installed WebArena dependency differs from declared fork')
 
 
+
+def verify_search_implementation_freeze(source_root: Path) -> None:
+    """Installed collection provenance keeps logical keys and exact source bytes."""
+    from harness.web_search.runner import freeze_implementation
+    from harness.web_search.core import digest
+    from harness.distribution import source_path
+
+    with tempfile.TemporaryDirectory(prefix='installed-search-freeze-') as work:
+        output = Path(work)
+        sources = freeze_implementation(output)
+        assert {"uv.lock", "pyproject.toml", "harness/web_search/runner.py"}.issubset(sources)
+        for logical, expected in sources.items():
+            frozen = output / 'implementation' / logical
+            original = source_path(logical, root=source_root)
+            assert frozen.read_bytes() == original.read_bytes()
+            assert digest(frozen.read_bytes()) == expected
+
+
+def verify_base_dataset_selection() -> None:
+    """Dataset selection must not require the optional publication extra."""
+    from harness.benchmarks.pinning import validate_selected_binding
+
+    assert validate_selected_binding({'revision': 'a' * 40}) == 'a' * 40
+
+
 def verify_lexbench_input_ownership(source_root: Path) -> None:
     from harness.web_fetch.native_projection import native_projection_regressions
     from harness.web_fetch.local_revision import _require_revision_regressions
@@ -44,21 +69,32 @@ def verify_lexbench_input_ownership(source_root: Path) -> None:
         raise AssertionError('Installed harness allowed writes to frozen benchmark inputs')
 
 
-def verify_package_tree(source_root: Path, package_root: Path) -> None:
+def verify_package_tree(source_root: Path, package_root: Path, *, package_name='harness') -> None:
     """Require the installed library's exact current source and declared assets."""
     from harness.distribution import installed_data_path
 
-    source = source_root / 'harness'
+    project = tomllib.loads((source_root / 'pyproject.toml').read_text())
+    directories = project['tool']['setuptools'].get('package-dir', {})
+
+    def source_directory(package):
+        owners = [name for name in directories if package == name or package.startswith(name + '.')]
+        if owners:
+            owner = max(owners, key=len)
+            return source_root / directories[owner] / package[len(owner):].lstrip('.').replace('.', '/')
+        return source_root / directories.get('', '') / package.replace('.', '/')
+
+    source = source_directory(package_name)
     if source.is_symlink() or package_root.is_symlink():
         raise ValueError('Package roots must not be symlinked')
     expected = {path.relative_to(source).as_posix(): path for path in source.rglob('*.py')}
-    project = tomllib.loads((source_root / 'pyproject.toml').read_text())
     for package, patterns in project['tool']['setuptools'].get('package-data', {}).items():
-        for directory in source_root.glob(package.replace('.', '/')):
-            for pattern in patterns:
-                for path in directory.glob(pattern):
-                    if path.is_file():
-                        expected[path.relative_to(source).as_posix()] = path
+        if package != package_name and not package.startswith(package_name + '.'):
+            continue
+        directory = source_directory(package)
+        for pattern in patterns:
+            for path in directory.glob(pattern):
+                if path.is_file():
+                    expected[path.relative_to(source).as_posix()] = path
     for destination, patterns in project['tool']['setuptools'].get('data-files', {}).items():
         for pattern in patterns:
             for path in source_root.glob(pattern):
@@ -245,6 +281,11 @@ def verify_sample_assembly(root: Path, source_root: Path) -> None:
 
 def verify_lexbench_package(root: Path, renderer: Path) -> None:
     from harness.lexbench.pack import package
+
+    subprocess.run(
+        [sys.executable, '-m', 'harness.lexbench.report', '--help'],
+        cwd=root, check=True, capture_output=True, text=True,
+    )
 
     source = root / 'lexbench-source'
     source.mkdir()
@@ -1604,7 +1645,15 @@ def main():
     if installed.is_relative_to(args.source_root.resolve()):
         raise ValueError('Package smoke must use an installed distribution outside the checkout')
     verify_package_tree(args.source_root, installed)
+    from importlib import import_module
+    for package_name in ('lexbench_webfetch', 'lexbench_websearch'):
+        package_root = Path(import_module(package_name).__file__).resolve().parent
+        if package_root.is_relative_to(args.source_root.resolve()):
+            raise ValueError('Package smoke imported source instead of installed ' + package_name)
+        verify_package_tree(args.source_root, package_root, package_name=package_name)
     verify_dependency_metadata(args.source_root)
+    verify_base_dataset_selection()
+    verify_search_implementation_freeze(args.source_root)
     verify_lexbench_input_ownership(args.source_root)
     from harness.web_fetch.webmainbench_correction import CONTROL_IDS, regression_registry_path
 

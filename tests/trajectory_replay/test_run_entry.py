@@ -234,3 +234,25 @@ def test_wrapper_accepts_system_temp_aliases(tmp_path, wrapper_environment, alia
         calls = log.read_text().splitlines()
         assert calls[calls.index('--output') + 1] == str(root / 'new-run')
         assert (root / 'new-run').is_dir()
+
+
+@pytest.mark.parametrize("exit_code", [0, 23])
+def test_wrapper_no_report_keeps_evidence_paths_and_failure_status(
+    tmp_path, wrapper_environment, exit_code
+):
+    env, log = wrapper_environment
+    env["CALL_EXIT"] = str(exit_code)
+    result = subprocess.run(
+        ["/bin/bash", str(ROOT / "examples/trajectory_replay/run.sh"), "--no-report"],
+        cwd=tmp_path, env=env, capture_output=True, text=True,
+    )
+    assert result.returncode == exit_code, result.stderr
+    calls = log.read_text().splitlines()
+    assert calls.count("--no-report") == 1
+    output = Path(calls[calls.index("--output") + 1])
+    assert output.is_relative_to(Path(env["BROWSER_EVAL_DATA_HOME"]))
+    assert Path(calls[calls.index("--reports") + 1]) == output / "report"
+    assert output.is_dir()
+    assert not (output / "report").exists()
+    assert "Latest report:" not in result.stdout
+    assert ("--artifacts" in calls) is (exit_code == 0)

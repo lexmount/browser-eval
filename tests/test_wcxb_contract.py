@@ -7,18 +7,23 @@ from pathlib import Path
 from harness.web_fetch.report import format_wcxb_conditional_latency
 from harness.web_fetch.wcxb_dataset import choose, full_test_exclusions, validate_manifest
 from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
-from harness.web_fetch.wcxb_scoring import classify, official_evaluator, percentile
+from harness.web_fetch.wcxb_scoring import classify, score, percentile
 from harness.web_fetch.webmainbench_runner import PROVIDERS, WCXB_PROVIDERS
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class WCXBContractTests(unittest.TestCase):
-    def test_changed_official_evaluator_is_rejected_before_import(self):
+    def test_unknown_metric_provenance_is_rejected_without_external_code(self):
+        from tests.wcxb_fixture import create_cohort
         with tempfile.TemporaryDirectory() as folder:
-            (Path(folder) / 'evaluate.py').write_text('raise RuntimeError("executed")\n')
-            with self.assertRaisesRegex(ValueError, 'official evaluator hash differs'):
-                official_evaluator(Path(folder), '0' * 64)
+            cohort = create_cohort(Path(folder))
+            (cohort['source'] / 'evaluate.py').write_text('raise RuntimeError("executed")\n')
+            profile = json.loads(cohort['profile_path'].read_text())
+            profile['official_evaluator_sha256'] = '0' * 64
+            cohort['profile_path'].write_text(json.dumps(profile))
+            with self.assertRaisesRegex(ValueError, 'unsupported official metric provenance'):
+                score(**cohort)
 
     def test_conditional_latency_is_unavailable_without_delivered_pages(self):
         self.assertEqual(format_wcxb_conditional_latency(None), '—')

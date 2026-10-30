@@ -148,3 +148,54 @@ def test_generated_caches_do_not_change_installed_build_identity(tmp_path, monke
     (cache / 'metadata.json').write_text('{}')
     (module.parent / 'versions.pyc').write_bytes(b'compiled cache')
     assert versions.software_identity.__wrapped__() == original
+
+
+@pytest.mark.parametrize('scorer', ['lexbench_webfetch', 'lexbench_websearch'])
+def test_installed_scorer_sources_are_part_of_the_build_identity(tmp_path, monkeypatch, scorer):
+    module = tmp_path/'installed/harness/reporting/versions.py'
+    module.parent.mkdir(parents=True)
+    module.write_text('report builder')
+    target = tmp_path/'installed'/scorer/'scoring.py'
+    target.parent.mkdir()
+    target.write_text('score = 1')
+    unrelated = tmp_path/'unrelated-checkout'
+    (unrelated/'.git').mkdir(parents=True)
+    monkeypatch.chdir(unrelated)
+    monkeypatch.setattr(versions, '__file__', str(module))
+    original = versions.software_identity.__wrapped__()
+    target.write_text('score = 2')
+    changed = versions.software_identity.__wrapped__()
+    assert changed['source_sha256'] != original['source_sha256']
+    assert changed['revision'] is None
+    assert not changed['modified']
+    target.unlink()
+    assert versions.software_identity.__wrapped__()['source_sha256'] not in {
+        original['source_sha256'], changed['source_sha256']}
+
+
+@pytest.mark.parametrize('scorer', ['lexbench_webfetch', 'lexbench_websearch'])
+@pytest.mark.parametrize('untracked', [False, True])
+def test_checkout_scorer_edits_mark_the_builder_modified(tmp_path, monkeypatch, scorer, untracked):
+    import subprocess
+    module = tmp_path/'checkout/src/harness/reporting/versions.py'
+    module.parent.mkdir(parents=True)
+    module.write_text('report builder')
+    root = module.parents[3]
+    (root/'pyproject.toml').write_text('[project]\nname="fixture"\nversion="1.0.0"\n')
+    target = root/'src'/scorer/'scoring.py'
+    target.parent.mkdir()
+    target.write_text('score = 1')
+    for args in [('init', '-q'), ('add', '.'),
+                 ('-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.test',
+                  'commit', '-qm', 'Initial sources')]:
+        subprocess.run(['git', *args], cwd=root, check=True, capture_output=True)
+    monkeypatch.setattr(versions, '__file__', str(module))
+    original = versions.software_identity.__wrapped__()
+    assert not original['modified']
+    if untracked:
+        target = target.with_name('new_rule.py')
+    target.write_text('score = 2')
+    changed = versions.software_identity.__wrapped__()
+    assert changed['modified']
+    assert changed['source_sha256'] != original['source_sha256']
+    assert changed['revision'] == original['revision']

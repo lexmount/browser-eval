@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from harness.trajectory_replay.public_webarena.qualification import build_native_scope
+from harness.trajectory_replay.report_inputs import replay_input_path
 
 
 @pytest.fixture
@@ -81,7 +82,7 @@ def test_scope_command_preserves_existing_output_before_inspecting_inputs(tmp_pa
 
 def test_amd64_scope_excludes_non_native_and_unscoreable_tasks():
     result = build_native_scope(
-        Path("evaluation/browser-use-public/webarena-human-suite.json"),
+        replay_input_path(current="human-candidates"),
         Path("evaluation/browser-use-public/webarena-environment-images.json"),
         "amd64",
     )

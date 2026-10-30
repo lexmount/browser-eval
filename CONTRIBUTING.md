@@ -1,6 +1,6 @@
 # Contributing
 
-PRs are welcome for adapters, execution fixes, tests, documentation and translations. Self-authored Web Fetch task requirements are maintained in [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch); see [benchmark boundaries](docs/benchmarks.md). Run the [offline example](README.md#quickstart), then open the guide for the track you want to change.
+PRs are welcome for adapters, execution fixes, tests, documentation and translations. Public task definitions are versioned on [Hugging Face](https://huggingface.co/Lexmount); scoring code is maintained here; see [benchmark boundaries](docs/benchmarks.md). Run the [offline example](README.md#quickstart), then open the guide for the track you want to change.
 
 ## Report a bug
 
@@ -11,11 +11,11 @@ Include the task ID, method and versions, OS, command and sanitized error. Remov
 | Change | Where it belongs |
 | --- | --- |
 | Browser or provider adapter | Existing execution modules; see the [provider contract](docs/provider-contract.md) |
-| LexBench Web Fetch task requirements | [Benchmark repository](https://github.com/lexmount/lexbench-webfetch), applied to every method |
+| LexBench-Web-Fetch task requirements | Hugging Face task definitions, applied to every method |
 | Scoring fix | Shared scorer, scenario regressions and a recorded correction reason |
 | New browser, version or sample size | Configuration or registry; reuse the runner and renderer |
 | New report instance | An external instance profile, evidence and report content; reuse its build and release commands |
-| Reusable logic | `harness/`; `scripts/` stays a thin command entry point |
+| Reusable logic | `src/harness/`; `scripts/` stays a thin command entry point |
 
 Use English for identifiers, comments and docstrings. Store report interface text
 in language catalogs, and select it through the existing report language contract.
@@ -23,7 +23,7 @@ Keep original-language task text, source quotations and multilingual test fixtur
 of shared renderers: read them from the selected profile and bound evidence.
 Published historical reports retain their own content and provenance.
 
-Use absolute Python imports and keep ordinary imports at the top of the module.
+Use absolute Python imports and keep ordinary imports at the top of the module. Existing scorer modules retain import spelling required by published source-hash receipts; use absolute imports in new modules.
 Keep an import local when loading an optional dependency, preparing a runtime
 module, avoiding a circular import or preserving test isolation.
 
@@ -38,14 +38,14 @@ changed task populations or requests require a major edition.
 
 ## Update Web Fetch dependencies and methods
 
-Update the pinned evaluator with `make bump-lexbench REV=<full merged commit>`.
-It verifies upstream main ancestry and updates the lock and definition hashes.
+Select a published dataset with `make pin-dataset DATASET=<track> REV=<full-HF-commit>`.
+It verifies the archive and file hashes before updating the data lock and import bindings. Scorer changes belong in this repository and use the existing scenario regressions.
 Historical report certificates retain their original evaluator identities.
 
-Register Web Fetch products in `harness/web_fetch/data/report-methods.json`;
+Register Web Fetch products in `src/harness/web_fetch/data/report-methods.json`;
 executable versions and run parameters come from saved evidence. See
-[method metadata](harness/web_fetch/README.md#report-method-metadata) and
-[adding a method or release](harness/web_fetch/README.md#adding-a-method-or-release).
+[method metadata](src/harness/web_fetch/README.md#report-method-metadata) and
+[adding a method or release](src/harness/web_fetch/README.md#adding-a-method-or-release).
 
 ## PR and commit titles
 

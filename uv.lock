@@ -294,9 +294,8 @@ source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
     { name = "fastcdc" },
-    { name = "lexbench-webfetch" },
-    { name = "lexbench-websearch" },
     { name = "python-dotenv" },
+    { name = "soupsieve" },
 ]
 
 [package.optional-dependencies]
@@ -310,6 +309,10 @@ browser-use-eval = [
     { name = "requests" },
     { name = "tiktoken" },
     { name = "webarena-verified" },
+]
+dataset-publish = [
+    { name = "huggingface-hub" },
+    { name = "pyyaml" },
 ]
 headless-eval = [
     { name = "docker" },
@@ -327,11 +330,16 @@ reference-audit = [
     { name = "beautifulsoup4" },
     { name = "pypdf" },
     { name = "requests" },
+    { name = "soupsieve" },
 ]
 test = [
     { name = "pytest" },
     { name = "pytest-xdist" },
     { name = "ruff" },
+]
+tree = [
+    { name = "apted" },
+    { name = "rapidfuzz" },
 ]
 webmainbench-eval = [
     { name = "apted" },
@@ -344,19 +352,19 @@ webmainbench-eval = [
 
 [package.metadata]
 requires-dist = [
+    { name = "apted", marker = "extra == 'tree'", specifier = "==1.0.3" },
     { name = "apted", marker = "extra == 'webmainbench-eval'", specifier = "==1.0.3" },
-    { name = "beautifulsoup4", specifier = ">=4.12,<5" },
-    { name = "beautifulsoup4", marker = "extra == 'reference-audit'", specifier = ">=4.12,<5" },
+    { name = "beautifulsoup4", specifier = "==4.14.2" },
+    { name = "beautifulsoup4", marker = "extra == 'reference-audit'", specifier = "==4.14.2" },
     { name = "beautifulsoup4", marker = "extra == 'webmainbench-eval'", specifier = "==4.14.2" },
     { name = "crawl4ai", marker = "extra == 'oss-eval'", specifier = "==0.9.3" },
     { name = "docker", marker = "extra == 'browser-use-eval'", specifier = ">=7,<8" },
     { name = "docker", marker = "extra == 'headless-eval'", specifier = ">=7,<8" },
     { name = "fastcdc", specifier = "==1.7.0" },
+    { name = "huggingface-hub", marker = "extra == 'dataset-publish'", specifier = "==1.31.0" },
     { name = "jieba", marker = "extra == 'webmainbench-eval'", specifier = "==0.42.1" },
     { name = "json-repair", marker = "extra == 'browser-use-eval'", specifier = ">=0.54,<1" },
     { name = "langchain-community", marker = "extra == 'oss-eval'", specifier = "==0.3.30" },
-    { name = "lexbench-webfetch", git = "https://github.com/lexmount/lexbench-webfetch.git?rev=d0e78e71cf5145217cb1f2b71420a7c4194d80dd" },
-    { name = "lexbench-websearch", git = "https://github.com/lexmount/lexbench-websearch.git?rev=f07a2e2ddf1c1c511cb3944659534301c86ff9c9" },
     { name = "markdown", marker = "extra == 'webmainbench-eval'", specifier = ">=3.7,<4" },
     { name = "openai", marker = "extra == 'webmainbench-eval'", specifier = ">=2.8,<4" },
     { name = "openpyxl", marker = "extra == 'oss-eval'", specifier = "==3.1.5" },
@@ -371,15 +379,19 @@ requires-dist = [
     { name = "python-dotenv", specifier = "==1.1.1" },
     { name = "python-pptx", marker = "extra == 'oss-eval'", specifier = "==1.0.2" },
     { name = "pyyaml", marker = "extra == 'browser-use-eval'", specifier = ">=6,<7" },
+    { name = "pyyaml", marker = "extra == 'dataset-publish'", specifier = ">=6,<7" },
+    { name = "rapidfuzz", marker = "extra == 'tree'", specifier = "==3.14.1" },
     { name = "rapidfuzz", marker = "extra == 'webmainbench-eval'", specifier = "==3.14.1" },
     { name = "regex", marker = "extra == 'browser-use-eval'", specifier = ">=2025.7,<2027" },
     { name = "requests", marker = "extra == 'browser-use-eval'", specifier = ">=2.32,<3" },
     { name = "requests", marker = "extra == 'reference-audit'", specifier = ">=2.32,<3" },
     { name = "ruff", marker = "extra == 'test'", specifier = ">=0.9,<1" },
+    { name = "soupsieve", specifier = "==2.9.2" },
+    { name = "soupsieve", marker = "extra == 'reference-audit'", specifier = "==2.9.2" },
     { name = "tiktoken", marker = "extra == 'browser-use-eval'", specifier = ">=0.7,<1" },
     { name = "webarena-verified", marker = "extra == 'browser-use-eval'", git = "https://github.com/lexmount/webarena-verified.git?rev=da7b992eb10de78000f11a7f34fd4590c171fbd6" },
 ]
-provides-extras = ["headless-eval", "reference-audit", "webmainbench-eval", "browser-use-eval", "test", "oss-eval"]
+provides-extras = ["dataset-publish", "tree", "headless-eval", "reference-audit", "webmainbench-eval", "browser-use-eval", "test", "oss-eval"]
 
 [[package]]
 name = "certifi"
@@ -1940,20 +1952,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/da/34/28fff3ab31ccff1fd
 wheels = [
     { url = "https://files.pythonhosted.org/packages/82/3d/14ce75ef66813643812f3093ab17e46d3a206942ce7376d31ec2d36229e7/lark-1.3.1-py3-none-any.whl", hash = "sha256:c629b661023a014c37da873b4ff58a817398d12635d3bbb2c5a03be7fe5d1e12", size = 113151, upload-time = "2025-10-27T18:25:54.882Z" },
 ]
-
-[[package]]
-name = "lexbench-webfetch"
-version = "0.3.0"
-source = { git = "https://github.com/lexmount/lexbench-webfetch.git?rev=d0e78e71cf5145217cb1f2b71420a7c4194d80dd#d0e78e71cf5145217cb1f2b71420a7c4194d80dd" }
-dependencies = [
-    { name = "beautifulsoup4" },
-    { name = "soupsieve" },
-]
-
-[[package]]
-name = "lexbench-websearch"
-version = "0.1.1"
-source = { git = "https://github.com/lexmount/lexbench-websearch.git?rev=f07a2e2ddf1c1c511cb3944659534301c86ff9c9#f07a2e2ddf1c1c511cb3944659534301c86ff9c9" }
 
 [[package]]
 name = "lxml"

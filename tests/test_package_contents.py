@@ -25,30 +25,33 @@ def test_installed_optional_dependency_preserves_declared_source(tmp_path, monke
             verify_dependency_metadata(tmp_path)
 
 
-@pytest.fixture
-def package(tmp_path):
+@pytest.fixture(params=['harness', 'lexbench_webfetch', 'lexbench_websearch'])
+def package(tmp_path, request):
     source, installed = tmp_path / 'source', tmp_path / 'installed'
-    (source / 'harness/example/data').mkdir(parents=True)
-    (source / 'harness/example/__init__.py').write_text('VALUE = 1\n')
-    (source / 'harness/example/data/tasks.json').write_text('{"task":"synthetic"}\n')
+    name = request.param
+    directory = 'src/' + name
+    (source / directory / 'example/data').mkdir(parents=True)
+    (source / directory / 'example/__init__.py').write_text('VALUE = 1\n')
+    (source / directory / 'example/data/tasks.json').write_text('{"task":"synthetic"}\n')
     (source / 'pyproject.toml').write_text(
-        '[tool.setuptools.package-data]\n"harness.example" = ["data/*.json"]\n')
-    shutil.copytree(source / 'harness', installed)
-    return source, installed
+        '[tool.setuptools.package-dir]\n' + name + ' = "' + directory + '"\n'
+        '[tool.setuptools.package-data]\n"' + name + '.example" = ["data/*.json"]\n')
+    shutil.copytree(source / directory, installed)
+    return source, installed, name
 
 
 def test_current_modules_and_declared_assets_are_accepted(package):
-    source, installed = package
+    source, installed, name = package
     (installed / 'example/__pycache__').mkdir()
     (installed / 'example/__pycache__/__init__.cpython-311.pyc').write_bytes(b'local bytecode')
-    verify_package_tree(source, installed)
+    verify_package_tree(source, installed, package_name=name)
 
 
 @pytest.mark.parametrize('damage', ['missing-module', 'missing-asset', 'changed-module',
                                    'changed-asset', 'retired-module', 'unbound-asset',
                                    'linked-module', 'linked-root'])
 def test_stale_missing_changed_or_linked_package_is_rejected(package, damage, tmp_path):
-    source, installed = package
+    source, installed, name = package
     module = installed / 'example/__init__.py'
     asset = installed / 'example/data/tasks.json'
     if damage == 'missing-module':
@@ -73,4 +76,4 @@ def test_stale_missing_changed_or_linked_package_is_rejected(package, damage, tm
         linked.symlink_to(installed, target_is_directory=True)
         installed = linked
     with pytest.raises(ValueError):
-        verify_package_tree(source, installed)
+        verify_package_tree(source, installed, package_name=name)

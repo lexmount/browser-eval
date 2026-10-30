@@ -15,6 +15,7 @@ setup:
 setup-test:
 	$(UV) sync --frozen --all-extras
 	npm ci
+	$(TEST_PY) -m harness.benchmarks.data
 
 import-env:
 	$(PY) scripts/import_benchmark_env.py
@@ -199,7 +200,7 @@ webmainbench-apply-case-correction: runtime-check
 webmainbench-run: runtime-check
 	@test -n "$(PROVIDER)" || (echo 'PROVIDER is required' >&2; exit 2)
 	@test -n "$(OUTPUT)" || (echo 'OUTPUT=/absolute/path/to/provider-shard is required' >&2; exit 2)
-	$(UV) run --frozen --extra headless-eval python scripts/run_webmainbench_benchmark.py --provider "$(PROVIDER)" --case-ids-file "$(WEBMAINBENCH_SAMPLE)" --output "$(OUTPUT)"
+	$(UV) run --frozen --extra headless-eval python scripts/run_webmainbench_benchmark.py --provider "$(PROVIDER)" --case-ids-file "$(WEBMAINBENCH_SAMPLE)" --output "$(OUTPUT)" $(if $(SOURCE),--dataset "$(SOURCE)",)
 
 webmainbench-score: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path/to/provider-shard is required' >&2; exit 2)
@@ -224,7 +225,7 @@ webmainbench-assemble: runtime-check
 test-native-adapters:
 	node --test tests/test_public_dns.mjs tests/test_dsh_output.mjs
 
-.PHONY: bump-lexbench
-bump-lexbench:
-	@test -n "$(REV)" || (echo 'REV=<full merged LexBench commit> is required' >&2; exit 2)
-	$(PY) scripts/bump_lexbench.py --revision "$(REV)" --uv "$(UV)" --benchmark "$(or $(BENCHMARK),lexbench-webfetch)"
+.PHONY: pin-dataset
+pin-dataset:
+	@test -n "$(DATASET)" -a -n "$(REV)" || (echo 'DATASET=<track> REV=<full Hugging Face commit> are required' >&2; exit 2)
+	$(PY) -m harness.benchmarks.pinning --track "$(DATASET)" --revision "$(REV)"

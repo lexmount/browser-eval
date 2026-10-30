@@ -10,7 +10,10 @@ from pathlib import Path
 from harness.trajectory_replay.public_webarena.diagnostics import diagnose_summary
 from harness.trajectory_replay.public_webarena.metrics import summarize_attempts
 from harness.trajectory_replay.public_webarena.report import REPORT_STEM, write_latest_report
-from harness.trajectory_replay.public_webarena.suite import load_suite, validate_ground_truth_evidence
+from harness.trajectory_replay.public_webarena.suite import (
+    load_suite,
+    validate_ground_truth_evidence,
+)
 
 
 def validate_task_binding(
@@ -26,7 +29,9 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--artifacts", default="artifacts/browser_use/latest")
     parser.add_argument("--reports", default="docs/reports")
-    parser.add_argument("--suite", default="examples/trajectory_replay/public_webarena/tasks.v4.json")
+    parser.add_argument(
+        "--suite", help="Explicit historical suite; otherwise recover the manifest-bound HF input"
+    )
     parser.add_argument(
         "--ground-truth-evidence",
         default=None,
@@ -38,13 +43,16 @@ def main() -> None:
     args = parser.parse_args()
 
     artifact_dir = Path(args.artifacts)
-    suite_path = Path(args.suite)
     rows = [
         json.loads(line)
         for line in (artifact_dir / "attempts.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
     manifest = json.loads((artifact_dir / "manifest.json").read_text(encoding="utf-8"))
+    from harness.trajectory_replay.report_inputs import replay_suite_for_hash
+    suite_path = Path(args.suite) if args.suite else replay_suite_for_hash(
+        manifest.get('suite_sha256'), family='human', dataset=manifest.get('suite_dataset')
+    )
     suite = load_suite(suite_path)
     suite_sha256 = hashlib.sha256(suite_path.read_bytes()).hexdigest()
     if manifest.get("suite_sha256") != suite_sha256:

@@ -26,7 +26,7 @@ They must never be added to `metadata`, content, manifest or logs.
 
 ## Add an adapter
 
-1. Implement `Provider` and register its type in `harness/web_fetch/providers/base.py`.
+1. Implement `Provider` and register its type in `src/harness/web_fetch/providers/base.py`.
 2. Add an example configuration and tests using local fixtures.
 3. Assign its output contract in `methods.py`.
 
@@ -95,7 +95,7 @@ different version before calls; the converter itself ships in the wheel.
 ## Third-party tools and library workers
 
 Repository-native third-party workers ship under
-`harness/web_fetch/workers/` in both source and wheel distributions. Commands
+`src/harness/web_fetch/workers/` in both source and wheel distributions. Commands
 and `required_paths` use `{harness_root}/harness/web_fetch/workers/<worker>`;
 the same configuration resolves package assets outside a checkout. Python
 library workers require the `oss-eval` extra and an explicit interpreter from

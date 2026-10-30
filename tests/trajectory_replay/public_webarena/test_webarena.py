@@ -12,10 +12,11 @@ from harness.trajectory_replay.public_webarena.webarena import (
     normalize_playwright_selector,
     parse_drive_folder_html,
 )
+from harness.trajectory_replay.report_inputs import replay_input_path
 
 
 def test_canonical_public_suite_contains_every_recorded_candidate():
-    suite = load_suite("evaluation/browser-use-public/webarena-human-suite.json")
+    suite = load_suite(replay_input_path(current="human-candidates"))
 
     assert len(suite.tasks) == 179
     assert sum(task.step_count for task in suite.tasks) == 3189
@@ -46,7 +47,7 @@ def test_canonical_public_suite_contains_every_recorded_candidate():
         for builder in response_builders
     ) == 28
     payload = json.loads(
-        open("evaluation/browser-use-public/webarena-human-suite.json", encoding="utf-8").read()
+        replay_input_path(current="human-candidates").open(encoding="utf-8").read()
     )
     assert payload["benchmark"]["qualification"] == {
         "schema": "lex_browser_use_qualification/2",

@@ -39,14 +39,20 @@ def test_wcxb_language_output_and_every_language_link(tmp_path, include_english)
 @pytest.mark.parametrize('include_english', [False, True])
 @pytest.mark.parametrize('language', ['en', 'zh'])
 def test_wcxb_command_forwards_requested_language(tmp_path, monkeypatch, include_english, language):
+    from harness.benchmarks import data
     from harness.web_fetch import report_build
 
     captured = []
-    monkeypatch.setattr(report_build, 'build_wcxb_report',
-                        lambda *args, **kwargs: captured.append(kwargs) or tmp_path / 'index.html')
+    def build(*args, **kwargs):
+        assert args[1:3] == (tmp_path / 'locked/source', tmp_path / 'locked/tasks.json')
+        captured.append(kwargs)
+        return tmp_path / 'index.html'
+    monkeypatch.setattr(report_build, 'build_wcxb_report', build)
+    monkeypatch.setattr(data, 'definition_path', lambda track, relative: tmp_path / 'locked' / relative)
     root = Path(__file__).resolve().parents[1]
     profile = tmp_path / 'instance.json'
-    profile.write_text(json.dumps({'comparison_kind': 'wcxb_frozen_html_to_markdown', 'sample_manifest': 'sample.json'}))
+    profile.write_text(json.dumps({'comparison_kind': 'wcxb_frozen_html_to_markdown',
+                                   'sample_manifest': str(tmp_path / 'locked/tasks.json')}))
     binding = {'kind': 'test-content'}
     (tmp_path / 'report-content-binding.json').write_text(json.dumps(binding))
     argv = [str(root / 'scripts/build_report.py'), '--language', language, '--profile', str(profile), '--wcxb', '--evidence', str(tmp_path),

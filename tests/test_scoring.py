@@ -1,4 +1,6 @@
 """Shared scoring uses saved bytes only; all calls and references are synthetic."""
+from harness.distribution import source_path
+
 import base64
 import hashlib
 import io
@@ -1079,8 +1081,8 @@ class ScoringPipelineTests(unittest.TestCase):
             self.assertEqual(audit["dataset_sha256"], hashlib.sha256(original_dataset).hexdigest())
             expected_source_hash = hashlib.sha256(b'\0'.join([
                 Path(rescore_content.__file__).read_bytes(), SCORING_SOURCE_SHA256.encode('ascii'),
-                (rescore_content.ROOT/'harness/web_fetch/failure_diagnosis.py').read_bytes(),
-                (rescore_content.ROOT/'harness/web_fetch/report.py').read_bytes(),
+                (source_path('harness/web_fetch/failure_diagnosis.py', root=rescore_content.ROOT)).read_bytes(),
+                (source_path('harness/web_fetch/report.py', root=rescore_content.ROOT)).read_bytes(),
             ])).hexdigest()
             self.assertEqual(audit["source_sha256"], expected_source_hash)
         self.assertEqual((self.run / "manifest.json").read_bytes(), original_manifest)
@@ -1101,11 +1103,11 @@ class ScoringPipelineTests(unittest.TestCase):
         row = json.loads((self.run / "results.jsonl").read_text().splitlines()[0])
         for key in original[0]:
             self.assertEqual(row[key], original[0][key], key)
-        self.assertTrue(row["ok"])
-        self.assertFalse(row['raw_request_status']['ok'])
-        self.assertEqual(row['raw_request_status']['error_message'], 'Historical error')
+        self.assertFalse(row["ok"])
+        self.assertNotIn('raw_request_status', row)
+        self.assertEqual(row['error_message'], 'Historical error')
         self.assertEqual(row["scoring"]["request_status_basis"], "shared_normalization_with_original_adapter_status_retained")
-        self.assertIsNone(row['error_type'])
+        self.assertEqual(row['error_type'], 'api_error')
 
     def test_script_rebuilds_diagnosis_from_saved_nested_error_payload(self):
         self.provider.fetch.side_effect = lambda c, timeout: ProviderResult(

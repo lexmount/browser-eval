@@ -4,7 +4,7 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
 from harness.web_fetch.publication import verify_published_tree
 from harness.web_fetch.report_diagnostic import check_diagnostic_report

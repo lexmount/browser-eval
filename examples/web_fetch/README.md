@@ -68,7 +68,7 @@ uv run --frozen browser-harness-eval run \
 | `--task-kind` | `body`, `structure`, `resource` or `file`; combined with task IDs, selects their intersection |
 | `--output` | A new evidence directory; existing directories are rejected |
 
-Declare references and acceptance rules before running. See [metrics](../../docs/metrics.md) and the [adapter contract](../../docs/provider-contract.md) for dataset and method requirements. These CLI runs are diagnostic; formal comparisons use the [certified track pipeline](../../harness/web_fetch/README.md).
+Declare references and acceptance rules before running. See [metrics](../../docs/metrics.md) and the [adapter contract](../../docs/provider-contract.md) for dataset and method requirements. These CLI runs are diagnostic; formal comparisons use the [certified track pipeline](../../src/harness/web_fetch/README.md).
 
 ## Open the report
 

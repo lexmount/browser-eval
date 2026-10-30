@@ -1,3 +1,5 @@
+from harness.distribution import source_path
+
 import os
 import io
 from contextlib import redirect_stdout
@@ -97,9 +99,9 @@ class ConfigTest(unittest.TestCase):
         from harness.web_fetch.cli import build_parser
         from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
         root=Path(__file__).resolve().parents[1]
-        self.assertEqual(build_parser().parse_args(['validate']).dataset,root/'harness/web_fetch/data/fixture-dataset.json')
+        self.assertEqual(build_parser().parse_args(['validate']).dataset,source_path('harness/web_fetch/data/fixture-dataset.json', root=root))
         provider=SubprocessJsonlProvider('test',{'command':['python3'],'repo_path':'.'})
-        self.assertEqual(provider._resolve_token('{harness_root}/harness/web_fetch/workers/langchain_webbase_worker.py'),str(root/'harness/web_fetch/workers/langchain_webbase_worker.py'))
+        self.assertEqual(provider._resolve_token('{harness_root}/harness/web_fetch/workers/langchain_webbase_worker.py'),str(source_path('harness/web_fetch/workers/langchain_webbase_worker.py', root=root)))
 
     def test_hosted_credentials_are_explicitly_and_selectively_imported(self):
         with tempfile.TemporaryDirectory() as directory:

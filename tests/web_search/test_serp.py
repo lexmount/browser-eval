@@ -338,9 +338,19 @@ class SerpContracts(unittest.TestCase):
                 check(root / "report")
 
     def test_external_profile_composes_every_benchmark_case_and_reference(self):
-        originals = [load_dataset(name) for name in ("scenarios-v1", "factual-v1")]
+        from harness.benchmarks.data import binding, definition_path as locked_definition
+
+        canonical = binding("simpleqa-verified")
+        descriptor = canonical["datasets"]["factual-v1"]
+        raw = locked_definition("simpleqa-verified", descriptor["path"]).read_bytes()
+        self.assertEqual(digest(raw), descriptor["sha256"])
+        self.assertEqual(digest(raw), canonical["files"]["definitions/" + descriptor["path"]]["sha256"])
+        factual = json.loads(raw)
+        self.assertEqual(load_dataset("factual-v1"), factual)
+        self.assertNotIn("definitions/" + descriptor["path"], binding("websearch")["files"])
+        scenario_bytes = definition_path("datasets/scenarios-v1.json").read_bytes()
         profile = resolve_profile({"cases": {"field": "cases", "benchmark_datasets": [
-            {"id": name, "sha256": digest(definition_path("datasets/" + name + ".json").read_bytes())}
-            for name in ("scenarios-v1", "factual-v1")
+            {"id": "scenarios-v1", "sha256": digest(scenario_bytes)},
+            {"id": "factual-v1", "sha256": descriptor["sha256"]},
         ]}})
-        self.assertEqual(profile["cases"], [c for p in originals for c in p["cases"]])
+        self.assertEqual(profile["cases"], json.loads(scenario_bytes)["cases"] + factual["cases"])

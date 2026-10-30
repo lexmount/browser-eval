@@ -2,8 +2,8 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import assert from 'node:assert/strict';
-const js=fs.readFileSync(new URL('../harness/web_fetch/assets/report-loader.js',import.meta.url),'utf8');
-const reportSource=fs.readFileSync(new URL('../harness/web_fetch/report.py',import.meta.url),'utf8');
+const js=fs.readFileSync(new URL('../src/harness/web_fetch/assets/report-loader.js',import.meta.url),'utf8');
+const reportSource=fs.readFileSync(new URL('../src/harness/web_fetch/report.py',import.meta.url),'utf8');
 const callDialogJs=reportSource.match(/let callLogTrigger=null;[\s\S]*?(?=function applyReportAnchor)/)[0];
 let fields=[{dataset:{filter:'provider'},value:'lexmount-global'},{dataset:{filter:'query'},value:'正文核对点-1'},
  {dataset:{wmbFilter:'method'},value:'moli'},{dataset:{wmbFilter:'metric'},value:'table_TEDS'},

@@ -1,3 +1,5 @@
+from harness.distribution import source_path
+
 import asyncio
 import base64
 import importlib.util
@@ -38,7 +40,7 @@ class NativeFileWorkerTests(unittest.TestCase):
         }
         spec = importlib.util.spec_from_file_location(
             "file_worker_test",
-            Path(__file__).resolve().parents[1] / "harness/web_fetch/workers/crawl4ai_worker.py",
+            source_path("harness/web_fetch/workers/crawl4ai_worker.py", root=Path(__file__).resolve().parents[1]),
         )
         module = importlib.util.module_from_spec(spec)
         with patch.dict(sys.modules, modules):
@@ -666,7 +668,7 @@ class NativeFileWorkerTests(unittest.TestCase):
 
 def test_native_default_worker_has_no_generated_wait_or_extraction():
     import importlib.util
-    spec = importlib.util.spec_from_file_location("native_crawl_worker", Path("harness/web_fetch/workers/crawl4ai_worker.py"))
+    spec = importlib.util.spec_from_file_location("native_crawl_worker", source_path("harness/web_fetch/workers/crawl4ai_worker.py"))
     worker = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(worker)
     request = {"track": "dynamic", "retrieval_plan": None, "retrieval_mode": "native_default"}

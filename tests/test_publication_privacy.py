@@ -1,3 +1,5 @@
+from harness.distribution import source_path
+
 import base64
 import gzip
 import hashlib
@@ -264,7 +266,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             scored_output_hash({'artifact_path': 'artifacts/case.md'})
 
     def test_loader_localizes_async_status_and_accessibility_copy(self):
-        source=(Path(__file__).resolve().parents[1]/'harness/web_fetch/assets/report-loader.js').read_text()
+        source=(source_path('harness/web_fetch/assets/report-loader.js', root=Path(__file__).resolve().parents[1])).read_text()
         self.assertIn("function tr(zh,en)",source)
         for english in ('Failed to load the data catalog','Load complete content',
                         'Loading complete content…','Complete actual output',

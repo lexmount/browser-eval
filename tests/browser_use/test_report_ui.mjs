@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source = fs.readFileSync(
-  new URL('../../harness/browser_use/report.py', import.meta.url),
+  new URL('../../src/harness/browser_use/report.py', import.meta.url),
   'utf8',
 );
 const match = source.match(/REPORT_JS = """([\s\S]*?)"""\nREPORT_STYLE/);

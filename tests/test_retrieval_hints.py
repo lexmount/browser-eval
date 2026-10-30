@@ -380,7 +380,9 @@ def test_registry_rejects_answer_derived_selectors(tmp_path, monkeypatch, select
         "capabilities": {"completion": {"selector": selector, "minimum_count": 1}}}}}
     path = tmp_path / "registry.json"
     path.write_text(json.dumps(registry))
-    monkeypatch.setattr(owner, "_CONTRACT_REGISTRY_PATH", path)
+    monkeypatch.setattr(owner, "definition_path", lambda relative: path
+                        if relative == "evaluation/native-retrieval-contracts.json"
+                        else definition_path(relative))
     owner._native_contract_registry.cache_clear()
     monkeypatch.setattr(owner, "_verify_task_definition", lambda *_: None)
     monkeypatch.setattr(owner, "_verify_contract_source", lambda *_: None)
@@ -396,7 +398,9 @@ def test_registry_source_hash_must_match_bound_external_bytes(tmp_path, monkeypa
     registry["contracts"]["delayed-ten-records"]["source_authority"]["sha256"] = "0" * 64
     path = tmp_path / "registry.json"
     path.write_text(json.dumps(registry))
-    monkeypatch.setattr(owner, "_CONTRACT_REGISTRY_PATH", path)
+    monkeypatch.setattr(owner, "definition_path", lambda relative: path
+                        if relative == "evaluation/native-retrieval-contracts.json"
+                        else definition_path(relative))
     owner._native_contract_registry.cache_clear()
     with pytest.raises(ValueError, match="source hash is not in the source manifest"):
         owner.native_contract_for_case({"id": "dynamic-delayed", "track": "dynamic",
@@ -444,8 +448,17 @@ def test_registered_contract_from_an_installed_module(tmp_path, monkeypatch, cor
     spec = importlib.util.spec_from_file_location(name, installed)
     owner = importlib.util.module_from_spec(spec)
     monkeypatch.setitem(sys.modules, name, owner)
-    spec.loader.exec_module(owner)
+    # A cold installed import must not resolve dataset files eagerly.
+    with monkeypatch.context() as importing:
+        importing.setenv("HF_HUB_OFFLINE", "1")
+        importing.setenv("BROWSER_EVAL_DATASET_CACHE", str(tmp_path / "empty-cache"))
+        importing.setattr("lexbench_webfetch.inputs.definition_path",
+                          lambda *a, **k: pytest.fail("eager installed dataset resolution"))
+        spec.loader.exec_module(owner)
     monkeypatch.chdir(tmp_path)
+    poison = tmp_path / "evaluation/native-retrieval-contracts.json"
+    poison.parent.mkdir()
+    poison.write_text("untrusted repository registry")
 
     definitions = tmp_path / "benchmark-definitions"
     definitions.mkdir()
@@ -463,13 +476,18 @@ def test_registered_contract_from_an_installed_module(tmp_path, monkeypatch, cor
     source.parent.mkdir(parents=True)
     source.write_bytes(b"changed source" if corrupt_source else b"independent source observation")
     monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data"))
-    registry = json.loads(owner._CONTRACT_REGISTRY_PATH.read_text())
+    registry = json.loads(definition_path("evaluation/native-retrieval-contracts.json").read_text())
     registry["contracts"]["delayed-ten-records"]["source_authority"]["sha256"] = expected
     registry_path = definitions / "contracts.json"
     registry_path.write_text(json.dumps(registry))
-    monkeypatch.setattr(owner, "_CONTRACT_REGISTRY_PATH", registry_path)
-    monkeypatch.setattr(owner, "definition_path", lambda relative: manifest_path
-                        if relative == "evaluation/source-inputs.json" else definition_path(relative))
+    def installed_definition(relative):
+        if relative == "evaluation/native-retrieval-contracts.json":
+            return registry_path
+        if relative == "evaluation/source-inputs.json":
+            return manifest_path
+        return definition_path(relative)
+
+    monkeypatch.setattr(owner, "definition_path", installed_definition)
     case = {"id": "dynamic-delayed", "track": "dynamic", "retrieval_hints": {
         "version": 3, "mode": "native", "contract": "delayed-ten-records"}}
     if corrupt_source:

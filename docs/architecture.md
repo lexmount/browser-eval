@@ -4,22 +4,26 @@ Use this page to find the code responsible for a change. For running evaluations
 
 [Data flow](#data-flow) · [Code owners](#code-boundaries) · [Stored inputs](#repository-and-external-inputs) · [Report releases](#reports-and-publication) · [Review tools](#verification)
 
-Browser Eval supplies execution, evidence handling and reporting for web fetching, trajectory replay and AI agent automation. Benchmarks supply task populations and acceptance requirements. [LexBench Web Fetch](https://github.com/lexmount/lexbench-webfetch) owns the self-authored Web Fetch suites; see [benchmark boundaries](benchmarks.md). Each experiment has its own evaluator binding and publication target. The supported tracks are listed below.
+Browser Eval owns scoring, execution, evidence handling and local report generation for Web Fetch, Web Search and trajectory replay, with an experimental autonomous Browser Use track. Versioned task definitions and reference bindings live in the [Hugging Face benchmark datasets](benchmarks.md#use-benchmark-inputs). The data lock selects those inputs; scorer and runtime code live here. Each experiment has its own evaluator binding and, when published, its own publication target.
 
 | Track | Implementation | Running and reproduction |
 | --- | --- | --- |
-| Web Fetch | `harness/web_fetch/` | [Web Fetch guide](../harness/web_fetch/README.md), [frozen HTML comparisons](../harness/web_fetch/HEADLESS.md) |
-| Browser Trajectory Replay | `harness/trajectory_replay/` | [Fixed-action examples](../examples/trajectory_replay/README.md) |
-| Browser Use | `harness/browser_use/` | [Autonomous Agent examples](../examples/browser_use/README.md) |
+| Web Search | `src/harness/web_search/` | [Search guide](../src/harness/web_search/README.md) |
+| Web Fetch | `src/harness/web_fetch/` | [Web Fetch guide](../src/harness/web_fetch/README.md), [frozen HTML comparisons](../src/harness/web_fetch/HEADLESS.md) |
+| Browser Trajectory Replay | `src/harness/trajectory_replay/` | [Fixed-action examples](../examples/trajectory_replay/README.md) |
+| Browser Use | `src/harness/browser_use/` | [Autonomous Agent examples](../examples/browser_use/README.md) |
 
 Public WebArena human-recording replay is isolated under
-`harness/trajectory_replay/public_webarena/` with its [own examples and release
+`src/harness/trajectory_replay/public_webarena/` with its [own examples and release
 contract](../examples/trajectory_replay/public_webarena/README.md).
 The curated replay tasks also record [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) as a scenario design source.
-`harness/lexbench/` adapts retained Lexbench comparisons; it does not define a
+The original CDP and driver inputs are versioned in [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser), with execution supplied by that upstream runtime.
+`src/harness/lexbench/` adapts retained Lexbench comparisons; it does not define a
 fourth browser score or replace a track's execution and evaluator contracts.
 
 ## Data flow
+
+For a formal benchmark cohort, collection and certification precede scoring. Local report generation and publication remain separate choices.
 
 ```mermaid
 flowchart LR
@@ -28,9 +32,9 @@ flowchart LR
     C --> D[Verify post-call inputs]
     D --> E[Certify complete declared cohort]
     E --> F[Score authoritative logical results]
-    F --> G[Build report from bound evidence]
-    G --> H[Check and package declared public files]
-    H --> I[Publish and verify deployed bytes]
+    F -. Optional local build .-> G[Build report from bound evidence]
+    G -. For a requested release .-> H[Check and package declared public files]
+    H -. Publication requested and authorized .-> I[Publish and verify deployed bytes]
 ```
 
 Ordinary `run` output is diagnostic evidence. A certified runner fixes the task
@@ -48,26 +52,30 @@ See [metrics](metrics.md) and the track guide for acceptance and latency semanti
 
 ## Code boundaries
 
-Command files in `scripts/` expose stages owned by `harness/`. Extend the current
+All Python packages live under `src/`. `harness/` owns evaluation execution, evidence and reporting; `lexbench_webfetch/` and `lexbench_websearch/` own their benchmark contracts and scoring. `scripts/` contains command entry points.
+
+Command files in `scripts/` expose stages owned by `src/harness/`. Extend the current
 owner when adding a browser, task family, cohort or language. Select behavior
 through configuration, registries or explicit parameters.
 
 | Responsibility | Shared owner or boundary |
 | --- | --- |
-| JSONL framing and finalized/live readers | `harness/record_io.py` |
+| JSONL framing and finalized/live readers | `src/harness/record_io.py` |
 | Web Fetch task execution and certification | `benchmark_runner.py`, `certification.py`, `reference_lifecycle.py` |
-| Browser adapters and results | [Provider contract](provider-contract.md), `harness/web_fetch/providers/` |
-| Web Fetch scoring and task acceptance | Pinned `lexbench_webfetch.scoring`, `lexbench_webfetch.metrics`, task configuration |
+| Browser adapters and results | [Provider contract](provider-contract.md), `src/harness/web_fetch/providers/` |
+| Web Fetch scoring and task acceptance | Local `lexbench_webfetch.scoring`, `lexbench_webfetch.metrics`, HF task configuration |
+| Search scoring and acceptance | Local `src/lexbench_websearch/` and HF query/reference definitions |
+| Dataset download, verification and version selection | `src/harness/benchmarks/` and `src/harness/benchmarks/data-lock.json` |
 | Bound artifact copying and aggregation | `artifacts.py`, `evidence.py`, `assembly.py` |
 | Reference and scoring corrections | `reference_revision.py`, `scoring_revision.py`, `rescoring.py` |
 | WebMainBench certification, scoring and aggregation | `webmainbench_certification.py`, `webmainbench_scoring.py`, `webmainbench_assembly.py` |
 | WCXB scoring, paired timing and publication | `wcxb_scoring.py`, `wcxb_latency.py`, `wcxb_publication.py` |
 | Web Fetch report construction and rendering | `report_build.py`, `report.py` |
-| Common report assets, links, presentation and publication | `harness/reporting/` |
-| Generated-language inventory and absent-English notice | `harness/report_languages.py` |
-| Shared WebArena deployment and network capture | `harness/environments/webarena/` |
+| Common report assets, links, presentation and publication | `src/harness/reporting/` |
+| Generated-language inventory and absent-English notice | `src/harness/report_languages.py` |
+| Shared WebArena deployment and network capture | `src/harness/environments/webarena/` |
 
-Unqualified Python filenames in the table are under `harness/web_fetch/`.
+Unqualified Python filenames in the table are under `src/harness/web_fetch/`.
 Browser Use and trajectory replay own their Agent/action orchestration,
 qualification, evaluator calls and report stages in their respective modules.
 Shared environment code does not import either runner. The public replay's
@@ -85,7 +93,9 @@ Reuse the runner and renderer. Method names must not select special scoring rule
 
 | Stored in Git | Stored outside Git |
 | --- | --- |
-| Code, compact task definitions, acceptance rules, origins and file/hash bindings | Attempts, execution manifests, responses, reports, report prose and private reviews |
+| Runtime/scoring code, synthetic fixtures, provenance annotations and file/hash bindings | Attempts, execution manifests, responses, reports, report prose and private reviews |
+
+Current public benchmark definitions, acceptance contracts and reference bindings are versioned on Hugging Face. Historical hash-bound inputs keep their original identities; new runs select a current HF edition through the data lock.
 
 External files live under `BROWSER_EVAL_DATA_HOME` (default `~/.browser-eval/`) or a pinned Artifact Site release. Evaluation credentials come from `.env`; publishing uses separate authorization for its host.
 
@@ -102,11 +112,13 @@ capture proves what was observed, not permission to redistribute it.
 
 ## Reports and publication
 
+Local HTML is an optional view of saved scores and evidence. `run` builds it by default; `run --no-report` and `rescore --no-report` keep evaluation/scoring independent of HTML generation. `report <run-directory>` builds it later without new provider calls. Local builds require no hosting account or publication authorization.
+
 Builders validate evidence and write a private staging directory before replacing
 a marked generated report. The current profile selects external report assets;
 missing assets do not fall back to an unversioned report or repository copy.
 The report owns its selected template identity, input hashes and generated
-languages. Chinese is the default. Explicit bilingual builds require matching
+languages. The public CLI defaults to English; a rebuild retains the saved language unless explicitly changed. Each track declares its renderer capabilities, including historical Chinese-only formats. Explicit bilingual builds require matching
 routes, measurements and evidence links; absent English has only a notice and
 return link.
 
@@ -134,7 +146,7 @@ representative review and dataset manifest. It has no embedded article fallback.
 Release checks reject interpretation bodies that differ from the binding; package
 receipts retain the binding hash, and upload snapshots protect it from changes.
 
-### Check and publish
+### Optional release checks and publication
 
 Release checks cover evidence, links, semantic presentation and the declared
 languages. A focused reader pass renders each top-level navigation page once at
@@ -143,7 +155,7 @@ links, filters, pagination, dialogs and evidence loading; shared component tests
 own narrow-width and theme behavior. Packaging copies only declared public files,
 rejects symlinks and checks that source and authority bytes remain unchanged.
 
-Use the selected track's publisher after its release gates pass. Publishers
+For an explicitly requested and authorized publication, use the selected track's publisher after its release gates pass. Publishers
 freeze the archive and authority, check the expected remote version, retain
 private operation journals for interrupted requests, and verify deployed bytes
 before updating local bindings. Keep journals and receipts until recovery

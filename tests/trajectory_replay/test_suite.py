@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 
 import pytest
 
+from harness.trajectory_replay.report_inputs import replay_input_path
 from harness.trajectory_replay.suite import load_suite, validate_ground_truth_evidence
 
 
@@ -102,7 +103,7 @@ def test_load_suite_rejects_duplicate_task_ids(tmp_path):
 
 
 def test_suite_has_thirty_ground_truth_tasks_with_requested_difficulty_mix():
-    suite = load_suite("examples/trajectory_replay/tasks.v4.json")
+    suite = load_suite(replay_input_path(current="curated"))
 
     assert len(suite.tasks) == 30
     assert len({task.task_id for task in suite.tasks}) == 30
@@ -130,7 +131,7 @@ def test_suite_has_thirty_ground_truth_tasks_with_requested_difficulty_mix():
 
 
 def test_version_language_path_targets_desktop_controls_and_waits_for_navigation():
-    suite = load_suite("examples/trajectory_replay/tasks.v4.json")
+    suite = load_suite(replay_input_path(current="curated"))
     task = next(t for t in suite.tasks if t.task_id == "python-version-language")
     selects = [call for call in task.tool_calls if call["action"] == "select"]
     assert len(selects) == 3
@@ -140,7 +141,7 @@ def test_version_language_path_targets_desktop_controls_and_waits_for_navigation
 
 
 def test_suite_uses_public_targets_and_repository_derived_capability_coverage():
-    suite = load_suite("examples/trajectory_replay/tasks.v4.json")
+    suite = load_suite(replay_input_path(current="curated"))
     assert all(task.source.get("kind") == "public_web" for task in suite.tasks)
     assert all(str(task.source.get("url") or "").startswith("https://") for task in suite.tasks)
     basis_urls = [str(url) for task in suite.tasks for url in task.source.get("design_basis") or []]
@@ -159,7 +160,7 @@ def test_suite_uses_public_targets_and_repository_derived_capability_coverage():
 
 
 def test_codex_browser_ground_truth_evidence_matches_dataset_exactly():
-    dataset_path = Path("examples/trajectory_replay/tasks.v4.json")
+    dataset_path = replay_input_path(current="curated")
     evidence = json.loads(
         Path("examples/trajectory_replay/ground_truth_validation.json").read_text(encoding="utf-8")
     )
@@ -182,7 +183,7 @@ def test_codex_browser_ground_truth_evidence_matches_dataset_exactly():
 
 
 def test_ground_truth_validation_rejects_evidence_for_another_suite(tmp_path):
-    dataset_path = Path("examples/trajectory_replay/tasks.v4.json")
+    dataset_path = replay_input_path(current="curated")
     suite = load_suite(dataset_path)
     evidence = json.loads(
         Path("examples/trajectory_replay/ground_truth_validation.json").read_text(encoding="utf-8")

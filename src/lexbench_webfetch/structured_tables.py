@@ -1,0 +1,793 @@
+"""Configured row ownership and field types for changing demo tables."""
+from datetime import datetime
+from decimal import Decimal
+import re
+
+import soupsieve
+
+
+def validate_table(contract):
+    columns = contract.get('table_columns')
+    identity = contract.get('record_identity_fields')
+    scope = contract.get('table_scope')
+    if not isinstance(columns, list) or not columns:
+        raise ValueError('Table columns must be declared')
+    names = []
+    for col in columns:
+        if (not isinstance(col, dict) or set(col) - {'name', 'label', 'type', 'minimum', 'maximum', 'pattern', 'allow_empty', 'compact_whitespace', 'selector', 'own_text'}
+                or not isinstance(col.get('name'), str) or not col['name']
+                or not isinstance(col.get('label'), str) or not col['label']
+                or col.get('type') not in {'text', 'token', 'integer', 'number', 'currency_usd', 'date_dmy', 'date_ordinal_en'}):
+            raise ValueError('Invalid table column')
+        if 'selector' in col:
+            if not isinstance(col['selector'], str) or not col['selector'].strip():
+                raise ValueError('Invalid record field selector')
+            soupsieve.compile(col['selector'])
+        if 'own_text' in col and (type(col['own_text']) is not bool or 'selector' not in col):
+            raise ValueError('Own text requires an explicit field selector')
+        if 'compact_whitespace' in col and (type(col['compact_whitespace']) is not bool
+                                            or col['type'] != 'text'):
+            raise ValueError('Whitespace equivalence requires a text column')
+        if 'allow_empty' in col and type(col['allow_empty']) is not bool:
+            raise ValueError('Invalid empty-cell policy')
+        if col['type'] == 'token' and not col.get('pattern'):
+            raise ValueError('Token columns require an explicit format pattern')
+        if 'pattern' in col:
+            if not isinstance(col['pattern'], str) or not col['pattern'] or re.compile(col['pattern']).search(''):
+                raise ValueError('Invalid table field pattern')
+        for bound in ('minimum', 'maximum'):
+            if bound in col and (col['type'] not in {'integer', 'number'}
+                                  or type(col[bound]) not in {int, float}
+                                  or not Decimal(str(col[bound])).is_finite()):
+                raise ValueError('Invalid table column bound')
+        if ('minimum' in col and 'maximum' in col
+                and Decimal(str(col['minimum'])) > Decimal(str(col['maximum']))):
+            raise ValueError('Inverted table bounds')
+        names.append(col['name'])
+    if len(names) != len(set(names)) or not isinstance(identity, list) or not identity or not set(identity) <= set(names):
+        raise ValueError('Invalid table identity')
+    if any('selector' in c for c in columns) and not all('selector' in c for c in columns):
+        raise ValueError('Owned record fields must all declare selectors')
+    required = {'row_selector', 'cell_selector', 'start_pattern', 'end_pattern', 'plain_row_pattern'}
+    optional = {'root_selector', 'root_index', 'exclude_selector', 'plain_multiline_row_pattern',
+                'reference_rows', 'reference_kind', 'ignored_column_labels',
+                'plain_text_ignored_patterns', 'markdown_table_limit'}
+    if (not isinstance(scope, dict) or not required <= set(scope) <= required | optional
+            or any(not isinstance(scope[k], str) or not scope[k] for k in required)):
+        raise ValueError('Invalid table scope')
+    if 'plain_text_ignored_patterns' in scope:
+        patterns = scope['plain_text_ignored_patterns']
+        if (not isinstance(patterns, list) or not patterns or len(patterns) > 10
+                or any(not isinstance(p, str) or not p or re.compile(p).search('')
+                       for p in patterns)):
+            raise ValueError('Invalid table plain-text auxiliary patterns')
+    if 'markdown_table_limit' in scope and (type(scope['markdown_table_limit']) is not int
+                                            or scope['markdown_table_limit'] < 1):
+        raise ValueError('Invalid Markdown table limit')
+    soupsieve.compile(scope['row_selector']); soupsieve.compile(scope['cell_selector'])
+    if 'exclude_selector' in scope:
+        if not isinstance(scope['exclude_selector'], str) or not scope['exclude_selector']:
+            raise ValueError('Invalid table auxiliary-content selector')
+        soupsieve.compile(scope['exclude_selector'])
+    if 'ignored_column_labels' in scope:
+        ignored = scope['ignored_column_labels']
+        if not isinstance(ignored, list) or any(not isinstance(v, str) or not v.strip() for v in ignored):
+            raise ValueError('Invalid ignored table columns')
+        if {v.casefold() for v in ignored} & {c['label'].casefold() for c in columns}:
+            raise ValueError('Required columns cannot be ignored')
+    if ('root_selector' in scope) != ('root_index' in scope):
+        raise ValueError('Table root selector and index must be paired')
+    if 'root_selector' in scope:
+        if (not isinstance(scope['root_selector'], str) or not scope['root_selector']
+                or type(scope['root_index']) is not int or scope['root_index'] < 0):
+            raise ValueError('Invalid table root selection')
+        soupsieve.compile(scope['root_selector'])
+    for key in ('start_pattern', 'end_pattern', 'plain_row_pattern'):
+        if re.compile(scope[key]).search(''):
+            raise ValueError('Empty table boundary')
+    if set(re.compile(scope['plain_row_pattern']).groupindex) != set(names):
+        raise ValueError('Plain row fields differ from columns')
+    if 'plain_multiline_row_pattern' in scope:
+        pattern = scope['plain_multiline_row_pattern']
+        if (not isinstance(pattern, str) or not pattern
+                or re.compile(pattern).search('')
+                or set(re.compile(pattern).groupindex) != set(names)):
+            raise ValueError('Invalid multiline row fields')
+    if 'reference_rows' in scope or 'reference_kind' in scope:
+        rows = scope.get('reference_rows')
+        if scope.get('reference_kind') != 'fixed_demo' or not isinstance(rows, list) or not rows:
+            raise ValueError('Exact row references require a declared fixed demo')
+        if any(not isinstance(row, dict) or set(row) != set(names)
+               or not all(_valid(row[c['name']], c) for c in columns) for row in rows):
+            raise ValueError('Invalid fixed-demo reference rows')
+        keys = [tuple(_canonical(row[c['name']], c) for c in columns) for row in rows]
+        if len(set(keys)) != len(keys):
+            raise ValueError('Duplicate fixed-demo reference rows')
+
+
+def _valid(value, col):
+    if not isinstance(value, str):
+        return False
+    if not value.strip():
+        return col.get('allow_empty', False)
+    value = value.strip()
+    if col.get('pattern') and not re.fullmatch(col['pattern'], value):
+        return False
+    kind = col['type']
+    if kind == 'currency_usd':
+        return bool(re.fullmatch(r'\$\s*(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d{1,2})?', value))
+    if kind == 'token':
+        return True  # The mandatory format pattern was checked above; retain leading zeros.
+    if kind == 'text':
+        return bool(any(c.isalpha() for c in value) and value.casefold() not in {'null', 'undefined', 'unknown', 'n/a'})
+    if kind == 'date_dmy':
+        try:
+            return bool(re.fullmatch(r'\d{2}/\d{2}/\d{4}', value) and datetime.strptime(value, '%d/%m/%Y'))
+        except ValueError:
+            return False
+    if kind == 'date_ordinal_en':
+        match = re.fullmatch(r'(\d{1,2})(st|nd|rd|th) ([A-Za-z]{3}) (\d{2}|\d{4})', value)
+        if not match:
+            return False
+        day = int(match[1])
+        suffix = 'th' if 10 <= day % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(day % 10, 'th')
+        if match[2] != suffix:
+            return False
+        try:
+            datetime.strptime(f'{day} {match[3]} {match[4]}', '%d %b %y' if len(match[4]) == 2 else '%d %b %Y')
+            return True
+        except ValueError:
+            return False
+    if not re.fullmatch(r'-?\d+' if kind == 'integer' else r'-?\d+(?:\.\d+)?', value):
+        return False
+    number = Decimal(value)
+    return (('minimum' not in col or number >= Decimal(str(col['minimum'])))
+            and ('maximum' not in col or number <= Decimal(str(col['maximum']))))
+
+
+def _visible_markdown_scalar(value):
+    """Project inline Markdown syntax without changing cell boundaries."""
+    from .reference_quality import visible_markdown_links
+    from .article_text import mask_markdown_inline_code
+
+    value, restore_code = mask_markdown_inline_code(value)
+    escaped = {}
+    prefix = '\ue024table-escape'
+    while prefix in value:
+        prefix += '_'
+    def protect(match):
+        token = prefix + str(len(escaped)) + '\ue025'
+        escaped[token] = match[1]
+        return token
+    value = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~])', protect, value)
+    value = visible_markdown_links(value)
+    value = re.sub(r'\*\*(?=\S)([^*\n]*\S)\*\*', r'\1', value)
+    value = re.sub(r'__(?=\S)([^_\n]*\S)__', r'\1', value)
+    value = re.sub(r'(?<!\w)([*_])(?=\S)([^\n]*?\S)\1(?!\w)', r'\2', value)
+    for token, literal in escaped.items():
+        value = value.replace(token, literal)
+    return restore_code(value).strip()
+
+
+def _escape_native_scalar_text(value):
+    return re.sub(r'([!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~])', r'\\\1', value)
+
+
+def _native_cell_text(node, table, *, preserve_links=False):
+    """Serialize literal DOM text separately from genuine link syntax."""
+    from bs4 import Comment
+    from .dynamic_lists import _markdown_safe_destination
+    parts, seen = [], set()
+    for part in node.strings:
+        if isinstance(part, Comment) or part.find_parent('table') is not table or not str(part).strip():
+            continue
+        link = part.find_parent('a', href=True) if preserve_links else None
+        if link is not None and link.find_parent('table') is table:
+            if id(link) in seen:
+                continue
+            seen.add(id(link))
+            label = ' '.join(str(text).strip() for text in link.strings
+                             if text.find_parent('table') is table and str(text).strip())
+            parts.append('[' + _escape_native_scalar_text(label) + '](' + _markdown_safe_destination(link['href']) + ')')
+        else:
+            parts.append(_escape_native_scalar_text(str(part).strip()))
+    return ' '.join(parts)
+
+
+def _canonical(value, column):
+    if not value.strip():
+        return ''
+    if column.get('compact_whitespace'):
+        return re.sub(r'\s+', '', value).casefold()
+    if column['type'] == 'currency_usd' and _valid(value, column):
+        return str(Decimal(value.strip()[1:].replace(',', '').strip()).normalize())
+    return ' '.join(value.split()).casefold()
+
+
+def _without_example_fences(text):
+    """Code samples in prose are not rendered data; a whole fenced answer is."""
+    lines = text.splitlines(keepends=True)
+    spans = []
+    opened = None
+    for index, line in enumerate(lines):
+        if opened is None:
+            match = re.match(r'^[ \t]{0,3}(`{3,}|~{3,})[^\n]*$', line.rstrip('\r\n'))
+            if match:
+                opened = (index, match[1][0], len(match[1]))
+        elif re.fullmatch(r'[ \t]{0,3}' + re.escape(opened[1]) + '{' + str(opened[2]) + r',}[ \t]*', line.rstrip('\r\n')):
+            spans.append((opened[0], index))
+            opened = None
+    if opened:
+        spans.append((opened[0], len(lines) - 1))
+    if len(spans) == 1:
+        start, end = spans[0]
+        if not ''.join(lines[:start] + lines[end + 1:]).strip() and opened is None:
+            return ''.join(lines[start + 1:end])
+    for start, end in reversed(spans):
+        lines[start:end + 1] = ['\n']
+    return ''.join(lines)
+
+
+def table_header_label(value):
+    """The first visual line names a column; later lines are controls/help."""
+    return _visible_markdown_scalar(
+        re.split(r'<br\s*/?>', value, maxsplit=1, flags=re.I)[0]
+    )
+
+
+def _table_header_labels(values):
+    """Remove a table-wide, standalone sort affordance from header labels."""
+    labels = [table_header_label(value) for value in values]
+    sortable = [re.fullmatch(r'(.*?)\s+([↕↥↧⇅⇵])', value) for value in labels]
+    if labels and all(sortable):
+        return [match[1].rstrip() for match in sortable]
+    return labels
+
+
+def _contains_rendered_html_table(content):
+    """Distinguish rendered table markup from literal Markdown examples."""
+    candidate = re.sub(r'`+[^`\n]+`+', '', content)
+    candidate = re.sub(
+        r'(?:\\</?[A-Za-z][^<>\n]*>|</?[A-Za-z][^<>\n]*\\>|\\[<>])',
+        '', candidate,
+    )
+    # A lone opening token commonly appears in API documentation after the
+    # Markdown projection has removed code delimiters.  Real serialized table
+    # markup has an owned closing boundary; do not feed the rest of the answer
+    # to an HTML parser when that boundary is absent.
+    return bool(re.search(r'<table\b[^>]*>[\s\S]*?</table\s*>', candidate, re.I))
+
+
+def table_text_surface(content, *, exclude_selector=None, representation=None):
+    """Preserve owned HTML cells/links and adjacent split Markdown bodies."""
+    if representation == 'plain_text':
+        return content
+    from bs4 import BeautifulSoup
+    content = _without_example_fences(content)
+    blocked = set()
+
+    def convert(table):
+        lines = []
+        for row in table.find_all('tr'):
+            if row.find_parent('table') is not table or id(row) in blocked:
+                continue
+            cells = row.find_all(['th', 'td'], recursive=False)
+            values = []
+            for cell in cells:
+                text = _native_cell_text(cell, table, preserve_links=True)
+                values.append(text.replace('\\', r'\\').replace('|', r'\|'))
+            else:
+                if values:
+                    lines.append('| ' + ' | '.join(values) + ' |')
+                    if (all(cell.name == 'th' for cell in cells)
+                            or row.find_parent(['thead', 'table']).name == 'thead'):
+                        lines.append('| ' + ' | '.join('---' for _ in cells) + ' |')
+        return '\n' + '\n'.join(lines) + '\n'
+    if _contains_rendered_html_table(content):
+        from .dynamic_lists import scoped_html
+        soup = scoped_html(content)
+        blocked = _spanning_rows(soup)
+        if exclude_selector:
+            for node in list(soup.select(exclude_selector)):
+                if node.parent is not None:
+                    node.decompose()
+        content = str(soup)
+        replacements = []
+        for table in soup.find_all('table'):
+            token = f'LEXBENCH_TABLE_{len(replacements)}_END'
+            while token in content:
+                token += '_'
+            replacements.append((table, token, convert(table)))
+        for table, token, _ in replacements:
+            nested = [child.extract() for child in table.find_all('table')]
+            table.replace_with(token, *nested)
+        content = str(soup)
+        content = re.sub(
+            r"<h([1-6])\b[^>]*>[\s\S]*?</h\1\s*>",
+            lambda m: "\n" + BeautifulSoup(m[0], "html.parser").get_text(" ", strip=True) + "\n",
+            content, flags=re.I,
+        )
+        for _, token, markdown in replacements:
+            content = content.replace(token, markdown)
+    lines = content.splitlines()
+    output = []
+    index = 0
+    def separator(line):
+        return '|' in line and all(
+            re.fullmatch(r'\s*:?-{3,}:?\s*', c) for c in _pipe_cells(line))
+    while index < len(lines):
+        cells = _pipe_cells(lines[index])
+        prior = []
+        if '|' in lines[index] and all(not c.strip() for c in cells):
+            for line in reversed(output):
+                if line.strip():
+                    prior.append(line)
+                    if len(prior) == 2:
+                        break
+            prior.reverse()
+        if ('|' in lines[index] and all(not c.strip() for c in cells)
+                and index + 1 < len(lines) and separator(lines[index + 1])
+                and len(_pipe_cells(lines[index + 1])) == len(cells)
+                and len(prior) >= 2 and separator(prior[-1])
+                and len(_pipe_cells(prior[-2])) == len(cells)
+                and any(c.strip() for c in _pipe_cells(prior[-2]))
+                and any(re.search(r'<br\s*/?>', c, re.I) for c in _pipe_cells(prior[-2]))):
+            while output and not output[-1].strip():
+                output.pop()
+            index += 2
+            continue
+        output.append(lines[index])
+        index += 1
+    return '\n'.join(output)
+
+
+def table_header_column_surfaces(content):
+    """Return each real table's header followed by one complete body column.
+
+    A visible reference can legitimately omit graphical or auxiliary cell values
+    while retaining every header and the text-bearing column.  Keep each table
+    and column isolated: values from another column, table, or surrounding prose
+    must never repair a missing cell.
+    """
+    lines = table_text_surface(content).splitlines()
+    surfaces = []
+    table_index = 0
+    index = 0
+    while index + 1 < len(lines):
+        headers = _pipe_cells(lines[index])
+        separators = _pipe_cells(lines[index + 1])
+        if ("|" not in lines[index] or len(headers) < 2
+                or len(separators) != len(headers)
+                or not all(header.strip() for header in headers)
+                or not all(re.fullmatch(r"\s*:?-{3,}:?\s*", cell)
+                           for cell in separators)):
+            index += 1
+            continue
+        rows = []
+        cursor = index + 2
+        while cursor < len(lines) and "|" in lines[cursor]:
+            if _table_header_at(lines, cursor):
+                break
+            cells = _pipe_cells(lines[cursor])
+            if len(cells) != len(headers):
+                break
+            rows.append(cells)
+            cursor += 1
+        if rows:
+            from .reference_quality import visible_markdown_links
+            table_index += 1
+            visible_headers = [visible_markdown_links(value).strip() for value in headers]
+            for column_index in range(len(headers)):
+                column = [visible_markdown_links(row[column_index]).strip() for row in rows]
+                if all(column):
+                    surfaces.append({
+                        "text": "\n".join(visible_headers + column),
+                        "table_index": table_index,
+                        "column_index": column_index,
+                    })
+        index = max(index + 1, cursor)
+    return surfaces
+
+
+def _spanning_rows(root, *, allowed_colspan_rows=()):
+    """Reject unsupported spans and affected rows without guessing a cell grid."""
+    blocked = set()
+    containing = root if root.name == 'table' else root.find_parent('table')
+    tables = ([containing] if containing is not None else []) + root.find_all('table')
+    for table in tables:
+        rows = [row for row in table.find_all('tr') if row.find_parent('table') is table]
+        active, group = 0, None
+        for row in rows:
+            owner = row.find_parent(['thead', 'tbody', 'tfoot']) or table
+            if owner is not group:
+                active, group = 0, owner
+            if active:
+                blocked.add(id(row))
+                active -= 1
+            for cell in row.find_all(['td', 'th'], recursive=False):
+                for attr in ('colspan', 'rowspan'):
+                    try:
+                        span = int(cell.get(attr, '1'))
+                    except (TypeError, ValueError):
+                        span = 0
+                    permitted_caption = (attr == 'colspan' and span > 0
+                                         and id(row) in allowed_colspan_rows)
+                    if span != 1 and not permitted_caption:
+                        blocked.add(id(row))
+                        if attr == 'rowspan':
+                            active = max(active, span - 1 if span > 0 else len(rows))
+    return blocked
+
+
+def parse_table_records(content, visible, contract, *, representation=None):
+    plain = representation == 'plain_text'
+    if plain:
+        visible = content
+    columns, scope = contract['table_columns'], contract['table_scope']
+    names = [c['name'] for c in columns]
+    candidates = []
+    aliases = {c['label'].casefold(): c['name'] for c in columns}
+    aliases.update({n.casefold(): n for n in names})
+    document_pattern = r'\s*(?:<!doctype\s+html[^>]*>\s*)?<(?:html|body|main|div|table|section|article|ul|ol)\b'
+    if not plain and not re.match(document_pattern, content, re.I):
+        content = _without_example_fences(content)
+        visible = _without_example_fences(visible)
+    explicit_html = not plain and bool(re.match(document_pattern, content, re.I))
+    root = None
+    if not plain and (re.search(r'<(?:html|body|main|div|section|article|ul|ol)\b', content, re.I)
+            or _contains_rendered_html_table(content)):
+        from .dynamic_lists import scoped_html
+        soup = scoped_html(content)
+        root = soup
+        if scope.get('root_selector'):
+            roots = soup.select(scope['root_selector'])
+            if len(roots) <= scope['root_index']:
+                if explicit_html:
+                    return []
+                root = None
+            else:
+                root = roots[scope['root_index']]
+        elif not explicit_html and not soup.select(scope['row_selector']):
+            root = None
+        if root is not None and not explicit_html and not root.select(scope['row_selector']):
+            # Documentation may mention an inline <table> tag. That mention
+            # has no rows and must not hide the actual Markdown table.
+            root = None
+    if root is not None:
+        from bs4 import Comment
+
+        def owned_text(node, table, *, own_text=False):
+            return ' '.join(str(part).strip() for part in node.find_all(string=True, recursive=not own_text)
+                            if not isinstance(part, Comment)
+                            and part.find_parent('table') is table and str(part).strip())
+
+        blocked = _spanning_rows(root)
+        if scope.get('exclude_selector'):
+            for auxiliary in root.select(scope['exclude_selector']):
+                auxiliary.decompose()
+        for row in root.select(scope['row_selector']):
+            table = row.find_parent('table')
+            if all('selector' in c for c in columns):
+                if id(row) in blocked:
+                    candidates.append(None)
+                    continue
+                fields = {}
+                for col in columns:
+                    nodes = [row] if col['selector'] == ':scope' else [
+                        node for node in row.select(col['selector'])
+                        if node.find_parent('table') is table]
+                    if len(nodes) != 1:
+                        continue
+                    node = nodes[0]
+                    fields[col['name']] = owned_text(node, table, own_text=col.get('own_text', False))
+                candidates.append(fields)
+                continue
+            cells = [row] if scope['cell_selector'] == ':scope' else [
+                cell for cell in row.select(scope['cell_selector'])
+                if cell.find_parent('table') is table]
+            # Cell boundaries are stronger than guessed text positions.
+            if id(row) in blocked:
+                candidates.append(None)
+            elif len(cells) == len(columns):
+                candidates.append(dict(zip(names, (owned_text(c, table) for c in cells))))
+            else:
+                candidates.append({})
+        if not explicit_html and not candidates:
+            root = None
+    if root is None:
+        # Inline layout breaks do not create new Markdown rows/cells. Preserve
+        # a space so split numeric tokens cannot become a different valid value.
+        lines = table_text_surface(visible, representation=representation).splitlines()
+        for i in range(0 if plain else len(lines) - 1):
+            cells = _pipe_cells(lines[i])
+            if ('|' in lines[i] and len(cells) == len(_pipe_cells(lines[i + 1]))
+                    and all(re.fullmatch(r'\s*:?-{3,}:?\s*', c) for c in _pipe_cells(lines[i + 1]))):
+                lines[i] = '| ' + ' | '.join(_table_header_labels(cells)) + ' |'
+        visible = '\n'.join(lines) if plain else re.sub(r'<br\s*/?>', ' ', '\n'.join(lines), flags=re.I)
+        # Only source-verified, case-declared auxiliary text is removed.
+        # This also normalizes headers before locating the target table.
+        for pattern in scope.get('plain_text_ignored_patterns', []):
+            visible = re.sub(pattern, '', visible, flags=re.M)
+        start = re.search(scope['start_pattern'], visible, re.M)
+        if start:
+            text = visible[start.end():]
+        elif not plain:
+            # A standalone scope heading may be a cell of a Markdown header.
+            # Keep that header for the same typed-column parser below; never
+            # search arbitrary body cells or bypass a declared scope heading.
+            lines_with_ends = visible.splitlines(keepends=True)
+            offset = 0
+            for index, line in enumerate(lines_with_ends[:-1]):
+                cells = _pipe_cells(line)
+                separators = _pipe_cells(lines_with_ends[index + 1])
+                if ('|' in line and len(cells) == len(separators)
+                        and all(re.fullmatch(r'\s*:?-{3,}:?\s*', cell)
+                                for cell in separators)
+                        and any(re.fullmatch(scope['start_pattern'], _header_label(cell, aliases))
+                                for cell in cells)):
+                    break
+                offset += len(line)
+            else:
+                return []
+            text = visible[offset:]
+        else:
+            return []
+        end = re.search(scope['end_pattern'], text, re.M)
+        if end:
+            text = text[:end.start()]
+        if scope.get('plain_multiline_row_pattern'):
+            # Only a declared, bounded row shape may join lines. Never flatten
+            # the document and borrow missing values from the following row.
+            def capture(match):
+                candidates.append(match.groupdict())
+                return '\n' * match.group().count('\n')
+            text = re.sub(scope['plain_multiline_row_pattern'], capture, text)
+        lines = text.splitlines()
+        occupied = set()
+        table_count = 0
+        for i in range(0 if plain else len(lines) - 1):
+            if i in occupied or '|' not in lines[i]:
+                continue
+            labels = [_header_label(s, aliases).casefold() for s in _table_header_labels(_pipe_cells(lines[i]))]
+            first_row = i + 2
+            # Some native conversions split a sticky header from its body:
+            # an empty header/separator is followed by the complete labels.
+            # Require that explicit label row; never inherit prior columns.
+            if not any(labels) and first_row < len(lines):
+                recovered = [_header_label(s, aliases).casefold()
+                             for s in _table_header_labels(_pipe_cells(lines[first_row]))]
+                mapped = [aliases.get(label) for label in recovered]
+                if len(mapped) == len(names) and set(mapped) == set(names):
+                    labels = recovered
+                    first_row += 1
+            ignored = {v.casefold() for v in scope.get('ignored_column_labels', [])}
+            selected = [j for j, label in enumerate(labels) if label not in ignored]
+            headings = [aliases.get(labels[j]) for j in selected]
+            separators = _pipe_cells(lines[i+1])
+            if (set(headings) != set(names) or len(headings) != len(names)
+                    or len(separators) != len(labels)
+                    or not all(re.fullmatch(r'\s*:?-{3,}:?\s*', s) for s in separators)):
+                continue
+            if first_row < len(lines) and all(not cell.strip() for cell in _pipe_cells(lines[first_row])):
+                continue
+            j = first_row
+            while j < len(lines) and '|' in lines[j]:
+                if _table_header_at(lines, j):
+                    break
+                values = [v.strip() for v in _pipe_cells(lines[j])]
+                if len(values) == len(labels):
+                    candidates.append(dict(zip(
+                        headings,
+                        (_visible_markdown_scalar(values[j]) for j in selected),
+                    )))
+                else:
+                    candidates.append({})
+                occupied.add(j); j += 1
+            table_count += 1
+            if table_count == scope.get('markdown_table_limit'):
+                # Later examples with the same headers are separate tables.
+                # Exclude their lines from the plain-row fallback as well.
+                occupied.update(range(j, len(lines)))
+                break
+        pattern = re.compile(scope['plain_row_pattern'])
+        for i, line in enumerate(lines):
+            if i not in occupied and (match := pattern.fullmatch(line.strip())):
+                candidates.append(match.groupdict())
+    expected = {tuple(_canonical(row[c['name']], c) for c in columns)
+                for row in scope.get('reference_rows', [])}
+    records = []
+    for fields in candidates:
+        if fields is None:
+            records.append({'fields': {}, 'valid': False, 'errors': ['unsupported_table_span']})
+            continue
+        errors = ['invalid_field:'+c['name'] for c in columns if not _valid(fields.get(c['name']), c)]
+        if not errors and expected and tuple(_canonical(fields[c['name']], c) for c in columns) not in expected:
+            errors.append('fixed_demo_field_values_mismatch')
+        records.append({'fields': fields, 'valid': not errors, 'errors': errors})
+    return records
+
+
+def _header_label(value, aliases):
+    value = value.strip()
+    # Sorting icons decorate a declared column; they are not part of its name.
+    undecorated = re.sub(r'[\s↑↓↕⇅▲▼▴▾]+$', '', value)
+    return undecorated if undecorated.casefold() in aliases else value
+
+def _table_header_at(lines: list[str], index: int) -> bool:
+    if index + 1 >= len(lines) or '|' not in lines[index]:
+        return False
+    cells, divider = _pipe_cells(lines[index]), _pipe_cells(lines[index + 1])
+    return any(cell.strip() for cell in cells) and len(cells) == len(divider) and all(
+        re.fullmatch(r"\s*:?-{3,}:?\s*", value) for value in divider)
+
+
+
+def _pipe_cells(line):
+    """Split real delimiters, preserving escaped pipes and empty owned cells."""
+    line = line.strip()
+    cells = ['']
+    index = 0
+    while index < len(line):
+        char = line[index]
+        if char == '\\' and index + 1 < len(line) and line[index + 1] in {'|', '\\'}:
+            cells[-1] += line[index + 1]
+            index += 2
+            continue
+        if char == '|':
+            cells.append('')
+        else:
+            cells[-1] += char
+        index += 1
+    if line.startswith('|'):
+        cells.pop(0)
+    if cells and cells[-1] == '' and line.endswith('|'):
+        cells.pop()
+    return cells
+
+
+
+def validate_group_caption(group):
+    """Validate caption ownership selectors and its single extracted value."""
+    option = group["group_caption"]
+    keys = {"table_selector", "row_selector", "cell_selector", "caption_selector", "pattern", "field"}
+    if (group["kind"] != "table" or not isinstance(option, dict) or set(option) != keys
+            or not isinstance(option.get("field"), dict)
+            or not option["field"].get("aliases")
+            or option["field"].get("id") in {c.get("id") for c in group.get("required_columns", [])}
+            or any(not isinstance(option[k], str) or not option[k].strip() for k in keys - {"field"})):
+        raise ValueError("Invalid table group caption")
+    for key in keys - {"field", "pattern"}:
+        soupsieve.compile(option[key])
+    pattern = re.compile(option["pattern"])
+    if set(pattern.groupindex) != {"value"} or pattern.groups != 1 or pattern.search(""):
+        raise ValueError("Table caption must capture one nonempty value")
+
+
+def grouped_table_surface(content, group, *, representation=None):
+    """Bind a caption value only to following rows in the same declared table.
+
+    Markdown uses a one-cell caption row inside a four (or more) column table.
+    Captions outside a table, or after a record, cannot supply that record.
+    HTML selectors describe the rendered cells, including CSS-hidden exclusions.
+    """
+    from .dynamic_lists import scoped_html
+    option = group['group_caption']
+    columns = group['required_columns']
+    pattern = re.compile(option['pattern'])
+    label = option['field']['aliases'][0]
+    content = content if representation == 'plain_text' else _without_example_fences(content)
+
+    def value(text):
+        match = pattern.fullmatch(text.strip())
+        return (match['value'] or '').strip() if match else ''
+
+    def owned_text(node, table):
+        return _native_cell_text(node, table)
+
+    def line(cells):
+        # Escape pipe characters so a value cannot manufacture another field.
+        return '| ' + ' | '.join(' '.join(v.split()).replace('\\', r'\\').replace('|', r'\|') for v in cells) + ' |'
+
+    if representation != 'plain_text' and _contains_rendered_html_table(content):
+        soup = scoped_html(content)
+        expanded = {}
+        replacements = []
+
+        def protect(text):
+            token = f'LEXBENCH_CAPTION_TABLE_{len(expanded)}_END'
+            while token in content:
+                token += '_'
+            expanded[token] = text
+            return token
+
+        captions = {id(row) for table in soup.select(option['table_selector'])
+                    if table.name == 'table' for row in table.select(option['caption_selector'])
+                    if row.find_parent('table') is table}
+        blocked = _spanning_rows(soup, allowed_colspan_rows=captions)
+        if exclude := group.get('table_scope', {}).get('exclude_selector'):
+            for node in list(soup.select(exclude)):
+                if node.parent is not None:
+                    node.decompose()
+        for table in list(soup.select(option['table_selector'])):
+            if table.name != 'table':
+                continue
+            rows = table.select('tr')
+            captions = {id(row) for row in table.select(option['caption_selector'])}
+            records = {id(row) for row in table.select(option['row_selector'])}
+            header_rows = [row for row in rows
+                           if row.find_parent('table') is table
+                           and (row.find('th', recursive=False) or row.find_parent(['thead', 'table']).name == 'thead')
+                           and id(row) not in captions]
+            headers = ([owned_text(cell, table) for cell in header_rows[0].find_all(['th', 'td'], recursive=False)]
+                       if header_rows else [c['aliases'][0] for c in columns])
+            # A normalized table may already carry the caption value per row.
+            # Its genuine header and cells go through ordinary column matching.
+            if len(headers) == len(columns) + 1:
+                continue
+            out = [line(headers + [label]),
+                   line(['---'] * (len(columns) + 1))]
+            context = ''
+            owner = None
+            for row in rows:
+                if row.find_parent('table') is not table:
+                    continue
+                section = row.find_parent(['tbody', 'thead', 'tfoot']) or table
+                if section is not owner:
+                    context, owner = '', section
+                if id(row) in captions:
+                    context = (_escape_native_scalar_text(value(' '.join(_visible_markdown_scalar(owned_text(row, table)).split())))
+                               if id(row) not in blocked else '')
+                elif id(row) in records and id(row) not in blocked:
+                    cells = [owned_text(c, table) for c in row.select(option['cell_selector'])
+                             if c.find_parent('tr') is row]
+                    if len(cells) == len(columns):
+                        out.append(line(cells + [context]))
+            replacements.append((table, protect('\n' + '\n'.join(out) + '\n')))
+        # Compute selectors before moving selected tables out of their ancestors.
+        for table, token in replacements:
+            nested = [child.extract() for child in table.find_all('table')]
+            table.replace_with(token, *nested)
+        # Preserve adjacent Markdown characters through HTML serialization.
+        for part in list(soup.strings):
+            if part.find_parent('table') is None and any(c in part for c in '&<>'):
+                part.replace_with(protect(str(part)))
+        content = table_text_surface(str(soup))
+        for token, markdown in expanded.items():
+            content = content.replace(token, markdown)
+
+    lines = content.splitlines()
+    out = []
+    index = 0
+    while index < len(lines):
+        cells = _pipe_cells(lines[index]) if '|' in lines[index] else []
+        separator = _pipe_cells(lines[index + 1]) if index + 1 < len(lines) and '|' in lines[index + 1] else []
+        if (len(cells) not in {len(columns), len(columns) + 1} or len(separator) != len(cells)
+                or not all(re.fullmatch(r'\s*:?-{3,}:?\s*', c) for c in separator)):
+            if '|' not in lines[index]:
+                out.append(lines[index])
+            index += 1
+            continue
+        if len(cells) == len(columns) + 1:
+            out.extend([lines[index], lines[index + 1]])
+            index += 2
+            while index < len(lines) and '|' in lines[index] and lines[index].strip():
+                if _table_header_at(lines, index):
+                    break
+                out.append(lines[index]); index += 1
+            continue
+        out.extend([line(cells + [label]), line(separator + ['---'])])
+        index += 2
+        context = ''
+        while index < len(lines) and '|' in lines[index] and lines[index].strip():
+            if _table_header_at(lines, index):
+                break
+            cells = _pipe_cells(lines[index])
+            nonempty = [c for c in cells if c.strip()]
+            if len(nonempty) == 1:
+                context = value(nonempty[0])
+            elif len(cells) == len(columns):
+                out.append(line(cells + [context]))
+            else:
+                context = ''
+            index += 1
+    return '\n'.join(out)

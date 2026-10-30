@@ -1,0 +1,187 @@
+"""Local scoring and edition comparison do not require installed datasets."""
+import inspect
+import json
+import os
+import subprocess
+import sys
+
+import pytest
+
+from lexbench_webfetch.metrics import task_measured, task_passed
+from lexbench_webfetch.models import EvalCase
+from lexbench_webfetch.scoring import score_attempt
+from lexbench_webfetch.scoring_regressions import verdict_correction_counts
+from lexbench_websearch.evidence_quality import is_benchmark_page
+from lexbench_websearch.scoring import evaluate
+
+
+@pytest.mark.parametrize('track', ['webfetch', 'websearch'])
+def test_local_release_and_comparison_work_with_empty_offline_cache(tmp_path, track):
+    dataset = tmp_path / 'dataset.json'
+    dataset.write_text(json.dumps({'cases': [{'id': 'local', 'url': 'https://example.org',
+                                            'query': 'Find the official manual'}]}))
+    output = tmp_path / 'release.json'
+    cache = tmp_path / 'empty-cache'
+    environment = {**os.environ, 'HF_HUB_OFFLINE': '1', 'BROWSER_EVAL_DATASET_CACHE': str(cache)}
+    def call(*args):
+        result = subprocess.run([sys.executable, '-m', f'lexbench_{track}.cli', *args],
+                                cwd=tmp_path, env=environment, text=True,
+                                capture_output=True, check=True)
+        return json.loads(result.stdout)
+    arguments = ['release', '--dataset', str(dataset), '--output', str(output),
+                 '--version', '1.0.0', '--scorer-revision', 'a' * 40]
+    if track == 'webfetch':
+        arguments += ['--benchmark', 'local']
+    call(*arguments)
+    assert call('compare-releases', str(output), str(output))['mode'] == 'direct'
+    assert not cache.exists()
+
+
+def test_search_local_score_works_with_empty_offline_cache(tmp_path):
+    source = tmp_path / 'score.json'
+    source.write_text(json.dumps({'ranking': ['a'], 'grades': {'a': 3}}))
+    cache = tmp_path / 'empty-cache'
+    result = subprocess.run([sys.executable, '-m', 'lexbench_websearch.cli', 'score', str(source)],
+                            cwd=tmp_path, env={**os.environ, 'HF_HUB_OFFLINE': '1',
+                            'BROWSER_EVAL_DATASET_CACHE': str(cache)},
+                            text=True, capture_output=True, check=True)
+    assert json.loads(result.stdout)
+    assert not cache.exists()
+
+
+@pytest.mark.parametrize('title,expected', [('Original source', False), ('Dataset mirror', True)])
+def test_explicit_contamination_policy_never_loads_default_dataset(monkeypatch, title, expected):
+    from lexbench_websearch import evidence_quality
+    monkeypatch.setattr(evidence_quality, 'default_patterns', lambda: pytest.fail('Unneeded default download'))
+    assert is_benchmark_page({'url': 'https://example.org', 'title': title},
+                             case={'contamination_patterns': {'identity_patterns': ['Dataset mirror']}}) is expected
+
+
+@pytest.mark.parametrize('cutoff', [1, 2, 4, 5, 10])
+@pytest.mark.parametrize('inside', [False, True])
+def test_factual_retrieval_does_not_count_evidence_beyond_selected_cutoff(cutoff, inside):
+    case = {'reference_answer': 'Paris', 'reference_urls': ['https://example.org/answer']}
+    count = min(cutoff, 5)
+    results = [{'url': f'https://example.org/{i}', 'title': 'Unknown'} for i in range(count + 1)]
+    results[count - 1 if inside else count] = {'url': 'https://example.org/answer', 'title': 'Paris'}
+    metrics = evaluate(case, results, cutoff=cutoff)
+    assert metrics['labeled_source_hit_5'] == int(inside)
+    assert metrics['answer_in_preview_5'] == int(inside)
+
+
+def test_page_identity_option_remains_keyword_only():
+    parameter = inspect.signature(EvalCase).parameters['page_identity_required']
+    assert parameter.kind is inspect.Parameter.KEYWORD_ONLY
+    assert EvalCase('local', 'Local', 'https://example.org', 'web', [],
+                    page_identity_required=True).page_identity_required is True
+
+
+@pytest.mark.parametrize('before,after', [(0, True), (1, False), (False, 1), (True, 0), ([], True)])
+def test_correction_receipts_reject_non_boolean_verdicts(before, after):
+    with pytest.raises(ValueError, match='boolean verdict flips'):
+        verdict_correction_counts([{'before': before, 'after': after}])
+
+
+def test_correction_receipts_count_both_error_directions():
+    assert verdict_correction_counts([{'before': True, 'after': False}, {'before': False, 'after': True}]) == {
+        'false_positives': 1, 'false_negatives': 1, 'total': 2}
+
+
+@pytest.mark.parametrize('unresolved', [False, True])
+def test_truncation_does_not_reactivate_an_unresolved_contract(unresolved):
+    case = {'url': 'https://example.org', 'acceptance_contract': {
+        'version': 1, 'schema': 'named_link', 'minimum_records': 1,
+        'hosts': ['example.org'], 'entry_path': '/item/\\d+', 'stable_text_anchors': []}}
+    if unresolved:
+        case['rule_review'] = {'status': 'unresolved', 'reason': 'Reference needs qualification'}
+    response = b'[A visible item](/item/1)\n[Content truncated: showing 1 of 10 lines]'
+    metrics = score_attempt(case, response, ok=True)
+    assert task_measured(metrics) is (not unresolved)
+    assert task_passed(True, metrics) is False
+
+
+@pytest.mark.parametrize('complete', [False, True])
+def test_rounded_body_coverage_cannot_override_explicit_truncation(complete):
+    case = {'url': 'https://example.org', 'body_requirements': {
+        'version': 1, 'unit': 'region_token_recall', 'minimum_coverage': .9,
+        'regions': [{'id': 'whole', 'text': 'alpha ' * 30000}]}}
+    answer = 'alpha ' * (30000 if complete else 29999)
+    answer += '\n[Content truncated: showing 1 of 10 lines]'
+    metrics = score_attempt(case, answer.encode(), ok=True)
+    region = metrics['body_region_results'][0]
+    assert region['coverage'] == 1.0
+    assert (region['matched_units'] == region['expected_units']) is complete
+    assert task_passed(True, metrics) is complete
+
+
+@pytest.mark.parametrize('metric', ['primary', 'source', 'answer', 'site', 'availability'])
+@pytest.mark.parametrize('failure', [None, {'http_status': 500}, {'error': 'upstream failure'}])
+def test_search_task_acceptance_rejects_failed_responses_with_matching_evidence(metric, failure):
+    from lexbench_websearch.scoring import task_acceptance
+    case = {'family': 'site', 'domains': ['example.org'], 'reference_answer': 'Paris',
+            'reference_urls': ['https://example.org/answer'], 'anchors': ['https://example.org/answer'],
+            'contamination_patterns': {'identity_patterns': []}}
+    row = {'results': [{'url': 'https://example.org/answer', 'title': 'Paris'}], **(failure or {})}
+    assert task_acceptance(case, row, metric, relevance_grades=[3]) is (failure is None)
+    assert task_acceptance(case, None, metric, relevance_grades=[3]) is None
+    if metric != 'availability':
+        assert task_acceptance(case, row, metric, quality_excluded=True, relevance_grades=[3]) is None
+
+
+@pytest.mark.parametrize('evaluated_cutoff', [2, 5, 10])
+@pytest.mark.parametrize('requested_cutoff', [5, 10])
+def test_search_source_acceptance_uses_requested_scope_not_cached_metrics(evaluated_cutoff, requested_cutoff):
+    from lexbench_websearch.scoring import task_acceptance
+    case = {'anchors': ['https://example.org/anchor']}
+    results = [{'url': f'https://example.org/{i}'} for i in range(10)]
+    results[5] = {'url': 'https://example.org/anchor'}
+    row = {'results': results, 'metrics': evaluate(case, results, cutoff=evaluated_cutoff)}
+    assert task_acceptance(case, row, 'source', cutoff=requested_cutoff) is (requested_cutoff == 10)
+
+
+@pytest.mark.parametrize('results,grades,expected', [
+    ([], [3], False),
+    ([{'url': 'https://example.org'}], [0, 3], False),
+    ([{'url': 'https://example.org'}], [3], True),
+])
+def test_relevance_grades_cannot_credit_absent_result_slots(results, grades, expected):
+    from lexbench_websearch.scoring import task_acceptance, classify
+    row = {'results': results}
+    assert task_acceptance({}, row, relevance_grades=grades) is expected
+    assert (classify({}, row, relevance_grades=grades)[0] == 'pass') is expected
+
+
+@pytest.mark.parametrize('kind', ['resource', 'file'])
+@pytest.mark.parametrize('requirement', [None, 'minimum', 'fact', 'missing-delivery'])
+def test_nontext_delivery_needs_no_implicit_caption_but_keeps_declared_text(kind, requirement):
+    from lexbench_webfetch.evaluation import evaluate_response
+    case = {'url': 'https://example.org', 'task_kind': kind,
+            'expected_resources': [{'id': 'image', 'urls': ['/image.png']}]}
+    if requirement == 'minimum':
+        case['min_content_chars'] = 30
+    if requirement == 'fact':
+        case['required_facts'] = [{'id': 'caption', 'alternatives': ['Required caption']}]
+    response = b'<img src="/image.png">' if requirement != 'missing-delivery' else b''
+    files = [b'\x89PNG\r\n\x1a\n' + b'x' * 32] if kind == 'file' and requirement != 'missing-delivery' else []
+    result = evaluate_response(case, response, files=files)
+    assert result['passed'] is (requirement is None)
+    assert result['metrics']['content_length_pass'] is False
+    if requirement is None:
+        assert 'length' not in result['metrics']['acceptance_checks']
+
+
+@pytest.mark.parametrize('authority,valid', [
+    ('example.org', True), ('example.org:443', True), ('example.org:8443', True),
+    ('example.org:bad', False), ('example.org:99999', False), ('example.org:-1', False),
+    ('[2001:db8::1]:443', True), ('[2001:db8::1]:99999', False),
+])
+def test_search_rejects_unusable_ports_before_normalized_results_and_domain_acceptance(authority, valid):
+    from lexbench_websearch.scoring import normalize_results, in_domain
+    url = 'https://' + authority + '/page'
+    host = '2001:db8::1' if authority.startswith('[') else 'example.org'
+    if valid:
+        assert normalize_results({'results': [{'url': url}]})[0]['url'] == url
+    else:
+        with pytest.raises(ValueError):
+            normalize_results({'results': [{'url': url}]})
+    assert in_domain(url, host) is valid

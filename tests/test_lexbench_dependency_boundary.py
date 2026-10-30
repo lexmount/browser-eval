@@ -63,8 +63,9 @@ def test_frozen_definitions_have_one_installed_owner():
     binding = json.loads((ROOT / "evaluation/lexbench-webfetch.json").read_text())
     import tomllib
     dependencies = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["dependencies"]
-    dependency = next(value for value in dependencies if value.startswith("lexbench-webfetch @"))
-    assert dependency.endswith("@" + binding["revision"]), "Definition binding and installed dependency must name the same revision"
+    assert not any(value.startswith("lexbench-webfetch @") for value in dependencies)
+    from harness.benchmarks.pinning import validate_binding
+    assert validate_binding(ROOT) == binding["revision"]
     for relative, expected in binding["definition_files"].items():
         assert not (ROOT / relative).exists(), relative
         assert hashlib.sha256(definition_path(relative).read_bytes()).hexdigest() == expected

@@ -15,6 +15,7 @@ from harness.trajectory_replay.public_webarena.qualification import (
     validate_completed_shard,
 )
 from harness.trajectory_replay.public_webarena.suite import BrowserTask, TaskSuite
+from harness.trajectory_replay.report_inputs import replay_input_path
 
 
 def _write_json(path, payload):
@@ -24,7 +25,7 @@ def _write_json(path, payload):
 def test_canonical_qualification_plan_is_an_exact_eighteen_shard_partition():
     shards = qualification_shards(
         Path("evaluation/browser-use-public/webarena-amd64-scope.json"),
-        Path("evaluation/browser-use-public/webarena-human-suite.json"),
+        replay_input_path(current="human-candidates"),
     )
 
     assert len(shards) == 18
@@ -36,7 +37,7 @@ def test_parallel_qualification_waves_never_share_a_site():
     scope = json.loads(Path("evaluation/browser-use-public/webarena-amd64-scope.json").read_text())
     shards = qualification_shards(
         Path("evaluation/browser-use-public/webarena-amd64-scope.json"),
-        Path("evaluation/browser-use-public/webarena-human-suite.json"),
+        replay_input_path(current="human-candidates"),
     )
 
     waves = qualification_waves(shards, scope, max_workers=3)

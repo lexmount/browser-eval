@@ -1,8 +1,38 @@
 """Optional historical source-input checks; portable tests do not require downloads."""
 
+import importlib
+import os
+import sys
 from pathlib import Path
 
 import pytest
+
+
+def guard_browser_launches(patch):
+    """Fail before macOS application registration crashes a restricted browser."""
+    if sys.platform != "darwin" or os.environ.get("CODEX_SANDBOX") != "seatbelt":
+        return
+
+    def unavailable(*args, **kwargs):
+        raise RuntimeError(
+            "macOS browser tests require an unrestricted process; "
+            "rerun this test command outside the restricted execution environment"
+        )
+
+    for name in ("playwright.sync_api", "playwright.async_api"):
+        try:
+            api = importlib.import_module(name)
+        except ImportError:
+            continue
+        for method in ("launch", "launch_persistent_context"):
+            patch.setattr(api.BrowserType, method, unavailable)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def browser_launch_policy():
+    with pytest.MonkeyPatch.context() as patch:
+        guard_browser_launches(patch)
+        yield
 
 
 def read_frozen_dataset_bytes(path):

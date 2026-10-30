@@ -16,7 +16,12 @@ from harness.web_fetch.risk_control import (
     measured_risk_control_dataset,
     require_complete_diagnostic_logs,
 )
-from lexbench_webfetch.risk_control_dataset import BODY_CONTRACTS, EXPECTED_COHORT_HASH, EXPECTED_RULE_HASHES, LIST_CONTRACTS, MANIFEST, RULE_FILES, evidence_roots, parse_sections
+from lexbench_webfetch.risk_control_dataset import EXPECTED_COHORT_HASH, EXPECTED_RULE_HASHES, evidence_roots, parse_sections
+
+BODY_CONTRACTS = definition_path("evaluation/risk-control/body-contracts.json")
+LIST_CONTRACTS = definition_path("evaluation/risk-control/list-contracts.json")
+MANIFEST = definition_path("evaluation/risk-control/qualification/cohort/input-manifest.json")
+RULE_FILES = tuple(definition_path("evaluation/risk-control/" + name) for name in EXPECTED_RULE_HASHES)
 from lexbench_webfetch.scoring import score_attempt
 from lexbench_webfetch.stable_tasks import evaluate_stable_task, validate_acceptance_contract
 from tests.conftest import read_frozen_dataset_bytes
@@ -198,7 +203,6 @@ def test_compiler_reads_explicit_definitions_without_checkout_defaults(tmp_path,
     rule = tmp_path / "rules.md"
     rule.write_text(RULE_FILES[0].read_text())
     expected = compiler.parse_sections((RULE_FILES[0],))
-    monkeypatch.setattr(compiler, "RULE_FILES", (tmp_path / "absent.md",))
     assert compiler.parse_sections((rule,)) == expected
     manifest = tmp_path / "input-manifest.json"
     manifest.write_text('{"evidence_roots":{"reference":"independent-inputs"}}')

@@ -34,7 +34,7 @@ jobs:
           node-version: "22"
           cache: npm
       - run: make setup-test
-      - run: make ci-tests PYTEST_ARGS='-n 2 --dist loadfile --durations=20'
+      - run: make ci-tests PYTEST_ARGS='-n 4 --dist loadfile --durations=20'
 
   package:
     name: Installation and packaging
@@ -54,6 +54,7 @@ jobs:
           node-version: "22"
           cache: npm
       - run: make setup
+      - run: uv run --frozen python -m harness.benchmarks.data
       - run: npm ci
       - name: Verify base installation and fixture CLI
         run: |
@@ -81,6 +82,7 @@ jobs:
         timeout-minutes: 5
         run: |
           uv sync --frozen --extra test --extra headless-eval --extra browser-use-eval
+          uv run --frozen --no-sync python -m harness.benchmarks.data
           uv run --frozen --no-sync playwright install chromium
           export BROWSER_EVAL_TEST_BROWSER_BINARY="$(uv run --frozen --no-sync python -c 'from playwright.sync_api import sync_playwright; p = sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
           uv run --frozen --no-sync python -m pytest tests/test_browser_observation_contracts.py tests/test_report_browser_interactions.py tests/web_search/test_visual.py -q

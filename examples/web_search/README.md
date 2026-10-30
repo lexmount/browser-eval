@@ -7,4 +7,4 @@ uv run --frozen python -m harness.web_search.example --output /tmp/search-exampl
 uv run --frozen python scripts/build_search_report.py --output /tmp/search-example/report --check
 ```
 
-Open `/tmp/search-example/report/index.html` through a local HTTP server to use the on-demand evidence dialogs. The renderer and fixture are owned by `harness/web_search/`; this directory carries no measurements. See the [track guide](../../harness/web_search/README.md) for authenticated collection and metric definitions.
+Open `/tmp/search-example/report/index.html` through a local HTTP server to use the on-demand evidence dialogs. The renderer and fixture are owned by `src/harness/web_search/`; this directory carries no measurements. See the [track guide](../../src/harness/web_search/README.md) for authenticated collection and metric definitions.

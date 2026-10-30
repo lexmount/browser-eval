@@ -21,7 +21,7 @@ While the software remains `0.x`, use a minor release for new functionality or b
 | Identity | Owner | When it changes |
 | --- | --- | --- |
 | Browser Eval software, e.g. `v0.3.0` | This repository | Execution, adapters, evidence handling or reporting software is released |
-| Benchmark edition, e.g. `bench-v2.0.1` | Selected benchmark repository | Tasks, references or scoring change under that benchmark's rules |
+| Benchmark edition | Selected HF dataset commit plus the Browser Eval scorer revision | Tasks, references or scoring change under the benchmark's compatibility rules |
 | Published report build | Artifact Site or selected report host | A new report build is published |
 
 Added cases can require a major benchmark edition even when accepting that edition is a compatible software feature. The [benchmark contract](benchmarks.md#benchmark-editions) defines `direct`, `rescore` and `separate` comparisons. Pin upstream code commits and external input hashes alongside readable versions. Rebuilding presentation preserves saved calls and the selected benchmark edition.
@@ -30,7 +30,7 @@ Added cases can require a major benchmark edition even when accepting that editi
 
 Choose a stable software version after all changes in its declared release scope have landed on main and the integrated release checks pass. Version `1.0.0` establishes the documented compatibility contract; release preparation alone does not assign that version or create a tag.
 
-Web Fetch includes LexBench Web Fetch integration and independently selected WebMainBench and WCXB workflows. Search uses LexBench Web Search definitions and scoring. Publish the exact supported dataset editions and provider configurations with the release. Browser Trajectory Replay and Browser Use can remain available as experimental tracks with their own environment requirements.
+Web Fetch includes LexBench-Web-Fetch integration and independently selected WebMainBench and WCXB workflows. Search uses the separate HF Search and SimpleQA definitions with Browser Eval's local scorer. Publish the exact supported dataset editions and provider configurations with the release. Browser Trajectory Replay and Browser Use can remain available as experimental tracks with their own environment requirements.
 
 Web Fetch, Web Search / SERP, Browser Trajectory Replay and Browser Use have main-branch implementations. Validate the selected tracks together on the release commit before assigning a stable version. External references, browsers, self-hosted sites and provider accounts remain separate inputs.
 

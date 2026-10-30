@@ -11,7 +11,7 @@ from harness.web_fetch.reference_lifecycle import (
     valid_scoring_revision,
 )
 from lexbench_webfetch.scoring import score_attempt
-from lexbench_webfetch.scoring_regressions import active_scoring_regressions, require_scoring_regressions, valid_correction_provenance
+from lexbench_webfetch.scoring_regressions import SCORING_OPTION_FIELDS, active_scoring_regressions, require_scoring_regressions, valid_correction_provenance
 from harness.web_fetch.scoring_revision import ALLOWED_FIELDS, correction_provenance
 
 
@@ -27,7 +27,9 @@ class ScoringRegressionTests(unittest.TestCase):
             old,new=next(iter(document['superseded_cases'].items()))
             self.assertNotIn(old,current)
             self.assertIn(new,current)
-            for field,value in (('artifact','Changed body'),('final_url','https://different.test/')):
+            for field,value in (('artifact','Changed body'),('final_url','https://different.test/'),
+                                ('list_reference', {'items': [{'title': 'Changed reference'}]}),
+                                ('status_code', 503)):
                 changed=json.loads(json.dumps(document))
                 next(row for row in changed['cases'] if row['id']==new)[field]=value
                 path.write_text(json.dumps(changed))
@@ -111,8 +113,7 @@ class ScoringRegressionTests(unittest.TestCase):
         root_modes = {}
         for identifier, row in rows.items():
             with self.subTest(regression=identifier):
-                arguments = dict(ok=row['ok'], metadata=row.get('metadata'), title=row.get('title'),
-                                 final_url=row.get('final_url'))
+                arguments = dict(ok=row['ok'], **{key: row.get(key) for key in SCORING_OPTION_FIELDS})
                 if row.get('expected_validation_error'):
                     with self.assertRaisesRegex(ValueError, row['expected_validation_error']):
                         score_attempt(row['case'], row['artifact'].encode(), **arguments)

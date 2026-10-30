@@ -1,4 +1,6 @@
 """Native methods accept declared upgrades and reject mismatched installations."""
+from harness.distribution import source_path
+
 import shutil
 import subprocess
 from pathlib import Path
@@ -56,7 +58,7 @@ def test_declared_native_installation_is_authoritative(checkout, method, change)
                     'node_modules/.pnpm/.browser-harness-dsh-worker.mts']
         deployed = repo / required[-1]
         deployed.parent.mkdir(parents=True)
-        shutil.copyfile(ROOT / 'harness/web_fetch/workers/dsh_webfetch_worker.mts', deployed)
+        shutil.copyfile(source_path('harness/web_fetch/workers/dsh_webfetch_worker.mts', root=ROOT), deployed)
     config = {'repo_path': str(repo), 'expected_repo_revision': revision,
               'required_paths': ['{repo_path}/' + name for name in required]}
     if method != 'cowagent_builtin':

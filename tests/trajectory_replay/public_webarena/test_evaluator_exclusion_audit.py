@@ -6,6 +6,7 @@ import zipfile
 from pathlib import Path
 
 from harness.trajectory_replay.public_webarena.diagnostics import verify_exclusions
+from harness.trajectory_replay.report_inputs import replay_input_path
 
 ROOT = Path(__file__).resolve().parents[3]
 
@@ -122,7 +123,7 @@ def test_evaluator_exclusion_audit_binds_original_trace_anomalies(tmp_path):
 
 
 def test_committed_exclusion_audit_is_bound_to_current_task_definitions():
-    suite_path = ROOT / "evaluation/browser-use-public/webarena-human-suite.json"
+    suite_path = replay_input_path(current="human-candidates")
     audit_path = (
         ROOT / "evaluation/browser-use-public/webarena-evaluator-exclusion-audit.json"
     )

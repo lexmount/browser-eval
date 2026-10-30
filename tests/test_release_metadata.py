@@ -1,5 +1,7 @@
 """Release metadata agrees before packaging; project citations stay version-neutral."""
 
+from harness.distribution import source_path
+
 import importlib.metadata
 import os
 import re
@@ -54,20 +56,13 @@ def test_release_tag_matches_installed_identity():
 def test_declared_benchmark_pins_match_lock_and_installation():
     import json
 
-    from harness.lexbench_pin import validate_binding
+    from harness.benchmarks.pinning import validate_binding
 
     project = source_project()
-    locked = tomllib.loads((ROOT / "uv.lock").read_text())
-    for dependency in project["dependencies"]:
-        if not dependency.startswith("lexbench-"):
-            continue
-        name = dependency.split(" @ ")[0]
-        revision = validate_binding(ROOT, name)
-        package = next(p for p in locked["package"] if p["name"] == name)
-        installed = importlib.metadata.distribution(name)
-        assert installed.version == package["version"], name
-        origin = json.loads(installed.read_text("direct_url.json"))
-        assert origin["vcs_info"]["commit_id"] == revision, name
+    assert not any(d.startswith("lexbench-") for d in project["dependencies"])
+    lock = json.loads((source_path("harness/benchmarks/data-lock.json", root=ROOT)).read_bytes())
+    for track in lock["datasets"]:
+        assert validate_binding(ROOT, "lexbench-" + track) == lock["datasets"][track]["revision"]
 
 
 def test_all_git_dependencies_resolve_to_locked_source_commits():
@@ -97,7 +92,7 @@ def test_installed_benchmarks_match_their_frozen_catalogs():
 
     source_project()
     for module in ["lexbench_webfetch", "lexbench_websearch"]:
-        import_module(module + ".versions").catalog_release()
+        import_module(module + ".versions").catalog_release(require_current_scorer=False)
 
 
 def test_runtime_version_reads_installation_metadata():
