@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from bs4 import BeautifulSoup
 
+from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.trajectory_replay.report_inputs import bound_dataset_path
 from harness.trajectory_replay.webarena_report import (
     LEGACY_REPLAY_VALIDITY_INPUTS,
@@ -1439,3 +1440,35 @@ def test_supplemental_requests_keep_unavailable_url_and_observed_version():
     assert 'OtherBrowser 9' in html and 'Moli 1.1.8' not in html
     assert 'Not recorded' in html and '/observed-endpoint' in html
     assert 'Read failed before a URL was recorded' in html
+
+
+def test_local_environment_page_names_the_profile_bound_site_gateway(
+    tmp_path: Path, monkeypatch
+) -> None:
+    _, _, _, profile, _, _, files = build_replay_fixture(tmp_path, monkeypatch)
+    gateway = next(iter(RECORDING_GATEWAYS))
+
+    def environment_page(hosts: list[str], name: str) -> str:
+        execution = {
+            key: value for key, value in profile["execution"].items() if key != "site_stack"
+        }
+        files["profile.json"].write_text(
+            json.dumps({**profile, "execution": {**execution, "trusted_source_site_hosts": hosts}}),
+            encoding="utf-8",
+        )
+        output = tmp_path / name
+        build_webarena_replay_report(
+            results_path=files["results.json"], dataset_path=files["dataset.json"],
+            review_path=files["review.json"], profile_path=files["profile.json"],
+            output_dir=output, language="en",
+        )
+        return (output / "en/environment.html").read_text(encoding="utf-8")
+
+    page = environment_page([gateway, "host.docker.internal"], "bound")
+    assert f"Colima gateway {gateway}|" in page
+    assert f"{gateway} is the host gateway inside the Colima VM" in page
+    for hosts, name in (([], "unbound"), (["host.docker.internal", "unregistered.test"], "other")):
+        page = environment_page(hosts, name)
+        assert gateway not in page
+        assert "Colima gateway|" in page
+        assert "The site gateway is the host gateway inside the Colima VM" in page

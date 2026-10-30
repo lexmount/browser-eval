@@ -1430,6 +1430,12 @@ def build_webarena_replay_report(
         or execution.get("retry_failed_task") is not False
     ):
         raise ValueError("replay report requires the declared common execution protocol")
+    # Name a gateway only when the run profile's trusted site hosts bind exactly one.
+    profile_gateways = set(map(str, execution.get("trusted_source_site_hosts") or ()))
+    profile_gateways &= set(RECORDING_GATEWAYS)
+    site_gateway = profile_gateways.pop() if len(profile_gateways) == 1 else None
+    gateway_subject_zh = f"{site_gateway} " if site_gateway else "所用网关"
+    gateway_subject_en = site_gateway or "The site gateway"
     if diagnostic_closure_path is not None:
         raise ValueError("diagnostic-only cohorts cannot enter the replay report")
     validated = load_validated_failure_review(results_path, review_path, methods=profile["methods"])
@@ -1874,14 +1880,14 @@ def build_webarena_replay_report(
         ) + "</div>"
         topology = f'''<pre class="mermaid" hidden>flowchart LR
   R[{"重放器" if zh else "Replay runner"}] -->|{"每次只运行一个浏览器" if zh else "one browser at a time"}| B[{"浏览器容器" if zh else "Browser container"}]
-  B -->|{f"Colima 网关 {RECORDING_GATEWAYS[0]}" if zh else f"Colima gateway {RECORDING_GATEWAYS[0]}"}| S[{"本地 WebArena 站点" if zh else "Local WebArena sites"}]
+  B -->|{" ".join(filter(None, ("Colima 网关" if zh else "Colima gateway", site_gateway)))}| S[{"本地 WebArena 站点" if zh else "Local WebArena sites"}]
   S --> D[{"每方法开始前恢复站点数据" if zh else "Reset site data before each method"}]
   B --> E[{"轨迹 · 网络记录 · 资源采样" if zh else "Trace · HAR · resource samples"}]
   E --> V[{"官方验收" if zh else "Official evaluator"}]
   V --> X[{"绑定证据的结果" if zh else "Evidence-bound result"}]
   X --> T[{"销毁浏览器与站点" if zh else "Teardown browser and sites"}]
   T --> R</pre>'''
-        environment_body = f'''<section class="hero"><h1>{"环境与评测流程" if zh else "Environment and evaluation flow"}</h1><p>{f"{RECORDING_GATEWAYS[0]} 是 Colima 虚拟机中的宿主网关：浏览器容器通过它访问运行在同一台 Mac 虚拟化环境里的 WebArena 站点。它不是公网测试网站。" if zh else f"{RECORDING_GATEWAYS[0]} is the host gateway inside the Colima VM. Browser containers use it to reach the WebArena sites running in the same Mac virtualization environment; it is not a public test website."}</p></section><section><h2>{"执行拓扑" if zh else "Execution topology"}</h2>{fallback}{topology}</section><section><h2>{"隔离规则" if zh else "Isolation rules"}</h2><div class="summary-grid"><article><strong>1</strong><p>{"一套固定端口站点环境，因此只允许一个方法运行。" if zh else "One fixed-port site stack permits only one running method."}</p></article><article><strong>{task_count}</strong><p>{"每种方法覆盖全部任务，方法开始前恢复站点；任务之间不重置。每题只保留一个最终逻辑结果，额外物理执行单独计数，输入未变且已经通过的任务不再执行。" if zh else "Each method covers every task after one site reset, with no reset between tasks. One final logical outcome is retained per task; extra physical calls are counted separately, and an unchanged task is not run again after passing."}</p></article><article><strong>0</strong><p>{_e(backend_note)}</p></article></div></section><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';const node=document.querySelector('.mermaid');try{{mermaid.initialize({{startOnLoad:false,theme:document.documentElement.dataset.theme==='dark'?'dark':'neutral'}});const rendered=await mermaid.render('replay-topology',node.textContent);node.innerHTML=rendered.svg;node.hidden=false;document.querySelector('[data-topology-fallback]').hidden=true}}catch(error){{node.hidden=true}}</script>'''
+        environment_body = f'''<section class="hero"><h1>{"环境与评测流程" if zh else "Environment and evaluation flow"}</h1><p>{f"{gateway_subject_zh}是 Colima 虚拟机中的宿主网关：浏览器容器通过它访问运行在同一台 Mac 虚拟化环境里的 WebArena 站点。它不是公网测试网站。" if zh else f"{gateway_subject_en} is the host gateway inside the Colima VM. Browser containers use it to reach the WebArena sites running in the same Mac virtualization environment; it is not a public test website."}</p></section><section><h2>{"执行拓扑" if zh else "Execution topology"}</h2>{fallback}{topology}</section><section><h2>{"隔离规则" if zh else "Isolation rules"}</h2><div class="summary-grid"><article><strong>1</strong><p>{"一套固定端口站点环境，因此只允许一个方法运行。" if zh else "One fixed-port site stack permits only one running method."}</p></article><article><strong>{task_count}</strong><p>{"每种方法覆盖全部任务，方法开始前恢复站点；任务之间不重置。每题只保留一个最终逻辑结果，额外物理执行单独计数，输入未变且已经通过的任务不再执行。" if zh else "Each method covers every task after one site reset, with no reset between tasks. One final logical outcome is retained per task; extra physical calls are counted separately, and an unchanged task is not run again after passing."}</p></article><article><strong>0</strong><p>{_e(backend_note)}</p></article></div></section><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';const node=document.querySelector('.mermaid');try{{mermaid.initialize({{startOnLoad:false,theme:document.documentElement.dataset.theme==='dark'?'dark':'neutral'}});const rendered=await mermaid.render('replay-topology',node.textContent);node.innerHTML=rendered.svg;node.hidden=false;document.querySelector('[data-topology-fallback]').hidden=true}}catch(error){{node.hidden=true}}</script>'''
         environment_body = environment_body.replace("环境与评测流程", "环境与方法").replace("Environment and evaluation flow", "Environment and method")
         if "Rainbond" in str((profile.get("execution") or {}).get("site_stack") or ""):
             diagram_script = environment_body[environment_body.index('<script type="module">'):]
