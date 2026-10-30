@@ -439,6 +439,16 @@ def _load_completed_attempts(
     return completed
 
 
+def _retry_required(primary: dict[str, Any]) -> bool:
+    """Apply the declared one-retry rule identically to fresh and resumed runs.
+
+    The protocol records ``failure_retries: 1`` and the release check accepts a
+    retry after any primary with a score below 1.0, so every non-passing primary,
+    whatever its evaluator status, receives exactly one retry.
+    """
+    return float(primary.get("score") or 0) != 1.0
+
+
 def _write_or_validate_run_config(path: Path, planned: dict[str, Any]) -> None:
     if path.exists():
         existing = json.loads(path.read_text(encoding="utf-8"))
@@ -587,9 +597,11 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                 order = ("chromium", "moli") if task_index % 2 == 0 else ("moli", "chromium")
                 for engine in order:
                     for attempt in (1, 2):
+                        primary_key = (args.model, engine, selected.task_id, 1)
+                        if attempt == 2 and not _retry_required(completed[primary_key]):
+                            break
                         key = (args.model, engine, selected.task_id, attempt)
                         if key in completed:
-                            row = completed[key]
                             print(
                                 json.dumps(
                                     {
@@ -597,27 +609,12 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                                         "task_id": selected.task_id,
                                         "attempt": attempt,
                                         "status": "resume-skip",
-                                        "score": row["score"],
+                                        "score": completed[key]["score"],
                                     }
                                 ),
                                 flush=True,
                             )
-                            if (
-                                float(row.get("score") or 0) == 1.0
-                                or row.get("status") == "unsupported"
-                            ):
-                                break
                             continue
-                        primary = completed.get((args.model, engine, selected.task_id, 1))
-                        if (
-                            attempt == 2
-                            and primary is not None
-                            and (
-                                float(primary.get("score") or 0) == 1.0
-                                or primary.get("status") == "unsupported"
-                            )
-                        ):
-                            break
                         row = _run_attempt(
                             lock_path=execution_lock_path,
                             lock_namespace=physical_execution_lock_namespace,
@@ -642,8 +639,6 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                             for key in ("engine", "task_id", "attempt", "status", "score")
                         }
                         print(json.dumps(visible), flush=True)
-                        if row["score"] == 1.0:
-                            break
     finally:
         for container in containers.values():
             try:

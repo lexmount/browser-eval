@@ -11,6 +11,7 @@ from harness.browser_use.runner import (
     _limit_cowagent_transport_retries,
     _load_completed_attempts,
     _max_steps_response,
+    _retry_required,
     _run_attempt,
     _scheduled_tasks,
     _user_prompt,
@@ -1065,3 +1066,31 @@ def test_resume_rejects_attempt_from_another_model(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="attempt model differs"):
         _load_completed_attempts(attempts, "model-a")
+
+
+@pytest.mark.parametrize(
+    ("status", "score", "retry"),
+    [
+        ("success", 1.0, False),
+        ("failure", 0.0, True),
+        ("unsupported", 0.0, True),
+        ("error", None, True),
+    ],
+)
+def test_resumed_primary_uses_the_fresh_run_retry_rule(
+    tmp_path: Path, status: str, score: float | None, retry: bool
+) -> None:
+    attempts = tmp_path / "attempts.jsonl"
+    record = {
+        "model": "model-a",
+        "engine": "chromium",
+        "task_id": 44,
+        "attempt": 1,
+        "status": status,
+        "score": score,
+    }
+    attempts.write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+    primary = _load_completed_attempts(attempts, "model-a")[("model-a", "chromium", 44, 1)]
+
+    assert _retry_required(primary) is retry
