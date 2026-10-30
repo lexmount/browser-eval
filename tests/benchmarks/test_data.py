@@ -414,3 +414,22 @@ def test_configured_cache_home_alias_keeps_verified_reads(download, tmp_path, mo
     lexical.write_bytes(b'{"cases":[{"id":"b"}]}')
     with pytest.raises(ValueError, match='hash or size'):
         read(lexical)
+
+
+@pytest.mark.parametrize('warm', [False, True])
+def test_repair_rejects_track_symlink_before_quarantining_external_bytes(download, tmp_path, warm):
+    root = data.snapshot('webfetch')
+    moved = tmp_path / 'external-track'
+    root.parent.rename(moved)
+    root.parent.symlink_to(moved, target_is_directory=True)
+    target = moved / root.name / 'definitions/tasks.json'
+    target.write_bytes(b'corrupt external content')
+    before = {str(p.relative_to(moved)): p.read_bytes() for p in moved.rglob('*') if p.is_file()}
+    if not warm:
+        data._resolve.cache_clear()
+    with pytest.raises(ValueError, match='symlinks'):
+        data.repair('webfetch')
+    assert {str(p.relative_to(moved)): p.read_bytes() for p in moved.rglob('*') if p.is_file()} == before
+    assert (moved / root.name).is_dir()
+    assert not list(moved.glob('*.invalid-*'))
+    assert len(download[2]) == 1

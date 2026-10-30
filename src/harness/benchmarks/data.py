@@ -260,7 +260,7 @@ def _verify_snapshot(root: Path, selected: dict) -> None:
 def repair(track: str, revision: str | None = None) -> Path:
     """Preserve an invalid snapshot before restoring its immutable archive."""
     selected = binding(track, revision)
-    root = cache_home() / track / selected["revision"]
+    root = safe_path(cache_home(), track) / selected["revision"]
     if root.exists() or root.is_symlink():
         try:
             _verify_snapshot(root, selected)
