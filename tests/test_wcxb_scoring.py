@@ -56,7 +56,7 @@ def test_custom_participant_matrix_preserves_scores_retries_and_populations(coho
     assert beta["cases"] == 2 and beta["delivered"] == 1
     assert beta["f1"] == 0.5
     assert beta["physical_call_count"] == 3
-    assert beta["mean_latency_ms"] == 2 and beta["p95_latency_ms"] == 2.9
+    assert beta["mean_latency_ms"] == 2 and beta["p95_latency_ms"] == 3
     assert beta["success_latency_count"] == 1 and beta["success_mean_latency_ms"] == 1
     failure = next(row for row in rows if row["provider"] == "beta" and not row["delivered"])
     assert failure["diagnosis"] == "request_error"

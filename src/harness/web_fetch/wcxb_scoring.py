@@ -14,6 +14,7 @@ from collections import Counter
 from numbers import Real
 from pathlib import Path
 
+from lexbench_webfetch.metrics import percentile
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
 from harness.record_io import parse_jsonl
@@ -116,14 +117,6 @@ def classify(row: dict, predicted: str, precision: float, recall: float, referen
     if recall < 0.25:
         return "low_recall"
     return "none"
-
-
-def percentile(values: list[float], fraction: float) -> float:
-    ordered = sorted(values)
-    position = (len(ordered) - 1) * fraction
-    lower = int(position)
-    upper = min(lower + 1, len(ordered) - 1)
-    return ordered[lower] + (ordered[upper] - ordered[lower]) * (position - lower)
 
 
 class EvidenceInputs:
@@ -590,12 +583,8 @@ def _score(*, source, sample_manifest, evidence_root, profile_path, staging):
                 "success_mean_latency_ms": sum(successful_latencies) / len(successful_latencies)
                 if successful_latencies
                 else None,
-                "success_p50_latency_ms": percentile(successful_latencies, 0.5)
-                if successful_latencies
-                else None,
-                "success_p95_latency_ms": percentile(successful_latencies, 0.95)
-                if successful_latencies
-                else None,
+                "success_p50_latency_ms": percentile(successful_latencies, 0.5),
+                "success_p95_latency_ms": percentile(successful_latencies, 0.95),
                 "nonempty_reference_count": totals["nonempty_reference_count"],
                 "nonempty_reference_f1": totals["nonempty_reference_f1"]
                 / totals["nonempty_reference_count"],

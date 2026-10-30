@@ -439,3 +439,12 @@ def test_comparison_selects_the_bound_version_when_a_working_copy_changed(tmp_pa
     (second / 'one.json').write_bytes(data)
     assert read_comparison_task([first, second], 'one.json',
         expected_sha256=hashlib.sha256(data).hexdigest()) == data
+
+
+def test_call_statistics_use_the_shared_nearest_rank_percentiles():
+    from harness.lexbench.report import call_stats
+
+    # Linear interpolation reported 95.05 here; nearest rank reports an observed call.
+    stats = call_stats(range(1, 101))
+    assert (stats["n"], stats["p50"], stats["p95"]) == (100, 50.5, 95)
+    assert call_stats([]) == {"n": 0, "sum": 0, "mean": None, "p50": None, "p95": None}
