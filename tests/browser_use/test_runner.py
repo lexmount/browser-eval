@@ -1,5 +1,8 @@
 import json
 import multiprocessing
+import sys
+import time
+import types
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -13,6 +16,7 @@ from harness.browser_use.runner import (
     _max_steps_response,
     _retry_required,
     _run_attempt,
+    _run_attempt_locked,
     _scheduled_tasks,
     _user_prompt,
 )
@@ -1094,3 +1098,143 @@ def test_resumed_primary_uses_the_fresh_run_retry_rule(
     primary = _load_completed_attempts(attempts, "model-a")[("model-a", "chromium", 44, 1)]
 
     assert _retry_required(primary) is retry
+
+
+class _FakeTracing:
+    def __init__(self, stop_error: str = "") -> None:
+        self.stop_error = stop_error
+
+    def start(self, **_kwargs) -> None:
+        return None
+
+    def stop(self, **_kwargs) -> None:
+        time.sleep(0.02)
+        if self.stop_error:
+            raise RuntimeError(self.stop_error)
+
+
+def _install_fake_attempt_runtime(
+    monkeypatch, *, agent_error: str = "", trace_stop_error: str = ""
+) -> dict:
+    """Replace CowAgent, the browser service and Docker with in-process fakes."""
+    service = SimpleNamespace(
+        _context=SimpleNamespace(tracing=_FakeTracing(trace_stop_error)),
+        _page=SimpleNamespace(wait_for_timeout=lambda _ms: None),
+        _submit=lambda function: function(),
+    )
+
+    class BrowserTool:
+        def __init__(self, config) -> None:
+            self.config = config
+
+        def _get_service(self):
+            return service
+
+        def close(self) -> None:
+            return None
+
+    class Agent:
+        def __init__(self, **_kwargs) -> None:
+            self.extra_system_suffix = ""
+
+        def run_stream(self, _prompt, *, on_event, clear_history):
+            time.sleep(0.02)
+            if agent_error:
+                raise RuntimeError(agent_error)
+            return json.dumps({"task_type": "RETRIEVE", "status": "SUCCESS"})
+
+    class AgentStreamExecutor:
+        def _call_llm_stream(self, **_kwargs):
+            return None
+
+    class Recorder:
+        errors: list[str] = []
+
+        def start(self, _context) -> None:
+            return None
+
+        def stop(self, _context, _path) -> None:
+            return None
+
+    class Resources:
+        def __init__(self, _container) -> None:
+            return None
+
+        def counters(self):
+            return {}
+
+    class Sampler:
+        samples: list = []
+
+        def __init__(self, _resources, *, interval_ms) -> None:
+            return None
+
+        def start(self) -> None:
+            return None
+
+        def stop(self) -> None:
+            return None
+
+    modules = {
+        "agent": {},
+        "agent.protocol": {},
+        "agent.protocol.agent": {"Agent": Agent},
+        "agent.protocol.agent_stream": {"AgentStreamExecutor": AgentStreamExecutor},
+        "agent.tools": {},
+        "agent.tools.browser": {},
+        "agent.tools.browser.browser_tool": {"BrowserTool": BrowserTool},
+    }
+    for name, attributes in modules.items():
+        module = types.ModuleType(name)
+        for attribute, value in attributes.items():
+            setattr(module, attribute, value)
+        monkeypatch.setitem(sys.modules, name, module)
+    runner = "harness.browser_use.runner"
+    monkeypatch.setattr(f"{runner}.prepare_sites", lambda _sites: None)
+    monkeypatch.setattr(f"{runner}.browser_tool_config", lambda endpoint: {"cdp": endpoint})
+    monkeypatch.setattr(f"{runner}.allow_official_container_hostname", lambda _tool: None)
+    monkeypatch.setattr(f"{runner}.DockerStatsResources", Resources)
+    monkeypatch.setattr(f"{runner}.ResourceSampler", Sampler)
+    monkeypatch.setattr(f"{runner}.CdpHarRecorder", Recorder)
+    monkeypatch.setattr(f"{runner}.prepare_browser_viewport", lambda _s: {"verified": True})
+    monkeypatch.setattr(f"{runner}.login_context", lambda *_args: 0)
+    monkeypatch.setattr(f"{runner}.verify_session_viewport", lambda *_args: None)
+    monkeypatch.setattr(f"{runner}._user_prompt", lambda _task, _urls: "prompt")
+    task = SimpleNamespace(sites=(), start_urls=[], eval=[])
+    benchmark = SimpleNamespace(
+        get_task=lambda _task_id: task,
+        config=SimpleNamespace(render_url=lambda urls, _sites: urls),
+    )
+    model = SimpleNamespace(
+        model="model-a",
+        reset=lambda: None,
+        usage={},
+        request_count=0,
+        request_attempt_count=0,
+        transport_errors=[],
+    )
+    return {
+        "benchmark": benchmark,
+        "selected": SimpleNamespace(task_id=44, tier="easy", estimated_min_steps=1),
+        "engine": "chromium",
+        "attempt": 1,
+        "endpoint": "ws://browser",
+        "container": object(),
+        "model": model,
+        "sample_interval_ms": 100,
+        "max_agent_steps": 5,
+        "lock_wait_ms": 0.0,
+        "lock_namespace": PHYSICAL_EXECUTION_LOCK_NAMESPACE,
+    }
+
+
+def test_failed_agent_attempt_records_agent_and_finalize_timing(
+    monkeypatch, tmp_path: Path
+) -> None:
+    kwargs = _install_fake_attempt_runtime(monkeypatch, agent_error="model provider failed")
+
+    row = _run_attempt_locked(**kwargs, cowagent_repo=tmp_path, output_dir=tmp_path / "out")
+
+    assert "model provider failed" in row["error"]
+    assert row["timings"]["agent_run_ms"] >= 20
+    assert row["timings"]["evidence_finalize_ms"] >= 20

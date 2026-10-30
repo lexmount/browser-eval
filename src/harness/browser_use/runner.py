@@ -291,9 +291,12 @@ def _run_attempt_locked(  # noqa: PLR0913
         # way to retain benchmark-specific completion and output constraints.
         agent.extra_system_suffix = _system_prompt()
         agent_started = time.perf_counter()
-        raw_response = agent.run_stream(
-            _user_prompt(task, start_urls), on_event=events.append, clear_history=True
-        )
+        try:
+            raw_response = agent.run_stream(
+                _user_prompt(task, start_urls), on_event=events.append, clear_history=True
+            )
+        finally:
+            agent_run_ms = (time.perf_counter() - agent_started) * 1000
         if _exhausted_agent_steps(events, max_agent_steps):
             response_eval = next(
                 item for item in task.eval if item.evaluator == "AgentResponseEvaluator"
@@ -301,19 +304,21 @@ def _run_attempt_locked(  # noqa: PLR0913
             raw_response = json.dumps(
                 _max_steps_response(str(response_eval.expected.task_type), max_agent_steps)
             )
-        agent_run_ms = (time.perf_counter() - agent_started) * 1000
         verify_session_viewport(service, viewport_evidence, "after_agent")
         finalize_started = time.perf_counter()
-        service._submit(
-            lambda: (
-                service._page.wait_for_timeout(500),
-                recorder.stop(service._context, har_path),
-                service._context.tracing.stop(path=str(trace_path)),
+        try:
+            service._submit(
+                lambda: (
+                    service._page.wait_for_timeout(500),
+                    recorder.stop(service._context, har_path),
+                    service._context.tracing.stop(path=str(trace_path)),
+                )
             )
-        )
-        evidence_finalize_ms = (time.perf_counter() - finalize_started) * 1000
+        finally:
+            evidence_finalize_ms = (time.perf_counter() - finalize_started) * 1000
     except Exception:
         error = traceback.format_exc()
+        finalize_started = time.perf_counter()
         try:
             service = tool._get_service()
             service._submit(
@@ -324,6 +329,8 @@ def _run_attempt_locked(  # noqa: PLR0913
             )
         except Exception:
             pass
+        finally:
+            evidence_finalize_ms += (time.perf_counter() - finalize_started) * 1000
     finally:
         cleanup_errors: list[str] = []
         if sampler_started:
