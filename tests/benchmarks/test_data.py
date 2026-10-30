@@ -374,3 +374,43 @@ def test_recorded_composition_rejects_changed_explicit_graph_or_own_bytes(change
         selected['files']['definitions/factual-source.json'] = {'sha256': 'd' * 64, 'size': 20}
     with pytest.raises(ValueError, match='Composed benchmark'):
         data._definition_bindings(selected, selections={'simpleqa-verified': actual})
+
+
+@pytest.mark.parametrize('warm', [False, True])
+@pytest.mark.parametrize('mutated', [False, True])
+@pytest.mark.parametrize('operation', ['snapshot', 'definition', 'benchmark-read'])
+def test_track_symlink_cannot_redirect_cached_inputs(download, tmp_path, warm, mutated, operation):
+    from lexbench_webfetch.benchmark import read
+    root = data.snapshot('webfetch')
+    track = root.parent
+    moved = tmp_path / 'redirected-track'
+    track.rename(moved)
+    track.symlink_to(moved, target_is_directory=True)
+    if mutated:
+        (root / 'definitions/tasks.json').write_bytes(b'{"cases":[{"id":"b"}]}')
+    if not warm:
+        data._resolve.cache_clear()
+    authored = tmp_path / 'authored.json'
+    authored.write_text('{"local":true}')
+    assert read(authored) == {'local': True}
+    with pytest.raises(ValueError, match='symlinks'):
+        if operation == 'snapshot':
+            data.snapshot('webfetch')
+        elif operation == 'definition':
+            data.definition_path('webfetch', 'tasks.json')
+        else:
+            read(root / 'definitions/tasks.json')
+
+
+def test_configured_cache_home_alias_keeps_verified_reads(download, tmp_path, monkeypatch):
+    from lexbench_webfetch.benchmark import read
+    root = data.snapshot('webfetch')
+    alias = tmp_path / 'cache-home-alias'
+    alias.symlink_to(data.cache_home(), target_is_directory=True)
+    monkeypatch.setenv('BROWSER_EVAL_DATASET_CACHE', str(alias))
+    assert data.snapshot('webfetch') == root
+    lexical = alias / 'webfetch' / root.name / 'definitions/tasks.json'
+    assert read(lexical) == {'cases': [{'id': 'a'}]}
+    lexical.write_bytes(b'{"cases":[{"id":"b"}]}')
+    with pytest.raises(ValueError, match='hash or size'):
+        read(lexical)

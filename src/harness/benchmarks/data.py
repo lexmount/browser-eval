@@ -277,7 +277,9 @@ def repair(track: str, revision: str | None = None) -> Path:
 def snapshot(track: str, revision: str | None = None) -> Path:
     """Return a fully verified snapshot, including on warm in-process lookups."""
     selected = binding(track, revision)
-    root = _resolve(track, selected["revision"], str(cache_home()))
+    home = cache_home()
+    safe_path(home, track)
+    root = _resolve(track, selected["revision"], str(home))
     _verify_snapshot(root, selected)
     return root
 
@@ -292,7 +294,9 @@ def definition_path(track: str, relative: str, revision: str | None = None) -> P
     if name not in selected["files"] and not members:
         raise FileNotFoundError("Unknown benchmark definition: " + relative)
     # Resolution is cached; this boundary verifies only the requested members.
-    root = _resolve(track, selected["revision"], str(cache_home()))
+    home = cache_home()
+    safe_path(home, track)
+    root = _resolve(track, selected["revision"], str(home))
     path = safe_path(root, name)
     if members:
         if not path.is_dir():
@@ -315,6 +319,7 @@ def resolve_definition_path(track: str, path: Path) -> Path:
             if component.is_symlink() and (
                 component.resolve().is_relative_to(home)
                 or component.parent.resolve().is_relative_to(home)
+                or (component.name == track and component.parent.resolve() == home.parent)
             ):
                 raise ValueError("Dataset definition paths cannot contain symlinks")
     try:
