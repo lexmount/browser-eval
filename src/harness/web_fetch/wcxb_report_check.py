@@ -585,15 +585,6 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
     print(f'PASS: WCXB {len(case_ids)}-case, {len(providers)}-method, declared-language evidence and route inventory')
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('report', type=Path)
-    parser.add_argument('--authority-root', type=Path)
-    parser.add_argument('--profile', type=Path)
-    args = parser.parse_args()
-    check(args.report, authority_root=args.authority_root, profile_path=args.profile)
-
-
 def binary_from_env(path: Path) -> str:
     for line in path.read_text().splitlines():
         if line.startswith('CHROMIUM_BINARY='):

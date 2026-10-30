@@ -1,6 +1,7 @@
 """Candidate and receipt destinations must not overwrite one another."""
 import pytest
 
+from harness.web_fetch import reference_freeze
 from harness.web_fetch.reference_freeze import prepare_promotion
 from tests.reference_freeze_fixture import REGRESSIONS, ROOT_CAUSE, create_promotion_inputs
 
@@ -49,3 +50,22 @@ def test_dangling_output_link_is_not_followed(tmp_path, linked_destination):
     assert destinations[linked_destination].is_symlink()
     assert inputs['dataset_path'].read_bytes() == original
     assert all(not path.exists() for name, path in destinations.items() if name != linked_destination)
+
+
+def test_promotion_commands_default_to_repository_paths_from_any_directory(tmp_path, monkeypatch):
+    calls = {}
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(reference_freeze, 'prepare_promotion',
+                        lambda **kwargs: calls.setdefault('prepare', kwargs) and ({'changes': []}, b''))
+    monkeypatch.setattr(reference_freeze, 'promote', lambda **kwargs: calls.setdefault('promote', kwargs) and {})
+    reference_freeze.prepare_promotion_main([
+        '--captures', 'captures', '--output', 'receipt.json', '--approved-by', 'reviewer',
+        '--approved-at', '2026-01-01T00:00:00Z', '--root-cause-category', 'reference-evidence',
+        '--root-cause', ROOT_CAUSE, '--regression-id', REGRESSIONS[0]])
+    reference_freeze.promote_main([
+        '--candidate', 'candidate.json', '--captures', 'captures', '--receipt', 'receipt.json',
+        '--receipt-target', 'target.json'])
+    root = reference_freeze.ROOT
+    assert calls['prepare']['dataset_path'] == root / 'evaluation/dataset.json'
+    assert calls['promote']['canonical_path'] == root / 'evaluation/dataset.json'
+    assert calls['promote']['research_root'] == root / 'research/reference-freeze-promotions'

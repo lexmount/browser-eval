@@ -501,9 +501,10 @@ def verify_release_check_helpers(root: Path, source_root: Path) -> None:
         <button data-call-log-close>Close</button><a data-diagnosis-link>Evidence</a></dialog>
         <table><tr data-provider="custom"><td><button data-diagnosis-open>Diagnose</button>
         </td></tr></table>''', 1)
-    command = [sys.executable, str(source_root / 'scripts/check_wcxb_report.py')]
+    command = [sys.executable, str(source_root / 'scripts/check_report.py')]
     subprocess.run([*command, '--help'], check=True, stdout=subprocess.DEVNULL)
     from harness.web_fetch.wcxb_publication import write_inventory
+    (pages / 'wcxb-score-summary.json').write_text('{}')
     profile = root / "selected-profile.json"
     profile.write_text(json.dumps({"comparison_kind": "wcxb_frozen_html_to_markdown"}))
     (root / "report-content-binding.json").write_text("{}")
