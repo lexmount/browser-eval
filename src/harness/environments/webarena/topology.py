@@ -28,16 +28,19 @@ def _load(path: Path) -> dict[str, Any]:
     if not isinstance(sites, dict) or not sites:
         raise ValueError("WebArena topology must define sites")
     used: set[int] = set()
+    attributed: dict[str, set[int]] = {"recorded_ports": set(), "official_trace_ports": set()}
     for name, row in sites.items():
         ports = (int(row["port"]), int(row["control_port"]))
         if len(set(ports)) != 2 or set(ports) & used:
             raise ValueError(f"WebArena topology ports must be unique: {name}")
         used.update(ports)
-        if (
-            row["port"] not in row["recorded_ports"]
-            or row["port"] not in row["official_trace_ports"]
-        ):
-            raise ValueError(f"WebArena recorded ports must include the site port: {name}")
+        for field, seen in attributed.items():
+            site_ports = {int(port) for port in row[field]}
+            if row["port"] not in site_ports:
+                raise ValueError(f"WebArena recorded ports must include the site port: {name}")
+            if len(site_ports) != len(row[field]) or site_ports & seen:
+                raise ValueError(f"WebArena {field} must attribute each port once: {name}")
+            seen.update(site_ports)
         if bool(row["mutable"]) != ("credentials" in row):
             raise ValueError(f"only mutable WebArena sites carry credentials: {name}")
         if row["mutable"] and "container_port" not in row:

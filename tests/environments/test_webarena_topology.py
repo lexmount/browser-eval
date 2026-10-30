@@ -262,6 +262,17 @@ def test_registry_rejects_shared_ports(tmp_path: Path) -> None:
         topology._load(path)
 
 
+@pytest.mark.parametrize("field", ["recorded_ports", "official_trace_ports"])
+def test_registry_rejects_ports_attributed_to_two_sites(tmp_path: Path, field: str) -> None:
+    payload = json.loads(topology.TOPOLOGY_PATH.read_text(encoding="utf-8"))
+    payload["sites"]["wikipedia"][field].append(payload["sites"]["reddit"][field][-1])
+    path = tmp_path / "topology.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match=f"{field} must attribute each port once: wikipedia"):
+        topology._load(path)
+
+
 def test_registry_consumers_import_without_the_optional_webarena_evaluator() -> None:
     program = """
 import importlib.abc
