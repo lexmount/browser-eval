@@ -92,6 +92,14 @@ Development checks use Python 3.11 and Node.js 22. The base example does not nee
 
 `make ci` includes linting and package checks. It runs without historical pages: only tests requiring absent historical inputs are skipped. Corrupt installed inputs fail; strict reference mode also fails on missing or incomplete sets.
 
+`tests/test_golden_reports.py` builds each report track's synthetic example and compares every route with the SHA-256 in `tests/golden/`. Any change to rendered output fails it. If the change is intended, regenerate the snapshots and commit them with the change, so reviewers see which routes changed:
+
+```bash
+UPDATE_GOLDEN=1 uv run --frozen --all-extras python -m pytest tests/test_golden_reports.py
+```
+
+To see the changed lines, set `GOLDEN_KEEP=<directory>` on two revisions and compare the kept builds with `diff -r`.
+
 For report releases, open success and failure details, evidence dialogs and return links on desktop and narrow viewports in both themes. Real services need the environments listed in their track guides.
 
 <details>

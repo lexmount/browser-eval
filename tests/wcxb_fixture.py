@@ -2,6 +2,7 @@
 
 import gzip
 import hashlib
+import io
 import json
 import shutil
 from copy import deepcopy
@@ -45,9 +46,14 @@ def create_cohort(root: Path, *, paired=False, providers=("alpha", "beta", "gamm
                 "_internal": {"page_type": {"primary": "article"}},
             },
         )
-        (source / f"test/html/{case_id}.html.gz").write_bytes(
-            gzip.compress(f"<html><body><main>{text}</main></body></html>".encode(), mtime=0)
-        )
+        # The source hash covers these bytes, so they must match on every
+        # platform. gzip.compress takes its header OS byte from the zlib build;
+        # GzipFile always writes 255. Stored (level 0) blocks are identical
+        # across zlib implementations such as zlib-ng.
+        page = io.BytesIO()
+        with gzip.GzipFile(fileobj=page, mode="wb", compresslevel=0, mtime=0) as stream:
+            stream.write(f"<html><body><main>{text}</main></body></html>".encode())
+        (source / f"test/html/{case_id}.html.gz").write_bytes(page.getvalue())
     records, source_hash = load_wcxb_source(source)
     manifest = {
         "dataset_id": "synthetic-wcxb",

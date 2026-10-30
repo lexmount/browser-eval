@@ -26,6 +26,70 @@ PROVIDERS = ("kitesurf", "lightpanda", "obscura", "moli", "chromium")
 METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
 
 
+def sample_report_inputs(output: Path):
+    """Write one synthetic case and return the WebMainBench report inputs."""
+    case_id = "case-one"
+    dataset = {
+        "source_dataset_sha256": "a" * 64,
+        "sample_manifest_sha256": "e" * 64,
+        "coverage_plan": {"static_html": list(PROVIDERS)},
+        "cases": [{
+            "id": case_id,
+            "url": "https://example.test/article",
+            "meta": {"language": "en", "level": "simple", "table": [], "code": [], "equation": []},
+            "input_html_sha256": "b" * 64,
+            "reference_sha256": hashlib.sha256(b"# Reference").hexdigest(),
+        }],
+    }
+    (output / "references").mkdir()
+    (output / "references" / f"{case_id}.md").write_text("# Reference", encoding="utf-8")
+    (output / "sources").mkdir()
+    (output / "sources" / f"{case_id}.html.txt").write_text("<h1>Frozen input</h1>", encoding="utf-8")
+    records = []
+    summaries = {}
+    manifests = []
+    for index, provider in enumerate(PROVIDERS, 1):
+        score = index / 10
+        records.append({
+            "provider": provider,
+            "case_id": case_id,
+            "attempt_id": f"{provider}__{case_id}__r001",
+            "run_id": f"run-{provider}",
+            "ok": True,
+            "total_elapsed_ms": index * 100,
+            "elapsed_ms": index * 100,
+            "artifact_path": f"artifacts/{provider}/{case_id}.md",
+            "output_sha256": hashlib.sha256(f"output from {provider}".encode()).hexdigest(),
+            "physical_attempt_count": 1,
+            "metrics": {"overall": {"score": score}},
+        })
+        artifact = output / f"artifacts/{provider}/{case_id}.md"
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text(f"output from {provider}", encoding="utf-8")
+        summaries[provider] = {
+            "request_successes": 1,
+            "request_success_rate": 1.0,
+            "official_aggregate": {
+                "scores": {"overall": score, **{name: score for name in METRICS}},
+                "denominators": {name: 1 for name in METRICS},
+            },
+        }
+        manifests.append({
+            "provider": provider,
+            "started_at": "2026-09-14T00:00:00Z",
+            "completed_at": "2026-09-14T00:01:00Z",
+            "case_count": 1,
+            "timeout_seconds": 45,
+            "runner_sha256": "d" * 64,
+            "implementation_identity": {
+                "reported_version": "test",
+                "binary_sha256": "c" * 64,
+                "deployment": "fixture",
+            },
+        })
+    return dataset, records, summaries, manifests
+
+
 class WebMainBenchReportTests(unittest.TestCase):
     def test_table_population_separates_reference_presence_from_component_presence(self):
         rows=[]
@@ -176,65 +240,7 @@ class WebMainBenchReportTests(unittest.TestCase):
     def test_generates_matching_bilingual_route_inventory(self):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder)
-            case_id = "case-one"
-            dataset = {
-                "source_dataset_sha256": "a" * 64,
-                "sample_manifest_sha256": "e" * 64,
-                "coverage_plan": {"static_html": list(PROVIDERS)},
-                "cases": [{
-                    "id": case_id,
-                    "url": "https://example.test/article",
-                    "meta": {"language": "en", "level": "simple", "table": [], "code": [], "equation": []},
-                    "input_html_sha256": "b" * 64,
-                    "reference_sha256": hashlib.sha256(b"# Reference").hexdigest(),
-                }],
-            }
-            (output / "references").mkdir()
-            (output / "references" / f"{case_id}.md").write_text("# Reference", encoding="utf-8")
-            (output / "sources").mkdir()
-            (output / "sources" / f"{case_id}.html.txt").write_text("<h1>Frozen input</h1>", encoding="utf-8")
-            records = []
-            summaries = {}
-            manifests = []
-            for index, provider in enumerate(PROVIDERS, 1):
-                score = index / 10
-                records.append({
-                    "provider": provider,
-                    "case_id": case_id,
-                    "attempt_id": f"{provider}__{case_id}__r001",
-                    "run_id": f"run-{provider}",
-                    "ok": True,
-                    "total_elapsed_ms": index * 100,
-                    "elapsed_ms": index * 100,
-                    "artifact_path": f"artifacts/{provider}/{case_id}.md",
-                    "output_sha256": hashlib.sha256(f"output from {provider}".encode()).hexdigest(),
-                    "physical_attempt_count": 1,
-                    "metrics": {"overall": {"score": score}},
-                })
-                artifact = output / f"artifacts/{provider}/{case_id}.md"
-                artifact.parent.mkdir(parents=True, exist_ok=True)
-                artifact.write_text(f"output from {provider}", encoding="utf-8")
-                summaries[provider] = {
-                    "request_successes": 1,
-                    "request_success_rate": 1.0,
-                    "official_aggregate": {
-                        "scores": {"overall": score, **{name: score for name in METRICS}},
-                        "denominators": {name: 1 for name in METRICS},
-                    },
-                }
-                manifests.append({
-                    "provider": provider,
-                    "started_at": "2026-09-14T00:00:00Z",
-                    "completed_at": "2026-09-14T00:01:00Z",
-                    "case_count": 1,
-                    "timeout_seconds": 45,
-                    "runner_sha256": "d" * 64,
-                    "implementation_identity": {
-                        "reported_version": "test",
-                        "binary_sha256": "c" * 64,
-                        "deployment": "fixture",
-                    },
-                })
+            dataset, records, summaries, manifests = sample_report_inputs(output)
             generate_webmainbench(
                 output,
                 dataset,
