@@ -6,13 +6,17 @@ Browser Eval versions the execution and reporting software. Software tags use `v
 
 Follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The public compatibility contract covers documented CLI commands and options, dataset/provider inputs, and reading saved evidence through supported report builders. Internal Python helpers and generated HTML markup are not public APIs.
 
-| Change | Version change | Example after 1.0.0 |
+| Change | Before 1.0.0 | From 1.0.0 onward |
 | --- | --- | --- |
-| Compatible bug fix or a documentation-only release | Patch | `1.0.0` → `1.0.1` |
-| Compatible new adapter, command, track or optional input field | Minor | `1.0.1` → `1.1.0` |
-| Remove or rename a public command, require incompatible inputs, or stop reading supported evidence without migration | Major | `1.1.0` → `2.0.0` |
+| Compatible bug fix or a documentation-only release | Patch: `0.3.0` → `0.3.1` | Patch: `1.0.0` → `1.0.1` |
+| Compatible new adapter, command, track or optional input field | Minor: `0.3.1` → `0.4.0` | Minor: `1.0.1` → `1.1.0` |
+| Remove or rename a public command, require incompatible inputs, or stop reading supported evidence without migration | Minor: `0.4.0` → `0.5.0`; describe the break | Major: `1.1.0` → `2.0.0` |
 
 While the software remains `0.x`, use a minor release for new functionality or breaking changes and a patch for compatible fixes. Describe breaking changes explicitly. Release when users need an installable, reproducible checkpoint; individual commits and report rebuilds do not need new numbers. Version changes and release tags require an explicit human release request.
+
+Software release tags use `vMAJOR.MINOR.PATCH`. The tag, GitHub release, `pyproject.toml`, `uv.lock`, wheel and installed runtime must agree on the version. Prepare the version metadata in a feature or release PR, then tag the exact main-branch commit after it lands and integrated checks pass. A merge does not itself publish a release.
+
+To retain a pre-migration state, use an existing release tag or record the full pre-merge commit. Create another software release only when that older code needs an independently installable release; archiving alone does not require a new version number.
 
 `1.0.0` establishes the compatibility contract above. It can cover stable tracks while others remain explicitly experimental. For the first stable Web Fetch + Web Search release, run the integrated offline collection/scoring/report tests and browser evidence workflows, and pass the existing package and CI gates on the release commit. Publish the supported track and dataset matrix in its release notes. A successful historical report alone does not test the installable release.
 
@@ -36,11 +40,11 @@ Web Fetch, Web Search / SERP, Browser Trajectory Replay and Browser Use have mai
 
 ## Release procedure
 
-1. Select a clean commit on main and declare supported tracks, benchmark pins and migrations. Check that pending work is not described as included.
+1. Select a clean main-branch base and prepare the release in a feature or release PR. Declare supported tracks, benchmark pins and migrations. Check that pending work is not described as included.
 2. Set the release version in `pyproject.toml` and refresh `uv.lock`. Runtime code reads installed package metadata automatically. Project citations stay version-neutral. Run `uv lock` when package metadata changes, retaining immutable dependency pins. The metadata tests check the lock, installed package, runtime version and bilingual citations.
-3. Run `make setup-test` and `make ci` on that commit. The package gate checks installation outside the checkout. Follow each track's separate release gate when publishing benchmark reports; a software tag does not certify their measurements.
+3. Run `make setup-test` and `make ci` on the release candidate. After it lands on main, require the integrated checks to pass on the exact commit that will be tagged. The package gate checks installation outside the checkout. Follow each track's separate release gate when publishing benchmark reports; a software tag does not certify their measurements.
 4. Prepare release notes with supported tracks and suites, installation commands, compatible interfaces, required external inputs and migrations. Check that the source archive and wheel contain the declared version.
-5. After release approval, publish an annotated `vMAJOR.MINOR.PATCH` tag and GitHub release for that exact commit. Never move a published tag. Upload software distribution files; keep provider outputs and private report evidence outside the software release.
+5. After release approval, publish an annotated `vMAJOR.MINOR.PATCH` tag and GitHub release for that tested main-branch commit. Never move a published tag. Upload software distribution files; keep provider outputs and private report evidence outside the software release.
 
 Use a feature branch and PR for release preparation. Merging and publishing are separate maintainer actions. Record the exact commit in bug reports and experiment methods, including for unreleased branches.
 

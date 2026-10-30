@@ -100,4 +100,4 @@ These requirements apply to **all** report tracks; browser-specific rules below 
 
 All code changes go through a feature branch and pull request. Never push directly to main or merge a pull request.
 
-Version changes require an explicit human release request. Code synchronization, review fixes, tests and report rebuilds must not automatically bump package, benchmark or report edition numbers, rewrite frozen release catalogs, or create/push release tags. Reuse existing build versions and record source hashes; keep unreleased changes separate from a certified edition.
+Software release names, version increments and metadata must follow [Software releases](docs/releases.md). Version changes require an explicit human release request. Code synchronization, review fixes, tests and report rebuilds must not automatically bump package, benchmark or report edition numbers, rewrite frozen release catalogs, or create/push release tags. Reuse existing build versions and record source hashes; keep unreleased changes separate from a certified edition.
