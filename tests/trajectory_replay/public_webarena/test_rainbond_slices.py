@@ -1046,3 +1046,27 @@ def test_release_does_not_mistake_task_preparation_for_cleanup(tmp_path, monkeyp
     assert result["ready_app_id"] == 301
     assert reset_calls == [receipt_path]
     assert not (slot_dir / "slice-lease.json").exists()
+
+
+@pytest.mark.parametrize(("status", "ready"), [(404, True), (499, True), (503, False)])
+def test_wait_site_treats_client_error_responses_as_ready(tmp_path, monkeypatch, status, ready):
+    pool = RainbondSlicePool(_pool_config(tmp_path), api=FakeAPI(), sleep=lambda _: None)
+    calls = []
+
+    def urlopen(request, timeout):
+        calls.append(request.full_url)
+        raise urllib.error.HTTPError(request.full_url, status, "status", {}, None)
+
+    # Deadline at 1s; two probes fall inside it, then the clock passes it.
+    monotonic = iter([0.0, 0.0, 0.5, 5.0])
+    monkeypatch.setattr("urllib.request.urlopen", urlopen)
+    monkeypatch.setattr(
+        "harness.environments.webarena.rainbond.time.monotonic", lambda: next(monotonic)
+    )
+    if ready:
+        pool._wait_site("http://site.test/")
+        assert calls == ["http://site.test/"]
+    else:
+        with pytest.raises(TimeoutError, match=f"HTTP {status}"):
+            pool._wait_site("http://site.test/")
+        assert len(calls) == 2
