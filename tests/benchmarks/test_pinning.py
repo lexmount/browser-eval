@@ -294,3 +294,180 @@ def test_failed_lock_restore_does_not_skip_recoverable_evaluation_binding(tmp_pa
     assert backups[0].parent.parent == lock.parent
     assert backups[0].read_bytes() == before[lock]
     assert not list(imported.parent.glob('.dataset-pin-*'))
+
+
+def coordinated_fixture(root, monkeypatch, defect=None):
+    tracks = ['websearch', 'simpleqa-verified']
+    lock = {'datasets': {}}
+    releases = {}
+    paths = []
+    for track in tracks:
+        old_raw = b'{"cases":[{"id":"qa","question":"old"}]}'
+        new_question = 'mismatch' if defect == 'graph' and track == tracks[1] else 'new'
+        raw = json.dumps({'cases': [{'id': 'qa', 'question': new_question}]}).encode()
+        def contents(payload):
+            binding = {'path': 'datasets/factual-v1.json', 'count': 1,
+                       'sha256': hashlib.sha256(payload).hexdigest()}
+            registry = {'datasets': {'factual-v1': binding}}
+            files = {'definitions/registry.json': json.dumps(registry).encode()}
+            if track == 'simpleqa-verified':
+                files['definitions/datasets/factual-v1.json'] = payload
+                files['definitions/factual-source.json'] = b'{"license":"upstream attribution"}'
+            return files, registry
+        files, registry = contents(raw)
+        old_files, old_registry = contents(old_raw)
+        buffer = io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode='w:gz') as archive:
+            for name, value in files.items():
+                entry = tarfile.TarInfo(name)
+                entry.size = len(value)
+                archive.addfile(entry, io.BytesIO(value))
+        archive = buffer.getvalue()
+        manifest = {'schema': 'browser-eval-dataset-release/1', 'track': track,
+                    'source_revision': 'b' * 40, 'datasets': registry['datasets'],
+                    'archive': {'path': 'definitions.tar.gz', 'size': len(archive),
+                                'sha256': hashlib.sha256(archive).hexdigest()},
+                    'files': {name: {'size': len(value), 'sha256': hashlib.sha256(value).hexdigest()}
+                              for name, value in files.items()}}
+        if defect == 'archive' and track == tracks[1]:
+            manifest['files']['definitions/registry.json']['sha256'] = '0' * 64
+        releases[track] = (manifest, archive)
+        selected = {'repository': 'Lexmount/' + track, 'revision': '0' * 40,
+                    'source_revision': 'c' * 40, 'datasets': old_registry['datasets'],
+                    'archive': {'sha256': '0' * 64},
+                    'files': {name: {'size': len(value), 'sha256': hashlib.sha256(value).hexdigest()}
+                              for name, value in old_files.items()}}
+        if track == tracks[0]:
+            selected['dataset_sources'] = {'factual-v1': tracks[1]}
+            selected['default_dataset'] = 'factual-v1'
+        lock['datasets'][track] = selected
+        imported = root / 'evaluation' / ('lexbench-' + track + '.json')
+        imported.parent.mkdir(exist_ok=True)
+        imported.write_text(json.dumps({'repository': 'old', 'revision': 'old',
+                                       'datasets': old_registry['datasets'], 'definition_files': {}}))
+        paths.append(imported)
+    lock_path = source_path('harness/benchmarks/data-lock.json', root=root)
+    lock_path.parent.mkdir(parents=True)
+    lock_path.write_text(json.dumps(lock))
+    paths.append(lock_path)
+    def fetch(url, timeout):
+        url = url if isinstance(url, str) else url.full_url
+        track = next(name for name in tracks if '/' + name + '/resolve/' in url)
+        manifest, raw = releases[track]
+        return io.BytesIO(json.dumps(manifest).encode() if url.endswith('manifest.json') else raw)
+    monkeypatch.setattr(data, 'urlopen', fetch)
+    monkeypatch.setattr(data, 'binding', lambda track, revision=None: lock['datasets'][track])
+    return paths
+
+
+@pytest.mark.parametrize('first', ['websearch', 'simpleqa-verified'])
+def test_composed_editions_cannot_be_pinned_in_either_single_order(tmp_path, monkeypatch, first):
+    paths = coordinated_fixture(tmp_path, monkeypatch)
+    before = {path: path.read_bytes() for path in paths}
+    with pytest.raises(ValueError, match='Incompatible dataset source'):
+        pinning.pin(tmp_path, first, 'a' * 40)
+    assert {path: path.read_bytes() for path in paths} == before
+
+
+def test_coordinated_pin_updates_the_composition_in_one_publication(tmp_path, monkeypatch):
+    paths = coordinated_fixture(tmp_path, monkeypatch)
+    publish = pinning.publish_bindings
+    transactions = []
+    def capture(updates):
+        transactions.append(set(updates))
+        publish(updates)
+    monkeypatch.setattr(pinning, 'publish_bindings', capture)
+    changes = pinning.pin_many(tmp_path, [('websearch', 'a' * 40), ('simpleqa-verified', 'a' * 40)])
+    assert set(changes) == {'websearch', 'simpleqa-verified'}
+    assert transactions == [set(paths)]
+    selected = json.loads(paths[-1].read_bytes())['datasets']
+    assert data.binding('simpleqa-verified')['revision'] == '0' * 40
+    pinning.validate_selections(selected)
+    for track in changes:
+        assert selected[track]['revision'] == 'a' * 40
+        assert pinning.validate_binding(tmp_path, 'lexbench-' + track) == 'a' * 40
+
+
+@pytest.mark.parametrize('defect', ['graph', 'archive'])
+def test_coordinated_pin_rejects_invalid_candidate_without_partial_updates(tmp_path, monkeypatch, defect):
+    paths = coordinated_fixture(tmp_path, monkeypatch, defect)
+    before = {path: path.read_bytes() for path in paths}
+    with pytest.raises(ValueError):
+        pinning.pin_many(tmp_path, [('websearch', 'a' * 40), ('simpleqa-verified', 'a' * 40)])
+    assert {path: path.read_bytes() for path in paths} == before
+
+
+@pytest.mark.parametrize('second_revision', ['a' * 40, 'b' * 40])
+def test_coordinated_pin_rejects_duplicate_or_conflicting_tracks(tmp_path, monkeypatch, second_revision):
+    paths = coordinated_fixture(tmp_path, monkeypatch)
+    before = {path: path.read_bytes() for path in paths}
+    with pytest.raises(ValueError, match='exactly once'):
+        pinning.pin_many(tmp_path, [('websearch', 'a' * 40), ('websearch', second_revision)])
+    assert {path: path.read_bytes() for path in paths} == before
+
+
+def test_coordinated_pin_rolls_back_all_bindings_on_publication_failure(tmp_path, monkeypatch):
+    paths = coordinated_fixture(tmp_path, monkeypatch)
+    before = {path: path.read_bytes() for path in paths}
+    replace = pinning.os.replace
+    def fail_second_import(source, destination):
+        if source.name == 'next' and destination == paths[1]:
+            raise OSError('coordinated publication interrupted')
+        return replace(source, destination)
+    monkeypatch.setattr(pinning.os, 'replace', fail_second_import)
+    with pytest.raises(OSError, match='coordinated publication interrupted'):
+        pinning.pin_many(tmp_path, [('websearch', 'a' * 40), ('simpleqa-verified', 'a' * 40)])
+    assert {path: path.read_bytes() for path in paths} == before
+    assert not list(tmp_path.rglob('.dataset-pin-*'))
+
+
+def test_coordinated_selection_cli_preserves_single_selection_usage(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(pinning, 'pin_many', lambda root, selections:
+                        calls.append((root, selections)) or {name: [] for name, _ in selections})
+    with monkeypatch.context() as command:
+        command.setattr('sys.argv', ['pin', '--root', str(tmp_path), '--select', 'websearch=' + 'a' * 40,
+                                    '--select', 'simpleqa-verified=' + 'b' * 40])
+        pinning.main()
+    assert calls.pop() == (tmp_path, [('websearch', 'a' * 40), ('simpleqa-verified', 'b' * 40)])
+    monkeypatch.setattr('sys.argv', ['pin', '--root', str(tmp_path), '--track', 'websearch',
+                                   '--revision', 'c' * 40])
+    pinning.main()
+    assert calls == [(tmp_path, [('websearch', 'c' * 40)])]
+
+
+def test_explicit_candidate_sources_never_fall_back_to_global_pins(tmp_path, monkeypatch):
+    paths = coordinated_fixture(tmp_path, monkeypatch)
+    before = {path: path.read_bytes() for path in paths}
+    selected = json.loads(paths[-1].read_bytes())['datasets']['websearch']
+    release = pinning.DatasetRelease('websearch', 'c' * 40, {
+        'definitions/registry.json': json.dumps({'datasets': selected['datasets']}).encode(),
+    })
+    assert list(release.records()) == []  # Existing publication uses the global source normally.
+    with pytest.raises(ValueError, match='External dataset descriptor differs'):
+        list(release.records(selections={}))
+    assert {path: path.read_bytes() for path in paths} == before
+
+
+@pytest.mark.parametrize('complete', [False, True])
+def test_new_composed_release_build_uses_explicit_candidate_before_pinning(tmp_path, monkeypatch, complete):
+    paths = coordinated_fixture(tmp_path, monkeypatch)
+    before = {path: path.read_bytes() for path in paths}
+    selected = copy.deepcopy(json.loads(paths[-1].read_bytes())['datasets'])
+    for track, item in selected.items():
+        manifest = json.loads(pinning.read_hf_file(item['repository'], 'a' * 40, 'manifest.json', 2_000_000))
+        item.update(revision='a' * 40, datasets=manifest['datasets'], files=manifest['files'])
+    release = pinning.DatasetRelease('websearch', 'b' * 40, {
+        'definitions/registry.json': json.dumps({'datasets': selected['websearch']['datasets']}).encode(),
+    }, card_body='Task inputs\n{{dataset_summary}}', language_annotations={})
+    output = tmp_path / 'new-release'
+    if complete:
+        built = release.build(output, selections=selected)
+        assert built['dataset_sources'] == {'factual-v1': 'simpleqa-verified'}
+        assert (output / 'README.md').is_file()
+    else:
+        with pytest.raises(ValueError, match='External dataset descriptor differs'):
+            release.build(output, selections={})
+        assert not output.exists()
+    assert data.binding('simpleqa-verified')['revision'] == '0' * 40
+    assert {path: path.read_bytes() for path in paths} == before

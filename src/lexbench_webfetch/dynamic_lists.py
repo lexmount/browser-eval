@@ -1348,6 +1348,20 @@ def _html_product_records(content, contract, base_url, diagnostics, *, represent
     from .reference_quality import markdown_links
     if not re.search(r'''<[A-Za-z][\w:-]*(?=\s|/?>)(?:[^>"']|"[^"]*"|'[^']*')*>''', content):
         return [] if representation == 'html' else None
+    labels = {}
+    if representation != 'html':
+        prefix = '\ue028product-label'
+        while prefix in unescape(content):
+            prefix += '_'
+        # Own the complete Markdown label before its inline HTML becomes
+        # separate DOM nodes. Restore it only at the existing scalar boundary.
+        for link in reversed(markdown_links(content)):
+            if link.is_image or not re.search(r'<[A-Za-z][\w:-]*(?=\s|/?>)', link.label):
+                continue
+            token = prefix + str(len(labels)) + '\ue029'
+            labels[token] = link.label
+            start = link.start + 1
+            content = content[:start] + token + content[start + len(link.label):]
     soup = scoped_html(content)
     # Native Markdown may retain HTML card containers around actual link text.
     for node in ([] if representation == 'html' else list(soup.find_all(string=True))):
@@ -1360,7 +1374,8 @@ def _html_product_records(content, contract, base_url, diagnostics, *, represent
         for link in parsed:
             pieces.append(soup.new_string(str(node)[cursor:link.start]))
             anchor = soup.new_tag('a', href=link.destination)
-            anchor.string = link.label
+            anchor.string = (visible_html_text(labels[link.label])
+                             if link.label in labels else link.label)
             pieces.append(anchor)
             cursor = link.end
         pieces.append(soup.new_string(str(node)[cursor:]))

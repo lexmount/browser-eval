@@ -217,7 +217,7 @@ class DatasetRelease:
             return datasets
         return registry["datasets"]
 
-    def external_definitions(self) -> dict[str, str]:
+    def external_definitions(self, selections: dict | None = None) -> dict[str, str]:
         """Validate composition descriptors before omitting another dataset's bytes."""
         from harness.benchmarks.data import binding as selected_binding
 
@@ -227,7 +227,8 @@ class DatasetRelease:
         for identity, composition in metadata.get("external_datasets", {}).items():
             if identity not in datasets:
                 continue
-            source = selected_binding(composition["source"])
+            source = (selected_binding(composition["source"]) if selections is None
+                      else selections.get(composition["source"], {}))
             supplied = source.get("datasets", {}).get(identity)
             if supplied != datasets[identity]:
                 raise ValueError("External dataset descriptor differs: " + identity)
@@ -267,7 +268,7 @@ class DatasetRelease:
         selected -= set(metadata.get("viewer_exclude_datasets", []))
         return selected
 
-    def build(self, output: Path) -> dict:
+    def build(self, output: Path, *, selections: dict | None = None) -> dict:
         if output.exists() and any(output.iterdir()):
             raise ValueError("Release output must be empty")
         if self.tooling_revision is not None and not re.fullmatch(r"[0-9a-f]{40}", self.tooling_revision):
@@ -276,7 +277,7 @@ class DatasetRelease:
 
         body = (self.card_body if self.card_body is not None
                 else (CARDS / (self.track + ".md")).read_text(encoding="utf-8"))
-        external = self.external_definitions()
+        external = self.external_definitions(selections)
         definition_files = {name: raw for name, raw in self.files.items() if name not in external}
         files = dict(definition_files)
         if self.track == "headless-browser":
@@ -293,7 +294,7 @@ class DatasetRelease:
         annotations = self.language_annotations
         if annotations is None:
             annotations = json.loads((CARDS / "languages.json").read_bytes()).get(self.track, {})
-        for identity, binding, cases in self.records():
+        for identity, binding, cases in self.records(selections):
             identity_field = binding.get("id_field", "id")
             groups = {}
             partition = metadata.get("partitions", {}).get(identity)
@@ -375,11 +376,11 @@ class DatasetRelease:
             path.write_bytes(raw)
         return self._finish(output, manifest, configurations, metadata, languages, body, yaml, definition_files)
 
-    def records(self):
+    def records(self, selections: dict | None = None):
         datasets = self.datasets()
         if not isinstance(datasets, dict) or not datasets:
             raise ValueError("A release requires registered datasets")
-        external = self.external_definitions()
+        external = self.external_definitions(selections)
         selected = self.viewer_datasets()
         for identity, binding in datasets.items():
             if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", identity):

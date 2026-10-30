@@ -234,8 +234,25 @@ def main() -> None:
     parser.add_argument("--expected-dataset-sha256")
     parser.add_argument("--expected-scorer-commit")
     args = parser.parse_args()
+    default_dataset = args.dataset is None
+    default_scorer = args.expected_scorer_commit is None
     args.dataset, args.expected_dataset_sha256, args.expected_scorer_commit = selected_input(
         args.dataset, args.expected_dataset_sha256, args.expected_scorer_commit)
+    if default_dataset or default_scorer:
+        try:
+            recorded = json.loads((args.evidence / "dataset.json").read_bytes())
+        except (OSError, ValueError) as error:
+            parser.error(f"Scoring defaults require the evidence dataset.json bindings: {error}. "
+                         "Select exact inputs with --dataset, --expected-dataset-sha256, "
+                         "--scorer-repo and --expected-scorer-commit.")
+        if not isinstance(recorded, dict):
+            parser.error("Evidence dataset.json must contain the recorded source and scorer bindings")
+        if default_dataset and recorded.get("source_sha256") != args.expected_dataset_sha256:
+            parser.error("Default dataset does not match evidence dataset.json source_sha256; "
+                         "select the recorded --dataset and --expected-dataset-sha256 explicitly.")
+        if default_scorer and recorded.get("official_scorer_commit") != args.expected_scorer_commit:
+            parser.error("Default scorer does not match evidence dataset.json official_scorer_commit; "
+                         "select the recorded --scorer-repo and --expected-scorer-commit explicitly.")
     if args.scorer_repo is None:
         from harness.benchmarks.data import binding
         if args.expected_scorer_commit != binding("webmainbench")["scorer"]["revision"]:

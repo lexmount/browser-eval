@@ -41,11 +41,35 @@ def validate_selected_binding(selected: dict, imported: dict | None = None) -> s
 
 
 def pin(root: Path, track: str, revision: str) -> list[str]:
-    if not re.fullmatch(r"[0-9a-f]{40}", revision):
+    return pin_many(root, [(track, revision)])[track]
+
+
+def pin_many(root: Path, selections: list[tuple[str, str]]) -> dict[str, list[str]]:
+    """Validate coordinated editions together and publish one existing binding transaction."""
+    if not selections or len({track for track, _ in selections}) != len(selections):
+        raise ValueError("Select each benchmark track exactly once")
+    if any(not re.fullmatch(r"[0-9a-f]{40}", revision) for _, revision in selections):
         raise ValueError("REV must be a full lowercase Hugging Face commit")
     lock_path = source_path("harness/benchmarks/data-lock.json", root=root)
     lock = json.loads(lock_path.read_bytes())
-    before = lock["datasets"].get(track)
+    candidate = dict(lock["datasets"])
+    updates, changes, releases = {}, {}, []
+    for track, revision in selections:
+        selected, imported, differences, release = _prepare_pin(root, track, revision, candidate.get(track))
+        candidate[track] = selected
+        updates.update(imported)
+        changes[track] = differences
+        releases.append(release)
+    validate_selections(candidate)
+    for release in releases:
+        list(release.records(selections=candidate))
+    lock["datasets"] = candidate
+    updates[lock_path] = lock
+    publish_bindings(updates)
+    return changes
+
+
+def _prepare_pin(root: Path, track: str, revision: str, before: dict | None) -> tuple:
     if before is None:
         registered = json.loads((CARDS / "metadata.json").read_bytes())
         if track not in registered:
@@ -72,8 +96,6 @@ def pin(root: Path, track: str, revision: str) -> list[str]:
     for option in ("dataset_sources", "default_dataset", "scorer"):
         if option in before:
             selected[option] = copy.deepcopy(before[option])
-    candidate = {**lock["datasets"], track: selected}
-    validate_selections(candidate)
     previous = ([{k: v for k, v in before.items() if k != "history"}]
                 if "revision" in before else []) + before.get("history", [])
     history = {item["revision"]: item for item in previous if item["revision"] != revision}
@@ -92,23 +114,19 @@ def pin(root: Path, track: str, revision: str) -> list[str]:
                                  {name: (Path(directory) / name).read_bytes() for name in selected["files"]})
         if release.datasets() != selected["datasets"]:
             raise ValueError("Release manifest dataset bindings differ from its registry")
-        list(release.records())
         if import_path.exists():
             imported = refresh_binding(json.loads(import_path.read_bytes()), revision, Path(directory) / "definitions")
             imported["kind"] = "huggingface_benchmark_binding"
             imported["repository"] = "https://huggingface.co/datasets/" + selected["repository"]
             imported["source_revision"] = selected["source_revision"]
             updates[import_path] = imported
-    lock["datasets"][track] = selected
-    updates[lock_path] = lock
     changes = binding_changes(before, selected)
     validate_selected_binding(selected, updates.get(import_path))
-    publish_bindings(updates)
-    return changes
+    return selected, updates, changes, release
 
 
 def publish_bindings(updates: dict[Path, dict]) -> None:
-    """Stage replacements and restore the original pair on publication failure."""
+    """Stage replacements and restore original bindings on publication failure."""
     encoded = {path: (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode()
                for path, value in updates.items()}
     staged, published, restored = [], [], set()
@@ -208,12 +226,29 @@ def binding_changes(before: dict, after: dict) -> list[str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--track', required=True)
-    parser.add_argument('--revision', required=True)
+    parser.add_argument('--track')
+    parser.add_argument('--revision')
+    parser.add_argument('--select', action='append', metavar='TRACK=COMMIT',
+                        help='Repeat to select mutually dependent editions in one transaction')
     parser.add_argument('--root', type=Path, default=repository_root())
     args = parser.parse_args()
-    changes = pin(args.root, args.track, args.revision)
-    print(f'Pinned {args.track} to {args.revision}; {len(changes)} binding changes')
+    if args.select:
+        if args.track is not None or args.revision is not None:
+            parser.error('--select cannot be combined with --track/--revision')
+        selections = []
+        for value in args.select:
+            track, separator, revision = value.partition('=')
+            if not separator or not track or not revision:
+                parser.error('--select requires TRACK=COMMIT')
+            selections.append((track, revision))
+        changes = pin_many(args.root, selections)
+        for track, revision in selections:
+            print(f'Pinned {track} to {revision}; {len(changes[track])} binding changes')
+    else:
+        if args.track is None or args.revision is None:
+            parser.error('--track and --revision are required without --select')
+        changes = pin(args.root, args.track, args.revision)
+        print(f'Pinned {args.track} to {args.revision}; {len(changes)} binding changes')
 
 
 if __name__ == '__main__':

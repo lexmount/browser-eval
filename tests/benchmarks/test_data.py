@@ -132,12 +132,12 @@ def test_directory_lookup_resolves_snapshot_once(tmp_path, monkeypatch):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(str(index).encode())
         files[relative] = {'size': path.stat().st_size, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
-    monkeypatch.setattr(data, 'binding', lambda *args: {'files': files})
+    monkeypatch.setattr(data, 'binding', lambda *args: {'revision': 'a' * 40, 'files': files})
     calls = []
     def resolve(*args):
         calls.append(args)
         return tmp_path
-    monkeypatch.setattr(data, 'snapshot', resolve)
+    monkeypatch.setattr(data, '_resolve', resolve)
     assert len(list(data.definition_path('wcxb', 'source').iterdir())) == 50
     assert len(calls) == 1
 
@@ -257,3 +257,34 @@ def test_search_preparation_is_sufficient_for_offline_factual_loading(tmp_path, 
         assert load_dataset('factual-v1')['cases'][0]['id'] == 'question'
     finally:
         data._resolve.cache_clear()
+
+
+@pytest.mark.parametrize('mutation', ['same-size-change', 'delete', 'add'])
+def test_public_snapshot_revalidates_warm_files_and_inventory(download, mutation):
+    root = data.snapshot('webfetch')
+    target = root / 'definitions/tasks.json'
+    if mutation == 'same-size-change':
+        raw = target.read_bytes()
+        target.write_bytes(raw.replace(b'"a"', b'"b"'))
+        assert target.stat().st_size == len(raw)
+    elif mutation == 'delete':
+        target.unlink()
+    else:
+        (root / 'definitions/unlocked.json').write_text('{}')
+    # Do not clear resolution caches: public snapshots are verified every time.
+    with pytest.raises(ValueError, match='hash or size|inventory differs'):
+        data.snapshot('webfetch')
+    assert len(download[2]) == 1
+
+
+def test_warm_single_definition_lookup_does_not_rehash_entire_snapshot(download, monkeypatch):
+    root = data.snapshot('webfetch')
+    original = data.verify_file
+    checked = []
+    def verify(path, expected):
+        checked.append(path.relative_to(root).as_posix())
+        original(path, expected)
+    monkeypatch.setattr(data, 'verify_file', verify)
+    monkeypatch.setattr(data, '_verify_snapshot', lambda *args: pytest.fail('Single-file lookup walked entire snapshot'))
+    assert data.definition_path('webfetch', 'tasks.json') == root / 'definitions/tasks.json'
+    assert checked == ['definitions/tasks.json']

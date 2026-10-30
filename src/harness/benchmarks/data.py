@@ -251,8 +251,11 @@ def repair(track: str, revision: str | None = None) -> Path:
 
 
 def snapshot(track: str, revision: str | None = None) -> Path:
+    """Return a fully verified snapshot, including on warm in-process lookups."""
     selected = binding(track, revision)
-    return _resolve(track, selected["revision"], str(cache_home()))
+    root = _resolve(track, selected["revision"], str(cache_home()))
+    _verify_snapshot(root, selected)
+    return root
 
 
 def definition_path(track: str, relative: str, revision: str | None = None) -> Path:
@@ -264,7 +267,8 @@ def definition_path(track: str, relative: str, revision: str | None = None) -> P
     members = {key: value for key, value in selected["files"].items() if key.startswith(name + "/")}
     if name not in selected["files"] and not members:
         raise FileNotFoundError("Unknown benchmark definition: " + relative)
-    root = snapshot(track, revision)
+    # Resolution is cached; this boundary verifies only the requested members.
+    root = _resolve(track, selected["revision"], str(cache_home()))
     path = safe_path(root, name)
     if members:
         if not path.is_dir():

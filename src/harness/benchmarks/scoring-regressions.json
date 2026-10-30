@@ -76046,6 +76046,144 @@
         "answer_format": "plain_text"
       },
       "expected_task_pass": true
+    },
+    {
+      "id": "markdown-product-inline-html-formatted-markdown",
+      "category": "structured-extraction",
+      "root_cause": "Parsing HTML before Markdown link ownership split inline-formatted labels across DOM text nodes.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/product/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "[<span>Widget</span>](/product/1) $10.00",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown-product-inline-html-same-bytes-html",
+      "category": "structured-extraction",
+      "root_cause": "Parsing HTML before Markdown link ownership split inline-formatted labels across DOM text nodes.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/product/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "[<span>Widget</span>](/product/1) $10.00",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown-product-inline-html-first-label-false",
+      "category": "structured-extraction",
+      "root_cause": "Parsing HTML before Markdown link ownership split inline-formatted labels across DOM text nodes.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/product/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "price",
+              "title",
+              "url"
+            ],
+            "record_hashes": [
+              "24062bde821d27f00c619c9978739b32803f01abfae84f9f47f1ef9279284e29"
+            ]
+          }
+        }
+      },
+      "artifact": "[<span>Wrong</span>](/product/1) $10.00\n<a href=\"/product/1\">Widget</a> $10.00",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown-product-inline-html-first-label-true",
+      "category": "structured-extraction",
+      "root_cause": "Parsing HTML before Markdown link ownership split inline-formatted labels across DOM text nodes.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/product/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "price",
+              "title",
+              "url"
+            ],
+            "record_hashes": [
+              "24062bde821d27f00c619c9978739b32803f01abfae84f9f47f1ef9279284e29"
+            ]
+          }
+        }
+      },
+      "artifact": "[<span>Widget</span>](/product/1) $10.00\n<a href=\"/product/1\">Wrong</a> $10.00",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
     }
   ]
 }
