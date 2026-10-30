@@ -35,6 +35,19 @@ def prepare_answer(result, case):
     return result
 
 
+def worker_unresolved(worker, *, timed_out):
+    """Whether a call may still be doing physical work after it returned.
+
+    A timed-out call is unresolved while its thread runs. Any call is
+    unresolved once its adapter reported a worker that survived its kill,
+    even if that report arrived after the answer deadline. Liveness is read
+    before the flag: a finished thread has already recorded its outcome.
+    """
+    if worker is None:
+        return False
+    return (timed_out and worker.is_alive()) or worker.process_cleanup_failed
+
+
 def fetch_with_deadline(provider, case, timeout, *, native_route_ledger=None):
     """Discard late answers; never overlap calls on a non-cancellable adapter.
 
@@ -60,12 +73,17 @@ def fetch_with_deadline(provider, case, timeout, *, native_route_ledger=None):
                 value = prepare_answer(fetched, case)
                 emit("answer_prepared", content_chars=len(value.prepared_answer[0]))
         except Exception as error:
+            if isinstance(error, ProcessCleanupError):
+                # Recorded before the thread ends, so a caller that sees the
+                # thread finished also sees the surviving process.
+                worker.process_cleanup_failed = True
             sink=getattr(provider, "_call_diagnostics", None)
             if sink: sink.emit("caller", "provider_exception", type=type(error).__name__, message=str(error),
                                traceback=traceback.format_exc())
             value = error
         output.put((time.perf_counter(), value))
     worker = threading.Thread(target=work, daemon=True, name='webfetch-answer')
+    worker.process_cleanup_failed = False
     worker.start()
     caller_deadline_exceeded = False
     try:
@@ -97,9 +115,6 @@ def fetch_with_deadline(provider, case, timeout, *, native_route_ledger=None):
                 late=None
             if isinstance(late,ProviderResult):
                 metadata.update(late.metadata)
-            elif isinstance(late, ProcessCleanupError):
-                # The answer is late, but a surviving worker must quarantine the provider.
-                raise late
         for key in ('links', 'images', 'videos', 'media', 'extras', 'file_evaluation'):
             metadata.pop(key, None)
         if case.task_kind == 'file':

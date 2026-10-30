@@ -39,7 +39,7 @@ from harness.web_fetch.artifacts import (
     verify_record_private_artifacts,
     verify_record_public_call_logs,
 )
-from harness.web_fetch.call_boundary import fetch_with_deadline
+from harness.web_fetch.call_boundary import fetch_with_deadline, worker_unresolved
 from harness.web_fetch.config import DEFAULT_FAILURE_RETRIES
 from harness.web_fetch.diagnostics import CallDiagnostics
 from harness.web_fetch.models import AttemptRecord, ProviderResult
@@ -840,8 +840,8 @@ def run_evaluation(
                             })
                             # A worker that survived its kill would overlap the next call.
                             stopped_provider = (isinstance(caught_exception, ProcessCleanupError)
-                                                or (result.error_type == 'timeout' and pending is not None
-                                                    and pending.is_alive()))
+                                                or worker_unresolved(
+                                                    pending, timed_out=result.error_type == 'timeout'))
                             if physical_passed or stopped_provider or physical_attempt > max_failure_retries:
                                 break
                         result.metadata['call_sequence_elapsed_ms'] = round((time.monotonic() - sequence_begin) * 1000, 2)
