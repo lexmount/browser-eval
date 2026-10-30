@@ -35,6 +35,7 @@ from harness.environments.webarena.runtime import (
     configure_benchmark,
     container_host_gateway,
     docker_daemon_lock_namespace,
+    ensure_site,
     environment_prepare_receipt,
     login_context,
     physical_execution_lock,
@@ -1038,6 +1039,51 @@ def test_arm_php_verification_closes_docker_client_on_failure(monkeypatch) -> No
 
     with pytest.raises(RuntimeError, match="Rosetta"):
         verify_arm_php_compatibility("webarena_verified_shopping")
+
+    assert client.closed
+
+
+def _patch_ready_site(monkeypatch) -> None:
+    manager = SimpleNamespace(
+        container_name="webarena_verified_gitlab",
+        config=SimpleNamespace(health_check_path="/", volumes={}),
+        is_running=lambda: True,
+        start=lambda **_kwargs: None,
+    )
+    runtime = "harness.environments.webarena.runtime"
+    monkeypatch.setattr(f"{runtime}.site_container_manager", lambda _site: manager)
+    monkeypatch.setattr(
+        f"{runtime}.EnvCtrlDockerClient.create",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            wait_until_ready=lambda **_kwargs: SimpleNamespace(success=True, message="")
+        ),
+    )
+    monkeypatch.setattr(f"{runtime}.wait_application_ready", lambda *_args: None)
+
+
+def test_ensure_site_closes_docker_client_after_readiness(monkeypatch) -> None:
+    client = _patch_docker_client(monkeypatch, "x86_64", SimpleNamespace())
+    _patch_ready_site(monkeypatch)
+    monkeypatch.setattr(
+        "harness.environments.webarena.runtime.wait_container_healthy", lambda _container: None
+    )
+
+    ensure_site(WebArenaSite.GITLAB, reset=False)
+
+    assert client.closed
+
+
+def test_ensure_site_closes_docker_client_when_health_check_fails(monkeypatch) -> None:
+    client = _patch_docker_client(monkeypatch, "x86_64", SimpleNamespace())
+    _patch_ready_site(monkeypatch)
+
+    def unhealthy(_container) -> None:
+        raise RuntimeError("container unhealthy")
+
+    monkeypatch.setattr("harness.environments.webarena.runtime.wait_container_healthy", unhealthy)
+
+    with pytest.raises(RuntimeError, match="container unhealthy"):
+        ensure_site(WebArenaSite.GITLAB, reset=False)
 
     assert client.closed
 
