@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -357,3 +359,27 @@ def test_replay_accepts_system_alias_but_rejects_user_links(tmp_path, monkeypatc
         with pytest.raises(ValueError, match='symlink'):
             runner.run_evaluation(suite_path=dataset, output_dir=link / 'new',
                                   reports_dir=root / 'report')
+
+
+@pytest.mark.parametrize(
+    "module",
+    ["harness.trajectory_replay.runner", "harness.trajectory_replay.public_webarena.runner"],
+)
+def test_runner_import_does_not_load_the_token_encoding(module):
+    # tiktoken may download its BPE file on first load; importing a runner
+    # (for example for CLI --help) must not need the network.
+    code = (
+        "import tiktoken\n"
+        "def offline(_name):\n"
+        "    raise RuntimeError('token encoding loaded at import time')\n"
+        "tiktoken.get_encoding = offline\n"
+        f"import {module}\n"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        env={**os.environ, "PYTHONPATH": os.pathsep.join(sys.path)},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr

@@ -14,10 +14,7 @@ from urllib.parse import urlparse
 
 from harness.distribution import installed_data_path, repository_root
 from harness.trajectory_replay.public_webarena.publication import REPORT_STEM, public_projection
-from harness.trajectory_replay.public_webarena.result_audit import (
-    ResultAuditError,
-    audit_result_set,
-)
+from harness.trajectory_replay.public_webarena.result_audit import audit_result_set
 
 ROOT = repository_root()
 PAGES = tuple(
@@ -52,16 +49,6 @@ def _engines(summary: dict[str, Any]) -> tuple[str, ...]:
 
 def _engine_label(engine: str) -> str:
     return ENGINE_LABELS.get(engine, engine.replace("_", " ").strip().title())
-
-
-def _available_result_audit(manifest: dict[str, Any], summary: dict[str, Any]) -> dict[str, Any]:
-    task_ids = {str(task.get("task_id") or "") for task in manifest.get("suite") or []}
-    if task_ids and set(summary.get("by_task") or {}) == task_ids:
-        try:
-            return audit_result_set(manifest, summary)
-        except ResultAuditError:
-            pass
-    return {"status": "unavailable"}
 
 
 def _e(value: Any) -> str:
@@ -609,7 +596,9 @@ for(const button of buttons)button.onclick=()=>show(button.dataset.category);sho
     )
 
 
-def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
+def _summary_page(
+    manifest: dict[str, Any], summary: dict[str, Any], audit: dict[str, Any]
+) -> str:
     task_count = len(manifest.get("suite") or [])
     functional = summary.get("functional") or {}
     engines = _engines(summary)
@@ -629,7 +618,6 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         if ratio_baseline
         else ""
     )
-    audit = _available_result_audit(manifest, summary)
     score_cards = "".join(
         f'<article class="score-card {engine}"><h3>{_e(_engine_label(engine))}</h3>'
         f'<div class="score-line"><span>通过率</span><div class="bar" role="progressbar" aria-label="{_e(_engine_label(engine))} 通过率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{values.get("result_final_pass_rate", 0) * 100:.2f}"><i style="width:{values.get("result_final_pass_rate", 0) * 100:.2f}%"></i></div><strong>{values.get("result_final_passes", 0)}/{values.get("tasks", 0)}</strong></div></article>'
@@ -682,8 +670,6 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     )
     audit_strip = (
         f'<div class="audit-strip"><strong>{audit["logical_results_reviewed"]}/{task_count * len(engines)} 个结果通过一致性审计</strong><span>底层执行记录、程序验收和汇总相互一致；{sum(audit["final_failures"].values())} 个未通过结果按日志与调用字段分类。</span><a href="{REPORT_STEM}-method.html#verification">查看核验范围</a></div>'
-        if audit.get("status") == "pass"
-        else ""
     )
     return f"""<section class="card hero"><div class="eyebrow">结论摘要</div><h2>本轮，{compatibility_lead}；{resource_lead}。速度、CPU、内存和网络另列，不合成总分。</h2><p>这是 WebArena 公开人类轨迹的固定重放，运行时没有 Agent 规划、模型调用或 LLM judge。数字限于这 {task_count} 条冻结轨迹和本轮环境。</p>{audit_strip}</section>
 <section class="card"><div class="section-heading"><div><h2>任务正确率</h2><p class="muted">每个任务和浏览器只公布一个结果。</p></div><a href="{REPORT_STEM}-results.html#task-comparison">查看逐任务结果</a></div><div class="score-grid">{score_cards}</div>{_correctness_table(summary)}<p>{failure_summary}工具调用链走完仍可能没有通过程序验收：调用返回只说明路径走完，最终答案、服务状态或 HAR 仍可能不满足 evaluator。</p></section>
@@ -1879,10 +1865,11 @@ addEventListener('hashchange',reveal);apply();reveal();
     return f"""{filter_anchors}<section class="card" id="failure-review"><div class="section-heading"><h2>失败分析</h2><a href="#execution-results">查看执行记录</a></div><p>按错误日志、BrowserTool trace 和 evaluator 输出中的直接证据，归类 <strong>{final_failures}</strong> 个未通过结果。</p>{review_table}<p class="muted">这不是第二套评分。分类只概括直接失败机制；“元素不可见”“HAR 未匹配”等不自动等于浏览器内部根因。</p></section><section class="card" id="execution-results"><h2>执行记录</h2><p>{logical_executions} 条任务 × 浏览器结果。默认显示未通过结果；点击任务可查看采用结果的操作、答案、判定、错误栈和 BrowserTool trace。</p>{filters}<div id="execution-list" class="record-grid" role="region" aria-label="逐任务执行记录" tabindex="0">{grid_head}{_execution_details(manifest, summary, detail_pages)}</div><p id="execution-empty" class="empty-state" role="status" hidden></p>{script}</section>"""
 
 
-def _review_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
+def _review_page(
+    manifest: dict[str, Any], summary: dict[str, Any], result_audit: dict[str, Any]
+) -> str:
     provenance = manifest.get("artifact_provenance") or {}
     engines = _engines(summary)
-    result_audit = _available_result_audit(manifest, summary)
     evidence_fields = (manifest.get("protocol") or {}).get("required_attempt_evidence") or []
     rows = [
         ["候选来源", "179 条 WebArena 官方人类录制", "来源轨迹哈希逐条登记"],
@@ -1900,17 +1887,12 @@ def _review_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         ["运行时 Agent / 模型", "未配置", "通过"],
         ["浏览器架构", str((manifest.get("environment") or {}).get("docker_architecture") or "未记录"), "通过"],
     ]
-    if result_audit.get("status") == "pass":
-        checks.insert(
-            3,
-            [
-                "结果一致性审计",
-                f'{result_audit["logical_results_reviewed"]} 个公开结果',
-                "全部通过",
-            ],
-        )
+    checks.insert(
+        3,
+        ["结果一致性审计", f'{result_audit["logical_results_reviewed"]} 个公开结果', "全部通过"],
+    )
     return (
-        f'<section class="card note" id="verification"><h2>核验结论</h2><p><strong>{result_audit.get("logical_results_reviewed", 0)} 个公开结果通过自动一致性审计。</strong>检查覆盖任务矩阵、BrowserTool 动作序列、官方 evaluator 状态、HAR 与最终页面证据状态，以及汇总数字的一致性。未通过结果按错误栈和调用字段做程序化分类，并在任务详情保留原文。审计确认记录内部自洽，不等于人工重标全部答案，也不能由错误类别直接推定浏览器内部根因。完整 HAR、截图和页面产物保存在仓库外 evidence。</p></section>'
+        f'<section class="card note" id="verification"><h2>核验结论</h2><p><strong>{result_audit["logical_results_reviewed"]} 个公开结果通过自动一致性审计。</strong>检查覆盖任务矩阵、BrowserTool 动作序列、官方 evaluator 状态、HAR 与最终页面证据状态，以及汇总数字的一致性。未通过结果按错误栈和调用字段做程序化分类，并在任务详情保留原文。审计确认记录内部自洽，不等于人工重标全部答案，也不能由错误类别直接推定浏览器内部根因。完整 HAR、截图和页面产物保存在仓库外 evidence。</p></section>'
         '<section class="card"><h2>从公开录制到正式分母</h2>'
         + _table(["环节", "范围", "验收规则"], rows, "资格与正式运行审计") + '</section>'
         '<section class="card"><h2>数据完整性</h2>'
@@ -2048,7 +2030,8 @@ def _markdown(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
 def write_latest_report(
     reports_dir: str | Path, *, manifest: dict[str, Any], summary: dict[str, Any]
 ) -> Path:
-    result_audit = _available_result_audit(manifest, summary)
+    # Fail closed: an inconsistent result set must not render as a report.
+    result_audit = audit_result_set(manifest, summary)
     manifest = public_projection(manifest)
     summary = public_projection(summary)
     root = Path(reports_dir)
@@ -2105,11 +2088,11 @@ def write_latest_report(
         json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     renderers = {
-        "index": lambda: _summary_page(manifest, summary),
+        "index": lambda: _summary_page(manifest, summary, result_audit),
         "results": lambda: results,
         "suite": lambda: _suite_page(manifest),
         "research": lambda: _research_page(manifest, summary),
-        "method": lambda: _method_page(manifest, summary) + _review_page(manifest, summary),
+        "method": lambda: _method_page(manifest, summary) + _review_page(manifest, summary, result_audit),
         "appendix": lambda: _appendix_page(manifest),
     }
     for slug, _, filename in PAGES:
