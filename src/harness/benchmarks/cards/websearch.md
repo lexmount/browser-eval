@@ -8,7 +8,9 @@ LexBench-Web-Search evaluates the pages a search API returns for fixed queries: 
 
 {{dataset_summary}}
 
-The scenario editions retain the same query population. Their reference qualifications and URL equivalences are versioned; they are not independent samples to concatenate. The [separate SimpleQA Verified retrieval edition](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) supplies factual questions, original answers and supporting URLs. Report its retrieval metrics separately from scenario relevance.
+The viewer contains the current scenario edition. Older scenario definitions remain in the archive for reproduction; they use the same queries and are not additional tasks.
+
+The [SimpleQA Verified retrieval dataset](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) owns factual questions, original answers, supporting URLs and the source receipt. This repository retains its composition descriptor but does not copy those records into its viewer or archive. Browser Eval resolves that descriptor to the separately pinned dataset. Report factual retrieval metrics separately from scenario relevance.
 
 Each scenario includes an ID, query, language and search family. Where available, it also carries an information need, known-page anchors, source origin, derivation and reference qualifications. `origin` and `provenance_kind` distinguish copied queries, adaptations and authored controls. Reference observations retain their scope and evidence bindings.
 

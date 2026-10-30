@@ -217,6 +217,56 @@ class DatasetRelease:
             return datasets
         return registry["datasets"]
 
+    def external_definitions(self) -> dict[str, str]:
+        """Validate composition descriptors before omitting another dataset's bytes."""
+        from harness.benchmarks.data import binding as selected_binding
+
+        metadata = json.loads((CARDS / "metadata.json").read_bytes())[self.track]
+        datasets = self.datasets()
+        omitted = {}
+        for identity, composition in metadata.get("external_datasets", {}).items():
+            if identity not in datasets:
+                continue
+            source = selected_binding(composition["source"])
+            supplied = source.get("datasets", {}).get(identity)
+            if supplied != datasets[identity]:
+                raise ValueError("External dataset descriptor differs: " + identity)
+            paths = [supplied["path"], *composition.get("resources", [])]
+            for relative in paths:
+                name = "definitions/" + relative
+                expected = source["files"].get(name)
+                if (expected is None
+                        or (relative == supplied["path"] and expected["sha256"] != supplied["sha256"])
+                        or (name in self.files and (
+                        digest(self.files[name]) != expected["sha256"]
+                        or len(self.files[name]) != expected["size"]))):
+                    raise ValueError("External definition differs: " + name)
+                omitted[name] = composition["source"]
+        return omitted
+
+    def viewer_datasets(self) -> set[str]:
+        """Select current populations without changing historical definitions."""
+        metadata = json.loads((CARDS / "metadata.json").read_bytes())[self.track]
+        registry = json.loads(self.files["definitions/registry.json"])
+        datasets = self.datasets()
+        selection = metadata.get("viewer_selection")
+        selected = set(datasets)
+        if selection and (registry.get("schema") is not None or "current" in registry):
+            if registry.get("schema") != selection["schema"]:
+                raise ValueError("Unknown viewer registry schema")
+            if "current" in selection:
+                current = registry.get("current", {})
+                if any(key not in current for key in selection["current"]):
+                    raise ValueError("Missing current viewer selection")
+                selected = {current[key] for key in selection["current"]}
+            else:
+                selected = set(selection["datasets"])
+            if not selected or not selected.issubset(datasets):
+                raise ValueError("Unknown current viewer dataset")
+        selected -= set(metadata.get("external_datasets", {}))
+        selected -= set(metadata.get("viewer_exclude_datasets", []))
+        return selected
+
     def build(self, output: Path) -> dict:
         if output.exists() and any(output.iterdir()):
             raise ValueError("Release output must be empty")
@@ -226,7 +276,9 @@ class DatasetRelease:
 
         body = (self.card_body if self.card_body is not None
                 else (CARDS / (self.track + ".md")).read_text(encoding="utf-8"))
-        files = dict(self.files)
+        external = self.external_definitions()
+        definition_files = {name: raw for name, raw in self.files.items() if name not in external}
+        files = dict(definition_files)
         if self.track == "headless-browser":
             registry = json.loads(files["definitions/registry.json"])
             for name, binding in registry["source_files"].items():
@@ -305,6 +357,11 @@ class DatasetRelease:
             "viewer": {"configurations": summary, "language_annotations": used_annotations},
             "files": {name: {"sha256": digest(raw), "size": len(raw)} for name, raw in sorted(files.items())},
         }
+        if external:
+            manifest["dataset_sources"] = {
+                identity: composition["source"] for identity, composition in
+                metadata.get("external_datasets", {}).items() if identity in self.datasets()
+            }
         if self.tooling_revision is not None:
             manifest["tooling"] = {"repository": "https://github.com/lexmount/browser-eval",
                                    "revision": self.tooling_revision}
@@ -316,16 +373,20 @@ class DatasetRelease:
             path = output / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(raw)
-        return self._finish(output, manifest, configurations, metadata, languages, body, yaml)
+        return self._finish(output, manifest, configurations, metadata, languages, body, yaml, definition_files)
 
     def records(self):
         datasets = self.datasets()
         if not isinstance(datasets, dict) or not datasets:
             raise ValueError("A release requires registered datasets")
+        external = self.external_definitions()
+        selected = self.viewer_datasets()
         for identity, binding in datasets.items():
             if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_.-]*", identity):
                 raise ValueError("Unsafe dataset identity")
             name = "definitions/" + binding["path"]
+            if name in external:
+                continue
             if name not in self.files:
                 raise ValueError("Unknown dataset definition: " + identity)
             raw = self.files[name]
@@ -350,15 +411,16 @@ class DatasetRelease:
                     original = self.files["definitions/" + binding["source_paths"][case[identity_field]]]
                     if json.loads(original) != case:
                         raise ValueError("Viewer projection differs from original task: " + identity)
-            yield identity, binding, cases
+            if identity in selected:
+                yield identity, binding, cases
 
     def _finish(self, output: Path, manifest: dict, configurations: list[dict], metadata: dict,
-                languages: set[str], body: str, yaml) -> dict:
+                languages: set[str], body: str, yaml, definition_files: dict[str, bytes]) -> dict:
 
         buffer = io.BytesIO()
         with gzip.GzipFile(fileobj=buffer, mode="wb", mtime=0, filename="") as compressed:
             with tarfile.open(fileobj=compressed, mode="w") as archive:
-                for name, raw in sorted(self.files.items()):
+                for name, raw in sorted(definition_files.items()):
                     item = tarfile.TarInfo(name)
                     item.size, item.mode, item.mtime = len(raw), 0o644, 0
                     archive.addfile(item, io.BytesIO(raw))

@@ -91,7 +91,21 @@
     "repo_id": "Lexmount/LexBench-Web-Search",
     "previous_repo_ids": [
       "Lexmount/lexbench-websearch"
-    ]
+    ],
+    "viewer_selection": {
+      "schema": "lexbench-websearch-registry/1",
+      "current": [
+        "scenarios"
+      ]
+    },
+    "external_datasets": {
+      "factual-v1": {
+        "source": "simpleqa-verified",
+        "resources": [
+          "factual-source.json"
+        ]
+      }
+    }
   },
   "webmainbench": {
     "pretty_name": "LexBench-WebMainBench",
@@ -258,7 +272,13 @@
     "repo_id": "Lexmount/LexBench-WebArena-Replay",
     "previous_repo_ids": [
       "Lexmount/lexbench-webarena-replay"
-    ]
+    ],
+    "viewer_selection": {
+      "schema": "lex_replay_dataset_registry/1",
+      "datasets": [
+        "full-812-v1"
+      ]
+    }
   },
   "headless-browser": {
     "pretty_name": "LexBench-Headless-Browser",
@@ -312,6 +332,9 @@
       "l2.playwright": "L2 web platform semantics through framework_playwright; upstream task and grading contract unchanged",
       "l2.puppeteer": "L2 web platform semantics through framework_puppeteer; upstream task and grading contract unchanged"
     },
-    "default_language": "en"
+    "default_language": "en",
+    "viewer_exclude_datasets": [
+      "scenario-specs"
+    ]
   }
 }

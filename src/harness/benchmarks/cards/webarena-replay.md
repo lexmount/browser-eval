@@ -2,14 +2,14 @@
 
 WebArena task definitions paired with fixed browser actions for Browser Eval. These inputs compare browser execution on the same sequence of work. The pinned WebArena-Verified program evaluates task completion from the browser response and the self-hosted site's state.
 
-The configurations below contain {{total_records}} records in total. They are separate editions with overlapping task IDs. Adding their row counts does not produce a unique benchmark population or a combined score.
+The viewer contains the full {{total_records}}-task population once. Human-qualified and corrected definitions remain available as reproducible variants in the archive; their overlapping task IDs do not add tasks to the viewer population.
 
 {{dataset_summary}}
 
 ## Editions
 
-- **Human-qualified:** the eligible subset of the public human-recording import. The original import included candidates that were skipped during qualification; those candidates are outside this configuration.
-- **Corrected:** historical corrected fixed-action inputs and their task metadata. Historical qualification receipts stay external and retain their original contracts. Loading this edition does not qualify it under a newer observation protocol.
+- **Human-qualified:** the eligible subset of the public human-recording import. The original import included candidates that were skipped during qualification; those candidates are outside the human-qualified variant.
+- **Corrected:** historical corrected fixed-action inputs and their task metadata. Historical qualification receipts stay external and retain their original contracts. Loading these historical definitions does not qualify them under a newer observation protocol.
 - **Full:** the complete WebArena-Verified task scope with accepted fixed actions. Its catalog keeps portable trajectories and direct action records distinct. The separate portable suite contains only the portable rows; the catalog covers the full scope.
 
 Task questions keep their upstream wording. Public string IDs such as `webarena-23` accompany the original numeric task IDs. Intents are in English; source content and the requested answers may use other languages.

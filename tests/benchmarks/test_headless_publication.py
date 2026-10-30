@@ -67,11 +67,12 @@ def test_headless_git_export_preserves_every_original_byte_and_ignores_outputs(h
     assert result['upstream']['fixture_count'] == result['upstream']['config_count'] == 2
     assert result['upstream']['driver_count'] == 2
     assert [(row['config'], row['count']) for row in result['viewer']['configurations']] == [
-        ('l1.raw', 1), ('l2.platform', 1), ('scenario-specs', 1)]
-    for config in ('l1.raw', 'l2.platform', 'scenario-specs'):
+        ('l1.raw', 1), ('l2.platform', 1)]
+    assert not (tmp_path / 'first/data/scenario-specs.jsonl').exists()
+    for config in ('l1.raw', 'l2.platform'):
         row = json.loads((tmp_path / 'first/data' / (config + '.jsonl')).read_bytes())
         assert json.loads(row['task']) == json.loads(original[row['source_path']])
-        assert row['language'] == ('en' if config == 'scenario-specs' else 'zh')
+        assert row['language'] == 'zh'
     assert (tmp_path / 'first/definitions.tar.gz').read_bytes() == (tmp_path / 'second/definitions.tar.gz').read_bytes()
     with tarfile.open(tmp_path / 'first/definitions.tar.gz') as archive:
         for name, raw in original.items():
@@ -81,7 +82,8 @@ def test_headless_git_export_preserves_every_original_byte_and_ignores_outputs(h
     card = (tmp_path / 'first/README.md').read_text()
     assert 'LexBench-Headless-Browser' in card and revision in card
     assert '{{upstream_' not in card
-    assert '372-task' in card and 'separate execution format' in card
+    assert '## Execute with the original runner' in card
+    assert 'definitions/tasks/scenarios/' in card
     registry = json.loads(release.files['definitions/registry.json'])
     assert set(registry['source_files']) == set(original)
     # Exercise the card's exact data handoff against the local committed source.

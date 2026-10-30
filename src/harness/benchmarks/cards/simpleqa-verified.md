@@ -6,6 +6,8 @@ Google DeepMind and Google Research designed the original benchmark to measure a
 
 {{dataset_summary}}
 
+This dataset owns the factual retrieval inputs used alongside [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search). Web Search references these definitions through its composition descriptor; it does not publish another copy of the questions or source receipt.
+
 ## Selection and changes
 
 The `factual-v1` configuration contains every question in the pinned 1,000-row publisher CSV whose `problem` has at most 128 Unicode code points, measured by Python's `len()` on the decoded string. This selects {{total_records}} questions; longer questions are excluded before collection. There is no truncation, rewriting or selection based on search results.

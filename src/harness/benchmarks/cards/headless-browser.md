@@ -2,13 +2,13 @@
 
 A versioned data export of [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser/tree/{{upstream_revision}}). It preserves the original CDP compatibility tasks, web platform tests, scenario specifications, browser and driver configuration, and local fixtures.
 
-This edition contains **{{upstream_task_count}} executable task definitions** across {{upstream_subset_count}} subsets, **{{upstream_scenario_count}} driver-neutral scenario specifications**, {{upstream_fixture_count}} fixture files and {{upstream_config_count}} configuration files. The upstream manifest declares benchmark version `{{upstream_bench_version}}`; its browser binding configuration names {{upstream_driver_count}} driver interfaces. Source commit: [`{{upstream_revision}}`](https://github.com/lexmount/Lexbench-Headless-Browser/commit/{{upstream_revision}}).
+The dataset viewer contains **{{upstream_task_count}} executable task definitions** across {{upstream_subset_count}} subsets. The original source files also retain {{upstream_scenario_count}} driver-neutral scenario specifications, {{upstream_fixture_count}} fixture files and {{upstream_config_count}} configuration files. The upstream manifest declares benchmark version `{{upstream_bench_version}}`; its browser binding configuration names {{upstream_driver_count}} driver interfaces. Source commit: [`{{upstream_revision}}`](https://github.com/lexmount/Lexbench-Headless-Browser/commit/{{upstream_revision}}).
 
 ## Populations and task contracts
 
 {{dataset_summary}}
 
-The `l1.*` and `l2.*` configurations contain the executable tasks selected by the original manifest's `task_glob` entries. The `scenario-specs` configuration contains design specifications that can be expanded for several drivers. Keep its population separate: adding those specifications to the executable task count would count related work twice.
+The `l1.*` and `l2.*` configurations contain the executable tasks selected by the original manifest's `task_glob` entries. Scenario specifications remain in `definitions/tasks/scenarios/` as design sources and provenance. They are excluded from the viewer population and add no extra tasks to the executable count.
 
 - **L1 — CDP compatibility.** Protocol commands, framework and tool interfaces, navigation, DOM observation, interaction and other browser operations. Some probes are diagnostic and accept completion without grading returned values; the original tags, optional steps and checks state that scope.
 - **L2 — Web platform behavior.** Browser semantics checked against local fixture pages. The manifest, capability map and driver bindings define which combinations are eligible.
@@ -29,9 +29,9 @@ The declared drivers include Playwright, Puppeteer, Chrome Remote Interface, CDP
 | `fixtures/` | Local pages, scripts and assets used by the tasks |
 | `LICENSE`, `THIRD_PARTY_NOTICES.md` | Original license and attribution notices |
 
-The additive `definitions/registry.json` binds viewer configurations to their hashes, populations and original source paths. `definitions/viewer/` contains JSON projections for the dataset viewer. Each viewer row's `task` field is the original parsed task or scenario object; `source_path` locates its unchanged JSON file beneath `definitions/`. The export does not translate instructions, change assertions or replace expected answers. `manifest.json` at the repository root records release hashes and source identity; `definitions/manifest.json` remains the original upstream manifest.
+The additive `definitions/registry.json` binds viewer configurations to their hashes, populations and original source paths. `definitions/viewer/` contains JSON projections for the dataset viewer. Each viewer row's `task` field is the original parsed executable task object; `source_path` locates its unchanged JSON file beneath `definitions/`. The export does not translate instructions, change assertions or replace expected answers. `manifest.json` at the repository root records release hashes and source identity; `definitions/manifest.json` remains the original upstream manifest.
 
-Viewer language labels describe the task and scenario instructions, which are English in this source edition. Fixture content and expected literals may use other languages; their original text is preserved.
+Viewer language labels describe the executable task instructions, which are English in this source edition. Fixture content and expected literals may use other languages; their original text is preserved.
 
 The archive `definitions.tar.gz` provides the same definition files. Measured attempts, browser responses, scores, generated reports, private captures, executable runner code and browser binaries have separate owners and are excluded from this dataset.
 
@@ -56,7 +56,7 @@ task = json.loads(row["task"])
 print(row["source_path"], task["task_id"], task["grader"])
 ```
 
-Use `scenario-specs` to inspect the separate scenario population. Dataset access is public and requires no account or token. A Hugging Face data commit and an upstream Git code commit identify different things; retain both when recording a run.
+Inspect the original scenario specifications under `definitions/tasks/scenarios/`. Dataset access is public and requires no account or token. A Hugging Face data commit and an upstream Git code commit identify different things; retain both when recording a run.
 
 ## Execute with the original runner
 
@@ -91,7 +91,7 @@ Run the original CLI from that checkout using the pinned guide's setup and scope
 
 Check the source manifest and running guide before choosing a scope. Loading this dataset installs neither that runner nor its runtime dependencies. The local fixture server is implemented in [`runner/run.py`](https://github.com/lexmount/Lexbench-Headless-Browser/blob/{{upstream_revision}}/runner/run.py); driver-neutral expansion and platform semantics also depend on the original runner modules and adapters.
 
-[Browser Eval's curated Browser Trajectory Replay](https://github.com/lexmount/browser-eval/blob/main/examples/trajectory_replay/README.md) uses its own tasks, BrowserTool actions, qualification evidence and scoring contract. It drew on this scenario collection, but uses a separate execution format. Existing report protocols may select smaller, hash-bound populations such as the historical 372-task protocol; their scores and denominators remain attached to those original runs. The complete source collection published here does not expand an earlier report's measured population.
+[Browser Eval's public-web replay suite](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) contains 30 self-authored tasks with its own live website inputs, BrowserTool actions and exact checks. This scenario collection informed their design; none of those complete tasks is included in the Headless executable catalog. Headless execution remains owned by the pinned upstream driver runtime described above. Existing report protocols may select smaller, hash-bound populations such as the historical 372-task protocol; their scores and denominators remain attached to those original runs. The complete source collection published here does not expand an earlier report's measured population.
 
 ## License and citation
 

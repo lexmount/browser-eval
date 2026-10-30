@@ -181,21 +181,22 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run
 | 资源 | 用途 |
 | --- | --- |
 | [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) | Web Fetch 题目、验收要求和参考输入绑定 |
-| [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) | 搜索问题和来源参考 |
+| [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) | 搜索场景问题和来源要求；事实问答由 SimpleQA Verified 提供 |
 | [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) | 修正参考答案后的 WebMainBench 任务及修订依据 |
 | [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) | 按输入长度筛选的 SimpleQA Verified 检索任务，保留原始答案 |
 | [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | 已核验来源的冻结提取输入和参考答案 |
-| [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) | 原始 CDP 与自动化驱动任务及验收材料，分开保留各来源版本 |
-| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | 自建固定动作任务、轨迹和预期输出 |
-| [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | 分开管理人工录制轨迹、修正题目和官方完整题目 |
+| [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) · [代码](https://github.com/lexmount/Lexbench-Headless-Browser) | CDP、自动化驱动和 Web 平台的可执行任务；场景设计规格保留在原始文件中 |
+| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | Browser Eval 自建的 30 个公网任务，包含固定动作和确定性验收条件 |
+| [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | 官方完整任务集；较小的轨迹重放版本保留为版本化原始输入 |
 | [Moli](https://github.com/lexmount/moli) | 与其他参与者按相同任务规则评测的浏览器 |
 | [WebFetch CLI](https://github.com/lexmount/webfetch-cli) | Lexmount WebFetch 服务的命令行客户端 |
 | Artifact Site（[全球站 .com](https://yours.lexmount.com/artifact-site) · [中国站 .cn](https://yours.lexmount.cn/artifact-site)） | 报告创建、分享和权限控制 |
-| [Headless 任务输入](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) · [上游代码](https://github.com/lexmount/Lexbench-Headless-Browser) | 自建轨迹的场景设计来源；另有独立的协议、自动化驱动和 Web 平台评测 |
 | [WebMainBench 分支](https://github.com/lexmount/WebMainBench/tree/lex-main) · [上游](https://github.com/opendatalab/WebMainBench) | 上游署名和固定版本的提取评分器来源 |
 | [WebArena-Verified 分支](https://github.com/lexmount/webarena-verified/tree/lex-main) · [上游](https://github.com/ServiceNow/webarena-verified) | 官方题目来源及重放、实验性 Agent 集成使用的固定评测器依赖 |
 | [WCXB 上游](https://github.com/Murrough-Foley/web-content-extraction-benchmark) | HF 核验版本的数据来源署名 |
 | [CowAgent](https://github.com/zhayujie/CowAgent)、[OpenClaw](https://github.com/openclaw/openclaw)、[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) | Web Fetch 工具基线和实验性 Agent 集成 |
+
+这 30 个公网轨迹任务由 Browser Eval 自建，部分交互设计借鉴了 Headless 的场景规格，没有导入 Headless 或 WebArena 的完整任务。任务文件固定了动作和预期输出，线上网页仍可能变化。
 
 Playwright、提取库和配套运行环境的来源与固定版本见[依赖说明](dependencies.md)，引用要求和数据权利见[第三方说明](../THIRD_PARTY.md)。引用 Browser Eval 时，也请引用实际使用的评测集与上游数据。
 

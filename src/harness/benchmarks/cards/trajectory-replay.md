@@ -1,8 +1,8 @@
 # LexBench-Trajectory-Replay
 
-Fixed browser actions and deterministic checks for comparing browsers on the same work. The tasks cover reading public pages, forms, navigation history, delayed elements, search, and scrolling. Browser Eval executes the declared actions and checks the saved outputs against explicit assertions.
+Browser Eval authored this public-web replay suite to compare browsers using fixed actions and deterministic checks. The tasks cover reading public pages, forms, navigation history, delayed elements, search, and scrolling. Browser Eval executes the declared actions and checks the saved outputs against explicit assertions.
 
-This dataset contains {{total_records}} task records. The task instructions are in Chinese. Some references contain English page headings, interface text, or quotations; the source wording is preserved.
+This dataset contains {{total_records}} task records with public website URLs, BrowserTool actions and exact expected outputs. The task instructions are in Chinese. Some references contain English page headings, interface text, or quotations; the source wording is preserved.
 
 {{dataset_summary}}
 
@@ -24,9 +24,9 @@ Each record includes a stable string ID, a readable title, difficulty and tags, 
 
 The canonical runtime file is `definitions/suites/curated-v1.json`. The dataset viewer exposes the same tasks in `definitions/datasets/curated-v1.json`, with language metadata for discovery. `definitions/registry.json` binds each configuration to its file hash and population. The publication bindings record the source suite hash; this edition preserves the original runtime suite bytes. Expected outputs are explicit task assertions; prior run responses are not part of this suite.
 
-Tasks were designed with reference to [Lexbench Headless Browser's scenario collection](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios). Browser Eval owns the current replay and scoring implementation. Each task retains its own public source link.
+The task definitions cite [Headless Browser's scenario collection](https://github.com/lexmount/Lexbench-Headless-Browser/tree/3f1580a20922fc3f339b5fc279d9bbdb06d5d194/tasks/scenarios) as a design reference. Three definitions cite individual scenarios: cascading search and document version/language switching draw on select-option checks; infinite scrolling draws on progressive-list and paging checks. These tasks use their own public pages, actions and expected answers. The remaining definitions cite the collection as a whole. Each record retains its attribution.
 
-[LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) preserves the original task catalogs and acceptance assets. Its CDP and driver tasks use the upstream runtime; this replay dataset contains Browser Eval's fixed-action adaptations.
+No complete task is imported from [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) or [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay). Headless tasks use local fixtures or blank pages and their original CDP/driver checks; WebArena tasks use self-hosted applications and official evaluators. Shared interaction patterns, such as selecting an option, are design similarities across distinct task inputs and acceptance contracts.
 
 ## Use with Browser Eval
 
@@ -56,7 +56,9 @@ Use the revision recorded in the code when reproducing a published comparison. Q
 
 The dataset contains benchmark inputs. Browser images, qualification evidence, measured responses, screenshots, and generated reports have their own release bindings. A run needs the required browser runtime and qualification material described in the reproduction guide.
 
-Many targets are live public websites. Content, availability, and page structure can change even when the task file and browser binary are pinned. A failure may therefore require inspecting the saved response and action trace before attributing it to the browser.
+The JSON freezes actions and expected outputs, while the target websites remain live. Content, availability, and page structure can change even when the task file and browser binary are pinned. A failure may therefore require inspecting the saved response and action trace before attributing it to the browser.
+
+Several tasks use the same website, and simpler checks also appear inside longer workflows. The task count does not represent independent websites or unrelated scenario families.
 
 The suite measures fixed-action execution and retrieval. It does not measure an agent's planning or its ability to recover by inventing a different sequence. Browser Eval's experimental Browser Use track has a separate execution contract.
 
