@@ -33,6 +33,7 @@ def software_identity():
     """Use the package's checkout, never an unrelated working directory."""
     package = Path(__file__).resolve().parents[1]
     root = repository_root(package)
+    packages = (package, package.parent / 'lexbench_webfetch', package.parent / 'lexbench_websearch')
     revision = None
     modified = False
     if (root / ".git").exists():
@@ -42,17 +43,20 @@ def software_identity():
                 stderr=subprocess.DEVNULL,
             ).strip()
             modified = bool(subprocess.check_output(
-                ["git", "status", "--porcelain", "--untracked-files=normal", "--", str(package.relative_to(root))],
+                ["git", "status", "--porcelain", "--untracked-files=normal", "--",
+                 *(str(path.relative_to(root)) for path in packages)],
                 cwd=root, text=True, stderr=subprocess.DEVNULL,
             ).strip())
         except (OSError, subprocess.CalledProcessError):
             revision = None
     digest = hashlib.sha256()
-    for path in sorted(package.rglob("*")):
-        if (not path.is_file() or path.suffix not in _RUNTIME_SUFFIXES
-                or "__pycache__" in path.relative_to(package).parts):
-            continue
-        digest.update(path.relative_to(package).as_posix().encode() + b"\0" + path.read_bytes() + b"\0")
+    for source in packages:
+        for path in sorted(source.rglob("*")):
+            relative = path.relative_to(package.parent)
+            if (not path.is_file() or path.suffix not in _RUNTIME_SUFFIXES
+                    or "__pycache__" in relative.parts):
+                continue
+            digest.update(relative.as_posix().encode() + b"\0" + path.read_bytes() + b"\0")
     return {"version": __version__, "revision": revision,
             "source_sha256": digest.hexdigest(), "modified": modified}
 

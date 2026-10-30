@@ -198,7 +198,7 @@ def load_wcxb_source(root: Path, split: str = "test", *, manifest: Path | None =
     return records, source_hash
 
 
-def load_selected_ids(path: Path) -> tuple[set[str], dict]:
+def load_selected_ids(path: Path, expected_dataset_sha256: str = DATASET_SHA256) -> tuple[set[str], dict]:
     """Load either the frozen JSON sample manifest or a plain one-ID-per-line file."""
     payload = path.read_bytes()
     binding = {"path": str(path), "sha256": sha256_bytes(payload)}
@@ -207,10 +207,12 @@ def load_selected_ids(path: Path) -> tuple[set[str], dict]:
         return selected, {**binding, "format": "track_id_lines", "case_count": len(selected)}
     manifest = json.loads(payload)
     parent = manifest.get("parent", {})
+    if parent.get("sha256") != expected_dataset_sha256:
+        raise ValueError("WebMainBench sample manifest parent does not match the selected corpus; "
+                         "select matching --dataset and --case-ids-file inputs")
     cases = manifest.get("cases", [])
     selected = {row.get("track_id") for row in cases}
     if (manifest.get("schema_version") != 1
-            or parent.get("sha256") != DATASET_SHA256
             or len(cases) != manifest.get("sampling", {}).get("size")
             or None in selected or len(selected) != len(cases)):
         raise ValueError("Invalid WebMainBench sample manifest")
@@ -219,6 +221,7 @@ def load_selected_ids(path: Path) -> tuple[set[str], dict]:
         "format": "webmainbench_sample_manifest_v1",
         "dataset_id": manifest.get("dataset_id"),
         "selection_seed": manifest.get("sampling", {}).get("seed"),
+        "parent_sha256": parent["sha256"],
         "case_count": len(selected),
     }
 
@@ -458,7 +461,7 @@ def run(args: argparse.Namespace) -> None:
     selected = None
     selection_binding = None
     if args.case_ids_file and args.benchmark == "webmainbench":
-        selected, selection_binding = load_selected_ids(args.case_ids_file)
+        selected, selection_binding = load_selected_ids(args.case_ids_file, args.expected_dataset_sha256)
     if args.benchmark == "wcxb":
         if args.provider not in WCXB_PROVIDERS:
             raise ValueError("WCXB provider is not in the current method contract: " + args.provider)

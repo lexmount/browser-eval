@@ -165,6 +165,11 @@ checks where applicable, and one authoritative task predicate. Live execution an
 offline rescoring use the same entry point. Case contracts define the differences;
 provider identity never selects a more lenient evaluator.
 
+Plain-text post lists require a blank line before each later author line and
+permalink. A name and post URL inside body prose do not establish another record.
+Markdown post headings and native HTML post containers provide explicit record
+boundaries.
+
 Text acceptance reads the visible prose of raw HTML embedded in Markdown. HTML
 attributes, scripts and explicitly hidden elements cannot supply body coverage
 or required facts. Literal HTML in code examples remains answer text. This

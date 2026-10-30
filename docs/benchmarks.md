@@ -88,6 +88,13 @@ The same command selects the other dataset keys registered in the lock, includin
 
 Author dataset changes in a checkout of the corresponding Hugging Face dataset. Commit the definitions and materialize any Git LFS files, then use `uv run --frozen python -m harness.benchmarks.publication --help` to build and publish the inspected commit. Install the optional `dataset-publish` extra and authenticate with `HF_TOKEN` for uploads; readers need no token. Preserve upstream attribution and redistribution terms. Scores, provider responses, model grades and private run directories do not belong in a dataset release.
 
+For tracks that select a default dataset and an external scorer, the release
+manifest owns `default_dataset` and the scorer's repository and full commit.
+The publisher reads them from the committed source registry, or preserves them
+from a Hub source manifest. Pinning a new edition selects those settings together
+with its inputs and rejects missing required settings instead of inheriting an
+older edition's scorer.
+
 For resource-only or raw-file tasks, declare `content_score_applicable: false` when no text answer is required; file/resource checks remain active. Fix scoring rules here and keep positive/negative controls with their scorer. Preserve prior measurements; a scoring or reference correction applies to the declared affected scope through the existing revision receipts. `src/harness/lexbench/` remains the historical headless-browser execution/report adapter, separate from the two scorer packages.
 
 Browser Eval wrote the [30 public-web replay tasks](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay), including their actions and exact assertions. [Headless scenario designs](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) informed some interactions; its original executable cases use different fixtures, operations and acceptance checks. The replay task JSON freezes actions and expected outputs, while live target pages can still change.
@@ -123,6 +130,14 @@ citations; those records must not follow a newer dependency selection.
 
 Updating the installed benchmark does not select a new dataset for an existing
 report.
+
+Input editions and scorer releases are separate. Run
+`uv run --frozen lexbench-webfetch version` to inspect the active scorer. After a
+scoring correction, it reports `status: unreleased`, the actual scoring-source
+hash and the last published catalog until an explicit release binds the corrected
+scorer. Those runs retain their source hashes; they do not inherit the published
+catalog's version. `catalog_release()` deliberately rejects that mismatch by
+default. Reviewing or fixing code does not publish a benchmark release.
 
 Hugging Face release tags are optional labels for immutable dataset commits; a moving tag never replaces the recorded commit.
 Browser Eval publishes software versions as `vMAJOR.MINOR.PATCH` and records the

@@ -135,6 +135,8 @@ class DatasetRelease:
     language_annotations: dict | None = None
     tooling_revision: str | None = None
     external_sources: dict | None = None
+    scorer: dict | None = None
+    default_dataset: str | None = None
 
     @classmethod
     def from_git(cls, checkout: Path, track: str, revision: str) -> DatasetRelease:
@@ -191,8 +193,27 @@ class DatasetRelease:
                     raise ValueError("Materialize the exact committed LFS object: " + original_name)
             files[name] = content
         repository = "https://huggingface.co/datasets/" + registered[track]["repo_id"] if hub else None
+        settings = identity if hub else json.loads(files['definitions/registry.json'])
         return cls(track, revision, files, repository,
-                   external_sources=identity.get("external_sources") if hub else None)
+                   external_sources=identity.get("external_sources") if hub else None,
+                   scorer=settings.get('scorer'), default_dataset=settings.get('default_dataset'))
+
+    def runtime_settings(self) -> dict:
+        """Publish the execution choices bound to this dataset edition."""
+        result = {}
+        if self.default_dataset is not None:
+            if not isinstance(self.default_dataset, str) or self.default_dataset not in self.datasets():
+                raise ValueError('Default dataset is absent from release')
+            result['default_dataset'] = self.default_dataset
+        if self.scorer is not None:
+            if (not isinstance(self.scorer, dict)
+                    or not isinstance(self.scorer.get('repository'), str)
+                    or not self.scorer['repository'].strip()
+                    or not isinstance(self.scorer.get('revision'), str)
+                    or not re.fullmatch(r'[0-9a-f]{40}', self.scorer['revision'])):
+                raise ValueError('Scorer requires a repository and full Git commit')
+            result['scorer'] = self.scorer
+        return result
 
     def datasets(self) -> dict[str, dict]:
         registry = json.loads(self.files["definitions/registry.json"])
@@ -311,6 +332,7 @@ class DatasetRelease:
 
         body = (self.card_body if self.card_body is not None
                 else (CARDS / (self.track + ".md")).read_text(encoding="utf-8"))
+        settings = self.runtime_settings()
         context = self.external_bindings(selections)
         external = self.external_definitions(context)
         definition_files = {name: raw for name, raw in self.files.items() if name not in external}
@@ -393,6 +415,7 @@ class DatasetRelease:
             "viewer": {"configurations": summary, "language_annotations": used_annotations},
             "files": {name: {"sha256": digest(raw), "size": len(raw)} for name, raw in sorted(files.items())},
         }
+        manifest.update(settings)
         if external:
             manifest["external_sources"] = context
             manifest["dataset_sources"] = {

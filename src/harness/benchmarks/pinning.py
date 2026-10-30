@@ -124,15 +124,19 @@ def _prepare_pin(root: Path, track: str, revision: str, before: dict | None) -> 
         "files": {name: item for name, item in manifest["files"].items() if not name.startswith("data/")},
     }
     for option in ("dataset_sources", "external_sources", "default_dataset", "scorer"):
-        if option in manifest and option in {"dataset_sources", "external_sources"}:
+        if option in manifest:
             selected[option] = copy.deepcopy(manifest[option])
-        elif option == 'external_sources':
+        elif option in {'external_sources', 'scorer', 'default_dataset'}:
             known = next((item for item in [before, *before.get('history', [])]
                           if item.get('revision') == revision), {})
             if option in known:
                 selected[option] = copy.deepcopy(known[option])
+            elif option != 'external_sources' and option in before:
+                raise ValueError('New release must declare its runtime setting: ' + option)
         elif option in before:
             selected[option] = copy.deepcopy(before[option])
+    if track == 'webmainbench' and any(selected.get(key) is None for key in ('scorer', 'default_dataset')):
+        raise ValueError('WebMainBench release requires scorer and default_dataset runtime settings')
     previous = ([{k: v for k, v in before.items() if k != "history"}]
                 if "revision" in before else []) + before.get("history", [])
     history = {item["revision"]: item for item in previous if item["revision"] != revision}
@@ -148,7 +152,9 @@ def _prepare_pin(root: Path, track: str, revision: str, before: dict | None) -> 
     with tempfile.TemporaryDirectory(prefix="browser-eval-dataset-pin-") as directory:
         unpack(raw, Path(directory), selected)
         release = DatasetRelease(track, selected["source_revision"],
-                                 {name: (Path(directory) / name).read_bytes() for name in selected["files"]})
+                                 {name: (Path(directory) / name).read_bytes() for name in selected["files"]},
+                                 scorer=selected.get('scorer'), default_dataset=selected.get('default_dataset'))
+        release.runtime_settings()
         if release.datasets() != selected["datasets"]:
             raise ValueError("Release manifest dataset bindings differ from its registry")
         if import_path.exists():

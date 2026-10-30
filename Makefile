@@ -203,7 +203,7 @@ webmainbench-apply-case-correction: runtime-check
 webmainbench-run: runtime-check
 	@test -n "$(PROVIDER)" || (echo 'PROVIDER is required' >&2; exit 2)
 	@test -n "$(OUTPUT)" || (echo 'OUTPUT=/absolute/path/to/provider-shard is required' >&2; exit 2)
-	$(UV) run --frozen --extra headless-eval python scripts/run_webmainbench_benchmark.py --provider "$(PROVIDER)" --case-ids-file "$(WEBMAINBENCH_SAMPLE)" --output "$(OUTPUT)"
+	$(UV) run --frozen --extra headless-eval python scripts/run_webmainbench_benchmark.py --provider "$(PROVIDER)" --case-ids-file "$(WEBMAINBENCH_SAMPLE)" --output "$(OUTPUT)" $(if $(SOURCE),--dataset "$(SOURCE)",)
 
 webmainbench-score: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path/to/provider-shard is required' >&2; exit 2)

@@ -14,7 +14,7 @@ from importlib.metadata import version
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.append(str(ROOT / "src"))
+sys.path.insert(0, str(ROOT / "src"))
 
 from harness.distribution import source_path
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes

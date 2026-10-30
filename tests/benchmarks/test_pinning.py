@@ -148,6 +148,7 @@ def test_pin_preserves_only_a_default_present_in_the_new_release(tmp_path, monke
     paths = fixture(tmp_path, monkeypatch)
     lock = json.loads(paths[0].read_bytes())
     lock['datasets']['websearch']['default_dataset'] = default
+    lock['datasets']['websearch']['revision'] = 'a' * 40
     paths[0].write_text(json.dumps(lock))
     before = {path: path.read_bytes() for path in paths}
     if default == 'retired':
@@ -349,6 +350,7 @@ def coordinated_fixture(root, monkeypatch, defect=None):
     consumer = releases['websearch'][0]
     provider = releases['simpleqa-verified'][0]
     consumer['dataset_sources'] = {'factual-v1': 'simpleqa-verified'}
+    consumer['default_dataset'] = 'factual-v1'
     consumer['external_sources'] = {'simpleqa-verified': {
         'repository': 'Lexmount/simpleqa-verified', 'revision': 'a' * 40,
         'datasets': copy.deepcopy(provider['datasets']),
@@ -648,3 +650,72 @@ def test_legacy_composition_requires_owned_bytes_or_explicit_provider(tmp_path, 
         assert context['revision'] == 'b' * 40
         assert context['datasets'] == provider['datasets']
         assert context['files']['definitions/factual-source.json'] == provider['files']['definitions/factual-source.json']
+
+
+@pytest.mark.parametrize('missing', [None, 'scorer', 'default_dataset'])
+def test_published_webmainbench_runtime_selection_is_used_by_pin(tmp_path, monkeypatch, missing):
+    payload = b'{"track_id":"new-task","url":"https://example.test","html":"Text","groundtruth_content":"Text"}\n'
+    descriptor = {'path': 'tasks.jsonl', 'format': 'jsonl', 'id_field': 'track_id',
+                  'count': 1, 'sha256': hashlib.sha256(payload).hexdigest()}
+    scorer = {'repository': 'https://github.com/lexmount/WebMainBench.git', 'revision': 'b' * 40}
+    settings = {'scorer': scorer, 'default_dataset': 'new-default'}
+    if missing:
+        settings.pop(missing)
+    release = pinning.DatasetRelease('webmainbench', 'b' * 40, {
+        'definitions/registry.json': json.dumps({'datasets': {'new-default': descriptor}}).encode(),
+        'definitions/tasks.jsonl': payload,
+    }, **settings)
+    output = tmp_path / 'release'
+    manifest = release.build(output)
+    assert all(manifest[key] == value for key, value in settings.items())
+    lock = source_path('harness/benchmarks/data-lock.json', root=tmp_path)
+    lock.parent.mkdir(parents=True)
+    previous = {'repository': 'Lexmount/LexBench-WebMainBench', 'revision': '0' * 40,
+                'files': {}, 'default_dataset': 'old-default',
+                'scorer': {'repository': scorer['repository'], 'revision': '0' * 40}}
+    if missing:
+        previous = {'repository': previous['repository']}
+    lock.write_text(json.dumps({'datasets': {'webmainbench': previous}}))
+    monkeypatch.setattr(pinning, 'read_hf_file', lambda *args: (output / 'manifest.json').read_bytes())
+    monkeypatch.setattr(pinning, 'fetch_archive', lambda *args: (output / 'definitions.tar.gz').read_bytes())
+    if missing:
+        before = lock.read_bytes()
+        with pytest.raises(ValueError, match='runtime settings'):
+            pinning.pin(tmp_path, 'webmainbench', 'a' * 40)
+        assert lock.read_bytes() == before
+        return
+    pinning.pin(tmp_path, 'webmainbench', 'a' * 40)
+    selected = json.loads(lock.read_bytes())['datasets']['webmainbench']
+    assert selected['scorer'] == scorer
+    assert selected['default_dataset'] == 'new-default'
+    assert selected['history'][0]['scorer'] == previous['scorer']
+    from harness.web_fetch.webmainbench_runner import selected_input
+    monkeypatch.setattr(data, 'binding', lambda *args: selected)
+    monkeypatch.setattr(data, 'definition_path', lambda track, name: output / 'definitions' / name)
+    assert selected_input() == (output / 'definitions/tasks.jsonl', descriptor['sha256'], scorer['revision'])
+
+
+@pytest.mark.parametrize('option', ['scorer', 'default_dataset'])
+@pytest.mark.parametrize('known', ['unknown', 'current', 'history'])
+def test_legacy_runtime_settings_require_a_known_edition(tmp_path, monkeypatch, option, known):
+    paths = fixture(tmp_path, monkeypatch)
+    lock = json.loads(paths[0].read_bytes())
+    previous = lock['datasets']['websearch']
+    previous[option] = ('sample' if option == 'default_dataset' else
+                        {'repository': 'https://github.com/example/scorer', 'revision': 'c' * 40})
+    expected = copy.deepcopy(previous[option])
+    if known == 'current':
+        previous['revision'] = 'a' * 40
+    elif known == 'history':
+        if option == 'scorer':
+            expected['revision'] = 'd' * 40
+        previous['history'] = [{'revision': 'a' * 40, option: expected}]
+    paths[0].write_text(json.dumps(lock))
+    before = {path: path.read_bytes() for path in paths}
+    if known != 'unknown':
+        pinning.pin(tmp_path, 'websearch', 'a' * 40)
+        assert json.loads(paths[0].read_bytes())['datasets']['websearch'][option] == expected
+    else:
+        with pytest.raises(ValueError, match='runtime setting'):
+            pinning.pin(tmp_path, 'websearch', 'a' * 40)
+        assert {path: path.read_bytes() for path in paths} == before

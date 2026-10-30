@@ -31,7 +31,11 @@ variant identities; each variant profile declares its measured source provider.
 Adding a variant changes this data, rather than adding a numbered assembler.
 Profiles that certified historical calls retain their original bytes.
 
-For a new run, use the [corrected HF edition](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) selected in the [data lock](../benchmarks/data-lock.json); the Browser Eval runner resolves that source by default. Historical sample reproduction retains the original source and hash in `evaluation/public-webmainbench-200.json`. Follow the selected edition's source terms and the repository's [third-party content boundary](../../../THIRD_PARTY.md); a dataset license does not grant rights to every captured third-party page.
+For a new run, use the [corrected HF edition](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) selected in the [data lock](../benchmarks/data-lock.json); the Browser Eval runner resolves that source by default. Historical sample reproduction retains the original source and hash in `evaluation/public-webmainbench-200.json`.
+
+The `webmainbench-run` Make target keeps this historical selection by default: pass `SOURCE=/absolute/path/to/matching-parent.jsonl` to reproduce it. For a new run, set `WEBMAINBENCH_SAMPLE` to a manifest frozen against the selected corrected corpus. The runner checks that parent binding before loading credentials or calling a provider.
+
+Follow the selected edition's source terms and the repository's [third-party content boundary](../../../THIRD_PARTY.md); a dataset license does not grant rights to every captured third-party page.
 
 Every method receives the source `html` field encoded as UTF-8. The selected
 profile defines the allowed network access, conversion route and deadline.

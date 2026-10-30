@@ -95,3 +95,15 @@ def test_explicit_versioned_correction_can_change_the_original_bindings(command)
     assert ('reference', 'new reference') in command.calls
     assert (command.evidence / 'scored-results-reference-fix.jsonl').is_file()
     assert json.loads((command.evidence / 'score-summary-reference-fix.json').read_bytes())['supersedes']
+
+
+@pytest.mark.parametrize('changed', ['dataset', 'scorer'])
+def test_explicit_inputs_cannot_change_collected_evidence_without_scoring_revision(command, changed):
+    extra = ['--dataset', str(command.old_dataset if changed == 'dataset' else command.dataset),
+        '--expected-dataset-sha256', command.old_sha if changed == 'dataset' else command.sha,
+        '--scorer-repo', str(command.scorer), '--expected-scorer-commit',
+        'a' * 40 if changed == 'scorer' else command.commit]
+    with pytest.raises((ValueError, SystemExit)):
+        command.run(extra=extra)
+    assert command.calls == []
+    assert not (command.evidence / 'scored-results.jsonl').exists()

@@ -224,3 +224,47 @@ def test_hub_track_cannot_be_supplied_by_uncommitted_manifest(tmp_path):
     }), encoding="utf-8")
     with pytest.raises(ValueError, match="manifest"):
         DatasetRelease.from_git(root, "websearch", revision)
+
+
+def test_runtime_settings_survive_original_source_publication_and_hub_rebuild(tmp_path, monkeypatch):
+    from harness.benchmarks import publication
+    root, _, _ = checkout(tmp_path, 'webmainbench')
+    registry = root / 'src/lexbench_webmainbench/definitions/registry.json'
+    values = json.loads(registry.read_bytes())
+    scorer = {'repository': 'https://github.com/lexmount/WebMainBench.git', 'revision': 'b' * 40}
+    values.update(default_dataset='sample', scorer=scorer)
+    registry.write_text(json.dumps(values))
+    git(root, 'add', '.')
+    git(root, 'commit', '-qm', 'Bind runtime choices')
+    revision = git(root, 'rev-parse', 'HEAD')
+    output = tmp_path / 'published'
+    monkeypatch.setattr('sys.argv', ['publish', '--checkout', str(root), '--track', 'webmainbench',
+                                    '--revision', revision, '--output', str(output)])
+    publication.main()
+    manifest = json.loads((output / 'manifest.json').read_bytes())
+    assert manifest['scorer'] == scorer
+    assert manifest['default_dataset'] == 'sample'
+    git(output, 'init', '-q')
+    git(output, 'add', '.')
+    git(output, 'commit', '-qm', 'Published edition')
+    published_revision = git(output, 'rev-parse', 'HEAD')
+    dirty = json.loads((output / 'manifest.json').read_bytes())
+    dirty['scorer']['revision'] = 'c' * 40
+    (output / 'manifest.json').write_text(json.dumps(dirty))
+    rebuilt = DatasetRelease.from_git(output, 'webmainbench', published_revision).build(tmp_path / 'rebuilt')
+    assert rebuilt['scorer'] == scorer
+    assert rebuilt['default_dataset'] == 'sample'
+
+
+@pytest.mark.parametrize('settings', [
+    {'default_dataset': 'missing'},
+    {'scorer': {'repository': 'https://github.com/example/scorer', 'revision': 'main'}},
+])
+def test_invalid_runtime_choices_fail_before_output(tmp_path, settings):
+    from dataclasses import replace
+    root, revision, _ = checkout(tmp_path, 'websearch')
+    release = replace(DatasetRelease.from_git(root, 'websearch', revision), **settings)
+    output = tmp_path / 'release'
+    with pytest.raises(ValueError, match='Default dataset|Scorer requires'):
+        release.build(output)
+    assert not output.exists()

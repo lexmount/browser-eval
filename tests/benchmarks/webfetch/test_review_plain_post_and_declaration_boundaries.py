@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import pytest
 
-from lexbench_webfetch.article_posts import _text_records
+from lexbench_webfetch.article_posts import _text_records, valid_post_author
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.scoring import score_attempt
 from tests.benchmarks.webfetch.article_contract_fixtures import post_labels
@@ -38,6 +38,22 @@ def test_valid_permalink_only_starts_a_subsequent_plain_post_at_a_paragraph(boun
     if not boundary:
         assert rows[0]['post'] == ('Actual first body.\nSee this earlier post\n'
                                    'https://example.test/p/2\nFurther discussion.')
+
+
+@pytest.mark.parametrize('author', ['Bob', 'See this earlier post', 'A Long Display Name', '李四'])
+@pytest.mark.parametrize('boundary', [False, True])
+def test_author_spelling_cannot_disambiguate_plain_post_boundaries(author, boundary):
+    assert valid_post_author(author, POST, representation='plain_text')
+    # The Bob/URL pair can equally be a second post header or an ordinary
+    # reference inside Alice's body; their serialized bytes are identical.
+    source = ('Alice\nhttps://example.test/p/1\nBody1\n'
+              + ('\n' if boundary else '') + author + '\nhttps://example.test/p/2\nBody2')
+    metrics = score_attempt(POST_CASE, source.encode(), ok=True, metadata={'answer_format': 'plain_text'})
+    assert task_passed(True, metrics) is boundary
+    assert metrics['article_post_confirmed_count'] == (2 if boundary else 1)
+    if not boundary:
+        rows = _text_records(source, POST, POST_CASE['url'], representation='plain_text')
+        assert rows[0]['post'] == 'Body1\n' + author + '\nhttps://example.test/p/2\nBody2'
 
 
 @pytest.mark.parametrize('destination', ['https://wrong.test/p/2', 'https://example.test/docs/2'])
