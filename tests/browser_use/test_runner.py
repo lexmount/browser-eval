@@ -41,6 +41,7 @@ from harness.environments.webarena.runtime import (
     prepare_browser_viewport,
     site_container_manager,
     site_runtime_compatibility,
+    verify_arm_php_compatibility,
     verify_session_viewport,
     wait_application_ready,
     wait_container_healthy,
@@ -967,13 +968,27 @@ def test_run_attempt_releases_lock_after_exception(monkeypatch, tmp_path: Path) 
             process.terminate()
 
 
-def test_arm_php_sites_mount_targeted_qemu_compatibility(monkeypatch) -> None:
-    class Client:
-        @staticmethod
-        def info():
-            return {"Architecture": "aarch64"}
+class _DockerClient:
+    def __init__(self, architecture: str, container=None) -> None:
+        self.architecture = architecture
+        self.containers = SimpleNamespace(get=lambda _name: container)
+        self.closed = False
 
-    monkeypatch.setattr("harness.environments.webarena.runtime.docker.from_env", lambda: Client())
+    def info(self):
+        return {"Architecture": self.architecture}
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def _patch_docker_client(monkeypatch, architecture: str, container=None) -> _DockerClient:
+    client = _DockerClient(architecture, container)
+    monkeypatch.setattr("harness.environments.webarena.runtime.docker.from_env", lambda: client)
+    return client
+
+
+def test_arm_php_sites_mount_targeted_qemu_compatibility(monkeypatch) -> None:
+    client = _patch_docker_client(monkeypatch, "aarch64")
     manager = site_container_manager(WebArenaSite.SHOPPING)
 
     assert manager.config.docker_img == "am1n3e/webarena-verified-shopping"
@@ -981,31 +996,36 @@ def test_arm_php_sites_mount_targeted_qemu_compatibility(monkeypatch) -> None:
     assert manager.config.volumes[str(manager.config.setup.volumes[1].volume_name)].endswith(
         "/etc/supervisor.d/php-fpm.ini:ro"
     )
+    assert client.closed
 
 
 def test_non_php_site_keeps_official_default_config(monkeypatch) -> None:
-    class Client:
-        @staticmethod
-        def info():
-            return {"Architecture": "aarch64"}
-
-    monkeypatch.setattr("harness.environments.webarena.runtime.docker.from_env", lambda: Client())
+    client = _patch_docker_client(monkeypatch, "aarch64")
     manager = site_container_manager(WebArenaSite.GITLAB)
 
     assert manager.config.docker_img == "am1n3e/webarena-verified-gitlab"
     assert manager.config.volumes == {}
+    assert client.closed
 
 
 def test_php_site_on_x86_keeps_official_default_config(monkeypatch) -> None:
-    class Client:
-        @staticmethod
-        def info():
-            return {"Architecture": "x86_64"}
-
-    monkeypatch.setattr("harness.environments.webarena.runtime.docker.from_env", lambda: Client())
+    client = _patch_docker_client(monkeypatch, "x86_64")
     manager = site_container_manager(WebArenaSite.SHOPPING)
 
     assert QEMU_X86_64_HOST_PATH not in manager.config.volumes
+    assert client.closed
+
+
+def test_arm_php_verification_closes_docker_client_on_failure(monkeypatch) -> None:
+    container = SimpleNamespace(
+        exec_run=lambda _command: SimpleNamespace(exit_code=0, output=b"php-fpm")
+    )
+    client = _patch_docker_client(monkeypatch, "aarch64", container)
+
+    with pytest.raises(RuntimeError, match="Rosetta"):
+        verify_arm_php_compatibility("webarena_verified_shopping")
+
+    assert client.closed
 
 
 def test_arm_runtime_compatibility_is_evidence_bound() -> None:
