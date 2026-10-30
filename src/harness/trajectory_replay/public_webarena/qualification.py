@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from harness.environments.webarena.topology import RECORDED_PORT_SITES
 from harness.record_io import load_jsonl, same_json_record
 from harness.trajectory_replay.public_webarena.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from harness.trajectory_replay.public_webarena.suite import (
@@ -41,15 +42,6 @@ _PASS_STATUS_FIELDS = (
     "status",
     "combined_status",
 )
-_LEGACY_URL_PORT_SITES = {
-    3000: "map",
-    4399: "reddit",
-    7770: "shopping",
-    7780: "shopping_admin",
-    8023: "gitlab",
-    8888: "wikipedia",
-    9999: "reddit",
-}
 
 
 def _semantic_field_value(field: str, value: str) -> str:
@@ -61,7 +53,7 @@ def _semantic_field_value(field: str, value: str) -> str:
         return f"{token.group(1)}:{token.group(2) or '/'}"
     try:
         parsed = urlparse(normalized)
-        site = _LEGACY_URL_PORT_SITES.get(parsed.port or -1)
+        site = RECORDED_PORT_SITES.get(parsed.port or -1)
     except ValueError:
         site = None
         parsed = None

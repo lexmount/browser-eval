@@ -24,20 +24,18 @@ from webarena_verified.types.task import WebArenaSite
 from harness.environments.webarena.backend import MAGENTO_INIT_TIMEOUT_SECONDS, DockerBackend
 from harness.environments.webarena.manager import EnvironmentManager
 from harness.environments.webarena.rainbond import RainbondSlicePool
+from harness.environments.webarena.topology import (
+    CONTAINER_HOST_ALIAS,
+    RECORDED_PORT_SITES,
+    SITE_CONTAINER_PORTS,
+)
 from harness.trajectory_replay.public_webarena.suite import BrowserTask
 
 STATEFUL_SITES = frozenset({"shopping_admin", "shopping", "reddit", "gitlab"})
-LEGACY_PORT_SITES = {
-    3000: "map",
-    4399: "reddit",
-    7770: "shopping",
-    7780: "shopping_admin",
-    8023: "gitlab",
-    8888: "wikipedia",
-    9999: "reddit",
-}
 _LEGACY_ORIGIN_RE = re.compile(
-    r"https?://[a-z0-9.-]+:(?P<port>3000|4399|7770|7780|8023|8888|9999)",
+    r"https?://[a-z0-9.-]+:(?P<port>"
+    + "|".join(str(port) for port in sorted(RECORDED_PORT_SITES))
+    + ")",
     flags=re.IGNORECASE,
 )
 
@@ -292,7 +290,7 @@ class WebArenaEnvironment:
             return value
 
         def replace(match: re.Match[str]) -> str:
-            site = LEGACY_PORT_SITES[int(match.group("port"))]
+            site = RECORDED_PORT_SITES[int(match.group("port"))]
             config = self._site_config(site)
             urls = config.get("urls") or []
             index = int(config.get("active_url_idx") or 0)
@@ -421,7 +419,9 @@ class WebArenaEnvironment:
                     site=WebArenaSite(site),
                     config=config,
                     backend=backend,
-                    hostname=str(self.config.get("docker_site_hostname") or "host.docker.internal"),
+                    hostname=str(
+                        self.config.get("docker_site_hostname") or CONTAINER_HOST_ALIAS
+                    ),
                 )
                 started = manager.start(
                     port=int(config.host_port),
@@ -452,7 +452,7 @@ class WebArenaEnvironment:
                     self._wait_ready(url, timeout_seconds=timeout_seconds)
                     receipts[site]["external_url_configuration"] = {
                         "external_url": started.url,
-                        "internal_port": 8023,
+                        "internal_port": SITE_CONTAINER_PORTS[site],
                         "mode": "explicit_official_init_verified",
                     }
                 elif site == "reddit":

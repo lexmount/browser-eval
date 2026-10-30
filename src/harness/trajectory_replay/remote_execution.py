@@ -27,6 +27,7 @@ from harness.environments.webarena.runtime import (
     login_context,
     prepare_browser_viewport,
 )
+from harness.environments.webarena.topology import LOCAL_RECORDED_HOSTS, TRUSTED_RECORDED_HOSTS
 from harness.trajectory_replay.catalog_contracts import (
     apply_action_overrides,
     catalog_action_overrides,
@@ -36,7 +37,6 @@ from harness.trajectory_replay.public_webarena.response_builder import build_age
 from harness.trajectory_replay.public_webarena.suite import BrowserTask
 from harness.trajectory_replay.remote_runtime import (
     COHORT_RESET_SCOPE,
-    LEGACY_LOCAL_SOURCE_HOSTS,
     checked_file_sha256,
     file_sha256,
     load_remote_sites,
@@ -363,17 +363,7 @@ def _read_retrieval_contract(
         rebound = rebind_remote_calls(
             _effective_retrieval_calls(task_id, row, embedded_calls),
             sites,
-            {
-                "onestopmarket.example.com",
-                "gitlab.example.com",
-                "openstreetmap.example.com",
-                "wikipedia.example.com",
-                "ec2-3-133-227-75.us-east-2.compute.amazonaws.com",
-                "ec2-3-135-39-80.us-east-2.compute.amazonaws.com",
-                "host.docker.internal",
-                "127.0.0.1",
-                "192.168.5.2",
-            },
+            set(TRUSTED_RECORDED_HOSTS),
             source_sites,
         )
         if _json_sha256(rebound) != row["bound_calls_sha256"]:
@@ -394,7 +384,7 @@ def _read_retrieval_contract(
     rebound = rebind_remote_calls(
         _effective_retrieval_calls(task_id, row, candidate["tool_calls"]),
         sites,
-        set(LEGACY_LOCAL_SOURCE_HOSTS),
+        set(LOCAL_RECORDED_HOSTS),
     )
     if _json_sha256(rebound) != row["bound_calls_sha256"]:
         raise ValueError(f"task {task_id}: retrieval actions differ from frozen bound calls")
@@ -827,7 +817,7 @@ def preflight_cohort(args: argparse.Namespace) -> tuple[dict, dict, object, dict
             or not isinstance(readiness, list)
             or _json_sha256(actions) != row.get("bound_calls_sha256")
             or _json_sha256(source) != row.get("source_calls_sha256")
-            or rebind_remote_calls(source, sites, set(LEGACY_LOCAL_SOURCE_HOSTS)) != actions
+            or rebind_remote_calls(source, sites, set(LOCAL_RECORDED_HOSTS)) != actions
             or _json_sha256(
                 {
                     "task": dataset_rows[task_id]["task"],

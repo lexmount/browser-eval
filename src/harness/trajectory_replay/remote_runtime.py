@@ -26,6 +26,7 @@ from harness.environments.webarena.runtime import (
     SITE_CREDENTIALS,
     SITE_PORTS,
 )
+from harness.environments.webarena.topology import LOCAL_RECORDED_HOSTS, READ_ONLY_SITE_PORTS
 from harness.trajectory_replay.retrieval_acceptance import digest as retrieval_digest
 from harness.trajectory_replay.retrieval_acceptance import validate_contract
 from harness.web_fetch.safety import unlinked_path, write_new_file
@@ -33,8 +34,7 @@ from lexbench_webfetch.paths import contained_path
 
 COHORT_RESET_SCOPE = "once_before_method_cohort"
 METHOD_ID = re.compile(r"[a-z0-9][a-z0-9._-]{1,79}\Z")
-READ_ONLY_PORTS = {8888: WebArenaSite.WIKIPEDIA, 3000: WebArenaSite.MAP}
-LEGACY_LOCAL_SOURCE_HOSTS = frozenset({"127.0.0.1", "192.168.5.2", "host.docker.internal"})
+READ_ONLY_PORTS = {port: WebArenaSite(site) for port, site in READ_ONLY_SITE_PORTS.items()}
 SUPPORTED_REMOTE_SITES = frozenset(SITE_PORTS) | frozenset(READ_ONLY_PORTS.values())
 
 
@@ -485,7 +485,7 @@ def freeze_method_inputs(
                 )
             if changed is None and candidate_path.is_file():
                 source_actions = _read_frozen_input(candidate_path)["tool_calls"]
-        actions = rebind_remote_calls(source_actions, sites, set(LEGACY_LOCAL_SOURCE_HOSTS))
+        actions = rebind_remote_calls(source_actions, sites, set(LOCAL_RECORDED_HOSTS))
         if changed is not None and (
             input_digest(actions) != changed["bound_calls_sha256"] or actions != changed["actions"]
         ):
@@ -583,7 +583,7 @@ def main_freeze(argv=None) -> None:
                       "sha256": checked_file_sha256(args.output)}))
 
 
-UNREBOUND_SOURCE_HOST = re.compile(r"127\.0\.0\.1|192\.168\.5\.2|host\.docker\.internal")
+UNREBOUND_SOURCE_HOST = re.compile("|".join(map(re.escape, sorted(LOCAL_RECORDED_HOSTS))))
 
 
 def _candidate_trace_input(row: dict[str, Any]) -> dict[str, Any]:
@@ -844,12 +844,12 @@ def freeze_original_failure_inputs(
                 "paired_qualification": override.get("paired_qualification"),
             }
             used_overrides.add(task_id)
-        bound_calls = rebind_remote_calls(source_calls, sites, set(LEGACY_LOCAL_SOURCE_HOSTS))
+        bound_calls = rebind_remote_calls(source_calls, sites, set(LOCAL_RECORDED_HOSTS))
         if UNREBOUND_SOURCE_HOST.search(json.dumps(bound_calls, ensure_ascii=False)):
             raise ValueError(f"task {task_id} retains a local source host")
         for guard in readiness:
             bound_guard = rebind_remote_calls(
-                [guard["input"]], sites, set(LEGACY_LOCAL_SOURCE_HOSTS),
+                [guard["input"]], sites, set(LOCAL_RECORDED_HOSTS),
             )[0]
             if UNREBOUND_SOURCE_HOST.search(json.dumps(bound_guard, ensure_ascii=False)):
                 raise ValueError(f"task {task_id} readiness retains a local source host")
@@ -980,7 +980,7 @@ def revise_method_inputs(prior: dict, revisions: dict, sites: dict) -> dict:
         row["revision"] = {**revision, "candidate_sha256": candidates[path]}
     for row in rows.values():
         row["actions"] = rebind_remote_calls(
-            row["source_actions"], sites, {"127.0.0.1", "192.168.5.2", "host.docker.internal"}
+            row["source_actions"], sites, set(LOCAL_RECORDED_HOSTS)
         )
         row["bound_calls_sha256"] = retrieval_digest(row["actions"])
     result["task_ids"] = sorted(rows)

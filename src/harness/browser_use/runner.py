@@ -54,6 +54,7 @@ from harness.environments.webarena.runtime import (
     site_runtime_compatibility,
     verify_session_viewport,
 )
+from harness.environments.webarena.topology import CONTAINER_HOST_ALIAS
 from harness.record_io import load_jsonl
 from harness.resource_accounting import (
     DockerStatsResources,
@@ -505,11 +506,11 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     site_image_metadata = {
         site.value: {
             "reference": ContainerManager(
-                site=site, hostname="host.docker.internal"
+                site=site, hostname=CONTAINER_HOST_ALIAS
             ).config.docker_img,
             **docker_image_metadata(
                 client.images.get(
-                    ContainerManager(site=site, hostname="host.docker.internal").config.docker_img
+                    ContainerManager(site=site, hostname=CONTAINER_HOST_ALIAS).config.docker_img
                 )
             ),
         }
@@ -698,7 +699,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             },
             "engine_order": "alternating by task",
             "sites": [site.value for site in SITE_PORTS],
-            "official_container_hostname_allowlist": ["host.docker.internal"],
+            "official_container_hostname_allowlist": [CONTAINER_HOST_ALIAS],
         },
         "environment": {
             "browser_session_contract": browser_session_contract(),

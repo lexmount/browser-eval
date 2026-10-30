@@ -30,25 +30,22 @@ from webarena_verified.types.config import (
 )
 from webarena_verified.types.task import WebArenaSite
 
+from harness.environments.webarena.topology import (
+    CONTAINER_HOST_ALIAS,
+    DEFAULT_SITE_CREDENTIALS,
+    HOST_LOOPBACK,
+    MAGENTO_ELASTICSEARCH_PORT,
+    MUTABLE_SITE_PORTS,
+    site_url,
+)
 from harness.resource_accounting import DockerStatsResources, ResourceSampler, delta_counters
 
-SITE_PORTS = {
-    WebArenaSite.SHOPPING: (7770, 7771),
-    WebArenaSite.SHOPPING_ADMIN: (7780, 7781),
-    WebArenaSite.REDDIT: (9999, 9998),
-    WebArenaSite.GITLAB: (8023, 8024),
-}
+SITE_PORTS = {WebArenaSite(site): ports for site, ports in MUTABLE_SITE_PORTS.items()}
 
 
 SITE_CREDENTIALS = {
-    WebArenaSite.SHOPPING: {"username": "emma.lopez@gmail.com", "password": "Password.123"},
-    WebArenaSite.SHOPPING_ADMIN: {"username": "admin", "password": "admin1234"},
-    WebArenaSite.REDDIT: {"username": "MarvelsGrantMan136", "password": "test1234"},
-    WebArenaSite.GITLAB: {"username": "byteblaze", "password": "hello1234"},
+    WebArenaSite(site): dict(credentials) for site, credentials in DEFAULT_SITE_CREDENTIALS.items()
 }
-
-
-SITE_URL_SUFFIX = {WebArenaSite.SHOPPING_ADMIN: "/admin"}
 
 
 SITE_AUTH_HEADERS = {
@@ -192,9 +189,9 @@ def container_host_gateway(container: Any) -> str:
     On Linux/Colima, ``host.docker.internal`` can exist only in the container's
     /etc/hosts, so a literal RFC1918 address is required on both sides.
     """
-    result = container.exec_run(["getent", "hosts", "host.docker.internal"])
+    result = container.exec_run(["getent", "hosts", CONTAINER_HOST_ALIAS])
     if int(result.exit_code) != 0:
-        raise RuntimeError("browser container cannot resolve host.docker.internal")
+        raise RuntimeError(f"browser container cannot resolve {CONTAINER_HOST_ALIAS}")
     line = result.output.decode("utf-8", errors="replace").splitlines()[0]
     address = line.split()[0]
     ipaddress.ip_address(address)
@@ -206,24 +203,21 @@ def allow_official_container_hostname(tool: Any) -> None:
     original = tool._validate_url_safe
 
     def validate(url: str) -> None:
-        if urlparse(url).hostname == "host.docker.internal":
+        if urlparse(url).hostname == CONTAINER_HOST_ALIAS:
             return
         original(url)
 
     tool._validate_url_safe = validate
 
 
-def configure_benchmark(hostname: str = "host.docker.internal") -> WebArenaVerified:
-    def site_url(site: WebArenaSite, host: str) -> str:
-        return f"http://{host}:{SITE_PORTS[site][0]}{SITE_URL_SUFFIX.get(site, '')}"
-
+def configure_benchmark(hostname: str = CONTAINER_HOST_ALIAS) -> WebArenaVerified:
     environments = {
         site: EnvironmentConfig(
             # The gateway IP is active. The official images may redirect to
             # host.docker.internal, so retain that as an equivalent URL for the
             # package's own derendering and NetworkEventEvaluator logic.
             urls=list(
-                dict.fromkeys([site_url(site, hostname), site_url(site, "host.docker.internal")])
+                dict.fromkeys([site_url(site, hostname), site_url(site, CONTAINER_HOST_ALIAS)])
             ),
             credentials=SITE_CREDENTIALS[site],
             use_header_login=site == WebArenaSite.SHOPPING_ADMIN,
@@ -262,7 +256,7 @@ def site_container_manager(site: WebArenaSite) -> ContainerManager:
     config = get_container_config(site=site)
     docker_arch = str(docker.from_env().info().get("Architecture") or "")
     if site not in AMD64_PHP_SITES or docker_arch not in {"aarch64", "arm64"}:
-        return ContainerManager(site=site, hostname="host.docker.internal")
+        return ContainerManager(site=site, hostname=CONTAINER_HOST_ALIAS)
     if not PHP_FPM_COMPAT_CONFIG.is_file():
         raise RuntimeError(f"missing PHP-FPM compatibility config: {PHP_FPM_COMPAT_CONFIG}")
     compat = ContainerConfig(
@@ -283,7 +277,7 @@ def site_container_manager(site: WebArenaSite) -> ContainerManager:
     return ContainerManager(
         site=site,
         config=compat,
-        hostname="host.docker.internal",
+        hostname=CONTAINER_HOST_ALIAS,
     )
 
 
@@ -352,7 +346,8 @@ def wait_magento_dependencies_ready(
             [
                 "curl",
                 "-fsS",
-                "http://127.0.0.1:9200/_cluster/health?wait_for_status=yellow&timeout=5s",
+                f"http://{HOST_LOOPBACK}:{MAGENTO_ELASTICSEARCH_PORT}"
+                "/_cluster/health?wait_for_status=yellow&timeout=5s",
             ]
         )
         output = result.output.decode("utf-8", errors="replace")
@@ -383,7 +378,7 @@ def wait_application_ready(
     that startup race from consuming an Agent attempt.
     """
     port = SITE_PORTS[site][0]
-    url = f"http://127.0.0.1:{port}{health_path}"
+    url = f"http://{HOST_LOOPBACK}:{port}{health_path}"
     deadline = time.monotonic() + timeout_seconds
     consecutive = 0
     last_detail = "no response"
