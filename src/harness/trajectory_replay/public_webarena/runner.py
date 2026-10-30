@@ -1,4 +1,4 @@
-"""Docker-isolated browser use evaluation runner."""
+"""Docker-isolated Trajectory Replay runner for public WebArena recordings."""
 
 from __future__ import annotations
 
@@ -628,7 +628,7 @@ def _environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
                     for key, value in (
                         (container.image.attrs.get("Config") or {}).get("Labels") or {}
                     ).items()
-                    if key.startswith("lex.browser-use-eval.")
+                    if key.startswith("lex.browser-eval.")
                 },
             }
             for engine, container in containers.items()
@@ -820,11 +820,11 @@ def run_evaluation(
     try:
         for engine in engines:
             network = client.networks.create(
-                f"lex-browser-use-eval-{run_id}-{engine}",
+                f"lex-browser-eval-{run_id}-{engine}",
                 driver="bridge",
                 labels={
-                    "lex.browser-use-eval.run": run_id,
-                    "lex.browser-use-eval.engine": engine,
+                    "lex.browser-eval.run": run_id,
+                    "lex.browser-eval.engine": engine,
                 },
             )
             networks[engine] = network

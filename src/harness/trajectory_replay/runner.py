@@ -374,11 +374,11 @@ def run_evaluation(
     try:
         for engine in ENGINE_IMAGES:
             network = client.networks.create(
-                f"lex-browser-use-eval-{run_id}-{engine}",
+                f"lex-browser-eval-{run_id}-{engine}",
                 driver="bridge",
                 labels={
-                    "lex.browser-use-eval.run": run_id,
-                    "lex.browser-use-eval.engine": engine,
+                    "lex.browser-eval.run": run_id,
+                    "lex.browser-eval.engine": engine,
                 },
             )
             networks[engine] = network
