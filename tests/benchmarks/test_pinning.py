@@ -12,6 +12,13 @@ import pytest
 from harness.benchmarks import data, pinning
 
 
+@pytest.fixture(autouse=True)
+def merged_editions(monkeypatch):
+    """Treat every fixture edition as merged; main-history tests restore the Hub client."""
+    monkeypatch.setattr(pinning, 'main_history',
+                        lambda repository: [character * 40 for character in '0123456789abcdef'])
+
+
 def fixture(root, monkeypatch, defect=None, *, jsonl=False):
     raw_dataset = b'{"task_id":"task"}\n' if jsonl else b'{"id":"sample","cases":[{"id":"task"}]}'
     if defect == 'population':
@@ -62,6 +69,69 @@ def fixture(root, monkeypatch, defect=None, *, jsonl=False):
         return io.BytesIO(json.dumps(manifest).encode() if url.endswith('manifest.json') else raw)
     monkeypatch.setattr(data, 'urlopen', fetch)
     return lock, imported
+
+
+class FakeHub:
+    """Serve the Hub commits API: two pages of main history plus an unmerged PR ref."""
+
+    def __init__(self, release):
+        self.release = release
+        self.refs = {'main': ['1' * 40, '2' * 40, 'a' * 40], 'refs/pr/1': ['e' * 40, '1' * 40]}
+        self.requests = []
+
+    def __call__(self, request, timeout):
+        url = request if isinstance(request, str) else request.full_url
+        if '/api/' not in url:
+            return self.release(url, timeout)
+        self.requests.append(url)
+        base = 'https://huggingface.co/api/datasets/Lexmount/LexBench-Web-Search/commits/'
+        assert url.startswith(base)
+        ref, _, page = url.removeprefix(base).partition('?p=')
+        commits = self.refs[ref]
+        page = int(page or 0)
+        response = io.BytesIO(json.dumps([{'id': commit} for commit in commits[page * 2:page * 2 + 2]]).encode())
+        more = (page + 1) * 2 < len(commits)
+        response.headers = {'Link': f'<{base}{ref}?p={page + 1}>; rel="next"'} if more else {}
+        return response
+
+
+def hub_fixture(root, monkeypatch):
+    paths = fixture(root, monkeypatch)
+    hub = FakeHub(data.urlopen)
+    monkeypatch.setattr(data, 'urlopen', hub)
+    monkeypatch.setattr(pinning, 'main_history', data.main_history)
+    monkeypatch.delenv('HF_ENDPOINT', raising=False)
+    monkeypatch.delenv('HF_TOKEN', raising=False)
+    return paths, hub
+
+
+def test_pin_accepts_a_commit_on_the_main_history(tmp_path, monkeypatch):
+    (lock, _), hub = hub_fixture(tmp_path, monkeypatch)
+    pinning.pin(tmp_path, 'websearch', 'a' * 40)
+    assert json.loads(lock.read_bytes())['datasets']['websearch']['revision'] == 'a' * 40
+    assert len(hub.requests) == 2 and all('/commits/main' in url for url in hub.requests)
+
+
+@pytest.mark.parametrize('revision', ['e' * 40, 'f' * 40], ids=['pull-request-ref', 'unknown'])
+def test_pin_rejects_a_commit_outside_the_main_history(tmp_path, monkeypatch, revision):
+    paths, hub = hub_fixture(tmp_path, monkeypatch)
+    before = {path: path.read_bytes() for path in paths}
+    with pytest.raises(ValueError, match="not on the dataset's main history"):
+        pinning.pin(tmp_path, 'websearch', revision)
+    assert {path: path.read_bytes() for path in paths} == before
+    assert all('/resolve/' not in url for url in hub.requests)
+
+
+def test_main_history_pagination_cannot_leave_the_configured_endpoint(monkeypatch):
+    def fetch(url, timeout):
+        response = io.BytesIO(b'[]')
+        response.headers = {'Link': '<https://elsewhere.example/api/next>; rel="next"'}
+        return response
+    monkeypatch.setattr(data, 'urlopen', fetch)
+    monkeypatch.delenv('HF_ENDPOINT', raising=False)
+    monkeypatch.delenv('HF_TOKEN', raising=False)
+    with pytest.raises(ValueError, match='left the configured endpoint'):
+        list(data.main_history('Lexmount/LexBench-Web-Search'))
 
 
 def test_pin_updates_current_bindings_and_retains_prior_snapshot(tmp_path, monkeypatch):

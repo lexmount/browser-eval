@@ -149,22 +149,51 @@ class _TokenRedirects(HTTPRedirectHandler):
         return redirected
 
 
-def read_hf_file(repository: str, revision: str, relative: str, maximum: int) -> bytes:
-    """Use the configured Hub endpoint with optional explicit token authentication."""
+def _hub_endpoint() -> str:
     endpoint = os.environ.get("HF_ENDPOINT", "https://huggingface.co").rstrip("/")
     parsed = urlsplit(endpoint)
     if (parsed.scheme not in {"https", "http"} or not parsed.hostname
             or parsed.username or parsed.password or parsed.query or parsed.fragment):
         raise ValueError("HF_ENDPOINT must be an HTTP(S) base URL")
+    return endpoint
+
+
+def _hub_open(url: str):
+    """Open a configured Hub URL with optional explicit token authentication."""
     token = os.environ.get("HF_TOKEN", "").strip()
-    url = f"{endpoint}/datasets/{repository}/resolve/{revision}/{relative}"
     request = Request(url, headers={"Authorization": "Bearer " + token}) if token else url
     open_file = build_opener(_TokenRedirects()).open if token else urlopen
-    with open_file(request, timeout=60) as response:
+    return open_file(request, timeout=60)
+
+
+def read_hf_file(repository: str, revision: str, relative: str, maximum: int) -> bytes:
+    """Use the configured Hub endpoint with optional explicit token authentication."""
+    with _hub_open(f"{_hub_endpoint()}/datasets/{repository}/resolve/{revision}/{relative}") as response:
         raw = response.read(maximum + 1)
     if len(raw) > maximum:
         raise ValueError("Dataset file exceeds its bounded download size")
     return raw
+
+
+def main_history(repository: str, maximum: int = 20_000_000):
+    """Yield the commits on a dataset's main branch, newest first, through the Hub commits API."""
+    endpoint = _hub_endpoint()
+    origin = urlsplit(endpoint)[:2]
+    url = f"{endpoint}/api/datasets/{repository}/commits/main"
+    while url:
+        with _hub_open(url) as response:
+            raw = response.read(maximum + 1)
+            links = response.headers.get("Link", "")
+        if len(raw) > maximum:
+            raise ValueError("Hub commit history page exceeds its bounded download size")
+        page = json.loads(raw)
+        if not isinstance(page, list):
+            raise ValueError("Hub commit history response must be a list")
+        for commit in page:
+            yield commit["id"]
+        url = next((match.group(1) for match in re.finditer(r'<([^>]+)>\s*;\s*rel="next"', links)), None)
+        if url is not None and urlsplit(url)[:2] != origin:
+            raise ValueError("Hub commit history pagination left the configured endpoint")
 
 
 def fetch_archive(repository: str, revision: str, archive: dict) -> bytes:
