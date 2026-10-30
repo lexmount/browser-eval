@@ -1,5 +1,6 @@
 """Byte-level snapshots of every report track's synthetic example build."""
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -122,4 +123,10 @@ def test_web_fetch_report(tmp_path: Path, monkeypatch) -> None:
         delay=0,
     )
     build_webfetch_report(run, tmp_path / "report", language="en")
-    check_golden("web-fetch", tmp_path / "report", tmp_path)
+    manifest = json.loads((run / "manifest.json").read_text(encoding="utf-8"))
+    check_golden(
+        "web-fetch",
+        tmp_path / "report",
+        tmp_path,
+        source_digests=[manifest["runtime_source_sha256"]],
+    )

@@ -22,19 +22,26 @@ import pytest
 GOLDEN_DIR = Path(__file__).parent / "golden"
 BUILD_ROOT_TOKEN = b"<build-root>"
 PATH_INPUT_TOKEN = b"<path-bearing-input-sha256>"
+SOURCE_DIGEST_TOKEN = b"<source-sha256>"
 def normalized_routes(
-    output: Path, build_root: Path, path_inputs: Iterable[Path] = ()
+    output: Path,
+    build_root: Path,
+    path_inputs: Iterable[Path] = (),
+    source_digests: Iterable[str] = (),
 ) -> dict[str, bytes]:
     """Return every file under ``output`` with machine-specific bytes replaced by tokens.
 
     ``path_inputs`` are evidence files whose content names absolute paths under
     ``build_root``. Reports that bind them by SHA-256 would otherwise differ per
-    machine, so their digests are replaced as well.
+    machine, so their digests are replaced as well. ``source_digests`` are hashes
+    of repository source code recorded in the evidence; they change with every
+    commit.
     """
     replacements = [(str(build_root.resolve()).encode(), BUILD_ROOT_TOKEN),
                     (str(build_root).encode(), BUILD_ROOT_TOKEN)]
     replacements += [(hashlib.sha256(path.read_bytes()).hexdigest().encode(), PATH_INPUT_TOKEN)
                      for path in path_inputs]
+    replacements += [(digest.encode(), SOURCE_DIGEST_TOKEN) for digest in source_digests]
     routes = {}
     for path in sorted(output.rglob("*")):
         if path.is_file():
@@ -46,10 +53,15 @@ def normalized_routes(
 
 
 def check_golden(
-    name: str, output: Path, build_root: Path, *, path_inputs: Iterable[Path] = ()
+    name: str,
+    output: Path,
+    build_root: Path,
+    *,
+    path_inputs: Iterable[Path] = (),
+    source_digests: Iterable[str] = (),
 ) -> None:
     """Compare the route digests of ``output`` with ``tests/golden/<name>.json``."""
-    routes = normalized_routes(output, build_root, path_inputs)
+    routes = normalized_routes(output, build_root, path_inputs, source_digests)
     if not routes:
         pytest.fail(f"{name}: the build produced no routes")
     actual = {route: hashlib.sha256(content).hexdigest() for route, content in routes.items()}
