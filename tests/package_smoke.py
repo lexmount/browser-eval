@@ -27,6 +27,24 @@ def verify_dependency_metadata(source_root: Path) -> None:
         raise ValueError('Installed WebArena dependency differs from declared fork')
 
 
+
+def verify_search_implementation_freeze(source_root: Path) -> None:
+    """Installed collection provenance keeps logical keys and exact source bytes."""
+    from harness.web_search.runner import freeze_implementation
+    from harness.web_search.core import digest
+    from harness.distribution import source_path
+
+    with tempfile.TemporaryDirectory(prefix='installed-search-freeze-') as work:
+        output = Path(work)
+        sources = freeze_implementation(output)
+        assert {"uv.lock", "pyproject.toml", "harness/web_search/runner.py"}.issubset(sources)
+        for logical, expected in sources.items():
+            frozen = output / 'implementation' / logical
+            original = source_path(logical, root=source_root)
+            assert frozen.read_bytes() == original.read_bytes()
+            assert digest(frozen.read_bytes()) == expected
+
+
 def verify_base_dataset_selection() -> None:
     """Dataset selection must not require the optional publication extra."""
     from harness.benchmarks.pinning import validate_selected_binding
@@ -1635,6 +1653,7 @@ def main():
         verify_package_tree(args.source_root, package_root, package_name=package_name)
     verify_dependency_metadata(args.source_root)
     verify_base_dataset_selection()
+    verify_search_implementation_freeze(args.source_root)
     verify_lexbench_input_ownership(args.source_root)
     from harness.web_fetch.webmainbench_correction import CONTROL_IDS, regression_registry_path
 

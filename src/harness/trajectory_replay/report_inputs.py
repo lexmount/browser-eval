@@ -3,6 +3,7 @@ import hashlib
 import json
 from importlib.resources import files
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
 
 from harness.web_fetch.safety import unlinked_path
 
@@ -72,18 +73,61 @@ def replay_suite_for_hash(digest: str, *, family: str, dataset: dict | None = No
     return verified_dataset_path(path, digest)
 
 
-def replay_fixture_root() -> Path:
-    """Installed, versioned local-page fixtures shared by both replay runners."""
+def replay_fixture_root(suite_path: Path | None = None) -> Path:
+    """Use packaged pages for locked snapshots, adjacent pages for explicit suites."""
+    if suite_path is not None:
+        from harness.benchmarks.data import binding, cache_home
+        suite_path = unlinked_path(suite_path)
+        cache = cache_home()
+        if suite_path.is_relative_to(cache):
+            parts = suite_path.relative_to(cache).parts
+            if len(parts) >= 4 and parts[0] in {'trajectory-replay', 'webarena-replay'}:
+                track, revision = parts[:2]
+                relative = '/'.join(parts[2:])
+                selected = binding(track, revision)
+                if relative in selected['files']:
+                    verified_dataset_path(suite_path, selected['files'][relative]['sha256'])
+                    return replay_fixture_root()
+        return unlinked_path(suite_path.parent / 'fixtures')
     return Path(str(files("harness.trajectory_replay").joinpath("resources", "fixtures")))
 
 
 def replay_fixture_hashes(root: Path) -> dict[str, str]:
-    """Bind the packaged pages actually served, separately from the HF suite."""
-    paths = sorted(root.glob("*.html"))
-    if not paths:
-        raise ValueError("Packaged replay fixtures are missing")
-    return {path.name: hashlib.sha256(unlinked_path(path).read_bytes()).hexdigest()
-            for path in paths}
+    """Bind every file served, including historical nested pages and resources."""
+    root = unlinked_path(root)
+    if not root.is_dir():
+        raise ValueError("Replay fixture directory is missing")
+    result = {}
+    for path in sorted(root.rglob('*')):
+        path = unlinked_path(path)
+        if path.is_dir():
+            continue
+        if not path.is_file():
+            raise ValueError("Replay fixture must be a regular file")
+        result[path.relative_to(root).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+    if not result:
+        raise ValueError("Replay fixtures are empty")
+    return result
+
+
+def replay_fixture_inputs(suite_path: Path, calls) -> tuple[Path | None, dict[str, str]]:
+    """Select and validate local inputs before browser or container initialization."""
+    calls = tuple(calls)
+    if not any('{fixture_origin}' in str(value) for call in calls for value in call.values()):
+        return None, {}
+    root = replay_fixture_root(suite_path)
+    hashes = replay_fixture_hashes(root)
+    for call in calls:
+        url = call.get('url')
+        if isinstance(url, str) and url.startswith('{fixture_origin}'):
+            relative = unquote(urlsplit(url.replace('{fixture_origin}', 'http://fixture.test')).path)
+            relative = relative.lstrip('/')
+            if '..' in Path(relative).parts or '\\' in relative:
+                raise ValueError("Unsafe replay fixture URL")
+            target = unlinked_path(root / relative)
+            if not target.exists():
+                raise ValueError("Referenced replay fixture is missing: " + relative)
+    return root, hashes
 
 
 def agent_smoke_input(path: str | Path | None) -> dict | None:

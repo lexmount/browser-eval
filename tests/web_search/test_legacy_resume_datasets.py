@@ -198,3 +198,46 @@ def test_legacy_source_bytes_cannot_be_overwritten_by_current_composition(
     monkeypatch.setattr(data, "__file__", str(tmp_path / "data.py"))
     with pytest.raises(ValueError, match="dataset"):
         data.legacy_dependencies("websearch", LEGACY_PIN)
+
+
+def test_public_run_upgrades_legacy_only_with_explicit_execution_revision(legacy_run, monkeypatch):
+    output, _, profile, revision = legacy_run
+    original_call = next((output / "calls").glob("*.json"))
+    original_bytes = original_call.read_bytes()
+    sent = []
+
+    def http(url, body=None, header=None, timeout=20):
+        if body is not None:
+            sent.append(url)
+        return {"http_status": 200, "elapsed_ms": 1, "transport_exit": 0,
+                "transport_error": ""}, (b'{"results":[]}' if body is not None else b"reference " * 20)
+
+    monkeypatch.setattr(runner, "http_call", http)
+    # The old unchanged cohort is not silently upgraded by an ordinary resume.
+    with pytest.raises(ValueError, match="same live collection implementation"):
+        runner.run(output / "profile.json", output, resume=True, certified=True)
+    assert not sent
+    runner.run(profile, output, resume=True, execution_revision=revision, certified=True)
+    assert sent == ["https://replacement.invalid/search", "https://fixture-c.invalid/search"]
+    assert original_call.read_bytes() == original_bytes
+    assert json.loads((output / "receipt.json").read_bytes())["complete"]
+    assert json.loads((output / "run-contract.json").read_bytes())["installed_benchmark_datasets"] == data.dependencies("websearch")
+
+
+@pytest.mark.parametrize("change", ["unknown-pin", "tampered-bundle"])
+def test_public_legacy_revision_rejects_unproven_bundle_before_reference_calls(
+    legacy_run, monkeypatch, change
+):
+    output, contract, profile, revision = legacy_run
+    if change == "unknown-pin":
+        _dependency_files(output, contract, pin="f" * 40)
+        (output / "run-contract.json").write_text(json.dumps(contract))
+    else:
+        (output / "implementation/dependencies/lexbench_websearch/scoring.py").write_text("changed")
+    def forbidden(*args, **kwargs):
+        raise AssertionError("Unverified repair made a network call")
+    monkeypatch.setattr(runner, "http_call", forbidden)
+    before = {p.relative_to(output): p.read_bytes() for p in output.rglob("*") if p.is_file()}
+    with pytest.raises(ValueError, match="dataset|hash mismatch"):
+        runner.run(profile, output, resume=True, execution_revision=revision, certified=True)
+    assert before == {p.relative_to(output): p.read_bytes() for p in output.rglob("*") if p.is_file()}

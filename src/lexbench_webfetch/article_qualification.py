@@ -99,7 +99,7 @@ def qualify_article_comments(contract, reference, *, case_id, url):
               'comment_count': len(reference.get('records', [])) if isinstance(reference, dict) and isinstance(reference.get('records'), list) else 0}
     if status == 'verified':
         if contract is not None:
-            valid_count = len(valid_comment_records(reference['records'], contract))
+            valid_count = len(valid_comment_records(reference['records'], contract, representation='plain_text'))
             result['valid_comment_count'] = valid_count
             if valid_count < contract['minimum_comments']:
                 result['status'] = 'insufficient_comments'

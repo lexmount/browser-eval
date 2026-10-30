@@ -32,13 +32,12 @@ _SAFE_SELECTOR = re.compile(
     r"(?:\s*>\s*|\s+)(?:[A-Za-z][A-Za-z0-9_-]*|[.#][A-Za-z_][A-Za-z0-9_-]*))*$"
 )
 _CONTRACT_NAME = re.compile(r"^[a-z][a-z0-9-]{2,80}$")
-_CONTRACT_REGISTRY_PATH = definition_path("evaluation/native-retrieval-contracts.json")
 _ANSWER_SELECTOR = re.compile(r"(?:^|[.#_-])(answer|correct-answer)(?:$|[.#_-])", re.I)
 
 
 @lru_cache(maxsize=1)
 def _native_contract_registry() -> dict[str, Any]:
-    registry = json.loads(_CONTRACT_REGISTRY_PATH.read_text(encoding="utf-8"))
+    registry = json.loads(definition_path("evaluation/native-retrieval-contracts.json").read_text(encoding="utf-8"))
     if registry.get("schema_version") != 1 or not isinstance(registry.get("contracts"), dict):
         raise ValueError("Native retrieval contract registry is invalid")
     return registry

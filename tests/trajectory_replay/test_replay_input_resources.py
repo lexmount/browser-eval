@@ -11,8 +11,9 @@ from harness.trajectory_replay import report_inputs
 
 
 @pytest.mark.parametrize('family', ['curated', 'human'])
+@pytest.mark.parametrize('resolved', [False, True])
 def test_runner_serves_packaged_pages_when_suite_is_in_an_unrelated_cache(
-    tmp_path, monkeypatch, family
+    tmp_path, monkeypatch, family, resolved
 ):
     if family == 'curated':
         from harness.trajectory_replay import runner
@@ -21,9 +22,24 @@ def test_runner_serves_packaged_pages_when_suite_is_in_an_unrelated_cache(
     if family == 'human':
         monkeypatch.setattr(runner, 'validate_resource_controls', lambda info: None)
         monkeypatch.setattr(runner, 'require_linux_cgroup_v2', lambda client: None)
-    suite = tmp_path / 'unrelated-cache/commit/definitions/suites/tasks.json'
+    from harness.benchmarks import data
+    track = 'trajectory-replay' if family == 'curated' else 'webarena-replay'
+    definition = ('suites/curated-v1.json' if family == 'curated'
+                  else 'suites/human-qualified-v1.json')
+    cache = tmp_path / 'unrelated-cache'
+    monkeypatch.setenv('BROWSER_EVAL_DATASET_CACHE', str(cache))
+    revision = '1' * 40
+    suite = cache / track / revision / 'definitions' / definition
     suite.parent.mkdir(parents=True)
     suite.write_text('{}')
+    ledger = {'revision': revision, 'files': {
+        'definitions/' + definition: {'sha256': hashlib.sha256(suite.read_bytes()).hexdigest()},
+    }}
+    monkeypatch.setattr(data, 'binding', lambda track, revision=None: ledger)
+    monkeypatch.setattr(data, 'definition_path', lambda *args: suite)
+    # Unbound cache neighbors cannot shadow the packaged locked-input fixtures.
+    (suite.parent/'fixtures').mkdir()
+    (suite.parent/'fixtures/core.html').write_text('Unbound cache page')
     task = SimpleNamespace(task_id='local', environment={}, ground_truth={},
                            tool_calls=({'url': '{fixture_origin}/core.html'},))
     monkeypatch.setattr(runner, 'load_suite', lambda path: SimpleNamespace(tasks=(task,)))
@@ -43,7 +59,7 @@ def test_runner_serves_packaged_pages_when_suite_is_in_an_unrelated_cache(
 
     monkeypatch.setattr(runner, '_start_fixture_server', start)
     with pytest.raises(LocatedFixture):
-        runner.run_evaluation(suite_path=suite, output_dir=tmp_path/'run',
+        runner.run_evaluation(suite_path=suite if resolved else None, output_dir=tmp_path/'run',
                               reports_dir=tmp_path/'reports')
 
 
@@ -178,3 +194,85 @@ def test_cli_forwards_explicit_smoke_input(tmp_path, monkeypatch, family):
                                      '--no-report'])
     cli.main()
     assert run.call_args.kwargs['agent_smoke_path'] == smoke
+
+
+@pytest.mark.parametrize('family', ['curated', 'human'])
+def test_explicit_suite_uses_its_custom_fixture_tree(tmp_path, monkeypatch, family):
+    if family == 'curated':
+        from harness.trajectory_replay import runner
+    else:
+        from harness.trajectory_replay.public_webarena import runner
+        monkeypatch.setattr(runner, 'validate_resource_controls', lambda info: None)
+        monkeypatch.setattr(runner, 'require_linux_cgroup_v2', lambda client: None)
+    suite = tmp_path/'historical'/'suite.json'
+    suite.parent.mkdir()
+    suite.write_text('{}')
+    fixture = suite.parent/'fixtures'
+    (fixture/'nested').mkdir(parents=True)
+    (fixture/'core.html').write_text('<h1>Original historical core</h1>')
+    (fixture/'nested/custom.html').write_text('<h1>Original custom page</h1>')
+    (fixture/'nested/site.css').write_text('h1 {color:blue}')
+    task = SimpleNamespace(task_id='local', environment={}, ground_truth={},
+                           tool_calls=({'url': '{fixture_origin}/nested/custom.html'},))
+    monkeypatch.setattr(runner, 'load_suite', lambda path: SimpleNamespace(tasks=(task,)))
+    monkeypatch.setattr(runner.docker, 'from_env', MagicMock())
+    monkeypatch.setattr(runner, 'sync_playwright', MagicMock())
+
+    class CorrectHistoricalFiles(Exception):
+        pass
+
+    def start(root):
+        assert root == fixture
+        assert (root/'core.html').read_text() == '<h1>Original historical core</h1>'
+        assert (root/'nested/custom.html').is_file()
+        raise CorrectHistoricalFiles
+
+    monkeypatch.setattr(runner, '_start_fixture_server', start)
+    with pytest.raises(CorrectHistoricalFiles):
+        runner.run_evaluation(suite_path=suite, output_dir=tmp_path/'run',
+                              reports_dir=tmp_path/'reports')
+
+
+@pytest.mark.parametrize('family', ['curated', 'human'])
+@pytest.mark.parametrize('failure', ['missing-directory', 'missing-page', 'symlink'])
+def test_invalid_explicit_fixtures_fail_before_engine_initialization(
+    tmp_path, monkeypatch, family, failure
+):
+    if family == 'curated':
+        from harness.trajectory_replay import runner
+    else:
+        from harness.trajectory_replay.public_webarena import runner
+    suite = tmp_path/'suite.json'
+    suite.write_text('{}')
+    root = tmp_path/'fixtures'
+    if failure != 'missing-directory':
+        root.mkdir()
+        if failure == 'symlink':
+            outside = tmp_path/'outside.html'
+            outside.write_text('Unbound outside page')
+            (root/'custom.html').symlink_to(outside)
+        else:
+            (root/'other.html').write_text('Wrong page')
+    task = SimpleNamespace(task_id='local', environment={}, ground_truth={},
+                           tool_calls=({'url': '{fixture_origin}/custom.html'},))
+    monkeypatch.setattr(runner, 'load_suite', lambda path: SimpleNamespace(tasks=(task,)))
+    docker, browser = MagicMock(), MagicMock()
+    monkeypatch.setattr(runner.docker, 'from_env', docker)
+    monkeypatch.setattr(runner, 'sync_playwright', browser)
+    with pytest.raises(ValueError, match='fixture|symlink'):
+        runner.run_evaluation(suite_path=suite, output_dir=tmp_path/'run',
+                              reports_dir=tmp_path/'reports')
+    docker.assert_not_called()
+    browser.assert_not_called()
+
+
+def test_fixture_hashes_include_nested_custom_names_and_non_html_assets(tmp_path):
+    root = tmp_path/'fixtures'
+    (root/'nested').mkdir(parents=True)
+    payloads = {'core.html': b'Historical core', 'nested/custom.html': b'Custom page',
+                'nested/data.json': b'{"version":1}', 'nested/site.css': b'body {color:red}'}
+    for relative, raw in payloads.items():
+        (root/relative).write_bytes(raw)
+    assert report_inputs.replay_fixture_hashes(root) == {
+        relative: hashlib.sha256(raw).hexdigest() for relative, raw in payloads.items()
+    }

@@ -27,10 +27,10 @@ def encoded(value: object) -> bytes:
     return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
 
 
-def _headless_definitions(checkout: Path, revision: str) -> dict[str, bytes]:
+def _git_blobs(checkout: Path, revision: str, paths: tuple[str, ...]) -> dict[str, bytes]:
     """Read original data blobs; Git export attributes cannot rewrite their bytes."""
     tree = subprocess.check_output(
-        ["git", "ls-tree", "-rz", revision, "--", *HEADLESS_INPUTS], cwd=checkout)
+        ["git", "ls-tree", "-rz", revision, "--", *paths], cwd=checkout)
     entries = []
     for entry in tree.split(b"\0"):
         if not entry:
@@ -38,22 +38,31 @@ def _headless_definitions(checkout: Path, revision: str) -> dict[str, bytes]:
         attributes, raw_name = entry.split(b"\t", 1)
         mode, kind, object_id = attributes.split()
         name = raw_name.decode("utf-8")
-        if (kind != b"blob" or mode not in {b"100644", b"100755"}
-                or set(Path(name).parts) & {"runs", "reports", "generated", "private_artifacts"}):
-            raise ValueError("Unexpected headless input: " + name)
+        if kind != b"blob" or mode not in {b"100644", b"100755"}:
+            raise ValueError("Public definitions cannot contain links or special files: " + name)
         entries.append((name, object_id))
     raw = subprocess.run(["git", "cat-file", "--batch"], cwd=checkout, check=True,
                          input=b"\n".join(oid for _, oid in entries) + b"\n",
                          capture_output=True).stdout
-    files, source_files, cursor = {}, {}, 0
+    files, cursor = {}, 0
     for name, object_id in entries:
         end = raw.index(b"\n", cursor)
         header = raw[cursor:end].split()
         if len(header) != 3 or header[:2] != [object_id, b"blob"]:
-            raise ValueError("Unavailable committed headless input: " + name)
+            raise ValueError("Unavailable committed input: " + name)
         size = int(header[2])
         content = raw[end + 1:end + 1 + size]
         cursor = end + size + 2
+        files[name] = content
+    return files
+
+
+def _headless_definitions(checkout: Path, revision: str) -> dict[str, bytes]:
+    originals = _git_blobs(checkout, revision, HEADLESS_INPUTS)
+    files, source_files = {}, {}
+    for name, content in originals.items():
+        if set(Path(name).parts) & {"runs", "reports", "generated", "private_artifacts"}:
+            raise ValueError("Unexpected headless input: " + name)
         files["definitions/" + name] = content
         source_files[name] = {"sha256": digest(content), "size": len(content)}
         if name in {"LICENSE", "THIRD_PARTY_NOTICES.md"}:
@@ -109,7 +118,7 @@ def _headless_definitions(checkout: Path, revision: str) -> dict[str, bytes]:
               "fixture_count": sum(name.startswith("definitions/fixtures/") for name in files),
               "config_count": sum(name.startswith("definitions/config/") for name in files),
               "driver_count": len(bindings["driver_ids"]), "driver_ids": bindings["driver_ids"],
-              "file_count": len(entries)}
+              "file_count": len(originals)}
     files["definitions/registry.json"] = encoded({"datasets": datasets, "source": source, "source_files": source_files})
     return files
 
@@ -163,44 +172,49 @@ class DatasetRelease:
         notices = subprocess.check_output(
             ["git", "ls-tree", "--name-only", revision, "--", "LICENSE", "NOTICE",
              "THIRD_PARTY.md", "THIRD_PARTY_NOTICES.md"], cwd=checkout, text=True).splitlines()
-        raw = subprocess.run(
-            ["git", "archive", "--format=tar", revision, prefix, *notices],
-            cwd=checkout, check=True, capture_output=True,
-        ).stdout
         files = {}
-        with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
-            for item in archive:
-                if item.isdir() or item.name == "pax_global_header":
-                    continue
-                if not item.isfile():
-                    raise ValueError("Public definitions cannot contain links or special files")
-                name = "definitions/" + item.name[len(prefix):] if item.name.startswith(prefix) else item.name
-                allowed = (track == "headless-browser" or Path(name).suffix in {".json", ".jsonl", ".txt", ".md"}
-                           or Path(name).name in {"LICENSE", "NOTICE"}
-                           or (track == "wcxb" and name.endswith(".html.gz")))
-                if name.startswith("definitions/") and not allowed:
-                    raise ValueError("Unexpected definition file: " + name)
-                content = archive.extractfile(item).read()
-                pointer = re.fullmatch(rb"version https://git-lfs.github.com/spec/v1\noid sha256:([0-9a-f]{64})\nsize ([0-9]+)\n", content)
-                if pointer:
-                    local = checkout / item.name
-                    if local.is_symlink() or not local.resolve().is_relative_to(checkout.resolve()):
-                        raise ValueError("Unsafe local LFS file")
-                    content = local.read_bytes()
-                    if digest(content) != pointer[1].decode() or len(content) != int(pointer[2]):
-                        raise ValueError("Materialize the exact committed LFS object: " + item.name)
-                files[name] = content
+        for original_name, content in _git_blobs(checkout, revision, (prefix, *notices)).items():
+            name = "definitions/" + original_name[len(prefix):] if original_name.startswith(prefix) else original_name
+            allowed = (track == "headless-browser" or Path(name).suffix in {".json", ".jsonl", ".txt", ".md"}
+                       or Path(name).name in {"LICENSE", "NOTICE"}
+                       or (track == "wcxb" and name.endswith(".html.gz")))
+            if name.startswith("definitions/") and not allowed:
+                raise ValueError("Unexpected definition file: " + name)
+            pointer = re.fullmatch(rb"version https://git-lfs.github.com/spec/v1\noid sha256:([0-9a-f]{64})\nsize ([0-9]+)\n", content)
+            if pointer:
+                local = checkout / original_name
+                if local.is_symlink() or not local.resolve().is_relative_to(checkout.resolve()):
+                    raise ValueError("Unsafe local LFS file")
+                content = local.read_bytes()
+                if digest(content) != pointer[1].decode() or len(content) != int(pointer[2]):
+                    raise ValueError("Materialize the exact committed LFS object: " + original_name)
+            files[name] = content
         repository = "https://huggingface.co/datasets/" + registered[track]["repo_id"] if hub else None
         return cls(track, revision, files, repository)
 
     def datasets(self) -> dict[str, dict]:
         registry = json.loads(self.files["definitions/registry.json"])
         if self.track == "webfetch":
-            return {row["id"]: {
-                "path": row["directory"] + "/tasks.json",
-                "sha256": row["files"]["tasks.json"],
-                "count": row["case_count"],
-            } for row in registry["suites"]}
+            datasets = {}
+            for row in registry["suites"]:
+                directory, declared = row["directory"], row["files"]
+                if (not isinstance(directory, str) or Path(directory).is_absolute()
+                        or ".." in Path(directory).parts or not isinstance(declared, dict)
+                        or "tasks.json" not in declared or row["id"] in datasets):
+                    raise ValueError("Invalid Web Fetch suite file contract")
+                for relative, expected in declared.items():
+                    if (not isinstance(relative, str) or not relative or Path(relative).is_absolute()
+                            or ".." in Path(relative).parts or not isinstance(expected, str)
+                            or not re.fullmatch(r"[0-9a-f]{64}", expected)):
+                        raise ValueError("Invalid Web Fetch definition binding")
+                    name = "definitions/" + (Path(directory) / relative).as_posix()
+                    if name not in self.files or digest(self.files[name]) != expected:
+                        raise ValueError("Web Fetch definition missing or changed: " + name)
+                datasets[row["id"]] = {
+                    "path": (Path(directory) / "tasks.json").as_posix(),
+                    "sha256": declared["tasks.json"], "count": row["case_count"],
+                }
+            return datasets
         return registry["datasets"]
 
     def build(self, output: Path) -> dict:

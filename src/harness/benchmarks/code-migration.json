@@ -20,7 +20,7 @@
         },
         "article_qualification.py": {
           "before_sha256": "01898c4413933ac4f3028eeb5c5c470293cd2acaabb2ae1547a7095e6e458981",
-          "after_sha256": "73335df43733cf653c62c172083850d83b5802d2b3d71f58da4243e61f0d630e"
+          "after_sha256": "72ec8c0b49925a3dff53907e3ecad1549f12ba3301383d6bc4798c77f9ab1b76"
         },
         "article_text.py": {
           "before_sha256": "d9984b8dfcdad0113ed69cec3723a85d23096890327cd845d3052d937817ae21",
@@ -52,7 +52,7 @@
         },
         "dynamic_lists.py": {
           "before_sha256": "c2d9bedf1c82818f88f4e5db3c52caa5a064ba1d6fddb3814d38fdea5601957c",
-          "after_sha256": "ce2c4d99ce459b761c91eca1c3418aeab210ffe360d5d2dfa4d2aeba0ca9b1d5"
+          "after_sha256": "8da50e00ddb6731fcb2de93ee7ece6047f71b279f46b21a1fedac469baccc5cf"
         },
         "file_acceptance.py": {
           "before_sha256": "4f886206705c015baa3744d669cc851778aa595819394c5b149fd4803a9f40d1",
@@ -3708,6 +3708,46 @@
           "tests": [
             "tests/benchmarks/webfetch/test_review_first_record_and_redirect_echo.py"
           ]
+        },
+        {
+          "modules": [
+            "dynamic_lists.py"
+          ],
+          "root_cause": "Text record positions used LF-only HTMLParser offsets for splitlines records; preserve each parser's line boundaries.",
+          "regression_ids": [
+            "record-line-position-plain-name-cr-true",
+            "record-line-position-plain-name-cr-false",
+            "record-line-position-plain-product-cr-true",
+            "record-line-position-plain-product-cr-false",
+            "record-line-position-markdown-table-cr-true",
+            "record-line-position-markdown-table-cr-false",
+            "record-line-position-image-heading-cr-true",
+            "record-line-position-image-heading-cr-false",
+            "record-line-position-html-cr-true",
+            "record-line-position-html-cr-false"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_text_line_positions_and_comment_qualification.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_qualification.py"
+          ],
+          "root_cause": "Historical comment qualification treated extracted scalar labels as Markdown; use the runtime literal-text contract.",
+          "regression_ids": [
+            "comment-qualification-literal-ignored_labels-html-body-false-8",
+            "comment-qualification-literal-ignored_labels-html-body-true-4",
+            "comment-qualification-literal-ignored_labels-plain_text-body-false-8",
+            "comment-qualification-literal-ignored_labels-plain_text-body-true-4",
+            "comment-qualification-literal-unavailable_notices-html-body-false-8",
+            "comment-qualification-literal-unavailable_notices-html-body-true-6",
+            "comment-qualification-literal-unavailable_notices-plain_text-body-false-8",
+            "comment-qualification-literal-unavailable_notices-plain_text-body-true-6"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_review_text_line_positions_and_comment_qualification.py"
+          ]
         }
       ]
     },
@@ -3746,6 +3786,10 @@
         "versions.py": {
           "before_sha256": "27c10a5f86b4a8ac7841cc9dfbe77c2f724ea675a938bda3719ae05084c058e0",
           "after_sha256": "89dc3d6c617659147e3600a3621b42b235fd68fb6d8b910a9f9e4b2ea68b0073"
+        },
+        "rubric.py": {
+          "before_sha256": "3f5a95c34328ea51c0bd6f147bd713884a5fad19e7a7a6bf1ce998f10fae6d07",
+          "after_sha256": "7d2c7ba3861262efa6341679f33ad4893ef148cf92fd0549dbf5f998abe11060"
         }
       },
       "corrections": [

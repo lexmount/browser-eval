@@ -23,7 +23,17 @@ class LocatedItem(NamedTuple):
 
 
 def _line_starts(content):
+    """Map HTMLParser's LF-only line positions back to source offsets."""
     return [0] + [match.end() for match in re.finditer('\n', content)]
+
+
+def _text_line_starts(content):
+    """Keep physical offsets aligned with Python's text splitlines output."""
+    starts, offset = [], 0
+    for line in content.splitlines(keepends=True):
+        starts.append(offset)
+        offset += len(line)
+    return starts
 
 
 class Links(HTMLParser):
@@ -786,7 +796,7 @@ def _named_table_items(content, scope):
                       if scope.get('markdown_title_identity_pattern') else None)
     detail_identity = (re.compile(scope['markdown_detail_identity_pattern'])
                        if scope.get('markdown_detail_identity_pattern') else None)
-    offsets = _line_starts(content)
+    offsets = _text_line_starts(content)
     for index in range(len(lines) - 1):
         if '|' not in lines[index]:
             continue
@@ -1038,7 +1048,7 @@ def _image_heading_items(content, scope):
     from .reference_quality import markdown_links, visible_markdown_links
     items = []
     markdown_lines = content.splitlines()
-    offsets = _line_starts(content)
+    offsets = _text_line_starts(content)
     for line_index, line in enumerate(markdown_lines):
         outer_links = markdown_links(line)
         if len(outer_links) != 1:
@@ -1251,7 +1261,7 @@ def _without_record_literals(content):
 
 
 def _plain_record_fields(content):
-    lines, offsets = content.splitlines(), _line_starts(content)
+    lines, offsets = content.splitlines(), _text_line_starts(content)
     result = []
     for index, line in enumerate(lines):
         if not re.fullmatch(r'https?://[^\s<>"\[\]]+', line.strip(), re.I) or index == 0:

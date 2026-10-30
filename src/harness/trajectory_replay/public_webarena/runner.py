@@ -710,8 +710,7 @@ def run_evaluation(
         )
     from harness.trajectory_replay.report_inputs import (
         agent_smoke_input,
-        replay_fixture_hashes,
-        replay_fixture_root,
+        replay_fixture_inputs,
         replay_input_path,
         replay_suite_binding,
     )
@@ -773,6 +772,10 @@ def run_evaluation(
                 "trajectory_authoring_run permits non-mutating retrieve/navigate tasks only: "
                 + ", ".join(state_changing)
             )
+    fixture_root, fixture_hashes = replay_fixture_inputs(
+        Path(suite_path), (call for task in selected_tasks for call in task.tool_calls)
+    )
+    uses_local_fixtures = fixture_root is not None
     ground_truth_evidence = (
         validate_ground_truth_evidence(suite_path, suite, ground_truth_evidence_path)
         if ground_truth_evidence_path is not None
@@ -808,17 +811,8 @@ def run_evaluation(
         else None
     )
     playwright = sync_playwright().start()
-    uses_local_fixtures = any(
-        "{fixture_origin}" in str(value)
-        for task in selected_tasks
-        for call in task.tool_calls
-        for value in call.values()
-    )
     fixture_runtime: tuple[ThreadingHTTPServer, threading.Thread, str] | None = None
-    fixture_hashes = {}
     if uses_local_fixtures:
-        fixture_root = replay_fixture_root()
-        fixture_hashes = replay_fixture_hashes(fixture_root)
         fixture_runtime = _start_fixture_server(fixture_root)
     fixture_origin = fixture_runtime[2] if fixture_runtime else ""
     authoring_initialized_sites: set[str] = set()

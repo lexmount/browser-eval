@@ -301,7 +301,7 @@ def validate(profile_path: Path) -> tuple[dict, dict, list, object, Path]:
     if profile.get("schema_version") != 1 or profile.get("kind") != "risk_control_100_moli_v1":
         raise ValueError("Unsupported risk-control run profile")
     for binding in profile["source_bindings"].values():
-        path = rooted(binding["path"])
+        path = benchmark_input_path(rooted(binding["path"]))
         if not path.is_file() or _digest(path) != binding["sha256"]:
             raise ValueError("Frozen source binding changed: " + binding["path"])
     dataset_path = rooted(profile["dataset"]["path"])

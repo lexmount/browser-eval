@@ -90,12 +90,12 @@ def test_historical_source_packet_requires_its_exact_registered_evidence(tmp_pat
                      for c in item["candidates"]]
         calls.append({"case_id": item["case_id"],
                       "request": {"model": "test-model", "temperature": 0,
-                                  "messages": [{"role": "system", "content": relevance.JUDGE_PROMPT},
+                                  "messages": [{"role": "system", "content": relevance.judge_prompt()},
                                                {"role": "user", "content": json.dumps(relevance.judge_input(item), ensure_ascii=False, sort_keys=True)}]},
                       "response": {"model": "test-model", "choices": [{"message": {"content": json.dumps({"judgments": judgments})}}]}})
         labels[item["case_id"]] = {j["candidate_id"]: j["grade"] for j in judgments}
     evidence = {**packet, "provider_rankings": rankings, "labels": labels,
-                "judge": {"kind": "model", "name": "test-model", "prompt": relevance.JUDGE_PROMPT, "calls": calls}}
+                "judge": {"kind": "model", "name": "test-model", "prompt": relevance.judge_prompt(), "calls": calls}}
     registry = tmp_path / "legacy.json"
     registry.write_text('{"model": []}')
     with pytest.raises(ValueError, match="hash-pinned"):
@@ -124,7 +124,7 @@ def test_annotation_export_escapes_source_markup_and_never_prelabels(tmp_path):
 
 
 def test_frozen_model_labels_require_exact_candidate_coverage_and_quotes():
-    from lexbench_websearch.rubric import JUDGE_PROMPT
+    from lexbench_websearch.rubric import judge_prompt
     from harness.web_search.relevance import parse_judgments, verify_provenance
     from lexbench_websearch.relevance import candidate_packet
     import json
@@ -135,15 +135,15 @@ def test_frozen_model_labels_require_exact_candidate_coverage_and_quotes():
     for p in packet["blind_candidate_packets"]:
         items = [{"candidate_id": c["candidate_id"], "grade": 3, "reason": "Directly useful", "evidence": c["url"]} for c in p["candidates"]]
         response = {"model": "test-model", "choices": [{"message": {"content": json.dumps({"judgments": items})}}]}
-        request = {"model": "test-model", "temperature": 0, "messages": [{"role": "system", "content": JUDGE_PROMPT}, {"role": "user", "content": json.dumps(p, ensure_ascii=False, sort_keys=True)}]}
+        request = {"model": "test-model", "temperature": 0, "messages": [{"role": "system", "content": judge_prompt()}, {"role": "user", "content": json.dumps(p, ensure_ascii=False, sort_keys=True)}]}
         calls.append({"case_id": p["case_id"], "request": request, "response": response})
         labels[p["case_id"]] = {x["candidate_id"]: x["grade"] for x in items}
-    evidence = {**packet, "provider_rankings": rankings, "labels": labels, "judge": {"kind": "model", "name": "test-model", "prompt": JUDGE_PROMPT, "calls": calls}}
+    evidence = {**packet, "provider_rankings": rankings, "labels": labels, "judge": {"kind": "model", "name": "test-model", "prompt": judge_prompt(), "calls": calls}}
     from tests.web_search.model_fixture import strict_model_evidence
     evidence = strict_model_evidence(evidence)
     verify_provenance(profile, rows, evidence)
     inconsistent = copy.deepcopy(evidence)
-    inconsistent["judge"]["configuration"] = {"prompt": JUDGE_PROMPT, "model": "test-model", "packet_sha256": packet["packet_sha256"], "extra_params": {"enable_thinking": False}}
+    inconsistent["judge"]["configuration"] = {"prompt": judge_prompt(), "model": "test-model", "packet_sha256": packet["packet_sha256"], "extra_params": {"enable_thinking": False}}
     with pytest.raises(ValueError, match="configuration"):
         verify_provenance(profile, rows, inconsistent)
     from harness.web_search.comparison import comparison_data
@@ -278,7 +278,7 @@ def source_correction_fixture(packet_format="search/1"):
     from tests.web_search.model_fixture import strict_model_evidence
     profile = {"protocol": {"top_k": 5, "model_relevance": {
         "name": "test-model", "temperature": 0, "max_tokens": 32,
-        "enable_thinking": None, "prompt_sha256": hashlib.sha256(relevance.JUDGE_PROMPT.encode()).hexdigest()}},
+        "enable_thinking": None, "prompt_sha256": hashlib.sha256(relevance.judge_prompt().encode()).hexdigest()}},
         "methods": [{"id": "provider"}], "cases": [
             {"id": "official", "query": "Find official documentation", "family": "web"},
             {"id": "unchanged", "query": "Find the manual", "family": "web"},
@@ -297,7 +297,7 @@ def source_correction_fixture(packet_format="search/1"):
                 {"message": {"content": json.dumps({"judgments": judgments})}}]}})
             labels[p["case_id"]] = {j["candidate_id"]: j["grade"] for j in judgments}
         evidence = strict_model_evidence({**packet, "source_requirements": requirements, "provider_rankings": rankings,
-            "labels": labels, "judge": {"kind": "model", "name": "test-model", "prompt": relevance.JUDGE_PROMPT, "calls": calls}})
+            "labels": labels, "judge": {"kind": "model", "name": "test-model", "prompt": relevance.judge_prompt(), "calls": calls}})
         evidence["judge"]["configuration"]["packet_format"] = packet_format
         return evidence
 

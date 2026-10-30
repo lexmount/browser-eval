@@ -33,4 +33,7 @@ def source_path(relative: str | Path, *, root: Path | None = None) -> Path:
     if relative.parts and relative.parts[0] in {"harness", "lexbench_webfetch", "lexbench_websearch"}:
         if (root / "src" / "harness").is_dir():
             return root / "src" / relative
-    return root / relative
+    candidate = root / relative
+    if relative.as_posix() in {"pyproject.toml", "uv.lock"} and not candidate.is_file():
+        return installed_data_path("share/browser-harness-eval/provenance/" + relative.name)
+    return candidate

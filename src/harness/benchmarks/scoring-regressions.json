@@ -75514,6 +75514,538 @@
       "ok": true,
       "metadata": {},
       "expected_task_pass": false
+    },
+    {
+      "id": "record-line-position-plain-name-cr-true",
+      "category": "structured-extraction",
+      "root_cause": "Text records indexed splitlines output with HTMLParser LF-only source offsets.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Introduction\r\rWidget\rhttps://shop.example/item/1\r$10.00",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "record-line-position-plain-name-cr-false",
+      "category": "structured-extraction",
+      "root_cause": "Text records indexed splitlines output with HTMLParser LF-only source offsets.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Introduction\r\rWidget\rhttps://shop.example/outside/1\r$10.00",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-line-position-plain-product-cr-true",
+      "category": "structured-extraction",
+      "root_cause": "Text records indexed splitlines output with HTMLParser LF-only source offsets.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "Introduction\r\rWidget\rhttps://shop.example/item/1\r$10.00",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "record-line-position-plain-product-cr-false",
+      "category": "structured-extraction",
+      "root_cause": "Text records indexed splitlines output with HTMLParser LF-only source offsets.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "Introduction\r\rWidget\rhttps://shop.example/outside/1\r$10.00",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-line-position-markdown-table-cr-true",
+      "category": "structured-extraction",
+      "root_cause": "Text records indexed splitlines output with HTMLParser LF-only source offsets.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": ".items",
+            "markdown_title_column": "Name",
+            "markdown_link_column": "Details"
+          }
+        }
+      },
+      "artifact": "Introduction\r\r| Name | Details |\r| --- | --- |\r| Widget | [Details](/item/1) |",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "record-line-position-markdown-table-cr-false",
+      "category": "structured-extraction",
+      "root_cause": "Text records indexed splitlines output with HTMLParser LF-only source offsets.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "entry_scope": {
+            "html_selector": ".items",
+            "markdown_title_column": "Name",
+            "markdown_link_column": "Details"
+          }
+        }
+      },
+      "artifact": "Introduction\r\r| Name | Details |\r| --- | --- |\r| Widget | [Details](/outside/1) |",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-line-position-image-heading-cr-true",
+      "category": "structured-extraction",
+      "root_cause": "Text records indexed splitlines output with HTMLParser LF-only source offsets.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Introduction\r\r[![Widget](/poster.png)](/item/1)\r\r## Widget",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "record-line-position-image-heading-cr-false",
+      "category": "structured-extraction",
+      "root_cause": "Text records indexed splitlines output with HTMLParser LF-only source offsets.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Introduction\r\r[![Widget](/poster.png)](/outside/1)\r\r## Widget",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "record-line-position-html-cr-true",
+      "category": "structured-extraction",
+      "root_cause": "Text records indexed splitlines output with HTMLParser LF-only source offsets.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<div hidden><a href=\"/item/2\">Hidden</a></div>\r<p>Introduction</p>\r<a href=\"/item/1\">Widget</a>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "record-line-position-html-cr-false",
+      "category": "structured-extraction",
+      "root_cause": "Text records indexed splitlines output with HTMLParser LF-only source offsets.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "<div hidden><a href=\"/item/2\">Hidden</a></div>\r<p>Introduction</p>\r<a href=\"/outside/1\">Widget</a>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment-qualification-literal-ignored_labels-html-body-false-8",
+      "category": "reference-evidence",
+      "root_cause": "Historical comment qualification interpreted rendered scalar labels as Markdown while runtime uses literal text.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "**like**"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "<div class=\"comment\"><span class=\"author\">Reader</span><p class=\"text\">**like**</p></div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment-qualification-literal-ignored_labels-html-body-true-4",
+      "category": "reference-evidence",
+      "root_cause": "Historical comment qualification interpreted rendered scalar labels as Markdown while runtime uses literal text.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "**like**"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "<div class=\"comment\"><span class=\"author\">Reader</span><p class=\"text\">like</p></div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment-qualification-literal-ignored_labels-plain_text-body-false-8",
+      "category": "reference-evidence",
+      "root_cause": "Historical comment qualification interpreted rendered scalar labels as Markdown while runtime uses literal text.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "**like**"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "Comments\n\nReader: **like**",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment-qualification-literal-ignored_labels-plain_text-body-true-4",
+      "category": "reference-evidence",
+      "root_cause": "Historical comment qualification interpreted rendered scalar labels as Markdown while runtime uses literal text.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [
+              "**like**"
+            ],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "Comments\n\nReader: like",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment-qualification-literal-unavailable_notices-html-body-false-8",
+      "category": "reference-evidence",
+      "root_cause": "Historical comment qualification interpreted rendered scalar labels as Markdown while runtime uses literal text.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [],
+            "unavailable_notices": [
+              "_hidden_"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"comment\"><span class=\"author\">Reader</span><p class=\"text\">_hidden_</p></div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment-qualification-literal-unavailable_notices-html-body-true-6",
+      "category": "reference-evidence",
+      "root_cause": "Historical comment qualification interpreted rendered scalar labels as Markdown while runtime uses literal text.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [],
+            "unavailable_notices": [
+              "_hidden_"
+            ]
+          }
+        }
+      },
+      "artifact": "<div class=\"comment\"><span class=\"author\">Reader</span><p class=\"text\">hidden</p></div>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "comment-qualification-literal-unavailable_notices-plain_text-body-false-8",
+      "category": "reference-evidence",
+      "root_cause": "Historical comment qualification interpreted rendered scalar labels as Markdown while runtime uses literal text.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [],
+            "unavailable_notices": [
+              "_hidden_"
+            ]
+          }
+        }
+      },
+      "artifact": "Comments\n\nReader: _hidden_",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment-qualification-literal-unavailable_notices-plain_text-body-true-6",
+      "category": "reference-evidence",
+      "root_cause": "Historical comment qualification interpreted rendered scalar labels as Markdown while runtime uses literal text.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [],
+            "unavailable_notices": [
+              "_hidden_"
+            ]
+          }
+        }
+      },
+      "artifact": "Comments\n\nReader: hidden",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
     }
   ]
 }

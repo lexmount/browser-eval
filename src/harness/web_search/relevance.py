@@ -16,7 +16,7 @@ from urllib.parse import urlsplit
 
 from dotenv import dotenv_values
 from lexbench_websearch.relevance import candidate_packet, score, validate_source_rule_regressions
-from lexbench_websearch.rubric import JUDGE_PROMPT, known_prompt
+from lexbench_websearch.rubric import judge_prompt, known_prompt
 from lexbench_websearch.scoring import canonical_url
 
 from harness.web_fetch import config as runtime_config
@@ -471,6 +471,7 @@ def judge_main(argv=None):
         "--disable-thinking", action="store_true", help="Pass enable_thinking=false through Bifrost"
     )
     args = parser.parse_args(argv)
+    prompt = judge_prompt()
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", args.token_env):
         raise ValueError("Judge credential variable must be a valid environment variable name")
     if args.token_env not in {"SEARCH_JUDGE_API_KEY", "BIFROST_API_KEY"}:
@@ -506,7 +507,7 @@ def judge_main(argv=None):
         "packet_format": packet_format,
         "model": args.model,
         "base_url": args.base_url,
-        "prompt": JUDGE_PROMPT,
+        "prompt": prompt,
         "temperature": 0,
         "max_tokens": 8192,
         "response_format": {"type": "json_object"},
@@ -542,7 +543,7 @@ def judge_main(argv=None):
             "max_tokens": 8192,
             "response_format": {"type": "json_object"},
             "messages": [
-                {"role": "system", "content": JUDGE_PROMPT},
+                {"role": "system", "content": prompt},
                 {
                     "role": "user",
                     "content": json.dumps(judge_input(p), ensure_ascii=False, sort_keys=True),
@@ -688,7 +689,7 @@ def judge_main(argv=None):
         "judge": {
             "kind": "model",
             "name": args.model,
-            "prompt": JUDGE_PROMPT,
+            "prompt": prompt,
             "configuration": contract,
             "calls": calls,
         },

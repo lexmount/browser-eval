@@ -19,7 +19,7 @@ def release(track, cases, *, identity="sample", annotations=None):
                                 "files": {"tasks.json": binding["sha256"]}}]}
     options = {} if annotations is None else {"language_annotations": annotations}
     return DatasetRelease(track, "1" * 40, {"definitions/registry.json": encoded(registry),
-                          "definitions/./tasks.json" if track == "webfetch" else "definitions/tasks.json": raw},
+                          "definitions/tasks.json": raw},
                           **options)
 
 

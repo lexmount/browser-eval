@@ -331,6 +331,13 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
 ):
     suite_path = tmp_path / "suite.json"
     suite_path.write_text("{}")
+    import shutil
+
+    from harness.trajectory_replay.report_inputs import replay_fixture_root
+    shutil.copytree(replay_fixture_root(), suite_path.parent / "fixtures")
+    (suite_path.parent / "fixtures/core.html").write_text("Original historical core")
+    (suite_path.parent / "fixtures/nested").mkdir()
+    (suite_path.parent / "fixtures/nested/custom.js").write_text("window.historical = true;")
     smoke_path = tmp_path / "selected-smoke.json"
     smoke_raw = b'{"results":[{"status":"fail"}],"executed_at":"2026-09-01"}'
     smoke_path.write_bytes(smoke_raw)
@@ -403,9 +410,9 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
             )
         else:
             assert "agent_smoke" not in manifest
-        from harness.trajectory_replay.report_inputs import replay_fixture_root
-        fixture_root = replay_fixture_root()
-        assert len(manifest["fixture_files"]) == 8
+        fixture_root = suite_path.parent / "fixtures"
+        assert len(manifest["fixture_files"]) == 9
+        assert "nested/custom.js" in manifest["fixture_files"]
         for name, digest in manifest["fixture_files"].items():
             assert digest == hashlib.sha256((fixture_root / name).read_bytes()).hexdigest()
         assert len(attempts.splitlines()) == 2

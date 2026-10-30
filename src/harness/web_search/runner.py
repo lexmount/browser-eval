@@ -319,7 +319,7 @@ def collection_implementation():
         "harness/web_fetch/config.py", "harness/record_io.py", "uv.lock", "pyproject.toml",
         "harness/benchmarks/data.py", "harness/distribution.py",
     )
-    sources = {name: source_path(name, root=ROOT) for name in names}
+    sources = {name: implementation_source(name) for name in names}
     sources.update({"lexbench_websearch/" + name: path for name, path in benchmark_inputs.implementation_sources().items()})
     return {name: digest(source.read_bytes()) for name, source in sources.items()}
 
@@ -494,8 +494,17 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
         original_contract = json.loads((output / "run-contract.json").read_text())
         if original_contract["diagnostic"] != diagnostic:
             raise ValueError("Resume cannot change certification mode")
-        validate_resume_implementation(output, original_contract)
-        # Validate current sources before changing saved evidence.
+        if execution_revision:
+            # An explicit repair upgrades code only after the old bundle and inputs
+            # are verified; ordinary resumes must retain the live implementation.
+            verify_bundle(output / "implementation", [
+                {"path": name, "sha256": sha}
+                for name, sha in original_contract["implementation"].items()
+            ])
+            validate_resume_datasets(original_contract, output)
+        else:
+            validate_resume_implementation(output, original_contract)
+        # Validate frozen inputs before changing saved evidence.
         if not (output / "references-before.json").is_file():
             raise ValueError("Resume requires frozen references-before.json")
         before = json.loads((output / "references-before.json").read_text())

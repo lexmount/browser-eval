@@ -128,6 +128,7 @@ include = ["harness*", "lexbench_webfetch*", "lexbench_websearch*"]
 "harness.environments.webarena" = ["runtime/*.ini"]
 
 [tool.setuptools.data-files]
+"share/browser-harness-eval/provenance" = ["pyproject.toml", "uv.lock"]
 "share/browser-harness-eval" = ["configs/providers.headless.json"]
 "share/browser-harness-eval/webmainbench" = ["evaluation/webmainbench-full/scoring-regressions.json"]
 "share/browser-harness-eval/public-webarena" = ["evaluation/browser-use-public/adoption-evidence.json", "evaluation/browser-use-public/benchmark-catalog.json", "evaluation/browser-use-public/report-changes.json"]
