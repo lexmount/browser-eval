@@ -12,7 +12,7 @@
 
 </div>
 
-面向 AI Agent，评测浏览器与 Web 工具，覆盖内容抓取、搜索和浏览器轨迹重放。比较正确性、延迟、资源使用和已记录的成本，并可按需将保存的结果生成本地报告，下钻检查每一个结果，重建或分享报告。
+面向 AI Agent，评测浏览器与 Web 工具，覆盖内容抓取、搜索和Browser Trajectory Replay。比较正确性、延迟、资源使用和已记录的成本，并可按需将保存的结果生成本地报告，下钻检查每一个结果，重建或分享报告。
 
 ## 快速开始
 
@@ -38,7 +38,7 @@ uv run --frozen browser-harness-eval run --delay 0
 | --- | --- | --- |
 | Web Fetch | [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch)、[LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench)、[LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../src/harness/web_fetch/README.md) |
 | Web Search | [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search)：场景问题，以及 [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) 检索任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../src/harness/web_search/README.md) |
-| 轨迹重放 | [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) 固定场景、[自建固定动作任务](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay)使用显式断言；[WebArena 重放](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay)使用官方评测器 | [Headless 输入与上游运行器](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser#execute-with-the-original-runner) · [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
+| Browser Trajectory Replay | [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) 固定场景、[自建固定动作任务](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay)使用显式断言；[WebArena Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay)使用官方评测器 | [Headless 输入与上游运行器](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser#execute-with-the-original-runner) · [自建任务集](../examples/trajectory_replay/README.md) · [WebArena Replay](../examples/trajectory_replay/public_webarena/README.md) |
 
 可使用这些评测集，也可[接入自己的任务](benchmarks.md)。新的浏览器和工具通过已有[适配接口](provider-contract.md)接入。
 
@@ -79,7 +79,7 @@ flowchart LR
 
 相关性分级属于评分环节；按需复核则检查评分结果及其证据。
 
-### 浏览器轨迹重放
+### Browser Trajectory Replay
 
 #### Headless 场景与对比报告
 
@@ -137,7 +137,7 @@ flowchart LR
 
 2. **不引入 LLM 和 Agent 去执行评测过程**
 
-    Web Fetch、Web Search 直接调用被测工具；轨迹重放执行预先确定的动作，可用于检查浏览器兼容性或验证网站任务是否完成。让各个参与方按同样的任务约定执行，去掉额外的 LLM 决策和 Agent 规划这两个波动来源，并保留任务输入、代码版本和执行配置。
+    Web Fetch、Web Search 直接调用被测工具；Browser Trajectory Replay执行预先确定的动作，可用于检查浏览器兼容性或验证网站任务是否完成。让各个参与方按同样的任务约定执行，去掉额外的 LLM 决策和 Agent 规划这两个波动来源，并保留任务输入、代码版本和执行配置。
 
 3. **方便审查，可校验**
 
@@ -200,7 +200,7 @@ flowchart LR
 | [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | 已核验来源的冻结提取输入和参考答案 |
 | [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) | CDP、自动化驱动和 Web 平台的可执行任务；场景设计规格保留在原始文件中 |
 | [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | Browser Eval 自建的 30 个公网任务，包含固定动作和确定性验收条件 |
-| [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | 官方完整任务集；较小的轨迹重放版本保留为版本化原始输入 |
+| [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | 官方完整任务集；较小的Browser Trajectory Replay版本保留为版本化原始输入 |
 
 这 30 个公网轨迹任务由 Browser Eval 自建，部分交互设计借鉴了 Headless 的场景规格，没有导入 Headless 或 WebArena 的完整任务。任务文件固定了动作和预期输出，线上网页仍可能变化。
 
