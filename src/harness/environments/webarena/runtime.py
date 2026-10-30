@@ -10,7 +10,7 @@ import subprocess
 import tempfile
 import time
 from collections.abc import Iterator
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
@@ -260,7 +260,8 @@ def site_container_manager(site: WebArenaSite) -> ContainerManager:
     Rosetta while preserving the official image and site data.
     """
     config = get_container_config(site=site)
-    docker_arch = str(docker.from_env().info().get("Architecture") or "")
+    with closing(docker.from_env()) as client:
+        docker_arch = str(client.info().get("Architecture") or "")
     if site not in AMD64_PHP_SITES or docker_arch not in {"aarch64", "arm64"}:
         return ContainerManager(site=site, hostname="host.docker.internal")
     if not PHP_FPM_COMPAT_CONFIG.is_file():
@@ -288,10 +289,11 @@ def site_container_manager(site: WebArenaSite) -> ContainerManager:
 
 
 def verify_arm_php_compatibility(container_name: str) -> None:
-    container = docker.from_env().containers.get(container_name)
-    processes = container.exec_run(["ps", "-o", "pid,args"])
+    with closing(docker.from_env()) as client:
+        container = client.containers.get(container_name)
+        processes = container.exec_run(["ps", "-o", "pid,args"])
+        qemu = container.exec_run(["test", "-x", QEMU_X86_64_CONTAINER_PATH])
     process_table = processes.output.decode(errors="replace")
-    qemu = container.exec_run(["test", "-x", QEMU_X86_64_CONTAINER_PATH])
     if processes.exit_code != 0 or "/mnt/lima-rosetta/rosetta" not in process_table:
         raise RuntimeError("ARM Docker host must enable Rosetta for official amd64 site images")
     if qemu.exit_code != 0:
@@ -325,11 +327,12 @@ def ensure_site(site: WebArenaSite, *, reset: bool) -> None:
     )
     if not ready.success:
         raise RuntimeError(f"{site.value} did not become ready: {ready.message}")
-    container = docker.from_env().containers.get(manager.container_name)
-    if site == WebArenaSite.GITLAB:
-        wait_container_healthy(container)
-    if site in {WebArenaSite.SHOPPING, WebArenaSite.SHOPPING_ADMIN}:
-        wait_magento_dependencies_ready(container)
+    with closing(docker.from_env()) as client:
+        container = client.containers.get(manager.container_name)
+        if site == WebArenaSite.GITLAB:
+            wait_container_healthy(container)
+        if site in {WebArenaSite.SHOPPING, WebArenaSite.SHOPPING_ADMIN}:
+            wait_magento_dependencies_ready(container)
     wait_application_ready(site, manager.config.health_check_path)
     if QEMU_X86_64_HOST_PATH in manager.config.volumes:
         verify_arm_php_compatibility(manager.container_name)
@@ -607,9 +610,9 @@ def login_context(
 
     def login() -> None:
         context = service._context
-        assert context is not None
         primary_page = service._page
-        assert primary_page is not None
+        if context is None or primary_page is None:
+            raise RuntimeError("browser service has no active context and page before login")
         for existing_page in context.pages:
             if existing_page != primary_page:
                 existing_page.close()
