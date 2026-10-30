@@ -12,7 +12,7 @@
 
 </div>
 
-面向 AI Agent，评测浏览器与 Web 工具，覆盖内容抓取、搜索、浏览器兼容性和固定轨迹重放。比较正确性、延迟、资源使用和已记录的成本，并可按需将保存的结果生成本地报告，下钻检查每一个结果，重建或分享报告。
+面向 AI Agent，评测浏览器与 Web 工具，覆盖内容抓取、搜索和浏览器轨迹重放。比较正确性、延迟、资源使用和已记录的成本，并可按需将保存的结果生成本地报告，下钻检查每一个结果，重建或分享报告。
 
 ## 快速开始
 
@@ -38,8 +38,7 @@ uv run --frozen browser-harness-eval run --delay 0
 | --- | --- | --- |
 | Web Fetch | [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch)、[LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench)、[LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../src/harness/web_fetch/README.md) |
 | Web Search | [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search)：场景问题，以及 [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) 检索任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../src/harness/web_search/README.md) |
-| 浏览器兼容性 | [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser)：CDP、驱动及本地页面的 Web 平台行为 | [固定输入与原始运行器](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser#execute-with-the-original-runner) |
-| 轨迹重放 | [自建固定动作任务](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay)使用显式断言；[WebArena 重放](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay)使用官方评测器 | [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
+| 轨迹重放 | [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) 固定场景、[自建固定动作任务](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay)使用显式断言；[WebArena 重放](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay)使用官方评测器 | [Headless 输入与上游运行器](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser#execute-with-the-original-runner) · [自建任务集](../examples/trajectory_replay/README.md) · [WebArena 重放](../examples/trajectory_replay/public_webarena/README.md) |
 
 可使用这些评测集，也可[接入自己的任务](benchmarks.md)。新的浏览器和工具通过已有[适配接口](provider-contract.md)接入。
 
@@ -80,22 +79,22 @@ flowchart LR
 
 相关性分级属于评分环节；按需复核则检查评分结果及其证据。
 
-### 浏览器兼容性
+### 浏览器轨迹重放
 
-LexBench-Headless-Browser 在本地测试页面上执行预先定义的兼容性检查，覆盖 CDP、自动化驱动和 Web 平台行为。其原始运行器负责执行和评分；轨迹重放使用另一组固定动作完成网站任务。
+#### Headless 场景与对比报告
+
+Headless 通过在本地测试页面上回放固定场景，检查浏览器和驱动的兼容性。已有对比的任务执行与评分由上游运行器负责，Browser Eval 读取结果生成报告。原版 benchmark 还包含单项 CDP 和 Web 平台探针，并非每个任务都是多步轨迹。
 
 ```mermaid
 flowchart LR
-    A["本地测试页面<br/>固定任务与驱动配置"]:::input --> B["执行 CDP 或驱动命令"]:::run
+    A["本地测试页面<br/>固定场景与驱动配置"]:::input --> B["通过上游驱动<br/>回放固定动作"]:::run
     B --> C["保存响应与测量数据"]:::evidence
-    C --> D["任务内置检查<br/>按子集记录诊断结果"]:::score
+    C --> D["任务内置检查<br/>记录兼容性结果"]:::score
     classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
     classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
     classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
     classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
 ```
-
-### 浏览器轨迹重放
 
 #### WebArena
 
@@ -138,7 +137,7 @@ flowchart LR
 
 2. **不引入 LLM 和 Agent 去执行评测过程**
 
-    Web Fetch、Web Search 直接调用被测工具；兼容性测试执行固定检查；轨迹重放执行固定动作。让各个参与方按同样的任务约定执行，去掉额外的 LLM 决策和 Agent 规划这两个波动来源，并保留任务输入、代码版本和执行配置。
+    Web Fetch、Web Search 直接调用被测工具；轨迹重放执行预先确定的动作，可用于检查浏览器兼容性或验证网站任务是否完成。让各个参与方按同样的任务约定执行，去掉额外的 LLM 决策和 Agent 规划这两个波动来源，并保留任务输入、代码版本和执行配置。
 
 3. **方便审查，可校验**
 

@@ -10,7 +10,6 @@ Browser Eval owns scoring, execution, evidence handling and local report generat
 | --- | --- | --- |
 | Web Search | `src/harness/web_search/` | [Search guide](../src/harness/web_search/README.md) |
 | Web Fetch | `src/harness/web_fetch/` | [Web Fetch guide](../src/harness/web_fetch/README.md), [frozen HTML comparisons](../src/harness/web_fetch/HEADLESS.md) |
-| Browser compatibility | Upstream Headless runner; retained comparisons in `src/harness/lexbench/` | [Pinned inputs and original runner](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser#execute-with-the-original-runner) |
 | Browser Trajectory Replay | `src/harness/trajectory_replay/` | [Fixed-action examples](../examples/trajectory_replay/README.md) |
 | Browser Use | `src/harness/browser_use/` | [Autonomous Agent examples](../examples/browser_use/README.md) |
 
@@ -19,10 +18,12 @@ Public WebArena human-recording replay is isolated under
 contract](../examples/trajectory_replay/public_webarena/README.md).
 The curated replay tasks also record [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) as a scenario design source.
 The original CDP and driver inputs are versioned in [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser), with execution supplied by that upstream runtime.
-Headless runs predefined compatibility probes and Web-platform checks on local
-fixtures. Its tasks differ from the fixed website actions used for trajectory
-replay. `src/harness/lexbench/` adapts retained comparisons; execution and grading
-remain owned by the pinned upstream runtime.
+Headless fixed-action scenarios are replayed by the upstream runner on local
+fixtures to assess browser/driver compatibility. The upstream
+benchmark also contains individual protocol and Web-platform probes.
+`src/harness/lexbench/` builds retained comparison reports from upstream results;
+it does not add an in-tree compatibility runner. Compatibility is an evaluation
+goal of these workloads, rather than a separate Browser Eval track.
 
 ## Data flow
 

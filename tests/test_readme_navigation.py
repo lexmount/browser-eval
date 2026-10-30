@@ -35,8 +35,6 @@ def test_every_selected_dataset_has_an_evaluation_workflow(name, heading):
     linked = set(re.findall(r'https://huggingface.co/datasets/(Lexmount/LexBench-[\w-]+)', '\n'.join(rows)))
     lock = json.loads((root / 'src/harness/benchmarks/data-lock.json').read_text())
     assert linked == {dataset['repository'] for dataset in lock['datasets'].values()}
-    compatibility = next(row for row in rows if '/LexBench-Headless-Browser)' in row)
-    assert '/LexBench-Trajectory-Replay)' not in compatibility
 
 
 @pytest.mark.parametrize('text', [

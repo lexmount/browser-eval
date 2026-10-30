@@ -12,7 +12,7 @@
 
 </div>
 
-Benchmark browsers and Web tools for AI agents through fetching, search, browser compatibility tests and fixed trajectory replay. Compare correctness, latency, resource use and recorded cost. Optionally turn saved results into local reports you can inspect, rebuild and share, with drilldown to every individual result.
+Benchmark browsers and Web tools for AI agents through Web Fetch, Web Search and Browser Trajectory Replay. Compare correctness, latency, resource use and recorded cost. Optionally turn saved results into local reports you can inspect, rebuild and share, with drilldown to every individual result.
 
 ## Quickstart
 
@@ -38,8 +38,7 @@ Choose a workflow for its task contract, setup and runnable example.
 | --- | --- | --- |
 | Web Fetch | [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch), [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench), [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | [Local example](examples/web_fetch/README.md) · [Full guide](src/harness/web_fetch/README.md) |
 | Web Search | [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search): scenario queries and [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) retrieval tasks | [Local example](examples/web_search/README.md) · [Full guide](src/harness/web_search/README.md) |
-| Browser compatibility | [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser): CDP, driver and Web-platform behavior on local fixtures | [Pinned inputs and original runner](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser#execute-with-the-original-runner) |
-| Browser Trajectory Replay | [Curated fixed-action tasks](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) with explicit checks; [WebArena replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) with the official evaluator | [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
+| Browser Trajectory Replay | [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) scenarios; [curated fixed-action tasks](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) with explicit checks; [WebArena replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) with the official evaluator | [Headless inputs and upstream runner](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser#execute-with-the-original-runner) · [Curated suite](examples/trajectory_replay/README.md) · [WebArena replay](examples/trajectory_replay/public_webarena/README.md) |
 
 Use these suites or [bring your own tasks](docs/benchmarks.md). Add browsers and tools through the existing [adapter contracts](docs/provider-contract.md).
 
@@ -80,22 +79,22 @@ flowchart LR
 
 Relevance grading is scoring; optional verification reviews the resulting evidence and scores.
 
-### Browser compatibility
+### Browser Trajectory Replay
 
-LexBench-Headless-Browser runs predefined compatibility checks on local fixtures, covering CDP, drivers and Web platform behavior. Its original runner owns execution and grading; trajectory replay uses separate fixed-action tasks to complete website goals.
+#### Headless scenarios and comparison reports
+
+Headless scenario replay checks browser/driver compatibility on local fixtures. For retained Headless comparisons, the upstream runner owns execution and grading; Browser Eval builds reports from its results. The original benchmark also contains individual CDP and Web-platform probes, so not every task is a multi-step trajectory.
 
 ```mermaid
 flowchart LR
-    A["Local fixtures<br/>Fixed tasks and driver bindings"]:::input --> B["Run CDP or<br/>driver commands"]:::run
+    A["Local fixtures<br/>Fixed scenarios and driver bindings"]:::input --> B["Replay fixed actions<br/>through upstream drivers"]:::run
     B --> C["Save responses<br/>and measurements"]:::evidence
-    C --> D["Inline checks<br/>Subset-specific diagnostics"]:::score
+    C --> D["Inline checks<br/>Compatibility results"]:::score
     classDef input fill:#eff6ff,stroke:#60a5fa,color:#1e3a8a
     classDef run fill:#f5f3ff,stroke:#a78bfa,color:#4c1d95
     classDef evidence fill:#f0fdf4,stroke:#4ade80,color:#14532d
     classDef score fill:#fffbeb,stroke:#fbbf24,color:#78350f
 ```
-
-### Browser Trajectory Replay
 
 #### WebArena
 
@@ -138,7 +137,7 @@ Browser Eval aims for stable, reproducible results and a controlled, trustworthy
 
 2. **Do not introduce LLMs or Agents to execute the evaluation**
 
-    Web Fetch and Web Search call tools directly; compatibility tests run fixed probes; trajectory replay follows fixed actions. Participants follow the same task contracts, avoiding extra variation from LLM decisions and Agent planning. Each run retains its task inputs, code revisions and execution settings.
+    Web Fetch and Web Search call tools directly; trajectory replay follows predetermined actions to check browser compatibility or website task completion. Participants follow the same task contracts, avoiding extra variation from LLM decisions and Agent planning. Each run retains its task inputs, code revisions and execution settings.
 
 3. **Make results easy to review and verify**
 
