@@ -529,24 +529,24 @@ def main() -> None:
     parser.add_argument("--revision", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--tooling-revision", help="Full Browser Eval commit for executable examples and code links")
-    parser.add_argument("--publish", metavar="HF_REPOSITORY", help="Open a Hugging Face pull request for the built dataset")
+    parser.add_argument("--create-pr", metavar="HF_REPOSITORY", help="Open a Hugging Face pull request for the built dataset")
     args = parser.parse_args()
     release = DatasetRelease.from_git(args.checkout, args.track, args.revision)
     if args.tooling_revision is not None:
         release = replace(release, tooling_revision=args.tooling_revision)
     result = release.build(args.output)
     print(json.dumps({"track": result["track"], "source_revision": result["source_revision"], "archive": result["archive"]}))
-    if args.publish:
+    if args.create_pr:
         from huggingface_hub import HfApi
         api = HfApi()
-        info = api.repo_info(repo_id=args.publish, repo_type="dataset")
+        info = api.repo_info(repo_id=args.create_pr, repo_type="dataset")
         current = {p.relative_to(args.output).as_posix() for p in args.output.rglob("*") if p.is_file()}
         removed = [p.rfilename for p in info.siblings if p.rfilename not in current and p.rfilename != ".gitattributes"]
-        commit = api.upload_folder(repo_id=args.publish, repo_type="dataset", folder_path=args.output,
+        commit = api.upload_folder(repo_id=args.create_pr, repo_type="dataset", folder_path=args.output,
                                    parent_commit=info.sha, delete_patterns=removed,
                                    create_pr=True,
                                    commit_message="Publish verified " + args.track + " definitions")
-        print(json.dumps({"repository": args.publish, "revision": commit.oid,
+        print(json.dumps({"repository": args.create_pr, "revision": commit.oid,
                           "pull_request": commit.pr_url, "state": "review_pending"}))
 
 

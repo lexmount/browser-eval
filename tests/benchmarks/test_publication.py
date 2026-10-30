@@ -298,7 +298,7 @@ def test_publish_opens_a_review_pr_without_updating_main_or_creating_tags(tmp_pa
 
     monkeypatch.setitem(sys.modules, 'huggingface_hub', SimpleNamespace(HfApi=ReviewApi))
     monkeypatch.setattr(sys, 'argv', ['publication', '--checkout', str(root), '--track', 'websearch',
-        '--revision', revision, '--output', str(output), '--publish', 'Lexmount/Test-Dataset'])
+        '--revision', revision, '--output', str(output), '--create-pr', 'Lexmount/Test-Dataset'])
     publication.main()
     result = json.loads(capsys.readouterr().out.splitlines()[-1])
     assert len(calls) == 1
