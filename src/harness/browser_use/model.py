@@ -147,9 +147,6 @@ class OpenAIResponsesModel:
         self.request_attempt_count = 0
         self.transport_errors = []
 
-    def _normalized_reasoning_effort(self) -> str:
-        return self.reasoning_effort
-
     def verify_access(self) -> None:
         """Fail before benchmark attempts if the configured project cannot access the model."""
         response = self.session.get(
@@ -259,7 +256,3 @@ class OpenAIResponsesModel:
         self._previous_response_id = response_id
         self._seen_messages = message_snapshot
         yield response_to_chat_chunk(self.last_response)
-
-
-# Compatibility for callers created before the pilot allowed a non-Astra smoke model.
-AstraResponsesModel = OpenAIResponsesModel

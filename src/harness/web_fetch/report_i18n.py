@@ -600,20 +600,6 @@ class Localizer(HTMLParser):
         self.parts.append(f"<!--{data}-->")
 
 
-_VISIBLE_ATTRIBUTE = re.compile(
-    r'(?P<prefix>\b(?:alt|aria-label|placeholder|title)=)(?P<quote>["\'])(?P<value>.*?)(?P=quote)',
-    re.S,
-)
-
-
-def _translate_visible_attributes(start_tag: str) -> str:
-    def replace(match: re.Match) -> str:
-        value = html.unescape(match.group("value"))
-        translated = html.escape(translate_text(value), quote=True)
-        return match.group("prefix") + match.group("quote") + translated + match.group("quote")
-    return _VISIBLE_ATTRIBUTE.sub(replace, start_tag)
-
-
 class EnglishNarrativeAudit(HTMLParser):
     """Find CJK left in UI/prose while excluding preserved measured evidence."""
 

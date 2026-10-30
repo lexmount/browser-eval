@@ -58,6 +58,11 @@ SITE_AUTH_HEADERS = {
 }
 
 
+# The official all-in-one shopping image restores Magento, MariaDB and
+# Elasticsearch before env-ctrl declares the fixture ready. On Colima/QEMU this
+# repeatedly exceeded the package example's 180-second default despite becoming
+# healthy shortly afterwards. A longer ceiling changes no measured task time;
+# it only keeps environment preparation from aborting a formal cohort.
 ENV_CTRL_READY_TIMEOUT_SECONDS = 600
 
 

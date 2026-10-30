@@ -63,11 +63,6 @@ from harness.resource_accounting import (
 ENGINE_IMAGES = configured_browser_images()
 
 SCHEMA = "lex_browser_use_attempt/1"
-# The official all-in-one shopping image restores Magento, MariaDB and
-# Elasticsearch before env-ctrl declares the fixture ready. On Colima/QEMU this
-# repeatedly exceeded the package example's 180-second default despite becoming
-# healthy shortly afterwards. A longer ceiling changes no measured task time;
-# it only keeps environment preparation from aborting a formal cohort.
 
 
 def _load_repo_env(repo_root: Path) -> dict[str, str]:
