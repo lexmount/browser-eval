@@ -1,4 +1,4 @@
-"""URL-only hosted Markdown retrieval; no Agent or browser-session fallback."""
+"""URL-only hosted native retrieval; no Agent or browser-session fallback."""
 from __future__ import annotations
 
 import base64
@@ -9,7 +9,7 @@ from lexbench_webfetch.models import EvalCase
 from harness.record_io import parse_utf8_json
 from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.native_routes import NativeRoute
-from harness.web_fetch.native_projection import native_answer_projection
+from harness.web_fetch.native_projection import native_answer_projection, project_native_files
 from harness.web_fetch.network_dns import public_dns_context, validate_dns_mode
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.providers.http_client import inner_timeout_budget, request
@@ -44,7 +44,11 @@ class HostedFetchProvider(Provider):
         fields = {'brightdata_unlocker': ('response_body',), 'browser_use_fetch': ('body', 'final_url'),
                   'browserbase_fetch': ('content',), 'deepseek_fetch': ('content', 'title'),
                   'crawl4ai_cloud': ('markdown',)}
-        return NativeRoute('http', ENDPOINTS[self.type], fields[self.type])
+        answer_fields = (('original_bytes',) if self.type == 'brightdata_unlocker' and case.task_kind == 'file'
+                         else fields[self.type])
+        if case.task_kind == 'file' and self.type == 'browser_use_fetch':
+            answer_fields = (*answer_fields, 'body_base64')
+        return NativeRoute('http', ENDPOINTS[self.type], answer_fields)
 
     def validate(self) -> list[str]:
         errors = [] if self.config.get("api_key") else ["api_key"]
@@ -79,7 +83,9 @@ class HostedFetchProvider(Provider):
         body: dict = {"url": case.url}
         if self.type == "brightdata_unlocker":
             headers = {"Authorization": f"Bearer {key}"}
-            body.update(zone=self.config["zone"], format="raw", data_format="markdown")
+            body.update(zone=self.config["zone"], format="raw")
+            if case.task_kind != "file":
+                body["data_format"] = "markdown"
             # Native Web Unlocker option, applied uniformly from the declared
             # config. It adds no caller-side browser, wait, or follow-up fetch.
             if "render" in self.config:
@@ -88,7 +94,7 @@ class HostedFetchProvider(Provider):
                 body["debug"] = self.config["debug"]
         elif self.type == "browserbase_fetch":
             headers = {"X-BB-API-Key": key}
-            body.update(format=output_format, allowRedirects=True,
+            body.update(format="raw" if case.task_kind == "file" else output_format, allowRedirects=True,
                         proxies=self.config.get("proxies", True))
         elif self.type == "crawl4ai_cloud":
             headers = {"Authorization": f"Bearer {key}"}
@@ -106,16 +112,21 @@ class HostedFetchProvider(Provider):
 
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
-        if case.task_kind not in {"body", "structure"}:
+        if case.task_kind not in {"body", "structure", "resource", "file"}:
             return ProviderResult(False, "", error_type="unsupported_task",
-                                  error_message="This adapter supports body and structure delivery only")
+                                  error_message="This adapter does not recognize the task kind")
         # Direct diagnostic invocations also get a fresh session.
         if self.type == "browser_use_fetch":
             self.begin_call()
         budget = inner_timeout_budget(timeout, native_default=True)
         endpoint, arguments = self.native_http_arguments(case, budget)
         body = arguments['json_body']
-        output_format = self.config.get("output_format", "markdown")
+        output_format = ("raw" if case.task_kind == "file" and self.type in {"browserbase_fetch", "brightdata_unlocker"}
+                         else self.config.get("output_format", "markdown"))
+        file_task = case.task_kind == "file"
+        native_file_delivery = file_task and self.type in {
+            "brightdata_unlocker", "browserbase_fetch", "browser_use_fetch"}
+        files = []
         dns_mode = self.config.get("dns_mode", "system")
         with public_dns_context(dns_mode, budget) as dns_trace:
             response = self.native_http_request(case, request, endpoint,
@@ -137,10 +148,18 @@ class HostedFetchProvider(Provider):
         malformed = False
         service_error = False
         if self.type == "brightdata_unlocker":
-            try:
-                content = response.body.decode("utf-8") if api_ok else ""
-            except UnicodeDecodeError:
-                malformed = True
+            if native_file_delivery:
+                # Web Unlocker raw returns the native unmodified response. Do
+                # not decode, re-download, or manufacture the requested file.
+                content_type = next((v for k, v in response.headers.items()
+                                     if k.lower() == 'content-type'), None)
+                files = [{'data': response.body, 'target_url': case.url,
+                          'source_url': case.url, 'content_type': content_type}] if api_ok and response.body else []
+            else:
+                try:
+                    content = response.body.decode("utf-8") if api_ok else ""
+                except UnicodeDecodeError:
+                    malformed = True
             metadata["native_answer_projection"] = native_answer_projection(
                 self.type, case, {}, response.status)
             metadata["upstream_http_status_available"] = False
@@ -155,7 +174,7 @@ class HostedFetchProvider(Provider):
                 if self.type == "browserbase_fetch":
                     content = payload.get("content")
                     status = _http_status(payload.get("statusCode", payload.get("status_code")))
-                    service_error = payload.get("encoding") == "base64" or bool(payload.get("error"))
+                    service_error = (payload.get("encoding") == "base64" and not native_file_delivery) or bool(payload.get("error"))
                 elif self.type == "crawl4ai_cloud":
                     content = payload.get("markdown")
                     status = _http_status(payload.get("origin_status"))
@@ -171,11 +190,23 @@ class HostedFetchProvider(Provider):
                     content = payload.get("body")
                     status = _http_status(payload.get("status_code"))
                     final_url = payload.get("final_url") if isinstance(payload.get("final_url"), str) else None
-                    service_error = bool(payload.get("error")) or bool(payload.get("is_binary"))
+                    service_error = bool(payload.get("error")) or (bool(payload.get("is_binary")) and not native_file_delivery)
                 metadata["request_id"] = payload.get("id") if isinstance(payload.get("id"), str) else None
                 malformed = (not isinstance(content, str) or
                              (not isinstance(title, str) if self.type == "deepseek_fetch" else
                               False if self.type == "crawl4ai_cloud" else status is None))
+                if native_file_delivery:
+                    declaration = native_answer_projection(self.type, case, payload, response.status, interface=output_format)
+                    file_bytes = project_native_files(payload, declaration)
+                    binary = payload.get('is_binary') is True if self.type == 'browser_use_fetch' else payload.get('encoding') == 'base64'
+                    file_field = 'body_base64' if binary and self.type == 'browser_use_fetch' else 'body' if self.type == 'browser_use_fetch' else 'content'
+                    raw_file = payload.get(file_field)
+                    malformed = status is None or not isinstance(raw_file, str) or (bool(raw_file) and not file_bytes and api_ok and not service_error)
+                    headers = payload.get('headers') if isinstance(payload.get('headers'), dict) else {}
+                    content_type = payload.get('contentType') or next((v for k, v in headers.items() if k.lower() == 'content-type'), None)
+                    files = [{'data': data, 'target_url': case.url, 'source_url': final_url or case.url,
+                              'content_type': content_type} for data in file_bytes]
+                    content = ''
                 content = content if isinstance(content, str) else ""
                 if self.type == "deepseek_fetch" and isinstance(payload.get("error"), dict):
                     metadata["service_error"] = payload["error"]
@@ -191,11 +222,11 @@ class HostedFetchProvider(Provider):
         elif service_error:
             error_type, message = "api_error", "Fetch service reported an error or binary output; inspect retained response"
         elif malformed:
-            error_type, message = "invalid_response", "Fetch API returned an invalid text response envelope"
+            error_type, message = "invalid_response", "Fetch API returned an invalid response envelope"
         elif status is not None and not 200 <= status < 300:
             error_type, message = "http_error", f"Target page returned HTTP {status}"
-        elif not content.strip():
-            error_type, message = "empty_content", "Fetch API returned empty Markdown"
+        elif not (files if native_file_delivery else content.strip()):
+            error_type, message = "empty_content", "Fetch API returned empty file" if native_file_delivery else "Fetch API returned empty Markdown"
         else:
             error_type = message = None
         if self.type != "brightdata_unlocker" and isinstance(payload, dict):
@@ -210,9 +241,12 @@ class HostedFetchProvider(Provider):
             metadata["render"] = self.config.get("render")
         if self.type == "browser_use_fetch":
             metadata["proxy_country"] = body["proxy_country"]
+        if file_task:
+            metadata['native_file_delivery'] = native_file_delivery
+            metadata['file_bytes_delivered'] = sum(len(item['data']) for item in files)
         metadata['upstream_status'] = status
         return ProviderResult(
             ok=error_type is None, content=content, status_code=status,
             final_url=final_url, title=title if isinstance(title, str) else None,
-            error_type=error_type, error_message=message, metadata=metadata,
+            error_type=error_type, error_message=message, metadata=metadata, files=files,
         )

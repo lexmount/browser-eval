@@ -50,7 +50,7 @@ from harness.web_fetch.adjudication_evidence import adjudication_reason
 from harness.web_fetch.failure_diagnosis import diagnose
 from harness.web_fetch.methods import (
  ROUTE_LABELS,
- browser_method_label,
+ browser_method_label as _catalog_browser_method_label,
  browser_method_registry,
  is_browser_comparison,
  method_access,
@@ -63,7 +63,7 @@ from harness.web_fetch.methods import (
  versioned_method_label,
  with_measured_method_labels,
 )
-from harness.web_fetch.models import REPORT_FAMILIES, execution_id, report_family
+from harness.web_fetch.models import REPORT_FAMILIES, execution_id, report_family as task_report_family
 from harness.web_fetch.publication_privacy import (
  project_evidence_view,
  public_render_views,
@@ -423,10 +423,27 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
    page(lang,f'cases/{case}.html',case,body)
  write_language_contract(out, include_english=include_english)
 
+_REPORT_PROVIDER_LABELS = ContextVar("webfetch_report_provider_labels", default={})
+
+def browser_method_label(name, *, language="zh"):
+ label = _REPORT_PROVIDER_LABELS.get().get(name)
+ return label if label is not None else _catalog_browser_method_label(name, language=language)
+
 def provider_label(name):
  return browser_method_label(name)
 
+# Report-only grouping leaves execution tracks and acceptance fields untouched.
+_REPORT_SUITES = ContextVar('webfetch_report_suites', default=())
+
+def report_family(case):
+ for suite in _REPORT_SUITES.get():
+  if case['id'] in suite['case_ids']:
+   return suite['id']
+ return task_report_family(case)
+
 def case_track_label(case):
+ for suite in _REPORT_SUITES.get():
+  if case['id'] in suite['case_ids']:return esc(suite['label'])
  family=report_family(case)
  if family in {'web_media','media_file'}:return REPORT_FAMILIES[family]
  if case.get('track','web')=='web':
@@ -435,6 +452,8 @@ def case_track_label(case):
 REPORT_TRACKS = {key: TRACKS[key] for key in ('web', 'dynamic', 'challenge', 'risk_control', 'document', 'image', 'video')}
 
 def active_tracks(cases):
+ if _REPORT_SUITES.get():
+  return [(s['id'],s['label']) for s in _REPORT_SUITES.get() if set(s['case_ids']) & set(cases)]
  rows=[]
  for key,label in REPORT_FAMILIES.items():
   selected=[c for c in cases.values() if report_family(c)==key]
@@ -1270,12 +1289,17 @@ def generate_public_benchmark_research(out:Path,research:dict,*,include_english:
  return out/'index.html'
 
 def succeeded(r,c):
+ if r.get('report_invocation_status') == 'adapter_rejected':return False
  return task_passed(r['ok'],r['metrics'],c.get('task_kind','body'))
 
 def measured(r,c):
+ if r.get('report_invocation_status') == 'adapter_rejected':return False
  return task_measured(r['metrics'],c.get('task_kind','body'))
 
 def result_label(r,c):
+ if r.get('report_invocation_status') == 'adapter_rejected':
+  from harness.web_fetch.report_saved_matrix_i18n import ZH
+  return ZH['adapter_rejected']
  if r['metrics'].get('evaluation_excluded'):return '排除比较'
  if not measured(r,c):return '无法判定'
  state='通过' if succeeded(r,c) else '未通过'
@@ -1675,6 +1699,7 @@ def stable_anchor_evidence(metrics,output):
  return note+f'<div class="anchor-grid"{scroll}>'+''.join(cards)+'</div>'
 
 def failure_category(r,c):
+ if r.get('report_invocation_status') == 'adapter_rejected':return result_label(r,c)
  if r['metrics'].get('evaluation_excluded'):return '评测环境异常：统一排除比较'
  if not measured(r,c):return '无法判定：最终网页身份缺少证据' if r['metrics'].get('page_identity_required') and r['metrics'].get('page_identity_status')=='unavailable' else '未测：缺少验收证据'
  if succeeded(r,c):return '—'
@@ -1734,6 +1759,9 @@ def stable_failure_summary(metrics):
  return '；'.join(parts) or '稳定文字或记录结构没有满足任务要求'
 
 def reason(r,c):
+ if r.get('report_invocation_status') == 'adapter_rejected':
+  from harness.web_fetch.report_saved_matrix_i18n import ZH
+  return ZH['adapter_rejected_note']
  if r['metrics'].get('evaluation_excluded'):
   return r['metrics']['evaluation_exclusion_reason']
  if not measured(r,c):
@@ -1802,6 +1830,7 @@ def stable_checks(m):
  return content+record_table+('<p>未通过原因：'+esc(stable_failure_summary(m))+'。</p>' if m.get('stable_task_errors') else '')
 
 def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagnostic=False):
+ if _REPORT_SUITES.get():return saved_suite_ranking(records,cases,track,base=base,id=id)
  excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
  records=[r for r in records if not r['metrics'].get('evaluation_excluded')]
  title_scope=track=='challenge' and any('title_quality' in r for r in records if report_family(cases[r['case_id']])==track)
@@ -2025,31 +2054,37 @@ def input_suite_comparison(dataset, cases, records):
   'input-suite-comparison-section')
 
 
-def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seconds=None):
+def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seconds=None,final_call_timing=False):
  excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
  records=[r for r in records if not r['metrics'].get('evaluation_excluded')]
  cases={k:c for k,c in cases.items() if k not in excluded}
  has_unknown=any(not measured(r,cases[r["case_id"]]) for r in records)
+ has_not_called=any(r.get('report_invocation_status') == 'adapter_rejected' for r in records)
  groups=defaultdict(list)
  for r in records:groups[r['provider']].append(r)
  rows=[]
  for name,rs in groups.items():
   n=sum(measured(r,cases[r['case_id']]) for r in rs)
   passed=sum(succeeded(r,cases[r['case_id']]) for r in rs)
-  values=cell(link(f'providers/{name}.html',provider_label(name),browser_method_label(name,language='en')))+cell(rate(sum(bool(r['ok']) for r in rs),len(rs)),sum(bool(r['ok']) for r in rs)/len(rs))+cell(rate(passed,n)+(f'<br><small>{passed}/{n}</small>' if has_unknown else ''),passed/n if n else -1)
+  called=[r for r in rs if r.get('report_invocation_status') != 'adapter_rejected']
+  request_success=sum(bool(r['ok']) for r in called)
+  values=cell(link(f'providers/{name}.html',provider_label(name),browser_method_label(name,language='en')))+cell(rate(request_success,len(called)),request_success/len(called) if called else -1)+cell(rate(passed,n)+(f'<br><small>{passed}/{n}</small>' if has_unknown else ''),passed/n if n else -1)
   if has_unknown:values+=cell(str(len(rs)-n))
   for track,_ in active_tracks(cases):
    subset=[r for r in rs if report_family(cases[r['case_id']])==track and measured(r,cases[r['case_id']])]
    values+=cell(f'{sum(succeeded(r,cases[r["case_id"]]) for r in subset)}/{len(subset)}',sum(succeeded(r,cases[r['case_id']]) for r in subset)/len(subset) if subset else -1)
-  times=[r['elapsed_ms'] for r in rs]
-  values+=cell(ms(statistics.mean(times)),statistics.mean(times))
+  times=[r['elapsed_ms'] for r in called]
+  mean_time=statistics.mean(times) if times else None
+  values+=cell(ms(mean_time),mean_time)
   values+=cell(ms(percentile(times,.5)),percentile(times,.5))
   values+=cell(ms(percentile(times,.95)),percentile(times,.95))
   if audit:values+=review_cell(audit,rs)
   rows.append((passed/n if n else -1,name,('',values)))
  rows=[row for _,_,row in sorted(rows,key=lambda x:(-x[0],x[1]))]
  tracks=active_tracks(cases)
- heads=['方法','请求成功率','综合任务通过率']+(['无法判定'] if has_unknown else [])+[label for _,label in tracks]+['总耗时均值','总耗时 P50','总耗时 P95']
+ from harness.web_fetch.report_saved_matrix_i18n import ZH as saved_timing
+ timing_heads=saved_timing['final_call_timing_headers'] if final_call_timing else ['总耗时均值','总耗时 P50','总耗时 P95']
+ heads=['方法','请求成功率','综合任务通过率']+(['无法判定（含未调用）' if has_not_called else '无法判定'] if has_unknown else [])+[label for _,label in tracks]+timing_heads
  if audit:heads+=['审查结果']
  case_count=len(cases);track_count=len(tracks);track_label=track_count_label(track_count)
  if case_count==150 and track_count==6:
@@ -2058,18 +2093,23 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
   intro=(f'<p class="decision-lead"><b>总榜口径：</b>每种方法都执行当前评测集计划的 {case_count} 个任务，每题计一次通过或失败，直接相加；耗时单列展示，不参与通过率排序。总榜适合看整体交付覆盖，具体能力仍应回到 {track_label} 个分榜。</p>')
  if has_unknown:
   intro=f'<p class="decision-lead"><b>总榜口径：</b>每种方法都调用同一组 {case_count} 个任务。通过率为通过数 / 可判定数；无法判定数量另列，不计入通过数或失败数。各方法可判定分母不同，比例只是已能验收的范围，不能代表全部任务的确定通过率。耗时不参与通过率排序。</p>'
+ if any(len(rs)!=len(cases) for rs in groups.values()):
+  intro='<p class="decision-lead"><b>总榜口径：</b>本轮尚有未入库或未调用项。比例按各方法已有可判定结果计算，缺失项不计为失败；准确分母、实际调用与缺失数量见下方完成情况。适配器提前拒绝保留原有失败分数，不代表产品已被调用。</p>'
+ if has_not_called:
+  from harness.web_fetch.report_saved_matrix_i18n import ZH
+  intro='<p class="decision-lead">'+ZH['suite_denominator_note']+'</p>'
  help=('<details class="ranking-metric-help"><summary>总榜指标说明</summary><div class="metric-help"><dl>'
        f'<div><dt>综合任务通过率</dt><dd>{case_count} 个计划任务中的通过数 / 可判定数；每题等权，无法判定结果不参与分母。</dd></div>'
        f'<div><dt>{track_label} 类通过数</dt><dd>各分榜通过数 / 本类任务数，用于定位总分来自哪些能力。</dd></div>'
-       f'<div><dt>总耗时均值 / P50 / P95</dt><dd>每种方法在同一组 {case_count} 个计划任务上的端到端耗时，包含通过与失败；三项不参与通过率排名。主矩阵调用跨日期、跨批次，不等同于同窗受控速度比较。</dd></div>'
+       + (('<div><dt>'+saved_timing['final_call_timing_title']+'</dt><dd>'+saved_timing['final_call_timing_help']+'</dd></div>') if final_call_timing else f'<div><dt>总耗时均值 / P50 / P95</dt><dd>{"仅取已实际调用且有保存结果的记录；适配器提前拒绝不计入耗时统计，各方法样本数可不同。" if has_not_called else f"每种方法在同一组 {case_count} 个计划任务上的端到端耗时，包含通过与失败；"}三项不参与通过率排名。主矩阵调用跨日期、跨批次，不等同于同窗受控速度比较。</dd></div>') +
        '<div><dt>审查结果</dt><dd>独立盲审覆盖数、审查方法和未决数。</dd></div>'
        '</dl></div></details>')
  directions={i:('acceptance_'+str(i),'max') for i in range(1,3+len(tracks)+int(has_unknown))}
  directions.update({i:('all_latency_'+str(i),'min') for i in range(3+len(tracks)+int(has_unknown),6+len(tracks)+int(has_unknown))})
  if has_unknown:directions.pop(3,None)
  rows=comparative_rows(rows,directions)
- timing_note='<p>总耗时按每题所有物理调用累计，包含失败重试和重试等待；每题仍只计一个样本。'
- if call_budget_seconds is not None:
+ timing_note='<p>'+saved_timing['final_call_timing_note'] if final_call_timing else '<p>总耗时按每题所有物理调用累计，包含失败重试和重试等待；每题仍只计一个样本。'
+ if call_budget_seconds is not None and not final_call_timing:
   timing_note+=f'<span>每次物理调用预算为 {call_budget_seconds:g} 秒，重试后的累计耗时可能超过该预算。</span>'
  timing_note+='</p>'
  if diagnostic:
@@ -2130,12 +2170,15 @@ def dataset_attrs(c):
  return f' data-track="{esc(report_family(c))}" data-category="{esc(c["category"])}"'
 
 def case_attrs(r,c):
+ not_called=r.get('report_invocation_status') == 'adapter_rejected'
  content='na' if c.get('task_kind','body')!='body' else 'pass' if r['ok'] and r['metrics']['content_pass'] else 'fail'
  resources='na' if not c.get('expected_resources') else 'pass' if r['ok'] and r['metrics'].get('resource_pass') else 'fail'
+ if not_called:content=resources='na'
+ transport='na' if not_called else 'pass' if r['ok'] else 'fail'
  stage='' if succeeded(r,c) or not measured(r,c) else 'task' if r['ok'] else 'request'
  category='' if not stage else failure_category(r,c)
  result='excluded' if r['metrics'].get('evaluation_excluded') else 'unmeasured' if not measured(r,c) else 'pass' if succeeded(r,c) else 'fail'
- return dataset_attrs(c)+f' data-provider="{esc(r["provider"])}" data-transport="{"pass" if r["ok"] else "fail"}" data-result="{result}" data-content="{content}" data-resources="{resources}" data-failure-stage="{stage}" data-failure-category="{esc(category)}" data-search="{esc(str(c.get("id",r.get("case_id","")))+" "+str(c.get("name",""))+" "+str(c.get("url",""))+" "+reason(r,c))}"'
+ return dataset_attrs(c)+f' data-provider="{esc(r["provider"])}" data-transport="{transport}" data-result="{result}" data-content="{content}" data-resources="{resources}" data-failure-stage="{stage}" data-failure-category="{esc(category)}" data-search="{esc(str(c.get("id",r.get("case_id","")))+" "+str(c.get("name",""))+" "+str(c.get("url",""))+" "+reason(r,c))}"'
 
 def attempt_row(r,c,base='../',*,label=None):
  state=result_label(r,c)
@@ -2194,7 +2237,15 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  if local_snapshot and not show_local_status_banners:
   raise ValueError('Uncertified local diagnostic status cannot be hidden')
  reliability=assess_reliability(dataset,records)
- if reliability['complete']:
+ if dataset.get('saved_matrix_scope') and not any(reliability[key] for key in ('extra','duplicates')):
+  from harness.web_fetch.report_saved_matrix_i18n import ZH as saved_text
+  saved_scope=dataset['saved_matrix_scope']
+  counts={key:sum(row[key] for row in saved_scope['providers']) for key in ('planned','saved','uncommitted','not_called','rejected')}
+  reliability_banner=('<div class="wrap reliability failure" role="status" data-saved-completion>'
+      '<strong>'+saved_text['coverage_banner_title']+'</strong><span>'
+      +esc(saved_text['coverage_banner_counts'].format(**counts))+' '
+      +esc(saved_text['coverage_banner_note'])+'</span></div>')
+ elif reliability['complete']:
   reliability_banner=''
  elif (measurement_presentation(dataset).explain_unjudged
        and dataset.get('comparison',{}).get('publication_state')=='local_audit_only_not_for_release'
@@ -2270,12 +2321,12 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  panels=[]
  for track,label in tracks:
   selected=[c for c in cases.values() if report_family(c)==track]
-  coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if cases[r["case_id"]].get("track","web")==track})} 种已测方法'
+  coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if report_family(cases[r["case_id"]])==track})} 种已测方法'
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit,diagnostic=diagnostic)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
  overall_title=('任务判定汇总（非排名）' if diagnostic else model_text('本轮任务通过率排名','Task pass-rate ranking for this sample') if local_pass_rate_ranking(dataset) else '综合通过率总榜')
  if score_audit:overall_title='任务通过情况'
  budgets={m['timeout_seconds'] for m in manifests if m.get('timeout_seconds') is not None}
- home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None),'overall-ranking')
+ home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None,final_call_timing=bool(dataset.get('saved_matrix_scope'))),'overall-ranking')
  home+=input_suite_comparison(dataset,cases,records)
  if diagnostic and not score_audit:
   home+=result_ledger_section(out,records)
@@ -2283,7 +2334,11 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   home+=section('通过结果的内容诊断',f'<p>{len(low)} 条通过结果的参考词精确率低于 30%。此比例用于定位检查对象，不是统一失败线；通过不保证干净正文，正文参考的范围和时间也会影响该指标。</p>','coverage-quality')
  if measurement_presentation(dataset).all_call_latency:
   home+=section('同一任务集合的全部调用耗时',overview_all_call_latency(records,cases),'all-call-latency')
- home+=section(f'{track_label} 类任务概览',review_summary(out)+'<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p><p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
+ completeness=('<p class="callout"><b>结果入库：</b>'+str(reliability['present_calls'])+'/'+str(reliability['expected_calls'])+' 组已有保存结果；缺失项没有补造分数。</p>')
+ home+=section(f'{track_label} 类任务概览',review_summary(out)+completeness+'<p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
+ if dataset.get('saved_matrix_scope'):
+  home+=saved_matrix_scope_section(dataset['saved_matrix_scope'])
+
  home+=section('全部方法共同成功任务的耗时',overview_matched_latency(records,cases),'overall-matched-latency')
  if (out/'resource-cohort/resource-comparison.json').is_file():
   home+=section('CPU、内存与网络',overview_resources(out),'overall-resources')
@@ -2367,6 +2422,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
     rows[6]=('',cell('快照文字诊断 · 完整度 / 纯净度 / F1')+cell(' / '.join(pct(m.get(k)) for k in ['word_recall','word_precision','word_f1'])+'；参考含不固定取值的字段，仅为历史快照诊断，不进入主表全文均值。'))
   if r.get('status_code') is None:
    rows[4]=('',cell('HTTP 状态')+cell('—（接口未提供）'))
+  if r.get('report_invocation_status') == 'adapter_rejected':
+   rows[2]=('',cell('请求')+cell(result_label(r,c)))
   if c.get('task_kind')=='file':
    rows[7]=('',cell('文本输出字符')+cell(f'{len(output):,}（文件字节另列）'))
    rows[8]=('',cell('文本输出校验值')+cell(f'<code class="break">{esc(m.get("content_sha256"))}</code>'))
@@ -2469,6 +2526,19 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    if s:facts.extend([('独立源页复查',f"{s.get('checked_at','')} · HTTP {s.get('status','未取得')} · {s.get('title') or s.get('error','')}"),('复查边界',d['source_check_boundary'])])
    summary+='<details class="technical-details"><summary>查看失败分类与归因边界</summary>'+table(['项目','依据'],[('',cell(esc(k))+cell(esc(v))) for k,v in facts],metrics=[])+"</details>"
   body=hero(esc(c['name']),hero_meta)+section('结论',summary,'overview')
+  if r.get('report_superseded_history'):
+   from harness.web_fetch.report_saved_matrix_i18n import ZH as history_text
+   history_rows=[]
+   for old in r['report_superseded_history']:
+    history_rows.append(('',cell(esc(old.get('started_at') or '—'))+cell(link('../'+old['record_path'],history_text['record_link']))+cell(link('../'+old['answer_path'],history_text['answer_link']))+cell(link('../'+old['scope_path'],history_text['history_scope']))))
+   body+=section(history_text['history_title'],'<p>'+history_text['history_note']+'</p>'+table(['时间','记录','返回','范围'],history_rows,metrics=[]),'superseded-history')
+  if r.get('report_retry_continuation'):
+   from harness.web_fetch.report_saved_matrix_i18n import ZH as retry_text
+   continuation=r['report_retry_continuation']
+   cost=ms(continuation['execution_cost_ms']) if continuation['execution_cost_ms'] is not None else retry_text['continuation_unknown_cost']
+   evidence=link('../'+continuation.get('prior_record_path',continuation.get('prior_uncommitted_path')),retry_text['continuation_prior'])
+   if continuation.get('prior_answer_path'):evidence+=' · '+link('../'+continuation['prior_answer_path'],retry_text['answer_link'])
+   body+=section(retry_text['continuation_title'],'<p>'+retry_text['continuation_note']+'</p><p>'+retry_text['continuation_cost']+esc(cost)+'</p>'+evidence,'retry-continuation')
   body+=section('目标覆盖与附加内容',render_quality_observations(r,c,output,esc=esc),'quality-diagnostics')
   reviewed=audited_attempts.get(r['attempt_id'])
   if reviewed:
@@ -4509,3 +4579,91 @@ def render_score_audit(out, audit, binding):
  body+=section('审查范围','<p>'+esc(audit['review_scope'])+'</p><p>'+link('score-changes.json','下载逐条复核记录')+' · '+link('scoring-inputs.json','下载原始与公开评分输入哈希')+'</p>')
  write(out,'audit/index.html',audit['title'],body)
  write(out,'review/index.html','核验记录',hero('核验记录','逐题验收依据与数据来源。')+section('核验范围','<p>'+esc(audit['review_scope'])+'</p><p>'+esc(audit['summary'])+'</p><p>'+link('../audit/index.html','逐条原因、原文与验收规则')+'</p>'))
+
+
+def generate_saved_matrix(out: Path, model: dict) -> Path:
+ """Render a suite-qualified saved matrix without interpreting or changing scores.
+
+ Evidence links refer to retained files inside the new report directory. Missing
+ outcomes remain explicit slots, rather than fabricated failed measurements.
+ """
+ from urllib.parse import unquote
+ from harness.web_fetch.report_saved_matrix_i18n import ZH as t
+ out = Path(out)
+ providers = {p['id']: p['label'] for p in model['providers']}
+ suites = {s['id']: s['label'] for s in model['suites']}
+ if len(providers) != len(model['providers']) or len(suites) != len(model['suites']):
+  raise ValueError('Duplicate matrix provider or suite')
+ rows = model['rows']
+ seen = set()
+ states = {'passed', 'failed', 'adapter_rejected', 'uncommitted', 'not_called'}
+ path_fields = ('record_path', 'answer_path', 'log_path', 'case_path', 'receipt_path', 'recovery_path')
+ for row in rows:
+  key = row['suite'], row['provider'], row['case_id']
+  if key in seen or key[0] not in suites or key[1] not in providers:
+   raise ValueError('Duplicate or undeclared matrix identity')
+  seen.add(key)
+  status = row['status']
+  if status not in states or row['passed'] not in (True, False, None):
+   raise ValueError('Invalid saved matrix outcome')
+  if status in {'uncommitted', 'not_called'} and row['passed'] is not None:
+   raise ValueError('Missing matrix outcomes must not have scores')
+  if status == 'passed' and row['passed'] is not True:
+   raise ValueError('Passed status differs from saved score')
+  if status in {'failed', 'adapter_rejected'} and row['passed'] is not False:
+   raise ValueError('Failed status differs from saved score')
+  if status in {'adapter_rejected', 'not_called'} and row['called']:
+   raise ValueError('Pre-call status cannot claim product invocation')
+  if status in {'passed', 'failed', 'uncommitted'} and not row['called']:
+   raise ValueError('Called status lacks product invocation')
+  for field in path_fields:
+   value = row.get(field)
+   if not value:
+    continue
+   decoded = unquote(value)
+   parsed = urlsplit(decoded)
+   if (parsed.scheme or parsed.netloc or parsed.query or parsed.fragment or
+       decoded.startswith('/') or '\\' in decoded or
+       any(part in {'.', '..'} for part in decoded.split('/'))):
+    raise ValueError('Unsafe matrix evidence link')
+   target = out / decoded
+   if not target.resolve().is_relative_to(out.resolve()) or not target.is_file():
+    raise ValueError('Missing or escaping matrix evidence link: ' + field)
+ if not rows:
+  raise ValueError('Empty saved matrix')
+ from harness.web_fetch.report_saved_matrix import render_saved_with_standard_generator
+ return render_saved_with_standard_generator(out, model)
+
+
+def saved_matrix_scope_section(scope):
+ from harness.web_fetch.report_saved_matrix_i18n import ZH as t
+ rows=[]
+ for item in scope['providers']:
+  rows.append(('',cell(link('providers/'+item['provider']+'.html',provider_label(item['provider'])))+''.join(cell(str(item[k])) for k in ('planned','called','saved','normal','passed','rejected','uncommitted','not_called'))))
+ missing=[]
+ for item in scope['missing']:
+  evidence=link(item.get('receipt_path') or item['record_path'],t['receipt_link'])
+  if item.get('recovery_path'):
+   evidence+='<br>'+link(item['recovery_path'],t['recovery_link'])+'<br>'+esc(t['recovery_note'])+'<br>'+esc(t['recovery_'+item['recovery_retry_status']])
+  for old in item.get('history', []):
+   evidence+='<br>'+link(old['record_path'],t['history_title'])+' · '+link(old['scope_path'],t['history_scope'])
+  missing.append(('',cell(esc(item['suite']))+cell(esc(item['provider']))+cell(esc(item['case_id']))+cell(t[item['status']])+cell(esc(item['error']))+cell(evidence)))
+ return section(t['completion_title'],'<p>'+t['completion_note']+'</p>'+table(t['completion_headers'],rows,'saved-completion',metrics=[])+table(t['missing_headers'],missing,'saved-missing',metrics=[]),'completion')+section(t['limitations'],'<ul>'+''.join('<li>'+esc(note)+'</li>' for note in scope.get('limitations',[]))+'</ul>','saved-limitations')
+
+
+def saved_suite_ranking(records,cases,suite,*,base='',id=None):
+ """Summarize saved outcomes by declared input suite, including missing slots."""
+ from harness.web_fetch.report_saved_matrix_i18n import ZH as t
+ selected={k:c for k,c in cases.items() if report_family(c)==suite}
+ rows=[]
+ for provider in sorted({r['provider'] for r in records}):
+  rs=[r for r in records if r['provider']==provider and r['case_id'] in selected]
+  judged=[r for r in rs if measured(r,selected[r['case_id']])]
+  passed=sum(succeeded(r,selected[r['case_id']]) for r in judged)
+  values=cell(link(base+'providers/'+provider+'.html',provider_label(provider)))
+  not_called=sum(r.get('report_invocation_status') == 'adapter_rejected' for r in rs)
+  values+=cell(str(len(selected)))+cell(str(len(rs)))+cell(str(len(selected)-len(rs)+not_called))
+  values+=cell(str(sum(bool(r['ok']) for r in rs)))+cell(str(passed))
+  values+=cell(f'{passed}/{len(judged)} · '+rate(passed,len(judged)))
+  rows.append(('',values))
+ return '<p>'+t['suite_denominator_note']+'</p>'+table(t['suite_result_headers'],rows,id or 'ranking-'+suite,metrics=[])

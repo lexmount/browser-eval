@@ -786,6 +786,9 @@ class MoliWebFetchProvider(Provider):
                         if process.returncode == 0 and native_status is not None and 400 <= native_status < 600 else None)
         if readiness_timed_out:
             metadata["native_readiness_timed_out"] = True
+        final_url = _diagnostic_main_document_url(diagnostic_raw, case.url)
+        if final_url:
+            metadata["final_url_source"] = "same_call_debug_log"
         if process.returncode == 0 and not content.strip() and native_status not in range(400, 600):
             return ProviderResult(
                 False,
@@ -793,15 +796,13 @@ class MoliWebFetchProvider(Provider):
                 error_type="timeout" if readiness_timed_out else "empty_response",
                 error_message=("Moli readiness deadline expired without Markdown content"
                                if readiness_timed_out else "Moli returned no Markdown content"),
+                final_url=final_url,
                 metadata=metadata,
             )
         parsed_error_status = ((native_status if native_status >= 400 else None)
                                if native_status is not None else _markdown_http_error_status(content))
         ok = process.returncode == 0 and parsed_error_status is None
         native_error_type = _moli_native_error_type(diagnostic_raw)
-        final_url = _diagnostic_main_document_url(diagnostic_raw, case.url)
-        if final_url:
-            metadata["final_url_source"] = "same_call_debug_log"
         # Preserve native Markdown even on HTTP errors or best-effort readiness.
         # Nonempty best-effort output remains a valid answer for the shared scorer;
         # its content failures do not acquire a new retry policy.

@@ -232,3 +232,53 @@ def test_acquisition_declares_current_srcset_semantics():
         {'track': 'image', 'task_kind': 'resource', 'url': 'https://example.test/'},
         {'success': True, 'result': []}, 200)
     assert declaration['answer_fields']['images']['srcset_parser'] == 'html-candidates-v1'
+
+
+def test_historical_selector_policy_requires_exact_trusted_identity():
+    from harness.web_fetch.native_projection import native_projection_policy_version
+    digest = '7a8e133780f75c44c4cc0127d1d69a784f4b00c4cd693a1e35571f22ad95b7bf'
+    policy = {'kind': 'native-answer-selection', 'version': 1, 'provider_type': 'browserbase_fetch',
+              'source_sha256': digest, 'source_path': 'native-answer-policies/'+digest+'.py'}
+    assert native_projection_policy_version(policy, 'browserbase_fetch') == 1
+    for key, value in [('source_sha256', '0'*64), ('version', 2), ('provider_type', 'firecrawl'),
+                       ('source_path', 'other.py'), ('kind', 'other')]:
+        with pytest.raises(ValueError, match='differs from its pre-call freeze'):
+            native_projection_policy_version({**policy, key: value}, 'browserbase_fetch')
+
+
+def test_historical_selector_replays_old_file_scope_and_checks_saved_source(tmp_path, monkeypatch):
+    from harness.web_fetch import native_projection as projection
+    from harness.web_fetch.native_routes import verify_saved_native_answer
+    source = b'# synthetic trusted legacy selector fixture\n'
+    digest = hashlib.sha256(source).hexdigest()
+    monkeypatch.setitem(projection.HISTORICAL_SELECTION_SOURCES, digest, 1)
+    policy = {'kind': 'native-answer-selection', 'version': 1, 'provider_type': 'browserbase_fetch',
+              'source_sha256': digest, 'source_path': 'native-answer-policies/'+digest+'.py'}
+    source_path = tmp_path / policy['source_path']
+    source_path.parent.mkdir()
+    source_path.write_bytes(source)
+    case = {'id': 'file', 'url': 'https://example.test/file.pdf', 'task_kind': 'file'}
+    payload = {'content': 'JVBERg==', 'encoding': 'base64', 'statusCode': 200}
+    raw = json.dumps(payload).encode()
+    (tmp_path / 'dataset.json').write_text(json.dumps({'cases': [case]}))
+    (tmp_path / 'raw.json').write_bytes(raw)
+    (tmp_path / 'answer.txt').write_text(payload['content'])
+    old = projection.native_answer_projection('browserbase_fetch', case, payload, 200, policy_version=1)
+    metadata = {'native_answer_projection': old, 'api_http_status': 200,
+                'native_route_receipt': {'answer_selection_policy': policy, 'answer_fields': ['content']},
+                'raw_response_path': 'raw.json', 'raw_response_sha256': hashlib.sha256(raw).hexdigest()}
+    record = {'case_id': 'file', 'provider_type': 'browserbase_fetch', 'url': case['url'], 'ok': False,
+              'title': None, 'final_url': None, 'artifact_path': 'answer.txt', 'provider_metadata': metadata,
+              'metrics': {'content_sha256': hashlib.sha256(payload['content'].encode()).hexdigest()}}
+    verify_saved_native_answer(tmp_path, record)
+    frozen = deepcopy(record)
+    source_path.write_bytes(source + b'tampered')
+    with pytest.raises(ValueError):
+        verify_saved_native_answer(tmp_path, record)
+    source_path.write_bytes(source)
+    metadata['native_answer_projection'] = projection.native_answer_projection('browserbase_fetch', case, payload, 200)
+    assert metadata['native_answer_projection']['files']
+    with pytest.raises(ValueError, match='differs from its pre-call selection policy'):
+        verify_saved_native_answer(tmp_path, record)
+    metadata['native_answer_projection'] = old
+    assert record == frozen

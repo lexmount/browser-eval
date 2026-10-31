@@ -550,15 +550,20 @@ def native_contract_for_case(case: Any) -> NativeRetrievalContract | None:
 
 
 def native_default_case(case: Any) -> bool:
-    """Stable acceptance contracts permit a URL-only provider-default route."""
+    """Recognize explicit default retrieval independently of scoring format.
+
+    Body-region rules need the same URL-only route as stable-anchor rules.
+    Retain the implicit legacy route for validated stable contracts, while
+    explicit page-specific retrieval plans remain outside the default route.
+    """
     get = case.get if isinstance(case, dict) else lambda key, default=None: getattr(case, key, default)
-    if get("track", "web") != "dynamic" or get("retrieval_hints") not in (None, {}, NATIVE_RETRIEVAL_HINTS):
+    hints = get("retrieval_hints")
+    if get("track", "web") != "dynamic" or hints not in (None, {}, NATIVE_RETRIEVAL_HINTS):
         return False
     contract = get("acceptance_contract")
-    if not contract:
-        return False
-    validate_acceptance_contract(contract)
-    return True
+    if contract:
+        validate_acceptance_contract(contract)
+    return hints == NATIVE_RETRIEVAL_HINTS or bool(contract)
 
 
 def plan_for_case(case: Any) -> RetrievalPlan | None:

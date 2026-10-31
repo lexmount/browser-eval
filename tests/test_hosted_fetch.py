@@ -271,8 +271,143 @@ class HostedFetchTest(unittest.TestCase):
                     self.assertEqual(requests[0], requests[1])
 
     @patch('harness.web_fetch.providers.hosted_fetch.request')
+    def test_resource_delivery_uses_unchanged_native_markdown_request(self, call):
+        from dataclasses import replace
+        from lexbench_webfetch.metrics import evaluate_resources
+
+        for kind in TYPES:
+            for track in ('image', 'video'):
+                resource_url = ('https://example.com/photo.png' if track == 'image'
+                                else 'https://example.com/movie.mp4')
+                returned_link = (f'![Photo]({resource_url})' if track == 'image'
+                                 else f'[Video]({resource_url})')
+                for text, expected_matches in (
+                    (returned_link, 1),
+                    ('No resource returned', 0),
+                ):
+                    with self.subTest(kind=kind, track=track, text=text):
+                        provider = self.provider(kind)
+                        provider._session_id = 'fixed-offline-session'
+                        call.return_value = self.response(kind, text=text)
+                        with patch.object(provider, 'begin_call'):
+                            call.reset_mock()
+                            provider.fetch(self.case, 30)
+                            original_request = call.call_args
+                            call.reset_mock()
+                            result = provider.fetch(replace(
+                                self.case, track=track, task_kind='resource'), 30)
+                        call.assert_called_once()
+                        self.assertEqual(call.call_args, original_request)
+                        self.assertTrue(result.ok)
+                        self.assertEqual(result.content, text)
+                        metrics = evaluate_resources(
+                            result.content, result.metadata,
+                            [{'id': 'resource', 'urls': [resource_url]}],
+                            base_url=self.case.url,
+                            output_contract=({'candidate_scope': 'image_answer_fields',
+                                              'unexpected': 'reject'} if track == 'image' else None))
+                        self.assertEqual(metrics['resource_hits'], expected_matches)
+
+    @patch('harness.web_fetch.providers.hosted_fetch.request')
+    def test_native_file_delivery_retains_exact_bytes_and_parameters(self, call):
+        from harness.web_fetch.native_projection import require_native_answer_projection
+        case = EvalCase('file', 'File', 'https://example.com/file.pdf', 'document', [],
+                        track='document', task_kind='file')
+        for kind in ('browserbase_fetch', 'browser_use_fetch'):
+            for binary in (True, False):
+                with self.subTest(kind=kind, binary=binary):
+                    data = b'%PDF-1.7\n\x00\xff' if binary else 'Native text 文'.encode()
+                    value = base64.b64encode(data).decode() if binary else data.decode()
+                    payload = ({'content': value, 'encoding': 'base64' if binary else 'utf-8',
+                                'statusCode': 200, 'contentType': 'application/pdf'}
+                               if kind == 'browserbase_fetch' else
+                               {'body': '' if binary else value, 'body_base64': value if binary else '',
+                                'is_binary': binary, 'status_code': 200, 'final_url': case.url,
+                                'headers': {'Content-Type': 'application/pdf'}})
+                    raw = json.dumps(payload).encode()
+                    call.reset_mock()
+                    call.return_value = HttpResponse(200, ENDPOINTS[kind], {}, raw)
+                    provider = self.provider(kind)
+                    before = provider.native_http_arguments(self.case, 30)[1]['json_body']
+                    result = provider.fetch(case, 30)
+                    self.assertTrue(result.ok)
+                    self.assertEqual(result.content, '')
+                    self.assertEqual([f['data'] for f in result.files], [data])
+                    call.assert_called_once()
+                    sent = call.call_args.kwargs['json_body']
+                    expected = dict(before, url=case.url)
+                    if kind == 'browserbase_fetch':
+                        expected['format'] = 'raw'
+                    else:
+                        expected['session_id'] = sent['session_id']
+                    self.assertEqual(sent, expected)
+                    require_native_answer_projection('', result.metadata, raw, files=result.files,
+                                                     final_url=result.final_url, request_url=case.url)
+                    with self.assertRaisesRegex(ValueError, 'files differ'):
+                        require_native_answer_projection('', result.metadata, raw,
+                            files=[{'data': b'tampered'}], final_url=result.final_url, request_url=case.url)
+
+    @patch('harness.web_fetch.providers.hosted_fetch.request')
+    def test_native_file_runner_keeps_raw_envelope_and_delivered_bytes(self, call):
+        from harness.web_fetch.artifacts import verify_record_artifacts
+        from harness.web_fetch.native_routes import verify_saved_native_answer
+        data = b'%PDF-1.7\nNative bytes'
+        case = EvalCase('file', 'File', 'https://example.com/file.pdf', 'document', [],
+                        track='document', task_kind='file')
+        case.source_benchmark['input_media_kind'] = 'direct_pdf'
+        for kind in ('browserbase_fetch', 'browser_use_fetch'):
+            with self.subTest(kind=kind), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                encoded = base64.b64encode(data).decode()
+                payload = ({'content': encoded, 'encoding': 'base64', 'statusCode': 200,
+                            'contentType': 'application/pdf'} if kind == 'browserbase_fetch' else
+                           {'body': '', 'body_base64': encoded, 'is_binary': True, 'status_code': 200,
+                            'final_url': case.url, 'headers': {'content-type': 'application/pdf'}})
+                raw = json.dumps(payload).encode()
+                call.reset_mock()
+                call.return_value = HttpResponse(200, ENDPOINTS[kind], {}, raw)
+                dataset = {'id': 'native-file', 'cases': [vars(case)]}
+                path = root / 'input.json'
+                path.write_text(json.dumps(dataset))
+                records, _ = run_evaluation(output_dir=root, dataset_meta=dataset, dataset_path=path,
+                    cases=[case], providers=[self.provider(kind, uniform_native_parameters=True)],
+                    provider_config_path=Path('providers.json'), runs=1, timeout=30, delay=0,
+                    max_failure_retries=0)
+                record = records[0]
+                self.assertTrue(record['ok'])
+                self.assertEqual((root / record['provider_metadata']['raw_response_path']).read_bytes(), raw)
+                verify_record_artifacts(root, record)
+                verify_saved_native_answer(root, record)
+                call.assert_called_once()
+
+    @patch('harness.web_fetch.providers.hosted_fetch.request')
+    def test_native_file_invalid_binary_is_saved_as_failure(self, call):
+        from harness.web_fetch.runner import persist_result_artifacts
+        case = EvalCase('file', 'File', 'https://example.com/file.pdf', 'document', [],
+                        track='document', task_kind='file')
+        for kind in ('browserbase_fetch', 'browser_use_fetch'):
+            for invalid in ('!!!', 12, None):
+                with self.subTest(kind=kind, invalid=invalid):
+                    payload = ({'content': invalid, 'encoding': 'base64', 'statusCode': 200}
+                               if kind == 'browserbase_fetch' else
+                               {'body': '', 'body_base64': invalid, 'is_binary': True,
+                                'status_code': 200, 'final_url': case.url})
+                    raw = json.dumps(payload).encode()
+                    call.reset_mock()
+                    call.return_value = HttpResponse(200, ENDPOINTS[kind], {}, raw)
+                    result = self.provider(kind).fetch(case, 30)
+                    self.assertFalse(result.ok)
+                    self.assertEqual(result.error_type, 'invalid_response')
+                    self.assertEqual(result.files, [])
+                    self.assertEqual(result.content, '')
+                    with tempfile.TemporaryDirectory() as directory:
+                        persist_result_artifacts(Path(directory), Path('private_artifacts/answer.txt'), result,
+                                                 request_url=case.url)
+                    call.assert_called_once()
+
+    @patch('harness.web_fetch.providers.hosted_fetch.request')
     def test_unsupported_delivery_never_calls_service(self, call):
-        case = EvalCase('file', 'File', 'https://example.com/file.pdf', 'document', [], track='document', task_kind='file')
+        case = EvalCase('file', 'File', 'https://example.com/file.pdf', 'document', [], track='document', task_kind='unknown')
         for kind in TYPES:
             self.assertEqual(self.provider(kind).fetch(case, 45).error_type, 'unsupported_task')
             self.assertIn('api_key', build_provider(kind, {'type':kind}).validate())

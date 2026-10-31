@@ -227,6 +227,11 @@ make ci
 
 [代码结构](architecture.md) · [安全](../SECURITY.md) · [第三方内容](../THIRD_PARTY.md) · [Apache 2.0](../LICENSE)
 
+
+## 已保存结果的跨套别报告
+
+使用 `scripts/build_report.py --saved-matrix /absolute/input-spec.json --output /absolute/new-report --language zh`，可在一个本地 HTML 报告中查看不同套别的已保存结果。输入清单通过哈希绑定数据集、方法、结果来源和有证据的缺失项。展示时按套别区分案例，保留原始案例 ID 和分数；不调用方法、不重新评分，也不将不完整证据视为已认证。本模式将保存来源接入现有完整 Web Fetch 报告生成器，保留总榜、评测集、方法页及结果与标准答案对照页，另外列出未完成项。HTML 入口、配套页面及证据目录需一起保留。使用 `scripts/build_report.py --check-saved-matrix /absolute/new-report` 检查报告。筛选方法时保留完整案例集，为每个跳过位置绑定凭据，不删除案例。只展示最终结果时，选择当前来源并省略 `superseded_sources`、`supersession_scope`；保留当前逻辑结果所需的实际重试证据。运行清单、抓取内容和 HTML 留在 Git 外。
+
 ## 引用 Browser Eval
 
 项目引用：[CITATION.cff](../CITATION.cff)。

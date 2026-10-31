@@ -1250,6 +1250,33 @@ class MoliTests(unittest.TestCase):
             ).validate(),
         )
 
+    def test_empty_native_response_keeps_observed_final_url_through_persistence(self):
+        from copy import deepcopy
+        from harness.web_fetch.runner import persist_result_artifacts
+        for observed in (True, False):
+            with self.subTest(observed=observed):
+                log_url = self.case.url if observed else "https://cdn.example.com/asset"
+                log = (f"DEBUG fetch request complete method=GET url={log_url} "
+                       "final_url=https://example.com/final status=200 transfer_size=0")
+                provider = self.provider(f"print({log!r}, file=sys.stderr)\n",
+                    uniform_native_parameters=True, log_level="debug",
+                    retain_complete_diagnostic_log=True)
+                case = self.case_with(source_benchmark={"input_media_kind": "html_page"})
+                result = provider.fetch(case, 5)
+                self.assertFalse(result.ok)
+                self.assertEqual(result.content, "")
+                self.assertEqual(result.error_type, "empty_response")
+                self.assertEqual(result.error_message, "Moli returned no Markdown content")
+                self.assertEqual(result.final_url, "https://example.com/final" if observed else None)
+                output = Path(self.directory.name)/str(observed)
+                forged = deepcopy(result)
+                forged.final_url = "https://invented.example/"
+                with self.assertRaisesRegex(ValueError, "final URL"):
+                    persist_result_artifacts(output, Path("artifacts/forged.txt"), forged, request_url=case.url)
+                artifact = persist_result_artifacts(output, Path("artifacts/empty.txt"), result, request_url=case.url)
+                self.assertEqual(artifact.read_bytes(), b"")
+                self.assertFalse((output/"artifacts/forged.txt").exists())
+
     def test_zero_exit_empty_markdown_is_an_empty_response(self):
         result = self.provider('print(" ")').fetch(self.case, 2)
         self.assertFalse(result.ok)
