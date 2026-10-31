@@ -58,4 +58,3 @@ class TargetUrlEncodingTest(unittest.TestCase):
         call.assert_called_once()
         self.assertEqual(result.content, 'native answer')
         self.assertTrue(result.ok)
-
