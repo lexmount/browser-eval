@@ -16,7 +16,8 @@
         "wcxb",
         "local-audit",
         "diagnostic-cohorts",
-        "published-snapshot-audit"
+        "published-snapshot-audit",
+        "saved-matrix"
       ],
       "diagnostic_build": "make webfetch-diagnostic-report DIAGNOSTIC_PROFILE=/absolute/instance-profile.json OUTPUT=/absolute/new-output",
       "diagnostic_check": "uv run --frozen python scripts/check_diagnostic_report.py /absolute/output --profile /absolute/instance-profile.json",
@@ -29,7 +30,10 @@
       "snapshot_audit_example_check": "uv run --frozen python -m pytest tests/test_published_snapshot_report.py tests/test_published_snapshot_rescoring.py",
       "snapshot_audit_release_check": "uv run --frozen python scripts/check_report.py /absolute/new-report --profile /absolute/profile.json --visual-receipt /absolute/private/visual.json",
       "snapshot_audit_package": "uv run --frozen python scripts/package_artifact_hub.py /absolute/new-report /absolute/package.zip --snapshot-audit",
-      "snapshot_audit_publish": "uv run --frozen python scripts/publish_artifact_hub.py --create --profile /absolute/publication-target.json --source /absolute/new-report --archive /absolute/package.zip --receipt /absolute/receipt.json --operation-journal /absolute/pending.json --snapshot-audit --visibility private"
+      "snapshot_audit_publish": "uv run --frozen python scripts/publish_artifact_hub.py --create --profile /absolute/publication-target.json --source /absolute/new-report --archive /absolute/package.zip --receipt /absolute/receipt.json --operation-journal /absolute/pending.json --snapshot-audit --visibility private",
+      "saved_matrix_build": "uv run --frozen python scripts/build_report.py --saved-matrix /absolute/input-spec.json --output /absolute/new-report --language zh",
+      "saved_matrix_check": "uv run --frozen python scripts/build_report.py --check-saved-matrix /absolute/report",
+      "saved_matrix_tests": "uv run --frozen python -m pytest tests/test_saved_matrix_evidence.py tests/test_saved_matrix_render.py"
     },
     "trajectory-replay": {
       "renderer": "src/harness/trajectory_replay/webarena_report.py",

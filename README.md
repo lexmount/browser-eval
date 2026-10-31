@@ -227,6 +227,10 @@ make ci
 
 [Architecture](docs/architecture.md) · [Security](SECURITY.md) · [Third-party content](THIRD_PARTY.md) · [Apache 2.0](LICENSE)
 
+## Saved multi-suite reports
+
+Use `scripts/build_report.py --saved-matrix /absolute/input-spec.json --output /absolute/new-report --language zh` to display existing results across suites in one local HTML report. The hash-bound specification declares datasets, providers, result sources and explicitly evidenced missing outcomes. Suite-qualified display identities preserve original case IDs and saved scores. This mode makes no provider calls or scoring revisions and does not certify incomplete evidence. This mode adapts the saved sources into the existing full Web Fetch renderer, including rankings, datasets, method pages and result/reference comparisons. Missing outcomes have a separate inventory. The HTML entry has companion pages and evidence directories; keep them together. Validate with `scripts/build_report.py --check-saved-matrix /absolute/new-report`. Keep the complete suite definitions when selecting providers: bind a receipt for every skipped cell instead of dropping its case. For a final-only report, select current sources and omit `superseded_sources` and `supersession_scope`; retain physical retries that belong to the selected logical result. Instance specifications, captures and HTML remain outside Git.
+
 ## Cite Browser Eval
 
 Project citation: [CITATION.cff](CITATION.cff).
