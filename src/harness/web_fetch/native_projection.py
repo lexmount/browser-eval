@@ -33,9 +33,36 @@ def native_projection_regressions():
     return indexed
 
 
+# Reviewed schema-2 selector before hosted native file delivery (Browser Eval
+# c533e002d24dd01f7f59b5ea9d8b7a41740495b4). Never execute saved source code.
+HISTORICAL_SELECTION_SOURCES = {
+    '7a8e133780f75c44c4cc0127d1d69a784f4b00c4cd693a1e35571f22ad95b7bf': 1,
+    # Frozen selector used by the two system-DNS Moli cohorts; audited source
+    # retained under the hash-named native-answer-policies path in their evidence.
+    '7930fb31d7cd5d98e40d76e70b59b51db6e1c62a7bb7cfdd25b4b79df9c213b7': 2,
+    # Same selector semantics before the empty-byte error-response validation fix.
+    '181c1d36678cf08078fe8f4d6d560823f5cafc2637dab05ec7ecd78712550d78': 3,
+}
+
+
+def native_projection_policy_version(policy, provider_type):
+    if policy == native_projection_policy(provider_type):
+        return 3
+    if not isinstance(policy, dict):
+        raise ValueError('Native answer selection policy must be an object')
+    digest = policy.get('source_sha256')
+    version = HISTORICAL_SELECTION_SOURCES.get(digest) if isinstance(digest, str) else None
+    expected = {'kind': 'native-answer-selection', 'version': version,
+                'provider_type': provider_type, 'source_sha256': digest,
+                'source_path': 'native-answer-policies/'+str(digest)+'.py'}
+    if version is None or policy != expected:
+        raise ValueError('Native answer selection policy implementation differs from its pre-call freeze')
+    return version
+
+
 def native_projection_policy(provider_type):
     digest = hashlib.sha256(native_projection_source()).hexdigest()
-    return {'kind': 'native-answer-selection', 'version': 1,
+    return {'kind': 'native-answer-selection', 'version': 3,
             'provider_type': provider_type,
             'source_sha256': digest, 'source_path': 'native-answer-policies/'+digest+'.py'}
 
@@ -44,13 +71,18 @@ def _object(value):
     return value if isinstance(value, dict) else {}
 
 
-def native_answer_projection(provider_type, case, payload, status_code=None, *, interface=None):
+def native_answer_projection(provider_type, case, payload, status_code=None, *, interface=None, policy_version=3):
     """Return the declaration selected by the pre-call structural policy."""
+    if type(policy_version) is not int or policy_version not in {1, 2, 3}:
+        raise ValueError('Unknown native answer selection policy version')
     get = case.get if isinstance(case, dict) else lambda key, default=None: getattr(case, key, default)
     track, task_kind = get('track', 'web'), get('task_kind', 'body')
     payload = _object(payload)
     successful_http = type(status_code) is int and 200 <= status_code < 300
     if provider_type == 'brightdata_unlocker':
+        if policy_version >= 3 and task_kind == 'file':
+            return {'schema_version': 2, 'source_format': 'bytes', 'content_format': 'empty',
+                    **({'files': {'format': 'raw_bytes'}} if successful_http else {})}
         return {'schema_version': 2, 'source_format': 'bytes',
                 'content_format': 'utf8' if successful_http else 'empty'}
     if provider_type in {'browser_use_fetch', 'browserbase_fetch', 'deepseek_fetch', 'crawl4ai_cloud'}:
@@ -61,6 +93,22 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
         declaration = {'schema_version': 2, 'content_pointer': [field],
                        'content_format': fmt if successful_http else 'empty',
                        'optional_content': True, 'result_fields': {}}
+        if policy_version >= 2 and task_kind == 'file' and provider_type in {'browser_use_fetch', 'browserbase_fetch'}:
+            declaration['content_format'] = 'empty'
+            binary = (payload.get('is_binary') is True if provider_type == 'browser_use_fetch'
+                      else payload.get('encoding') == 'base64')
+            file_field = 'body_base64' if binary and provider_type == 'browser_use_fetch' else field
+            file_value = payload.get(file_field)
+            encoding_valid = (type(payload.get('is_binary', False)) is bool if provider_type == 'browser_use_fetch'
+                              else payload.get('encoding', 'utf-8') in ('utf-8', 'base64'))
+            if successful_http and encoding_valid and not payload.get('error') and isinstance(file_value, str) and file_value:
+                try:
+                    delivered = base64.b64decode(file_value, validate=True) if binary else file_value.encode('utf-8')
+                except (ValueError, UnicodeError):
+                    delivered = b''
+                if delivered:
+                    declaration['files'] = {'pointer': [file_field],
+                                            'format': 'base64_file' if binary else 'utf8_file'}
         if provider_type == 'deepseek_fetch':
             declaration['result_fields']['title'] = {'pointer': ['title'], 'format': 'text_or_none'}
         if provider_type == 'browser_use_fetch':
@@ -373,13 +421,17 @@ def project_native_files(payload, declaration):
     if not isinstance(spec, dict):
         raise ValueError('Native file projection must be an object')
     kind = spec.get('format')
-    if kind not in {'raw_bytes', 'base64_file', 'worker_files'}:
+    if kind not in {'raw_bytes', 'base64_file', 'utf8_file', 'worker_files'}:
         raise ValueError('Unknown native file projection')
     if kind == 'raw_bytes':
         if not isinstance(payload, bytes):
             raise ValueError('Native raw file projection requires bytes')
         return [payload] if payload else []
     value = _selected(payload, spec)
+    if kind == 'utf8_file':
+        if not isinstance(value, str):
+            raise ValueError('Native UTF-8 file projection requires text')
+        return [value.encode('utf-8')] if value else []
     if kind == 'base64_file':
         values = [value] if value else []
         if not isinstance(value, str):
@@ -565,7 +617,8 @@ def require_native_answer_projection(content, metadata, raw_response, *, files=(
             if 'legacy' in spec:
                 check_source(spec['legacy'])
         if declaration.get('source_format') == 'bytes':
-            required = ('original_bytes' if declaration.get('files') else
+            required = ('original_bytes' if (declaration.get('files') or
+                        (declaration.get('content_format') == 'empty' and 'original_bytes' in allowed)) else
                         'response_body' if 'response_body' in allowed
                         else 'stdout')
             if required not in allowed:

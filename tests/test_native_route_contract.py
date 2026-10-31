@@ -7,6 +7,36 @@ from harness.web_fetch.native_routes import INPUT_MEDIA_KINDS, declared_input_me
 from harness.web_fetch.providers.moli import _route_for_case
 
 
+@pytest.mark.parametrize('fields', [{}, {'task_kind': 'resource', 'track': 'image'},
+                                  {'task_kind': 'file', 'track': 'document'},
+                                  {'track': 'dynamic'},
+                                  {'track': 'document', 'source_benchmark': {'input_media_kind': 'direct_pdf'}}])
+def test_saved_moli_replay_preserves_evalcase_route_defaults(tmp_path, fields):
+    import json
+    from unittest.mock import patch
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch.native_projection import native_answer_projection
+    from harness.web_fetch.native_routes import _expected_native_declaration
+
+    case = {'id': 'case', 'name': 'Case', 'url': 'https://example.test/',
+            'category': 'test', 'expected_any': [], **fields}
+    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [case]}))
+    record = {'case_id': 'case', 'url': case['url'], 'provider_type': 'moli_webfetch',
+              'provider_metadata': {'native_route_receipt': {}}}
+    expected = native_answer_projection('moli_webfetch', EvalCase(**case), {}, None)
+    original = json.loads((tmp_path/'dataset.json').read_text())
+    with patch('harness.web_fetch.native_routes.native_answer_projection', wraps=native_answer_projection) as project:
+        assert _expected_native_declaration(tmp_path, record, b'answer', None) == expected
+        replay_case = project.call_args.args[1]
+        assert replay_case['task_kind'] == fields.get('task_kind', 'body')
+        assert replay_case['track'] == fields.get('track', 'web')
+        assert _expected_native_declaration(tmp_path, record, b'answer', {'case': case}) == expected
+    assert json.loads((tmp_path/'dataset.json').read_text()) == original
+    assert case == original['cases'][0]
+    with pytest.raises(ValueError, match='frozen request identity'):
+        _expected_native_declaration(tmp_path, {**record, 'url': 'https://forged.test/'}, b'answer', None)
+
+
 @pytest.mark.parametrize('media', sorted(INPUT_MEDIA_KINDS))
 def test_dataset_and_worker_use_the_same_explicit_input_type(media):
     assert declared_input_media_kind({'source_benchmark': {'input_media_kind': media}}) == media
@@ -1056,3 +1086,56 @@ def test_parsed_request_signature_detaches_mutable_parameter_inputs():
     assert parsed.parameters == {'argv': ['native']}
     with pytest.raises(FrozenInstanceError):
         parsed.interface = 'changed'
+
+
+@pytest.mark.parametrize('method', ['tavily_extract', 'firecrawl', 'cloudflare_markdown'])
+def test_explicit_native_dynamic_body_rules_are_admitted_without_rule_conversion(tmp_path, method):
+    from copy import deepcopy
+    import json
+    from harness.web_fetch.config import load_dataset
+    from harness.web_fetch.native_routes import NativeRouteLedger
+    from harness.web_fetch.providers.base import build_provider
+    from harness.web_fetch.retrieval_hints import plan_for_case
+    case = {'id': 'dynamic-body', 'name': 'Dynamic body', 'category': 'dynamic',
+            'track': 'dynamic', 'url': 'https://example.test/body', 'expected_any': [],
+            'source_benchmark': {'input_media_kind': 'html_page'},
+            'retrieval_hints': {'version': 3, 'mode': 'native'},
+            'body_requirements': {'version': 3, 'minimum_coverage': 0.8,
+                'minimum_floor': 0.8, 'minimum_region_passes': 1,
+                'regions': [{'id': 'body', 'text': 'Expected body content'}]}}
+    original = deepcopy(case)
+    path = tmp_path/'dataset.json'
+    path.write_text(json.dumps({'tool': 'web_fetch', 'cases': [case]}))
+    _, cases = load_dataset(path)
+    provider = build_provider('method', {'type': method, 'api_key': 'fixture',
+        'account_id': 'fixture', 'uniform_native_parameters': True})
+    ledger = NativeRouteLedger(cases, [provider], timeout_seconds=30)
+    assert len(ledger.document['cells']) == 1
+    assert plan_for_case(cases[0]) is None
+    assert case == original
+    assert cases[0].body_requirements == original['body_requirements']
+    assert cases[0].acceptance_contract == {}
+    assert not ledger.calls
+
+
+@pytest.mark.parametrize('hints', [None, {}, {'version': 3, 'mode': 'native', 'contract': 'custom-page'},
+                                 {'version': 3, 'mode': 'other'},
+                                 {'version': 1, 'wait_until': 'networkidle'}])
+def test_dynamic_default_admission_does_not_accept_absent_or_custom_retrieval(hints):
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch.native_routes import NativeRouteLedger
+    from harness.web_fetch.providers.base import build_provider
+    case = EvalCase('dynamic-body', 'Dynamic body', 'https://example.test/', 'dynamic', [],
+                    track='dynamic', retrieval_hints=hints,
+                    source_benchmark={'input_media_kind': 'html_page'})
+    provider = build_provider('method', {'type': 'tavily_extract', 'api_key': 'fixture',
+                                        'uniform_native_parameters': True})
+    with pytest.raises(ValueError, match='default retrieval declaration'):
+        NativeRouteLedger([case], [provider], timeout_seconds=30)
+
+
+def test_explicit_native_declaration_does_not_bypass_invalid_acceptance_contract():
+    from harness.web_fetch.retrieval_hints import native_default_case
+    with pytest.raises(ValueError):
+        native_default_case({'track': 'dynamic', 'retrieval_hints': {'version': 3, 'mode': 'native'},
+                             'acceptance_contract': {'version': 1, 'schema': 'unknown'}})
