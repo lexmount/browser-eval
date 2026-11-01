@@ -389,6 +389,7 @@ class FirecrawlProvider(Provider):
             error_type=error_type,
             error_message=error_message,
             metadata={
+                **response.dns_metadata,
                 "route": route,
                 "wait": wait_metadata,
                 "requested_formats": request_body["formats"],

@@ -11,9 +11,11 @@ from typing import Any
 
 from lexbench_webfetch.models import EvalCase
 
+from harness.web_fetch.diagnostics import emit
 from harness.web_fetch.models import ProviderResult
+from harness.web_fetch.network_dns import public_dns_context
 from harness.web_fetch.native_routes import encode_http_target_url, normalized_http_parameters
-from harness.web_fetch.providers.http_client import inner_timeout_budget
+from harness.web_fetch.providers.http_client import HttpResponse, inner_timeout_budget
 from harness.web_fetch.retrieval_hints import NATIVE_RETRIEVAL_HINTS
 
 
@@ -154,7 +156,15 @@ class Provider(ABC):
         if ledger is not None:
             self.capture_native_request(case, transport='http', endpoint=endpoint, native_route_ledger=ledger,
                                         parameters=normalized_http_parameters(case, kwargs))
-        return callback(endpoint, **kwargs)
+        mode = self.config.get('dns_mode', 'system')
+        with public_dns_context(mode, kwargs.get('timeout', 30)) as traces:
+            try:
+                response = callback(endpoint, **kwargs)
+            finally:
+                emit('http_dns_resolution', dns_mode=mode, dns_trace=traces)
+        if isinstance(response, HttpResponse):
+            response.dns_metadata = {'dns_mode': mode, 'dns_trace': traces}
+        return response
 
     def native_http_arguments(self, case, timeout):
         raise ValueError('Provider has no fixed-native HTTP request builder')

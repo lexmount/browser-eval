@@ -456,6 +456,7 @@ class CloudflareMarkdownProvider(Provider):
             error_type=error_type,
             error_message=error_message,
             metadata={
+                **response.dns_metadata,
                 # The runner removes this internal value into hash-bound private
                 # evidence before writing public results.
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
@@ -537,6 +538,7 @@ class CloudflareMarkdownProvider(Provider):
             error_type=error_type,
             error_message=error_message,
             metadata={
+                **response.dns_metadata,
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
@@ -717,6 +719,7 @@ class CloudflareMarkdownProvider(Provider):
             error_type=error_type,
             error_message=error_message,
             metadata={
+                **response.dns_metadata,
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
@@ -785,6 +788,7 @@ class CloudflareContentProvider(CloudflareMarkdownProvider):
             error_type=error_type,
             error_message=error_message,
             metadata={
+                **response.dns_metadata,
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),

@@ -137,6 +137,7 @@ class ExaContentsProvider(Provider):
             error_type=error_type,
             error_message=error_message,
             metadata={
+                **response.dns_metadata,
                 # This is private runner input, not report metadata. Retain the
                 # exact envelope bytes so its identity can be independently
                 # checked without changing the normalized answer artifact.

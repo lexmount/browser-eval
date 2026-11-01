@@ -10,7 +10,7 @@ from harness.record_io import parse_utf8_json
 from harness.web_fetch.models import ProviderResult
 from harness.web_fetch.native_routes import NativeRoute
 from harness.web_fetch.native_projection import native_answer_projection, project_native_files
-from harness.web_fetch.network_dns import public_dns_context, validate_dns_mode
+from harness.web_fetch.network_dns import validate_dns_mode
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.providers.http_client import inner_timeout_budget, request
 
@@ -127,16 +127,14 @@ class HostedFetchProvider(Provider):
         native_file_delivery = file_task and self.type in {
             "brightdata_unlocker", "browserbase_fetch", "browser_use_fetch"}
         files = []
-        dns_mode = self.config.get("dns_mode", "system")
-        with public_dns_context(dns_mode, budget) as dns_trace:
-            response = self.native_http_request(case, request, endpoint,
-                native_route_ledger=native_route_ledger, **arguments)
+        response = self.native_http_request(case, request, endpoint,
+            native_route_ledger=native_route_ledger, **arguments)
         metadata = {
             "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
             "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
             "raw_response_bytes": len(response.body),
             "api_http_status": response.status, "output_contract": output_format,
-            "dns_mode": dns_mode, "dns_trace": dns_trace,
+            **response.dns_metadata,
             "client_retries": 0, "retrieval_hints_applied": False,
             "service_retry_policy": "provider_default_not_overridden",
             "request_timeout_seconds": budget,

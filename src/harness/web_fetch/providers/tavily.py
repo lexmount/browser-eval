@@ -86,6 +86,7 @@ class TavilyExtractProvider(Provider):
             error_type=error_type,
             error_message=error_message,
             metadata={
+                **response.dns_metadata,
                 # The runner consumes this internal field into private evidence.
                 # Keep the exact response bytes until that persistence boundary;
                 # decoded text is not a byte-stable provider-call artifact.
