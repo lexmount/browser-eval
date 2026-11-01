@@ -392,3 +392,149 @@ def test_colliding_suite_case_routes_rejected_before_output(tmp_path):
     with pytest.raises(ValueError, match='Colliding suite-qualified case routes'):
         build(tmp_path, spec)
     assert not (tmp_path/'report').exists()
+
+
+@pytest.mark.parametrize('before,after,selected', [(False, True, True), (True, True, False),
+                                                   (False, False, False), (True, False, False)])
+def test_single_case_parameter_group_preserves_both_calls_and_selects_improvement(tmp_path, before, after, selected):
+    spec, root, record, _ = fixture(tmp_path)
+    record['metrics']['content_pass'] = before
+    (root/'results.jsonl').write_text(json.dumps(record)+'\n')
+    spec['sources'][0]['results']['sha256'] = hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()
+    candidate = tmp_path/'candidate'
+    import shutil
+    shutil.copytree(root, candidate)
+    changed = deepcopy(record)
+    changed.update(attempt_id='new-run', started_at='2026-11-01T01:00:00Z')
+    changed['metrics']['content_pass'] = after
+    (candidate/'results.jsonl').write_text(json.dumps(changed)+'\n')
+    contract = write(tmp_path/'contract.json', {'created_at':'2026-11-01T00:00:00Z',
+        'max_failure_retries':1, 'jobs':[{'id':'job','suite':'first','provider':'method','case_ids':['same']}]})
+    spec['parameter_reruns'] = {'contract':contract,'selection':'replace_track_if_pass_count_improves',
+        'sources':[{'job_id':'job','root':str(candidate),
+                    'dataset':write(candidate/'dataset.json', json.loads((root/'dataset.json').read_text())),
+                    'results':{'path':str(candidate/'results.jsonl'),
+                               'sha256':hashlib.sha256((candidate/'results.jsonl').read_bytes()).hexdigest()}}]}
+    report = build(tmp_path, spec).parent
+    model = json.loads((report/'matrix.json').read_text())
+    row = model['rows'][0]
+    assert row['parameter_rerun']['selected_new'] is selected
+    assert 'data-parameter-reruns' in (report/'index.html').read_text()
+    assert row['passed'] is (before or after)
+    actual = json.loads((report/row['record_path']).read_text())
+    assert actual['attempt_id'] == ('new-run' if selected else 'run-001')
+    for label in ('before','candidate'):
+        assert (report/row['parameter_rerun'][label+'_record_path']).is_file()
+    assert check_saved_matrix(report, spec_path=tmp_path/'spec.json')['valid']
+    # A truncated cohort or changed rule cannot enter the report.
+    (candidate/'results.jsonl').write_text('')
+    spec['parameter_reruns']['sources'][0]['results']['sha256'] = hashlib.sha256(b'').hexdigest()
+    with pytest.raises(ValueError, match='Incomplete parameter'):
+        build(tmp_path, spec, 'incomplete')
+    (candidate/'results.jsonl').write_text(json.dumps(changed)+'\n')
+    spec['parameter_reruns']['sources'][0]['results']['sha256'] = hashlib.sha256((candidate/'results.jsonl').read_bytes()).hexdigest()
+    data = json.loads((candidate/'dataset.json').read_text())
+    data['cases'][0]['expected_any'] = ['different rule']
+    spec['parameter_reruns']['sources'][0]['dataset'] = write(candidate/'dataset.json', data)
+    with pytest.raises(ValueError, match='changed task rules'):
+        build(tmp_path, spec, 'changed-rule')
+
+
+def test_parameter_rerun_parts_must_cover_the_whole_original_job(tmp_path):
+    from harness.web_fetch.report_saved_matrix import _parameter_reruns
+    spec, root, record, _ = fixture(tmp_path)
+    case = json.loads((root/'dataset.json').read_text())['cases'][0]
+    second = {**case, 'id':'second'}
+    base = tmp_path/'parts'
+    sources = []
+    selected = {}
+    for cid in ('same', 'second'):
+        part = base/cid
+        (part/'artifacts').mkdir(parents=True)
+        (part/'artifacts/answer.txt').write_text('answer')
+        result = {**record, 'case_id':cid, 'attempt_id':cid}
+        dataset = write(part/'dataset.json', {'cases':[case if cid=='same' else second]})
+        raw = (json.dumps(result)+'\n').encode()
+        (part/'results.jsonl').write_bytes(raw)
+        sources.append({'job_id':'job','case_ids':[cid],'root':str(part),'dataset':dataset,
+                        'results':{'path':str(part/'results.jsonl'),
+                                   'sha256':hashlib.sha256(raw).hexdigest()}})
+        selected[('first','method',cid)] = None
+    contract = write(tmp_path/'contract.json', {'created_at':'2026-10-28T00:00:00Z',
+        'max_failure_retries':1,'jobs':[{'id':'job','suite':'first',
+                                       'provider':'method','case_ids':['same','second']}]})
+    from harness.web_fetch.report_saved_matrix import _SourceBindings
+    inputs = {'spec':{'parameter_reruns':{'contract':contract,
+              'selection':'replace_track_if_pass_count_improves','sources':sources}},
+              'sources':_SourceBindings(tmp_path),'selected':selected,
+              'revision':None,'cases':{'first':{'same':case,'second':second}}}
+    assert len(_parameter_reruns(inputs)) == 2
+    inputs['spec']['parameter_reruns']['sources'] = sources[:1]
+    with pytest.raises(ValueError, match='Incomplete parameter rerun job inventory'):
+        _parameter_reruns(inputs)
+    inputs['spec']['parameter_reruns']['sources'] = [sources[0], sources[0], sources[1]]
+    with pytest.raises(ValueError, match='declared population'):
+        _parameter_reruns(inputs)
+
+
+@pytest.mark.parametrize('after,selected', [([False, True, True], True),
+                                           ([False, True, False], False),
+                                           ([False, False, False], False)])
+def test_whole_parameter_group_never_keeps_a_regression_from_the_old_group(after, selected):
+    from harness.web_fetch.report_saved_matrix import _parameter_group_decisions
+    keys = [('main', 'method', 'a'), ('main', 'method', 'b'), ('supplement', 'method', 'c')]
+    before = [True, False, False]
+    def record(passed):
+        return {'ok':True, 'metrics':{'content_pass':passed, 'request_ok':True}}
+    cases = {'main':{'a':{'track':'dynamic'}, 'b':{'track':'dynamic'}},
+             'supplement':{'c':{'track':'dynamic'}}}
+    inputs = {'revision':None, 'cases':cases,
+              'selected':{k:(None,record(p),None,None) for k,p in zip(keys,before)}}
+    candidates = {k:(None,record(p),None,None) for k,p in zip(keys,after)}
+    decisions = _parameter_group_decisions(inputs, candidates)
+    assert all(d['selected_new'] is selected for d in decisions.values())
+    # When the group improves, its formerly passing first case must also use the new failure.
+    chosen = [after[i] if decisions[k]['selected_new'] else before[i] for i,k in enumerate(keys)]
+    assert chosen == (after if selected else before)
+    assert decisions[keys[0]]['count'] == 3
+    with pytest.raises(ValueError, match='complete method/track group'):
+        _parameter_group_decisions(inputs, {keys[0]:candidates[keys[0]]})
+
+
+@pytest.mark.parametrize('final_pass', [False, True])
+def test_parameter_candidate_view_retains_a_separately_completed_retry(tmp_path, final_pass):
+    spec, root, record, _ = fixture(tmp_path/'baseline')
+    record['metrics']['content_pass'] = False
+    (root/'results.jsonl').write_text(json.dumps(record)+'\n')
+    spec['sources'][0]['results']['sha256'] = hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()
+    candidate_spec, candidate_root, candidate, _ = fixture(tmp_path/'candidate')
+    candidate['started_at'] = '2026-11-01T00:00:00Z'
+    candidate['metrics']['content_pass'] = final_pass
+    raw = (json.dumps(candidate)+'\n').encode()
+    (candidate_root/'results.jsonl').write_bytes(raw)
+    candidate_spec['sources'][0]['results']['sha256'] = hashlib.sha256(raw).hexdigest()
+    first = deepcopy(candidate)
+    first['started_at'] = '2026-10-31T01:00:00Z'
+    first['metrics']['content_pass'] = False
+    first_raw = (json.dumps(first)+'\n').encode()
+    (candidate_root/'prior.jsonl').write_bytes(first_raw)
+    launch = write(tmp_path/'retry-launch.json', {'started_at':'2026-10-31T02:00:00Z',
+        'total_authorized_physical_calls':2,'first_record':{'record':first}})
+    candidate_spec['retry_continuations'] = [{'suite':'first','provider':'method','case_id':'same',
+        'current_record_sha256':hashlib.sha256(raw).hexdigest(),'launch_contract':launch,
+        'prior_source':{'root':str(candidate_root),'dataset':candidate_spec['suites'][0]['dataset'],
+                        'results':{'path':str(candidate_root/'prior.jsonl'),
+                                   'sha256':hashlib.sha256(first_raw).hexdigest()}}}]
+    candidate_binding = write(tmp_path/'candidate-spec.json', candidate_spec)
+    contract = write(tmp_path/'parameter-contract.json', {'created_at':'2026-10-30T00:00:00Z',
+        'max_failure_retries':1,'jobs':[{'id':'job','suite':'first','provider':'method','case_ids':['same']}]})
+    spec['parameter_reruns'] = {'contract':contract,'selection':'replace_track_if_pass_count_improves',
+        'sources':[{'job_id':'job','saved_matrix_spec':candidate_binding}]}
+    output = build(tmp_path,spec).parent
+    row = json.loads((output/'matrix.json').read_text())['rows'][0]
+    proof = row['parameter_rerun']
+    assert (output/proof['candidate_prior_record_path']).read_bytes() == first_raw
+    assert proof['selected_new'] is final_pass
+    if final_pass:
+        assert row['retries'] == 1 and row['retry_continuation']['total_physical_calls'] == 2
+    assert check_saved_matrix(output,spec_path=tmp_path/'spec.json')['valid']

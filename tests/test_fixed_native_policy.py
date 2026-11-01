@@ -9,6 +9,23 @@ from harness.web_fetch.providers.base import build_provider
 from harness.web_fetch.providers.http_client import HttpResponse
 
 
+@pytest.mark.parametrize('value', [1, 15000, 90000, 0, -1, 90001, True, '15000', 1.5])
+def test_exa_explicit_native_timeout_is_validated_and_forwarded(value):
+    provider = build_provider('exa', {'type': 'exa_contents', 'api_key': 'fixture',
+        'uniform_native_parameters': True, 'livecrawl_timeout_ms': value})
+    case = EvalCase('one', 'one', 'https://example.com/', 'control', [])
+    valid = type(value) is int and 1 <= value <= 90000
+    assert bool(provider.validate()) is not valid
+    if not valid:
+        with pytest.raises(ValueError, match='livecrawl_timeout_ms'):
+            provider.native_http_arguments(case, 30)
+        return
+    _, arguments = provider.native_http_arguments(case, 30)
+    assert arguments['json_body']['livecrawlTimeout'] == value
+    assert arguments['timeout'] == 30
+    assert provider.native_configured_parameters()['livecrawl_timeout_ms'] == value
+
+
 @pytest.mark.parametrize("kind,module,payload", [
     ("tavily_extract", "tavily", {"results": [{"url": "https://example.com/", "raw_content": "complete answer"}]}),
     ("exa_contents", "exa", {"results": [{"url": "https://example.com/", "text": "complete answer"}], "statuses": [{"status": "success"}]}),

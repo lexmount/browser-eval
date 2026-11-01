@@ -58,6 +58,8 @@ def _public_url_error(value: object) -> dict[str, object]:
 
 
 class ExaContentsProvider(Provider):
+    native_configuration_fields = (*Provider.native_configuration_fields, 'livecrawl_timeout_ms')
+
     def native_route(self, case) -> NativeRoute:
         return NativeRoute('http', '/contents', ('results[].text', 'results[].extras', 'results[].title', 'results[].url',))
 
@@ -69,6 +71,11 @@ class ExaContentsProvider(Provider):
             extras['richLinks'] = int(self.config.get('rich_links_limit', 100))
         if extras:
             body['extras'] = extras
+        if 'livecrawl_timeout_ms' in self.config:
+            value = self.config['livecrawl_timeout_ms']
+            if type(value) is not int or not 1 <= value <= 90_000:
+                raise ValueError('livecrawl_timeout_ms must be an integer between 1 and 90000')
+            body['livecrawlTimeout'] = value
         return (str(self.config.get('base_url', 'https://api.exa.ai')).rstrip('/') + '/contents',
                 self.native_http_options(body, {'x-api-key': str(self.config.get('api_key', ''))}, timeout))
 
@@ -82,7 +89,12 @@ class ExaContentsProvider(Provider):
         return endpoint, arguments
 
     def validate(self) -> list[str]:
-        return [] if self.config.get("api_key") else ["api_key"]
+        errors = [] if self.config.get("api_key") else ["api_key"]
+        if 'livecrawl_timeout_ms' in self.config:
+            value = self.config['livecrawl_timeout_ms']
+            if type(value) is not int or not 1 <= value <= 90_000:
+                errors.append('livecrawl_timeout_ms must be an integer between 1 and 90000')
+        return errors
 
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)

@@ -2247,6 +2247,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
       '<strong>'+SAVED_MATRIX_ZH['coverage_banner_title']+'</strong><span>'
       +esc(SAVED_MATRIX_ZH['coverage_banner_counts'].format(**counts))+' '
       +esc(SAVED_MATRIX_ZH['coverage_banner_note'])+'</span></div>')
+  if saved_scope.get('parameter_reruns'):
+   reliability_banner+='<div class="wrap callout" data-parameter-reruns>'+esc(SAVED_MATRIX_ZH['parameter_rerun_banner'].format(**saved_scope['parameter_reruns']))+'</div>'
  elif reliability['complete']:
   reliability_banner=''
  elif (measurement_presentation(dataset).explain_unjudged
@@ -2538,6 +2540,16 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    for old in r['report_superseded_history']:
     history_rows.append(('',cell(esc(old.get('started_at') or '—'))+cell(link('../'+old['record_path'],SAVED_MATRIX_ZH['record_link']))+cell(link('../'+old['answer_path'],SAVED_MATRIX_ZH['answer_link']))+cell(link('../'+old['scope_path'],SAVED_MATRIX_ZH['history_scope']))))
    body+=section(SAVED_MATRIX_ZH['history_title'],'<p>'+SAVED_MATRIX_ZH['history_note']+'</p>'+table(['时间','记录','返回','范围'],history_rows,metrics=[]),'superseded-history')
+  if r.get('report_parameter_rerun'):
+   proof=r['report_parameter_rerun']
+   evidence=[]
+   for label in ('before','candidate'):
+    evidence.append(esc(SAVED_MATRIX_ZH['parameter_rerun_'+label])+': '+link('../'+proof[label+'_record_path'],SAVED_MATRIX_ZH['record_link'])+' · '+link('../'+proof[label+'_answer_path'],SAVED_MATRIX_ZH['answer_link']))
+   if proof.get('candidate_prior_record_path'):
+    evidence.append(link('../'+proof['candidate_prior_record_path'],SAVED_MATRIX_ZH['continuation_prior'])+' · '+link('../'+proof['candidate_prior_answer_path'],SAVED_MATRIX_ZH['answer_link']))
+   outcome=SAVED_MATRIX_ZH['parameter_rerun_selected' if proof['selected_new'] else 'parameter_rerun_retained']
+   outcome+=' · '+SAVED_MATRIX_ZH['parameter_rerun_group'].format(**proof['group'])
+   body+=section(SAVED_MATRIX_ZH['parameter_rerun_title'],'<p>'+SAVED_MATRIX_ZH['parameter_rerun_note']+'</p><p>'+outcome+'</p><p>'+'<br>'.join(evidence)+'</p>','parameter-rerun')
   if r.get('report_retry_continuation'):
    continuation=r['report_retry_continuation']
    cost=ms(continuation['execution_cost_ms']) if continuation['execution_cost_ms'] is not None else SAVED_MATRIX_ZH['continuation_unknown_cost']
@@ -2807,7 +2819,7 @@ def write_review_page(out,records):
    page+=section('评分变化分步记录','<p>'+model_text('每一步与紧邻的前一步比较；评分程序修订不等于删除规则。完整原因和代码依据见修订记录。','Each step is compared with its immediate predecessor. Scorer revisions do not remove rules; the revision record contains causes and code provenance.')+'</p>'+table(['修订类型','失败 → 通过','通过 → 失败'],steps,'score-revision-steps'))
   attachments=revision.get('review_files',{})
   if attachments:
-   page+=section('完整清单','<p>'+' · '.join(link('../'+path,{'decisions':'逐案例保留、删除及依据','failures':'原始失败项','parameters':'参数方案（未应用）'}.get(name,name)) for name,path in attachments.items())+'</p>')
+   page+=section('完整清单','<p>'+' · '.join(link('../'+path,{'decisions':'逐案例保留、删除及依据','failures':'原始失败项','parameters':'参数方案与范围'}.get(name,name)) for name,path in attachments.items())+'</p>')
   if attachments.get('decisions'):
    decisions=json.loads(contained_path(out,attachments['decisions']).read_text())
    rows=[]

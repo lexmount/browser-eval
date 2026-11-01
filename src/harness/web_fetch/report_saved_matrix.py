@@ -218,7 +218,8 @@ def _saved_revision(spec, sources, cases, selected):
         expected.update(case_id=suite+'--'+cid, attempt_id=attempt)
         original = originals.get(attempt, {})
         actual = {k: v for k, v in original.items() if k not in {
-            'report_invocation_status', 'report_superseded_history', 'report_retry_continuation'}}
+            'report_invocation_status', 'report_superseded_history', 'report_retry_continuation',
+            'report_parameter_rerun'}}
         if expected != actual:
             raise ValueError('Saved revision predecessor result differs: '+attempt)
         current = revised[attempt]
@@ -450,6 +451,107 @@ def _load_saved_matrix(spec_path):
                 revision=_saved_revision(spec, sources, cases, selected))
 
 
+def _parameter_reruns(inputs):
+    """Validate complete declared reruns before applying an explicit retention policy."""
+    config = inputs['spec'].get('parameter_reruns')
+    if not config:
+        return {}
+    sources = inputs['sources']
+    contract = _json(sources.binding(config['contract']))
+    if config.get('selection_amendment'):
+        amendment = _json(sources.binding(config['selection_amendment']))
+        if amendment.get('selection') != config.get('selection'):
+            raise ValueError('Parameter selection amendment differs from report policy')
+    if config.get('selection') != 'replace_track_if_pass_count_improves':
+        raise ValueError('Unsupported parameter rerun selection policy')
+    declared = {job['id']: job for job in contract['jobs']}
+    candidates = {}
+    covered = {name: set() for name in declared}
+    for source in config['sources']:
+        job = declared[source['job_id']]
+        source_ids = source.get('case_ids', job['case_ids'])
+        if len(source_ids) != len(set(source_ids)) or not set(source_ids) <= set(job['case_ids']):
+            raise ValueError('Parameter rerun source exceeds declared population')
+        if source.get('saved_matrix_spec'):
+            nested = _load_saved_matrix(sources.binding(source['saved_matrix_spec']))
+            if nested['missing'] or nested['revision'] or nested['historical']:
+                raise ValueError('Parameter candidate view must contain complete unmodified calls')
+            if set(nested['selected']) != {(job['suite'], job['provider'], cid) for cid in source_ids}:
+                raise ValueError('Parameter candidate view differs from declared population')
+            for path, digest in nested['sources'].tracked.items():
+                sources.bind(path, digest)
+            inputs.setdefault('parameter_continuations', {}).update(nested['continuations'])
+            cases = nested['cases'][job['suite']]
+            source_rows = list(nested['selected'].values())
+        else:
+            root = _path(sources.base, source['root'])
+            dataset = _json(sources.binding(source['dataset']))
+            path = sources.binding(source['results'])
+            cases = {case['id']: case for case in dataset['cases']}
+            source_rows = [(root, json.loads(line), line, path)
+                           for line in path.read_bytes().splitlines(keepends=True) if line.strip()]
+        seen = set()
+        for root, record, line, path in source_rows:
+            cid = record['case_id']
+            if cid not in source_ids:
+                continue
+            key = job['suite'], job['provider'], cid
+            if (cid in seen or key in candidates
+                    or record['provider'] != job['provider'] or key not in inputs['selected']):
+                raise ValueError('Parameter rerun differs from declared population')
+            seen.add(cid)
+            original_case = inputs['cases'][job['suite']][cid]
+            revision = inputs['revision']
+            case = revision['cases'].get((job['suite'], cid), original_case) if revision else original_case
+            if _case_identity(cases[cid]) != _case_identity(case) or record['url'] != case['url']:
+                raise ValueError('Parameter rerun changed task rules')
+            if datetime.fromisoformat(record['started_at']) < datetime.fromisoformat(contract['created_at']):
+                raise ValueError('Parameter rerun predates its contract')
+            retry = record.get('provider_metadata', {}).get('retry', {})
+            if retry.get('retries_used', 0) > contract['max_failure_retries']:
+                raise ValueError('Parameter rerun exceeds retry allowance')
+            verify_record_artifacts(root, record, native_cases=cases)
+            for relative, digest in artifact_bindings(record):
+                sources.bind(contained_path(root, relative, reject_symlinks=True), digest)
+            for item in record_private_bindings(record):
+                sources.bind(contained_path(root, item['path'], reject_symlinks=True), item['sha256'])
+            candidates[key] = root, record, line, path
+        if seen != set(source_ids):
+            raise ValueError('Incomplete parameter rerun cohort')
+        covered[source['job_id']].update(seen)
+    if any(covered[name] != set(job['case_ids']) for name, job in declared.items()):
+        raise ValueError('Incomplete parameter rerun job inventory')
+    return candidates
+
+
+def _parameter_group_decisions(inputs, candidates):
+    """Select whole method/track groups, including regressions in a winning group."""
+    groups, membership = {}, {}
+    revision = inputs['revision']
+    for key, (_, candidate, _, _) in candidates.items():
+        suite, provider, cid = key
+        original_case = inputs['cases'][suite][cid]
+        case = revision['cases'].get((suite, cid), original_case) if revision else original_case
+        group = provider, case.get('track', 'web')
+        membership[key] = group
+        counts = groups.setdefault(group, {'provider': provider, 'track': group[1],
+                                          'count': 0, 'before_passed': 0, 'candidate_passed': 0})
+        before = inputs['selected'][key][1]
+        if revision:
+            before = revision['records'].get(key, before)
+        counts['count'] += 1
+        for label, record in [('before_passed', before), ('candidate_passed', candidate)]:
+            counts[label] += bool(task_passed(record['ok'], record['metrics'], case.get('task_kind', 'body')))
+    for counts in groups.values():
+        counts['selected_new'] = counts['candidate_passed'] > counts['before_passed']
+    for group in groups:
+        expected = {key for key in inputs['selected'] if key[1] == group[0]
+                    and inputs['cases'][key[0]][key[2]].get('track', 'web') == group[1]}
+        if expected != {key for key, value in membership.items() if value == group}:
+            raise ValueError('Parameter selection must cover the complete method/track group')
+    return {key: groups[group] for key, group in membership.items()}
+
+
 def build_saved_matrix(spec_path: Path, output: Path) -> Path:
     """Verify immutable sources and create a new portable report directory."""
     from harness.web_fetch.report import generate_saved_matrix
@@ -458,6 +560,8 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
     if output.exists():
         raise ValueError('Saved-matrix output must be a new directory')
     inputs = _load_saved_matrix(spec_path)
+    candidates = _parameter_reruns(inputs)
+    decisions = _parameter_group_decisions(inputs, candidates)
     spec = inputs['spec']
     sources = inputs['sources']
     bind, binding, tracked = sources.bind, sources.binding, sources.tracked
@@ -520,6 +624,43 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                             'before_record_path':prefix+'/score-before-record.json'}
                         record = revision['records'][key]
                         raw_line = (json.dumps(record, ensure_ascii=False)+'\n').encode()
+                    if key in candidates:
+                        old = root, record, raw_line, result_path
+                        candidate = candidates[key]
+                        old_pass = task_passed(record['ok'], record['metrics'], case.get('task_kind', 'body'))
+                        new_record = candidate[1]
+                        new_pass = task_passed(new_record['ok'], new_record['metrics'], case.get('task_kind', 'body'))
+                        replace = decisions[key]['selected_new']
+                        proof = {'selected_new': replace, 'before_passed': old_pass,
+                                 'candidate_passed': new_pass,
+                                 'selection': 'replace_track_if_pass_count_improves',
+                                 'group': decisions[key]}
+                        for label, evidence in [('before', old), ('candidate', candidate)]:
+                            evidence_root, saved, saved_line, saved_path = evidence
+                            relative = prefix + '/parameter-rerun/' + label
+                            (output/relative).mkdir(parents=True, exist_ok=True)
+                            (output/(relative+'/record.json')).write_bytes(saved_line)
+                            for name, digest in artifact_bindings(saved):
+                                copy(contained_path(evidence_root, name, reject_symlinks=True), relative+'/'+name)
+                            proof[label+'_record_path'] = relative+'/record.json'
+                            proof[label+'_answer_path'] = relative+'/'+saved['artifact_path']
+                            proof[label+'_results_sha256'] = tracked[saved_path]
+                        item['parameter_rerun'] = proof
+                        if key in inputs.get('parameter_continuations', {}):
+                            _, prior, _ = inputs['parameter_continuations'][key]
+                            if prior:
+                                prior_root, prior_record, prior_line = prior
+                                relative = prefix+'/parameter-rerun/candidate-prior'
+                                (output/relative).mkdir(parents=True, exist_ok=True)
+                                (output/(relative+'/record.json')).write_bytes(prior_line)
+                                for name, digest in artifact_bindings(prior_record):
+                                    copy(contained_path(prior_root, name, reject_symlinks=True), relative+'/'+name)
+                                proof['candidate_prior_record_path'] = relative+'/record.json'
+                                proof['candidate_prior_answer_path'] = relative+'/'+prior_record['artifact_path']
+                        if replace:
+                            root, record, raw_line, result_path = candidate
+                            revised = False
+                            item.pop('score_revision', None)
                     record_path = prefix + '/record.json'
                     (output / record_path).write_bytes(raw_line)
                     copies[record_path] = hashlib.sha256(raw_line).hexdigest()
@@ -563,8 +704,10 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                         'called': _called(old_record), 'started_at': old_record.get('started_at'),
                         'source_results_sha256': tracked[old_results],
                         'private_artifacts_verified_not_copied': record_private_bindings(old_record)}]
-                if key in continuations:
-                    entry, prior, launch_path = continuations[key]
+                active_continuations = (inputs.get('parameter_continuations', {})
+                                        if item.get('parameter_rerun', {}).get('selected_new') else continuations)
+                if key in active_continuations:
+                    entry, prior, launch_path = active_continuations[key]
                     note = {'prior_physical_calls': 1, 'continued_physical_calls': 1,
                             'total_physical_calls': 2, 'max_failure_retries': 1,
                             'final_call_elapsed_ms': record['elapsed_ms'],
@@ -640,6 +783,7 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             raise ValueError('Original saved-matrix source changed: specification')
         try:
             inputs = _load_saved_matrix(spec_path)
+            _parameter_reruns(inputs)
         except ValueError as exc:
             raise ValueError('Original saved-matrix source changed or invalid') from exc
         actual = sorted((p.name, digest) for p, digest in inputs['sources'].tracked.items())
@@ -742,6 +886,7 @@ def render_saved_with_standard_generator(output, model):
         record['report_invocation_status'] = row['status']
         record['report_superseded_history'] = deepcopy(row.get('history', []))
         record['report_retry_continuation'] = deepcopy(row.get('retry_continuation'))
+        record['report_parameter_rerun'] = deepcopy(row.get('parameter_rerun'))
         record['case_id'] = route
         record['attempt_id'] = safe_identifier(row['suite'] + '--' + raw['attempt_id'])
         if record['attempt_id'] in attempt_routes:
@@ -752,6 +897,10 @@ def render_saved_with_standard_generator(output, model):
                            'source_record': row['record_path'], 'source_case': row['case_path']})
     scope = {'providers': [], 'limitations': model.get('limitations', []), 'missing': [r for r in model['rows']
                                         if r['passed'] is None or not r['called']]}
+    reruns = [r['parameter_rerun'] for r in model['rows'] if r.get('parameter_rerun')]
+    if reruns:
+        scope['parameter_reruns'] = {'evaluated': len(reruns),
+                                     'selected': sum(r['selected_new'] for r in reruns)}
     providers = [p['id'] for p in model['providers']]
     for provider in providers:
         rs = [r for r in model['rows'] if r['provider'] == provider]
