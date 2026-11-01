@@ -2792,6 +2792,12 @@ def write_saved_changes(out):
  review_path=out/'result-review.json'
  review=json.loads(review_path.read_text()) if review_path.is_file() else {}
  updates=''.join('<article class="review-round"><div class="round-label">'+esc(row.get('date',''))+'</div><div><h3>'+model_text(row.get('title',''),row.get('title_en'))+'</h3><p>'+model_text(row.get('fix',''),row.get('fix_en'))+'</p><p class="source-note">'+model_text(row.get('scope',''),row.get('scope_en'))+'</p></div></article>' for row in review.get('review_rounds',[]))
+ matrix_path=out/'matrix.json'
+ matrix=json.loads(matrix_path.read_text()) if matrix_path.is_file() else {}
+ reruns=[row['parameter_rerun'] for row in matrix.get('rows',[]) if row.get('parameter_rerun')]
+ if reruns:
+  note=SAVED_MATRIX_ZH['parameter_rerun_banner'].format(evaluated=len(reruns),selected=sum(row['selected_new'] for row in reruns))
+  updates+='<article class="review-round" data-parameter-history><div class="round-label">'+esc(SAVED_MATRIX_ZH['parameter_rerun_title'])+'</div><div><h3>'+esc(SAVED_MATRIX_ZH['parameter_rerun_title'])+'</h3><p>'+esc(note)+'</p><p>'+link('../analysis/index.html','逐任务结果与证据')+'</p></div></article>'
  revision_path=out/'score-revision.json'
  if revision_path.is_file():
   revision=json.loads(revision_path.read_text())
@@ -2799,14 +2805,14 @@ def write_saved_changes(out):
   updates+='<article class="review-round"><div class="round-label">'+model_text('离线修订','Offline revision')+'</div><div><h3>'+model_text('规则修订与评分校正','Rule and scorer revisions')+'</h3><p>'+model_text(f'{count} 个案例调整规则，{results} 份保存结果统一重评。原规则、成绩和调用证据均保留；没有新增方法调用。',f'{count} cases have revised rules and {results} saved results were rescored. Original rules, results and call evidence are retained; no provider calls were added.')+'</p><p>'+link('../review/index.html','修订依据与分数变化')+'</p></div></article>'
  if not updates:
   updates='<p>'+model_text('本报告没有登记结果修订。','No result revisions are registered for this report.')+'</p>'
- write(out,'changes/index.html','变更记录',hero('变更记录','列出本轮核验后的修正；修正读取已保存的返回，不代表重新调用产品。')+section('本轮结果修正','<div class="review-rounds">'+updates+'</div>')+section('详细依据','<p>'+link('../review/index.html','核验范围与修正说明')+' · '+link('../analysis/index.html','逐任务结果与证据')+' · '+link('../reproduce/index.html','运行参数与版本')+'</p>'))
+ write(out,'changes/index.html','变更记录',hero('变更记录',SAVED_MATRIX_ZH['changes_scope'])+section('本轮结果修正','<div class="review-rounds">'+updates+'</div>')+section('详细依据','<p>'+link('../review/index.html','核验范围与修正说明')+' · '+link('../analysis/index.html','逐任务结果与证据')+' · '+link('../reproduce/index.html','运行参数与版本')+'</p>'))
 
 
 def write_review_page(out,records):
  revision_path=out/'score-revision.json'
  if revision_path.is_file():
   revision=json.loads(revision_path.read_text())
-  page=hero('核验记录','已知机器结果的规则复核；使用保存的返回离线评分，没有新增方法调用，不称为独立盲审。')
+  page=hero('核验记录',SAVED_MATRIX_ZH['offline_review_scope'])
   page+=section('修订范围','<p>'+model_text(f'调整 {len(revision["changed_cases"])} 个案例，统一重算 {revision["rescored_results"]} 份保存结果。原始规则、成绩、返回和调用耗时均保留。',f'{len(revision["changed_cases"])} cases revised and {revision["rescored_results"]} saved results rescored. Original rules, results, answers and call timings are retained.')+'</p><p>'+link('../score-revision.json','修订依据与分数变化')+'</p>')
   steps=[]
   for step in revision.get('steps',[]):

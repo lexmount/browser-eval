@@ -770,6 +770,8 @@ def write_english_report(out: Path, *, source_routes=None) -> int:
 
 # Saved-source presentation uses the shared localization owner.
 SAVED_MATRIX_ZH = {'parameter_rerun_title': '参数重测与结果选择',
+ 'changes_scope': '分别记录参数重测与离线修订。参数重测包含新调用；离线修订只使用已有返回。',
+ 'offline_review_scope': '此处记录对已知机器结果的规则复核，使用已有返回离线评分，不称为独立盲审。参数重测的新调用与结果选择另见变更记录。',
  'parameter_rerun_banner': '参数重测 {evaluated} 项，按方法与类别整体比较通过数，已整组采用 {selected} 项新结果。采用新组时也包含退步案例，不逐题拼接新旧结果；通过数相同或降低则保留旧组。本轮不能证明参数导致速度提升。',
  'parameter_rerun_note': '类别与参数在调用前确定；首次失败最多重试一次，以最后一次为本轮结果。按方法与类别比较整体通过数，改善时整组采用新结果，包括其中的退步案例；通过数相同或降低时整组保留旧结果。动态与热门的基础补充任务分别和同类专项一起选择，不拆开择优。',
  'parameter_rerun_selected': '已采用重测结果',

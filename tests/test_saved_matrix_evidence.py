@@ -420,6 +420,7 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
     row = model['rows'][0]
     assert row['parameter_rerun']['selected_new'] is selected
     assert 'data-parameter-reruns' in (report/'index.html').read_text()
+    assert 'data-parameter-history' in (report/'changes/index.html').read_text()
     assert row['passed'] is (before or after)
     actual = json.loads((report/row['record_path']).read_text())
     assert actual['attempt_id'] == ('new-run' if selected else 'run-001')
