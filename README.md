@@ -233,6 +233,7 @@ Use `scripts/build_report.py --saved-matrix /absolute/input-spec.json --output /
 
 - The hash-bound specification declares datasets, providers, selected results and evidenced missing outcomes. Suite-qualified identities preserve original cases and scores. No provider calls, rescoring or certification are added.
 - This mode uses the existing Web Fetch renderer, including datasets, method pages and result/reference comparisons. Missing outcomes have a separate inventory. Keep the HTML pages and evidence directories together.
+- Optional `report_families` lists ordered `{id, label}` entries for every observed task family. It groups the presentation by task content (including embedded media versus direct files), while preserving suite-qualified evidence identities and all saved scores.
 - Check portable report files with `scripts/build_report.py --check-saved-matrix /absolute/new-report`. Add `--source-spec /absolute/input-spec.json` to also verify original evidence. Source paths are resolved beside that external specification; the report audit contains only names and hashes.
 - Keep complete suite definitions when selecting methods and bind a receipt for every skipped cell. Retain physical retries for each selected logical result. Current-only selection does not establish why earlier results were replaced; corrections still require disclosure of scope and score, denominator and latency effects. Instance specifications, captures and HTML remain outside Git.
 

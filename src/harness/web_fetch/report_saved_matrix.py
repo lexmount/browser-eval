@@ -22,6 +22,7 @@ from harness.web_fetch.artifacts import (
     artifact_bindings, record_private_bindings, record_public_call_log_bindings,
     verify_record_artifacts,
 )
+from harness.web_fetch.models import report_family
 
 
 def _sha(path):
@@ -166,6 +167,11 @@ def _load_saved_matrix(spec_path):
     routes = [suite + '--' + cid for suite in suites for cid in cases[suite]]
     if len(routes) != len(set(routes)):
         raise ValueError('Colliding suite-qualified case routes')
+    if 'report_families' in spec:
+        families = registry(spec['report_families'])
+        actual = {report_family(c) for group in cases.values() for c in group.values()}
+        if set(families) != actual or any(not str(f.get('label', '')).strip() for f in spec['report_families']):
+            raise ValueError('Report families must label every observed task family exactly once')
     expected = {(s, p, cid) for s in suites for p in providers for cid in cases[s]}
     selected, historical = {}, {}
     source_groups = [(False, x) for x in spec['sources']] + [(True, x) for x in spec.get('superseded_sources', [])]
@@ -455,6 +461,8 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
              'rows': model_rows, 'totals': _totals(model_rows),
              'source_bindings': [{'sha256': digest, 'name': path.name} for path, digest in tracked.items()],
              'limitations': spec.get('limitations', [])}
+    if 'report_families' in spec:
+        model['report_families'] = deepcopy(spec['report_families'])
     entry = generate_saved_matrix(output, model)
     _write(output / 'matrix.json', model)
     # Bind every portable byte after generation; source files remain immutable.
@@ -565,14 +573,17 @@ def render_saved_with_standard_generator(output, model):
     from harness.web_fetch.report import generate
     cases, records, identities = {}, [], []
     attempt_routes = set()
+    groups = model.get('report_families', model['suites'])
+    labels = {g['id']: g['label'] for g in groups}
     for row in model['rows']:
         route = safe_identifier(row['suite'] + '--' + row['case_id'])
         case = _json(contained_path(output, row['case_path']))
         if case['id'] != row['case_id']:
             raise ValueError('Saved case identity differs from matrix')
         case['id'] = route
-        case['report_family'] = row['suite']
-        case['report_family_label'] = next(s['label'] for s in model['suites'] if s['id'] == row['suite'])
+        family = report_family(case) if 'report_families' in model else row['suite']
+        case['report_family'] = family
+        case['report_family_label'] = labels[family]
         cases.setdefault(route, case)
         if not row.get('record_path'):
             continue
@@ -621,7 +632,7 @@ def render_saved_with_standard_generator(output, model):
                        'presentation': {'ranking': 'saved_task_pass_rate'}},
         'saved_matrix_scope': scope}
     dataset['report_suites'] = [dict(id=s['id'], label=s['label'],
-        case_ids=[key for key, case in cases.items() if case['report_family'] == s['id']]) for s in model['suites']]
+        case_ids=[key for key, case in cases.items() if case['report_family'] == s['id']]) for s in groups]
     grouped=[key for s in dataset['report_suites'] for key in s['case_ids']]
     if len(grouped)!=len(set(grouped)) or set(grouped)!=set(cases):
         raise ValueError('Report suites must partition every case exactly once')

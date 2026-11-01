@@ -4,8 +4,61 @@ import hashlib
 from copy import deepcopy
 from pathlib import Path
 from unittest.mock import patch
+import pytest
 from bs4 import BeautifulSoup
 from tests.test_saved_matrix_evidence import fixture, build, write
+
+
+def test_task_families_combine_suites_without_combining_case_identities(tmp_path):
+    spec, _, _, raw = fixture(tmp_path)
+    spec['suites'].append({**spec['suites'][0], 'id': 'second', 'label': 'Second'})
+    spec['sources'].append({**spec['sources'][0], 'suite': 'second'})
+    spec['report_families'] = [{'id': 'web', 'label': 'Static websites'}]
+    with patch('harness.web_fetch.report.evaluate_body_requirements', side_effect=AssertionError('No rescoring')):
+        root = build(tmp_path, spec).parent
+    dataset = json.loads((root/'dataset.json').read_text())
+    assert dataset['report_suites'] == [{'id': 'web', 'label': 'Static websites',
+                                       'case_ids': ['first--same', 'second--same']}]
+    home = BeautifulSoup((root/'index.html').read_text(), 'html.parser')
+    assert len(home.select('#home-rankings [role="tabpanel"]')) == 1
+    assert home.select_one('#ranking-web')
+    assert 'Static websites' in home.get_text()
+    for suite in ('first', 'second'):
+        assert (root/f'evidence/{suite}/method/same/record.json').read_bytes() == raw
+    inventory = BeautifulSoup((root/'datasets/index.html').read_text(), 'html.parser')
+    assert {r['data-track'] for r in inventory.select('tr[data-track]')} == {'web'}
+
+
+@pytest.mark.parametrize('families', [[], [{'id':'dynamic','label':'Wrong'}],
+    [{'id':'web','label':'Static'}, {'id':'web','label':'Duplicate'}],
+    [{'id':'web','label':'Static'}, {'id':'dynamic','label':'Unused'}],
+    [{'id':'web','label':''}]])
+def test_invalid_task_family_inventory_is_rejected(tmp_path, families):
+    spec, _, _, _ = fixture(tmp_path)
+    spec['report_families'] = families
+    with pytest.raises(ValueError, match='registry|task family'):
+        build(tmp_path, spec)
+
+
+def test_task_families_split_a_mixed_input_suite(tmp_path):
+    spec, source, record, raw = fixture(tmp_path)
+    path = Path(spec['suites'][0]['dataset']['path'])
+    dataset = json.loads(path.read_text())
+    dataset['cases'].append({**dataset['cases'][0], 'id': 'picture', 'track': 'image'})
+    spec['suites'][0]['dataset'] = write(path, dataset)
+    second = {**record, 'case_id': 'picture', 'attempt_id': 'run-picture'}
+    results = source/'results.jsonl'
+    results.write_bytes(raw + (json.dumps(second)+'\n').encode())
+    spec['sources'][0]['results']['sha256'] = hashlib.sha256(results.read_bytes()).hexdigest()
+    spec['sources'][0]['case_ids'].append('picture')
+    spec['report_families'] = [{'id':'web','label':'Static'}, {'id':'web_media','label':'Embedded media'}]
+    root = build(tmp_path, spec).parent
+    projection = json.loads((root/'dataset.json').read_text())
+    assert [(g['id'], g['case_ids']) for g in projection['report_suites']] == [
+        ('web', ['first--same']), ('web_media', ['first--picture'])]
+    home = BeautifulSoup((root/'index.html').read_text(), 'html.parser')
+    assert home.select_one('#ranking-web') and home.select_one('#ranking-web_media')
+    assert json.loads((root/'matrix.json').read_text())['totals']['passed'] == 2
 
 
 def test_original_template_and_immutable_scores(tmp_path):
