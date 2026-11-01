@@ -147,6 +147,107 @@ class _SourceBindings:
             raise ValueError('Evidence requires a nonempty SHA-256 digest')
         return self.bind(value['path'], digest)
 
+def _saved_revision(spec, sources, cases, selected):
+    """Bind an offline revision to exactly the original matrix and call evidence."""
+    if not spec.get('offline_revision'):
+        return None
+    from harness.web_fetch.local_revision import validate_revision_chain
+    config = spec['offline_revision']
+    root = _path(sources.base, config['root'])
+    receipt_path = sources.binding(config['receipt'])
+    receipt_path.relative_to(root)
+    receipt_binding = {'path': receipt_path.relative_to(root).as_posix(),
+                       'sha256': _sha(receipt_path)}
+    dataset_path = sources.bind(root/'dataset.json')
+    results_path = sources.bind(root/'results.jsonl')
+    dataset = _json(dataset_path)
+    records = [json.loads(line) for line in results_path.read_text().splitlines() if line.strip()]
+    _, before_dataset, before_results = validate_revision_chain(root, receipt_binding, dataset, records)
+    if before_dataset is None or before_results is None:
+        raise ValueError('Saved revision requires its complete predecessor history')
+    def revision_file(binding):
+        return sources.bind(contained_path(root, binding['path'], reject_symlinks=True), binding['sha256'])
+    binding = receipt_binding
+    receipts = []
+    while binding:
+        receipt = _json(revision_file(binding))
+        revision_file(receipt['input_dataset'])
+        revision_file(receipt['input_results'])
+        receipts.append(receipt)
+        binding = receipt.get('predecessor_revision')
+    original_dataset = _json(revision_file(before_dataset))
+    original_records = [json.loads(line) for line in revision_file(before_results).read_text().splitlines() if line.strip()]
+    originals = {r['attempt_id']: r for r in original_records}
+    revised = {r['attempt_id']: r for r in records}
+    original_cases = {c['id']: c for c in original_dataset['cases']}
+    revised_cases = {c['id']: c for c in dataset['cases']}
+    expected_cases = {s+'--'+cid for s, group in cases.items() for cid in group}
+    if set(original_cases) != expected_cases or set(revised_cases) != expected_cases:
+        raise ValueError('Saved revision case population differs')
+    case_updates, record_updates = {}, {}
+    for suite, group in cases.items():
+        for cid, case in group.items():
+            route = suite+'--'+cid
+            def restore_case(value):
+                restored = deepcopy(value)
+                restored['id'] = cid
+                restored.pop('report_family', None)
+                restored.pop('report_family_label', None)
+                return restored
+            if _case_identity(restore_case(original_cases[route])) != _case_identity(case):
+                raise ValueError('Saved revision predecessor case differs')
+            current = restore_case(revised_cases[route])
+            if current != restore_case(original_cases[route]):
+                case_updates[(suite, cid)] = current
+    expected_attempts = set()
+    for key, (_, raw, _, _) in selected.items():
+        suite, provider, cid = key
+        attempt = suite+'--'+raw['attempt_id']
+        expected_attempts.add(attempt)
+        prefix = f'evidence/{suite}/{provider}/{cid}/'
+        public_paths = {path for path, _ in artifact_bindings(raw)}
+        def project(value, key=''):
+            if isinstance(value, dict):
+                return {k: project(v, k) for k, v in value.items()}
+            if isinstance(value, list):
+                return [project(v, key) for v in value]
+            if isinstance(value, str) and (key == 'path' or key.endswith('_path')) and value in public_paths:
+                return prefix+value
+            return value
+        expected = project(raw)
+        expected.update(case_id=suite+'--'+cid, attempt_id=attempt)
+        original = originals.get(attempt, {})
+        actual = {k: v for k, v in original.items() if k not in {
+            'report_invocation_status', 'report_superseded_history', 'report_retry_continuation'}}
+        if expected != actual:
+            raise ValueError('Saved revision predecessor result differs: '+attempt)
+        current = revised[attempt]
+        sources.bind(contained_path(root, current['artifact_path'], reject_symlinks=True),
+                     current['metrics']['content_sha256'])
+        if current != original:
+            record = deepcopy(raw)
+            for field in ('metrics', 'scoring', 'diagnosis', 'failure_category'):
+                if field in current:
+                    record[field] = deepcopy(current[field])
+                else:
+                    record.pop(field, None)
+            record_updates[key] = record
+    if set(originals) != expected_attempts or set(revised) != expected_attempts:
+        raise ValueError('Saved revision result population differs')
+    attachments = {safe_identifier(name): sources.binding(value)
+                   for name, value in config.get('review_files', {}).items()}
+    return {'cases': case_updates, 'records': record_updates,
+            'attachments': attachments,
+            'receipt': {'kind': 'saved_matrix_offline_revision', 'provider_calls_added': 0,
+                        'receipt_sha256': _sha(receipt_path),
+                        'changed_cases': [s+'--'+c for s, c in sorted(case_updates)],
+                        'rescored_results': len(record_updates),
+                        'review_files': {name: 'review-assets/'+name+'.json' for name in attachments},
+                        'steps': [{'authority': r['authority'], 'regression_ids': r['regression_ids'],
+                                   'rule_revision': r['rule_revision'],
+                                   'task_verdict_changes': r['task_verdict_changes']} for r in reversed(receipts)]}}
+
+
 def _load_saved_matrix(spec_path):
     """Validate selection and immutable sources without writing a report."""
     spec_path = Path(spec_path)
@@ -345,7 +446,8 @@ def _load_saved_matrix(spec_path):
     return dict(spec=spec, sources=sources, providers=providers, suites=suites, cases=cases,
                 selected=selected, historical=historical, continuations=continuations,
                 missing=missing, replacement_scope=replacement_scope,
-                replacement_cells=cells if replacement_scope else [])
+                replacement_cells=cells if replacement_scope else [],
+                revision=_saved_revision(spec, sources, cases, selected))
 
 
 def build_saved_matrix(spec_path: Path, output: Path) -> Path:
@@ -364,6 +466,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
     selected, historical = inputs['selected'], inputs['historical']
     continuations, missing = inputs['continuations'], inputs['missing']
     replacement_scope, cells = inputs['replacement_scope'], inputs['replacement_cells']
+    revision = inputs['revision']
     copies = {}
 
     def copy(source, relative):
@@ -378,6 +481,10 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
         return relative
 
     output.mkdir(parents=True, exist_ok=False)
+    if revision:
+        _write(output/'score-revision.json', revision['receipt'])
+        for name, path in revision['attachments'].items():
+            copy(path, 'review-assets/'+name+'.json')
     if replacement_scope:
         _write(output / 'replacement-scope.json', {
             'kind': 'predeclared_replacement_scope_public_view',
@@ -386,7 +493,8 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                        'old_record_sha256': x['old_record']['sha256']} for x in cells]})
     model_rows = []
     for suite in suites:
-        for case_id, case in cases[suite].items():
+        for case_id, original_case in cases[suite].items():
+            case = revision['cases'].get((suite, case_id), original_case) if revision else original_case
             for provider in providers:
                 key = (suite, provider, case_id)
                 prefix = f'evidence/{suite}/{provider}/{case_id}'
@@ -403,6 +511,15 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                                 receipt_path=copy(receipt, prefix + '/receipt.json'))
                 else:
                     root, record, raw_line, result_path = selected[key]
+                    revised = bool(revision and key in revision['records'])
+                    if revised:
+                        _write(output/(prefix+'/score-before-case.json'), original_case)
+                        (output/(prefix+'/score-before-record.json')).write_bytes(raw_line)
+                        item['score_revision'] = {'receipt_path':'score-revision.json',
+                            'before_case_path':prefix+'/score-before-case.json',
+                            'before_record_path':prefix+'/score-before-record.json'}
+                        record = revision['records'][key]
+                        raw_line = (json.dumps(record, ensure_ascii=False)+'\n').encode()
                     record_path = prefix + '/record.json'
                     (output / record_path).write_bytes(raw_line)
                     copies[record_path] = hashlib.sha256(raw_line).hexdigest()
@@ -424,11 +541,12 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                                 log_path=prefix + '/' + final_log['path'] if final_log else None,
                                 receipt_path=prefix + '/receipt.json')
                     _write(output / item['receipt_path'], {
-                        'kind': 'immutable_saved_result_view', 'source_results_sha256': tracked[result_path],
+                        'kind': 'offline_revised_saved_result_view' if revised else 'immutable_saved_result_view', 'source_results_sha256': tracked[result_path],
                         'record_sha256': copies[record_path], 'suite': suite, 'provider': provider,
                         'case_id': case_id, 'public_artifacts': artifact_bindings(record),
                         'private_artifacts_verified_not_copied': record_private_bindings(record),
-                        'scores_changed': False, 'provider_calls_added': 0})
+                        'scores_changed': revised, 'provider_calls_added': 0,
+                        **({'score_revision': item['score_revision']} if revised else {})})
                 if key in historical:
                     old_root, old_record, old_line, old_results = historical[key]
                     history_prefix = prefix + '/history/' + safe_identifier(old_record['attempt_id'])
@@ -478,8 +596,10 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
     if 'report_families' in spec:
         model['report_families'] = deepcopy(spec['report_families'])
     model['combined_ranking'] = spec.get('combined_ranking', True)
-    entry = generate_saved_matrix(output, model)
+    if revision:
+        model['offline_revision'] = revision['receipt']
     _write(output / 'matrix.json', model)
+    entry = generate_saved_matrix(output, model)
     # Bind every portable byte after generation; source files remain immutable.
     for path in output.rglob('*'):
         if path.is_file():
@@ -490,7 +610,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
     _write(output / 'saved-matrix-audit.json', {
         'schema_version': 1, 'spec_sha256': tracked[spec_path],
         'sources': [{'name': path.name, 'sha256': digest} for path, digest in tracked.items()],
-        'files': copies, 'totals': model['totals'], 'provider_calls_added': 0, 'scores_changed': False,
+        'files': copies, 'totals': model['totals'], 'provider_calls_added': 0, 'scores_changed': bool(revision),
         'private_debug_policy': 'Private raw responses and debug files verified at source, not copied.'})
     check_saved_matrix(output)
     return entry
@@ -576,7 +696,7 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             if not contained_path(output, target, reject_symlinks=True).is_file():
                 raise ValueError('Broken saved-matrix static link: ' + relative + ': ' + link)
     return {'valid': True, 'totals': audit['totals'], 'source_files_verified': source_count,
-            'portable_files_verified': len(audit['files']), 'html_routes_verified': len(routes), 'provider_calls_added': 0, 'scores_changed': False}
+            'portable_files_verified': len(audit['files']), 'html_routes_verified': len(routes), 'provider_calls_added': 0, 'scores_changed': audit['scores_changed']}
 
 
 def render_saved_with_standard_generator(output, model):
@@ -647,6 +767,8 @@ def render_saved_with_standard_generator(output, model):
                        'presentation': {'ranking': 'saved_task_pass_rate',
                                         'combined_ranking': model.get('combined_ranking', True)}},
         'saved_matrix_scope': scope}
+    if model.get('offline_revision'):
+        dataset['comparison']['offline_revision'] = model['offline_revision']
     dataset['report_suites'] = [dict(id=s['id'], label=s['label'],
         case_ids=[key for key, case in cases.items() if case['report_family'] == s['id']]) for s in groups]
     grouped=[key for s in dataset['report_suites'] for key in s['case_ids']]
@@ -656,7 +778,7 @@ def render_saved_with_standard_generator(output, model):
     (output/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
     _write(output/'summary.json', scope)
     _write(output/'execution.json', {'kind':'saved_report_projection', 'provider_calls_added':0,
-           'scores_changed':False, 'identities':identities, 'source_bindings':model['source_bindings']})
+           'scores_changed':bool(model.get('offline_revision')), 'identities':identities, 'source_bindings':model['source_bindings']})
     from harness.web_fetch.report import _REPORT_SUITES, _REPORT_PROVIDER_LABELS, provider_label
     token = _REPORT_SUITES.set(tuple(dataset['report_suites']))
     label_token = _REPORT_PROVIDER_LABELS.set({p['id']: p['label'] for p in model['providers']})

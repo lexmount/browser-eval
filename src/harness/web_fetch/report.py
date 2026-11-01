@@ -2779,6 +2779,34 @@ def current_local_review_findings(out,dataset,records,audit):
 
 
 def write_review_page(out,records):
+ revision_path=out/'score-revision.json'
+ if revision_path.is_file():
+  revision=json.loads(revision_path.read_text())
+  page=hero('核验记录','已知机器结果的规则复核；使用保存的返回离线评分，没有新增方法调用，不称为独立盲审。')
+  page+=section('修订范围',f'<p>调整 {len(revision["changed_cases"])} 个案例，统一重算 {revision["rescored_results"]} 份保存结果。原始规则、成绩、返回和调用耗时均保留。</p><p>'+link('../score-revision.json','修订依据与分数变化')+'</p>')
+  attachments=revision.get('review_files',{})
+  if attachments:
+   page+=section('完整清单','<p>'+' · '.join(link('../'+path,{'decisions':'逐案例保留、删除及依据','failures':'原始失败项','parameters':'参数方案（未应用）'}.get(name,name)) for name,path in attachments.items())+'</p>')
+  if attachments.get('decisions'):
+   decisions=json.loads(contained_path(out,attachments['decisions']).read_text())
+   rows=[]
+   for decision in decisions:
+    removed=[x for x in decision.get('rule_decisions',[]) if x.get('action',x.get('decision'))=='remove']
+    labels=[' / '.join(x.get('alternatives',x.get('text',[]))) for x in removed]
+    rows.append(('', ''.join(cell(esc(value)) for value in [decision['suite'],decision['case_id'],str(len(removed)),
+                 '；'.join(labels) if labels else '保留原规则',decision['decision_basis']])))
+   page+=section('逐案例决定',table(['任务集','案例','删除规则数','删除项','依据'],rows,'score-revision-decisions'))
+  matrix=json.loads((out/'matrix.json').read_text()) if (out/'matrix.json').is_file() else {}
+  rows=[]
+  for row in matrix.get('rows',[]):
+   proof=row.get('score_revision')
+   if proof:
+    rows.append(('', ''.join([cell(esc(row['suite'])),cell(esc(row['case_id'])),cell(esc(row['provider'])),
+                 cell(link('../'+proof['before_case_path'],'原规则')),cell(link('../'+proof['before_record_path'],'原成绩')),
+                 cell(link('../'+row['case_path'],'修订规则')),cell(link('../'+row['record_path'],'重算成绩'))])))
+  if rows:page+=section('修订前后证据',table(['任务集','案例','方法','原规则','原成绩','修订规则','重算成绩'],rows,'score-revision-evidence'))
+  write(out,'review/index.html','核验记录',page)
+  return
  path=out/'result-review.json'
  if not path.is_file():
   write(out,'review/index.html','核验记录',hero('核验记录','本轮没有绑定独立核验记录。'))
