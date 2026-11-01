@@ -8,7 +8,7 @@
       "changes": {
         "article_comments.py": {
           "before_sha256": "de014a9188d2b587302889cb1a25e1d77eb282bc3e0a69dcacad7a95f0a4431f",
-          "after_sha256": "08c329ab47dba2c36b46e105db5d2781a3caa8b3403a73b99a4ebd13c4f1b0cd"
+          "after_sha256": "d09adf52a951ac2d9052339c4c98a32529aa628ad2e5ee7db1b05dfd989a8b94"
         },
         "article_dataset.py": {
           "before_sha256": "8d661b165fc63a6b72352ee6592a99611579e700f1633dab2c0d70824d93447b",
@@ -3791,6 +3791,45 @@
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_review_plain_post_and_declaration_boundaries.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_comments.py"
+          ],
+          "root_cause": "Serialized timestamp footers and colon prose were treated as comment authors. Filter timestamp metadata before author recognition and retain established standalone and explicit speech-attribution ownership.",
+          "regression_ids": [
+            "comment-timestamp-owner-markdown-2024年9月12日 15:42-False-False",
+            "comment-timestamp-owner-markdown-2024年9月12日 15:42-False-True",
+            "comment-timestamp-owner-markdown-2024年9月12日 15:42-True-False",
+            "comment-timestamp-owner-markdown-2024年9月12日 15:42-True-True",
+            "comment-timestamp-owner-markdown-2024-09-12 15:42-False-False",
+            "comment-timestamp-owner-markdown-2024-09-12 15:42-False-True",
+            "comment-timestamp-owner-markdown-2024-09-12 15:42-True-False",
+            "comment-timestamp-owner-markdown-2024-09-12 15:42-True-True",
+            "comment-timestamp-owner-markdown-15:42-False-False",
+            "comment-timestamp-owner-markdown-15:42-False-True",
+            "comment-timestamp-owner-markdown-15:42-True-False",
+            "comment-timestamp-owner-markdown-15:42-True-True",
+            "comment-timestamp-owner-plain_text-2024年9月12日 15:42-False-False",
+            "comment-timestamp-owner-plain_text-2024年9月12日 15:42-False-True",
+            "comment-timestamp-owner-plain_text-2024年9月12日 15:42-True-False",
+            "comment-timestamp-owner-plain_text-2024年9月12日 15:42-True-True",
+            "comment-timestamp-owner-plain_text-2024-09-12 15:42-False-False",
+            "comment-timestamp-owner-plain_text-2024-09-12 15:42-False-True",
+            "comment-timestamp-owner-plain_text-2024-09-12 15:42-True-False",
+            "comment-timestamp-owner-plain_text-2024-09-12 15:42-True-True",
+            "comment-timestamp-owner-plain_text-15:42-False-False",
+            "comment-timestamp-owner-plain_text-15:42-False-True",
+            "comment-timestamp-owner-plain_text-15:42-True-False",
+            "comment-timestamp-owner-plain_text-15:42-True-True",
+            "comment-standalone-author-prose-colon-False",
+            "comment-explicit-speech-author-False",
+            "comment-standalone-author-prose-colon-True",
+            "comment-explicit-speech-author-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_comment_timestamp_ownership.py"
           ]
         }
       ]
