@@ -2784,6 +2784,15 @@ def write_review_page(out,records):
   revision=json.loads(revision_path.read_text())
   page=hero('核验记录','已知机器结果的规则复核；使用保存的返回离线评分，没有新增方法调用，不称为独立盲审。')
   page+=section('修订范围','<p>'+model_text(f'调整 {len(revision["changed_cases"])} 个案例，统一重算 {revision["rescored_results"]} 份保存结果。原始规则、成绩、返回和调用耗时均保留。',f'{len(revision["changed_cases"])} cases revised and {revision["rescored_results"]} saved results rescored. Original rules, results, answers and call timings are retained.')+'</p><p>'+link('../score-revision.json','修订依据与分数变化')+'</p>')
+  steps=[]
+  for step in revision.get('steps',[]):
+   changes=step.get('task_verdict_changes',[])
+   gained=sum(x['before'] is False and x['after'] is True for x in changes)
+   lost=sum(x['before'] is True and x['after'] is False for x in changes)
+   kind=model_text('规则修订','Rule revision') if step.get('rule_revision') else model_text('评分程序修订','Scorer revision')
+   steps.append(('', cell(kind)+cell(str(gained))+cell(str(lost))))
+  if steps:
+   page+=section('评分变化分步记录','<p>'+model_text('每一步与紧邻的前一步比较；评分程序修订不等于删除规则。完整原因和代码依据见修订记录。','Each step is compared with its immediate predecessor. Scorer revisions do not remove rules; the revision record contains causes and code provenance.')+'</p>'+table(['修订类型','失败 → 通过','通过 → 失败'],steps,'score-revision-steps'))
   attachments=revision.get('review_files',{})
   if attachments:
    page+=section('完整清单','<p>'+' · '.join(link('../'+path,{'decisions':'逐案例保留、删除及依据','failures':'原始失败项','parameters':'参数方案（未应用）'}.get(name,name)) for name,path in attachments.items())+'</p>')

@@ -52,6 +52,11 @@ def test_saved_revision_preserves_calls_and_exposes_original_scores(tmp_path):
     assert (source/'results.jsonl').read_bytes() == raw
     assert json.loads((output/row['record_path']).read_text())['elapsed_ms'] == 12
     assert json.loads((output/'score-revision.json').read_text())['provider_calls_added'] == 0
+    from bs4 import BeautifulSoup
+    review = BeautifulSoup((output/'review/index.html').read_text(), 'html.parser')
+    steps = review.select_one('#score-revision-steps')
+    assert steps is not None
+    assert [cell.get_text(strip=True) for cell in steps.select('tbody tr td')] == ['1', '规则修订', '1', '0']
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['scores_changed'] is True
 
 

@@ -1,5 +1,9 @@
 {
   "TEXT": {
+    "评分变化分步记录": "Stepwise verdict changes",
+    "修订类型": "Revision type",
+    "失败 → 通过": "Fail → pass",
+    "通过 → 失败": "Pass → fail",
     "已知机器结果的规则复核；使用保存的返回离线评分，没有新增方法调用，不称为独立盲审。": "Rules reviewed with known machine outcomes; saved answers were rescored offline without new provider calls. This is not a blind independent review.",
     "修订范围": "Revision scope",
     "修订依据与分数变化": "Revision basis and verdict changes",
