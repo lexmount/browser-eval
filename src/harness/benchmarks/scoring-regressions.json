@@ -76483,6 +76483,86 @@
         "answer_format": "markdown"
       },
       "expected_task_pass": false
+    },
+    {
+      "id": "article-primary-scope-complete-without-shell",
+      "failure_mode": "false-negative",
+      "category": "acceptance-contract",
+      "root_cause": "General site navigation, account controls, promotions and footer text must not become article-primary-content requirements after an independently justified scope correction; title, author and body remain mandatory.",
+      "case": {
+        "id": "article-primary-scope",
+        "name": "Reading a technical article",
+        "url": "https://example.test/article",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "page_patterns": [
+            "A practical guide to small gardens"
+          ],
+          "stable_text_anchors": [
+            {
+              "id": "author",
+              "alternatives": [
+                "Morgan Example"
+              ]
+            },
+            {
+              "id": "body",
+              "alternatives": [
+                "Plant seedlings in deep soil and water the roots each morning. Keep enough space between plants for light and airflow."
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "A practical guide to small gardens\nMorgan Example\nPlant seedlings in deep soil and water the roots each morning. Keep enough space between plants for light and airflow.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-primary-scope-shell-cannot-replace-body",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "General site navigation, account controls, promotions and footer text must not become article-primary-content requirements after an independently justified scope correction; title, author and body remain mandatory.",
+      "case": {
+        "id": "article-primary-scope",
+        "name": "Reading a technical article",
+        "url": "https://example.test/article",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "page_patterns": [
+            "A practical guide to small gardens"
+          ],
+          "stable_text_anchors": [
+            {
+              "id": "author",
+              "alternatives": [
+                "Morgan Example"
+              ]
+            },
+            {
+              "id": "body",
+              "alternatives": [
+                "Plant seedlings in deep soil and water the roots each morning. Keep enough space between plants for light and airflow."
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "A practical guide to small gardens\nMorgan Example\nHome Log in Register Follow Share Subscribe Download app Help Contact Privacy Terms of use",
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }
