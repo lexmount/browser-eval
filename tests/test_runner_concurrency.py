@@ -321,7 +321,7 @@ class RunnerConcurrencyTest(unittest.TestCase):
             release.set()
             finished.wait(2)
 
-    def test_unstoppable_timeout_on_final_case_is_complete(self):
+    def test_unstoppable_timeout_on_final_case_retains_pending_retry(self):
         release = threading.Event()
 
         class Unstoppable(Provider):
@@ -332,18 +332,21 @@ class RunnerConcurrencyTest(unittest.TestCase):
         try:
             with tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
-                records, _ = run_evaluation(
-                    output_dir=root, dataset_meta={'id': 'fixture', 'cases': []},
-                    dataset_path=Path('dataset.json'),
-                    cases=[EvalCase('only', 'Only', 'https://example.com', 'static', [])],
-                    providers=[Unstoppable('slow', {})],
-                    provider_config_path=Path('providers.json'), runs=1,
-                    timeout=.02, delay=0,
-                )
+                with self.assertRaises(IncompleteEvaluationError):
+                    run_evaluation(
+                        output_dir=root, dataset_meta={'id': 'fixture', 'cases': []},
+                        dataset_path=Path('dataset.json'),
+                        cases=[EvalCase('only', 'Only', 'https://example.com', 'static', [])],
+                        providers=[Unstoppable('slow', {})],
+                        provider_config_path=Path('providers.json'), runs=1,
+                        timeout=.02, delay=0,
+                    )
+                records = [json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
                 self.assertEqual(len(records), 1)
                 self.assertEqual(records[0]['error_type'], 'timeout')
                 manifest = json.loads((root / 'manifest.json').read_text())
-                self.assertEqual(manifest['unexecuted'], [])
+                self.assertEqual(manifest['unexecuted'][0]['reason'], 'failure_retry_pending_previous_call_still_running')
+                self.assertEqual(records[0]['provider_metadata']['retry_pending']['remaining_physical_calls'], 1)
         finally:
             release.set()
 

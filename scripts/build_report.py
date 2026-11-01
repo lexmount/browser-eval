@@ -31,6 +31,7 @@ if __name__ == '__main__':
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence',type=Path)
     parser.add_argument('--check-saved-matrix', type=Path, help='Verify a saved multi-suite report and its retained evidence')
+    parser.add_argument('--source-spec', type=Path, help='Verify original sources with --check-saved-matrix; resolve paths beside this specification')
     parser.add_argument('--saved-matrix', type=Path, help='Hash-bound saved multi-suite results; no provider calls or rescoring')
     parser.add_argument('--authority-root', type=Path, help='External authority bundle for historical full-cohort reports')
     parser.add_argument('--profile',type=Path,
@@ -57,11 +58,13 @@ if __name__ == '__main__':
     parser.add_argument('--webmainbench-full',action='store_true',help='Build the separately certified complete 545-case report')
     args=parser.parse_args()
     if args.check_saved_matrix:
-        if any((args.saved_matrix, args.evidence, args.profile, args.output, args.local_audit, args.diagnostic_cohorts, args.wcxb, args.webmainbench_full, args.public_benchmark_research, args.refresh_review, args.refresh_presentation)):
+        if any((args.saved_matrix, args.evidence, args.profile, args.output, args.local_audit, args.diagnostic_cohorts, args.wcxb, args.webmainbench_full, args.public_benchmark_research, args.refresh_review, args.refresh_presentation, args.presentation_binding, args.authority_root, args.include_english, args.language, args.wcxb_source, args.wcxb_sample)):
             parser.error('--check-saved-matrix cannot be combined with build options')
         from harness.web_fetch.report_saved_matrix import check_saved_matrix
-        print(json.dumps(check_saved_matrix(args.check_saved_matrix), ensure_ascii=False))
+        print(json.dumps(check_saved_matrix(args.check_saved_matrix, spec_path=args.source_spec), ensure_ascii=False))
         raise SystemExit(0)
+    if args.source_spec:
+        parser.error('--source-spec requires --check-saved-matrix')
     if args.saved_matrix:
         if not args.output or any((args.evidence, args.profile, args.authority_root, args.local_audit, args.diagnostic_cohorts, args.wcxb, args.webmainbench_full, args.public_benchmark_research, args.include_english, args.refresh_review, args.refresh_presentation, args.presentation_binding)):
             parser.error('--saved-matrix requires a new --output and cannot be combined with other build modes')

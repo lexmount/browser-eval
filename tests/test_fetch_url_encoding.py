@@ -17,6 +17,20 @@ class TargetUrlEncodingTest(unittest.TestCase):
         self.assertEqual(encode_http_target_url('https://例子.测试/中文'),
                          'https://xn--fsqu00a.xn--0zwm56d/%E4%B8%AD%E6%96%87')
 
+    def test_idna_2008_preserves_target_and_authority_parts(self):
+        for original, expected in [
+            ('https://straße.de/a', 'https://xn--strae-oqa.de/a'),
+            ('https://例子.TEST:8443/a', 'https://xn--fsqu00a.test:8443/a'),
+            ('https://user:pass@例子.TEST:443/a', 'https://user:pass@xn--fsqu00a.test:443/a'),
+            ('https://straße.de@straße.de/a', 'https://stra%C3%9Fe.de@xn--strae-oqa.de/a'),
+            ('https://[2001:db8::1]:8443/a', 'https://[2001:db8::1]:8443/a'),
+        ]:
+            with self.subTest(original=original):
+                self.assertEqual(encode_http_target_url(original), expected)
+                self.assertEqual(encode_http_target_url(expected), expected)
+        with self.assertRaises(ValueError):
+            encode_http_target_url('https://☃.example/')
+
     def test_rejects_non_http_inputs(self):
         for url in ('file:///tmp/file', '/relative', 'https:///missing-host'):
             with self.subTest(url=url), self.assertRaises(ValueError):

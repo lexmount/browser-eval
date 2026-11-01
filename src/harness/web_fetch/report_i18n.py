@@ -766,3 +766,38 @@ def write_english_report(out: Path, *, source_routes=None) -> int:
                 )
         target.write_text(localized, encoding="utf-8")
     return len(sources)
+
+
+# Saved-source presentation uses the shared localization owner.
+SAVED_MATRIX_ZH = {'adapter_rejected': '未调用·适配器提前拒绝',
+ 'incomplete': '未完成',
+ 'uncommitted': '已调用·未入库',
+ 'not_called': '未调用',
+ 'adapter_rejected_note': '适配器在请求发出前拒绝，产品没有被调用；原始记录和旧分数保留，但不计为产品失败，也不计入通过率分母。',
+ 'provider': '方法',
+ 'limitations': '范围与限制',
+ 'record_link': '原始结果记录',
+ 'answer_link': '原始返回',
+ 'receipt_link': '证据凭据',
+ 'completion_title': '完成情况与未完成项',
+ 'completion_note': '本表按原案例集区分同名案例。已有分数全部保留；未入库项没有分数。适配器提前拒绝属于未调用，原始记录中的旧分数保留，不计为产品失败，也不计入通过率分母。详情页中的任务编号带案例集前缀，仅用于避免报告链接冲突，原始任务和结果见证据文件。',
+ 'completion_headers': ['方法', '计划', '实际调用', '已入库', '正常返回', '通过', '适配器拒绝', '已调用未入库', '未调用'],
+ 'missing_headers': ['案例集', '方法', '原案例编号', '状态', '保存原因', '证据'],
+ 'suite_denominator_note': '按仓库案例集统计。通过率＝实际调用且已保存的通过数／实际调用且已有明确评分的结果数。未入库和未调用项不补成失败；适配器提前拒绝属于未调用，不计入通过率分母，原始记录和旧分数保留。',
+ 'suite_result_headers': ['方法', '计划案例', '已保存结果', '未入库或未调用', '正常返回', '通过', '通过率（明确分母）'],
+ 'history_title': '修复前的记录',
+ 'history_note': '以下保留修复前的原始记录，不重复计入当前结果。当前结果采用预先声明范围内的补测结果，不按分数择优。',
+ 'history_scope': '补测范围与原记录绑定',
+ 'continuation_title': '补齐的一次失败重试',
+ 'continuation_note': '首轮已调用一次，本次补齐原约定的一次重试，共两次调用。当前分数和耗时采用最后一次调用，不按结果择优；首轮证据保留。',
+ 'continuation_cost': '两次调用累计耗时：',
+ 'continuation_unknown_cost': '不可用：首轮精确耗时未保存。',
+ 'continuation_prior': '查看首轮调用证据',
+ 'coverage_banner_title': '保存结果覆盖情况',
+ 'coverage_banner_counts': '计划 {planned} 项，已入库 {saved} 项；已调用未入库 {uncommitted} 项；未调用（含按要求跳过）{not_called} '
+                           '项；适配器提前拒绝 {rejected} 项。',
+ 'coverage_banner_note': '未入库和未调用项没有补造分数；适配器提前拒绝不代表产品失败。本报告用于查看保存证据，不代表完整验收或正式发布。',
+ 'final_call_timing_headers': ['最终调用耗时均值', '最终调用耗时 P50', '最终调用耗时 P95'],
+ 'final_call_timing_title': '最终调用耗时均值 / P50 / P95',
+ 'final_call_timing_help': '三项均采用各方法实际调用且已保存结果的最终一次调用耗时，包含通过与失败；未入库、未调用和适配器提前拒绝不计入，各方法样本数可不同。耗时不参与通过率排名，跨日期、跨批次记录不等同于同窗受控速度比较。',
+ 'final_call_timing_note': '每个逻辑结果只取最终一次调用耗时，不是包含此前重试和等待的累计耗时。补齐重试的结果在详情页另列已知的两次调用累计耗时；首轮耗时未保存时标为不可用。'}

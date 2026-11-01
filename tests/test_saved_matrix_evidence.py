@@ -107,7 +107,9 @@ def test_receipt_bound_missing_not_a_failure(tmp_path):
     spec, _, _, _ = fixture(tmp_path)
     spec['sources'] = []
     receipt = write(tmp_path / 'receipt.json', {'blocked_cases': [
-        {'suite': 'first', 'case_id': 'same', 'error': 'No contract'}]})
+        {'suite': 'first', 'provider': 'method', 'case_id': 'same',
+         'state': 'pre_call_blocked_no_method_calls',
+         'native_route_receipt': {'transport_state': 'not_started'}}]})
     spec['missing'] = [{'suite': 'first', 'provider': 'method', 'case_id': 'same',
                         'status': 'not_called', 'reason': 'No contract', 'receipt': receipt}]
     entry = build(tmp_path, spec)
@@ -124,11 +126,11 @@ def test_checker_rejects_changed_original_and_portable_bytes(tmp_path):
     entry = build(tmp_path, spec)
     (root / 'results.jsonl').write_bytes(raw + b' ')
     with pytest.raises(ValueError, match='source changed'):
-        check_saved_matrix(entry.parent)
+        check_saved_matrix(entry.parent, spec_path=tmp_path / 'spec.json')
     (root / 'results.jsonl').write_bytes(raw)
     (entry.parent / 'index.html').write_text('broken')
     with pytest.raises(ValueError, match='Portable'):
-        check_saved_matrix(entry.parent)
+        check_saved_matrix(entry.parent, spec_path=tmp_path / 'spec.json')
 
 
 def test_unknown_selection_and_symlink_rejected(tmp_path):
@@ -268,20 +270,22 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path):
     assert check_saved_matrix(entry.parent)['valid']
     Path(diagnostic['path']).write_text('{}')
     with pytest.raises(ValueError,match='source changed'):
-        check_saved_matrix(entry.parent)
+        check_saved_matrix(entry.parent, spec_path=tmp_path / 'spec.json')
     spec['missing'][0]['status']='not_called'
     spec['missing'][0]['receipt']=write(tmp_path/'uncalled.json',{
-        'suite':'first','provider':'method','case_id':'same','error':'never called'})
+        'suite':'first','provider':'method','case_id':'same',
+        'state':'pre_call_blocked_no_method_calls',
+        'native_route_receipt':{'transport_state':'not_started'}})
     spec['missing'][0]['diagnostic_sources']=[]
     with pytest.raises(ValueError,match='current call or explicit uncommitted'):
         build(tmp_path,spec,'uninvoked-correction')
 
-@pytest.mark.parametrize('final_pass', [True, False])
-def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_pass):
+@pytest.mark.parametrize('final_pass,prior_pass', [(True, False), (False, False), (False, True)])
+def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_pass, prior_pass):
     spec, root, current, raw = fixture(tmp_path)
     old = deepcopy(current)
-    old['ok'] = not final_pass
-    old['metrics'].update(content_pass=not final_pass, request_ok=not final_pass)
+    old['ok'] = prior_pass
+    old['metrics'].update(content_pass=prior_pass, request_ok=prior_pass)
     old['elapsed_ms'] = 8.0
     old_raw = (json.dumps(old)+'\n').encode()
     old_results = root/'prior-results.jsonl'
@@ -300,6 +304,10 @@ def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_
         'launch_contract':launch,'current_record_sha256':hashlib.sha256(raw).hexdigest(),
         'prior_source':prior_source}]
     spec['limitations'] = ['Synthetic retry disclosure.']
+    if prior_pass:
+        with pytest.raises(ValueError, match='failed first call'):
+            build(tmp_path, spec)
+        return
     entry=build(tmp_path,spec)
     row=json.loads((entry.parent/'matrix.json').read_text())['rows'][0]
     assert row['passed'] is final_pass and row['elapsed_ms']==12.0 and row['retries']==1
@@ -337,3 +345,50 @@ def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tm
     row=json.loads((entry.parent/'matrix.json').read_text())['rows'][0]
     assert row['passed'] is True and row['retry_continuation']['execution_cost_ms'] is None
     assert '首轮精确耗时未保存' in (entry.parent/'attempts/first--run-001.html').read_text()
+
+
+@pytest.mark.parametrize('digest', [None, '', 'abc', 'g' * 64, 12])
+def test_missing_or_invalid_hash_rejected(tmp_path, digest):
+    spec, _, _, _ = fixture(tmp_path)
+    spec['sources'][0]['results']['sha256'] = digest
+    with pytest.raises(ValueError, match='SHA-256'):
+        build(tmp_path, spec)
+
+
+@pytest.mark.parametrize('receipt', [
+    {'case_id': 'same', 'error': 'Timeout after request'},
+    {'suite': 'first', 'case_id': 'same', 'state': 'pre_call_blocked_no_method_calls'},
+    {'suite': 'first', 'provider': 'method', 'case_id': 'same',
+     'state': 'pre_call_blocked_no_method_calls', 'native_route_receipt': {'transport_state': 'started'}},
+])
+def test_ambiguous_or_called_receipt_cannot_remove_failure(tmp_path, receipt):
+    spec, _, _, _ = fixture(tmp_path)
+    spec['sources'] = []
+    spec['missing'] = [{'suite': 'first', 'provider': 'method', 'case_id': 'same',
+                        'status': 'not_called', 'reason': 'Not called',
+                        'receipt': write(tmp_path / 'receipt.json', receipt)}]
+    with pytest.raises(ValueError, match='receipt does not identify'):
+        build(tmp_path, spec)
+
+
+def test_portable_audit_has_no_host_paths_and_optional_source_verification(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    entry = build(tmp_path, spec)
+    audit = json.loads((entry.parent / 'saved-matrix-audit.json').read_text())
+    assert all(set(item) == {'name', 'sha256'} for item in audit['sources'])
+    assert str(tmp_path) not in (entry.parent / 'saved-matrix-audit.json').read_text()
+    assert check_saved_matrix(entry.parent)['source_files_verified'] == 0
+    assert check_saved_matrix(entry.parent, spec_path=tmp_path / 'spec.json')['source_files_verified'] > 0
+
+
+def test_colliding_suite_case_routes_rejected_before_output(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    dataset = json.loads(Path(spec['suites'][0]['dataset']['path']).read_text())
+    dataset['cases'][0]['id'] = 'nested--same'
+    spec['suites'][0]['dataset'] = write(tmp_path/'collision.json', dataset)
+    spec['suites'].append({'id': 'first--nested', 'label': 'Nested',
+                           'dataset': spec['sources'][0].get('dataset') or
+                           write(tmp_path/'nested.json', {'cases': [{**dataset['cases'][0], 'id':'same'}]})})
+    with pytest.raises(ValueError, match='Colliding suite-qualified case routes'):
+        build(tmp_path, spec)
+    assert not (tmp_path/'report').exists()

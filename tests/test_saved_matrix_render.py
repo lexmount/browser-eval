@@ -36,7 +36,7 @@ def test_missing_does_not_become_scored_failure(tmp_path):
     dataset=json.loads(Path(spec['suites'][0]['dataset']['path']).read_text())
     dataset['cases'].append(case)
     spec['suites'][0]['dataset']=write(Path(spec['suites'][0]['dataset']['path']),dataset)
-    receipt=write(tmp_path/'receipt.json',{'blocked_cases':[{'suite':'first','case_id':'missing','error':'Pre-call block'}]})
+    receipt=write(tmp_path/'receipt.json',{'blocked_cases':[{'suite':'first','provider':'method','case_id':'missing', 'state':'pre_call_blocked_no_method_calls', 'native_route_receipt':{'transport_state':'not_started'}}]})
     spec['missing']=[{'suite':'first','provider':'method','case_id':'missing','status':'not_called','reason':'Pre-call block','receipt':receipt}]
     root=build(tmp_path,spec).parent
     soup=BeautifulSoup((root/'index.html').read_text(),'html.parser')
@@ -186,6 +186,50 @@ def test_saved_matrix_timing_labels_match_final_call_values(tmp_path):
     assert '每个逻辑结果只取最终一次调用耗时' in page.get_text()
     assert '总耗时按每题所有物理调用累计' not in page.get_text()
     legacy=BeautifulSoup(overall_ranking([record],{'same':{'id':'same'}}),'html.parser')
-    assert [x.get_text().removesuffix(' ↕') for x in legacy.select('th')][-3:]==['总耗时均值','总耗时 P50','总耗时 P95']
-    assert '总耗时按每题所有物理调用累计' in legacy.get_text()
+    assert [x.get_text().removesuffix(' ↕') for x in legacy.select('th')][-3:]==['最终调用耗时均值','最终调用耗时 P50','最终调用耗时 P95']
+    assert '总耗时按每题所有物理调用累计' not in legacy.get_text()
     assert [x.get_text() for x in legacy.select('tbody tr td')][-3:]==values
+
+
+def test_entirely_missing_method_stays_in_both_rankings(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    spec['providers'].append({'id': 'absent', 'label': 'Absent method'})
+    receipt = write(tmp_path/'absent.json', {'suite': 'first', 'provider': 'absent',
+        'case_id': 'same', 'state': 'pre_call_blocked_no_method_calls',
+        'native_route_receipt': {'transport_state': 'not_started'}})
+    spec['missing'] = [{'suite': 'first', 'provider': 'absent', 'case_id': 'same',
+        'status': 'not_called', 'reason': 'Pre-call block', 'receipt': receipt}]
+    root = build(tmp_path, spec).parent
+    home = BeautifulSoup((root/'index.html').read_text(), 'html.parser')
+    for selector in ['#ranking-overall', '#ranking-first']:
+        rows = home.select(selector+' tbody tr')
+        assert len(rows) == 2
+        absent = next(row for row in rows if 'Absent method' in row.get_text())
+        assert '未完成' in absent.get_text()
+    assert (root/'providers/absent.html').is_file()
+
+
+def test_nested_suite_names_partition_by_identity(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    spec['suites'].append({**spec['suites'][0], 'id': 'first--nested'})
+    spec['sources'].append({**spec['sources'][0], 'suite': 'first--nested'})
+    root = build(tmp_path, spec).parent
+    dataset = json.loads((root/'dataset.json').read_text())
+    assert [s['case_ids'] for s in dataset['report_suites']] == [
+        ['first--same'], ['first--nested--same']]
+
+
+def test_suite_ranking_orders_by_fraction_and_exposes_numeric_sort():
+    from harness.web_fetch.report import saved_suite_ranking
+    cases = {'a': {'id': 'a', 'report_family': 'suite'},
+             'b': {'id': 'b', 'report_family': 'suite'}}
+    records = [dict(provider=provider, case_id=cid, ok=True,
+                    metrics={'content_pass': passed})
+               for provider, cid, passed in [('alphabetic-first','a',True),
+                   ('alphabetic-first','b',False), ('z-winner','a',True),
+                   ('z-winner','b',True)]]
+    soup = BeautifulSoup(saved_suite_ranking(records,cases,'suite'),'html.parser')
+    rows = soup.select('tbody tr')
+    assert 'z-winner' in rows[0].get_text()
+    assert [r.select('td')[-1]['data-sort'] for r in rows] == ['1.0','0.5']
+    assert len(soup.select('thead button')) == 7

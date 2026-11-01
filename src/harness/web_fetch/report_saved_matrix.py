@@ -70,11 +70,11 @@ def _receipt_covers(value, suite, provider, case_id, status, inherited=None):
                 and value.get('score', 'absent') is None
                 and isinstance(value.get('user_instruction'), str) and bool(value['user_instruction'].strip()))
     context = {**inherited, **{k: value[k] for k in ('suite', 'provider') if k in value}}
-    if (value.get('case_id') == case_id and context.get('suite', suite) == suite
-            and context.get('provider', provider) == provider):
+    if (value.get('case_id') == case_id and context.get('suite') == suite
+            and context.get('provider') == provider):
         if status == 'not_called':
             return (value.get('state') == 'pre_call_blocked_no_method_calls'
-                    or 'error' in value and 'state' not in value)
+                    and value.get('native_route_receipt', {}).get('transport_state') == 'not_started')
         if value.get('state') == 'called_but_uncommitted':
             return True
     return any(_receipt_covers(x, suite, provider, case_id, status, context)
@@ -114,47 +114,38 @@ def _totals(rows):
             'not_called': sum(r['status'] == 'not_called' for r in rows)}
 
 
-def build_saved_matrix(spec_path: Path, output: Path) -> Path:
-    """Verify immutable sources and create a new portable report directory."""
-    from harness.web_fetch.report import generate_saved_matrix
+class _SourceBindings:
+    def __init__(self, base):
+        self.base = base
+        self.tracked = {}
 
-    spec_path = Path(spec_path)
-    spec_path = spec_path.parent.resolve() / spec_path.name
-    output = Path(output).absolute()
-    if output.exists():
-        raise ValueError('Saved-matrix output must be a new directory')
-    spec = _json(spec_path)
-    if spec.get('schema_version') != 1:
-        raise ValueError('Unsupported saved-matrix specification')
-    tracked = {}
-    copies = {}
-
-    def bind(path, expected=None):
-        path = _path(spec_path.parent, path)
+    def bind(self, path, expected=None):
+        path = _path(self.base, path)
         digest = _sha(path)
         if expected is not None and digest != expected:
             raise ValueError('Source hash differs: ' + path.name)
-        if path in tracked and tracked[path] != digest:
+        if path in self.tracked and self.tracked[path] != digest:
             raise ValueError('Source changed during assembly')
-        tracked[path] = digest
+        self.tracked[path] = digest
         return path
 
-    def binding(value):
+    def binding(self, value):
         if not isinstance(value, dict) or set(value) != {'path', 'sha256'}:
             raise ValueError('Evidence requires an explicit path/hash binding')
-        return bind(value['path'], value['sha256'])
+        digest = value['sha256']
+        if not isinstance(digest, str) or len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
+            raise ValueError('Evidence requires a nonempty SHA-256 digest')
+        return self.bind(value['path'], digest)
 
-    def copy(source, relative):
-        source = bind(source)
-        target = contained_path(output, relative, reject_symlinks=True)
-        target.parent.mkdir(parents=True, exist_ok=True)
-        raw = source.read_bytes()
-        if hashlib.sha256(raw).hexdigest() != tracked[source]:
-            raise ValueError('Source changed while copying')
-        target.write_bytes(raw)
-        copies[relative] = tracked[source]
-        return relative
-
+def _load_saved_matrix(spec_path):
+    """Validate selection and immutable sources without writing a report."""
+    spec_path = Path(spec_path)
+    spec_path = spec_path.parent.resolve() / spec_path.name
+    spec = _json(spec_path)
+    if spec.get('schema_version') != 1:
+        raise ValueError('Unsupported saved-matrix specification')
+    sources = _SourceBindings(spec_path.parent)
+    bind, binding, tracked = sources.bind, sources.binding, sources.tracked
     def registry(items):
         ids = [safe_identifier(x['id']) for x in items]
         if not ids or len(ids) != len(set(ids)):
@@ -172,6 +163,9 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
         if len(ids) != len(set(ids)):
             raise ValueError('Duplicate case in suite')
         cases[suite['id']] = dict(zip(ids, entries, strict=True))
+    routes = [suite + '--' + cid for suite in suites for cid in cases[suite]]
+    if len(routes) != len(set(routes)):
+        raise ValueError('Colliding suite-qualified case routes')
     expected = {(s, p, cid) for s in suites for p in providers for cid in cases[s]}
     selected, historical = {}, {}
     source_groups = [(False, x) for x in spec['sources']] + [(True, x) for x in spec.get('superseded_sources', [])]
@@ -262,6 +256,8 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                     or _case_identity(prior_cases[key[2]]) != _case_identity(cases[key[0]][key[2]])
                     or old_line == selected[key][2]):
                 raise ValueError('Retry continuation prior evidence differs from declared first call')
+            if task_passed(old['ok'], old['metrics'], prior_cases[key[2]].get('task_kind', 'body')):
+                raise ValueError('Retry continuation requires a failed first call')
             verify_record_artifacts(root, old, native_cases=prior_cases)
             for relative, digest in artifact_bindings(old):
                 bind(contained_path(root, relative, reject_symlinks=True), digest)
@@ -326,6 +322,41 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
             raise ValueError('Superseded result requires a current call or explicit uncommitted call')
     if set(selected) | set(missing) != expected:
         raise ValueError('Unexplained missing matrix cells')
+    return dict(spec=spec, sources=sources, providers=providers, suites=suites, cases=cases,
+                selected=selected, historical=historical, continuations=continuations,
+                missing=missing, replacement_scope=replacement_scope,
+                replacement_cells=cells if replacement_scope else [])
+
+
+def build_saved_matrix(spec_path: Path, output: Path) -> Path:
+    """Verify immutable sources and create a new portable report directory."""
+    from harness.web_fetch.report import generate_saved_matrix
+
+    output = Path(output).absolute()
+    if output.exists():
+        raise ValueError('Saved-matrix output must be a new directory')
+    inputs = _load_saved_matrix(spec_path)
+    spec = inputs['spec']
+    sources = inputs['sources']
+    bind, binding, tracked = sources.bind, sources.binding, sources.tracked
+    spec_path = sources.base / Path(spec_path).name
+    providers, suites, cases = inputs['providers'], inputs['suites'], inputs['cases']
+    selected, historical = inputs['selected'], inputs['historical']
+    continuations, missing = inputs['continuations'], inputs['missing']
+    replacement_scope, cells = inputs['replacement_scope'], inputs['replacement_cells']
+    copies = {}
+
+    def copy(source, relative):
+        source = bind(source)
+        target = contained_path(output, relative, reject_symlinks=True)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        raw = source.read_bytes()
+        if hashlib.sha256(raw).hexdigest() != tracked[source]:
+            raise ValueError('Source changed while copying')
+        target.write_bytes(raw)
+        copies[relative] = tracked[source]
+        return relative
+
     output.mkdir(parents=True, exist_ok=False)
     if replacement_scope:
         _write(output / 'replacement-scope.json', {
@@ -435,7 +466,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
             raise ValueError('Original evidence changed during report generation')
     _write(output / 'saved-matrix-audit.json', {
         'schema_version': 1, 'spec_sha256': tracked[spec_path],
-        'sources': [{'path': str(path), 'sha256': digest} for path, digest in tracked.items()],
+        'sources': [{'name': path.name, 'sha256': digest} for path, digest in tracked.items()],
         'files': copies, 'totals': model['totals'], 'provider_calls_added': 0, 'scores_changed': False,
         'private_debug_policy': 'Private raw responses and debug files verified at source, not copied.'})
     check_saved_matrix(output)
@@ -456,14 +487,23 @@ class _Links(HTMLParser):
         self.links.extend(value for name, value in attrs if name in {'src', 'href'} and value)
 
 
-def check_saved_matrix(output: Path) -> dict:
+def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     """Check the complete portable tree and unchanged sources without rescoring."""
     output = Path(output)
     audit = _json(output / 'saved-matrix-audit.json')
-    for binding in audit['sources']:
-        path = _path(output, binding['path'])
-        if _sha(path) != binding['sha256']:
+    source_count = 0
+    if spec_path is not None:
+        if _sha(_path(Path(spec_path).parent, Path(spec_path).name)) != audit['spec_sha256']:
+            raise ValueError('Original saved-matrix source changed: specification')
+        try:
+            inputs = _load_saved_matrix(spec_path)
+        except ValueError as exc:
+            raise ValueError('Original saved-matrix source changed or invalid') from exc
+        actual = sorted((p.name, digest) for p, digest in inputs['sources'].tracked.items())
+        expected = sorted((item['name'], item['sha256']) for item in audit['sources'])
+        if actual != expected:
             raise ValueError('Original saved-matrix source changed')
+        source_count = len(actual)
     for relative, digest in audit['files'].items():
         if _sha(contained_path(output, relative, reject_symlinks=True)) != digest:
             raise ValueError('Portable saved-matrix file changed')
@@ -472,7 +512,7 @@ def check_saved_matrix(output: Path) -> dict:
     if len(keys) != len(set(keys)) or _totals(model['rows']) != audit['totals']:
         raise ValueError('Saved-matrix population changed')
     for row in model['rows']:
-        for key in ('record_path', 'answer_path', 'log_path', 'case_path', 'receipt_path', 'recovery_path'):
+        for key in ('record_path', 'answer_path', 'log_path', 'case_path', 'receipt_path'):
             if row.get(key) and not contained_path(output, row[key], reject_symlinks=True).is_file():
                 raise ValueError('Missing saved-matrix evidence link')
         continuation = row.get('retry_continuation') or {}
@@ -512,7 +552,7 @@ def check_saved_matrix(output: Path) -> dict:
             target = resolved.path.removeprefix('/__report__/')
             if not contained_path(output, target, reject_symlinks=True).is_file():
                 raise ValueError('Broken saved-matrix static link: ' + relative + ': ' + link)
-    return {'valid': True, 'totals': audit['totals'], 'source_files_verified': len(audit['sources']),
+    return {'valid': True, 'totals': audit['totals'], 'source_files_verified': source_count,
             'portable_files_verified': len(audit['files']), 'html_routes_verified': len(routes), 'provider_calls_added': 0, 'scores_changed': False}
 
 
@@ -524,12 +564,15 @@ def render_saved_with_standard_generator(output, model):
     """
     from harness.web_fetch.report import generate
     cases, records, identities = {}, [], []
+    attempt_routes = set()
     for row in model['rows']:
         route = safe_identifier(row['suite'] + '--' + row['case_id'])
         case = _json(contained_path(output, row['case_path']))
         if case['id'] != row['case_id']:
             raise ValueError('Saved case identity differs from matrix')
         case['id'] = route
+        case['report_family'] = row['suite']
+        case['report_family_label'] = next(s['label'] for s in model['suites'] if s['id'] == row['suite'])
         cases.setdefault(route, case)
         if not row.get('record_path'):
             continue
@@ -555,6 +598,9 @@ def render_saved_with_standard_generator(output, model):
         record['report_retry_continuation'] = deepcopy(row.get('retry_continuation'))
         record['case_id'] = route
         record['attempt_id'] = safe_identifier(row['suite'] + '--' + raw['attempt_id'])
+        if record['attempt_id'] in attempt_routes:
+            raise ValueError('Colliding suite-qualified attempt routes')
+        attempt_routes.add(record['attempt_id'])
         records.append(record)
         identities.append({'case_route': route, 'attempt_route': record['attempt_id'],
                            'source_record': row['record_path'], 'source_case': row['case_path']})
@@ -575,7 +621,7 @@ def render_saved_with_standard_generator(output, model):
                        'presentation': {'ranking': 'saved_task_pass_rate'}},
         'saved_matrix_scope': scope}
     dataset['report_suites'] = [dict(id=s['id'], label=s['label'],
-        case_ids=[key for key in cases if key.startswith(s['id']+'--')]) for s in model['suites']]
+        case_ids=[key for key, case in cases.items() if case['report_family'] == s['id']]) for s in model['suites']]
     grouped=[key for s in dataset['report_suites'] for key in s['case_ids']]
     if len(grouped)!=len(set(grouped)) or set(grouped)!=set(cases):
         raise ValueError('Report suites must partition every case exactly once')

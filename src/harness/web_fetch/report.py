@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 
+from harness.web_fetch.report_i18n import SAVED_MATRIX_ZH
+
 from harness.distribution import repository_root
 
 import hashlib
@@ -436,14 +438,10 @@ def provider_label(name):
 _REPORT_SUITES = ContextVar('webfetch_report_suites', default=())
 
 def report_family(case):
- for suite in _REPORT_SUITES.get():
-  if case['id'] in suite['case_ids']:
-   return suite['id']
- return task_report_family(case)
+ return case.get('report_family') or task_report_family(case)
 
 def case_track_label(case):
- for suite in _REPORT_SUITES.get():
-  if case['id'] in suite['case_ids']:return esc(suite['label'])
+ if case.get('report_family_label'):return esc(case['report_family_label'])
  family=report_family(case)
  if family in {'web_media','media_file'}:return REPORT_FAMILIES[family]
  if case.get('track','web')=='web':
@@ -1298,8 +1296,7 @@ def measured(r,c):
 
 def result_label(r,c):
  if r.get('report_invocation_status') == 'adapter_rejected':
-  from harness.web_fetch.report_saved_matrix_i18n import ZH
-  return ZH['adapter_rejected']
+  return SAVED_MATRIX_ZH['adapter_rejected']
  if r['metrics'].get('evaluation_excluded'):return '排除比较'
  if not measured(r,c):return '无法判定'
  state='通过' if succeeded(r,c) else '未通过'
@@ -1760,8 +1757,7 @@ def stable_failure_summary(metrics):
 
 def reason(r,c):
  if r.get('report_invocation_status') == 'adapter_rejected':
-  from harness.web_fetch.report_saved_matrix_i18n import ZH
-  return ZH['adapter_rejected_note']
+  return SAVED_MATRIX_ZH['adapter_rejected_note']
  if r['metrics'].get('evaluation_excluded'):
   return r['metrics']['evaluation_exclusion_reason']
  if not measured(r,c):
@@ -2054,7 +2050,7 @@ def input_suite_comparison(dataset, cases, records):
   'input-suite-comparison-section')
 
 
-def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seconds=None,final_call_timing=False):
+def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seconds=None):
  excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
  records=[r for r in records if not r['metrics'].get('evaluation_excluded')]
  cases={k:c for k,c in cases.items() if k not in excluded}
@@ -2062,6 +2058,8 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
  has_not_called=any(r.get('report_invocation_status') == 'adapter_rejected' for r in records)
  groups=defaultdict(list)
  for r in records:groups[r['provider']].append(r)
+ if _REPORT_SUITES.get():
+  for provider in _REPORT_PROVIDER_LABELS.get():groups.setdefault(provider,[])
  rows=[]
  for name,rs in groups.items():
   n=sum(measured(r,cases[r['case_id']]) for r in rs)
@@ -2069,6 +2067,8 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
   called=[r for r in rs if r.get('report_invocation_status') != 'adapter_rejected']
   request_success=sum(bool(r['ok']) for r in called)
   values=cell(link(f'providers/{name}.html',provider_label(name),browser_method_label(name,language='en')))+cell(rate(request_success,len(called)),request_success/len(called) if called else -1)+cell(rate(passed,n)+(f'<br><small>{passed}/{n}</small>' if has_unknown else ''),passed/n if n else -1)
+  if _REPORT_SUITES.get() and len(called) < len(cases):
+   values=values.replace('</a>', '</a><br><small>'+SAVED_MATRIX_ZH['incomplete']+'</small>',1)
   if has_unknown:values+=cell(str(len(rs)-n))
   for track,_ in active_tracks(cases):
    subset=[r for r in rs if report_family(cases[r['case_id']])==track and measured(r,cases[r['case_id']])]
@@ -2082,8 +2082,7 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
   rows.append((passed/n if n else -1,name,('',values)))
  rows=[row for _,_,row in sorted(rows,key=lambda x:(-x[0],x[1]))]
  tracks=active_tracks(cases)
- from harness.web_fetch.report_saved_matrix_i18n import ZH as saved_timing
- timing_heads=saved_timing['final_call_timing_headers'] if final_call_timing else ['总耗时均值','总耗时 P50','总耗时 P95']
+ timing_heads=SAVED_MATRIX_ZH['final_call_timing_headers']
  heads=['方法','请求成功率','综合任务通过率']+(['无法判定（含未调用）' if has_not_called else '无法判定'] if has_unknown else [])+[label for _,label in tracks]+timing_heads
  if audit:heads+=['审查结果']
  case_count=len(cases);track_count=len(tracks);track_label=track_count_label(track_count)
@@ -2096,21 +2095,20 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
  if any(len(rs)!=len(cases) for rs in groups.values()):
   intro='<p class="decision-lead"><b>总榜口径：</b>本轮尚有未入库或未调用项。比例按各方法已有可判定结果计算，缺失项不计为失败；准确分母、实际调用与缺失数量见下方完成情况。适配器提前拒绝保留原有失败分数，不代表产品已被调用。</p>'
  if has_not_called:
-  from harness.web_fetch.report_saved_matrix_i18n import ZH
-  intro='<p class="decision-lead">'+ZH['suite_denominator_note']+'</p>'
+  intro='<p class="decision-lead">'+SAVED_MATRIX_ZH['suite_denominator_note']+'</p>'
  help=('<details class="ranking-metric-help"><summary>总榜指标说明</summary><div class="metric-help"><dl>'
        f'<div><dt>综合任务通过率</dt><dd>{case_count} 个计划任务中的通过数 / 可判定数；每题等权，无法判定结果不参与分母。</dd></div>'
        f'<div><dt>{track_label} 类通过数</dt><dd>各分榜通过数 / 本类任务数，用于定位总分来自哪些能力。</dd></div>'
-       + (('<div><dt>'+saved_timing['final_call_timing_title']+'</dt><dd>'+saved_timing['final_call_timing_help']+'</dd></div>') if final_call_timing else f'<div><dt>总耗时均值 / P50 / P95</dt><dd>{"仅取已实际调用且有保存结果的记录；适配器提前拒绝不计入耗时统计，各方法样本数可不同。" if has_not_called else f"每种方法在同一组 {case_count} 个计划任务上的端到端耗时，包含通过与失败；"}三项不参与通过率排名。主矩阵调用跨日期、跨批次，不等同于同窗受控速度比较。</dd></div>') +
+       + '<div><dt>'+SAVED_MATRIX_ZH['final_call_timing_title']+'</dt><dd>'+SAVED_MATRIX_ZH['final_call_timing_help']+'</dd></div>' +
        '<div><dt>审查结果</dt><dd>独立盲审覆盖数、审查方法和未决数。</dd></div>'
        '</dl></div></details>')
  directions={i:('acceptance_'+str(i),'max') for i in range(1,3+len(tracks)+int(has_unknown))}
  directions.update({i:('all_latency_'+str(i),'min') for i in range(3+len(tracks)+int(has_unknown),6+len(tracks)+int(has_unknown))})
  if has_unknown:directions.pop(3,None)
  rows=comparative_rows(rows,directions)
- timing_note='<p>'+saved_timing['final_call_timing_note'] if final_call_timing else '<p>总耗时按每题所有物理调用累计，包含失败重试和重试等待；每题仍只计一个样本。'
- if call_budget_seconds is not None and not final_call_timing:
-  timing_note+=f'<span>每次物理调用预算为 {call_budget_seconds:g} 秒，重试后的累计耗时可能超过该预算。</span>'
+ timing_note='<p>'+SAVED_MATRIX_ZH['final_call_timing_note']
+ if call_budget_seconds is not None:
+  timing_note+=model_text(f'每次物理调用预算为 {call_budget_seconds:g} 秒。',f'Each physical call has a {call_budget_seconds:g}-second budget.')
  timing_note+='</p>'
  if diagnostic:
   intro='<p class="decision-lead">本地未认证诊断结果，仅展示保存的任务判定与耗时，不用于产品排名。通过不代表返回内容干净；请同时查看全文指标和挑战提示。</p>'
@@ -2238,13 +2236,12 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   raise ValueError('Uncertified local diagnostic status cannot be hidden')
  reliability=assess_reliability(dataset,records)
  if dataset.get('saved_matrix_scope') and not any(reliability[key] for key in ('extra','duplicates')):
-  from harness.web_fetch.report_saved_matrix_i18n import ZH as saved_text
   saved_scope=dataset['saved_matrix_scope']
   counts={key:sum(row[key] for row in saved_scope['providers']) for key in ('planned','saved','uncommitted','not_called','rejected')}
   reliability_banner=('<div class="wrap reliability failure" role="status" data-saved-completion>'
-      '<strong>'+saved_text['coverage_banner_title']+'</strong><span>'
-      +esc(saved_text['coverage_banner_counts'].format(**counts))+' '
-      +esc(saved_text['coverage_banner_note'])+'</span></div>')
+      '<strong>'+SAVED_MATRIX_ZH['coverage_banner_title']+'</strong><span>'
+      +esc(SAVED_MATRIX_ZH['coverage_banner_counts'].format(**counts))+' '
+      +esc(SAVED_MATRIX_ZH['coverage_banner_note'])+'</span></div>')
  elif reliability['complete']:
   reliability_banner=''
  elif (measurement_presentation(dataset).explain_unjudged
@@ -2326,7 +2323,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  overall_title=('任务判定汇总（非排名）' if diagnostic else model_text('本轮任务通过率排名','Task pass-rate ranking for this sample') if local_pass_rate_ranking(dataset) else '综合通过率总榜')
  if score_audit:overall_title='任务通过情况'
  budgets={m['timeout_seconds'] for m in manifests if m.get('timeout_seconds') is not None}
- home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None,final_call_timing=bool(dataset.get('saved_matrix_scope'))),'overall-ranking')
+ home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None),'overall-ranking')
  home+=input_suite_comparison(dataset,cases,records)
  if diagnostic and not score_audit:
   home+=result_ledger_section(out,records)
@@ -2335,6 +2332,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  if measurement_presentation(dataset).all_call_latency:
   home+=section('同一任务集合的全部调用耗时',overview_all_call_latency(records,cases),'all-call-latency')
  completeness=('<p class="callout"><b>结果入库：</b>'+str(reliability['present_calls'])+'/'+str(reliability['expected_calls'])+' 组已有保存结果；缺失项没有补造分数。</p>')
+ if not dataset.get('saved_matrix_scope'):
+  completeness='<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p>'
  home+=section(f'{track_label} 类任务概览',review_summary(out)+completeness+'<p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
  if dataset.get('saved_matrix_scope'):
   home+=saved_matrix_scope_section(dataset['saved_matrix_scope'])
@@ -2527,18 +2526,16 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    summary+='<details class="technical-details"><summary>查看失败分类与归因边界</summary>'+table(['项目','依据'],[('',cell(esc(k))+cell(esc(v))) for k,v in facts],metrics=[])+"</details>"
   body=hero(esc(c['name']),hero_meta)+section('结论',summary,'overview')
   if r.get('report_superseded_history'):
-   from harness.web_fetch.report_saved_matrix_i18n import ZH as history_text
    history_rows=[]
    for old in r['report_superseded_history']:
-    history_rows.append(('',cell(esc(old.get('started_at') or '—'))+cell(link('../'+old['record_path'],history_text['record_link']))+cell(link('../'+old['answer_path'],history_text['answer_link']))+cell(link('../'+old['scope_path'],history_text['history_scope']))))
-   body+=section(history_text['history_title'],'<p>'+history_text['history_note']+'</p>'+table(['时间','记录','返回','范围'],history_rows,metrics=[]),'superseded-history')
+    history_rows.append(('',cell(esc(old.get('started_at') or '—'))+cell(link('../'+old['record_path'],SAVED_MATRIX_ZH['record_link']))+cell(link('../'+old['answer_path'],SAVED_MATRIX_ZH['answer_link']))+cell(link('../'+old['scope_path'],SAVED_MATRIX_ZH['history_scope']))))
+   body+=section(SAVED_MATRIX_ZH['history_title'],'<p>'+SAVED_MATRIX_ZH['history_note']+'</p>'+table(['时间','记录','返回','范围'],history_rows,metrics=[]),'superseded-history')
   if r.get('report_retry_continuation'):
-   from harness.web_fetch.report_saved_matrix_i18n import ZH as retry_text
    continuation=r['report_retry_continuation']
-   cost=ms(continuation['execution_cost_ms']) if continuation['execution_cost_ms'] is not None else retry_text['continuation_unknown_cost']
-   evidence=link('../'+continuation.get('prior_record_path',continuation.get('prior_uncommitted_path')),retry_text['continuation_prior'])
-   if continuation.get('prior_answer_path'):evidence+=' · '+link('../'+continuation['prior_answer_path'],retry_text['answer_link'])
-   body+=section(retry_text['continuation_title'],'<p>'+retry_text['continuation_note']+'</p><p>'+retry_text['continuation_cost']+esc(cost)+'</p>'+evidence,'retry-continuation')
+   cost=ms(continuation['execution_cost_ms']) if continuation['execution_cost_ms'] is not None else SAVED_MATRIX_ZH['continuation_unknown_cost']
+   evidence=link('../'+continuation.get('prior_record_path',continuation.get('prior_uncommitted_path')),SAVED_MATRIX_ZH['continuation_prior'])
+   if continuation.get('prior_answer_path'):evidence+=' · '+link('../'+continuation['prior_answer_path'],SAVED_MATRIX_ZH['answer_link'])
+   body+=section(SAVED_MATRIX_ZH['continuation_title'],'<p>'+SAVED_MATRIX_ZH['continuation_note']+'</p><p>'+SAVED_MATRIX_ZH['continuation_cost']+esc(cost)+'</p>'+evidence,'retry-continuation')
   body+=section('目标覆盖与附加内容',render_quality_observations(r,c,output,esc=esc),'quality-diagnostics')
   reviewed=audited_attempts.get(r['attempt_id'])
   if reviewed:
@@ -4588,7 +4585,6 @@ def generate_saved_matrix(out: Path, model: dict) -> Path:
  outcomes remain explicit slots, rather than fabricated failed measurements.
  """
  from urllib.parse import unquote
- from harness.web_fetch.report_saved_matrix_i18n import ZH as t
  out = Path(out)
  providers = {p['id']: p['label'] for p in model['providers']}
  suites = {s['id']: s['label'] for s in model['suites']}
@@ -4597,7 +4593,7 @@ def generate_saved_matrix(out: Path, model: dict) -> Path:
  rows = model['rows']
  seen = set()
  states = {'passed', 'failed', 'adapter_rejected', 'uncommitted', 'not_called'}
- path_fields = ('record_path', 'answer_path', 'log_path', 'case_path', 'receipt_path', 'recovery_path')
+ path_fields = ('record_path', 'answer_path', 'log_path', 'case_path', 'receipt_path')
  for row in rows:
   key = row['suite'], row['provider'], row['case_id']
   if key in seen or key[0] not in suites or key[1] not in providers:
@@ -4636,34 +4632,34 @@ def generate_saved_matrix(out: Path, model: dict) -> Path:
 
 
 def saved_matrix_scope_section(scope):
- from harness.web_fetch.report_saved_matrix_i18n import ZH as t
  rows=[]
  for item in scope['providers']:
   rows.append(('',cell(link('providers/'+item['provider']+'.html',provider_label(item['provider'])))+''.join(cell(str(item[k])) for k in ('planned','called','saved','normal','passed','rejected','uncommitted','not_called'))))
  missing=[]
  for item in scope['missing']:
-  evidence=link(item.get('receipt_path') or item['record_path'],t['receipt_link'])
-  if item.get('recovery_path'):
-   evidence+='<br>'+link(item['recovery_path'],t['recovery_link'])+'<br>'+esc(t['recovery_note'])+'<br>'+esc(t['recovery_'+item['recovery_retry_status']])
+  evidence=link(item.get('receipt_path') or item['record_path'],SAVED_MATRIX_ZH['receipt_link'])
   for old in item.get('history', []):
-   evidence+='<br>'+link(old['record_path'],t['history_title'])+' · '+link(old['scope_path'],t['history_scope'])
-  missing.append(('',cell(esc(item['suite']))+cell(esc(item['provider']))+cell(esc(item['case_id']))+cell(t[item['status']])+cell(esc(item['error']))+cell(evidence)))
- return section(t['completion_title'],'<p>'+t['completion_note']+'</p>'+table(t['completion_headers'],rows,'saved-completion',metrics=[])+table(t['missing_headers'],missing,'saved-missing',metrics=[]),'completion')+section(t['limitations'],'<ul>'+''.join('<li>'+esc(note)+'</li>' for note in scope.get('limitations',[]))+'</ul>','saved-limitations')
+   evidence+='<br>'+link(old['record_path'],SAVED_MATRIX_ZH['history_title'])+' · '+link(old['scope_path'],SAVED_MATRIX_ZH['history_scope'])
+  missing.append(('',cell(esc(item['suite']))+cell(esc(item['provider']))+cell(esc(item['case_id']))+cell(SAVED_MATRIX_ZH[item['status']])+cell(esc(item['error']))+cell(evidence)))
+ return section(SAVED_MATRIX_ZH['completion_title'],'<p>'+SAVED_MATRIX_ZH['completion_note']+'</p>'+table(SAVED_MATRIX_ZH['completion_headers'],rows,'saved-completion',metrics=[])+table(SAVED_MATRIX_ZH['missing_headers'],missing,'saved-missing',metrics=[]),'completion')+section(SAVED_MATRIX_ZH['limitations'],'<ul>'+''.join('<li>'+esc(note)+'</li>' for note in scope.get('limitations',[]))+'</ul>','saved-limitations')
 
 
 def saved_suite_ranking(records,cases,suite,*,base='',id=None):
  """Summarize saved outcomes by declared input suite, including missing slots."""
- from harness.web_fetch.report_saved_matrix_i18n import ZH as t
  selected={k:c for k,c in cases.items() if report_family(c)==suite}
  rows=[]
- for provider in sorted({r['provider'] for r in records}):
+ for provider in sorted({r['provider'] for r in records} | set(_REPORT_PROVIDER_LABELS.get())):
   rs=[r for r in records if r['provider']==provider and r['case_id'] in selected]
   judged=[r for r in rs if measured(r,selected[r['case_id']])]
   passed=sum(succeeded(r,selected[r['case_id']]) for r in judged)
   values=cell(link(base+'providers/'+provider+'.html',provider_label(provider)))
   not_called=sum(r.get('report_invocation_status') == 'adapter_rejected' for r in rs)
+  if len(rs)-not_called < len(selected):
+   values=values.replace('</a>', '</a><br><small>'+SAVED_MATRIX_ZH['incomplete']+'</small>',1)
   values+=cell(str(len(selected)))+cell(str(len(rs)))+cell(str(len(selected)-len(rs)+not_called))
   values+=cell(str(sum(bool(r['ok']) for r in rs)))+cell(str(passed))
-  values+=cell(f'{passed}/{len(judged)} · '+rate(passed,len(judged)))
-  rows.append(('',values))
- return '<p>'+t['suite_denominator_note']+'</p>'+table(t['suite_result_headers'],rows,id or 'ranking-'+suite,metrics=[])
+  ratio=passed/len(judged) if judged else -1
+  values+=cell(f'{passed}/{len(judged)} · '+rate(passed,len(judged)),ratio)
+  rows.append((-ratio,provider,('',values)))
+ rows=[row for _,_,row in sorted(rows)]
+ return '<p>'+SAVED_MATRIX_ZH['suite_denominator_note']+'</p>'+table(SAVED_MATRIX_ZH['suite_result_headers'],rows,id or 'ranking-'+suite,sortable=True,metrics=[],default_sort=(7,'desc'))

@@ -535,6 +535,8 @@ def run_evaluation(
         raise ValueError('resource_sample_interval_ms must be an integer of at least 10')
     if not cases or not providers:
         raise ValueError('Execution requires at least one task and provider')
+    if max_failure_retries > 1:
+        raise ValueError('At most one caller failure retry is permitted')
     for provider in providers:
         if max_failure_retries and not provider.allow_failure_retries:
             raise ValueError(f"provider {provider.name!r} prohibits caller failure retries")
@@ -839,6 +841,26 @@ def run_evaluation(
                             })
                             stopped_provider = (result.error_type == 'timeout' and pending is not None
                                                 and pending.is_alive())
+                            if stopped_provider and physical_attempt <= max_failure_retries:
+                                # Discard the late answer, but allow bounded cleanup
+                                # before the single retry. Never overlap live calls.
+                                cleanup_begin = time.monotonic()
+                                pending.join(1.0)
+                                result.metadata['retry_cleanup_wait_ms'] = round(
+                                    (time.monotonic() - cleanup_begin) * 1000, 2)
+                                stopped_provider = pending.is_alive()
+                                if stopped_provider:
+                                    result.metadata['retry_pending'] = {
+                                        'remaining_physical_calls': 1,
+                                        'reason': 'previous_call_still_running',
+                                        'first_attempt_id': attempt_id,
+                                    }
+                                    with result_lock:
+                                        manifest['unexecuted'].append({
+                                            'provider': provider.name,
+                                            'after_attempt_id': attempt_id,
+                                            'reason': 'failure_retry_pending_previous_call_still_running',
+                                        })
                             if physical_passed or stopped_provider or physical_attempt > max_failure_retries:
                                 break
                         result.metadata['call_sequence_elapsed_ms'] = round((time.monotonic() - sequence_begin) * 1000, 2)

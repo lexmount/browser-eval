@@ -713,7 +713,7 @@ def test_saved_schema_one_keeps_original_answer_scope(tmp_path):
         verify_saved_native_answer(tmp_path, record)
 
 
-@pytest.mark.parametrize('retries', [0, 1, 3])
+@pytest.mark.parametrize('retries', [0, 1])
 def test_native_http_retries_keep_each_physical_route_receipt(tmp_path, retries):
     import json
     from copy import deepcopy

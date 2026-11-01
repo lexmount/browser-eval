@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from urllib.parse import quote, urlsplit
 
+import idna
+
 from lexbench_webfetch.file_acceptance import evaluate_files
 from lexbench_webfetch.paths import contained_path
 
@@ -169,10 +171,14 @@ def encode_http_target_url(url):
     # Preserve existing ASCII spelling, delimiters, signed queries and escapes.
     # Only international hostnames require IDNA rather than percent encoding.
     if not parts.hostname.isascii():
-        host = parts.hostname.encode('idna').decode('ascii')
+        host = idna.encode(parts.hostname, uts46=True, transitional=False).decode('ascii')
         authority_start = url.index('//') + 2
         authority_end = authority_start + len(parts.netloc)
-        authority = parts.netloc.replace(parts.hostname, host)
+        userinfo, separator, host_port = parts.netloc.rpartition('@')
+        if not separator:
+            host_port = parts.netloc
+        _, colon, port = host_port.partition(':')
+        authority = (userinfo + separator if separator else '') + host + colon + port
         url = url[:authority_start] + authority + url[authority_end:]
     return quote(url, safe=":/?#[]@!$&'()*+,;=%")
 

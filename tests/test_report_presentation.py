@@ -55,10 +55,10 @@ class ReportRevisionTests(unittest.TestCase):
   rendered=overall_ranking(records,cases,call_budget_seconds=45)
   from bs4 import BeautifulSoup
   headers=[cell.get_text(' ',strip=True) for cell in BeautifulSoup(rendered,'html.parser').select('#ranking-overall thead th')]
-  self.assertEqual(headers[-3:],['总耗时均值 ↕','总耗时 P50 ↕','总耗时 P95 ↕'])
+  self.assertEqual(headers[-3:],['最终调用耗时均值 ↕','最终调用耗时 P50 ↕','最终调用耗时 P95 ↕'])
   self.assertNotIn('全调用', ' '.join(headers))
-  self.assertIn('总耗时均值 / P50 / P95',rendered)
-  self.assertIn('包含失败重试和重试等待',rendered)
+  self.assertIn('最终调用耗时均值 / P50 / P95',rendered)
+  self.assertIn('不是包含此前重试和等待的累计耗时',rendered)
   self.assertIn('每次物理调用预算为 45 秒',rendered)
   from harness.web_fetch.report_i18n import translate_text
   self.assertEqual([translate_text(label) for label in ('均值','P50','P95')],['Mean','P50','P95'])

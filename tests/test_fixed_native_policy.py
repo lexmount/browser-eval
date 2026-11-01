@@ -89,7 +89,7 @@ def test_fixed_native_rejects_undeclared_task_routes(track, task_kind):
 def test_runner_rejects_extra_attempts_before_preflight(tmp_path, runs, retries):
     from harness.web_fetch.runner import run_evaluation
     provider = build_provider("fixture", {"type": "fixture", "uniform_native_parameters": True})
-    with pytest.raises(ValueError, match="one run"):
+    with pytest.raises(ValueError, match="At most one" if retries > 1 else "one run"):
         run_evaluation(output_dir=tmp_path / "run", dataset_meta={}, dataset_path=tmp_path / "absent.json",
             cases=[EvalCase("one", "one", "https://example.com/", "control", [])], providers=[provider], provider_config_path=tmp_path / "absent-providers.json",
             runs=runs, timeout=45, delay=0, max_failure_retries=retries)

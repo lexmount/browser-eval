@@ -57,3 +57,17 @@ def test_saved_matrix_check_cannot_generate_or_replace_report():
         cwd=ROOT, text=True, capture_output=True, check=False)
     assert result.returncode == 2
     assert 'cannot be combined with build options' in result.stderr
+
+
+def test_saved_matrix_check_rejects_ignored_options():
+    for options in [
+        ['--presentation-binding', '/tmp/binding.json'],
+        ['--authority-root', '/tmp/authority'], ['--include-english'],
+        ['--language', 'zh'], ['--wcxb-source', '/tmp/source'],
+        ['--wcxb-sample', '/tmp/sample'],
+    ]:
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), '--check-saved-matrix', '/tmp/report', *options],
+            cwd=ROOT, text=True, capture_output=True, check=False)
+        assert result.returncode == 2
+        assert 'cannot be combined with build options' in result.stderr

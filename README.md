@@ -229,7 +229,13 @@ make ci
 
 ## Saved multi-suite reports
 
-Use `scripts/build_report.py --saved-matrix /absolute/input-spec.json --output /absolute/new-report --language zh` to display existing results across suites in one local HTML report. The hash-bound specification declares datasets, providers, result sources and explicitly evidenced missing outcomes. Suite-qualified display identities preserve original case IDs and saved scores. This mode makes no provider calls or scoring revisions and does not certify incomplete evidence. This mode adapts the saved sources into the existing full Web Fetch renderer, including rankings, datasets, method pages and result/reference comparisons. Missing outcomes have a separate inventory. The HTML entry has companion pages and evidence directories; keep them together. Validate with `scripts/build_report.py --check-saved-matrix /absolute/new-report`. Keep the complete suite definitions when selecting providers: bind a receipt for every skipped cell instead of dropping its case. For a final-only report, select current sources and omit `superseded_sources` and `supersession_scope`; retain physical retries that belong to the selected logical result. Instance specifications, captures and HTML remain outside Git.
+Use `scripts/build_report.py --saved-matrix /absolute/input-spec.json --output /absolute/new-report --language zh` to display saved results across suites.
+
+- The hash-bound specification declares datasets, providers, selected results and evidenced missing outcomes. Suite-qualified identities preserve original cases and scores. No provider calls, rescoring or certification are added.
+- This mode uses the existing Web Fetch renderer, including datasets, method pages and result/reference comparisons. Missing outcomes have a separate inventory. Keep the HTML pages and evidence directories together.
+- Check portable report files with `scripts/build_report.py --check-saved-matrix /absolute/new-report`. Add `--source-spec /absolute/input-spec.json` to also verify original evidence. Source paths are resolved beside that external specification; the report audit contains only names and hashes.
+- Keep complete suite definitions when selecting methods and bind a receipt for every skipped cell. Retain physical retries for each selected logical result. Current-only selection does not establish why earlier results were replaced; corrections still require disclosure of scope and score, denominator and latency effects. Instance specifications, captures and HTML remain outside Git.
+
 
 ## Cite Browser Eval
 
