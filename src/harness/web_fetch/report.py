@@ -2299,6 +2299,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   description=f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类任务。'
  if local_pass_rate_ranking(dataset):
   description=model_text(f'{len(cases)} 个案例 · {len(names)} 种方法 · 按本轮任务通过率排序。',f'{len(cases)} cases · {len(names)} methods · Ordered by task pass rate for this sample.')
+ if not dataset.get('comparison',{}).get('presentation',{}).get('combined_ranking',True):
+  description=model_text(f'{len(cases)} 条任务记录 · {len(names)} 种方法 · 按任务类别分别比较。',f'{len(cases)} task entries · {len(names)} methods · Compared within each task category.')
  release_path=out/'benchmark-release.json'
  if release_path.is_file():
   release=json.loads(release_path.read_text())

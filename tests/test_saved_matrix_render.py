@@ -79,6 +79,8 @@ def test_source_scoped_families_preserve_independent_populations(tmp_path):
     assert any('Base supplement' in h for h in headers)
     assert not any('综合任务通过率' in h or '序号' in h for h in headers)
     assert '不将不同组直接合成通过率总榜' in home.get_text()
+    assert '按任务类别分别比较' in home.get_text()
+    assert '按本轮任务通过率排序' not in home.get_text()
 
 
 @pytest.mark.parametrize('extra', [
