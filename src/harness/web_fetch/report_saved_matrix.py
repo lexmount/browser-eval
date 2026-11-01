@@ -58,6 +58,15 @@ def _case_identity(case):
     return EvalCase(**value)
 
 
+def _presentation_family(case, suite, groups):
+    matches = [g['id'] for g in groups
+               if g.get('task_family', g['id']) == report_family(case)
+               and ('source_suites' not in g or suite in g['source_suites'])]
+    if len(matches) != 1:
+        raise ValueError('Report families must partition every task exactly once')
+    return matches[0]
+
+
 def _receipt_covers(value, suite, provider, case_id, status, inherited=None):
     inherited = inherited or {}
     if isinstance(value, list):
@@ -169,7 +178,12 @@ def _load_saved_matrix(spec_path):
         raise ValueError('Colliding suite-qualified case routes')
     if 'report_families' in spec:
         families = registry(spec['report_families'])
-        actual = {report_family(c) for group in cases.values() for c in group.values()}
+        for group in spec['report_families']:
+            if 'source_suites' in group and (not isinstance(group['source_suites'], list)
+                    or not group['source_suites'] or not set(group['source_suites']) <= set(suites)):
+                raise ValueError('Report family names invalid source suites')
+        actual = {_presentation_family(c, suite, spec['report_families'])
+                  for suite, group in cases.items() for c in group.values()}
         if set(families) != actual or any(not str(f.get('label', '')).strip() for f in spec['report_families']):
             raise ValueError('Report families must label every observed task family exactly once')
     expected = {(s, p, cid) for s in suites for p in providers for cid in cases[s]}
@@ -463,6 +477,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
              'limitations': spec.get('limitations', [])}
     if 'report_families' in spec:
         model['report_families'] = deepcopy(spec['report_families'])
+    model['combined_ranking'] = spec.get('combined_ranking', True)
     entry = generate_saved_matrix(output, model)
     _write(output / 'matrix.json', model)
     # Bind every portable byte after generation; source files remain immutable.
@@ -581,7 +596,7 @@ def render_saved_with_standard_generator(output, model):
         if case['id'] != row['case_id']:
             raise ValueError('Saved case identity differs from matrix')
         case['id'] = route
-        family = report_family(case) if 'report_families' in model else row['suite']
+        family = _presentation_family(case, row['suite'], groups) if 'report_families' in model else row['suite']
         case['report_family'] = family
         case['report_family_label'] = labels[family]
         cases.setdefault(route, case)
@@ -629,7 +644,8 @@ def render_saved_with_standard_generator(output, model):
     dataset = {'name': model['title'], 'cases': list(cases.values()),
         'coverage_plan': {c.get('track','web'): providers for c in cases.values()},
         'comparison': {'publication_state': 'local_audit_only_not_for_release',
-                       'presentation': {'ranking': 'saved_task_pass_rate'}},
+                       'presentation': {'ranking': 'saved_task_pass_rate',
+                                        'combined_ranking': model.get('combined_ranking', True)}},
         'saved_matrix_scope': scope}
     dataset['report_suites'] = [dict(id=s['id'], label=s['label'],
         case_ids=[key for key, case in cases.items() if case['report_family'] == s['id']]) for s in groups]

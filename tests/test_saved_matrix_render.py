@@ -36,7 +36,7 @@ def test_task_families_combine_suites_without_combining_case_identities(tmp_path
 def test_invalid_task_family_inventory_is_rejected(tmp_path, families):
     spec, _, _, _ = fixture(tmp_path)
     spec['report_families'] = families
-    with pytest.raises(ValueError, match='registry|task family'):
+    with pytest.raises(ValueError, match='registry|task family|partition'):
         build(tmp_path, spec)
 
 
@@ -59,6 +59,36 @@ def test_task_families_split_a_mixed_input_suite(tmp_path):
     home = BeautifulSoup((root/'index.html').read_text(), 'html.parser')
     assert home.select_one('#ranking-web') and home.select_one('#ranking-web_media')
     assert json.loads((root/'matrix.json').read_text())['totals']['passed'] == 2
+
+
+def test_source_scoped_families_preserve_independent_populations(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    spec['suites'].append({**spec['suites'][0], 'id':'second', 'label':'Second'})
+    spec['sources'].append({**spec['sources'][0], 'suite':'second'})
+    spec['report_families'] = [
+        {'id':'web','label':'Main population','source_suites':['second']},
+        {'id':'base-web','task_family':'web','label':'Base supplement','source_suites':['first']}]
+    spec['combined_ranking'] = False
+    root = build(tmp_path, spec).parent
+    dataset = json.loads((root/'dataset.json').read_text())
+    assert [(g['id'], g['case_ids']) for g in dataset['report_suites']] == [
+        ('web', ['second--same']), ('base-web', ['first--same'])]
+    home = BeautifulSoup((root/'index.html').read_text(),'html.parser')
+    headers = [h.get_text() for h in home.select('#ranking-overall th')]
+    assert any('Main population' in h for h in headers)
+    assert any('Base supplement' in h for h in headers)
+    assert not any('综合任务通过率' in h or '序号' in h for h in headers)
+    assert '不将不同组直接合成通过率总榜' in home.get_text()
+
+
+@pytest.mark.parametrize('extra', [
+    {'id':'second','task_family':'web','label':'Ambiguous'},
+    {'id':'second','task_family':'web','label':'Unknown source','source_suites':['unknown']}])
+def test_ambiguous_or_unknown_source_scoped_families_are_rejected(tmp_path, extra):
+    spec, _, _, _ = fixture(tmp_path)
+    spec['report_families'] = [{'id':'web','label':'Static'}, extra]
+    with pytest.raises(ValueError, match='partition|source suites'):
+        build(tmp_path, spec)
 
 
 def test_original_template_and_immutable_scores(tmp_path):

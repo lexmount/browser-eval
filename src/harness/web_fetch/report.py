@@ -2050,7 +2050,7 @@ def input_suite_comparison(dataset, cases, records):
   'input-suite-comparison-section')
 
 
-def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seconds=None):
+def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seconds=None,combined=True):
  excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
  records=[r for r in records if not r['metrics'].get('evaluation_excluded')]
  cases={k:c for k,c in cases.items() if k not in excluded}
@@ -2066,7 +2066,8 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
   passed=sum(succeeded(r,cases[r['case_id']]) for r in rs)
   called=[r for r in rs if r.get('report_invocation_status') != 'adapter_rejected']
   request_success=sum(bool(r['ok']) for r in called)
-  values=cell(link(f'providers/{name}.html',provider_label(name),browser_method_label(name,language='en')))+cell(rate(request_success,len(called)),request_success/len(called) if called else -1)+cell(rate(passed,n)+(f'<br><small>{passed}/{n}</small>' if has_unknown else ''),passed/n if n else -1)
+  values=cell(link(f'providers/{name}.html',provider_label(name),browser_method_label(name,language='en')))+cell(rate(request_success,len(called)),request_success/len(called) if called else -1)
+  if combined:values+=cell(rate(passed,n)+(f'<br><small>{passed}/{n}</small>' if has_unknown else ''),passed/n if n else -1)
   if _REPORT_SUITES.get() and len(called) < len(cases):
    values=values.replace('</a>', '</a><br><small>'+SAVED_MATRIX_ZH['incomplete']+'</small>',1)
   if has_unknown:values+=cell(str(len(rs)-n))
@@ -2080,10 +2081,10 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
   values+=cell(ms(percentile(times,.95)),percentile(times,.95))
   if audit:values+=review_cell(audit,rs)
   rows.append((passed/n if n else -1,name,('',values)))
- rows=[row for _,_,row in sorted(rows,key=lambda x:(-x[0],x[1]))]
+ rows=[row for _,_,row in sorted(rows,key=lambda x:(-x[0],x[1]) if combined else (x[1],))]
  tracks=active_tracks(cases)
  timing_heads=SAVED_MATRIX_ZH['final_call_timing_headers']
- heads=['方法','请求成功率','综合任务通过率']+(['无法判定（含未调用）' if has_not_called else '无法判定'] if has_unknown else [])+[label for _,label in tracks]+timing_heads
+ heads=['方法','请求成功率']+(['综合任务通过率'] if combined else [])+(['无法判定（含未调用）' if has_not_called else '无法判定'] if has_unknown else [])+[label for _,label in tracks]+timing_heads
  if audit:heads+=['审查结果']
  case_count=len(cases);track_count=len(tracks);track_label=track_count_label(track_count)
  if case_count==150 and track_count==6:
@@ -2102,9 +2103,10 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
        + '<div><dt>'+SAVED_MATRIX_ZH['final_call_timing_title']+'</dt><dd>'+SAVED_MATRIX_ZH['final_call_timing_help']+'</dd></div>' +
        '<div><dt>审查结果</dt><dd>独立盲审覆盖数、审查方法和未决数。</dd></div>'
        '</dl></div></details>')
- directions={i:('acceptance_'+str(i),'max') for i in range(1,3+len(tracks)+int(has_unknown))}
- directions.update({i:('all_latency_'+str(i),'min') for i in range(3+len(tracks)+int(has_unknown),6+len(tracks)+int(has_unknown))})
- if has_unknown:directions.pop(3,None)
+ offset=2+int(combined)
+ directions={i:('acceptance_'+str(i),'max') for i in range(1,offset+len(tracks)+int(has_unknown))}
+ directions.update({i:('all_latency_'+str(i),'min') for i in range(offset+len(tracks)+int(has_unknown),offset+3+len(tracks)+int(has_unknown))})
+ if has_unknown:directions.pop(offset,None)
  rows=comparative_rows(rows,directions)
  timing_note='<p>'+SAVED_MATRIX_ZH['final_call_timing_note']
  if call_budget_seconds is not None:
@@ -2116,7 +2118,10 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
   if _RENDER_CONTEXT.get().score_audit:
    intro=''
    help=help.replace('诊断指标说明','指标说明')
- rendered=table(heads,rows,'ranking-overall',True,'ranking',metrics=[],include_index=not diagnostic,default_sort=(2+int(not diagnostic),'desc'))
+ if not combined:
+  intro='<p class="decision-lead">'+model_text('按各自冻结的任务组比较，不将不同组直接合成通过率总榜。跨组同网址案例保留原始身份；记录数量不等于独立网站数量。','Compare each frozen task group separately, without a combined pass-rate ranking. Cross-group cases retain their original identities; record counts are not unique-site counts.')+'</p>'
+  help=''
+ rendered=table(heads,rows,'ranking-overall',True,'ranking',metrics=[],include_index=not diagnostic and combined,default_sort=(2+int(not diagnostic),'desc') if combined else (0,'asc'))
  return intro+timing_note+help+rendered
 
 def filter_controls(options,all_first=()):
@@ -2321,9 +2326,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if report_family(cases[r["case_id"]])==track})} 种已测方法'
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit,diagnostic=diagnostic)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
  overall_title=('任务判定汇总（非排名）' if diagnostic else model_text('本轮任务通过率排名','Task pass-rate ranking for this sample') if local_pass_rate_ranking(dataset) else '综合通过率总榜')
- if score_audit:overall_title='任务通过情况'
+ combined=dataset.get('comparison',{}).get('presentation',{}).get('combined_ranking',True)
+ if score_audit or not combined:overall_title='任务通过情况'
  budgets={m['timeout_seconds'] for m in manifests if m.get('timeout_seconds') is not None}
- home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None),'overall-ranking')
+ home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None,combined=combined),'overall-ranking')
  home+=input_suite_comparison(dataset,cases,records)
  if diagnostic and not score_audit:
   home+=result_ledger_section(out,records)
