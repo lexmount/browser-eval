@@ -2705,10 +2705,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  if records and all(row.get('provider_type') == 'fixture' for row in records):
   write(out,'changes/index.html','示例说明',hero('合成示例','本报告由本地测试适配器生成。没有正式评测发布记录。'))
  elif not authored_interpretation:
-  review_path=out/'result-review.json'
-  review=json.loads(review_path.read_text()) if review_path.is_file() else {}
-  updates=''.join('<article class="review-round"><div class="round-label">'+esc(row.get('date',''))+'</div><div><h3>'+model_text(row.get('title',''),row.get('title_en'))+'</h3><p>'+model_text(row.get('fix',''),row.get('fix_en'))+'</p><p class="source-note">'+model_text(row.get('scope',''),row.get('scope_en'))+'</p></div></article>' for row in review.get('review_rounds',[]))
-  write(out,'changes/index.html','变更记录',hero('变更记录','列出本轮核验后的修正；修正读取已保存的返回，不代表重新调用产品。')+section('本轮结果修正','<div class="review-rounds">'+updates+'</div>')+section('详细依据','<p>'+link('../review/index.html','核验范围与修正说明')+' · '+link('../analysis/index.html','逐任务结果与证据')+' · '+link('../reproduce/index.html','运行参数与版本')+'</p>'))
+  write_saved_changes(out)
  else:
   render_changes(out,cases,records,dataset)
  for relative in diagnostic_view_paths:
@@ -2776,6 +2773,21 @@ def current_local_review_findings(out,dataset,records,audit):
   rows.append(('名次按当前任务通过率计算，耗时单独展示，不参与名次。历史调用未完成调用前后的全量来源核验，保留实际检查日期和范围，不声称已完成来源认证。',
                'Ranks use current task pass rates. Latency is separate and does not determine rank. Historical calls lack complete before/after source verification; actual check dates and scope are retained without claiming source certification.'))
  return [{'text':zh,'text_en':en} for zh,en in rows]
+
+
+def write_saved_changes(out):
+ """Render saved-result change history from its versioned revision evidence."""
+ review_path=out/'result-review.json'
+ review=json.loads(review_path.read_text()) if review_path.is_file() else {}
+ updates=''.join('<article class="review-round"><div class="round-label">'+esc(row.get('date',''))+'</div><div><h3>'+model_text(row.get('title',''),row.get('title_en'))+'</h3><p>'+model_text(row.get('fix',''),row.get('fix_en'))+'</p><p class="source-note">'+model_text(row.get('scope',''),row.get('scope_en'))+'</p></div></article>' for row in review.get('review_rounds',[]))
+ revision_path=out/'score-revision.json'
+ if revision_path.is_file():
+  revision=json.loads(revision_path.read_text())
+  count=len(revision['changed_cases']);results=revision['rescored_results']
+  updates+='<article class="review-round"><div class="round-label">'+model_text('离线修订','Offline revision')+'</div><div><h3>'+model_text('规则修订与评分校正','Rule and scorer revisions')+'</h3><p>'+model_text(f'{count} 个案例调整规则，{results} 份保存结果统一重评。原规则、成绩和调用证据均保留；没有新增方法调用。',f'{count} cases have revised rules and {results} saved results were rescored. Original rules, results and call evidence are retained; no provider calls were added.')+'</p><p>'+link('../review/index.html','修订依据与分数变化')+'</p></div></article>'
+ if not updates:
+  updates='<p>'+model_text('本报告没有登记结果修订。','No result revisions are registered for this report.')+'</p>'
+ write(out,'changes/index.html','变更记录',hero('变更记录','列出本轮核验后的修正；修正读取已保存的返回，不代表重新调用产品。')+section('本轮结果修正','<div class="review-rounds">'+updates+'</div>')+section('详细依据','<p>'+link('../review/index.html','核验范围与修正说明')+' · '+link('../analysis/index.html','逐任务结果与证据')+' · '+link('../reproduce/index.html','运行参数与版本')+'</p>'))
 
 
 def write_review_page(out,records):

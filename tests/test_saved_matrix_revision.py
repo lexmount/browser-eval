@@ -57,6 +57,9 @@ def test_saved_revision_preserves_calls_and_exposes_original_scores(tmp_path):
     steps = review.select_one('#score-revision-steps')
     assert steps is not None
     assert [cell.get_text(strip=True) for cell in steps.select('tbody tr td')] == ['1', '规则修订', '1', '0']
+    changes = BeautifulSoup((output/'changes/index.html').read_text(), 'html.parser')
+    assert '1 个案例调整规则，1 份保存结果统一重评' in changes.get_text()
+    assert changes.select_one('.review-round a')['href'] == '../review/index.html'
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['scores_changed'] is True
 
 
