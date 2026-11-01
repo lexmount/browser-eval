@@ -76563,6 +76563,74 @@
       "artifact": "A practical guide to small gardens\nMorgan Example\nHome Log in Register Follow Share Subscribe Download app Help Contact Privacy Terms of use",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "category": "acceptance-contract",
+      "root_cause": "Removing independently identified peripheral navigation must preserve complete primary list records and their eligible links.",
+      "case": {
+        "id": "list-primary-scope",
+        "name": "Initial product list",
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/product/[0-9]+",
+          "name_validation": "nonempty",
+          "stable_text_anchors": [
+            {
+              "id": "catalog-title",
+              "alternatives": [
+                "Garden catalog"
+              ]
+            }
+          ]
+        }
+      },
+      "ok": true,
+      "id": "list-primary-scope-complete-without-shell",
+      "failure_mode": "false-negative",
+      "artifact": "Garden catalog\n[Clay planter](https://example.test/product/1)\n[Watering can](https://example.test/product/2)",
+      "expected_task_pass": true
+    },
+    {
+      "category": "acceptance-contract",
+      "root_cause": "Removing independently identified peripheral navigation must preserve complete primary list records and their eligible links.",
+      "case": {
+        "id": "list-primary-scope",
+        "name": "Initial product list",
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/product/[0-9]+",
+          "name_validation": "nonempty",
+          "stable_text_anchors": [
+            {
+              "id": "catalog-title",
+              "alternatives": [
+                "Garden catalog"
+              ]
+            }
+          ]
+        }
+      },
+      "ok": true,
+      "id": "list-primary-scope-shell-cannot-replace-records",
+      "failure_mode": "false-positive",
+      "artifact": "Garden catalog\n[Clay planter](https://example.test/product/1)\nHome Login Privacy Terms Subscribe",
+      "expected_task_pass": false
     }
   ]
 }
