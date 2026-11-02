@@ -680,7 +680,8 @@ def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_
         build(tmp_path,changed,'partial-continuation')
 
 
-@pytest.mark.parametrize('defect', [None, 'missing_identity', 'unrelated', 'missing_time', 'post_launch'])
+@pytest.mark.parametrize('defect', [None, 'missing_identity', 'unrelated', 'missing_time', 'post_launch',
+                                  'out_of_order', 'early_completion', 'missing_event_time', 'missing_event_identity', 'other_event_identity'])
 def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tmp_path, defect):
     spec, root, current, raw = fixture(tmp_path)
     event = {'event': 'http_request_started', 'call_id': 'method__same__r001', 'at': '2026-10-27T00:00:00Z'}
@@ -692,7 +693,25 @@ def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tm
         event.pop('at')
     elif defect == 'post_launch':
         event['at'] = '2026-10-28T01:00:00Z'
-    log=write(tmp_path/'first-log.jsonl', event)
+    events = [event]
+    complete = {'event': 'collection_completed', 'call_id': 'method__same__r001', 'at': '2026-10-27T00:00:01Z'}
+    if defect == 'out_of_order':
+        events = [complete, event]
+    elif defect == 'early_completion':
+        complete['at'] = '2026-10-26T23:59:59Z'
+        events = [complete, event]
+    elif defect == 'missing_event_time':
+        complete.pop('at')
+        events.append(complete)
+    elif defect in ('missing_event_identity', 'other_event_identity'):
+        if defect == 'missing_event_identity':
+            complete.pop('call_id')
+        else:
+            complete['call_id'] = 'other__case__r001'
+        events.append(complete)
+    log_path = tmp_path/'first-log.jsonl'
+    log_path.write_text(''.join(json.dumps(item)+'\n' for item in events))
+    log = {'path': str(log_path), 'sha256': hashlib.sha256(log_path.read_bytes()).hexdigest()}
     receipt=write(tmp_path/'uncommitted.json', {'suite':'first','provider':'method','case_id':'same',
         'state':'called_but_uncommitted','elapsed_ms':None})
     launch=write(tmp_path/'launch.json', {'started_at':'2026-10-28T00:00:00Z',
@@ -1068,7 +1087,7 @@ def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, de
 
 @pytest.mark.parametrize('reverse', [False, True])
 @pytest.mark.parametrize('early_kind', ['blocked', 'skip'])
-@pytest.mark.parametrize('later_kind', ['uncommitted', 'started', 'event', 'inherited_event', 'diagnostic', 'scoped_diagnostic'])
+@pytest.mark.parametrize('later_kind', ['uncommitted', 'started', 'event', 'inherited_event', 'diagnostic', 'scoped_diagnostic', 'nested_native', 'nested_event', 'conflicting_diagnostic'])
 def test_source_admission_rejects_not_called_with_invocation_evidence(tmp_path, reverse, early_kind, later_kind):
     spec, _, _, _ = fixture(tmp_path)
     spec['sources'] = []
@@ -1087,6 +1106,14 @@ def test_source_admission_rejects_not_called_with_invocation_evidence(tmp_path, 
     if later_kind in ('diagnostic', 'scoped_diagnostic'):
         late = {'call_id': 'method__same__r001', 'at': '2026-10-27T00:00:00Z',
                 'source': 'http', 'event': 'http_request_started'}
+    if later_kind in ('nested_native', 'nested_event', 'conflicting_diagnostic'):
+        late = {'call_id': 'method__same__r001'}
+        if later_kind == 'nested_native':
+            late['native_route_receipt'] = {'transport_state': 'started'}
+        else:
+            late['events'] = [{'event': 'http_request_started'}]
+            if later_kind == 'conflicting_diagnostic':
+                late['events'][0]['call_id'] = 'other__case__r001'
     events = [late, early] if reverse else [early, late]
     if later_kind == 'scoped_diagnostic':
         events = {'suite': 'first', 'events': events}
@@ -1219,4 +1246,17 @@ def test_source_checker_rejects_rendered_content_mutation(tmp_path, change):
     audit['files'][path.relative_to(output).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
     write(output/'saved-matrix-audit.json', audit)
     with pytest.raises(ValueError, match='Rendered page differs'):
+        check_saved_matrix(output, spec_path=tmp_path/'spec.json')
+
+
+@pytest.mark.parametrize('extension', ['js', 'css'])
+def test_source_checker_rejects_modified_executable_assets(tmp_path, extension):
+    spec, _, _, _ = fixture(tmp_path)
+    output = build(tmp_path, spec).parent
+    asset = next((output/'assets').glob('*.'+extension))
+    asset.write_text(asset.read_text()+'\n/* changed presentation */\n')
+    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit['files'][asset.relative_to(output).as_posix()] = hashlib.sha256(asset.read_bytes()).hexdigest()
+    write(output/'saved-matrix-audit.json', audit)
+    with pytest.raises(ValueError, match='Rendered asset differs'):
         check_saved_matrix(output, spec_path=tmp_path/'spec.json')

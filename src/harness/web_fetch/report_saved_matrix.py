@@ -91,10 +91,14 @@ def _receipt_covers(value, suite, provider, case_id, status, inherited=None):
             for child in node:
                 visit(child, context)
         elif isinstance(node, dict):
-            context = {**context, **{k: node[k] for k in ('suite', 'provider', 'case_id') if k in node}}
+            if context.get('call_id') or node.get('call_id'):
+                for field in ('suite', 'provider', 'case_id', 'call_id'):
+                    if field in context and field in node and context[field] != node[field]:
+                        raise ValueError('Conflicting diagnostic invocation identities')
+            context = {**context, **{k: node[k] for k in ('suite', 'provider', 'case_id', 'call_id') if k in node}}
             same_case = context.get('suite') == suite and context.get('case_id') == case_id
             diagnostic_matching = (context.get('suite') in (None, suite)
-                                   and _diagnostic_call_matches(node.get('call_id'), provider, case_id))
+                                   and _diagnostic_call_matches(context.get('call_id'), provider, case_id))
             matching = (same_case and context.get('provider') == provider) or diagnostic_matching
             if (same_case and node.get('kind') == 'user_requested_case_skip'
                     and node.get('status') == 'not_called' and isinstance(node.get('providers'), list)
@@ -540,10 +544,17 @@ def _load_saved_matrix(spec_path):
                     re.escape(key[1]+'__'+key[2])+r'__r[0-9]{3}(?:__p001)?', call_id):
                 raise ValueError('Uncommitted first-call log identifies another invocation')
             try:
-                started = datetime.fromisoformat(start['at'])
-                ended = max([started]+[datetime.fromisoformat(event['at']) for event in events
-                                      if event.get('call_id') == call_id and event.get('at')])
-                if ended > datetime.fromisoformat(launch['started_at']):
+                if any(event.get('call_id') != call_id for event in events):
+                    raise ValueError('Uncommitted first-call log has missing or conflicting event identities')
+                matching_events = events
+                timestamps = [datetime.fromisoformat(event['at']) for event in matching_events]
+                if timestamps != sorted(timestamps):
+                    raise ValueError('Uncommitted first-call log timestamps are out of order')
+                request_index = matching_events.index(start)
+                terminal = {'http_response_received', 'provider_returned', 'answer_prepared', 'collection_completed'}
+                if any(event.get('event') in terminal for event in matching_events[:request_index]):
+                    raise ValueError('Uncommitted first-call log completed before request start')
+                if timestamps[-1] > datetime.fromisoformat(launch['started_at']):
                     raise ValueError('Uncommitted first-call log occurs after continuation launch')
             except (KeyError, TypeError) as exc:
                 raise ValueError('Uncommitted first-call log lacks timestamp evidence') from exc
@@ -1644,6 +1655,14 @@ def _validate_rendered_pages(output, model):
         for relative in pages:
             if (output/relative).read_bytes() != (expected/relative).read_bytes():
                 raise ValueError('Rendered page differs from validated source: '+str(relative))
+        assets = {path.relative_to(expected) for path in (expected/'assets').rglob('*') if path.is_file()}
+        actual_assets = {path.relative_to(output) for path in (output/'assets').rglob('*') if path.is_file()}
+        if assets != actual_assets:
+            raise ValueError('Rendered asset population differs from validated source')
+        for relative in assets:
+            if (output/relative).read_bytes() != (expected/relative).read_bytes():
+                raise ValueError('Rendered asset differs from validated source: '+str(relative))
+
 
 
 def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
