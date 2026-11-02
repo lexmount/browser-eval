@@ -62,8 +62,9 @@ def metric_module_digest(source: bytes) -> str:
 def metric_implementation_binding(profile: dict, *, read=None, certificate=None, summary=None, receipt=None) -> str:
     """Bind the metric module while retaining the upstream provenance ID.
 
-    The digest covers the module bytes, so scoring must also call that module's
-    functions rather than a local definition, wrapper or redirected import.
+    The digest covers the module's code. The word_f1 and snippet_check names here
+    must also be that module's functions, so rebinding either name is rejected.
+    This catches drift. It does not prove what _score calls, and this file is not bound.
     Frozen evidence may name a superseded digest. The authority maps each one to
     the module digest it represents, so it verifies only while that code is current.
     """

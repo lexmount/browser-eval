@@ -142,8 +142,9 @@ publication authority or the certification runner's supported participants.
 import only the standard library. `data/wcxb-metric-bindings.json` binds a digest
 of the module's AST without docstrings, so formatting and comments keep the
 binding while any code change breaks it until the authority is revised on purpose.
-The binding also requires `wcxb_scoring.py` to call this module's functions, so a
-local definition, wrapper or redirected import there is rejected.
+The `word_f1` and `snippet_check` names in `wcxb_scoring.py` must also be this
+module's functions, so rebinding either name is rejected. This catches drift. It
+does not prove what `_score` calls, and `wcxb_scoring.py` itself is not bound.
 The authority also maps the digest named by existing evidence to the module digest
 it represents, so frozen profiles, certificates, summaries and timing receipts keep
 verifying without being rewritten.
