@@ -105,6 +105,27 @@ def test_source_checker_rejects_record_mutation_outside_visible_scalars(tmp_path
         check_saved_matrix(output, spec_path=tmp_path/'spec.json')
 
 
+@pytest.mark.parametrize('rewrite_dataset', [False, True])
+def test_checker_rejects_missing_rows_after_rebinding_totals(tmp_path, rewrite_dataset):
+    from harness.web_fetch.report_saved_matrix import _totals
+    spec, _, _, _ = fixture(tmp_path)
+    output = build(tmp_path, spec).parent
+    model = json.loads((output/'matrix.json').read_text())
+    model['rows'] = []
+    model['totals'] = _totals([])
+    bound = write(output/'matrix.json', model)
+    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit['totals'] = model['totals']
+    audit['files']['matrix.json'] = bound['sha256']
+    if rewrite_dataset:
+        dataset = json.loads((output/'dataset.json').read_text())
+        dataset['cases'] = []
+        audit['files']['dataset.json'] = write(output/'dataset.json', dataset)['sha256']
+    write(output/'saved-matrix-audit.json', audit)
+    with pytest.raises(ValueError, match='population differs'):
+        check_saved_matrix(output, spec_path=tmp_path/'spec.json' if rewrite_dataset else None)
+
+
 @pytest.mark.parametrize('defect', [None, 'downgrade', 'receipt'])
 def test_completion_preserves_uncommitted_baseline_state_and_receipt(tmp_path, defect):
     spec, source, _, _ = fixture(tmp_path)

@@ -1297,8 +1297,22 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             raise ValueError('Portable saved-matrix file changed')
     model = _json(output / 'matrix.json')
     keys = [(r['suite'], r['provider'], r['case_id']) for r in model['rows']]
-    if len(keys) != len(set(keys)) or _totals(model['rows']) != audit['totals']:
+    if (len(keys) != len(set(keys)) or _totals(model['rows']) != audit['totals']
+            or model['totals'] != audit['totals']):
         raise ValueError('Saved-matrix population changed')
+    dataset = _json(output / 'dataset.json')
+    expected_cells = {(provider['id'], case['id']) for provider in model['providers']
+                      for case in dataset['cases']}
+    if {(provider, suite+'--'+cid) for suite, provider, cid in keys} != expected_cells:
+        raise ValueError('Saved-matrix population differs from task inventory')
+    if inputs is not None:
+        spec = inputs['spec']
+        excluded = set(spec.get('excluded_report_families', []))
+        expected_keys = {(suite, provider, cid) for suite, cases in inputs['cases'].items()
+                         for cid, case in cases.items() for provider in inputs['providers']
+                         if not excluded or _presentation_family(case, suite, spec['report_families']) not in excluded}
+        if set(keys) != expected_keys:
+            raise ValueError('Saved-matrix population differs from validated source')
     def record_paths(value):
         if isinstance(value, dict):
             for name, child in value.items():
