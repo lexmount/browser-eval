@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from harness.reporting.source_policy import REPORT_INSTANCE_NAMES
+
 ROOT = Path(__file__).resolve().parents[1]
 DOCUMENT_ROOTS = (
     ".agents/skills", ".github", "deploy", "docs", "evaluation", "examples", "scripts", "src/harness",
@@ -89,6 +91,29 @@ def missing_paths(document: Path, root: Path = ROOT, logical: set[str] = frozens
         if not (base / target.lstrip("/")).exists():
             missing.append(target)
     return missing
+
+
+def named_report_instances(text: str) -> list[str]:
+    return sorted(name for name in REPORT_INSTANCE_NAMES if name in text)
+
+
+def test_evaluation_documents_do_not_present_report_instances_as_checkout_files():
+    named = {
+        path.relative_to(ROOT).as_posix(): instances
+        for path in (ROOT / "evaluation").rglob("*.md")
+        if (instances := named_report_instances(path.read_text(encoding="utf-8")))
+    }
+    assert named == {}
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("`current-run.json.dataset.path` selects the input.", ["current-run.json"]),
+    ("See `../sibling/current-report.json`.", ["current-report.json"]),
+    ("`current-comparison.json` binds the results.", ["current-comparison.json"]),
+    ("An external run profile selected with `--profile`.", []),
+])
+def test_report_instance_check_accepts_and_rejects_scenarios(text, expected):
+    assert named_report_instances(text) == expected
 
 
 def test_document_inventory_covers_root_guides_and_skills():
