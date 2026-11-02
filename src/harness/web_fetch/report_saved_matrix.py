@@ -1305,35 +1305,36 @@ def _source_record_inventory(inputs, candidates, decisions, adoptions, keys):
         prefix = 'evidence/' + '/'.join(key)
         selected = inputs['selected'].get(key)
         if selected:
-            base = revision['records'].get(key, selected[1])
+            base = ((json.dumps(revision['records'][key], ensure_ascii=False)+'\n').encode()
+                    if key in revision['records'] else selected[2])
             final = base
             if key in revision['records']:
-                expected[prefix+'/score-before/score-before-record.json'] = selected[1]
+                expected[prefix+'/score-before/score-before-record.json'] = selected[2]
             if key in candidates:
                 expected[prefix+'/parameter-rerun/before/record.json'] = base
-                expected[prefix+'/parameter-rerun/candidate/record.json'] = candidates[key][1]
+                expected[prefix+'/parameter-rerun/candidate/record.json'] = candidates[key][2]
                 prior = inputs.get('parameter_continuations', {}).get(key)
                 if prior and prior[1]:
-                    expected[prefix+'/parameter-rerun/candidate-prior/record.json'] = prior[1][1]
+                    expected[prefix+'/parameter-rerun/candidate-prior/record.json'] = prior[1][2]
                 if decisions[key]['selected_new']:
-                    final = candidates[key][1]
+                    final = candidates[key][2]
             if key in adoptions:
                 adoption = adoptions[key]
                 expected[prefix+'/adoption-before/record.json'] = final
-                final = adoption['selected'][1]
+                final = adoption['selected'][2]
                 if adoption['revision']:
-                    expected[prefix+'/adoption-before-score.json'] = adoption['original'][1]
+                    expected[prefix+'/adoption-before-score.json'] = adoption['original'][2]
             expected[prefix+'/record.json'] = final
         if key in inputs['historical']:
             record = inputs['historical'][key][1]
-            expected[prefix+'/history/'+safe_identifier(record['attempt_id'])+'/record.json'] = record
+            expected[prefix+'/history/'+safe_identifier(record['attempt_id'])+'/record.json'] = inputs['historical'][key][2]
         continuations = (inputs.get('parameter_continuations', {})
                          if decisions.get(key, {}).get('selected_new') else inputs['continuations'])
         if key in adoptions:
             continuations = adoptions[key]['continuations']
         if key in continuations and continuations[key][1]:
             _, record, raw = continuations[key][1]
-            expected[prefix+'/history/prior-call-'+hashlib.sha256(raw).hexdigest()[:16]+'/record.json'] = record
+            expected[prefix+'/history/prior-call-'+hashlib.sha256(raw).hexdigest()[:16]+'/record.json'] = raw
     return expected
 
 
@@ -1469,7 +1470,8 @@ def _validate_revision_and_authority_proofs(output, row, inputs, candidates, dec
             'scores_changed': revised, 'provider_calls_added': 0,
             **({'score_revision': score} if revised else {})}
         if (row.get('receipt_path') != prefix+'/receipt.json'
-                or _json(output/row['receipt_path']) != json.loads(json.dumps(expected_receipt))):
+                or _json(output/row['receipt_path']) != json.loads(json.dumps(expected_receipt))
+                or _sha(output/row['record_path']) != expected_receipt['record_sha256']):
             raise ValueError('Saved result receipt differs from validated source')
 
     if key in inputs['historical']:
@@ -1685,7 +1687,8 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
                 if not row.get('record_path') or record != expected_record:
                     raise ValueError('Saved record differs from validated source selection')
             elif (row.get('record_path') or row['status'] != inputs['missing'][identity][0]['status']
-                    or receipt != _json(inputs['missing'][identity][1])):
+                    or receipt != _json(inputs['missing'][identity][1])
+                    or row['error'] != inputs['missing'][identity][0]['reason']):
                 raise ValueError('Saved missing receipt differs from validated source')
             _validate_revision_and_authority_proofs(output, row, inputs, candidates, decisions, adoptions)
             _validate_selection_proofs(output, row, inputs, candidates, decisions, adoptions)
@@ -1715,12 +1718,17 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     if inputs is not None:
         for relative, expected_record in _source_record_inventory(inputs, candidates, decisions, adoptions, keys).items():
             path = contained_path(output, relative, reject_symlinks=True)
-            if not path.is_file() or _json(path) != expected_record:
+            if not path.is_file() or path.read_bytes() != expected_record:
                 raise ValueError('Published provenance record differs from validated source: '+relative)
             _validate_record_artifacts(path)
     projected_dataset, projected_records, projected_identities, projected_scope = _saved_renderer_projection(output, model)
     saved_records = [json.loads(line) for line in (output/'results.jsonl').read_text().splitlines() if line.strip()]
     execution = _json(output/'execution.json')
+    scores_changed = (bool(inputs['revision']) or any(adoptions[key]['revision'] for key in keys if key in adoptions)
+                      if inputs is not None else bool(model.get('offline_revision')) or any(row.get('score_revision') for row in model['rows']))
+    scores_changed = bool(scores_changed)
+    if any(value.get('scores_changed') is not scores_changed for value in (audit, model, execution)):
+        raise ValueError('Saved scoring-change flags differ from revision evidence')
     if (dataset != projected_dataset or saved_records != projected_records
             or _json(output/'summary.json') != projected_scope
             or execution.get('identities') != projected_identities):
@@ -1752,7 +1760,7 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             if not contained_path(output, target, reject_symlinks=True).is_file():
                 raise ValueError('Broken saved-matrix static link: ' + relative + ': ' + link)
     return {'valid': True, 'totals': audit['totals'], 'source_files_verified': source_count,
-            'portable_files_verified': len(audit['files']), 'html_routes_verified': len(routes), 'provider_calls_added': 0, 'scores_changed': audit['scores_changed']}
+            'portable_files_verified': len(audit['files']), 'html_routes_verified': len(routes), 'provider_calls_added': 0, 'scores_changed': scores_changed}
 
 
 def _saved_renderer_projection(output, model):

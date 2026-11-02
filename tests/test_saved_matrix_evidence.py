@@ -31,6 +31,7 @@ def assert_provenance_mutation_rejected(output, relative, spec):
     finally:
         (output/relative).write_bytes(original)
         audit_path.write_bytes(original_audit)
+    assert_whitespace_record_rejected(output, relative, spec)
 
 
 def assert_redirected_answer_rejected(output, fields, spec):
@@ -1126,3 +1127,57 @@ def test_source_checker_requires_saved_receipt_contents(tmp_path):
     spec, _, _, _ = fixture(tmp_path)
     output = build(tmp_path, spec).parent
     assert_saved_receipt_mutation_rejected(output, tmp_path/'spec.json')
+
+
+def assert_whitespace_record_rejected(output, relative, spec):
+    path, audit_path = output/relative, output/'saved-matrix-audit.json'
+    original, original_audit = path.read_bytes(), audit_path.read_bytes()
+    path.write_bytes(b' '+original)
+    audit = json.loads(original_audit)
+    audit['files'][relative] = hashlib.sha256(path.read_bytes()).hexdigest()
+    write(audit_path, audit)
+    try:
+        with pytest.raises(ValueError, match='result receipt differs|provenance record differs'):
+            check_saved_matrix(output, spec_path=spec)
+    finally:
+        path.write_bytes(original)
+        audit_path.write_bytes(original_audit)
+
+
+def test_selected_record_bytes_match_source_receipt(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    output = build(tmp_path, spec).parent
+    row = json.loads((output/'matrix.json').read_text())['rows'][0]
+    assert_whitespace_record_rejected(output, row['record_path'], tmp_path/'spec.json')
+
+
+def test_missing_reason_is_bound_to_source(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    spec['sources'] = []
+    identity = {'suite': 'first', 'provider': 'method', 'case_id': 'same'}
+    spec['missing'] = [{**identity, 'status': 'uncommitted', 'reason': 'Original collection error',
+        'receipt': write(tmp_path/'receipt.json', {**identity, 'state': 'called_but_uncommitted'})}]
+    output = build(tmp_path, spec).parent
+    assert_proof_mutations_rejected(output, tmp_path/'spec.json', 'error', ['change_note'],
+                                    error='missing receipt differs from validated source')
+
+
+def assert_scoring_flags_rejected(output, spec):
+    audit_path = output/'saved-matrix-audit.json'
+    for name in ('saved-matrix-audit.json', 'matrix.json', 'execution.json'):
+        path = output/name
+        original, original_audit = path.read_bytes(), audit_path.read_bytes()
+        value = json.loads(original)
+        value['scores_changed'] = not value['scores_changed']
+        digest = write(path, value)['sha256']
+        if name != 'saved-matrix-audit.json':
+            audit = json.loads(original_audit)
+            audit['files'][name] = digest
+            write(audit_path, audit)
+        try:
+            for source in (None, spec):
+                with pytest.raises(ValueError, match='scoring-change flags differ'):
+                    check_saved_matrix(output, spec_path=source)
+        finally:
+            path.write_bytes(original)
+            audit_path.write_bytes(original_audit)
