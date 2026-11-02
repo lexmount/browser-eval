@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from harness.browser_use.failure_cause_review import load_failure_cause_review
+from harness.browser_use.publication import read_public_json
 from harness.record_io import (
     bytes_sha256,
     canonical_json_sha256,
@@ -15,6 +17,7 @@ from harness.record_io import (
     read_json,
     write_json,
 )
+from harness.trajectory_replay.diagnostics import write_diagnostic
 
 SOURCE = Path(__file__).resolve().parents[1] / 'src' / 'harness'
 # Names with no remaining definition under src/harness. Names that still have a
@@ -82,6 +85,49 @@ def _is_atomic_json_write(body, parameters):
             and payload.args[0].id in parameters)
 
 
+def _is_utf8_json_read(node):
+    """Recognize `json.loads(<path>.read_text(encoding='utf-8'))`, the read_json bytes."""
+    return (isinstance(node, ast.Call) and ast.unparse(node.func) == 'json.loads'
+            and len(node.args) == 1 and isinstance(node.args[0], ast.Call)
+            and isinstance(node.args[0].func, ast.Attribute) and node.args[0].func.attr == 'read_text'
+            and [ast.unparse(item.value) for item in node.args[0].keywords] == ["'utf-8'"])
+
+
+def _returns_utf8_json_read(function, body):
+    """Recognize a short loader whose preconditions end in a read_json-equivalent read.
+
+    Preconditions and shape checks stay in the caller; only the read itself is copied.
+    A read followed by schema validation or field selection is inline use, not a helper.
+    """
+    if not function.args.args or len(body) > 5 or not isinstance(body[-1], ast.Return):
+        return False
+    value = body[-1].value
+    if isinstance(value, ast.Tuple):
+        returned = value.elts
+    elif isinstance(value, ast.IfExp):
+        returned = [value.body]
+    elif isinstance(value, ast.Call) and len(value.args) == 1:
+        returned = [value, value.args[0]]
+    else:
+        returned = [value]
+    if any(_is_utf8_json_read(node) for node in returned):
+        return True
+    if len(body) < 3 or not isinstance(value, ast.Name):
+        return False
+    assign, check = body[-3], body[-2]
+    return (isinstance(assign, ast.Assign) and _is_utf8_json_read(assign.value)
+            and [ast.unparse(target) for target in assign.targets] == [value.id]
+            and isinstance(check, ast.If) and not check.orelse
+            and ast.unparse(check.test).startswith(f'not isinstance({value.id},')
+            and isinstance(check.body[0], ast.Raise))
+
+
+def _writes_json_document_bytes(body, parameters):
+    """Recognize a short writer that passes the json_bytes expression to its output call."""
+    return (1 <= len(body) <= 2 and isinstance(body[-1], ast.Expr) and isinstance(body[-1].value, ast.Call)
+            and any(_is_json_document_bytes(argument, parameters) for argument in body[-1].value.args))
+
+
 def _is_file_digest_copy(body, parameters):
     """Recognize `with path.open('rb') as s: return hashlib.file_digest(s, 'sha256').hexdigest()`.
 
@@ -140,6 +186,10 @@ def _copied_primitive(function):
         return 'web_search.core.write_json'
     if _is_file_digest_copy(body, parameters):
         return 'file_sha256'
+    if _writes_json_document_bytes(body, parameters):
+        return 'json_bytes'
+    if body and _returns_utf8_json_read(function, body):
+        return 'read_json'
     if len(body) == 1 and isinstance(body[0], ast.Return) and body[0].value is not None:
         value = body[0].value
         if _is_json_document_bytes(value, parameters):
@@ -270,6 +320,18 @@ def test_frozen_copies_still_exist_so_their_exemptions_cannot_go_stale():
     ('def f(path, value):\n    atomic_write(path, json_bytes(value))\n', 'copies web_search.core.write_json'),
     ('def f(path, value):\n    atomic_write(path, (json.dumps(value, ensure_ascii=False, indent=2) + "\\n").encode())\n',
      'copies web_search.core.write_json'),
+    ('def f(path, value):\n    target = check(path)\n'
+     '    write_new_file(target, (json.dumps(value, ensure_ascii=False, indent=2) + "\\n").encode())\n',
+     'copies json_bytes'),
+    ('def f(path):\n    check(path)\n    return json.loads(path.read_text(encoding="utf-8"))\n', 'copies read_json'),
+    ('def f(path):\n    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}\n',
+     'copies read_json'),
+    ('def f(path):\n    return clean(json.loads(path.read_text(encoding="utf-8")))\n', 'copies read_json'),
+    ('def f(path):\n    return json.loads(check(path).read_text(encoding="utf-8"))\n', 'copies read_json'),
+    ('def f(path):\n    full = path.resolve()\n    return full, json.loads(full.read_text(encoding="utf-8"))\n',
+     'copies read_json'),
+    ('def f(path):\n    value = json.loads(path.read_text(encoding="utf-8"))\n'
+     '    if not isinstance(value, dict):\n        raise ValueError(path)\n    return value\n', 'copies read_json'),
     ('value = file_sha256(path) if path.is_file() else None\n', 'copies optional_file_sha256'),
     ('value = sha256(path.read_bytes()) if path.is_file() else None\n', 'copies optional_file_sha256'),
     ('value = hashlib.sha256(root.path.read_bytes()).hexdigest() if root.path.is_file() else None\n',
@@ -323,6 +385,17 @@ def test_guard_rejects_each_copied_form(source, expected):
     'value = sha256(read_dataset_bytes(path)) if path.is_file() else None\n',
     # json.loads(bytes) also accepts UTF-16/32, which read_json rejects.
     'def f(path):\n    return json.loads(path.read_bytes())\n',
+    # read_text() without an encoding follows the locale, which read_json does not.
+    'def f(path):\n    return json.loads(check(path).read_text())\n',
+    # An importlib resource is not a filesystem path, and a constant input is not a helper.
+    'def f():\n    return json.loads(RESOURCE.read_text(encoding="utf-8"))\n',
+    # Schema validation and field selection are the function's work, not a copied read.
+    'def f(path):\n    value = json.loads(path.read_text(encoding="utf-8"))\n'
+    '    if value.get("schema") != 1:\n        raise ValueError(path)\n    return value\n',
+    'def f(path):\n    return json.loads(path.read_text(encoding="utf-8"))["rows"]\n',
+    # A writer that derives other work from the bytes uses them, it does not copy json_bytes.
+    'def f(path, value):\n    raw = (json.dumps(value, ensure_ascii=False, indent=2) + "\\n").encode()\n'
+    '    check(raw)\n    path.write_bytes(raw)\n',
 ])
 def test_guard_keeps_behaviorally_distinct_helpers(source):
     assert _violations(source, 'example.py') == []
@@ -412,3 +485,21 @@ def test_read_json_matches_utf8_text_reading_for_invalid_documents(tmp_path, raw
         read_json(path)
     with pytest.raises(error):
         json.loads(path.read_text(encoding='utf-8'))
+
+
+def test_migrated_loaders_keep_their_absent_file_results(tmp_path):
+    absent = tmp_path / 'absent.json'
+    assert load_failure_cause_review(absent) == {}
+    assert read_public_json(absent) is None
+    present = tmp_path / 'value.json'
+    write_json(present, {'a': 1})
+    assert load_failure_cause_review(present) == {'a': 1}
+    assert read_public_json(present) == {'a': 1}
+
+
+def test_write_diagnostic_keeps_document_bytes_and_refuses_an_existing_file(tmp_path):
+    target = tmp_path / 'diagnostic.json'
+    write_diagnostic(target, VALUE)
+    assert target.read_bytes() == (json.dumps(VALUE, ensure_ascii=False, indent=2) + '\n').encode()
+    with pytest.raises(ValueError, match='already exists'):
+        write_diagnostic(target, VALUE)
