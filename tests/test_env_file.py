@@ -85,6 +85,44 @@ def test_last_assignment_of_a_name_wins(tmp_path):
     assert parse_env_file(path) == {"VALUE": "second"}
 
 
+@pytest.mark.parametrize(
+    "statement",
+    [
+        "KEY=\"new'",
+        "export KEY=\"new'",
+        "'KEY'=\"new'",
+        'KEY="new" trailing',
+        'KEY="new\nvalue"',
+        'KEY="new\nvalue" trailing',
+        # A bare name: the hand-written parsers skipped this line and kept the old value.
+        "KEY",
+        "export KEY # note",
+    ],
+)
+def test_a_later_statement_without_a_value_removes_the_earlier_value(tmp_path, statement):
+    # Fails closed. Falling back would run a rotated credential on its stale value.
+    path = tmp_path / ".env"
+    path.write_text(f"KEY=old\n{statement}\nAFTER=kept\n", encoding="utf-8")
+    assert parse_env_file(path) == {"AFTER": "kept"}
+
+
+@pytest.mark.parametrize(
+    "statement",
+    ["KEY OTHER=nope", "KEY trailing", "KEY.dotted=\"new'", "# KEY=\"new'"],
+)
+def test_a_line_that_does_not_assign_the_name_keeps_its_value(tmp_path, statement):
+    path = tmp_path / ".env"
+    path.write_text(f"KEY=old\n{statement}\n", encoding="utf-8")
+    assert parse_env_file(path) == {"KEY": "old"}
+
+
+def test_a_multi_line_value_removes_only_the_name_that_opens_it(tmp_path):
+    # `B="` is text inside A's value, not a statement about B.
+    path = tmp_path / ".env"
+    path.write_text('A=old\nB=1\nA="x\nB="\nC=1\n', encoding="utf-8")
+    assert parse_env_file(path) == {"B": "1", "C": "1"}
+
+
 def test_lines_without_a_valid_assignment_are_ignored(tmp_path):
     path = tmp_path / ".env"
     path.write_text(
@@ -155,6 +193,8 @@ def test_wcxb_visual_check_reports_an_unreadable_binary_as_missing(tmp_path, tex
         "{key}=\"mismatched'",
         "{key}=first\n{key}=",
         "{key}=\"secret\n{other}=\"",
+        "{key}=stale\n{key}=\"mismatched'",
+        "{key}=stale\n{key}=\"new\nvalue\"",
     ],
 )
 def test_import_uses_the_values_the_runtime_will_read(tmp_path, statement):
@@ -168,7 +208,16 @@ def test_import_uses_the_values_the_runtime_will_read(tmp_path, statement):
     assert not target.exists()
 
 
-@pytest.mark.parametrize("line", ["{key}=\"mismatched'", "{key}=first\n{key}=", "{key}="])
+@pytest.mark.parametrize(
+    "line",
+    [
+        "{key}=\"mismatched'",
+        "{key}=first\n{key}=",
+        "{key}=",
+        "{key}=stale\n{key}=\"mismatched'",
+        "{key}=stale\n{key}=\"new\nvalue\"",
+    ],
+)
 def test_import_replaces_a_target_value_the_runtime_cannot_read(tmp_path, line):
     key = HOSTED_KEYS[0]
     source = tmp_path / "source.env"

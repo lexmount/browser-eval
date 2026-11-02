@@ -10,6 +10,8 @@ from dotenv.parser import Binding, parse_stream
 
 _LOGGER = logging.getLogger(__name__)
 _NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+# python-dotenv reports no key for a statement it rejects, so read the name it assigns.
+_REJECTED_NAME = re.compile(r"""\s*(?:export[^\S\r\n]+)?(?:'([^']+)'|([^=#\s]+))[^\S\r\n]*=""")
 
 
 def _read_bindings(path: str | Path) -> dict[str, Binding]:
@@ -17,11 +19,14 @@ def _read_bindings(path: str | Path) -> dict[str, Binding]:
     bindings: dict[str, Binding] = {}
     for binding in with_warn_for_invalid_lines(parse_stream(io.StringIO(text))):
         if binding.key is None:
+            if binding.error and (name := _REJECTED_NAME.match(binding.original.string)):
+                bindings.pop(name[1] or name[2], None)
             continue
         if "\n" in binding.original.string.strip():
             # An unterminated quote closed by a later line's quote lands here too,
             # and it cannot be told apart from an intended multi-line value.
             _LOGGER.warning("Ignoring the multi-line value starting at line %s", binding.original.line)
+            bindings.pop(binding.key, None)
             continue
         bindings[binding.key] = binding
     return {name: binding for name, binding in bindings.items()
@@ -33,10 +38,13 @@ def parse_env_file(path: str | Path) -> dict[str, str]:
 
     python-dotenv defines the syntax: an optional ``export`` prefix, matched
     quotes with escapes, and `` #`` comments after an unquoted value. The last
-    assignment of a name wins. Mismatched quotes, values spanning several lines
-    (write ``\\n`` in double quotes instead), names that are not shell identifiers
-    and lines without ``=`` yield no value, so the caller reports the name as
-    missing. A missing file raises ``FileNotFoundError``.
+    statement of a name decides its value. Mismatched quotes, values spanning
+    several lines (write ``\\n`` in double quotes instead) and a bare ``NAME`` line
+    yield no value and remove any earlier value of that name, so the caller reports
+    the name as missing instead of running on a stale value. Only the name that
+    opens a multi-line value is affected; a name on a line it absorbed keeps its
+    earlier value. Names that are not shell identifiers and lines that assign
+    nothing are ignored. A missing file raises ``FileNotFoundError``.
     """
     return {name: binding.value for name, binding in _read_bindings(path).items()}
 
