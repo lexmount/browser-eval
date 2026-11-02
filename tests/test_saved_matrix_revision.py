@@ -38,6 +38,7 @@ def revision_fixture(tmp_path, *, multiple=False, uncalled=False, completion_not
         from harness.web_fetch.report import generate_saved_matrix
         def render_with_note(output, model):
             model['rows'][0]['completion_note'] = 'Only this case uses the declared DNS exception.'
+            write(output/'matrix.json', model)
             return generate_saved_matrix(output, model)
         with patch('harness.web_fetch.report.generate_saved_matrix', side_effect=render_with_note):
             revision = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revision').parent

@@ -126,6 +126,33 @@ def test_checker_rejects_missing_rows_after_rebinding_totals(tmp_path, rewrite_d
         check_saved_matrix(output, spec_path=tmp_path/'spec.json' if rewrite_dataset else None)
 
 
+@pytest.mark.parametrize('mutation', ['score', 'time', 'case_rules', 'missing_result'])
+@pytest.mark.parametrize('source_check', [False, True])
+def test_checker_reconciles_renderer_projection_after_audit_rebinding(tmp_path, mutation, source_check):
+    spec, _, _, _ = fixture(tmp_path)
+    output = build(tmp_path, spec).parent
+    if mutation == 'case_rules':
+        relative = 'dataset.json'
+        dataset = json.loads((output/relative).read_text())
+        dataset['cases'][0]['expected_any'] = ['different acceptance rule']
+        write(output/relative, dataset)
+    else:
+        relative = 'results.jsonl'
+        records = [json.loads(line) for line in (output/relative).read_text().splitlines()]
+        if mutation == 'score':
+            records[0]['metrics']['content_pass'] = False
+        elif mutation == 'time':
+            records[0]['elapsed_ms'] += 1
+        else:
+            records = []
+        (output/relative).write_text(''.join(json.dumps(row)+'\n' for row in records))
+    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit['files'][relative] = hashlib.sha256((output/relative).read_bytes()).hexdigest()
+    write(output/'saved-matrix-audit.json', audit)
+    with pytest.raises(ValueError, match='renderer projection differs'):
+        check_saved_matrix(output, spec_path=tmp_path/'spec.json' if source_check else None)
+
+
 @pytest.mark.parametrize('defect', [None, 'downgrade', 'receipt'])
 def test_completion_preserves_uncommitted_baseline_state_and_receipt(tmp_path, defect):
     spec, source, _, _ = fixture(tmp_path)
@@ -373,7 +400,8 @@ def test_superseded_evidence_preserved_without_double_counting(tmp_path, monkeyp
 
 
 @pytest.mark.parametrize('defect', [None, 'missing_policy', 'late_policy', 'wrong_config', 'budget',
-                                     'missing_observations', 'missing_log', 'log_config', 'log_count'])
+                                     'missing_observations', 'missing_log', 'log_config', 'log_count',
+                                     'log_before_scope', 'receipt_chronology'])
 def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, defect):
     spec, root, old, raw = fixture(tmp_path)
     spec['superseded_sources'] = spec.pop('sources')
@@ -389,6 +417,8 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
         scope['execution_contract'] = write(tmp_path/'execution-contract.json', {
             'created_at': '2026-10-30T00:00:00Z' if defect == 'late_policy' else '2026-10-28T00:00:00Z',
             'provider_config_sha256': 'a'*64, 'timeout_seconds': 30, 'max_failure_retries': 1})
+    if defect == 'log_before_scope':
+        scope['created_at'] = '2026-10-30T00:00:00Z'
     spec['supersession_scope'] = write(tmp_path/'scope.json', scope)
     diagnostic = write(tmp_path/'diagnostic.json', {'observed_http_status':502})
     receipt = write(tmp_path/'receipt.json', {'suite':'first','provider':'method',
@@ -406,6 +436,8 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
                  'provider_config_sha256': 'b'*64 if defect == 'log_config' else 'a'*64}
         log.write_text((json.dumps(event)+'\n')*(2 if defect == 'log_count' else 1))
         value['execution_log'] = {'path': str(log), 'sha256': hashlib.sha256(log.read_bytes()).hexdigest()}
+    if defect in {'log_before_scope', 'receipt_chronology'}:
+        value['started_at'] = '2026-10-31T00:00:00Z'
     spec['missing'][0]['receipt'] = write(Path(receipt['path']), value)
     if defect in {'wrong_config', 'budget'}:
         value = json.loads(Path(receipt['path']).read_text())

@@ -356,6 +356,11 @@ def test_final_call_timing_labels_are_localized_in_ordinary_reports():
     assert 'Mean final-call latency' in page
     assert 'P50 final-call latency' in page
     assert '最终调用耗时' not in page
+    from harness.web_fetch.report_i18n import SAVED_MATRIX_ZH, TEXT
+    for key in ('final_call_timing_title', 'final_call_timing_help', 'final_call_timing_note'):
+        assert SAVED_MATRIX_ZH[key] not in page
+        assert TEXT[SAVED_MATRIX_ZH[key]] in page
+    assert 'P95 final-call latency' in page
 
 
 @pytest.mark.parametrize('excluded', [['base-web'], ['unknown'], ['web', 'base-web'], ['base-web', 'base-web']])

@@ -602,8 +602,12 @@ def _load_saved_matrix(spec_path):
                         or any(event.get(field) != policy[field]
                                for field in ('provider_config_sha256', 'timeout_seconds'))
                         or not event.get('started_at')
-                        or datetime.fromisoformat(event['started_at']) < datetime.fromisoformat(policy['created_at'])):
+                        or datetime.fromisoformat(event['started_at']) < max(scope_started, datetime.fromisoformat(policy['created_at']))):
                     raise ValueError('Uncommitted call log differs from execution authorization')
+            if (datetime.fromisoformat(starts[0]['started_at']) != datetime.fromisoformat(replacement['started_at'])
+                    or any(datetime.fromisoformat(left['started_at']) > datetime.fromisoformat(right['started_at'])
+                           for left, right in zip(starts, starts[1:]))):
+                raise ValueError('Uncommitted call chronology differs from execution authorization')
 
         else:
             root, record, _, _ = selected[key]
@@ -1404,6 +1408,13 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             previous = _json(contained_path(output, history['record_path']))
             if (previous['provider'], previous['case_id']) != (row['provider'], row['case_id']):
                 raise ValueError('Superseded evidence identity differs')
+    projected_dataset, projected_records, projected_identities, projected_scope = _saved_renderer_projection(output, model)
+    saved_records = [json.loads(line) for line in (output/'results.jsonl').read_text().splitlines() if line.strip()]
+    execution = _json(output/'execution.json')
+    if (dataset != projected_dataset or saved_records != projected_records
+            or _json(output/'summary.json') != projected_scope
+            or execution.get('identities') != projected_identities):
+        raise ValueError('Saved renderer projection differs from validated rows')
     # Source HTML captures are immutable evidence, not generated navigation routes.
     routes = sorted(p for p in output.rglob('*.html')
                     if p.relative_to(output).parts[0] != 'evidence')
@@ -1434,13 +1445,12 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             'portable_files_verified': len(audit['files']), 'html_routes_verified': len(routes), 'provider_calls_added': 0, 'scores_changed': audit['scores_changed']}
 
 
-def render_saved_with_standard_generator(output, model):
+def _saved_renderer_projection(output, model):
     """Adapt immutable multi-suite inputs to the existing full report renderer.
 
     Only report route IDs and local evidence paths are projected. Original case
     definitions, record bytes and metrics remain in their evidence files.
     """
-    from harness.web_fetch.report import generate
     cases, records, identities = {}, [], []
     attempt_routes = set()
     groups = model.get('report_families', model['suites'])
@@ -1516,6 +1526,14 @@ def render_saved_with_standard_generator(output, model):
     grouped=[key for s in dataset['report_suites'] for key in s['case_ids']]
     if len(grouped)!=len(set(grouped)) or set(grouped)!=set(cases):
         raise ValueError('Report suites must partition every case exactly once')
+    return dataset, records, identities, scope
+
+
+def render_saved_with_standard_generator(output, model):
+    """Render the verified route/path projection through the shared generator."""
+    from harness.web_fetch.report import generate
+    dataset, records, identities, scope = _saved_renderer_projection(output, model)
+    providers = [p['id'] for p in model['providers']]
     _write(output/'dataset.json', dataset)
     (output/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
     _write(output/'summary.json', scope)
