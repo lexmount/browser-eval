@@ -229,3 +229,24 @@ def test_certificate_metric_binding_must_agree_with_actual_implementation(cohort
     value['metric_implementation_sha256'] = '0' * 64
     certificate.write_text(json.dumps(value))
     assert_rejected(cohort)
+
+
+@pytest.mark.parametrize('changed', ['module', 'authority'])
+def test_metric_inputs_changed_during_scoring_reject_all_outputs(cohort, monkeypatch, tmp_path, changed):
+    use_metric_module(monkeypatch, tmp_path, metric_source())
+    authority = tmp_path / 'wcxb-metric-bindings.json'
+    authority.write_bytes(scoring.METRIC_BINDINGS.read_bytes())
+    monkeypatch.setattr(scoring, 'METRIC_BINDINGS', authority)
+    # A trailing newline keeps the digest and the authority's meaning, so only the byte guard can see it.
+    target = authority if changed == 'authority' else scoring.METRIC_MODULE
+    classify = scoring.classify
+
+    def change_during_scoring(*args):
+        target.write_bytes(target.read_bytes() + b'\n')
+        return classify(*args)
+
+    monkeypatch.setattr(scoring, 'classify', change_during_scoring)
+    with pytest.raises(ValueError, match='changed during scoring'):
+        scoring.score(**cohort)
+    assert not (cohort['evidence_root'] / 'wcxb-scores.jsonl').exists()
+    assert not (cohort['evidence_root'] / 'wcxb-score-summary.json').exists()

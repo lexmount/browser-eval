@@ -131,7 +131,9 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
             providers: dict, binaries: dict, wait_quiet_seconds: int = 0,
             inputs: tuple[Path, ...] = ()) -> dict:
     """Collect the full declared two-build crossover; never select by outcome."""
-    from harness.web_fetch.wcxb_scoring import participant_names, UPSTREAM_EVALUATOR_SHA256, metric_implementation_binding
+    from harness.web_fetch.wcxb_scoring import (
+        METRIC_BINDINGS, METRIC_MODULE, UPSTREAM_EVALUATOR_SHA256, metric_implementation_binding, participant_names,
+    )
 
     if type(wait_quiet_seconds) is not int or wait_quiet_seconds < 0:
         raise ValueError('wait-quiet-seconds must be a nonnegative integer')
@@ -143,7 +145,7 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
         raise ValueError('Timing output must stay outside the source dataset')
     watched = [profile, manifest, *binaries.values(), *inputs]
     watched += [dataset / 'test/html', dataset / 'test/ground-truth',
-                Path(__file__).with_name('wcxb_scoring.py'), Path(__file__).with_name('wcxb_metrics.py')]
+                Path(__file__).with_name('wcxb_scoring.py'), METRIC_MODULE]
 
     def source_tree():
         reject_evidence_symlinks(contained_path(dataset, 'test', reject_symlinks=True))
@@ -163,8 +165,8 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
 
     authority = json.loads(profile.read_bytes())
     metric_hash = metric_implementation_binding(authority)
-    watched.append(Path(__file__).with_name('data') / 'wcxb-metric-bindings.json')
-    before[watched[-1]] = identity(watched[-1])
+    watched.append(METRIC_BINDINGS)
+    before[METRIC_BINDINGS] = identity(METRIC_BINDINGS)
     participant_names(authority)
     if type(authority.get('concurrency', 1)) is not int or authority.get('concurrency', 1) != 1:
         raise ValueError('Paired timing requires serial execution')
@@ -252,7 +254,9 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
 
 def certify(argv=None) -> dict:
     """Bind the complete frozen timing receipt without changing any measured calls."""
-    from harness.web_fetch.wcxb_scoring import participant_names, UPSTREAM_EVALUATOR_SHA256, metric_implementation_binding
+    from harness.web_fetch.wcxb_scoring import (
+        METRIC_BINDINGS, METRIC_MODULE, UPSTREAM_EVALUATOR_SHA256, metric_implementation_binding, participant_names,
+    )
 
     parser = argparse.ArgumentParser(description='Certify a complete WCXB paired latency cohort')
     parser.add_argument('--dataset', type=Path)
@@ -267,7 +271,7 @@ def certify(argv=None) -> dict:
     if certificate_path.exists() or certificate_path.is_symlink():
         raise ValueError('Paired timing cohort is already certified')
     watched = [args.profile, args.sample_manifest, Path(__file__).with_name('wcxb_scoring.py'),
-               Path(__file__).with_name('wcxb_metrics.py'),
+               METRIC_MODULE, METRIC_BINDINGS,
                args.evidence_root / 'receipt.json', args.evidence_root / 'calls.jsonl']
     raw = {}
     for path in watched:
