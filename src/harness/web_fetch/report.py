@@ -2789,6 +2789,19 @@ def current_local_review_findings(out,dataset,records,audit):
  return [{'text':zh,'text_en':en} for zh,en in rows]
 
 
+def saved_adopted_revisions(out,matrix):
+ """Collect visible row-bound revisions even without a root revision."""
+ groups={}
+ for row in matrix.get('rows',[]):
+  path=row.get('score_revision',{}).get('receipt_path')
+  if not path or path=='score-revision.json':continue
+  receipt=json.loads(contained_path(out,path).read_text())
+  key=json.dumps(receipt,sort_keys=True)
+  group=groups.setdefault(key,{'path':path,'receipt':receipt,'rows':[]})
+  group['rows'].append(row)
+ return list(groups.values())
+
+
 def write_saved_changes(out):
  """Render saved-result change history from its versioned revision evidence."""
  review_path=out/'result-review.json'
@@ -2796,6 +2809,10 @@ def write_saved_changes(out):
  updates=''.join('<article class="review-round"><div class="round-label">'+esc(row.get('date',''))+'</div><div><h3>'+model_text(row.get('title',''),row.get('title_en'))+'</h3><p>'+model_text(row.get('fix',''),row.get('fix_en'))+'</p><p class="source-note">'+model_text(row.get('scope',''),row.get('scope_en'))+'</p></div></article>' for row in review.get('review_rounds',[]))
  matrix_path=out/'matrix.json'
  matrix=json.loads(matrix_path.read_text()) if matrix_path.is_file() else {}
+ adopted=saved_adopted_revisions(out,matrix)
+ if adopted:
+  count=sum(len(group['rows']) for group in adopted)
+  updates+='<article class="review-round" data-adopted-revision-history><div><h3>'+model_text('采用结果的评分修订','Scoring revisions of adopted results')+'</h3><p>'+model_text(f'{count} 份采用结果带有离线评分修订；原成绩和修订依据保留。',f'{count} adopted results have offline scoring revisions; original scores and revision evidence are retained.')+'</p><p>'+link('../review/index.html','修订依据与分数变化')+'</p></div></article>'
  reruns=[row['parameter_rerun'] for row in matrix.get('rows',[]) if row.get('parameter_rerun')]
  if reruns:
   note=SAVED_MATRIX_ZH['parameter_rerun_banner'].format(evaluated=len(reruns),selected=sum(row['selected_new'] for row in reruns))
@@ -2812,10 +2829,22 @@ def write_saved_changes(out):
 
 def write_review_page(out,records):
  revision_path=out/'score-revision.json'
- if revision_path.is_file():
-  revision=json.loads(revision_path.read_text())
+ matrix=json.loads((out/'matrix.json').read_text()) if (out/'matrix.json').is_file() else {}
+ adopted=saved_adopted_revisions(out,matrix)
+ if revision_path.is_file() or adopted:
+  revision=json.loads(revision_path.read_text()) if revision_path.is_file() else {
+   'changed_cases':sorted({case for group in adopted for case in group['receipt'].get('changed_cases',[])}),
+   'rescored_results':sum(len(group['rows']) for group in adopted)}
+  revision_link='../score-revision.json' if revision_path.is_file() else '../'+adopted[0]['path']
   page=hero('核验记录',SAVED_MATRIX_ZH['offline_review_scope'])
-  page+=section('修订范围','<p>'+model_text(f'调整 {len(revision["changed_cases"])} 个案例，统一重算 {revision["rescored_results"]} 份保存结果。原始规则、成绩、返回和调用耗时均保留。',f'{len(revision["changed_cases"])} cases revised and {revision["rescored_results"]} saved results rescored. Original rules, results, answers and call timings are retained.')+'</p><p>'+link('../score-revision.json','修订依据与分数变化')+'</p>')
+  page+=section('修订范围','<p>'+model_text(f'调整 {len(revision["changed_cases"])} 个案例，统一重算 {revision["rescored_results"]} 份保存结果。原始规则、成绩、返回和调用耗时均保留。',f'{len(revision["changed_cases"])} cases revised and {revision["rescored_results"]} saved results rescored. Original rules, results, answers and call timings are retained.')+'</p><p>'+link(revision_link,'修订依据与分数变化')+'</p>')
+  if adopted:
+   sections=[]
+   for group in adopted:
+    labels=', '.join(sorted({row['provider'] for row in group['rows']}))
+    links=[link('../'+group['path'],'修订依据')]+[link('../'+path,name) for name,path in group['receipt'].get('review_files',{}).items()]
+    sections.append('<p>'+esc(labels)+' · '+str(len(group['rows']))+' '+model_text('份采用结果','adopted results')+' · '+' · '.join(links)+'</p>')
+   page+=section('采用结果的评分修订',''.join(sections),'adopted-score-revisions')
   if revision.get('historical_scope_path'):
    page+='<p>'+model_text('以上统计仅包含当前报告范围。','These counts cover only the current report population.')+' '+link('../'+revision['historical_scope_path'],model_text('历史完整范围的修订依据','Revision evidence for the full historical population'))+'</p>'
   steps=[]

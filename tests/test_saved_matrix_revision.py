@@ -100,6 +100,15 @@ def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_pat
     attachment = receipt['review_files']['decisions']
     assert attachment.startswith('adoption-review-assets/0/')
     assert (output/attachment).read_bytes() == (tmp_path/'nested/decisions.json').read_bytes()
+    from bs4 import BeautifulSoup
+    review = BeautifulSoup((output/'review/index.html').read_text(), 'html.parser')
+    adopted = review.select_one('#adopted-score-revisions')
+    assert adopted is not None and 'method' in adopted.get_text()
+    assert any(link.get('href') == '../'+attachment for link in adopted.select('a'))
+    assert review.select_one('#score-revision-evidence') is not None
+    changes = BeautifulSoup((output/'changes/index.html').read_text(), 'html.parser')
+    assert changes.select_one('[data-adopted-revision-history]') is not None
+    assert '本报告没有登记结果修订' not in changes.get_text()
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['scores_changed'] is True
     if missing_attachment:
         receipt['review_files']['decisions'] = 'missing.json'

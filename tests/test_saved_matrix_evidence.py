@@ -44,6 +44,30 @@ def build(tmp_path, spec, name='report'):
     return build_saved_matrix(path, tmp_path / name)
 
 
+@pytest.mark.parametrize('destination', ['receipt.json', 'record.json', 'case.json'])
+def test_captured_artifact_cannot_overwrite_generated_evidence(tmp_path, destination):
+    spec, source, record, _ = fixture(tmp_path)
+    captured = source/destination
+    captured.write_bytes(b'immutable captured bytes')
+    record['provider_metadata'].update(raw_stdout_path=destination, raw_stdout_sha256=hashlib.sha256(captured.read_bytes()).hexdigest())
+    spec['sources'][0]['results'] = write(source/'results.jsonl', record)
+    with pytest.raises(ValueError, match='destination collision'):
+        build(tmp_path, spec)
+    assert captured.read_bytes() == b'immutable captured bytes'
+
+
+def test_portable_checker_revalidates_record_artifacts_after_audit_rebinding(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    output = build(tmp_path, spec).parent
+    row = json.loads((output/'matrix.json').read_text())['rows'][0]
+    (output/row['answer_path']).write_bytes(b'changed answer')
+    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit['files'][row['answer_path']] = hashlib.sha256(b'changed answer').hexdigest()
+    write(output/'saved-matrix-audit.json', audit)
+    with pytest.raises(ValueError, match='Portable saved record artifact differs'):
+        check_saved_matrix(output)
+
+
 @pytest.mark.parametrize('defect', [None, 'downgrade', 'receipt'])
 def test_completion_preserves_uncommitted_baseline_state_and_receipt(tmp_path, defect):
     spec, source, _, _ = fixture(tmp_path)

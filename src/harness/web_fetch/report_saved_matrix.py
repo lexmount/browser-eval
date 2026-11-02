@@ -34,9 +34,15 @@ def _json(path):
     return json.loads(Path(path).read_bytes())
 
 
-def _write(path, value):
+def _write_bytes(path, raw):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
+    if path.exists() and (not path.is_file() or path.read_bytes() != raw):
+        raise ValueError('Saved report destination collision: ' + str(path))
+    path.write_bytes(raw)
+
+
+def _write(path, value):
+    _write_bytes(path, (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode())
 
 
 def _path(base, value):
@@ -950,7 +956,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
         raw = source.read_bytes()
         if hashlib.sha256(raw).hexdigest() != tracked[source]:
             raise ValueError('Source changed while copying')
-        target.write_bytes(raw)
+        _write_bytes(target, raw)
         copies[relative] = tracked[source]
         return relative
 
@@ -1021,7 +1027,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                     revised = bool(revision and key in revision['records'])
                     if revised:
                         _write(output/(prefix+'/score-before-case.json'), original_case)
-                        (output/(prefix+'/score-before-record.json')).write_bytes(raw_line)
+                        _write_bytes(output/(prefix+'/score-before-record.json'), raw_line)
                         item['score_revision'] = {'receipt_path':'score-revision.json',
                             'before_case_path':prefix+'/score-before-case.json',
                             'before_record_path':prefix+'/score-before-record.json'}
@@ -1042,7 +1048,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                             evidence_root, saved, saved_line, saved_path = evidence
                             relative = prefix + '/parameter-rerun/' + label
                             (output/relative).mkdir(parents=True, exist_ok=True)
-                            (output/(relative+'/record.json')).write_bytes(saved_line)
+                            _write_bytes(output/(relative+'/record.json'), saved_line)
                             for name, digest in artifact_bindings(saved):
                                 copy(contained_path(evidence_root, name, reject_symlinks=True), relative+'/'+name)
                             proof[label+'_record_path'] = relative+'/record.json'
@@ -1055,7 +1061,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                                 prior_root, prior_record, prior_line = prior
                                 relative = prefix+'/parameter-rerun/candidate-prior'
                                 (output/relative).mkdir(parents=True, exist_ok=True)
-                                (output/(relative+'/record.json')).write_bytes(prior_line)
+                                _write_bytes(output/(relative+'/record.json'), prior_line)
                                 for name, digest in artifact_bindings(prior_record):
                                     copy(contained_path(prior_root, name, reject_symlinks=True), relative+'/'+name)
                                 proof['candidate_prior_record_path'] = relative+'/record.json'
@@ -1069,7 +1075,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                         before_prefix = prefix + '/adoption-before'
                         (output/before_prefix).mkdir(parents=True, exist_ok=True)
                         before_path = before_prefix + '/record.json'
-                        (output/before_path).write_bytes(raw_line)
+                        _write_bytes(output/before_path, raw_line)
                         for name, digest in artifact_bindings(record):
                             copy(contained_path(root, name, reject_symlinks=True), before_prefix+'/'+name)
                         authority_path = copy(adoption['authority_path'],
@@ -1092,12 +1098,12 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                                 for name, path in adoption['attachments'].items()}
                             _write(output/receipt_path, adopted_receipt)
                             _write(output/(prefix+'/adoption-before-case.json'), adoption['before_case'])
-                            (output/(prefix+'/adoption-before-score.json')).write_bytes(adoption['original'][2])
+                            _write_bytes(output/(prefix+'/adoption-before-score.json'), adoption['original'][2])
                             item['score_revision'] = {'receipt_path': receipt_path,
                                 'before_case_path': prefix+'/adoption-before-case.json',
                                 'before_record_path': prefix+'/adoption-before-score.json'}
                     record_path = prefix + '/record.json'
-                    (output / record_path).write_bytes(raw_line)
+                    _write_bytes(output / record_path, raw_line)
                     copies[record_path] = hashlib.sha256(raw_line).hexdigest()
                     for relative, digest in artifact_bindings(record):
                         copy(contained_path(root, relative, reject_symlinks=True), prefix + '/' + relative)
@@ -1128,7 +1134,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                     history_prefix = prefix + '/history/' + safe_identifier(old_record['attempt_id'])
                     history_record = history_prefix + '/record.json'
                     (output / history_record).parent.mkdir(parents=True, exist_ok=True)
-                    (output / history_record).write_bytes(old_line)
+                    _write_bytes(output / history_record, old_line)
                     copies[history_record] = hashlib.sha256(old_line).hexdigest()
                     for relative, digest in artifact_bindings(old_record):
                         copy(contained_path(old_root, relative, reject_symlinks=True), history_prefix + '/' + relative)
@@ -1155,7 +1161,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                         history_prefix = prefix + '/history/prior-call-' + hashlib.sha256(old_line).hexdigest()[:16]
                         old_path = history_prefix + '/record.json'
                         (output / old_path).parent.mkdir(parents=True, exist_ok=True)
-                        (output / old_path).write_bytes(old_line)
+                        _write_bytes(output / old_path, old_line)
                         copies[old_path] = hashlib.sha256(old_line).hexdigest()
                         for relative, digest in artifact_bindings(old_record):
                             copy(contained_path(old_root, relative, reject_symlinks=True), history_prefix + '/' + relative)
@@ -1251,7 +1257,23 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     keys = [(r['suite'], r['provider'], r['case_id']) for r in model['rows']]
     if len(keys) != len(set(keys)) or _totals(model['rows']) != audit['totals']:
         raise ValueError('Saved-matrix population changed')
+    def record_paths(value):
+        if isinstance(value, dict):
+            for name, child in value.items():
+                if isinstance(child, str) and (name == 'record_path' or name.endswith('_record_path')):
+                    yield child
+                else:
+                    yield from record_paths(child)
+        elif isinstance(value, list):
+            for child in value:
+                yield from record_paths(child)
     for row in model['rows']:
+        for relative in set(record_paths(row)):
+            path = contained_path(output, relative, reject_symlinks=True)
+            for artifact, expected in artifact_bindings(_json(path)):
+                target = contained_path(path.parent, artifact, reject_symlinks=True)
+                if not target.is_file() or _sha(target) != expected:
+                    raise ValueError('Portable saved record artifact differs')
         if row.get('score_revision'):
             receipt = _json(contained_path(output, row['score_revision']['receipt_path'], reject_symlinks=True))
             for target in receipt.get('review_files', {}).values():
