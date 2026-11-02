@@ -9,7 +9,7 @@ import pytest
 from harness.web_fetch.local_revision import revise_local_snapshot
 from harness.web_fetch.report_saved_matrix import build_saved_matrix, check_saved_matrix
 from lexbench_webfetch.scoring import score_attempt
-from tests.test_saved_matrix_evidence import fixture, write, assert_proof_mutations_rejected
+from tests.test_saved_matrix_evidence import fixture, write, assert_proof_mutations_rejected, assert_revision_document_mutation_rejected
 
 
 def revision_fixture(tmp_path, *, multiple=False, uncalled=False, completion_note=False, answer=b'answer'):
@@ -154,6 +154,14 @@ def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_pat
     assert_proof_mutations_rejected(output, tmp_path/'spec.json', 'score_revision', ['remove'])
     if root_revision:
         assert_proof_mutations_rejected(output, tmp_path/'spec.json', 'score_revision_history', ['remove'])
+    assert_proof_mutations_rejected(output, tmp_path/'spec.json', 'completion_note',
+                                    ['change_note', 'remove'], error='completion note differs')
+    for relative in (receipt_path.relative_to(output).as_posix(), attachment,
+                     matrix['rows'][0]['score_revision']['before_case_path']):
+        assert_revision_document_mutation_rejected(output, tmp_path/'spec.json', relative)
+    if root_revision:
+        for relative in ('score-revision.json', matrix['rows'][0]['score_revision_history']['before_case_path']):
+            assert_revision_document_mutation_rejected(output, tmp_path/'spec.json', relative)
     if missing_attachment:
         receipt['review_files']['decisions'] = 'missing.json'
         binding = write(receipt_path, receipt)
@@ -244,6 +252,8 @@ def test_exclusion_scopes_revision_counts_and_decisions_but_preserves_history(tm
     review = (output/'review/index.html').read_text()
     assert 'first independent decision' not in review and 'second independent decision' in review
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+    for relative in ('score-revision.json', 'score-revision-history.json', 'review-assets/decisions.json', 'report-review-assets/decisions.json'):
+        assert_revision_document_mutation_rejected(output, tmp_path/'spec.json', relative)
 
 
 def test_revision_rejects_different_frozen_call_even_with_rebound_source(tmp_path):

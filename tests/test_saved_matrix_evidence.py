@@ -83,13 +83,21 @@ def test_selected_answer_link_cannot_be_redirected(tmp_path):
     assert_redirected_answer_rejected(output, ['answer_path'], tmp_path/'spec.json')
 
 
-def assert_proof_mutations_rejected(output, spec, proof_name, mutations):
+def assert_proof_mutations_rejected(output, spec, proof_name, mutations, error='proof differs from validated source'):
     from harness.web_fetch.report import generate_saved_matrix
     original = {p.relative_to(output): p.read_bytes() for p in output.rglob('*') if p.is_file()}
     for mutation in mutations:
         model = json.loads(original[Path('matrix.json')])
         row = model['rows'][0]
-        if mutation == 'remove':
+        if proof_name == 'report_families':
+            if mutation == 'remove':
+                model.pop('report_families')
+            else:
+                model['report_families'][0]['source_suites'], model['report_families'][1]['source_suites'] = (
+                    model['report_families'][1]['source_suites'], model['report_families'][0]['source_suites'])
+        elif mutation == 'change_note':
+            row[proof_name] = 'Different DNS policy.'
+        elif mutation == 'remove':
             row.pop(proof_name)
             if proof_name == 'retry_continuation':
                 row['retries'] = json.loads((output/row['record_path']).read_text()).get('retries', 0)
@@ -111,7 +119,7 @@ def assert_proof_mutations_rejected(output, spec, proof_name, mutations):
                           for p in output.rglob('*') if p.is_file() and p.name != 'saved-matrix-audit.json'}
         write(output/'saved-matrix-audit.json', audit)
         try:
-            with pytest.raises(ValueError, match='proof differs from validated source'):
+            with pytest.raises(ValueError, match=error):
                 check_saved_matrix(output, spec_path=spec)
         finally:
             for path, raw in original.items():
@@ -1061,3 +1069,34 @@ def test_source_admission_rejects_not_called_with_invocation_evidence(tmp_path, 
                         'receipt': write(tmp_path/'receipt.json', events)}]
     with pytest.raises(ValueError):
         build(tmp_path, spec)
+
+
+def assert_revision_document_mutation_rejected(output, spec, relative):
+    path, audit_path = output/relative, output/'saved-matrix-audit.json'
+    original, original_audit = path.read_bytes(), audit_path.read_bytes()
+    value = json.loads(original)
+    if isinstance(value, list):
+        value.append({'reason': 'invented review decision'})
+    else:
+        value['invented_revision_history'] = True
+    digest = write(path, value)['sha256']
+    audit = json.loads(original_audit)
+    audit['files'][relative] = digest
+    write(audit_path, audit)
+    try:
+        with pytest.raises(ValueError, match='revision (document|attachment) differs'):
+            check_saved_matrix(output, spec_path=spec)
+    finally:
+        path.write_bytes(original)
+        audit_path.write_bytes(original_audit)
+
+
+def test_source_checker_binds_report_family_configuration(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    spec['suites'].append({**spec['suites'][0], 'id': 'second', 'label': 'Second'})
+    spec['sources'].append({**spec['sources'][0], 'suite': 'second'})
+    spec['report_families'] = [{'id': name, 'task_family': 'web', 'label': name, 'source_suites': [suite]}
+                              for name, suite in [('web-a', 'first'), ('web-b', 'second')]]
+    output = build(tmp_path, spec).parent
+    assert_proof_mutations_rejected(output, tmp_path/'spec.json', 'report_families',
+                                    ['remove', 'change'], error='configuration differs')

@@ -1336,6 +1336,79 @@ def _source_record_inventory(inputs, candidates, decisions, adoptions, keys):
     return expected
 
 
+def _validate_source_disclosures(output, model, inputs, adoptions, keys):
+    """Bind report organization, explanations and revision documents to their sources."""
+    spec, revision = inputs['spec'], inputs['revision']
+    expected = {'title': spec['title'],
+        'providers': [{'id': p['id'], 'label': p['label']} for p in spec['providers']],
+        'suites': [{'id': p['id'], 'label': p['label']} for p in spec['suites']],
+        'limitations': spec.get('limitations', []), 'combined_ranking': spec.get('combined_ranking', True),
+        'report_families': ([g for g in spec['report_families']
+                            if g['id'] not in spec.get('excluded_report_families', [])]
+                           if 'report_families' in spec else None),
+        'report_scope': ({'excluded_families': spec['excluded_report_families'],
+                          'source_positions': len(inputs['selected'])+len(inputs['missing']),
+                          'reported_positions': len(keys)} if spec.get('excluded_report_families') else None)}
+    if any(model.get(name) != value for name, value in expected.items()):
+        raise ValueError('Saved report configuration differs from validated source')
+    notes = {}
+    for config in ([spec['completion']] if spec.get('completion') else [])+spec.get('completions', []):
+        if config.get('note'):
+            for key in _completed_scope(config, inputs['sources'], inputs['selected'], inputs['continuations']):
+                notes[key] = config['note']
+    notes.update({key: value['note'] for key, value in adoptions.items()})
+    for row in model['rows']:
+        key = row['suite'], row['provider'], row['case_id']
+        if row.get('completion_note') != notes.get(key):
+            raise ValueError('Saved completion note differs from validated source')
+    def check_json(relative, value):
+        if _json(contained_path(output, relative, reject_symlinks=True)) != value:
+            raise ValueError('Saved revision document differs from validated source: '+relative)
+    def check_attachment(relative, source):
+        if contained_path(output, relative, reject_symlinks=True).read_bytes() != source.read_bytes():
+            raise ValueError('Saved revision attachment differs from validated source: '+relative)
+    receipt = None
+    if revision:
+        receipt = deepcopy(revision['receipt'])
+        for name, source in revision['attachments'].items():
+            check_attachment('review-assets/'+name+'.json', source)
+        if spec.get('excluded_report_families'):
+            check_json('score-revision-history.json', receipt)
+            visible = {(suite, cid) for suite, _, cid in keys}
+            routes = {suite+'--'+cid for suite, cid in visible}
+            attempts = {suite+'--'+record['attempt_id']
+                        for (suite, _, cid), (_, record, _, _) in inputs['selected'].items()
+                        if (suite, cid) in visible}
+            receipt['historical_scope_path'] = 'score-revision-history.json'
+            receipt['changed_cases'] = [cid for cid in receipt['changed_cases'] if cid in routes]
+            receipt['rescored_results'] = sum((suite, cid) in visible for suite, _, cid in revision['records'])
+            for step in receipt['steps']:
+                step['task_verdict_changes'] = [change for change in step['task_verdict_changes']
+                                                if change['attempt_id'] in attempts]
+            if 'decisions' in revision['attachments']:
+                scoped = [item for item in _json(revision['attachments']['decisions'])
+                          if (item['suite'], item['case_id']) in visible]
+                check_json('report-review-assets/decisions.json', scoped)
+                receipt['review_files']['decisions'] = 'report-review-assets/decisions.json'
+        check_json('score-revision.json', receipt)
+    if model.get('offline_revision') != receipt:
+        raise ValueError('Saved revision summary differs from validated source')
+    for key in keys:
+        prefix = 'evidence/'+'/'.join(key)
+        if revision and key in revision['records']:
+            check_json(prefix+'/score-before-case.json', inputs['cases'][key[0]][key[2]])
+        adoption = adoptions.get(key)
+        if adoption and adoption['revision']:
+            adopted_receipt = deepcopy(adoption['revision'])
+            adopted_receipt['review_files'] = {
+                name: f"adoption-review-assets/{adoption['index']}/{name}.json"
+                for name in adoption['attachments']}
+            check_json(prefix+'/adoption-score-revision.json', adopted_receipt)
+            check_json(prefix+'/adoption-before-case.json', adoption['before_case'])
+            for name, source in adoption['attachments'].items():
+                check_attachment(adopted_receipt['review_files'][name], source)
+
+
 def _validate_revision_and_authority_proofs(output, row, inputs, candidates, decisions, adoptions):
     """Require revision and replacement disclosures, including their authority links."""
     key = row['suite'], row['provider'], row['case_id']
@@ -1534,6 +1607,7 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
                          if not excluded or _presentation_family(case, suite, spec['report_families']) not in excluded}
         if set(keys) != expected_keys:
             raise ValueError('Saved-matrix population differs from validated source')
+        _validate_source_disclosures(output, model, inputs, adoptions, keys)
     def record_paths(value):
         if isinstance(value, dict):
             for name, child in value.items():
