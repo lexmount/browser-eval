@@ -1,3 +1,4 @@
+import argparse
 import json
 import re
 from pathlib import Path
@@ -6,6 +7,8 @@ import pytest
 
 from harness.data_home import configured_data_home, data_home
 from harness.lexbench import report as lexbench_report
+from harness.lexbench import verification as lexbench_verification
+from harness.trajectory_replay.public_webarena import release as webarena_release
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -61,6 +64,30 @@ def test_lexbench_report_reads_the_home_when_it_runs_not_when_it_is_imported(tmp
     with pytest.raises(FileNotFoundError) as failure:
         lexbench_report.main(["--profile", str(profile)])
     assert Path(failure.value.filename) == home.resolve() / "runs/cohort"
+
+
+@pytest.mark.parametrize(
+    ("run", "option", "relative"),
+    [
+        (lambda root: lexbench_verification.main([]), "site", "reports/moli-1.1.8-failures-site"),
+        (webarena_release.main, "formal_root", "evidence/current/formal/webarena-public-trajectories"),
+    ],
+)
+def test_retained_report_entry_points_default_under_the_selected_home(
+    tmp_path, monkeypatch, run, option, relative
+):
+    # Both hard-coded ~/.browser-eval. Stopping at parse_args keeps the release untouched.
+    class ParserReached(Exception):
+        pass
+
+    def stop_at_parse(parser, *_args, **_kwargs):
+        raise ParserReached(parser.get_default(option))
+
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "selected"))
+    monkeypatch.setattr(argparse.ArgumentParser, "parse_args", stop_at_parse)
+    with pytest.raises(ParserReached) as reached:
+        run(tmp_path)
+    assert reached.value.args[0] == (tmp_path / "selected").resolve() / relative
 
 
 def test_only_the_shared_module_reads_the_data_home():
