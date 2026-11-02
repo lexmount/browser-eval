@@ -1260,3 +1260,57 @@ def test_source_checker_rejects_modified_executable_assets(tmp_path, extension):
     write(output/'saved-matrix-audit.json', audit)
     with pytest.raises(ValueError, match='Rendered asset differs'):
         check_saved_matrix(output, spec_path=tmp_path/'spec.json')
+
+
+def test_source_render_does_not_trust_unbound_release_metadata(tmp_path):
+    from harness.web_fetch.report import generate_saved_matrix
+    spec, _, _, _ = fixture(tmp_path)
+    output = build(tmp_path, spec).parent
+    model = json.loads((output/'matrix.json').read_text())
+    write(output/'benchmark-release.json', {'version': 'invented-release'})
+    for name in ('dataset.json', 'summary.json', 'execution.json', 'results.jsonl', 'en/index.html'):
+        (output/name).unlink()
+    generate_saved_matrix(output, model)
+    assert 'invented-release' in (output/'index.html').read_text()
+    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit['files'] = {p.relative_to(output).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+                      for p in output.rglob('*') if p.is_file() and p.name != 'saved-matrix-audit.json'}
+    write(output/'saved-matrix-audit.json', audit)
+    with pytest.raises(ValueError, match='Rendered page differs'):
+        check_saved_matrix(output, spec_path=tmp_path/'spec.json')
+
+
+@pytest.mark.parametrize('encoded_target', [True, False])
+def test_receipt_rejects_same_node_identity_conflict(encoded_target):
+    from harness.web_fetch.report_saved_matrix import _receipt_covers
+    value = {'suite': 'first', 'provider': 'other', 'case_id': 'different',
+             'call_id': 'method__same__r001', 'state': 'called_but_uncommitted'}
+    provider, case = ('method', 'same') if encoded_target else ('other', 'different')
+    with pytest.raises(ValueError, match='Conflicting diagnostic'):
+        _receipt_covers(value, 'first', provider, case, 'uncommitted')
+
+
+@pytest.mark.parametrize('jsonl', [False, True])
+@pytest.mark.parametrize('matching', [False, True])
+def test_missing_receipt_reconciles_separate_diagnostics(tmp_path, jsonl, matching):
+    spec, _, _, _ = fixture(tmp_path)
+    spec['sources'] = []
+    identity = {'suite': 'first', 'provider': 'method', 'case_id': 'same'}
+    receipt = write(tmp_path/'skip.json', {**identity, 'kind': 'user_requested_case_skip',
+        'providers': ['method'], 'status': 'not_called', 'score': None,
+        'user_instruction': 'Skip this task.'})
+    events = [{'call_id': 'method__same__r001' if matching else 'other__case__r001',
+               'event': 'http_request_started'}, {'event': 'collection_completed'}]
+    path = tmp_path/('diagnostic.jsonl' if jsonl else 'diagnostic.json')
+    if jsonl:
+        path.write_text(''.join(json.dumps(event)+'\n' for event in events))
+        diagnostic = {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
+    else:
+        diagnostic = write(path, events)
+    spec['missing'] = [{**identity, 'status': 'not_called', 'reason': 'Requested skip',
+                        'receipt': receipt, 'diagnostic_sources': [diagnostic]}]
+    if matching:
+        with pytest.raises(ValueError, match='Missing receipt'):
+            build(tmp_path, spec)
+    else:
+        build(tmp_path, spec)

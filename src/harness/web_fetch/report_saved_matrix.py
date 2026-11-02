@@ -96,6 +96,12 @@ def _receipt_covers(value, suite, provider, case_id, status, inherited=None):
                     if field in context and field in node and context[field] != node[field]:
                         raise ValueError('Conflicting diagnostic invocation identities')
             context = {**context, **{k: node[k] for k in ('suite', 'provider', 'case_id', 'call_id') if k in node}}
+            call_id = context.get('call_id')
+            if call_id:
+                encoded = re.fullmatch(r'(.+?)__(.+)__r[0-9]{3}(?:__p[0-9]{3})?', call_id)
+                if not encoded or any(context.get(field, encoded[index]) != encoded[index]
+                                      for field, index in (('provider', 1), ('case_id', 2))):
+                    raise ValueError('Conflicting diagnostic invocation identities')
             same_case = context.get('suite') == suite and context.get('case_id') == case_id
             diagnostic_matching = (context.get('suite') in (None, suite)
                                    and _diagnostic_call_matches(context.get('call_id'), provider, case_id))
@@ -603,10 +609,17 @@ def _load_saved_matrix(spec_path):
         if entry['status'] not in {'uncommitted', 'not_called'} or not entry.get('reason'):
             raise ValueError('Missing cell needs an explicit state and reason')
         receipt = binding(entry['receipt'])
-        if not _receipt_covers(_json(receipt), *key, entry['status']):
-            raise ValueError('Missing receipt does not identify the declared cell')
+        evidence = [_json(receipt)]
         for diagnostic_source in entry.get('diagnostic_sources', []):
-            binding(diagnostic_source)
+            diagnostic = binding(diagnostic_source)
+            raw = diagnostic.read_text()
+            try:
+                evidence.append(json.loads(raw))
+            except json.JSONDecodeError:
+                evidence.append([json.loads(line) for line in raw.splitlines() if line.strip()])
+        if (not _receipt_covers(_json(receipt), *key, entry['status'])
+                or not _receipt_covers(evidence, *key, entry['status'])):
+            raise ValueError('Missing receipt does not identify the declared cell')
         if entry.get('recovery'):
             raise ValueError('Recovery projections are not supported; bind the original missing receipt')
         missing[key] = (entry, receipt)
@@ -1639,11 +1652,14 @@ def _validate_rendered_pages(output, model):
             source = output/name
             if source.is_dir():
                 shutil.copytree(source, expected/name, copy_function=link_or_copy)
-        generated_json = {'matrix.json', 'dataset.json', 'summary.json', 'execution.json',
-                          'saved-matrix-audit.json', 'report-languages.json'}
-        for source in output.glob('*.json'):
-            if source.name not in generated_json:
-                shutil.copy2(source, expected/source.name)
+        # Seed rendering only with documents already checked against source bindings.
+        documents = {'score-revision.json', 'score-revision-history.json', 'replacement-scope.json'}
+        documents.update(row['result_adoption']['authority_path'] for row in model['rows']
+                         if row.get('result_adoption'))
+        for name in documents:
+            source = output/name
+            if source.is_file():
+                shutil.copy2(source, expected/name)
         _write(expected/'matrix.json', model)
         render_saved_with_standard_generator(expected, model)
         pages = {path.relative_to(expected) for path in expected.rglob('*.html')
