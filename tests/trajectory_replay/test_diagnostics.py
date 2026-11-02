@@ -69,6 +69,12 @@ def test_llm_credentials_come_only_from_repository_env(module, monkeypatch, tmp_
     assert os.environ["OPENAI_API_KEY"] == "shell-key"
     assert os.environ["BROWSERBASE_API_KEY"] == "unrelated-shell-key"
 
+    (tmp_path / ".env").write_text(
+        "OPENAI_API_KEY=repository-key\nOPENAI_BASE_URL=${OPENAI_BASE_URL}\n"
+    )
+    module.diagnose_summary({}, use_llm=True)
+    assert calls[1]["api_base"] == "${OPENAI_BASE_URL}"
+
 
 def test_rule_diagnosis_extracts_failed_tool_call_and_selector():
     diagnosis = classify_failure(

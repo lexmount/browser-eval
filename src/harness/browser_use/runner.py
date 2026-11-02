@@ -71,7 +71,12 @@ def _load_repo_env(repo_root: Path) -> dict[str, str]:
     """Load the repository .env; only the non-secret CowAgent path may come from the process."""
     env_file = repo_root / ".env"
     values = (
-        {str(key): str(value) for key, value in dotenv_values(env_file).items() if value}
+        # Interpolation would resolve an undefined ${NAME} from the process environment.
+        {
+            str(key): str(value)
+            for key, value in dotenv_values(env_file, interpolate=False).items()
+            if value
+        }
         if env_file.exists()
         else {}
     )
@@ -525,7 +530,11 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     repo_env = _load_repo_env(repo_root)
     env_file = Path(args.env_file).expanduser().resolve() if args.env_file else None
     env = (
-        {key: value for key, value in dotenv_values(env_file).items() if value is not None}
+        {
+            key: value
+            for key, value in dotenv_values(env_file, interpolate=False).items()
+            if value is not None
+        }
         if env_file
         else repo_env
     )

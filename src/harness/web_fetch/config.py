@@ -90,7 +90,9 @@ def repository_env() -> dict[str, str]:
     selected = ROOT / ".env"
     if not selected.exists():
         return {}
-    return {key: value for key, value in dotenv_values(selected).items() if value}
+    # Interpolation would resolve an undefined ${NAME} from the process environment.
+    values = dotenv_values(selected, interpolate=False)
+    return {key: value for key, value in values.items() if value}
 
 
 def load_env_file(path: Path, *, override_credentials: bool = False, credentials_allowed: bool = True) -> None:

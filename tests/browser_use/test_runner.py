@@ -1420,3 +1420,6 @@ def test_provider_credentials_come_only_from_the_repository_env(tmp_path, monkey
         "OPENAI_BASE_URL": "https://models.invalid",
         "COWAGENT_REPO": "/explicit/cowagent",
     }
+
+    (tmp_path / ".env").write_text("OPENAI_BASE_URL=${OPENAI_BASE_URL}\n")
+    assert _load_repo_env(tmp_path)["OPENAI_BASE_URL"] == "${OPENAI_BASE_URL}"
