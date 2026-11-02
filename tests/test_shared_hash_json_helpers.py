@@ -34,6 +34,8 @@ FROZEN_SOURCE_COPIES = {
     ('lexbench/resource_profiles.py', 'sha256'),
     ('reporting/visual.py', 'file_sha256'),
 }
+# The one atomic JSON document writer; every other wrapper of this form is a copy.
+ATOMIC_JSON_OWNER = ('web_search/core.py', 'write_json')
 # Forwarding wrappers around these helpers add a name and nothing else.
 FORWARDING_HELPERS = {'bytes_sha256', 'file_sha256', 'read_json', 'write_json'}
 
@@ -46,6 +48,59 @@ def _is_sha256_hexdigest(node):
 
 def _is_dumps(node):
     return isinstance(node, ast.Call) and ast.unparse(node.func) == 'json.dumps'
+
+
+def _is_json_document_bytes(node, parameters):
+    """Recognize `(json.dumps(value, ensure_ascii=False, indent=2) + '\\n').encode()`."""
+    if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+            and node.func.attr == 'encode' and isinstance(node.func.value, ast.BinOp)
+            and isinstance(node.func.value.op, ast.Add)):
+        return False
+    dumps, newline = node.func.value.left, node.func.value.right
+    return (_is_dumps(dumps) and len(dumps.args) == 1 and isinstance(dumps.args[0], ast.Name)
+            and dumps.args[0].id in parameters
+            and {item.arg: ast.unparse(item.value) for item in dumps.keywords}
+            == {'ensure_ascii': 'False', 'indent': '2'}
+            and isinstance(newline, ast.Constant) and newline.value == '\n'
+            and [ast.unparse(argument).strip('"\'').lower() for argument in node.args] in ([], ['utf-8']))
+
+
+def _is_atomic_json_write(body, parameters):
+    """Recognize a body that only writes one JSON document through atomic_write."""
+    if not (len(body) == 1 and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Call)):
+        return False
+    call = body[0].value
+    if ast.unparse(call.func) != 'atomic_write' or len(call.args) != 2:
+        return False
+    if not any(isinstance(node, ast.Name) and node.id in parameters for node in ast.walk(call.args[0])):
+        return False
+    payload = call.args[1]
+    if _is_json_document_bytes(payload, parameters):
+        return True
+    return (isinstance(payload, ast.Call) and ast.unparse(payload.func) == 'json_bytes'
+            and len(payload.args) == 1 and isinstance(payload.args[0], ast.Name)
+            and payload.args[0].id in parameters)
+
+
+def _is_file_digest_copy(body, parameters):
+    """Recognize `with path.open('rb') as s: return hashlib.file_digest(s, 'sha256').hexdigest()`.
+
+    A leading `if not path.exists(): return None` does not change what is copied.
+    """
+    if (body and isinstance(body[0], ast.If) and not body[0].orelse
+            and [ast.unparse(item) for item in body[0].body] == ['return None']):
+        body = body[1:]
+    if not (len(body) == 1 and isinstance(body[0], ast.With) and len(body[0].items) == 1
+            and len(body[0].body) == 1 and isinstance(body[0].body[0], ast.Return)):
+        return False
+    source = body[0].items[0].context_expr
+    value = body[0].body[0].value
+    if not any(isinstance(node, ast.Name) and node.id in parameters for node in ast.walk(source)):
+        return False
+    return (isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute)
+            and value.func.attr == 'hexdigest' and isinstance(value.func.value, ast.Call)
+            and ast.unparse(value.func.value.func) == 'hashlib.file_digest'
+            and [item.value for item in value.func.value.args[1:] if isinstance(item, ast.Constant)] == ['sha256'])
 
 
 def _aliased_helper(function, body):
@@ -81,8 +136,14 @@ def _copied_primitive(function):
     alias = _aliased_helper(function, body)
     if alias:
         return alias
+    if _is_atomic_json_write(body, parameters):
+        return 'web_search.core.write_json'
+    if _is_file_digest_copy(body, parameters):
+        return 'file_sha256'
     if len(body) == 1 and isinstance(body[0], ast.Return) and body[0].value is not None:
         value = body[0].value
+        if _is_json_document_bytes(value, parameters):
+            return 'json_bytes'
         if _is_sha256_hexdigest(value):
             argument = value.func.value.args[0] if value.func.value.args else None
             if any(_is_dumps(node) for node in ast.walk(value)):
@@ -152,7 +213,7 @@ def _violations(source, relative):
         if node.name in RETIRED_NAMES:
             found.append(f'{relative}:{node.lineno} defines retired helper {node.name}')
         copied = _copied_primitive(node)
-        if copied and (relative, node.name) not in FROZEN_SOURCE_COPIES:
+        if copied and (relative, node.name) not in FROZEN_SOURCE_COPIES | {ATOMIC_JSON_OWNER}:
             found.append(f'{relative}:{node.lineno} {node.name} copies {copied}')
     return found
 
@@ -194,6 +255,21 @@ def test_frozen_copies_still_exist_so_their_exemptions_cannot_go_stale():
     ('def f(path):\n    digest = hashlib.sha256()\n    with path.open("rb") as stream:\n'
      '        for chunk in iter(lambda: stream.read(4096), b""):\n            digest.update(chunk)\n'
      '    return digest.hexdigest()\n', 'copies file_sha256'),
+    ('def f(value):\n    return (json.dumps(value, ensure_ascii=False, indent=2) + "\\n").encode()\n',
+     'copies json_bytes'),
+    ('def f(value):\n    return (json.dumps(value, indent=2, ensure_ascii=False) + "\\n").encode("utf-8")\n',
+     'copies json_bytes'),
+    ('def outer():\n    def f(value):return (json.dumps(value,ensure_ascii=False,indent=2)+"\\n").encode()\n',
+     'f copies json_bytes'),
+    ('def f(path):\n    with path.open("rb") as stream:\n'
+     '        return hashlib.file_digest(stream, "sha256").hexdigest()\n', 'copies file_sha256'),
+    ('def f(path):\n    with open(path, "rb") as stream:\n'
+     '        return hashlib.file_digest(stream, "sha256").hexdigest()\n', 'copies file_sha256'),
+    ('def f(path):\n    if not path.exists():\n        return None\n    with path.open("rb") as stream:\n'
+     '        return hashlib.file_digest(stream, "sha256").hexdigest()\n', 'copies file_sha256'),
+    ('def f(path, value):\n    atomic_write(path, json_bytes(value))\n', 'copies web_search.core.write_json'),
+    ('def f(path, value):\n    atomic_write(path, (json.dumps(value, ensure_ascii=False, indent=2) + "\\n").encode())\n',
+     'copies web_search.core.write_json'),
     ('value = file_sha256(path) if path.is_file() else None\n', 'copies optional_file_sha256'),
     ('value = sha256(path.read_bytes()) if path.is_file() else None\n', 'copies optional_file_sha256'),
     ('value = hashlib.sha256(root.path.read_bytes()).hexdigest() if root.path.is_file() else None\n',
@@ -222,6 +298,21 @@ def test_guard_rejects_each_copied_form(source, expected):
     'def f(path):\n    return file_sha256(unlinked_path(path))\n',
     'def f(resource):\n    return bytes_sha256(resource.read_bytes())\n',
     'def f(value):\n    return bytes_sha256(json_bytes(value))\n',
+    # Other document encodings do not produce json_bytes output.
+    'def f(value):\n    return (json.dumps(value, indent=2) + "\\n").encode()\n',
+    'def f(value):\n    return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\\n").encode()\n',
+    'def f(value):\n    return json.dumps(value, ensure_ascii=False, indent=2).encode()\n',
+    'def f(value):\n    return (json.dumps(value, ensure_ascii=False, indent=2) + "\\n").encode("utf-16")\n',
+    'def f(value):\n    return (json.dumps(CONSTANT, ensure_ascii=False, indent=2) + "\\n").encode()\n',
+    # A different hash, an extra step or another encoding is not the shared helper.
+    'def f(path):\n    with path.open("rb") as stream:\n'
+    '        return hashlib.file_digest(stream, "sha512").hexdigest()\n',
+    'def f(path):\n    if not path.exists():\n        return None\n    return file_sha256(path)\n',
+    'def f(path, value):\n    atomic_write(path, encoded(value))\n',
+    'def f(path, value):\n    atomic_write(path, json_bytes(value))\n    os.chmod(path, 0o600)\n',
+    'def f(value):\n    atomic_write(RECEIPT, json_bytes(value))\n    os.chmod(RECEIPT, 0o600)\n',
+    # A json_bytes wrapper can name the bytes that a writer and a verifier share.
+    'def f(value):\n    return json_bytes(value)\n',
     # A canonical digest name can state a public protocol or a writer-verifier contract.
     'def f(value):\n    return canonical_json_sha256(value)\n',
     'def f(value):\n    return canonical_json_sha256(value, allow_nan=False)\n',
@@ -235,6 +326,12 @@ def test_guard_rejects_each_copied_form(source, expected):
 ])
 def test_guard_keeps_behaviorally_distinct_helpers(source):
     assert _violations(source, 'example.py') == []
+
+
+def test_guard_exempts_only_the_atomic_json_owner():
+    source = 'def write_json(path, value):\n    atomic_write(Path(path), json_bytes(value))\n'
+    assert _violations(source, 'web_search/core.py') == []
+    assert _violations(source, 'web_search/publication.py') != []
 
 
 def test_guard_exempts_only_the_named_frozen_source():
