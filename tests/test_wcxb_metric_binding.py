@@ -87,12 +87,17 @@ def test_changed_module_code_rejects_legacy_profile(cohort, monkeypatch, tmp_pat
     assert_rejected(cohort)
 
 
-def test_unbound_helper_import_rejects_module_before_hashing():
-    tampered = metric_source().replace(b'import re\n', b'import re\nfrom harness.web_fetch import safety\n')
+@pytest.mark.parametrize('statement', [
+    b'from harness.web_fetch import safety\n',
+    b'import harness.web_fetch.safety\n',
+    b'def helper():\n    import harness.web_fetch.safety\n',
+    b'def helper():\n    from harness.web_fetch import safety\n',
+    b'from . import safety\n',
+])
+def test_unbound_helper_import_rejects_module_before_hashing(statement):
+    tampered = metric_source().replace(b'import re\n', b'import re\n' + statement)
     with pytest.raises(ValueError, match='metric implementation'):
         scoring.metric_module_digest(tampered)
-    with pytest.raises(ValueError, match='metric implementation'):
-        scoring.metric_module_digest(b'from . import safety\n')
 
 
 def test_formatting_docstrings_and_comments_keep_the_binding(cohort, monkeypatch, tmp_path):
