@@ -6,7 +6,7 @@
 Documentation-only PRs use `make docs-check`; installation and browser jobs are
 skipped. The [contributor guide](../../CONTRIBUTING.md#run-the-checks) lists the
 eligible paths. Unknown paths or missing history require full checks, as do all
-main pushes and tags. Full checks run these three jobs in parallel:
+main pushes and tags. Full checks run these three jobs in parallel. Browser checks use Ubuntu 24.04, supported by the locked Playwright; `ubuntu-latest` can advance to an unsupported browser platform:
 
 | Job | Coverage |
 | --- | --- |
