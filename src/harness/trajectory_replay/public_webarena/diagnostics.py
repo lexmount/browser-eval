@@ -31,6 +31,7 @@ from urllib.parse import parse_qs, urlsplit
 from harness.environments import browser as browser_runtime
 from harness.environments.webarena import har as browser_har
 from harness.environments.webarena.config import SITE_TOKENS
+from harness.environments.webarena.topology import OFFICIAL_TRACE_PORTS
 from harness.record_io import parse_jsonl
 from harness.trajectory_replay.diagnostics import (
     _check_diagnostic_snapshot,
@@ -948,16 +949,6 @@ def main_codex_repairs(argv=None) -> None:
         raise SystemExit(1)
 
 
-SITE_PORTS = {
-    "map": (3000,),
-    "shopping": (7770,),
-    "shopping_admin": (7780,),
-    "gitlab": (8023,),
-    "wikipedia": (8080, 8888),
-    "reddit": (9999,),
-}
-
-
 def _recording_sha256(path: Path) -> str:
     return hashlib.sha256(unlinked_path(path).read_bytes()).hexdigest()
 
@@ -975,7 +966,7 @@ def _recorded_network_requests(path: Path) -> list[dict[str, Any]]:
 
 
 def site_origins(requests: list[dict[str, Any]], sites: list[str]) -> dict[str, str]:
-    known_ports = {port for ports in SITE_PORTS.values() for port in ports}
+    known_ports = {port for ports in OFFICIAL_TRACE_PORTS.values() for port in ports}
     by_port: dict[int, Counter[str]] = {port: Counter() for port in known_ports}
     for request in requests:
         split = urlsplit(str(request.get("url") or ""))
@@ -988,7 +979,7 @@ def site_origins(requests: list[dict[str, Any]], sites: list[str]) -> dict[str, 
     result: dict[str, str] = {}
     for site in sites:
         candidates: Counter[str] = Counter()
-        for port in SITE_PORTS[site]:
+        for port in OFFICIAL_TRACE_PORTS[site]:
             candidates.update(by_port[port])
         if not candidates:
             raise ValueError(f"official trace contains no origin for {site}")

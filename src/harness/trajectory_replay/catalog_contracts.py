@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 from webarena_verified.types.task import WebArenaSite
 
+from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
 from harness.record_io import load_jsonl
 from harness.trajectory_replay.public_webarena.suite import load_suite
 from harness.trajectory_replay.remote_runtime import (
@@ -64,19 +65,6 @@ LEGACY_ACCEPTANCE_SCHEMAS = frozenset({"lex_webarena_full_acceptance_ledger/1"})
 ACCEPTANCE_SCHEMAS = frozenset({ACCEPTANCE_SCHEMA, *LEGACY_ACCEPTANCE_SCHEMAS})
 LEGACY_CATALOG_REPORT_SCHEMA = "lex_webarena_full_acceptance_report/3"
 LEGACY_CATALOG_CONTRACTS_SCHEMA = "lex_webarena_full_contracts/1"
-TRUSTED_RECORDED_HOSTS = frozenset(
-    {
-        "onestopmarket.example.com",
-        "gitlab.example.com",
-        "openstreetmap.example.com",
-        "wikipedia.example.com",
-        "ec2-3-133-227-75.us-east-2.compute.amazonaws.com",
-        "ec2-3-135-39-80.us-east-2.compute.amazonaws.com",
-        "host.docker.internal",
-        "192.168.5.2",
-        "127.0.0.1",
-    }
-)
 WEBARENA_FORK_REPOSITORY = "https://github.com/lexmount/webarena-verified.git"
 WEBARENA_FORK_BRANCH = "lex-main"
 ENVIRONMENT_PREPARATION_METHODS = frozenset(

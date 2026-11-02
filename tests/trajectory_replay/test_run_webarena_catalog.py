@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pytest
 
+from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
 from harness.trajectory_replay import catalog_runner
 from harness.trajectory_replay.catalog_binding import rebind_catalog
 from harness.trajectory_replay.catalog_contracts import (
-    TRUSTED_RECORDED_HOSTS,
     apply_action_overrides,
     catalog_action_overrides,
     completed_task_ids,

@@ -20,11 +20,16 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
+from harness.environments.webarena.topology import (
+    ENV_CTRL_CONTAINER_PORT,
+    INITIALIZER_READINESS_PORT,
+    SITE_CONTAINER_PORTS,
+)
+
 SCHEMA = "lex_webarena_rainbond_pool/1"
 RECEIPT_SCHEMA = "lex_webarena_rainbond_slice/1"
 LEASE_SCHEMA = "lex_webarena_rainbond_slice_lease/1"
 STATEFUL_SITES = ("shopping_admin", "shopping", "reddit", "gitlab")
-SITE_PORTS = {"shopping_admin": 80, "shopping": 80, "reddit": 80, "gitlab": 8023}
 _SAFE_ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,47}$")
 _LOCAL_POOL_LOCKS: dict[Path, threading.Lock] = {}
 _LOCAL_POOL_LOCKS_GUARD = threading.Lock()
@@ -309,8 +314,8 @@ class RainbondSlicePool:
         self._coalesce_internal_ports(
             app_id,
             service_id,
-            site_port=SITE_PORTS[site],
-            control_port=8877,
+            site_port=SITE_CONTAINER_PORTS[site],
+            control_port=ENV_CTRL_CONTAINER_PORT,
             control_alias=f"{site.upper()}_CTRL",
         )
         domain = self._domain(pool_id, slot, site, app_id)
@@ -323,7 +328,7 @@ class RainbondSlicePool:
                 "protocol": "http",
                 "http": {
                     "service_id": service_id,
-                    "container_port": SITE_PORTS[site],
+                    "container_port": SITE_CONTAINER_PORTS[site],
                     "certificate_id": 0,
                     "domain_name": domain,
                     "domain_cookie": "",
@@ -369,7 +374,10 @@ class RainbondSlicePool:
         if site == "gitlab":
             envs.append(
                 {
-                    "note": "preserve the image's internal 8023 listener",
+                    "note": (
+                        "preserve the image's internal "
+                        f"{SITE_CONTAINER_PORTS[site]} listener"
+                    ),
                     "name": "WA_ENV_CTRL_SKIP_RECONFIGURE",
                     "value": "true",
                     "is_change": True,
@@ -471,7 +479,9 @@ class RainbondSlicePool:
         if _image_digest(actual_image) != _image_digest(self.config.initializer_image):
             raise RuntimeError("Rainbond copied initializer image mismatch")
         aliases = {
-            site: self._internal_service_host(app_id, copied_sites[site], 8877)
+            site: self._internal_service_host(
+                app_id, copied_sites[site], ENV_CTRL_CONTAINER_PORT
+            )
             for site in ("reddit", "gitlab")
         }
         self.api.request(
@@ -481,7 +491,7 @@ class RainbondSlicePool:
                 "envs": [
                     {
                         "name": f"{site.upper()}_CTRL_URL",
-                        "value": f"http://{alias}:8877",
+                        "value": f"http://{alias}:{ENV_CTRL_CONTAINER_PORT}",
                         "is_change": True,
                         "scope": "inner",
                     }
@@ -511,7 +521,7 @@ class RainbondSlicePool:
                 "protocol": "http",
                 "http": {
                     "service_id": service_id,
-                    "container_port": 8080,
+                    "container_port": INITIALIZER_READINESS_PORT,
                     "certificate_id": 0,
                     "domain_name": readiness_url.removeprefix("http://"),
                     "domain_cookie": "",

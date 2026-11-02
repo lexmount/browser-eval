@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from harness.environments.webarena.topology import RECORDED_PORT_SITES
 from harness.trajectory_replay.public_webarena.targets import validate_target
 from harness.web_fetch.safety import unlinked_path, write_new_file
 
@@ -338,17 +339,6 @@ def load_suite(path: str | Path | None = None) -> TaskSuite:
     return TaskSuite(schema=str(schema), tasks=tuple(tasks))
 
 
-_RECORDED_PORT_SITES = {
-    3000: "map",
-    4399: "reddit",
-    7770: "shopping",
-    7780: "shopping_admin",
-    8023: "gitlab",
-    8888: "wikipedia",
-    9999: "reddit",
-}
-
-
 def _recorded_start_urls(row: dict[str, Any], trajectory: dict[str, Any]) -> list[str]:
     """Align configured start pages with the trace's stable tab-index order."""
     sites = [str(site) for site in row["sites"]]
@@ -361,7 +351,7 @@ def _recorded_start_urls(row: dict[str, Any], trajectory: dict[str, Any]) -> lis
             port = urlparse(str(url or "")).port
         except ValueError:
             return start_urls
-        site = _RECORDED_PORT_SITES.get(port or -1)
+        site = RECORDED_PORT_SITES.get(port or -1)
         if site is None:
             return start_urls
         recorded_sites.append(site)
