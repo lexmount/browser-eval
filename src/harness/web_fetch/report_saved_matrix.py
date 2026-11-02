@@ -429,7 +429,14 @@ def _load_saved_matrix(spec_path):
         launch = _json(launch_path)
         if datetime.fromisoformat(launch['started_at']) > datetime.fromisoformat(current['started_at']):
             raise ValueError('Retry continuation was not declared before its call')
-        if launch.get('total_authorized_physical_calls_per_case', launch.get('total_authorized_physical_calls')) != 2:
+        source_bound_launch = launch.get('continuation_kind') == 'remaining_one_retry'
+        if source_bound_launch:
+            ids = launch.get('case_ids', [])
+            if (not ids or len(set(ids)) != len(ids) or launch.get('max_failure_retries') != 0
+                    or launch.get('prior_physical_calls') != {cid: 1 for cid in ids}
+                    or set(launch.get('prior_sources', {})) != set(ids)):
+                raise ValueError('Retry continuation must preserve the two-call budget')
+        elif launch.get('total_authorized_physical_calls_per_case', launch.get('total_authorized_physical_calls')) != 2:
             raise ValueError('Retry continuation must preserve the two-call budget')
         continuation_groups.setdefault(launch_path, set()).add((key[1], key[2]))
         prior = None
@@ -444,7 +451,9 @@ def _load_saved_matrix(spec_path):
             if len(matches) != 1:
                 raise ValueError('Retry continuation prior record is missing or ambiguous')
             old, old_line = matches[0]
-            if (not one_call(old) or not contains_record(launch, old)
+            prior_bound = (root == _path(spec_path.parent, launch['prior_sources'].get(key[2], ''))
+                           if source_bound_launch else contains_record(launch, old))
+            if (not one_call(old) or not prior_bound
                     or _case_identity(prior_cases[key[2]]) != _case_identity(cases[key[0]][key[2]])
                     or old == current):
                 raise ValueError('Retry continuation prior evidence differs from declared first call')
@@ -474,7 +483,12 @@ def _load_saved_matrix(spec_path):
         continuations[key] = (entry, prior, launch_path)
     for launch_path, actual in continuation_groups.items():
         launch = _json(launch_path)
-        if launch.get('case_ids'):
+        if launch.get('continuation_kind') == 'remaining_one_retry':
+            methods = {provider for provider, _ in actual}
+            if len(methods) != 1:
+                raise ValueError('Retry continuation launch mixes providers')
+            declared = {(next(iter(methods)), cid) for cid in launch['case_ids']}
+        elif launch.get('case_ids'):
             declared = {(launch['provider'], cid) for cid in launch['case_ids']}
         else:
             first = launch['first_record']['record']
@@ -578,8 +592,13 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None):
                               ('expected_reported_version', 'reported_version')]:
         if setting in config and metadata.get(observed) != config[setting]:
             raise ValueError('Completion binary or version differs from authorization')
-    if metadata.get('dns_mode') != config.get('dns_mode', 'system'):
+    failure_without_metadata = ('dns_mode' not in metadata and not record.get('ok')
+                                and metadata.get('native_route_receipt', {}).get('failure_stage')
+                                == 'after_transport')
+    if metadata.get('dns_mode') != config.get('dns_mode', 'system') and not failure_without_metadata:
         raise ValueError('Parameter rerun DNS differs from authorization')
+    # Failed calls may return before adapter metadata is available. The bound native contract
+    # below must still prove the authorized DNS configuration; no DNS trace is invented.
     native = _json(sources.bind(root / manifest['native_route_contract']['path'],
                                 manifest['native_route_contract']['sha256']))
     # A projection selects one already retained call; the shared verifier still
@@ -804,6 +823,76 @@ def _validate_completion_retention(inputs, candidates):
                 raise ValueError('Completion replaced a retained baseline call: ' + '/'.join(key))
 
 
+def _adopted_groups(inputs, candidates):
+    """Adopt explicitly selected complete report families, including regressions."""
+    spec, sources = inputs['spec'], inputs['sources']
+    adopted = {}
+    for index, config in enumerate(spec.get('adoptions', [])):
+        authority_path = sources.binding(config['authority'])
+        authority = _json(authority_path)
+        if authority.get('kind') != 'user_selected_complete_report_groups':
+            raise ValueError('Adoption requires explicit whole-group authority')
+        groups = [(group['provider'], group['family']) for group in authority['groups']]
+        if len(set(groups)) != len(groups) or not groups:
+            raise ValueError('Adoption groups are empty or duplicated')
+        expected = set()
+        for provider, family in groups:
+            group = {(suite, provider, cid) for suite, cases in inputs['cases'].items()
+                     for cid, case in cases.items() if provider in inputs['providers']
+                     and _presentation_family(case, suite, spec['report_families']) == family
+                     and family not in spec.get('excluded_report_families', [])}
+            if not group:
+                raise ValueError('Adoption names an unknown or excluded group')
+            expected.update(group)
+        nested = _load_saved_matrix(sources.binding(config['saved_matrix_spec']))
+        if (nested['missing'] or nested['historical'] or nested['spec'].get('adoptions')
+                or nested['spec'].get('parameter_reruns') or set(nested['selected']) != expected
+                or expected & (set(adopted) | set(candidates))):
+            raise ValueError('Adoption must replace complete, disjoint groups')
+        policy = None
+        if config.get('execution_contract'):
+            policy = _json(sources.binding(config['execution_contract']))
+            policy = {**policy, 'provider_config_sha256': policy.get('provider_config_sha256', policy.get('config_sha256'))}
+        for key, original in nested['selected'].items():
+            suite, provider, cid = key
+            case = inputs['cases'][suite][cid]
+            if inputs['revision']:
+                case = inputs['revision']['cases'].get((suite, cid), case)
+            source_case = nested['cases'][suite][cid]
+            if nested['revision']:
+                source_case = nested['revision']['cases'].get((suite, cid), source_case)
+            if _case_identity(case) != _case_identity(source_case):
+                raise ValueError('Adoption changes the task definition')
+            root, record, raw, results = original
+            before_score = record
+            if nested['revision'] and key in nested['revision']['records']:
+                record = nested['revision']['records'][key]
+                raw = (json.dumps(record, ensure_ascii=False) + '\n').encode()
+            before = inputs['selected'][key][1]
+            if inputs['revision']:
+                before = inputs['revision']['records'].get(key, before)
+            _parameter_scoring(before, record)
+            if any(record.get('provider_metadata', {}).get(name) != value
+                   for name, value in authority.get('required_metadata', {}).items()):
+                raise ValueError('Adoption differs from required settings')
+            if policy:
+                _validate_call_sequence(record, case, policy, nested['continuations'].get(key))
+                _parameter_execution(root, record, case, policy, sources, before)
+                continuation = nested['continuations'].get(key)
+                if continuation and continuation[1]:
+                    prior_root, prior_record, _ = continuation[1]
+                    _parameter_execution(prior_root, prior_record, case, policy, sources, before)
+            adopted[key] = {'selected': (root, record, raw, results), 'original': original,
+                            'authority_path': authority_path, 'index': index,
+                            'note': authority['description'],
+                            'continuations': nested['continuations'],
+                            'before_case': nested['cases'][suite][cid],
+                            'revision': nested['revision']['receipt'] if record != before_score else None}
+        for path, digest in nested['sources'].tracked.items():
+            sources.bind(path, digest)
+    return adopted
+
+
 def build_saved_matrix(spec_path: Path, output: Path) -> Path:
     """Verify immutable sources and create a new portable report directory."""
     from harness.web_fetch.report import generate_saved_matrix
@@ -815,6 +904,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
     candidates = _parameter_reruns(inputs)
     decisions = _parameter_group_decisions(inputs, candidates)
     _validate_completion_retention(inputs, candidates)
+    adoptions = _adopted_groups(inputs, candidates)
     spec = inputs['spec']
     sources = inputs['sources']
     bind, binding, tracked = sources.bind, sources.binding, sources.tracked
@@ -925,6 +1015,34 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                             root, record, raw_line, result_path = candidate
                             revised = False
                             item.pop('score_revision', None)
+                    if key in adoptions:
+                        adoption = adoptions[key]
+                        before_prefix = prefix + '/adoption-before'
+                        (output/before_prefix).mkdir(parents=True, exist_ok=True)
+                        before_path = before_prefix + '/record.json'
+                        (output/before_path).write_bytes(raw_line)
+                        for name, digest in artifact_bindings(record):
+                            copy(contained_path(root, name, reject_symlinks=True), before_prefix+'/'+name)
+                        authority_path = copy(adoption['authority_path'],
+                                              f'adoption-authority-{adoption["index"]}.json')
+                        item.setdefault('history', []).append({'record_path': before_path,
+                            'answer_path': before_prefix+'/'+record['artifact_path'],
+                            'scope_path': authority_path, 'attempt_id': record['attempt_id'],
+                            'called': _called(record), 'started_at': record.get('started_at')})
+                        root, record, raw_line, result_path = adoption['selected']
+                        revised = bool(adoption['revision'])
+                        item.pop('score_revision', None)
+                        item['completion_note'] = adoption['note']
+                        item['result_adoption'] = {'authority_path': authority_path,
+                                                   'selection': 'complete_group_regardless_of_verdict'}
+                        if revised:
+                            receipt_path = prefix+'/adoption-score-revision.json'
+                            _write(output/receipt_path, adoption['revision'])
+                            _write(output/(prefix+'/adoption-before-case.json'), adoption['before_case'])
+                            (output/(prefix+'/adoption-before-score.json')).write_bytes(adoption['original'][2])
+                            item['score_revision'] = {'receipt_path': receipt_path,
+                                'before_case_path': prefix+'/adoption-before-case.json',
+                                'before_record_path': prefix+'/adoption-before-score.json'}
                     record_path = prefix + '/record.json'
                     (output / record_path).write_bytes(raw_line)
                     copies[record_path] = hashlib.sha256(raw_line).hexdigest()
@@ -962,14 +1080,16 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                     for relative, digest in artifact_bindings(old_record):
                         copy(contained_path(old_root, relative, reject_symlinks=True), history_prefix + '/' + relative)
                     history_scope = 'replacement-scope.json'
-                    item['history'] = [{'record_path': history_record,
+                    item.setdefault('history', []).append({'record_path': history_record,
                         'answer_path': history_prefix + '/' + old_record['artifact_path'],
                         'scope_path': history_scope, 'attempt_id': old_record['attempt_id'],
                         'called': _called(old_record), 'started_at': old_record.get('started_at'),
                         'source_results_sha256': tracked[old_results],
-                        'private_artifacts_verified_not_copied': record_private_bindings(old_record)}]
+                        'private_artifacts_verified_not_copied': record_private_bindings(old_record)})
                 active_continuations = (inputs.get('parameter_continuations', {})
                                         if item.get('parameter_rerun', {}).get('selected_new') else continuations)
+                if key in adoptions:
+                    active_continuations = adoptions[key]['continuations']
                 if key in active_continuations:
                     entry, prior, launch_path = active_continuations[key]
                     note = {'prior_physical_calls': 1, 'continued_physical_calls': 1,
@@ -1054,6 +1174,7 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             inputs = _load_saved_matrix(spec_path)
             candidates = _parameter_reruns(inputs)
             _validate_completion_retention(inputs, candidates)
+            _adopted_groups(inputs, candidates)
         except ValueError as exc:
             raise ValueError('Original saved-matrix source changed or invalid') from exc
         actual = sorted((p.name, digest) for p, digest in inputs['sources'].tracked.items())

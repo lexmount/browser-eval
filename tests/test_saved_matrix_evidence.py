@@ -619,3 +619,73 @@ def test_parameter_scoring_requires_explicit_common_provenance(tmp_path, old_has
     else:
         with pytest.raises(ValueError, match='explicit scoring revision'):
             _parameter_scoring(before, record)
+
+
+@pytest.mark.parametrize('defect', [None, 'budget', 'source'])
+def test_source_bound_retry_launch_keeps_its_original_contract(tmp_path, defect):
+    spec, root, final, _ = fixture(tmp_path)
+    prior = deepcopy(final)
+    prior.update(ok=False, started_at='2026-10-28T00:00:00Z')
+    prior['metrics'].update(content_pass=False, request_ok=False)
+    prior_path = root/'prior.jsonl'
+    prior_binding = write(prior_path, prior)
+    final['started_at'] = '2026-10-29T00:00:00Z'
+    final_binding = write(root/'results.jsonl', final)
+    spec['sources'][0]['results'] = final_binding
+    launch = {'started_at': '2026-10-28T01:00:00Z', 'case_ids': ['same'],
+              'continuation_kind': 'remaining_one_retry', 'max_failure_retries': 0,
+              'prior_physical_calls': {'same': 1}, 'prior_sources': {'same': str(root)}}
+    if defect == 'budget': launch['max_failure_retries'] = 1
+    if defect == 'source': launch['prior_sources']['same'] = str(tmp_path)
+    spec['retry_continuations'] = [{'suite': 'first', 'provider': 'method', 'case_id': 'same',
+        'current_record_sha256': final_binding['sha256'], 'launch_contract': write(tmp_path/'launch.json', launch),
+        'prior_source': {'root': str(root), 'results': prior_binding, 'dataset': spec['suites'][0]['dataset']}}]
+    if defect:
+        with pytest.raises(ValueError, match='Retry continuation'):
+            build(tmp_path, spec)
+        return
+    output = build(tmp_path, spec).parent
+    row = json.loads((output/'matrix.json').read_text())['rows'][0]
+    assert row['passed'] and row['retries'] == 1
+    assert row['retry_continuation']['total_physical_calls'] == 2
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+
+
+@pytest.mark.parametrize('defect', [None, 'scope', 'method', 'task'])
+def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, defect):
+    spec, source, before, before_raw = fixture(tmp_path)
+    spec['suites'].append({**deepcopy(spec['suites'][0]), 'id': 'second', 'label': 'Unchanged'})
+    spec['sources'].append({**deepcopy(spec['sources'][0]), 'suite': 'second'})
+    spec['report_families'] = [
+        {'id': 'web', 'label': 'Chosen', 'source_suites': ['first']},
+        {'id': 'other', 'task_family': 'web', 'label': 'Unchanged', 'source_suites': ['second']}]
+    nested, candidate, after, _ = fixture(tmp_path/'candidate')
+    after.update(ok=False, elapsed_ms=99, started_at='2026-11-01T00:00:00Z')
+    after['metrics'].update(content_pass=False, request_ok=False)
+    if defect == 'task':
+        data = json.loads((candidate/'dataset.json').read_text())
+        data['cases'][0]['url'] = after['url'] = 'https://different.example/'
+        nested['suites'][0]['dataset'] = write(candidate/'dataset.json', data)
+    nested['sources'][0]['results'] = write(candidate/'results.jsonl', after)
+    if defect == 'scope':
+        nested['suites'].append({**deepcopy(nested['suites'][0]), 'id': 'second', 'label': 'Extra'})
+        nested['sources'].append({**deepcopy(nested['sources'][0]), 'suite': 'second'})
+    authority = {'kind': 'user_selected_complete_report_groups',
+                 'description': 'Adopt this complete group, including failures.',
+                 'groups': [{'provider': 'unknown' if defect == 'method' else 'method', 'family': 'web'}]}
+    spec['adoptions'] = [{'authority': write(tmp_path/'authority.json', authority),
+                         'saved_matrix_spec': write(tmp_path/'candidate/spec.json', nested)}]
+    if defect:
+        with pytest.raises(ValueError, match='Adoption'):
+            build(tmp_path, spec)
+        return
+    output = build(tmp_path, spec).parent
+    rows = json.loads((output/'matrix.json').read_text())['rows']
+    chosen, retained = rows
+    assert chosen['passed'] is False and chosen['elapsed_ms'] == 99
+    assert (output/chosen['record_path']).read_bytes() == (candidate/'results.jsonl').read_bytes()
+    assert (output/chosen['history'][0]['record_path']).read_bytes() == before_raw
+    assert retained['passed'] and retained['elapsed_ms'] == 12
+    assert (output/retained['record_path']).read_bytes() == before_raw
+    assert (source/'results.jsonl').read_bytes() == before_raw
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
