@@ -12,8 +12,9 @@ import sys
 import time
 import traceback
 import uuid
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, TextIO
 
 import docker
 from dotenv import dotenv_values
@@ -256,6 +257,7 @@ def _run_attempt_locked(  # noqa: PLR0913
     agent_run_ms = 0.0
     evidence_finalize_ms = 0.0
     evaluation_ms = 0.0
+    cleanup_errors: list[str] = []
     started = time.perf_counter()
     try:
         session_setup_started = time.perf_counter()
@@ -291,9 +293,12 @@ def _run_attempt_locked(  # noqa: PLR0913
         # way to retain benchmark-specific completion and output constraints.
         agent.extra_system_suffix = _system_prompt()
         agent_started = time.perf_counter()
-        raw_response = agent.run_stream(
-            _user_prompt(task, start_urls), on_event=events.append, clear_history=True
-        )
+        try:
+            raw_response = agent.run_stream(
+                _user_prompt(task, start_urls), on_event=events.append, clear_history=True
+            )
+        finally:
+            agent_run_ms = (time.perf_counter() - agent_started) * 1000
         if _exhausted_agent_steps(events, max_agent_steps):
             response_eval = next(
                 item for item in task.eval if item.evaluator == "AgentResponseEvaluator"
@@ -301,19 +306,21 @@ def _run_attempt_locked(  # noqa: PLR0913
             raw_response = json.dumps(
                 _max_steps_response(str(response_eval.expected.task_type), max_agent_steps)
             )
-        agent_run_ms = (time.perf_counter() - agent_started) * 1000
         verify_session_viewport(service, viewport_evidence, "after_agent")
         finalize_started = time.perf_counter()
-        service._submit(
-            lambda: (
-                service._page.wait_for_timeout(500),
-                recorder.stop(service._context, har_path),
-                service._context.tracing.stop(path=str(trace_path)),
+        try:
+            service._submit(
+                lambda: (
+                    service._page.wait_for_timeout(500),
+                    recorder.stop(service._context, har_path),
+                    service._context.tracing.stop(path=str(trace_path)),
+                )
             )
-        )
-        evidence_finalize_ms = (time.perf_counter() - finalize_started) * 1000
+        finally:
+            evidence_finalize_ms = (time.perf_counter() - finalize_started) * 1000
     except Exception:
         error = traceback.format_exc()
+        finalize_started = time.perf_counter()
         try:
             service = tool._get_service()
             service._submit(
@@ -322,10 +329,11 @@ def _run_attempt_locked(  # noqa: PLR0913
                     service._context.tracing.stop(path=str(trace_path)),
                 )
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            cleanup_errors.append(f"HAR/trace stop failed: {exc}")
+        finally:
+            evidence_finalize_ms += (time.perf_counter() - finalize_started) * 1000
     finally:
-        cleanup_errors: list[str] = []
         if sampler_started:
             try:
                 sampler.stop()
@@ -437,6 +445,61 @@ def _load_completed_attempts(
             raise ValueError(f"duplicate attempt at {path}, record {record_number}: {key}")
         completed[key] = row
     return completed
+
+
+def _retry_required(primary: dict[str, Any]) -> bool:
+    """Apply the declared one-retry rule identically to fresh and resumed runs.
+
+    The protocol records ``failure_retries: 1`` and the release check accepts a
+    retry after any primary with a score below 1.0, so every non-passing primary,
+    whatever its evaluator status, receives exactly one retry.
+    """
+    return float(primary.get("score") or 0) != 1.0
+
+
+def _run_engine_attempts(
+    *,
+    completed: dict[tuple[str, str, int, int], dict[str, Any]],
+    model: str,
+    engine: str,
+    task_id: int,
+    run_id: str,
+    stream: TextIO,
+    execute: Callable[[int], dict[str, Any]],
+) -> None:
+    """Run or resume one engine's primary attempt and its declared retry.
+
+    Fresh and resumed invocations share this loop, so an interrupted cohort
+    records the same physical calls as an uninterrupted one.
+    """
+    for attempt in (1, 2):
+        primary_key = (model, engine, task_id, 1)
+        if attempt == 2 and not _retry_required(completed[primary_key]):
+            break
+        key = (model, engine, task_id, attempt)
+        if key in completed:
+            print(
+                json.dumps(
+                    {
+                        "engine": engine,
+                        "task_id": task_id,
+                        "attempt": attempt,
+                        "status": "resume-skip",
+                        "score": completed[key]["score"],
+                    }
+                ),
+                flush=True,
+            )
+            continue
+        row = execute(attempt)
+        row["run_id"] = run_id
+        stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+        stream.flush()
+        completed[key] = row
+        visible = {
+            field: row[field] for field in ("engine", "task_id", "attempt", "status", "score")
+        }
+        print(json.dumps(visible), flush=True)
 
 
 def _write_or_validate_run_config(path: Path, planned: dict[str, Any]) -> None:
@@ -586,39 +649,14 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             ):
                 order = ("chromium", "moli") if task_index % 2 == 0 else ("moli", "chromium")
                 for engine in order:
-                    for attempt in (1, 2):
-                        key = (args.model, engine, selected.task_id, attempt)
-                        if key in completed:
-                            row = completed[key]
-                            print(
-                                json.dumps(
-                                    {
-                                        "engine": engine,
-                                        "task_id": selected.task_id,
-                                        "attempt": attempt,
-                                        "status": "resume-skip",
-                                        "score": row["score"],
-                                    }
-                                ),
-                                flush=True,
-                            )
-                            if (
-                                float(row.get("score") or 0) == 1.0
-                                or row.get("status") == "unsupported"
-                            ):
-                                break
-                            continue
-                        primary = completed.get((args.model, engine, selected.task_id, 1))
-                        if (
-                            attempt == 2
-                            and primary is not None
-                            and (
-                                float(primary.get("score") or 0) == 1.0
-                                or primary.get("status") == "unsupported"
-                            )
-                        ):
-                            break
-                        row = _run_attempt(
+                    _run_engine_attempts(
+                        completed=completed,
+                        model=args.model,
+                        engine=engine,
+                        task_id=selected.task_id,
+                        run_id=run_id,
+                        stream=stream,
+                        execute=lambda attempt, engine=engine, selected=selected: _run_attempt(
                             lock_path=execution_lock_path,
                             lock_namespace=physical_execution_lock_namespace,
                             benchmark=benchmark,
@@ -632,18 +670,8 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                             model=model,
                             sample_interval_ms=args.sample_interval_ms,
                             max_agent_steps=args.max_agent_steps,
-                        )
-                        row["run_id"] = run_id
-                        stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-                        stream.flush()
-                        completed[key] = row
-                        visible = {
-                            key: row[key]
-                            for key in ("engine", "task_id", "attempt", "status", "score")
-                        }
-                        print(json.dumps(visible), flush=True)
-                        if row["score"] == 1.0:
-                            break
+                        ),
+                    )
     finally:
         for container in containers.values():
             try:
