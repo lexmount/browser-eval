@@ -16,7 +16,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from harness.record_io import file_sha256, same_json_record
+from harness.record_io import file_sha256, json_bytes, read_json, same_json_record
 from harness.trajectory_replay.webarena_corrections import (
     apply_correction,
     evaluate_corrected_contract,
@@ -53,7 +53,7 @@ def diagnostic_output_path(path: Path) -> Path:
 def write_diagnostic(path: Path, payload: dict) -> None:
     """Expose a complete diagnostic receipt without replacing an existing file."""
     target = diagnostic_output_path(path)
-    write_new_file(target, (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode())
+    write_new_file(target, json_bytes(payload))
 
 
 def classify_failure(error: str, trace: list[dict[str, Any]]) -> dict[str, Any]:
@@ -646,7 +646,7 @@ def main_comparison_inputs(argv=None) -> None:
     args = parser.parse_args(argv)
 
     def read(path: Path) -> dict:
-        return json.loads(unlinked_path(path).read_text(encoding="utf-8"))
+        return read_json(unlinked_path(path))
 
     paths = [args.results, args.profile, args.corrections]
     if args.annotations:

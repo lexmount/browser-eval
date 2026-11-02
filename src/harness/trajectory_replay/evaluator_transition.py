@@ -9,7 +9,7 @@ from typing import Any
 
 from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 
-from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl
+from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl, read_json
 from harness.trajectory_replay.catalog_contracts import validate_passing_evaluation
 from harness.trajectory_replay.webarena_corrections import (
     apply_correction,
@@ -140,7 +140,7 @@ def compatible_source(
 def _regular_json(path: Path) -> dict[str, Any]:
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"transition evidence file is missing: {path.name}")
-    value = json.loads(path.read_text(encoding="utf-8"))
+    value = read_json(path)
     if not isinstance(value, dict):
         raise ValueError(f"transition evidence file is not an object: {path.name}")
     return value

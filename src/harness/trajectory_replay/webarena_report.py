@@ -297,7 +297,7 @@ def _load_artifact(ref: dict[str, Any] | None) -> Any:
         or file_sha256(path) != ref.get("sha256")
     ):
         raise ValueError(f"evidence artifact is missing or changed: {path.name}")
-    return json.loads(path.read_text(encoding="utf-8"))
+    return read_json(path)
 
 
 def _supplemental_diagnostic(review: dict[str, Any] | None, task_id: int) -> Any:

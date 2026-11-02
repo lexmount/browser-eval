@@ -12,7 +12,7 @@ from harness.environments.webarena.topology import (
     public_host_replacements,
     public_origin_replacements,
 )
-from harness.record_io import optional_file_sha256
+from harness.record_io import optional_file_sha256, read_json
 from harness.reporting.privacy import BROWSER_USE
 
 _ORIGIN_REPLACEMENTS = public_origin_replacements()
@@ -60,7 +60,7 @@ def sanitize(value: Any, *, key: str = "") -> Any:
 def read_public_json(path: Path) -> Any:
     if not path.is_file():
         return None
-    return sanitize(json.loads(path.read_text(encoding="utf-8")))
+    return sanitize(read_json(path))
 
 
 def task_contract(task: Any) -> dict[str, Any]:

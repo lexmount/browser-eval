@@ -27,7 +27,7 @@ from harness.environments.webarena.runtime import (
     SITE_PORTS,
 )
 from harness.environments.webarena.topology import LOCAL_RECORDED_HOSTS, READ_ONLY_SITE_PORTS
-from harness.record_io import canonical_json_sha256, file_sha256
+from harness.record_io import canonical_json_sha256, file_sha256, read_json
 from harness.trajectory_replay.retrieval_acceptance import digest as retrieval_digest
 from harness.trajectory_replay.retrieval_acceptance import validate_contract
 from harness.web_fetch.safety import unlinked_path, write_new_file
@@ -379,7 +379,7 @@ def checked_file_sha256(path: Path, label: str = "evidence") -> str:
 
 def _read_frozen_input(path: Path) -> dict[str, Any]:
     checked_file_sha256(path)
-    return json.loads(path.read_text(encoding="utf-8"))
+    return read_json(path)
 
 
 def _source_calls(

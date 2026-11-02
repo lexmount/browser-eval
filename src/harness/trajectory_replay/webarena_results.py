@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from harness.record_io import canonical_json_sha256, file_sha256
+from harness.record_io import canonical_json_sha256, file_sha256, read_json
 from harness.trajectory_replay.remote_runtime import (
     COHORT_RESET_SCOPE,
     checked_file_sha256,
@@ -25,7 +25,7 @@ EFFECTIVE_SCHEMA = "lex_webarena_trajectory_replay_effective_suite/1"
 
 def _read(path: str | Path) -> tuple[Path, dict[str, Any]]:
     resolved = Path(path).expanduser().resolve()
-    return resolved, json.loads(resolved.read_text(encoding="utf-8"))
+    return resolved, read_json(resolved)
 
 
 def _attempt_map(receipt: dict[str, Any]) -> dict[tuple[str, int], dict[str, Any]]:
@@ -233,7 +233,7 @@ EVIDENCE_FILES = {
 
 def _read_cohort_input(path: Path) -> dict[str, Any]:
     checked_file_sha256(path)
-    value = json.loads(path.read_text(encoding="utf-8"))
+    value = read_json(path)
     if not isinstance(value, dict):
         raise ValueError(f"expected JSON object: {path}")
     return value

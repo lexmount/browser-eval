@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
-from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl
+from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl, read_json
 from harness.trajectory_replay.catalog_contracts import (
     apply_action_overrides,
     catalog_action_overrides,
@@ -44,7 +44,7 @@ _EVIDENCE_FILENAMES = {
 def _read(path: Path) -> dict[str, Any]:
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"missing or symlinked comparison input: {path}")
-    return json.loads(path.read_text(encoding="utf-8"))
+    return read_json(path)
 
 
 def _artifact(path: Path, digest: str) -> dict[str, str]:
