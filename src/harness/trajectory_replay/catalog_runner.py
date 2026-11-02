@@ -17,9 +17,9 @@ import traceback
 from pathlib import Path
 from urllib.parse import quote, urlsplit
 
+from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
 from harness.trajectory_replay.catalog_contracts import (
     RUN_SCHEMA,
-    TRUSTED_RECORDED_HOSTS,
     apply_action_overrides,
     catalog_action_overrides,
     completed_task_ids,

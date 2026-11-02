@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import importlib
 import io
 import json
 import re
@@ -25,6 +26,14 @@ def digest(raw: bytes) -> str:
 
 def encoded(value: object) -> bytes:
     return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
+
+
+def _derived_field(reference: str):
+    """Resolve a ``module:function`` projection named by track card metadata."""
+    module, _, name = reference.partition(":")
+    if not module.startswith("harness.") or not name:
+        raise ValueError("Invalid derived viewer field: " + reference)
+    return getattr(importlib.import_module(module), name)
 
 
 def _git_blobs(checkout: Path, revision: str, paths: tuple[str, ...]) -> dict[str, bytes]:
@@ -137,6 +146,7 @@ class DatasetRelease:
     external_sources: dict | None = None
     scorer: dict | None = None
     default_dataset: str | None = None
+    viewer_filters: dict | None = None
 
     @classmethod
     def from_git(cls, checkout: Path, track: str, revision: str) -> DatasetRelease:
@@ -174,7 +184,7 @@ class DatasetRelease:
             prefix = prefixes[0]
         notices = subprocess.check_output(
             ["git", "ls-tree", "--name-only", revision, "--", "LICENSE", "NOTICE",
-             "THIRD_PARTY.md", "THIRD_PARTY_NOTICES.md"], cwd=checkout, text=True).splitlines()
+             "THIRD_PARTY.md", "THIRD_PARTY_NOTICES.md", "VERSIONING.md"], cwd=checkout, text=True).splitlines()
         files = {}
         for original_name, content in _git_blobs(checkout, revision, (prefix, *notices)).items():
             name = "definitions/" + original_name[len(prefix):] if original_name.startswith(prefix) else original_name
@@ -194,9 +204,22 @@ class DatasetRelease:
             files[name] = content
         repository = "https://huggingface.co/datasets/" + registered[track]["repo_id"] if hub else None
         settings = identity if hub else json.loads(files['definitions/registry.json'])
+        filters = identity.get('viewer_filters') if hub else None
+        if filters is not None and (not isinstance(filters, dict) or set(filters) - {
+                'viewer_exclude_datasets', 'viewer_exclude_tracks'}):
+            raise ValueError('Invalid committed viewer filters')
+        if filters is not None:
+            excluded = filters.get('viewer_exclude_datasets', [])
+            tracks = filters.get('viewer_exclude_tracks', {})
+            if (not isinstance(excluded, list) or any(not isinstance(x, str) or not x for x in excluded)
+                    or not isinstance(tracks, dict)
+                    or any(not isinstance(k, str) or not k or not isinstance(v, list)
+                           or any(not isinstance(x, str) or not x for x in v) for k, v in tracks.items())):
+                raise ValueError('Invalid committed viewer filters')
         return cls(track, revision, files, repository,
                    external_sources=identity.get("external_sources") if hub else None,
-                   scorer=settings.get('scorer'), default_dataset=settings.get('default_dataset'))
+                   scorer=settings.get('scorer'), default_dataset=settings.get('default_dataset'),
+                   viewer_filters=filters)
 
     def runtime_settings(self) -> dict:
         """Publish the execution choices bound to this dataset edition."""
@@ -217,7 +240,8 @@ class DatasetRelease:
 
     def datasets(self) -> dict[str, dict]:
         registry = json.loads(self.files["definitions/registry.json"])
-        if self.track == "webfetch":
+        metadata = json.loads((CARDS / "metadata.json").read_bytes())[self.track]
+        if metadata.get("definition_registry") == "suites":
             datasets = {}
             for row in registry["suites"]:
                 directory, declared = row["directory"], row["files"]
@@ -320,7 +344,8 @@ class DatasetRelease:
             if not selected or not selected.issubset(datasets):
                 raise ValueError("Unknown current viewer dataset")
         selected -= set(metadata.get("external_datasets", {}))
-        selected -= set(metadata.get("viewer_exclude_datasets", []))
+        filters = metadata if self.viewer_filters is None else self.viewer_filters
+        selected -= set(filters.get("viewer_exclude_datasets", []))
         return selected
 
     def build(self, output: Path, *, selections: dict | None = None) -> dict:
@@ -348,6 +373,9 @@ class DatasetRelease:
         languages = set()
         used_annotations = {}
         metadata = json.loads((CARDS / "metadata.json").read_bytes())[self.track]
+        derived = {field: _derived_field(reference)
+                   for field, reference in metadata.get("derived_fields", {}).items()}
+        filters = metadata if self.viewer_filters is None else self.viewer_filters
         annotations = self.language_annotations
         if annotations is None:
             annotations = json.loads((CARDS / "languages.json").read_bytes()).get(self.track, {})
@@ -356,7 +384,7 @@ class DatasetRelease:
             groups = {}
             partition = metadata.get("partitions", {}).get(identity)
             for case in cases:
-                if case.get('track') in metadata.get('viewer_exclude_tracks', {}).get(identity, []):
+                if case.get('track') in filters.get('viewer_exclude_tracks', {}).get(identity, []):
                     continue
                 case_id = case[identity_field]
                 annotation = annotations.get(identity, {}).get(case_id)
@@ -388,9 +416,7 @@ class DatasetRelease:
                 }
                 row.update({key: case[key] for key in ("track", "category")
                             if case.get(key) not in (None, "")})
-                if self.track == 'webfetch':
-                    from harness.web_fetch.models import report_family
-                    row['benchmark_category'] = report_family(case)
+                row.update({field: project(case) for field, project in derived.items()})
                 if "source_paths" in binding:
                     row["source_path"] = binding["source_paths"][case_id]
                     row.update({key: binding[key] for key in ("layer", "driver") if key in binding})
@@ -421,6 +447,9 @@ class DatasetRelease:
             "files": {name: {"sha256": digest(raw), "size": len(raw)} for name, raw in sorted(files.items())},
         }
         manifest.update(settings)
+        manifest['viewer_filters'] = {
+            key: filters.get(key, default) for key, default in
+            [('viewer_exclude_datasets', []), ('viewer_exclude_tracks', {})]}
         if external:
             manifest["external_sources"] = context
             manifest["dataset_sources"] = {
@@ -482,7 +511,7 @@ class DatasetRelease:
     def _finish(self, output: Path, manifest: dict, configurations: list[dict], metadata: dict,
                 languages: set[str], body: str, yaml, definition_files: dict[str, bytes]) -> dict:
 
-        if self.track == 'webfetch':
+        if metadata.get("order_configurations_by_subsets"):
             order = {name: index for index, name in enumerate(metadata['subsets'])}
             configurations.sort(key=lambda row: order.get(row['config_name'], len(order)))
             manifest['viewer']['configurations'].sort(

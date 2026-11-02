@@ -11,7 +11,7 @@ import re
 import shutil
 import tempfile
 from pathlib import Path
-from harness.benchmarks.data import canonical_repository, fetch_archive, read_hf_file, unpack
+from harness.benchmarks.data import canonical_repository, fetch_archive, main_history, read_hf_file, unpack
 from harness.benchmarks.publication import CARDS, DatasetRelease
 
 
@@ -105,6 +105,9 @@ def _prepare_pin(root: Path, track: str, revision: str, before: dict | None) -> 
         if track not in registered:
             raise ValueError("Unknown benchmark track: " + track)
         before = {"repository": registered[track]["repo_id"]}
+    # Pull-request refs and force-pushed commits must never become authoritative inputs.
+    if revision not in main_history(before["repository"]):
+        raise ValueError("REV is not on the dataset's main history: " + revision)
     raw_manifest = read_hf_file(before["repository"], revision, "manifest.json", 2_000_000)
     manifest = json.loads(raw_manifest)
     if manifest.get("schema") != "browser-eval-dataset-release/1" or manifest.get("track") != track:

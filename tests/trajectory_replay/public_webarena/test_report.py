@@ -4,6 +4,8 @@ import json
 import re
 from pathlib import Path
 
+import pytest
+
 from harness.trajectory_replay.public_webarena.report import (
     METRICS,
     _annotate_source_marks,
@@ -17,6 +19,25 @@ from harness.trajectory_replay.public_webarena.report import (
     _task_detail_body,
     write_latest_report,
 )
+from harness.trajectory_replay.public_webarena.result_audit import ResultAuditError
+
+PASSING_AUDIT = {
+    "schema": "lex_browser_use_result_audit/1",
+    "status": "pass",
+    "logical_results_reviewed": 0,
+    "final_passes": {},
+    "final_failures": {},
+    "checks": [],
+}
+
+
+@pytest.fixture
+def audited(monkeypatch):
+    """Render partial page fixtures as if the full result audit had passed."""
+    monkeypatch.setattr(
+        "harness.trajectory_replay.public_webarena.report.audit_result_set",
+        lambda _manifest, _summary: PASSING_AUDIT,
+    )
 
 
 def test_failure_review_separates_process_interruptions_from_final_evaluator_failures():
@@ -172,7 +193,7 @@ def test_resource_tables_compare_all_engines_in_one_table():
     assert 'class="worse"' not in ratio_cpu_row
 
 
-def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path):
+def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path, audited):
     reports = tmp_path / "reports"
     reports.mkdir()
     (reports / "browser-use-evaluation-20260101.md").write_text("old", encoding="utf-8")
@@ -506,7 +527,7 @@ def test_summary_decisions_follow_reversed_results_and_resource_ratios():
             },
         },
     }
-    rendered = _summary_page(manifest, summary)
+    rendered = _summary_page(manifest, summary, PASSING_AUDIT)
     assert "Moli 通过数最多" in rendered
     assert "速度、CPU、内存和网络另列，不合成总分" in rendered
     assert "参评浏览器 / Moli" in rendered
@@ -514,7 +535,7 @@ def test_summary_decisions_follow_reversed_results_and_resource_ratios():
     assert "Chromium 的可用范围更广" not in rendered
 
 
-def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
+def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path, audited):
     reports = tmp_path / "reports"
     write_latest_report(
         reports,
@@ -860,7 +881,7 @@ def test_webarena_report_uses_self_hosted_trajectory_scope_language():
         },
     }
 
-    homepage = _summary_page(manifest, summary)
+    homepage = _summary_page(manifest, summary, PASSING_AUDIT)
     suite = _suite_page(manifest)
     method = _method_page(manifest, summary)
 
@@ -917,7 +938,7 @@ def test_method_page_derives_environment_and_prepare_counts_from_attempts():
     assert "其中 1 次在轨迹开始前的环境准备阶段失败" in method
 
 
-def test_all_published_suite_tasks_link_to_public_web_targets(tmp_path):
+def test_all_published_suite_tasks_link_to_public_web_targets(tmp_path, audited):
     suite_file = (
         Path(__file__).resolve().parents[3]
         / "examples/trajectory_replay/public_webarena/tasks.v4.json"
@@ -948,3 +969,17 @@ def test_all_published_suite_tasks_link_to_public_web_targets(tmp_path):
     for link in links:
         assert "localhost" not in link
         assert "127.0.0.1" not in link
+
+
+def test_report_fails_closed_when_result_audit_rejects_results(tmp_path):
+    reports = tmp_path / "reports"
+    manifest = {
+        "run_id": "inconsistent",
+        "protocol": {"engines": ["chromium"]},
+        "suite": [{"task_id": "task"}],
+    }
+
+    with pytest.raises(ResultAuditError, match="summary task scope mismatch"):
+        write_latest_report(reports, manifest=manifest, summary={"by_task": {}})
+
+    assert not reports.exists() or not list(reports.glob("*.html"))

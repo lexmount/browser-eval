@@ -1,5 +1,8 @@
 import json
 import multiprocessing
+import sys
+import time
+import types
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -11,7 +14,10 @@ from harness.browser_use.runner import (
     _limit_cowagent_transport_retries,
     _load_completed_attempts,
     _max_steps_response,
+    _retry_required,
     _run_attempt,
+    _run_attempt_locked,
+    _run_engine_attempts,
     _scheduled_tasks,
     _user_prompt,
 )
@@ -29,6 +35,7 @@ from harness.environments.webarena.runtime import (
     configure_benchmark,
     container_host_gateway,
     docker_daemon_lock_namespace,
+    ensure_site,
     environment_prepare_receipt,
     login_context,
     physical_execution_lock,
@@ -36,6 +43,7 @@ from harness.environments.webarena.runtime import (
     prepare_browser_viewport,
     site_container_manager,
     site_runtime_compatibility,
+    verify_arm_php_compatibility,
     verify_session_viewport,
     wait_application_ready,
     wait_container_healthy,
@@ -748,6 +756,19 @@ def test_login_context_does_not_retry_other_setup_errors(monkeypatch) -> None:
     assert calls == 1
 
 
+@pytest.mark.parametrize("missing", ["_context", "_page"])
+def test_login_context_requires_an_active_context_and_page(missing: str) -> None:
+    service = SimpleNamespace(
+        _context=SimpleNamespace(pages=[]),
+        _page=object(),
+        _submit=lambda callback: callback(),
+    )
+    setattr(service, missing, None)
+
+    with pytest.raises(RuntimeError, match="no active context and page"):
+        login_context(service, (), object(), ["http://official.test/start"])
+
+
 def test_container_host_gateway_returns_literal_ip() -> None:
     class Result:
         exit_code = 0
@@ -962,13 +983,27 @@ def test_run_attempt_releases_lock_after_exception(monkeypatch, tmp_path: Path) 
             process.terminate()
 
 
-def test_arm_php_sites_mount_targeted_qemu_compatibility(monkeypatch) -> None:
-    class Client:
-        @staticmethod
-        def info():
-            return {"Architecture": "aarch64"}
+class _DockerClient:
+    def __init__(self, architecture: str, container=None) -> None:
+        self.architecture = architecture
+        self.containers = SimpleNamespace(get=lambda _name: container)
+        self.closed = False
 
-    monkeypatch.setattr("harness.environments.webarena.runtime.docker.from_env", lambda: Client())
+    def info(self):
+        return {"Architecture": self.architecture}
+
+    def close(self) -> None:
+        self.closed = True
+
+
+def _patch_docker_client(monkeypatch, architecture: str, container=None) -> _DockerClient:
+    client = _DockerClient(architecture, container)
+    monkeypatch.setattr("harness.environments.webarena.runtime.docker.from_env", lambda: client)
+    return client
+
+
+def test_arm_php_sites_mount_targeted_qemu_compatibility(monkeypatch) -> None:
+    client = _patch_docker_client(monkeypatch, "aarch64")
     manager = site_container_manager(WebArenaSite.SHOPPING)
 
     assert manager.config.docker_img == "am1n3e/webarena-verified-shopping"
@@ -976,31 +1011,81 @@ def test_arm_php_sites_mount_targeted_qemu_compatibility(monkeypatch) -> None:
     assert manager.config.volumes[str(manager.config.setup.volumes[1].volume_name)].endswith(
         "/etc/supervisor.d/php-fpm.ini:ro"
     )
+    assert client.closed
 
 
 def test_non_php_site_keeps_official_default_config(monkeypatch) -> None:
-    class Client:
-        @staticmethod
-        def info():
-            return {"Architecture": "aarch64"}
-
-    monkeypatch.setattr("harness.environments.webarena.runtime.docker.from_env", lambda: Client())
+    client = _patch_docker_client(monkeypatch, "aarch64")
     manager = site_container_manager(WebArenaSite.GITLAB)
 
     assert manager.config.docker_img == "am1n3e/webarena-verified-gitlab"
     assert manager.config.volumes == {}
+    assert client.closed
 
 
 def test_php_site_on_x86_keeps_official_default_config(monkeypatch) -> None:
-    class Client:
-        @staticmethod
-        def info():
-            return {"Architecture": "x86_64"}
-
-    monkeypatch.setattr("harness.environments.webarena.runtime.docker.from_env", lambda: Client())
+    client = _patch_docker_client(monkeypatch, "x86_64")
     manager = site_container_manager(WebArenaSite.SHOPPING)
 
     assert QEMU_X86_64_HOST_PATH not in manager.config.volumes
+    assert client.closed
+
+
+def test_arm_php_verification_closes_docker_client_on_failure(monkeypatch) -> None:
+    container = SimpleNamespace(
+        exec_run=lambda _command: SimpleNamespace(exit_code=0, output=b"php-fpm")
+    )
+    client = _patch_docker_client(monkeypatch, "aarch64", container)
+
+    with pytest.raises(RuntimeError, match="Rosetta"):
+        verify_arm_php_compatibility("webarena_verified_shopping")
+
+    assert client.closed
+
+
+def _patch_ready_site(monkeypatch) -> None:
+    manager = SimpleNamespace(
+        container_name="webarena_verified_gitlab",
+        config=SimpleNamespace(health_check_path="/", volumes={}),
+        is_running=lambda: True,
+        start=lambda **_kwargs: None,
+    )
+    runtime = "harness.environments.webarena.runtime"
+    monkeypatch.setattr(f"{runtime}.site_container_manager", lambda _site: manager)
+    monkeypatch.setattr(
+        f"{runtime}.EnvCtrlDockerClient.create",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            wait_until_ready=lambda **_kwargs: SimpleNamespace(success=True, message="")
+        ),
+    )
+    monkeypatch.setattr(f"{runtime}.wait_application_ready", lambda *_args: None)
+
+
+def test_ensure_site_closes_docker_client_after_readiness(monkeypatch) -> None:
+    client = _patch_docker_client(monkeypatch, "x86_64", SimpleNamespace())
+    _patch_ready_site(monkeypatch)
+    monkeypatch.setattr(
+        "harness.environments.webarena.runtime.wait_container_healthy", lambda _container: None
+    )
+
+    ensure_site(WebArenaSite.GITLAB, reset=False)
+
+    assert client.closed
+
+
+def test_ensure_site_closes_docker_client_when_health_check_fails(monkeypatch) -> None:
+    client = _patch_docker_client(monkeypatch, "x86_64", SimpleNamespace())
+    _patch_ready_site(monkeypatch)
+
+    def unhealthy(_container) -> None:
+        raise RuntimeError("container unhealthy")
+
+    monkeypatch.setattr("harness.environments.webarena.runtime.wait_container_healthy", unhealthy)
+
+    with pytest.raises(RuntimeError, match="container unhealthy"):
+        ensure_site(WebArenaSite.GITLAB, reset=False)
+
+    assert client.closed
 
 
 def test_arm_runtime_compatibility_is_evidence_bound() -> None:
@@ -1065,3 +1150,256 @@ def test_resume_rejects_attempt_from_another_model(tmp_path: Path) -> None:
 
     with pytest.raises(ValueError, match="attempt model differs"):
         _load_completed_attempts(attempts, "model-a")
+
+
+@pytest.mark.parametrize(
+    ("status", "score", "retry"),
+    [
+        ("success", 1.0, False),
+        ("failure", 0.0, True),
+        ("unsupported", 0.0, True),
+        ("error", None, True),
+    ],
+)
+def test_resumed_primary_uses_the_fresh_run_retry_rule(
+    tmp_path: Path, status: str, score: float | None, retry: bool
+) -> None:
+    attempts = tmp_path / "attempts.jsonl"
+    record = {
+        "model": "model-a",
+        "engine": "chromium",
+        "task_id": 44,
+        "attempt": 1,
+        "status": status,
+        "score": score,
+    }
+    attempts.write_text(json.dumps(record) + "\n", encoding="utf-8")
+
+    primary = _load_completed_attempts(attempts, "model-a")[("model-a", "chromium", 44, 1)]
+
+    assert _retry_required(primary) is retry
+
+
+@pytest.mark.parametrize(
+    ("status", "score", "expected_calls"),
+    [
+        ("success", 1.0, []),
+        ("unsupported", 0.0, [2]),
+        ("failure", 0.0, [2]),
+    ],
+)
+def test_resumed_engine_loop_runs_the_retry_a_fresh_run_would_run(
+    tmp_path: Path, status: str, score: float, expected_calls: list[int]
+) -> None:
+    attempts = tmp_path / "attempts.jsonl"
+    primary = {
+        "model": "model-a",
+        "engine": "chromium",
+        "task_id": 44,
+        "attempt": 1,
+        "status": status,
+        "score": score,
+    }
+    attempts.write_text(json.dumps(primary) + "\n", encoding="utf-8")
+    completed = _load_completed_attempts(attempts, "model-a")
+    calls: list[int] = []
+
+    def execute(attempt: int) -> dict:
+        calls.append(attempt)
+        return {**primary, "attempt": attempt, "status": "success", "score": 1.0}
+
+    with attempts.open("a", encoding="utf-8") as stream:
+        _run_engine_attempts(
+            completed=completed,
+            model="model-a",
+            engine="chromium",
+            task_id=44,
+            run_id="resume",
+            stream=stream,
+            execute=execute,
+        )
+
+    assert calls == expected_calls
+    resumed = _load_completed_attempts(attempts, "model-a")
+    assert sorted(key[3] for key in resumed) == [1, *expected_calls]
+    assert all(resumed[("model-a", "chromium", 44, n)]["run_id"] == "resume" for n in calls)
+
+
+def test_fresh_engine_loop_retries_only_a_non_passing_primary(tmp_path: Path) -> None:
+    completed: dict = {}
+    calls: list[int] = []
+
+    def execute(attempt: int) -> dict:
+        calls.append(attempt)
+        return {
+            "model": "model-a",
+            "engine": "moli",
+            "task_id": 7,
+            "attempt": attempt,
+            "status": "unsupported" if attempt == 1 else "success",
+            "score": 0.0 if attempt == 1 else 1.0,
+        }
+
+    with (tmp_path / "attempts.jsonl").open("a", encoding="utf-8") as stream:
+        _run_engine_attempts(
+            completed=completed,
+            model="model-a",
+            engine="moli",
+            task_id=7,
+            run_id="fresh",
+            stream=stream,
+            execute=execute,
+        )
+
+    assert calls == [1, 2]
+    assert set(completed) == {("model-a", "moli", 7, 1), ("model-a", "moli", 7, 2)}
+
+
+class _FakeTracing:
+    def __init__(self, stop_error: str = "") -> None:
+        self.stop_error = stop_error
+
+    def start(self, **_kwargs) -> None:
+        return None
+
+    def stop(self, **_kwargs) -> None:
+        time.sleep(0.02)
+        if self.stop_error:
+            raise RuntimeError(self.stop_error)
+
+
+def _install_fake_attempt_runtime(
+    monkeypatch, *, agent_error: str = "", trace_stop_error: str = ""
+) -> dict:
+    """Replace CowAgent, the browser service and Docker with in-process fakes."""
+    service = SimpleNamespace(
+        _context=SimpleNamespace(tracing=_FakeTracing(trace_stop_error)),
+        _page=SimpleNamespace(wait_for_timeout=lambda _ms: None),
+        _submit=lambda function: function(),
+    )
+
+    class BrowserTool:
+        def __init__(self, config) -> None:
+            self.config = config
+
+        def _get_service(self):
+            return service
+
+        def close(self) -> None:
+            return None
+
+    class Agent:
+        def __init__(self, **_kwargs) -> None:
+            self.extra_system_suffix = ""
+
+        def run_stream(self, _prompt, *, on_event, clear_history):
+            time.sleep(0.02)
+            if agent_error:
+                raise RuntimeError(agent_error)
+            return json.dumps({"task_type": "RETRIEVE", "status": "SUCCESS"})
+
+    class AgentStreamExecutor:
+        def _call_llm_stream(self, **_kwargs):
+            return None
+
+    class Recorder:
+        errors: list[str] = []
+
+        def start(self, _context) -> None:
+            return None
+
+        def stop(self, _context, _path) -> None:
+            return None
+
+    class Resources:
+        def __init__(self, _container) -> None:
+            return None
+
+        def counters(self):
+            return {}
+
+    class Sampler:
+        samples: list = []
+
+        def __init__(self, _resources, *, interval_ms) -> None:
+            return None
+
+        def start(self) -> None:
+            return None
+
+        def stop(self) -> None:
+            return None
+
+    modules = {
+        "agent": {},
+        "agent.protocol": {},
+        "agent.protocol.agent": {"Agent": Agent},
+        "agent.protocol.agent_stream": {"AgentStreamExecutor": AgentStreamExecutor},
+        "agent.tools": {},
+        "agent.tools.browser": {},
+        "agent.tools.browser.browser_tool": {"BrowserTool": BrowserTool},
+    }
+    for name, attributes in modules.items():
+        module = types.ModuleType(name)
+        for attribute, value in attributes.items():
+            setattr(module, attribute, value)
+        monkeypatch.setitem(sys.modules, name, module)
+    runner = "harness.browser_use.runner"
+    monkeypatch.setattr(f"{runner}.prepare_sites", lambda _sites: None)
+    monkeypatch.setattr(f"{runner}.browser_tool_config", lambda endpoint: {"cdp": endpoint})
+    monkeypatch.setattr(f"{runner}.allow_official_container_hostname", lambda _tool: None)
+    monkeypatch.setattr(f"{runner}.DockerStatsResources", Resources)
+    monkeypatch.setattr(f"{runner}.ResourceSampler", Sampler)
+    monkeypatch.setattr(f"{runner}.CdpHarRecorder", Recorder)
+    monkeypatch.setattr(f"{runner}.prepare_browser_viewport", lambda _s: {"verified": True})
+    monkeypatch.setattr(f"{runner}.login_context", lambda *_args: 0)
+    monkeypatch.setattr(f"{runner}.verify_session_viewport", lambda *_args: None)
+    monkeypatch.setattr(f"{runner}._user_prompt", lambda _task, _urls: "prompt")
+    task = SimpleNamespace(sites=(), start_urls=[], eval=[])
+    benchmark = SimpleNamespace(
+        get_task=lambda _task_id: task,
+        config=SimpleNamespace(render_url=lambda urls, _sites: urls),
+    )
+    model = SimpleNamespace(
+        model="model-a",
+        reset=lambda: None,
+        usage={},
+        request_count=0,
+        request_attempt_count=0,
+        transport_errors=[],
+    )
+    return {
+        "benchmark": benchmark,
+        "selected": SimpleNamespace(task_id=44, tier="easy", estimated_min_steps=1),
+        "engine": "chromium",
+        "attempt": 1,
+        "endpoint": "ws://browser",
+        "container": object(),
+        "model": model,
+        "sample_interval_ms": 100,
+        "max_agent_steps": 5,
+        "lock_wait_ms": 0.0,
+        "lock_namespace": PHYSICAL_EXECUTION_LOCK_NAMESPACE,
+    }
+
+
+def test_failed_agent_attempt_records_agent_and_finalize_timing(
+    monkeypatch, tmp_path: Path
+) -> None:
+    kwargs = _install_fake_attempt_runtime(monkeypatch, agent_error="model provider failed")
+
+    row = _run_attempt_locked(**kwargs, cowagent_repo=tmp_path, output_dir=tmp_path / "out")
+
+    assert "model provider failed" in row["error"]
+    assert row["timings"]["agent_run_ms"] >= 20
+    assert row["timings"]["evidence_finalize_ms"] >= 20
+
+
+def test_failed_attempt_records_har_and_trace_stop_errors(monkeypatch, tmp_path: Path) -> None:
+    kwargs = _install_fake_attempt_runtime(
+        monkeypatch, agent_error="model provider failed", trace_stop_error="trace file locked"
+    )
+
+    row = _run_attempt_locked(**kwargs, cowagent_repo=tmp_path, output_dir=tmp_path / "out")
+
+    assert row["cleanup_errors"] == ["HAR/trace stop failed: trace file locked"]

@@ -1,4 +1,4 @@
-"""Docker-isolated browser use evaluation runner."""
+"""Docker-isolated Trajectory Replay runner for public WebArena recordings."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import traceback
 import urllib.parse
 import urllib.request
 import uuid
-from functools import partial
+from functools import cache, partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -58,7 +58,13 @@ from harness.trajectory_replay.public_webarena.webarena_environment import (
 )
 
 ENGINE_IMAGES = dict(DEFAULT_BROWSER_IMAGES)
-ENCODING = tiktoken.get_encoding("o200k_base")
+
+
+@cache
+def _encoding() -> tiktoken.Encoding:
+    # Loaded on first use: get_encoding may download the BPE file, which must
+    # not happen merely by importing the runner (for example for CLI --help).
+    return tiktoken.get_encoding("o200k_base")
 
 
 def _remaining_task_budget_ms(deadline: float, *, phase: str) -> int:
@@ -443,7 +449,7 @@ def _run_task(
             "pass" if result_passed and process_passed and evidence_passed else "fail"
         ),
         "duration_ms": round(duration_ms, 3),
-        "tool_output_tokens": sum(len(ENCODING.encode(value)) for value in outputs.values()),
+        "tool_output_tokens": sum(len(_encoding().encode(value)) for value in outputs.values()),
         "output_chars": sum(len(value) for value in outputs.values()),
         "error": error,
         "trace": trace,
@@ -628,7 +634,7 @@ def _environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
                     for key, value in (
                         (container.image.attrs.get("Config") or {}).get("Labels") or {}
                     ).items()
-                    if key.startswith("lex.browser-use-eval.")
+                    if key.startswith("lex.browser-eval.")
                 },
             }
             for engine, container in containers.items()
@@ -820,11 +826,11 @@ def run_evaluation(
     try:
         for engine in engines:
             network = client.networks.create(
-                f"lex-browser-use-eval-{run_id}-{engine}",
+                f"lex-browser-eval-{run_id}-{engine}",
                 driver="bridge",
                 labels={
-                    "lex.browser-use-eval.run": run_id,
-                    "lex.browser-use-eval.engine": engine,
+                    "lex.browser-eval.run": run_id,
+                    "lex.browser-eval.engine": engine,
                 },
             )
             networks[engine] = network

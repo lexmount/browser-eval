@@ -6,9 +6,9 @@ import argparse
 import json
 from pathlib import Path
 
+from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
 from harness.trajectory_replay.catalog_contracts import (
     ACTION_OVERRIDES_SCHEMA,
-    TRUSTED_RECORDED_HOSTS,
     apply_action_overrides,
     catalog_action_overrides,
     file_sha256,

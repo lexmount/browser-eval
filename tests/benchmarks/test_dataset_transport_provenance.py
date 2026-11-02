@@ -43,6 +43,7 @@ def test_repinning_a_previous_edition_cannot_rewrite_first_source_authority(tmp_
         revision, name = url.split("/resolve/", 1)[1].split("/", 1)
         return io.BytesIO(releases[revision][0 if name == "manifest.json" else 1])
     monkeypatch.setattr(data, "urlopen", fetch)
+    monkeypatch.setattr(pinning, "main_history", lambda repository: list(releases))
     monkeypatch.setattr(data, "__file__", str(lock.with_name("data.py")))
     for revision, compatible in [("a", True), ("b", False), ("a", True), ("c", False)]:
         pinning.pin(tmp_path, "websearch", revision * 40)
@@ -61,9 +62,14 @@ def test_mirror_and_explicit_token_apply_to_both_pinning_and_installation(tmp_pa
     calls = []
     def fetch(request, timeout):
         assert isinstance(request, Request)
-        assert request.full_url.startswith("https://mirror.example/hub/datasets/")
+        assert request.full_url.startswith(("https://mirror.example/hub/datasets/",
+                                            "https://mirror.example/hub/api/datasets/"))
         assert request.get_header("Authorization") == "Bearer hf_fixture"
         calls.append(request.full_url)
+        if request.full_url.endswith("/commits/main"):
+            response = io.BytesIO(json.dumps([{"id": "a" * 40}]).encode())
+            response.headers = {}
+            return response
         return io.BytesIO(manifest if request.full_url.endswith("manifest.json") else archive)
     monkeypatch.setattr(data, "build_opener", lambda *handlers: SimpleNamespace(open=fetch))
     monkeypatch.setenv("HF_ENDPOINT", "https://mirror.example/hub/")
@@ -76,7 +82,9 @@ def test_mirror_and_explicit_token_apply_to_both_pinning_and_installation(tmp_pa
         pinning.pin(tmp_path, "websearch", "a" * 40)
         root = data.snapshot("websearch")
         assert json.loads((root / "definitions/datasets/sample.json").read_bytes())["cases"][0]["value"] == "original"
-        assert len(calls) == 3  # Manifest + the same archive transport for pin and install.
+        # Main history, manifest + the same archive transport for pin and install.
+        assert calls[0] == "https://mirror.example/hub/api/datasets/Lexmount/LexBench-Web-Search/commits/main"
+        assert len(calls) == 4
     finally:
         data._resolve.cache_clear()
 

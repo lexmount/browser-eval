@@ -614,8 +614,6 @@ def test_invalid_selected_reference_route_stops_before_any_capture(tmp_path):
         ["run_certified_benchmark.py", "webmainbench-full"],
         ["run_certified_benchmark.py", "wcxb"],
         ["run_certified_benchmark.py", "wcxb-latency"],
-        ["run_risk_control_moli.py"],
-        ["certify_webmainbench_case_correction.py"],
         ["correct_webmainbench_teds.py"],
     ],
 )

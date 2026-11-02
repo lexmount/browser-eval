@@ -134,10 +134,11 @@ def test_default_renderer_failure_keeps_certified_data_and_propagates(cohort):
     assert_certified_data(cohort)
 
 
-def test_dedicated_cli_accepts_no_report_for_call_free_validation(cohort, monkeypatch, capsys):
+def test_certified_cli_accepts_no_report_for_call_free_validation(cohort, monkeypatch, capsys):
     profile, _, state = cohort
-    monkeypatch.setattr(sys, 'argv', ['run_risk_control_moli.py', '--profile', str(profile), '--no-report'])
-    script = Path(__file__).resolve().parents[1] / 'scripts/run_risk_control_moli.py'
+    monkeypatch.setattr(sys, 'argv', ['run_certified_benchmark.py', 'risk-control',
+                                      '--profile', str(profile), '--no-report'])
+    script = Path(__file__).resolve().parents[1] / 'scripts/run_certified_benchmark.py'
     runpy.run_path(str(script), run_name='__main__')
     assert json.loads(capsys.readouterr().out)['provider_calls'] == 0
     assert state['records'] == state['builds'] == []

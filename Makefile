@@ -2,6 +2,7 @@ UV ?= uv
 PY := $(UV) run --frozen python
 TEST_PY := $(UV) run --frozen --all-extras python
 PYTEST_ARGS ?=
+TEST_PATHS ?= tests
 WEBMAINBENCH_SAMPLE ?= evaluation/public-webmainbench-200.json
 WEBMAINBENCH_PROFILE ?= $(PROFILE)
 REPORT_LANGUAGE ?=
@@ -32,9 +33,15 @@ webfetch-diagnostic-report: runtime-check
 	$(PY) scripts/build_report.py --profile "$(DIAGNOSTIC_PROFILE)" $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(EVIDENCE),--evidence "$(EVIDENCE)") --output "$(OUTPUT)"
 	$(PY) scripts/check_diagnostic_report.py "$(OUTPUT)" --profile "$(DIAGNOSTIC_PROFILE)"
 
-naming-check: runtime-check
+track-naming-check: runtime-check
 	$(PY) scripts/check_track_naming.py
+
+naming-check: track-naming-check
 	$(TEST_PY) -m pytest tests/test_source_language_policy.py -q
+
+.PHONY: track-naming-check docs-check
+docs-check: track-naming-check
+	$(UV) run --frozen --extra test python -m pytest tests/test_readme_navigation.py tests/test_source_language_policy.py tests/test_release_metadata.py::test_project_citations_do_not_claim_a_specific_release -q
 
 .PHONY: lint-check
 lint-check: runtime-check
@@ -42,7 +49,7 @@ lint-check: runtime-check
 	$(TEST_PY) -m ruff check
 
 test-python: runtime-check
-	$(TEST_PY) -m pytest tests -q $(PYTEST_ARGS)
+	$(TEST_PY) -m pytest $(TEST_PATHS) -q $(PYTEST_ARGS)
 
 .PHONY: test-reference-inputs
 test-reference-inputs: runtime-check
@@ -60,7 +67,7 @@ fixture-smoke: runtime-check
 test: test-python test-ui test-native-adapters
 
 .PHONY: ci-tests
-ci-tests: naming-check lint-check test fixture-smoke
+ci-tests: track-naming-check lint-check test fixture-smoke
 
 ci: ci-tests package-check
 
@@ -204,9 +211,7 @@ webmainbench-run: runtime-check
 
 webmainbench-score: runtime-check
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path/to/provider-shard is required' >&2; exit 2)
-	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
-	@test -n "$(SCORER)" || (echo 'SCORER=/absolute/path/to/pinned/WebMainBench is required' >&2; exit 2)
-	$(UV) run --frozen --extra webmainbench-eval python scripts/score_webmainbench_results.py --evidence "$(EVIDENCE)" --dataset "$(SOURCE)" --scorer-repo "$(SCORER)"
+	$(UV) run --frozen --extra webmainbench-eval python scripts/score_webmainbench_results.py --evidence "$(EVIDENCE)" $(if $(SOURCE),--dataset "$(SOURCE)",) $(if $(SCORER),--scorer-repo "$(SCORER)",) $(if $(DATASET_SHA256),--expected-dataset-sha256 "$(DATASET_SHA256)",) $(if $(REVISION),--revision "$(REVISION)",)
 
 webmainbench-review: runtime-check
 	@test -n "$(RUN_ROOT)" || (echo 'RUN_ROOT=/absolute/path/to/declared-provider-shards is required' >&2; exit 2)

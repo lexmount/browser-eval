@@ -15,6 +15,7 @@ from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
+from lexbench_webfetch.metrics import percentile
 from lexbench_webfetch.paths import contained_path
 
 from harness.record_io import load_jsonl
@@ -389,10 +390,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
         _, selected_latency = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile, case_ids)
         paired_latency = summarize_full_paired_latency(selected_latency, case_ids)
         for provider, method in paired_methods.items():
-            values = sorted(selected_latency[case_id, method]['elapsed_ms'] for case_id in case_ids)
-            position = (len(values) - 1) * .95
-            low = int(position)
-            p95 = values[low] + (values[min(low + 1, len(values) - 1)] - values[low]) * (position - low)
+            p95 = percentile([selected_latency[case_id, method]['elapsed_ms'] for case_id in case_ids], .95)
             measured = summary['providers'][provider]
             require(abs(measured['mean_latency_ms'] - paired_latency[method]['mean_ms']) < .01
                     and abs(measured['p50_latency_ms'] - paired_latency[method]['p50_ms']) < .01
@@ -583,15 +581,6 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
         require((root / 'assets/style.css').is_file() and (root / 'assets/report.js').is_file(), 'WCXB report assets missing')
 
     print(f'PASS: WCXB {len(case_ids)}-case, {len(providers)}-method, declared-language evidence and route inventory')
-
-
-def main() -> None:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('report', type=Path)
-    parser.add_argument('--authority-root', type=Path)
-    parser.add_argument('--profile', type=Path)
-    args = parser.parse_args()
-    check(args.report, authority_root=args.authority_root, profile_path=args.profile)
 
 
 def binary_from_env(path: Path) -> str:

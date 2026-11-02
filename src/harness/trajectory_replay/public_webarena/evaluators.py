@@ -1,4 +1,4 @@
-"""Task-result evaluators behind one browser-use evaluation contract."""
+"""Task-result evaluators behind one public WebArena Trajectory Replay contract."""
 
 from __future__ import annotations
 

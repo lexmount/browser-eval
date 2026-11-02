@@ -995,8 +995,8 @@ def _teardown_method(client: Any, run_id: str, engine: str) -> None:
 
     errors = []
     labels = [
-        f"lex.browser-use-eval.run=replay-{run_id}",
-        f"lex.browser-use-eval.engine={engine}",
+        f"lex.browser-eval.run=replay-{run_id}",
+        f"lex.browser-eval.engine={engine}",
     ]
     for container in client.containers.list(all=True, filters={"label": labels}):
         try:
@@ -1057,9 +1057,9 @@ def _remove_orphan_replay_runtimes(client: Any, current_run_id: str) -> None:
 
     errors = []
     for container in client.containers.list(
-        all=True, filters={"label": "lex.browser-use-eval.run"}
+        all=True, filters={"label": "lex.browser-eval.run"}
     ):
-        run_label = str((container.labels or {}).get("lex.browser-use-eval.run") or "")
+        run_label = str((container.labels or {}).get("lex.browser-eval.run") or "")
         if run_label.startswith("replay-") and run_label != f"replay-{current_run_id}":
             try:
                 container.remove(force=True)

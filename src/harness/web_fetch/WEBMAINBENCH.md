@@ -35,6 +35,8 @@ For a new run, use the [corrected HF edition](https://huggingface.co/datasets/Le
 
 The `webmainbench-run` Make target keeps this historical selection by default: pass `SOURCE=/absolute/path/to/matching-parent.jsonl` to reproduce it. For a new run, set `WEBMAINBENCH_SAMPLE` to a manifest frozen against the selected corrected corpus. The runner checks that parent binding before loading credentials or calling a provider.
 
+`webmainbench-score` scores the corrected edition by default: `EVIDENCE` is the only required variable, `SOURCE` and `SCORER` are optional overrides, and `DATASET_SHA256` and `REVISION` are forwarded as `--expected-dataset-sha256` and `--revision` when set.
+
 Follow the selected edition's source terms and the repository's [third-party content boundary](../../../THIRD_PARTY.md); a dataset license does not grant rights to every captured third-party page.
 
 Every method receives the source `html` field encoded as UTF-8. The selected

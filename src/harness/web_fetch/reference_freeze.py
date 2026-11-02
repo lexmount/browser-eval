@@ -526,9 +526,9 @@ def prepare_promotion(*,dataset_path,captures,output,approved_by,approved_at,
     return receipt,candidate_bytes
 
 
-def prepare_promotion_main(argv=None, *, root: Path | None = None):
+def prepare_promotion_main(argv=None):
     parser=argparse.ArgumentParser(description='Prepare an authorized, hash-bound reference promotion candidate.')
-    parser.add_argument('--dataset',type=Path,default=(root or Path.cwd())/'evaluation/dataset.json')
+    parser.add_argument('--dataset',type=Path,default=ROOT/'evaluation/dataset.json')
     parser.add_argument('--captures',type=Path,required=True)
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--approved-by',required=True)
@@ -667,14 +667,14 @@ def promote(*,canonical_path,candidate_path,captures,receipt_path,receipt_target
             'receipt_sha256':receipt_sha,'affected_case_ids':case_ids}
 
 
-def promote_main(argv=None, *, root: Path | None = None):
+def promote_main(argv=None):
     parser=argparse.ArgumentParser(description='Install a reviewed candidate and its independent reference evidence.')
-    parser.add_argument('--canonical',type=Path,default=(root or Path.cwd())/'evaluation/dataset.json')
+    parser.add_argument('--canonical',type=Path,default=ROOT/'evaluation/dataset.json')
     parser.add_argument('--candidate',type=Path,required=True)
     parser.add_argument('--captures',type=Path,required=True)
     parser.add_argument('--receipt',type=Path,required=True)
     parser.add_argument('--receipt-target',type=Path,required=True)
-    parser.add_argument('--research-root',type=Path,default=(root or Path.cwd())/'research/reference-freeze-promotions')
+    parser.add_argument('--research-root',type=Path,default=ROOT/'research/reference-freeze-promotions')
     parser.add_argument('--sources-root',type=Path)
     parser.add_argument('--browser-observations',type=Path)
     parser.add_argument('--browser-observation-directory',type=Path)

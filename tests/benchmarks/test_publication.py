@@ -36,7 +36,7 @@ def checkout(tmp_path, track, defect=None):
         (prefix / "evaluation/tasks.json").write_bytes(raw)
         registry["suites"][0]["directory"] = "evaluation"
     (prefix / "registry.json").write_text(json.dumps(registry))
-    for name in ["LICENSE", "NOTICE", "THIRD_PARTY.md"]:
+    for name in ["LICENSE", "NOTICE", "THIRD_PARTY.md", "VERSIONING.md"]:
         (root / name).write_text("Retain this notice.\n")
     if defect == "symlink":
         (prefix / "linked.json").symlink_to("tasks.json")
@@ -50,6 +50,7 @@ def checkout(tmp_path, track, defect=None):
 def test_release_preserves_tasks_not_working_tree_or_private_files(tmp_path, track):
     root, revision, cases = checkout(tmp_path, track)
     (root / ".env").write_text("PRIVATE=not-publishable")
+    (root / "VERSIONING.md").write_text("Uncommitted version policy")
     (root / f"src/lexbench_{track}/definitions/tasks.json").write_text("modified after commit")
     release = DatasetRelease.from_git(root, track, revision)
     left, right = tmp_path / "left", tmp_path / "right"
@@ -59,6 +60,7 @@ def test_release_preserves_tasks_not_working_tree_or_private_files(tmp_path, tra
     rows = [json.loads(line) for line in (left / "data/sample.jsonl").read_text().splitlines()]
     assert [json.loads(row["task"]) for row in rows] == cases
     assert manifest["source_revision"] == revision
+    assert (left / "VERSIONING.md").read_text() == "Retain this notice.\n"
     assert not (left / ".env").exists()
     with tarfile.open(left / "definitions.tar.gz") as archive:
         for item in archive:
@@ -226,6 +228,27 @@ def test_hub_track_cannot_be_supplied_by_uncommitted_manifest(tmp_path):
         DatasetRelease.from_git(root, "websearch", revision)
 
 
+@pytest.mark.parametrize('filters', [
+    [], {'unknown': []}, {'viewer_exclude_datasets': 'sample'},
+    {'viewer_exclude_datasets': [True]}, {'viewer_exclude_tracks': []},
+    {'viewer_exclude_tracks': {'sample': 'dynamic'}},
+    {'viewer_exclude_tracks': {'sample': [False]}},
+    {'viewer_exclude_tracks': {'': ['dynamic']}},
+])
+def test_invalid_committed_population_filters_fail_before_build(tmp_path, filters):
+    root, _, _ = checkout(tmp_path, 'websearch')
+    (root / 'src/lexbench_websearch/definitions').rename(root / 'definitions')
+    (root / 'manifest.json').write_text(json.dumps({
+        'schema': 'browser-eval-dataset-release/1', 'track': 'websearch',
+        'viewer_filters': filters}))
+    git(root, 'add', '.')
+    git(root, 'commit', '-qm', 'Invalid population selection')
+    output = tmp_path / 'release'
+    with pytest.raises(ValueError, match='viewer filters'):
+        DatasetRelease.from_git(root, 'websearch', git(root, 'rev-parse', 'HEAD')).build(output)
+    assert not output.exists()
+
+
 def test_runtime_settings_survive_original_source_publication_and_hub_rebuild(tmp_path, monkeypatch):
     from harness.benchmarks import publication
     root, _, _ = checkout(tmp_path, 'webmainbench')
@@ -250,9 +273,13 @@ def test_runtime_settings_survive_original_source_publication_and_hub_rebuild(tm
     published_revision = git(output, 'rev-parse', 'HEAD')
     dirty = json.loads((output / 'manifest.json').read_bytes())
     dirty['scorer']['revision'] = 'c' * 40
+    dirty['viewer_filters'] = {'viewer_exclude_datasets': ['sample']}
     (output / 'manifest.json').write_text(json.dumps(dirty))
+    (output / 'VERSIONING.md').write_text('Uncommitted policy')
     rebuilt = DatasetRelease.from_git(output, 'webmainbench', published_revision).build(tmp_path / 'rebuilt')
     assert rebuilt['scorer'] == scorer
+    assert rebuilt['viewer_filters'] == manifest['viewer_filters']
+    assert (tmp_path / 'rebuilt/VERSIONING.md').read_text() == 'Retain this notice.\n'
     assert rebuilt['default_dataset'] == 'sample'
 
 
@@ -305,3 +332,36 @@ def test_publish_opens_a_review_pr_without_updating_main_or_creating_tags(tmp_pa
     assert result['state'] == 'review_pending'
     assert result['revision'] == 'b' * 40
     assert result['pull_request'].endswith('/discussions/7')
+
+
+@pytest.mark.parametrize("reference", ["os:getcwd", "harness.web_fetch.models", ""])
+def test_derived_viewer_fields_only_resolve_named_harness_functions(reference):
+    from harness.benchmarks.publication import _derived_field
+
+    with pytest.raises(ValueError, match="Invalid derived viewer field"):
+        _derived_field(reference)
+
+
+def test_webfetch_viewer_configurations_follow_card_subset_order(tmp_path):
+    root = tmp_path / "source"
+    prefix = root / "src/lexbench_webfetch/definitions"
+    (prefix / "webfetch").mkdir(parents=True)
+    # Register the later subset first so only the card order can restore it.
+    cases = [{"id": "doc", "track": "document", "url": "https://example.org/a.pdf"},
+             {"id": "page", "track": "web", "url": "https://example.org"}]
+    raw = json.dumps({"cases": cases}).encode()
+    (prefix / "webfetch/tasks.json").write_bytes(raw)
+    (prefix / "registry.json").write_text(json.dumps({"suites": [{
+        "id": "webfetch", "directory": "webfetch", "case_count": len(cases),
+        "files": {"tasks.json": hashlib.sha256(raw).hexdigest()}}]}))
+    for name in ["LICENSE", "NOTICE", "THIRD_PARTY.md"]:
+        (root / name).write_text("Retain this notice.\n")
+    git(root, "init", "-q")
+    git(root, "add", ".")
+    git(root, "commit", "-qm", "Fixture")
+
+    manifest = DatasetRelease.from_git(root, "webfetch", git(root, "rev-parse", "HEAD")).build(tmp_path / "out")
+
+    assert [row["config"] for row in manifest["viewer"]["configurations"]] == ["general-web", "embedded-documents"]
+    rows = [json.loads(line) for line in (tmp_path / "out/data/general-web.jsonl").read_text().splitlines()]
+    assert [row["benchmark_category"] for row in rows] == ["web"]

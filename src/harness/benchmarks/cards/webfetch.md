@@ -4,15 +4,24 @@ LexBench-Web-Fetch evaluates whether a browser, extraction tool or hosted fetch 
 
 Use it to compare live-site fetching, diagnose incomplete extraction, or test a saved response after changing a parser. [Browser Eval](https://github.com/lexmount/browser-eval) provides the scorer, execution adapters, evidence storage and comparison reports. Scoring saved answers requires no browser, provider account or LLM judge.
 
+## Dataset versions
+
+Choose a released dataset edition using the [version history and comparison
+rules](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch/blob/main/VERSIONING.md).
+The 430-task and 550-task populations have separate releases. Resolve the selected
+tag to a full HF commit and retain that commit with the scorer identity and input
+hashes. Historical definitions included in an archive do not expand the edition's
+active population.
+
 ## Benchmark categories
 
-The current benchmark has seven categories: general web content, dynamic websites, popular websites, access-restricted websites, embedded documents, media information and direct media files. These describe the task and its required output, rather than the directory or media format in the original catalog.
+The earlier 430-task edition has seven categories: general web content, dynamic websites, popular websites, access-restricted websites, embedded documents, media information and direct media files. The newer 550-task edition adds article tasks and two separately labeled groups of dynamic/challenge examples. Categories describe the task and its required output.
 
 {{dataset_summary}}
 
 The 100 general-web tasks are the baseline called “static websites” in the published comparison; that name does not mean every target is independent of JavaScript. Media-information tasks request links or page metadata; direct-media tasks require original file bytes. Images and videos can appear in either category. An access-restriction task tests delivery of its target content; a past restriction does not guarantee a challenge on every later request.
 
-The viewer contains the 430 current task entries. Versioned definitions also preserve the [100-task article extension](definitions/evaluation/articles/tasks.json) and 20 earlier dynamic/challenge examples in the [original mixed suite](definitions/evaluation/tasks.json). Those are separate scopes and are not added to the current benchmark denominator. Historical examples have different acceptance contracts; they are retained for reproduction rather than treated as extra current samples.
+The table above identifies this edition's active population. The 550-task edition includes the [100 article tasks](definitions/evaluation/articles/tasks.json) and 20 dynamic/challenge examples from the [original mixed suite](definitions/evaluation/tasks.json); the 430-task edition excludes them. Keep the example groups' distinct acceptance contracts visible. Definitions retained for reproduction do not add samples to an edition unless its viewer and population manifest select them.
 
 ## What counts as a pass
 
@@ -94,7 +103,7 @@ uv run --frozen lexbench-webfetch export \
   --output /absolute/path/new-input-directory
 ```
 
-The scorer's `--suite webfetch` exports the original mixed 150-task suite, including the 20 historical examples. To reproduce the current benchmark, select its 130 general-web, document and media task IDs plus the three current 100-task suites shown above. Select the article extension explicitly with `--suite articles`. Keep those populations separate. Export verifies the declared inputs before writing a new directory. See [reference inputs and access](https://github.com/lexmount/browser-eval/blob/main/docs/reference-inputs.md).
+The scorer's `--suite webfetch` exports the mixed 150-task suite, including 20 dynamic/challenge examples. For the 430-task edition, select its 130 general-web, document and media IDs plus the three 100-task suites. For the 550-task edition, select all 150 mixed tasks, those three suites and the 100 article tasks (`--suite articles`). Export verifies inputs before writing a new directory. See [reference inputs and access](https://github.com/lexmount/browser-eval/blob/main/docs/reference-inputs.md).
 
 Score a saved response using its complete task definition:
 

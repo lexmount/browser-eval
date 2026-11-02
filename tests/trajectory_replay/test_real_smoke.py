@@ -34,9 +34,9 @@ def test_real_browser_opens_public_page_and_extracts_heading(engine: str) -> Non
     client.images.get(ENGINE_IMAGES[engine])
     run_id = f"smoke-{uuid.uuid4().hex[:10]}"
     network = client.networks.create(
-        f"lex-browser-use-eval-{run_id}-{engine}",
+        f"lex-browser-eval-{run_id}-{engine}",
         driver="bridge",
-        labels={"lex.browser-use-eval.smoke": run_id},
+        labels={"lex.browser-eval.smoke": run_id},
     )
     containers = {}
     browsers = {}

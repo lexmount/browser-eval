@@ -7,11 +7,11 @@ from pathlib import Path
 from unittest.mock import patch
 
 from lexbench_webfetch.body_coverage import body_requirements, compact_ngrams, evaluate_body_requirements
-from harness.web_fetch.call_boundary import fetch_with_deadline, prepare_answer
+from harness.web_fetch.call_boundary import fetch_with_deadline, prepare_answer, worker_unresolved
 from lexbench_webfetch.metrics import evaluate_content, task_measured, task_passed
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
-from harness.web_fetch.providers.base import Provider
+from harness.web_fetch.providers.base import ProcessCleanupError, Provider
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.report import case_attrs, ranking, result_label
 from lexbench_webfetch.response_input import apply_request_status
@@ -341,6 +341,36 @@ class FairnessTests(unittest.TestCase):
         worker.join(.2)
         self.assertEqual(result.content,'')
         self.assertFalse(task_passed(True,{'content_pass':True,'deadline_overrun':True}))
+
+    def test_cleanup_failure_after_the_deadline_still_quarantines(self):
+        class Unkillable(Provider):
+            delay = 0
+
+            def fetch(self, case, timeout):
+                time.sleep(self.delay)
+                raise ProcessCleanupError('Worker process 1 is still running after a best-effort kill')
+
+        c = EvalCase('x','x','https://example.com','test',[])
+        # The failure arrives after fetch_with_deadline returned (no cleanup
+        # grace), and when its late result is consumed as a plain timeout.
+        for delay in (.1, 0):
+            with self.subTest(delay=delay):
+                provider = Unkillable('unkillable', {})
+                provider.delay = delay
+                result, worker = fetch_with_deadline(provider, c, .05 if delay else 0)
+                self.assertEqual(result.error_type, 'timeout')
+                worker.join(1)
+                self.assertFalse(worker.is_alive())
+                self.assertTrue(worker_unresolved(worker, timed_out=True))
+                self.assertTrue(worker_unresolved(worker, timed_out=False))
+
+        class Finished(Provider):
+            def fetch(self, case, timeout):
+                return ProviderResult(True, 'finished')
+
+        result, worker = fetch_with_deadline(Finished('finished', {}), c, 1)
+        worker.join(1)
+        self.assertFalse(worker_unresolved(worker, timed_out=False))
 
     def test_historical_file_missing_is_unmeasured_not_failed(self):
         c = {'id':'x','name':'x','url':'https://example.com','task_kind':'file','track':'image','category':'image'}

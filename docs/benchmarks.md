@@ -84,7 +84,7 @@ Select a new published edition through one command:
 make pin-dataset DATASET=webfetch REV=<full-Hugging-Face-commit>
 ```
 
-The same command selects the other dataset keys registered in the lock, including `websearch`, `simpleqa-verified`, `webmainbench`, `wcxb`, `trajectory-replay` and `webarena-replay`. The command verifies the release before updating the lock and applicable import bindings. Keep current-version selections in these files, not in README prose.
+The same command selects the other dataset keys registered in the lock, including `websearch`, `simpleqa-verified`, `webmainbench`, `wcxb`, `trajectory-replay` and `webarena-replay`. The command rejects a commit that is not on the dataset's `main` history, such as an unmerged Hugging Face pull-request ref or a force-pushed commit, and verifies the release before updating the lock and applicable import bindings. It reads the history through `HF_ENDPOINT` with optional `HF_TOKEN`. Keep current-version selections in these files, not in README prose.
 
 Author dataset changes in a checkout of the corresponding Hugging Face dataset. Commit the definitions and materialize any Git LFS files, then use `uv run --frozen python -m harness.benchmarks.publication --help` to build the inspected commit. `--create-pr HF_REPOSITORY` opens a Hugging Face pull request for review; it does not update dataset main or create a release tag. Install the optional `dataset-publish` extra and authenticate with `HF_TOKEN` for uploads; readers need no token. Preserve upstream attribution and redistribution terms. Scores, provider responses, model grades and private run directories do not belong in a dataset release.
 
@@ -93,6 +93,11 @@ formal dataset release, assign a `vMAJOR.MINOR.PATCH` tag in that dataset reposi
 and retain its exact target commit. Preserve existing historical tags and never
 move a published tag. Dataset version numbers are independent of Browser Eval's
 software version; an ordinary commit does not require a new release number.
+Keep the dataset's version history and increment/comparison rules in its own
+`VERSIONING.md` and link it from the dataset card. The publisher preserves this
+committed policy when rebuilding a source or Hub snapshot; uncommitted edits do
+not enter the release. Web Fetch's 430-task and 550-task populations require
+separate major series; equal counts alone do not identify a historical edition.
 Update Browser Eval's data lock and import bindings in a GitHub PR using the
 reviewed full HF commit. Neither a dataset merge nor a moved branch updates
 existing runs or the selected input version automatically.

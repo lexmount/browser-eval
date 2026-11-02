@@ -1,6 +1,7 @@
 """Published viewers retain task hierarchy and evidence-based language labels."""
 import hashlib
 import json
+import subprocess
 import tarfile
 from dataclasses import replace
 
@@ -33,13 +34,14 @@ def metadata(output):
 
 def test_fetch_viewer_exposes_original_hierarchy_without_changing_execution_inputs(tmp_path):
     tracks = ["web", "document", "image", "video", "challenge", "dynamic"]
-    names = ["general-web", "embedded-documents", "media-information", "media-information"]
+    names = ["general-web", "embedded-documents", "media-information", "media-information",
+             "challenge-examples", "dynamic-examples"]
     cases = [{"id": f"original-{track}", "track": track, "category": f"specific_{track}",
               "url": "https://example.test", "language": "en"} for track in tracks]
     source = release("webfetch", cases, identity="webfetch")
     manifest = source.build(tmp_path)
     assert {item["config_name"] for item in metadata(tmp_path)["configs"]} == set(names)
-    for track, name, case in zip(tracks[:4], names, cases[:4]):
+    for track, name, case in zip(tracks, names, cases):
         row, = [row for row in exported_rows(tmp_path, name) if row['track'] == track]
         assert (row["id"], row["source_suite"], row["track"], row["category"]) == (
             case["id"], "webfetch", track, case["category"])
@@ -154,27 +156,48 @@ def full_fetch_release():
     return DatasetRelease('webfetch', '1' * 40, files, language_annotations={}), sources
 
 
-def test_current_fetch_viewer_has_seven_contract_categories_and_keeps_all_raw_inputs(tmp_path):
+@pytest.mark.parametrize('historical', [False, True])
+def test_fetch_editions_select_exact_populations_and_keep_all_raw_inputs(tmp_path, historical):
     source, originals = full_fetch_release()
+    if historical:
+        source = replace(source, viewer_filters={
+            'viewer_exclude_datasets': ['articles'],
+            'viewer_exclude_tracks': {'webfetch': ['challenge', 'dynamic']}})
     manifest = source.build(tmp_path)
     expected = {'general-web': 100, 'dynamic-sites': 100, 'popular-sites': 100,
                 'access-restrictions': 100, 'embedded-documents': 10,
                 'media-information': 17, 'direct-media-files': 3}
+    if not historical:
+        expected.update(articles=100, **{'dynamic-examples': 10, 'challenge-examples': 10})
     assert {row['config']: row['count'] for row in manifest['viewer']['configurations']} == expected
     assert [row['config'] for row in manifest['viewer']['configurations']] == list(expected)
     assert [row['config_name'] for row in metadata(tmp_path)['configs']] == list(expected)
     rows = [row for name in expected for row in exported_rows(tmp_path, name)]
     primary = {case['id']: case for identity, cases in originals.items() for case in cases
-               if identity != 'articles' and not (identity == 'webfetch' and case['track'] in {'challenge', 'dynamic'})}
+               if not historical or (identity != 'articles' and not (identity == 'webfetch' and case['track'] in {'challenge', 'dynamic'}))}
     assert {row['id'] for row in rows} == set(primary)
-    assert len(rows) == len(primary) == 430
+    assert len(rows) == len(primary) == (430 if historical else 550)
     assert all(json.loads(row['task']) == primary[row['id']] for row in rows)
     assert {row['benchmark_category'] for row in exported_rows(tmp_path, 'media-information')} == {'web_media'}
     assert {row['benchmark_category'] for row in exported_rows(tmp_path, 'direct-media-files')} == {'media_file'}
     assert sum(binding['count'] for binding in manifest['datasets'].values()) == 550
-    assert not (tmp_path / 'data/articles.jsonl').exists()
+    assert (tmp_path / 'data/articles.jsonl').exists() is (not historical)
     with tarfile.open(tmp_path / 'definitions.tar.gz') as archive:
         assert {entry.name: archive.extractfile(entry).read() for entry in archive} == source.files
+    def git(*args):
+        return subprocess.check_output(['git', '-C', str(tmp_path), '-c', 'user.name=Fixture',
+            '-c', 'user.email=fixture@example.org', *args], text=True).strip()
+    git('init', '-q')
+    git('add', '.')
+    git('commit', '-qm', 'Freeze dataset population')
+    revision = git('rev-parse', 'HEAD')
+    dirty = json.loads((tmp_path / 'manifest.json').read_bytes())
+    dirty['viewer_filters'] = {} if historical else {
+        'viewer_exclude_datasets': ['articles'],
+        'viewer_exclude_tracks': {'webfetch': ['challenge', 'dynamic']}}
+    (tmp_path / 'manifest.json').write_text(json.dumps(dirty))
+    rebuilt = DatasetRelease.from_git(tmp_path, 'webfetch', revision).build(tmp_path / 'rebuilt')
+    assert {row['config']: row['count'] for row in rebuilt['viewer']['configurations']} == expected
 
 
 def test_unknown_current_fetch_category_is_rejected(tmp_path):
