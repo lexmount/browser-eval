@@ -565,6 +565,25 @@ def test_whole_parameter_group_never_keeps_a_regression_from_the_old_group(after
         _parameter_group_decisions(inputs, {keys[0]:candidates[keys[0]]})
 
 
+@pytest.mark.parametrize('before,after,expected', [([True, False], [False, True], False),
+                                                  ([False, True], [True, False], True)])
+def test_excluded_supplements_cannot_choose_parameter_winner(before, after, expected):
+    from harness.web_fetch.report_saved_matrix import _parameter_group_decisions
+    keys = [('main', 'method', 'a'), ('base', 'method', 'b')]
+    def saved(passed):
+        return (None, {'ok': True, 'metrics': {'content_pass': passed, 'request_ok': True}}, None, None)
+    inputs = {'revision': None, 'cases': {'main': {'a': {'track': 'dynamic'}},
+                                         'base': {'b': {'track': 'dynamic'}}},
+              'spec': {'excluded_report_families': ['base-dynamic'], 'report_families': [
+                  {'id': 'dynamic', 'source_suites': ['main']},
+                  {'id': 'base-dynamic', 'task_family': 'dynamic', 'source_suites': ['base']}]},
+              'selected': {key: saved(value) for key, value in zip(keys, before)}}
+    decisions = _parameter_group_decisions(inputs, {key: saved(value) for key, value in zip(keys, after)})
+    assert set(decisions) == {keys[0]}
+    assert decisions[keys[0]]['count'] == 1
+    assert decisions[keys[0]]['selected_new'] is expected
+
+
 @pytest.mark.parametrize('final_pass', [False, True])
 def test_parameter_candidate_view_retains_a_separately_completed_retry(tmp_path, final_pass, monkeypatch):
     monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
