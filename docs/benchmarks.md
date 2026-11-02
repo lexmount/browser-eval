@@ -93,6 +93,11 @@ formal dataset release, assign a `vMAJOR.MINOR.PATCH` tag in that dataset reposi
 and retain its exact target commit. Preserve existing historical tags and never
 move a published tag. Dataset version numbers are independent of Browser Eval's
 software version; an ordinary commit does not require a new release number.
+Keep the dataset's version history and increment/comparison rules in its own
+`VERSIONING.md` and link it from the dataset card. The publisher preserves this
+committed policy when rebuilding a source or Hub snapshot; uncommitted edits do
+not enter the release. Web Fetch's 430-task and 550-task populations require
+separate major series; equal counts alone do not identify a historical edition.
 Update Browser Eval's data lock and import bindings in a GitHub PR using the
 reviewed full HF commit. Neither a dataset merge nor a moved branch updates
 existing runs or the selected input version automatically.

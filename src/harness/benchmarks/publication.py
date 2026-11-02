@@ -146,6 +146,7 @@ class DatasetRelease:
     external_sources: dict | None = None
     scorer: dict | None = None
     default_dataset: str | None = None
+    viewer_filters: dict | None = None
 
     @classmethod
     def from_git(cls, checkout: Path, track: str, revision: str) -> DatasetRelease:
@@ -183,7 +184,7 @@ class DatasetRelease:
             prefix = prefixes[0]
         notices = subprocess.check_output(
             ["git", "ls-tree", "--name-only", revision, "--", "LICENSE", "NOTICE",
-             "THIRD_PARTY.md", "THIRD_PARTY_NOTICES.md"], cwd=checkout, text=True).splitlines()
+             "THIRD_PARTY.md", "THIRD_PARTY_NOTICES.md", "VERSIONING.md"], cwd=checkout, text=True).splitlines()
         files = {}
         for original_name, content in _git_blobs(checkout, revision, (prefix, *notices)).items():
             name = "definitions/" + original_name[len(prefix):] if original_name.startswith(prefix) else original_name
@@ -203,9 +204,22 @@ class DatasetRelease:
             files[name] = content
         repository = "https://huggingface.co/datasets/" + registered[track]["repo_id"] if hub else None
         settings = identity if hub else json.loads(files['definitions/registry.json'])
+        filters = identity.get('viewer_filters') if hub else None
+        if filters is not None and (not isinstance(filters, dict) or set(filters) - {
+                'viewer_exclude_datasets', 'viewer_exclude_tracks'}):
+            raise ValueError('Invalid committed viewer filters')
+        if filters is not None:
+            excluded = filters.get('viewer_exclude_datasets', [])
+            tracks = filters.get('viewer_exclude_tracks', {})
+            if (not isinstance(excluded, list) or any(not isinstance(x, str) or not x for x in excluded)
+                    or not isinstance(tracks, dict)
+                    or any(not isinstance(k, str) or not k or not isinstance(v, list)
+                           or any(not isinstance(x, str) or not x for x in v) for k, v in tracks.items())):
+                raise ValueError('Invalid committed viewer filters')
         return cls(track, revision, files, repository,
                    external_sources=identity.get("external_sources") if hub else None,
-                   scorer=settings.get('scorer'), default_dataset=settings.get('default_dataset'))
+                   scorer=settings.get('scorer'), default_dataset=settings.get('default_dataset'),
+                   viewer_filters=filters)
 
     def runtime_settings(self) -> dict:
         """Publish the execution choices bound to this dataset edition."""
@@ -330,7 +344,8 @@ class DatasetRelease:
             if not selected or not selected.issubset(datasets):
                 raise ValueError("Unknown current viewer dataset")
         selected -= set(metadata.get("external_datasets", {}))
-        selected -= set(metadata.get("viewer_exclude_datasets", []))
+        filters = metadata if self.viewer_filters is None else self.viewer_filters
+        selected -= set(filters.get("viewer_exclude_datasets", []))
         return selected
 
     def build(self, output: Path, *, selections: dict | None = None) -> dict:
@@ -360,6 +375,7 @@ class DatasetRelease:
         metadata = json.loads((CARDS / "metadata.json").read_bytes())[self.track]
         derived = {field: _derived_field(reference)
                    for field, reference in metadata.get("derived_fields", {}).items()}
+        filters = metadata if self.viewer_filters is None else self.viewer_filters
         annotations = self.language_annotations
         if annotations is None:
             annotations = json.loads((CARDS / "languages.json").read_bytes()).get(self.track, {})
@@ -368,7 +384,7 @@ class DatasetRelease:
             groups = {}
             partition = metadata.get("partitions", {}).get(identity)
             for case in cases:
-                if case.get('track') in metadata.get('viewer_exclude_tracks', {}).get(identity, []):
+                if case.get('track') in filters.get('viewer_exclude_tracks', {}).get(identity, []):
                     continue
                 case_id = case[identity_field]
                 annotation = annotations.get(identity, {}).get(case_id)
@@ -431,6 +447,9 @@ class DatasetRelease:
             "files": {name: {"sha256": digest(raw), "size": len(raw)} for name, raw in sorted(files.items())},
         }
         manifest.update(settings)
+        manifest['viewer_filters'] = {
+            key: filters.get(key, default) for key, default in
+            [('viewer_exclude_datasets', []), ('viewer_exclude_tracks', {})]}
         if external:
             manifest["external_sources"] = context
             manifest["dataset_sources"] = {
