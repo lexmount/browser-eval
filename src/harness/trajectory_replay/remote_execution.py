@@ -269,7 +269,8 @@ def _wait_cdp(endpoint: str, process: subprocess.Popen) -> None:
                 if response.status == 200:
                     return
         except OSError:
-            time.sleep(0.1)
+            pass
+        time.sleep(0.1)
     raise TimeoutError("browser CDP did not become ready")
 
 

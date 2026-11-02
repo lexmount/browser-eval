@@ -11,7 +11,7 @@ import traceback
 import urllib.parse
 import urllib.request
 import uuid
-from functools import partial
+from functools import cache, partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
@@ -37,7 +37,13 @@ from harness.trajectory_replay.suite import BrowserTask, load_suite, validate_gr
 from harness.web_fetch.safety import unlinked_path
 
 ENGINE_IMAGES = configured_browser_images()
-ENCODING = tiktoken.get_encoding("o200k_base")
+
+
+@cache
+def _encoding() -> tiktoken.Encoding:
+    # Loaded on first use: get_encoding may download the BPE file, which must
+    # not happen merely by importing the runner (for example for CLI --help).
+    return tiktoken.get_encoding("o200k_base")
 
 
 def _http_origin(url: str) -> str | None:
@@ -205,7 +211,7 @@ def _run_task(
         "process_status": "pass" if process_passed else "fail",
         "combined_status": "pass" if result_passed and process_passed else "fail",
         "duration_ms": round(duration_ms, 3),
-        "tool_output_tokens": sum(len(ENCODING.encode(value)) for value in outputs.values()),
+        "tool_output_tokens": sum(len(_encoding().encode(value)) for value in outputs.values()),
         "output_chars": sum(len(value) for value in outputs.values()),
         "error": error,
         "trace": trace,

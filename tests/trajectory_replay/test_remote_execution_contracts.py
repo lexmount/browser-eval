@@ -15,6 +15,7 @@ from harness.trajectory_replay.remote_execution import (
     _read_retrieval_contract,
     _task_type,
     _verify_result_evidence,
+    _wait_cdp,
 )
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
 from harness.trajectory_replay.webarena_replay import _json_sha256
@@ -314,3 +315,28 @@ def test_formal_evidence_boundary_rejects_missing_or_changed_files(tmp_path: Pat
     trace.symlink_to(tmp_path / "missing.json")
     with pytest.raises(ValueError, match="evidence hash changed"):
         _verify_result_evidence(tmp_path, rows)
+
+
+def test_wait_cdp_pauses_between_non_ready_responses(monkeypatch) -> None:
+    class Response:
+        status = 204
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc):
+            return False
+
+    sleeps: list[float] = []
+    monkeypatch.setattr(
+        "harness.trajectory_replay.remote_execution.urllib.request.urlopen",
+        lambda *_args, **_kwargs: Response(),
+    )
+    monkeypatch.setattr(
+        "harness.trajectory_replay.remote_execution.time.sleep", sleeps.append
+    )
+
+    with pytest.raises(TimeoutError, match="CDP did not become ready"):
+        _wait_cdp("http://127.0.0.1:9", SimpleNamespace(poll=lambda: None))
+
+    assert sleeps == [0.1] * 300

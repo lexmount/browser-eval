@@ -585,6 +585,11 @@ class RainbondSlicePool:
                     if 200 <= response.status < 500:
                         return
                     last_error = f"HTTP {response.status}"
+            except urllib.error.HTTPError as exc:
+                # urlopen raises for 4xx/5xx; an application answering 4xx is up.
+                if 200 <= exc.code < 500:
+                    return
+                last_error = f"HTTP {exc.code}"
             except (OSError, urllib.error.URLError) as exc:
                 last_error = str(exc)
             self.sleep(5)
