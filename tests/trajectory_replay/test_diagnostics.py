@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import json
+import os
 from urllib.error import URLError
 
 import pytest
 
 from harness.trajectory_replay import diagnostics
 from harness.trajectory_replay.diagnostics import build_failure_groups, classify_failure
+from harness.trajectory_replay.public_webarena import diagnostics as public_diagnostics
+from harness.web_fetch import config as web_fetch_config
 
 
 @pytest.mark.parametrize(
@@ -34,11 +37,37 @@ def test_optional_llm_errors_preserve_rules_and_scores(monkeypatch, error):
     assert diagnosis["llm"]["affects_scoring"] is False
 
 
-def test_missing_llm_credentials_are_nonfatal(monkeypatch):
+def test_missing_llm_credentials_are_nonfatal(monkeypatch, tmp_path):
     for name in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_API_BASE"):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(web_fetch_config, "ROOT", tmp_path)
     summary = diagnostics.diagnose_summary({}, use_llm=True)
     assert summary["failure_diagnostics"]["llm"]["error_type"] == "RuntimeError"
+
+
+@pytest.mark.parametrize("module", [diagnostics, public_diagnostics])
+def test_llm_credentials_come_only_from_repository_env(module, monkeypatch, tmp_path):
+    monkeypatch.setenv("OPENAI_API_KEY", "shell-key")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://shell.invalid")
+    monkeypatch.setenv("BROWSERBASE_API_KEY", "unrelated-shell-key")
+    monkeypatch.setattr(web_fetch_config, "ROOT", tmp_path)
+    calls = []
+    monkeypatch.setattr(
+        module, "add_llm_diagnoses", lambda groups, **kwargs: calls.append(kwargs) or {}
+    )
+
+    summary = module.diagnose_summary({}, use_llm=True)
+    assert calls == []
+    assert summary["failure_diagnostics"]["llm"]["error_type"] == "RuntimeError"
+
+    (tmp_path / ".env").write_text(
+        "OPENAI_API_KEY=repository-key\nOPENAI_BASE_URL=https://models.invalid\n"
+    )
+    module.diagnose_summary({}, use_llm=True)
+    assert calls[0]["api_key"] == "repository-key"
+    assert calls[0]["api_base"] == "https://models.invalid"
+    assert os.environ["OPENAI_API_KEY"] == "shell-key"
+    assert os.environ["BROWSERBASE_API_KEY"] == "unrelated-shell-key"
 
 
 def test_rule_diagnosis_extracts_failed_tool_call_and_selector():

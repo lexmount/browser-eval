@@ -7,8 +7,11 @@ from http.client import IncompleteRead
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from harness.web_fetch.publication_verify import (
     download_export,
+    main,
     verify_metadata,
     verify_public_files,
 )
@@ -199,3 +202,29 @@ class PublicationVerifyTests(unittest.TestCase):
             version,path=download_export('request',Path(temp))
             self.assertEqual(version,'ver_first')
             self.assertEqual(path.read_bytes(),b'archive')
+
+
+def _run_verify(profile, *extra, env=None):
+    argv = ['verify', '--slug', 'site-one', '--profile', str(profile), *extra]
+    with patch('sys.argv', argv), patch.dict('os.environ', env or {}), \
+            patch('harness.web_fetch.publication_verify.load_token',
+                  side_effect=AssertionError('must not load a credential')):
+        main()
+
+
+def test_verification_never_sends_a_token_outside_the_bound_host(tmp_path, monkeypatch):
+    monkeypatch.delenv('ARTIFACT_SITE_BASE_URL', raising=False)
+    flat = tmp_path / 'flat.json'
+    flat.write_text(json.dumps({'artifact_hub_base_url': 'https://reports.example'}))
+    nested = tmp_path / 'nested.json'
+    nested.write_text(json.dumps({'publication': {'base_url': 'https://reports.example'}}))
+    for profile in (flat, nested):
+        with pytest.raises(ValueError, match='differs from the bound profile'):
+            _run_verify(profile, '--export', '--base-url', 'https://attacker.example')
+        with pytest.raises(ValueError, match='differs from the bound profile'):
+            _run_verify(profile, '--export',
+                        env={'ARTIFACT_SITE_BASE_URL': 'https://attacker.example'})
+    unbound = tmp_path / 'unbound.json'
+    unbound.write_text('{}')
+    with pytest.raises(ValueError, match='explicit HTTPS base URL'):
+        _run_verify(unbound, '--export')

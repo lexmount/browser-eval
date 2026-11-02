@@ -46,7 +46,7 @@ def test_staged_file_put_has_longer_socket_timeout() -> None:
 
 
 def test_public_share_must_be_same_origin_and_token_route() -> None:
-    base = "https://artifact-hub.app.lexmount.com"
+    base = "https://reports.example"
     assert publisher.public_share_context(base, base + "/v/token")[0] == "/v/token"
     assert publisher.public_share_context(base, base + "/v/token") == (
         "/v/token",

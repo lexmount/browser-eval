@@ -1,4 +1,4 @@
-"""Artifact Hub large-bundle transport; credentials remain with the caller."""
+"""Artifact Site large-bundle transport; credentials remain with the caller."""
 
 import hashlib
 import io

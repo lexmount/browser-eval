@@ -13,6 +13,7 @@ from harness.browser_use.runner import (
     _exhausted_agent_steps,
     _limit_cowagent_transport_retries,
     _load_completed_attempts,
+    _load_repo_env,
     _max_steps_response,
     _retry_required,
     _run_attempt,
@@ -1403,3 +1404,19 @@ def test_failed_attempt_records_har_and_trace_stop_errors(monkeypatch, tmp_path:
     row = _run_attempt_locked(**kwargs, cowagent_repo=tmp_path, output_dir=tmp_path / "out")
 
     assert row["cleanup_errors"] == ["HAR/trace stop failed: trace file locked"]
+
+
+def test_provider_credentials_come_only_from_the_repository_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "shell-key")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://shell.invalid")
+    monkeypatch.setenv("COWAGENT_REPO", "/explicit/cowagent")
+    assert _load_repo_env(tmp_path) == {"COWAGENT_REPO": "/explicit/cowagent"}
+
+    (tmp_path / ".env").write_text(
+        "OPENAI_API_KEY=repository-key\nOPENAI_BASE_URL=https://models.invalid\n"
+    )
+    assert _load_repo_env(tmp_path) == {
+        "OPENAI_API_KEY": "repository-key",
+        "OPENAI_BASE_URL": "https://models.invalid",
+        "COWAGENT_REPO": "/explicit/cowagent",
+    }

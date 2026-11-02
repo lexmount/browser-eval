@@ -68,16 +68,15 @@ SCHEMA = "lex_browser_use_attempt/1"
 
 
 def _load_repo_env(repo_root: Path) -> dict[str, str]:
-    """Load repository defaults, with explicit process overrides for automation."""
+    """Load the repository .env; only the non-secret CowAgent path may come from the process."""
     env_file = repo_root / ".env"
     values = (
         {str(key): str(value) for key, value in dotenv_values(env_file).items() if value}
         if env_file.exists()
         else {}
     )
-    for key in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "COWAGENT_REPO"):
-        if os.environ.get(key):
-            values[key] = os.environ[key]
+    if os.environ.get("COWAGENT_REPO"):
+        values["COWAGENT_REPO"] = os.environ["COWAGENT_REPO"]
     return values
 
 

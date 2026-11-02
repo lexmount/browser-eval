@@ -10,6 +10,7 @@ from harness.trajectory_replay.public_webarena.diagnostics import (
     build_failure_groups,
     classify_failure,
 )
+from harness.web_fetch import config as web_fetch_config
 
 
 @pytest.mark.parametrize(
@@ -37,9 +38,10 @@ def test_optional_llm_errors_preserve_rules_and_scores(monkeypatch, error):
     assert diagnosis["llm"]["affects_scoring"] is False
 
 
-def test_missing_llm_credentials_are_nonfatal(monkeypatch):
+def test_missing_llm_credentials_are_nonfatal(monkeypatch, tmp_path):
     for name in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "OPENAI_API_BASE"):
         monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(web_fetch_config, "ROOT", tmp_path)
     summary = diagnostics.diagnose_summary({}, use_llm=True)
     assert summary["failure_diagnostics"]["llm"]["error_type"] == "RuntimeError"
 
