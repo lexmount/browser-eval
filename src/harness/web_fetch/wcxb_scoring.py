@@ -20,6 +20,7 @@ from lexbench_webfetch.paths import contained_path, safe_identifier
 
 from harness.record_io import parse_jsonl
 from harness.reporting.publication import atomic_create, json_bytes
+from harness.web_fetch import wcxb_metrics
 from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.web_fetch.wcxb_dataset import validate_manifest
 from harness.web_fetch.wcxb_latency import load_full_paired_latency
@@ -61,12 +62,16 @@ def metric_module_digest(source: bytes) -> str:
 def metric_implementation_binding(profile: dict, *, read=None, certificate=None, summary=None, receipt=None) -> str:
     """Bind the metric module while retaining the upstream provenance ID.
 
+    The digest covers the module bytes, so scoring must also call that module's
+    functions rather than a local definition, wrapper or redirected import.
     Frozen evidence may name a superseded digest. The authority maps each one to
     the module digest it represents, so it verifies only while that code is current.
     """
     upstream = profile.get('official_evaluator_sha256')
     if upstream != UPSTREAM_EVALUATOR_SHA256:
         raise ValueError('WCXB profile names unsupported official metric provenance')
+    if word_f1 is not wcxb_metrics.word_f1 or snippet_check is not wcxb_metrics.snippet_check:
+        raise ValueError('WCXB metric implementation binding mismatch')
     read = read or Path.read_bytes
     try:
         actual = metric_module_digest(read(METRIC_MODULE))

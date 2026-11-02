@@ -60,6 +60,20 @@ def metric_source() -> bytes:
     return scoring.METRIC_MODULE.read_bytes()
 
 
+def test_changed_word_metric_rejects_legacy_profile(cohort, monkeypatch):
+    def changed_word_metric(predicted, reference):
+        return 0., 0., 0.
+    monkeypatch.setattr(scoring, 'word_f1', changed_word_metric)
+    assert_rejected(cohort)
+
+
+def test_changed_snippet_metric_rejects_legacy_profile(cohort, monkeypatch):
+    def changed_snippet_metric(text, snippets):
+        return 0.
+    monkeypatch.setattr(scoring, 'snippet_check', changed_snippet_metric)
+    assert_rejected(cohort)
+
+
 @pytest.mark.parametrize('old,new', [
     (b'\\w+', b'\\S+'),
     (b'.lower())\n    reference_words', b')\n    reference_words'),
