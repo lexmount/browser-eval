@@ -529,7 +529,9 @@ def _load_saved_matrix(spec_path):
         if len(set(baseline_keys)) != len(baseline_keys) or set(baseline_keys) != expected:
             raise ValueError('Completion baseline population differs from the complete report')
         for row, key in zip(baseline['rows'], baseline_keys):
-            if key not in completed and not row.get('called') and key in selected and _called(selected[key][1]):
+            now_called = (_called(selected[key][1]) if key in selected
+                          else missing[key][0]['status'] == 'uncommitted')
+            if key not in completed and not row.get('called') and now_called:
                 raise ValueError('Completion fills an undeclared position')
     return dict(spec=spec, sources=sources, providers=providers, suites=suites, cases=cases,
                 selected=selected, historical=historical, continuations=continuations,
@@ -780,15 +782,13 @@ def _validate_completion_retention(inputs, candidates):
                                       audit['files'][relative]))
         for row in _json(matrix_path)['rows']:
             key = row['suite'], row['provider'], row['case_id']
-            if key in completed:
-                continue
             original_case = inputs['cases'][key[0]][key[2]]
             allowed_cases = [original_case]
             if inputs['revision']:
                 allowed_cases.append(inputs['revision']['cases'].get((key[0], key[2]), original_case))
             if _case_identity(evidence(row['case_path'])) not in [_case_identity(c) for c in allowed_cases]:
                 raise ValueError('Completion changed an undeclared task')
-            if not row.get('record_path'):
+            if key in completed or not row.get('record_path'):
                 continue
             previous = call_identity(evidence(row['record_path']))
             allowed = [inputs['selected'][key][1]] if key in inputs['selected'] else []

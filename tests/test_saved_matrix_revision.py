@@ -110,7 +110,7 @@ def test_revision_rejects_different_frozen_call_even_with_rebound_source(tmp_pat
 
 
 @pytest.mark.parametrize('defect', [None, 'already_called', 'before_contract',
-                                  'early_first_call', 'duplicate', 'incomplete', 'undeclared', 'extra_baseline', 'retained_call', 'retained_task'])
+                                  'early_first_call', 'duplicate', 'incomplete', 'undeclared', 'extra_baseline', 'retained_call', 'retained_task', 'completed_task', 'extra_uncommitted'])
 @pytest.mark.parametrize('contract_form', ['single', 'multiple'])
 def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_form):
     spec, source, revision = revision_fixture(tmp_path, uncalled=True)
@@ -140,9 +140,21 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_
     if defect == 'duplicate':
         contract['jobs'][0]['case_ids'] = ['later', 'later']
         contract['cases'] = 2
-    if defect in {'retained_call', 'retained_task'}:
+    if defect == 'extra_uncommitted':
         old = json.loads(Path(baseline['path']).read_text())
-        relative = old['rows'][0]['record_path' if defect == 'retained_call' else 'case_path']
+        old['rows'][0].update(called=False, status='not_called', record_path=None)
+        baseline = write(tmp_path/'baseline-matrix.json', old)
+        spec['sources'] = spec['sources'][1:]
+        spec.pop('offline_revision')
+        spec['missing'] = [{'suite': 'first', 'provider': 'method', 'case_id': 'same',
+                            'status': 'uncommitted', 'reason': 'Collection failed',
+                            'receipt': write(tmp_path/'uncommitted.json', {
+                                'suite': 'first', 'provider': 'method', 'case_id': 'same',
+                                'state': 'called_but_uncommitted', 'elapsed_ms': None})}]
+    if defect in {'retained_call', 'retained_task', 'completed_task'}:
+        old = json.loads(Path(baseline['path']).read_text())
+        relative = old['rows'][1 if defect == 'completed_task' else 0][
+            'record_path' if defect == 'retained_call' else 'case_path']
         path = revision/relative
         altered = json.loads(path.read_text())
         altered['elapsed_ms' if defect == 'retained_call' else 'url'] = 999 if defect == 'retained_call' else 'https://different.example/'
@@ -174,7 +186,9 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_
                                {('first', 'method', 'later'): (source, record, b'', source/'completion.jsonl')})
         return
     if defect:
-        with pytest.raises(ValueError):
+        message = {'extra_uncommitted': 'undeclared position',
+                   'completed_task': 'undeclared task'}.get(defect)
+        with pytest.raises(ValueError, match=message):
             build_saved_matrix(tmp_path/'spec.json', tmp_path/'completed')
         return
     output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'completed').parent
