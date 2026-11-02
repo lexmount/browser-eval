@@ -147,7 +147,34 @@ class _SourceBindings:
             raise ValueError('Evidence requires a nonempty SHA-256 digest')
         return self.bind(value['path'], digest)
 
-def _saved_revision(spec, sources, cases, selected):
+def _completed_missing(spec, sources, selected):
+    """Bind new calls to an exact, previously uncalled population."""
+    config = spec.get('completion')
+    if not config:
+        return set()
+    baseline = _json(sources.binding(config['baseline_matrix']))
+    contract = _json(sources.binding(config['contract']))
+    declared = [(job['suite'], contract['provider'], cid)
+                for job in contract['jobs'] for cid in job['case_ids']]
+    if len(set(declared)) != len(declared) or len(declared) != contract['cases']:
+        raise ValueError('Completion contract has duplicate or inconsistent scope')
+    before = {(r['suite'], r['provider'], r['case_id']): r for r in baseline['rows']}
+    started = datetime.fromisoformat(contract['created_at'])
+    for key in declared:
+        old = before.get(key, {})
+        if old.get('status') != 'not_called' or old.get('called') is not False or old.get('record_path'):
+            raise ValueError('Completion must fill a previously uncalled position')
+        if key not in selected:
+            raise ValueError('Completion requires every declared result')
+        record = selected[key][1]
+        attempts = record.get('provider_metadata', {}).get('retry', {}).get('attempts', [])
+        if any(datetime.fromisoformat(call['started_at']) < started
+               for call in [record, *attempts]):
+            raise ValueError('Completion call predates its contract')
+    return set(declared)
+
+
+def _saved_revision(spec, sources, cases, selected, completed=()):
     """Bind an offline revision to exactly the original matrix and call evidence."""
     if not spec.get('offline_revision'):
         return None
@@ -203,6 +230,16 @@ def _saved_revision(spec, sources, cases, selected):
     for key, (_, raw, _, _) in selected.items():
         suite, provider, cid = key
         attempt = suite+'--'+raw['attempt_id']
+        if key in completed:
+            if attempt in originals:
+                raise ValueError('Completion cannot replace a frozen revision call')
+            current_case = deepcopy(revised_cases[suite+'--'+cid])
+            current_case['id'] = cid
+            current_case.pop('report_family', None)
+            current_case.pop('report_family_label', None)
+            if _case_identity(cases[suite][cid]) != _case_identity(current_case):
+                raise ValueError('Completion task differs from revised task')
+            continue
         expected_attempts.add(attempt)
         prefix = f'evidence/{suite}/{provider}/{cid}/'
         public_paths = {path for path, _ in artifact_bindings(raw)}
@@ -444,11 +481,12 @@ def _load_saved_matrix(spec_path):
             raise ValueError('Superseded result requires a current call or explicit uncommitted call')
     if set(selected) | set(missing) != expected:
         raise ValueError('Unexplained missing matrix cells')
+    completed = _completed_missing(spec, sources, selected)
     return dict(spec=spec, sources=sources, providers=providers, suites=suites, cases=cases,
                 selected=selected, historical=historical, continuations=continuations,
                 missing=missing, replacement_scope=replacement_scope,
                 replacement_cells=cells if replacement_scope else [],
-                revision=_saved_revision(spec, sources, cases, selected))
+                revision=_saved_revision(spec, sources, cases, selected, completed))
 
 
 def _parameter_reruns(inputs):

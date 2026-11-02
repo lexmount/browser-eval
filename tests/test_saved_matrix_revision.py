@@ -12,11 +12,20 @@ from lexbench_webfetch.scoring import score_attempt
 from tests.test_saved_matrix_evidence import fixture, write
 
 
-def revision_fixture(tmp_path, *, multiple=False):
+def revision_fixture(tmp_path, *, multiple=False, uncalled=False):
     spec, source, row, _ = fixture(tmp_path)
     case = json.loads((source/'dataset.json').read_text())['cases'][0]
     case['required_facts'] = [{'id':'shell', 'alternatives':['Subscribe']}]
     spec['suites'][0]['dataset'] = write(source/'dataset.json', {'cases':[case]})
+    if uncalled:
+        extra = {**deepcopy(case), 'id': 'later', 'required_facts': []}
+        spec['suites'][0]['dataset'] = write(source/'dataset.json', {'cases': [case, extra]})
+        receipt = write(tmp_path/'missing.json', {'blocked_cases': [
+            {'suite': 'first', 'provider': 'method', 'case_id': 'later',
+             'state': 'pre_call_blocked_no_method_calls',
+             'native_route_receipt': {'transport_state': 'not_started'}}]})
+        spec['missing'] = [{'suite': 'first', 'provider': 'method', 'case_id': 'later',
+                            'status': 'not_called', 'reason': 'DNS unavailable', 'receipt': receipt}]
     row['metrics'] = score_attempt(case, b'answer', ok=True)
     (source/'results.jsonl').write_text(json.dumps(row)+'\n')
     spec['sources'][0]['results']['sha256'] = hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()
@@ -98,3 +107,54 @@ def test_revision_rejects_different_frozen_call_even_with_rebound_source(tmp_pat
     write(tmp_path/'spec.json', spec)
     with pytest.raises(ValueError, match='predecessor result differs'):
         build_saved_matrix(tmp_path/'spec.json', tmp_path/'revised')
+
+
+@pytest.mark.parametrize('defect', [None, 'already_called', 'before_contract',
+                                  'early_first_call', 'duplicate', 'incomplete', 'undeclared'])
+def test_completion_preserves_frozen_offline_history(tmp_path, defect):
+    spec, source, revision = revision_fixture(tmp_path, uncalled=True)
+    baseline = write(tmp_path/'baseline-matrix.json', json.loads((revision/'matrix.json').read_text()))
+    record = json.loads((source/'results.jsonl').read_text())
+    record.update(case_id='later', attempt_id='later-run', started_at='2026-11-02T00:00:00Z')
+    record['metrics'] = score_attempt({'id': 'later', 'url': record['url']}, b'answer', ok=True)
+    if defect == 'before_contract':
+        record['started_at'] = '2026-10-01T00:00:00Z'
+    if defect == 'early_first_call':
+        record['provider_metadata']['retry'] = {'attempts': [{'started_at': '2026-10-01T00:00:00Z'}]}
+    results = write(source/'completion.jsonl', record)
+    spec['sources'].append({**deepcopy(spec['sources'][0]), 'case_ids': ['later'], 'results': results})
+    spec['missing'] = []
+    contract = {'created_at': '2026-11-01T00:00:00Z', 'provider': 'method', 'cases': 1,
+                'jobs': [{'suite': 'first', 'case_ids': ['later']}]}
+    if defect == 'already_called':
+        old = json.loads(Path(baseline['path']).read_text())
+        old['rows'][1].update(status='saved', called=True, record_path='record.json')
+        baseline = write(tmp_path/'baseline-matrix.json', old)
+    if defect == 'incomplete':
+        contract['jobs'][0]['case_ids'] = ['absent']
+    if defect == 'duplicate':
+        contract['jobs'][0]['case_ids'] = ['later', 'later']
+        contract['cases'] = 2
+    spec['completion'] = {'baseline_matrix': baseline,
+                          'contract': write(tmp_path/'completion-contract.json', contract)}
+    if defect == 'undeclared':
+        spec.pop('completion')
+    write(tmp_path/'spec.json', spec)
+    if defect == 'early_first_call':
+        from harness.web_fetch.report_saved_matrix import _completed_missing, _SourceBindings
+        with pytest.raises(ValueError, match='predates'):
+            _completed_missing(spec, _SourceBindings(tmp_path),
+                               {('first', 'method', 'later'): (source, record, b'', source/'completion.jsonl')})
+        return
+    if defect:
+        with pytest.raises(ValueError):
+            build_saved_matrix(tmp_path/'spec.json', tmp_path/'completed')
+        return
+    output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'completed').parent
+    model = json.loads((output/'matrix.json').read_text())
+    assert model['totals']['saved'] == 2
+    assert all(row['called'] for row in model['rows'])
+    assert model['rows'][0]['score_revision']
+    assert 'score_revision' not in model['rows'][1]
+    assert json.loads((output/'score-revision.json').read_text())['provider_calls_added'] == 0
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
