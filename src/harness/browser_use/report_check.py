@@ -35,6 +35,7 @@ from harness.browser_use.report import (
 )
 from harness.browser_use.selection import load_pilot, report_selection_path
 from harness.distribution import repository_root
+from harness.environments.webarena.topology import known_site_secrets
 from harness.record_io import load_jsonl
 from harness.report_languages import check_language_contract, generated_languages
 from harness.reporting.assets import bound_json_asset
@@ -49,6 +50,15 @@ FORBIDDEN_READER_TERMS = (
     "不等于共同根因",
     "仅基准通过",
     "仅对比通过",
+)
+
+# Site passwords come from the topology registry, the same source sanitize_text redacts.
+_FORBIDDEN_PUBLIC_TEXT = re.compile(
+    r"(?:"
+    + "|".join(re.escape(secret) for secret in known_site_secrets())
+    + r"|-----BEGIN [A-Z ]*PRIVATE KEY-----|\bBearer\s+[A-Za-z0-9._~+/=-]{12,}|"
+    r"\bsk-[A-Za-z0-9_-]{12,}|(?-i:/(?:Users|home|private|tmp|var|opt)/[^\s\"']+))",
+    flags=re.I,
 )
 
 
@@ -268,12 +278,6 @@ def _check_execution_artifacts(
         extra = sorted(str(path) for path in actual_files - expected_files)
         missing = sorted(str(path) for path in expected_files - actual_files)
         raise ValueError(f"execution artifact tree differs; extra={extra}, missing={missing}")
-    forbidden_text = re.compile(
-        r"(?:Password\.123|admin1234|test1234|hello1234|"
-        r"-----BEGIN [A-Z ]*PRIVATE KEY-----|\bBearer\s+[A-Za-z0-9._~+/=-]{12,}|"
-        r"\bsk-[A-Za-z0-9_-]{12,}|(?-i:/(?:Users|home|private|tmp|var|opt)/[^\s\"']+))",
-        flags=re.I,
-    )
     for path in actual_files:
         if path.suffix.lower() in {".har", ".zip"} or path.name in {
             "network.har",
@@ -286,17 +290,11 @@ def _check_execution_artifacts(
             ".html",
             ".css",
             ".js",
-        } and forbidden_text.search(path.read_text(encoding="utf-8")):
+        } and _FORBIDDEN_PUBLIC_TEXT.search(path.read_text(encoding="utf-8")):
             raise ValueError(f"published execution artifact contains sensitive text: {path}")
 
 
 def _check_public_privacy(report_dir: Path) -> None:
-    forbidden_text = re.compile(
-        r"(?:Password\.123|admin1234|test1234|hello1234|"
-        r"-----BEGIN [A-Z ]*PRIVATE KEY-----|\bBearer\s+[A-Za-z0-9._~+/=-]{12,}|"
-        r"\bsk-[A-Za-z0-9_-]{12,}|(?-i:/(?:Users|home|private|tmp|var|opt)/[^\s\"']+))",
-        flags=re.I,
-    )
     text_suffixes = {".html", ".json", ".jsonl", ".js", ".css"}
     for path in report_dir.rglob("*"):
         if not path.is_file():
@@ -305,7 +303,7 @@ def _check_public_privacy(report_dir: Path) -> None:
             "trace" in path.name.lower() and path.suffix.lower() == ".zip"
         ):
             raise ValueError(f"private HAR or trace was copied into the public report: {path}")
-        if path.suffix.lower() in text_suffixes and forbidden_text.search(
+        if path.suffix.lower() in text_suffixes and _FORBIDDEN_PUBLIC_TEXT.search(
             path.read_text(encoding="utf-8")
         ):
             raise ValueError(f"published report contains sensitive text: {path}")

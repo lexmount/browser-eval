@@ -220,3 +220,30 @@ def test_methodology_uses_selected_evidence_instead_of_historical_deployment(def
     else:
         with pytest.raises(ValueError, match="methodology"):
             checker.check_methodology_evidence(content, tasks, environment)
+
+
+REGISTRY_PASSWORD_OUTSIDE_OLD_LIST = "Rotated.Secret+42(x"
+
+
+def test_public_privacy_rejects_a_password_only_the_registry_knows(
+    tmp_path, report_check_with_site_password
+):
+    published = tmp_path / "data.json"
+    published.write_text(json.dumps({"note": "clean"}), encoding="utf-8")
+    probe = report_check_with_site_password(REGISTRY_PASSWORD_OUTSIDE_OLD_LIST)
+    probe._check_public_privacy(tmp_path)
+
+    published.write_text(
+        json.dumps({"note": f"typed {REGISTRY_PASSWORD_OUTSIDE_OLD_LIST} into login"}),
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match="published report contains sensitive text"):
+        probe._check_public_privacy(tmp_path)
+    checker._check_public_privacy(tmp_path)
+
+
+@pytest.mark.parametrize("password", ["Password.123", "admin1234", "test1234", "hello1234"])
+def test_public_privacy_still_rejects_the_current_site_passwords(tmp_path, password):
+    (tmp_path / "data.json").write_text(json.dumps({"note": password}), encoding="utf-8")
+    with pytest.raises(ValueError, match="published report contains sensitive text"):
+        checker._check_public_privacy(tmp_path)
