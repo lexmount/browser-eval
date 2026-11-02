@@ -19,7 +19,7 @@ from urllib.parse import quote, urlencode
 
 from lexbench_webfetch.paths import contained_path
 
-from harness.record_io import load_jsonl
+from harness.record_io import file_sha256, load_jsonl
 from harness.reporting.links import validate_virtual_links
 from harness.reporting.packs import (
     ByteBlockStore,
@@ -558,8 +558,7 @@ def _write_archive(destination, archive):
 def _archive_identity(path: Path):
     if not path.exists():
         return None
-    with path.open("rb") as stream:
-        return hashlib.file_digest(stream, "sha256").hexdigest()
+    return file_sha256(path)
 
 
 def build(source: Path, archive: Path, *, presentation_binding: Path | None = None, cached_content: Path | None = None, parts_directory: Path | None = None, refresh_privacy=False, snapshot_audit=False):
