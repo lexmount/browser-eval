@@ -372,7 +372,8 @@ def test_superseded_evidence_preserved_without_double_counting(tmp_path, monkeyp
         build(tmp_path,spec,'invalid-scope')
 
 
-@pytest.mark.parametrize('defect', [None, 'missing_policy', 'late_policy', 'wrong_config', 'budget'])
+@pytest.mark.parametrize('defect', [None, 'missing_policy', 'late_policy', 'wrong_config', 'budget',
+                                     'missing_observations', 'missing_log', 'log_config', 'log_count'])
 def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, defect):
     spec, root, old, raw = fixture(tmp_path)
     spec['superseded_sources'] = spec.pop('sources')
@@ -395,6 +396,17 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
     spec['missing'] = [{'suite':'first','provider':'method','case_id':'same',
         'status':'uncommitted','reason':'Collection error after HTTP 502',
         'receipt':receipt,'diagnostic_sources':[diagnostic]}]
+    value = json.loads(Path(receipt['path']).read_text())
+    if defect != 'missing_observations':
+        value.update(provider_config_sha256='a'*64, timeout_seconds=30, physical_attempts=1)
+    if defect != 'missing_log':
+        log = tmp_path/'execution.jsonl'
+        event = {'event': 'http_request_started', 'provider': 'method', 'case_id': 'same',
+                 'started_at': '2026-10-29T00:00:00Z', 'timeout_seconds': 30,
+                 'provider_config_sha256': 'b'*64 if defect == 'log_config' else 'a'*64}
+        log.write_text((json.dumps(event)+'\n')*(2 if defect == 'log_count' else 1))
+        value['execution_log'] = {'path': str(log), 'sha256': hashlib.sha256(log.read_bytes()).hexdigest()}
+    spec['missing'][0]['receipt'] = write(Path(receipt['path']), value)
     if defect in {'wrong_config', 'budget'}:
         value = json.loads(Path(receipt['path']).read_text())
         value.update(provider_config_sha256='b'*64 if defect == 'wrong_config' else 'a'*64,

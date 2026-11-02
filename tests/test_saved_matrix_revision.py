@@ -116,6 +116,9 @@ def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_pat
     from bs4 import BeautifulSoup
     review = BeautifulSoup((output/'review/index.html').read_text(), 'html.parser')
     assert '调整 1 个案例，统一重算 1 份保存结果' in review.select_one('#current-revision-scope').get_text()
+    if root_revision:
+        assert '不是当前报告的净变化' in review.get_text()
+        assert '历史评分变化分步记录' in review.get_text()
     adopted = review.select_one('#adopted-score-revisions')
     assert adopted is not None and 'method' in adopted.get_text()
     assert any(link.get('href') == '../'+attachment for link in adopted.select('a'))

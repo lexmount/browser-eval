@@ -263,7 +263,7 @@ make ci
 - 离线修订后补齐未调用项时，将新证据加入 `sources`，移除对应 `missing` 项，并用路径和哈希绑定 `completion.baseline_matrix`、`completion.baseline_audit` 与 `completion.contract`。旧报告审计文件绑定完整范围和保留的题目、结果原文；不得改变无关调用或题目。另行核验的离线修订和整类参数选择作为明确的例外。调用前清单声明 `created_at`、`provider`、总数 `cases`，以及包含 `suite`、`case_ids` 的 `jobs`。声明的结果必须齐全、晚于清单时间，且之前确实未调用。原离线修订仍绑定原有调用，补测不能替换这些调用。
 - 多轮补测可用 `completions` 数组分别绑定，每轮范围不得重叠。同一套别的清单可声明 `providers` 和 `case_ids`，并在补测条目中指定 `suite`。可选的 `note` 展示在对应结果详情中，用来说明有证据支持的补测条件，例如仅该案例采用的 DNS 例外。
 - `excluded_report_families` 将指定的完整分类移出报告记录、页面和统计，同时保留完整来源绑定与历史参数选择范围。排除项必须是不重复的已知分类，且不能排除所有分类。
-- 所有替换调用（包括调用后未保存结果的情况）必须在替换范围或单个位置绑定带哈希的 `execution_contract`；接纳前核验授权的原生参数和完整重试序列。
+- 所有替换调用（包括调用后未保存结果的情况）必须在替换范围或单个位置绑定带哈希的 `execution_contract`；接纳前核验授权的原生参数和完整重试序列。 调用后未保存结果的替换还必须提供实际配置、超时、调用次数及带哈希的 `execution_log`；每条 `http_request_started` 事件须记录方法、案例、开始时间、配置摘要和超时。观测缺失或日志不一致时拒绝替换，不补造分数或耗时。
 - `adoptions` 绑定保存结果规范与 `user_selected_complete_report_groups` 授权，按明确的方法和分类整组采用，无论通过数是否提高。旧调用保留为历史证据，并核对题目及评分版本；不得与参数候选或其他采用范围重叠。共同执行约定通过 `execution_contract` 绑定；多批次通过 `execution_contracts` 中的 `suite`、`provider`、`case_ids`、`contract` 分别绑定，范围不得重叠且必须覆盖所有采用的调用。原生参数和重试时序按原始采集记录核验，后续离线评分不能改写历史重试决定。
 - 参数对照要求评分代码一致，并核验授权配置、实际原生请求和完整失败重试序列。评分版本不同，须先通过明确的离线修订统一口径。替换范围和分批补齐的重试必须满足调用前的时间约束。报告检查拒绝未登记文件和符号链接，包括证据目录内的额外文件。
 - 使用 `scripts/build_report.py --check-saved-matrix /absolute/new-report` 检查报告文件；添加 `--source-spec /absolute/input-spec.json` 可同时核验原始证据。源路径相对于外部输入清单解析，报告审计文件只保存文件名和哈希。

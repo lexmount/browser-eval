@@ -585,11 +585,26 @@ def _load_saved_matrix(spec_path):
             raise ValueError('Replacement call predates execution authorization')
         if key not in selected:
             for field in ('provider_config_sha256', 'timeout_seconds'):
-                if field in replacement and replacement[field] != policy[field]:
+                if replacement.get(field) != policy[field]:
                     raise ValueError('Uncommitted call differs from execution authorization')
             count = replacement.get('physical_attempts')
-            if count is not None and (type(count) is not int or not 1 <= count <= 1 + policy['max_failure_retries']):
+            if type(count) is not int or not 1 <= count <= 1 + policy['max_failure_retries']:
                 raise ValueError('Uncommitted call exceeds execution authorization')
+            if not replacement.get('execution_log'):
+                raise ValueError('Uncommitted call lacks execution authorization evidence')
+            log = sources.binding(replacement['execution_log'])
+            events = [json.loads(line) for line in log.read_text().splitlines() if line.strip()]
+            starts = [event for event in events if event.get('event') == 'http_request_started']
+            if len(starts) != count:
+                raise ValueError('Uncommitted call log differs from execution authorization count')
+            for event in starts:
+                if (event.get('provider') != key[1] or event.get('case_id') != key[2]
+                        or any(event.get(field) != policy[field]
+                               for field in ('provider_config_sha256', 'timeout_seconds'))
+                        or not event.get('started_at')
+                        or datetime.fromisoformat(event['started_at']) < datetime.fromisoformat(policy['created_at'])):
+                    raise ValueError('Uncommitted call log differs from execution authorization')
+
         else:
             root, record, _, _ = selected[key]
             case = cases[key[0]][key[2]]

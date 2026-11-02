@@ -2869,7 +2869,7 @@ def write_review_page(out,records):
    kind=model_text('规则修订','Rule revision') if step.get('rule_revision') else model_text('评分程序修订','Scorer revision')
    steps.append(('', cell(kind)+cell(str(gained))+cell(str(lost))))
   if steps:
-   page+=section('评分变化分步记录','<p>'+model_text('每一步与紧邻的前一步比较；评分程序修订不等于删除规则。完整原因和代码依据见修订记录。','Each step is compared with its immediate predecessor. Scorer revisions do not remove rules; the revision record contains causes and code provenance.')+'</p>'+table(['修订类型','失败 → 通过','通过 → 失败'],steps,'score-revision-steps'))
+   page+=section(model_text('历史评分变化分步记录','Historical scoring transitions'),'<p>'+model_text('以下统计属于历史修订记录，可能包含后来被整类替换的调用，不是当前报告的净变化。每一步与紧邻的前一步比较；评分程序修订不等于删除规则。完整范围和依据见修订记录。','These statistics belong to the historical revision records and may include calls later replaced by whole-group selection. They are not net changes in the current report. Each step compares against its immediate predecessor; scorer revisions do not remove rules. The revision records retain the complete scope and evidence.')+'</p>'+table(['修订类型','失败 → 通过','通过 → 失败'],steps,'score-revision-steps'))
   attachments=revision.get('review_files',{})
   if attachments:
    page+=section('完整清单','<p>'+' · '.join(link('../'+path,{'decisions':'逐案例保留、删除及依据','failures':'原始失败项','parameters':'参数方案与范围'}.get(name,name)) for name,path in attachments.items())+'</p>')
