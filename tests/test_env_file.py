@@ -58,6 +58,24 @@ def test_an_unterminated_quote_also_drops_a_following_quoted_assignment(tmp_path
     assert parse_env_file(path) == {"AFTER": "kept"}
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        # python-dotenv alone returns BROKEN='secret\nNEXT=' for the first form.
+        'BROKEN="secret\nNEXT="\nAFTER=kept\n',
+        "BROKEN='secret\nNEXT='\nAFTER=kept\n",
+        'BROKEN="secret\nmore"\nAFTER=kept\n',
+    ],
+)
+def test_a_value_spanning_lines_is_dropped_and_its_value_is_not_logged(tmp_path, caplog, text):
+    # No caller has a multi-line value, and `\n` in double quotes still produces a newline.
+    path = tmp_path / ".env"
+    path.write_text(text, encoding="utf-8")
+    assert parse_env_file(path) == {"AFTER": "kept"}
+    assert "line 1" in caplog.text
+    assert "secret" not in caplog.text
+
+
 def test_last_assignment_of_a_name_wins(tmp_path):
     # Web Fetch credentials and catalog_runner already behaved this way; setdefault
     # made other Web Fetch names and all public WebArena names keep the first.
