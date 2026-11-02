@@ -54,10 +54,17 @@ FORBIDDEN_READER_TERMS = (
 
 # Site passwords come from the topology registry, the same source sanitize_text redacts.
 _FORBIDDEN_PUBLIC_TEXT = re.compile(
-    r"(?:"
-    + "|".join(re.escape(secret) for secret in known_site_secrets())
-    + r"|-----BEGIN [A-Z ]*PRIVATE KEY-----|\bBearer\s+[A-Za-z0-9._~+/=-]{12,}|"
-    r"\bsk-[A-Za-z0-9_-]{12,}|(?-i:/(?:Users|home|private|tmp|var|opt)/[^\s\"']+))",
+    "(?:"
+    + "|".join(
+        (
+            *(re.escape(secret) for secret in known_site_secrets()),
+            r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+            r"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}",
+            r"\bsk-[A-Za-z0-9_-]{12,}",
+            r"(?-i:/(?:Users|home|private|tmp|var|opt)/[^\s\"']+)",
+        )
+    )
+    + ")",
     flags=re.I,
 )
 

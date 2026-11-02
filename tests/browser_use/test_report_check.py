@@ -242,6 +242,18 @@ def test_public_privacy_rejects_a_password_only_the_registry_knows(
     checker._check_public_privacy(tmp_path)
 
 
+def test_public_privacy_without_site_passwords_still_separates_clean_from_sensitive(
+    tmp_path, report_check_without_site_passwords
+):
+    published = tmp_path / "data.json"
+    published.write_text(json.dumps({"note": "clean"}), encoding="utf-8")
+    report_check_without_site_passwords._check_public_privacy(tmp_path)
+
+    published.write_text(json.dumps({"note": "-----BEGIN RSA PRIVATE KEY-----"}), encoding="utf-8")
+    with pytest.raises(ValueError, match="published report contains sensitive text"):
+        report_check_without_site_passwords._check_public_privacy(tmp_path)
+
+
 @pytest.mark.parametrize("password", ["Password.123", "admin1234", "test1234", "hello1234"])
 def test_public_privacy_still_rejects_the_current_site_passwords(tmp_path, password):
     (tmp_path / "data.json").write_text(json.dumps({"note": password}), encoding="utf-8")

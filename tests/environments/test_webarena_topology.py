@@ -273,6 +273,27 @@ def test_registry_rejects_ports_attributed_to_two_sites(tmp_path: Path, field: s
         topology._load(path)
 
 
+@pytest.mark.parametrize("password", ["", "   ", None])
+def test_registry_rejects_a_blank_site_password(tmp_path: Path, password: str | None) -> None:
+    payload = json.loads(topology.TOPOLOGY_PATH.read_text(encoding="utf-8"))
+    payload["sites"]["gitlab"]["credentials"]["password"] = password
+    path = tmp_path / "topology.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="nonblank password: gitlab"):
+        topology._load(path)
+
+
+def test_registry_rejects_a_missing_site_password(tmp_path: Path) -> None:
+    payload = json.loads(topology.TOPOLOGY_PATH.read_text(encoding="utf-8"))
+    del payload["sites"]["gitlab"]["credentials"]["password"]
+    path = tmp_path / "topology.json"
+    path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="nonblank password: gitlab"):
+        topology._load(path)
+
+
 def test_registry_consumers_import_without_the_optional_webarena_evaluator() -> None:
     program = """
 import importlib.abc

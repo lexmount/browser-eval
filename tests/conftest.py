@@ -36,12 +36,23 @@ def browser_launch_policy():
         yield
 
 
+def _private_report_check():
+    """Execute a private copy of the release checker against the current registry."""
+    from harness.browser_use import report_check
+
+    spec = importlib.util.spec_from_file_location(
+        "report_check_registry_probe", report_check.__file__
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 @pytest.fixture
 def report_check_with_site_password(monkeypatch):
     """Load a private copy of the release checker against a registry holding one more password."""
 
     def load(password):
-        from harness.browser_use import report_check
         from harness.environments.webarena import topology
 
         monkeypatch.setitem(
@@ -49,14 +60,18 @@ def report_check_with_site_password(monkeypatch):
             "registry-probe",
             {"username": "probe", "password": password},
         )
-        spec = importlib.util.spec_from_file_location(
-            "report_check_registry_probe", report_check.__file__
-        )
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        return module
+        return _private_report_check()
 
     return load
+
+
+@pytest.fixture
+def report_check_without_site_passwords(monkeypatch):
+    """Load a private copy of the release checker against a registry holding no passwords."""
+    from harness.environments.webarena import topology
+
+    monkeypatch.setattr(topology, "DEFAULT_SITE_CREDENTIALS", {})
+    return _private_report_check()
 
 
 def read_frozen_dataset_bytes(path):
