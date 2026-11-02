@@ -12,11 +12,10 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from harness.distribution import bundled_data_path, repository_root
+from harness.distribution import bundled_data_path
 from harness.trajectory_replay.public_webarena.publication import REPORT_STEM, public_projection
 from harness.trajectory_replay.public_webarena.result_audit import audit_result_set
 
-ROOT = repository_root()
 PAGES = tuple(
     (slug, label, f"{REPORT_STEM}{suffix}.html")
     for slug, label, suffix in (
