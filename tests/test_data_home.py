@@ -95,8 +95,8 @@ def test_only_the_shared_module_reads_the_data_home():
     # dataset cache has its own documented override (docs/benchmarks.md).
     allowed = {"src/harness/data_home.py", "src/harness/benchmarks/data.py"}
     forbidden = re.compile(
-        r"environ[^\n]*BROWSER_EVAL_DATA_HOME|home\(\)\s*/\s*[\"']\.browser-eval"
-        r"|storage import [^\n]*\bdata_home\b"
+        r"(?:environ|getenv)[^\n]*BROWSER_EVAL_DATA_HOME|home\(\)\s*/\s*[\"']\.browser-eval"
+        r"|~/\.browser-eval|storage import [^\n]*\bdata_home\b"
     )
     sources = [*(ROOT / "src/harness").rglob("*.py"), *(ROOT / "scripts").rglob("*.py")]
     found = [str(path.relative_to(ROOT)) for path in sources
@@ -104,3 +104,5 @@ def test_only_the_shared_module_reads_the_data_home():
     assert found == []
     assert forbidden.search('Path(os.environ.get("BROWSER_EVAL_DATA_HOME", x))')
     assert forbidden.search('Path.home() / ".browser-eval"')
+    assert forbidden.search('Path(os.getenv("BROWSER_EVAL_DATA_HOME", x))')
+    assert forbidden.search('Path("~/.browser-eval").expanduser()')
