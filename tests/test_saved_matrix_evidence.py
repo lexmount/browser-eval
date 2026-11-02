@@ -223,7 +223,7 @@ def test_superseded_evidence_preserved_without_double_counting(tmp_path):
     history_source = {**spec['sources'][0], 'results': {
         'path': str(old_results), 'sha256': hashlib.sha256(old_raw).hexdigest()}}
     spec['superseded_sources'] = [history_source]
-    scope = {'kind':'predeclared_replacement_scope', 'cells': [{
+    scope = {'kind':'predeclared_replacement_scope', 'created_at':'2026-10-28T00:00:00Z', 'cells': [{
         'suite':'first', 'provider':'method', 'case_id':'same', 'old_record': {
             'path':str(old_copy), 'sha256': hashlib.sha256(old_raw).hexdigest()}}]}
     spec['supersession_scope'] = write(tmp_path/'scope.json', scope)
@@ -238,6 +238,11 @@ def test_superseded_evidence_preserved_without_double_counting(tmp_path):
     assert str(tmp_path) not in public_scope
     assert 'superseded-history' in (entry.parent/'attempts/first--run-001.html').read_text()
     assert check_saved_matrix(entry.parent)['valid']
+    for timestamp in (None, '2026-10-30T00:00:00Z'):
+        invalid = deepcopy(spec)
+        invalid['supersession_scope'] = write(tmp_path/'late-scope.json', {**scope, 'created_at': timestamp})
+        with pytest.raises(ValueError, match='timestamp|predates'):
+            build(tmp_path, invalid, 'late-scope-' + str(timestamp))
     spec['supersession_scope'] = write(tmp_path/'wrong-scope.json', {**scope,'cells':[]})
     with pytest.raises(ValueError, match='complete replacement scope'):
         build(tmp_path,spec,'invalid-scope')
@@ -250,12 +255,12 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path):
     old_file = root/'old-record.json'
     old_file.write_bytes(raw)
     spec['supersession_scope'] = write(tmp_path/'scope.json', {
-        'kind':'predeclared_replacement_scope', 'cells':[{
+        'kind':'predeclared_replacement_scope', 'created_at':'2026-10-28T00:00:00Z', 'cells':[{
             'suite':'first','provider':'method','case_id':'same',
             'old_record':{'path':str(old_file),'sha256':hashlib.sha256(raw).hexdigest()}}]})
     diagnostic = write(tmp_path/'diagnostic.json', {'observed_http_status':502})
     receipt = write(tmp_path/'receipt.json', {'suite':'first','provider':'method',
-        'case_id':'same','state':'called_but_uncommitted','elapsed_ms':None})
+        'case_id':'same','state':'called_but_uncommitted','elapsed_ms':None,'started_at':'2026-10-29T00:00:00Z'})
     spec['missing'] = [{'suite':'first','provider':'method','case_id':'same',
         'status':'uncommitted','reason':'Collection error after HTTP 502',
         'receipt':receipt,'diagnostic_sources':[diagnostic]}]
@@ -318,6 +323,30 @@ def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_
     assert 'retry-continuation' in (entry.parent/'attempts/first--run-001.html').read_text()
     assert 'Synthetic retry disclosure.' in (entry.parent/'index.html').read_text()
     assert check_saved_matrix(entry.parent)['valid']
+    for defect in ('prior_not_called', 'current_not_called', 'same_call', 'late_prior'):
+        prior, final = deepcopy(old), deepcopy(current)
+        if defect == 'prior_not_called':
+            prior['provider_metadata']['native_route_receipt']['transport_state'] = 'not_started'
+        elif defect == 'current_not_called':
+            final['provider_metadata']['native_route_receipt']['transport_state'] = 'not_started'
+        elif defect == 'same_call':
+            prior = deepcopy(final)
+        else:
+            prior['started_at'] = '2026-10-29T03:00:00Z'
+        old_results.write_text(json.dumps(prior)+'\n')
+        (root/'results.jsonl').write_text(json.dumps(final)+'\n')
+        invalid = deepcopy(spec)
+        invalid['sources'][0]['results']['sha256'] = hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()
+        continuation = invalid['retry_continuations'][0]
+        continuation['current_record_sha256'] = invalid['sources'][0]['results']['sha256']
+        continuation['prior_source']['results']['sha256'] = hashlib.sha256(old_results.read_bytes()).hexdigest()
+        launch_data = json.loads(Path(launch['path']).read_text())
+        launch_data['first_record']['record'] = prior
+        continuation['launch_contract'] = write(tmp_path/(defect+'.json'), launch_data)
+        with pytest.raises(ValueError):
+            build(tmp_path, invalid, defect)
+    old_results.write_bytes(old_raw)
+    (root/'results.jsonl').write_bytes(raw)
     changed=deepcopy(spec)
     changed['retry_continuations'][0]['current_record_sha256']='0'*64
     with pytest.raises(ValueError,match='current record differs'):
@@ -409,7 +438,7 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
     changed['metrics']['content_pass'] = after
     (candidate/'results.jsonl').write_text(json.dumps(changed)+'\n')
     contract = write(tmp_path/'contract.json', {'created_at':'2026-11-01T00:00:00Z',
-        'max_failure_retries':1, 'jobs':[{'id':'job','suite':'first','provider':'method','case_ids':['same']}]})
+        'max_failure_retries':0, 'jobs':[{'id':'job','suite':'first','provider':'method','case_ids':['same']}]})
     spec['parameter_reruns'] = {'contract':contract,'selection':'replace_track_if_pass_count_improves',
         'sources':[{'job_id':'job','root':str(candidate),
                     'dataset':write(candidate/'dataset.json', json.loads((root/'dataset.json').read_text())),
@@ -460,7 +489,7 @@ def test_parameter_rerun_parts_must_cover_the_whole_original_job(tmp_path):
         sources.append({'job_id':'job','case_ids':[cid],'root':str(part),'dataset':dataset,
                         'results':{'path':str(part/'results.jsonl'),
                                    'sha256':hashlib.sha256(raw).hexdigest()}})
-        selected[('first','method',cid)] = None
+        selected[('first','method',cid)] = (part, result, raw, part/'results.jsonl')
     contract = write(tmp_path/'contract.json', {'created_at':'2026-10-28T00:00:00Z',
         'max_failure_retries':1,'jobs':[{'id':'job','suite':'first',
                                        'provider':'method','case_ids':['same','second']}]})
@@ -539,3 +568,54 @@ def test_parameter_candidate_view_retains_a_separately_completed_retry(tmp_path,
     if final_pass:
         assert row['retries'] == 1 and row['retry_continuation']['total_physical_calls'] == 2
     assert check_saved_matrix(output,spec_path=tmp_path/'spec.json')['valid']
+    for change, message in [({'max_failure_retries': 0}, 'retry allowance'),
+                            ({'created_at': '2026-10-31T01:30:00Z'}, 'predates')]:
+        contract_path = tmp_path / 'parameter-contract.json'
+        data = json.loads(contract_path.read_text())
+        changed_contract = {**data, **change}
+        spec['parameter_reruns']['contract'] = write(tmp_path / 'invalid-contract.json', changed_contract)
+        with pytest.raises(ValueError, match=message):
+            build(tmp_path, spec, 'invalid-' + message)
+
+
+@pytest.mark.parametrize('extra', ['private_artifacts/raw.json', 'evidence/extra.html', 'extra-link'])
+def test_portable_checker_rejects_unbound_files_and_symlinks(tmp_path, extra):
+    spec, _, _, _ = fixture(tmp_path)
+    report = build(tmp_path, spec).parent
+    assert check_saved_matrix(report)['valid']
+    path = report / extra
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if extra == 'extra-link':
+        path.symlink_to(report / 'matrix.json')
+    else:
+        path.write_text('unbound evidence')
+    with pytest.raises(ValueError, match='inventory changed|symlink'):
+        check_saved_matrix(report)
+
+
+@pytest.mark.parametrize('duplicate', ['job', 'case'])
+def test_parameter_contract_rejects_duplicate_scope_before_sources(tmp_path, duplicate):
+    from harness.web_fetch.report_saved_matrix import _parameter_reruns, _SourceBindings
+    job = {'id': 'job', 'case_ids': ['same']}
+    jobs = [job, dict(job)] if duplicate == 'job' else [dict(job, case_ids=['same', 'same'])]
+    contract = write(tmp_path / 'contract.json', {'jobs': jobs})
+    inputs = {'spec': {'parameter_reruns': {
+        'contract': contract, 'selection': 'replace_track_if_pass_count_improves', 'sources': []}},
+        'sources': _SourceBindings(tmp_path)}
+    with pytest.raises(ValueError, match='Duplicate parameter rerun'):
+        _parameter_reruns(inputs)
+
+
+@pytest.mark.parametrize('old_hash,new_hash,accepted', [
+    ('same', 'same', True), ('old', 'new', False), (None, 'new', False)])
+def test_parameter_scoring_requires_explicit_common_provenance(tmp_path, old_hash, new_hash, accepted):
+    from harness.web_fetch.report_saved_matrix import _parameter_scoring
+    _, _, record, _ = fixture(tmp_path)
+    before = deepcopy(record)
+    before['metrics']['scoring_source_sha256'] = old_hash
+    record['metrics']['scoring_source_sha256'] = new_hash
+    if accepted:
+        _parameter_scoring(before, record)
+    else:
+        with pytest.raises(ValueError, match='explicit scoring revision'):
+            _parameter_scoring(before, record)

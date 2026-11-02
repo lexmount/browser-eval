@@ -292,6 +292,9 @@ def test_entirely_missing_method_stays_in_both_rankings(tmp_path):
         absent = next(row for row in rows if 'Absent method' in row.get_text())
         assert '未完成' in absent.get_text()
     assert (root/'providers/absent.html').is_file()
+    assert '2 种方法' in home.get_text()
+    assert '调用矩阵尚不完整，暂不汇总全部方法共同成功任务的耗时。' in home.get_text()
+    assert '全部 1 种受测配置共同通过' not in home.get_text()
 
 
 def test_nested_suite_names_partition_by_identity(tmp_path):
@@ -318,3 +321,17 @@ def test_suite_ranking_orders_by_fraction_and_exposes_numeric_sort():
     assert 'z-winner' in rows[0].get_text()
     assert [r.select('td')[-1]['data-sort'] for r in rows] == ['1.0','0.5']
     assert len(soup.select('thead button')) == 7
+    for row in rows:
+        assert all(cell['data-sort'] == cell.get_text() for cell in row.select('td')[2:7])
+
+
+def test_final_call_timing_labels_are_localized_in_ordinary_reports():
+    from pathlib import PurePosixPath
+    from harness.web_fetch.report import overall_ranking
+    from harness.web_fetch.report_i18n import localize_html
+    record = {'provider': 'method', 'case_id': 'case', 'ok': True,
+              'elapsed_ms': 10, 'metrics': {'content_pass': True}}
+    page = localize_html(overall_ranking([record], {'case': {'id': 'case'}}), PurePosixPath('index.html'))
+    assert 'Mean final-call latency' in page
+    assert 'P50 final-call latency' in page
+    assert '最终调用耗时' not in page

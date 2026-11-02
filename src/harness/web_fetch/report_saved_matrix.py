@@ -7,7 +7,7 @@ and debug files are verified but are not copied into the portable public views.
 from __future__ import annotations
 
 from copy import deepcopy
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
 from html.parser import HTMLParser
 import json
@@ -149,14 +149,27 @@ class _SourceBindings:
 
 def _completed_missing(spec, sources, selected):
     """Bind new calls to an exact, previously uncalled population."""
-    config = spec.get('completion')
-    if not config:
-        return set()
+    configs = ([spec['completion']] if spec.get('completion') else []) + spec.get('completions', [])
+    completed = set()
+    for config in configs:
+        scope = _completed_scope(config, sources, selected)
+        if completed & scope:
+            raise ValueError('Completion scopes overlap')
+        completed.update(scope)
+    return completed
+
+
+def _completed_scope(config, sources, selected):
+    """Validate one separately frozen completion cohort."""
     baseline = _json(sources.binding(config['baseline_matrix']))
     contract = _json(sources.binding(config['contract']))
-    declared = [(job['suite'], contract['provider'], cid)
-                for job in contract['jobs'] for cid in job['case_ids']]
-    if len(set(declared)) != len(declared) or len(declared) != contract['cases']:
+    if 'jobs' in contract:
+        declared = [(job['suite'], contract['provider'], cid)
+                    for job in contract['jobs'] for cid in job['case_ids']]
+    else:
+        declared = [(config['suite'], provider, cid)
+                    for provider in contract['providers'] for cid in contract['case_ids']]
+    if len(set(declared)) != len(declared) or len(declared) != contract.get('cases', len(declared)):
         raise ValueError('Completion contract has duplicate or inconsistent scope')
     before = {(r['suite'], r['provider'], r['case_id']): r for r in baseline['rows']}
     started = datetime.fromisoformat(contract['created_at'])
@@ -384,7 +397,7 @@ def _load_saved_matrix(spec_path):
         return isinstance(value, list) and any(contains_record(x, record) for x in value)
     def one_call(record):
         retry = record.get('provider_metadata', {}).get('retry', {})
-        return retry.get('physical_attempts', len(retry.get('attempts', [])) or 1) == 1
+        return (_called(record) and retry.get('physical_attempts', len(retry.get('attempts', [])) or 1) == 1)
     for entry in spec.get('retry_continuations', []):
         key = entry['suite'], entry['provider'], entry['case_id']
         if key in continuations or key not in selected:
@@ -413,8 +426,13 @@ def _load_saved_matrix(spec_path):
             old, old_line = matches[0]
             if (not one_call(old) or not contains_record(launch, old)
                     or _case_identity(prior_cases[key[2]]) != _case_identity(cases[key[0]][key[2]])
-                    or old_line == selected[key][2]):
+                    or old == current):
                 raise ValueError('Retry continuation prior evidence differs from declared first call')
+            end = datetime.fromisoformat(old['started_at']) + timedelta(milliseconds=old['elapsed_ms'])
+            if old.get('completed_at'):
+                end = max(end, datetime.fromisoformat(old['completed_at']))
+            if end > datetime.fromisoformat(launch['started_at']):
+                raise ValueError('Retry continuation first call must finish before its launch')
             if task_passed(old['ok'], old['metrics'], prior_cases[key[2]].get('task_kind', 'body')):
                 raise ValueError('Retry continuation requires a failed first call')
             verify_record_artifacts(root, old, native_cases=prior_cases)
@@ -449,6 +467,9 @@ def _load_saved_matrix(spec_path):
         scope = _json(replacement_scope)
         if scope.get('kind') != 'predeclared_replacement_scope':
             raise ValueError('Supersession requires a predeclared replacement scope')
+        if not isinstance(scope.get('created_at'), str):
+            raise ValueError('Supersession scope requires a pre-call timestamp')
+        scope_started = datetime.fromisoformat(scope['created_at'])
         cells = scope.get('cells', [])
         scoped = {(x['suite'], x['provider'], x['case_id']): x for x in cells}
         if len(scoped) != len(cells) or set(scoped) != set(historical):
@@ -481,12 +502,83 @@ def _load_saved_matrix(spec_path):
             raise ValueError('Superseded result requires a current call or explicit uncommitted call')
     if set(selected) | set(missing) != expected:
         raise ValueError('Unexplained missing matrix cells')
+    for key in historical:
+        replacement = selected[key][1] if key in selected else _json(missing[key][1])
+        physical = replacement.get('provider_metadata', {}).get('retry', {}).get('attempts') or [replacement]
+        if any(not call.get('started_at') or datetime.fromisoformat(call['started_at']) < scope_started
+               for call in physical):
+            raise ValueError('Replacement call predates its declared scope or lacks chronology')
     completed = _completed_missing(spec, sources, selected)
     return dict(spec=spec, sources=sources, providers=providers, suites=suites, cases=cases,
                 selected=selected, historical=historical, continuations=continuations,
                 missing=missing, replacement_scope=replacement_scope,
                 replacement_cells=cells if replacement_scope else [],
                 revision=_saved_revision(spec, sources, cases, selected, completed))
+
+
+def _parameter_execution(root, record, case, contract, sources, baseline=None):
+    """Check actual native requests against the authorized configuration, not just themselves."""
+    from harness.web_fetch.native_routes import (
+        native_route_cell, _request_parameters, verify_native_route_contract,
+    )
+    from harness.web_fetch.providers.base import build_provider
+    metadata = record.get('provider_metadata', {})
+    if not metadata.get('native_route_receipt', {}).get('contract_sha256'):
+        if contract.get('provider_config_sha256'):
+            raise ValueError('Parameter rerun lacks its execution contract')
+        return
+    manifest = _json(sources.bind(root / 'manifest.json'))
+    expected_hash = contract.get('provider_config_sha256')
+    if not expected_hash or manifest.get('provider_config_sha256') != expected_hash:
+        raise ValueError('Parameter rerun configuration differs from authorization')
+    config_path = sources.bind(manifest['provider_config_source'], expected_hash)
+    config = _json(config_path)['providers'][record['provider']]
+    if manifest['parameters'].get('timeout') != contract['timeout_seconds']:
+        raise ValueError('Parameter rerun timeout differs from authorization')
+    if metadata.get('dns_mode') != config.get('dns_mode', 'system'):
+        raise ValueError('Parameter rerun DNS differs from authorization')
+    native = _json(sources.bind(root / manifest['native_route_contract']['path'],
+                                manifest['native_route_contract']['sha256']))
+    # A projection selects one already retained call; the shared verifier still
+    # checks every physical request and the original frozen cell and inventory.
+    projection = {**manifest, 'projection': {'kind': 'complete-provider-case-subset-from-retained-run'}}
+    dataset = {'cases': [case]}
+    verify_native_route_contract(root, projection, dataset, [record])
+    provider = build_provider(record['provider'], config)
+    key, expected = native_route_cell(provider, EvalCase(**case), timeout_seconds=contract['timeout_seconds'])
+    cells = {tuple((c['method'], c['track'], c['task_kind'], c['input_media_kind'])): c for c in native['cells']}
+    actual = cells[key]
+    for field in ('provider_type', 'transport', 'interface', 'configured_parameters', 'endpoint_sha256'):
+        if actual.get(field) != expected.get(field):
+            raise ValueError('Parameter rerun native options differ from authorization')
+    parameters = _request_parameters(provider, EvalCase(**case), expected, contract['timeout_seconds'])
+    # Authentication values are resolved only at collection and are never loaded
+    # for a report. All non-authentication request arguments must match exactly.
+    actual_parameters = {k: v for k, v in actual['request_parameters'].items() if k != 'headers_sha256'}
+    expected_parameters = {k: v for k, v in parameters.items() if k != 'headers_sha256'}
+    baseline_requests = (baseline or {}).get('provider_metadata', {}).get('native_route_receipt', {}).get('requests', [])
+    baseline_parameters = baseline_requests[-1]['signature']['parameters'] if baseline_requests else {}
+    def resolve_unchanged(value, previous):
+        if isinstance(value, dict):
+            return {k: resolve_unchanged(v, previous.get(k) if isinstance(previous, dict) else None)
+                    for k, v in value.items()}
+        if isinstance(value, list):
+            return [resolve_unchanged(v, previous[i] if isinstance(previous, list) and i < len(previous) else None)
+                    for i, v in enumerate(value)]
+        if isinstance(value, str) and value.startswith('${') and value.endswith('}'):
+            if previous is None:
+                raise ValueError('Parameter rerun lacks baseline evidence for an unchanged environment option')
+            return previous
+        return value
+    expected_parameters = resolve_unchanged(expected_parameters, baseline_parameters)
+    if actual_parameters != expected_parameters:
+        raise ValueError('Parameter rerun request differs from authorization')
+
+
+def _parameter_scoring(before, record):
+    """Require an explicit offline revision before comparing different scorers."""
+    if before['metrics'].get('scoring_source_sha256') != record['metrics'].get('scoring_source_sha256'):
+        raise ValueError('Parameter comparison needs an explicit scoring revision')
 
 
 def _parameter_reruns(inputs):
@@ -502,7 +594,12 @@ def _parameter_reruns(inputs):
             raise ValueError('Parameter selection amendment differs from report policy')
     if config.get('selection') != 'replace_track_if_pass_count_improves':
         raise ValueError('Unsupported parameter rerun selection policy')
-    declared = {job['id']: job for job in contract['jobs']}
+    jobs = contract['jobs']
+    if len({job['id'] for job in jobs}) != len(jobs):
+        raise ValueError('Duplicate parameter rerun job ID')
+    if any(len(job['case_ids']) != len(set(job['case_ids'])) for job in jobs):
+        raise ValueError('Duplicate parameter rerun contract case ID')
+    declared = {job['id']: job for job in jobs}
     candidates = {}
     covered = {name: set() for name in declared}
     for source in config['sources']:
@@ -543,16 +640,49 @@ def _parameter_reruns(inputs):
             case = revision['cases'].get((job['suite'], cid), original_case) if revision else original_case
             if _case_identity(cases[cid]) != _case_identity(case) or record['url'] != case['url']:
                 raise ValueError('Parameter rerun changed task rules')
-            if datetime.fromisoformat(record['started_at']) < datetime.fromisoformat(contract['created_at']):
-                raise ValueError('Parameter rerun predates its contract')
             retry = record.get('provider_metadata', {}).get('retry', {})
-            if retry.get('retries_used', 0) > contract['max_failure_retries']:
+            calls = retry.get('attempts') or [record]
+            if (retry.get('physical_attempts', len(calls)) != len(calls)
+                    or retry.get('retries_used', len(calls) - 1) != len(calls) - 1):
+                raise ValueError('Parameter rerun has inconsistent physical call counts')
+            continuation = inputs.get('parameter_continuations', {}).get(key)
+            if continuation:
+                entry, prior, _ = continuation
+                if prior is None:
+                    raise ValueError('Parameter rerun needs timestamped first-call evidence')
+                calls = [prior[1], *calls]
+            passes = [call.get('task_pass') if 'task_pass' in call else
+                      task_passed(call['ok'], call['metrics'], case.get('task_kind', 'body')) for call in calls]
+            if any(passes[:-1]) or (not passes[-1] and len(calls) <= contract['max_failure_retries']):
+                raise ValueError('Parameter rerun violates stop-on-pass or requires its failure retry')
+            if retry.get('attempts') and (calls[-1].get('content_sha256') != record['metrics']['content_sha256']
+                    or calls[-1].get('elapsed_ms') != record['elapsed_ms']
+                    or passes[-1] != task_passed(record['ok'], record['metrics'], case.get('task_kind', 'body'))):
+                raise ValueError('Parameter rerun final physical call differs from selected result')
+            for first, second in zip(calls, calls[1:]):
+                first_end = datetime.fromisoformat(first['started_at']) + timedelta(milliseconds=first['elapsed_ms'])
+                if first.get('completed_at'):
+                    first_end = max(first_end, datetime.fromisoformat(first['completed_at']))
+                if first_end > datetime.fromisoformat(second['started_at']):
+                    raise ValueError('Parameter rerun physical calls overlap or are out of order')
+            if len(calls) - 1 > contract['max_failure_retries']:
                 raise ValueError('Parameter rerun exceeds retry allowance')
+            if any(datetime.fromisoformat(call['started_at']) < datetime.fromisoformat(contract['created_at'])
+                   for call in [record, *calls]):
+                raise ValueError('Parameter rerun predates its contract')
             verify_record_artifacts(root, record, native_cases=cases)
             for relative, digest in artifact_bindings(record):
                 sources.bind(contained_path(root, relative, reject_symlinks=True), digest)
             for item in record_private_bindings(record):
                 sources.bind(contained_path(root, item['path'], reject_symlinks=True), item['sha256'])
+            _, before, _, _ = inputs['selected'][key]
+            if revision:
+                before = revision['records'].get(key, before)
+            _parameter_execution(root, record, cases[cid], contract, sources, before)
+            if continuation and continuation[1] is not None:
+                prior_root, prior_record, _ = continuation[1]
+                _parameter_execution(prior_root, prior_record, cases[cid], contract, sources, before)
+            _parameter_scoring(before, record)
             candidates[key] = root, record, line, path
         if seen != set(source_ids):
             raise ValueError('Incomplete parameter rerun cohort')
@@ -633,6 +763,11 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
             'original_sha256': tracked[replacement_scope],
             'cells': [{'suite': x['suite'], 'provider': x['provider'], 'case_id': x['case_id'],
                        'old_record_sha256': x['old_record']['sha256']} for x in cells]})
+    completion_notes = {}
+    for config in ([spec['completion']] if spec.get('completion') else []) + spec.get('completions', []):
+        if config.get('note'):
+            for key in _completed_scope(config, inputs['sources'], selected):
+                completion_notes[key] = config['note']
     model_rows = []
     for suite in suites:
         for case_id, original_case in cases[suite].items():
@@ -646,6 +781,8 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                         'name': case.get('name', case_id), 'url': case['url'], 'checks': {},
                         'case_path': case_path, 'record_path': None, 'answer_path': None,
                         'log_path': None, 'receipt_path': None, 'elapsed_ms': None, 'retries': None}
+                if key in completion_notes:
+                    item['completion_note'] = completion_notes[key]
                 if key in missing:
                     entry, receipt = missing[key]
                     item.update(status=entry['status'], called=entry['status'] == 'uncommitted',
@@ -829,6 +966,14 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
         if actual != expected:
             raise ValueError('Original saved-matrix source changed')
         source_count = len(actual)
+    actual_files = set()
+    for path in output.rglob('*'):
+        if path.is_symlink():
+            raise ValueError('Portable saved-matrix symlink is forbidden')
+        if path.is_file():
+            actual_files.add(path.relative_to(output).as_posix())
+    if actual_files != set(audit['files']) | {'saved-matrix-audit.json'}:
+        raise ValueError('Portable saved-matrix file inventory changed')
     for relative, digest in audit['files'].items():
         if _sha(contained_path(output, relative, reject_symlinks=True)) != digest:
             raise ValueError('Portable saved-matrix file changed')
@@ -921,6 +1066,8 @@ def render_saved_with_standard_generator(output, model):
                     return candidate
             return value
         record = project(raw)
+        if row.get('completion_note'):
+            record['report_completion_note'] = row['completion_note']
         record['report_invocation_status'] = row['status']
         record['report_superseded_history'] = deepcopy(row.get('history', []))
         record['report_retry_continuation'] = deepcopy(row.get('retry_continuation'))

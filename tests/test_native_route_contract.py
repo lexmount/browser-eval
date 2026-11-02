@@ -1139,3 +1139,40 @@ def test_explicit_native_declaration_does_not_bypass_invalid_acceptance_contract
     with pytest.raises(ValueError):
         native_default_case({'track': 'dynamic', 'retrieval_hints': {'version': 3, 'mode': 'native'},
                              'acceptance_contract': {'version': 1, 'schema': 'unknown'}})
+
+@pytest.mark.parametrize('defect', [None, 'dns', 'timeout', 'config', 'option'])
+def test_parameter_report_requires_authorized_native_execution(tmp_path, defect):
+    import json
+    import hashlib
+    from datetime import datetime, timezone
+    from dataclasses import asdict
+    from unittest.mock import patch
+    from harness.web_fetch.providers.http_client import HttpResponse
+    from harness.web_fetch.report_saved_matrix import _parameter_execution, _SourceBindings
+    provider, cases, ledger, manifest, _ = _route_http_fixture(tmp_path)
+    case = cases[0]
+    started = datetime.now(timezone.utc).isoformat()
+    with patch('harness.web_fetch.providers.tavily.request', return_value=HttpResponse(
+            200, case.url, {}, json.dumps({'results': [{'url': case.url, 'raw_content': 'answer'}]}).encode())):
+        result = provider.fetch(case, 45, native_route_ledger=ledger)
+    config = {'providers': {provider.name: dict(provider.config)}}
+    if defect == 'option':
+        config['providers'][provider.name]['include_images'] = True
+    config_path = tmp_path/'providers.json'
+    config_path.write_text(json.dumps(config))
+    digest = hashlib.sha256(config_path.read_bytes()).hexdigest()
+    manifest.update(provider_config_source=str(config_path), provider_config_sha256=digest,
+                    parameters={'timeout': 45})
+    (tmp_path/'manifest.json').write_text(json.dumps(manifest))
+    contract = {'provider_config_sha256': digest, 'timeout_seconds': 45}
+    record = {'provider': provider.name, 'case_id': case.id, 'url': case.url,
+              'started_at': started, 'ok': result.ok,
+              'provider_metadata': {'dns_mode': 'system', 'native_route_receipt': ledger.receipt(provider, case)}}
+    if defect == 'dns': record['provider_metadata']['dns_mode'] = 'public_doh'
+    if defect == 'timeout': contract['timeout_seconds'] = 30
+    if defect == 'config': contract['provider_config_sha256'] = '0'*64
+    if defect:
+        with pytest.raises(ValueError, match='Parameter rerun'):
+            _parameter_execution(tmp_path, record, asdict(case), contract, _SourceBindings(tmp_path))
+    else:
+        _parameter_execution(tmp_path, record, asdict(case), contract, _SourceBindings(tmp_path))

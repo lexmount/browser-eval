@@ -1952,7 +1952,7 @@ def result_ledger_section(out, records, prefix=''):
  return section('评分修正账目','<p>每轮增加、减少与最终通过数均从逐条状态记录计算；排除结果保留原始调用，不计入比较分母。</p>'+table(['阶段','修正前通过','新增通过','减少通过','修正后通过','排除比较'],rows,metrics=[])+link(prefix+'local-evidence/result-ledger.json','下载逐条增减账目'),'result-ledger')
 
 def overview_matched_latency(records,cases):
- names=sorted({r['provider'] for r in records})
+ names=sorted(set(_REPORT_PROVIDER_LABELS.get()) | {r['provider'] for r in records})
  keys={(r['provider'],r['case_id']) for r in records}
  if not names or len(keys)!=len(records) or any((name,cid) not in keys for name in names for cid in cases):
   return '<p>调用矩阵尚不完整，暂不汇总全部方法共同成功任务的耗时。</p>'
@@ -2282,7 +2282,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   contained_path(out,'references/'+c['id']+'.txt')
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA);(out/'assets/report.js').write_text(JS)
- cases={c['id']:c for c in dataset['cases']};names=sorted(set(r['provider'] for r in records))
+ cases={c['id']:c for c in dataset['cases']};names=sorted(set(_REPORT_PROVIDER_LABELS.get()) | {r['provider'] for r in records})
  tracks=active_tracks(cases);track_count=len(tracks);track_label=track_count_label(track_count)
  audit=json.loads((out/'result-review.json').read_text()) if (out/'result-review.json').is_file() else None
  audited_attempts=review_index(audit)
@@ -2540,6 +2540,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    for old in r['report_superseded_history']:
     history_rows.append(('',cell(esc(old.get('started_at') or '—'))+cell(link('../'+old['record_path'],SAVED_MATRIX_ZH['record_link']))+cell(link('../'+old['answer_path'],SAVED_MATRIX_ZH['answer_link']))+cell(link('../'+old['scope_path'],SAVED_MATRIX_ZH['history_scope']))))
    body+=section(SAVED_MATRIX_ZH['history_title'],'<p>'+SAVED_MATRIX_ZH['history_note']+'</p>'+table(['时间','记录','返回','范围'],history_rows,metrics=[]),'superseded-history')
+  if r.get('report_completion_note'):
+   body+=section(model_text('补测说明','Completion note'),'<p>'+esc(r['report_completion_note'])+'</p>','completion-note')
   if r.get('report_parameter_rerun'):
    proof=r['report_parameter_rerun']
    evidence=[]
@@ -4731,8 +4733,8 @@ def saved_suite_ranking(records,cases,suite,*,base='',id=None):
   not_called=sum(r.get('report_invocation_status') == 'adapter_rejected' for r in rs)
   if len(rs)-not_called < len(selected):
    values=values.replace('</a>', '</a><br><small>'+SAVED_MATRIX_ZH['incomplete']+'</small>',1)
-  values+=cell(str(len(selected)))+cell(str(len(rs)))+cell(str(len(selected)-len(rs)+not_called))
-  values+=cell(str(sum(bool(r['ok']) for r in rs)))+cell(str(passed))
+  counts=[len(selected),len(rs),len(selected)-len(rs)+not_called,sum(bool(r['ok']) for r in rs),passed]
+  values+=''.join(cell(str(count),count) for count in counts)
   ratio=passed/len(judged) if judged else -1
   values+=cell(f'{passed}/{len(judged)} · '+rate(passed,len(judged)),ratio)
   rows.append((-ratio,provider,('',values)))

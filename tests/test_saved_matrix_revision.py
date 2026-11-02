@@ -111,7 +111,8 @@ def test_revision_rejects_different_frozen_call_even_with_rebound_source(tmp_pat
 
 @pytest.mark.parametrize('defect', [None, 'already_called', 'before_contract',
                                   'early_first_call', 'duplicate', 'incomplete', 'undeclared'])
-def test_completion_preserves_frozen_offline_history(tmp_path, defect):
+@pytest.mark.parametrize('contract_form', ['single', 'multiple'])
+def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_form):
     spec, source, revision = revision_fixture(tmp_path, uncalled=True)
     baseline = write(tmp_path/'baseline-matrix.json', json.loads((revision/'matrix.json').read_text()))
     record = json.loads((source/'results.jsonl').read_text())
@@ -137,8 +138,18 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect):
         contract['cases'] = 2
     spec['completion'] = {'baseline_matrix': baseline,
                           'contract': write(tmp_path/'completion-contract.json', contract)}
+    if contract_form == 'multiple':
+        entry = spec.pop('completion')
+        entry['note'] = 'Only this case uses Cloudflare DoH.'
+        entry['suite'] = 'first'
+        contract.pop('provider')
+        contract['providers'] = ['method']
+        contract['case_ids'] = contract.pop('jobs')[0]['case_ids']
+        entry['contract'] = write(tmp_path/'completion-contract.json', contract)
+        spec['completions'] = [entry]
     if defect == 'undeclared':
-        spec.pop('completion')
+        spec.pop('completion', None)
+        spec.pop('completions', None)
     write(tmp_path/'spec.json', spec)
     if defect == 'early_first_call':
         from harness.web_fetch.report_saved_matrix import _completed_missing, _SourceBindings
@@ -156,5 +167,8 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect):
     assert all(row['called'] for row in model['rows'])
     assert model['rows'][0]['score_revision']
     assert 'score_revision' not in model['rows'][1]
+    if contract_form == 'multiple':
+        assert model['rows'][1]['completion_note'] == 'Only this case uses Cloudflare DoH.'
+        assert any('Only this case uses Cloudflare DoH.' in p.read_text() for p in (output/'attempts').glob('*.html'))
     assert json.loads((output/'score-revision.json').read_text())['provider_calls_added'] == 0
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
