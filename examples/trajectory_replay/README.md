@@ -13,7 +13,7 @@ Requirements:
 
 - Linux with Docker Engine and cgroup v2, or Docker Desktop/Colima backed by a
   Linux VM
-- Python 3.11+ with venv support, at least 4 CPU cores, 6 GiB available memory,
+- Python 3.11 with venv support, at least 4 CPU cores, 6 GiB available memory,
   and Internet access for dependencies, images, and measured public websites
 - Docker access for the current user
 

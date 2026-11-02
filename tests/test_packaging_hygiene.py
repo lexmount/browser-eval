@@ -231,6 +231,11 @@ def test_clean_keeps_reports_and_environments():
     assert not re.search(r"\b(reports|node_modules|\.venv|\.env)\b", recipe)
 
 
+def tracked(*patterns):
+    listed = subprocess.run(["git", "ls-files", "-z", "--", *patterns], cwd=ROOT, capture_output=True, text=True, check=True)
+    return [ROOT / relative for relative in listed.stdout.split("\0") if relative]
+
+
 def test_python_policy_agrees_across_project_lock_and_ci():
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())
     pinned = (ROOT / ".python-version").read_text().strip()
@@ -244,7 +249,8 @@ def test_python_policy_agrees_across_project_lock_and_ci():
     assert tomllib.loads((ROOT / "uv.lock").read_text())["requires-python"] == f"=={pinned}.*"
     for readme in ("README.md", "docs/README.zh-CN.md"):
         text = (ROOT / readme).read_text()
-        assert "3.14" not in text and "Python 3.11+" not in text
+        assert "3.14" not in text
+    assert not [path for path in tracked("*.md") if "Python 3.11+" in path.read_text()]
 
 
 @pytest.fixture
