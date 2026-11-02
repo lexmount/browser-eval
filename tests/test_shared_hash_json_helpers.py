@@ -21,9 +21,10 @@ SOURCE = Path(__file__).resolve().parents[1] / 'src' / 'harness'
 # behaviorally distinct definition (`digest`, `sha256`, `_read_json`) are not listed;
 # the structural rule below still rejects bare copies under those names.
 RETIRED_NAMES = {
-    '_catalog_file_sha256', '_catalog_read_json', '_catalog_write_json', '_json_sha256', '_sha256',
-    '_sha256_bytes', '_sha256_file', '_write_json', 'input_digest', 'json_digest', 'json_sha256',
-    'sha256_bytes', 'sha256_file', 'sha256_path', 'text_digest',
+    '_catalog_file_sha256', '_catalog_read_json', '_catalog_write_json', '_json_sha256',
+    '_planned_actions_digest', '_sha256', '_sha256_bytes', '_sha256_file', '_write_json',
+    'input_digest', 'json_digest', 'json_sha256', 'sha256_bytes', 'sha256_file', 'sha256_path',
+    'text_digest',
 }
 # These bytes are part of a live hash binding, so their private copy stays:
 # the resource orchestrators must equal the `orchestrator_sha256` their protocol declares,
@@ -50,8 +51,10 @@ def _is_dumps(node):
 def _aliased_helper(function, body):
     """Name the helper when a wrapper only forwards its parameters to it.
 
-    A canonical digest wrapper stays allowed: its name is the contract that a writer and
-    a verifier share. A cache decorator or a keyword option is a real difference too.
+    A canonical digest wrapper stays allowed when its name states a contract: a public
+    protocol such as `task_definition_sha256`, or a digest that a writer and a verifier
+    share such as `scoring_revision_history_sha256`. A cache decorator or a keyword option
+    is a real difference too.
     """
     if function.decorator_list or len(body) != 1 or not isinstance(body[0], (ast.Return, ast.Expr)):
         return None
@@ -198,7 +201,7 @@ def test_guard_rejects_each_copied_form(source, expected):
     'def f(path):\n    return file_sha256(unlinked_path(path))\n',
     'def f(resource):\n    return bytes_sha256(resource.read_bytes())\n',
     'def f(value):\n    return bytes_sha256(json_bytes(value))\n',
-    # A canonical digest name is the contract a writer and a verifier share.
+    # A canonical digest name can state a public protocol or a writer-verifier contract.
     'def f(value):\n    return canonical_json_sha256(value)\n',
     'def f(value):\n    return canonical_json_sha256(value, allow_nan=False)\n',
     # json.loads(bytes) also accepts UTF-16/32, which read_json rejects.

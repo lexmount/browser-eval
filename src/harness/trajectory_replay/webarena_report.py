@@ -182,10 +182,6 @@ def _write_clean_json(path: Path, value: Any) -> None:
     write_json(path, _clean(value), parents=True)
 
 
-def _planned_actions_digest(actions: list[dict[str, Any]]) -> str:
-    return canonical_json_sha256(actions)
-
-
 def _validated_planned_actions(attempt: dict[str, Any]) -> list[dict[str, Any]]:
     actions = attempt.get("planned_actions")
     digest = attempt.get("planned_actions_sha256")
@@ -196,7 +192,7 @@ def _validated_planned_actions(attempt: dict[str, Any]) -> list[dict[str, Any]]:
         or _clean(actions) != actions
         or len(actions) != attempt.get("action_count")
         or not isinstance(digest, str)
-        or digest != _planned_actions_digest(actions)
+        or digest != canonical_json_sha256(actions)
     ):
         raise ValueError(
             f"method-specific planned actions missing or changed for "

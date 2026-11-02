@@ -21,7 +21,6 @@ from harness.trajectory_replay.webarena_report import (
     _measured_validity_identity,
     _metrics_table,
     _outcome_metrics,
-    _planned_actions_digest,
     _public_evidence,
     _reference_validity_by_task,
     _resource_table,
@@ -99,7 +98,7 @@ def build_replay_fixture(tmp_path: Path, monkeypatch, extra_methods=0, *, failed
          "task_id": 29, "status": "pass", "process_status": "pass",
          "evaluator_status": "pass", "action_count": 1,
          "completed_action_count": 1, "duration_ms": 100,
-         "planned_actions": actions, "planned_actions_sha256": _planned_actions_digest(actions),
+         "planned_actions": actions, "planned_actions_sha256": canonical_json_sha256(actions),
          "reference_validity": {"status": "valid"},
          "resource": {}, "evidence": {}}
         for method in methods
@@ -307,7 +306,7 @@ def test_method_specific_planned_actions_are_hash_bound() -> None:
     attempt = {
         "participant_id": "moli-fixed", "task_id": 29, "action_count": 1,
         "planned_actions": actions,
-        "planned_actions_sha256": _planned_actions_digest(actions),
+        "planned_actions_sha256": canonical_json_sha256(actions),
     }
     assert _validated_planned_actions(attempt) == actions
     with pytest.raises(ValueError, match="planned actions"):
@@ -1148,7 +1147,7 @@ def test_report_preserves_web_routes_that_resemble_linux_paths() -> None:
         "task_id": 317,
         "action_count": 1,
         "planned_actions": actions,
-        "planned_actions_sha256": _planned_actions_digest(actions),
+        "planned_actions_sha256": canonical_json_sha256(actions),
     }
 
     assert _clean(actions) == actions
