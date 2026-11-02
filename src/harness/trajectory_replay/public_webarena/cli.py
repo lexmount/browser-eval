@@ -80,7 +80,10 @@ def main() -> None:
     parser.add_argument("--webarena-config")
     parser.add_argument(
         "--env-file",
-        help="dotenv file; defaults to the repository-local .env when present",
+        help=(
+            "dotenv file; defaults to the repository-local .env when present. "
+            "--llm-diagnostics ignores it and reads only the repository .env"
+        ),
     )
     parser.add_argument(
         "--browser-docker-host",
