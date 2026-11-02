@@ -773,6 +773,7 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
     row = model['rows'][0]
     assert_proof_mutations_rejected(report, tmp_path/'spec.json', 'parameter_rerun',
                                     ['remove', 'selected_new', 'group', 'before_passed', 'candidate_passed'])
+    assert_saved_receipt_mutation_rejected(report, tmp_path/'spec.json')
     assert row['parameter_rerun']['selected_new'] is selected
     assert 'data-parameter-reruns' in (report/'index.html').read_text()
     assert 'data-parameter-history' in (report/'changes/index.html').read_text()
@@ -1052,7 +1053,7 @@ def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, de
 
 @pytest.mark.parametrize('reverse', [False, True])
 @pytest.mark.parametrize('early_kind', ['blocked', 'skip'])
-@pytest.mark.parametrize('later_kind', ['uncommitted', 'started'])
+@pytest.mark.parametrize('later_kind', ['uncommitted', 'started', 'event', 'inherited_event'])
 def test_source_admission_rejects_not_called_with_invocation_evidence(tmp_path, reverse, early_kind, later_kind):
     spec, _, _, _ = fixture(tmp_path)
     spec['sources'] = []
@@ -1064,6 +1065,10 @@ def test_source_admission_rejects_not_called_with_invocation_evidence(tmp_path, 
                  'status': 'not_called', 'score': None, 'user_instruction': 'Skip this task.'}
     late = {**identity, 'state': 'called_but_uncommitted'} if later_kind == 'uncommitted' else {
         **identity, 'native_route_receipt': {'transport_state': 'started'}}
+    if later_kind == 'event':
+        late = {**identity, 'event': 'http_request_started'}
+    elif later_kind == 'inherited_event':
+        late = {**identity, 'events': [{'event': 'http_request_started'}]}
     events = [late, early] if reverse else [early, late]
     spec['missing'] = [{**identity, 'status': 'not_called', 'reason': 'Claimed skip',
                         'receipt': write(tmp_path/'receipt.json', events)}]
@@ -1100,3 +1105,24 @@ def test_source_checker_binds_report_family_configuration(tmp_path):
     output = build(tmp_path, spec).parent
     assert_proof_mutations_rejected(output, tmp_path/'spec.json', 'report_families',
                                     ['remove', 'change'], error='configuration differs')
+
+
+def assert_saved_receipt_mutation_rejected(output, spec):
+    row = json.loads((output/'matrix.json').read_text())['rows'][0]
+    path, audit_path = output/row['receipt_path'], output/'saved-matrix-audit.json'
+    original, original_audit = path.read_bytes(), audit_path.read_bytes()
+    audit = json.loads(original_audit)
+    audit['files'][row['receipt_path']] = write(path, {})['sha256']
+    write(audit_path, audit)
+    try:
+        with pytest.raises(ValueError, match='Saved result receipt differs'):
+            check_saved_matrix(output, spec_path=spec)
+    finally:
+        path.write_bytes(original)
+        audit_path.write_bytes(original_audit)
+
+
+def test_source_checker_requires_saved_receipt_contents(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    output = build(tmp_path, spec).parent
+    assert_saved_receipt_mutation_rejected(output, tmp_path/'spec.json')

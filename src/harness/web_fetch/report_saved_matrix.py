@@ -85,7 +85,8 @@ def _receipt_covers(value, suite, provider, case_id, status, inherited=None):
             same_case = context.get('suite') == suite and context.get('case_id') == case_id
             matching = same_case and context.get('provider') == provider
             if (same_case and node.get('kind') == 'user_requested_case_skip'
-                    and node.get('status') == 'not_called' and provider in node.get('providers', [])
+                    and node.get('status') == 'not_called' and isinstance(node.get('providers'), list)
+                    and provider in node['providers']
                     and node.get('score', 'absent') is None
                     and isinstance(node.get('user_instruction'), str) and node['user_instruction'].strip()):
                 states.add('not_called')
@@ -95,7 +96,7 @@ def _receipt_covers(value, suite, provider, case_id, status, inherited=None):
                     states.add('not_called')
                 if node.get('state') == 'called_but_uncommitted':
                     states.add('uncommitted')
-                if node.get('transport_state') == 'started':
+                if node.get('transport_state') == 'started' or node.get('event') == 'http_request_started':
                     states.add('started')
             for child in node.values():
                 if isinstance(child, (list, dict)):
@@ -1445,6 +1446,32 @@ def _validate_revision_and_authority_proofs(output, row, inputs, candidates, dec
         raise ValueError('Saved adoption proof differs from validated source')
     if row.get('score_revision') != score:
         raise ValueError('Saved revision proof differs from validated source')
+    if key in inputs['selected']:
+        selected = inputs['selected'][key]
+        record, raw, result_path = selected[1:]
+        revised = key in revision['records']
+        if revised:
+            record = revision['records'][key]
+            raw = (json.dumps(record, ensure_ascii=False)+'\n').encode()
+        if decisions.get(key, {}).get('selected_new'):
+            record, raw, result_path = candidates[key][1:]
+            revised = False
+        if key in adoptions:
+            record, raw, result_path = adoptions[key]['selected'][1:]
+            revised = bool(adoptions[key]['revision'])
+        expected_receipt = {
+            'kind': 'offline_revised_saved_result_view' if revised else 'immutable_saved_result_view',
+            'source_results_sha256': inputs['sources'].tracked[result_path],
+            'record_sha256': hashlib.sha256(raw).hexdigest(),
+            'suite': key[0], 'provider': key[1], 'case_id': key[2],
+            'public_artifacts': artifact_bindings(record),
+            'private_artifacts_verified_not_copied': record_private_bindings(record),
+            'scores_changed': revised, 'provider_calls_added': 0,
+            **({'score_revision': score} if revised else {})}
+        if (row.get('receipt_path') != prefix+'/receipt.json'
+                or _json(output/row['receipt_path']) != json.loads(json.dumps(expected_receipt))):
+            raise ValueError('Saved result receipt differs from validated source')
+
     if key in inputs['historical']:
         _, record, _, results = inputs['historical'][key]
         relative = prefix+'/history/'+safe_identifier(record['attempt_id'])

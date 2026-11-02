@@ -9,7 +9,7 @@ import pytest
 from harness.web_fetch.local_revision import revise_local_snapshot
 from harness.web_fetch.report_saved_matrix import build_saved_matrix, check_saved_matrix
 from lexbench_webfetch.scoring import score_attempt
-from tests.test_saved_matrix_evidence import fixture, write, assert_proof_mutations_rejected, assert_revision_document_mutation_rejected
+from tests.test_saved_matrix_evidence import fixture, write, assert_proof_mutations_rejected, assert_revision_document_mutation_rejected, assert_saved_receipt_mutation_rejected
 
 
 def revision_fixture(tmp_path, *, multiple=False, uncalled=False, completion_note=False, answer=b'answer'):
@@ -162,6 +162,7 @@ def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_pat
     if root_revision:
         for relative in ('score-revision.json', matrix['rows'][0]['score_revision_history']['before_case_path']):
             assert_revision_document_mutation_rejected(output, tmp_path/'spec.json', relative)
+    assert_saved_receipt_mutation_rejected(output, tmp_path/'spec.json')
     if missing_attachment:
         receipt['review_files']['decisions'] = 'missing.json'
         binding = write(receipt_path, receipt)
@@ -181,6 +182,7 @@ def test_saved_revision_preserves_calls_and_exposes_original_scores(tmp_path):
     row = matrix['rows'][0]
     assert (output/row['score_revision']['before_record_path']).read_bytes() == raw
     assert (source/'results.jsonl').read_bytes() == raw
+    assert_saved_receipt_mutation_rejected(output, tmp_path/'spec.json')
     assert_proof_mutations_rejected(output, tmp_path/'spec.json', 'score_revision', ['remove'])
     assert_proof_mutations_rejected(output, tmp_path/'spec.json', 'score_revision_history', ['remove'])
     assert json.loads((output/row['record_path']).read_text())['elapsed_ms'] == 12
