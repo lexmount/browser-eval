@@ -67,19 +67,15 @@ ENGINE_IMAGES = configured_browser_images()
 SCHEMA = "lex_browser_use_attempt/1"
 
 
+def _read_dotenv(path: Path) -> dict[str, str]:
+    """Read one dotenv file literally, dropping blank values; a missing file reads as empty."""
+    # Interpolation would resolve an undefined ${NAME} from the process environment.
+    return {key: value for key, value in dotenv_values(path, interpolate=False).items() if value}
+
+
 def _load_repo_env(repo_root: Path) -> dict[str, str]:
     """Load the repository .env; only the non-secret CowAgent path may come from the process."""
-    env_file = repo_root / ".env"
-    values = (
-        # Interpolation would resolve an undefined ${NAME} from the process environment.
-        {
-            str(key): str(value)
-            for key, value in dotenv_values(env_file, interpolate=False).items()
-            if value
-        }
-        if env_file.exists()
-        else {}
-    )
+    values = _read_dotenv(repo_root / ".env")
     if os.environ.get("COWAGENT_REPO"):
         values["COWAGENT_REPO"] = os.environ["COWAGENT_REPO"]
     return values
@@ -529,15 +525,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     repo_root = Path(args.repo_root).resolve()
     repo_env = _load_repo_env(repo_root)
     env_file = Path(args.env_file).expanduser().resolve() if args.env_file else None
-    env = (
-        {
-            key: value
-            for key, value in dotenv_values(env_file, interpolate=False).items()
-            if value is not None
-        }
-        if env_file
-        else repo_env
-    )
+    env = _read_dotenv(env_file) if env_file else repo_env
     api_key = env.get("OPENAI_API_KEY")
     if not api_key:
         source = env_file or repo_root / ".env"
