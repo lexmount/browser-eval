@@ -153,6 +153,21 @@ class _SourceBindings:
             raise ValueError('Evidence requires a nonempty SHA-256 digest')
         return self.bind(value['path'], digest)
 
+def _execution_policy(binding, sources):
+    """Read a frozen policy shared by adoption and replacement admission."""
+    policy = _json(sources.binding(binding))
+    if policy.get('provider_config'):
+        sources.binding(policy['provider_config'])
+    policy = {**policy,
+              'created_at': policy.get('created_at', policy.get('started_at')),
+              'provider_config_sha256': policy.get('provider_config_sha256',
+                  policy.get('config_sha256', policy.get('provider_config', {}).get('sha256')))}
+    if any(policy.get(field) is None for field in (
+            'created_at', 'provider_config_sha256', 'timeout_seconds', 'max_failure_retries')):
+        raise ValueError('Execution authorization is incomplete')
+    return policy
+
+
 def _completed_missing(spec, sources, selected, continuations=None):
     """Bind new calls to an exact, previously uncalled population."""
     configs = ([spec['completion']] if spec.get('completion') else []) + spec.get('completions', [])
@@ -548,6 +563,19 @@ def _load_saved_matrix(spec_path):
         if any(not call.get('started_at') or datetime.fromisoformat(call['started_at']) < scope_started
                for call in physical):
             raise ValueError('Replacement call predates its declared scope or lacks chronology')
+        if key in selected:
+            execution = scoped[key].get('execution_contract', scope.get('execution_contract'))
+            if not execution:
+                raise ValueError('Committed replacement requires execution authorization')
+            policy = _execution_policy(execution, sources)
+            root, record, _, _ = selected[key]
+            case = cases[key[0]][key[2]]
+            _validate_call_sequence(record, case, policy, continuations.get(key))
+            _parameter_execution(root, record, case, policy, sources)
+            continuation = continuations.get(key)
+            if continuation and continuation[1]:
+                prior_root, prior_record, _ = continuation[1]
+                _parameter_execution(prior_root, prior_record, case, policy, sources)
     completed = _completed_missing(spec, sources, selected, continuations)
     for config in ([spec['completion']] if spec.get('completion') else []) + spec.get('completions', []):
         baseline = _json(sources.binding(config['baseline_matrix']))
@@ -792,9 +820,10 @@ def _parameter_group_decisions(inputs, candidates):
     return {key: groups[group] for key, group in membership.items()}
 
 
-def _validate_completion_retention(inputs, candidates):
+def _validate_completion_retention(inputs, candidates, decisions=None):
     """Preserve every baseline call outside separately authorized completion scopes."""
     spec, sources = inputs['spec'], inputs['sources']
+    decisions = _parameter_group_decisions(inputs, candidates) if decisions is None else decisions
     configs = ([spec['completion']] if spec.get('completion') else []) + spec.get('completions', [])
     completed = _completed_missing(spec, sources, inputs['selected'], inputs['continuations'])
     derived = {'metrics', 'scoring', 'diagnosis', 'failure_category'} if inputs['revision'] else set()
@@ -826,10 +855,15 @@ def _validate_completion_retention(inputs, candidates):
                     raise ValueError('Completion changed a retained invocation state or receipt')
                 continue
             previous = call_identity(evidence(row['record_path']))
-            allowed = [inputs['selected'][key][1]] if key in inputs['selected'] else []
-            if key in candidates:
-                allowed.append(candidates[key][1])
-            if previous not in [call_identity(record) for record in allowed]:
+            final = inputs['selected'].get(key)
+            if key in decisions and decisions[key]['selected_new']:
+                final = candidates[key]
+            if final is not None and previous == call_identity(final[1]):
+                continue
+            authorized_selection = (key in candidates and
+                spec.get('parameter_reruns', {}).get('selection') == 'replace_track_if_pass_count_improves')
+            alternatives = [inputs['selected'][key][1], candidates[key][1]] if authorized_selection else []
+            if previous not in [call_identity(record) for record in alternatives]:
                 raise ValueError('Completion replaced a retained baseline call: ' + '/'.join(key))
 
 
@@ -860,26 +894,14 @@ def _adopted_groups(inputs, candidates):
                 or expected & (set(adopted) | set(candidates))):
             raise ValueError('Adoption must replace complete, disjoint groups')
         policies = {}
-        def execution_policy(binding):
-            policy = _json(sources.binding(binding))
-            if policy.get('provider_config'):
-                sources.binding(policy['provider_config'])
-            policy = {**policy,
-                      'created_at': policy.get('created_at', policy.get('started_at')),
-                      'provider_config_sha256': policy.get('provider_config_sha256',
-                          policy.get('config_sha256', policy.get('provider_config', {}).get('sha256')))}
-            if any(policy.get(field) is None for field in (
-                    'created_at', 'provider_config_sha256', 'timeout_seconds', 'max_failure_retries')):
-                raise ValueError('Adoption execution authorization is incomplete')
-            return policy
         if config.get('execution_contract'):
-            policies = dict.fromkeys(expected, execution_policy(config['execution_contract']))
+            policies = dict.fromkeys(expected, _execution_policy(config['execution_contract'], sources))
         for cohort in config.get('execution_contracts', []):
             identifiers = cohort['case_ids']
             scope = {(cohort['suite'], cohort['provider'], cid) for cid in identifiers}
             if len(scope) != len(identifiers) or not scope <= expected or scope & set(policies):
                 raise ValueError('Adoption execution scopes overlap or exceed the selected group')
-            policies.update(dict.fromkeys(scope, execution_policy(cohort['contract'])))
+            policies.update(dict.fromkeys(scope, _execution_policy(cohort['contract'], sources)))
         if set(policies) != expected:
             raise ValueError('Adoption requires execution authorization for every selected call')
         for key, original in nested['selected'].items():
@@ -936,7 +958,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
     inputs = _load_saved_matrix(spec_path)
     candidates = _parameter_reruns(inputs)
     decisions = _parameter_group_decisions(inputs, candidates)
-    _validate_completion_retention(inputs, candidates)
+    _validate_completion_retention(inputs, candidates, decisions)
     adoptions = _adopted_groups(inputs, candidates)
     spec = inputs['spec']
     sources = inputs['sources']

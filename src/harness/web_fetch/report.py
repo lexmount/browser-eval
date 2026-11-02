@@ -4771,4 +4771,5 @@ def saved_suite_ranking(records,cases,suite,*,base='',id=None):
   values+=cell(f'{passed}/{len(judged)} · '+rate(passed,len(judged)),ratio)
   rows.append((-ratio,provider,('',values)))
  rows=[row for _,_,row in sorted(rows)]
+ rows=comparative_rows(rows,{6:('task_pass_rate','max')})
  return '<p>'+SAVED_MATRIX_ZH['suite_denominator_note']+'</p>'+table(SAVED_MATRIX_ZH['suite_result_headers'],rows,id or 'ranking-'+suite,sortable=True,metrics=[],default_sort=(7,'desc'))

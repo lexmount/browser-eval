@@ -10,6 +10,18 @@ from .test_review_migration_articles import COMMENTS, public_case
 
 
 def controls():
+    for boundary in ('### Bob', '[Bob](https://example.test/bob)', '**Bob**'):
+        contract = deepcopy(COMMENTS)
+        contract['minimum_comments'] = 2
+        yield {
+            'id': 'comment-speech-then-structural-' + ('heading' if boundary.startswith('#') else 'link' if boundary.startswith('[') else 'bold'),
+            'failure_mode': 'false-negative', 'category': 'structured-extraction',
+            'root_cause': 'Speech-attribution filtering suppressed independent structural author boundaries.',
+            'case': public_case('comment_contract', contract),
+            'artifact': 'Benchmark page\n\n## Comments\n\nAlice 说：\n\nFirst reply.\n\n' + boundary + '\n\nSecond reply.',
+            'ok': True, 'metadata': {'answer_format': 'markdown'},
+            'expected_task_pass': True, 'expected_metrics': {'article_comment_count': 2},
+        }
     for surface in ('markdown', 'plain_text'):
         for stamp in ('2024年9月12日 15:42', '2024-09-12 15:42', '15:42'):
             for footer in ('', ' | # | 引用'):

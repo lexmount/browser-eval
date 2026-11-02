@@ -211,6 +211,43 @@ def test_revision_rejects_different_frozen_call_even_with_rebound_source(tmp_pat
         build_saved_matrix(tmp_path/'spec.json', tmp_path/'revised')
 
 
+@pytest.mark.parametrize('tie', [False, True])
+@pytest.mark.parametrize('authorized', [False, True])
+def test_completion_candidate_baseline_requires_explicit_whole_group_reselection(tmp_path, monkeypatch, tie, authorized):
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
+    spec, source, before, _ = fixture(tmp_path)
+    before['metrics']['content_pass'] = not tie
+    spec['sources'][0]['results'] = write(source/'results.jsonl', before)
+    candidate = deepcopy(before)
+    candidate['attempt_id'] = 'candidate-call'
+    candidate['metrics']['content_pass'] = False
+    candidate_binding = write(source/'candidate.jsonl', candidate)
+    baseline_spec = deepcopy(spec)
+    baseline_spec['sources'][0]['results'] = candidate_binding
+    write(tmp_path/'baseline-spec.json', baseline_spec)
+    baseline = build_saved_matrix(tmp_path/'baseline-spec.json', tmp_path/'baseline').parent
+    spec['completion'] = {
+        'baseline_matrix': {'path': str(baseline/'matrix.json'), 'sha256': hashlib.sha256((baseline/'matrix.json').read_bytes()).hexdigest()},
+        'baseline_audit': {'path': str(baseline/'saved-matrix-audit.json'), 'sha256': hashlib.sha256((baseline/'saved-matrix-audit.json').read_bytes()).hexdigest()},
+        'contract': write(tmp_path/'completion.json', {'created_at': '2026-10-28T00:00:00Z', 'provider': 'method', 'jobs': [], 'cases': 0})}
+    if authorized:
+        spec['parameter_reruns'] = {
+            'selection': 'replace_track_if_pass_count_improves',
+            'contract': write(tmp_path/'parameters.json', {'created_at': '2026-10-28T00:00:00Z',
+                'max_failure_retries': 0, 'jobs': [{'id': 'job', 'suite': 'first', 'provider': 'method', 'case_ids': ['same']}]}),
+            'sources': [{'job_id': 'job', 'root': str(source), 'dataset': spec['suites'][0]['dataset'], 'results': candidate_binding}]}
+    write(tmp_path/'spec.json', spec)
+    if not authorized:
+        with pytest.raises(ValueError, match='retained baseline call'):
+            build_saved_matrix(tmp_path/'spec.json', tmp_path/'report')
+        return
+    output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'report').parent
+    row = json.loads((output/'matrix.json').read_text())['rows'][0]
+    assert row['parameter_rerun']['selected_new'] is False
+    assert json.loads((output/row['record_path']).read_text())['attempt_id'] == before['attempt_id']
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+
+
 @pytest.mark.parametrize('defect', [None, 'already_called', 'before_contract',
                                   'early_first_call', 'duplicate', 'incomplete', 'undeclared', 'extra_baseline', 'retained_call', 'retained_task', 'completed_task', 'extra_uncommitted', 'missing_execution'])
 @pytest.mark.parametrize('contract_form', ['single', 'multiple'])

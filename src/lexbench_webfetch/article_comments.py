@@ -190,23 +190,23 @@ def _coverage_text_start(lines, contract, *, representation=None):
 def _text_author(stripped, heading, heading_authors, explicit_scope, new_paragraph, *, representation=None):
     """Recognize one author format without treating inline prose as a new record."""
     if heading:
-        return heading[2], '', True
+        return heading[2], '', True, 'structural'
     if heading_authors:
-        return None, '', True
+        return None, '', True, None
     links = [] if representation == 'plain_text' else [link for link in markdown_links(stripped) if not link.is_image]
     if len(links) == 1 and links[0].start == 0 and links[0].end == len(stripped):
-        return links[0].label, '', False
+        return links[0].label, '', False, 'structural'
     bold = None if representation == 'plain_text' else re.fullmatch(r'\*\*(.+?)\*\*[:：]?', stripped)
     if bold:
-        return bold[1], '', False
+        return bold[1], '', False, 'structural'
     delimiter = r'(?::(?=\s|$)|：)' if representation == 'plain_text' else r'[:：]'
     colon = re.fullmatch(r'([^\n:：]{1,120})' + delimiter + r'\s*(.*)', stripped)
     if explicit_scope and colon:
         if new_paragraph:
-            return colon[1], colon[2], False
+            return colon[1], colon[2], False, 'colon'
         if not colon[2]:
-            return colon[1], '', False
-    return None, '', False
+            return colon[1], '', False, 'colon'
+    return None, '', False, None
 
 
 def _coverage_text_records(content, contract, *, representation=None):
@@ -283,14 +283,14 @@ def _coverage_text_records(content, contract, *, representation=None):
             continue
         if _comment_time_metadata(line, representation=representation):
             continue
-        author, body, heading_authors = _text_author(
+        author, body, heading_authors, author_format = _text_author(
             stripped, heading, heading_authors, explicit_scope,
             current is None or previous_blank, representation=representation)
         # Once the serializer establishes standalone "Author:" lines, inline
         # colon paragraphs belong to that author's body, not another record.
         if standalone_colon_authors and body:
             author = None
-        if speech_attribution_authors and author is not None and not re.fullmatch(r'.+\s+说', author):
+        if speech_attribution_authors and author_format == 'colon' and author is not None and not re.fullmatch(r'.+\s+说', author):
             author = None
         if author is not None:
             if standalone_colon_authors is None:

@@ -9,6 +9,27 @@ from bs4 import BeautifulSoup
 from tests.test_saved_matrix_evidence import fixture, build, write
 
 
+@pytest.mark.parametrize('tie', [False, True])
+def test_saved_suite_pass_rate_highlights_only_a_unique_winner(tmp_path, tie):
+    spec, source, record, raw = fixture(tmp_path)
+    other = deepcopy(record)
+    other['provider'] = 'other'
+    other['attempt_id'] = 'other-run'
+    other['metrics']['content_pass'] = tie
+    spec['providers'].append({'id': 'other', 'label': 'Other'})
+    path = source/'results.jsonl'
+    path.write_bytes(raw+(json.dumps(other)+'\n').encode())
+    spec['sources'][0]['results']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+    root = build(tmp_path, spec).parent
+    home = BeautifulSoup((root/'index.html').read_text(), 'html.parser')
+    table = home.select_one('#ranking-first')
+    assert table is not None
+    winners = table.select('[data-metric="task_pass_rate"] .comparison-winner')
+    assert len(winners) == (0 if tie else 1)
+    if not tie:
+        assert '1/1' in winners[0].get_text()
+
+
 def test_task_families_combine_suites_without_combining_case_identities(tmp_path):
     spec, _, _, raw = fixture(tmp_path)
     spec['suites'].append({**spec['suites'][0], 'id': 'second', 'label': 'Second'})

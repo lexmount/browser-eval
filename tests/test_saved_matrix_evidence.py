@@ -264,7 +264,10 @@ def test_explicit_user_skip_is_unscored_and_provider_scoped(tmp_path):
         build(tmp_path, spec, 'wrong-provider')
 
 
-def test_superseded_evidence_preserved_without_double_counting(tmp_path):
+@pytest.mark.parametrize('execution_defect', [None, 'missing_policy', 'missing_native'])
+def test_superseded_evidence_preserved_without_double_counting(tmp_path, monkeypatch, execution_defect):
+    if execution_defect != 'missing_native':
+        monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
     spec, root, record, raw = fixture(tmp_path)
     old = deepcopy(record)
     old.update(attempt_id='old-001', ok=False, error_type='unsupported_task')
@@ -281,7 +284,15 @@ def test_superseded_evidence_preserved_without_double_counting(tmp_path):
     scope = {'kind':'predeclared_replacement_scope', 'created_at':'2026-10-28T00:00:00Z', 'cells': [{
         'suite':'first', 'provider':'method', 'case_id':'same', 'old_record': {
             'path':str(old_copy), 'sha256': hashlib.sha256(old_raw).hexdigest()}}]}
+    if execution_defect != 'missing_policy':
+        scope['execution_contract'] = write(tmp_path/'execution-contract.json', {
+            'created_at': '2026-10-28T00:00:00Z', 'provider_config_sha256': 'a'*64,
+            'timeout_seconds': 30, 'max_failure_retries': 0})
     spec['supersession_scope'] = write(tmp_path/'scope.json', scope)
+    if execution_defect:
+        with pytest.raises(ValueError, match='execution authorization|execution contract'):
+            build(tmp_path, spec)
+        return
     entry = build(tmp_path, spec)
     model = json.loads((entry.parent/'matrix.json').read_text())
     assert model['totals']['saved'] == model['totals']['passed'] == 1

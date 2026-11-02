@@ -8,7 +8,7 @@
       "changes": {
         "article_comments.py": {
           "before_sha256": "de014a9188d2b587302889cb1a25e1d77eb282bc3e0a69dcacad7a95f0a4431f",
-          "after_sha256": "d09adf52a951ac2d9052339c4c98a32529aa628ad2e5ee7db1b05dfd989a8b94"
+          "after_sha256": "53a0616b0aa0010c93d7d4b361aeb9f360035bccb306d384f8de50ab23deb3db"
         },
         "article_dataset.py": {
           "before_sha256": "8d661b165fc63a6b72352ee6592a99611579e700f1633dab2c0d70824d93447b",
@@ -3827,6 +3827,20 @@
             "comment-explicit-speech-author-False",
             "comment-standalone-author-prose-colon-True",
             "comment-explicit-speech-author-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_comment_timestamp_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_comments.py"
+          ],
+          "root_cause": "Speech attribution incorrectly suppressed subsequent structural heading, link and bold author boundaries. Restrict speech filtering to ambiguous colon-form prose.",
+          "regression_ids": [
+            "comment-speech-then-structural-heading",
+            "comment-speech-then-structural-link",
+            "comment-speech-then-structural-bold"
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_comment_timestamp_ownership.py"
