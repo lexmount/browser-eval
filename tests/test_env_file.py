@@ -230,13 +230,52 @@ def test_caller_policies_stay_outside_the_parser(tmp_path, monkeypatch):
         catalog_runner._load_env_values(symlink)
 
 
+ENV_PARSER = re.compile(
+    r"^\s*(?:from|import) dotenv\b"
+    r"|[\"']=[\"'] (?:not )?in \w*line"
+    r"|\w*line\w*(?:\.strip\(\))?\.r?(?:split|partition)\(\s*[\"']=[\"']"
+    r"|\.startswith\(\s*f?[\"'][^\"']*=[\"']"
+    r"|\(\?:export\\s",
+    re.M,
+)
+
+
 def test_only_the_shared_module_parses_env_files():
-    forbidden = re.compile(r"^\s*(?:from|import) dotenv\b|\"=\" not in (?:raw_)?line", re.M)
     allowed = {"src/harness/env_file.py"}
     sources = [*(ROOT / "src/harness").rglob("*.py"), *(ROOT / "scripts").rglob("*.py")]
     found = [str(path.relative_to(ROOT)) for path in sources
              if str(path.relative_to(ROOT)) not in allowed
-             and forbidden.search(path.read_text("utf-8"))]
+             and ENV_PARSER.search(path.read_text("utf-8"))]
     assert found == []
-    assert forbidden.search('if "=" not in line:')
-    assert forbidden.search("from dotenv import dotenv_values")
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "from dotenv import dotenv_values",
+        "import dotenv",
+        'if "=" not in line:',
+        "if '=' in raw_line:",
+        "line.split('=', 1)[1].strip().strip('\"')",
+        'name, _, value = raw_line.strip().partition("=")',
+        "if line.startswith('CHROMIUM_BINARY='):",
+        'if line.startswith(f"{key}="):',
+        r'ASSIGNMENT = re.compile(r"^\s*(?:export\s+)?(\w+)=(.*)$")',
+    ],
+)
+def test_env_parser_guard_catches_each_hand_written_form(source):
+    assert ENV_PARSER.search(source)
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        # name=path command-line arguments are not dotenv syntax.
+        'name, separator, path = value.partition("=")',
+        'key, separator, value = item.partition("=")',
+        'host, separator, address = value.rpartition("=")',
+        '{v.split("=", 1)[0]: Path(v.split("=", 1)[1]) for v in args.source}',
+    ],
+)
+def test_env_parser_guard_exempts_argument_parsers(source):
+    assert not ENV_PARSER.search(source)
