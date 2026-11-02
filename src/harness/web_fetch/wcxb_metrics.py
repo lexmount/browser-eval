@@ -6,9 +6,11 @@ from a dataset or an external checkout.
 Source: https://github.com/Murrough-Foley/web-content-extraction-benchmark
 License: https://creativecommons.org/licenses/by/4.0/
 
-Everything that can change a WCXB score belongs here, and this module may import
-only the standard library, so the binding covers the whole metric. A code change
-needs a new binding; a docstring, comment or formatting change does not.
+The binding covers the per-page metric functions and everything they call: this
+module may import only the standard library, and a code change here needs a new
+binding, while a docstring, comment or formatting change does not. It does not
+cover wcxb_scoring.py, which chooses the arguments, classifies pages, applies
+exclusions and aggregates the scores.
 """
 
 from __future__ import annotations
