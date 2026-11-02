@@ -67,7 +67,7 @@ def _copied_primitive(function):
         if (isinstance(value, ast.Call) and ast.unparse(value.func) == 'json.loads'
                 and len(value.args) == 1 and isinstance(value.args[0], ast.Call)
                 and isinstance(value.args[0].func, ast.Attribute)
-                and value.args[0].func.attr in {'read_text', 'read_bytes'}
+                and value.args[0].func.attr == 'read_text'
                 and isinstance(value.args[0].func.value, ast.Name)
                 and value.args[0].func.value.id in parameters):
             return 'read_json'
@@ -159,6 +159,8 @@ def test_guard_rejects_each_copied_form(source, expected):
     # Shape checks and alternative readers keep their local wrapper.
     'def f(path):\n    value = read_json(path)\n    assert isinstance(value, dict)\n    return value\n',
     'def f(path):\n    return json.loads(read_dataset_bytes(path))\n',
+    # json.loads(bytes) also accepts UTF-16/32, which read_json rejects.
+    'def f(path):\n    return json.loads(path.read_bytes())\n',
 ])
 def test_guard_keeps_behaviorally_distinct_helpers(source):
     assert _violations(source, 'example.py') == []
