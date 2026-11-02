@@ -123,7 +123,7 @@ is not equivalent. The four seeded site images otherwise keep their data in the
 slice's disposable writable layers. Do not mount empty volumes over their preloaded
 database directories.
 
-Copy `rainbond-pool.example.json`, set `RAINBOND_API_TOKEN` in the process environment,
+Copy `rainbond-pool.example.json`, set `RAINBOND_API_TOKEN` in the repository `.env`,
 and reconcile the warm pool to the active task count plus at least one idle slice.
 Additional slices are created in bounded parallel and removed when demand falls:
 
