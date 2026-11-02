@@ -9,6 +9,7 @@ from harness.env_file import parse_env_file
 from harness.trajectory_replay import catalog_runner
 from harness.trajectory_replay.public_webarena import config as webarena_config
 from harness.web_fetch import config as web_fetch_config
+from harness.web_fetch.accounts import HOSTED_KEYS, import_credentials
 from harness.web_fetch.wcxb_report_check import binary_from_env
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -144,6 +145,70 @@ def test_wcxb_visual_check_reports_an_unreadable_binary_as_missing(tmp_path, tex
     path.write_text(text, encoding="utf-8")
     with pytest.raises(ValueError, match="CHROMIUM_BINARY is missing"):
         binary_from_env(path)
+
+
+@pytest.mark.parametrize(
+    "statement",
+    [
+        # The import command's own reader called all of these usable, then reported
+        # complete credentials that the runtime parser reads as missing or empty.
+        "{key}=\"mismatched'",
+        "{key}=first\n{key}=",
+        "{key}=\"secret\n{other}=\"",
+    ],
+)
+def test_import_uses_the_values_the_runtime_will_read(tmp_path, statement):
+    key, other = HOSTED_KEYS[:2]
+    source = tmp_path / "source.env"
+    target = tmp_path / "target.env"
+    source.write_text(statement.format(key=key, other=other) + "\n", encoding="utf-8")
+    imported, missing = import_credentials(source, target)
+    assert imported == []
+    assert key in missing
+    assert not target.exists()
+
+
+@pytest.mark.parametrize("line", ["{key}=\"mismatched'", "{key}=first\n{key}=", "{key}="])
+def test_import_replaces_a_target_value_the_runtime_cannot_read(tmp_path, line):
+    key = HOSTED_KEYS[0]
+    source = tmp_path / "source.env"
+    target = tmp_path / "target.env"
+    source.write_text(f"{key}=from-source\n", encoding="utf-8")
+    target.write_text(line.format(key=key) + "\n", encoding="utf-8")
+    assert key in import_credentials(source, target)[0]
+    assert parse_env_file(target)[key] == "from-source"
+
+
+@pytest.mark.parametrize(
+    ("statement", "expected"),
+    [
+        ("{key}=plain", "plain"),
+        ('export {key} = "quoted # kept"', "quoted # kept"),
+        ("{key}=plain # note", "plain"),
+        (r'{key}="line\nbreak"', "line\nbreak"),
+        ("{key}=stale\n{key}=latest", "latest"),
+    ],
+)
+def test_import_copies_the_statement_so_the_target_reads_the_same_value(tmp_path, statement, expected):
+    key = HOSTED_KEYS[0]
+    source = tmp_path / "source.env"
+    target = tmp_path / "target.env"
+    source.write_text(statement.format(key=key) + "\n", encoding="utf-8")
+    assert key in import_credentials(source, target)[0]
+    assert parse_env_file(target) == {key: expected}
+
+
+def test_import_refuses_a_target_whose_broken_quote_would_absorb_the_addition(tmp_path):
+    key = HOSTED_KEYS[0]
+    source = tmp_path / "source.env"
+    target = tmp_path / "target.env"
+    source.write_text(f'{key}="from-source"\n', encoding="utf-8")
+    broken = 'OTHER="unterminated\n'
+    target.write_text(broken, encoding="utf-8")
+    with pytest.raises(ValueError, match="unterminated quote"):
+        import_credentials(source, target)
+    assert target.read_text(encoding="utf-8") == broken
+    assert list(tmp_path.glob(".env-import-*")) == []
 
 
 def test_caller_policies_stay_outside_the_parser(tmp_path, monkeypatch):

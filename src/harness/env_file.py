@@ -39,3 +39,8 @@ def parse_env_file(path: str | Path) -> dict[str, str]:
     missing. A missing file raises ``FileNotFoundError``.
     """
     return {name: binding.value for name, binding in _read_bindings(path).items()}
+
+
+def read_env_statements(path: str | Path) -> dict[str, str]:
+    """Return the source text of each assignment ``parse_env_file`` would read, for copying."""
+    return {name: binding.original.string.strip() for name, binding in _read_bindings(path).items()}
