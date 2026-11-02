@@ -255,7 +255,10 @@ else:
             self.assertEqual([row['case_id'] for row in records], ['first'])
             self.assertIn('ProcessCleanupError', records[0]['error_message'])
             manifest = json.loads((root / 'run' / 'manifest.json').read_text())
-            self.assertIn('non_cancellable_call_still_running', manifest['unexecuted'][0]['reason'])
+            reasons = [item['reason'] for item in manifest['unexecuted']]
+            self.assertIn('failure_retry_pending_previous_call_still_running', reasons)
+            self.assertTrue(any('non_cancellable_call_still_running' in reason for reason in reasons))
+            self.assertEqual(records[0]['provider_metadata']['retry_pending']['remaining_physical_calls'], 1)
 
     def test_cleanup_grace_requires_an_actively_cancellable_local_route(self):
         for config in ({'engine': 'kitesurf'}, {'engine': 'chromium', 'resource_sample_interval_ms': 50}):

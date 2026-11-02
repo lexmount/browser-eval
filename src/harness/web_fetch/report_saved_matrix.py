@@ -762,15 +762,7 @@ def _parameter_group_decisions(inputs, candidates):
     """Select whole method/track groups, including regressions in a winning group."""
     groups, membership = {}, {}
     revision = inputs['revision']
-    spec = inputs.get('spec', {})
-    def included(key):
-        suite, _, cid = key
-        return (not spec.get('excluded_report_families') or
-                _presentation_family(inputs['cases'][suite][cid], suite, spec['report_families'])
-                not in spec['excluded_report_families'])
     for key, (_, candidate, _, _) in candidates.items():
-        if not included(key):
-            continue
         suite, provider, cid = key
         original_case = inputs['cases'][suite][cid]
         case = revision['cases'].get((suite, cid), original_case) if revision else original_case
@@ -788,7 +780,7 @@ def _parameter_group_decisions(inputs, candidates):
         counts['selected_new'] = counts['candidate_passed'] > counts['before_passed']
     for group in groups:
         expected = {key for key in inputs['selected'] if key[1] == group[0]
-                    and inputs['cases'][key[0]][key[2]].get('track', 'web') == group[1] and included(key)}
+                    and inputs['cases'][key[0]][key[2]].get('track', 'web') == group[1]}
         if expected != {key for key, value in membership.items() if value == group}:
             raise ValueError('Parameter selection must cover the complete method/track group')
     return {key: groups[group] for key, group in membership.items()}
@@ -962,8 +954,8 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                 step['task_verdict_changes'] = [change for change in step['task_verdict_changes']
                                                 if change['attempt_id'] in attempts]
             if 'decisions' in revision['attachments']:
-                decisions = _json(revision['attachments']['decisions'])
-                scoped = [item for item in decisions if (item['suite'], item['case_id']) in visible]
+                review_decisions = _json(revision['attachments']['decisions'])
+                scoped = [item for item in review_decisions if (item['suite'], item['case_id']) in visible]
                 _write(output/'report-review-assets/decisions.json', scoped)
                 receipt['review_files']['decisions'] = 'report-review-assets/decisions.json'
         _write(output/'score-revision.json', revision['receipt'])

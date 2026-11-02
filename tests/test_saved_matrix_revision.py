@@ -155,8 +155,14 @@ def test_revision_keeps_same_id_in_other_suite_unchanged(tmp_path):
     assert 'score-before-record.json' in review and '修订前后证据' in review
 
 
-def test_exclusion_scopes_revision_counts_and_decisions_but_preserves_history(tmp_path):
+@pytest.mark.parametrize('with_parameter_candidates', [False, True])
+def test_exclusion_scopes_revision_counts_and_decisions_but_preserves_history(tmp_path, monkeypatch, with_parameter_candidates):
     spec, _, _ = revision_fixture(tmp_path, multiple=True)
+    if with_parameter_candidates:
+        # Reuse bound calls to exercise assembly of parameter proof alongside
+        # scoped review attachments; transport validation has separate controls.
+        monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_reruns',
+                            lambda inputs: inputs['selected'])
     decisions = [{'suite': suite, 'case_id': 'same', 'rule_decisions': [],
                   'decision_basis': suite+' independent decision'} for suite in ('first', 'second')]
     spec['offline_revision']['review_files'] = {'decisions': write(tmp_path/'decisions.json', decisions)}
@@ -166,6 +172,9 @@ def test_exclusion_scopes_revision_counts_and_decisions_but_preserves_history(tm
     spec['excluded_report_families'] = ['base-web']
     write(tmp_path/'spec.json', spec)
     output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'report').parent
+    if with_parameter_candidates:
+        row = json.loads((output/'matrix.json').read_text())['rows'][0]
+        assert row['parameter_rerun']['selected_new'] is False
     receipt = json.loads((output/'score-revision.json').read_text())
     history = json.loads((output/receipt['historical_scope_path']).read_text())
     assert receipt['changed_cases'] == [] and receipt['rescored_results'] == 0

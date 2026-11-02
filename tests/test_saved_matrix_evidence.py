@@ -566,8 +566,8 @@ def test_whole_parameter_group_never_keeps_a_regression_from_the_old_group(after
 
 
 @pytest.mark.parametrize('before,after,expected', [([True, False], [False, True], False),
-                                                  ([False, True], [True, False], True)])
-def test_excluded_supplements_cannot_choose_parameter_winner(before, after, expected):
+                                                  ([False, True], [True, False], False)])
+def test_presentation_exclusions_preserve_frozen_parameter_population(before, after, expected):
     from harness.web_fetch.report_saved_matrix import _parameter_group_decisions
     keys = [('main', 'method', 'a'), ('base', 'method', 'b')]
     def saved(passed):
@@ -579,8 +579,8 @@ def test_excluded_supplements_cannot_choose_parameter_winner(before, after, expe
                   {'id': 'base-dynamic', 'task_family': 'dynamic', 'source_suites': ['base']}]},
               'selected': {key: saved(value) for key, value in zip(keys, before)}}
     decisions = _parameter_group_decisions(inputs, {key: saved(value) for key, value in zip(keys, after)})
-    assert set(decisions) == {keys[0]}
-    assert decisions[keys[0]]['count'] == 1
+    assert set(decisions) == set(keys)
+    assert decisions[keys[0]]['count'] == 2
     assert decisions[keys[0]]['selected_new'] is expected
 
 
