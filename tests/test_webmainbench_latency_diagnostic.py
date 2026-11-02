@@ -88,6 +88,7 @@ def paired_inputs(root):
 def fake_paired_environment(monkeypatch, root, *, mutate=False):
     import contextlib
     import subprocess
+    from harness import platform_capabilities
     from harness.web_fetch import webmainbench_runner as runner
     from harness.web_fetch import webmainbench_latency_diagnostic as diagnostic
 
@@ -105,6 +106,10 @@ def fake_paired_environment(monkeypatch, root, *, mutate=False):
             (root / 'older').write_text('changed binary')
         return subprocess.CompletedProcess(command, 0, b'synthetic body', b'')
 
+    sandbox = root / 'sandbox-exec'
+    sandbox.write_text('synthetic sandbox')
+    monkeypatch.setattr(platform_capabilities.platform, 'system', lambda: 'Darwin')
+    monkeypatch.setattr(platform_capabilities, 'SANDBOX_EXEC', sandbox)
     monkeypatch.setattr(runner, 'fixture_server', fixture)
     monkeypatch.setattr(runner, 'verify_loopback_sandbox', lambda *args: {'synthetic': True})
     monkeypatch.setattr(diagnostic.subprocess, 'run', run)
@@ -114,6 +119,7 @@ def fake_paired_environment(monkeypatch, root, *, mutate=False):
 def test_paired_calls_use_declared_versions_scope_and_balanced_order(tmp_path, monkeypatch):
     import hashlib
     import json
+    from harness.web_fetch.providers.headless import LOOPBACK_SANDBOX_PROFILE
     from harness.web_fetch.webmainbench_latency_diagnostic import paired_tail_main
 
     argv = paired_inputs(tmp_path)
@@ -125,6 +131,8 @@ def test_paired_calls_use_declared_versions_scope_and_balanced_order(tmp_path, m
     assert set(selection['case_ids']) == {'one', 'two', 'three'}
     assert set(selection['binaries']) == {'2.0.0', '2.1.0'}
     assert len(commands) == len(calls) == 18
+    sandbox_prefix = [str(tmp_path / 'sandbox-exec'), '-p', LOOPBACK_SANDBOX_PROFILE]
+    assert all(command[:3] == sandbox_prefix and Path(command[3]).name in {'older', 'newer'} for command in commands)
     for index in range(0, len(calls), 2):
         pair = calls[index:index+2]
         assert pair[0]['case_id'] == pair[1]['case_id']

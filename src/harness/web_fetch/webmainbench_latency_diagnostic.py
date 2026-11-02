@@ -17,7 +17,7 @@ from pathlib import Path
 from lexbench_webfetch.metrics import percentile
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
-from harness.platform_capabilities import SANDBOX_EXEC
+from harness.platform_capabilities import sandbox_exec_command
 from harness.record_io import load_jsonl, parse_jsonl
 from harness.web_fetch import webmainbench_runner
 from harness.web_fetch.providers.headless import LOOPBACK_SANDBOX_PROFILE
@@ -503,9 +503,7 @@ def paired_tail_main(argv=None) -> None:
                     )
                     for version in call_versions:
                         command = [
-                            str(SANDBOX_EXEC),
-                            "-p",
-                            LOOPBACK_SANDBOX_PROFILE,
+                            *sandbox_exec_command(LOOPBACK_SANDBOX_PROFILE),
                             str(binaries[version]),
                             "fetch",
                             "--dump",
