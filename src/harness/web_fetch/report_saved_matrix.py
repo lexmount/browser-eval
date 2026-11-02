@@ -352,6 +352,12 @@ def _load_saved_matrix(spec_path):
                   for suite, group in cases.items() for c in group.values()}
         if set(families) != actual or any(not str(f.get('label', '')).strip() for f in spec['report_families']):
             raise ValueError('Report families must label every observed task family exactly once')
+    exclusions = spec.get('excluded_report_families', [])
+    family_ids = {group['id'] for group in spec.get('report_families', [])}
+    if (not isinstance(exclusions, list) or any(not isinstance(x, str) for x in exclusions)
+            or len(set(exclusions)) != len(exclusions) or not set(exclusions) <= family_ids
+            or exclusions and set(exclusions) == family_ids):
+        raise ValueError('Invalid excluded report families')
     expected = {(s, p, cid) for s in suites for p in providers for cid in cases[s]}
     selected, historical = {}, {}
     source_groups = [(False, x) for x in spec['sources']] + [(True, x) for x in spec.get('superseded_sources', [])]
@@ -850,6 +856,10 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
     model_rows = []
     for suite in suites:
         for case_id, original_case in cases[suite].items():
+            if (spec.get('excluded_report_families') and
+                    _presentation_family(original_case, suite, spec['report_families'])
+                    in spec['excluded_report_families']):
+                continue
             case = revision['cases'].get((suite, case_id), original_case) if revision else original_case
             for provider in providers:
                 key = (suite, provider, case_id)
@@ -991,7 +1001,12 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
              'source_bindings': [{'sha256': digest, 'name': path.name} for path, digest in tracked.items()],
              'limitations': spec.get('limitations', [])}
     if 'report_families' in spec:
-        model['report_families'] = deepcopy(spec['report_families'])
+        model['report_families'] = [deepcopy(group) for group in spec['report_families']
+                                    if group['id'] not in spec.get('excluded_report_families', [])]
+    if spec.get('excluded_report_families'):
+        model['report_scope'] = {'excluded_families': spec['excluded_report_families'],
+                                 'source_positions': len(selected) + len(missing),
+                                 'reported_positions': len(model_rows)}
     model['combined_ranking'] = spec.get('combined_ranking', True)
     if revision:
         model['offline_revision'] = revision['receipt']

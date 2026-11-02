@@ -335,3 +335,30 @@ def test_final_call_timing_labels_are_localized_in_ordinary_reports():
     assert 'Mean final-call latency' in page
     assert 'P50 final-call latency' in page
     assert '最终调用耗时' not in page
+
+
+@pytest.mark.parametrize('excluded', [['base-web'], ['unknown'], ['web', 'base-web'], ['base-web', 'base-web']])
+def test_excluded_report_families_preserve_sources_and_recompute_population(tmp_path, excluded):
+    spec, source, _, original = fixture(tmp_path)
+    spec['suites'].append({**spec['suites'][0], 'id': 'second', 'label': 'Second'})
+    spec['sources'].append({**spec['sources'][0], 'suite': 'second'})
+    spec['report_families'] = [
+        {'id': 'web', 'label': 'Main population', 'source_suites': ['second']},
+        {'id': 'base-web', 'task_family': 'web', 'label': 'Base supplement', 'source_suites': ['first']}]
+    spec['excluded_report_families'] = excluded
+    if excluded != ['base-web']:
+        with pytest.raises(ValueError, match='excluded report families'):
+            build(tmp_path, spec)
+        return
+    root = build(tmp_path, spec).parent
+    model = json.loads((root/'matrix.json').read_text())
+    assert len(model['rows']) == model['totals']['saved'] == 1
+    assert model['rows'][0]['suite'] == 'second'
+    assert model['report_scope']['source_positions'] == 2
+    assert (source/'results.jsonl').read_bytes() == original
+    assert not (root/'evidence/first').exists()
+    home = BeautifulSoup((root/'index.html').read_text(), 'html.parser')
+    assert 'Base supplement' not in home.get_text()
+    assert 'Main population' in home.get_text()
+    dataset = json.loads((root/'dataset.json').read_text())
+    assert [case['id'] for case in dataset['cases']] == ['second--same']
