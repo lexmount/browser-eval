@@ -28,6 +28,13 @@ NOT_IN_CHECKOUT = {
 }
 PLACEHOLDER = re.compile(r"[*{}<>$\[\]]|\.\.\.")
 CODE_TOKEN = re.compile(r"`([^`\n]+)`")
+FENCED_BLOCK = re.compile(r"^[ \t>]*(`{3,}|~{3,})[^\n]*\n(.*?)^[ \t>]*\1", re.M | re.S)
+# A repository-prefixed token anywhere in code; a longer path or URL ending in a prefix is not one.
+PATH_TOKEN = re.compile(
+    r"(?<![\w./~$@:%+-])(?:\./)?((?:"
+    + "|".join(re.escape(prefix) for prefix in sorted(REPOSITORY_PREFIXES))
+    + r")/[^\s`'\"(),;|&\\]*)"
+)
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^\]\n]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 
 
@@ -47,25 +54,32 @@ def logical_definitions(root: Path = ROOT) -> set[str]:
     return set(binding["definition_files"])
 
 
-def rooted_token(token: str) -> str | None:
-    """Return a repository-rooted path from one code span, ignoring commands and placeholders."""
-    if any(character.isspace() for character in token) or PLACEHOLDER.search(token):
-        return None
-    if LINK_SCHEMES.match(token):
-        return None
-    path = re.split(r"::|:(?=[A-Za-z_])|#", token, maxsplit=1)[0].rstrip("/.,;")
-    parts = path.split("/")
-    return path if len(parts) > 1 and parts[0] in REPOSITORY_PREFIXES else None
+def rooted_paths(code: str) -> list[str]:
+    """Return repository-rooted paths from code text, ignoring placeholders and other locations."""
+    paths = []
+    for token in PATH_TOKEN.findall(code):
+        if PLACEHOLDER.search(token):
+            continue
+        path = re.split(r"::|:(?=\w)|#", token, maxsplit=1)[0].rstrip("/.,;:")
+        if "/" in path:
+            paths.append(path)
+    return paths
 
 
 def missing_paths(document: Path, root: Path = ROOT, logical: set[str] = frozenset()) -> list[str]:
     text = document.read_text(encoding="utf-8")
+    fenced = [match.group(2) for match in FENCED_BLOCK.finditer(text)]
+    prose = FENCED_BLOCK.sub("", text)
+    # A skill names its own bundled files relative to the directory holding its `SKILL.md`.
+    skill_root = next((parent for parent in document.parents if (parent / "SKILL.md").is_file()), root)
     missing = []
-    for match in CODE_TOKEN.finditer(text):
-        path = rooted_token(match.group(1))
-        if path and path not in logical and path not in NOT_IN_CHECKOUT and not (root / path).exists():
-            missing.append(path)
-    for match in MARKDOWN_LINK.finditer(CODE_TOKEN.sub("", text)):
+    for code in [*CODE_TOKEN.findall(prose), *fenced]:
+        for path in rooted_paths(code):
+            if path in logical or path in NOT_IN_CHECKOUT:
+                continue
+            if not ((root / path).exists() or (skill_root / path).exists()):
+                missing.append(path)
+    for match in MARKDOWN_LINK.finditer(CODE_TOKEN.sub("", prose)):
         target = match.group(1).split("#", 1)[0]
         if not target or LINK_SCHEMES.match(target) or PLACEHOLDER.search(target):
             continue
@@ -98,6 +112,17 @@ def test_maintained_documents_name_only_existing_repository_paths():
     assert stale == {}
 
 
+def test_skill_documents_may_name_bundled_files_relative_to_the_skill(tmp_path):
+    skill = tmp_path / ".agents/skills/example"
+    (skill / "scripts").mkdir(parents=True)
+    (skill / "references").mkdir()
+    (skill / "SKILL.md").write_text("")
+    (skill / "scripts/bundled.py").write_text("")
+    document = skill / "references/guide.md"
+    document.write_text("Run `scripts/bundled.py TIMELINE`, not `scripts/gone.py TIMELINE`.")
+    assert missing_paths(document, tmp_path) == ["scripts/gone.py"]
+
+
 @pytest.mark.parametrize("text,expected", [
     ("Read `scripts/gone.py` first.", ["scripts/gone.py"]),
     ("Keep `src/harness/gone.py::test_case` current.", ["src/harness/gone.py"]),
@@ -106,6 +131,16 @@ def test_maintained_documents_name_only_existing_repository_paths():
     ("Use `harness/web_fetch/gone.py`.", ["harness/web_fetch/gone.py"]),
     ("Read `scripts/present.py`, then [local](present.md#a).", []),
     ("Run `scripts/present.py --flag` and `evaluation/<track>/x.json`.", []),
+    ("Run `uv run python scripts/gone.py`.", ["scripts/gone.py"]),
+    ("Run `scripts/gone.py --flag`.", ["scripts/gone.py"]),
+    ("Run `./scripts/gone.py`.", ["scripts/gone.py"]),
+    ("Run `--input=docs/gone.md`.", ["docs/gone.md"]),
+    ("```sh\nuv run python scripts/gone.py \\\n  --out /tmp/x\n```\n", ["scripts/gone.py"]),
+    ("  ~~~\n  scripts/gone.py\n  ~~~\n", ["scripts/gone.py"]),
+    ("```sh\nuv run python scripts/present.py --in evaluation/<track>/x.json\n```\n", []),
+    ("Run `python /tmp/scripts/gone.py ~/docs/gone.md $HOME/tests/gone.py ../src/gone.py`.", []),
+    ("```\ncurl https://example.test/docs/gone.md\n```\n", []),
+    ("```text\n[not a link](gone.md)\n```\n", []),
     ("See `~/.browser-eval/evidence/x.json` and [site](https://example.test/x).", []),
     ("`evaluation/logical.json` resolves through the binding.", []),
 ])
