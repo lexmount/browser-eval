@@ -237,7 +237,7 @@ make ci
 - 可选的 `report_families` 用有序的 `{id, label}` 列出所有实际任务分类。报告按任务内容分组（区分网页内嵌媒体与直接文件），原始套别、案例身份和保存的分数保持不变。
 - 分类可用 `task_family` 和 `source_suites` 保留独立冻结的任务组；每条记录必须且只能属于一组。跨组汇总没有可比意义时，设置 `combined_ranking: false`，汇总表只展示各组结果，不显示合成通过率或总名次。
 - 可选的 `offline_revision` 通过 `root` 和带路径、哈希的 `receipt` 引用现有离线修订流程生成的凭据。完整前序案例和结果必须与本矩阵一致。报告并列保留原规则、原成绩和重算成绩，明确标注离线修改；其中可选的 `review_files` 将附件名映射到 JSON 路径、哈希。组装报告不调用方法。
-- 离线修订后补齐未调用项时，将新证据加入 `sources`，移除对应 `missing` 项，并用路径和哈希绑定 `completion.baseline_matrix` 与 `completion.contract`。调用前清单声明 `created_at`、`provider`、总数 `cases`，以及包含 `suite`、`case_ids` 的 `jobs`。声明的结果必须齐全、晚于清单时间，且之前确实未调用。原离线修订仍绑定原有调用，补测不能替换这些调用。
+- 离线修订后补齐未调用项时，将新证据加入 `sources`，移除对应 `missing` 项，并用路径和哈希绑定 `completion.baseline_matrix`、`completion.baseline_audit` 与 `completion.contract`。旧报告审计文件绑定完整范围和保留的题目、结果原文；不得改变无关调用或题目。另行核验的离线修订和整类参数选择作为明确的例外。调用前清单声明 `created_at`、`provider`、总数 `cases`，以及包含 `suite`、`case_ids` 的 `jobs`。声明的结果必须齐全、晚于清单时间，且之前确实未调用。原离线修订仍绑定原有调用，补测不能替换这些调用。
 - 多轮补测可用 `completions` 数组分别绑定，每轮范围不得重叠。同一套别的清单可声明 `providers` 和 `case_ids`，并在补测条目中指定 `suite`。可选的 `note` 展示在对应结果详情中，用来说明有证据支持的补测条件，例如仅该案例采用的 DNS 例外。
 - 参数对照要求评分代码一致，并核验授权配置、实际原生请求和完整失败重试序列。评分版本不同，须先通过明确的离线修订统一口径。替换范围和分批补齐的重试必须满足调用前的时间约束。报告检查拒绝未登记文件和符号链接，包括证据目录内的额外文件。
 - 使用 `scripts/build_report.py --check-saved-matrix /absolute/new-report` 检查报告文件；添加 `--source-spec /absolute/input-spec.json` 可同时核验原始证据。源路径相对于外部输入清单解析，报告审计文件只保存文件名和哈希。

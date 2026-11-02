@@ -110,11 +110,11 @@ def test_revision_rejects_different_frozen_call_even_with_rebound_source(tmp_pat
 
 
 @pytest.mark.parametrize('defect', [None, 'already_called', 'before_contract',
-                                  'early_first_call', 'duplicate', 'incomplete', 'undeclared'])
+                                  'early_first_call', 'duplicate', 'incomplete', 'undeclared', 'extra_baseline', 'retained_call', 'retained_task'])
 @pytest.mark.parametrize('contract_form', ['single', 'multiple'])
 def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_form):
     spec, source, revision = revision_fixture(tmp_path, uncalled=True)
-    baseline = write(tmp_path/'baseline-matrix.json', json.loads((revision/'matrix.json').read_text()))
+    baseline = {'path': str(revision/'matrix.json'), 'sha256': hashlib.sha256((revision/'matrix.json').read_bytes()).hexdigest()}
     record = json.loads((source/'results.jsonl').read_text())
     record.update(case_id='later', attempt_id='later-run', started_at='2026-11-02T00:00:00Z')
     record['metrics'] = score_attempt({'id': 'later', 'url': record['url']}, b'answer', ok=True)
@@ -131,12 +131,28 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_
         old = json.loads(Path(baseline['path']).read_text())
         old['rows'][1].update(status='saved', called=True, record_path='record.json')
         baseline = write(tmp_path/'baseline-matrix.json', old)
+    if defect == 'extra_baseline':
+        old = json.loads(Path(baseline['path']).read_text())
+        old['rows'].append({**old['rows'][0], 'case_id': 'unrelated'})
+        baseline = write(tmp_path/'baseline-matrix.json', old)
     if defect == 'incomplete':
         contract['jobs'][0]['case_ids'] = ['absent']
     if defect == 'duplicate':
         contract['jobs'][0]['case_ids'] = ['later', 'later']
         contract['cases'] = 2
+    if defect in {'retained_call', 'retained_task'}:
+        old = json.loads(Path(baseline['path']).read_text())
+        relative = old['rows'][0]['record_path' if defect == 'retained_call' else 'case_path']
+        path = revision/relative
+        altered = json.loads(path.read_text())
+        altered['elapsed_ms' if defect == 'retained_call' else 'url'] = 999 if defect == 'retained_call' else 'https://different.example/'
+        replacement = write(path, altered)
+        audit = json.loads((revision/'saved-matrix-audit.json').read_text())
+        audit['files'][relative] = replacement['sha256']
+        write(revision/'saved-matrix-audit.json', audit)
     spec['completion'] = {'baseline_matrix': baseline,
+                          'baseline_audit': {'path': str(revision/'saved-matrix-audit.json'),
+                                             'sha256': hashlib.sha256((revision/'saved-matrix-audit.json').read_bytes()).hexdigest()},
                           'contract': write(tmp_path/'completion-contract.json', contract)}
     if contract_form == 'multiple':
         entry = spec.pop('completion')
