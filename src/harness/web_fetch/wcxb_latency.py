@@ -143,7 +143,7 @@ def collect(*, dataset: Path, manifest: Path, profile: Path, output: Path,
         raise ValueError('Timing output must stay outside the source dataset')
     watched = [profile, manifest, *binaries.values(), *inputs]
     watched += [dataset / 'test/html', dataset / 'test/ground-truth',
-                Path(__file__).with_name('wcxb_scoring.py')]
+                Path(__file__).with_name('wcxb_scoring.py'), Path(__file__).with_name('wcxb_metrics.py')]
 
     def source_tree():
         reject_evidence_symlinks(contained_path(dataset, 'test', reject_symlinks=True))
@@ -267,6 +267,7 @@ def certify(argv=None) -> dict:
     if certificate_path.exists() or certificate_path.is_symlink():
         raise ValueError('Paired timing cohort is already certified')
     watched = [args.profile, args.sample_manifest, Path(__file__).with_name('wcxb_scoring.py'),
+               Path(__file__).with_name('wcxb_metrics.py'),
                args.evidence_root / 'receipt.json', args.evidence_root / 'calls.jsonl']
     raw = {}
     for path in watched:
@@ -282,8 +283,7 @@ def certify(argv=None) -> dict:
         raise ValueError('Paired timing scope or evaluator differs from profile')
     receipt, rows = load_full_paired_latency(args.evidence_root, authority,
                                             {row['track_id'] for row in selected})
-    if receipt.get('metric_implementation_sha256', metric_hash) != metric_hash:
-        raise ValueError('WCXB timing metric implementation binding mismatch')
+    metric_implementation_binding(authority, receipt=receipt)
     _, after = webmainbench_runner.load_wcxb_source(args.dataset, manifest=args.sample_manifest)
     reject_evidence_symlinks(contained_path(args.dataset, 'test', reject_symlinks=True))
     if (before != after or before != receipt['source_sha256']

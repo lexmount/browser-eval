@@ -1,9 +1,12 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "upstream_repository": "https://github.com/Murrough-Foley/web-content-extraction-benchmark",
   "upstream_revision": "c039d5ee9f5a3a984a0e167e63aacd04e76e78a9",
   "upstream_path": "evaluate.py",
   "implementations": {
-    "ae4ad6299e190177fbb04a7c1190077fc6086b3fa0f31fb37a6538a5e979c559": "35dc50a11b5b5475c6b36e444847ef75ff67dcd6c64fb553655b9adab13268cf"
+    "ae4ad6299e190177fbb04a7c1190077fc6086b3fa0f31fb37a6538a5e979c559": "34fd9387feea6d47c8572e0b708bd2217065dcbebdafcd1a88e254a123c70fdf"
+  },
+  "superseded_source_text_digests": {
+    "35dc50a11b5b5475c6b36e444847ef75ff67dcd6c64fb553655b9adab13268cf": "34fd9387feea6d47c8572e0b708bd2217065dcbebdafcd1a88e254a123c70fdf"
   }
 }

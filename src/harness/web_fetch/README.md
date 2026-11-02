@@ -138,6 +138,14 @@ participant in a separately certified cohort requires data changes rather than
 scorer branches. This scoring option does not change the current report's
 publication authority or the certification runner's supported participants.
 
+`wcxb_metrics.py` owns the metric functions and everything they call, and may
+import only the standard library. `data/wcxb-metric-bindings.json` binds a digest
+of the module's AST without docstrings, so formatting and comments keep the
+binding while any code change breaks it until the authority is revised on purpose.
+The authority also maps the digest named by existing evidence to the module digest
+it represents, so frozen profiles, certificates, summaries and timing receipts keep
+verifying without being rewritten.
+
 For WCXB execution, the external profile also declares `expected_versions`, a
 map from each participant ID to its exact reported CLI version. Use `null` only
 for an interface that exposes no version. This machine identity is separate from
