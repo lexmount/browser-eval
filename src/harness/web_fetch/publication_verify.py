@@ -98,7 +98,7 @@ def verify_public_files(slug, expected_archive, base):
         authenticated_entry = True
 
     def injected_html_matches(name, served):
-        """Accept only an exact submitted document plus a known Hub bootstrap."""
+        """Accept only an exact submitted document plus a known Artifact Site bootstrap."""
         original = expected_html[name]
         quoted_slug = re.escape(quote(slug, safe="").encode())
         # Newer deployments pin the injected base to the immutable served
