@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -65,6 +66,7 @@ def main(project_root: Path) -> None:
     parser.add_argument("--profile", type=Path, required=True)
     args = parser.parse_args()
     CURRENT = args.profile
+    quoted_profile = shlex.quote(str(CURRENT))
     if args.publish:
         recover_binding(CURRENT, ATTESTATION, BINDING, schema="public_webarena_binding/1")
     current = json.loads(CURRENT.read_text(encoding="utf-8"))
@@ -88,12 +90,12 @@ def main(project_root: Path) -> None:
         print(
             "AUDIT MODE: presentation-only fast gates. If the dataset, runner, scorer, "
             "evidence, denominator, or claimed result changed, first run "
-            "`make public-webarena-report-audit`."
+            f"`make public-webarena-report-audit PROFILE={quoted_profile}`."
         )
         if not args.publish:
             print(
                 "LOCAL ONLY: no network write. "
-                "Run `make public-webarena-report-release` to publish."
+                f"Run `make public-webarena-report-release PROFILE={quoted_profile}` to publish."
             )
             return
 

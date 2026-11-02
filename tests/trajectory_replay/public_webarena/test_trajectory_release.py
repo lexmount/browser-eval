@@ -18,7 +18,7 @@ from harness.trajectory_replay.public_webarena.report import METRICS
 from tests.public_webarena_fixture import write_report_fixture
 
 
-def test_stage_builds_report_without_mutating_source_evidence(tmp_path, monkeypatch):
+def test_stage_builds_report_without_mutating_source_evidence(tmp_path, monkeypatch, capsys):
     source, profile = write_report_fixture(tmp_path)
     before = (source / "run/summary.json").read_bytes()
 
@@ -50,6 +50,9 @@ def test_stage_builds_report_without_mutating_source_evidence(tmp_path, monkeypa
         sys, "argv", ["release", "--profile", str(profile), "--formal-root", str(source)]
     )
     release.main(tmp_path)
+    printed = capsys.readouterr().out
+    assert f"`make public-webarena-report-audit PROFILE={profile}`" in printed
+    assert f"`make public-webarena-report-release PROFILE={profile}`" in printed
     assert (tmp_path / "publish/webarena-fixed-trajectory.zip").is_file()
     assert json.loads(profile.read_text()) == authority
     authority["suite_sha256"] = "wrong"

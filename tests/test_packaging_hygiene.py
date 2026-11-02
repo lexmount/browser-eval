@@ -243,6 +243,12 @@ def profileless_make_commands(text, targets):
     return [command[1] for command in commands if command[1] in targets and "PROFILE=" not in command[2]]
 
 
+def profileless_make_commands_in_code(text, targets):
+    """Return commands a program tells its operator to run without the profile they require."""
+    return [target for target, rest in re.findall(r"\bmake ([a-z][a-z-]*)([^\n]*)", text)
+            if target in targets and "PROFILE=" not in rest]
+
+
 def test_documented_make_commands_name_the_required_profile():
     targets = set(re.findall(r"^([a-z][a-z-]*):[^\n]*\n(?:\t@?[^\n]*\n)*?\t\$\(call require_profile", MAKEFILE, re.M))
     assert {"report", "report-check", "public-benchmark-report"} <= targets
@@ -253,6 +259,12 @@ def test_documented_make_commands_name_the_required_profile():
     assert not profileless_make_commands("`make report` reaches build_report.py", targets)
     offenders = {str(path.relative_to(ROOT)): found for path in tracked("*.md", "configs/*.json", "src/harness/**/*.py")
                  if (found := profileless_make_commands(path.read_text(), targets))}
+    assert not offenders
+    assert profileless_make_commands_in_code('"Run `make report` to publish."', targets) == ["report"]
+    assert not profileless_make_commands_in_code('f"Run `make report PROFILE={profile}` to publish."', targets)
+    assert not profileless_make_commands_in_code('"run make pin-dataset"', targets)
+    offenders = {str(path.relative_to(ROOT)): found for path in tracked("src/harness/**/*.py", "scripts/*.py")
+                 if (found := profileless_make_commands_in_code(path.read_text(), targets))}
     assert not offenders
 
 
