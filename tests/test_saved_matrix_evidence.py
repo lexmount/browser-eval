@@ -33,6 +33,56 @@ def assert_provenance_mutation_rejected(output, relative, spec):
         audit_path.write_bytes(original_audit)
 
 
+def assert_redirected_answer_rejected(output, fields, spec):
+    matrix_path, audit_path = output/'matrix.json', output/'saved-matrix-audit.json'
+    original, original_audit = matrix_path.read_bytes(), audit_path.read_bytes()
+    model = json.loads(original)
+    value = model['rows'][0]
+    for field in fields[:-1]:
+        value = value[field]
+    # Redirect to an existing, bound file rather than a missing target.
+    value[fields[-1]] = model['rows'][0]['case_path']
+    audit = json.loads(original_audit)
+    audit['files']['matrix.json'] = write(matrix_path, model)['sha256']
+    write(audit_path, audit)
+    try:
+        for source in (None, spec):
+            with pytest.raises(ValueError, match='evidence link differs'):
+                check_saved_matrix(output, spec_path=source)
+    finally:
+        matrix_path.write_bytes(original)
+        audit_path.write_bytes(original_audit)
+
+
+def test_source_checker_preserves_status_with_dual_event_receipt(tmp_path):
+    from harness.web_fetch.report_saved_matrix import _totals
+    spec, _, _, _ = fixture(tmp_path)
+    spec['sources'] = []
+    events = [{'suite': 'first', 'provider': 'method', 'case_id': 'same', 'state': state}
+              for state in ('pre_call_blocked_no_method_calls', 'called_but_uncommitted')]
+    events[0]['native_route_receipt'] = {'transport_state': 'not_started'}
+    spec['missing'] = [{'suite': 'first', 'provider': 'method', 'case_id': 'same',
+                        'status': 'uncommitted', 'reason': 'Interrupted',
+                        'receipt': write(tmp_path/'receipt.json', events)}]
+    output = build(tmp_path, spec).parent
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+    model = json.loads((output/'matrix.json').read_text())
+    model['rows'][0].update(status='not_called', called=False)
+    model['totals'] = _totals(model['rows'])
+    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit['totals'] = model['totals']
+    audit['files']['matrix.json'] = write(output/'matrix.json', model)['sha256']
+    write(output/'saved-matrix-audit.json', audit)
+    with pytest.raises(ValueError, match='missing receipt differs from validated source'):
+        check_saved_matrix(output, spec_path=tmp_path/'spec.json')
+
+
+def test_selected_answer_link_cannot_be_redirected(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    output = build(tmp_path, spec).parent
+    assert_redirected_answer_rejected(output, ['answer_path'], tmp_path/'spec.json')
+
+
 def fixture(tmp_path):
     case = {'id': 'same', 'name': 'Example', 'category': 'test', 'url': 'https://example.test/', 'expected_any': ['answer']}
     root = tmp_path / 'source'
@@ -408,6 +458,7 @@ def test_superseded_evidence_preserved_without_double_counting(tmp_path, monkeyp
     assert 'superseded-history' in (entry.parent/'attempts/first--run-001.html').read_text()
     assert check_saved_matrix(entry.parent, spec_path=tmp_path/'spec.json')['valid']
     assert_provenance_mutation_rejected(entry.parent, history['record_path'], tmp_path/'spec.json')
+    assert_redirected_answer_rejected(entry.parent, ['history', 0, 'answer_path'], tmp_path/'spec.json')
     for timestamp in (None, '2026-10-30T00:00:00Z'):
         invalid = deepcopy(spec)
         invalid['supersession_scope'] = write(tmp_path/'late-scope.json', {**scope, 'created_at': timestamp})
@@ -527,6 +578,7 @@ def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_
     assert 'Synthetic retry disclosure.' in (entry.parent/'index.html').read_text()
     assert check_saved_matrix(entry.parent)['valid']
     assert_provenance_mutation_rejected(entry.parent, continuation['prior_record_path'], tmp_path/'spec.json')
+    assert_redirected_answer_rejected(entry.parent, ['retry_continuation', 'prior_answer_path'], tmp_path/'spec.json')
     monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
     for late_scope in (False, True):
         replacement = deepcopy(spec)
@@ -682,6 +734,7 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
     assert check_saved_matrix(report, spec_path=tmp_path/'spec.json')['valid']
     for label in ('before', 'candidate'):
         assert_provenance_mutation_rejected(report, row['parameter_rerun'][label+'_record_path'], tmp_path/'spec.json')
+        assert_redirected_answer_rejected(report, ['parameter_rerun', label+'_answer_path'], tmp_path/'spec.json')
     # A truncated cohort or changed rule cannot enter the report.
     (candidate/'results.jsonl').write_text('')
     spec['parameter_reruns']['sources'][0]['results']['sha256'] = hashlib.sha256(b'').hexdigest()

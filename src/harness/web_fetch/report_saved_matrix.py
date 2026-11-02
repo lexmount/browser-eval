@@ -1326,6 +1326,37 @@ def _source_record_inventory(inputs, candidates, decisions, adoptions, keys):
     return expected
 
 
+def _validate_record_links(output, value):
+    """Keep displayed answers and logs attached to their own call record."""
+    if isinstance(value, list):
+        for child in value:
+            _validate_record_links(output, child)
+    elif isinstance(value, dict):
+        for name, relative in value.items():
+            for suffix in ('answer_path', 'log_path'):
+                if name != suffix and not name.endswith('_'+suffix):
+                    continue
+                record_key = name[:-len(suffix)]+'record_path'
+                record_path = value.get(record_key)
+                if not record_path:
+                    if relative:
+                        raise ValueError('Saved evidence link has no associated record')
+                    continue
+                path = contained_path(output, record_path, reject_symlinks=True)
+                record = _json(path)
+                if suffix == 'answer_path':
+                    artifact = record['artifact_path']
+                else:
+                    logs = record_public_call_log_bindings(record)
+                    log = record.get('provider_metadata', {}).get('call_log') or (logs[-1] if logs else None)
+                    artifact = log['path'] if log else None
+                expected = (path.parent/ artifact).relative_to(output).as_posix() if artifact else None
+                if relative != expected:
+                    raise ValueError('Saved evidence link differs from associated record')
+            if isinstance(relative, (dict, list)):
+                _validate_record_links(output, relative)
+
+
 def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     """Check the complete portable tree and unchanged sources without rescoring."""
     output = Path(output)
@@ -1426,8 +1457,10 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             if expected_record is not None:
                 if not row.get('record_path') or record != expected_record:
                     raise ValueError('Saved record differs from validated source selection')
-            elif row.get('record_path') or receipt != _json(inputs['missing'][identity][1]):
+            elif (row.get('record_path') or row['status'] != inputs['missing'][identity][0]['status']
+                    or receipt != _json(inputs['missing'][identity][1])):
                 raise ValueError('Saved missing receipt differs from validated source')
+        _validate_record_links(output, row)
         for relative in set(record_paths(row)):
             path = contained_path(output, relative, reject_symlinks=True)
             for artifact, expected in artifact_bindings(_json(path)):
