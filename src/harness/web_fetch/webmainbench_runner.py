@@ -28,6 +28,7 @@ from urllib.parse import urlsplit
 
 from lexbench_webfetch.models import EvalCase
 
+from harness.platform_capabilities import sandbox_exec_command
 from harness.record_io import parse_jsonl
 from harness.web_fetch.config import (
     add_failure_retry_argument,
@@ -440,7 +441,7 @@ def verify_loopback_sandbox(endpoint: str, ca_cert: Path, record: dict,
     probe = proxy_probe if preserve_original_origin else direct_probe
     probe_args = [origin.hostname or "", path] if preserve_original_origin else [path]
     completed = subprocess.run(
-        ["/usr/bin/sandbox-exec", "-p", LOOPBACK_SANDBOX_PROFILE, sys.executable, "-c", probe,
+        [*sandbox_exec_command(LOOPBACK_SANDBOX_PROFILE), sys.executable, "-c", probe,
          parsed.hostname or "127.0.0.1", str(parsed.port), *probe_args,
          sha256_bytes(record["html"].encode("utf-8")), str(ca_cert)],
         capture_output=True, text=True, timeout=10, check=False,

@@ -71,8 +71,6 @@ def verify_lexbench_input_ownership(source_root: Path) -> None:
 
 def verify_package_tree(source_root: Path, package_root: Path, *, package_name='harness') -> None:
     """Require the installed library's exact current source and declared assets."""
-    from harness.distribution import installed_data_path
-
     project = tomllib.loads((source_root / 'pyproject.toml').read_text())
     directories = project['tool']['setuptools'].get('package-dir', {})
 
@@ -95,14 +93,9 @@ def verify_package_tree(source_root: Path, package_root: Path, *, package_name='
             for path in directory.glob(pattern):
                 if path.is_file():
                     expected[path.relative_to(source).as_posix()] = path
-    for destination, patterns in project['tool']['setuptools'].get('data-files', {}).items():
-        for pattern in patterns:
-            for path in source_root.glob(pattern):
-                installed_data = installed_data_path((Path(destination) / path.name).as_posix())
-                if path.is_symlink() or installed_data.is_symlink():
-                    raise ValueError('Distribution data must not be symlinked')
-                if installed_data.read_bytes() != path.read_bytes():
-                    raise ValueError('Distribution data differs from source: ' + str(path))
+    if package_name == 'harness':
+        for relative in project['tool'].get('browser-eval', {}).get('bundled-data', ()):
+            expected['distribution_data/' + relative] = source_root / relative
     observed = {}
     for path in package_root.rglob('*'):
         if path.is_symlink():
@@ -121,6 +114,19 @@ def verify_package_tree(source_root: Path, package_root: Path, *, package_name='
         installed_hash = hashlib.sha256(observed[name].read_bytes()).digest()
         if source_hash != installed_hash:
             raise ValueError('Installed package differs from current source bytes: ' + name)
+
+
+def verify_bundled_data(source_root: Path, package_root: Path) -> None:
+    """Installed readers must reach the packaged copy, never the checkout."""
+    from harness.distribution import bundled_data_path
+
+    project = tomllib.loads((source_root / 'pyproject.toml').read_text())
+    for relative in project['tool']['browser-eval']['bundled-data']:
+        path = bundled_data_path(relative)
+        if not path.resolve().is_relative_to(package_root):
+            raise ValueError('Bundled data resolved outside the installed package: ' + relative)
+        if path.read_bytes() != (source_root / relative).read_bytes():
+            raise ValueError('Bundled data differs from source: ' + relative)
 
 
 def verify_review_revisions(root: Path, source_root: Path) -> None:
@@ -1646,6 +1652,7 @@ def main():
     if installed.is_relative_to(args.source_root.resolve()):
         raise ValueError('Package smoke must use an installed distribution outside the checkout')
     verify_package_tree(args.source_root, installed)
+    verify_bundled_data(args.source_root, installed)
     from importlib import import_module
     for package_name in ('lexbench_webfetch', 'lexbench_websearch'):
         package_root = Path(import_module(package_name).__file__).resolve().parent

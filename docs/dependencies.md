@@ -36,7 +36,7 @@ Node.js, pnpm and Python installation versions are declared in that script. The
 selected provider configuration checks them through its `expected_*_version`
 fields.
 
-Read the script before running it: it downloads and builds dependencies, and replaces the checkout's `.venv`. Use a separate clone if you need to keep another environment. The Python patch pin applies to these baselines; the base CLI supports a wider range.
+Read the script before running it: it downloads and builds dependencies, and replaces the checkout's `.venv`. Use a separate clone if you need to keep another environment. The Python patch pin applies to these baselines; the base CLI requires Python 3.11.
 
 For a new method version, copy the provider configuration and update its pins as well as the checkout. Changing just a branch or bootstrap override fails preflight. Full commits identify the source; branch tips can move.
 

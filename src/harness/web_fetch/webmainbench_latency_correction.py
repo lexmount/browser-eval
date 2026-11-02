@@ -16,6 +16,7 @@ from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path
 
+from harness.platform_capabilities import require_macos
 from harness.record_io import parse_jsonl
 from harness.web_fetch import webmainbench_runner
 
@@ -176,6 +177,7 @@ def competing_benchmark_pids() -> list[int]:
 
 
 def host_sample() -> dict:
+    require_macos("WebMainBench latency host sampling", ("top", "memory_pressure"))
     top = subprocess.run(
         ["top", "-l", "1", "-n", "0"], capture_output=True, text=True, check=True
     ).stdout

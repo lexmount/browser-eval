@@ -27,6 +27,7 @@ from harness.web_fetch.network_dns import validate_dns_mode, validate_native_dns
 from harness.web_fetch.providers.base import (
     Provider, await_owned_process_exit, terminate_owned_process_tree,
 )
+from harness.platform_capabilities import sandbox_exec_available, sandbox_exec_command
 from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
 from harness.web_fetch.providers.runtime_identity import require_expected_provider_versions
 from harness.web_fetch.retrieval_hints import native_contract_for_case, plan_for_case
@@ -421,7 +422,7 @@ class HeadlessProvider(Provider):
         if engine == 'kitesurf' and self.type == 'headless_markdown':
             errors.extend(name for name in ('api_token', 'account_id') if not self.config.get(name))
         if self.config.get('network_policy') == 'loopback_only':
-            if sys.platform != 'darwin' or not Path('/usr/bin/sandbox-exec').is_file():
+            if not sandbox_exec_available():
                 errors.append('macos sandbox-exec for loopback_only network policy')
         dependencies = ('playwright',) if engine in {'chromium'} or self.type == 'headless_html' else ()
         for dependency in dependencies:
@@ -748,7 +749,7 @@ class HeadlessProvider(Provider):
         with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
             command = [sys.executable, str(worker)]
             if request.get('network_policy') == 'loopback_only':
-                command = ['/usr/bin/sandbox-exec', '-p', LOOPBACK_SANDBOX_PROFILE, *command]
+                command = [*sandbox_exec_command(LOOPBACK_SANDBOX_PROFILE), *command]
             with self._process_lock:
                 if self._cancel_requested:
                     raise TimeoutError('Isolated fetch cancelled before launch')
