@@ -25,7 +25,7 @@ def fixture(tmp_path):
     record = {'attempt_id': 'run-001', 'started_at':'2026-10-29T00:00:00Z', 'provider_type':'test', 'case_id': 'same', 'provider': 'method', 'url': case['url'], 'ok': True,
               'elapsed_ms': 12.0, 'artifact_path': 'artifacts/answer.txt',
               'metrics': {'content_sha256': hashlib.sha256(answer.read_bytes()).hexdigest(),
-                          'content_pass': True, 'request_ok': True},
+                          'content_pass': True, 'request_ok': True, 'scoring_source_sha256': 'a'*64},
               'provider_metadata': {'native_route_receipt': {'transport_state': 'started'}}}
     result = root / 'results.jsonl'
     raw = (json.dumps(record, separators=(',', ':')) + '\n').encode()
@@ -66,6 +66,43 @@ def test_portable_checker_revalidates_record_artifacts_after_audit_rebinding(tmp
     write(output/'saved-matrix-audit.json', audit)
     with pytest.raises(ValueError, match='Portable saved record artifact differs'):
         check_saved_matrix(output)
+
+
+@pytest.mark.parametrize('field', ['score', 'time', 'provider', 'called'])
+@pytest.mark.parametrize('source_check', [False, True])
+def test_portable_checker_reconciles_selected_record_with_row(tmp_path, field, source_check):
+    spec, _, _, _ = fixture(tmp_path)
+    output = build(tmp_path, spec).parent
+    row = json.loads((output/'matrix.json').read_text())['rows'][0]
+    record = json.loads((output/row['record_path']).read_text())
+    if field == 'score':
+        record['metrics']['content_pass'] = False
+    elif field == 'time':
+        record['elapsed_ms'] += 1
+    elif field == 'provider':
+        record['provider'] = 'other'
+    else:
+        record['provider_metadata']['native_route_receipt']['transport_state'] = 'not_started'
+    bound = write(output/row['record_path'], record)
+    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit['files'][row['record_path']] = bound['sha256']
+    write(output/'saved-matrix-audit.json', audit)
+    with pytest.raises(ValueError, match='Saved record .* differ'):
+        check_saved_matrix(output, spec_path=tmp_path/'spec.json' if source_check else None)
+
+
+def test_source_checker_rejects_record_mutation_outside_visible_scalars(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    output = build(tmp_path, spec).parent
+    row = json.loads((output/'matrix.json').read_text())['rows'][0]
+    record = json.loads((output/row['record_path']).read_text())
+    record['started_at'] = '2026-10-30T00:00:00Z'
+    bound = write(output/row['record_path'], record)
+    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit['files'][row['record_path']] = bound['sha256']
+    write(output/'saved-matrix-audit.json', audit)
+    with pytest.raises(ValueError, match='validated source selection'):
+        check_saved_matrix(output, spec_path=tmp_path/'spec.json')
 
 
 @pytest.mark.parametrize('defect', [None, 'downgrade', 'receipt'])
@@ -314,7 +351,8 @@ def test_superseded_evidence_preserved_without_double_counting(tmp_path, monkeyp
         build(tmp_path,spec,'invalid-scope')
 
 
-def test_uncommitted_replacement_retains_old_history_without_score(tmp_path):
+@pytest.mark.parametrize('defect', [None, 'missing_policy', 'late_policy', 'wrong_config', 'budget'])
+def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, defect):
     spec, root, old, raw = fixture(tmp_path)
     spec['superseded_sources'] = spec.pop('sources')
     spec['sources'] = []
@@ -324,12 +362,27 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path):
         'kind':'predeclared_replacement_scope', 'created_at':'2026-10-28T00:00:00Z', 'cells':[{
             'suite':'first','provider':'method','case_id':'same',
             'old_record':{'path':str(old_file),'sha256':hashlib.sha256(raw).hexdigest()}}]})
+    scope = json.loads(Path(spec['supersession_scope']['path']).read_text())
+    if defect != 'missing_policy':
+        scope['execution_contract'] = write(tmp_path/'execution-contract.json', {
+            'created_at': '2026-10-30T00:00:00Z' if defect == 'late_policy' else '2026-10-28T00:00:00Z',
+            'provider_config_sha256': 'a'*64, 'timeout_seconds': 30, 'max_failure_retries': 1})
+    spec['supersession_scope'] = write(tmp_path/'scope.json', scope)
     diagnostic = write(tmp_path/'diagnostic.json', {'observed_http_status':502})
     receipt = write(tmp_path/'receipt.json', {'suite':'first','provider':'method',
         'case_id':'same','state':'called_but_uncommitted','elapsed_ms':None,'started_at':'2026-10-29T00:00:00Z'})
     spec['missing'] = [{'suite':'first','provider':'method','case_id':'same',
         'status':'uncommitted','reason':'Collection error after HTTP 502',
         'receipt':receipt,'diagnostic_sources':[diagnostic]}]
+    if defect in {'wrong_config', 'budget'}:
+        value = json.loads(Path(receipt['path']).read_text())
+        value.update(provider_config_sha256='b'*64 if defect == 'wrong_config' else 'a'*64,
+                     physical_attempts=3 if defect == 'budget' else 1)
+        spec['missing'][0]['receipt'] = write(Path(receipt['path']), value)
+    if defect:
+        with pytest.raises(ValueError, match='execution authorization'):
+            build(tmp_path, spec)
+        return
     entry=build(tmp_path,spec)
     model=json.loads((entry.parent/'matrix.json').read_text())
     assert model['totals']['saved']==model['totals']['failed']==model['totals']['passed']==0
@@ -696,7 +749,8 @@ def test_parameter_contract_rejects_duplicate_scope_before_sources(tmp_path, dup
 
 
 @pytest.mark.parametrize('old_hash,new_hash,accepted', [
-    ('same', 'same', True), ('old', 'new', False), (None, 'new', False)])
+    ('a'*64, 'a'*64, True), ('a'*64, 'b'*64, False), (None, 'b'*64, False),
+    (None, None, False), ('', '', False), ('same', 'same', False)])
 def test_parameter_scoring_requires_explicit_common_provenance(tmp_path, old_hash, new_hash, accepted):
     from harness.web_fetch.report_saved_matrix import _parameter_scoring
     _, _, record, _ = fixture(tmp_path)

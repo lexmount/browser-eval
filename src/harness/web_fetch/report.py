@@ -2802,6 +2802,20 @@ def saved_adopted_revisions(out,matrix):
  return list(groups.values())
 
 
+def saved_current_revision_scope(out,matrix):
+ """Count only retained rows, including adopted revisions and excluding replaced calls."""
+ changed=set()
+ rescored=0
+ for row in matrix.get('rows',[]):
+  proof=row.get('score_revision')
+  if not proof:continue
+  rescored+=1
+  before=json.loads(contained_path(out,proof['before_case_path']).read_text())
+  current=json.loads(contained_path(out,row['case_path']).read_text())
+  if before!=current:changed.add((row['suite'],row['case_id']))
+ return len(changed),rescored
+
+
 def write_saved_changes(out):
  """Render saved-result change history from its versioned revision evidence."""
  review_path=out/'result-review.json'
@@ -2819,8 +2833,7 @@ def write_saved_changes(out):
   updates+='<article class="review-round" data-parameter-history><div class="round-label">'+esc(SAVED_MATRIX_ZH['parameter_rerun_title'])+'</div><div><h3>'+esc(SAVED_MATRIX_ZH['parameter_rerun_title'])+'</h3><p>'+esc(note)+'</p><p>'+link('../analysis/index.html','逐任务结果与证据')+'</p></div></article>'
  revision_path=out/'score-revision.json'
  if revision_path.is_file():
-  revision=json.loads(revision_path.read_text())
-  count=len(revision['changed_cases']);results=revision['rescored_results']
+  count,results=saved_current_revision_scope(out,matrix)
   updates+='<article class="review-round"><div class="round-label">'+model_text('离线修订','Offline revision')+'</div><div><h3>'+model_text('规则修订与评分校正','Rule and scorer revisions')+'</h3><p>'+model_text(f'{count} 个案例调整规则，{results} 份保存结果统一重评。原规则、成绩和调用证据均保留；没有新增方法调用。',f'{count} cases have revised rules and {results} saved results were rescored. Original rules, results and call evidence are retained; no provider calls were added.')+'</p><p>'+link('../review/index.html','修订依据与分数变化')+'</p></div></article>'
  if not updates:
   updates='<p>'+model_text('本报告没有登记结果修订。','No result revisions are registered for this report.')+'</p>'
@@ -2837,7 +2850,8 @@ def write_review_page(out,records):
    'rescored_results':sum(len(group['rows']) for group in adopted)}
   revision_link='../score-revision.json' if revision_path.is_file() else '../'+adopted[0]['path']
   page=hero('核验记录',SAVED_MATRIX_ZH['offline_review_scope'])
-  page+=section('修订范围','<p>'+model_text(f'调整 {len(revision["changed_cases"])} 个案例，统一重算 {revision["rescored_results"]} 份保存结果。原始规则、成绩、返回和调用耗时均保留。',f'{len(revision["changed_cases"])} cases revised and {revision["rescored_results"]} saved results rescored. Original rules, results, answers and call timings are retained.')+'</p><p>'+link(revision_link,'修订依据与分数变化')+'</p>')
+  count,results=saved_current_revision_scope(out,matrix)
+  page+=section('修订范围','<p>'+model_text(f'当前报告中，调整 {count} 个案例，统一重算 {results} 份保存结果。原始规则、成绩、返回和调用耗时均保留。',f'In the current report, {count} cases revised and {results} saved results rescored. Original rules, results, answers and call timings are retained.')+'</p><p>'+link(revision_link,'修订依据与分数变化')+'</p>','current-revision-scope')
   if adopted:
    sections=[]
    for group in adopted:

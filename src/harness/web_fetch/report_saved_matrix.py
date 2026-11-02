@@ -112,6 +112,19 @@ def _called(record):
     raise ValueError('Saved result lacks explicit transport evidence')
 
 
+def _saved_row_values(record, case):
+    """Derive the visible scalar result from the retained call."""
+    called = _called(record)
+    metrics = record['metrics']
+    passed = task_passed(record['ok'], metrics, case.get('task_kind', 'body'))
+    retry = record.get('provider_metadata', {}).get('retry', {})
+    return dict(status=('adapter_rejected' if not called else 'passed' if passed else 'failed'),
+                called=called, normal=bool(called and record['ok'] and metrics.get('request_ok', record['ok'])),
+                passed=passed, elapsed_ms=record.get('elapsed_ms'),
+                retries=retry.get('retries_used', max(0, retry.get('physical_attempts', 1) - 1)),
+                error=record.get('error_message') or record.get('error_type') or '', checks=_checks(metrics))
+
+
 def _checks(metrics):
     """Keep saved scalar verdicts in the UI; full metrics remain in record.json."""
     fields = {'acceptance_checks', 'required_components', 'deadline_overrun',
@@ -563,11 +576,21 @@ def _load_saved_matrix(spec_path):
         if any(not call.get('started_at') or datetime.fromisoformat(call['started_at']) < scope_started
                for call in physical):
             raise ValueError('Replacement call predates its declared scope or lacks chronology')
-        if key in selected:
-            execution = scoped[key].get('execution_contract', scope.get('execution_contract'))
-            if not execution:
-                raise ValueError('Committed replacement requires execution authorization')
-            policy = _execution_policy(execution, sources)
+        execution = scoped[key].get('execution_contract', scope.get('execution_contract'))
+        if not execution:
+            raise ValueError('Replacement requires execution authorization')
+        policy = _execution_policy(execution, sources)
+        if any(datetime.fromisoformat(call['started_at']) < datetime.fromisoformat(policy['created_at'])
+               for call in physical):
+            raise ValueError('Replacement call predates execution authorization')
+        if key not in selected:
+            for field in ('provider_config_sha256', 'timeout_seconds'):
+                if field in replacement and replacement[field] != policy[field]:
+                    raise ValueError('Uncommitted call differs from execution authorization')
+            count = replacement.get('physical_attempts')
+            if count is not None and (type(count) is not int or not 1 <= count <= 1 + policy['max_failure_retries']):
+                raise ValueError('Uncommitted call exceeds execution authorization')
+        else:
             root, record, _, _ = selected[key]
             case = cases[key[0]][key[2]]
             _validate_call_sequence(record, case, policy, continuations.get(key))
@@ -672,7 +695,10 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None):
 
 def _parameter_scoring(before, record):
     """Require an explicit offline revision before comparing different scorers."""
-    if before['metrics'].get('scoring_source_sha256') != record['metrics'].get('scoring_source_sha256'):
+    identities = [row['metrics'].get('scoring_source_sha256') for row in (before, record)]
+    if (any(not isinstance(value, str) or len(value) != 64
+            or any(char not in '0123456789abcdef' for char in value) for value in identities)
+            or identities[0] != identities[1]):
         raise ValueError('Parameter comparison needs an explicit scoring revision')
 
 
@@ -1129,18 +1155,10 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                     copies[record_path] = hashlib.sha256(raw_line).hexdigest()
                     for relative, digest in artifact_bindings(record):
                         copy(contained_path(root, relative, reject_symlinks=True), prefix + '/' + relative)
-                    called = _called(record)
-                    metrics = record['metrics']
-                    passed = task_passed(record['ok'], metrics, case.get('task_kind', 'body'))
                     metadata = record.get('provider_metadata', {})
                     logs = record_public_call_log_bindings(record)
                     final_log = metadata.get('call_log') or (logs[-1] if logs else None)
-                    item.update(status=('adapter_rejected' if not called else 'passed' if passed else 'failed'),
-                                called=called, normal=bool(called and record['ok'] and metrics.get('request_ok', record['ok'])),
-                                passed=passed, elapsed_ms=record.get('elapsed_ms'),
-                                retries=metadata.get('retry', {}).get('retries_used', max(0, metadata.get('retry', {}).get('physical_attempts', 1) - 1)),
-                                error=record.get('error_message') or record.get('error_type') or '',
-                                checks=_checks(metrics), record_path=record_path,
+                    item.update(**_saved_row_values(record, case), record_path=record_path,
                                 answer_path=prefix + '/' + record['artifact_path'],
                                 log_path=prefix + '/' + final_log['path'] if final_log else None,
                                 receipt_path=prefix + '/receipt.json')
@@ -1249,14 +1267,16 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     output = Path(output)
     audit = _json(output / 'saved-matrix-audit.json')
     source_count = 0
+    inputs = None
     if spec_path is not None:
         if _sha(_path(Path(spec_path).parent, Path(spec_path).name)) != audit['spec_sha256']:
             raise ValueError('Original saved-matrix source changed: specification')
         try:
             inputs = _load_saved_matrix(spec_path)
             candidates = _parameter_reruns(inputs)
-            _validate_completion_retention(inputs, candidates)
-            _adopted_groups(inputs, candidates)
+            decisions = _parameter_group_decisions(inputs, candidates)
+            _validate_completion_retention(inputs, candidates, decisions)
+            adoptions = _adopted_groups(inputs, candidates)
         except ValueError as exc:
             raise ValueError('Original saved-matrix source changed or invalid') from exc
         actual = sorted((p.name, digest) for p, digest in inputs['sources'].tracked.items())
@@ -1290,6 +1310,46 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             for child in value:
                 yield from record_paths(child)
     for row in model['rows']:
+        identity = row['suite'], row['provider'], row['case_id']
+        case = _json(contained_path(output, row['case_path'], reject_symlinks=True))
+        if case['id'] != row['case_id']:
+            raise ValueError('Saved case identity differs from matrix')
+        if row.get('record_path'):
+            record = _json(contained_path(output, row['record_path'], reject_symlinks=True))
+            if (record['provider'], record['case_id']) != identity[1:]:
+                raise ValueError('Saved record identity differs from matrix')
+            values = _saved_row_values(record, case)
+            if row.get('retry_continuation'):
+                values['retries'] = 1
+                if row['retry_continuation']['final_call_elapsed_ms'] != record.get('elapsed_ms'):
+                    raise ValueError('Saved retry timing differs from matrix')
+            if any(row.get(name) != value for name, value in values.items()):
+                raise ValueError('Saved record values differ from matrix')
+        else:
+            receipt = _json(contained_path(output, row['receipt_path'], reject_symlinks=True))
+            if (row['status'] not in {'not_called', 'uncommitted'}
+                    or not _receipt_covers(receipt, *identity, row['status'])
+                    or row['called'] != (row['status'] == 'uncommitted')
+                    or row['passed'] is not None or row['elapsed_ms'] is not None or row['normal']):
+                raise ValueError('Saved missing state differs from matrix')
+        if inputs is not None:
+            revision = inputs['revision'] or {'cases': {}, 'records': {}}
+            expected_case = revision['cases'].get((identity[0], identity[2]),
+                                                  inputs['cases'][identity[0]][identity[2]])
+            if case != expected_case:
+                raise ValueError('Saved case differs from validated source')
+            expected_record = inputs['selected'].get(identity)
+            if expected_record is not None:
+                expected_record = revision['records'].get(identity, expected_record[1])
+            if identity in decisions and decisions[identity]['selected_new']:
+                expected_record = candidates[identity][1]
+            if identity in adoptions:
+                expected_record = adoptions[identity]['selected'][1]
+            if expected_record is not None:
+                if not row.get('record_path') or record != expected_record:
+                    raise ValueError('Saved record differs from validated source selection')
+            elif row.get('record_path') or receipt != _json(inputs['missing'][identity][1]):
+                raise ValueError('Saved missing receipt differs from validated source')
         for relative in set(record_paths(row)):
             path = contained_path(output, relative, reject_symlinks=True)
             for artifact, expected in artifact_bindings(_json(path)):

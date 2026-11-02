@@ -68,7 +68,8 @@ def test_revision_round_trip_preserves_call_with_completion_note(tmp_path):
 
 
 @pytest.mark.parametrize('missing_attachment', [False, True])
-def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_path, missing_attachment, monkeypatch):
+@pytest.mark.parametrize('root_revision', [False, True])
+def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_path, missing_attachment, root_revision, monkeypatch):
     monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
     nested, _, revision = revision_fixture(tmp_path/'nested')
     nested['offline_revision']['review_files'] = {
@@ -82,6 +83,18 @@ def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_pat
     record['metrics'] = score_attempt(case, b'answer', ok=True)
     spec['sources'][0]['results'] = write(source/'results.jsonl', record)
     spec['report_families'] = [{'id': 'web', 'label': 'Static', 'source_suites': ['first']}]
+    if root_revision:
+        write(tmp_path/'root-spec.json', spec)
+        parent = build_saved_matrix(tmp_path/'root-spec.json', tmp_path/'root-revision').parent
+        config = parent/'config.json'
+        write(config, {'cases': [], 'rescore_attempt_ids': ['first--run-001'],
+                       'authority': {'description': 'Align scoring code without changing rules'},
+                       'regression_ids': ['article-primary-scope-complete-without-shell',
+                                          'article-primary-scope-shell-cannot-replace-body']})
+        revise_local_snapshot(parent, config)
+        receipt = next((parent/'local-evidence/offline-revisions').glob('*/receipt.json'))
+        spec['offline_revision'] = {'root': str(parent), 'receipt': {
+            'path': str(receipt), 'sha256': hashlib.sha256(receipt.read_bytes()).hexdigest()}}
     spec['adoptions'] = [{
         'authority': write(tmp_path/'authority.json', {
             'kind': 'user_selected_complete_report_groups', 'description': 'Select complete group.',
@@ -102,6 +115,7 @@ def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_pat
     assert (output/attachment).read_bytes() == (tmp_path/'nested/decisions.json').read_bytes()
     from bs4 import BeautifulSoup
     review = BeautifulSoup((output/'review/index.html').read_text(), 'html.parser')
+    assert '调整 1 个案例，统一重算 1 份保存结果' in review.select_one('#current-revision-scope').get_text()
     adopted = review.select_one('#adopted-score-revisions')
     assert adopted is not None and 'method' in adopted.get_text()
     assert any(link.get('href') == '../'+attachment for link in adopted.select('a'))
