@@ -37,7 +37,9 @@
           "web": "general-web",
           "document": "embedded-documents",
           "web_media": "media-information",
-          "media_file": "direct-media-files"
+          "media_file": "direct-media-files",
+          "dynamic": "dynamic-examples",
+          "challenge": "challenge-examples"
         }
       },
       "dynamic-content": {
@@ -67,20 +69,13 @@
       "embedded-documents": "Complete document text, including embedded documents, tables and appendices",
       "media-information": "Requested image and video resources, links or metadata on webpages; media understanding is outside the task",
       "direct-media-files": "Complete delivered image and video files under the declared file contracts",
-      "articles": "Article bodies, titles, requested initial comments and post collections; retained raw extension"
+      "articles": "Article bodies, titles, requested initial comments and post collections",
+      "dynamic-examples": "Additional dynamic-content tasks from the original mixed suite; their declared acceptance contracts remain separate",
+      "challenge-examples": "Additional access-challenge tasks from the original mixed suite; their declared acceptance contracts remain separate"
     },
     "repo_id": "Lexmount/LexBench-Web-Fetch",
     "previous_repo_ids": [
       "Lexmount/lexbench-webfetch"
-    ],
-    "viewer_exclude_tracks": {
-      "webfetch": [
-        "challenge",
-        "dynamic"
-      ]
-    },
-    "viewer_exclude_datasets": [
-      "articles"
     ]
   },
   "websearch": {
