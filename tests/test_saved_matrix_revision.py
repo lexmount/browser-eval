@@ -12,7 +12,7 @@ from lexbench_webfetch.scoring import score_attempt
 from tests.test_saved_matrix_evidence import fixture, write
 
 
-def revision_fixture(tmp_path, *, multiple=False, uncalled=False, completion_note=False):
+def revision_fixture(tmp_path, *, multiple=False, uncalled=False, completion_note=False, answer=b'answer'):
     spec, source, row, _ = fixture(tmp_path)
     case = json.loads((source/'dataset.json').read_text())['cases'][0]
     case['required_facts'] = [{'id':'shell', 'alternatives':['Subscribe']}]
@@ -26,7 +26,8 @@ def revision_fixture(tmp_path, *, multiple=False, uncalled=False, completion_not
              'native_route_receipt': {'transport_state': 'not_started'}}]})
         spec['missing'] = [{'suite': 'first', 'provider': 'method', 'case_id': 'later',
                             'status': 'not_called', 'reason': 'DNS unavailable', 'receipt': receipt}]
-    row['metrics'] = score_attempt(case, b'answer', ok=True)
+    (source/row['artifact_path']).write_bytes(answer)
+    row['metrics'] = score_attempt(case, answer, ok=True)
     (source/'results.jsonl').write_text(json.dumps(row)+'\n')
     spec['sources'][0]['results']['sha256'] = hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()
     if multiple:
@@ -72,7 +73,7 @@ def test_revision_round_trip_preserves_call_with_completion_note(tmp_path):
 @pytest.mark.parametrize('root_revision', [False, True])
 def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_path, missing_attachment, root_revision, monkeypatch):
     monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
-    nested, _, revision = revision_fixture(tmp_path/'nested')
+    nested, _, revision = revision_fixture(tmp_path/'nested', answer=b'new answer')
     nested['offline_revision']['review_files'] = {
         'decisions': write(tmp_path/'nested/decisions.json', [{'reason': 'independent scope review'}])}
     spec, source, record, _ = fixture(tmp_path/'parent')
@@ -107,6 +108,13 @@ def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_pat
     write(tmp_path/'spec.json', spec)
     output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'report').parent
     matrix = json.loads((output/'matrix.json').read_text())
+    if root_revision:
+        original_path = output/matrix['rows'][0]['score_revision_history']['before_record_path']
+        original_record = json.loads(original_path.read_text())
+        assert (original_path.parent/original_record['artifact_path']).read_bytes() == b'answer'
+        current_path = output/matrix['rows'][0]['record_path']
+        current_record = json.loads(current_path.read_text())
+        assert (current_path.parent/current_record['artifact_path']).read_bytes() == b'new answer'
     assert matrix['scores_changed'] is True
     assert json.loads((output/'execution.json').read_text())['scores_changed'] is True
     receipt_path = output/matrix['rows'][0]['score_revision']['receipt_path']
@@ -128,6 +136,19 @@ def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_pat
     assert changes.select_one('[data-adopted-revision-history]') is not None
     assert '本报告没有登记结果修订' not in changes.get_text()
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['scores_changed'] is True
+    if root_revision:
+        artifact = original_path.parent/original_record['artifact_path']
+        audit_path = output/'saved-matrix-audit.json'
+        original_audit = audit_path.read_bytes()
+        artifact.write_bytes(b'new answer')
+        audit = json.loads(original_audit)
+        audit['files'][artifact.relative_to(output).as_posix()] = hashlib.sha256(artifact.read_bytes()).hexdigest()
+        write(audit_path, audit)
+        for source_spec in (None, tmp_path/'spec.json'):
+            with pytest.raises(ValueError, match='Portable saved record artifact differs'):
+                check_saved_matrix(output, spec_path=source_spec)
+        artifact.write_bytes(b'answer')
+        audit_path.write_bytes(original_audit)
     if missing_attachment:
         receipt['review_files']['decisions'] = 'missing.json'
         binding = write(receipt_path, receipt)

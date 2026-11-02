@@ -47,7 +47,7 @@ def assert_redirected_answer_rejected(output, fields, spec):
     write(audit_path, audit)
     try:
         for source in (None, spec):
-            with pytest.raises(ValueError, match='evidence link differs'):
+            with pytest.raises(ValueError, match='evidence link differs|proof differs'):
                 check_saved_matrix(output, spec_path=source)
     finally:
         matrix_path.write_bytes(original)
@@ -81,6 +81,37 @@ def test_selected_answer_link_cannot_be_redirected(tmp_path):
     spec, _, _, _ = fixture(tmp_path)
     output = build(tmp_path, spec).parent
     assert_redirected_answer_rejected(output, ['answer_path'], tmp_path/'spec.json')
+
+
+def assert_proof_mutations_rejected(output, spec, proof_name, mutations):
+    from harness.web_fetch.report import generate_saved_matrix
+    original = {p.relative_to(output): p.read_bytes() for p in output.rglob('*') if p.is_file()}
+    for mutation in mutations:
+        model = json.loads(original[Path('matrix.json')])
+        row = model['rows'][0]
+        if mutation == 'remove':
+            row.pop(proof_name)
+            if proof_name == 'retry_continuation':
+                row['retries'] = json.loads((output/row['record_path']).read_text()).get('retries', 0)
+        elif mutation == 'group':
+            row[proof_name]['group']['candidate_passed'] += 1
+        else:
+            old = row[proof_name][mutation]
+            row[proof_name][mutation] = not old if isinstance(old, bool) else (old or 0)+1
+        write(output/'matrix.json', model)
+        for name in ('dataset.json', 'summary.json', 'execution.json', 'results.jsonl', 'en/index.html'):
+            (output/name).unlink()
+        generate_saved_matrix(output, model)
+        audit = json.loads(original[Path('saved-matrix-audit.json')])
+        audit['files'] = {p.relative_to(output).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
+                          for p in output.rglob('*') if p.is_file() and p.name != 'saved-matrix-audit.json'}
+        write(output/'saved-matrix-audit.json', audit)
+        try:
+            with pytest.raises(ValueError, match='proof differs from validated source'):
+                check_saved_matrix(output, spec_path=spec)
+        finally:
+            for path, raw in original.items():
+                (output/path).write_bytes(raw)
 
 
 def fixture(tmp_path):
@@ -570,6 +601,8 @@ def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_
     entry=build(tmp_path,spec)
     row=json.loads((entry.parent/'matrix.json').read_text())['rows'][0]
     assert row['passed'] is final_pass and row['elapsed_ms']==12.0 and row['retries']==1
+    assert_proof_mutations_rejected(entry.parent, tmp_path/'spec.json', 'retry_continuation',
+                                    ['remove', 'total_physical_calls', 'execution_cost_ms'])
     continuation=row['retry_continuation']
     assert continuation['total_physical_calls']==2 and continuation['execution_cost_ms']==20.0
     assert (entry.parent/continuation['prior_record_path']).read_bytes()==old_raw
@@ -647,6 +680,8 @@ def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tm
     entry=build(tmp_path,spec)
     row=json.loads((entry.parent/'matrix.json').read_text())['rows'][0]
     assert row['passed'] is True and row['retry_continuation']['execution_cost_ms'] is None
+    assert_proof_mutations_rejected(entry.parent, tmp_path/'spec.json', 'retry_continuation',
+                                    ['remove', 'total_physical_calls', 'execution_cost_ms'])
     assert '首轮精确耗时未保存' in (entry.parent/'attempts/first--run-001.html').read_text()
 
 
@@ -723,6 +758,8 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
     report = build(tmp_path, spec).parent
     model = json.loads((report/'matrix.json').read_text())
     row = model['rows'][0]
+    assert_proof_mutations_rejected(report, tmp_path/'spec.json', 'parameter_rerun',
+                                    ['remove', 'selected_new', 'group', 'before_passed', 'candidate_passed'])
     assert row['parameter_rerun']['selected_new'] is selected
     assert 'data-parameter-reruns' in (report/'index.html').read_text()
     assert 'data-parameter-history' in (report/'changes/index.html').read_text()

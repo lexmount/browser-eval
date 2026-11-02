@@ -1099,10 +1099,13 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                     revised = bool(revision and key in revision['records'])
                     if revised:
                         _write(output/(prefix+'/score-before-case.json'), original_case)
-                        _write_bytes(output/(prefix+'/score-before-record.json'), raw_line)
+                        _write_bytes(output/(prefix+'/score-before/score-before-record.json'), raw_line)
+                        for relative, digest in artifact_bindings(record):
+                            copy(contained_path(root, relative, reject_symlinks=True), prefix+'/score-before/'+relative)
                         item['score_revision'] = {'receipt_path':'score-revision.json',
                             'before_case_path':prefix+'/score-before-case.json',
-                            'before_record_path':prefix+'/score-before-record.json'}
+                            'before_record_path':prefix+'/score-before/score-before-record.json'}
+                        item['score_revision_history'] = deepcopy(item['score_revision'])
                         record = revision['records'][key]
                         raw_line = (json.dumps(record, ensure_ascii=False)+'\n').encode()
                     if key in candidates:
@@ -1297,7 +1300,7 @@ def _source_record_inventory(inputs, candidates, decisions, adoptions, keys):
             base = revision['records'].get(key, selected[1])
             final = base
             if key in revision['records']:
-                expected[prefix+'/score-before-record.json'] = selected[1]
+                expected[prefix+'/score-before/score-before-record.json'] = selected[1]
             if key in candidates:
                 expected[prefix+'/parameter-rerun/before/record.json'] = base
                 expected[prefix+'/parameter-rerun/candidate/record.json'] = candidates[key][1]
@@ -1324,6 +1327,68 @@ def _source_record_inventory(inputs, candidates, decisions, adoptions, keys):
             _, record, raw = continuations[key][1]
             expected[prefix+'/history/prior-call-'+hashlib.sha256(raw).hexdigest()[:16]+'/record.json'] = record
     return expected
+
+
+def _validate_selection_proofs(output, row, inputs, candidates, decisions, adoptions):
+    """Reconcile published selection and split-call explanations with source evidence."""
+    key = row['suite'], row['provider'], row['case_id']
+    prefix = 'evidence/'+'/'.join(key)
+    revision = inputs['revision'] or {'records': {}, 'cases': {}}
+    expected_parameter = None
+    if key in candidates:
+        case = revision['cases'].get((key[0], key[2]), inputs['cases'][key[0]][key[2]])
+        base = revision['records'].get(key, inputs['selected'][key][1])
+        candidate = candidates[key][1]
+        expected_parameter = {
+            'selected_new': decisions[key]['selected_new'],
+            'before_passed': task_passed(base['ok'], base['metrics'], case.get('task_kind', 'body')),
+            'candidate_passed': task_passed(candidate['ok'], candidate['metrics'], case.get('task_kind', 'body')),
+            'selection': 'replace_track_if_pass_count_improves', 'group': decisions[key]}
+        for label, record, result_path in [('before', base, inputs['selected'][key][3]),
+                                            ('candidate', candidate, candidates[key][3])]:
+            relative = prefix+'/parameter-rerun/'+label
+            expected_parameter.update({label+'_record_path': relative+'/record.json',
+                label+'_answer_path': relative+'/'+record['artifact_path'],
+                label+'_results_sha256': inputs['sources'].tracked[result_path]})
+        prior = inputs.get('parameter_continuations', {}).get(key)
+        if prior and prior[1]:
+            relative = prefix+'/parameter-rerun/candidate-prior'
+            expected_parameter.update(candidate_prior_record_path=relative+'/record.json',
+                                      candidate_prior_answer_path=relative+'/'+prior[1][1]['artifact_path'])
+    if row.get('parameter_rerun') != expected_parameter:
+        raise ValueError('Saved parameter proof differs from validated source')
+    continuations = (inputs.get('parameter_continuations', {})
+                     if decisions.get(key, {}).get('selected_new') else inputs['continuations'])
+    if key in adoptions:
+        continuations = adoptions[key]['continuations']
+    expected_retry = None
+    if key in continuations:
+        entry, prior, launch = continuations[key]
+        record = _json(contained_path(output, row['record_path'], reject_symlinks=True))
+        expected_retry = {'prior_physical_calls': 1, 'continued_physical_calls': 1,
+            'total_physical_calls': 2, 'max_failure_retries': 1,
+            'final_call_elapsed_ms': record['elapsed_ms'], 'execution_cost_ms': None,
+            'launch_contract_sha256': inputs['sources'].tracked[launch],
+            'selection': 'final_call_regardless_of_verdict'}
+        if prior:
+            _, old, raw = prior
+            relative = prefix+'/history/prior-call-'+hashlib.sha256(raw).hexdigest()[:16]
+            expected_retry.update(execution_cost_ms=old['elapsed_ms']+record['elapsed_ms'],
+                prior_record_path=relative+'/record.json', prior_answer_path=relative+'/'+old['artifact_path'])
+        else:
+            expected_retry.update(prior_uncommitted_path=prefix+'/prior-uncommitted.json',
+                                  prior_log_sha256=entry['prior_log']['sha256'])
+            if _json(output/expected_retry['prior_uncommitted_path']) != _json(inputs['sources'].binding(entry['prior_uncommitted'])):
+                raise ValueError('Saved retry receipt differs from validated source')
+    if row.get('retry_continuation') != expected_retry:
+        raise ValueError('Saved retry proof differs from validated source')
+
+
+def _validate_record_artifacts(path):
+    for artifact, expected in artifact_bindings(_json(path)):
+        target = contained_path(path.parent, artifact, reject_symlinks=True)
+        if not target.is_file() or _sha(target) != expected:
+            raise ValueError('Portable saved record artifact differs')
 
 
 def _validate_record_links(output, value):
@@ -1460,13 +1525,11 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             elif (row.get('record_path') or row['status'] != inputs['missing'][identity][0]['status']
                     or receipt != _json(inputs['missing'][identity][1])):
                 raise ValueError('Saved missing receipt differs from validated source')
+            _validate_selection_proofs(output, row, inputs, candidates, decisions, adoptions)
         _validate_record_links(output, row)
         for relative in set(record_paths(row)):
             path = contained_path(output, relative, reject_symlinks=True)
-            for artifact, expected in artifact_bindings(_json(path)):
-                target = contained_path(path.parent, artifact, reject_symlinks=True)
-                if not target.is_file() or _sha(target) != expected:
-                    raise ValueError('Portable saved record artifact differs')
+            _validate_record_artifacts(path)
         if row.get('score_revision'):
             receipt = _json(contained_path(output, row['score_revision']['receipt_path'], reject_symlinks=True))
             for target in receipt.get('review_files', {}).values():
@@ -1491,6 +1554,7 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             path = contained_path(output, relative, reject_symlinks=True)
             if not path.is_file() or _json(path) != expected_record:
                 raise ValueError('Published provenance record differs from validated source: '+relative)
+            _validate_record_artifacts(path)
     projected_dataset, projected_records, projected_identities, projected_scope = _saved_renderer_projection(output, model)
     saved_records = [json.loads(line) for line in (output/'results.jsonl').read_text().splitlines() if line.strip()]
     execution = _json(output/'execution.json')
