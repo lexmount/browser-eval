@@ -15,7 +15,7 @@ uv run --frozen python scripts/run_certified_benchmark.py risk-control --env-fil
 
 The first command rebuilds from hash-bound independent evidence under `BROWSER_EVAL_DATA_HOME` (default `~/.browser-eval`). The compiler emits the corrected stable-text roles. The historical profile and bound external dataset retain their original bytes; they must not be overwritten or treated as a certificate for the revised contract. Supply a new output path; frozen inputs cannot be overwritten. The second command validates the profile, dataset, Moli 1.1.11 version and binary hash without provider calls.
 
-The compiler is `lexbench_webfetch.risk_control_dataset`. When installed or called from another directory, pass `--definition-dir` with an explicit copy of this directory's rules and qualification manifests. Frozen-rule hashes are still enforced.
+The compiler is `lexbench_webfetch.risk_control_dataset`. By default it reads its rules and qualification manifests from the pinned definition directory that `definition_path("evaluation/risk-control")` resolves to. To supply them explicitly, pass `--definition-dir` with a copy of that pinned directory; this checkout directory does not hold those files. Frozen-rule hashes are still enforced.
 
 ## Formal execution
 
