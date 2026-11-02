@@ -82,7 +82,8 @@ def main() -> None:
         "--env-file",
         help=(
             "dotenv file; defaults to the repository-local .env when present. "
-            "--llm-diagnostics ignores it and reads only the repository .env"
+            "--llm-diagnostics and the Rainbond API token of a slice run ignore it "
+            "and read only the repository .env"
         ),
     )
     parser.add_argument(

@@ -20,6 +20,7 @@ from harness.environments.webarena.rainbond import (
     release_slice,
     scale_pool,
 )
+from harness.trajectory_replay.public_webarena.config import load_runtime_env
 from harness.web_fetch import config as web_fetch_config
 
 PINNED = {
@@ -605,6 +606,22 @@ def test_api_token_comes_only_from_the_repository_env(tmp_path, monkeypatch):
     )
     pool = RainbondSlicePool(config_path)
     assert pool.api.token == "${TEST_RAINBOND_TOKEN}"
+
+
+def test_api_token_ignores_an_explicit_env_file(tmp_path, monkeypatch):
+    config_path = _pool_config(tmp_path)
+    monkeypatch.setenv("TEST_RAINBOND_TOKEN", "")
+    monkeypatch.delenv("TEST_RAINBOND_TOKEN")
+    monkeypatch.setattr(web_fetch_config, "ROOT", tmp_path)
+    named = tmp_path / "operator.env"
+    named.write_text("TEST_RAINBOND_TOKEN=named-file-token\n", encoding="utf-8")
+    load_runtime_env(named)
+
+    with pytest.raises(ValueError, match=r"TEST_RAINBOND_TOKEN in the repository \.env"):
+        RainbondSlicePool(config_path)
+
+    (tmp_path / ".env").write_text("TEST_RAINBOND_TOKEN=repository-token\n", encoding="utf-8")
+    assert RainbondSlicePool(config_path).api.token == "repository-token"
 
 
 def test_partial_provision_failure_removes_the_new_app_and_leaves_no_receipt(tmp_path):
