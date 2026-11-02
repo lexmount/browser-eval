@@ -33,12 +33,10 @@ def validate_token(token):
 
 
 def load_token(*, base_url):
-    # Explicit process environment, then the target host. Never .env, and never a
-    # token that is not scoped to this host. Previous product-name locations remain
-    # read-only migration fallbacks.
+    # Explicit ARTIFACT_SITE_TOKEN, then the target host's file. Never .env. Previous
+    # product-name locations are read-only migration fallbacks, and the host-agnostic
+    # ARTIFACT_HUB_TOKEN comes last so a stale value cannot replace a host-scoped token.
     token = os.environ.get('ARTIFACT_SITE_TOKEN', '').strip()
-    if not token:
-        token = os.environ.get('ARTIFACT_HUB_TOKEN', '').strip()
     destination = token_path(base_url)
     candidates = (destination, Path.home() / '.config/artifact-hub/tokens' / destination.name)
     if not token:
@@ -49,7 +47,7 @@ def load_token(*, base_url):
                 continue
             if token:
                 break
-    return validate_token(token)
+    return validate_token(token or os.environ.get('ARTIFACT_HUB_TOKEN', '').strip())
 
 
 def save_token(token, *, base_url, replace_existing=False):

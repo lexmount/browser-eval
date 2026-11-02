@@ -36,7 +36,7 @@ class ArtifactAuthTests(unittest.TestCase):
             self.assertEqual(load_token(base_url=dev), 'ahp_dev_fixture')
             self.assertEqual(legacy.read_text().strip(), 'ahp_legacy_fixture')
             self.assertEqual(stat.S_IMODE(token_path(app).stat().st_mode), 0o600)
-            with patch.dict(os.environ, {'ARTIFACT_HUB_TOKEN': 'ahp_environment_fixture'}):
+            with patch.dict(os.environ, {'ARTIFACT_SITE_TOKEN': 'ahp_environment_fixture'}):
                 self.assertEqual(load_token(base_url=app), 'ahp_environment_fixture')
             token_path(app).write_text('')
             self.assertEqual(load_token(base_url=app), 'ahp_legacy_fixture')
@@ -96,6 +96,18 @@ class ArtifactAuthTests(unittest.TestCase):
             self.assertEqual(load_token(base_url='https://app.example'), 'ahp_old_name_fixture')
             save_token('ahp_new_name_fixture', base_url='https://new.example')
             self.assertIn('.config/artifact-site/', str(token_path('https://new.example')))
+
+    def test_host_agnostic_previous_variable_never_replaces_a_host_scoped_token(self):
+        with tempfile.TemporaryDirectory() as directory, patch('pathlib.Path.home', return_value=Path(directory)), \
+                patch.dict(os.environ, {'ARTIFACT_HUB_TOKEN': 'ahp_stale_other_host'}, clear=True):
+            app = 'https://app.example'
+            self.assertEqual(load_token(base_url=app), 'ahp_stale_other_host')
+            old = Path(directory) / '.config/artifact-hub/tokens/app.example'
+            old.parent.mkdir(parents=True)
+            old.write_text('ahp_old_name_fixture')
+            self.assertEqual(load_token(base_url=app), 'ahp_old_name_fixture')
+            save_token('ahp_scoped_fixture', base_url=app)
+            self.assertEqual(load_token(base_url=app), 'ahp_scoped_fixture')
 
     def test_invalid_and_symlink(self):
         with tempfile.TemporaryDirectory() as directory, patch('pathlib.Path.home', return_value=Path(directory)):
