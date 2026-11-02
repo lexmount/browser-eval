@@ -68,7 +68,8 @@ def test_revision_round_trip_preserves_call_with_completion_note(tmp_path):
 
 
 @pytest.mark.parametrize('missing_attachment', [False, True])
-def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_path, missing_attachment):
+def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_path, missing_attachment, monkeypatch):
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
     nested, _, revision = revision_fixture(tmp_path/'nested')
     nested['offline_revision']['review_files'] = {
         'decisions': write(tmp_path/'nested/decisions.json', [{'reason': 'independent scope review'}])}
@@ -85,7 +86,10 @@ def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_pat
         'authority': write(tmp_path/'authority.json', {
             'kind': 'user_selected_complete_report_groups', 'description': 'Select complete group.',
             'groups': [{'provider': 'method', 'family': 'web'}]}),
-        'saved_matrix_spec': write(tmp_path/'nested/spec.json', nested)}]
+        'saved_matrix_spec': write(tmp_path/'nested/spec.json', nested),
+        'execution_contract': write(tmp_path/'execution-contract.json', {
+            'created_at': '2026-10-01T00:00:00Z', 'provider_config_sha256': 'a'*64,
+            'timeout_seconds': 30, 'max_failure_retries': 0})}]
     write(tmp_path/'spec.json', spec)
     output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'report').parent
     matrix = json.loads((output/'matrix.json').read_text())

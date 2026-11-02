@@ -853,10 +853,29 @@ def _adopted_groups(inputs, candidates):
                 or nested['spec'].get('parameter_reruns') or set(nested['selected']) != expected
                 or expected & (set(adopted) | set(candidates))):
             raise ValueError('Adoption must replace complete, disjoint groups')
-        policy = None
+        policies = {}
+        def execution_policy(binding):
+            policy = _json(sources.binding(binding))
+            if policy.get('provider_config'):
+                sources.binding(policy['provider_config'])
+            policy = {**policy,
+                      'created_at': policy.get('created_at', policy.get('started_at')),
+                      'provider_config_sha256': policy.get('provider_config_sha256',
+                          policy.get('config_sha256', policy.get('provider_config', {}).get('sha256')))}
+            if any(policy.get(field) is None for field in (
+                    'created_at', 'provider_config_sha256', 'timeout_seconds', 'max_failure_retries')):
+                raise ValueError('Adoption execution authorization is incomplete')
+            return policy
         if config.get('execution_contract'):
-            policy = _json(sources.binding(config['execution_contract']))
-            policy = {**policy, 'provider_config_sha256': policy.get('provider_config_sha256', policy.get('config_sha256'))}
+            policies = dict.fromkeys(expected, execution_policy(config['execution_contract']))
+        for cohort in config.get('execution_contracts', []):
+            identifiers = cohort['case_ids']
+            scope = {(cohort['suite'], cohort['provider'], cid) for cid in identifiers}
+            if len(scope) != len(identifiers) or not scope <= expected or scope & set(policies):
+                raise ValueError('Adoption execution scopes overlap or exceed the selected group')
+            policies.update(dict.fromkeys(scope, execution_policy(cohort['contract'])))
+        if set(policies) != expected:
+            raise ValueError('Adoption requires execution authorization for every selected call')
         for key, original in nested['selected'].items():
             suite, provider, cid = key
             case = inputs['cases'][suite][cid]
@@ -879,13 +898,16 @@ def _adopted_groups(inputs, candidates):
             if any(record.get('provider_metadata', {}).get(name) != value
                    for name, value in authority.get('required_metadata', {}).items()):
                 raise ValueError('Adoption differs from required settings')
-            if policy:
-                _validate_call_sequence(record, case, policy, nested['continuations'].get(key))
-                _parameter_execution(root, record, case, policy, sources, before)
-                continuation = nested['continuations'].get(key)
-                if continuation and continuation[1]:
-                    prior_root, prior_record, _ = continuation[1]
-                    _parameter_execution(prior_root, prior_record, case, policy, sources, before)
+            policy = policies[key]
+            execution_case = nested['cases'][suite][cid]
+            # Retry decisions belong to the frozen acquisition score, not to a
+            # later offline revision of that saved answer.
+            _validate_call_sequence(before_score, execution_case, policy, nested['continuations'].get(key))
+            _parameter_execution(root, before_score, execution_case, policy, sources, before)
+            continuation = nested['continuations'].get(key)
+            if continuation and continuation[1]:
+                prior_root, prior_record, _ = continuation[1]
+                _parameter_execution(prior_root, prior_record, execution_case, policy, sources, before)
             adopted[key] = {'selected': (root, record, raw, results), 'original': original,
                             'authority_path': authority_path, 'index': index,
                             'note': authority['description'],

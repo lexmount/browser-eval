@@ -705,8 +705,9 @@ def test_source_bound_retry_launch_keeps_its_original_contract(tmp_path, defect)
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
 
 
-@pytest.mark.parametrize('defect', [None, 'scope', 'method', 'task'])
-def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, defect):
+@pytest.mark.parametrize('defect', [None, 'scope', 'method', 'task', 'missing_execution', 'overlap', 'uncovered'])
+def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, defect, monkeypatch):
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
     spec, source, before, before_raw = fixture(tmp_path)
     spec['suites'].append({**deepcopy(spec['suites'][0]), 'id': 'second', 'label': 'Unchanged'})
     spec['sources'].append({**deepcopy(spec['sources'][0]), 'suite': 'second'})
@@ -729,6 +730,13 @@ def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, de
                  'groups': [{'provider': 'unknown' if defect == 'method' else 'method', 'family': 'web'}]}
     spec['adoptions'] = [{'authority': write(tmp_path/'authority.json', authority),
                          'saved_matrix_spec': write(tmp_path/'candidate/spec.json', nested)}]
+    contract = write(tmp_path/'execution-contract.json', {'created_at': '2026-10-01T00:00:00Z',
+        'provider_config_sha256': 'a'*64, 'timeout_seconds': 30, 'max_failure_retries': 0})
+    if defect != 'missing_execution':
+        spec['adoptions'][0]['execution_contracts'] = [{'suite': 'first', 'provider': 'method',
+            'case_ids': [] if defect == 'uncovered' else ['same'], 'contract': contract}]
+    if defect == 'overlap':
+        spec['adoptions'][0]['execution_contract'] = contract
     if defect:
         with pytest.raises(ValueError, match='Adoption'):
             build(tmp_path, spec)
