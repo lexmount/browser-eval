@@ -9,8 +9,13 @@ from __future__ import annotations
 from copy import deepcopy
 from datetime import datetime, timedelta
 import hashlib
+import errno
 from html.parser import HTMLParser
 import json
+import os
+import re
+import shutil
+import tempfile
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
 
@@ -522,6 +527,20 @@ def _load_saved_matrix(spec_path):
                     or launch.get('first_uncommitted', {}).get('sha256') != tracked[log]
                     or launch.get('first_uncommitted', {}).get('case_id') != key[2]):
                 raise ValueError('Uncommitted first call lacks its declared single-call evidence')
+            start = next(event for event in events if event.get('event') == 'http_request_started')
+            call_id = start.get('call_id')
+            if not isinstance(call_id, str) or not re.fullmatch(
+                    re.escape(key[1]+'__'+key[2])+r'__r[0-9]{3}(?:__p001)?', call_id):
+                raise ValueError('Uncommitted first-call log identifies another invocation')
+            try:
+                started = datetime.fromisoformat(start['at'])
+                ended = max([started]+[datetime.fromisoformat(event['at']) for event in events
+                                      if event.get('call_id') == call_id and event.get('at')])
+                if ended > datetime.fromisoformat(launch['started_at']):
+                    raise ValueError('Uncommitted first-call log occurs after continuation launch')
+            except (KeyError, TypeError) as exc:
+                raise ValueError('Uncommitted first-call log lacks timestamp evidence') from exc
+
         continuations[key] = (entry, prior, launch_path)
     for launch_path, actual in continuation_groups.items():
         launch = _json(launch_path)
@@ -1585,6 +1604,41 @@ def _validate_record_links(output, value):
                 _validate_record_links(output, relative)
 
 
+def _validate_rendered_pages(output, model):
+    """Compare generated pages with a fresh render of the validated report model."""
+    with tempfile.TemporaryDirectory(prefix='saved-matrix-render-check-') as temporary:
+        expected = Path(temporary)
+        def link_or_copy(source, destination):
+            try:
+                os.link(source, destination)
+            except OSError as exc:
+                if exc.errno != errno.EXDEV:
+                    raise
+                shutil.copyfile(source, destination)
+        # Only immutable evidence is linked. Generated files must have independent
+        # inodes so verification cannot modify the report being checked.
+        for name in ('evidence', 'review-assets', 'report-review-assets', 'adoption-review-assets'):
+            source = output/name
+            if source.is_dir():
+                shutil.copytree(source, expected/name, copy_function=link_or_copy)
+        generated_json = {'matrix.json', 'dataset.json', 'summary.json', 'execution.json',
+                          'saved-matrix-audit.json', 'report-languages.json'}
+        for source in output.glob('*.json'):
+            if source.name not in generated_json:
+                shutil.copy2(source, expected/source.name)
+        _write(expected/'matrix.json', model)
+        render_saved_with_standard_generator(expected, model)
+        pages = {path.relative_to(expected) for path in expected.rglob('*.html')
+                 if path.relative_to(expected).parts[0] != 'evidence'}
+        actual = {path.relative_to(output) for path in output.rglob('*.html')
+                  if path.relative_to(output).parts[0] != 'evidence'}
+        if actual != pages:
+            raise ValueError('Rendered page population differs from validated source')
+        for relative in pages:
+            if (output/relative).read_bytes() != (expected/relative).read_bytes():
+                raise ValueError('Rendered page differs from validated source: '+str(relative))
+
+
 def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     """Check the complete portable tree and unchanged sources without rescoring."""
     output = Path(output)
@@ -1733,6 +1787,8 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             or _json(output/'summary.json') != projected_scope
             or execution.get('identities') != projected_identities):
         raise ValueError('Saved renderer projection differs from validated rows')
+    if inputs is not None:
+        _validate_rendered_pages(output, model)
     # Source HTML captures are immutable evidence, not generated navigation routes.
     routes = sorted(p for p in output.rglob('*.html')
                     if p.relative_to(output).parts[0] != 'evidence')

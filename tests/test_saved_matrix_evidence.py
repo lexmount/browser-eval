@@ -680,9 +680,19 @@ def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_
         build(tmp_path,changed,'partial-continuation')
 
 
-def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tmp_path):
+@pytest.mark.parametrize('defect', [None, 'missing_identity', 'unrelated', 'missing_time', 'post_launch'])
+def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tmp_path, defect):
     spec, root, current, raw = fixture(tmp_path)
-    log=write(tmp_path/'first-log.jsonl', {'event':'http_request_started'})
+    event = {'event': 'http_request_started', 'call_id': 'method__same__r001', 'at': '2026-10-27T00:00:00Z'}
+    if defect == 'missing_identity':
+        event.pop('call_id')
+    elif defect == 'unrelated':
+        event['call_id'] = 'another__case__r001'
+    elif defect == 'missing_time':
+        event.pop('at')
+    elif defect == 'post_launch':
+        event['at'] = '2026-10-28T01:00:00Z'
+    log=write(tmp_path/'first-log.jsonl', event)
     receipt=write(tmp_path/'uncommitted.json', {'suite':'first','provider':'method','case_id':'same',
         'state':'called_but_uncommitted','elapsed_ms':None})
     launch=write(tmp_path/'launch.json', {'started_at':'2026-10-28T00:00:00Z',
@@ -691,6 +701,10 @@ def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tm
     spec['retry_continuations']=[{'suite':'first','provider':'method','case_id':'same',
         'launch_contract':launch,'current_record_sha256':hashlib.sha256(raw).hexdigest(),
         'prior_uncommitted':receipt,'prior_log':log}]
+    if defect:
+        with pytest.raises(ValueError, match='Uncommitted first-call log'):
+            build(tmp_path, spec)
+        return
     entry=build(tmp_path,spec)
     row=json.loads((entry.parent/'matrix.json').read_text())['rows'][0]
     assert row['passed'] is True and row['retry_continuation']['execution_cost_ms'] is None
@@ -1181,3 +1195,23 @@ def assert_scoring_flags_rejected(output, spec):
         finally:
             path.write_bytes(original)
             audit_path.write_bytes(original_audit)
+
+
+@pytest.mark.parametrize('change', ['verdict', 'latency', 'explanation'])
+def test_source_checker_rejects_rendered_content_mutation(tmp_path, change):
+    spec, _, _, _ = fixture(tmp_path)
+    output = build(tmp_path, spec).parent
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+    path = output/'attempts/first--run-001.html'
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(path.read_text(), 'html.parser')
+    heading = soup.find('h1')
+    assert heading is not None
+    heading.string = {'verdict': 'Failed instead of passed', 'latency': '999999 ms',
+                      'explanation': 'Different failure explanation'}[change]
+    path.write_text(str(soup))
+    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit['files'][path.relative_to(output).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+    write(output/'saved-matrix-audit.json', audit)
+    with pytest.raises(ValueError, match='Rendered page differs'):
+        check_saved_matrix(output, spec_path=tmp_path/'spec.json')
