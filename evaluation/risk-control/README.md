@@ -9,13 +9,13 @@ Body extraction is accepted against the declared body regions and composite reco
 ## Deterministic build and validation without calls
 
 ```sh
-uv run --frozen python scripts/build_risk_control_dataset.py --output /tmp/risk-control-dataset.json
+uv run --frozen lexbench-webfetch compile-access-restrictions --output /tmp/risk-control-dataset --evidence-home ~/.browser-eval
 uv run --frozen python scripts/run_certified_benchmark.py risk-control --env-file .env
 ```
 
 The first command rebuilds from hash-bound independent evidence under `BROWSER_EVAL_DATA_HOME` (default `~/.browser-eval`). The compiler emits the corrected stable-text roles. The historical profile and bound external dataset retain their original bytes; they must not be overwritten or treated as a certificate for the revised contract. Supply a new output path; frozen inputs cannot be overwritten. The second command validates the profile, dataset, Moli 1.1.11 version and binary hash without provider calls.
 
-The compiler is `harness.web_fetch.risk_control_dataset`. When installed or called from another directory, pass `--definition-dir` with an explicit copy of this directory's rules and qualification manifests. Frozen-rule hashes are still enforced.
+The compiler is `lexbench_webfetch.risk_control_dataset`. When installed or called from another directory, pass `--definition-dir` with an explicit copy of this directory's rules and qualification manifests. Frozen-rule hashes are still enforced.
 
 ## Formal execution
 
@@ -50,4 +50,4 @@ The current adapter obtains identity from `final_url`, status and final HTML in 
 
 ## Frozen artifacts and language
 
-The two rule files and the independent/completeness audits retain their original Chinese text. Their bytes are hash-bound by `run-profile.json` and revision provenance; the compiler reads the rule files directly. They are frozen acceptance inputs, not untranslated usage guides. Do not translate or rewrite them in place. The English [rule-authoring guide](rule-authoring-guide.md) explains the methodology for new definitions.
+The two rule files and the independent/completeness audits retain their original Chinese text. Their bytes are hash-bound by `run-profile.json` and revision provenance; the compiler reads the rule files directly. They are frozen acceptance inputs, not untranslated usage guides. Do not translate or rewrite them in place. The English rule-authoring guide (`evaluation/risk-control/rule-authoring-guide.md` in the pinned benchmark definitions) explains the methodology for new definitions.

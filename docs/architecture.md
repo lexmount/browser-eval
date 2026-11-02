@@ -141,7 +141,7 @@ Restoration verifies the declared inventory, content and source bindings before
 creating a new file. It does not replace existing content. Changed measurements
 require updated content bindings rather than reuse of an old interpretation.
 
-WCXB uses `evaluation/wcxb/report-content-binding.json` alongside its certified
+WCXB uses a `report-content-binding.json` beside its external certified
 profile. Restore it with the same command, passing the pinned WCXB export and
 `<evidence>/report-assets/report-content.json` as the output. The export may be a
 ZIP or an extracted file tree; both must contain the exact bound interpretation
