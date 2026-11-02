@@ -1748,6 +1748,8 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
         case = _json(contained_path(output, row['case_path'], reject_symlinks=True))
         if case['id'] != row['case_id']:
             raise ValueError('Saved case identity differs from matrix')
+        if row.get('url') != case['url'] or row.get('name') != case.get('name', row['case_id']):
+            raise ValueError('Saved case metadata differs from matrix')
         if row.get('record_path'):
             record = _json(contained_path(output, row['record_path'], reject_symlinks=True))
             if (record['provider'], record['case_id']) != identity[1:]:
@@ -1876,6 +1878,8 @@ def _saved_renderer_projection(output, model):
         case = _json(contained_path(output, row['case_path']))
         if case['id'] != row['case_id']:
             raise ValueError('Saved case identity differs from matrix')
+        if row.get('url') != case['url'] or row.get('name') != case.get('name', row['case_id']):
+            raise ValueError('Saved case metadata differs from matrix')
         case['id'] = route
         family = _presentation_family(case, row['suite'], groups) if 'report_families' in model else row['suite']
         case['report_family'] = family

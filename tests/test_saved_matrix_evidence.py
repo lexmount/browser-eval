@@ -1314,3 +1314,17 @@ def test_missing_receipt_reconciles_separate_diagnostics(tmp_path, jsonl, matchi
             build(tmp_path, spec)
     else:
         build(tmp_path, spec)
+
+
+@pytest.mark.parametrize('field,value', [('name', 'Different task'), ('url', 'https://unrelated.example/')])
+def test_matrix_task_metadata_matches_case_evidence(tmp_path, field, value):
+    spec, _, _, _ = fixture(tmp_path)
+    output = build(tmp_path, spec).parent
+    model = json.loads((output/'matrix.json').read_text())
+    model['rows'][0][field] = value
+    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit['files']['matrix.json'] = write(output/'matrix.json', model)['sha256']
+    write(output/'saved-matrix-audit.json', audit)
+    for source in (None, tmp_path/'spec.json'):
+        with pytest.raises(ValueError, match='Saved case metadata differs from matrix'):
+            check_saved_matrix(output, spec_path=source)
