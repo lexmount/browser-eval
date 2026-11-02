@@ -8,11 +8,13 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-DOCUMENT_ROOTS = (".agents/skills", "docs", "evaluation", "examples", "scripts", "src/harness")
+DOCUMENT_ROOTS = (
+    ".agents/skills", ".github", "deploy", "docs", "evaluation", "examples", "scripts", "src/harness",
+)
 # Dataset cards are published with Hugging Face trees; their links resolve there.
 PUBLISHED_ELSEWHERE = ("src/harness/benchmarks/cards/",)
 REPOSITORY_PREFIXES = {
-    ".agents", "configs", "deploy", "docs", "evaluation", "examples", "harness",
+    ".agents", ".github", "configs", "deploy", "docs", "evaluation", "examples", "harness",
     "research", "scripts", "src", "tests",
 }
 LINK_SCHEMES = re.compile(r"^[a-z][a-z0-9+.-]*:", re.I)
@@ -95,6 +97,8 @@ def test_document_inventory_covers_root_guides_and_skills():
         "AGENTS.md",
         "README.md",
         ".agents/skills/benchmark-report/SKILL.md",
+        ".github/workflows/README.md",
+        "deploy/webarena/README.md",
         "docs/architecture.md",
         "scripts/README.md",
         "src/harness/web_fetch/README.md",
