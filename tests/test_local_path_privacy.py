@@ -86,12 +86,54 @@ def test_release_check_fragments():
     assert privacy.FIX_LOG_LOCAL_ROOT.search("/root/")
 
 
+# A root directly followed by a regex construct, or a root inside an alternation.
+_ROOTS = "Users|home|root|tmp|private|var|opt"
+PATH_RULE = re.compile(rf"\b(?:{_ROOTS})/(?:\[|\||\\|\.[*+]|\()|\b(?:{_ROOTS})\||\|(?:{_ROOTS})\b(?!\[)")
+
+
 def test_only_the_privacy_module_defines_path_rules():
     # Plain substring guards such as `"/Users/" in html` are release checks, not rules.
-    forbidden = re.compile(r"Users\||/Users/\[|/Users/\|")
+    owner = ROOT / "src/harness/reporting/privacy.py"
     sources = [*(ROOT / "src/harness").rglob("*.py"), *(ROOT / "scripts").rglob("*.py")]
     found = [str(path.relative_to(ROOT)) for path in sources
-             if path.name != "privacy.py" and forbidden.search(path.read_text("utf-8"))]
+             if path != owner and PATH_RULE.search(path.read_text("utf-8"))]
     assert found == []
-    assert forbidden.search(r're.sub(r"/Users/[^/]+", "x", value)')
-    assert forbidden.search(r're.compile(r"/(?:Users|home)/")')
+
+
+@pytest.mark.parametrize(
+    "rule",
+    [
+        r're.sub(r"/Users/[^/]+", "x", value)',
+        r're.sub(r"/home/[^/]+", "x", value)',
+        r're.compile(r"/tmp/[^\s]+")',
+        r're.compile(r"/root/[^\s]+")',
+        r're.compile(r"/private/tmp/\S+")',
+        r're.compile(r"/home/\w+")',
+        r're.compile(r"/home/.+")',
+        r're.compile(r"/(?:var/)?tmp/[^\s]+")',
+        r're.compile(r"/(?:Users|home)/")',
+        r're.compile(r"/(?:home|Users)/")',
+        r're.compile(r"/(?:work|Users)/")',
+        r're.compile(r"/(?:work|home)/")',
+        r're.compile(rb"/(?:root|home)/")',
+        r're.compile(rb"/(?:work|root)/")',
+        r're.compile(r"/(?:tmp|work)/")',
+        r're.compile(r"(?:/Users/|/home/)\S+")',
+    ],
+)
+def test_path_rule_guard_recognizes_a_copied_rule(rule):
+    assert PATH_RULE.search(rule)
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        'assert "/Users/" not in html',
+        'path = Path("/tmp/plain")',
+        'pattern = re.compile(r"chrome|firefox")',
+        'pattern = re.compile(r"users|accounts")',
+        r're.compile(r"x[-_]?auth[-_]?token|private[-_]?token|token")',
+    ],
+)
+def test_path_rule_guard_ignores_unrelated_text(line):
+    assert not PATH_RULE.search(line)
