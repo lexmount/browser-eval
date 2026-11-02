@@ -9,6 +9,7 @@ from harness.env_file import parse_env_file
 from harness.trajectory_replay import catalog_runner
 from harness.trajectory_replay.public_webarena import config as webarena_config
 from harness.web_fetch import config as web_fetch_config
+from harness.web_fetch.wcxb_report_check import binary_from_env
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -100,6 +101,31 @@ def test_every_loader_reads_the_same_values(tmp_path, monkeypatch):
             monkeypatch.delenv(key, raising=False)
         load(path)
         assert {key: os.environ[key] for key in SHARED_VALUES} == SHARED_VALUES
+
+
+@pytest.mark.parametrize(
+    ("text", "expected"),
+    [
+        ("CHROMIUM_BINARY=/bin/chrome\n", "/bin/chrome"),
+        # This reader stopped at the first line, kept comments, and could not see export.
+        ("CHROMIUM_BINARY=/bin/old\nCHROMIUM_BINARY=/bin/new\n", "/bin/new"),
+        ("CHROMIUM_BINARY=/bin/chrome # note\n", "/bin/chrome"),
+        ("export CHROMIUM_BINARY=/bin/chrome\n", "/bin/chrome"),
+    ],
+)
+def test_wcxb_visual_check_selects_the_binary_the_shared_parser_reads(tmp_path, text, expected):
+    path = tmp_path / ".env"
+    path.write_text(text, encoding="utf-8")
+    assert binary_from_env(path) == expected == parse_env_file(path)["CHROMIUM_BINARY"]
+
+
+@pytest.mark.parametrize("text", ["", "CHROMIUM_BINARY=\n", "CHROMIUM_BINARY=\"/bin/chrome'\n"])
+def test_wcxb_visual_check_reports_an_unreadable_binary_as_missing(tmp_path, text):
+    # strip('"').strip("'") repaired the mismatched quotes in the last form.
+    path = tmp_path / ".env"
+    path.write_text(text, encoding="utf-8")
+    with pytest.raises(ValueError, match="CHROMIUM_BINARY is missing"):
+        binary_from_env(path)
 
 
 def test_caller_policies_stay_outside_the_parser(tmp_path, monkeypatch):
