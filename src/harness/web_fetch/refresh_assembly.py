@@ -363,10 +363,6 @@ def _implementation_upgrades(plan: dict, canonical: dict) -> list[dict]:
     return upgrades
 
 
-def _parameters_sha256(parameters: dict) -> str:
-    return canonical_json_sha256(parameters)
-
-
 def _correction_layers(
     plan: dict, canonical: dict, expected_pairs: set[tuple[str, str]]
 ) -> list[dict]:
@@ -704,7 +700,7 @@ def _validate_layer_execution(
         actual = {
             "runtime_source_sha256": batch.get("runtime_source_sha256"),
             "provider_config_sha256": batch.get("provider_config_sha256"),
-            "parameters_sha256": _parameters_sha256(batch.get("parameters", {})),
+            "parameters_sha256": canonical_json_sha256(batch.get("parameters", {})),
             "implementation_identity": provider_identity,
         }
         if actual != contract:

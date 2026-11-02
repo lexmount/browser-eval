@@ -23,7 +23,7 @@ SOURCE = Path(__file__).resolve().parents[1] / 'src' / 'harness'
 RETIRED_NAMES = {
     '_catalog_file_sha256', '_catalog_read_json', '_catalog_write_json', '_json_sha256', '_sha256',
     '_sha256_bytes', '_sha256_file', '_write_json', 'input_digest', 'json_digest', 'json_sha256',
-    'sha256_bytes', 'sha256_file', 'sha256_path',
+    'sha256_bytes', 'sha256_file', 'sha256_path', 'text_digest',
 }
 # These bytes are part of a live hash binding, so their private copy stays:
 # the resource orchestrators must equal the `orchestrator_sha256` their protocol declares,
@@ -33,6 +33,8 @@ FROZEN_SOURCE_COPIES = {
     ('lexbench/resource_profiles.py', 'sha256'),
     ('reporting/visual.py', 'file_sha256'),
 }
+# Forwarding wrappers around these helpers add a name and nothing else.
+FORWARDING_HELPERS = {'bytes_sha256', 'file_sha256', 'read_json', 'write_json'}
 
 
 def _is_sha256_hexdigest(node):
@@ -45,12 +47,37 @@ def _is_dumps(node):
     return isinstance(node, ast.Call) and ast.unparse(node.func) == 'json.dumps'
 
 
+def _aliased_helper(function, body):
+    """Name the helper when a wrapper only forwards its parameters to it.
+
+    A canonical digest wrapper stays allowed: its name is the contract that a writer and
+    a verifier share. A cache decorator or a keyword option is a real difference too.
+    """
+    if function.decorator_list or len(body) != 1 or not isinstance(body[0], (ast.Return, ast.Expr)):
+        return None
+    value = body[0].value
+    if not isinstance(value, ast.Call) or value.keywords:
+        return None
+    helper = ast.unparse(value.func)
+    parameters = [argument.arg for argument in function.args.args]
+    forwarded = [ast.unparse(argument) for argument in value.args]
+    if helper in FORWARDING_HELPERS and forwarded == parameters:
+        return helper
+    if helper == 'bytes_sha256' and len(parameters) == 1 and forwarded in (
+            [f'{parameters[0]}.encode()'], [f"{parameters[0]}.encode('utf-8')"]):
+        return helper
+    return None
+
+
 def _copied_primitive(function):
     """Name the primitive when a function body only re-implements a shared helper."""
     body = list(function.body)
     if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant):
         body.pop(0)
     parameters = {argument.arg for argument in function.args.args}
+    alias = _aliased_helper(function, body)
+    if alias:
+        return alias
     if len(body) == 1 and isinstance(body[0], ast.Return) and body[0].value is not None:
         value = body[0].value
         if _is_sha256_hexdigest(value):
@@ -136,6 +163,12 @@ def test_frozen_copies_still_exist_so_their_exemptions_cannot_go_stale():
      'copies canonical_json_sha256'),
     ('def f(path):\n    return json.loads(path.read_text(encoding="utf-8"))\n', 'copies read_json'),
     ('def f(path, value):\n    path.write_text(json.dumps(value))\n', 'copies write_json'),
+    ('def f(text):\n    return bytes_sha256(text.encode())\n', 'copies bytes_sha256'),
+    ('def f(text):\n    return bytes_sha256(text.encode("utf-8"))\n', 'copies bytes_sha256'),
+    ('def f(raw):\n    return bytes_sha256(raw)\n', 'copies bytes_sha256'),
+    ('def f(path):\n    return file_sha256(path)\n', 'copies file_sha256'),
+    ('def f(path):\n    return read_json(path)\n', 'copies read_json'),
+    ('def f(path, value):\n    write_json(path, value)\n', 'copies write_json'),
     ('def f(path, value):\n    path.parent.mkdir()\n    path.write_text(json.dumps(value))\n',
      'copies write_json'),
     ('def f(path):\n    digest = hashlib.sha256()\n    with path.open("rb") as stream:\n'
@@ -159,6 +192,15 @@ def test_guard_rejects_each_copied_form(source, expected):
     # Shape checks and alternative readers keep their local wrapper.
     'def f(path):\n    value = read_json(path)\n    assert isinstance(value, dict)\n    return value\n',
     'def f(path):\n    return json.loads(read_dataset_bytes(path))\n',
+    # Each of these wrappers adds something the helper it calls does not do.
+    '@cache\ndef f(path):\n    return read_json(path)\n',
+    'def f(path, value):\n    write_json(path, value, parents=True)\n',
+    'def f(path):\n    return file_sha256(unlinked_path(path))\n',
+    'def f(resource):\n    return bytes_sha256(resource.read_bytes())\n',
+    'def f(value):\n    return bytes_sha256(json_bytes(value))\n',
+    # A canonical digest name is the contract a writer and a verifier share.
+    'def f(value):\n    return canonical_json_sha256(value)\n',
+    'def f(value):\n    return canonical_json_sha256(value, allow_nan=False)\n',
     # json.loads(bytes) also accepts UTF-16/32, which read_json rejects.
     'def f(path):\n    return json.loads(path.read_bytes())\n',
 ])

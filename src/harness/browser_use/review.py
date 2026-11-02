@@ -16,10 +16,6 @@ from harness.record_io import file_sha256, load_jsonl
 REQUIRED_ARTIFACTS = ("network_har", "agent_trace", "response", "evaluation", "events")
 
 
-def _attempts_sha256(path: Path) -> str:
-    return file_sha256(path)
-
-
 def _read_attempts(path: Path) -> list[dict[str, Any]]:
     return load_jsonl(path, skip_blank=True)
 
@@ -133,7 +129,7 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
         },
         "reviewed_at": datetime.now(UTC).isoformat(),
         "bindings": {
-            "attempts_sha256": _attempts_sha256(attempts_path),
+            "attempts_sha256": file_sha256(attempts_path),
             "manifest_sha256": file_sha256(manifest_path),
             "selection_sha256": selection_sha256,
         },

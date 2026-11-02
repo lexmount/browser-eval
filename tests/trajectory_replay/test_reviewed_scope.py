@@ -5,12 +5,12 @@ import json
 
 import pytest
 
+from harness.record_io import bytes_sha256
 from harness.trajectory_replay.retrieval_acceptance import (
     PROTOCOL_V1,
     PROTOCOL_V3,
     build_actual_response,
     digest,
-    text_digest,
 )
 
 
@@ -61,7 +61,7 @@ def bind_review(contract, review):
         "source_review_sha256": digest(review),
         "source_review_artifact": {
             "utf8": utf8,
-            "sha256": text_digest(utf8),
+            "sha256": bytes_sha256(utf8.encode()),
             "content": copy.deepcopy(review),
         },
     }

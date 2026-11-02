@@ -30,6 +30,7 @@ from harness.environments.browser import (
     validate_resource_controls,
     wait_cdp,
 )
+from harness.record_io import write_json
 from harness.resource_accounting import (
     DockerStatsResources,
     ResourceSampler,
@@ -39,7 +40,6 @@ from harness.trajectory_replay.public_webarena.diagnostics import diagnose_summa
 from harness.trajectory_replay.public_webarena.evaluators import (
     EvaluatorRegistry,
     TaskEvidence,
-    write_agent_response,
 )
 from harness.trajectory_replay.public_webarena.executor import execute_steps
 from harness.trajectory_replay.public_webarena.har import CdpHarRecorder
@@ -396,7 +396,7 @@ def _run_task(
         with wall_clock_timeout(evaluator_budget_ms / 1000, operation="result evaluation"):
             agent_response = build_agent_response(task, outputs)
             if agent_response is not None:
-                write_agent_response(artifact_dir / "agent_response.json", agent_response)
+                write_json(artifact_dir / "agent_response.json", agent_response)
             evaluation = evaluator_registry.evaluate(
                 task,
                 TaskEvidence(

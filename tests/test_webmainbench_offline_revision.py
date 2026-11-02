@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from harness.record_io import canonical_json_sha256, file_sha256
+from harness.record_io import bytes_sha256, canonical_json_sha256, file_sha256
 from harness.web_fetch import webmainbench_correction as correction
 
 
@@ -55,8 +55,8 @@ def certified_case(tmp_path, monkeypatch):
     plan = {
         "case_id": "one",
         "providers": ["first", "second"],
-        "input_html_sha256": correction.text_digest(case["html"]),
-        "reference_sha256": correction.text_digest(case["groundtruth_content"]),
+        "input_html_sha256": bytes_sha256(case["html"].encode()),
+        "reference_sha256": bytes_sha256(case["groundtruth_content"].encode()),
     }
     certificate = {
         "kind": "webmainbench_origin_correction_v1",
@@ -220,8 +220,8 @@ def test_full_population_revision_is_atomic(certified_case, tmp_path, monkeypatc
                 "id": identifier,
                 "url": record["url"],
                 "meta": {},
-                "input_html_sha256": correction.text_digest(record["html"]),
-                "reference_sha256": correction.text_digest("reference"),
+                "input_html_sha256": bytes_sha256(record["html"].encode()),
+                "reference_sha256": bytes_sha256("reference".encode()),
             }
         )
         (source / "references" / (identifier + ".md")).write_text("reference")

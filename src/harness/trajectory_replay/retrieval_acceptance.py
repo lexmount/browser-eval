@@ -36,10 +36,6 @@ def digest(value: Any) -> str:
     return canonical_json_sha256(value, allow_nan=False)
 
 
-def text_digest(value: str) -> str:
-    return bytes_sha256(value.encode())
-
-
 def strict_json(text: str) -> Any:
     def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
         result: dict[str, Any] = {}
@@ -695,7 +691,7 @@ def _validate_review_artifact(artifact: Any, content: Any) -> None:
     ):
         raise ValueError("invalid materialized review artifact")
     text = artifact["utf8"]
-    if not isinstance(text, str) or text_digest(text) != artifact["sha256"]:
+    if not isinstance(text, str) or bytes_sha256(text.encode()) != artifact["sha256"]:
         raise ValueError("review artifact byte hash mismatch")
     if strict_json(text) != artifact["content"] or artifact["content"] != content:
         raise ValueError("review artifact decoded content mismatch")
@@ -800,8 +796,8 @@ def _project_reviewed_spans(contract: dict[str, Any], sources: dict[str, Any]) -
             raise ValueError("reviewed semantic and output source text must be strings")
         if (
             digest(identity) != annotation["identity_sha256"]
-            or text_digest(semantic_text) != annotation["semantic_text_sha256"]
-            or text_digest(output_text) != annotation["output_text_sha256"]
+            or bytes_sha256(semantic_text.encode()) != annotation["semantic_text_sha256"]
+            or bytes_sha256(output_text.encode()) != annotation["output_text_sha256"]
         ):
             raise ValueError(f"reviewed source identity or text changed at index {index}")
         if annotation["recommendation_count"] != 1:

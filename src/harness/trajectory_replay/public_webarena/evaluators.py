@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
-from harness.record_io import write_json
 from harness.trajectory_replay.public_webarena.executor import judge_outputs
 from harness.trajectory_replay.public_webarena.suite import BrowserTask
 
@@ -146,7 +145,3 @@ class EvaluatorRegistry:
                 self._webarena = WebArenaVerifiedEvaluator(config_path=self._webarena_config_path)
             return self._webarena.evaluate(task, evidence)
         raise ValueError(f"unsupported evaluator kind: {kind!r}")
-
-
-def write_agent_response(path: str | Path, response: Any) -> None:
-    write_json(path, response)

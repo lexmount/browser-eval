@@ -1020,10 +1020,6 @@ def read_suspicion_jsonl(path: Path) -> list[dict]:
     return load_jsonl(path, skip_blank=True)
 
 
-def text_digest(text: str) -> str:
-    return bytes_sha256(text.encode())
-
-
 def scan_suspicions(evidence: Path, source_dataset: Path) -> dict:
     reject_evidence_symlinks(evidence)
     if source_dataset.is_symlink():
@@ -1052,8 +1048,8 @@ def scan_suspicions(evidence: Path, source_dataset: Path) -> dict:
     for case_id, case in cases.items():
         original = source[case_id]
         if (
-            text_digest(original["html"]) != case["input_html_sha256"]
-            or text_digest(original["groundtruth_content"]) != case["reference_sha256"]
+            bytes_sha256(original["html"].encode()) != case["input_html_sha256"]
+            or bytes_sha256(original["groundtruth_content"].encode()) != case["reference_sha256"]
         ):
             raise ValueError("Source/reference binding changed for " + case_id)
     records = read_suspicion_jsonl(evidence / "results.jsonl")

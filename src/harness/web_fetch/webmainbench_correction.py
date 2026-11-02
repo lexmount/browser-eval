@@ -450,10 +450,6 @@ def regression_registry_path() -> Path:
     return bundled_data_path("evaluation/webmainbench-full/scoring-regressions.json")
 
 
-def text_digest(value):
-    return bytes_sha256(value.encode())
-
-
 def load_corrected_cases(path):
     rows = read_rows(path)
     ids = [row["track_id"] for row in rows]
@@ -622,9 +618,9 @@ def _revise_dataset_scoring(source: Path, corrected_dataset: Path, manifest_path
     changed_references, changed_metadata = set(), set()
     for case_id, before in source_cases.items():
         after = corrected[case_id]
-        if after["url"] != before["url"] or text_digest(after["html"]) != before["input_html_sha256"]:
+        if after["url"] != before["url"] or bytes_sha256(after["html"].encode()) != before["input_html_sha256"]:
             raise ValueError("Frozen input changed: " + case_id)
-        reference_changed = text_digest(after["groundtruth_content"]) != before["reference_sha256"]
+        reference_changed = bytes_sha256(after["groundtruth_content"].encode()) != before["reference_sha256"]
         metadata_changed = after.get("meta") != before.get("meta")
         if reference_changed:
             changed_references.add(case_id)
@@ -642,7 +638,7 @@ def _revise_dataset_scoring(source: Path, corrected_dataset: Path, manifest_path
                 raise ValueError("Changed dataset fields differ from decision contract: " + case_id)
             if reference_changed and (
                 item.get("original_groundtruth_sha256") != before["reference_sha256"]
-                or item.get("replacement_sha256") != text_digest(after["groundtruth_content"])
+                or item.get("replacement_sha256") != bytes_sha256(after["groundtruth_content"].encode())
             ):
                 raise ValueError("Reference correction mismatch: " + case_id)
             if metadata_changed and (
@@ -685,7 +681,7 @@ def _revise_dataset_scoring(source: Path, corrected_dataset: Path, manifest_path
             row["pre_scoring_correction_metrics"] = copy.deepcopy(row["metrics"])
             row["metrics"] = metrics
             row["meta"] = copy.deepcopy(case["meta"])
-            row["reference_sha256"] = text_digest(case["groundtruth_content"])
+            row["reference_sha256"] = bytes_sha256(case["groundtruth_content"].encode())
             revised.append(row)
 
     summaries = json.loads((source / "score-summaries.json").read_text(encoding="utf-8"))
@@ -710,7 +706,7 @@ def _revise_dataset_scoring(source: Path, corrected_dataset: Path, manifest_path
     for case_id, case in source_cases.items():
         corrected_case = corrected[case_id]
         case["meta"] = copy.deepcopy(corrected_case["meta"])
-        case["reference_sha256"] = text_digest(corrected_case["groundtruth_content"])
+        case["reference_sha256"] = bytes_sha256(corrected_case["groundtruth_content"].encode())
         case["reference_chars"] = len(corrected_case["groundtruth_content"])
         if case_id in changed_references:
             contained_path(output / "references", f"{case_id}.md").write_text(
@@ -771,8 +767,8 @@ def _rescore_case_correction(source: Path, corrected_dataset: Path, scorer_repo:
     case_id = certificate["preflight"]["case_id"]
     case = cases[case_id]
     plan = certificate["preflight"]
-    if (text_digest(case["html"]) != plan["input_html_sha256"]
-            or text_digest(case["groundtruth_content"]) != plan["reference_sha256"]):
+    if (bytes_sha256(case["html"].encode()) != plan["input_html_sha256"]
+            or bytes_sha256(case["groundtruth_content"].encode()) != plan["reference_sha256"]):
         raise ValueError("Case rescoring must preserve its certified input and reference")
     rows = load_jsonl(source / "results.jsonl")
     if ({row["provider"] for row in rows} != set(certificate["preflight"]["providers"])
@@ -806,7 +802,7 @@ def _rescore_case_correction(source: Path, corrected_dataset: Path, scorer_repo:
                 case["meta"], bool(row.get("ok")), False,
             )
             row["meta"] = copy.deepcopy(case["meta"])
-            row["reference_sha256"] = text_digest(case["groundtruth_content"])
+            row["reference_sha256"] = bytes_sha256(case["groundtruth_content"].encode())
             revised.append(row)
     shutil.copytree(source, output)
     result_path = output / "results.jsonl"
