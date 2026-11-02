@@ -1068,7 +1068,7 @@ def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, de
 
 @pytest.mark.parametrize('reverse', [False, True])
 @pytest.mark.parametrize('early_kind', ['blocked', 'skip'])
-@pytest.mark.parametrize('later_kind', ['uncommitted', 'started', 'event', 'inherited_event'])
+@pytest.mark.parametrize('later_kind', ['uncommitted', 'started', 'event', 'inherited_event', 'diagnostic', 'scoped_diagnostic'])
 def test_source_admission_rejects_not_called_with_invocation_evidence(tmp_path, reverse, early_kind, later_kind):
     spec, _, _, _ = fixture(tmp_path)
     spec['sources'] = []
@@ -1084,7 +1084,12 @@ def test_source_admission_rejects_not_called_with_invocation_evidence(tmp_path, 
         late = {**identity, 'event': 'http_request_started'}
     elif later_kind == 'inherited_event':
         late = {**identity, 'events': [{'event': 'http_request_started'}]}
+    if later_kind in ('diagnostic', 'scoped_diagnostic'):
+        late = {'call_id': 'method__same__r001', 'at': '2026-10-27T00:00:00Z',
+                'source': 'http', 'event': 'http_request_started'}
     events = [late, early] if reverse else [early, late]
+    if later_kind == 'scoped_diagnostic':
+        events = {'suite': 'first', 'events': events}
     spec['missing'] = [{**identity, 'status': 'not_called', 'reason': 'Claimed skip',
                         'receipt': write(tmp_path/'receipt.json', events)}]
     with pytest.raises(ValueError):

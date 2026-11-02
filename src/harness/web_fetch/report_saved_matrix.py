@@ -78,6 +78,11 @@ def _presentation_family(case, suite, groups):
     return matches[0]
 
 
+def _diagnostic_call_matches(call_id, provider, case_id):
+    return isinstance(call_id, str) and re.fullmatch(
+        re.escape(provider+'__'+case_id)+r'__r[0-9]{3}(?:__p[0-9]{3})?', call_id) is not None
+
+
 def _receipt_covers(value, suite, provider, case_id, status, inherited=None):
     """Consider all events: a skip cannot override evidence of an invocation."""
     states = set()
@@ -88,7 +93,9 @@ def _receipt_covers(value, suite, provider, case_id, status, inherited=None):
         elif isinstance(node, dict):
             context = {**context, **{k: node[k] for k in ('suite', 'provider', 'case_id') if k in node}}
             same_case = context.get('suite') == suite and context.get('case_id') == case_id
-            matching = same_case and context.get('provider') == provider
+            diagnostic_matching = (context.get('suite') in (None, suite)
+                                   and _diagnostic_call_matches(node.get('call_id'), provider, case_id))
+            matching = (same_case and context.get('provider') == provider) or diagnostic_matching
             if (same_case and node.get('kind') == 'user_requested_case_skip'
                     and node.get('status') == 'not_called' and isinstance(node.get('providers'), list)
                     and provider in node['providers']
