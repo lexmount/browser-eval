@@ -74,27 +74,34 @@ def _presentation_family(case, suite, groups):
 
 
 def _receipt_covers(value, suite, provider, case_id, status, inherited=None):
-    inherited = inherited or {}
-    if isinstance(value, list):
-        return any(_receipt_covers(x, suite, provider, case_id, status, inherited) for x in value)
-    if not isinstance(value, dict):
-        return False
-    if value.get('kind') == 'user_requested_case_skip':
-        return (status == 'not_called' and value.get('status') == 'not_called'
-                and value.get('suite') == suite and value.get('case_id') == case_id
-                and isinstance(value.get('providers'), list) and provider in value['providers']
-                and value.get('score', 'absent') is None
-                and isinstance(value.get('user_instruction'), str) and bool(value['user_instruction'].strip()))
-    context = {**inherited, **{k: value[k] for k in ('suite', 'provider') if k in value}}
-    if (value.get('case_id') == case_id and context.get('suite') == suite
-            and context.get('provider') == provider):
-        if status == 'not_called':
-            return (value.get('state') == 'pre_call_blocked_no_method_calls'
-                    and value.get('native_route_receipt', {}).get('transport_state') == 'not_started')
-        if value.get('state') == 'called_but_uncommitted':
-            return True
-    return any(_receipt_covers(x, suite, provider, case_id, status, context)
-               for x in value.values() if isinstance(x, (list, dict)))
+    """Consider all events: a skip cannot override evidence of an invocation."""
+    states = set()
+    def visit(node, context):
+        if isinstance(node, list):
+            for child in node:
+                visit(child, context)
+        elif isinstance(node, dict):
+            context = {**context, **{k: node[k] for k in ('suite', 'provider', 'case_id') if k in node}}
+            same_case = context.get('suite') == suite and context.get('case_id') == case_id
+            matching = same_case and context.get('provider') == provider
+            if (same_case and node.get('kind') == 'user_requested_case_skip'
+                    and node.get('status') == 'not_called' and provider in node.get('providers', [])
+                    and node.get('score', 'absent') is None
+                    and isinstance(node.get('user_instruction'), str) and node['user_instruction'].strip()):
+                states.add('not_called')
+            if matching:
+                if (node.get('state') == 'pre_call_blocked_no_method_calls'
+                        and node.get('native_route_receipt', {}).get('transport_state') == 'not_started'):
+                    states.add('not_called')
+                if node.get('state') == 'called_but_uncommitted':
+                    states.add('uncommitted')
+                if node.get('transport_state') == 'started':
+                    states.add('started')
+            for child in node.values():
+                if isinstance(child, (list, dict)):
+                    visit(child, context)
+    visit(value, inherited or {})
+    return status in states and (status != 'not_called' or not states & {'uncommitted', 'started'})
 
 
 def _called(record):
@@ -1329,6 +1336,60 @@ def _source_record_inventory(inputs, candidates, decisions, adoptions, keys):
     return expected
 
 
+def _validate_revision_and_authority_proofs(output, row, inputs, candidates, decisions, adoptions):
+    """Require revision and replacement disclosures, including their authority links."""
+    key = row['suite'], row['provider'], row['case_id']
+    prefix = 'evidence/'+'/'.join(key)
+    revision = inputs['revision'] or {'records': {}}
+    score = None
+    if key in revision['records']:
+        score = {'receipt_path': 'score-revision.json',
+                 'before_case_path': prefix+'/score-before-case.json',
+                 'before_record_path': prefix+'/score-before/score-before-record.json'}
+    if row.get('score_revision_history') != score:
+        raise ValueError('Saved historical revision proof differs from validated source')
+    if decisions.get(key, {}).get('selected_new'):
+        score = None
+    expected_adoption = None
+    history = []
+    if key in adoptions:
+        adoption = adoptions[key]
+        authority_path = f"adoption-authority-{adoption['index']}.json"
+        expected_adoption = {'authority_path': authority_path, 'selection': 'complete_group_regardless_of_verdict'}
+        if _json(output/authority_path) != _json(adoption['authority_path']):
+            raise ValueError('Saved adoption authority differs from validated source')
+        before = revision['records'].get(key, inputs['selected'][key][1])
+        if decisions.get(key, {}).get('selected_new'):
+            before = candidates[key][1]
+        history.append({'record_path': prefix+'/adoption-before/record.json',
+            'answer_path': prefix+'/adoption-before/'+before['artifact_path'],
+            'scope_path': authority_path, 'attempt_id': before['attempt_id'],
+            'called': _called(before), 'started_at': before.get('started_at')})
+        score = ({'receipt_path': prefix+'/adoption-score-revision.json',
+                  'before_case_path': prefix+'/adoption-before-case.json',
+                  'before_record_path': prefix+'/adoption-before-score.json'} if adoption['revision'] else None)
+    if row.get('result_adoption') != expected_adoption:
+        raise ValueError('Saved adoption proof differs from validated source')
+    if row.get('score_revision') != score:
+        raise ValueError('Saved revision proof differs from validated source')
+    if key in inputs['historical']:
+        _, record, _, results = inputs['historical'][key]
+        relative = prefix+'/history/'+safe_identifier(record['attempt_id'])
+        history.append({'record_path': relative+'/record.json',
+            'answer_path': relative+'/'+record['artifact_path'], 'scope_path': 'replacement-scope.json',
+            'attempt_id': record['attempt_id'], 'called': _called(record), 'started_at': record.get('started_at'),
+            'source_results_sha256': inputs['sources'].tracked[results],
+            'private_artifacts_verified_not_copied': record_private_bindings(record)})
+        expected_scope = {'kind': 'predeclared_replacement_scope_public_view',
+            'original_sha256': inputs['sources'].tracked[inputs['replacement_scope']],
+            'cells': [{'suite': cell['suite'], 'provider': cell['provider'], 'case_id': cell['case_id'],
+                       'old_record_sha256': cell['old_record']['sha256']} for cell in inputs['replacement_cells']]}
+        if _json(output/'replacement-scope.json') != expected_scope:
+            raise ValueError('Saved replacement authority differs from validated source')
+    if row.get('history', []) != history:
+        raise ValueError('Saved history proof differs from validated source')
+
+
 def _validate_selection_proofs(output, row, inputs, candidates, decisions, adoptions):
     """Reconcile published selection and split-call explanations with source evidence."""
     key = row['suite'], row['provider'], row['case_id']
@@ -1525,6 +1586,7 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             elif (row.get('record_path') or row['status'] != inputs['missing'][identity][0]['status']
                     or receipt != _json(inputs['missing'][identity][1])):
                 raise ValueError('Saved missing receipt differs from validated source')
+            _validate_revision_and_authority_proofs(output, row, inputs, candidates, decisions, adoptions)
             _validate_selection_proofs(output, row, inputs, candidates, decisions, adoptions)
         _validate_record_links(output, row)
         for relative in set(record_paths(row)):

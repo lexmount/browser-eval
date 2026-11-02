@@ -73,7 +73,7 @@ def test_source_checker_preserves_status_with_dual_event_receipt(tmp_path):
     audit['totals'] = model['totals']
     audit['files']['matrix.json'] = write(output/'matrix.json', model)['sha256']
     write(output/'saved-matrix-audit.json', audit)
-    with pytest.raises(ValueError, match='missing receipt differs from validated source'):
+    with pytest.raises(ValueError, match='Saved missing state differs from matrix|missing receipt differs from validated source'):
         check_saved_matrix(output, spec_path=tmp_path/'spec.json')
 
 
@@ -93,6 +93,10 @@ def assert_proof_mutations_rejected(output, spec, proof_name, mutations):
             row.pop(proof_name)
             if proof_name == 'retry_continuation':
                 row['retries'] = json.loads((output/row['record_path']).read_text()).get('retries', 0)
+        elif mutation == 'redirect_scope':
+            row[proof_name][0]['scope_path'] = row['case_path']
+        elif mutation == 'redirect_authority':
+            row[proof_name]['authority_path'] = row['case_path']
         elif mutation == 'group':
             row[proof_name]['group']['candidate_passed'] += 1
         else:
@@ -490,6 +494,7 @@ def test_superseded_evidence_preserved_without_double_counting(tmp_path, monkeyp
     assert check_saved_matrix(entry.parent, spec_path=tmp_path/'spec.json')['valid']
     assert_provenance_mutation_rejected(entry.parent, history['record_path'], tmp_path/'spec.json')
     assert_redirected_answer_rejected(entry.parent, ['history', 0, 'answer_path'], tmp_path/'spec.json')
+    assert_proof_mutations_rejected(entry.parent, tmp_path/'spec.json', 'history', ['redirect_scope'])
     for timestamp in (None, '2026-10-30T00:00:00Z'):
         invalid = deepcopy(spec)
         invalid['supersession_scope'] = write(tmp_path/'late-scope.json', {**scope, 'created_at': timestamp})
@@ -1035,3 +1040,24 @@ def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, de
     assert (output/retained['record_path']).read_bytes() == before_raw
     assert (source/'results.jsonl').read_bytes() == before_raw
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+
+
+@pytest.mark.parametrize('reverse', [False, True])
+@pytest.mark.parametrize('early_kind', ['blocked', 'skip'])
+@pytest.mark.parametrize('later_kind', ['uncommitted', 'started'])
+def test_source_admission_rejects_not_called_with_invocation_evidence(tmp_path, reverse, early_kind, later_kind):
+    spec, _, _, _ = fixture(tmp_path)
+    spec['sources'] = []
+    identity = {'suite': 'first', 'provider': 'method', 'case_id': 'same'}
+    early = {**identity, 'state': 'pre_call_blocked_no_method_calls',
+             'native_route_receipt': {'transport_state': 'not_started'}}
+    if early_kind == 'skip':
+        early = {**identity, 'kind': 'user_requested_case_skip', 'providers': ['method'],
+                 'status': 'not_called', 'score': None, 'user_instruction': 'Skip this task.'}
+    late = {**identity, 'state': 'called_but_uncommitted'} if later_kind == 'uncommitted' else {
+        **identity, 'native_route_receipt': {'transport_state': 'started'}}
+    events = [late, early] if reverse else [early, late]
+    spec['missing'] = [{**identity, 'status': 'not_called', 'reason': 'Claimed skip',
+                        'receipt': write(tmp_path/'receipt.json', events)}]
+    with pytest.raises(ValueError):
+        build(tmp_path, spec)
