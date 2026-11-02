@@ -4,9 +4,8 @@ import hashlib
 import json
 import subprocess
 
-from harness.web_fetch import webmainbench_certification as certification
+from harness.record_io import file_sha256
 
-from harness.web_fetch import webmainbench_case_correction as correction
 from harness.web_fetch.webmainbench_scoring import CORE_METRICS, SCORER_COMMIT, aggregate
 
 
@@ -30,8 +29,8 @@ def correction_fixture(root, providers=("kitesurf", "lightpanda", "obscura", "mo
     write_json(manifest, {"cases": [{"track_id": row["track_id"]} for row in records]})
     profile = root / "profile.json"
     write_json(profile, {"providers": list(providers), "case_count": 200,
-                         "source_dataset_sha256": correction.digest(dataset),
-                         "sample_manifest_sha256": correction.digest(manifest),
+                         "source_dataset_sha256": file_sha256(dataset),
+                         "sample_manifest_sha256": file_sha256(manifest),
                          "timeout_seconds": 45, "max_failure_retries": 1,
                          "official_scorer_commit": SCORER_COMMIT})
 
@@ -43,7 +42,7 @@ def correction_fixture(root, providers=("kitesurf", "lightpanda", "obscura", "mo
             body = "corrected" if replacement else "old"
             relative = f"artifacts/{provider}/{case}.md"
             (path / relative).write_text(body)
-            output_hash = correction.digest(path / relative)
+            output_hash = file_sha256(path / relative)
             for index, content in enumerate(("failed retry", body) if replacement else (body,), 1):
                 physical = f"artifacts/{provider}/{case}-p{index:02d}.txt"
                 (path / physical).write_text(content)
@@ -51,7 +50,7 @@ def correction_fixture(root, providers=("kitesurf", "lightpanda", "obscura", "mo
                               "attempt_id": f"{provider}__{case}__p{index:02d}",
                               "physical_attempt": index, "elapsed_ms": 10,
                               "physical_artifact_path": physical,
-                              "output_sha256": correction.digest(path / physical)})
+                              "output_sha256": file_sha256(path / physical)})
             metrics = {name: {"score": 0.8 if replacement else 0.2, "success": True}
                        for name in (*CORE_METRICS, "overall")}
             rows.append({"provider": provider, "track_id": case, "ok": True,
@@ -69,7 +68,7 @@ def correction_fixture(root, providers=("kitesurf", "lightpanda", "obscura", "mo
         write_json(path / "dataset.json", {"case_count": len(selected),
                                            "case_ids": [r["track_id"] for r in selected]})
         write_json(path / "execution.json", {"provider": provider, "case_count": len(selected),
-                                             "source_dataset_sha256": correction.digest(dataset),
+                                             "source_dataset_sha256": file_sha256(dataset),
                                              "timeout_seconds": 45, "max_failure_retries": 1,
                                              "implementation_identity": {"binary_sha256": provider + "-binary"},
                                              "run_id": "new" if replacement else "original",
@@ -107,7 +106,7 @@ def certification_fixture(tmp_path):
                "versions": {"chromium": "Google Chrome 154.0", "obscura": "0.2.2"},
                "case_count": 545, "runs_per_case": 1, "concurrency": 1,
                "timeout_seconds": 45, "max_failure_retries": 1,
-               "source_dataset_sha256": certification.digest(tmp_path / "source.jsonl"),
+               "source_dataset_sha256": file_sha256(tmp_path / "source.jsonl"),
                "case_ids_sha256": hashlib.sha256(("\n".join(r["track_id"] for r in records) + "\n").encode()).hexdigest(),
                "official_scorer_commit": commit, "metric_config": {"use_llm": False}}
     write_json(tmp_path / "profile.json", profile)
@@ -130,7 +129,7 @@ def measured_shard(root, provider, records, profile):
         (root / relative).write_text("synthetic response")
         row = {"provider": provider, "track_id": case, "ok": True,
                "attempt_id": f"{provider}__{case}__r001", "artifact_path": relative,
-               "output_sha256": certification.digest(root / relative), "physical_attempt_count": 1}
+               "output_sha256": file_sha256(root / relative), "physical_attempt_count": 1}
         rows.append(row)
         calls.append({"provider": provider, "track_id": case, "attempt_id": f"{provider}__{case}__p01",
                       "physical_artifact_path": relative, "output_sha256": row["output_sha256"]})

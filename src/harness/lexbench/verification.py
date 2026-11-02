@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import argparse
 import copy
-import hashlib
 import json
 import math
 import pathlib
@@ -18,13 +17,10 @@ from harness.data_home import data_home
 from harness.lexbench.charts import combine_comparisons, render_chart
 from harness.lexbench.resource_evidence import validate_matrix
 from harness.lexbench.resource_summary import validate_summary
+from harness.record_io import file_sha256
 from harness.report_languages import check_language_contract, generated_languages
 from harness.reporting.privacy import LEXBENCH_CHECK_SOURCE
 from harness.web_fetch.safety import reject_evidence_symlinks
-
-
-def digest(p):
-    return hashlib.sha256(p.read_bytes()).hexdigest()
 
 
 def near(a, b):
@@ -200,7 +196,7 @@ def validate(model, site, check_files=True):
         if (
             not path.is_file()
             or path.is_symlink()
-            or digest(path) != info.get("sha256")
+            or file_sha256(path) != info.get("sha256")
             or path.stat().st_size != info.get("bytes")
         ):
             fail("fixed summary integrity")
@@ -277,7 +273,7 @@ def validate(model, site, check_files=True):
                         ):
                             fail("fixed log target")
                         if check_files and (
-                            digest(target) != evidence["sha256"]
+                            file_sha256(target) != evidence["sha256"]
                             or target.stat().st_size != evidence["bytes"]
                         ):
                             fail("fixed log integrity")
@@ -292,7 +288,7 @@ def validate(model, site, check_files=True):
                 not path.resolve().is_relative_to(site.resolve())
                 or path.is_symlink()
                 or not path.is_file()
-                or digest(path) != info["sha256"]
+                or file_sha256(path) != info["sha256"]
                 or path.stat().st_size != info["bytes"]
             ):
                 fail("Linux resource evidence integrity")
@@ -315,7 +311,7 @@ def validate(model, site, check_files=True):
         ):
             fail("Linux resource summary binding")
         script = site / "reproduction/run_linux_resource_profiles.py"
-        if script.is_symlink() or digest(script) != profiles["receipt"]["orchestrator_sha256"]:
+        if script.is_symlink() or file_sha256(script) != profiles["receipt"]["orchestrator_sha256"]:
             fail("Linux resource script binding")
         original = resource_document(model["resource_metrics_source"])
         metrics = model["resource_metrics"]
@@ -364,7 +360,7 @@ def validate(model, site, check_files=True):
         if check_files and (
             not path.is_file()
             or path.is_symlink()
-            or digest(path) != info.get("sha256")
+            or file_sha256(path) != info.get("sha256")
             or path.stat().st_size != info.get("bytes")
         ):
             fail("resource integrity")
@@ -462,7 +458,7 @@ def validate(model, site, check_files=True):
         if (
             path.is_symlink()
             or not path.is_file()
-            or digest(path) != info.get("sha256")
+            or file_sha256(path) != info.get("sha256")
             or path.stat().st_size != info.get("bytes")
         ):
             fail("resource matrix evidence integrity")
@@ -473,7 +469,7 @@ def validate(model, site, check_files=True):
         if (
             source.is_symlink()
             or not source.is_file()
-            or digest(source) != bundle["receipt"]["orchestrator_sha256"]
+            or file_sha256(source) != bundle["receipt"]["orchestrator_sha256"]
         ):
             fail("resource orchestrator source identity")
         validate_matrix(
@@ -544,7 +540,7 @@ def validate(model, site, check_files=True):
     if check_files and (
         not correction_path.is_file()
         or correction_path.is_symlink()
-        or digest(correction_path) != correction_info.get("sha256")
+        or file_sha256(correction_path) != correction_info.get("sha256")
         or correction_path.stat().st_size != correction_info.get("bytes")
     ):
         fail("functional correction evidence integrity")
@@ -630,7 +626,7 @@ def validate(model, site, check_files=True):
                         if check_files and (
                             not target.is_file()
                             or target.is_symlink()
-                            or digest(target) != info["sha256"]
+                            or file_sha256(target) != info["sha256"]
                             or target.stat().st_size != info["bytes"]
                         ):
                             fail("bad evidence hash or target")
@@ -737,7 +733,7 @@ def validate(model, site, check_files=True):
         if (
             not path.resolve().is_relative_to(site.resolve())
             or not path.is_file()
-            or digest(path) != info["sha256"]
+            or file_sha256(path) != info["sha256"]
         ):
             fail("correction evidence integrity")
         rows = json.loads(path.read_text())

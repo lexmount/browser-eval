@@ -15,7 +15,7 @@ from lexbench_webfetch import metrics
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
-from harness.record_io import load_jsonl, parse_jsonl
+from harness.record_io import file_sha256, load_jsonl, parse_jsonl, write_json
 from harness.web_fetch import anomaly_review, result_review
 from harness.web_fetch.anomaly_review import LAYERS, TRIGGER_VERSION, detect_anomalies
 from harness.web_fetch.artifacts import (
@@ -200,10 +200,6 @@ def validate_review_evidence(row, task_kind):
         "evidence using beginning/middle/end or, for a failure, missing/observed; "
         "scores and percentages are not independent evidence"
     )
-
-
-def sha(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def chunks(values, size):
@@ -1250,8 +1246,8 @@ def blind_review_identity(prior):
 def bind_review_workspace(evidence, work, records, bindings, options, *, prior=None):
     """Never reuse review output across a changed input, implementation or model."""
     current = {
-        "dataset_sha256": sha(evidence / "dataset.json"),
-        "results_sha256": sha(evidence / "results.jsonl"),
+        "dataset_sha256": file_sha256(evidence / "dataset.json"),
+        "results_sha256": file_sha256(evidence / "results.jsonl"),
     }
     if current != bindings:
         raise ValueError("Review evidence changed during execution")
@@ -1268,7 +1264,7 @@ def bind_review_workspace(evidence, work, records, bindings, options, *, prior=N
         "artifacts_sha256": artifacts,
         "options": options,
         "implementation_sha256": {
-            path.name: sha(path)
+            path.name: file_sha256(path)
             for path in [
                 Path(__file__),
                 Path(anomaly_review.__file__),
@@ -1298,8 +1294,7 @@ def bind_review_workspace(evidence, work, records, bindings, options, *, prior=N
 
 
 def write_content_document(path, value):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+    write_json(path, value, parents=True)
 
 
 CONTENT_ISSUE = {
@@ -1387,11 +1382,11 @@ def prepare_content_review(evidence, correction, work, *, provider="moli-fixed")
         root = correction if key in overrides else evidence
         row = overrides.get(key, row)
         output = contained_path(root, row["artifact_path"])
-        if sha(output) != row["output_sha256"]:
+        if file_sha256(output) != row["output_sha256"]:
             raise ValueError("Changed output " + str(output))
         by_case.setdefault(row["case_id"], {})[row["provider"]] = {
             "path": str(output),
-            "sha256": sha(output),
+            "sha256": file_sha256(output),
             "chars": len(output.read_text()),
         }
     if set(by_case) != set(case_ids) or any(provider not in by_case[cid] for cid in case_ids):
@@ -1401,7 +1396,7 @@ def prepare_content_review(evidence, correction, work, *, provider="moli-fixed")
         cid = safe_identifier(case["id"])
         source = evidence / "sources" / (cid + ".html.txt")
         reference = evidence / "references" / (cid + ".md")
-        if sha(source) != case["input_html_sha256"] or sha(reference) != case["reference_sha256"]:
+        if file_sha256(source) != case["input_html_sha256"] or file_sha256(reference) != case["reference_sha256"]:
             raise ValueError("Changed source/reference " + cid)
         # This derivative is a reading aid, not a rendered visibility oracle.
         soup = BeautifulSoup(source.read_text(), "html.parser")
@@ -1418,12 +1413,12 @@ def prepare_content_review(evidence, correction, work, *, provider="moli-fixed")
             "url": case["url"],
             "source_html": str(source),
             "source_outline": str(outline),
-            "source_sha256": sha(source),
-            "outline_sha256": sha(outline),
+            "source_sha256": file_sha256(source),
+            "outline_sha256": file_sha256(outline),
             "target": target,
             "comparisons": {k: v for k, v in by_case[cid].items() if k != provider},
             "reference": str(reference),
-            "reference_sha256": sha(reference),
+            "reference_sha256": file_sha256(reference),
         }
         size = target["chars"]
         if batch and (len(batch) >= 6 or budget + size > 160000):
@@ -1440,8 +1435,8 @@ def prepare_content_review(evidence, correction, work, *, provider="moli-fixed")
         "case_count": len(dataset["cases"]),
         "provider": provider,
         "input_bindings": bindings,
-        "source_results_sha256": sha(evidence / "results.jsonl"),
-        "case_correction_sha256": sha(correction / "certificate.json"),
+        "source_results_sha256": file_sha256(evidence / "results.jsonl"),
+        "case_correction_sha256": file_sha256(correction / "certificate.json"),
         "scope": f"All {len(dataset['cases'])} frozen {provider} outputs, including machine passes; other methods are corroborating evidence, not truth.",
         "packets": [],
     }
@@ -1449,7 +1444,7 @@ def prepare_content_review(evidence, correction, work, *, provider="moli-fixed")
         path = work / "packets" / f"{i:03d}.json"
         write_content_document(path, {"cases": batch})
         manifest["packets"].append(
-            {"path": str(path), "sha256": sha(path), "case_ids": [r["case_id"] for r in batch]}
+            {"path": str(path), "sha256": file_sha256(path), "case_ids": [r["case_id"] for r in batch]}
         )
     write_content_document(work / "review-schema.json", CONTENT_SCHEMA)
     if content_review_bindings(evidence, correction, provider) != bindings:
@@ -1485,7 +1480,7 @@ def validate_content_review(result, packet):
 
 def run_content_packet(item, work, model, codex):
     path = Path(item["path"])
-    if sha(path) != item["sha256"]:
+    if file_sha256(path) != item["sha256"]:
         raise ValueError("Review packet changed")
     packet = json.loads(path.read_text())
     verify_content_packet_inputs(packet)
@@ -1557,7 +1552,7 @@ def verify_content_packet_inputs(packet):
             files.append((output["path"], output["sha256"]))
         for name, expected in files:
             path = Path(name)
-            if path.is_symlink() or sha(path) != expected:
+            if path.is_symlink() or file_sha256(path) != expected:
                 raise ValueError("Review input changed: " + name)
 
 
@@ -1634,7 +1629,7 @@ def content_review_bindings(evidence, correction, provider):
         "evidence": str(evidence.resolve()),
         "correction": str(correction.resolve()),
         "files": {
-            str(path.resolve()): sha(path)
+            str(path.resolve()): file_sha256(path)
             for path in (
                 evidence / "dataset.json",
                 evidence / "results.jsonl",

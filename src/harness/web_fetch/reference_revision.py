@@ -8,7 +8,6 @@ acceptance contracts, call identity, output bytes and timing cannot change.
 from harness.distribution import repository_root
 
 import argparse
-import hashlib
 import json
 import shutil
 import tempfile
@@ -19,7 +18,7 @@ from pathlib import Path
 from lexbench_webfetch.paths import contained_path
 from lexbench_webfetch.scoring_regressions import ROOT_CAUSE_CATEGORIES, build_correction_provenance
 
-from harness.record_io import load_jsonl, parse_jsonl
+from harness.record_io import bytes_sha256, load_jsonl, parse_jsonl
 from harness.web_fetch.artifacts import verify_record_artifacts
 from harness.web_fetch.native_routes import native_cases_by_id
 from harness.web_fetch.reference_inputs import (
@@ -71,10 +70,6 @@ CAPTURE_INSTANCE_FIELDS = {
 NON_SCORING_REFERENCE_FIELDS = {"ground_truth_evidence", "source_verification"}
 
 
-def digest(raw: bytes) -> str:
-    return hashlib.sha256(raw).hexdigest()
-
-
 def equivalent_source_verification(old: dict, new: dict) -> bool:
     """Ignore a fresh capture's identity when its frozen contract is unchanged."""
     left = {key: value for key, value in (old or {}).items() if key not in CAPTURE_INSTANCE_FIELDS}
@@ -123,8 +118,8 @@ def _revise_staged(
     if review_path.is_file():
         review = json.loads(review_path.read_text())
         if review.get("bindings") != {
-            "dataset_sha256": digest(before_dataset),
-            "results_sha256": digest(before_results),
+            "dataset_sha256": bytes_sha256(before_dataset),
+            "results_sha256": bytes_sha256(before_results),
         }:
             raise ValueError("Existing result review is not bound to reference revision inputs")
     dataset = json.loads(before_dataset)
@@ -187,12 +182,12 @@ def _revise_staged(
             if requires_fresh_reference(new):
                 if verification.get("state") != "valid" or verification.get(
                     "reference_sha256"
-                ) != digest(new_reference.encode()):
+                ) != bytes_sha256(new_reference.encode()):
                     raise ValueError(
                         f"{case_id}: corrected reference lacks valid independent evidence"
                     )
             hashes = original_hashes.get(case_id) or {
-                digest(old.get("ground_truth_main_content", "").encode())
+                bytes_sha256(old.get("ground_truth_main_content", "").encode())
             }
             for old_hash in sorted(hashes):
                 changed.append(
@@ -200,7 +195,7 @@ def _revise_staged(
                         "case_id": case_id,
                         "fields": sorted(changed_fields),
                         "old_reference_sha256": old_hash,
-                        "new_reference_sha256": digest(new_reference.encode()),
+                        "new_reference_sha256": bytes_sha256(new_reference.encode()),
                         "reason": "independent reference extraction/normalization correction",
                     }
                 )
@@ -229,10 +224,10 @@ def _revise_staged(
                 if evidence_tree_identity(target) != expected:
                     raise ValueError("Corrected reference changed during copy: " + identifier)
             elif origin.is_file():
-                expected = digest(origin.read_bytes())
+                expected = bytes_sha256(origin.read_bytes())
                 target.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(origin, target)
-                if digest(target.read_bytes()) != expected:
+                if bytes_sha256(target.read_bytes()) != expected:
                     raise ValueError("Corrected reference changed during copy: " + identifier)
     scoring_relevant_change = scoring_relevant_reference_change(changed)
     try:
@@ -253,10 +248,10 @@ def _revise_staged(
         "schema_version": 2,
         "kind": "audited_reference_correction",
         "corrected_at": datetime.now(timezone.utc).isoformat(),
-        "input_dataset_sha256": digest(before_dataset),
-        "input_results_sha256": digest(before_results),
-        "output_dataset_sha256": digest(read_dataset_bytes(dataset_path)),
-        "output_results_sha256": digest(results_path.read_bytes()),
+        "input_dataset_sha256": bytes_sha256(before_dataset),
+        "input_results_sha256": bytes_sha256(before_results),
+        "output_dataset_sha256": bytes_sha256(read_dataset_bytes(dataset_path)),
+        "output_results_sha256": bytes_sha256(results_path.read_bytes()),
         "changed_cases": changed,
         "task_decision_changes": decisions,
         "provider_calls": 0,

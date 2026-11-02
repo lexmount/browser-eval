@@ -11,6 +11,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from harness.environments.browser import configured_browser_images
 from harness.environments.webarena.runtime import SITE_PORTS
+from harness.record_io import canonical_json_sha256, file_sha256, read_json
 from harness.trajectory_replay import webarena_corrections
 from harness.trajectory_replay.browser_use_seeds import (
     _authoritative_rows,
@@ -22,14 +23,6 @@ from harness.trajectory_replay.retrieval_acceptance import load_contracts
 
 PROFILE_SCHEMA = "lex_webarena_trajectory_replay_profile/1"
 SEED_SCHEMA = "lex_browser_use_replay_seeds/2"
-
-
-def _read_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def replay_site_hosts(calls: list[dict[str, Any]]) -> set[str]:
@@ -68,8 +61,7 @@ def replay_calls_binding_sha256(calls: list[dict[str, Any]], *, allowed_hosts: s
                     )
                 )
         normalized.append(call)
-    payload = json.dumps(normalized, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(payload.encode()).hexdigest()
+    return canonical_json_sha256(normalized)
 
 
 def _validate_canonical_candidate(
@@ -123,7 +115,7 @@ def _validate_canonical_candidate(
         for kind in ("events", "response", "evaluation")
     }
     for kind, path in paths.items():
-        if not path.is_file() or _sha256(path) != source.get(f"{kind}_sha256"):
+        if not path.is_file() or file_sha256(path) != source.get(f"{kind}_sha256"):
             raise ValueError(f"task {task_id} autonomous {kind} evidence is missing or changed")
         if (
             path
@@ -138,10 +130,10 @@ def _validate_canonical_candidate(
     if (
         compile_replay_calls(paths["events"]) != calls
         or any(item["status"] != "success" for item in source_calls)
-        or _read_json(paths["response"]) != candidate["recorded_response"]
+        or read_json(paths["response"]) != candidate["recorded_response"]
     ):
         raise ValueError(f"task {task_id} autonomous trajectory differs from source evidence")
-    evaluation = _read_json(paths["evaluation"])
+    evaluation = read_json(paths["evaluation"])
     if (
         int(evaluation.get("task_id") or -1) != task_id
         or float(evaluation.get("score") or 0) != 1.0
@@ -154,7 +146,7 @@ def load_replay_plan(profile_path: str | Path, seed_manifest_path: str | Path) -
 
     profile_file = Path(profile_path).expanduser().resolve()
     repo_root = profile_file.parents[3]
-    profile = _read_json(profile_file)
+    profile = read_json(profile_file)
     if profile.get("schema") != PROFILE_SCHEMA:
         raise ValueError("unsupported trajectory replay profile")
 
@@ -166,9 +158,9 @@ def load_replay_plan(profile_path: str | Path, seed_manifest_path: str | Path) -
         selection_file = (repo_root / str(selection.get("path") or "")).resolve()
         if repo_root not in selection_file.parents:
             raise ValueError("task selection must stay inside the repository")
-    if not selection_file.is_file() or _sha256(selection_file) != selection.get("sha256"):
+    if not selection_file.is_file() or file_sha256(selection_file) != selection.get("sha256"):
         raise ValueError("trajectory replay task selection does not match the frozen profile")
-    selection_payload = _read_json(selection_file)
+    selection_payload = read_json(selection_file)
     task_ids = [int(item["task_id"]) for item in selection_payload.get("tasks") or []]
     if len(task_ids) != int(selection.get("task_count") or 0) or len(task_ids) != len(
         set(task_ids)
@@ -179,15 +171,15 @@ def load_replay_plan(profile_path: str | Path, seed_manifest_path: str | Path) -
     repair_file = (repo_root / str(repair.get("expert_repairs_path") or "")).resolve()
     if repo_root not in repair_file.parents:
         raise ValueError("expert repairs must stay inside the repository")
-    if not repair_file.is_file() or _sha256(repair_file) != repair.get("expert_repairs_sha256"):
+    if not repair_file.is_file() or file_sha256(repair_file) != repair.get("expert_repairs_sha256"):
         raise ValueError("expert repairs do not match the frozen replay profile")
-    repair_payload = _read_json(repair_file)
+    repair_payload = read_json(repair_file)
     repair_records = {int(item["task_id"]): item for item in repair_payload.get("repairs") or []}
     if len(repair_records) != len(repair_payload.get("repairs") or []):
         raise ValueError("expert repairs contain duplicate task IDs")
 
     seed_file = Path(seed_manifest_path).expanduser().resolve()
-    seeds = _read_json(seed_file)
+    seeds = read_json(seed_file)
     if seeds.get("schema") != SEED_SCHEMA:
         raise ValueError("unsupported replay seed manifest")
     seed_source = seeds.get("source") or {}
@@ -204,8 +196,8 @@ def load_replay_plan(profile_path: str | Path, seed_manifest_path: str | Path) -
         if (
             not attempts_file.is_file()
             or not manifest_file.is_file()
-            or _sha256(attempts_file) != declared.get("attempts_sha256")
-            or _sha256(manifest_file) != declared.get("manifest_sha256")
+            or file_sha256(attempts_file) != declared.get("attempts_sha256")
+            or file_sha256(manifest_file) != declared.get("manifest_sha256")
         ):
             raise ValueError("replay seed authority manifest is missing or changed")
         manifest, rows = _authoritative_rows(root)
@@ -356,10 +348,10 @@ def load_replay_plan(profile_path: str | Path, seed_manifest_path: str | Path) -
         },
         "state_contracts": state_contracts,
         "profile_path": str(profile_file),
-        "profile_sha256": _sha256(profile_file),
+        "profile_sha256": file_sha256(profile_file),
         "seed_manifest": seeds,
         "seed_manifest_path": str(seed_file),
-        "seed_manifest_sha256": _sha256(seed_file),
+        "seed_manifest_sha256": file_sha256(seed_file),
         "task_ids": task_ids,
         "methods": methods,
         "engines": engines,
@@ -622,7 +614,7 @@ def verify_compiled_mutation_proposal(
         or proposal.get("expected_completion") != rule["expected_completion"]
         or proposal.get("observer_contract_sha256")
         != hashlib.sha256(compiled_script.encode()).hexdigest()
-        or proposal.get("completion_candidates_sha256") != _sha256(candidate_path)
+        or proposal.get("completion_candidates_sha256") != file_sha256(candidate_path)
     ):
         raise ValueError("proposal observer is stale or differs from the completion contract")
 

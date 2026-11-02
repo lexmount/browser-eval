@@ -10,7 +10,8 @@ from pathlib import Path
 from unittest.mock import patch
 from urllib.parse import parse_qs, urlsplit
 
-from harness.web_search.core import digest, normalize, normalize_response, request_body
+from harness.record_io import bytes_sha256
+from harness.web_search.core import normalize, normalize_response, request_body
 from lexbench_websearch.scoring import evaluate
 from lexbench_websearch.inputs import definition_path, load_dataset, resolve_profile
 from harness.web_search.revisions import apply_report_revision, collected_projection, normalization_regressions, NATIVE_CONTROLS
@@ -85,14 +86,14 @@ class SerpContracts(unittest.TestCase):
                 corrected.write_text(json.dumps(profile))
                 proof = root / "interface.json"
                 proof.write_text('{"synthetic":true,"accepted_fields":["query","limit"]}')
-                revision = {"schema": "web-search-execution-revision/1", "root_cause": "Synthetic service interface changed", "superseded_methods": ["lexmount"], "previous_profile_sha256": digest(original_profile), "profile_sha256": digest(corrected.read_bytes()), "evidence": [{"path": proof.name, "sha256": digest(proof.read_bytes())}]}
+                revision = {"schema": "web-search-execution-revision/1", "root_cause": "Synthetic service interface changed", "superseded_methods": ["lexmount"], "previous_profile_sha256": bytes_sha256(original_profile), "profile_sha256": bytes_sha256(corrected.read_bytes()), "evidence": [{"path": proof.name, "sha256": bytes_sha256(proof.read_bytes())}]}
                 revision_path = root / "revision.json"
                 revision_path.write_text(json.dumps(revision))
                 # A correction must account for old physical calls before spending again.
                 profile["protocol"]["max_calls_per_method"]["lexmount"] = 2
                 insufficient = root / "insufficient.json"
                 insufficient.write_text(json.dumps(profile))
-                revision_path.write_text(json.dumps({**revision, "profile_sha256": digest(insufficient.read_bytes())}))
+                revision_path.write_text(json.dumps({**revision, "profile_sha256": bytes_sha256(insufficient.read_bytes())}))
                 with self.assertRaisesRegex(ValueError, "physical call budget"):
                     prepare_execution_revision(insufficient, root / "run", revision_path)
                 self.assertEqual((root / "run/profile.json").read_bytes(), original_profile)
@@ -129,11 +130,11 @@ class SerpContracts(unittest.TestCase):
 
     def test_native_url_correction_uses_original_bytes_without_new_provider_calls(self):
         registry = NATIVE_CONTROLS
-        revision = {"schema": "web-search-assessment-revision/1", "root_cause": "Native relative links were rejected and unscored tail entries invalidated the first five slots", "regression_ids": ["relative-serp-links", "unsafe-serp-links", "top-five-boundary"], "provider_calls": 0, "normalization": "request-url/1", "regressions_sha256": digest(registry.read_bytes())}
+        revision = {"schema": "web-search-assessment-revision/1", "root_cause": "Native relative links were rejected and unscored tail entries invalidated the first five slots", "regression_ids": ["relative-serp-links", "unsafe-serp-links", "top-five-boundary"], "provider_calls": 0, "normalization": "request-url/1", "regressions_sha256": bytes_sha256(registry.read_bytes())}
         normalization_regressions(revision["regressions_sha256"], normalize_response)
         profile = {"methods": [{"id": "native", "adapter": "brightdata"}], "protocol": {"top_k": 5, "normalize_top_k": True}, "cases": [{"id": "q", "family": "web", "anchors": ["https://www.google.com/goto?url=synthetic"]}]}
         raw = json.dumps({"organic": [{"link": "/goto?url=synthetic", "title": "Native result"}]}).encode()
-        row = {"id": "q-native-r0", "case_id": "q", "method": "native", "http_status": 200, "transport_exit": 0, "elapsed_ms": 321, "cost": .0015, "error": "Result URL must be an HTTP(S) URL without credentials", "results": [], "request": {"url": "https://www.google.com/search?q=synthetic"}, "evidence": {"path": "calls/q.json", "sha256": digest(raw)}, "metrics": evaluate(profile["cases"][0], [])}
+        row = {"id": "q-native-r0", "case_id": "q", "method": "native", "http_status": 200, "transport_exit": 0, "elapsed_ms": 321, "cost": .0015, "error": "Result URL must be an HTTP(S) URL without credentials", "results": [], "request": {"url": "https://www.google.com/search?q=synthetic"}, "evidence": {"path": "calls/q.json", "sha256": bytes_sha256(raw)}, "metrics": evaluate(profile["cases"][0], [])}
         with patch("harness.web_search.runner.http_call") as network:
             updated, rows, changes = apply_report_revision(profile, [row], revision, artifacts={"calls/q.json": raw}, normalizer=normalize_response)
             network.assert_not_called()
@@ -274,7 +275,7 @@ class SerpContracts(unittest.TestCase):
             self.assertIn("no retries", contract["timer"])
             # Correct the saved native projection through the public report boundary,
             # preserving every paid call and exposing the correction's provenance.
-            revision = {"schema": "web-search-assessment-revision/1", "root_cause": "Native relative links require the recorded request URL", "regression_ids": ["relative-serp-links", "unsafe-serp-links", "top-five-boundary"], "provider_calls": 0, "normalization": "request-url/1", "regressions_sha256": digest(NATIVE_CONTROLS.read_bytes())}
+            revision = {"schema": "web-search-assessment-revision/1", "root_cause": "Native relative links require the recorded request URL", "regression_ids": ["relative-serp-links", "unsafe-serp-links", "top-five-boundary"], "provider_calls": 0, "normalization": "request-url/1", "regressions_sha256": bytes_sha256(NATIVE_CONTROLS.read_bytes())}
             content = root / "content.json"
             (root / "controls.json").write_bytes(NATIVE_CONTROLS.read_bytes())
             content.write_text(json.dumps({"presentation": "comparison-report", "summary_metrics": "retrieval", "sections": [], "assessment_revision": revision, "assets": [{"source": "controls.json", "path": "report-assets/scoring-regressions.json", "sha256": revision["regressions_sha256"]}]}))
@@ -343,14 +344,14 @@ class SerpContracts(unittest.TestCase):
         canonical = binding("simpleqa-verified")
         descriptor = canonical["datasets"]["factual-v1"]
         raw = locked_definition("simpleqa-verified", descriptor["path"]).read_bytes()
-        self.assertEqual(digest(raw), descriptor["sha256"])
-        self.assertEqual(digest(raw), canonical["files"]["definitions/" + descriptor["path"]]["sha256"])
+        self.assertEqual(bytes_sha256(raw), descriptor["sha256"])
+        self.assertEqual(bytes_sha256(raw), canonical["files"]["definitions/" + descriptor["path"]]["sha256"])
         factual = json.loads(raw)
         self.assertEqual(load_dataset("factual-v1"), factual)
         self.assertNotIn("definitions/" + descriptor["path"], binding("websearch")["files"])
         scenario_bytes = definition_path("datasets/scenarios-v1.json").read_bytes()
         profile = resolve_profile({"cases": {"field": "cases", "benchmark_datasets": [
-            {"id": "scenarios-v1", "sha256": digest(scenario_bytes)},
+            {"id": "scenarios-v1", "sha256": bytes_sha256(scenario_bytes)},
             {"id": "factual-v1", "sha256": descriptor["sha256"]},
         ]}})
         self.assertEqual(profile["cases"], json.loads(scenario_bytes)["cases"] + factual["cases"])

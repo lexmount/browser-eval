@@ -14,6 +14,7 @@ from harness.browser_use.report_visual import check as check_visual
 from harness.browser_use.report_visual import receipt_is_current
 from harness.browser_use.selection import report_selection_path
 from harness.distribution import repository_root
+from harness.record_io import file_sha256
 from harness.reporting.assets import bound_json_asset
 from harness.reporting.links import check as check_links
 from harness.reporting.publication import package_archive
@@ -22,21 +23,13 @@ ATTESTATION = Path("publish/browser-use-sites.attestation.json")
 VISUAL_RECEIPT = Path("publish/browser-use-visual-qa.json")
 
 
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def tree_sha256(root: Path) -> str:
     digest = hashlib.sha256()
     for path in sorted(item for item in root.rglob("*") if item.is_file()):
         relative = path.relative_to(root).as_posix().encode()
         digest.update(len(relative).to_bytes(8, "big"))
         digest.update(relative)
-        digest.update(bytes.fromhex(sha256(path)))
+        digest.update(bytes.fromhex(file_sha256(path)))
     return digest.hexdigest()
 
 
@@ -80,12 +73,12 @@ def package(
     def attest(archive: Path) -> dict:
         return {
             "schema": "lex_browser_use_publication_attestation/2",
-            "archive": str(output), "archive_sha256": sha256(archive),
+            "archive": str(output), "archive_sha256": file_sha256(archive),
             "report": str(report), "report_tree_sha256": tree_sha256(report),
-            "profile_sha256": sha256(profile),
+            "profile_sha256": file_sha256(profile),
             "evidence": [str(path) for path in evidence],
             "evidence_files": {
-                str(path): {name: sha256(path / name) for name in names} for path in evidence
+                str(path): {name: file_sha256(path / name) for name in names} for path in evidence
             },
         }
 

@@ -6,6 +6,7 @@ import sys
 
 import pytest
 
+from harness.record_io import file_sha256
 from harness.web_fetch import webmainbench_case_correction as correction
 from tests.webmainbench_case_fixture import correction_fixture, write_json, write_rows
 
@@ -17,7 +18,7 @@ def apply_fixture(fixture):
 @pytest.fixture
 def retained(tmp_path, monkeypatch):
     fixture = correction_fixture(tmp_path / "fixture")
-    monkeypatch.setattr(correction, "DATASET_SHA256", correction.digest(fixture[5]))
+    monkeypatch.setattr(correction, "DATASET_SHA256", file_sha256(fixture[5]))
     return fixture
 
 
@@ -28,7 +29,7 @@ def test_revision_materializes_every_retry_and_excludes_unbound_files(retained):
     shard = output / provider
     assert receipt["effects"][provider]["new_physical_calls"] == 2
     for call in correction.read_jsonl(shard / "physical-attempts.jsonl"):
-        assert correction.digest(shard / call["physical_artifact_path"]) == call["output_sha256"]
+        assert file_sha256(shard / call["physical_artifact_path"]) == call["output_sha256"]
     assert not list(output.rglob("private-worker.txt"))
     assert not list(output.rglob("unbound.txt"))
     assert (source / provider / "private-worker.txt").is_file()
@@ -41,7 +42,7 @@ def test_revision_materializes_every_retry_and_excludes_unbound_files(retained):
 
 def test_profile_can_declare_an_additional_method(tmp_path, monkeypatch):
     fixture = correction_fixture(tmp_path / "six", providers=("moli", "chromium", "new-engine"))
-    monkeypatch.setattr(correction, "DATASET_SHA256", correction.digest(fixture[5]))
+    monkeypatch.setattr(correction, "DATASET_SHA256", file_sha256(fixture[5]))
     apply_fixture(fixture)
     assert {p.name for p in fixture[2].iterdir() if p.is_dir()} == {"moli", "chromium", "new-engine"}
 
@@ -131,7 +132,7 @@ def test_replacement_fixture_certificate_is_retained_and_bound(retained):
     replacement = next(iter(retained[1].values()))
     certificate = replacement / "fixture-ca.pem"
     certificate.write_text("synthetic fixture CA")
-    expected = correction.digest(certificate)
+    expected = file_sha256(certificate)
     execution = json.loads((replacement / "execution.json").read_text())
     execution.update(fixture_ca_artifact=certificate.name,
                      network_isolation_probe={"fixture_ca_sha256": expected})
@@ -139,7 +140,7 @@ def test_replacement_fixture_certificate_is_retained_and_bound(retained):
     apply_fixture(retained)
     target = retained[2] / retained[4][0]
     run = json.loads((target / "execution.json").read_text())["correction_runs"][-1]
-    assert correction.digest(target / run["fixture_ca_artifact"]) == expected
+    assert file_sha256(target / run["fixture_ca_artifact"]) == expected
     assert run["fixture_ca_sha256"] == expected
 
 

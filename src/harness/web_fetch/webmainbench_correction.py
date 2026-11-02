@@ -20,7 +20,13 @@ from pathlib import Path
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
 from harness.distribution import bundled_data_path
-from harness.record_io import load_jsonl
+from harness.record_io import (
+    bytes_sha256,
+    canonical_json_sha256,
+    file_sha256,
+    load_jsonl,
+    write_json,
+)
 from harness.web_fetch.safety import stage_evidence_revision
 from harness.web_fetch.webmainbench_case_correction import dimensions
 from harness.web_fetch.webmainbench_certification import verify_shard
@@ -32,10 +38,6 @@ from harness.web_fetch.webmainbench_scoring import (
     official_calculator,
     revised_metrics,
 )
-
-
-def digest(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def read_rows(path):
@@ -51,8 +53,8 @@ def validate(
         certificate.get("kind") != "webmainbench_origin_correction_v1"
         or plan != certificate.get("postflight")
         or plan["parent_results_sha256"] != expected_parent
-        or (digest(root / "results.jsonl") != certificate["results_sha256"])
-        or (digest(root / "physical-attempts.jsonl") != certificate["physical_sha256"])
+        or (file_sha256(root / "results.jsonl") != certificate["results_sha256"])
+        or (file_sha256(root / "physical-attempts.jsonl") != certificate["physical_sha256"])
     ):
         raise ValueError("Case correction certificate mismatch")
     rows = read_rows(root / "results.jsonl")
@@ -85,7 +87,7 @@ def validate(
             )
         ):
             raise ValueError("Case correction changes the frozen input or provider identity")
-        if digest(contained_path(root, row["artifact_path"])) != row["output_sha256"]:
+        if file_sha256(contained_path(root, row["artifact_path"])) != row["output_sha256"]:
             raise ValueError("Corrected output changed")
         calls = [c for c in physical if c["provider"] == row["provider"]]
         if len(calls) != row["physical_attempt_count"] or not calls:
@@ -96,7 +98,7 @@ def validate(
         if (
             call["track_id"] != plan["case_id"]
             or call["provider"] not in selected
-            or digest(contained_path(root, call["physical_artifact_path"])) != call["output_sha256"]
+            or file_sha256(contained_path(root, call["physical_artifact_path"])) != call["output_sha256"]
         ):
             raise ValueError("Correction physical output changed")
     return (certificate, rows, physical)
@@ -114,7 +116,7 @@ def apply(
     certificate, replacements, calls = validate(
         root,
         validation_rows if validation_rows is not None else original_rows,
-        expected_parent if expected_parent is not None else digest(staging / "results.jsonl"),
+        expected_parent if expected_parent is not None else file_sha256(staging / "results.jsonl"),
     )
     lookup = {r["provider"]: r for r in replacements}
     case_id = certificate["preflight"]["case_id"]
@@ -150,12 +152,12 @@ def apply(
     )
     receipt = {
         **certificate,
-        "current_results_sha256": digest(staging / "results.jsonl"),
+        "current_results_sha256": file_sha256(staging / "results.jsonl"),
         "superseded_execution_ms": sum(r["elapsed_ms"] for r in history),
         "superseded_physical_calls": len(history),
-        "superseded_case_results_sha256": digest(staging / "superseded-case-results.jsonl"),
-        "superseded_case_calls_sha256": digest(staging / "superseded-case-calls.jsonl"),
-        "score_summaries_sha256": digest(staging / "score-summaries.json"),
+        "superseded_case_results_sha256": file_sha256(staging / "superseded-case-results.jsonl"),
+        "superseded_case_calls_sha256": file_sha256(staging / "superseded-case-calls.jsonl"),
+        "score_summaries_sha256": file_sha256(staging / "score-summaries.json"),
     }
     (staging / "case-correction.json").write_text(
         json.dumps(receipt, ensure_ascii=False, indent=2) + "\n"
@@ -164,10 +166,6 @@ def apply(
 
 
 ROOT = repository_root()
-
-
-def write(path, value):
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
 
 
 def copy_contained_artifact(source_root, source_relative, output_root, output_relative):
@@ -214,7 +212,7 @@ def certify_case_correction(argv=None):
     if not args.provider and (not args.prior_correction) and ("moli" not in binaries):
         parser.error("--moli-binary is required without --prior-correction")
     for name, binary in binaries.items():
-        if digest(binary) != selected[name]["provider_metadata"]["binary_sha256"]:
+        if file_sha256(binary) != selected[name]["provider_metadata"]["binary_sha256"]:
             raise ValueError("Binary differs from frozen cohort: " + name)
     prior_rows = prior_physical = []
     prior_certificate_sha256 = None
@@ -226,21 +224,21 @@ def certify_case_correction(argv=None):
             prior_certificate.get("kind") != "webmainbench_origin_correction_v1"
             or prior_plan != prior_certificate.get("postflight")
             or prior_plan.get("case_id") != args.case_id
-            or (prior_plan.get("source_sha256") != digest(args.dataset))
+            or (prior_plan.get("source_sha256") != file_sha256(args.dataset))
             or (set(prior_plan.get("providers", ())) != set(providers))
             or (
                 prior_certificate.get("results_sha256")
-                != digest(args.prior_correction / "results.jsonl")
+                != file_sha256(args.prior_correction / "results.jsonl")
             )
             or (
                 prior_certificate.get("physical_sha256")
-                != digest(args.prior_correction / "physical-attempts.jsonl")
+                != file_sha256(args.prior_correction / "physical-attempts.jsonl")
             )
         ):
             raise ValueError("Prior origin correction certificate mismatch")
         prior_rows = read_rows(args.prior_correction / "results.jsonl")
         prior_physical = read_rows(args.prior_correction / "physical-attempts.jsonl")
-        prior_certificate_sha256 = digest(certificate_path)
+        prior_certificate_sha256 = file_sha256(certificate_path)
         inherited = {row["provider"]: row for row in prior_rows if row["provider"] != "moli-fixed"}
         if set(inherited) != set(providers) - {"moli-fixed"}:
             raise ValueError("Prior origin correction does not cover unchanged methods")
@@ -262,13 +260,13 @@ def certify_case_correction(argv=None):
                     )
                 )
                 or (
-                    digest(contained_path(args.prior_correction, row["artifact_path"]))
+                    file_sha256(contained_path(args.prior_correction, row["artifact_path"]))
                     != row["output_sha256"]
                 )
             ):
                 raise ValueError("Prior origin correction differs from current method: " + name)
         if any(
-            digest(contained_path(args.prior_correction, call["physical_artifact_path"]))
+            file_sha256(contained_path(args.prior_correction, call["physical_artifact_path"]))
             != call["output_sha256"]
             for call in prior_physical
             if call["provider"] != "moli-fixed"
@@ -278,8 +276,8 @@ def certify_case_correction(argv=None):
         "kind": "webmainbench_origin_correction_v1",
         "case_id": args.case_id,
         "providers": providers,
-        "parent_results_sha256": digest(args.source / "results.jsonl"),
-        "source_sha256": digest(args.dataset),
+        "parent_results_sha256": file_sha256(args.source / "results.jsonl"),
+        "source_sha256": file_sha256(args.dataset),
         "timeout_seconds": 45,
         "max_failure_retries": 1,
         "scorer_commit": subprocess.check_output(
@@ -307,7 +305,7 @@ def certify_case_correction(argv=None):
     if prior_certificate_sha256:
         plan["prior_correction_certificate_sha256"] = prior_certificate_sha256
     args.output.mkdir(parents=True)
-    write(args.output / "preflight.json", plan)
+    write_json(args.output / "preflight.json", plan)
     selection = args.output / "case-ids.txt"
     selection.write_text(args.case_id + "\n")
     corrected = []
@@ -424,25 +422,25 @@ def certify_case_correction(argv=None):
         corrected.append(row)
         print(name, row["ok"], row["output_chars"], flush=True)
     if (
-        digest(args.dataset) != plan["source_sha256"]
-        or digest(args.source / "results.jsonl") != plan["parent_results_sha256"]
+        file_sha256(args.dataset) != plan["source_sha256"]
+        or file_sha256(args.source / "results.jsonl") != plan["parent_results_sha256"]
     ):
         raise ValueError("Evidence changed during correction")
     for name, binary in binaries.items():
-        if digest(binary) != selected[name]["provider_metadata"]["binary_sha256"]:
+        if file_sha256(binary) != selected[name]["provider_metadata"]["binary_sha256"]:
             raise ValueError("Binary changed during correction")
     for filename, values in [("results.jsonl", corrected), ("physical-attempts.jsonl", physical)]:
         (args.output / filename).write_text(
             "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in values)
         )
-    write(
+    write_json(
         args.output / "certificate.json",
         {
             "kind": plan["kind"],
             "preflight": plan,
             "postflight": plan,
-            "results_sha256": digest(args.output / "results.jsonl"),
-            "physical_sha256": digest(args.output / "physical-attempts.jsonl"),
+            "results_sha256": file_sha256(args.output / "results.jsonl"),
+            "physical_sha256": file_sha256(args.output / "physical-attempts.jsonl"),
         },
     )
 
@@ -453,7 +451,7 @@ def regression_registry_path() -> Path:
 
 
 def text_digest(value):
-    return hashlib.sha256(value.encode("utf-8")).hexdigest()
+    return bytes_sha256(value.encode())
 
 
 def load_corrected_cases(path):
@@ -506,11 +504,6 @@ def prepare_correction_source(destination: Path) -> None:
     destination.mkdir()
 
 
-def json_digest(value) -> str:
-    raw = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return text_digest(raw)
-
-
 def validate_controls(scorer) -> None:
     document = json.loads(regression_registry_path().read_text(encoding="utf-8"))
     rows = {row["id"]: row for row in document["cases"]}
@@ -556,8 +549,8 @@ def validate_population_binding(source: Path, source_dataset: dict,
     ):
         ids = [row.get("track_id") or row.get("id") for row in rows]
         valid = (len(rows) == binding.get("row_count") and len(ids) == len(set(ids))
-                 and json_digest(ids) == binding.get("ordered_track_ids_sha256")
-                 and json_digest(rows) == binding.get("rows_sha256"))
+                 and canonical_json_sha256(ids) == binding.get("ordered_track_ids_sha256")
+                 and canonical_json_sha256(rows) == binding.get("rows_sha256"))
         already_corrected = label == "input" and rows == corrected_rows
         if not valid and not already_corrected:
             raise ValueError(f"Dataset correction {label} population binding mismatch")
@@ -653,7 +646,7 @@ def _revise_dataset_scoring(source: Path, corrected_dataset: Path, manifest_path
             ):
                 raise ValueError("Reference correction mismatch: " + case_id)
             if metadata_changed and (
-                item.get("original_meta_sha256") != json_digest(before.get("meta"))
+                item.get("original_meta_sha256") != canonical_json_sha256(before.get("meta"))
                 or item.get("replacement_meta") != after.get("meta")
             ):
                 raise ValueError("Metadata correction mismatch: " + case_id)
@@ -682,7 +675,7 @@ def _revise_dataset_scoring(source: Path, corrected_dataset: Path, manifest_path
         for record in records:
             row = copy.deepcopy(record)
             artifact = contained_path(source, row["artifact_path"])
-            if digest(artifact) != row["output_sha256"]:
+            if file_sha256(artifact) != row["output_sha256"]:
                 raise ValueError("Provider artifact changed: " + row["attempt_id"])
             case = corrected[row["case_id"]]
             predicted = artifact.read_text(encoding="utf-8") if row.get("ok") else ""
@@ -722,7 +715,7 @@ def _revise_dataset_scoring(source: Path, corrected_dataset: Path, manifest_path
         if case_id in changed_references:
             contained_path(output / "references", f"{case_id}.md").write_text(
                 corrected_case["groundtruth_content"], encoding="utf-8")
-    source_dataset["source_dataset_sha256"] = digest(corrected_dataset)
+    source_dataset["source_dataset_sha256"] = file_sha256(corrected_dataset)
     dataset_path = output / "dataset.json"
     dataset_path.write_text(json.dumps(source_dataset, ensure_ascii=False, indent=2) + "\n",
                             encoding="utf-8")
@@ -742,7 +735,7 @@ def _revise_dataset_scoring(source: Path, corrected_dataset: Path, manifest_path
         "changed_reference_cases": sorted(changed_references),
         "changed_metadata_cases": sorted(changed_metadata),
         "regression_ids": list(CONTROL_IDS),
-        "regression_registry_sha256": digest(regression_registry_path()),
+        "regression_registry_sha256": file_sha256(regression_registry_path()),
         "root_causes": [
             "TEDS passed a serialized label to APTED and lacked a bounded exact-workspace path.",
             "Code extraction omitted inline and raw-HTML representations.",
@@ -752,12 +745,12 @@ def _revise_dataset_scoring(source: Path, corrected_dataset: Path, manifest_path
         ],
         "scorer_repository": "https://github.com/lexmount/WebMainBench",
         "scorer_commit": scorer_commit,
-        "manifest_sha256": digest(manifest_path),
-        "corrected_dataset_sha256": digest(corrected_dataset),
-        "input_results_sha256": digest(source / "results.jsonl"),
-        "output_results_sha256": digest(results_path),
-        "input_dataset_sha256": digest(source / "dataset.json"),
-        "output_dataset_sha256": digest(dataset_path),
+        "manifest_sha256": file_sha256(manifest_path),
+        "corrected_dataset_sha256": file_sha256(corrected_dataset),
+        "input_results_sha256": file_sha256(source / "results.jsonl"),
+        "output_results_sha256": file_sha256(results_path),
+        "input_dataset_sha256": file_sha256(source / "dataset.json"),
+        "output_dataset_sha256": file_sha256(dataset_path),
     }
     (output / "scoring-correction.json").write_text(
         json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -771,8 +764,8 @@ def _rescore_case_correction(source: Path, corrected_dataset: Path, scorer_repo:
     certificate = json.loads((source / "certificate.json").read_text(encoding="utf-8"))
     if (certificate.get("kind") != "webmainbench_origin_correction_v1"
             or certificate.get("preflight") != certificate.get("postflight")
-            or certificate.get("results_sha256") != digest(source / "results.jsonl")
-            or certificate.get("physical_sha256") != digest(source / "physical-attempts.jsonl")):
+            or certificate.get("results_sha256") != file_sha256(source / "results.jsonl")
+            or certificate.get("physical_sha256") != file_sha256(source / "physical-attempts.jsonl")):
         raise ValueError("Invalid source case-correction certificate")
     cases = load_corrected_cases(corrected_dataset)
     case_id = certificate["preflight"]["case_id"]
@@ -791,7 +784,7 @@ def _rescore_case_correction(source: Path, corrected_dataset: Path, scorer_repo:
         raise ValueError("Duplicate correction physical call")
     for call in physical:
         if (call["track_id"] != case_id or call["provider"] not in plan["providers"]
-                or digest(contained_path(source, call["physical_artifact_path"], reject_symlinks=True))
+                or file_sha256(contained_path(source, call["physical_artifact_path"], reject_symlinks=True))
                 != call["output_sha256"]):
             raise ValueError("Correction physical evidence changed")
     if any(sum(call["provider"] == row["provider"] for call in physical)
@@ -804,7 +797,7 @@ def _rescore_case_correction(source: Path, corrected_dataset: Path, scorer_repo:
         for original in rows:
             row = copy.deepcopy(original)
             artifact = contained_path(source, row["artifact_path"])
-            if digest(artifact) != row["output_sha256"]:
+            if file_sha256(artifact) != row["output_sha256"]:
                 raise ValueError("Case-correction provider artifact changed")
             predicted = artifact.read_text(encoding="utf-8") if row.get("ok") else ""
             row["pre_scoring_correction_metrics"] = copy.deepcopy(row["metrics"])
@@ -820,7 +813,7 @@ def _rescore_case_correction(source: Path, corrected_dataset: Path, scorer_repo:
     result_path.write_text(
         "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in revised), encoding="utf-8"
     )
-    certificate["results_sha256"] = digest(result_path)
+    certificate["results_sha256"] = file_sha256(result_path)
     (output / "certificate.json").write_text(
         json.dumps(certificate, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -828,7 +821,7 @@ def _rescore_case_correction(source: Path, corrected_dataset: Path, scorer_repo:
         "schema_version": 1,
         "kind": "webmainbench_case_correction_scoring_revision",
         "regression_ids": list(CONTROL_IDS),
-        "regression_registry_sha256": digest(regression_registry_path()),
+        "regression_registry_sha256": file_sha256(regression_registry_path()),
         "root_cause": "Specialized metric populations and failed-call scoring use the shared corrected scorer.",
         "provider_calls": 0,
         "logical_results": len(revised),
@@ -836,9 +829,9 @@ def _rescore_case_correction(source: Path, corrected_dataset: Path, scorer_repo:
         "providers": certificate["preflight"]["providers"],
         "scorer_repository": "https://github.com/lexmount/WebMainBench",
         "scorer_commit": scorer_commit,
-        "corrected_dataset_sha256": digest(corrected_dataset),
-        "input_results_sha256": digest(source / "results.jsonl"),
-        "output_results_sha256": digest(result_path),
+        "corrected_dataset_sha256": file_sha256(corrected_dataset),
+        "input_results_sha256": file_sha256(source / "results.jsonl"),
+        "output_results_sha256": file_sha256(result_path),
     }
     (output / "scoring-correction.json").write_text(
         json.dumps(receipt, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

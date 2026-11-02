@@ -9,9 +9,9 @@ from urllib.parse import unquote
 
 from bs4 import BeautifulSoup
 
+from harness.record_io import bytes_sha256
 from harness.web_search.delivery import export, verify, transform_page
 from harness.web_search.example import example
-from harness.web_search.core import digest
 from harness.web_search.report import build, main
 from harness.web_search.comparison import render_comparison
 
@@ -68,7 +68,7 @@ class DeliveryScenarios(unittest.TestCase):
             main(["--output", str(root / "report"), "--export-delivery", str(root / "delivery")])
             self.assertTrue(verify(root / "report", root / "delivery"))
             proof = root / "incomplete-visual.json"
-            proof.write_text(json.dumps({"manifest_sha256": digest((root / "report/manifest.json").read_bytes()), "captures": []}))
+            proof.write_text(json.dumps({"manifest_sha256": bytes_sha256((root / "report/manifest.json").read_bytes()), "captures": []}))
             with self.assertRaises(ValueError):
                 main(["--output", str(root / "report"), "--release-check", str(proof), "--export-delivery", str(root / "unreviewed")])
             self.assertFalse((root / "unreviewed").exists())

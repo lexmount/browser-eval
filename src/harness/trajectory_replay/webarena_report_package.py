@@ -9,6 +9,7 @@ import json
 import tempfile
 from pathlib import Path
 
+from harness.record_io import file_sha256
 from harness.reporting.publication import package_archive
 from harness.trajectory_replay.report_compaction import (
     check_compact_navigation,
@@ -27,14 +28,6 @@ ATTESTATION = Path("publish/trajectory-replay-artifact-site.attestation.json")
 VISUAL_RECEIPT = Path("publish/trajectory-replay-visual-qa.json")
 MAX_FILES = 2_000
 MAX_ARCHIVE_BYTES = 300_000_000
-
-
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def tree_sha256(root: Path) -> str:
@@ -101,8 +94,8 @@ def package(
                 json.loads(dataset_path.read_text(encoding="utf-8")),
             )
         if (
-            report_manifest.get("dataset_sha256") != sha256(dataset_path)
-            or report_manifest.get("results_sha256") != sha256(evidence)
+            report_manifest.get("dataset_sha256") != file_sha256(dataset_path)
+            or report_manifest.get("results_sha256") != file_sha256(evidence)
         ):
             raise ValueError(
                 "report and publication inputs refer to different result or dataset bytes"
@@ -121,18 +114,18 @@ def package(
         attestation = {
             "schema": "lex_webarena_replay_publication_attestation/1",
             "archive": str(output),
-            "archive_sha256": sha256(archive),
+            "archive_sha256": file_sha256(archive),
             "archive_bytes": archive.stat().st_size,
             "report": str(report),
             "report_tree_sha256": tree_sha256(report),
             "packaged_report": str(packaged),
             "packaged_report_tree_sha256": tree_sha256(packaged),
             "file_count": sum(path.is_file() for path in packaged.rglob("*")),
-            "profile_sha256": sha256(profile_path),
-            "dataset_sha256": sha256(dataset_path),
-            "review_sha256": sha256(review_path),
+            "profile_sha256": file_sha256(profile_path),
+            "dataset_sha256": file_sha256(dataset_path),
+            "review_sha256": file_sha256(review_path),
             "evidence": str(evidence),
-            "evidence_sha256": sha256(evidence),
+            "evidence_sha256": file_sha256(evidence),
             **summary,
         }
         return attestation

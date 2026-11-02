@@ -21,6 +21,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from harness.data_home import configured_data_home
+from harness.record_io import file_sha256
 from harness.trajectory_replay.public_webarena.suite import TRAJECTORY_SCHEMA
 from harness.web_fetch.safety import unlinked_path, write_new_file
 
@@ -475,14 +476,6 @@ def _valid_trace(path: Path) -> bool:
         return False
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        for chunk in iter(lambda: source.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 class _DriveConfirmationParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__()
@@ -539,7 +532,7 @@ def _download(row: dict[str, Any], output: Path, *, max_attempts: int = 4) -> di
             "task_id": row["task_id"],
             "file_name": destination.name,
             "bytes": destination.stat().st_size,
-            "sha256": _sha256(destination),
+            "sha256": file_sha256(destination),
             "status": "existing",
         }
     partial = destination.with_suffix(destination.suffix + ".part")
@@ -564,7 +557,7 @@ def _download(row: dict[str, Any], output: Path, *, max_attempts: int = 4) -> di
         "task_id": row["task_id"],
         "file_name": destination.name,
         "bytes": destination.stat().st_size,
-        "sha256": _sha256(destination),
+        "sha256": file_sha256(destination),
         "status": "downloaded",
     }
 
@@ -659,7 +652,7 @@ def main_audit_traces(argv=None) -> None:
         if not path.is_file():
             missing.append(row["file_name"])
             continue
-        bindings[path] = _sha256(path)
+        bindings[path] = file_sha256(path)
         trace = import_playwright_trace(path, strict=False)
         actions = trace["actions"]
         action_counts.update(str(action["action"]) for action in actions)
@@ -706,7 +699,7 @@ def main_audit_traces(argv=None) -> None:
         "tasks": tasks,
     }
     if catalog_path.read_bytes() != catalog_bytes or any(
-        _sha256(path) != digest for path, digest in bindings.items()
+        file_sha256(path) != digest for path, digest in bindings.items()
     ):
         raise ValueError("trace audit inputs changed")
     payload["catalog_sha256"] = hashlib.sha256(catalog_bytes).hexdigest()

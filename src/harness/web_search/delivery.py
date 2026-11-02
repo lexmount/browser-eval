@@ -12,7 +12,8 @@ from urllib.parse import quote
 
 from bs4 import BeautifulSoup
 
-from harness.web_search.core import digest, write_json
+from harness.record_io import bytes_sha256
+from harness.web_search.core import write_json
 
 BRIDGE = r"""
 const nativeFetch=window.fetch.bind(window);
@@ -131,7 +132,7 @@ def export(source, destination):
             # JSON transport must not normalize CRLF or decode arbitrary provider bytes.
             shard[path] = {"base64": base64.b64encode(raw).decode("ascii")}
             mapping[path] = "case-data/" + row["case_id"] + ".json.gz"
-            hashes[path] = digest((source / path).read_bytes())
+            hashes[path] = bytes_sha256((source / path).read_bytes())
     for cid, data in shards.items():
         target = destination / "case-data" / (cid + ".json.gz")
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -144,7 +145,7 @@ def export(source, destination):
         target.write_bytes(transform_page(raw.decode()).encode() if path.endswith(".html") else raw)
     write_json(destination / "delivery-index.json", {
         "schema": "search-report-delivery/2",
-        "source_manifest_sha256": digest((source / "manifest.json").read_bytes()),
+        "source_manifest_sha256": bytes_sha256((source / "manifest.json").read_bytes()),
         "files": mapping, "sha256": hashes,
     })
     shell = BeautifulSoup((destination / "index.html").read_text(), "html.parser")
@@ -169,7 +170,7 @@ def verify(source, destination):
     """Every virtual file restores exactly; every ordinary page has one transform."""
     source, destination = Path(source), Path(destination)
     index = json.loads((destination / "delivery-index.json").read_text())
-    if digest((source / "manifest.json").read_bytes()) != index["source_manifest_sha256"]:
+    if bytes_sha256((source / "manifest.json").read_bytes()) != index["source_manifest_sha256"]:
         raise ValueError("Delivery source manifest changed")
     cache = {}
     for path, shard in index["files"].items():
@@ -177,7 +178,7 @@ def verify(source, destination):
             cache[shard] = json.loads(gzip.decompress((destination / shard).read_bytes()))
         value = cache[shard][path]
         raw = base64.b64decode(value["base64"], validate=True)
-        if digest(raw) != index["sha256"][path] or raw != (source / path).read_bytes():
+        if bytes_sha256(raw) != index["sha256"][path] or raw != (source / path).read_bytes():
             raise ValueError("Packed evidence changed")
     manifest = json.loads((source / "manifest.json").read_text())
     for path in set(manifest["routes"]) | set(manifest.get("language_notices", [])) | {a["path"] for a in manifest["bundle"]} | {"manifest.json"}:

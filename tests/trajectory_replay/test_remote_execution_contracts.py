@@ -9,6 +9,7 @@ from types import SimpleNamespace
 import pytest
 from webarena_verified.types.task import WebArenaSite
 
+from harness.record_io import canonical_json_sha256
 from harness.trajectory_replay.catalog_runner import _chromium_host_resolver_rules
 from harness.trajectory_replay.remote_execution import (
     _browser_command,
@@ -18,7 +19,6 @@ from harness.trajectory_replay.remote_execution import (
     _wait_cdp,
 )
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
-from harness.trajectory_replay.webarena_replay import _json_sha256
 
 
 def _sites() -> dict[WebArenaSite, str]:
@@ -34,12 +34,12 @@ def _retrieval_contract(task_id, calls):
     return {
         "schema": "lex_replay_current_run_retrieval/1",
         "task_id": task_id,
-        "canonical_calls_sha256": _json_sha256(calls),
+        "canonical_calls_sha256": canonical_json_sha256(calls),
         "sources": [
             {
                 "name": "observed",
                 "step": len(calls),
-                "action_sha256": _json_sha256(calls[-1]),
+                "action_sha256": canonical_json_sha256(calls[-1]),
                 "decode": "json",
             }
         ],
@@ -62,7 +62,7 @@ def test_retrieval_contract_is_bound_to_executed_remote_calls() -> None:
         sites,
         {"127.0.0.1", "192.168.5.2", "host.docker.internal"},
     )
-    row = {"bound_calls_sha256": _json_sha256(rebound)}
+    row = {"bound_calls_sha256": canonical_json_sha256(rebound)}
     assert _read_retrieval_contract(task_id, row, sites) == candidate
     with pytest.raises(ValueError, match="differ from frozen bound calls"):
         _read_retrieval_contract(task_id, {"bound_calls_sha256": "0" * 64}, sites)
@@ -82,7 +82,7 @@ def test_retrieval_contract_uses_the_qualified_source_revision() -> None:
         {"127.0.0.1", "192.168.5.2", "host.docker.internal"},
     )
     row = {
-        "bound_calls_sha256": _json_sha256(rebound),
+        "bound_calls_sha256": canonical_json_sha256(rebound),
         "source_revision": {"path": str(path)},
     }
     assert _read_retrieval_contract(task_id, row, sites) == candidate
@@ -105,7 +105,7 @@ def test_retrieval_contract_can_be_frozen_inside_a_catalog() -> None:
     row = {
         "source_actions": candidate["tool_calls"],
         "retrieval_contract": candidate["retrieval_contract"],
-        "bound_calls_sha256": _json_sha256(rebound),
+        "bound_calls_sha256": canonical_json_sha256(rebound),
     }
     assert _read_retrieval_contract(task_id, row, sites) == candidate
     row["retrieval_contract"] = {**row["retrieval_contract"], "task_id": 109}
@@ -126,7 +126,7 @@ def test_embedded_retrieval_contract_validates_effective_calls_after_action_over
     amendment = {
         "task_id": task_id,
         "action_index": 1,
-        "precondition_action_sha256": _json_sha256(source_action),
+        "precondition_action_sha256": canonical_json_sha256(source_action),
         "set": {"script_mode": "function_body"},
     }
     effective_calls = [{**source_action, "script_mode": "function_body"}, observation]
@@ -134,11 +134,11 @@ def test_embedded_retrieval_contract_validates_effective_calls_after_action_over
     row = {
         "source_actions": source_calls,
         "retrieval_contract": contract,
-        "bound_calls_sha256": _json_sha256(effective_calls),
+        "bound_calls_sha256": canonical_json_sha256(effective_calls),
         "action_overrides": {
             "schema": "lex_webarena_replay_action_overrides/1",
             "source_sha256": overrides_sha256,
-            "amendments_sha256": _json_sha256([amendment]),
+            "amendments_sha256": canonical_json_sha256([amendment]),
             "amendments": [amendment],
         },
     }
@@ -146,7 +146,9 @@ def test_embedded_retrieval_contract_validates_effective_calls_after_action_over
     candidate = _read_retrieval_contract(task_id, row, sites)
 
     assert candidate["tool_calls"] == source_calls
-    assert candidate["retrieval_contract"]["canonical_calls_sha256"] == _json_sha256(source_calls)
+    assert candidate["retrieval_contract"]["canonical_calls_sha256"] == canonical_json_sha256(
+        source_calls
+    )
 
 
 def test_embedded_retrieval_contract_rejects_stale_override_precondition() -> None:
@@ -165,7 +167,7 @@ def test_embedded_retrieval_contract_rejects_stale_override_precondition() -> No
         "action_overrides": {
             "schema": "lex_webarena_replay_action_overrides/1",
             "source_sha256": "a" * 64,
-            "amendments_sha256": _json_sha256([amendment]),
+            "amendments_sha256": canonical_json_sha256([amendment]),
             "amendments": [amendment],
         },
     }
@@ -186,7 +188,7 @@ def test_embedded_retrieval_contract_rebinds_its_recorded_deployment() -> None:
         "source_actions": calls,
         "source_site_urls": {site.value: url for site, url in source_sites.items()},
         "retrieval_contract": contract,
-        "bound_calls_sha256": _json_sha256(rebound),
+        "bound_calls_sha256": canonical_json_sha256(rebound),
     }
     assert rebound[0]["url"] == "https://gitlab.example.test/owner/project"
     assert _read_retrieval_contract(task_id, row, sites)["tool_calls"] == calls

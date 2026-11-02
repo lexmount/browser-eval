@@ -12,7 +12,7 @@ from typing import Any
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
-from harness.record_io import parse_jsonl
+from harness.record_io import file_sha256, parse_jsonl
 from harness.web_fetch.artifacts import (
     diagnostic_log_binding,
     verify_public_call_log,
@@ -42,10 +42,6 @@ def _read_json(path: Path) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError("Comparison input must be a JSON object: " + str(path))
     return value
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _native_contract(config: dict[str, Any]) -> dict[str, Any]:
@@ -132,7 +128,7 @@ def audit_fixed_native_comparison(
     records = parse_jsonl(results_raw)
 
     providers = [stable_provider, candidate_provider]
-    source_sha256 = _sha256(source_dataset)
+    source_sha256 = file_sha256(source_dataset)
     expected_count = receipt.get("inputs", {}).get("case_count")
     if (
         receipt.get("schema_version") != 1
@@ -249,7 +245,7 @@ def audit_fixed_native_comparison(
             or parameters.get("concurrency_scope") != expected_scope
             or batch.get("unexecuted")
             or not batch.get("completed_at")
-            or batch.get("provider_config_sha256") != _sha256(provider_config)
+            or batch.get("provider_config_sha256") != file_sha256(provider_config)
             or batch.get("runtime_source_sha256") != runtime_source_sha256
         ):
             raise ValueError("Physical batch differs from the declared comparison protocol")
@@ -400,11 +396,11 @@ def audit_fixed_native_comparison(
             "evidence_state": evidence_state,
         },
         "bindings": {
-            "measured_dataset_sha256": _sha256(dataset_path),
+            "measured_dataset_sha256": file_sha256(dataset_path),
             "results_sha256": hashlib.sha256(results_raw).hexdigest(),
-            "execution_sha256": _sha256(execution_path),
-            "provider_config_sha256": _sha256(provider_config),
-            "run_receipt_sha256": _sha256(run_receipt),
+            "execution_sha256": file_sha256(execution_path),
+            "provider_config_sha256": file_sha256(provider_config),
+            "run_receipt_sha256": file_sha256(run_receipt),
             "runtime_source_sha256": runtime_source_sha256,
         },
         "identities": {

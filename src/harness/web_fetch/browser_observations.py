@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from harness.record_io import json_bytes
 from harness.distribution import repository_root
 
 import argparse
@@ -28,7 +29,7 @@ from lexbench_webfetch.metrics import normalize_for_match
 from lexbench_webfetch.paths import safe_identifier
 from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 
-from harness.reporting.publication import atomic_create, json_bytes
+from harness.reporting.publication import atomic_create
 from harness.web_fetch.network_dns import (
     configure_chromium_dns_profile,
     validate_dns_mode,

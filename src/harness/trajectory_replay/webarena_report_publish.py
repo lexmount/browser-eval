@@ -14,6 +14,7 @@ from io import BytesIO
 from pathlib import Path
 from urllib.error import HTTPError
 
+from harness.record_io import file_sha256, json_bytes
 from harness.reporting.publication import (
     PublicationOperation,
     PublicationSnapshot,
@@ -21,7 +22,6 @@ from harness.reporting.publication import (
     atomic_write,
     bind_publication_files,
     binding_receipt_matches,
-    json_bytes,
     public_share_context,
     recover_binding,
     snapshot_publication,
@@ -43,14 +43,6 @@ PUBLIC_REPORT_MARKERS = (
     "<title>Browser Trajectory Replay</title>",
 )
 STAGED_UPLOAD_THRESHOLD = 23 * 1024 * 1024
-
-
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def recover_publication_binding() -> None:
@@ -151,15 +143,17 @@ def validate_package() -> dict:
         )
     checks = {
         "schema": attestation.get("schema") == "lex_webarena_replay_publication_attestation/1",
-        "archive": sha256(ARCHIVE) == attestation.get("archive_sha256"),
+        "archive": file_sha256(ARCHIVE) == attestation.get("archive_sha256"),
         "report": report.is_dir() and tree_sha256(report) == attestation.get("report_tree_sha256"),
         "packaged_report": packaged_report.is_dir()
         and tree_sha256(packaged_report)
         == attestation.get("packaged_report_tree_sha256", attestation.get("report_tree_sha256")),
-        "profile": sha256(PROFILE) == attestation.get("profile_sha256"),
-        "dataset": sha256(dataset_path) == attestation.get("dataset_sha256"),
-        "review": sha256(REVIEW) == attestation.get("review_sha256"),
-        "evidence": evidence.is_file() and sha256(evidence) == attestation.get("evidence_sha256"),
+        "profile": file_sha256(PROFILE) == attestation.get("profile_sha256"),
+        "dataset": file_sha256(dataset_path) == attestation.get("dataset_sha256"),
+        "review": file_sha256(REVIEW) == attestation.get("review_sha256"),
+        "evidence": (
+            evidence.is_file() and file_sha256(evidence) == attestation.get("evidence_sha256")
+        ),
     }
     report_manifest = report / "report-manifest.json"
     built = (
@@ -186,7 +180,7 @@ def multipart_archive(title: str, *, archive: Path | None = None) -> tuple[bytes
     identity = hashlib.sha256()
     identity.update(title.encode())
     identity.update(b"\0")
-    identity.update(sha256(archive).encode())
+    identity.update(file_sha256(archive).encode())
     boundary = "----trajectoryreplay" + identity.hexdigest()[:32]
     parts = []
     for key, value in (("mode", "zip"), ("title", title)):
@@ -279,7 +273,7 @@ def operation_identity(
     return {
         "schema": "lex_webarena_replay_artifact_operation/1",
         "base_url": base,
-        "archive_sha256": sha256(archive if archive is not None else ARCHIVE),
+        "archive_sha256": file_sha256(archive if archive is not None else ARCHIVE),
         "title": title,
         "kind": kind,
         "slug": slug,
@@ -398,7 +392,7 @@ def pending_created_site(base: str, *, archive: Path | None = None) -> str:
         return ""
     if (
         receipt.get("base_url") != base
-        or receipt.get("archive_sha256") != sha256(archive if archive is not None else ARCHIVE)
+        or receipt.get("archive_sha256") != file_sha256(archive if archive is not None else ARCHIVE)
         or not isinstance(receipt.get("slug"), str)
         or not receipt["slug"]
     ):

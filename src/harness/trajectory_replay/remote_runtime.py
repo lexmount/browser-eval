@@ -27,6 +27,7 @@ from harness.environments.webarena.runtime import (
     SITE_PORTS,
 )
 from harness.environments.webarena.topology import LOCAL_RECORDED_HOSTS, READ_ONLY_SITE_PORTS
+from harness.record_io import canonical_json_sha256, file_sha256
 from harness.trajectory_replay.retrieval_acceptance import digest as retrieval_digest
 from harness.trajectory_replay.retrieval_acceptance import validate_contract
 from harness.web_fetch.safety import unlinked_path, write_new_file
@@ -347,10 +348,6 @@ def validate_remote_cohort_reset_receipt(
     return value
 
 
-def file_sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def validate_method_identity(method_id: str, engine: str) -> None:
     if not isinstance(method_id, str) or not METHOD_ID.fullmatch(method_id):
         raise ValueError("method ID is not a safe stable identifier")
@@ -377,13 +374,7 @@ def checked_file_sha256(path: Path, label: str = "evidence") -> str:
     path = unlinked_path(path)
     if not path.is_file():
         raise ValueError(f"missing or symlinked {label}: {path}")
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def input_digest(value: Any) -> str:
-    return hashlib.sha256(
-        json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
-    ).hexdigest()
+    return file_sha256(path)
 
 
 def _read_frozen_input(path: Path) -> dict[str, Any]:
@@ -487,18 +478,19 @@ def freeze_method_inputs(
                 source_actions = _read_frozen_input(candidate_path)["tool_calls"]
         actions = rebind_remote_calls(source_actions, sites, set(LOCAL_RECORDED_HOSTS))
         if changed is not None and (
-            input_digest(actions) != changed["bound_calls_sha256"] or actions != changed["actions"]
+            canonical_json_sha256(actions) != changed["bound_calls_sha256"]
+            or actions != changed["actions"]
         ):
             raise ValueError(f"task {task_id}: qualified candidate remote actions changed")
         row = {
             "task_id": task_id,
-            "task_contract_sha256": input_digest(
+            "task_contract_sha256": canonical_json_sha256(
                 {"task": task["task"], "evaluation_input": task["evaluation_input"]}
             ),
             "source_actions": source_actions,
-            "source_calls_sha256": input_digest(source_actions),
+            "source_calls_sha256": canonical_json_sha256(source_actions),
             "actions": actions,
-            "bound_calls_sha256": input_digest(actions),
+            "bound_calls_sha256": canonical_json_sha256(actions),
             "readiness": changed["readiness"] if changed is not None else [],
         }
         if changed is not None:
@@ -622,7 +614,7 @@ def validate_candidate_revision(candidate: dict[str, Any]) -> None:
             )
         )
         or candidate["schema"] != "webarena_qualified_trajectory_revision/1"
-        or candidate["canonical_calls_sha256"] != input_digest(candidate["tool_calls"])
+        or candidate["canonical_calls_sha256"] != canonical_json_sha256(candidate["tool_calls"])
     ):
         raise ValueError("trajectory revision is unbound")
 
@@ -658,9 +650,9 @@ def validate_candidate_lineage(candidate: dict[str, Any], override: dict[str, An
         seen.add(index)
         calls[index - 1] = prior
     if "retrieval_contract" in parent:
-        parent["retrieval_contract"]["canonical_calls_sha256"] = input_digest(calls)
+        parent["retrieval_contract"]["canonical_calls_sha256"] = canonical_json_sha256(calls)
     elif parent.get("schema") == "webarena_qualified_trajectory_revision/1":
-        parent["canonical_calls_sha256"] = input_digest(calls)
+        parent["canonical_calls_sha256"] = canonical_json_sha256(calls)
     else:
         raise ValueError("unsupported candidate lineage payload")
     payload = (json.dumps(parent, ensure_ascii=False, indent=2) + "\n").encode()
@@ -773,7 +765,7 @@ def freeze_original_failure_inputs(
                 readiness.append({
                     "before_action": before_action,
                     "input": _candidate_trace_input(row),
-                    "input_sha256": input_digest(_candidate_trace_input(row)),
+                    "input_sha256": canonical_json_sha256(_candidate_trace_input(row)),
                 })
             elif role["role"] == "diagnostic_post_observer":
                 omitted_observers.append({
@@ -833,7 +825,9 @@ def freeze_original_failure_inputs(
                     )
                 ):
                     raise ValueError(f"task {task_id} action-scope override lacks paired proof")
-            if input_digest(candidate["tool_calls"]) == input_digest(source_calls):
+            if canonical_json_sha256(candidate["tool_calls"]) == canonical_json_sha256(
+                source_calls
+            ):
                 raise ValueError(f"task {task_id} candidate override has no input revision")
             source_calls = candidate["tool_calls"]
             source_revision = {
@@ -854,14 +848,14 @@ def freeze_original_failure_inputs(
             if UNREBOUND_SOURCE_HOST.search(json.dumps(bound_guard, ensure_ascii=False)):
                 raise ValueError(f"task {task_id} readiness retains a local source host")
             guard["source_input_sha256"] = guard.pop("input_sha256")
-            guard["bound_input_sha256"] = input_digest(bound_guard)
+            guard["bound_input_sha256"] = canonical_json_sha256(bound_guard)
             guard["input"] = bound_guard
         candidates.append({
             "task_id": task_id,
             "source_trace_sha256": task["action_evidence"]["sha256"],
-            "source_calls_sha256": input_digest(source_calls),
+            "source_calls_sha256": canonical_json_sha256(source_calls),
             "source_revision": source_revision,
-            "bound_calls_sha256": input_digest(bound_calls),
+            "bound_calls_sha256": canonical_json_sha256(bound_calls),
             "actions": bound_calls,
             "readiness": readiness,
             "omitted_diagnostic_observers": omitted_observers,

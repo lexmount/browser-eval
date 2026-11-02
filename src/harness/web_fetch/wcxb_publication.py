@@ -11,12 +11,12 @@ from urllib.parse import quote
 
 from lexbench_webfetch.paths import contained_path
 
+from harness.record_io import canonical_json_sha256, json_bytes
 from harness.reporting import links as report_links
 from harness.reporting.publication import (
     PublicationOperation,
     archive_inventory,
     atomic_write,
-    json_bytes,
     package_archive,
     public_share_context,
     snapshot_publication,
@@ -35,7 +35,7 @@ INVENTORY = 'public-files.json'
 def profile_digest(profile: dict) -> str:
     # Publication advances only the live target version, never the report inputs.
     binding = {key: value for key, value in profile.items() if key != 'artifact_hub_expected_version'}
-    return hashlib.sha256(json.dumps(binding, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+    return canonical_json_sha256(binding, ensure_ascii=True)
 
 
 def write_inventory(report: Path, profile: dict) -> None:

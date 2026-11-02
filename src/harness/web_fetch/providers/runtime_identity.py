@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import hashlib
 import json
 import os
 import re
@@ -10,9 +9,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+from harness.record_io import file_sha256
 
 
 def _command_executable(command: list[Any], repo: Path, resolve_token) -> Path | None:
@@ -101,7 +98,7 @@ def validate_runtime_identity(
         else:
             missing.append(f"required path outside runtime roots {raw}")
             continue
-        file_hashes[public_name] = _sha256(resolved)
+        file_hashes[public_name] = file_sha256(resolved)
 
     for source, deployed in identical_files:
         if not file_hashes.get(source) or file_hashes.get(source) != file_hashes.get(deployed):
@@ -123,7 +120,7 @@ def validate_runtime_identity(
             else:
                 if actual_node != expected_node:
                     missing.append(f"Node {expected_node}")
-                node = {"version": actual_node, "executable_sha256": _sha256(executable)}
+                node = {"version": actual_node, "executable_sha256": file_sha256(executable)}
 
     package_manager: dict[str, str] | None = None
     expected_package_manager = str(
@@ -155,7 +152,7 @@ def validate_runtime_identity(
                 package_manager = {
                     "name": str(config.get("package_manager_name", "pnpm")),
                     "version": actual_package_manager,
-                    "executable_sha256": _sha256(manager),
+                    "executable_sha256": file_sha256(manager),
                 }
 
     python: dict[str, Any] | None = None
@@ -188,7 +185,7 @@ def validate_runtime_identity(
                 if actual_libraries != expected_libraries:
                     missing.append("locked Python libraries")
                 python = {"version": actual_python,
-                          "executable_sha256": _sha256(executable),
+                          "executable_sha256": file_sha256(executable),
                           "libraries": actual_libraries}
 
     identity: dict[str, Any] = {"files_sha256": dict(sorted(file_hashes.items()))}

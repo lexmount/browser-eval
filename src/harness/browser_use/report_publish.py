@@ -12,6 +12,7 @@ import urllib.request
 from pathlib import Path
 from urllib.error import HTTPError
 
+from harness.record_io import file_sha256, json_bytes
 from harness.reporting.publication import (
     PublicationOperation,
     PublicationSnapshot,
@@ -19,7 +20,6 @@ from harness.reporting.publication import (
     atomic_write,
     bind_publication_files,
     binding_receipt_matches,
-    json_bytes,
     public_share_context,
     recover_binding,
     snapshot_publication,
@@ -35,14 +35,6 @@ PROFILE: Path | None = None
 OPERATION_JOURNAL = Path("publish/browser-use-artifact-site-operation-pending.json")
 BINDING_JOURNAL = Path("publish/browser-use-artifact-site-binding-pending.json")
 PUBLIC_REPORT_MARKER = "<title>首页 · Browser Use 评测</title>"
-
-
-def sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
 
 
 def tree_sha256(root: Path) -> str:
@@ -62,16 +54,16 @@ def validate_package() -> None:
     for path in evidence_paths:
         reject_evidence_symlinks(path)
     checks = {
-        "archive": sha256(ARCHIVE) == attestation.get("archive_sha256"),
+        "archive": file_sha256(ARCHIVE) == attestation.get("archive_sha256"),
         "report": report.is_dir() and tree_sha256(report) == attestation.get("report_tree_sha256"),
-        "profile": sha256(PROFILE) == attestation.get("profile_sha256"),
+        "profile": file_sha256(PROFILE) == attestation.get("profile_sha256"),
         "evidence": bool(evidence_paths)
         and set(expected_evidence) == {str(path) for path in evidence_paths}
         and all(
             path.is_dir()
             and set(expected_evidence[str(path)]) == required
             and all(
-                (path / name).is_file() and sha256(path / name) == digest
+                (path / name).is_file() and file_sha256(path / name) == digest
                 for name, digest in expected_evidence[str(path)].items()
             )
             for path in evidence_paths
@@ -155,7 +147,7 @@ def multipart_archive(
     archive = archive if archive is not None else ARCHIVE
     if not archive.is_file():
         raise ValueError(f"missing validated package: {ARCHIVE}")
-    seed = title.encode() + b"\0" + sha256(archive).encode()
+    seed = title.encode() + b"\0" + file_sha256(archive).encode()
     boundary = "----browseruse" + hashlib.sha256(seed).hexdigest()[:32]
     parts = []
     for key, value in (

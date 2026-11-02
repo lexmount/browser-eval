@@ -16,7 +16,7 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from harness.record_io import same_json_record
+from harness.record_io import file_sha256, same_json_record
 from harness.trajectory_replay.webarena_corrections import (
     apply_correction,
     evaluate_corrected_contract,
@@ -30,7 +30,7 @@ def _diagnostic_digest(path: Path) -> str:
     source = unlinked_path(path)
     if not source.is_file():
         raise ValueError("diagnostic input must be a regular file")
-    return hashlib.sha256(source.read_bytes()).hexdigest()
+    return file_sha256(source)
 
 
 def _diagnostic_snapshot(paths) -> dict[Path, str]:

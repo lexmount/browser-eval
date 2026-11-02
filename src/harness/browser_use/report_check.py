@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 from collections import Counter
@@ -17,9 +16,6 @@ from harness.browser_use.failure_cause_review import (
 )
 from harness.browser_use.failure_cause_review import (
     review_path as failure_review_path,
-)
-from harness.browser_use.failure_cause_review import (
-    sha256 as file_sha256,
 )
 from harness.browser_use.publication import evidence_metadata
 from harness.browser_use.report import (
@@ -36,7 +32,7 @@ from harness.browser_use.report import (
 from harness.browser_use.selection import load_pilot, report_selection_path
 from harness.distribution import repository_root
 from harness.environments.webarena.topology import known_site_secrets
-from harness.record_io import load_jsonl
+from harness.record_io import file_sha256, load_jsonl, optional_file_sha256
 from harness.report_languages import check_language_contract, generated_languages
 from harness.reporting.assets import bound_json_asset
 from harness.reporting.presentation import visible_text as _visible_text
@@ -84,10 +80,6 @@ def _check_reader_facing_ux(report_dir: Path, rendered_pages: dict[Path, str]) -
         text = rendered_pages[homepage]
         if not re.search(r'<table\b[^>]*\bid=["\']home-core-metrics["\']', text, flags=re.I):
             raise ValueError(f"report home page is missing the core metrics table: {homepage}")
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _check_execution_artifacts(
@@ -185,7 +177,7 @@ def _check_execution_artifacts(
                 expected_files.add(path)
                 if not path.is_file():
                     raise ValueError(f"missing physical execution artifact: {path}")
-                if artifact.get("sha256") != _sha256(path):
+                if artifact.get("sha256") != file_sha256(path):
                     raise ValueError(f"physical execution artifact hash differs: {path}")
                 if (
                     f'href="{relative.as_posix()}"' not in detail_text
@@ -225,7 +217,7 @@ def _check_execution_artifacts(
                 if path.suffix.lower() not in {".jpeg", ".jpg", ".png"}:
                     raise ValueError(f"unsafe screenshot type: {relative}")
                 expected_files.add(path)
-                if not path.is_file() or screenshot.get("sha256") != _sha256(path):
+                if not path.is_file() or screenshot.get("sha256") != file_sha256(path):
                     raise ValueError(f"trace frame binding differs: {relative}")
                 from PIL import Image
 
@@ -388,7 +380,7 @@ def check(
         if (
             dataset_path.is_symlink()
             or not dataset_path.is_file()
-            or _sha256(dataset_path) != frozen.get("sha256")
+            or file_sha256(dataset_path) != frozen.get("sha256")
             or frozen.get("sha256") != profile.get("official_data_checksum")
         ):
             raise ValueError("Frozen official dataset differs from the instance profile")
@@ -399,7 +391,9 @@ def check(
     cause_path = failure_review_path(profile, authority_root=repository)
     if require_complete and cause_profile.get("required_for_publication"):
         configured_hash = cause_profile.get("source_sha256")
-        if not isinstance(configured_hash, str) or configured_hash != file_sha256(cause_path):
+        if not isinstance(configured_hash, str) or configured_hash != optional_file_sha256(
+            cause_path
+        ):
             raise ValueError("current profile is not bound to the failure-cause review")
     _configure_engine_labels(profile)
     _configure_models(profile)
@@ -489,7 +483,7 @@ def check(
     check_build_version(report_dir, audit)
     if audit.get("profile_sha256") and audit.get("template") != template_identity("browser-use"):
         raise ValueError("report bypasses the maintained Browser Use template")
-    if audit.get("profile_sha256") and audit["profile_sha256"] != _sha256(profile_path):
+    if audit.get("profile_sha256") and audit["profile_sha256"] != file_sha256(profile_path):
         raise ValueError("report was built from a different instance profile")
     if audit.get("selection_sha256") != selection.sha256:
         raise ValueError("report was not built from the current pre-registered selection")
@@ -830,9 +824,9 @@ def check(
                 raise ValueError("complete publication requires result-review.json per model")
             bundle_review = bundle["review"]
             bindings = bundle_review.get("bindings") or {}
-            if bindings.get("attempts_sha256") != _sha256(attempts_path):
+            if bindings.get("attempts_sha256") != file_sha256(attempts_path):
                 raise ValueError(f"result review is not bound to current attempts: {model}")
-            if bindings.get("manifest_sha256") != _sha256(manifest_path):
+            if bindings.get("manifest_sha256") != file_sha256(manifest_path):
                 raise ValueError(f"result review is not bound to current manifest: {model}")
             if bindings.get("selection_sha256") != selection.sha256:
                 raise ValueError("result review is not bound to the registered selection")
@@ -894,7 +888,9 @@ def check(
             if set(verified_causes) != failed_result_ids:
                 raise ValueError("every failed logical result must have a verified root cause")
             configured_hash = cause_profile.get("source_sha256")
-            if not isinstance(configured_hash, str) or configured_hash != file_sha256(cause_path):
+            if not isinstance(configured_hash, str) or configured_hash != optional_file_sha256(
+                cause_path
+            ):
                 raise ValueError("current profile is not bound to the failure-cause review")
         published_cause_review = json.loads(
             (report_dir / "data/failure-cause-review.json").read_text(encoding="utf-8")

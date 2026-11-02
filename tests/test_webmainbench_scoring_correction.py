@@ -4,9 +4,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from harness.record_io import canonical_json_sha256
 from harness.web_fetch.webmainbench_correction import (
     CONTROL_IDS,
-    json_digest,
     prepare_correction_source,
     regression_registry_path,
     validate_correction_authority,
@@ -125,8 +125,8 @@ class WebMainBenchScoringCorrectionTests(unittest.TestCase):
                "groundtruth_content": "corrected", "meta": {"code": []}}
         binding = {
             "row_count": 1,
-            "ordered_track_ids_sha256": json_digest(["case"]),
-            "rows_sha256": json_digest([row]),
+            "ordered_track_ids_sha256": canonical_json_sha256(["case"]),
+            "rows_sha256": canonical_json_sha256([row]),
         }
         manifest = {
             "schema_version": 3,

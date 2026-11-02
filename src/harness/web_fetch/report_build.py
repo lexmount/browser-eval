@@ -1053,7 +1053,8 @@ def public_webmainbench_scoring_projection(records: list[dict]) -> list[dict]:
 
 def build_webmainbench_full_report(source: Path, output: Path, *, authority_root: Path | None = None) -> Path:
     """Build the separately bound complete 545-case report from certified evidence."""
-    from harness.web_fetch.webmainbench_evidence import digest, read_jsonl
+    from harness.web_fetch.webmainbench_evidence import read_jsonl
+    from harness.record_io import file_sha256
 
     if source.is_symlink() or any(path.is_symlink() for path in source.rglob('*')):
         raise ValueError('Symlinked report evidence is forbidden')
@@ -1065,12 +1066,12 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
     certificate = json.loads((source / 'cohort-certificate.json').read_text(encoding='utf-8'))
     scoring_certificate = json.loads((source / 'scoring-certificate.json').read_text(encoding='utf-8'))
     if (certificate.get('kind') != 'certified_webmainbench_545_full_v1'
-            or certificate.get('profile_sha256') != digest(profile_path)
+            or certificate.get('profile_sha256') != file_sha256(profile_path)
             or certificate.get('preflight') != certificate.get('postflight')
             or json.loads((source / 'current-report.json').read_text(encoding='utf-8')) != profile):
         raise ValueError('Full-cohort certificate or profile mismatch')
     if (scoring_certificate.get('kind') != 'certified_webmainbench_scoring_v1'
-            or scoring_certificate.get('cohort_certificate_sha256') != digest(source / 'cohort-certificate.json')
+            or scoring_certificate.get('cohort_certificate_sha256') != file_sha256(source / 'cohort-certificate.json')
             or scoring_certificate.get('source_binding') != certificate['postflight']):
         raise ValueError('Complete scoring certificate mismatch')
     dataset = json.loads((source / 'dataset.json').read_text(encoding='utf-8'))
@@ -1086,13 +1087,13 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
     variants = registry.get('variants', [])
     bound_variants = {item['provider']: item for item in method_binding.get('variants', [])}
     if (method_binding.get('kind') not in {'webmainbench_seven_method_full_scope_binding', 'webmainbench_method_cohort_binding'}
-            or method_binding.get('registry_sha256') != digest(registry_path)
-            or method_binding.get('baseline_profile_sha256') != digest(profile_path)
-            or method_binding.get('baseline_certificate_sha256') != digest(source / 'cohort-certificate.json')
+            or method_binding.get('registry_sha256') != file_sha256(registry_path)
+            or method_binding.get('baseline_profile_sha256') != file_sha256(profile_path)
+            or method_binding.get('baseline_certificate_sha256') != file_sha256(source / 'cohort-certificate.json')
             or method_binding.get('results_sha256') != (
                 teds_receipt.get('input_results_sha256') if teds_receipt
                 else scoring_receipt.get('input_results_sha256') if scoring_receipt else None)
-            or (teds_receipt is not None and teds_receipt.get('output_results_sha256') != digest(
+            or (teds_receipt is not None and teds_receipt.get('output_results_sha256') != file_sha256(
                 source / ('pre-reference-correction-results.jsonl'
                           if (source / 'reference-correction.json').is_file()
                           else 'pre-scoring-correction-results.jsonl'
@@ -1111,11 +1112,11 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
         cert = json.loads(cert_path.read_text(encoding='utf-8'))
         version = variant_profile.get('versions', {}).get('moli')
         if (not isinstance(version, str) or not version.strip()
-                or bound.get('profile_sha256') != digest(profile_path_variant)
-                or bound.get('cohort_certificate_sha256') != digest(cert_path)
-                or bound.get('scoring_certificate_sha256') != digest(scoring_path)
+                or bound.get('profile_sha256') != file_sha256(profile_path_variant)
+                or bound.get('cohort_certificate_sha256') != file_sha256(cert_path)
+                or bound.get('scoring_certificate_sha256') != file_sha256(scoring_path)
                 or cert.get('preflight') != cert.get('postflight')
-                or cert.get('profile_sha256') != digest(profile_path_variant)
+                or cert.get('profile_sha256') != file_sha256(profile_path_variant)
                 or cert.get('binary_source_commit') != variant_profile['source_commit']
                 or cert.get('measured_binary_sha256') != variant_profile['binary_sha256']):
             raise ValueError('Moli repair variant was not certified: ' + provider)
@@ -1142,7 +1143,7 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
     failure_binding_path = authority_root / 'evaluation/webmainbench-full/failure-analysis-binding.json'
     failure_binding = json.loads(failure_binding_path.read_text(encoding='utf-8'))
     failure_path = data_home() / 'report-assets/webmainbench-full' / failure_binding['relative_path']
-    if digest(failure_path) != failure_binding['sha256']:
+    if file_sha256(failure_path) != failure_binding['sha256']:
         raise ValueError('Failure analysis differs from the compact review binding')
     failure_analysis = json.loads(failure_path.read_text(encoding='utf-8'))
     correction_binding_path = profile_path.parent / 'case-correction-binding.json'
@@ -1151,21 +1152,21 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
     if correction_binding_path.exists():
         correction_binding = json.loads(correction_binding_path.read_text())
         correction_root = data_home() / correction_binding['relative_path']
-        if digest(correction_root / 'certificate.json') != correction_binding['sha256']:
+        if file_sha256(correction_root / 'certificate.json') != correction_binding['sha256']:
             raise ValueError('Case correction differs from bound certificate')
         # The origin correction was certified against the raw seven-method matrix.
         # Later score-only TEDS/reference revisions preserve those provider bytes.
         case_correction_results_path = source / 'original-results.jsonl'
         case_correction_records = read_jsonl(case_correction_results_path)
         _, corrected_rows, _ = validate_case_correction(
-            correction_root, case_correction_records, digest(case_correction_results_path)
+            correction_root, case_correction_records, file_sha256(case_correction_results_path)
         )
         corrected_keys = {(r['provider'], r['case_id']) for r in corrected_rows}
     failures = {(row['provider'], row['case_id']) for row in records
                 if webmainbench_full_machine_issue(source, row)} - corrected_keys
     reviewed = {(row['provider'], row['case_id']) for row in failure_analysis['reviewed_failures']}
     if (failure_analysis.get('kind') != 'webmainbench_full_failure_analysis_v1'
-            or failure_analysis.get('cohort_certificate_sha256') != digest(source / 'cohort-certificate.json')
+            or failure_analysis.get('cohort_certificate_sha256') != file_sha256(source / 'cohort-certificate.json')
             or reviewed != {item for item in failures if item[0] not in variant_labels}
             or len(reviewed) != len(failure_analysis['reviewed_failures'])
             or any(not all(isinstance(row.get(key), str) and row[key].strip()
@@ -1173,12 +1174,12 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
                    for row in failure_analysis['reviewed_failures'])):
         raise ValueError('Failure analysis does not cover every measured request failure')
     for case_id, case in cases.items():
-        if digest(contained_path(source, f'references/{case_id}.md')) != case['reference_sha256']:
+        if file_sha256(contained_path(source, f'references/{case_id}.md')) != case['reference_sha256']:
             raise ValueError('Reference changed: ' + case_id)
-        if digest(contained_path(source, f'sources/{case_id}.html.txt')) != case['input_html_sha256']:
+        if file_sha256(contained_path(source, f'sources/{case_id}.html.txt')) != case['input_html_sha256']:
             raise ValueError('Frozen page changed: ' + case_id)
     for row in records:
-        if digest(contained_path(source, row['artifact_path'])) != row['output_sha256']:
+        if file_sha256(contained_path(source, row['artifact_path'])) != row['output_sha256']:
             raise ValueError('Output changed: ' + row['attempt_id'])
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix='.webmainbench-full-build-', dir=output.parent))
@@ -1217,7 +1218,7 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
             records, summaries = apply_case_correction(
                 correction_root, staging, records, summaries,
                 validation_rows=raw_records,
-                expected_parent=digest(source / 'original-results.jsonl'),
+                expected_parent=file_sha256(source / 'original-results.jsonl'),
             )
             case_scoring_receipt = correction_root / 'scoring-correction.json'
             if case_scoring_receipt.is_file():
@@ -1230,7 +1231,7 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
         if correction_root:
             case_receipt_path = staging / 'case-correction.json'
             case_receipt = json.loads(case_receipt_path.read_text(encoding='utf-8'))
-            case_receipt['current_results_sha256'] = digest(staging / 'results.jsonl')
+            case_receipt['current_results_sha256'] = file_sha256(staging / 'results.jsonl')
             case_receipt_path.write_text(
                 json.dumps(case_receipt, ensure_ascii=False, indent=2) + '\n', encoding='utf-8'
             )
@@ -1239,7 +1240,7 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
             (staging / 'assets').mkdir(exist_ok=True)
             for asset in json.loads(illustration_binding.read_text())['assets']:
                 asset_source = data_home() / 'report-assets/webmainbench-full' / asset['name']
-                if digest(asset_source) != asset['sha256']:
+                if file_sha256(asset_source) != asset['sha256']:
                     raise ValueError('Report illustration changed: ' + asset['name'])
                 shutil.copy2(asset_source, staging / 'assets' / asset['name'])
         generate_webmainbench_full(staging, dataset, records,

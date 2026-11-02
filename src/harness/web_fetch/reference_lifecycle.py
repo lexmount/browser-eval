@@ -20,7 +20,7 @@ from lexbench_webfetch.paths import contained_path, safe_identifier
 from lexbench_webfetch.scoring_regressions import valid_correction_provenance
 from lexbench_webfetch.stable_tasks import validate_acceptance_contract
 
-from harness.record_io import file_sha256, load_jsonl, parse_jsonl
+from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl, parse_jsonl
 from harness.web_fetch.native_routes import verify_native_execution_manifests
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.render_evidence import content_requirement_errors, validate_render_reference
@@ -101,8 +101,7 @@ def sha256(value: str | bytes) -> str:
 
 def scoring_revision_history_sha256(rows) -> str:
     """Hash prior receipts canonically so an assembled receipt forms a verifiable chain."""
-    payload = json.dumps(rows, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
-    return sha256(payload)
+    return canonical_json_sha256(rows)
 
 
 def timestamp(value) -> datetime:

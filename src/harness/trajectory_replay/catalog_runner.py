@@ -19,12 +19,12 @@ from urllib.parse import quote, urlsplit
 
 from harness.env_file import parse_env_file
 from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
+from harness.record_io import file_sha256
 from harness.trajectory_replay.catalog_contracts import (
     RUN_SCHEMA,
     apply_action_overrides,
     catalog_action_overrides,
     completed_task_ids,
-    file_sha256,
     load_catalog_inputs,
     repository_root,
     row_source_sites,

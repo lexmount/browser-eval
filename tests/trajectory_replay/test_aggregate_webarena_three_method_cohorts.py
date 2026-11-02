@@ -7,11 +7,9 @@ from pathlib import Path
 
 import pytest
 
+from harness.record_io import canonical_json_sha256
 from harness.trajectory_replay.remote_runtime import (
     checked_file_sha256 as _sha,
-)
-from harness.trajectory_replay.remote_runtime import (
-    input_digest as _digest,
 )
 from harness.trajectory_replay.webarena_results import aggregate_method_cohorts, main_aggregate
 
@@ -118,11 +116,11 @@ def _fixture(root: Path, *, reverse_inventory: bool = False, method_names=None) 
         result_rows = []
         for i in ids:
             actions = [{"action": "click", "selector": f"#{i}"}]
-            action_sha = _digest(actions)
+            action_sha = canonical_json_sha256(actions)
             manifest_rows.append(
                 {
                     "task_id": i,
-                    "task_contract_sha256": _digest(
+                    "task_contract_sha256": canonical_json_sha256(
                         {
                             "task": dataset_by_id[i]["task"],
                             "evaluation_input": dataset_by_id[i]["evaluation_input"],
@@ -181,7 +179,7 @@ def _fixture(root: Path, *, reverse_inventory: bool = False, method_names=None) 
                 "site_reset_between_tasks": False,
             },
         )
-        reset_sha = _digest({"reset_hook": name})
+        reset_sha = canonical_json_sha256({"reset_hook": name})
         reference_hashes = {
             "manifest": _sha(manifest),
             "frozen_trajectories": _sha(dataset),

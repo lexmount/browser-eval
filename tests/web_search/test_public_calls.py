@@ -4,7 +4,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_search.core import digest, request_cost
+from harness.record_io import bytes_sha256
+from harness.web_search.core import request_cost
 from harness.web_search.report import public_calls
 
 
@@ -14,7 +15,7 @@ class PublicCallScenarios(unittest.TestCase):
             root = Path(tmp)
             raw = b'{"status_code":502,"body":"upstream failure"}'
             (root / "response.json").write_bytes(raw)
-            evidence = {"path": "response.json", "sha256": digest(raw)}
+            evidence = {"path": "response.json", "sha256": bytes_sha256(raw)}
             method = {"id": "search", "price_per_1000": 5, "billing": "http-200"}
             for cost in (0, None, .002):
                 with self.subTest(cost=cost):
@@ -40,7 +41,7 @@ class PublicCallScenarios(unittest.TestCase):
             value = json.loads(path.read_text())
             value["leaked_link"] = "https://reader:private-secret@example.org"
             path.write_text(json.dumps(value))
-            binding["sha256"] = digest(path.read_bytes())
+            binding["sha256"] = bytes_sha256(path.read_bytes())
             manifest_path.write_text(json.dumps(manifest))
             with self.assertRaisesRegex(ValueError, "Public evidence contains URL credentials"):
                 check(output)
@@ -52,7 +53,7 @@ class PublicCallScenarios(unittest.TestCase):
             raw = b'{"results":[{"url":"https://reader:private-secret@example.org/paper"}]}'
             path = root / 'calls/one.json'
             path.write_bytes(raw)
-            evidence = {'path': 'calls/one.json', 'sha256': digest(raw)}
+            evidence = {'path': 'calls/one.json', 'sha256': bytes_sha256(raw)}
             method = {'id': 'search', 'price_per_1000': 5, 'billing': 'http-200-nonempty'}
             rows = [{'method': 'search', 'evidence': evidence, 'results': [], 'error': 'unsafe URL',
                      'cost': 0, 'elapsed_ms': 50, 'attempts': [{'http_status': 200, 'transport_exit': 0,
@@ -67,7 +68,7 @@ class PublicCallScenarios(unittest.TestCase):
             self.assertEqual(output[0]['error'], 'unsafe URL')
             self.assertEqual(output[0]['elapsed_ms'], 50)
             self.assertEqual(output[0]['cost'], .005)
-            self.assertEqual(redactions[0]['original_sha256'], digest(raw))
+            self.assertEqual(redactions[0]['original_sha256'], bytes_sha256(raw))
             self.assertEqual(changes[0]['original_cost'], 0)
             self.assertEqual(output[0]['evidence'], output[0]['attempts'][-1]['evidence'])
 

@@ -3,26 +3,29 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
 from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
-from harness.record_io import load_jsonl
+from harness.record_io import (
+    bytes_sha256,
+    canonical_json_sha256,
+    file_sha256,
+    json_bytes,
+    load_jsonl,
+)
 from harness.trajectory_replay.catalog_contracts import (
     ACCEPTANCE_SCHEMAS,
     ACTION_OVERRIDES_SCHEMA,
     CATALOG_SCHEMA,
     apply_action_overrides,
     catalog_action_overrides,
-    file_sha256,
     load_action_overrides,
     load_catalog_inputs,
     row_source_sites,
 )
 from harness.trajectory_replay.public_webarena.suite import load_suite
 from harness.trajectory_replay.remote_runtime import load_remote_sites, rebind_remote_calls
-from harness.trajectory_replay.webarena_replay import _json_sha256
 from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
 
 
@@ -226,7 +229,7 @@ def consolidate(
         actions = apply_action_overrides(actions, source_amendments, task_id=task_id)
         source_sites = row_source_sites(source_catalog, source_row)
         run_sites = load_remote_sites(files[binding["site_map_sha256"]])
-        old_digest = _json_sha256(
+        old_digest = canonical_json_sha256(
             rebind_remote_calls(actions, run_sites, set(TRUSTED_RECORDED_HOSTS), source_sites)
         )
         progress_rows = load_jsonl(runs[run_digest] / "progress.jsonl")
@@ -241,13 +244,13 @@ def consolidate(
             row["action_overrides"] = {
                 "schema": ACTION_OVERRIDES_SCHEMA,
                 "source_sha256": target_override_sha256,
-                "amendments_sha256": _json_sha256(target_amendments),
+                "amendments_sha256": canonical_json_sha256(target_amendments),
                 "amendments": target_amendments,
             }
         else:
             row.pop("action_overrides", None)
         row["source_site_urls"] = {site.value: url for site, url in rebind_sources.items()}
-        row["bound_calls_sha256"] = _json_sha256(
+        row["bound_calls_sha256"] = canonical_json_sha256(
             rebind_remote_calls(actions, target_sites, set(TRUSTED_RECORDED_HOSTS), rebind_sources)
         )
         row["accepted_progress_sha256"] = run_digest
@@ -281,8 +284,7 @@ def consolidate(
 
 
 def _json_file_sha256(value: object) -> str:
-    payload = json.dumps(value, ensure_ascii=False, indent=2) + "\n"
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    return bytes_sha256(json_bytes(value))
 
 
 def main() -> None:

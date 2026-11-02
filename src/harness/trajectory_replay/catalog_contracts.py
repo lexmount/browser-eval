@@ -11,16 +11,11 @@ from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 from webarena_verified.types.task import WebArenaSite
 
 from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
-from harness.record_io import load_jsonl
+from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl
 from harness.trajectory_replay.public_webarena.suite import load_suite
-from harness.trajectory_replay.remote_runtime import (
-    file_sha256,
-    load_remote_sites,
-    rebind_remote_calls,
-)
+from harness.trajectory_replay.remote_runtime import load_remote_sites, rebind_remote_calls
 from harness.trajectory_replay.retrieval_acceptance import validate_contract
 from harness.trajectory_replay.webarena_corrections import apply_correction
-from harness.trajectory_replay.webarena_replay import _json_sha256
 
 CATALOG_SCHEMA = "lex_webarena_replay_catalog/1"
 CATALOG_SCHEMAS = frozenset({CATALOG_SCHEMA, "lex_webarena_full_replay_catalog/1"})
@@ -216,7 +211,7 @@ def apply_action_overrides(
         if index >= len(result):
             raise ValueError(f"task {task_id}: action override index is outside the trajectory")
         original = actions[index]
-        if _json_sha256(original) != amendment["precondition_action_sha256"]:
+        if canonical_json_sha256(original) != amendment["precondition_action_sha256"]:
             raise ValueError(f"task {task_id}: action override precondition changed")
         if {"script", "script_mode"} & set(amendment["set"]) and original.get(
             "action"
@@ -260,7 +255,7 @@ def catalog_action_overrides(catalog: dict, row: dict) -> list[dict]:
     ):
         raise ValueError(f"task {row.get('task_id')}: action override provenance is invalid")
     amendments = _validate_action_amendments(provenance["amendments"])
-    if not amendments or _json_sha256(amendments) != provenance["amendments_sha256"]:
+    if not amendments or canonical_json_sha256(amendments) != provenance["amendments_sha256"]:
         raise ValueError(f"task {row.get('task_id')}: action override provenance changed")
     return amendments
 
@@ -328,7 +323,7 @@ def load_catalog_inputs(
         bound = rebind_remote_calls(
             actions, sites, set(TRUSTED_RECORDED_HOSTS), row_source_sites(catalog, row)
         )
-        if _json_sha256(bound) != row.get("bound_calls_sha256"):
+        if canonical_json_sha256(bound) != row.get("bound_calls_sha256"):
             raise ValueError(f"task {task_id}: bound actions changed")
         if "recorded_response" in row:
             raise ValueError("recorded answers cannot enter a replay catalog")

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 from collections import Counter
 from dataclasses import dataclass
@@ -12,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from harness.distribution import repository_root
+from harness.record_io import file_sha256
 from harness.web_fetch.safety import unlinked_path
 from lexbench_webfetch.paths import contained_path
 
@@ -37,10 +37,6 @@ class PilotSelection:
     source_path: Path
     sha256: str
     metadata: dict[str, Any]
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _json_equal(left: Any, right: Any) -> bool:
@@ -240,7 +236,7 @@ def load_pilot(path: str | Path) -> PilotSelection:
         low, high = TIER_BOUNDS[task.tier]
         if task.estimated_min_steps < low or (high is not None and task.estimated_min_steps > high):
             raise ValueError(f"task {task.task_id}: step estimate is outside {task.tier}")
-    return PilotSelection(tasks, source, _sha256(source), metadata)
+    return PilotSelection(tasks, source, file_sha256(source), metadata)
 
 
 def validate_against_official(
@@ -343,7 +339,7 @@ def report_selection_path(
     path = (unlinked_path(path) if path.is_absolute() else
             contained_path(root, str(path), reject_symlinks=True))
     if binding and (
-        _sha256(path) != binding.get("sha256")
+        file_sha256(path) != binding.get("sha256")
         or binding["sha256"] != profile.get("selection_sha256")
     ):
         raise ValueError("report selection differs from its instance profile")

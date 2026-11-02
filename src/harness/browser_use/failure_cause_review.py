@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -15,10 +14,6 @@ LAYERED_REVIEW_SCHEMA = "lex_browser_use_layered_failure_cause_review/2"
 DEFAULT_REVIEW_PATH = (
     repository_root() / "research/browser-use-failure-cause-review.json"
 )
-
-
-def sha256(path: Path) -> str | None:
-    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
 
 def review_path(profile: dict[str, Any], *, authority_root: Path | None = None) -> Path:

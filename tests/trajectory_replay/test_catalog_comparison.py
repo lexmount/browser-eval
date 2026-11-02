@@ -6,9 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from harness.record_io import canonical_json_sha256, file_sha256
 from harness.trajectory_replay import catalog_comparison
-from harness.trajectory_replay.catalog_contracts import file_sha256
-from harness.trajectory_replay.webarena_replay import _json_sha256
 
 
 def _write(path: Path, value: object) -> str:
@@ -34,7 +33,7 @@ def test_catalog_dataset_uses_the_executed_catalog_actions(monkeypatch, tmp_path
                 "source_kind": "reviewed",
                 "source_actions": actions,
                 "source_site_urls": {},
-                "bound_calls_sha256": _json_sha256(actions),
+                "bound_calls_sha256": canonical_json_sha256(actions),
             }
         ]
     }
@@ -127,7 +126,7 @@ def _participant_fixture(
             "action_count": 1,
             "completed_actions": 0 if error else 1,
             "duration_ms": 10 + task_id,
-            "executed_actions_sha256": _json_sha256([action]),
+            "executed_actions_sha256": canonical_json_sha256([action]),
             "error": error,
             **(
                 {"failure_stage": specification["failure_stage"]}
@@ -477,7 +476,7 @@ def test_comparison_rejected_results_leave_no_partial_dataset(tmp_path, monkeypa
     dataset, results = tmp_path / "dataset.json", tmp_path / "results.json"
     monkeypatch.setattr(catalog_comparison, "build_catalog_comparison_dataset",
                         lambda **kwargs: {"trajectories": []})
-    monkeypatch.setattr("harness.trajectory_replay.catalog_contracts.file_sha256",
+    monkeypatch.setattr(catalog_comparison, "file_sha256",
                         lambda path: "a" * 64)
 
     def reject(**kwargs):

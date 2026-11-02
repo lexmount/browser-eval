@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 from collections import defaultdict
 from functools import lru_cache
@@ -13,6 +12,7 @@ from typing import Any
 
 from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 
+from harness.record_io import canonical_json_sha256, file_sha256, read_json
 from harness.trajectory_replay.retrieval_acceptance import (
     digest,
     require_current_retrieval,
@@ -284,14 +284,14 @@ def _validate_passing_attempt_evidence(
     for kind in ("trace", "network_har", "evaluation"):
         item = evidence.get(kind) or {}
         path = Path(str(item.get("path") or "")).expanduser().resolve()
-        if not path.is_file() or _sha256(path) != item.get("sha256"):
+        if not path.is_file() or file_sha256(path) != item.get("sha256"):
             raise ValueError(
                 f"passing replay attempt has missing or changed {kind} evidence: "
                 f"{attempt.get('engine')}/task-{attempt.get('task_id')}"
             )
         paths[kind] = path
 
-    if attempt.get("source_tool_calls_sha256") != _json_sha256(candidate["tool_calls"]):
+    if attempt.get("source_tool_calls_sha256") != canonical_json_sha256(candidate["tool_calls"]):
         raise ValueError("passing replay attempt is not bound to the canonical tool calls")
     source_site_hosts = replay_site_hosts(candidate["tool_calls"])
     if (
@@ -313,22 +313,24 @@ def _validate_passing_attempt_evidence(
             candidate["tool_calls"],
             expected_data_checksum=expected_data_checksum,
         )
-    elif attempt.get("evaluation_input_sha256") != _json_sha256(candidate["recorded_response"]):
+    elif attempt.get("evaluation_input_sha256") != canonical_json_sha256(
+        candidate["recorded_response"]
+    ):
         raise ValueError("passing replay attempt is not bound to the canonical evaluator input")
 
-    trace = _read_json(paths["trace"])
+    trace = read_json(paths["trace"])
     trace_arguments = [item.get("arguments") for item in trace] if isinstance(trace, list) else []
     if (
         len(trace_arguments) != int(candidate["action_count"])
         or any(item.get("status") != "success" for item in trace)
-        or attempt.get("executed_tool_calls_sha256") != _json_sha256(trace_arguments)
+        or attempt.get("executed_tool_calls_sha256") != canonical_json_sha256(trace_arguments)
         or attempt.get("replay_calls_binding_sha256")
         != replay_calls_binding_sha256(trace_arguments, allowed_hosts={runtime_site_host})
     ):
         raise ValueError("passing replay trace does not prove every executed action")
     _validate_observations(trace)
 
-    network_har = _read_json(paths["network_har"])
+    network_har = read_json(paths["network_har"])
     if not isinstance(network_har, dict) or not isinstance(
         (network_har.get("log") or {}).get("entries"), list
     ):
@@ -341,7 +343,7 @@ def _validate_passing_attempt_evidence(
             raise ValueError("observed state cannot also apply a legacy replay correction")
         verify_state_attempt(attempt, state_contract)
         return
-    evaluation = _read_json(paths["evaluation"])
+    evaluation = read_json(paths["evaluation"])
     task_id = int(attempt["task_id"])
     expected_evaluators = _official_evaluator_names().get(task_id)
     correction = _effective_correction_bindings().get(task_id)
@@ -399,19 +401,6 @@ def _has_stale_correction_binding(attempt: dict[str, Any], task_id: int) -> bool
     return correction is not None and actual != correction[:3]
 
 
-def _read_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _json_sha256(value: Any) -> str:
-    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(payload.encode()).hexdigest()
-
-
 def _candidate_source(candidate: dict[str, Any]) -> dict[str, Any]:
     source = candidate.get("source") or {}
     if candidate.get("candidate_kind") == "expert_repair":
@@ -444,8 +433,8 @@ def build_verified_trajectory_dataset(
     """Return trajectories qualified before the measured browser comparison."""
 
     seed_path = Path(seed_manifest_path).expanduser().resolve()
-    seed_sha256 = _sha256(seed_path)
-    seeds = _read_json(seed_path)
+    seed_sha256 = file_sha256(seed_path)
+    seeds = read_json(seed_path)
     if seeds.get("schema") != "lex_browser_use_replay_seeds/2":
         raise ValueError("unsupported replay seed manifest")
     seed_rows = seeds.get("tasks") or []
@@ -465,7 +454,7 @@ def build_verified_trajectory_dataset(
     receipts: list[dict[str, str]] = []
     for raw_path in replay_receipt_paths:
         receipt_path = Path(raw_path).expanduser().resolve()
-        receipt = _read_json(receipt_path)
+        receipt = read_json(receipt_path)
         _validate_qualification_receipt(
             receipt,
             receipt_path=receipt_path,
@@ -476,7 +465,7 @@ def build_verified_trajectory_dataset(
         )
         receipts.append(
             {
-                "sha256": _sha256(receipt_path),
+                "sha256": file_sha256(receipt_path),
                 "source_seed_manifest_sha256": str(
                     receipt.get("source_seed_manifest_sha256") or ""
                 ),

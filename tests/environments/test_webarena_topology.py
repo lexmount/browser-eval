@@ -12,10 +12,10 @@ from webarena_verified.types.task import WebArenaSite
 from harness.browser_use.publication import sanitize, sanitize_text
 from harness.environments.webarena import runtime, topology
 from harness.environments.webarena.config import SITES, verify_deployment_contract
+from harness.record_io import canonical_json_sha256
 from harness.trajectory_replay import remote_runtime
 from harness.trajectory_replay.public_webarena import webarena_environment
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
-from harness.trajectory_replay.webarena_replay import _json_sha256
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -138,7 +138,7 @@ def test_frozen_bound_calls_digest_is_unchanged() -> None:
     )
 
     assert current == frozen
-    assert _json_sha256(current) == FROZEN_BOUND_CALLS_SHA256
+    assert canonical_json_sha256(current) == FROZEN_BOUND_CALLS_SHA256
     assert current[0]["url"] == "https://reddit.remote.test/f/DIY"
     assert current[-1]["url"] == "http://untrusted.test:7770/"
 
@@ -148,7 +148,7 @@ def test_bound_calls_digest_detects_a_missing_recording_gateway() -> None:
     rebound = rebind_remote_calls(RECORDED_CALLS, REMOTE_SITES, without_gateway)
 
     assert rebound[0]["url"] == "http://192.168.5.2:9999/f/DIY"
-    assert _json_sha256(rebound) != FROZEN_BOUND_CALLS_SHA256
+    assert canonical_json_sha256(rebound) != FROZEN_BOUND_CALLS_SHA256
 
 
 def _frozen_sanitize_text(value: str) -> str:

@@ -2,28 +2,19 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
-from harness.record_io import load_jsonl
+from harness.record_io import file_sha256, load_jsonl, read_json
 
 SCHEMA = "lex_browser_use_replay_seeds/2"
 
 _REF_ACTIONS = {"click", "fill", "select"}
 _NODE_RE = re.compile(r"^(?P<indent>\s*)\[(?P<ref>\d+)\]\s+(?P<tag>[a-zA-Z][\w-]*)(?P<body>.*)$")
 _ATTR_RE = re.compile(r'(?P<name>[A-Za-z][\w-]*)="(?P<value>(?:[^"\\]|\\.)*)"')
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _read_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _contains_ref(value: Any) -> bool:
@@ -176,7 +167,7 @@ def extract_browser_calls(events_path: str | Path) -> list[dict[str, Any]]:
 
     starts: dict[str, dict[str, Any]] = {}
     calls: list[dict[str, Any]] = []
-    for event in _read_json(Path(events_path)):
+    for event in read_json(Path(events_path)):
         event_type = event.get("type")
         data = event.get("data") or {}
         call_id = str(data.get("tool_call_id") or "")
@@ -209,7 +200,7 @@ def extract_browser_calls(events_path: str | Path) -> list[dict[str, Any]]:
 
 
 def _authoritative_rows(root: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    manifest = _read_json(root / "manifest.json")
+    manifest = read_json(root / "manifest.json")
     model = str((manifest.get("protocol") or {}).get("model") or "")
     if not model:
         raise ValueError(f"evidence manifest does not identify a model: {root}")
@@ -302,14 +293,14 @@ def build_replay_seed_manifest(
             "action_count": len(calls),
             "actions": [str((call.get("arguments") or {}).get("action") or "") for call in calls],
             "tool_calls": replay_calls,
-            "recorded_response": _read_json(response_path),
+            "recorded_response": read_json(response_path),
             "source": {
                 "events_path": str(events_path),
-                "events_sha256": _sha256(events_path),
+                "events_sha256": file_sha256(events_path),
                 "response_path": str(response_path),
-                "response_sha256": _sha256(response_path),
+                "response_sha256": file_sha256(response_path),
                 "evaluation_path": str(evaluation_path),
-                "evaluation_sha256": _sha256(evaluation_path),
+                "evaluation_sha256": file_sha256(evaluation_path),
             },
         }
         candidates_by_task[task_id].append(candidate)
@@ -350,8 +341,8 @@ def build_replay_seed_manifest(
             "evidence": {
                 model: {
                     "root": str(source_roots[model]),
-                    "attempts_sha256": _sha256(source_roots[model] / "attempts.jsonl"),
-                    "manifest_sha256": _sha256(source_roots[model] / "manifest.json"),
+                    "attempts_sha256": file_sha256(source_roots[model] / "attempts.jsonl"),
+                    "manifest_sha256": file_sha256(source_roots[model] / "manifest.json"),
                 }
                 for model in models
             },

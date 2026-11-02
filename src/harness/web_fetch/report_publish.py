@@ -13,10 +13,10 @@ from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 
+from harness.record_io import json_bytes
 from harness.reporting.publication import (
     PublicationOperation,
     atomic_write,
-    json_bytes,
     public_share_context,
     snapshot_publication,
 )

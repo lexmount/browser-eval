@@ -20,6 +20,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from harness.record_io import bytes_sha256, canonical_json_sha256
+
 PROTOCOL_V1 = "lex_replay_current_run_retrieval/1"
 PROTOCOL_V2 = "lex_replay_current_run_retrieval/2"
 PROTOCOL_V3 = "lex_replay_current_run_retrieval/3"
@@ -31,15 +33,11 @@ REVIEWED_SPAN_ANNOTATION = "lex_replay_reviewed_span_annotation/1"
 
 
 def digest(value: Any) -> str:
-    return hashlib.sha256(
-        json.dumps(
-            value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False
-        ).encode()
-    ).hexdigest()
+    return canonical_json_sha256(value, allow_nan=False)
 
 
 def text_digest(value: str) -> str:
-    return hashlib.sha256(value.encode()).hexdigest()
+    return bytes_sha256(value.encode())
 
 
 def strict_json(text: str) -> Any:

@@ -15,6 +15,8 @@ import tomllib
 import zipfile
 from pathlib import Path
 
+from harness.record_io import file_sha256, json_bytes
+
 
 def verify_dependency_metadata(source_root: Path) -> None:
     from importlib.metadata import requires
@@ -31,7 +33,7 @@ def verify_dependency_metadata(source_root: Path) -> None:
 def verify_search_implementation_freeze(source_root: Path) -> None:
     """Installed collection provenance keeps logical keys and exact source bytes."""
     from harness.web_search.runner import freeze_implementation
-    from harness.web_search.core import digest
+    from harness.record_io import bytes_sha256
     from harness.distribution import source_path
 
     with tempfile.TemporaryDirectory(prefix='installed-search-freeze-') as work:
@@ -42,7 +44,7 @@ def verify_search_implementation_freeze(source_root: Path) -> None:
             frozen = output / 'implementation' / logical
             original = source_path(logical, root=source_root)
             assert frozen.read_bytes() == original.read_bytes()
-            assert digest(frozen.read_bytes()) == expected
+            assert bytes_sha256(frozen.read_bytes()) == expected
 
 
 def verify_base_dataset_selection() -> None:
@@ -444,9 +446,9 @@ def verify_teds_revision(root: Path, source_root: Path, *, with_writer: bool = F
         (directory / 'score-summaries.json').write_text(json.dumps({
             'custom': initial}))
     receipt = {'schema_version': 2, 'provider_calls': 0, 'source_code_sha256': {},
-               'input_results_sha256': diagnostics.digest(source / 'results.jsonl'),
-               'output_results_sha256': diagnostics.digest(corrected / 'results.jsonl'),
-               'dataset_sha256': diagnostics.digest(corrected / 'dataset.json'),
+               'input_results_sha256': file_sha256(source / 'results.jsonl'),
+               'output_results_sha256': file_sha256(corrected / 'results.jsonl'),
+               'dataset_sha256': file_sha256(corrected / 'dataset.json'),
                'scope': {'logical_results': 1, 'providers': ['custom']}, 'changed_scores': [],
                'correction_provenance': build_correction_provenance(
                    'structured-extraction', diagnostics.ROOT_CAUSE, diagnostics.CONTROLS)}
@@ -957,7 +959,6 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     from harness.reporting.publication import (
         PublicationOperation,
         bind_publication_files,
-        json_bytes,
         package_archive,
         recover_binding,
     )
@@ -1490,8 +1491,9 @@ def verify_sample_case_correction(root, source_root):
     # Only the synthetic source hash is substituted; all production validation runs.
     command = [sys.executable, '-c',
                'import sys; from pathlib import Path; '
+               'from harness.record_io import file_sha256; '
                'from harness.web_fetch import webmainbench_case_correction as c; '
-               'c.DATASET_SHA256=c.digest(Path(sys.argv.pop(1))); c.main()', str(dataset),
+               'c.DATASET_SHA256=file_sha256(Path(sys.argv.pop(1))); c.main()', str(dataset),
                '--source-root', str(source), '--output', str(output), '--case-id', case,
                '--dataset', str(dataset), '--sample-manifest', str(manifest), '--profile', str(profile)]
     for provider, path in bindings.items():
@@ -1500,7 +1502,7 @@ def verify_sample_case_correction(root, source_root):
     for provider in ('first', 'new-engine'):
         shard = output / provider
         for call in correction.read_jsonl(shard / 'physical-attempts.jsonl'):
-            assert correction.digest(shard / call['physical_artifact_path']) == call['output_sha256']
+            assert file_sha256(shard / call['physical_artifact_path']) == call['output_sha256']
     assert not list(output.rglob('private-worker.txt'))
     assert not list(output.rglob('unbound.txt'))
     marker = (output / 'fixture-correction.json').read_bytes()

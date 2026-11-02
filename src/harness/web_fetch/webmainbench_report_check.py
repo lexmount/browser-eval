@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 from lexbench_webfetch.metrics import percentile
 from lexbench_webfetch.paths import contained_path
 
-from harness.record_io import load_jsonl
+from harness.record_io import file_sha256, load_jsonl
 from harness.report_languages import (
     check_language_contract,
     generated_languages,
@@ -488,10 +488,6 @@ EXPECTED_STYLE_SHA256 = hashlib.sha256((STYLE + EXTRA).encode("utf-8")).hexdiges
 EXPECTED_SCRIPT_SHA256 = hashlib.sha256(JS.encode("utf-8")).hexdigest()
 
 
-def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def read_jsonl(path: Path) -> list[dict]:
     return load_jsonl(path, skip_blank=True)
 
@@ -536,7 +532,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
     latency_diagnostic = json.loads(diagnostic_path.read_text(encoding='utf-8')) if diagnostic_path.is_file() else None
     if latency_diagnostic:
         if (latency_diagnostic.get('kind') != 'same_host_latency_diagnostic'
-                or latency_diagnostic.get('official_results_sha256') != digest(prior_results_path(root))
+                or latency_diagnostic.get('official_results_sha256') != file_sha256(prior_results_path(root))
                 or len(latency_diagnostic.get('per_case', [])) != 200
                 or {row['case_id'] for row in latency_diagnostic['per_case']} !=
                    {row['id'] for row in dataset.get('cases', [])}
@@ -579,7 +575,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
 
     sample_path = root / "sample-manifest.json"
     sample = json.loads(sample_path.read_text(encoding="utf-8"))
-    sample_sha = digest(sample_path)
+    sample_sha = file_sha256(sample_path)
     sample_ids = {row.get("track_id") for row in sample.get("cases", [])}
     if (sample_sha != dataset.get("sample_manifest_sha256")
             or sample_ids != set(cases)
@@ -590,7 +586,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
     if (review.get("status") != "passed" or set(review.get("providers", [])) != SAMPLE_PROVIDERS
             or review.get("sample_manifest_sha256") != sample_sha
             or review.get("sample_case_count") != 200
-            or review.get('bindings', {}).get('results_jsonl_sha256') != digest(prior_results_path(root))
+            or review.get('bindings', {}).get('results_jsonl_sha256') != file_sha256(prior_results_path(root))
             or review.get("failures")):
         raise ValueError("WebMainBench independent review is missing or incomplete")
 
@@ -605,9 +601,9 @@ def check_sample_report(root: Path, dataset: dict | None = None,
             or scope.get("unresolved_triggered_results") != 0
             or len(triggered) != 36
             or len(set(triggered)) != 36
-            or bindings.get("dataset_json_sha256") != digest(root / "dataset.json")
-            or bindings.get("results_jsonl_sha256") != digest(prior_results_path(root))
-            or bindings.get("score_summaries_json_sha256") != digest(root / "score-summaries.json")):
+            or bindings.get("dataset_json_sha256") != file_sha256(root / "dataset.json")
+            or bindings.get("results_jsonl_sha256") != file_sha256(prior_results_path(root))
+            or bindings.get("score_summaries_json_sha256") != file_sha256(root / "score-summaries.json")):
         raise ValueError("WebMainBench anomaly review is missing, incomplete, or not bound to this report")
 
     summaries = json.loads((root / "score-summaries.json").read_text(encoding="utf-8"))
@@ -617,7 +613,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
     for row in records:
         grouped[row["provider"]].append(row)
         artifact = contained_path(root, row["artifact_path"])
-        if digest(artifact) != row["output_sha256"]:
+        if file_sha256(artifact) != row["output_sha256"]:
             raise ValueError("WebMainBench output artifact hash mismatch: " + row["attempt_id"])
         for prefix in prefixes:
             detail = root / prefix / "attempts" / f'{row["attempt_id"]}.html'
@@ -633,9 +629,9 @@ def check_sample_report(root: Path, dataset: dict | None = None,
         if row["input_html_sha256"] != case["input_html_sha256"]:
             raise ValueError("WebMainBench input hash mismatch: " + row["attempt_id"])
     for case_id, case in cases.items():
-        if digest(root / "references" / f"{case_id}.md") != case["reference_sha256"]:
+        if file_sha256(root / "references" / f"{case_id}.md") != case["reference_sha256"]:
             raise ValueError("WebMainBench reference hash mismatch: " + case_id)
-        if digest(root / "sources" / f"{case_id}.html.txt") != case["input_html_sha256"]:
+        if file_sha256(root / "sources" / f"{case_id}.html.txt") != case["input_html_sha256"]:
             raise ValueError("WebMainBench frozen input HTML hash mismatch: " + case_id)
     for provider, rows in grouped.items():
         totals = {metric: 0.0 for metric in SAMPLE_METRICS}; denominators = {metric: 0 for metric in SAMPLE_METRICS}
@@ -879,9 +875,9 @@ def check_sample_report(root: Path, dataset: dict | None = None,
                 width = len(table.select("thead th"))
                 if any(len(row.find_all("td", recursive=False)) != width for row in table.select("tbody > tr")):
                     raise ValueError("WebMainBench table width mismatch: " + str(relative))
-    if digest(root / "assets" / "style.css") != EXPECTED_STYLE_SHA256:
+    if file_sha256(root / "assets" / "style.css") != EXPECTED_STYLE_SHA256:
         raise ValueError("Report CSS differs from the reviewed reference-shell extension")
-    if digest(root / "assets" / "report.js") != EXPECTED_SCRIPT_SHA256:
+    if file_sha256(root / "assets" / "report.js") != EXPECTED_SCRIPT_SHA256:
         raise ValueError("Report JavaScript differs from the reviewed inspection controls")
     validate_sample_content(root, authority_root=authority_root or repo, binding_path=profile_path.parent / "webmainbench-content-binding.json")
 

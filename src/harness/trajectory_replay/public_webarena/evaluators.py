@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
+from harness.record_io import write_json
 from harness.trajectory_replay.public_webarena.executor import judge_outputs
 from harness.trajectory_replay.public_webarena.suite import BrowserTask
 
@@ -148,6 +149,4 @@ class EvaluatorRegistry:
 
 
 def write_agent_response(path: str | Path, response: Any) -> None:
-    Path(path).write_text(
-        json.dumps(response, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
+    write_json(path, response)

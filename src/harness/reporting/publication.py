@@ -20,6 +20,7 @@ from urllib.error import HTTPError
 
 from lexbench_webfetch.paths import contained_path
 
+from harness.record_io import json_bytes
 from harness.web_fetch.safety import evidence_tree_identity, reject_evidence_symlinks
 
 
@@ -234,10 +235,6 @@ def public_share_context(base: str, share_url: str) -> tuple[str, str]:
     if not re.fullmatch(r"[A-Za-z0-9_-]+", token):
         raise ValueError("publication has no valid public share token")
     return target.path, token
-
-
-def json_bytes(value: dict) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode()
 
 
 def atomic_write(path: Path, payload: bytes) -> None:

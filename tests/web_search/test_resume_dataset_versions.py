@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.record_io import bytes_sha256
 from harness.benchmarks import data
 from harness.web_search import runner
 from tests.web_search.fixtures import execution_profile
@@ -50,14 +51,14 @@ def test_resume_checks_dataset_selection_before_requests_or_saved_changes(tmp_pa
         revision.write_text(json.dumps({
             'schema': 'web-search-execution-revision/1', 'root_cause': 'Native request endpoint changed',
             'superseded_methods': [new['methods'][0]['id']],
-            'previous_profile_sha256': runner.digest(source.read_bytes()),
-            'profile_sha256': runner.digest(revised.read_bytes()),
-            'evidence': [{'path': proof.name, 'sha256': runner.digest(proof.read_bytes())}]}))
+            'previous_profile_sha256': bytes_sha256(source.read_bytes()),
+            'profile_sha256': bytes_sha256(revised.read_bytes()),
+            'evidence': [{'path': proof.name, 'sha256': bytes_sha256(proof.read_bytes())}]}))
     if entry == 'revised-collector':
         collector = tmp_path / 'collector-revision.py'
         collector.write_text('request_serializer_revision = 2\n')
         implementation = runner.collection_implementation()
-        implementation['collector-revision.py'] = runner.digest(collector.read_bytes())
+        implementation['collector-revision.py'] = bytes_sha256(collector.read_bytes())
         original_source = runner.implementation_source
         monkeypatch.setattr(runner, 'collection_implementation', lambda: implementation)
         monkeypatch.setattr(runner, 'implementation_source', lambda name: (
@@ -87,7 +88,7 @@ def test_resume_checks_dataset_selection_before_requests_or_saved_changes(tmp_pa
             assert (output / 'resume-1').is_dir()
             if entry == 'revised-collector':
                 current = json.loads((output / 'run-contract.json').read_bytes())
-                assert current['implementation']['collector-revision.py'] == runner.digest(collector.read_bytes())
+                assert current['implementation']['collector-revision.py'] == bytes_sha256(collector.read_bytes())
                 assert (output / 'implementation/collector-revision.py').read_bytes() == collector.read_bytes()
         else:
             assert (output / 'receipt.json').is_file()

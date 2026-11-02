@@ -4,8 +4,8 @@ from urllib.parse import urlencode
 import pytest
 from webarena_verified.types.task import WebArenaSite
 
+from harness.record_io import file_sha256
 from harness.trajectory_replay.remote_runtime import (
-    file_sha256,
     load_remote_sites,
     rebind_remote_calls,
     remote_benchmark,

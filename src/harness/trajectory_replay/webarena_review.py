@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from pathlib import Path
 from typing import Any
 
+from harness.record_io import file_sha256
 from harness.trajectory_replay.participants import (
     bind_participant,
     participant_registry,
@@ -28,10 +28,6 @@ def _concise_process_error(message: str) -> str:
         )
     ]
     return message[starts[-1] :].strip() if starts else message.strip()
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def programmatic_failure(attempt: dict[str, Any]) -> dict[str, Any]:
@@ -83,7 +79,7 @@ def load_validated_failure_review(
     review = json.loads(review_file.read_text(encoding="utf-8"))
     if review.get("schema") != REVIEW_SCHEMA:
         raise ValueError("unsupported trajectory replay failure review")
-    if (review.get("bindings") or {}).get("effective_results_sha256") != _sha256(
+    if (review.get("bindings") or {}).get("effective_results_sha256") != file_sha256(
         results_file
     ):
         raise ValueError("failure review is not bound to the effective result bytes")
@@ -95,7 +91,7 @@ def load_validated_failure_review(
         source = Path(ref.get("path") or "")
         if (not source.is_absolute() or not source.is_file()
                 or any(part.is_symlink() for part in (source, *source.parents))
-                or _sha256(source) != ref.get("sha256")):
+                or file_sha256(source) != ref.get("sha256")):
             raise ValueError("inherited result cohort evidence is missing or changed")
         prior = json.loads(source.read_text(encoding="utf-8"))
         prior_rows = [bind_participant(row, registry) for row in prior.get("attempts") or []]
@@ -139,7 +135,7 @@ def load_validated_failure_review(
                 source = Path(ref["path"])
                 if (not source.is_absolute() or not source.is_file()
                         or any(part.is_symlink() for part in (source, *source.parents))
-                        or _sha256(source) != ref.get("sha256")):
+                        or file_sha256(source) != ref.get("sha256")):
                     raise ValueError("supplemental diagnostic evidence is missing or changed")
                 diagnostic = json.loads(source.read_text(encoding="utf-8"))
                 if diagnostic.get("task_id") != key[1] or key not in cohort_keys.get(

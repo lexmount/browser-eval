@@ -6,6 +6,7 @@ import pytest
 from bs4 import BeautifulSoup
 
 from harness.environments.webarena.topology import RECORDING_GATEWAYS
+from harness.record_io import canonical_json_sha256
 from harness.reporting.privacy import TRAJECTORY_REPLAY
 from harness.trajectory_replay.report_inputs import bound_dataset_path
 from harness.trajectory_replay.webarena_report import (
@@ -15,7 +16,6 @@ from harness.trajectory_replay.webarena_report import (
     _copy_failure_screenshot,
     _detail_page,
     _historical_replay_validity_notice,
-    _json_sha256,
     _legacy_retrieval_provenance,
     _load_artifact,
     _measured_validity_identity,
@@ -144,7 +144,7 @@ def build_replay_fixture(tmp_path: Path, monkeypatch, extra_methods=0, *, failed
         files[name] = path
     data["dataset_sha256"] = hashlib.sha256(files["dataset.json"].read_bytes()).hexdigest()
     frozen_task = json.loads(files["dataset.json"].read_text())["trajectories"][0]
-    contract_sha256 = _json_sha256({
+    contract_sha256 = canonical_json_sha256({
         "task": frozen_task["task"], "evaluation_input": frozen_task["evaluation_input"],
     })
     for attempt in attempts:
@@ -567,7 +567,7 @@ def test_legacy_retrieval_provenance_binds_every_browser_to_saved_answer(tmp_pat
         "engines": ["chromium", "moli"],
         "attempts": [
             {"task_id": 243, "engine": browser,
-             "evaluation_input_sha256": _json_sha256(answer)}
+             "evaluation_input_sha256": canonical_json_sha256(answer)}
             for browser in ("chromium", "moli")
         ],
     }
@@ -582,7 +582,7 @@ def test_legacy_retrieval_provenance_binds_every_browser_to_saved_answer(tmp_pat
     results["attempts"][1]["evaluation_input_sha256"] = "0" * 64
     with pytest.raises(ValueError, match="differs from frozen Agent answer"):
         _legacy_retrieval_provenance(results, dataset)
-    results["attempts"][1]["evaluation_input_sha256"] = _json_sha256(answer)
+    results["attempts"][1]["evaluation_input_sha256"] = canonical_json_sha256(answer)
     results["attempts"].pop()
     with pytest.raises(ValueError, match="full browser-task matrix"):
         _legacy_retrieval_provenance(results, dataset)

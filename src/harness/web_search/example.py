@@ -6,7 +6,8 @@ from pathlib import Path
 
 from lexbench_websearch.scoring import evaluate
 
-from harness.web_search.core import digest, normalize, write_json
+from harness.record_io import bytes_sha256
+from harness.web_search.core import normalize, write_json
 from harness.web_search.report import build
 
 
@@ -72,7 +73,7 @@ def example(output):
                     results=results,
                     cost=None if mi == 0 else (0 if failed else 0.005),
                     currency="CNY",
-                    evidence=dict(path=path, sha256=digest((source / path).read_bytes())),
+                    evidence=dict(path=path, sha256=bytes_sha256((source / path).read_bytes())),
                     metrics=evaluate(case, results),
                     server_timing=payload.get("timing"),
                 )
@@ -85,8 +86,8 @@ def example(output):
             certified=False,
             synthetic=True,
             call_count=len(rows),
-            profile_sha256=digest((source / "profile.json").read_bytes()),
-            results_sha256=digest((source / "results.jsonl").read_bytes()),
+            profile_sha256=bytes_sha256((source / "profile.json").read_bytes()),
+            results_sha256=bytes_sha256((source / "results.jsonl").read_bytes()),
         ),
     )
     return build(output / "report", source=source)

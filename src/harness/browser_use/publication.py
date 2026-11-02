@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from pathlib import Path
@@ -13,6 +12,7 @@ from harness.environments.webarena.topology import (
     public_host_replacements,
     public_origin_replacements,
 )
+from harness.record_io import optional_file_sha256
 from harness.reporting.privacy import BROWSER_USE
 
 _ORIGIN_REPLACEMENTS = public_origin_replacements()
@@ -22,10 +22,6 @@ _SENSITIVE_KEY = re.compile(
     r"(?:authorization|cookie|password|passwd|secret|token|storage_state|api[_-]?key)", re.I
 )
 _BEARER = re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]+")
-
-
-def sha256_file(path: Path) -> str | None:
-    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
 
 def sanitize_text(value: str) -> str:
@@ -167,7 +163,7 @@ def evidence_metadata(row: dict[str, Any]) -> dict[str, Any]:
         files[label] = {
             "present": path.is_file(),
             "bytes": path.stat().st_size if path.is_file() else None,
-            "sha256": sha256_file(path),
+            "sha256": optional_file_sha256(path),
             "publication": (
                 "sanitized_projection"
                 if label in {"response", "evaluation", "events"}

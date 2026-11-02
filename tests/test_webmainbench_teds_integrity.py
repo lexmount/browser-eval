@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.record_io import file_sha256
 from harness.web_fetch import webmainbench_diagnostics as diagnostics
 from lexbench_webfetch.scoring_regressions import build_correction_provenance
 from harness.web_fetch.webmainbench_scoring import aggregate
@@ -32,7 +33,7 @@ def revision(tmp_path):
                     "case_id": case_id,
                     "ok": True,
                     "artifact_path": name,
-                    "output_sha256": diagnostics.digest(source / name),
+                    "output_sha256": file_sha256(source / name),
                     "metrics": {
                         name: {"score": 0.5, "success": True, "details": {}}
                         for name in (*METRICS, "overall")
@@ -61,9 +62,9 @@ def revision(tmp_path):
         (corrected / "original-results.jsonl").write_text(original)
         (corrected / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in after))
         receipt.update(
-            input_results_sha256=diagnostics.digest(source / "results.jsonl"),
-            output_results_sha256=diagnostics.digest(corrected / "results.jsonl"),
-            dataset_sha256=diagnostics.digest(corrected / "dataset.json"),
+            input_results_sha256=file_sha256(source / "results.jsonl"),
+            output_results_sha256=file_sha256(corrected / "results.jsonl"),
+            dataset_sha256=file_sha256(corrected / "dataset.json"),
         )
         (corrected / "teds-correction.json").write_text(json.dumps(receipt))
         for provider in ("first", "second"):
@@ -153,7 +154,7 @@ def test_cli_installs_an_audit_readable_by_the_revision_validator(revision, monk
     run_cli(monkeypatch, source, corrected)
     receipt, audit = diagnostics.validate_teds_revision(corrected)
     assert receipt["provider_calls"] == audit["provider_calls"] == 0
-    assert audit["review_script_sha256"] == diagnostics.digest(Path(diagnostics.__file__))
+    assert audit["review_script_sha256"] == file_sha256(Path(diagnostics.__file__))
     before = (corrected / "teds-correction-review.json").read_bytes()
     with pytest.raises(ValueError, match="overwrite"):
         run_cli(monkeypatch, source, corrected)
@@ -183,8 +184,8 @@ def test_revision_reader_rejects_a_hash_consistent_but_incomplete_matrix(revisio
     path = corrected / "teds-correction-review.json"
     audit = json.loads(path.read_text())
     audit.update(
-        output_results_sha256=diagnostics.digest(corrected / "results.jsonl"),
-        correction_receipt_sha256=diagnostics.digest(corrected / "teds-correction.json"),
+        output_results_sha256=file_sha256(corrected / "results.jsonl"),
+        correction_receipt_sha256=file_sha256(corrected / "teds-correction.json"),
     )
     path.write_text(json.dumps(audit))
     with pytest.raises(ValueError, match="matrix"):

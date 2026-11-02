@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from harness.web_search.core import digest
+from harness.record_io import bytes_sha256
 from harness.web_search.example import example
 from harness.web_search.report import load_run
 from harness.web_search.runner import run
@@ -48,7 +48,7 @@ def replace_rows(output, change):
     path.write_text("".join(json.dumps(row) + "\n" for row in rows))
     receipt_path = output / "receipt.json"
     receipt = json.loads(receipt_path.read_text())
-    receipt["results_sha256"] = digest(path.read_bytes())
+    receipt["results_sha256"] = bytes_sha256(path.read_bytes())
     receipt_path.write_text(json.dumps(receipt))
 
 
