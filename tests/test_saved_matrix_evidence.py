@@ -15,6 +15,24 @@ def write(path, value):
     return {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
 
 
+def assert_provenance_mutation_rejected(output, relative, spec):
+    original = (output/relative).read_bytes()
+    audit_path = output/'saved-matrix-audit.json'
+    original_audit = audit_path.read_bytes()
+    record = json.loads(original)
+    record['error_message'] = 'altered historical explanation'
+    bound = write(output/relative, record)
+    audit = json.loads(original_audit)
+    audit['files'][relative] = bound['sha256']
+    write(audit_path, audit)
+    try:
+        with pytest.raises(ValueError, match='provenance record differs'):
+            check_saved_matrix(output, spec_path=spec)
+    finally:
+        (output/relative).write_bytes(original)
+        audit_path.write_bytes(original_audit)
+
+
 def fixture(tmp_path):
     case = {'id': 'same', 'name': 'Example', 'category': 'test', 'url': 'https://example.test/', 'expected_any': ['answer']}
     root = tmp_path / 'source'
@@ -388,7 +406,8 @@ def test_superseded_evidence_preserved_without_double_counting(tmp_path, monkeyp
     public_scope = (entry.parent/history['scope_path']).read_text()
     assert str(tmp_path) not in public_scope
     assert 'superseded-history' in (entry.parent/'attempts/first--run-001.html').read_text()
-    assert check_saved_matrix(entry.parent)['valid']
+    assert check_saved_matrix(entry.parent, spec_path=tmp_path/'spec.json')['valid']
+    assert_provenance_mutation_rejected(entry.parent, history['record_path'], tmp_path/'spec.json')
     for timestamp in (None, '2026-10-30T00:00:00Z'):
         invalid = deepcopy(spec)
         invalid['supersession_scope'] = write(tmp_path/'late-scope.json', {**scope, 'created_at': timestamp})
@@ -470,7 +489,7 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
         build(tmp_path,spec,'uninvoked-correction')
 
 @pytest.mark.parametrize('final_pass,prior_pass', [(True, False), (False, False), (False, True)])
-def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_pass, prior_pass):
+def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_pass, prior_pass, monkeypatch):
     spec, root, current, raw = fixture(tmp_path)
     old = deepcopy(current)
     old['ok'] = prior_pass
@@ -507,6 +526,25 @@ def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_
     assert 'retry-continuation' in (entry.parent/'attempts/first--run-001.html').read_text()
     assert 'Synthetic retry disclosure.' in (entry.parent/'index.html').read_text()
     assert check_saved_matrix(entry.parent)['valid']
+    assert_provenance_mutation_rejected(entry.parent, continuation['prior_record_path'], tmp_path/'spec.json')
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
+    for late_scope in (False, True):
+        replacement = deepcopy(spec)
+        replacement['superseded_sources'] = [prior_source]
+        replacement['supersession_scope'] = write(tmp_path/f'scope-{late_scope}.json', {
+            'kind': 'predeclared_replacement_scope',
+            'created_at': '2026-10-29T00:30:00Z' if late_scope else '2026-10-28T00:00:00Z',
+            'execution_contract': write(tmp_path/'execution-contract.json', {
+                'created_at': '2026-10-28T00:00:00Z', 'provider_config_sha256': 'a'*64,
+                'timeout_seconds': 30, 'max_failure_retries': 1}),
+            'cells': [{'suite': 'first', 'provider': 'method', 'case_id': 'same',
+                       'old_record': prior_source['results']}]})
+        if late_scope:
+            with pytest.raises(ValueError, match='predates'):
+                build(tmp_path, replacement, 'late-split-replacement')
+        else:
+            build(tmp_path, replacement, 'authorized-split-replacement')
+    write(tmp_path/'spec.json', spec)
     for defect in ('prior_not_called', 'current_not_called', 'same_call', 'late_prior'):
         prior, final = deepcopy(old), deepcopy(current)
         if defect == 'prior_not_called':
@@ -642,6 +680,8 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
     for label in ('before','candidate'):
         assert (report/row['parameter_rerun'][label+'_record_path']).is_file()
     assert check_saved_matrix(report, spec_path=tmp_path/'spec.json')['valid']
+    for label in ('before', 'candidate'):
+        assert_provenance_mutation_rejected(report, row['parameter_rerun'][label+'_record_path'], tmp_path/'spec.json')
     # A truncated cohort or changed rule cannot enter the report.
     (candidate/'results.jsonl').write_text('')
     spec['parameter_reruns']['sources'][0]['results']['sha256'] = hashlib.sha256(b'').hexdigest()

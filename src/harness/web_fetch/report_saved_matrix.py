@@ -573,6 +573,11 @@ def _load_saved_matrix(spec_path):
     for key in historical:
         replacement = selected[key][1] if key in selected else _json(missing[key][1])
         physical = replacement.get('provider_metadata', {}).get('retry', {}).get('attempts') or [replacement]
+        continuation = continuations.get(key)
+        if continuation:
+            entry, prior, _ = continuation
+            first = prior[1] if prior else _json(binding(entry['prior_uncommitted']))
+            physical = [*(first.get('provider_metadata', {}).get('retry', {}).get('attempts') or [first]), *physical]
         if any(not call.get('started_at') or datetime.fromisoformat(call['started_at']) < scope_started
                for call in physical):
             raise ValueError('Replacement call predates its declared scope or lacks chronology')
@@ -1281,6 +1286,46 @@ class _Links(HTMLParser):
         self.links.extend(value for name, value in attrs if name in {'src', 'href'} and value)
 
 
+def _source_record_inventory(inputs, candidates, decisions, adoptions, keys):
+    """Bind every copied call record, including nonselected provenance, to its source."""
+    expected = {}
+    revision = inputs['revision'] or {'records': {}}
+    for key in keys:
+        prefix = 'evidence/' + '/'.join(key)
+        selected = inputs['selected'].get(key)
+        if selected:
+            base = revision['records'].get(key, selected[1])
+            final = base
+            if key in revision['records']:
+                expected[prefix+'/score-before-record.json'] = selected[1]
+            if key in candidates:
+                expected[prefix+'/parameter-rerun/before/record.json'] = base
+                expected[prefix+'/parameter-rerun/candidate/record.json'] = candidates[key][1]
+                prior = inputs.get('parameter_continuations', {}).get(key)
+                if prior and prior[1]:
+                    expected[prefix+'/parameter-rerun/candidate-prior/record.json'] = prior[1][1]
+                if decisions[key]['selected_new']:
+                    final = candidates[key][1]
+            if key in adoptions:
+                adoption = adoptions[key]
+                expected[prefix+'/adoption-before/record.json'] = final
+                final = adoption['selected'][1]
+                if adoption['revision']:
+                    expected[prefix+'/adoption-before-score.json'] = adoption['original'][1]
+            expected[prefix+'/record.json'] = final
+        if key in inputs['historical']:
+            record = inputs['historical'][key][1]
+            expected[prefix+'/history/'+safe_identifier(record['attempt_id'])+'/record.json'] = record
+        continuations = (inputs.get('parameter_continuations', {})
+                         if decisions.get(key, {}).get('selected_new') else inputs['continuations'])
+        if key in adoptions:
+            continuations = adoptions[key]['continuations']
+        if key in continuations and continuations[key][1]:
+            _, record, raw = continuations[key][1]
+            expected[prefix+'/history/prior-call-'+hashlib.sha256(raw).hexdigest()[:16]+'/record.json'] = record
+    return expected
+
+
 def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     """Check the complete portable tree and unchanged sources without rescoring."""
     output = Path(output)
@@ -1408,6 +1453,11 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             previous = _json(contained_path(output, history['record_path']))
             if (previous['provider'], previous['case_id']) != (row['provider'], row['case_id']):
                 raise ValueError('Superseded evidence identity differs')
+    if inputs is not None:
+        for relative, expected_record in _source_record_inventory(inputs, candidates, decisions, adoptions, keys).items():
+            path = contained_path(output, relative, reject_symlinks=True)
+            if not path.is_file() or _json(path) != expected_record:
+                raise ValueError('Published provenance record differs from validated source: '+relative)
     projected_dataset, projected_records, projected_identities, projected_scope = _saved_renderer_projection(output, model)
     saved_records = [json.loads(line) for line in (output/'results.jsonl').read_text().splitlines() if line.strip()]
     execution = _json(output/'execution.json')

@@ -363,6 +363,23 @@ def test_final_call_timing_labels_are_localized_in_ordinary_reports():
     assert 'P95 final-call latency' in page
 
 
+def test_ordinary_english_generation_localizes_all_final_call_timing_text(tmp_path):
+    from harness.web_fetch.report import generate
+    from harness.web_fetch.report_i18n import SAVED_MATRIX_ZH, TEXT
+    _, source, record, _ = fixture(tmp_path)
+    dataset = json.loads((source/'dataset.json').read_text())
+    generate(source, dataset, [record], [], include_english=True,
+             authored_interpretation=False, frozen_scores=True)
+    page = BeautifulSoup((source/'en/index.html').read_text(), 'html.parser')
+    overview = page.select_one('#overall-ranking').get_text(' ', strip=True)
+    strings = [*SAVED_MATRIX_ZH['final_call_timing_headers'],
+               *(SAVED_MATRIX_ZH[key] for key in
+                 ('final_call_timing_title', 'final_call_timing_help', 'final_call_timing_note'))]
+    for original in strings:
+        assert original not in overview
+        assert TEXT[original] in overview
+
+
 @pytest.mark.parametrize('excluded', [['base-web'], ['unknown'], ['web', 'base-web'], ['base-web', 'base-web']])
 def test_excluded_report_families_preserve_sources_and_recompute_population(tmp_path, excluded):
     spec, source, _, original = fixture(tmp_path)
