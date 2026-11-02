@@ -457,8 +457,10 @@ make report EVIDENCE=/absolute/path/to/evidence
 ```
 
 Credentials and local executable/repository paths belong in the root `.env`
-(copy `.env.example` and fill only the methods you use). Exported environment
-variables take precedence; `--env-file` overrides which file is read.
+(copy `.env.example` and fill only the methods you use). Evaluation credentials
+come only from the repository `.env`: exported values are ignored and an external
+`--env-file` that sets one is rejected. For non-credential runtime paths, exported
+environment variables take precedence and `--env-file` selects which file is read.
 
 `moli-webfetch` invokes the official local Moli CLI; set `MOLI_BINARY` when it
 is not on PATH. All webpage and document-body tasks use the CLI's native
