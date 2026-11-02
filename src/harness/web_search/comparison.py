@@ -2,7 +2,6 @@
 
 import html
 import json
-import re
 from urllib.parse import urlsplit
 
 from lexbench_websearch.evidence_quality import is_benchmark_page
@@ -15,6 +14,7 @@ from lexbench_websearch.scoring import (
     task_acceptance,
 )
 
+from harness.reporting.privacy import WEB_SEARCH_PREVIEW
 from harness.web_search.relevance import parse_judgments
 
 
@@ -31,7 +31,7 @@ def _url(value):
 def _preview(value, limit=None):
     # Public code examples can contain a source author's home directory.
     # Compact previews omit those paths; the immutable response remains linked.
-    value = re.sub(r"(?:/Users/|/home/|[A-Za-z]:\\Users\\)[^\s\"<>]+", "[source path]", str(value or ""))
+    value = WEB_SEARCH_PREVIEW.redact(str(value or ""))
     return value if limit is None else value[:limit]
 
 

@@ -23,7 +23,7 @@ from harness.web_fetch.providers import build_provider
 from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.runner import preflight_declared_capacity, run_evaluation
-from harness.web_fetch.storage import data_home
+from harness.data_home import data_home
 
 ROOT = repository_root()
 

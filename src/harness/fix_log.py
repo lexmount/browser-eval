@@ -11,6 +11,8 @@ from typing import Any
 
 from PIL import Image
 
+from harness.reporting.privacy import FIX_LOG_LOCAL_ROOT
+
 EMPTY_FIX_LOG = {
     "schema": "lex_browser_use_fix_log/1",
     "records": [],
@@ -67,9 +69,7 @@ def load_fix_log(
 
     def public_text(value: Any) -> None:
         text = json.dumps(value, ensure_ascii=False)
-        if sanitize_value(value) != value or re.search(
-            r"/(?:Users|home|root|private|tmp|var|opt)/", text
-        ):
+        if sanitize_value(value) != value or FIX_LOG_LOCAL_ROOT.search(text):
             raise ValueError("fix log contains private data or local paths")
         if re.search(
             r'"(?:authorization|cookie|set-cookie|password|access_token|api_key)"\s*:',

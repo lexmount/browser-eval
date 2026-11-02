@@ -7,13 +7,13 @@ from harness.distribution import repository_root
 import argparse
 import hashlib
 import json
-import re
 import shutil
 import tempfile
 from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
+from harness.reporting.privacy import WEBMAINBENCH
 from harness.web_fetch.webmainbench_certification import verify_shard
 from harness.web_fetch.webmainbench_evidence import (
     alias_row,
@@ -40,10 +40,7 @@ def public_value(value):
     if isinstance(value, list):
         return [public_value(item) for item in value]
     if isinstance(value, str):
-        value = re.sub(r"/Users/[^/\s:]+", "/redacted-home", value)
-        value = re.sub(r"/home/[^/\s:]+", "/redacted-home", value)
-        value = re.sub(r"/private/tmp/[^\s:]+", "/redacted-temp", value)
-        value = re.sub(r"/(?:var/)?tmp/[^\s:]+", "/redacted-temp", value)
+        return WEBMAINBENCH.redact(value)
     return value
 
 

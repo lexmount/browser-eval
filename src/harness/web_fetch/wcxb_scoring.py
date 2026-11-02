@@ -19,6 +19,7 @@ from lexbench_webfetch.metrics import percentile
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
 from harness.record_io import parse_jsonl
+from harness.reporting.privacy import WCXB_ERROR
 from harness.reporting.publication import atomic_create, json_bytes
 from harness.web_fetch import wcxb_metrics
 from harness.web_fetch.safety import reject_evidence_symlinks
@@ -108,7 +109,7 @@ def digest(path: Path) -> str:
 def public_error(value: str | None) -> str | None:
     if value is None:
         return None
-    return re.sub(r"/(?:Users|home|private/var)/[^\s:]+", "[local path]", value)
+    return WCXB_ERROR.redact(value)
 
 
 def classify(row: dict, predicted: str, precision: float, recall: float, reference: str) -> str:

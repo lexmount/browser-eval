@@ -17,14 +17,13 @@ from harness.lexbench.charts import combine_comparisons, render_chart
 from harness.lexbench.resource_evidence import load_matrix
 from harness.lexbench.resource_summary import summarize as summarize_linux_profiles
 from harness.lexbench.resource_summary import validate_summary as validate_linux_summary
+from harness.data_home import data_home
 from harness.record_io import load_jsonl
 from harness.report_languages import english_notice, generated_languages, write_language_contract
+from harness.reporting.privacy import LEXBENCH
 from harness.resource_calibration import duration_calibration
 from lexbench_webfetch.metrics import percentile
 from lexbench_webfetch.paths import contained_path, safe_identifier
-
-ROOT = pathlib.Path(os.environ.get("BROWSER_EVAL_DATA_HOME", pathlib.Path.home() / ".browser-eval"))
-
 
 REPOSITORY_ROOT = repository_root()
 
@@ -128,7 +127,7 @@ def main(argv=None):
         if not value:
             parser.error(f"Report profile requires paths.{name} or an explicit CLI path")
         value = pathlib.Path(value).expanduser()
-        return value if value.is_absolute() else (REPOSITORY_ROOT if name == "source" else ROOT) / value
+        return value if value.is_absolute() else (REPOSITORY_ROOT if name == "source" else data_home()) / value
 
     for name in ("cohort", "source", "output", "vendor_dir", "functional_correction"):
         setattr(args, name, configured_path(name, getattr(args, name)))
@@ -208,14 +207,13 @@ def main(argv=None):
         "off_engine": "m117_layout_off_engine_init_0918",
         "on_engine": "m117_layout_on_engine_init_0918",
     }
-    path_re = re.compile(r'/(?:Users|home|private/tmp|tmp|results|work)/[^\s\'"<>]+')
     endpoint_re = re.compile(r"(?:(?:https?|wss?)://)?127\.0\.0\.1:\d+")
 
     def sha(data: bytes) -> str:
         return hashlib.sha256(data).hexdigest()
 
     def clean(s: str) -> str:
-        return path_re.sub("<local path>", endpoint_re.sub("<local fixture>", s))
+        return LEXBENCH.redact(endpoint_re.sub("<local fixture>", s))
 
     def read_run(name: str):
         safe_identifier(name)

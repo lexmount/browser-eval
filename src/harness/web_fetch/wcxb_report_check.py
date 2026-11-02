@@ -29,7 +29,7 @@ from harness.reporting.assets import authored_main
 from harness.reporting.presentation import check_presentation
 from harness.reporting.visual import local_report_server
 from harness.web_fetch.safety import reject_evidence_symlinks
-from harness.web_fetch.storage import data_home
+from harness.data_home import data_home
 from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
 from harness.web_fetch.wcxb_scoring import paired_latency_methods
 

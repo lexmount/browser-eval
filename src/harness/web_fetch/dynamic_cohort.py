@@ -29,7 +29,8 @@ from harness.web_fetch.safety import (
     reject_evidence_symlinks,
     validate_report_ids,
 )
-from harness.web_fetch.storage import current_evidence_dir, data_home
+from harness.data_home import data_home
+from harness.web_fetch.storage import current_evidence_dir
 
 
 def frozen_case(case):

@@ -17,6 +17,7 @@ import traceback
 from pathlib import Path
 from urllib.parse import quote, urlsplit
 
+from harness.env_file import parse_env_file
 from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
 from harness.trajectory_replay.catalog_contracts import (
     RUN_SCHEMA,
@@ -138,14 +139,7 @@ def _load_task_selection(path: Path) -> list[int]:
 def _load_env_values(path: Path) -> dict[str, str]:
     if path.is_symlink() or not path.is_file():
         raise ValueError("credential environment file must be a regular file")
-    values: dict[str, str] = {}
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        name, value = line.split("=", 1)
-        values[name.strip()] = value.strip().strip("\"'")
-    return values
+    return parse_env_file(path)
 
 
 def _kitesurf_cdp_config(

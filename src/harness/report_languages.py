@@ -1,6 +1,7 @@
 """Explicit language output contract shared by report tracks."""
 
 from harness.distribution import repository_root
+from harness.env_file import parse_env_file
 
 import html
 import json
@@ -9,7 +10,6 @@ import re
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from dotenv import dotenv_values
 
 
 class ReportLanguageError(ValueError):
@@ -29,7 +29,11 @@ def configured_report_language(
 
     configured = os.environ.get(REPORT_LANGUAGE_ENV)
     if configured is None:
-        configured = dotenv_values(REPORT_LANGUAGE_ENV_FILE).get(REPORT_LANGUAGE_ENV)
+        configured = (
+            parse_env_file(REPORT_LANGUAGE_ENV_FILE).get(REPORT_LANGUAGE_ENV)
+            if REPORT_LANGUAGE_ENV_FILE.is_file()
+            else None
+        )
     selected = (configured or "").strip().lower() or "en"
     if selected in SUPPORTED_REPORT_LANGUAGES and selected not in supported:
         return supported[0]

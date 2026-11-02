@@ -2,6 +2,7 @@ from __future__ import annotations
 
 
 from harness.distribution import repository_root
+from harness.env_file import parse_env_file
 
 import json
 import os
@@ -11,7 +12,6 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
-from dotenv import dotenv_values
 from lexbench_webfetch.models import EvalCase, validate_case
 
 from harness.web_fetch.reference_inputs import read_dataset_bytes
@@ -90,24 +90,12 @@ def repository_env() -> dict[str, str]:
     selected = ROOT / ".env"
     if not selected.exists():
         return {}
-    # Interpolation would resolve an undefined ${NAME} from the process environment.
-    values = dotenv_values(selected, interpolate=False)
-    return {key: value for key, value in values.items() if value}
+    return {key: value for key, value in parse_env_file(selected).items() if value}
 
 
 def load_env_file(path: Path, *, override_credentials: bool = False, credentials_allowed: bool = True) -> None:
-    """Load simple dotenv assignments without evaluating shell code."""
-    for raw_line in path.expanduser().read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key = key.strip()
-        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
-            continue
-        value = value.strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
-            value = value[1:-1]
+    """Apply dotenv assignments to the process environment."""
+    for key, value in parse_env_file(path).items():
         if _evaluation_credential(key) and not credentials_allowed:
             raise ValueError("Evaluation credentials must come from the repository .env")
         if override_credentials and _evaluation_credential(key):

@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode, urlsplit
 
+from harness.data_home import data_home
 from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.record_io import load_jsonl
 from harness.report_languages import (
@@ -27,7 +28,7 @@ from harness.report_languages import (
     select_report_language,
 )
 from harness.reporting.assets import copy_bound_assets
-from harness.reporting.privacy import LOCAL_PATH_RE, WEB_URL_RE
+from harness.reporting.privacy import TRAJECTORY_REPLAY
 from harness.reporting.templates import template_identity
 from harness.reporting.versions import bind_build_version
 from harness.trajectory_replay.catalog_contracts import (
@@ -54,7 +55,6 @@ from harness.trajectory_replay.webarena_review import (
     load_validated_failure_review,
     programmatic_failure,
 )
-from harness.web_fetch.storage import data_home
 
 # This notice describes one retained historical cohort, not trajectory replay in
 # general.  Keying all three immutable inputs prevents a future requalified run
@@ -179,14 +179,7 @@ def _clean(value: Any) -> Any:
     if isinstance(value, list):
         return [_clean(item) for item in value]
     if isinstance(value, str):
-        url_spans = [match.span() for match in WEB_URL_RE.finditer(value)]
-
-        def redact_local_path(match: re.Match[str]) -> str:
-            if any(start <= match.start() and match.end() <= end for start, end in url_spans):
-                return match.group(0)
-            return "[local path removed]"
-
-        value = LOCAL_PATH_RE.sub(redact_local_path, value)
+        value = TRAJECTORY_REPLAY.redact(value)
         value = re.sub(
             r"(?<![A-Za-z0-9])sk-[A-Za-z0-9_-]{12,}",
             "[secret removed]",

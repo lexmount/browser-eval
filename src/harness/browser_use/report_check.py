@@ -40,6 +40,7 @@ from harness.record_io import load_jsonl
 from harness.report_languages import check_language_contract, generated_languages
 from harness.reporting.assets import bound_json_asset
 from harness.reporting.presentation import visible_text as _visible_text
+from harness.reporting.privacy import BROWSER_USE_CHECK_SOURCE
 from harness.reporting.templates import template_identity
 from harness.reporting.versions import check_build_version
 from harness.web_fetch.safety import reject_evidence_symlinks
@@ -61,7 +62,7 @@ _FORBIDDEN_PUBLIC_TEXT = re.compile(
             r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
             r"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}",
             r"\bsk-[A-Za-z0-9_-]{12,}",
-            r"(?-i:/(?:Users|home|private|tmp|var|opt)/[^\s\"']+)",
+            "(?-i:" + BROWSER_USE_CHECK_SOURCE + ")",
         )
     )
     + ")",

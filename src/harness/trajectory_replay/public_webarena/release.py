@@ -11,6 +11,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+from harness.data_home import data_home
 from harness.reporting.publication import (
     atomic_write,
     bind_publication_files,
@@ -62,9 +63,7 @@ def main(project_root: Path) -> None:
     RECEIPT = (ROOT / "publish/webarena-fixed-trajectory-site-receipt.json")
     OPERATION = (ROOT / "publish/webarena-fixed-trajectory-operation.json")
     BINDING = (ROOT / "publish/webarena-fixed-trajectory-binding.json")
-    DEFAULT_FORMAL = (
-        Path.home() / ".browser-eval/evidence/current/formal/webarena-public-trajectories"
-    )
+    DEFAULT_FORMAL = data_home() / "evidence/current/formal/webarena-public-trajectories"
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--formal-root", type=Path, default=DEFAULT_FORMAL)
     parser.add_argument("--publish", action="store_true")

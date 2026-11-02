@@ -6,6 +6,7 @@ import pytest
 from bs4 import BeautifulSoup
 
 from harness.environments.webarena.topology import RECORDING_GATEWAYS
+from harness.reporting.privacy import TRAJECTORY_REPLAY
 from harness.trajectory_replay.report_inputs import bound_dataset_path
 from harness.trajectory_replay.webarena_report import (
     LEGACY_REPLAY_VALIDITY_INPUTS,
@@ -40,7 +41,6 @@ from harness.trajectory_replay.webarena_report_check import (
     _check_formal_execution_scope,
     _check_legacy_retrieval_audit,
     _check_result_detail_semantics,
-    _contains_local_path_outside_web_url,
     _semantic_page_inventory,
 )
 from harness.trajectory_replay.webarena_report_check import (
@@ -1156,10 +1156,10 @@ def test_report_preserves_web_routes_that_resemble_linux_paths() -> None:
 
 
 def test_release_path_gate_ignores_web_routes_but_detects_machine_paths() -> None:
-    assert not _contains_local_path_outside_web_url(
+    assert not TRAJECTORY_REPLAY.found(
         "https://gitlab.example.test/root/project/-/issues"
     )
-    assert _contains_local_path_outside_web_url(
+    assert TRAJECTORY_REPLAY.found(
         "opened /root/private/result.json from https://example.test/root/public"
     )
 

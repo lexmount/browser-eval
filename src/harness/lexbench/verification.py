@@ -14,10 +14,12 @@ import tempfile
 
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
+from harness.data_home import data_home
 from harness.lexbench.charts import combine_comparisons, render_chart
 from harness.lexbench.resource_evidence import validate_matrix
 from harness.lexbench.resource_summary import validate_summary
 from harness.report_languages import check_language_contract, generated_languages
+from harness.reporting.privacy import LEXBENCH_CHECK_SOURCE
 from harness.web_fetch.safety import reject_evidence_symlinks
 
 
@@ -801,7 +803,7 @@ def validate(model, site, check_files=True):
         fail("highlight contract")
     if check_files:
         bad = re.compile(
-            r"/(?:Users|home|private/tmp|tmp|results|work)/|127\.0\.0\.1:\d+|ARTIFACT_SITE_TOKEN"
+            LEXBENCH_CHECK_SOURCE + r"|127\.0\.0\.1:\d+|ARTIFACT_SITE_TOKEN"
         )
         for p in site.rglob("*"):
             if (
@@ -1026,7 +1028,7 @@ def main(argv=None):
     parser.add_argument(
         "--site",
         type=pathlib.Path,
-        default=pathlib.Path.home() / ".browser-eval/reports/moli-1.1.8-failures-site",
+        default=data_home() / "reports/moli-1.1.8-failures-site",
     )
     parser.add_argument(
         "--release", action="store_true", help="Require the complete bound method matrix"

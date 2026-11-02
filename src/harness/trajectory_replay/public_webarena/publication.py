@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
+from harness.reporting.privacy import PUBLIC_WEBARENA
 from harness.reporting.publication import archive_inventory
 from harness.trajectory_replay.public_webarena.result_audit import audit_result_set
 from harness.web_fetch.publication_target import publication_document, require_publication_version
@@ -28,7 +29,6 @@ PRIVATE_IPV4 = re.compile(
     r"(?<![0-9])(?:10(?:\.[0-9]{1,3}){3}|192\.168(?:\.[0-9]{1,3}){2}|"
     r"172\.(?:1[6-9]|2[0-9]|3[01])(?:\.[0-9]{1,3}){2})(?![0-9])"
 )
-LOCAL_USER_PATH = re.compile(r"/(?:Users|home|data)/[^/\s<>'\"]+")
 
 
 def public_projection(value: Any) -> Any:
@@ -40,7 +40,7 @@ def public_projection(value: Any) -> Any:
     if isinstance(value, tuple):
         return tuple(public_projection(item) for item in value)
     if isinstance(value, str):
-        return LOCAL_USER_PATH.sub("/[local-user]", PRIVATE_IPV4.sub("webarena.local", value))
+        return PUBLIC_WEBARENA.redact(PRIVATE_IPV4.sub("webarena.local", value))
     return value
 
 
@@ -235,7 +235,7 @@ def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Pat
             if not path.is_file():
                 continue
             text = path.read_text(encoding="utf-8", errors="ignore")
-            if PRIVATE_IPV4.search(text) or LOCAL_USER_PATH.search(text):
+            if PRIVATE_IPV4.search(text) or PUBLIC_WEBARENA.found(text):
                 raise ValueError(f"private host or local user path in public report: {path.name}")
             found = next((term for term in FORBIDDEN_PUBLIC_RESULT_TERMS if term in text), None)
             if found:

@@ -16,19 +16,11 @@ from urllib.parse import parse_qs, unquote, urlsplit
 from bs4 import BeautifulSoup
 
 from harness.reporting.presentation import visible_text as _visible_text
-from harness.reporting.privacy import LOCAL_PATH_RE, WEB_URL_RE
+from harness.reporting.privacy import TRAJECTORY_REPLAY
 from harness.reporting.templates import template_identity
 from harness.reporting.versions import check_build_version
 from harness.trajectory_replay.report_languages import language_roots, report_languages
 from harness.web_fetch.safety import reject_evidence_symlinks
-
-
-def _contains_local_path_outside_web_url(text: str) -> bool:
-    url_spans = [match.span() for match in WEB_URL_RE.finditer(text)]
-    return any(
-        not any(start <= match.start() and match.end() <= end for start, end in url_spans)
-        for match in LOCAL_PATH_RE.finditer(text)
-    )
 
 
 def _text_without_verified_embedded_images(text: str, image_digests: set[str]) -> str:
@@ -884,7 +876,7 @@ def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, in
         for path in root.rglob("*")
         if path.is_file() and path.suffix in {".html", ".json", ".js", ".css"}
     )
-    if _contains_local_path_outside_web_url(distributable) or re.search(
+    if TRAJECTORY_REPLAY.found(distributable) or re.search(
         r"(?<![A-Za-z0-9])sk-[A-Za-z0-9_-]{12,}", distributable
     ):
         raise ValueError("report contains a local path or credential-like token")

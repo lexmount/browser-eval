@@ -13,6 +13,7 @@ from harness.environments.webarena.topology import (
     public_host_replacements,
     public_origin_replacements,
 )
+from harness.reporting.privacy import BROWSER_USE
 
 _ORIGIN_REPLACEMENTS = public_origin_replacements()
 _HOST_REPLACEMENTS = public_host_replacements()
@@ -20,7 +21,6 @@ _KNOWN_SECRET_VALUES = known_site_secrets()
 _SENSITIVE_KEY = re.compile(
     r"(?:authorization|cookie|password|passwd|secret|token|storage_state|api[_-]?key)", re.I
 )
-_LOCAL_PATH = re.compile(r"/(?:Users|home|private|tmp|var|opt)/[^\s\"']+")
 _BEARER = re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]+")
 
 
@@ -39,7 +39,7 @@ def sanitize_text(value: str) -> str:
     for host, placeholder in _HOST_REPLACEMENTS.items():
         text = text.replace(host, placeholder)
     text = _BEARER.sub("Bearer [REDACTED]", text)
-    text = _LOCAL_PATH.sub("<LOCAL_PATH>", text)
+    text = BROWSER_USE.redact(text)
     return text
 
 
