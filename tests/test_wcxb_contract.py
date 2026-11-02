@@ -7,7 +7,8 @@ from pathlib import Path
 from harness.web_fetch.report import format_wcxb_conditional_latency
 from harness.web_fetch.wcxb_dataset import choose, full_test_exclusions, validate_manifest
 from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
-from harness.web_fetch.wcxb_scoring import classify, score, percentile
+from harness.web_fetch.wcxb_scoring import classify, score
+from lexbench_webfetch.metrics import percentile
 from harness.web_fetch.webmainbench_runner import PROVIDERS, WCXB_PROVIDERS
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -83,9 +84,20 @@ class WCXBContractTests(unittest.TestCase):
         self.assertEqual(classify(failed, '', 0, 0, 'reference'), 'request_error')
         self.assertEqual(classify(ok, 'returned text', .2, .8, 'reference'), 'low_precision')
 
-    def test_latency_percentiles_include_all_calls(self):
-        self.assertEqual(percentile([10, 20, 30], .5), 20)
-        self.assertAlmostEqual(percentile([10, 20, 30], .95), 29)
+    def test_latency_percentiles_include_all_calls_with_the_shared_definition(self):
+        from harness.record_io import load_jsonl
+        from tests.wcxb_fixture import create_cohort
+        with tempfile.TemporaryDirectory() as folder:
+            cohort = create_cohort(Path(folder))
+            summary = score(**cohort)
+            rows = load_jsonl(cohort['evidence_root'] / 'wcxb-scores.jsonl')
+        for provider, measured in summary['providers'].items():
+            latencies = [row['total_elapsed_ms'] for row in rows if row['provider'] == provider]
+            self.assertEqual(measured['p50_latency_ms'], percentile(latencies, .5))
+            self.assertEqual(measured['p95_latency_ms'], percentile(latencies, .95))
+        # Nearest rank reports an observed call, never an interpolated 2.9 ms.
+        beta = summary['providers']['beta']
+        self.assertEqual((beta['p50_latency_ms'], beta['p95_latency_ms']), (2.0, 3.0))
 
     def test_paired_latency_requires_complete_hash_bound_calls(self):
         cases = {str(i) for i in range(4)}

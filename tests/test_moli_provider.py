@@ -332,6 +332,42 @@ class MoliTests(unittest.TestCase):
         self.assertFalse(worker.is_alive())
         self.assertLessEqual(result.metadata["_answer_elapsed_ms"], 550)
 
+    def test_unconfirmed_kill_raises_instead_of_waiting_forever(self):
+        import subprocess
+        import time
+
+        from harness.web_fetch.providers.base import ProcessCleanupError, await_owned_process_exit
+
+        provider = self.provider("import time\ntime.sleep(20)")
+        self.assertEqual(provider.validate(), [])
+        children = []
+        original = subprocess.Popen
+
+        def launch(*args, **kwargs):
+            process = original(*args, **kwargs)
+            children.append(process)
+            return process
+
+        begin = time.monotonic()
+        try:
+            # The process tree cannot be observed, so the kill is skipped.
+            with patch("harness.web_fetch.providers.moli.terminate_owned_process_tree",
+                       return_value=False), \
+                    patch("harness.web_fetch.providers.moli.subprocess.Popen", side_effect=launch), \
+                    patch("harness.web_fetch.providers.moli.await_owned_process_exit",
+                          wraps=await_owned_process_exit) as reap:
+                with self.assertRaises(ProcessCleanupError) as raised:
+                    provider.fetch(self.case, 0.3)
+            self.assertLess(time.monotonic() - begin, 5)
+            # One bounded grace, one error: cleanup does not wait again.
+            self.assertEqual(reap.call_count, 1)
+            self.assertNotIsInstance(raised.exception.__context__, ProcessCleanupError)
+        finally:
+            for child in children:
+                if child.poll() is None:
+                    child.kill()
+                child.wait()
+
     def test_ordinary_markdown_exposes_effective_url_from_debug_stderr(self):
         provider = self.provider(
             "import sys\n"
@@ -1349,7 +1385,7 @@ class MoliTests(unittest.TestCase):
         process.kill.assert_not_called()
 
     def test_cancel_permission_error_preserves_timeout_and_unresolved_worker(self):
-        from harness.web_fetch.call_boundary import fetch_with_deadline
+        from harness.web_fetch.call_boundary import fetch_with_deadline, worker_unresolved
         provider = self.provider('import time\ntime.sleep(10)')
         worker = None
         try:
@@ -1358,7 +1394,14 @@ class MoliTests(unittest.TestCase):
                 result, worker = fetch_with_deadline(provider, self.case, .1)
             self.assertFalse(result.ok)
             self.assertEqual(result.error_type, 'timeout')
-            self.assertTrue(worker.is_alive(), 'failed cleanup must not hide remaining physical work')
+            # The answer thread may already have raised ProcessCleanupError
+            # after its bounded reap; the runner still sees the live process.
+            self.assertTrue(worker_unresolved(worker, timed_out=True),
+                            'failed cleanup must not hide remaining physical work')
+            worker.join(3)
+            self.assertFalse(worker.is_alive())
+            self.assertTrue(worker_unresolved(worker, timed_out=True),
+                            'a finished answer thread still reports the surviving process')
         finally:
             provider.cancel()
             if worker is not None:

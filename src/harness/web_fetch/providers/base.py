@@ -82,6 +82,29 @@ def terminate_owned_process_tree(process):
         time.sleep(.01)
 
 
+# A killed worker exits promptly; one that outlives this grace was not stopped.
+PROCESS_EXIT_GRACE_SECONDS = 1.0
+
+
+class ProcessCleanupError(RuntimeError):
+    """An owned worker survived a best-effort kill and may still do work."""
+
+
+def await_owned_process_exit(process, grace=PROCESS_EXIT_GRACE_SECONDS):
+    """Reap a worker after ``terminate_owned_process_tree`` without hanging.
+
+    The kill is best effort: when the process tree cannot be observed the
+    worker is left running. Bound the reap and raise so the runner
+    quarantines the provider instead of blocking the call forever.
+    """
+    try:
+        return process.wait(timeout=grace)
+    except subprocess.TimeoutExpired:
+        raise ProcessCleanupError(
+            f'Worker process {process.pid} is still running after a best-effort kill'
+        ) from None
+
+
 class Provider(ABC):
     allow_failure_retries = True
 

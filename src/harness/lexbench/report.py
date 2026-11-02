@@ -20,12 +20,25 @@ from harness.lexbench.resource_summary import validate_summary as validate_linux
 from harness.record_io import load_jsonl
 from harness.report_languages import english_notice, generated_languages, write_language_contract
 from harness.resource_calibration import duration_calibration
+from lexbench_webfetch.metrics import percentile
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
 ROOT = pathlib.Path(os.environ.get("BROWSER_EVAL_DATA_HOME", pathlib.Path.home() / ".browser-eval"))
 
 
 REPOSITORY_ROOT = repository_root()
+
+
+def call_stats(values):
+    """Summarize one call population with the shared Web Fetch percentiles."""
+    values = list(values)
+    return {
+        "n": len(values),
+        "sum": sum(values),
+        "mean": statistics.mean(values) if values else None,
+        "p50": percentile(values, 0.5),
+        "p95": percentile(values, 0.95),
+    }
 
 
 def read_comparison_task(roots, relative, *, expected_sha256):
@@ -320,23 +333,6 @@ def main(argv=None):
                 "Invalid Lexbench report evidence: all((by[key]['seed'] == row['seed'] for _, _, by in runs.values()))"
             )
 
-    def percentile(values, p):
-        values = sorted(values)
-        position = (len(values) - 1) * p
-        low = int(position)
-        high = min(low + 1, len(values) - 1)
-        return values[low] + (values[high] - values[low]) * (position - low)
-
-    def stats(values):
-        values = list(values)
-        return {
-            "n": len(values),
-            "sum": sum(values),
-            "mean": statistics.mean(values) if values else None,
-            "p50": percentile(values, 0.5) if values else None,
-            "p95": percentile(values, 0.95) if values else None,
-        }
-
     metrics = {}
     quality = {}
     paired = {}
@@ -349,8 +345,8 @@ def main(argv=None):
                 "calls": len(rows),
                 "passes": len(passes),
                 "status_counts": dict(collections.Counter(r["status"] for r in rows)),
-                "duration_ms_all": stats(r["duration_ms"] for r in rows),
-                "duration_ms_pass": stats(r["duration_ms"] for r in passes),
+                "duration_ms_all": call_stats(r["duration_ms"] for r in rows),
+                "duration_ms_pass": call_stats(r["duration_ms"] for r in passes),
             }
             if phase == "engine":
                 for population, items in [("all", rows), ("pass", passes)]:
@@ -359,10 +355,10 @@ def main(argv=None):
                         ("pss_peak_mib", "pss_peak_bytes", 1048576),
                         ("pss_delta_mib", "pss_peak_delta_bytes", 1048576),
                     ]:
-                        data[name + "_" + population] = stats(
+                        data[name + "_" + population] = call_stats(
                             r["resource"][key] / scale for r in items
                         )
-                    data["fixture_tx_bytes_" + population] = stats(
+                    data["fixture_tx_bytes_" + population] = call_stats(
                         r["resource"]["fixture_traffic"]["fixture_app_tx_body_bytes"] for r in items
                     )
             metrics[mode]["profile" if phase == "engine" else phase] = data
