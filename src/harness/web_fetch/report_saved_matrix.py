@@ -283,7 +283,7 @@ def _saved_revision(spec, sources, cases, selected, completed=()):
         original = originals.get(attempt, {})
         actual = {k: v for k, v in original.items() if k not in {
             'report_invocation_status', 'report_superseded_history', 'report_retry_continuation',
-            'report_parameter_rerun'}}
+            'report_parameter_rerun', 'report_completion_note'}}
         if expected != actual:
             raise ValueError('Saved revision predecessor result differs: '+attempt)
         current = revised[attempt]
@@ -568,9 +568,7 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None):
     from harness.web_fetch.providers.base import build_provider
     metadata = record.get('provider_metadata', {})
     if not metadata.get('native_route_receipt', {}).get('contract_sha256'):
-        if contract.get('provider_config_sha256'):
-            raise ValueError('Parameter rerun lacks its execution contract')
-        return
+        raise ValueError('Parameter rerun lacks its execution contract')
     if (root / 'manifest.json').is_file():
         manifest = _json(sources.bind(root / 'manifest.json'))
     else:
@@ -813,7 +811,13 @@ def _validate_completion_retention(inputs, candidates):
                 allowed_cases.append(inputs['revision']['cases'].get((key[0], key[2]), original_case))
             if _case_identity(evidence(row['case_path'])) not in [_case_identity(c) for c in allowed_cases]:
                 raise ValueError('Completion changed an undeclared task')
-            if key in completed or not row.get('record_path'):
+            if key in completed:
+                continue
+            if not row.get('record_path'):
+                retained = inputs['missing'].get(key)
+                if (retained is None or retained[0]['status'] != row['status']
+                        or _json(retained[1]) != evidence(row['receipt_path'])):
+                    raise ValueError('Completion changed a retained invocation state or receipt')
                 continue
             previous = call_identity(evidence(row['record_path']))
             allowed = [inputs['selected'][key][1]] if key in inputs['selected'] else []
@@ -887,6 +891,7 @@ def _adopted_groups(inputs, candidates):
                             'note': authority['description'],
                             'continuations': nested['continuations'],
                             'before_case': nested['cases'][suite][cid],
+                            'attachments': nested['revision']['attachments'] if nested['revision'] else {},
                             'revision': nested['revision']['receipt'] if record != before_score else None}
         for path, digest in nested['sources'].tracked.items():
             sources.bind(path, digest)
@@ -929,9 +934,31 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
 
     output.mkdir(parents=True, exist_ok=False)
     if revision:
-        _write(output/'score-revision.json', revision['receipt'])
         for name, path in revision['attachments'].items():
             copy(path, 'review-assets/'+name+'.json')
+        if spec.get('excluded_report_families'):
+            _write(output/'score-revision-history.json', revision['receipt'])
+            visible = {(suite, cid) for suite, group in cases.items() for cid, case in group.items()
+                       if _presentation_family(case, suite, spec['report_families'])
+                       not in spec['excluded_report_families']}
+            routes = {suite+'--'+cid for suite, cid in visible}
+            attempts = {suite+'--'+record['attempt_id']
+                        for (suite, _, cid), (_, record, _, _) in selected.items()
+                        if (suite, cid) in visible}
+            revision = {**revision, 'receipt': deepcopy(revision['receipt'])}
+            receipt = revision['receipt']
+            receipt['historical_scope_path'] = 'score-revision-history.json'
+            receipt['changed_cases'] = [cid for cid in receipt['changed_cases'] if cid in routes]
+            receipt['rescored_results'] = sum((suite, cid) in visible for suite, _, cid in revision['records'])
+            for step in receipt['steps']:
+                step['task_verdict_changes'] = [change for change in step['task_verdict_changes']
+                                                if change['attempt_id'] in attempts]
+            if 'decisions' in revision['attachments']:
+                decisions = _json(revision['attachments']['decisions'])
+                scoped = [item for item in decisions if (item['suite'], item['case_id']) in visible]
+                _write(output/'report-review-assets/decisions.json', scoped)
+                receipt['review_files']['decisions'] = 'report-review-assets/decisions.json'
+        _write(output/'score-revision.json', revision['receipt'])
     if replacement_scope:
         _write(output / 'replacement-scope.json', {
             'kind': 'predeclared_replacement_scope_public_view',
@@ -1037,7 +1064,11 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
                                                    'selection': 'complete_group_regardless_of_verdict'}
                         if revised:
                             receipt_path = prefix+'/adoption-score-revision.json'
-                            _write(output/receipt_path, adoption['revision'])
+                            adopted_receipt = deepcopy(adoption['revision'])
+                            adopted_receipt['review_files'] = {
+                                name: copy(path, f'adoption-review-assets/{adoption["index"]}/{name}.json')
+                                for name, path in adoption['attachments'].items()}
+                            _write(output/receipt_path, adopted_receipt)
                             _write(output/(prefix+'/adoption-before-case.json'), adoption['before_case'])
                             (output/(prefix+'/adoption-before-score.json')).write_bytes(adoption['original'][2])
                             item['score_revision'] = {'receipt_path': receipt_path,
@@ -1130,6 +1161,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
     model['combined_ranking'] = spec.get('combined_ranking', True)
     if revision:
         model['offline_revision'] = revision['receipt']
+    model['scores_changed'] = bool(revision) or any(row.get('score_revision') for row in model_rows)
     _write(output / 'matrix.json', model)
     entry = generate_saved_matrix(output, model)
     # Bind every portable byte after generation; source files remain immutable.
@@ -1142,7 +1174,7 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
     _write(output / 'saved-matrix-audit.json', {
         'schema_version': 1, 'spec_sha256': tracked[spec_path],
         'sources': [{'name': path.name, 'sha256': digest} for path, digest in tracked.items()],
-        'files': copies, 'totals': model['totals'], 'provider_calls_added': 0, 'scores_changed': bool(revision),
+        'files': copies, 'totals': model['totals'], 'provider_calls_added': 0, 'scores_changed': model['scores_changed'],
         'private_debug_policy': 'Private raw responses and debug files verified at source, not copied.'})
     check_saved_matrix(output)
     return entry
@@ -1198,6 +1230,11 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     if len(keys) != len(set(keys)) or _totals(model['rows']) != audit['totals']:
         raise ValueError('Saved-matrix population changed')
     for row in model['rows']:
+        if row.get('score_revision'):
+            receipt = _json(contained_path(output, row['score_revision']['receipt_path'], reject_symlinks=True))
+            for target in receipt.get('review_files', {}).values():
+                if target not in audit['files'] or not contained_path(output, target, reject_symlinks=True).is_file():
+                    raise ValueError('Missing score revision attachment')
         for key in ('record_path', 'answer_path', 'log_path', 'case_path', 'receipt_path'):
             if row.get(key) and not contained_path(output, row[key], reject_symlinks=True).is_file():
                 raise ValueError('Missing saved-matrix evidence link')
@@ -1328,7 +1365,7 @@ def render_saved_with_standard_generator(output, model):
     (output/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
     _write(output/'summary.json', scope)
     _write(output/'execution.json', {'kind':'saved_report_projection', 'provider_calls_added':0,
-           'scores_changed':bool(model.get('offline_revision')), 'identities':identities, 'source_bindings':model['source_bindings']})
+           'scores_changed':model.get('scores_changed', bool(model.get('offline_revision'))), 'identities':identities, 'source_bindings':model['source_bindings']})
     from harness.web_fetch.report import _REPORT_SUITES, _REPORT_PROVIDER_LABELS, provider_label
     token = _REPORT_SUITES.set(tuple(dataset['report_suites']))
     label_token = _REPORT_PROVIDER_LABELS.set({p['id']: p['label'] for p in model['providers']})

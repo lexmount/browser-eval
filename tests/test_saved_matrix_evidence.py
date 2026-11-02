@@ -44,6 +44,37 @@ def build(tmp_path, spec, name='report'):
     return build_saved_matrix(path, tmp_path / name)
 
 
+@pytest.mark.parametrize('defect', [None, 'downgrade', 'receipt'])
+def test_completion_preserves_uncommitted_baseline_state_and_receipt(tmp_path, defect):
+    spec, source, _, _ = fixture(tmp_path)
+    spec['sources'] = []
+    receipt = {'suite': 'first', 'provider': 'method', 'case_id': 'same',
+               'state': 'called_but_uncommitted', 'elapsed_ms': None}
+    spec['missing'] = [{'suite': 'first', 'provider': 'method', 'case_id': 'same',
+                        'status': 'uncommitted', 'reason': 'Collection interrupted',
+                        'receipt': write(tmp_path/'receipt.json', receipt)}]
+    baseline = build(tmp_path, spec, 'baseline').parent
+    spec['completion'] = {
+        'baseline_matrix': {'path': str(baseline/'matrix.json'),
+                            'sha256': hashlib.sha256((baseline/'matrix.json').read_bytes()).hexdigest()},
+        'baseline_audit': {'path': str(baseline/'saved-matrix-audit.json'),
+                           'sha256': hashlib.sha256((baseline/'saved-matrix-audit.json').read_bytes()).hexdigest()},
+        'contract': write(tmp_path/'contract.json', {'created_at': '2026-11-01T00:00:00Z',
+                                                   'provider': 'method', 'jobs': [], 'cases': 0})}
+    if defect == 'downgrade':
+        spec['missing'][0]['status'] = 'not_called'
+        receipt['state'] = 'pre_call_blocked_no_method_calls'
+        receipt['native_route_receipt'] = {'transport_state': 'not_started'}
+    elif defect == 'receipt':
+        receipt['elapsed_ms'] = 123
+    spec['missing'][0]['receipt'] = write(tmp_path/'new-receipt.json', receipt)
+    if defect:
+        with pytest.raises(ValueError, match='retained invocation state or receipt'):
+            build(tmp_path, spec)
+    else:
+        assert check_saved_matrix(build(tmp_path, spec).parent)['valid']
+
+
 def test_current_selection_omits_other_methods_and_superseded_payloads(tmp_path):
     spec, root, record, raw = fixture(tmp_path)
     excluded = deepcopy(record)
@@ -425,7 +456,9 @@ def test_colliding_suite_case_routes_rejected_before_output(tmp_path):
 
 @pytest.mark.parametrize('before,after,selected', [(False, True, True), (True, True, False),
                                                    (False, False, False), (True, False, False)])
-def test_single_case_parameter_group_preserves_both_calls_and_selects_improvement(tmp_path, before, after, selected):
+def test_single_case_parameter_group_preserves_both_calls_and_selects_improvement(tmp_path, before, after, selected, monkeypatch):
+    # Exercise group selection independently of native transport authorization.
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
     spec, root, record, _ = fixture(tmp_path)
     record['metrics']['content_pass'] = before
     (root/'results.jsonl').write_text(json.dumps(record)+'\n')
@@ -470,7 +503,8 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
         build(tmp_path, spec, 'changed-rule')
 
 
-def test_parameter_rerun_parts_must_cover_the_whole_original_job(tmp_path):
+def test_parameter_rerun_parts_must_cover_the_whole_original_job(tmp_path, monkeypatch):
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
     from harness.web_fetch.report_saved_matrix import _parameter_reruns
     spec, root, record, _ = fixture(tmp_path)
     case = json.loads((root/'dataset.json').read_text())['cases'][0]
@@ -532,7 +566,8 @@ def test_whole_parameter_group_never_keeps_a_regression_from_the_old_group(after
 
 
 @pytest.mark.parametrize('final_pass', [False, True])
-def test_parameter_candidate_view_retains_a_separately_completed_retry(tmp_path, final_pass):
+def test_parameter_candidate_view_retains_a_separately_completed_retry(tmp_path, final_pass, monkeypatch):
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
     spec, root, record, _ = fixture(tmp_path/'baseline')
     record['metrics']['content_pass'] = False
     (root/'results.jsonl').write_text(json.dumps(record)+'\n')

@@ -12,7 +12,7 @@ from lexbench_webfetch.scoring import score_attempt
 from tests.test_saved_matrix_evidence import fixture, write
 
 
-def revision_fixture(tmp_path, *, multiple=False, uncalled=False):
+def revision_fixture(tmp_path, *, multiple=False, uncalled=False, completion_note=False):
     spec, source, row, _ = fixture(tmp_path)
     case = json.loads((source/'dataset.json').read_text())['cases'][0]
     case['required_facts'] = [{'id':'shell', 'alternatives':['Subscribe']}]
@@ -33,7 +33,16 @@ def revision_fixture(tmp_path, *, multiple=False, uncalled=False):
         spec['suites'].append({**spec['suites'][0], 'id':'second', 'label':'Second'})
         spec['sources'].append({**spec['sources'][0], 'suite':'second'})
     write(tmp_path/'spec.json', spec)
-    revision = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revision').parent
+    if completion_note:
+        from unittest.mock import patch
+        from harness.web_fetch.report import generate_saved_matrix
+        def render_with_note(output, model):
+            model['rows'][0]['completion_note'] = 'Only this case uses the declared DNS exception.'
+            return generate_saved_matrix(output, model)
+        with patch('harness.web_fetch.report.generate_saved_matrix', side_effect=render_with_note):
+            revision = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revision').parent
+    else:
+        revision = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revision').parent
     dataset = json.loads((revision/'dataset.json').read_text())
     changed = deepcopy(dataset['cases'][0])
     changed['required_facts'] = []
@@ -48,6 +57,54 @@ def revision_fixture(tmp_path, *, multiple=False, uncalled=False):
         'receipt':{'path':str(receipt),'sha256':hashlib.sha256(receipt.read_bytes()).hexdigest()}}
     write(tmp_path/'spec.json', spec)
     return spec, source, revision
+
+
+def test_revision_round_trip_preserves_call_with_completion_note(tmp_path):
+    spec, source, _ = revision_fixture(tmp_path, completion_note=True)
+    original = (source/'results.jsonl').read_bytes()
+    output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revised').parent
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['scores_changed']
+    assert (source/'results.jsonl').read_bytes() == original
+
+
+@pytest.mark.parametrize('missing_attachment', [False, True])
+def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_path, missing_attachment):
+    nested, _, revision = revision_fixture(tmp_path/'nested')
+    nested['offline_revision']['review_files'] = {
+        'decisions': write(tmp_path/'nested/decisions.json', [{'reason': 'independent scope review'}])}
+    spec, source, record, _ = fixture(tmp_path/'parent')
+    case = json.loads((revision/'dataset.json').read_text())['cases'][0]
+    case['id'] = 'same'
+    case.pop('report_family', None)
+    case.pop('report_family_label', None)
+    spec['suites'][0]['dataset'] = write(source/'dataset.json', {'cases': [case]})
+    record['metrics'] = score_attempt(case, b'answer', ok=True)
+    spec['sources'][0]['results'] = write(source/'results.jsonl', record)
+    spec['report_families'] = [{'id': 'web', 'label': 'Static', 'source_suites': ['first']}]
+    spec['adoptions'] = [{
+        'authority': write(tmp_path/'authority.json', {
+            'kind': 'user_selected_complete_report_groups', 'description': 'Select complete group.',
+            'groups': [{'provider': 'method', 'family': 'web'}]}),
+        'saved_matrix_spec': write(tmp_path/'nested/spec.json', nested)}]
+    write(tmp_path/'spec.json', spec)
+    output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'report').parent
+    matrix = json.loads((output/'matrix.json').read_text())
+    assert matrix['scores_changed'] is True
+    assert json.loads((output/'execution.json').read_text())['scores_changed'] is True
+    receipt_path = output/matrix['rows'][0]['score_revision']['receipt_path']
+    receipt = json.loads(receipt_path.read_text())
+    attachment = receipt['review_files']['decisions']
+    assert attachment.startswith('adoption-review-assets/0/')
+    assert (output/attachment).read_bytes() == (tmp_path/'nested/decisions.json').read_bytes()
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['scores_changed'] is True
+    if missing_attachment:
+        receipt['review_files']['decisions'] = 'missing.json'
+        binding = write(receipt_path, receipt)
+        audit = json.loads((output/'saved-matrix-audit.json').read_text())
+        audit['files'][receipt_path.relative_to(output).as_posix()] = binding['sha256']
+        write(output/'saved-matrix-audit.json', audit)
+        with pytest.raises(ValueError, match='Missing score revision attachment'):
+            check_saved_matrix(output)
 
 
 def test_saved_revision_preserves_calls_and_exposes_original_scores(tmp_path):
@@ -98,6 +155,29 @@ def test_revision_keeps_same_id_in_other_suite_unchanged(tmp_path):
     assert 'score-before-record.json' in review and '修订前后证据' in review
 
 
+def test_exclusion_scopes_revision_counts_and_decisions_but_preserves_history(tmp_path):
+    spec, _, _ = revision_fixture(tmp_path, multiple=True)
+    decisions = [{'suite': suite, 'case_id': 'same', 'rule_decisions': [],
+                  'decision_basis': suite+' independent decision'} for suite in ('first', 'second')]
+    spec['offline_revision']['review_files'] = {'decisions': write(tmp_path/'decisions.json', decisions)}
+    spec['report_families'] = [
+        {'id': 'web', 'label': 'Retained', 'source_suites': ['second']},
+        {'id': 'base-web', 'task_family': 'web', 'label': 'Excluded', 'source_suites': ['first']}]
+    spec['excluded_report_families'] = ['base-web']
+    write(tmp_path/'spec.json', spec)
+    output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'report').parent
+    receipt = json.loads((output/'score-revision.json').read_text())
+    history = json.loads((output/receipt['historical_scope_path']).read_text())
+    assert receipt['changed_cases'] == [] and receipt['rescored_results'] == 0
+    assert history['changed_cases'] == ['first--same'] and history['rescored_results'] == 1
+    assert all(not step['task_verdict_changes'] for step in receipt['steps'])
+    assert json.loads((output/receipt['review_files']['decisions']).read_text()) == decisions[1:]
+    assert json.loads((output/history['review_files']['decisions']).read_text()) == decisions
+    review = (output/'review/index.html').read_text()
+    assert 'first independent decision' not in review and 'second independent decision' in review
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+
+
 def test_revision_rejects_different_frozen_call_even_with_rebound_source(tmp_path):
     spec, source, _ = revision_fixture(tmp_path)
     row = json.loads((source/'results.jsonl').read_text())
@@ -110,9 +190,13 @@ def test_revision_rejects_different_frozen_call_even_with_rebound_source(tmp_pat
 
 
 @pytest.mark.parametrize('defect', [None, 'already_called', 'before_contract',
-                                  'early_first_call', 'duplicate', 'incomplete', 'undeclared', 'extra_baseline', 'retained_call', 'retained_task', 'completed_task', 'extra_uncommitted'])
+                                  'early_first_call', 'duplicate', 'incomplete', 'undeclared', 'extra_baseline', 'retained_call', 'retained_task', 'completed_task', 'extra_uncommitted', 'missing_execution'])
 @pytest.mark.parametrize('contract_form', ['single', 'multiple'])
-def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_form):
+def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_form, monkeypatch):
+    # History controls isolate execution proof; real native authorization has its
+    # own positive/negative transport fixtures. The absent-proof case uses production.
+    if defect != 'missing_execution':
+        monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
     spec, source, revision = revision_fixture(tmp_path, uncalled=True)
     baseline = {'path': str(revision/'matrix.json'), 'sha256': hashlib.sha256((revision/'matrix.json').read_bytes()).hexdigest()}
     record = json.loads((source/'results.jsonl').read_text())
@@ -186,7 +270,8 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_
                                {('first', 'method', 'later'): (source, record, b'', source/'completion.jsonl')})
         return
     if defect:
-        message = {'extra_uncommitted': 'undeclared position',
+        message = {'missing_execution': 'lacks its execution contract',
+                   'extra_uncommitted': 'undeclared position',
                    'completed_task': 'undeclared task'}.get(defect)
         with pytest.raises(ValueError, match=message):
             build_saved_matrix(tmp_path/'spec.json', tmp_path/'completed')

@@ -1141,7 +1141,8 @@ def test_explicit_native_declaration_does_not_bypass_invalid_acceptance_contract
                              'acceptance_contract': {'version': 1, 'schema': 'unknown'}})
 
 @pytest.mark.parametrize('defect', [None, 'dns', 'timeout', 'config', 'option',
-                                  'missing_dns', 'deadline_without_dns'])
+                                  'missing_dns', 'deadline_without_dns', 'missing_bindings',
+                                  'missing_authorization', 'missing_native'])
 def test_parameter_report_requires_authorized_native_execution(tmp_path, defect):
     import json
     import hashlib
@@ -1178,6 +1179,10 @@ def test_parameter_report_requires_authorized_native_execution(tmp_path, defect)
         record['provider_metadata']['native_route_receipt']['failure_stage'] = 'after_transport'
     if defect == 'timeout': contract['timeout_seconds'] = 30
     if defect == 'config': contract['provider_config_sha256'] = '0'*64
+    if defect in {'missing_bindings', 'missing_authorization'}:
+        contract.pop('provider_config_sha256')
+    if defect in {'missing_bindings', 'missing_native'}:
+        record['provider_metadata']['native_route_receipt'] = {'transport_state': 'started'}
     if defect and defect != 'deadline_without_dns':
         with pytest.raises(ValueError, match='Parameter rerun'):
             _parameter_execution(tmp_path, record, asdict(case), contract, _SourceBindings(tmp_path))

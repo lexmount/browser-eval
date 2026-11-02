@@ -2816,6 +2816,8 @@ def write_review_page(out,records):
   revision=json.loads(revision_path.read_text())
   page=hero('核验记录',SAVED_MATRIX_ZH['offline_review_scope'])
   page+=section('修订范围','<p>'+model_text(f'调整 {len(revision["changed_cases"])} 个案例，统一重算 {revision["rescored_results"]} 份保存结果。原始规则、成绩、返回和调用耗时均保留。',f'{len(revision["changed_cases"])} cases revised and {revision["rescored_results"]} saved results rescored. Original rules, results, answers and call timings are retained.')+'</p><p>'+link('../score-revision.json','修订依据与分数变化')+'</p>')
+  if revision.get('historical_scope_path'):
+   page+='<p>'+model_text('以上统计仅包含当前报告范围。','These counts cover only the current report population.')+' '+link('../'+revision['historical_scope_path'],model_text('历史完整范围的修订依据','Revision evidence for the full historical population'))+'</p>'
   steps=[]
   for step in revision.get('steps',[]):
    changes=step.get('task_verdict_changes',[])
