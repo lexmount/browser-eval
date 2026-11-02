@@ -348,8 +348,8 @@ Build from an explicit immutable evidence directory:
 ```sh
 make setup
 uv run --frozen python scripts/check_headless_evidence.py EVIDENCE --rescore
-make report EVIDENCE=/absolute/path/to/evidence
-make report-check
+make report PROFILE=/absolute/path/to/profile.json EVIDENCE=/absolute/path/to/evidence
+make report-check PROFILE=/absolute/path/to/profile.json
 ```
 
 For another declared cohort, pass `--canonical-dataset`, `--provider-config`,

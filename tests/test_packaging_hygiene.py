@@ -236,6 +236,26 @@ def tracked(*patterns):
     return [ROOT / relative for relative in listed.stdout.split("\0") if relative]
 
 
+def profileless_make_commands(text, targets):
+    """Return documented commands that omit the profile their Make target requires."""
+    segments = re.split(r"\n|\\n|<pre>|</pre>|\"", text)
+    commands = [segment.split(maxsplit=2) + [""] for segment in segments if segment.lstrip().startswith("make ")]
+    return [command[1] for command in commands if command[1] in targets and "PROFILE=" not in command[2]]
+
+
+def test_documented_make_commands_name_the_required_profile():
+    targets = set(re.findall(r"^([a-z][a-z-]*):[^\n]*\n(?:\t@?[^\n]*\n)*?\t\$\(call require_profile", MAKEFILE, re.M))
+    assert {"report", "report-check", "public-benchmark-report"} <= targets
+    stale = 'pre>make setup\\nmake report EVIDENCE=/evidence\\nmake report-check</pre>'
+    assert profileless_make_commands(stale, targets) == ["report", "report-check"]
+    assert profileless_make_commands('"check": "make report-check",', targets) == ["report-check"]
+    assert not profileless_make_commands('make report PROFILE=/p.json EVIDENCE=/e', targets)
+    assert not profileless_make_commands("`make report` reaches build_report.py", targets)
+    offenders = {str(path.relative_to(ROOT)): found for path in tracked("*.md", "configs/*.json", "src/harness/**/*.py")
+                 if (found := profileless_make_commands(path.read_text(), targets))}
+    assert not offenders
+
+
 def test_python_policy_agrees_across_project_lock_and_ci():
     project = tomllib.loads((ROOT / "pyproject.toml").read_text())
     pinned = (ROOT / ".python-version").read_text().strip()
