@@ -1,4 +1,4 @@
-"""Browser Use benchmark result aggregation.
+"""Public WebArena Trajectory Replay result aggregation.
 
 Resource collection lives in harness.resource_accounting so every isolated
 benchmark uses one accounting contract.

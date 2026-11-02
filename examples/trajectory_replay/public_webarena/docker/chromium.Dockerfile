@@ -3,8 +3,8 @@ FROM debian:bookworm-slim@sha256:88200866dfff7ea7f5cbcb6ec7c8a701889efe6fe859fe6
 ARG DEBIAN_MIRROR=http://deb.debian.org/debian
 ARG DEBIAN_SECURITY_MIRROR=http://deb.debian.org/debian-security
 
-LABEL lex.browser-use-eval.debian-mirror="${DEBIAN_MIRROR}" \
-      lex.browser-use-eval.debian-security-mirror="${DEBIAN_SECURITY_MIRROR}"
+LABEL lex.browser-eval.debian-mirror="${DEBIAN_MIRROR}" \
+      lex.browser-eval.debian-security-mirror="${DEBIAN_SECURITY_MIRROR}"
 
 RUN sed -i \
         -e "s|http://deb.debian.org/debian-security|${DEBIAN_SECURITY_MIRROR}|g" \

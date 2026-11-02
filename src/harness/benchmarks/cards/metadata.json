@@ -1,6 +1,11 @@
 {
   "webfetch": {
     "pretty_name": "LexBench-Web-Fetch",
+    "definition_registry": "suites",
+    "derived_fields": {
+      "benchmark_category": "harness.web_fetch.models:report_family"
+    },
+    "order_configurations_by_subsets": true,
     "license": "apache-2.0",
     "tags": [
       "benchmark",

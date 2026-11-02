@@ -9,17 +9,17 @@ for argument in "$@"; do
     *) echo "Unknown argument: ${argument}" >&2; exit 2 ;;
   esac
 done
-FAILURE_RETRIES="${BROWSER_USE_EVAL_FAILURE_RETRIES:-1}"
-SAMPLE_MS="${BROWSER_USE_EVAL_SAMPLE_INTERVAL_MS:-100}"
-SETTLE_MS="${BROWSER_USE_EVAL_SETTLE_MS:-1500}"
-CPUS="${BROWSER_USE_EVAL_CPUS:-2}"
-MEMORY="${BROWSER_USE_EVAL_MEMORY:-2g}"
-BUILD_IMAGES="${BROWSER_USE_EVAL_BUILD_IMAGES:-1}"
-LLM_DIAGNOSTICS="${BROWSER_USE_EVAL_LLM_DIAGNOSTICS:-0}"
-DIAGNOSIS_MODEL="${BROWSER_USE_EVAL_DIAGNOSIS_MODEL:-gpt-5.6-sol}"
-DIAGNOSIS_EFFORT="${BROWSER_USE_EVAL_DIAGNOSIS_REASONING_EFFORT:-low}"
+FAILURE_RETRIES="${TRAJECTORY_REPLAY_FAILURE_RETRIES:-1}"
+SAMPLE_MS="${TRAJECTORY_REPLAY_SAMPLE_INTERVAL_MS:-100}"
+SETTLE_MS="${TRAJECTORY_REPLAY_SETTLE_MS:-1500}"
+CPUS="${TRAJECTORY_REPLAY_CPUS:-2}"
+MEMORY="${TRAJECTORY_REPLAY_MEMORY:-2g}"
+BUILD_IMAGES="${TRAJECTORY_REPLAY_BUILD_IMAGES:-1}"
+LLM_DIAGNOSTICS="${TRAJECTORY_REPLAY_LLM_DIAGNOSTICS:-0}"
+DIAGNOSIS_MODEL="${TRAJECTORY_REPLAY_DIAGNOSIS_MODEL:-gpt-5.6-sol}"
+DIAGNOSIS_EFFORT="${TRAJECTORY_REPLAY_DIAGNOSIS_REASONING_EFFORT:-low}"
 DATA_HOME="${BROWSER_EVAL_DATA_HOME:-${HOME}/.browser-eval}"
-OUTPUT="${BROWSER_USE_EVAL_OUTPUT_DIR:-${DATA_HOME}/trajectory-replay/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
+OUTPUT="${TRAJECTORY_REPLAY_OUTPUT_DIR:-${DATA_HOME}/trajectory-replay/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 if [[ "${OUTPUT}" != /* ]]; then
   OUTPUT="${PWD}/${OUTPUT}"
 fi
@@ -44,9 +44,9 @@ echo "Evidence directory: ${OUTPUT}"
 
 if [[ "${BUILD_IMAGES}" == "1" ]]; then
   docker build -f "${ROOT}/examples/trajectory_replay/docker/chromium.Dockerfile" \
-    -t lex-browser-use-eval-chromium:local "${ROOT}"
+    -t lex-browser-eval-chromium:local "${ROOT}"
   docker build -f "${ROOT}/examples/trajectory_replay/docker/moli.Dockerfile" \
-    -t lex-browser-use-eval-moli:local "${ROOT}"
+    -t lex-browser-eval-moli:local "${ROOT}"
 fi
 
 RUNNER=(uv run --frozen --extra browser-use-eval python)

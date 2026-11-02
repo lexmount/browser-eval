@@ -1223,7 +1223,7 @@ def _appendix_page(manifest: dict[str, Any]) -> str:
         ["attempts.jsonl SHA-256", str(provenance.get("attempts_sha256") or "未记录")],
         ["summary.json SHA-256", str(provenance.get("summary_sha256") or "未记录")],
     ]
-    return f"""<section class="card"><h2>复现步骤</h2><ol><li>准备 Docker Engine、Python 3.11+、至少 4 CPU/6 GiB 内存。</li><li>运行 <code>./examples/trajectory_replay/run.sh</code>；脚本执行完整基准，并依次生成原始记录、汇总数据和分页 HTML。</li><li>如需为失败任务补充一次同任务证据，设置 <code>BROWSER_USE_EVAL_FAILURE_RETRIES=1</code>；该记录不会另计为新任务。</li><li>如只需从已有 <code>attempts.jsonl</code> 重算全部指标和报告，运行 <code>uv run python examples/trajectory_replay/rebuild_report.py</code>。</li><li>检查 <code>attempts.jsonl</code>、<code>manifest.json</code>、<code>summary.json</code> 与分页 HTML；所有比值、分位数和均值均由仓库脚本计算，Codex 不参与统计。</li></ol><p><a href="trajectory-replay-evaluation-latest-data.json">下载本轮机器可读审计摘要</a></p></section><section class="card"><h2>运行与原始数据绑定</h2>{_table(["项目", "值"], provenance_rows, "可复核来源")}</section><section class="card"><h2>数据字段</h2>{_table(["对象", "关键字段", "用途"], fields, "数据结构")}</section><section class="card"><h2>复现限制</h2><ul><li>全部任务来自公网，页面内容、网络状态或站点策略变化可能导致数据集漂移；运行前需复核数据集 SHA 与标注证据。</li><li>采样间隔 {p.get("sample_interval_ms", "?")} ms，持续时间短于采样间隔的尖峰可能遗漏。</li><li>浏览器进程保持运行且任务间清理状态；分配器保留内存不等于缓存污染。</li></ul></section><section class="card"><h2>原始环境 JSON</h2><details><summary>展开</summary><pre>{_e(json.dumps(manifest.get("environment") or {}, ensure_ascii=False, indent=2, sort_keys=True))}</pre></details></section>"""
+    return f"""<section class="card"><h2>复现步骤</h2><ol><li>准备 Docker Engine、Python 3.11+、至少 4 CPU/6 GiB 内存。</li><li>运行 <code>./examples/trajectory_replay/run.sh</code>；脚本执行完整基准，并依次生成原始记录、汇总数据和分页 HTML。</li><li>如需为失败任务补充一次同任务证据，设置 <code>TRAJECTORY_REPLAY_FAILURE_RETRIES=1</code>；该记录不会另计为新任务。</li><li>如只需从已有 <code>attempts.jsonl</code> 重算全部指标和报告，运行 <code>uv run python examples/trajectory_replay/rebuild_report.py</code>。</li><li>检查 <code>attempts.jsonl</code>、<code>manifest.json</code>、<code>summary.json</code> 与分页 HTML；所有比值、分位数和均值均由仓库脚本计算，Codex 不参与统计。</li></ol><p><a href="trajectory-replay-evaluation-latest-data.json">下载本轮机器可读审计摘要</a></p></section><section class="card"><h2>运行与原始数据绑定</h2>{_table(["项目", "值"], provenance_rows, "可复核来源")}</section><section class="card"><h2>数据字段</h2>{_table(["对象", "关键字段", "用途"], fields, "数据结构")}</section><section class="card"><h2>复现限制</h2><ul><li>全部任务来自公网，页面内容、网络状态或站点策略变化可能导致数据集漂移；运行前需复核数据集 SHA 与标注证据。</li><li>采样间隔 {p.get("sample_interval_ms", "?")} ms，持续时间短于采样间隔的尖峰可能遗漏。</li><li>浏览器进程保持运行且任务间清理状态；分配器保留内存不等于缓存污染。</li></ul></section><section class="card"><h2>原始环境 JSON</h2><details><summary>展开</summary><pre>{_e(json.dumps(manifest.get("environment") or {}, ensure_ascii=False, indent=2, sort_keys=True))}</pre></details></section>"""
 
 
 def _markdown(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
@@ -1260,7 +1260,7 @@ def _markdown(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         [
             "",
             "```bash",
-            "BROWSER_USE_EVAL_FAILURE_RETRIES=1 ./examples/trajectory_replay/run.sh",
+            "TRAJECTORY_REPLAY_FAILURE_RETRIES=1 ./examples/trajectory_replay/run.sh",
             "```",
             "",
         ]

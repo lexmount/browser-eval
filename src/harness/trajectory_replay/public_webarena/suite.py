@@ -1,4 +1,4 @@
-"""Task-suite schema and validation for browser use evaluation."""
+"""Task-suite schema and validation for public WebArena Trajectory Replay."""
 
 from __future__ import annotations
 

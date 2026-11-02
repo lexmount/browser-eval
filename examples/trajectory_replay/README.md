@@ -50,7 +50,7 @@ Outputs:
 - Markdown, HTML, and audit data in that run's `report/` directory
 
 `BROWSER_EVAL_DATA_HOME` changes the data root. The command prints the selected
-evidence directory. `BROWSER_USE_EVAL_OUTPUT_DIR` selects an explicit new directory;
+evidence directory. `TRAJECTORY_REPLAY_OUTPUT_DIR` selects an explicit new directory;
 an existing directory, file, or symlink is rejected without deleting evidence.
 Repeated invocations create separate runs. This runner does not resume an old run.
 
@@ -120,12 +120,12 @@ statistics.
   retained-memory and MiB-second metrics keep this visible.
 
 Failures retry once by default. Override defaults with
-BROWSER_USE_EVAL_FAILURE_RETRIES, BROWSER_USE_EVAL_SAMPLE_INTERVAL_MS,
-BROWSER_USE_EVAL_SETTLE_MS, BROWSER_USE_EVAL_CPUS, BROWSER_USE_EVAL_MEMORY, and
-BROWSER_USE_EVAL_OUTPUT_DIR.
+TRAJECTORY_REPLAY_FAILURE_RETRIES, TRAJECTORY_REPLAY_SAMPLE_INTERVAL_MS,
+TRAJECTORY_REPLAY_SETTLE_MS, TRAJECTORY_REPLAY_CPUS, TRAJECTORY_REPLAY_MEMORY, and
+TRAJECTORY_REPLAY_OUTPUT_DIR.
 
 Rule-based failure classification is always enabled. Optional LLM root-cause
-analysis is enabled with `BROWSER_USE_EVAL_LLM_DIAGNOSTICS=1`; it uses
+analysis is enabled with `TRAJECTORY_REPLAY_LLM_DIAGNOSTICS=1`; it uses
 `gpt-5.6-sol` with low reasoning by default and requires `OPENAI_API_KEY` plus
 `OPENAI_BASE_URL`. The LLM receives only failed-task evidence, produces a
 traceable hypothesis, and never changes pass/fail scoring.

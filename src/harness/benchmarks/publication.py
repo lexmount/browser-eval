@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import gzip
 import hashlib
+import importlib
 import io
 import json
 import re
@@ -25,6 +26,14 @@ def digest(raw: bytes) -> str:
 
 def encoded(value: object) -> bytes:
     return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
+
+
+def _derived_field(reference: str):
+    """Resolve a ``module:function`` projection named by track card metadata."""
+    module, _, name = reference.partition(":")
+    if not module.startswith("harness.") or not name:
+        raise ValueError("Invalid derived viewer field: " + reference)
+    return getattr(importlib.import_module(module), name)
 
 
 def _git_blobs(checkout: Path, revision: str, paths: tuple[str, ...]) -> dict[str, bytes]:
@@ -217,7 +226,8 @@ class DatasetRelease:
 
     def datasets(self) -> dict[str, dict]:
         registry = json.loads(self.files["definitions/registry.json"])
-        if self.track == "webfetch":
+        metadata = json.loads((CARDS / "metadata.json").read_bytes())[self.track]
+        if metadata.get("definition_registry") == "suites":
             datasets = {}
             for row in registry["suites"]:
                 directory, declared = row["directory"], row["files"]
@@ -348,6 +358,8 @@ class DatasetRelease:
         languages = set()
         used_annotations = {}
         metadata = json.loads((CARDS / "metadata.json").read_bytes())[self.track]
+        derived = {field: _derived_field(reference)
+                   for field, reference in metadata.get("derived_fields", {}).items()}
         annotations = self.language_annotations
         if annotations is None:
             annotations = json.loads((CARDS / "languages.json").read_bytes()).get(self.track, {})
@@ -388,9 +400,7 @@ class DatasetRelease:
                 }
                 row.update({key: case[key] for key in ("track", "category")
                             if case.get(key) not in (None, "")})
-                if self.track == 'webfetch':
-                    from harness.web_fetch.models import report_family
-                    row['benchmark_category'] = report_family(case)
+                row.update({field: project(case) for field, project in derived.items()})
                 if "source_paths" in binding:
                     row["source_path"] = binding["source_paths"][case_id]
                     row.update({key: binding[key] for key in ("layer", "driver") if key in binding})
@@ -482,7 +492,7 @@ class DatasetRelease:
     def _finish(self, output: Path, manifest: dict, configurations: list[dict], metadata: dict,
                 languages: set[str], body: str, yaml, definition_files: dict[str, bytes]) -> dict:
 
-        if self.track == 'webfetch':
+        if metadata.get("order_configurations_by_subsets"):
             order = {name: index for index, name in enumerate(metadata['subsets'])}
             configurations.sort(key=lambda row: order.get(row['config_name'], len(order)))
             manifest['viewer']['configurations'].sort(

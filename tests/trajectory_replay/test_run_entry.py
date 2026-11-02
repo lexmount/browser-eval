@@ -40,9 +40,9 @@ def wrapper_environment(tmp_path):
         "CALL_LOG": str(log),
         "TEST_PYTHON": sys.executable,
         "BROWSER_EVAL_DATA_HOME": str(tmp_path / "data"),
-        "BROWSER_USE_EVAL_BUILD_IMAGES": "0",
+        "TRAJECTORY_REPLAY_BUILD_IMAGES": "0",
     }
-    env.pop("BROWSER_USE_EVAL_OUTPUT_DIR", None)
+    env.pop("TRAJECTORY_REPLAY_OUTPUT_DIR", None)
     return env, log
 
 
@@ -65,7 +65,7 @@ def test_wrapper_preserves_existing_destination_before_external_work(
         output.symlink_to(original if kind in {"symlink", "parent"} else tmp_path / "missing")
         if kind == "parent":
             output = output / "nested" / "new"
-    env["BROWSER_USE_EVAL_OUTPUT_DIR"] = str(output)
+    env["TRAJECTORY_REPLAY_OUTPUT_DIR"] = str(output)
     result = subprocess.run(
         ["bash", str(ROOT / "examples/trajectory_replay/run.sh")],
         env=env, capture_output=True, text=True,
@@ -124,7 +124,7 @@ def test_failed_wrapper_run_preserves_a_previous_run(tmp_path, wrapper_environme
 
 def test_wrapper_resolves_relative_output_from_callers_directory(tmp_path, wrapper_environment):
     env, log = wrapper_environment
-    env["BROWSER_USE_EVAL_OUTPUT_DIR"] = "selected-run"
+    env["TRAJECTORY_REPLAY_OUTPUT_DIR"] = "selected-run"
     result = subprocess.run(
         ["bash", str(ROOT / "examples/trajectory_replay/run.sh")],
         cwd=tmp_path, env=env, capture_output=True, text=True,
@@ -227,7 +227,7 @@ def test_wrapper_accepts_system_temp_aliases(tmp_path, wrapper_environment, alia
     with tempfile.TemporaryDirectory(dir=canonical if alias == '/tmp' else tmp_path) as directory:
         root = Path(directory)
         output = Path(alias) / root.relative_to(canonical) / 'new-run'
-        env['BROWSER_USE_EVAL_OUTPUT_DIR'] = str(output)
+        env['TRAJECTORY_REPLAY_OUTPUT_DIR'] = str(output)
         result = subprocess.run(['bash', str(ROOT / 'examples/trajectory_replay/run.sh')],
                                 env=env, capture_output=True, text=True)
         assert result.returncode == 0, result.stderr

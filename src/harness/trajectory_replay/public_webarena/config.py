@@ -1,4 +1,4 @@
-"""Runtime configuration helpers for browser-use evaluation."""
+"""Runtime configuration helpers for public WebArena Trajectory Replay."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ def load_runtime_env(path: str | Path | None = None) -> None:
     if path is None and not selected.exists():
         return
     if not selected.is_file():
-        raise ValueError(f"browser-use environment file is missing: {selected}")
+        raise ValueError(f"Trajectory Replay environment file is missing: {selected}")
     for raw_line in selected.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if not line or line.startswith("#") or "=" not in line:

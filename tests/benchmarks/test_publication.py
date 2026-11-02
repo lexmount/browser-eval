@@ -305,3 +305,36 @@ def test_publish_opens_a_review_pr_without_updating_main_or_creating_tags(tmp_pa
     assert result['state'] == 'review_pending'
     assert result['revision'] == 'b' * 40
     assert result['pull_request'].endswith('/discussions/7')
+
+
+@pytest.mark.parametrize("reference", ["os:getcwd", "harness.web_fetch.models", ""])
+def test_derived_viewer_fields_only_resolve_named_harness_functions(reference):
+    from harness.benchmarks.publication import _derived_field
+
+    with pytest.raises(ValueError, match="Invalid derived viewer field"):
+        _derived_field(reference)
+
+
+def test_webfetch_viewer_configurations_follow_card_subset_order(tmp_path):
+    root = tmp_path / "source"
+    prefix = root / "src/lexbench_webfetch/definitions"
+    (prefix / "webfetch").mkdir(parents=True)
+    # Register the later subset first so only the card order can restore it.
+    cases = [{"id": "doc", "track": "document", "url": "https://example.org/a.pdf"},
+             {"id": "page", "track": "web", "url": "https://example.org"}]
+    raw = json.dumps({"cases": cases}).encode()
+    (prefix / "webfetch/tasks.json").write_bytes(raw)
+    (prefix / "registry.json").write_text(json.dumps({"suites": [{
+        "id": "webfetch", "directory": "webfetch", "case_count": len(cases),
+        "files": {"tasks.json": hashlib.sha256(raw).hexdigest()}}]}))
+    for name in ["LICENSE", "NOTICE", "THIRD_PARTY.md"]:
+        (root / name).write_text("Retain this notice.\n")
+    git(root, "init", "-q")
+    git(root, "add", ".")
+    git(root, "commit", "-qm", "Fixture")
+
+    manifest = DatasetRelease.from_git(root, "webfetch", git(root, "rev-parse", "HEAD")).build(tmp_path / "out")
+
+    assert [row["config"] for row in manifest["viewer"]["configurations"]] == ["general-web", "embedded-documents"]
+    rows = [json.loads(line) for line in (tmp_path / "out/data/general-web.jsonl").read_text().splitlines()]
+    assert [row["benchmark_category"] for row in rows] == ["web"]
