@@ -15,7 +15,7 @@ from lexbench_webfetch.reference_quality import bind_annotation_evidence
 from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 from lexbench_webfetch.stable_tasks import validate_acceptance_contract
 
-from harness.record_io import file_sha256, load_jsonl
+from harness.record_io import file_sha256, load_jsonl, optional_file_sha256
 from harness.report_languages import generated_languages, includes_english, select_report_language
 from harness.reporting.assets import copy_bound_assets, load_bound_content
 from harness.reporting.templates import resolve_template
@@ -163,7 +163,7 @@ def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | 
     if source is None:
         raise ValueError('Diagnostic instance needs evidence or a bound diagnostic_input')
     source, output = source.resolve(), output.resolve()
-    input_sha256 = file_sha256(source) if source.is_file() else None
+    input_sha256 = optional_file_sha256(source)
     if source == output or source.is_relative_to(output) or output.is_relative_to(source) or output.exists():
         raise ValueError("Diagnostic build requires a new output outside its evidence")
     template = resolve_template("webfetch")

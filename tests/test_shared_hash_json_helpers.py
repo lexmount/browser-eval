@@ -127,9 +127,26 @@ def _copied_primitive(function):
     return None
 
 
+def _is_optional_hash_copy(node):
+    """Recognize `<digest of path> if path.is_file() else None`, which has a shared helper."""
+    if not (isinstance(node, ast.IfExp) and isinstance(node.orelse, ast.Constant)
+            and node.orelse.value is None and isinstance(node.test, ast.Call)
+            and isinstance(node.test.func, ast.Attribute) and node.test.func.attr == 'is_file'):
+        return False
+    path = ast.unparse(node.test.func.value)
+    return ast.unparse(node.body) in {
+        f'file_sha256({path})',
+        f'sha256({path}.read_bytes())',
+        f'bytes_sha256({path}.read_bytes())',
+        f'hashlib.sha256({path}.read_bytes()).hexdigest()',
+    }
+
+
 def _violations(source, relative):
     found = []
     for node in ast.walk(ast.parse(source)):
+        if _is_optional_hash_copy(node):
+            found.append(f'{relative}:{node.lineno} copies optional_file_sha256')
         if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         if node.name in RETIRED_NAMES:
@@ -177,6 +194,10 @@ def test_frozen_copies_still_exist_so_their_exemptions_cannot_go_stale():
     ('def f(path):\n    digest = hashlib.sha256()\n    with path.open("rb") as stream:\n'
      '        for chunk in iter(lambda: stream.read(4096), b""):\n            digest.update(chunk)\n'
      '    return digest.hexdigest()\n', 'copies file_sha256'),
+    ('value = file_sha256(path) if path.is_file() else None\n', 'copies optional_file_sha256'),
+    ('value = sha256(path.read_bytes()) if path.is_file() else None\n', 'copies optional_file_sha256'),
+    ('value = hashlib.sha256(root.path.read_bytes()).hexdigest() if root.path.is_file() else None\n',
+     'copies optional_file_sha256'),
 ])
 def test_guard_rejects_each_copied_form(source, expected):
     assert any(expected in item for item in _violations(source, 'example.py'))
@@ -204,6 +225,11 @@ def test_guard_rejects_each_copied_form(source, expected):
     # A canonical digest name can state a public protocol or a writer-verifier contract.
     'def f(value):\n    return canonical_json_sha256(value)\n',
     'def f(value):\n    return canonical_json_sha256(value, allow_nan=False)\n',
+    # These conditionals return something else, check another path or read another way.
+    'value = {"sha256": file_sha256(path)} if path.is_file() else None\n',
+    'value = file_sha256(other) if path.is_file() else None\n',
+    'value = file_sha256(path) if path.is_file() else ""\n',
+    'value = sha256(read_dataset_bytes(path)) if path.is_file() else None\n',
     # json.loads(bytes) also accepts UTF-16/32, which read_json rejects.
     'def f(path):\n    return json.loads(path.read_bytes())\n',
 ])

@@ -20,7 +20,13 @@ from lexbench_webfetch.paths import contained_path, safe_identifier
 from lexbench_webfetch.scoring_regressions import valid_correction_provenance
 from lexbench_webfetch.stable_tasks import validate_acceptance_contract
 
-from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl, parse_jsonl
+from harness.record_io import (
+    canonical_json_sha256,
+    file_sha256,
+    load_jsonl,
+    optional_file_sha256,
+    parse_jsonl,
+)
 from harness.web_fetch.native_routes import verify_native_execution_manifests
 from harness.web_fetch.reference_inputs import input_tree, read_dataset_bytes
 from harness.web_fetch.render_evidence import content_requirement_errors, validate_render_reference
@@ -1042,7 +1048,7 @@ def _valid_scoring_revision(source, *, validate_reviews, review_sha256=None) -> 
     current_dataset = sha256((root/'dataset.json').read_bytes())
     current_results = file_sha256(root/'results.jsonl')
     review_path = root/'result-review.json'
-    review_hash = sha256(review_path.read_bytes()) if review_path.is_file() else None
+    review_hash = optional_file_sha256(review_path)
     assembled_review_valid = False
     blind_review_hashes = set()
     review_candidates = ([review_path] if review_path.is_file() else [])
