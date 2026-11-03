@@ -856,7 +856,6 @@
     "运行方式": "Execution mode",
     "是否允许": "Allowed",
     "隔离要求": "Isolation requirement",
-    "一套站点环境，Chromium 与 Moli 串行": "One site stack; Chromium and Moli run serially",
     "允许，默认方案": "Allowed; default",
     "同一 daemon 锁；每次尝试前重置并核对初态": "One daemon-scoped lock; reset and verify initial state before every attempt",
     "一套站点环境，两个浏览器并行": "One site stack; two browsers run in parallel",

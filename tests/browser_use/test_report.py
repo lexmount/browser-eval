@@ -7,6 +7,7 @@ import pytest
 
 import harness.browser_use.report as report_module
 from harness.browser_use.report import (
+    Participants,
     _action_duration_cards,
     _attempt_table,
     _automatic_failure_type,
@@ -28,12 +29,22 @@ from harness.browser_use.report_check import (
     _check_reader_facing_ux,
     check_public_privacy,
 )
-from harness.browser_use.report_i18n import localize_html
+from harness.browser_use.report_i18n import localize_html, translate_text
 from harness.browser_use.selection import load_pilot
 from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.record_io import optional_file_sha256
 
 GW = RECORDING_GATEWAYS[0]
+CURRENT = Participants(
+    engines={"chromium": "Chromium", "moli": "Moli"},
+    models={"gpt-5.6-sol": "GPT-5.6 Sol"},
+    baseline_engine="chromium",
+)
+TWO_BROWSERS_TWO_MODELS = Participants(
+    engines={"chromium": "Chromium", "moli": "Moli"},
+    models={"model-a": "A", "model-b": "B"},
+    baseline_engine="chromium",
+)
 
 
 def _fix_log_fixture(tmp_path: Path) -> tuple[dict, dict]:
@@ -445,10 +456,10 @@ def test_cross_track_control_localizes_measured_contract_counts_and_evidence() -
     report_module._validate_replay_contract_definitions(bridge)
     attempts = [
         {"model": model, "engine": engine, "task_id": task_id, "score": 0}
-        for model in report_module.MODEL_LABELS for engine in report_module.ENGINE_LABELS
+        for model in CURRENT.models for engine in CURRENT.engines
         for tasks in bridge["original_contract_task_groups"].values() for task_id in tasks
     ]
-    chinese = report_module._trajectory_replay_control(bridge, attempts)
+    chinese = report_module._trajectory_replay_control(bridge, CURRENT, attempts)
     english = localize_html(chinese, PurePosixPath("analysis/index.html"))
     assert "recorded_response" in english and "HAR" in english
     assert "<td>59</td><td>1</td>" in chinese
@@ -459,12 +470,12 @@ def test_cross_track_control_localizes_measured_contract_counts_and_evidence() -
     assert not any("\u4e00" <= char <= "\u9fff" for char in english)
 
 
-def test_original_contract_diagnostic_keeps_fixed_tasks_with_discordant_outcomes(
-    monkeypatch,
-) -> None:
-    monkeypatch.setattr(report_module, "MODEL_LABELS", {"model-a": "Model A"})
-    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"moli": "Moli", "chromium": "Chromium"})
-    monkeypatch.setattr(report_module, "BASELINE_ENGINE", "chromium")
+def test_original_contract_diagnostic_keeps_fixed_tasks_with_discordant_outcomes() -> None:
+    participants = Participants(
+        engines={"moli": "Moli", "chromium": "Chromium"},
+        models={"model-a": "Model A"},
+        baseline_engine="chromium",
+    )
     bridge = {
         "original_contract_task_groups": {
             "authoritative_successful_browser_use_execution": [1],
@@ -476,14 +487,14 @@ def test_original_contract_diagnostic_keeps_fixed_tasks_with_discordant_outcomes
         for engine, scores in (("chromium", (1, 0, 1)), ("moli", (0, 1, 0)))
         for task_id, score in enumerate(scores, start=1)
     ]
-    assert report_module._replay_original_contract_rows(bridge, attempts) == [
+    assert report_module._replay_original_contract_rows(bridge, attempts, participants) == [
         ["Model A × Chromium", "1/2", "1/1", "0/1"],
         ["Model A × Moli", "1/2", "0/1", "1/1"],
     ]
     with pytest.raises(ValueError, match="authoritative logical"):
-        report_module._replay_original_contract_rows(bridge, [*attempts, attempts[0]])
+        report_module._replay_original_contract_rows(bridge, [*attempts, attempts[0]], participants)
     with pytest.raises(ValueError, match="missing registered"):
-        report_module._replay_original_contract_rows(bridge, attempts[1:])
+        report_module._replay_original_contract_rows(bridge, attempts[1:], participants)
 
 
 def test_replay_contract_counts_match_hash_bound_qualified_definitions() -> None:
@@ -537,7 +548,7 @@ def test_replay_bridge_rejects_symlink_bindings(tmp_path: Path, target: str) -> 
     }
     with pytest.raises(ValueError, match="trajectory replay"):
         report_module._load_trajectory_replay_bridge(
-            profile, selection_sha256=bridge["selection_sha256"]
+            profile, selection_sha256=bridge["selection_sha256"], task_count=90
         )
 
 
@@ -559,13 +570,13 @@ def test_replay_bridge_responsibilities_match_bound_review(tmp_path: Path, count
     }
     if counts == {"browser": 35, "benchmark": 1}:
         loaded = report_module._load_trajectory_replay_bridge(
-            profile, selection_sha256=bridge["selection_sha256"]
+            profile, selection_sha256=bridge["selection_sha256"], task_count=90
         )
         assert loaded["moli_failure_review"]["responsibility_counts"] == counts
     else:
         with pytest.raises(ValueError, match="responsibility counts"):
             report_module._load_trajectory_replay_bridge(
-                profile, selection_sha256=bridge["selection_sha256"]
+                profile, selection_sha256=bridge["selection_sha256"], task_count=90
             )
 
 
@@ -584,7 +595,7 @@ def test_replay_bridge_checks_trajectory_profile_hash(tmp_path: Path) -> None:
     }
     with pytest.raises(ValueError, match="profile.*hash-bound"):
         report_module._load_trajectory_replay_bridge(
-            profile, selection_sha256=bridge["selection_sha256"]
+            profile, selection_sha256=bridge["selection_sha256"], task_count=90
         )
 
 
@@ -599,7 +610,7 @@ def test_replay_bridge_accepts_current_bound_profile() -> None:
         },
     }
     bridge = report_module._load_trajectory_replay_bridge(
-        profile, selection_sha256=profile["selection_sha256"]
+        profile, selection_sha256=profile["selection_sha256"], task_count=90
     )
     assert bridge["contract_counts"] == {
         "official_task_contract": 81,
@@ -729,7 +740,7 @@ def test_failed_result_inventory_opens_exact_diagnosis_and_links_trajectory(
         }
     ]
 
-    html = _attempt_table([attempt], tasks)
+    html = _attempt_table([attempt], tasks, CURRENT)
 
     for expected in (
         "查看诊断",
@@ -816,14 +827,14 @@ def test_result_verification_is_readable_and_does_not_duplicate_raw_panels() -> 
 
 def test_paired_summary_uses_final_logical_results() -> None:
     rows = [
-        {"engine": "chromium", "task_id": 1, "attempt": 1, "score": 1},
-        {"engine": "moli", "task_id": 1, "attempt": 1, "score": 0},
-        {"engine": "moli", "task_id": 1, "attempt": 2, "score": 1},
-        {"engine": "chromium", "task_id": 2, "attempt": 1, "score": 0},
-        {"engine": "moli", "task_id": 2, "attempt": 1, "score": 1},
+        {"model": "gpt-5.6-sol", "engine": "chromium", "task_id": 1, "attempt": 1, "score": 1},
+        {"model": "gpt-5.6-sol", "engine": "moli", "task_id": 1, "attempt": 1, "score": 0},
+        {"model": "gpt-5.6-sol", "engine": "moli", "task_id": 1, "attempt": 2, "score": 1},
+        {"model": "gpt-5.6-sol", "engine": "chromium", "task_id": 2, "attempt": 1, "score": 0},
+        {"model": "gpt-5.6-sol", "engine": "moli", "task_id": 2, "attempt": 1, "score": 1},
     ]
 
-    summary = _paired_summary(_logical_results(rows))["gpt-5.6-sol"]["comparisons"]["moli"]
+    summary = _paired_summary(_logical_results(rows), CURRENT)["gpt-5.6-sol"]["comparisons"]["moli"]
 
     assert summary["paired"] == 2
     assert summary["both_pass"] == 1
@@ -831,13 +842,12 @@ def test_paired_summary_uses_final_logical_results() -> None:
     assert summary["mcnemar_exact_p"] == 1.0
 
 
-def test_comparison_components_scale_to_three_browsers(monkeypatch) -> None:
-    monkeypatch.setattr(
-        report_module,
-        "ENGINE_LABELS",
-        {"chromium": "Chromium", "moli": "Moli", "third": "Third Browser"},
+def test_comparison_components_scale_to_three_browsers() -> None:
+    participants = Participants(
+        engines={"chromium": "Chromium", "moli": "Moli", "third": "Third Browser"},
+        models=CURRENT.models,
+        baseline_engine="chromium",
     )
-    monkeypatch.setattr(report_module, "BASELINE_ENGINE", "chromium")
     tasks = [
         {
             "task_id": 1,
@@ -849,6 +859,7 @@ def test_comparison_components_scale_to_three_browsers(monkeypatch) -> None:
     ]
     attempts = [
         {
+            "model": "gpt-5.6-sol",
             "engine": engine,
             "task_id": 1,
             "score": score,
@@ -862,8 +873,8 @@ def test_comparison_components_scale_to_three_browsers(monkeypatch) -> None:
         )
     ]
 
-    comparison = _same_task_comparison(tasks, attempts)
-    actions = _action_duration_cards(attempts)
+    comparison = _same_task_comparison(tasks, attempts, participants)
+    actions = _action_duration_cards(attempts, participants)
 
     assert 'id="configuration-matrix"' in comparison
     assert comparison.count('class="outcome-pill pass"') == 2
@@ -876,8 +887,8 @@ def test_comparison_components_scale_to_three_browsers(monkeypatch) -> None:
 
 def test_logical_results_obey_legacy_frozen_score_authority() -> None:
     rows = [
-        {"engine": "chromium", "task_id": 1, "attempt": 1, "score": 0},
-        {"engine": "chromium", "task_id": 1, "attempt": 2, "score": 1},
+        {"model": "gpt-5.6-sol", "engine": "chromium", "task_id": 1, "attempt": 1, "score": 0},
+        {"model": "gpt-5.6-sol", "engine": "chromium", "task_id": 1, "attempt": 2, "score": 1},
     ]
 
     result = _logical_results(rows, {"official_score_uses": "primary attempt only"})[0]
@@ -915,7 +926,7 @@ def test_logical_results_aggregate_browser_tool_wall_time(tmp_path: Path) -> Non
         event_paths.append(path)
     rows = [
         {
-            "engine": "chromium",
+            "model": "gpt-5.6-sol", "engine": "chromium",
             "task_id": 1,
             "attempt": index,
             "score": 0,
@@ -934,7 +945,7 @@ def test_logical_results_aggregate_browser_tool_wall_time(tmp_path: Path) -> Non
 def test_logical_results_weight_mean_memory_by_resource_samples() -> None:
     rows = [
         {
-            "engine": "chromium",
+            "model": "gpt-5.6-sol", "engine": "chromium",
             "task_id": 1,
             "attempt": 1,
             "score": 0,
@@ -942,7 +953,7 @@ def test_logical_results_weight_mean_memory_by_resource_samples() -> None:
             "resource": {"memory_mean_bytes": 100, "sample_count": 1},
         },
         {
-            "engine": "chromium",
+            "model": "gpt-5.6-sol", "engine": "chromium",
             "task_id": 1,
             "attempt": 2,
             "score": 1,
@@ -1090,7 +1101,7 @@ def test_execution_artifact_check_rejects_registry_site_passwords(
         for line in (output / "data/results.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     evidence_index = json.loads((output / "data/evidence-index.json").read_text(encoding="utf-8"))
-    logical = _logical_results(_load_evidence_bundles(evidence)[0]["source_attempts"])
+    logical = _logical_results(_load_evidence_bundles(evidence, CURRENT)[0]["source_attempts"])
     probe = report_check_with_site_password("Rotated.Secret+42(x")
     probe._check_execution_artifacts(output, logical, public_results, evidence_index)
 
@@ -1212,7 +1223,7 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
         for line in (output / "data/results.jsonl").read_text(encoding="utf-8").splitlines()
     ]
     evidence_index = json.loads((output / "data/evidence-index.json").read_text(encoding="utf-8"))
-    bundles = _load_evidence_bundles(evidence)
+    bundles = _load_evidence_bundles(evidence, CURRENT)
     logical = _logical_results(bundles[0]["source_attempts"])
     _check_execution_artifacts(output, logical, public_results, evidence_index)
     check_public_privacy(output)
@@ -1258,10 +1269,7 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     assert not list(output.rglob("*.svg"))
 
 
-def test_common_success_resources_use_final_logical_results(tmp_path: Path, monkeypatch) -> None:
-    monkeypatch.setattr(report_module, "MODEL_LABELS", {"a": "A", "b": "B"})
-    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"})
-
+def test_common_success_resources_use_final_logical_results(tmp_path: Path) -> None:
     def execution(task_id: int, model: str, engine: str, attempt: int, score: int) -> dict:
         events = tmp_path / f"{task_id}-{model}-{engine}-{attempt}.json"
         events.write_text("[]", encoding="utf-8")
@@ -1300,17 +1308,17 @@ def test_common_success_resources_use_final_logical_results(tmp_path: Path, monk
                     }
                 )
 
-    count, rows = _common_final_success_resource_rows(logical)
+    count, rows = _common_final_success_resource_rows(
+        logical,
+        Participants(CURRENT.engines, {"a": "A", "b": "B"}, CURRENT.baseline_engine),
+    )
 
     assert count == 2
     assert {row[2] for row in rows} == {"1.5 秒", "2.5 秒"}
     assert {row[5] for row in rows} == {"1.5 MiB"}
 
 
-def test_summary_winners_are_scoped_to_all_configurations(monkeypatch) -> None:
-    monkeypatch.setattr(report_module, "MODEL_LABELS", {"a": "A", "b": "B"})
-    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"})
-
+def test_summary_winners_are_scoped_to_all_configurations() -> None:
     def metrics(passed: int) -> dict:
         return {
             "completed": 10,
@@ -1336,7 +1344,8 @@ def test_summary_winners_are_scoped_to_all_configurations(monkeypatch) -> None:
         {
             "a": {"chromium": metrics(8), "moli": metrics(7)},
             "b": {"chromium": metrics(3), "moli": metrics(4)},
-        }
+        },
+        Participants(CURRENT.engines, {"a": "A", "b": "B"}, CURRENT.baseline_engine),
     )
 
     assert "comparison-winner" in str(rows[0][2])
@@ -1514,11 +1523,7 @@ def _write_model_evidence(path: Path, model: str, rows: list[dict]) -> None:
     )
 
 
-def test_two_models_and_two_browsers_keep_distinct_logical_results(
-    tmp_path: Path, monkeypatch
-) -> None:
-    monkeypatch.setattr(report_module, "MODEL_LABELS", {"model-a": "A", "model-b": "B"})
-    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"chromium": "Chromium", "moli": "Moli"})
+def test_two_models_and_two_browsers_keep_distinct_logical_results(tmp_path: Path) -> None:
     model_a, model_b = tmp_path / "a", tmp_path / "b"
     rows = [
         {"engine": engine, "task_id": 44, "tier": "easy", "attempt": 1, "score": 1}
@@ -1527,14 +1532,17 @@ def test_two_models_and_two_browsers_keep_distinct_logical_results(
     _write_model_evidence(model_a, "model-a", rows)
     _write_model_evidence(model_b, "model-b", rows)
 
-    bundles = _load_evidence_bundles([model_a, model_b])
+    bundles = _load_evidence_bundles([model_a, model_b], TWO_BROWSERS_TWO_MODELS)
     logical = [
         result for bundle in bundles for result in _logical_results(bundle["source_attempts"])
     ]
 
     assert len(logical) == 4
     assert len({report_module._attempt_id(row) for row in logical}) == 4
-    assert set(report_module._primary_summary(logical)) == {"model-a", "model-b"}
+    assert set(report_module._primary_summary(logical, TWO_BROWSERS_TWO_MODELS)) == {
+        "model-a",
+        "model-b",
+    }
 
 
 def test_joint_report_builds_two_model_by_two_browser_matrix(tmp_path: Path, monkeypatch) -> None:
@@ -1599,10 +1607,7 @@ def test_joint_report_builds_two_model_by_two_browser_matrix(tmp_path: Path, mon
     assert 'data-model="model-b"' in analysis
 
 
-def test_multi_model_evidence_fails_closed_when_cohort_is_missing(
-    tmp_path: Path, monkeypatch
-) -> None:
-    monkeypatch.setattr(report_module, "MODEL_LABELS", {"model-a": "A", "model-b": "B"})
+def test_multi_model_evidence_fails_closed_when_cohort_is_missing(tmp_path: Path) -> None:
     model_a, model_b = tmp_path / "a", tmp_path / "b"
     _write_model_evidence(
         model_a,
@@ -1619,17 +1624,15 @@ def test_multi_model_evidence_fails_closed_when_cohort_is_missing(
     )
 
     with pytest.raises(ValueError, match="model cohort differs"):
-        _load_evidence_bundles([model_a, model_b])
+        _load_evidence_bundles([model_a, model_b], TWO_BROWSERS_TWO_MODELS)
 
 
-def test_pairing_uses_dynamic_baseline_for_three_browsers(monkeypatch) -> None:
-    monkeypatch.setattr(report_module, "MODEL_LABELS", {"model-a": "A"})
-    monkeypatch.setattr(
-        report_module,
-        "ENGINE_LABELS",
-        {"first": "First", "baseline": "Baseline", "third": "Third"},
+def test_pairing_uses_dynamic_baseline_for_three_browsers() -> None:
+    participants = Participants(
+        engines={"first": "First", "baseline": "Baseline", "third": "Third"},
+        models={"model-a": "A"},
+        baseline_engine="baseline",
     )
-    monkeypatch.setattr(report_module, "BASELINE_ENGINE", "baseline")
     rows = [
         {
             "model": "model-a",
@@ -1642,7 +1645,7 @@ def test_pairing_uses_dynamic_baseline_for_three_browsers(monkeypatch) -> None:
         for engine, score in zip(("first", "baseline", "third"), outcomes, strict=True)
     ]
 
-    comparisons = _paired_summary(_logical_results(rows))["model-a"]["comparisons"]
+    comparisons = _paired_summary(_logical_results(rows), participants)["model-a"]["comparisons"]
 
     assert set(comparisons) == {"first", "third"}
     assert comparisons["first"]["baseline_engine"] == "baseline"
@@ -1675,13 +1678,18 @@ def test_replay_control_uses_selected_counts_and_origin_inventory():
             "reference_or_acceptance": [],
         },
     }
-    page = report_module._trajectory_replay_control(bridge)
+    page = report_module._trajectory_replay_control(bridge, CURRENT)
     english = localize_html(page, PurePosixPath("analysis/index.html"))
     assert "5/7" in page and "3/7" in page
     bridge["effective_results"]["moli"] = {"tasks": 7, "passes": 4, "label": "Replay browser 9"}
-    from unittest.mock import patch
-    with patch.dict(report_module.ENGINE_LABELS, {"moli": "Unrelated autonomous browser 99"}):
-        isolated = report_module._trajectory_replay_control(bridge)
+    isolated = report_module._trajectory_replay_control(
+        bridge,
+        Participants(
+            {"chromium": "Chromium", "moli": "Unrelated autonomous browser 99"},
+            CURRENT.models,
+            "chromium",
+        ),
+    )
     assert "Replay browser 9" in isolated
     assert "Unrelated autonomous browser 99" not in isolated
     assert "fixture-model_fixture" in page
@@ -1690,9 +1698,8 @@ def test_replay_control_uses_selected_counts_and_origin_inventory():
         assert obsolete not in page
 
 
-def test_summary_percentiles_use_the_shared_nearest_rank_definition(monkeypatch) -> None:
-    monkeypatch.setattr(report_module, "MODEL_LABELS", {"model": "Model"})
-    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"engine": "Engine"})
+def test_summary_percentiles_use_the_shared_nearest_rank_definition() -> None:
+    participants = Participants({"engine": "Engine"}, {"model": "Model"}, "engine")
     rows = [
         {
             "model": "model",
@@ -1705,11 +1712,301 @@ def test_summary_percentiles_use_the_shared_nearest_rank_definition(monkeypatch)
         for value in (1000, 3000)
     ]
 
-    summary = report_module._primary_summary(rows)["model"]["engine"]
+    summary = report_module._primary_summary(rows, participants)["model"]["engine"]
 
     # Linear interpolation would report 2900 ms, a duration no call took.
     assert summary["p95_duration_ms"] == 3000
     assert summary["p95_browser_tool_duration_ms"] == 3000
     assert summary["resources"]["cpu_ms"]["p95"] == 3000
     assert summary["p50_duration_ms"] == 2000
-    assert report_module._primary_summary([])["model"]["engine"]["p95_duration_ms"] is None
+    empty = report_module._primary_summary([], participants)
+    assert empty["model"]["engine"]["p95_duration_ms"] is None
+
+
+def _synthetic_bridge(tmp_path: Path, *, failures: int = 2) -> dict:
+    """Bind a five-task, three-browser replay control through its real file contract."""
+
+    def bound(name: str, value: dict) -> dict:
+        target = tmp_path / name
+        target.write_text(json.dumps(value), encoding="utf-8")
+        return {"path": str(target), "sha256": optional_file_sha256(target)}
+
+    def trajectory(task_id: int) -> dict:
+        expert = task_id > 3
+        return {
+            "task_id": task_id,
+            "source": {"kind": "expert_repair_spec"}
+            if expert
+            else {
+                "kind": "authoritative_successful_browser_use_execution",
+                "model": "model",
+                "browser": "base",
+            },
+            "verification": {
+                "contract": {
+                    "kind": "corrected_replay_contract"
+                    if task_id in corrected
+                    else "official_task_contract"
+                }
+            },
+        }
+
+    corrected = (1, 4)
+    return {
+        "schema": "lex_browser_use_trajectory_replay_bridge/1",
+        "selection_sha256": "selection",
+        "contract_definitions": {
+            "trajectories": bound(
+                "trajectories.json",
+                {
+                    "selection_sha256": "selection",
+                    "trajectories": [trajectory(task_id) for task_id in range(1, 6)],
+                },
+            ),
+            "corrections": bound(
+                "corrections.json",
+                {
+                    "corrections": [
+                        {"task_id": task_id, "operations": [{"path": "/rule/last_event_only"}]}
+                        for task_id in corrected
+                    ]
+                },
+            ),
+        },
+        "contract_counts": {"official_task_contract": 3, "corrected_replay_contract": 2},
+        "source_contract_counts": {
+            "authoritative_successful_browser_use_execution": {
+                "official_task_contract": 2,
+                "corrected_replay_contract": 1,
+            },
+            "expert_repair_spec": {"official_task_contract": 1, "corrected_replay_contract": 1},
+        },
+        "correction_categories": {
+            "event_selection": list(corrected),
+            "event_selection_and_expected": [],
+            "reference_or_acceptance": [],
+        },
+        "trajectory_profile": bound("trajectory-profile.json", {}),
+        "effective_results": {
+            "sha256": "results",
+            "logical_results": 15,
+            "base": {"tasks": 5, "passes": 5},
+            "third": {"tasks": 5, "passes": 5},
+            "candidate": {"tasks": 5, "passes": 5 - failures},
+        },
+        "base_trajectory_provenance": {
+            "expert_repair_spec": 2,
+            "successful_browser_use_execution": 3,
+            "successful_browser_use_execution_by_origin": {"model_base": 3},
+        },
+        "candidate_failure_review": {
+            **bound(
+                "review.json",
+                {
+                    "coverage": {"failed_results": failures, "verified_results": failures},
+                    "bindings": {"effective_results_sha256": "results"},
+                    "cause_groups": [
+                        {
+                            "responsibility": "browser",
+                            "results": [
+                                {"engine": "candidate", "task_id": task_id}
+                                for task_id in range(1, failures + 1)
+                            ],
+                        }
+                    ],
+                },
+            ),
+            "failed_results": failures,
+            "verified_results": failures,
+            "responsibility_counts": {"browser": failures},
+        },
+    }
+
+
+def _load_bridge(tmp_path: Path, bridge: dict, *, task_count: int = 5) -> dict | None:
+    source = tmp_path / "bridge.json"
+    source.write_text(json.dumps(bridge), encoding="utf-8")
+    return report_module._load_trajectory_replay_bridge(
+        {
+            "trajectory_replay_bridge": {
+                "source_path": str(source),
+                "source_sha256": optional_file_sha256(source),
+            }
+        },
+        selection_sha256=bridge["selection_sha256"],
+        task_count=task_count,
+    )
+
+
+def test_replay_bridge_cardinality_follows_its_own_engines_and_task_count(tmp_path: Path) -> None:
+    loaded = _load_bridge(tmp_path, _synthetic_bridge(tmp_path))
+
+    assert loaded["effective_results"]["candidate"]["passes"] == 3
+    page = report_module._trajectory_replay_control(loaded, CURRENT)
+    assert "<td>3</td>" in page and "<td>2</td>" in page and "3/5" in page
+    assert "trajectory-replay-failure-review.json" in page
+
+
+@pytest.mark.parametrize(
+    "tamper, message",
+    [
+        (lambda b: b["effective_results"].update(logical_results=14), "cardinality"),
+        (lambda b: b["effective_results"]["third"].update(tasks=4), "cardinality"),
+        (lambda b: b["effective_results"]["third"].update(passes=4), "cardinality"),
+        (lambda b: b["effective_results"].pop("base"), "counts differ"),
+        (lambda b: b["base_trajectory_provenance"].update(expert_repair_spec=1), "cardinality"),
+        (
+            lambda b: b["base_trajectory_provenance"].update(
+                expert_repair_spec=3, successful_browser_use_execution=2
+            ),
+            "cardinality",
+        ),
+        (lambda b: b["candidate_failure_review"].update(failed_results=1), "failure review"),
+        (lambda b: b["candidate_failure_review"].update(verified_results=1), "failure review"),
+        (lambda b: b["effective_results"]["candidate"].update(passes=2), "failure review"),
+        (lambda b: b.update(second_failure_review={}), "more than one"),
+    ],
+    ids=[
+        "logical-results",
+        "browser-tasks",
+        "unreviewed-failure",
+        "provenance-browser-absent",
+        "expert-total",
+        "provenance-split",
+        "review-failed",
+        "review-verified",
+        "measured-failures",
+        "two-reviews",
+    ],
+)
+def test_replay_bridge_rejects_inconsistent_derived_counts(tmp_path: Path, tamper, message) -> None:
+    bridge = _synthetic_bridge(tmp_path)
+    tamper(bridge)
+    with pytest.raises(ValueError, match=message):
+        _load_bridge(tmp_path, bridge)
+
+
+def test_replay_bridge_rejects_a_control_of_another_selection_size(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="cardinality"):
+        _load_bridge(tmp_path, _synthetic_bridge(tmp_path), task_count=6)
+
+
+def _build_registered_report(
+    tmp_path: Path, monkeypatch, name: str, profile: dict, language: str | None = None
+) -> Path:
+    directories = []
+    for model in profile["models"]:
+        directory = tmp_path / name / model
+        directory.parent.mkdir(exist_ok=True)
+        _write_model_evidence(
+            directory,
+            model,
+            [
+                {"engine": engine, "task_id": 44, "tier": "easy", "attempt": 1, "score": index % 2}
+                for index, engine in enumerate(profile["engines"])
+            ],
+        )
+        directories.append(directory)
+    real_read_json = report_module._read_json
+    monkeypatch.setattr(
+        report_module,
+        "_read_json",
+        lambda path: profile if path == Path("fixture-profile.json") else real_read_json(path),
+    )
+    monkeypatch.setattr(
+        report_module,
+        "load_failure_cause_review",
+        lambda *_args: {
+            "schema": "lex_browser_use_layered_failure_cause_review/2",
+            "cohorts": {},
+        },
+    )
+    output = tmp_path / name / "report"
+    build_report(
+        evidence=directories,
+        output=output,
+        selection_path=Path("evaluation/browser-use/webarena-verified-pilot.json"),
+        profile_path=Path("fixture-profile.json"),
+        language=language,
+    )
+    return output
+
+
+def test_report_follows_a_registry_of_another_size_without_module_state(
+    tmp_path: Path, monkeypatch
+) -> None:
+    three = {
+        "engines": ["alpha", "beta", "gamma"],
+        "engine_labels": {"alpha": "Alpha 1.0", "gamma": "Gamma 3.0"},
+        "baseline_engine": "beta",
+        "models": ["model-a", "model-b"],
+        "model_labels": {"model-a": "Model A"},
+    }
+    output = _build_registered_report(tmp_path, monkeypatch, "three", three, "en")
+
+    data = json.loads((output / "report-data.json").read_text(encoding="utf-8"))
+    assert {engine: set(data["summary"][engine]) for engine in data["summary"]} == {
+        model: {"alpha", "beta", "gamma"} for model in ("model-a", "model-b")
+    }
+    assert data["paired_summary"]["model-a"]["baseline_engine"] == "beta"
+    assert set(data["paired_summary"]["model-a"]["comparisons"]) == {"alpha", "gamma"}
+    assert len(list((output / "results").glob("*.html"))) == 6
+    assert {path.stem for path in (output / "engines").glob("*.html")} == {"alpha", "beta", "gamma"}
+    analysis = (output / "analysis/index.html").read_text(encoding="utf-8")
+    assert "6 列对应模型×浏览器配置" in analysis
+    for label in ("Alpha 1.0", "Beta", "Gamma 3.0", "Model A", "model-b"):
+        assert label in analysis
+    assert "Alpha、Beta 与 Gamma 串行" in (output / "reproduce/index.html").read_text(
+        encoding="utf-8"
+    )
+    assert "One site stack; Alpha, Beta and Gamma run serially" in (
+        output / "en/reproduce/index.html"
+    ).read_text(encoding="utf-8")
+    assert "Chromium" not in analysis and "Moli" not in analysis
+
+    # A later smaller cohort inherits nothing from the build before it.
+    one = {
+        "engines": ["solo"],
+        "baseline_engine": "solo",
+        "models": ["model-c"],
+    }
+    smaller = _build_registered_report(tmp_path, monkeypatch, "one", one)
+    data = json.loads((smaller / "report-data.json").read_text(encoding="utf-8"))
+    assert {model: set(group) for model, group in data["summary"].items()} == {"model-c": {"solo"}}
+    assert [path.name for path in (smaller / "results").glob("*.html")] == ["model-c-solo-44.html"]
+    assert "Alpha" not in (smaller / "analysis/index.html").read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "updates, message",
+    [
+        ({"engines": []}, "unique browser engines"),
+        ({"engines": ["a", "a"]}, "unique browser engines"),
+        ({"engine_labels": {"other": "Other"}}, "unregistered browser"),
+        ({"models": []}, "unique models"),
+        ({"models": ["../escape"]}, "safe path components"),
+        ({"model_labels": {"other": "Other"}}, "unregistered model"),
+        ({"baseline_engine": "other"}, "baseline_engine"),
+    ],
+)
+def test_participant_registry_rejects_an_invalid_profile(updates: dict, message: str) -> None:
+    profile = {"engines": ["a", "b"], "models": ["m"], "baseline_engine": "a", **updates}
+    with pytest.raises(ValueError, match=message):
+        Participants.from_profile(profile)
+
+
+def test_current_engine_row_keeps_its_published_translation() -> None:
+    # A label may carry a version; the row names the browsers themselves.
+    participants = Participants.from_profile(
+        {
+            "engines": ["chromium", "moli"],
+            "engine_labels": {"moli": "Moli 1.1.3"},
+            "baseline_engine": "chromium",
+            "models": ["m"],
+        }
+    )
+    assert participants.engine_names == "Chromium 与 Moli"
+    assert (
+        translate_text(f"一套站点环境，{participants.engine_names} 串行")
+        == "One site stack; Chromium and Moli run serially"
+    )

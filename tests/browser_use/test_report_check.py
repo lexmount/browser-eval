@@ -51,17 +51,9 @@ def test_explicit_authority_ignores_working_directory(tmp_path, monkeypatch, com
     unrelated = tmp_path / "unrelated"
     unrelated.mkdir()
     monkeypatch.chdir(unrelated)
-    import harness.browser_use.report as renderer
-
-    # The current renderer stores the selected registry at module scope.
-    for name in ("ENGINE_LABELS", "MODEL_LABELS", "BASELINE_ENGINE"):
-        monkeypatch.setattr(renderer, name, getattr(renderer, name))
-
-    def evidence_boundary(paths):
-        import harness.browser_use.report as renderer
-
-        assert set(renderer.ENGINE_LABELS) == {"fixture-browser"}
-        assert set(renderer.MODEL_LABELS) == {"fixture-model"}
+    def evidence_boundary(_paths, participants):
+        assert set(participants.engines) == {"fixture-browser"}
+        assert set(participants.models) == {"fixture-model"}
         raise LookupError("reached declared evidence")
 
     monkeypatch.setattr(checker, "_load_evidence_bundles", evidence_boundary)
@@ -181,14 +173,11 @@ def test_external_profile_and_bound_review_do_not_use_default_authority(tmp_path
     profile = authority(root, failure_cause_review={
         'required_for_publication': True, 'source_path': str(source),
         'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest()})
-    import harness.browser_use.report as renderer
-    for name in ('ENGINE_LABELS', 'MODEL_LABELS', 'BASELINE_ENGINE'):
-        monkeypatch.setattr(renderer, name, getattr(renderer, name))
     external = tmp_path / 'instance.json'
     external.write_bytes(profile.read_bytes())
     (profile.parent / 'webarena-verified-pilot.json').write_text('{}', encoding="utf-8")
     profile.unlink()
-    def evidence_boundary(_paths):
+    def evidence_boundary(_paths, _participants):
         raise LookupError('bound external inputs reached')
     monkeypatch.setattr(checker, '_load_evidence_bundles', evidence_boundary)
     with pytest.raises(LookupError, match='external inputs reached'):
@@ -211,11 +200,6 @@ BUILT_BEFORE_THE_MOVE = {"track": "browser-use", "renderer": "src/harness/browse
     (None, True),
 ], ids=["old-entry-point", "other-renderer", "other-track", "no-template"])
 def test_check_binds_the_renderer_not_the_entry_point(tmp_path, monkeypatch, template, rejected):
-    import harness.browser_use.report as renderer
-
-    # The current renderer stores the selected registry at module scope.
-    for name in ("ENGINE_LABELS", "MODEL_LABELS", "BASELINE_ENGINE"):
-        monkeypatch.setattr(renderer, name, getattr(renderer, name))
     report, evidence, _ = build_browser_use_fixture(tmp_path, monkeypatch)
     profile = authority(tmp_path / "authority", engines=["chromium", "moli"],
                         baseline_engine="chromium",

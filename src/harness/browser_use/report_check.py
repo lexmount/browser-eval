@@ -20,9 +20,8 @@ from harness.browser_use.publication import evidence_metadata, require_no_privat
 from harness.browser_use.report import (
     PUBLIC_EXECUTION_ARTIFACTS,
     SITE_LABELS,
+    Participants,
     _attempt_id,
-    _configure_engine_labels,
-    _configure_models,
     _load_evidence_bundles,
     _logical_results,
     _public_attempt,
@@ -397,12 +396,8 @@ def check(
             cause_path
         ):
             raise ValueError("current profile is not bound to the failure-cause review")
-    _configure_engine_labels(profile)
-    _configure_models(profile)
-    engines = tuple(str(engine) for engine in profile.get("engines") or [])
-    models = tuple(str(model) for model in profile.get("models") or [])
-    if not engines or len(engines) != len(set(engines)):
-        raise ValueError("current Browser Use profile must register unique browser engines")
+    participants = Participants.from_profile(profile)
+    engines, models = tuple(participants.engines), tuple(participants.models)
     page_names = (
         "index.html",
         "changes/index.html",
@@ -419,7 +414,7 @@ def check(
     pages = tuple(report_dir / name for name in page_names)
     index = pages[0]
     audit_path = report_dir / "report-data.json"
-    bundles = _load_evidence_bundles(evidence_dir)
+    bundles = _load_evidence_bundles(evidence_dir, participants)
     task_pages = tuple(
         report_dir / "datasets" / f"{task_id}.html"
         for task_id in sorted(task.task_id for task in load_pilot(selection_path).tasks)

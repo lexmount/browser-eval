@@ -526,6 +526,12 @@ def _scheduled_tasks(tasks: tuple[PilotTask, ...], max_tasks: int | None) -> tup
     return tasks[:max_tasks]
 
 
+def _engine_order(engines: tuple[str, ...], task_index: int) -> tuple[str, ...]:
+    """Alternate call order by task so no registered browser always runs first."""
+
+    return engines if task_index % 2 == 0 else engines[::-1]
+
+
 def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     repo_root = Path(args.repo_root).resolve()
     repo_env = _load_repo_env(repo_root)
@@ -650,8 +656,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             for task_index, selected in enumerate(
                 _scheduled_tasks(selection.tasks, args.max_tasks)
             ):
-                order = ("chromium", "moli") if task_index % 2 == 0 else ("moli", "chromium")
-                for engine in order:
+                for engine in _engine_order(tuple(ENGINE_IMAGES), task_index):
                     _run_engine_attempts(
                         completed=completed,
                         model=args.model,
