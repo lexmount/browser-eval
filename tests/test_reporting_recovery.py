@@ -1,6 +1,7 @@
 """A simulated Artifact Site proves both tracks resume one committed release."""
 
 import json
+import urllib.request
 import zipfile
 
 import pytest
@@ -143,7 +144,7 @@ def test_retry_recovers_same_site_and_version(tmp_path, monkeypatch, track, fail
             observed_preview()
         return Response()
 
-    monkeypatch.setattr(autonomous.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
     before = (files["PROFILE"].read_bytes(), files["ATTESTATION"].read_bytes())
     with pytest.raises((OSError, ValueError), match="simulated|remote version changed"):
         owner.main(create=failure != "version-response")

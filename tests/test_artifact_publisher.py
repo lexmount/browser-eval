@@ -6,7 +6,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 from urllib.error import HTTPError, URLError
 
-from harness.web_fetch.publication import put_file, updated_receipt, upload_large_archive
+from harness.reporting.publish import put_file, updated_receipt, upload_large_archive
 
 
 class ArtifactPublisherTests(unittest.TestCase):
@@ -21,14 +21,14 @@ class ArtifactPublisherTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'versionId'):
             updated_receipt(receipt, {'slug': 'current'})
 
-    @patch('harness.web_fetch.publication.time.sleep')
+    @patch('harness.reporting.publish.time.sleep')
     def test_rate_limit_retries_identical_put(self, sleep):
         request = Mock(side_effect=[HTTPError('https://hub/file', 429, 'limited', {'Retry-After':'2'}, None), (200,b'ok')])
         self.assertEqual(put_file(request, '/file', b'bytes'), (200,b'ok'))
         self.assertEqual(request.call_args_list[0], request.call_args_list[1])
         sleep.assert_called_once_with(2)
 
-    @patch('harness.web_fetch.publication.time.sleep')
+    @patch('harness.reporting.publish.time.sleep')
     def test_rate_limit_retry_is_bounded(self, sleep):
         request = Mock(side_effect=HTTPError('https://hub/file', 429, 'limited', {}, None))
         with self.assertRaises(HTTPError):
@@ -36,7 +36,7 @@ class ArtifactPublisherTests(unittest.TestCase):
         self.assertEqual(request.call_count, 4)
         self.assertEqual(sleep.call_count, 3)
 
-    @patch('harness.web_fetch.publication.time.sleep')
+    @patch('harness.reporting.publish.time.sleep')
     def test_long_wait_and_non_retryable_errors_are_not_retried(self, sleep):
         for code, header in [(429,'300'), (429,'NaN'), (403,'1')]:
             request = Mock(side_effect=HTTPError('https://hub/file', code, 'error', {'Retry-After':header}, None))
@@ -45,14 +45,14 @@ class ArtifactPublisherTests(unittest.TestCase):
             self.assertEqual(request.call_count, 1)
         sleep.assert_not_called()
 
-    @patch('harness.web_fetch.publication.time.sleep')
+    @patch('harness.reporting.publish.time.sleep')
     def test_transient_server_error_retries_once(self, sleep):
         request=Mock(side_effect=[HTTPError('https://hub/file',500,'error',{},None),(200,b'ok')])
         self.assertEqual(put_file(request,'/file',b'bytes'),(200,b'ok'))
         self.assertEqual(request.call_args_list[0],request.call_args_list[1])
         sleep.assert_called_once_with(1.0)
 
-    @patch('harness.web_fetch.publication.time.sleep')
+    @patch('harness.reporting.publish.time.sleep')
     def test_timeout_retries_identical_put_with_bounded_backoff(self, sleep):
         request=Mock(side_effect=[TimeoutError('lost response'),URLError('network'),(200,b'ok')])
         self.assertEqual(put_file(request,'/file',b'bytes'),(200,b'ok'))
@@ -60,7 +60,7 @@ class ArtifactPublisherTests(unittest.TestCase):
         self.assertEqual(request.call_args_list[1],request.call_args_list[2])
         self.assertEqual([call.args[0] for call in sleep.call_args_list],[1,2])
 
-    @patch('harness.web_fetch.publication.time.sleep')
+    @patch('harness.reporting.publish.time.sleep')
     def test_closed_connection_retries_same_staged_file_without_restarting_upload(self, sleep):
         from http.client import RemoteDisconnected
         request = Mock(side_effect=[RemoteDisconnected('closed before response'), (200, b'ok')])

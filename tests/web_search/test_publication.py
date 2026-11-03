@@ -61,7 +61,7 @@ def test_publication_plan_uses_configured_data_home(tmp_path, monkeypatch):
 @pytest.mark.parametrize("changed_selection", [False, True])
 def test_explicit_instance_never_updates_another_report(tmp_path, monkeypatch, changed_selection):
     from tests.test_webfetch_report_publish import Service
-    from harness.web_fetch import report_publish
+    from harness.reporting import publish as report_publish
 
     report, work = publication_files(tmp_path, monkeypatch)
     default = tmp_path / "target.json"
@@ -133,7 +133,7 @@ def test_changed_release_inputs_stop_before_authentication(tmp_path, monkeypatch
 @pytest.mark.parametrize("failure", [None, "upload-response"])
 def test_search_publisher_recovers_one_activation_and_preserves_private_site(tmp_path, monkeypatch, failure):
     from tests.test_webfetch_report_publish import Service
-    from harness.web_fetch import report_publish
+    from harness.reporting import publish as report_publish
     report, work = publication_files(tmp_path, monkeypatch)
     monkeypatch.setattr(publication.subprocess, "check_output", lambda *a, **kw: b"test-commit")
     monkeypatch.setattr(report_publish, "STAGED_UPLOAD_THRESHOLD", 0)

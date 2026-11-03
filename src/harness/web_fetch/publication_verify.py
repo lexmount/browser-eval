@@ -17,7 +17,7 @@ from urllib.parse import quote
 
 from harness.reporting.publication import archive_inventory
 from harness.web_fetch.artifact_auth import load_token
-from harness.web_fetch.publication_target import (
+from harness.reporting.publication_target import (
     publication_base,
     publication_document,
     validate_service_base,

@@ -1,5 +1,6 @@
 """Publication freezes uploads and refuses a changed local release authority."""
 import json
+import urllib.request
 import zipfile
 
 import pytest
@@ -7,6 +8,7 @@ import pytest
 from harness.record_io import file_sha256
 from harness.browser_use import report_publish as autonomous
 from harness.reporting.publication import snapshot_publication
+from harness.reporting.publish import staged_release_upload, upload_large_archive
 from harness.trajectory_replay import webarena_report_publish as replay
 
 
@@ -16,6 +18,14 @@ def private_binding_journals(monkeypatch, tmp_path):
     monkeypatch.setattr(replay, 'BINDING_JOURNAL', tmp_path / 'replay-binding.json')
     monkeypatch.setattr(autonomous, 'OPERATION_JOURNAL', tmp_path / 'autonomous-operation.json')
     monkeypatch.setattr(replay, 'OPERATION_JOURNAL', tmp_path / 'replay-operation.json')
+
+
+def test_new_site_upload_without_a_title_stops_before_any_request(tmp_path):
+    archive = tmp_path / 'archive.zip'
+    with zipfile.ZipFile(archive, 'w') as bundle:
+        bundle.writestr('index.html', 'Frozen release')
+    with pytest.raises(ValueError, match='requires a title'):
+        upload_large_archive(lambda *args, **kwargs: pytest.fail('sent a request'), archive)
 
 
 def test_private_archive_is_byte_exact_and_removed_on_error(tmp_path):
@@ -74,9 +84,8 @@ def test_staged_upload_stops_before_commit_when_original_changes(tmp_path, monke
     with zipfile.ZipFile(archive, 'w') as bundle:
         bundle.writestr('index.html', 'Frozen root')
         bundle.writestr('assets/app.js', 'Frozen script')
-    monkeypatch.setattr(replay, 'ARCHIVE', archive)
     calls = []
-    def request(_base, path, data=None, _type=None, **kwargs):
+    def request(path, data=None, _type=None, **kwargs):
         calls.append(path)
         if path == '/api/sites/site-1':
             result = {'site': {'currentVersionId': 'ver_old'}}
@@ -87,11 +96,13 @@ def test_staged_upload_stops_before_commit_when_original_changes(tmp_path, monke
             archive.write_bytes(b'Changed during first PUT')
             result = {'ok': True}
         return 200, json.dumps(result).encode(), {}
-    monkeypatch.setattr(replay, 'request', request)
     with snapshot_publication(archive, inputs=[]) as release:
+        def guarded(*args, **kwargs):
+            release.check()
+            return request(*args, **kwargs)
         with pytest.raises(ValueError, match='inputs changed'):
-            replay.staged_archive_upload('https://example.invalid', title='Replay', slug='site-1',
-                                         expected_version='ver_old', identity={}, release=release)
+            staged_release_upload(guarded, release.archive, title='Replay', slug='site-1',
+                                  expected_version='ver_old', identity={}, key_prefix='staged-')
     assert not any('/commit' in path for path in calls)
 
 
@@ -188,7 +199,7 @@ def test_browser_publication_verifies_full_export_before_binding(tmp_path, monke
         if '/api/preview/' in request.full_url:
             assert request.get_header('X-artifact-share') == 'token'
         return Response()
-    monkeypatch.setattr(autonomous.urllib.request, 'urlopen', urlopen)
+    monkeypatch.setattr(urllib.request, 'urlopen', urlopen)
     before = (profile.read_bytes(), proof.read_bytes(), receipt.read_bytes())
     if outcome == 'success':
         autonomous.main(create=False)
