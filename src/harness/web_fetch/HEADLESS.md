@@ -351,15 +351,16 @@ Build from an explicit immutable evidence directory:
 
 ```sh
 make setup
-uv run --frozen python -m harness.web_fetch headless-check EVIDENCE --rescore
+uv run --frozen python -m harness.web_fetch headless-check EVIDENCE --rescore --report-profile PROFILE
 make report PROFILE=/absolute/path/to/profile.json EVIDENCE=/absolute/path/to/evidence
 make report-check PROFILE=/absolute/path/to/profile.json
 ```
 
-For another declared cohort, pass `--canonical-dataset`, `--provider-config`,
-`--provenance` and `--report-profile` explicitly. The checker uses those inputs
-for task rules, method coverage, executable identities and the report matrix;
-its defaults reproduce the historical headless comparison. It verifies saved
+`--report-profile` is always required; the checker rejects a run without it.
+For another declared cohort, also pass `--canonical-dataset`, `--provider-config`
+and `--provenance`. The checker uses those inputs for task rules, method coverage,
+executable identities and the report matrix; their defaults reproduce the
+historical headless comparison. It verifies saved
 outputs without making provider calls or changing verdicts. Explicit diagnostic
 evidence remains ineligible for this formal evidence check.
 
@@ -370,7 +371,7 @@ Formal commands must not fall back to system `python` / `python3`; an unmet runt
 
 The headless report remains a separately published reference cohort. Its
 evidence bundle fixes the dataset ID, task count, provider set, timeout and
-route description; `uv run --frozen python -m harness.web_fetch headless-check` rejects a different
+route description; `uv run --frozen python -m harness.web_fetch headless-check EVIDENCE --report-profile PROFILE` rejects a different
 cohort. The repository's current publication profile now points at the
 10-method Web Fetch report and must not be inferred from this headless cohort.
 Review requirements are bound to the declared evidence scope: unresolved
