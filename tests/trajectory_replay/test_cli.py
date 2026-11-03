@@ -1,6 +1,7 @@
 """The curated Trajectory Replay entry point reaches every owner through its public boundary."""
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -127,6 +128,22 @@ def test_template_registry_names_the_entry_point_and_public_commands():
         assert template[key].startswith(
             f"uv run --frozen python -m harness.trajectory_replay {command} "
         )
+
+
+def test_every_command_is_named_by_a_guide_or_the_pending_owner_table():
+    guides = "\n".join((ROOT / path).read_text(encoding="utf-8") for path in (
+        "Makefile",
+        "docs/benchmarks.md",
+        "docs/trajectory-replay-protocol.md",
+        "evaluation/trajectory-replay/webarena-verified/README.md",
+        "examples/trajectory_replay/run.sh",
+    ))
+    readme = (ROOT / "scripts/README.md").read_text(encoding="utf-8")
+    pending = readme.split("## Pending owner decision (#93)")[1].split("\n## ")[0]
+    missing = [name for name in COMMANDS
+               if not re.search(rf"-m harness\.trajectory_replay {name}\b", guides)
+               and not re.search(rf"`(harness\.trajectory_replay )?{name}`", pending)]
+    assert missing == []
 
 
 def test_report_template_gate_binds_the_renderer_not_the_moved_entry_point():

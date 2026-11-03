@@ -138,6 +138,9 @@ exclusive tests together.
 | `use_prepared_webarena_cohort_reset.py` | passed as `run_remote_three_method_cohort.py --cohort-reset-hook`; receipts outside Git bind its hash, not its name |
 | `harness.trajectory_replay seeds`, `expert-seeds`, `replay`, `promote` | seed, replay and promotion stages of the repository-curated dataset; `evaluation/trajectory-replay/webarena-verified/README.md` describes the stages without naming the commands |
 | `harness.trajectory_replay merge-results` | overlays formal correction shards onto the current replay matrix |
+| `harness.trajectory_replay catalog-audit-acceptance`, `catalog-audit-actions` | sole entries to the catalog sweep and failed-repair audit and the evaluate-action audit |
+| `harness.trajectory_replay catalog-consolidate`, `catalog-rebind` | sole entries to freezing accepted trajectories into one deployment-bound catalog and binding a frozen catalog to another site deployment |
+| `harness.trajectory_replay catalog-comparison-inputs` | sole entry to compiling catalog replay evidence into shared comparison report inputs |
 | `build_webarena_authoring_suite.py`, `build_webarena_observation_suite.py`, `build_webarena_evidence_revalidation_suite.py`, `build_webarena_qualification_subset.py`, `build_webarena_requalification_suite.py`, `finalize_webarena_adjudication.py` | queue, revalidation and finalization commands of `src/harness/trajectory_replay/public_webarena/qualification.py`; "Qualification decisions and immutable outputs" in `docs/trajectory-replay-protocol.md` describes them without naming the scripts |
 | `build_webarena_trace_catalog.py` | rebuilds the checked-in 179-task human-trace catalog from official inputs |
 | `run_real_smoke.sh` | runner for the opt-in `tests/test_real_smoke.py` live-provider class; only that test names it |
