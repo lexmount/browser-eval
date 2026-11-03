@@ -57,6 +57,17 @@ def test_tracks_keep_their_own_logical_result_when_a_retry_fails_after_a_pass():
     assert (public["final_passes"], public["duration_ms"]["n"]) == (0, 0)
 
 
+def test_tracks_keep_their_own_conditional_latency_when_a_retry_passes_after_a_failure():
+    rows = [_attempt("a", 1, "fail", 100.0), _attempt("a", 2, "pass", 11.0)]
+
+    curated = summarize_curated(rows, engines=("a",))["functional"]["a"]
+    public = summarize_public(rows, engines=("a",))["functional"]["a"]
+
+    assert (curated["final_passes"], curated["duration_ms"]["n"]) == (1, 0)
+    assert (public["final_passes"], public["duration_ms"]["n"]) == (1, 1)
+    assert public["duration_ms"]["mean"] == 11.0
+
+
 def test_tracks_keep_their_own_latency_population_and_published_fields():
     rows = [
         _attempt("a", 1, "pass", 100.0, execution_duration_ms=10.0, network_har={"path": "x"}),
