@@ -95,6 +95,15 @@ def verify_package_tree(source_root: Path, package_root: Path, *, package_name='
             for path in directory.glob(pattern):
                 if path.is_file():
                     expected[path.relative_to(source).as_posix()] = path
+    # setuptools also ships package files named by MANIFEST.in, where report assets are declared.
+    manifest = source_root / 'MANIFEST.in'
+    for line in manifest.read_text(encoding='utf-8').splitlines() if manifest.is_file() else ():
+        if line.startswith('recursive-include '):
+            directory, *patterns = line.split()[1:]
+            if (source_root / directory).is_relative_to(source):
+                for pattern in patterns:
+                    for path in (source_root / directory).rglob(pattern):
+                        expected[path.relative_to(source).as_posix()] = path
     if package_name == 'harness':
         for relative in project['tool'].get('browser-eval', {}).get('bundled-data', ()):
             expected['distribution_data/' + relative] = source_root / relative
@@ -129,6 +138,22 @@ def verify_bundled_data(source_root: Path, package_root: Path) -> None:
             raise ValueError('Bundled data resolved outside the installed package: ' + relative)
         if path.read_bytes() != (source_root / relative).read_bytes():
             raise ValueError('Bundled data differs from source: ' + relative)
+
+
+def verify_report_assets(package_root: Path) -> None:
+    """Installed renderers must load their stylesheets and scripts from the package."""
+    from harness.trajectory_replay import report as replay_report
+    from harness.trajectory_replay.public_webarena import report as public_report
+    from harness.web_fetch.report_style import STYLE
+    from harness.web_search.comparison import SCRIPT, STYLE as COMPARISON_STYLE
+
+    assert all(text.strip() for text in (STYLE, SCRIPT, COMPARISON_STYLE))
+    for renderer in (replay_report, public_report):
+        assert Path(renderer.__file__).resolve().is_relative_to(package_root)
+        assert renderer.REPORT_CSS.strip() and renderer.SUITE_FILTER_JS.strip()
+    assert (package_root / 'web_fetch/templates/interpretation-headless.css').is_file()
+    assert (package_root / 'browser_use/assets/report.js').is_file()
+    assert (package_root / 'trajectory_replay/assets/webarena-report.css').is_file()
 
 
 def verify_review_revisions(root: Path, source_root: Path) -> None:
@@ -1659,6 +1684,7 @@ def main():
         raise ValueError('Package smoke must use an installed distribution outside the checkout')
     verify_package_tree(args.source_root, installed)
     verify_bundled_data(args.source_root, installed)
+    verify_report_assets(installed)
     from importlib import import_module
     for package_name in ('lexbench_webfetch', 'lexbench_websearch'):
         package_root = Path(import_module(package_name).__file__).resolve().parent

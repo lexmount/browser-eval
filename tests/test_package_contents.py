@@ -47,6 +47,25 @@ def test_current_modules_and_declared_assets_are_accepted(package):
     verify_package_tree(source, installed, package_name=name)
 
 
+@pytest.mark.parametrize('installed_copy', ['matching', 'missing', 'changed'])
+def test_manifest_declared_assets_are_required_in_the_installed_package(package, installed_copy):
+    source, installed, name = package
+    assets = source / 'src' / name / 'example/assets'
+    assets.mkdir()
+    (assets / 'report.css').write_text('body{}', encoding='utf-8')
+    (source / 'MANIFEST.in').write_text(
+        'include uv.lock\nrecursive-include src/' + name + '/example/assets *.css\n', encoding='utf-8')
+    if installed_copy != 'missing':
+        (installed / 'example/assets').mkdir()
+        (installed / 'example/assets/report.css').write_text(
+            'body{}' if installed_copy == 'matching' else 'p{}', encoding='utf-8')
+    if installed_copy == 'matching':
+        verify_package_tree(source, installed, package_name=name)
+    else:
+        with pytest.raises(ValueError):
+            verify_package_tree(source, installed, package_name=name)
+
+
 @pytest.mark.parametrize('damage', ['missing-module', 'missing-asset', 'changed-module',
                                    'changed-asset', 'retired-module', 'unbound-asset',
                                    'linked-module', 'linked-root'])
