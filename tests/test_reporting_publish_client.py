@@ -13,7 +13,7 @@ from urllib.error import HTTPError
 import pytest
 
 from harness.browser_use import report_publish as browser_use
-from harness.record_io import json_bytes
+from harness.record_io import file_sha256, json_bytes
 from harness.reporting import publication, publish
 from harness.reporting.publication import PublicationClient
 from harness.trajectory_replay import webarena_report_publish as replay
@@ -24,6 +24,10 @@ from harness.web_search import publication as web_search
 from tests import test_wcxb_publication as wcxb_tests
 from tests.test_webfetch_report_publish import Service
 from tests.test_webfetch_report_publish import fixture as web_fetch_release
+from tests.trajectory_replay.public_webarena.test_trajectory_release import (
+    publication_fixture as public_webarena_release,
+)
+from tests.web_search.test_publication import publication_files as web_search_release
 
 BASE = 'https://artifacts.example.invalid'
 BEARER = ('Authorization', 'Bearer ahp_fixture')
@@ -363,28 +367,47 @@ def test_browser_use_requires_its_receipt_and_replay_stages_large_archives(tmp_p
     assert posts[1][1].startswith('trajectory-staged-')
 
 
-@pytest.mark.parametrize(('owner', 'agent'), [
-    (web_search, 'Web-Search-Report-Publisher/1.0'),
-    (public_webarena, 'Public-WebArena-Report-Publisher/1.0'),
+class ReceiptSite(Service):
+    """The Web Fetch publication fake, plus the sharing state a private site asks for."""
+
+    def __call__(self, path, data=None, content_type=None, *, method=None, extra_headers=None):
+        if path.endswith('/sharing'):
+            return 200, b'{"visibility":"private"}'
+        return super().__call__(path, data, content_type, method=method, extra_headers=extra_headers)
+
+
+def publish_web_search(tmp_path, monkeypatch):
+    report, work = web_search_release(tmp_path, monkeypatch)
+    monkeypatch.setattr(web_search.subprocess, 'check_output', lambda *args, **kwargs: b'fixture-commit')
+    web_search.publish(report, work)
+    return work / 'report.zip', 'Search API evaluation'
+
+
+def publish_public_webarena(tmp_path, monkeypatch):
+    _, profile, staged, archive, proof, receipt, journal = public_webarena_release(tmp_path)
+    public_webarena.publish_current(profile, staged, archive, proof, receipt, journal)
+    return archive, 'WebArena 轨迹重放'
+
+
+@pytest.mark.parametrize(('run', 'agent', 'namespace'), [
+    (publish_web_search, 'Web-Search-Report-Publisher/1.0', 'search'),
+    (publish_public_webarena, 'Public-WebArena-Report-Publisher/1.0', 'public-webarena'),
 ], ids=['web-search', 'public-webarena'])
 def test_receipt_tracks_send_their_own_identity_and_keep_replayable_upload_bytes(
-        tmp_path, monkeypatch, wire, owner, agent):
-    config = web_fetch_release(tmp_path)
+        tmp_path, monkeypatch, wire, run, agent, namespace):
+    monkeypatch.delenv('ARTIFACT_SITE_BASE_URL', raising=False)
     monkeypatch.setattr(publish, 'STAGED_UPLOAD_THRESHOLD', 10**9)
-    wire.respond = behind_wire(Service())
-    namespace = {web_search: 'search', public_webarena: 'public-webarena'}[owner]
-    publish.publish_receipt_release(publish.ReceiptRelease(
-        config.profile, config.archive, config.source, config.receipt, config.journal,
-        namespace=namespace, upload_name=owner.UPLOAD_NAME, client=owner.CLIENT,
-        package_check=lambda *_: None,
-        title='Title', mode='update',
-    ))
-    (upload, _), *_ = wire
-    assert upload.get_header('User-agent') == agent
+    wire.respond = behind_wire(ReceiptSite())
+    archive, title = run(tmp_path, monkeypatch)
+    upload = wire[0][0]
+    assert '/versions?' in upload.selector
+    assert {request.get_header('User-agent') for request, _ in wire} == {agent}
     assert upload.get_header('Idempotency-key').startswith(namespace + '-')
-    digest = json.loads(config.receipt.read_bytes())['archive_sha256']
     # A journal from before these tracks had their own adapter must replay byte-identically.
-    assert upload.data == publish.release_multipart(config.archive, 'Title', digest, 'webfetch')[0]
+    body, content_type = publish.release_multipart(archive, title, file_sha256(archive), 'webfetch')
+    assert upload.data == body
+    assert upload.get_header('Content-type') == content_type
+    assert b'filename="webfetch.zip"' in upload.data
 
 
 def behind_wire(service):
