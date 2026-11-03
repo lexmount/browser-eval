@@ -14,13 +14,11 @@ from ipaddress import ip_address
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from dotenv import dotenv_values
 from lexbench_websearch.relevance import candidate_packet, score, validate_source_rule_regressions
 from lexbench_websearch.rubric import judge_prompt, known_prompt
 from lexbench_websearch.scoring import canonical_url
 
-from harness.web_fetch import config as runtime_config
-from harness.web_fetch.config import load_runtime_env
+from harness.web_fetch.config import load_runtime_env, repository_env
 from harness.web_search.messages import report_text
 
 
@@ -482,7 +480,7 @@ def judge_main(argv=None):
     token = os.environ.get(args.token_env, "")
     if not token.strip() or "\r" in token or "\n" in token:
         raise ValueError(f"Set a nonempty {args.token_env} in the repository .env")
-    configured_base = dotenv_values(runtime_config.ROOT / ".env").get("SEARCH_JUDGE_BASE_URL", "")
+    configured_base = repository_env().get("SEARCH_JUDGE_BASE_URL", "")
     if not configured_base or validate_judge_url(configured_base).netloc != validate_judge_url(args.base_url).netloc:
         raise ValueError("Judge endpoint host must match repository SEARCH_JUDGE_BASE_URL")
     from harness.web_search.report import check

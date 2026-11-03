@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+from dotenv import dotenv_values
 from lexbench_webfetch.models import EvalCase, validate_case
 
 from harness.web_fetch.reference_inputs import read_dataset_bytes
@@ -82,6 +83,16 @@ def load_runtime_env(path: Path | None = None) -> None:
                       credentials_allowed=selected.resolve() == ((ROOT / ".env")).resolve())
     if path is not None:
         os.environ.setdefault("BROWSER_EVAL_REPORT_LANGUAGE", "en")
+
+
+def repository_env() -> dict[str, str]:
+    """Read the repository .env alone, leaving the process environment untouched."""
+    selected = ROOT / ".env"
+    if not selected.exists():
+        return {}
+    # Interpolation would resolve an undefined ${NAME} from the process environment.
+    values = dotenv_values(selected, interpolate=False)
+    return {key: value for key, value in values.items() if value}
 
 
 def load_env_file(path: Path, *, override_credentials: bool = False, credentials_allowed: bool = True) -> None:

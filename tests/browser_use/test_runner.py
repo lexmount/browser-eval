@@ -13,6 +13,7 @@ from harness.browser_use.runner import (
     _exhausted_agent_steps,
     _limit_cowagent_transport_retries,
     _load_completed_attempts,
+    _load_repo_env,
     _max_steps_response,
     _retry_required,
     _run_attempt,
@@ -20,6 +21,7 @@ from harness.browser_use.runner import (
     _run_engine_attempts,
     _scheduled_tasks,
     _user_prompt,
+    run,
 )
 from harness.browser_use.selection import load_pilot
 from harness.environments.webarena.runtime import (
@@ -1403,3 +1405,56 @@ def test_failed_attempt_records_har_and_trace_stop_errors(monkeypatch, tmp_path:
     row = _run_attempt_locked(**kwargs, cowagent_repo=tmp_path, output_dir=tmp_path / "out")
 
     assert row["cleanup_errors"] == ["HAR/trace stop failed: trace file locked"]
+
+
+def test_provider_credentials_come_only_from_the_repository_env(tmp_path, monkeypatch):
+    monkeypatch.setenv("OPENAI_API_KEY", "shell-key")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://shell.invalid")
+    monkeypatch.setenv("COWAGENT_REPO", "/explicit/cowagent")
+    assert _load_repo_env(tmp_path) == {"COWAGENT_REPO": "/explicit/cowagent"}
+
+    (tmp_path / ".env").write_text(
+        "OPENAI_API_KEY=repository-key\nOPENAI_BASE_URL=https://models.invalid\n"
+    )
+    assert _load_repo_env(tmp_path) == {
+        "OPENAI_API_KEY": "repository-key",
+        "OPENAI_BASE_URL": "https://models.invalid",
+        "COWAGENT_REPO": "/explicit/cowagent",
+    }
+
+    (tmp_path / ".env").write_text("OPENAI_BASE_URL=${OPENAI_BASE_URL}\n")
+    assert _load_repo_env(tmp_path)["OPENAI_BASE_URL"] == "${OPENAI_BASE_URL}"
+
+
+def test_explicit_env_file_is_read_without_shell_interpolation(tmp_path, monkeypatch):
+    monkeypatch.setenv("SHELL_ONLY_KEY", "shell-key")
+    monkeypatch.setenv("SHELL_ONLY_URL", "https://shell.invalid")
+    (tmp_path / "cowagent/agent/protocol").mkdir(parents=True)
+    (tmp_path / "cowagent/agent/protocol/agent.py").touch()
+    env_file = tmp_path / "provider.env"
+    env_file.write_text("OPENAI_API_KEY=${SHELL_ONLY_KEY}\nOPENAI_BASE_URL=${SHELL_ONLY_URL}\n")
+    runner = "harness.browser_use.runner"
+    for name in ("require_clean_git_checkout", "load_pilot", "configure_benchmark"):
+        monkeypatch.setattr(f"{runner}.{name}", lambda *_args: None)
+    monkeypatch.setattr(f"{runner}.validate_against_official", lambda *_args: None)
+
+    class ModelReached(Exception):
+        pass
+
+    def capture_model(**kwargs):
+        raise ModelReached(kwargs["api_key"], kwargs["base_url"])
+
+    monkeypatch.setattr(f"{runner}.OpenAIResponsesModel", capture_model)
+    args = SimpleNamespace(
+        repo_root=str(tmp_path),
+        env_file=str(env_file),
+        cowagent_repo=str(tmp_path / "cowagent"),
+        output=str(tmp_path / "output"),
+        selection="unused",
+        model="unused",
+    )
+
+    with pytest.raises(ModelReached) as reached:
+        run(args)
+
+    assert reached.value.args == ("${SHELL_ONLY_KEY}", "${SHELL_ONLY_URL}")

@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import hashlib
 import io
-import inspect
 import json
 import math
 import re
+import sys
 import tempfile
 from collections import Counter
 from numbers import Real
@@ -19,67 +20,83 @@ from lexbench_webfetch.paths import contained_path, safe_identifier
 
 from harness.record_io import parse_jsonl
 from harness.reporting.publication import atomic_create, json_bytes
+from harness.web_fetch import wcxb_metrics
 from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.web_fetch.wcxb_dataset import validate_manifest
 from harness.web_fetch.wcxb_latency import load_full_paired_latency
+from harness.web_fetch.wcxb_metrics import snippet_check, word_f1
 from harness.web_fetch.webmainbench_runner import load_wcxb_source, selected_wcxb_input
 
-# WCXB metrics, Murrough Foley (2026), CC-BY-4.0. Adapted from evaluate.py
-# at c039d5ee9f5a3a984a0e167e63aacd04e76e78a9; this is provenance, not code
-# loaded from a dataset or an external checkout.
-# Source: https://github.com/Murrough-Foley/web-content-extraction-benchmark
-# License: https://creativecommons.org/licenses/by/4.0/
+# Provenance of the adapted metric in wcxb_metrics.py; upstream code is never loaded.
 UPSTREAM_EVALUATOR_SHA256 = 'ae4ad6299e190177fbb04a7c1190077fc6086b3fa0f31fb37a6538a5e979c559'
-
-
-def word_f1(predicted: str, reference: str) -> tuple[float, float, float]:
-    """Official lowercase Unicode-word multiset precision, recall and F1."""
-    predicted_words = re.findall(r'\w+', (predicted or '').lower())
-    reference_words = re.findall(r'\w+', (reference or '').lower())
-    if not reference_words:
-        return (1.0, 1.0, 1.0) if not predicted_words else (0.0, 0.0, 0.0)
-    if not predicted_words:
-        return 0.0, 0.0, 0.0
-    overlap = sum((Counter(predicted_words) & Counter(reference_words)).values())
-    precision, recall = overlap / len(predicted_words), overlap / len(reference_words)
-    f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
-    return precision, recall, f1
-
-
-def snippet_check(text: str, snippets: list[str]) -> float:
-    """Official case-insensitive literal substring fraction; no word gate."""
-    return sum(snippet.lower() in text.lower() for snippet in snippets) / len(snippets) if snippets else 1.0
-
-
+METRIC_MODULE = Path(__file__).with_name('wcxb_metrics.py')
 METRIC_BINDINGS = Path(__file__).with_name('data') / 'wcxb-metric-bindings.json'
 
 
-def metric_implementation_binding(profile: dict, *, read=None, certificate=None, summary=None) -> str:
-    """Bind local metric source while retaining the upstream provenance ID."""
+def _normal_form(node):
+    if isinstance(node, ast.AST):
+        fields = {name: _normal_form(value) for name, value in ast.iter_fields(node)
+                  if name not in ('kind', 'type_comment') and value is not None and value != []}
+        return [type(node).__name__, fields]
+    if isinstance(node, list):
+        return [_normal_form(value) for value in node]
+    return [type(node).__name__, repr(node)]
+
+
+def metric_module_digest(source: bytes) -> str:
+    """Hash the code of a metric module, ignoring docstrings, comments and layout."""
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            imported = [node.module] if node.module and not node.level else ['']
+        else:
+            imported = [alias.name for alias in node.names] if isinstance(node, ast.Import) else []
+        if any(name.split('.')[0] not in sys.stdlib_module_names for name in imported):
+            raise ValueError('WCXB metric implementation imports code outside the bound module')
+        if (isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+                and ast.get_docstring(node, clean=False) is not None):
+            node.body = node.body[1:]
+    return hashlib.sha256(json.dumps(_normal_form(tree), sort_keys=True).encode()).hexdigest()
+
+
+def metric_implementation_binding(profile: dict, *, read=None, certificate=None, summary=None, receipt=None) -> str:
+    """Bind the metric module while retaining the upstream provenance ID.
+
+    The digest covers the module's code. The word_f1 and snippet_check names here
+    must also be that module's functions, so rebinding either name is rejected.
+    This catches drift. It does not prove what _score calls, and this file is not bound.
+    Frozen evidence may name a superseded digest. The authority maps each one to
+    the module digest it represents, so it verifies only while that code is current.
+    """
     upstream = profile.get('official_evaluator_sha256')
     if upstream != UPSTREAM_EVALUATOR_SHA256:
         raise ValueError('WCXB profile names unsupported official metric provenance')
-    try:
-        implementation = '\n'.join(inspect.getsource(function)
-                                   for function in (word_f1, snippet_check)).encode()
-    except (OSError, TypeError) as error:
-        raise ValueError('WCXB metric implementation source is unavailable') from error
-    actual = hashlib.sha256(implementation).hexdigest()
-    if 'metric_implementation_sha256' in profile:
-        expected = profile['metric_implementation_sha256']
-    else:
-        authority = json.loads((read or Path.read_bytes)(METRIC_BINDINGS))
-        if authority.get('schema_version') != 1:
-            raise ValueError('Unsupported WCXB metric implementation authority')
-        expected = authority.get('implementations', {}).get(upstream)
-    if not isinstance(expected, str) or not re.fullmatch('[0-9a-f]{64}', expected) or actual != expected:
+    if word_f1 is not wcxb_metrics.word_f1 or snippet_check is not wcxb_metrics.snippet_check:
         raise ValueError('WCXB metric implementation binding mismatch')
+    read = read or Path.read_bytes
+    try:
+        actual = metric_module_digest(read(METRIC_MODULE))
+    except (OSError, SyntaxError) as error:
+        raise ValueError('WCXB metric implementation source is unavailable') from error
+    authority = json.loads(read(METRIC_BINDINGS))
+    if authority.get('schema_version') != 2:
+        raise ValueError('Unsupported WCXB metric implementation authority')
+    superseded = authority.get('superseded_source_text_digests', {})
+
+    def binds_current(value) -> bool:
+        return isinstance(value, str) and superseded.get(value, value) == actual
+
     key = 'metric_implementation_sha256'
-    if certificate is not None and certificate.get(key, actual) != actual:
+    expected = profile[key] if key in profile else authority.get('implementations', {}).get(upstream)
+    if not binds_current(expected):
+        raise ValueError('WCXB metric implementation binding mismatch')
+    if certificate is not None and not binds_current(certificate.get(key, actual)):
         raise ValueError('WCXB certificate metric implementation binding mismatch')
+    if receipt is not None and not binds_current(receipt.get(key, actual)):
+        raise ValueError('WCXB timing metric implementation binding mismatch')
     if summary is not None:
         required = key in profile or key in (certificate or {}) or key in summary
-        if summary.get(key, None if required else actual) != actual:
+        if not binds_current(summary.get(key, None if required else actual)):
             raise ValueError('WCXB summary metric implementation binding mismatch')
     return actual
 

@@ -340,7 +340,7 @@ def main(*, root: Path | None = None):
     mode.add_argument("--create", action="store_true")
     mode.add_argument("--update", action="store_true")
     parser.add_argument("--profile", type=Path, required=True)
-    parser.add_argument("--receipt", type=Path, default=root / "publish/artifact-hub-receipt.json")
+    parser.add_argument("--receipt", type=Path, default=root / "publish/artifact-site-receipt.json")
     parser.add_argument("--archive", type=Path, default=root / "publish/webfetch-sites.zip")
     parser.add_argument("--source", type=Path, default=root / "reports/webfetch")
     parser.add_argument(
@@ -349,7 +349,7 @@ def main(*, root: Path | None = None):
     parser.add_argument("--expected-version")
     parser.add_argument(
         "--base-url",
-        default=os.environ.get("ARTIFACT_SITE_BASE_URL", os.environ.get("ARTIFACT_HUB_BASE_URL")),
+        default=os.environ.get("ARTIFACT_SITE_BASE_URL"),
     )
     parser.add_argument("--title", default="Web Fetch 评测")
     parser.add_argument("--presentation-binding", type=Path)
@@ -380,7 +380,7 @@ def rename_main(argv=None, *, default_root=None) -> None:
         "receipt",
         type=Path,
         nargs="?",
-        default=root / "publish/artifact-hub-receipt.json",
+        default=root / "publish/artifact-site-receipt.json",
     )
     parser.add_argument("--title", required=True)
     args = parser.parse_args(argv)
@@ -389,7 +389,7 @@ def rename_main(argv=None, *, default_root=None) -> None:
     before = path.read_bytes()
     receipt = json.loads(before)
     base = validate_service_base(receipt.get("base_url"))
-    configured = os.environ.get("ARTIFACT_SITE_BASE_URL") or os.environ.get("ARTIFACT_HUB_BASE_URL")
+    configured = os.environ.get("ARTIFACT_SITE_BASE_URL")
     if configured and validate_service_base(configured) != base:
         raise ValueError("Requested publication service differs from the bound receipt")
     slug = receipt.get("slug")

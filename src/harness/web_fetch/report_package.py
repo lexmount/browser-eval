@@ -428,7 +428,7 @@ def _build_content(source, destination, archive, *, webmainbench, raw_blocks, de
             }
         )
     )
-    # Artifact Hub publishes large bundles through staged per-file uploads.
+    # Artifact Site publishes large bundles through staged per-file uploads.
     # Its documented total limit is 300 MB, not the former local 50 MB budget.
     if total > 300*1024*1024:
         compact = destination.parent/'compact'

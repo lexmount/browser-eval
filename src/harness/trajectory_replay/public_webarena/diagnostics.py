@@ -11,7 +11,6 @@ import importlib.metadata
 import importlib.resources
 import json
 import math
-import os
 import re
 import subprocess
 import tempfile
@@ -44,6 +43,7 @@ from harness.trajectory_replay.public_webarena.qualification import (
     task_contract_sha256,
 )
 from harness.trajectory_replay.public_webarena.suite import SUPPORTED_ACTIONS, load_suite
+from harness.web_fetch.config import repository_env
 from harness.web_fetch.safety import unlinked_path
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
@@ -270,9 +270,11 @@ def diagnose_summary(
         },
     }
     if use_llm:
-        key = api_key or os.environ.get("OPENAI_API_KEY")
-        base = api_base or os.environ.get("OPENAI_BASE_URL") or os.environ.get("OPENAI_API_BASE")
         try:
+            # Evaluation credentials come only from the repository .env, never the shell.
+            env = repository_env()
+            key = api_key or env.get("OPENAI_API_KEY")
+            base = api_base or env.get("OPENAI_BASE_URL") or env.get("OPENAI_API_BASE")
             if not key or not base:
                 raise RuntimeError("OPENAI_API_KEY and OPENAI_BASE_URL are required")
             result["llm"] = add_llm_diagnoses(

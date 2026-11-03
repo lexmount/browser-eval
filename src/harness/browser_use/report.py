@@ -3563,7 +3563,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 [
                     ["四个自托管站点", "官方 Docker 镜像与内置测试账号；每题前重置", "不需要"],
                     ["模型 API", f"{model}, reasoning={reasoning_effort}", "需要相应 API 权限"],
-                    ["Artifact Hub", "只发布脱敏静态报告", "发布者需已有站点权限"],
+                    ["Artifact Site", "只发布脱敏静态报告", "发布者需已有站点权限"],
                 ],
             ),
         )

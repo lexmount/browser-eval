@@ -62,7 +62,7 @@ The viewer has one `qualified-test` configuration and one `test` split. Its comm
 
 ## Scoring
 
-Browser Eval maintains the scoring implementation in [wcxb_scoring.py](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_fetch/wcxb_scoring.py). Its pure metric functions preserve the pinned upstream evaluator's behavior; the original evaluator identity remains part of the provenance. Loading this dataset does not execute upstream Python code.
+Browser Eval maintains the scoring implementation in [wcxb_scoring.py](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_fetch/wcxb_scoring.py). The pure metric functions in [wcxb_metrics.py](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_fetch/wcxb_metrics.py) preserve the pinned upstream evaluator's behavior; the original evaluator identity remains part of the provenance. Loading this dataset does not execute upstream Python code.
 
 Word precision, recall and F1 use lowercase Unicode `\w+` tokens. Matching counts repeated occurrences, so overlap is the multiset intersection between predicted and reference tokens. Precision measures how much returned text belongs to the reference; recall measures how much reference text was retained. F1 is their harmonic mean. Report the mean per-page scores and page-type breakdowns with their denominators.
 
@@ -72,7 +72,7 @@ After installing the matching Browser Eval revision, score a saved prediction wi
 
 ```python
 from pathlib import Path
-from harness.web_fetch.wcxb_scoring import word_f1, snippet_check
+from harness.web_fetch.wcxb_metrics import word_f1, snippet_check
 
 predicted = Path("prediction.txt").read_text(encoding="utf-8")
 precision, recall, f1 = word_f1(predicted, task["reference"])
