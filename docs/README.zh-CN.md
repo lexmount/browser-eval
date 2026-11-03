@@ -6,7 +6,7 @@
 
 [![CI](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml/badge.svg)](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](../LICENSE)
-[![Python 3.11](https://img.shields.io/badge/Python-3.11-356a91)](../.python-version)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](../pyproject.toml)
 
 [快速开始](#快速开始) · [评测流程](#评测流程) · [设计原则](#设计原则) · [报告](#报告) · [数据集与代码](#数据集与代码) · [版本](#版本) · [参与贡献](../CONTRIBUTING.md)
 
@@ -26,7 +26,7 @@ uv run --frozen browser-harness-eval validate
 uv run --frozen browser-harness-eval run --delay 0
 ```
 
-打开终端打印的报告路径。示例包含一个预期通过和一个预期失败，无需浏览器、Docker 或 API 密钥。需要 Python 3.11，锁文件与 CI 测试的正是这一版本。
+打开终端打印的报告路径。示例包含一个预期通过和一个预期失败，无需浏览器、Docker 或 API 密钥。需要 Python 3.11 或更高版本；CI 在 3.11 上测试。
 
 接下来可以[用 HTTP、Moli 或 Chromium 读取本地文章](../examples/web_fetch/README.md)。可选适配器、服务凭据和在线评测命令见上面的各流程指南。
 

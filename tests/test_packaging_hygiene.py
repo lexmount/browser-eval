@@ -277,13 +277,11 @@ def test_python_policy_agrees_across_project_lock_and_ci():
                 for step in job["steps"] if "python-version" in step.get("with", {})}
     assert versions == {pinned}
     declared = project["project"]["requires-python"]
-    assert declared == f">={pinned},<3.12"
-    assert tomllib.loads((ROOT / "uv.lock").read_text())["requires-python"] == f"=={pinned}.*"
+    assert declared == f">={pinned}"
+    assert tomllib.loads((ROOT / "uv.lock").read_text())["requires-python"] == declared
     for readme in ("README.md", "docs/README.zh-CN.md"):
         text = (ROOT / readme).read_text()
         assert "3.14" not in text
-    # Frozen data under evaluation/ may quote the same string from a source page, so it stays out of the scan.
-    assert not [path for path in tracked("*.md", "src/harness/**/*.py") if "Python 3.11+" in path.read_text()]
 
 
 @pytest.fixture
