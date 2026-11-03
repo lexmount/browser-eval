@@ -66,7 +66,8 @@ them. `make wcxb-release-check`, `make public-benchmark-sample` and `make webmai
 reach the commands they name; the [Web Fetch guide](../src/harness/web_fetch/README.md),
 [WebMainBench guide](../src/harness/web_fetch/WEBMAINBENCH.md),
 [`docs/architecture.md`](../docs/architecture.md),
-[`docs/benchmarks.md`](../docs/benchmarks.md) and `configs/report-templates.json` show the rest.
+[`docs/benchmarks.md`](../docs/benchmarks.md) and `configs/report-templates.json` show the rest,
+except the three commands listed under "Pending owner decision (#93)".
 The scripts below stay because frozen latency certifiers name them.
 
 | Script | Reached from |
@@ -103,14 +104,14 @@ Report commands run through `uv run --frozen python -m harness.browser_use <comm
 ## Pending owner decision (#93)
 
 No Makefile target, CI job, guide, `configs/report-templates.json` entry or
-checked-in profile, certificate or receipt names these scripts. Each one is
+checked-in profile, certificate or receipt names these entries. Each one is
 kept for now because it is the only command entry to a stage that a current
 harness module still implements, so deleting it would remove that stage rather
 than a duplicate. Its owner must either name it in the owning guide (and move
 the row to the table above) or delete the stage, its `main_*` function and its
 exclusive tests together.
 
-| Script | Why it survived |
+| Script or command | Why it survived |
 | --- | --- |
 | `add_provider_results.py` | sole entry to `evidence.add_provider_run`, which adds one complete provider cohort to the persistent current evidence |
 | `certify_headless_cases.py`, `project_headless_provider.py` | sole entries to per-case certification and one-provider projection of a live-reference run; `HEADLESS.md` describes the stage without naming them |
@@ -120,6 +121,8 @@ exclusive tests together.
 | `assemble_webfetch_refresh.py`, `audit_fixed_native_comparison.py` | sole entries to declared cohort refresh assembly and the two-build native comparison audit |
 | `probe_cowagent_text.py` | writes the `guide/cowagent-text-probe.json` evidence that `report_build.py` publishes; only that output file is named |
 | `prepare_result_review_subset.py`, `merge_internal_review_shards.py`, `rebind_result_review_metadata.py` | sole entries to the shared independent-review contract in `result_review.py`; only `tests/package_smoke.py` runs them |
+| `harness.web_fetch wcxb-select` | regenerates `evaluation/public-wcxb-test-qualified.json`; only tests name the command |
+| `harness.web_fetch webmainbench-check`, `harness.web_fetch webmainbench-full-check` | standalone release gates for the WebMainBench sample and complete reports; `report_build.py` imports the full-report check, not the command |
 | `authorize_artifact_site.py` | saves the user-scoped Artifact Site token that `AGENTS.md` describes, without naming the script |
 | `rename_artifact_site.py` | Artifact Site display-title maintenance |
 | `use_prepared_webarena_cohort_reset.py` | passed as `run_remote_three_method_cohort.py --cohort-reset-hook`; receipts outside Git bind its hash, not its name |

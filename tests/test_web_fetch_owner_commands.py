@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PROG = build_parser().prog
 DOCUMENTED_COMMAND_FILES = ("Makefile", "docs/benchmarks.md", "docs/architecture.md",
                             "src/harness/web_fetch/README.md", "src/harness/web_fetch/WEBMAINBENCH.md")
+COMMAND_INDEX_FILES = (*DOCUMENTED_COMMAND_FILES, "configs/report-templates.json")
 # A distinctive option each owner declares, so the help cannot come from the router.
 OWNER_OPTIONS = {
     "wcxb-select": "--qualified-test",
@@ -155,6 +156,17 @@ def test_script_named_by_a_frozen_certifier_still_runs(script, option, tmp_path)
                             env={**os.environ, "PYTHONPATH": path}, text=True, capture_output=True)
     assert result.returncode == 0, result.stderr
     assert option in result.stdout
+
+
+def named_commands(text):
+    return {name for name in OWNER_COMMANDS if re.search(rf"(?<![\w-]){name}(?![\w-])", text)}
+
+
+def test_every_owner_command_is_shown_by_a_guide_or_listed_as_pending():
+    shown = named_commands("\n".join((ROOT / path).read_text() for path in COMMAND_INDEX_FILES))
+    inventory = (ROOT / "scripts/README.md").read_text()
+    pending = named_commands(inventory.split("## Pending owner decision (#93)")[1].split("\n## ")[0])
+    assert pending == set(OWNER_COMMANDS) - shown
 
 
 def test_template_registry_names_the_public_package_command():
