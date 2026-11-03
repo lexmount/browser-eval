@@ -3,12 +3,15 @@
 import gzip
 import json
 import runpy
+import urllib.request
 import zipfile
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
+from harness.reporting import publication
+from harness.reporting import publish as shared
 from harness.web_fetch import publication_check, report_package, report_publish
 from harness.web_fetch.report_publish import PublishConfig
 
@@ -109,10 +112,10 @@ SCENARIOS = [
 @pytest.mark.parametrize("mode,staged,failure", SCENARIOS)
 def test_interruption_resumes_one_activation(tmp_path, monkeypatch, mode, staged, failure):
     config = fixture(tmp_path, mode)
-    monkeypatch.setattr(report_publish, "STAGED_UPLOAD_THRESHOLD", 0 if staged else 10**9)
+    monkeypatch.setattr(shared, "STAGED_UPLOAD_THRESHOLD", 0 if staged else 10**9)
     service = Service(failure)
-    write = report_publish.atomic_write
-    clear = report_publish.PublicationOperation.clear
+    write = publication.atomic_write
+    clear = publication.PublicationOperation.clear
 
     def fail_receipt(path, payload):
         if path == config.receipt and json.loads(payload).get("publication_pending") is False:
@@ -124,7 +127,7 @@ def test_interruption_resumes_one_activation(tmp_path, monkeypatch, mode, staged
         clear(operation, identity)
 
     monkeypatch.setattr("harness.reporting.publication.atomic_write", fail_receipt)
-    monkeypatch.setattr(report_publish.PublicationOperation, "clear", fail_clear)
+    monkeypatch.setattr(publication.PublicationOperation, "clear", fail_clear)
     with pytest.raises(OSError, match="simulated"):
         report_publish.publish(config, transport=service)
     summary = report_publish.publish(config, transport=service)
@@ -351,7 +354,7 @@ def test_report_rename_keeps_bound_target_and_receipt(tmp_path, monkeypatch, dam
             path.write_bytes(b'concurrent receipt')
         return Response(json.dumps({'slug': 'site-one', 'title': 'after'}).encode())
 
-    monkeypatch.setattr(report_publish.urllib.request, 'urlopen', request)
+    monkeypatch.setattr(urllib.request, 'urlopen', request)
     args = [str(path), '--title', 'after']
     if damage:
         with pytest.raises(ValueError):

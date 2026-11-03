@@ -6,35 +6,18 @@ import argparse
 import json
 import os
 import re
-import urllib.parse
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 
 from harness.record_io import json_bytes
-from harness.reporting.publication import (
-    PublicationClient,
-    PublicationOperation,
-    atomic_write,
-    multipart_archive,
-    public_share_context,
-    response_json,
-    snapshot_publication,
-    write_receipt,
-)
-from harness.web_fetch.publication import updated_receipt, upload_large_archive
+from harness.reporting.publication import PublicationClient, atomic_write
+from harness.reporting.publication_target import validate_service_base
+from harness.reporting.publish import ReceiptRelease, publish_receipt_release
 from harness.web_fetch.publication_check import check
-from harness.web_fetch.publication_target import (
-    publication_base,
-    publication_document,
-    require_publication_site,
-    require_publication_version,
-    validate_service_base,
-)
 from harness.web_fetch.report_package import part_archives, validate_release
-from harness.web_fetch.safety import reject_evidence_symlinks, unlinked_path
+from harness.web_fetch.safety import unlinked_path
 
-STAGED_UPLOAD_THRESHOLD = 23 * 1024 * 1024
 CLIENT = PublicationClient("WebFetch-Report-Publisher/1.0", put_timeout=90)
 RENAME_CLIENT = PublicationClient(None, timeout=30)
 
@@ -50,253 +33,44 @@ class PublishConfig:
     title: str = "Web Fetch 评测"
     base_url: str | None = None
     expected_version: str | None = None
-    operation_namespace: str = "webfetch"
     presentation_binding: Path | None = None
     visibility: str | None = None
     parts_manifest: Path | None = None
     snapshot_audit: bool = False
 
 
-def activated_version(result):
-    version = result.get("versionId") or result.get("version")
-    if isinstance(version, dict):
-        version = version.get("id")
-    if not isinstance(version, str) or not version.startswith("ver_"):
-        raise ValueError("Publication receipt omitted an activated version")
-    return version
-
-
-def multipart(archive, title, digest):
-    return multipart_archive(
-        archive,
-        title,
-        boundary_prefix="----webfetch",
-        filename="webfetch.zip",
-        boundary_seed=(digest + "|" + title).encode(),
-    )
-
-
-def _receipt_identity(path):
-    if path.is_symlink() or (path.exists() and not path.is_file()):
-        raise ValueError("Publication receipt must be a regular file")
-    return path.read_bytes() if path.exists() else None
-
-
 def publish(config: PublishConfig, *, transport=None, package_check=None, validation_inputs=()):
-    """Upload or finish a receipt; remote byte verification is a separate command."""
-    if config.mode not in {"create", "update", "reuse"}:
-        raise ValueError("Unknown publication mode")
-    if config.operation_namespace == 'webfetch':
-        validate_release(config.source, presentation_binding=config.presentation_binding,snapshot_audit=config.snapshot_audit)
-    if config.visibility not in {None, "private", "unlisted", "public"}:
-        raise ValueError("Unknown publication visibility")
+    """Validate the Web Fetch release, then submit it through the receipt lifecycle."""
+    validate_release(config.source, presentation_binding=config.presentation_binding, snapshot_audit=config.snapshot_audit)
     if config.presentation_binding is not None:
         validation_inputs = (*validation_inputs, config.presentation_binding)
-    attachments, parts_plan = {}, None
+    attachments, check_target = {}, None
     if config.parts_manifest is not None:
         attachments = part_archives(config.parts_manifest)
         parts_plan = json.loads(config.parts_manifest.read_text(encoding="utf-8"))
-        validation_inputs = (*validation_inputs,config.parts_manifest,*attachments.values())
-    if package_check is None and (config.presentation_binding is not None or config.parts_manifest is not None or config.snapshot_audit):
-        package_check = partial(check,presentation_binding=config.presentation_binding,external_archives=attachments,snapshot_audit=config.snapshot_audit)
-    protected = {config.profile.resolve(), config.archive.resolve(),
-                 *(Path(path).resolve() for path in validation_inputs)}
-    if config.receipt.resolve() in protected or config.journal.resolve() in protected:
-        raise ValueError("Publication receipts and journals must not replace package inputs")
-    reject_evidence_symlinks(config.profile)
-    profile_bytes = config.profile.read_bytes()
-    profile = publication_document(json.loads(profile_bytes))
-    base = publication_base(config.profile, config.base_url, document=profile)
-    if parts_plan is not None:
-        if parts_plan.get('publications') != profile.get('data_publications'):
-            raise ValueError('Data attachment targets differ from the publication authority')
-        if any(target.get('base_url') != base for target in parts_plan['publications'].values()):
-            raise ValueError('Data attachments must use the profile-bound publication service')
-    previous_receipt = _receipt_identity(config.receipt)
-    result = json.loads(previous_receipt) if previous_receipt is not None else {}
-    if not isinstance(result, dict):
-        raise ValueError("Publication receipt must be a JSON object")
-    if config.receipt.resolve() in {config.profile.resolve(), config.journal.resolve()}:
-        raise ValueError("Publication authority, receipt and operation journal must be distinct")
-    if config.journal.resolve() == config.profile.resolve():
-        raise ValueError("Publication authority, receipt and operation journal must be distinct")
-    if config.mode == "create":
-        if profile.get("artifact_hub_site") or profile.get("artifact_hub_expected_version"):
-            raise ValueError("--create requires an unbound publication profile")
-    else:
-        if previous_receipt is None:
-            raise ValueError("Current report requires its existing site receipt")
-        require_publication_site(result, config.profile, base, document=profile)
-    expected = (
-        require_publication_version(config.profile, config.expected_version, document=profile)
-        if config.mode == "update"
-        else None
+        validation_inputs = (*validation_inputs, config.parts_manifest, *attachments.values())
+
+        def check_target(profile, base):
+            if parts_plan.get('publications') != profile.get('data_publications'):
+                raise ValueError('Data attachment targets differ from the publication authority')
+            if any(target.get('base_url') != base for target in parts_plan['publications'].values()):
+                raise ValueError('Data attachments must use the profile-bound publication service')
+
+    bound_check = config.presentation_binding is not None or config.parts_manifest is not None or config.snapshot_audit
+    if package_check is None and bound_check:
+        package_check = partial(check, presentation_binding=config.presentation_binding,
+                                external_archives=attachments, snapshot_audit=config.snapshot_audit)
+    return publish_receipt_release(
+        ReceiptRelease(
+            config.profile, config.archive, config.source, config.receipt, config.journal,
+            namespace="webfetch", client=CLIENT, package_check=package_check or check,
+            title=config.title, mode=config.mode, base_url=config.base_url,
+            expected_version=config.expected_version, visibility=config.visibility,
+            inputs=tuple(validation_inputs), check_reuse=package_check is not None,
+            check_target=check_target,
+        ),
+        transport=transport,
     )
-
-    def release_guard():
-        pass
-
-    def local_guard():
-        release_guard()
-        reject_evidence_symlinks(config.profile)
-        if config.profile.read_bytes() != profile_bytes:
-            raise ValueError("Publication profile changed during submission")
-        if _receipt_identity(config.receipt) != previous_receipt:
-            raise ValueError("Publication receipt changed during submission")
-
-    def send(path, data=None, content_type=None, *, method=None, extra_headers=None):
-        local_guard()
-        if not path.startswith("/") or path.startswith("//"):
-            raise ValueError("Publication request must stay on the configured service")
-        if transport is not None:
-            return transport(path, data, content_type, method=method, extra_headers=extra_headers)
-        return CLIENT.request(
-            base, path, data, content_type, method=method, extra_headers=extra_headers
-        )[:2]
-
-    def save(value):
-        nonlocal previous_receipt
-        local_guard()
-        previous_receipt = write_receipt(config.receipt, value)
-
-    def finish(value):
-        version = activated_version(value)
-        if config.visibility is not None:
-            slug = urllib.parse.quote(value["slug"], safe="")
-            path = "/api/sites/" + slug + "/sharing"
-            status, raw = send(path)
-            sharing = response_json(status, raw, operation="sharing inspection")
-            if sharing.get("visibility") != config.visibility:
-                status, raw = send(path, json_bytes({"visibility": config.visibility}),
-                                   "application/json", method="PUT")
-                sharing = response_json(status, raw, operation="sharing update")
-            if sharing.get("visibility") != config.visibility or sharing.get("moderation"):
-                raise ValueError("Requested sharing is not active; inspect the saved publication")
-            value.update(share_url=base + "/s/" + slug, visibility=config.visibility,
-                         publication_pending=False)
-            save(value)
-            return {"slug": value["slug"], "versionId": version,
-                    "url": value["share_url"], "visibility": config.visibility}
-        had_share = bool(value.get("share_url"))
-        if not value.get("share_url"):
-            slug = urllib.parse.quote(value["slug"], safe="")
-            status, raw = send(
-                "/api/sites/" + slug + "/shares", b'{"policy":"public"}', "application/json"
-            )
-            value["share_url"] = response_json(status, raw, operation="share creation")["url"]
-        public_share_context(base, value["share_url"])
-        if config.mode != "reuse" or not had_share:
-            value["publication_pending"] = False
-            save(value)
-        return {"slug": value["slug"], "versionId": version, "url": value["share_url"]}
-
-    if config.mode == "reuse":
-        if package_check is None:
-            return finish(result)
-        with snapshot_publication(
-            config.archive, inputs=[config.profile, config.source, *validation_inputs]
-        ) as release:
-            release_guard = release.check
-            package_check(release.archive, config.source)
-            release.check()
-            summary = finish(result)
-            release.check()
-            return summary
-    for path in (config.archive, config.receipt, config.journal):
-        if path.resolve().is_relative_to(config.source.resolve()):
-            raise ValueError("Publication outputs must stay outside the source report")
-    with snapshot_publication(
-        config.archive, inputs=[config.profile, config.source, *validation_inputs]
-    ) as release:
-        release_guard = release.check
-        (package_check or check)(release.archive, config.source)
-        release.check()
-        original_send = send
-
-        def guarded_send(*args, **kwargs):
-            if '/commit' in args[0] or '/versions' in args[0]:
-                release.verify()
-            return original_send(*args, **kwargs)
-
-        send = guarded_send
-        identity = {
-            "schema": config.operation_namespace + "_publication_operation/1",
-            "base_url": base,
-            "archive_sha256": release.sha256,
-            "title": config.title,
-            "kind": config.mode,
-            "slug": None if config.mode == "create" else result["slug"],
-            "expected_version": expected,
-        }
-        operations = PublicationOperation(config.journal, config.operation_namespace + "-")
-        pending, resumed = operations.pending(
-            identity, allow_create=config.mode != "create" or previous_receipt is None
-        )
-        already_submitted = (
-            result.get("operation_key") == pending["key"]
-            and result.get("archive_sha256") == release.sha256
-            and result.get("base_url") == base
-        )
-        if config.mode == "create" and previous_receipt is not None and not already_submitted:
-            raise ValueError("--create requires a new receipt or its matching pending operation")
-        if not already_submitted:
-            recovered = (
-                operations.completed(pending["key"], request=send, decode=response_json)
-                if resumed
-                else None
-            )
-            if recovered is not None:
-                status, raw = recovered
-            elif release.archive.stat().st_size > STAGED_UPLOAD_THRESHOLD:
-
-                def staged_send(path, data=None, content_type=None, *, method=None):
-                    headers = None
-                    if data is not None and method is None:
-                        key = pending["key"] if "/commit" in path else pending["key"] + ":start"
-                        headers = {"Idempotency-Key": key}
-                    return send(path, data, content_type, method=method, extra_headers=headers)
-
-                raw = upload_large_archive(
-                    staged_send, release.archive, identity["slug"], expected, title=config.title, max_workers=4
-                )
-                status = 200
-            else:
-                body, content_type = multipart(release.archive, config.title, release.sha256)
-                endpoint = (
-                    "/api/sites"
-                    if config.mode == "create"
-                    else "/api/sites/"
-                    + urllib.parse.quote(result["slug"], safe="")
-                    + "/versions?"
-                    + urllib.parse.urlencode({"expected_version": expected})
-                )
-                status, raw = send(
-                    endpoint, body, content_type, extra_headers={"Idempotency-Key": pending["key"]}
-                )
-            response = response_json(status, raw, operation="package submission")
-            if config.mode == "update":
-                if response.get("slug", result["slug"]) != result["slug"]:
-                    raise ValueError("Publication returned an unexpected site")
-                result = updated_receipt(result, response)
-            else:
-                result = response
-                if not isinstance(result.get("slug"), str) or not result["slug"]:
-                    raise ValueError("Publication did not return a site slug")
-            activated_version(result)
-            for key in ("verified", "verification", "verified_at"):
-                result.pop(key, None)
-            result.update(
-                base_url=base,
-                archive_sha256=release.sha256,
-                publication_pending=True,
-                operation_key=pending["key"],
-                submission_state="submitted_unverified",
-            )
-            save(result)
-        summary = finish(result)
-        release.verify()
-        operations.clear(identity)
-        return summary
 
 
 def main(*, root: Path | None = None):

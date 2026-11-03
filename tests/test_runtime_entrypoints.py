@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 
 from harness.web_fetch.headless_runner import require_expected_provider_versions
-from harness.web_fetch.publication_target import (
+from harness.reporting.publication_target import (
     require_publication_site,
     require_publication_version,
 )

@@ -14,11 +14,13 @@ import pytest
 
 from harness.browser_use import report_publish as browser_use
 from harness.record_io import json_bytes
-from harness.reporting import publication
+from harness.reporting import publication, publish
 from harness.reporting.publication import PublicationClient
 from harness.trajectory_replay import webarena_report_publish as replay
+from harness.trajectory_replay.public_webarena import publication as public_webarena
 from harness.web_fetch import report_publish as web_fetch
 from harness.web_fetch import wcxb_publication as wcxb
+from harness.web_search import publication as web_search
 from tests import test_wcxb_publication as wcxb_tests
 from tests.test_webfetch_report_publish import Service
 from tests.test_webfetch_report_publish import fixture as web_fetch_release
@@ -68,7 +70,11 @@ def sent(wire, base=BASE):
      [('User-agent', 'Trajectory-Replay-Artifact-Site-Publisher/1.0'), BEARER], 240, 1_200),
     (wcxb.CLIENT,
      [('User-agent', 'WCXB-Report-Publisher/1.0'), BEARER], 240, 240),
-], ids=['web-fetch', 'web-fetch-rename', 'browser-use', 'replay', 'wcxb'])
+    (web_search.CLIENT,
+     [BEARER, ('User-agent', 'Web-Search-Report-Publisher/1.0')], 240, 90),
+    (public_webarena.CLIENT,
+     [BEARER, ('User-agent', 'Public-WebArena-Report-Publisher/1.0')], 240, 90),
+], ids=['web-fetch', 'web-fetch-rename', 'browser-use', 'replay', 'wcxb', 'web-search', 'public-webarena'])
 def test_each_track_keeps_its_identity_header_order_and_timeouts(wire, client, headers, post, put):
     client.request(BASE, '/api/sites', b'{}', 'application/json', extra_headers={'Idempotency-Key': 'key'})
     client.request(BASE, '/api/uploads/one/files/a', b'x', method='PUT')
@@ -134,7 +140,7 @@ def test_response_headers_are_returned_to_the_adapter(monkeypatch):
      '----browseruseabf65d3350ce72216025275027825d1d', 'browser-use.zip'),
     (lambda archive: replay.multipart_archive('标题', archive=archive),
      '----trajectoryreplayabf65d3350ce72216025275027825d1d', 'browser-trajectory-replay.zip'),
-    (lambda archive: web_fetch.multipart(archive, '标题', 'digest'),
+    (lambda archive: publish.release_multipart(archive, '标题', 'digest', 'webfetch'),
      '----webfetch54b5c315cbb7bcef4c210295f009cf95', 'webfetch.zip'),
 ], ids=['browser-use', 'replay', 'web-fetch'])
 def test_multipart_body_is_exact(tmp_path, build, boundary, filename):
@@ -172,13 +178,6 @@ def test_receipt_is_private_and_drops_service_credentials_at_every_depth(tmp_pat
     assert receipt.read_bytes() == payload
     assert json.loads(payload) == {'slug': 'site', 'last_update': {'versions': [{'id': 'ver_one'}]}}
     assert stat.S_IMODE(receipt.stat().st_mode) == 0o600
-
-
-@pytest.mark.parametrize('module', [browser_use, replay], ids=['browser-use', 'replay'])
-def test_track_receipts_use_the_shared_writer(tmp_path, monkeypatch, module):
-    monkeypatch.setattr(module, 'RECEIPT', tmp_path / 'receipt.json')
-    module.save_receipt({'slug': 's', 'token': 't'})
-    assert json.loads((tmp_path / 'receipt.json').read_bytes()) == {'slug': 's'}
 
 
 def test_tree_digests_keep_each_tracks_frozen_serialization(tmp_path):
@@ -230,13 +229,13 @@ def serve(handler):
     return respond
 
 
-def lifecycle_site(monkeypatch, tmp_path, owner, marker):
+def lifecycle_site(monkeypatch, tmp_path, owner, marker, base=BASE):
     """Point a track at a new release and answer every request of its create flow."""
     archive = tmp_path / 'archive.zip'
     with zipfile.ZipFile(archive, 'w') as bundle:
         bundle.writestr('index.html', marker)
     profile = tmp_path / 'profile.json'
-    profile.write_text(json.dumps({'publication': {'base_url': BASE, 'title': 'Title'}}), encoding='utf-8')
+    profile.write_text(json.dumps({'publication': {'base_url': base, 'title': 'Title'}}), encoding='utf-8')
     attestation = tmp_path / 'attestation.json'
     attestation.write_text('{}', encoding='utf-8')
     for name, value in (('ARCHIVE', archive), ('PROFILE', profile), ('ATTESTATION', attestation),
@@ -251,7 +250,7 @@ def lifecycle_site(monkeypatch, tmp_path, owner, marker):
         if path == '/api/sites':
             return b'{"slug":"site-1","versionId":"ver_new"}'
         if path.endswith('/shares'):
-            return json.dumps({'url': BASE + '/v/token'}).encode()
+            return json.dumps({'url': base + '/v/token'}).encode()
         if path.endswith('/export'):
             return archive.read_bytes()
         if path.startswith('/api/preview/'):
@@ -272,9 +271,9 @@ def test_browser_use_publish_keeps_authenticated_and_public_share_requests_apart
     upload_type = browser_use.multipart_archive(archive=archive, title='Title')[1]
     assert sent(wire) == [
         ('POST', '/api/sites', [*private, ('Content-type', upload_type), ('Idempotency-key', mock.ANY)], 240),
+        ('POST', '/api/sites/site-1/shares', [*private, JSON_BODY], 240),
         ('GET', '/api/sites/site-1', private, 240),
         ('PATCH', '/api/sites/site-1', [*private, JSON_BODY], 240),
-        ('POST', '/api/sites/site-1/shares', [*private, JSON_BODY], 240),
         ('GET', '/api/sites/site-1/export', private, 240),
         ('GET', '/v/token', [agent], 60),
         ('GET', '/api/preview/site-1', [agent, ('X-artifact-share', 'token')], 60),
@@ -300,6 +299,90 @@ def test_replay_publish_keeps_authenticated_and_public_share_requests_apart(tmp_
     ]
 
 
+@pytest.mark.parametrize(('owner', 'marker'), [
+    (browser_use, browser_use.PUBLIC_REPORT_MARKER),
+    (replay, replay.PUBLIC_REPORT_MARKERS[0]),
+], ids=['browser-use', 'replay'])
+def test_bound_track_binds_its_own_target_and_only_asks_for_that_hosts_token(
+        tmp_path, monkeypatch, wire, owner, marker):
+    base = 'https://own-target.example.invalid'
+    _, wire.respond = lifecycle_site(monkeypatch, tmp_path, owner, marker, base=base)
+    tokens = []
+    monkeypatch.setattr(publication, 'load_token', lambda *, base_url: tokens.append(base_url) or 'ahp_fixture')
+    owner.main(create=True)
+    assert all(request.full_url.startswith(base + '/') for request, _ in wire)
+    assert set(tokens) == {base}
+    bound = json.loads(owner.PROFILE.read_bytes())['publication']
+    assert (bound['base_url'], bound['site_slug'], bound['expected_version']) == (base, 'site-1', 'ver_new')
+
+
+@pytest.mark.parametrize(('owner', 'marker'), [
+    (browser_use, browser_use.PUBLIC_REPORT_MARKER),
+    (replay, replay.PUBLIC_REPORT_MARKERS[0]),
+], ids=['browser-use', 'replay'])
+def test_receipt_of_another_site_stops_a_bound_track_before_any_request(
+        tmp_path, monkeypatch, wire, owner, marker):
+    lifecycle_site(monkeypatch, tmp_path, owner, marker)
+    owner.PROFILE.write_text(json.dumps({'publication': {
+        'base_url': BASE, 'site_slug': 'site-1', 'expected_version': 'ver_old',
+    }}), encoding='utf-8')
+    owner.RECEIPT.write_text(json.dumps({'slug': 'another-report'}), encoding='utf-8')
+    with pytest.raises(ValueError, match='differs from the bound'):
+        owner.main(create=False)
+    assert not wire
+
+
+def test_browser_use_requires_its_receipt_and_replay_stages_large_archives(tmp_path, monkeypatch, wire):
+    monkeypatch.setattr(publish, 'STAGED_UPLOAD_THRESHOLD', 0)
+    bound = {'publication': {'base_url': BASE, 'site_slug': 'site-1', 'expected_version': 'ver_new'}}
+    (tmp_path / 'b').mkdir()
+    lifecycle_site(monkeypatch, tmp_path / 'b', browser_use, browser_use.PUBLIC_REPORT_MARKER)
+    browser_use.PROFILE.write_text(json.dumps(bound), encoding='utf-8')
+    with pytest.raises(ValueError, match='receipt is missing'):
+        browser_use.main(create=False)
+    assert not wire
+
+    (tmp_path / 'r').mkdir()
+    _, site = lifecycle_site(monkeypatch, tmp_path / 'r', replay, replay.PUBLIC_REPORT_MARKERS[0])
+
+    def respond(request):
+        if request.selector == '/api/uploads':
+            return b'{"versionId":"stage_one"}'
+        if request.get_method() == 'PUT':
+            return b'{}'
+        if '/commit' in request.selector:
+            return b'{"slug":"site-1","versionId":"ver_new"}'
+        return site(request)
+
+    wire.respond = respond
+    replay.main(create=True)
+    posts = [(request.selector, request.get_header('Idempotency-key'))
+             for request, _ in wire if request.get_method() == 'POST']
+    assert not any(path == '/api/sites' for path, _ in posts)
+    assert [path for path, _ in posts[:2]] == ['/api/uploads', '/api/uploads/stage_one/commit']
+    assert posts[1][1].startswith('trajectory-staged-')
+
+
+@pytest.mark.parametrize(('owner', 'agent'), [
+    (web_search, 'Web-Search-Report-Publisher/1.0'),
+    (public_webarena, 'Public-WebArena-Report-Publisher/1.0'),
+], ids=['web-search', 'public-webarena'])
+def test_receipt_tracks_send_their_own_identity_and_upload_name(tmp_path, monkeypatch, wire, owner, agent):
+    config = web_fetch_release(tmp_path)
+    monkeypatch.setattr(publish, 'STAGED_UPLOAD_THRESHOLD', 10**9)
+    wire.respond = behind_wire(Service())
+    namespace = {web_search: 'search', public_webarena: 'public-webarena'}[owner]
+    publish.publish_receipt_release(publish.ReceiptRelease(
+        config.profile, config.archive, config.source, config.receipt, config.journal,
+        namespace=namespace, client=owner.CLIENT, package_check=lambda *_: None,
+        title='Title', mode='update',
+    ))
+    (upload, _), *_ = wire
+    assert upload.get_header('User-agent') == agent
+    assert upload.get_header('Idempotency-key').startswith(namespace + '-')
+    assert f'filename="{namespace}.zip"'.encode() in upload.data
+
+
 def behind_wire(service):
     """Serve urlopen requests from the Web Fetch publication fake."""
     def handler(request):
@@ -316,11 +399,11 @@ WEB_FETCH_SHARE = ('POST', '/api/sites/site-one/shares', [*WEB_FETCH, JSON_BODY]
 
 def test_web_fetch_single_request_publish_keeps_its_wire_contract(tmp_path, monkeypatch, wire):
     config = web_fetch_release(tmp_path)
-    monkeypatch.setattr(web_fetch, 'STAGED_UPLOAD_THRESHOLD', 10**9)
+    monkeypatch.setattr(publish, 'STAGED_UPLOAD_THRESHOLD', 10**9)
     wire.respond = behind_wire(Service())
     web_fetch.publish(config)
     receipt = json.loads(config.receipt.read_bytes())
-    upload_type = web_fetch.multipart(config.archive, config.title, receipt['archive_sha256'])[1]
+    upload_type = publish.release_multipart(config.archive, config.title, receipt['archive_sha256'], 'webfetch')[1]
     assert sent(wire, WEB_FETCH_BASE) == [
         ('POST', '/api/sites/site-one/versions?expected_version=ver_old',
          [*WEB_FETCH, ('Content-type', upload_type), ('Idempotency-key', receipt['operation_key'])], 240),
@@ -330,7 +413,7 @@ def test_web_fetch_single_request_publish_keeps_its_wire_contract(tmp_path, monk
 
 def test_web_fetch_staged_publish_keeps_its_wire_contract(tmp_path, monkeypatch, wire):
     config = web_fetch_release(tmp_path)
-    monkeypatch.setattr(web_fetch, 'STAGED_UPLOAD_THRESHOLD', 0)
+    monkeypatch.setattr(publish, 'STAGED_UPLOAD_THRESHOLD', 0)
     wire.respond = behind_wire(Service())
     web_fetch.publish(config)
     key = json.loads(config.receipt.read_bytes())['operation_key']

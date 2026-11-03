@@ -75,7 +75,7 @@ through configuration, registries or explicit parameters.
 | WebMainBench certification, scoring and aggregation | `webmainbench_certification.py`, `webmainbench_scoring.py`, `webmainbench_assembly.py` |
 | WCXB scoring, paired timing and publication | `wcxb_metrics.py`, `wcxb_scoring.py`, `wcxb_latency.py`, `wcxb_publication.py` |
 | Web Fetch report construction and rendering | `report_build.py`, `report.py` |
-| Common report assets, links, presentation and publication | `src/harness/reporting/` |
+| Common report assets, links, presentation and publication lifecycles (`publish.py`, with each track as an adapter) | `src/harness/reporting/` |
 | Generated-language inventory and absent-English notice | `src/harness/report_languages.py` |
 | Independent reviewer subprocess execution | `src/harness/review_runner.py` |
 | Shared WebArena deployment and network capture | `src/harness/environments/webarena/` |
@@ -169,7 +169,8 @@ links, filters, pagination, dialogs and evidence loading; shared component tests
 own narrow-width and theme behavior. Packaging copies only declared public files,
 rejects symlinks and checks that source and authority bytes remain unchanged.
 
-For an explicitly requested and authorized publication, use the selected track's publisher after its release gates pass. Publishers
+For an explicitly requested and authorized publication, use the selected track's publisher after its release gates pass. Each
+publisher is an adapter that names its own target over the lifecycles in `src/harness/reporting/publish.py`. Publishers
 freeze the archive and authority, check the expected remote version, retain
 private operation journals for interrupted requests, and verify deployed bytes
 before updating local bindings. Keep journals and receipts until recovery

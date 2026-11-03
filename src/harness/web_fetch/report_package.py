@@ -35,7 +35,7 @@ from harness.web_fetch.publication_privacy import (
     project_redundant_result_streams,
     publication_file_risk,
 )
-from harness.web_fetch.publication_target import validate_service_base
+from harness.reporting.publication_target import validate_service_base
 from harness.web_fetch.published_snapshot import check_snapshot_audit
 from harness.web_fetch.reference_lifecycle import require_certifiable_evidence
 from harness.web_fetch.report_build import validate_local_presentation

@@ -4,33 +4,21 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import tempfile
-import urllib.parse
-from io import BytesIO
 from pathlib import Path
-from urllib.error import HTTPError
 
 from harness.record_io import file_sha256
 from harness.reporting.publication import (
     PublicationClient,
-    PublicationOperation,
     PublicationSnapshot,
-    archive_inventory,
     atomic_write,
     bind_publication_files,
-    binding_receipt_matches,
-    public_share_context,
     recover_binding,
-    response_json,
-    snapshot_publication,
-    write_receipt,
 )
 from harness.reporting.publication import multipart_archive as build_multipart_archive
+from harness.reporting.publish import BoundTrack, publish_bound_release
 from harness.reporting.visual import tree_sha256 as _tree_sha256
 from harness.trajectory_replay.report_inputs import bound_dataset_path
-from harness.web_fetch.publication import upload_large_archive
 
 ARCHIVE = Path("publish/trajectory-replay-artifact-site.zip")
 ATTESTATION = Path("publish/trajectory-replay-artifact-site.attestation.json")
@@ -43,7 +31,6 @@ PUBLIC_REPORT_MARKERS = (
     "<title>浏览器轨迹重放</title>",
     "<title>Browser Trajectory Replay</title>",
 )
-STAGED_UPLOAD_THRESHOLD = 23 * 1024 * 1024
 # A staged file PUT may need longer to finish on slower upstream connections.
 CLIENT = PublicationClient(
     "Trajectory-Replay-Artifact-Site-Publisher/1.0",
@@ -66,21 +53,6 @@ def recover_publication_binding() -> None:
 
 def tree_sha256(root: Path) -> str:
     return _tree_sha256(root, framed_paths=False)
-
-
-def publication_target(*, require_bound: bool) -> tuple[dict, str, str, str]:
-    if PROFILE is None:
-        raise ValueError("Select an external report instance with --profile")
-    profile = json.loads(PROFILE.read_text(encoding="utf-8"))
-    publication = profile.get("publication") or {}
-    base = str(publication.get("base_url") or "").rstrip("/")
-    slug = str(publication.get("site_slug") or "")
-    version = str(publication.get("expected_version") or "")
-    if not base.startswith("https://"):
-        raise ValueError("current replay profile has no valid Artifact Site base URL")
-    if require_bound and (not slug or not version.startswith("ver_")):
-        raise ValueError("current replay profile has no bound Artifact Site target")
-    return profile, base, slug, version
 
 
 def request(
@@ -168,150 +140,9 @@ def multipart_archive(title: str, *, archive: Path | None = None) -> tuple[bytes
     )
 
 
-def staged_archive_upload(
-    base: str,
-    *,
-    title: str,
-    slug: str | None,
-    expected_version: str | None,
-    identity: dict,
-    release: PublicationSnapshot | None = None,
-) -> bytes:
-    """Upload a large archive as validated files and activate it in one commit."""
-
-    def staged_request(path, data=None, content_type=None, *, method=None):
-        if release is not None:
-            release.check()
-        headers = None
-        if (
-            data is not None
-            and method is None
-            and (path.startswith("/api/uploads?") or "/commit" in path)
-        ):
-            seed = json.dumps(identity, sort_keys=True, separators=(",", ":")) + "|" + path
-            headers = {
-                "Idempotency-Key": "trajectory-staged-" + hashlib.sha256(seed.encode()).hexdigest()
-            }
-        status, raw, response_headers = request(
-            base,
-            path,
-            data,
-            content_type,
-            method=method,
-            extra_headers=headers,
-        )
-        if not 200 <= status < 300:
-            raise HTTPError(
-                base + path,
-                status,
-                raw.decode("utf-8", errors="replace")[:500],
-                response_headers,
-                BytesIO(raw),
-            )
-        return status, raw
-
-    return upload_large_archive(
-        staged_request,
-        release.archive if release is not None else ARCHIVE,
-        slug,
-        expected_version,
-        title=title,
-    )
-
-
-def current_version(site: dict) -> str:
-    nested = site.get("site") if isinstance(site.get("site"), dict) else site
-    version = str(nested.get("currentVersionId") or (nested.get("version") or {}).get("id") or "")
-    if not version.startswith("ver_"):
-        raise RuntimeError("Artifact Site metadata omitted current version")
-    return version
-
-
-def operation_identity(
-    *,
-    base: str,
-    title: str,
-    kind: str,
-    slug: str = "",
-    expected_version: str = "",
-    archive: Path | None = None,
-) -> dict:
-    return {
-        "schema": "lex_webarena_replay_artifact_operation/1",
-        "base_url": base,
-        "archive_sha256": file_sha256(archive if archive is not None else ARCHIVE),
-        "title": title,
-        "kind": kind,
-        "slug": slug,
-        "expected_version": expected_version,
-    }
-
-
-def pending_operation(identity: dict, *, allow_create: bool) -> tuple[dict, bool]:
-    return PublicationOperation(OPERATION_JOURNAL, "trajectory-replay-").pending(
-        identity, allow_create=allow_create
-    )
-
-
-def completed_operation(base: str, key: str) -> tuple[int, bytes] | None:
-    def send(path, *args, **kwargs):
-        status, raw, _ = request(base, path, *args, **kwargs)
-        return status, raw
-
-    return PublicationOperation(OPERATION_JOURNAL, "trajectory-replay-").completed(
-        key, request=send, decode=response_json
-    )
-
-
-def idempotent_upload(
-    base: str,
-    path: str,
-    payload: bytes,
-    content_type: str,
-    identity: dict,
-    *,
-    allow_create: bool,
-    release: PublicationSnapshot | None = None,
-) -> tuple[int, bytes]:
-    def send(path, *args, **kwargs):
-        status, raw, _ = request(base, path, *args, **kwargs)
-        return status, raw
-
-    return PublicationOperation(OPERATION_JOURNAL, "trajectory-replay-").upload(
-        path,
-        payload,
-        content_type,
-        identity,
-        allow_create=allow_create,
-        request=send,
-        decode=response_json,
-        guard=release.check if release else lambda: None,
-    )
-
-
-def clear_pending_operation(identity: dict) -> None:
-    PublicationOperation(OPERATION_JOURNAL, "trajectory-replay-").clear(identity)
-
-
 def preview_has_report_marker(body: bytes) -> bool:
     text = body.decode("utf-8", errors="replace")
     return any(marker in text for marker in PUBLIC_REPORT_MARKERS)
-
-
-def archive_hashes(path: Path) -> dict[str, str]:
-    return archive_inventory(path)
-
-
-def verify_export(base: str, slug: str, *, archive: Path | None = None) -> None:
-    status, raw, _ = request(base, f"/api/sites/{urllib.parse.quote(slug)}/export")
-    if status != 200:
-        response_json(status, raw, operation="site export")
-    with tempfile.NamedTemporaryFile(suffix=".zip") as stream:
-        stream.write(raw)
-        stream.flush()
-        selected = archive if archive is not None else ARCHIVE
-        if archive_hashes(Path(stream.name)) != archive_hashes(selected):
-            raise RuntimeError("deployed Artifact Site file tree differs from package")
 
 
 def bind_publication(
@@ -342,196 +173,38 @@ def bind_publication(
     )
 
 
-def save_receipt(value: dict) -> None:
-    write_receipt(RECEIPT, value)
-
-
-def pending_created_site(base: str, *, archive: Path | None = None) -> str:
-    if not RECEIPT.is_file():
-        return ""
-    receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
-    if receipt.get("verified"):
-        return ""
-    if (
-        receipt.get("base_url") != base
-        or receipt.get("archive_sha256") != file_sha256(archive if archive is not None else ARCHIVE)
-        or not isinstance(receipt.get("slug"), str)
-        or not receipt["slug"]
-    ):
-        raise ValueError("pending site receipt differs from the current release package")
-    return receipt["slug"]
+def check_preview(status: int, body: bytes) -> None:
+    if status != 200 or not preview_has_report_marker(body):
+        raise RuntimeError("deployed preview is unavailable or missing report marker")
 
 
 def main(*, create: bool) -> None:
-    recover_publication_binding()
-    with snapshot_publication(ARCHIVE, inputs=[ATTESTATION, PROFILE, REVIEW]) as release:
-        validate_package()
-        release.check()
-        _publish(create=create, release=release)
-
-
-def _publish(*, create: bool, release: PublicationSnapshot) -> None:
-    def send(*args, **kwargs):
-        release.check()
-        return request(*args, **kwargs)
-
-    profile, base, bound_slug, expected_version = publication_target(require_bound=False)
-    publication = profile["publication"]
-    title = str(publication.get("title") or "Browser Trajectory Replay")
-    large_archive = release.archive.stat().st_size > STAGED_UPLOAD_THRESHOLD
-    payload = content_type = None
-    if not large_archive:
-        payload, content_type = multipart_archive(title, archive=release.archive)
-    resume_binding = binding_receipt_matches(
-        RECEIPT, base=base, archive_sha256=release.sha256,
-        slug=bound_slug, version=expected_version,
-    )
-    if bound_slug or expected_version:
-        if create and not resume_binding:
-            raise ValueError("replay report is already bound; update it without --create")
-        if not bound_slug or not expected_version.startswith("ver_"):
-            raise ValueError("current replay profile has no complete Artifact Site binding")
-        slug = bound_slug
-        share_url = str(publication.get("share_url") or "")
-        upload_identity = operation_identity(
-            base=base,
-            title=title,
-            kind="version",
-            slug=slug,
-            expected_version=expected_version,
-            archive=release.archive,
-        )
-        status, raw, _ = send(base, f"/api/sites/{urllib.parse.quote(slug)}")
-        before = response_json(status, raw, operation="site lookup")
-        remote_version = current_version(before)
-        if remote_version != expected_version or resume_binding:
-            # A previous upload may have committed before a post-upload check
-            # failed. Resume only when the exported tree proves that the
-            # remote version is byte-identical to the current package.
-            verify_export(base, slug, archive=release.archive)
-        else:
-            if large_archive:
-                raw = staged_archive_upload(
-                    base,
-                    title=title,
-                    slug=slug,
-                    expected_version=expected_version,
-                    identity=upload_identity,
-                    release=release,
-                )
-                status = 200
-            else:
-                query = urllib.parse.urlencode({"expected_version": expected_version})
-                status, raw = idempotent_upload(
-                    base,
-                    f"/api/sites/{urllib.parse.quote(slug)}/versions?{query}",
-                    payload,
-                    content_type,
-                    upload_identity,
-                    allow_create=True,
-                    release=release,
-                )
-            response_json(status, raw, operation="site version upload")
-    else:
-        upload_identity = operation_identity(
-            base=base, title=title, kind="create", archive=release.archive
-        )
-        slug = pending_created_site(base, archive=release.archive)
-        if slug:
-            if OPERATION_JOURNAL.exists():
-                pending_operation(upload_identity, allow_create=False)
-            verify_export(base, slug, archive=release.archive)
-        else:
-            if large_archive:
-                raw = staged_archive_upload(
-                    base,
-                    title=title,
-                    slug=None,
-                    expected_version=None,
-                    identity=upload_identity,
-                    release=release,
-                )
-                status = 200
-            else:
-                status, raw = idempotent_upload(
-                    base,
-                    "/api/sites",
-                    payload,
-                    content_type,
-                    upload_identity,
-                    allow_create=create,
-                    release=release,
-                )
-            created = response_json(status, raw, operation="site creation")
-            slug = str(created.get("slug") or "")
-            if not slug:
-                raise RuntimeError("site creation response omitted slug")
-            save_receipt(
-                {
-                    "base_url": base,
-                    "slug": slug,
-                    "archive_sha256": release.sha256,
-                    "verified": False,
-                }
-            )
-        share_status, share_raw, _ = send(
-            base,
-            f"/api/sites/{urllib.parse.quote(slug)}/shares",
-            json.dumps({"policy": "public"}).encode(),
-            "application/json",
-            method="POST",
-        )
-        share = response_json(share_status, share_raw, operation="public share creation")
-        share_url = str(share.get("url") or "")
-        if not share_url.startswith("https://"):
-            raise RuntimeError("share creation response omitted public URL")
-    status, raw, _ = send(base, f"/api/sites/{urllib.parse.quote(slug)}")
-    metadata = response_json(status, raw, operation="site lookup after upload")
-    version = current_version(metadata)
-    verify_export(base, slug, archive=release.archive)
-    share_path, share_token = public_share_context(base, share_url)
-    public_status, public_body, _ = send(
-        base,
-        share_path,
-        authenticated=False,
-    )
-    if public_status != 200:
-        response_json(public_status, public_body, operation="public share verification")
-    preview_status, preview_body, _ = send(
-        base,
-        f"/api/preview/{urllib.parse.quote(slug)}",
-        authenticated=False,
-        extra_headers={"X-Artifact-Share": share_token},
-    )
-    if preview_status != 200 or not preview_has_report_marker(preview_body):
-        raise RuntimeError("deployed preview is unavailable or missing report marker")
-    release.check()
-    validate_package()
-    release.check()
-    status, raw, _ = send(base, f"/api/sites/{urllib.parse.quote(slug)}")
-    current = response_json(status, raw, operation="final site lookup")
-    if current_version(current) != version:
-        raise ValueError("remote version changed before publication binding")
-    save_receipt({"base_url": base, "slug": slug, "share_url": share_url,
-                  "version": version, "archive_sha256": release.sha256,
-                  "verified": False, "phase": "binding"})
-    clear_pending_operation(upload_identity)
-    bind_publication(profile, slug=slug, share_url=share_url, version=version, release=release)
-    save_receipt(
-        {
-            "base_url": base,
-            "slug": slug,
-            "share_url": share_url,
-            "version": version,
-            "archive_sha256": release.sha256,
-            "verified": True,
-        }
-    )
-    print(
-        json.dumps(
-            {"slug": slug, "url": share_url, "version": version},
-            ensure_ascii=False,
-        )
+    if PROFILE is None:
+        raise ValueError("Select an external report instance with --profile")
+    publish_bound_release(
+        BoundTrack(
+            label="replay",
+            default_title="Browser Trajectory Replay",
+            archive=ARCHIVE,
+            profile=PROFILE,
+            receipt=RECEIPT,
+            operation_journal=OPERATION_JOURNAL,
+            inputs=(ATTESTATION, PROFILE, REVIEW),
+            operation_prefix="trajectory-replay-",
+            operation_schema="lex_webarena_replay_artifact_operation/1",
+            version_field="version",
+            request=request,
+            public_request=lambda base, path, **kwargs: request(
+                base, path, authenticated=False, **kwargs
+            ),
+            multipart=lambda title, archive: multipart_archive(title, archive=archive),
+            validate_package=validate_package,
+            check_preview=check_preview,
+            recover_binding=recover_publication_binding,
+            bind=bind_publication,
+            staged_key_prefix="trajectory-staged-",
+        ),
+        create=create,
     )
 
 
