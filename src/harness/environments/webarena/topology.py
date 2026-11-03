@@ -149,6 +149,16 @@ OFFICIAL_TRACE_PORTS: dict[str, tuple[int, ...]] = {
 ENV_CTRL_CONTAINER_PORT: int = int(_SERVICES["env_ctrl_port"])
 INITIALIZER_READINESS_PORT: int = int(_SERVICES["initializer_readiness_port"])
 MAGENTO_ELASTICSEARCH_PORT: int = int(_SERVICES["magento_elasticsearch_port"])
+# Bound inside the Map container. map_setup.py and map_detail.py run there without this
+# registry, so these ports reach them through the mounted site delivery contract.
+MAP_LOCAL_SERVICE_PORTS: dict[str, int] = {
+    name: int(port) for name, port in _SERVICES["map_local_services"].items()
+}
+
+
+def container_host_origin(port: int) -> str:
+    """Return the origin a browser container uses for a server on the Docker host."""
+    return f"http://{CONTAINER_HOST_ALIAS}:{port}"
 
 
 def site_origin(site: str, host: str) -> str:

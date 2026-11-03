@@ -28,6 +28,7 @@ def test_launch_supports_an_additional_browser_with_explicit_resources(cpus):
     assert options["ports"] == {"9333/tcp": ("127.0.0.1", None)}
     assert options["mem_limit"] == "2g"
     assert options["network"] == "isolated-test"
+    assert options["extra_hosts"] == {"host.docker.internal": "host-gateway"}
     assert options["security_opt"] == ["no-new-privileges"]
     assert options.get("nano_cpus") == (None if cpus is None else 1_500_000_000)
 

@@ -71,6 +71,11 @@
   "container_services": {
     "env_ctrl_port": 8877,
     "initializer_readiness_port": 8080,
-    "magento_elasticsearch_port": 9200
+    "magento_elasticsearch_port": 9200,
+    "map_local_services": {
+      "rails_port": 3000,
+      "nominatim_port": 8085,
+      "detail_port": 8091
+    }
   }
 }

@@ -17,6 +17,8 @@ from harness.environments.webarena.config import SITES, verify_deployment_contra
 from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.record_io import canonical_json_sha256
 from harness.trajectory_replay import remote_runtime
+from harness.trajectory_replay import runner as replay_runner
+from harness.trajectory_replay.public_webarena import runner as public_runner
 from harness.trajectory_replay.public_webarena import webarena_environment
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
 
@@ -260,6 +262,36 @@ def test_deployment_contract_rejects_delivery_ports_that_leave_the_registry(
         ValueError, match=f"container ports differ from the topology registry: {site}"
     ):
         verify_deployment_contract(tmp_path)
+
+
+def test_deployment_contract_rejects_map_local_ports_that_leave_the_registry(
+    tmp_path: Path,
+) -> None:
+    assert topology.MAP_LOCAL_SERVICE_PORTS == {
+        "rails_port": 3000,
+        "nominatim_port": 8085,
+        "detail_port": 8091,
+    }
+    _copy_deployment_contract(tmp_path)
+    delivery_path = tmp_path / "deploy/webarena/site-delivery-contract.json"
+    delivery = json.loads(delivery_path.read_text(encoding="utf-8"))
+    assert delivery["components"]["map"]["local_services"] == topology.MAP_LOCAL_SERVICE_PORTS
+    delivery["components"]["map"]["local_services"]["nominatim_port"] = 8086
+    delivery_path.write_text(json.dumps(delivery), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Map local service ports differ"):
+        verify_deployment_contract(tmp_path)
+
+
+@pytest.mark.parametrize("runner", [replay_runner, public_runner])
+def test_fixture_servers_keep_the_host_alias_origin(runner, tmp_path: Path) -> None:
+    server, thread, origin = runner._start_fixture_server(tmp_path)
+    try:
+        assert origin == f"http://host.docker.internal:{server.server_port}"
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
 
 
 def test_registry_rejects_shared_ports(tmp_path: Path) -> None:

@@ -331,13 +331,13 @@ def setup(
     print("All Map archives verified and initialized", flush=True)
 
 
-def configure_browser_assets(assets: Path = Path("/app/public/assets")) -> None:
+def configure_browser_assets(service_port: int, assets: Path = Path("/app/public/assets")) -> None:
     """Keep precompressed JS identical to the image's patched same-origin JS."""
     for source in assets.glob("*.js"):
         content = source.read_bytes()
         if any(
-            url in content
-            for url in (b"http://localhost:8080/nominatim/", b"http://localhost:8080/osrm/")
+            f"http://localhost:{service_port}/{path}/".encode() in content
+            for path in ("nominatim", "osrm")
         ):
             raise ValueError(f"Browser service URL still uses localhost: {source.name}")
         packed = source.with_suffix(".js.gz")
@@ -392,6 +392,7 @@ def version_browser_assets(
 
 def configure_tiles(
     root: Path,
+    local_services: dict[str, int],
     cache: Path = Path("/var/cache/renderd/tiles"),
     apache: Path = Path("/etc/apache2/sites-enabled/tile-server.conf"),
     renderd: Path = Path("/etc/renderd.conf"),
@@ -423,12 +424,12 @@ def configure_tiles(
     if "ModTileMaxLoadMissing" not in config:
         config = config.replace("</VirtualHost>", "    ModTileMaxLoadMissing 1000\n</VirtualHost>")
     if "ProxyPassMatch" not in config:
-        catch_all = "    ProxyPass / http://localhost:3000/"
+        catch_all = f"    ProxyPass / http://localhost:{local_services['rails_port']}/"
         if catch_all not in config:
             raise ValueError("Unexpected Apache Rails proxy configuration")
         detail = (
             '    ProxyPassMatch "^/(node|way|relation)/([1-9][0-9]{0,18})/?$" '
-            '"http://127.0.0.1:8091/$1/$2"\n'
+            f'"http://127.0.0.1:{local_services["detail_port"]}/$1/$2"\n'
         )
         config = config.replace(catch_all, detail + catch_all)
     apache.write_text(config, encoding="utf-8")
@@ -440,6 +441,18 @@ def configure_tiles(
     if count != 1:
         raise ValueError("Unexpected render worker configuration")
     renderd.write_text(config, encoding="utf-8")
+
+
+def detail_service_command(local_services: dict[str, int]) -> list[str]:
+    """Start the mounted detail service on the contract's container-local ports."""
+    return [
+        "python3",
+        "/opt/map_detail.py",
+        "--port",
+        str(local_services["detail_port"]),
+        "--nominatim-port",
+        str(local_services["nominatim_port"]),
+    ]
 
 
 def serve(root: Path, reserve: int, command: list[str], detail: list[str] | None = None) -> int:
@@ -572,7 +585,7 @@ def map_check_main(argv=None):
     print(json.dumps({"status": result["status"], "checks": len(result["checks"])}))
 
 
-if __name__ == "__main__":
+def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("/data"))
     parser.add_argument("--contract", type=Path, required=True)
@@ -585,29 +598,34 @@ if __name__ == "__main__":
         action="store_true",
         help="Omit osm2pgsql flatnode import/update cache for frozen queries",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    component = json.loads(args.contract.read_text(encoding="utf-8"))["components"]["map"]
+    local_services = component["local_services"]
     setup(
         args.root,
-        json.loads(args.contract.read_text(encoding="utf-8"))["components"]["map"],
+        component,
         args.reserve_gib * GIB,
         args.source_base,
         args.compression,
         args.query_only,
     )
-    if args.serve:
-        configure_browser_assets()
-        version_browser_assets()
-        configure_tiles(args.root)
-        raise SystemExit(
-            serve(
-                args.root,
-                args.reserve_gib * GIB,
-                [
-                    "/entrypoint.sh",
-                    "/usr/bin/supervisord",
-                    "-c",
-                    "/etc/supervisor/conf.d/supervisord.conf",
-                ],
-                ["python3", "/opt/map_detail.py"],
-            )
-        )
+    if not args.serve:
+        return 0
+    configure_browser_assets(component["service_port"])
+    version_browser_assets()
+    configure_tiles(args.root, local_services)
+    return serve(
+        args.root,
+        args.reserve_gib * GIB,
+        [
+            "/entrypoint.sh",
+            "/usr/bin/supervisord",
+            "-c",
+            "/etc/supervisor/conf.d/supervisord.conf",
+        ],
+        detail_service_command(local_services),
+    )
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

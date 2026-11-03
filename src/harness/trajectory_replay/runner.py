@@ -28,6 +28,7 @@ from harness.environments.browser import (
     start_browser_container,
     wait_cdp,
 )
+from harness.environments.webarena.topology import container_host_origin
 from harness.resource_accounting import DockerStatsResources, ResourceSampler, delta_counters
 from harness.trajectory_replay.diagnostics import diagnose_summary
 from harness.trajectory_replay.executor import execute_steps, judge_outputs, validate_outputs
@@ -235,7 +236,7 @@ class _QuietFixtureHandler(SimpleHTTPRequestHandler):
 
 def _start_fixture_server(root: Path) -> tuple[ThreadingHTTPServer, threading.Thread, str]:
     handler = partial(_QuietFixtureHandler, directory=str(root))
-    # Containers reach host.docker.internal through the bridge, not host loopback.
+    # Containers reach the host alias through the bridge, not host loopback.
     server = ThreadingHTTPServer(("0.0.0.0", 0), handler)
     thread = threading.Thread(
         target=server.serve_forever,
@@ -243,7 +244,7 @@ def _start_fixture_server(root: Path) -> tuple[ThreadingHTTPServer, threading.Th
         daemon=True,
     )
     thread.start()
-    origin = f"http://host.docker.internal:{server.server_port}"
+    origin = container_host_origin(server.server_port)
     return server, thread, origin
 
 

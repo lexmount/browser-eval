@@ -31,6 +31,7 @@ from harness.environments.browser import (
     validate_resource_controls,
     wait_cdp,
 )
+from harness.environments.webarena.topology import container_host_origin
 from harness.record_io import write_json
 from harness.resource_accounting import (
     DockerStatsResources,
@@ -555,7 +556,7 @@ def _start_fixture_server(root: Path) -> tuple[ThreadingHTTPServer, threading.Th
         daemon=True,
     )
     thread.start()
-    origin = f"http://host.docker.internal:{server.server_port}"
+    origin = container_host_origin(server.server_port)
     return server, thread, origin
 
 
