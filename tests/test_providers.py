@@ -938,6 +938,34 @@ class ProviderTest(unittest.TestCase):
                 self.assertEqual(providers["exa-resources"]["livecrawl_timeout_ms"], 15_000)
 
     @patch("harness.web_fetch.providers.cloudflare.request")
+    def test_cloudflare_uniform_scrape_includes_body_and_all_media(self, request_mock):
+        from dataclasses import replace
+        from harness.web_fetch.native_projection import require_native_answer_projection
+        selectors = ['body', 'img', 'video', 'a[href]']
+        raw = json.dumps({'success': True, 'result': [
+            {'selector': 'body', 'results': [{'text': 'native visible body', 'html': '<body>native visible body</body>'}]},
+            {'selector': 'img', 'results': [{'attributes': [{'name': 'src', 'value': '/photo.png'}]}]},
+        ]}).encode()
+        request_mock.return_value = HttpResponse(200, self.case.url, {}, raw)
+        provider = CloudflareMarkdownProvider('cf', {'api_token': 'x', 'account_id': 'a',
+            'uniform_native_parameters': True, 'scrape_selectors': selectors})
+        bodies = []
+        for track, kind in (('image', 'resource'), ('video', 'resource'), ('video', 'body')):
+            case = replace(self.case, track=track, task_kind=kind)
+            result = provider.fetch(case, 30)
+            self.assertTrue(result.ok)
+            self.assertIn('native visible body', result.content)
+            self.assertEqual(provider.native_http_interface(case), '/scrape')
+            body = request_mock.call_args.kwargs['json_body']
+            bodies.append(body)
+            self.assertEqual(body['elements'], [{'selector': x} for x in selectors])
+            require_native_answer_projection(result.content, result.metadata, raw,
+                final_url=result.final_url, request_url=case.url)
+        self.assertTrue(all(body == bodies[0] for body in bodies))
+        provider.config['scrape_selectors'] = []
+        self.assertIn('scrape_selectors', provider.validate())
+
+    @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_reads_markdown(self, mock_request) -> None:
         body = b'{"success":true,"result":"# Example","meta":{"status":200}}'
         mock_request.return_value = HttpResponse(200, "u", {}, body)

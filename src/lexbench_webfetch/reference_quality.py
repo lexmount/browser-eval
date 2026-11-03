@@ -969,6 +969,25 @@ def visible_mixed_html_text(text: str, *, excluded_html_selectors=()) -> str:
     protected = re.sub(
         r'\b(?:the|an?) +<(?P<element>script|style)> +(?:element|tag)\b',
         element_mention, protected, flags=re.I)
+    # Mixed Markdown recognizes HTML tags using Markdown's tag grammar.
+    # A tolerant HTML parser otherwise consumes prose after a comparison such
+    # as x<y until an unrelated later tag supplies its closing angle bracket.
+    from markdown_it.common.html_re import HTML_TAG_RE
+    # Preserve namespaced native elements covered by the visibility contract.
+    tag_pattern = re.compile(HTML_TAG_RE.pattern.removeprefix('^').replace(
+        r'[A-Za-z0-9\-]*', r'[A-Za-z0-9:_.\-]*'))
+    pieces, cursor = [], 0
+    while (left := protected.find('<', cursor)) >= 0:
+        pieces.append(protected[cursor:left])
+        tag = tag_pattern.match(protected, left)
+        if tag:
+            pieces.append(tag[0])
+            cursor = tag.end()
+        else:
+            pieces.append('&lt;')
+            cursor = left + 1
+    pieces.append(protected[cursor:])
+    protected = ''.join(pieces)
     if excluded_html_selectors:
         from bs4 import BeautifulSoup
         surface = BeautifulSoup(protected, 'html.parser')

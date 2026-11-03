@@ -229,6 +229,35 @@ class MoliTests(unittest.TestCase):
                     self.assertEqual(result.content.strip(), "native output")
                     self.assertEqual(result.metadata["dump"], "html" if kind == "resource" else "markdown")
 
+    def test_uniform_auto_document_command_and_delivery(self):
+        provider = self.provider(
+            "assert '--dump' not in sys.argv\n"
+            "assert sys.argv[sys.argv.index('--wait-until')+1] == 'done'\n"
+            "print('<html><body>document</body></html>')\n",
+            uniform_native_parameters=True, native_output="auto", wait_until="done")
+        commands = []
+        for media in ('direct_pdf', 'direct_docx', 'html_page'):
+            case = self.case_with(track='document', task_kind='body',
+                                  source_benchmark={'input_media_kind': media})
+            commands.append(provider.native_cli_command(case)[:-1])
+            result = provider.fetch(case, 5)
+            self.assertTrue(result.ok)
+            self.assertEqual(bool(result.files), media != 'html_page')
+            self.assertEqual(bool(result.content), media == 'html_page')
+        self.assertTrue(all(command == commands[0] for command in commands))
+
+    def test_uniform_html_for_resource_and_body(self):
+        provider = self.provider("print('<html><body>native text</body></html>')\n",
+            uniform_native_parameters=True, native_output="html", wait_until="domstable")
+        commands = []
+        for track, kind in (('image', 'resource'), ('video', 'resource'), ('video', 'body')):
+            case = self.case_with(track=track, task_kind=kind)
+            commands.append(provider.native_cli_command(case)[:-1])
+            result = provider.fetch(case, 5)
+            self.assertTrue(result.ok)
+            self.assertEqual(result.metadata['dump'], 'html')
+        self.assertTrue(all(command == commands[0] for command in commands))
+
     def test_uniform_document_markdown_uses_one_command_for_all_input_media(self):
         provider = self.provider(
             "assert sys.argv[sys.argv.index('--dump') + 1] == 'markdown'\n"

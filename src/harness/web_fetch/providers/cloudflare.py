@@ -281,7 +281,7 @@ class CloudflareMarkdownProvider(Provider):
         return NativeRoute('http', self.native_http_interface(case), ('result', 'meta.title', 'meta.finalUrl',))
 
     def native_http_interface(self, case):
-        return ('/content' if self.type == 'cloudflare_content' else '/scrape'
+        return ('/scrape' if self.config.get('scrape_selectors') else '/content' if self.type == 'cloudflare_content' else '/scrape'
                 if case.task_kind == 'resource' and case.track in {'image', 'video'} else '/markdown')
 
     def native_http_arguments(self, case, timeout):
@@ -290,7 +290,7 @@ class CloudflareMarkdownProvider(Provider):
     def _http_arguments(self, case, timeout, interface):
         body = {'url': case.url, 'gotoOptions': {'waitUntil': self.config.get('wait_until', 'networkidle2')}}
         if interface == '/scrape':
-            selectors = (['img', 'picture source'] if case.track == 'image' else
+            selectors = self.config.get('scrape_selectors') or (['img', 'picture source'] if case.track == 'image' else
                          ['video', 'video source', 'audio', 'audio source', 'iframe', 'a[href]'])
             body['elements'] = [{'selector': value} for value in selectors]
         endpoint = 'https://api.cloudflare.com/client/v4/accounts/'+str(self.config.get('account_id', ''))+'/browser-rendering'+interface
@@ -299,7 +299,12 @@ class CloudflareMarkdownProvider(Provider):
         return endpoint, self.native_http_options(body, {'Authorization': 'Bearer '+str(self.config.get('api_token', ''))}, timeout)
 
     def validate(self) -> list[str]:
-        return [name for name in ("api_token", "account_id") if not self.config.get(name)]
+        errors = [name for name in ("api_token", "account_id") if not self.config.get(name)]
+        selectors = self.config.get('scrape_selectors')
+        if selectors is not None and (not isinstance(selectors, list) or not selectors
+                or any(not isinstance(x, str) or not x.strip() for x in selectors)):
+            errors.append('scrape_selectors')
+        return errors
 
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
@@ -323,7 +328,7 @@ class CloudflareMarkdownProvider(Provider):
     def _fetch_payload(self, case: EvalCase, timeout: float, request_body: dict | None = None, *, native_route_ledger=None) -> ProviderResult:
         account_id = str(self.config.get("account_id", ""))
         http_timeout = self.http_timeout_budget(timeout)
-        if (
+        if self.config.get('scrape_selectors') or (
             case.task_kind == "resource"
             and case.track in {"image", "video"}
             and self.config.get("page_output") != "native_markdown"
@@ -545,7 +550,7 @@ class CloudflareMarkdownProvider(Provider):
                 "api_http_status": response.status,
                 "route": "browser_rendering_scrape_resources",
                 "upstream_status": _origin_status(meta.get('status')),
-                **({'native_answer_projection': (native_answer_projection('cloudflare_markdown', case, payload, response.status))}
+                **({'native_answer_projection': (native_answer_projection('cloudflare_markdown', case, payload, response.status, interface='/scrape'))}
                    if envelope_success or meta else {}),
                 "browser": self.config.get("browser"),
                 "endpoint_route": "/browser-rendering/scrape" + ("?" + urlencode({"browser": self.config["browser"]}) if self.config.get("browser") else ""),
