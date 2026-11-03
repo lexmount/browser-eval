@@ -451,10 +451,10 @@ def test_deployment_identity_resolves_named_variables_or_stops() -> None:
         }
     }
 
-    assert resolved_deployment(profile, {"DEMO_ACCEPTANCE": "12", "DEMO_SOURCE": "34"}) == {
+    assert resolved_deployment(profile, {"DEMO_ACCEPTANCE": "12", "DEMO_SOURCE": "34"}.get) == {
         "acceptance_app_id": 12,
         "source_app_id": 34,
         "site_reset_between_tasks": False,
     }
     with pytest.raises(ValueError, match="integer values for DEMO_ACCEPTANCE, DEMO_SOURCE"):
-        resolved_deployment(profile, {"DEMO_ACCEPTANCE": "not-a-number"})
+        resolved_deployment(profile, {"DEMO_ACCEPTANCE": "not-a-number"}.get)

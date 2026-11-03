@@ -57,14 +57,14 @@ def test_environment_profile_reads_named_routing_only_for_engines_that_use_it(tm
     env_file = tmp_path / "local.env"
     names = {"pattern": "DEMO_ROUTE_PATTERN", "address": "DEMO_ROUTE_ADDRESS"}
     profile.write_text(json.dumps({"host_overrides_env": names}))
-    with pytest.raises(ValueError, match="requires DEMO_ROUTE_ADDRESS, DEMO_ROUTE_PATTERN in"):
+    with pytest.raises(ValueError, match="requires DEMO_ROUTE_ADDRESS, DEMO_ROUTE_PATTERN in the"):
         catalog_runner._load_environment_profile(profile, "chromium", env_file)
     env_file.write_text("DEMO_ROUTE_PATTERN=*.dev.example.test\n")
 
     assert "host_overrides" not in catalog_runner._load_environment_profile(
         profile, "moli", env_file
     )
-    with pytest.raises(ValueError, match="requires DEMO_ROUTE_ADDRESS in local.env"):
+    with pytest.raises(ValueError, match="requires DEMO_ROUTE_ADDRESS in the environment or"):
         catalog_runner._load_environment_profile(profile, "chromium", env_file)
 
     env_file.write_text(

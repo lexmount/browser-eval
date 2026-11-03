@@ -1,9 +1,8 @@
 """Discover maintained report owners and pinned examples before building."""
 import json
-import os
 
 from harness.distribution import repository_root
-from harness.env_file import parse_env_file
+from harness.env_file import local_setting
 
 ROOT = repository_root()
 
@@ -30,13 +29,7 @@ def discover_template(track, *, root=ROOT):
     name = template.get("example_env")
     if not name:
         return template
-    configured = os.environ.get(name)
-    if not configured:
-        try:
-            configured = parse_env_file(root / ".env").get(name)
-        except FileNotFoundError:
-            configured = None
-    example = (configured or "").strip()
+    example = local_setting(name, root / ".env").strip()
     if example and f"version={template['example_version']}" not in example:
         raise ValueError(f"{name} does not pin the registered example version")
     return {**template, "example": example or None}

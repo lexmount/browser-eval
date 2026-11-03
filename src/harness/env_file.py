@@ -1,12 +1,16 @@
 """Parse dotenv files as data; each caller decides how to apply the values."""
 
+import functools
 import io
 import logging
+import os
 import re
 from pathlib import Path
 
 from dotenv.main import with_warn_for_invalid_lines
 from dotenv.parser import Binding, parse_stream
+
+from harness.distribution import repository_root
 
 _LOGGER = logging.getLogger(__name__)
 _NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
@@ -52,3 +56,42 @@ def parse_env_file(path: str | Path) -> dict[str, str]:
 def read_env_statements(path: str | Path) -> dict[str, str]:
     """Return the source text of each assignment ``parse_env_file`` would read, for copying."""
     return {name: binding.original.string.strip() for name, binding in _read_bindings(path).items()}
+
+
+_selected_env_file: Path | None = None
+
+
+def select_env_file(path: str | Path | None) -> None:
+    """Choose the file ``local_setting`` reads for this process; ``None`` means the default."""
+    global _selected_env_file
+    _selected_env_file = None if path is None else Path(path).expanduser()
+
+
+@functools.lru_cache(maxsize=8)
+def _parsed_settings(path: Path, modified_ns: int, size: int) -> dict[str, str]:
+    return parse_env_file(path)
+
+
+def local_setting(name: str, env_file: str | Path | None = None) -> str:
+    """Return one setting unchanged, or an empty string when it is unset.
+
+    An exported variable wins, including an empty one. Otherwise the value comes from
+    ``env_file``, the file chosen with ``select_env_file``, or the repository's ``.env``.
+    An absent file means the setting is unset. A link passed or selected explicitly, a
+    directory and an unreadable file stop with an error when a setting is first needed.
+    """
+    exported = os.environ.get(name)
+    if exported is not None:
+        return exported
+    chosen = env_file if env_file is not None else _selected_env_file
+    path = Path(chosen).expanduser() if chosen is not None else repository_root() / ".env"
+    if chosen is not None and path.is_symlink():
+        raise ValueError("local settings file must be a regular file")
+    try:
+        state = path.stat()
+        return _parsed_settings(path, state.st_mtime_ns, state.st_size).get(name, "") or ""
+    except FileNotFoundError:
+        return ""
+    except (OSError, UnicodeDecodeError) as error:
+        raise ValueError(f"cannot read local settings file {path.name}") from error
+

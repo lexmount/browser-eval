@@ -328,3 +328,40 @@ def test_env_parser_guard_catches_each_hand_written_form(source):
 )
 def test_env_parser_guard_exempts_argument_parsers(source):
     assert not ENV_PARSER.search(source)
+
+
+def test_local_setting_uses_one_precedence(tmp_path, monkeypatch) -> None:
+    from harness.env_file import local_setting, select_env_file
+
+    local = tmp_path / "local.env"
+    local.write_text("DEMO_SETTING=from-file\nDEMO_SPACED=' keep spaces '\n")
+    monkeypatch.delenv("DEMO_SETTING", raising=False)
+    monkeypatch.delenv("DEMO_SPACED", raising=False)
+
+    assert local_setting("DEMO_SETTING", local) == "from-file"
+    assert local_setting("DEMO_SPACED", local) == " keep spaces "
+    assert local_setting("DEMO_SETTING", tmp_path / "absent.env") == ""
+
+    monkeypatch.setenv("DEMO_SETTING", "exported")
+    assert local_setting("DEMO_SETTING", local) == "exported"
+    monkeypatch.delenv("DEMO_SETTING")
+
+    select_env_file(local)
+    try:
+        assert local_setting("DEMO_SETTING") == "from-file"
+    finally:
+        select_env_file(None)
+
+
+def test_local_setting_stops_on_an_unusable_file(tmp_path, monkeypatch) -> None:
+    from harness.env_file import local_setting
+
+    monkeypatch.delenv("DEMO_SETTING", raising=False)
+    target = tmp_path / "real.env"
+    target.write_text("DEMO_SETTING=value\n")
+    link = tmp_path / "link.env"
+    link.symlink_to(target)
+    with pytest.raises(ValueError, match="regular file"):
+        local_setting("DEMO_SETTING", link)
+    with pytest.raises(ValueError, match="cannot read local settings file"):
+        local_setting("DEMO_SETTING", tmp_path)

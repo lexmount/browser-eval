@@ -596,7 +596,8 @@ def main_freeze(argv=None) -> None:
                       "sha256": checked_file_sha256(args.output)}))
 
 
-UNREBOUND_SOURCE_HOST = re.compile("|".join(map(re.escape, sorted(LOCAL_RECORDED_HOSTS))))
+def _unrebound_source_host() -> re.Pattern[str]:
+    return re.compile("|".join(map(re.escape, sorted(LOCAL_RECORDED_HOSTS))))
 
 
 def _candidate_trace_input(row: dict[str, Any]) -> dict[str, Any]:
@@ -860,13 +861,14 @@ def freeze_original_failure_inputs(
             }
             used_overrides.add(task_id)
         bound_calls = rebind_remote_calls(source_calls, sites, set(LOCAL_RECORDED_HOSTS))
-        if UNREBOUND_SOURCE_HOST.search(json.dumps(bound_calls, ensure_ascii=False)):
+        unrebound_source_host = _unrebound_source_host()
+        if unrebound_source_host.search(json.dumps(bound_calls, ensure_ascii=False)):
             raise ValueError(f"task {task_id} retains a local source host")
         for guard in readiness:
             bound_guard = rebind_remote_calls(
                 [guard["input"]], sites, set(LOCAL_RECORDED_HOSTS),
             )[0]
-            if UNREBOUND_SOURCE_HOST.search(json.dumps(bound_guard, ensure_ascii=False)):
+            if unrebound_source_host.search(json.dumps(bound_guard, ensure_ascii=False)):
                 raise ValueError(f"task {task_id} readiness retains a local source host")
             guard["source_input_sha256"] = guard.pop("input_sha256")
             guard["bound_input_sha256"] = canonical_json_sha256(bound_guard)

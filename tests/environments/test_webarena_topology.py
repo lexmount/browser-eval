@@ -1,6 +1,7 @@
 """The WebArena topology registry must reproduce every frozen host, port and redaction table."""
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -119,7 +120,7 @@ def test_registry_reproduces_frozen_port_and_host_tables() -> None:
         "map": 8080,
     }
     assert set(topology.TOPOLOGY["sites"]) == set(SITES)
-    assert sorted(remote_runtime.UNREBOUND_SOURCE_HOST.pattern.split("|")) == sorted(
+    assert sorted(remote_runtime._unrebound_source_host().pattern.split("|")) == sorted(
         re.escape(host) for host in FROZEN_LOCAL_HOSTS
     )
     assert webarena_environment._LEGACY_ORIGIN_RE.pattern == (
@@ -368,3 +369,33 @@ def test_private_recorded_host_outside_the_configured_gateways_stops(monkeypatch
 
     target = [{"action": "navigate", "url": "http://10.0.0.5:7780/admin"}]
     assert remote_runtime.rebind_remote_calls(target, sites, {"192.168.0.3"}) == target
+
+
+@pytest.mark.parametrize(
+    "value", ["192.0.2.5:7770", "http://192.0.2.5", "192.0.2.5/path", "host name"]
+)
+def test_gateway_entries_must_be_bare_hosts(monkeypatch, value: str) -> None:
+    monkeypatch.setenv("WEBARENA_RECORDING_GATEWAYS", value)
+    with pytest.raises(ValueError, match="WEBARENA_RECORDING_GATEWAYS entries must be bare"):
+        list(topology.RECORDING_GATEWAYS)
+
+
+def test_gateways_follow_the_configured_value(monkeypatch) -> None:
+    monkeypatch.setenv("WEBARENA_RECORDING_GATEWAYS", " 192.0.2.6 , gateway.example ")
+    assert list(topology.RECORDING_GATEWAYS) == ["192.0.2.6", "gateway.example"]
+    assert "gateway.example" in topology.LOCAL_RECORDED_HOSTS
+    assert "gateway.example" in topology.TRUSTED_RECORDED_HOSTS
+
+
+def test_importing_topology_and_a_publisher_reads_no_env_file(tmp_path) -> None:
+    env = {k: v for k, v in os.environ.items() if not k.startswith("WEBARENA_")}
+    env["PYTHONPATH"] = os.pathsep.join((str(ROOT / "src"), str(ROOT)))
+    code = """
+import sys
+opened = []
+sys.addaudithook(lambda event, args: opened.append(str(args[0])) if event == "open" else None)
+import harness.environments.webarena.topology
+import harness.trajectory_replay.public_webarena.publication
+assert not [path for path in opened if path.endswith(".env")], "read an env file at import"
+"""
+    subprocess.run([sys.executable, "-c", code], cwd=tmp_path, env=env, check=True)

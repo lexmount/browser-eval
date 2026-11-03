@@ -16,7 +16,7 @@ import traceback
 from pathlib import Path
 from urllib.parse import quote, urlsplit
 
-from harness.env_file import parse_env_file
+from harness.env_file import local_setting, parse_env_file, select_env_file
 from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
 from harness.record_io import file_sha256
 from harness.trajectory_replay.catalog_contracts import (
@@ -141,11 +141,6 @@ def _load_env_values(path: Path) -> dict[str, str]:
     return parse_env_file(path)
 
 
-def _optional_env_values(path: Path) -> dict[str, str]:
-    """An absent file means unset variables; a link or directory stays an error."""
-    return _load_env_values(path) if path.exists() or path.is_symlink() else {}
-
-
 def _load_environment_profile(path: Path, engine: str, env_file: Path) -> dict:
     """Read the versioned profile and resolve its named routing variables locally."""
 
@@ -159,12 +154,12 @@ def _load_environment_profile(path: Path, engine: str, env_file: Path) -> dict:
         or "host_overrides" in profile
     ):
         raise ValueError("environment host override variables are invalid")
-    values = _optional_env_values(env_file)
-    missing = [name for name in names.values() if not values.get(name, "").strip()]
+    values = {name: local_setting(name, env_file) for name in names.values()}
+    missing = [name for name, value in values.items() if not value.strip()]
     if missing:
         raise ValueError(
             f"{engine} replay on this environment requires {', '.join(sorted(missing))}"
-            f" in {env_file.name}"
+            f" in the environment or {env_file.name}"
         )
     return {
         **profile,
@@ -524,8 +519,9 @@ def main() -> None:
         type=Path,
         default=repository_root(Path(__file__)) / ".env",
         help=(
-            "local source of remote browser credentials, which are never persisted, and of "
-            "the environment profile's private routing variables"
+            "file for WebArena site accounts, routing, deployment and gateway variables, read "
+            "after the exported environment; Kitesurf credentials come only from this file and "
+            "are never persisted"
         ),
     )
     parser.add_argument("--backend", choices=("browsertool", "playwright"), default="browsertool")
@@ -555,6 +551,7 @@ def main() -> None:
         help="JSON selection for a large unresolved-only replay",
     )
     args = parser.parse_args()
+    select_env_file(args.credential_env_file)
     if args.catalog is None and args.action_overrides is not None:
         raise ValueError('--action-overrides requires an explicit qualified --catalog')
     webarena_runtime = verify_webarena_runtime_source()
@@ -610,11 +607,7 @@ def main() -> None:
         ):
             raise ValueError("catalog requires its versioned action overrides input")
         credential_env_file = args.credential_env_file.expanduser()
-        validate_environment_preparation(
-            args.site_reset_receipt,
-            args.environment_profile,
-            _optional_env_values(credential_env_file),
-        )
+        validate_environment_preparation(args.site_reset_receipt, args.environment_profile)
         environment_profile = _load_environment_profile(
             args.environment_profile, args.engine, credential_env_file
         )

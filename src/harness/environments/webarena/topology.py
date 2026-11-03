@@ -12,27 +12,16 @@ WebArena evaluator package; ``runtime`` converts names to ``WebArenaSite``.
 from __future__ import annotations
 
 import json
-import os
+import re
+from collections.abc import Sequence, Set
 from pathlib import Path
 from typing import Any
 
-from harness.distribution import repository_root
-from harness.env_file import parse_env_file
+from harness.env_file import local_setting
 
 TOPOLOGY_PATH = Path(__file__).with_name("topology.json")
 TOPOLOGY_SCHEMA = "lex_webarena_topology/1"
 BENCHMARK_HOST_PLACEHOLDER = "__BENCHMARK_HOST__"
-
-
-def configured_value(name: str) -> str:
-    """Read one setting unchanged from the environment, then the repository's local .env."""
-    value = os.environ.get(name)
-    if value is None:
-        try:
-            value = parse_env_file(repository_root() / ".env").get(name)
-        except FileNotFoundError:
-            value = None
-    return value or ""
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -75,11 +64,60 @@ _SERVICES = TOPOLOGY["container_services"]
 CONTAINER_HOST_ALIAS: str = _HOSTS["container_host_alias"]
 HOST_LOOPBACK: str = _HOSTS["host_loopback"]
 RECORDING_GATEWAYS_ENV: str = _HOSTS["recording_gateways_env"]
-RECORDING_GATEWAYS: tuple[str, ...] = tuple(
-    host.strip() for host in configured_value(RECORDING_GATEWAYS_ENV).split(",") if host.strip()
+_BARE_HOST = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?")
+
+
+class _RecordingGateways(Sequence):
+    """Read the configured hosts on use, so importing this module reads no file."""
+
+    def _hosts(self) -> tuple[str, ...]:
+        hosts = tuple(
+            host.strip()
+            for host in local_setting(RECORDING_GATEWAYS_ENV).split(",")
+            if host.strip()
+        )
+        for host in hosts:
+            if not _BARE_HOST.fullmatch(host):
+                raise ValueError(
+                    f"{RECORDING_GATEWAYS_ENV} entries must be bare hostnames or IPv4 addresses"
+                )
+        return hosts
+
+    def __getitem__(self, index):
+        return self._hosts()[index]
+
+    def __len__(self) -> int:
+        return len(self._hosts())
+
+
+class _RecordedHosts(Set):
+    """Fixed hosts plus the configured gateways at the moment of use."""
+
+    def __init__(self, fixed) -> None:
+        self._fixed = frozenset(fixed)
+
+    @classmethod
+    def _from_iterable(cls, values):
+        return frozenset(values)
+
+    def _hosts(self) -> frozenset[str]:
+        return self._fixed | frozenset(RECORDING_GATEWAYS)
+
+    def __contains__(self, host) -> bool:
+        return host in self._hosts()
+
+    def __iter__(self):
+        return iter(self._hosts())
+
+    def __len__(self) -> int:
+        return len(self._hosts())
+
+
+RECORDING_GATEWAYS = _RecordingGateways()
+LOCAL_RECORDED_HOSTS = _RecordedHosts({HOST_LOOPBACK, CONTAINER_HOST_ALIAS})
+TRUSTED_RECORDED_HOSTS = _RecordedHosts(
+    {*_HOSTS["public_recorded_hosts"], HOST_LOOPBACK, CONTAINER_HOST_ALIAS}
 )
-LOCAL_RECORDED_HOSTS = frozenset({HOST_LOOPBACK, CONTAINER_HOST_ALIAS, *RECORDING_GATEWAYS})
-TRUSTED_RECORDED_HOSTS = frozenset(_HOSTS["public_recorded_hosts"]) | LOCAL_RECORDED_HOSTS
 
 MUTABLE_SITE_PORTS: dict[str, tuple[int, int]] = {
     name: (int(row["port"]), int(row["control_port"]))
@@ -148,10 +186,10 @@ def public_host_replacements() -> dict[str, str]:
 def site_credentials(site: str) -> dict[str, str]:
     """Resolve one site's login from local configuration, naming anything unset."""
     names = _SITES[site]["credentials_env"]
-    values = {field: configured_value(name) for field, name in names.items()}
+    values = {field: local_setting(name) for field, name in names.items()}
     missing = sorted(names[field] for field, value in values.items() if not value.strip())
     if missing:
-        raise ValueError(f"WebArena site {site} requires {', '.join(missing)} in the local .env")
+        raise ValueError(f"WebArena site {site} requires {', '.join(missing)}")
     return values
 
 
