@@ -521,6 +521,24 @@ def test_bound_profile_with_no_share_url_creates_one_and_binds_it(
 
 
 @BOUND_TRACKS
+@pytest.mark.parametrize(('in_profile', 'chosen'), [
+    ('/v/profile', '/v/profile'),
+    (None, '/v/receipt'),
+], ids=['profile-wins', 'receipt-fallback'])
+def test_bound_track_prefers_the_profile_share_url_over_its_receipt(
+        tmp_path, monkeypatch, wire, owner, marker, in_profile, chosen):
+    archive, wire.respond = lifecycle_site(monkeypatch, tmp_path, owner, marker, active='ver_old')
+    bound_profile(owner, **({'share_url': BASE + in_profile} if in_profile else {}))
+    saved_receipt(owner, archive, verified=True, share_url=BASE + '/v/receipt')
+    owner.main(create=False)
+    assert requested(wire, 'POST') == ['/api/sites/site-1/versions?expected_version=ver_old']
+    fetched = {path for path in requested(wire, 'GET') if path.startswith('/v/')}
+    assert fetched == {chosen}
+    assert bound(owner)['share_url'] == BASE + chosen
+    assert receipt_of(owner)['share_url'] == BASE + chosen
+
+
+@BOUND_TRACKS
 @pytest.mark.parametrize('deployed', ['same', 'different'])
 def test_remote_version_moved_resumes_only_when_the_export_proves_the_same_bytes(
         tmp_path, monkeypatch, wire, owner, marker, deployed):
