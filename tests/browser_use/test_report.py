@@ -2056,3 +2056,17 @@ def test_current_engine_row_keeps_its_published_translation() -> None:
         translate_text(f"一套站点环境，{participants.engine_names} 串行")
         == "One site stack; Chromium and Moli run serially"
     )
+
+
+def test_logical_results_require_a_model_and_leave_their_input_unchanged() -> None:
+    rows = [
+        {"model": "m", "engine": "e", "task_id": 1, "attempt": attempt, "duration_ms": 5}
+        for attempt in (1, 2)
+    ]
+    before = json.loads(json.dumps(rows))
+
+    assert len(_logical_results(rows)) == 1
+    assert rows == before
+
+    with pytest.raises(ValueError, match="does not identify its model"):
+        _logical_results([{"engine": "e", "task_id": 1, "attempt": 1}])
