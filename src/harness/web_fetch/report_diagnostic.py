@@ -13,7 +13,6 @@ from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path, safe_identifier, validate_http_url
 
 from harness.record_io import json_bytes, load_jsonl, read_json
-from harness.reporting.presentation import check_presentation
 from harness.reporting.release_check import checked_page, open_report, read_page
 from harness.reporting.versions import check_build_version
 from harness.web_fetch.artifacts import (
@@ -460,8 +459,7 @@ def check_diagnostic_report(output, profile=None):
     core = ["index.html", "datasets/index.html", "methodology/index.html", "analysis/index.html",
             "review/index.html", "guide/index.html", "reproduce/index.html", "en/index.html"]
     for route in core:
-        page = (output / route).read_text(encoding='utf-8')
-        check_presentation(page)
+        checked_page(output / route)
     home = read_page(output / 'index.html')
     overall = diagnostic_call_summary(model['rows'], files)
     for route in ('index.html', 'guide/index.html'):
