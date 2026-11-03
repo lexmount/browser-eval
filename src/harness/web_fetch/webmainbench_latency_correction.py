@@ -16,7 +16,8 @@ from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path
 
-from harness.record_io import parse_jsonl
+from harness.platform_capabilities import require_macos
+from harness.record_io import file_sha256, parse_jsonl
 from harness.web_fetch import webmainbench_runner
 
 
@@ -105,10 +106,6 @@ def validate_latency_correction(root: Path) -> dict | None:
 ROOT = repository_root()
 
 
-def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def bind_certifier_source(directory: Path, source: Path, frozen: bytes) -> dict:
     """Retain the pre-call source bytes, refusing a mid-run source change."""
     if source.read_bytes() != frozen:
@@ -138,7 +135,7 @@ def verify_certifier_source(directory: Path, exclusion: dict) -> None:
         ):
             raise ValueError("Unrecognized historical latency certifier source")
         artifact = contained_path(data, sources[0]["source_artifact"], reject_symlinks=True)
-        if digest(artifact) != expected:
+        if file_sha256(artifact) != expected:
             raise ValueError("Historical latency certifier source changed")
         return
     if (
@@ -148,7 +145,7 @@ def verify_certifier_source(directory: Path, exclusion: dict) -> None:
     ):
         raise ValueError("Invalid latency certifier source binding")
     source = contained_path(directory, binding["path"], reject_symlinks=True)
-    if digest(source) != expected:
+    if file_sha256(source) != expected:
         raise ValueError("Frozen latency certifier source changed")
 
 
@@ -176,6 +173,7 @@ def competing_benchmark_pids() -> list[int]:
 
 
 def host_sample() -> dict:
+    require_macos("WebMainBench latency host sampling", ("top", "memory_pressure"))
     top = subprocess.run(
         ["top", "-l", "1", "-n", "0"], capture_output=True, text=True, check=True
     ).stdout
@@ -210,14 +208,14 @@ def snapshot(dataset: Path, sample: Path, official: Path) -> dict:
             hashlib.sha256(row["html"].encode()).hexdigest() != cases[case_id]["input_html_sha256"]
             or hashlib.sha256(row["groundtruth_content"].encode()).hexdigest()
             != cases[case_id]["reference_sha256"]
-            or digest(official / "references" / f"{case_id}.md")
+            or file_sha256(official / "references" / f"{case_id}.md")
             != cases[case_id]["reference_sha256"]
         ):
             raise ValueError("Frozen input or human reference changed: " + case_id)
     return {
-        "source_dataset_sha256": digest(dataset),
-        "sample_sha256": digest(sample),
-        "official_dataset_sha256": digest(official / "dataset.json"),
+        "source_dataset_sha256": file_sha256(dataset),
+        "sample_sha256": file_sha256(sample),
+        "official_dataset_sha256": file_sha256(official / "dataset.json"),
         "reference_sha256": {
             case_id: cases[case_id]["reference_sha256"] for case_id in sorted(cases)
         },
@@ -311,8 +309,8 @@ def certify(argv: list[str] | None = None) -> None:
     if before != after:
         raise ValueError("Source or references changed during Moli calls")
     selection = json.loads((args.output / "selection.json").read_text(encoding="utf-8"))
-    expected_prior = {"1.1.5": digest(args.prior_older), "1.1.7": digest(args.prior_newer)}
-    expected_binaries = {"1.1.5": digest(args.older), "1.1.7": digest(args.newer)}
+    expected_prior = {"1.1.5": file_sha256(args.prior_older), "1.1.7": file_sha256(args.prior_newer)}
+    expected_binaries = {"1.1.5": file_sha256(args.older), "1.1.7": file_sha256(args.newer)}
     case_rows = {
         case_id: {
             "input_html_sha256": value,
@@ -322,8 +320,8 @@ def certify(argv: list[str] | None = None) -> None:
     }
     binding = {
         "directory": args.output.name,
-        "selection_json_sha256": digest(args.output / "selection.json"),
-        "calls_jsonl_sha256": digest(args.output / "calls.jsonl"),
+        "selection_json_sha256": file_sha256(args.output / "selection.json"),
+        "calls_jsonl_sha256": file_sha256(args.output / "calls.jsonl"),
     }
     _, calls = _repeat_calls(
         args.output.parent,
@@ -408,7 +406,7 @@ def main(argv: list[str] | None = None) -> None:
         or type(exclusion.get("clean_process_checks")) is not int
         or exclusion["clean_process_checks"] < 2
         or (cert.get("selection_sha256") != hashlib.sha256(selection_bytes).hexdigest())
-        or (cert.get("calls_sha256") != digest(args.cohort / "calls.jsonl"))
+        or (cert.get("calls_sha256") != file_sha256(args.cohort / "calls.jsonl"))
     ):
         raise ValueError("Moli latency cohort is not certified against the formal references")
     selection = json.loads(selection_bytes)
@@ -496,7 +494,7 @@ def main(argv: list[str] | None = None) -> None:
         "changed_result_count": 400,
         "prior_results_sha256": hashlib.sha256(old_bytes).hexdigest(),
         "output_results_sha256": hashlib.sha256(corrected).hexdigest(),
-        "certification_sha256": digest(cert_path),
+        "certification_sha256": file_sha256(cert_path),
         "selection_sha256": cert["selection_sha256"],
         "calls_sha256": cert["calls_sha256"],
         "scored_outputs_changed": 0,

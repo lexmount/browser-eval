@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from harness.distribution import repository_root
 
-import hashlib
 import json
 import re
 from pathlib import Path
@@ -12,7 +11,7 @@ from pathlib import Path
 from lexbench_webfetch.paths import contained_path
 from lexbench_webfetch.scoring_regressions import require_scoring_regressions
 
-from harness.record_io import canonical_json_sha256
+from harness.record_io import bytes_sha256, canonical_json_sha256, json_bytes
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import homepage_prompt_anchor_correction
 from harness.web_fetch.retrieval_hints import historical_native_fetch_dataset, native_fetch_dataset
@@ -48,14 +47,6 @@ _RERUN_ONLY_CASE_FIELDS = {
 }
 
 
-def _sha256(raw: bytes) -> str:
-    return hashlib.sha256(raw).hexdigest()
-
-
-def _canonical_bytes(value: dict) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode("utf-8")
-
-
 def _apply_case_corrections(
     definition: dict, selected: dict[str, dict], repository: Path
 ) -> list[str]:
@@ -68,7 +59,7 @@ def _apply_case_corrections(
         raise ValueError("Assembly case-correction declaration is invalid")
     path = contained_path(repository, declaration["path"], reject_symlinks=True)
     raw = path.read_bytes()
-    if _sha256(raw) != declaration["sha256"]:
+    if bytes_sha256(raw) != declaration["sha256"]:
         raise ValueError("Assembly case corrections changed: " + declaration["path"])
     document = json.loads(raw)
     schema_version = document.get("schema_version")
@@ -187,7 +178,7 @@ def assemble_profile_dataset(
             raise ValueError("Assembly source declaration is invalid")
         path = contained_path(repository, source["path"], reject_symlinks=True)
         raw = read_dataset_bytes(path)
-        if _sha256(raw) != source["sha256"]:
+        if bytes_sha256(raw) != source["sha256"]:
             raise ValueError("Assembly source hash changed: " + source["path"])
         source_dataset = json.loads(raw)
         source_cases = {case["id"]: case for case in source_dataset.get("cases", [])}
@@ -229,7 +220,7 @@ def assemble_profile_dataset(
         raise ValueError("Assembly profile case inventory is duplicated or incomplete")
     if len(ordered_ids) != profile.get("case_count"):
         raise ValueError("Assembly profile case count differs from its inventory")
-    case_ids_sha256 = _sha256(
+    case_ids_sha256 = bytes_sha256(
         json.dumps(ordered_ids, ensure_ascii=True, separators=(",", ":")).encode()
     )
     if case_ids_sha256 != profile.get("case_ids_sha256"):
@@ -272,12 +263,12 @@ def assemble_profile_dataset(
         if definition["schema_version"] == 3
         else historical_native_fetch_dataset(dataset)
     )
-    raw = _canonical_bytes(dataset)
+    raw = json_bytes(dataset)
     expected = definition.get("native_dataset_sha256")
     if require_output_hash and (
         not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected)
     ):
         raise ValueError("Assembly has no valid native dataset hash")
-    if expected is not None and _sha256(raw) != expected:
+    if expected is not None and bytes_sha256(raw) != expected:
         raise ValueError("Assembled native dataset differs from its registered hash")
     return dataset, raw

@@ -3,23 +3,23 @@
 from __future__ import annotations
 
 from harness.distribution import repository_root
+from harness.record_io import file_sha256, write_json
 
 import argparse
 import hashlib
 import json
-import re
 import shutil
 import tempfile
 from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
+from harness.reporting.privacy import WEBMAINBENCH
 from harness.web_fetch.webmainbench_certification import verify_shard
 from harness.web_fetch.webmainbench_evidence import (
     alias_row,
     copy_alias_artifacts,
     copy_bound,
-    digest,
     load_sample_contract,
     read_jsonl,
     require_matrix,
@@ -40,10 +40,7 @@ def public_value(value):
     if isinstance(value, list):
         return [public_value(item) for item in value]
     if isinstance(value, str):
-        value = re.sub(r"/Users/[^/\s:]+", "/redacted-home", value)
-        value = re.sub(r"/home/[^/\s:]+", "/redacted-home", value)
-        value = re.sub(r"/private/tmp/[^\s:]+", "/redacted-temp", value)
-        value = re.sub(r"/(?:var/)?tmp/[^\s:]+", "/redacted-temp", value)
+        return WEBMAINBENCH.redact(value)
     return value
 
 
@@ -71,9 +68,9 @@ def _assemble_cohort(
         checks = review.get("checks", [])
         if (review.get("status") != "passed" or review.get("failures") != []
                 or not checks or any(row.get("status") != "passed" for row in checks)
-                or review.get("profile_sha256") != digest(profile_path)
+                or review.get("profile_sha256") != file_sha256(profile_path)
                 or review.get("dataset_sha256") != profile["source_dataset_sha256"]
-                or review.get("sample_manifest_sha256") != digest(sample_manifest)
+                or review.get("sample_manifest_sha256") != file_sha256(sample_manifest)
                 or review.get("sample_case_count") != profile["case_count"]
                 or review.get("providers") != profile["providers"]
                 or review.get("bindings", {}).get("provider_files_sha256")
@@ -90,7 +87,7 @@ def _assemble_cohort(
         )
         if (
             certificate.get("kind") != "certified_webmainbench_545_full_v1"
-            or certificate.get("profile_sha256") != digest(profile_path)
+            or certificate.get("profile_sha256") != file_sha256(profile_path)
             or certificate.get("preflight") != certificate.get("postflight")
             or certificate["preflight"]["source_sha256"] != profile["source_dataset_sha256"]
             or [row["provider"] for row in certificate["providers"]] != profile["providers"]
@@ -98,7 +95,7 @@ def _assemble_cohort(
             raise ValueError("Complete-cohort certificate or profile mismatch")
         if (
             scoring_certificate.get("kind") != "certified_webmainbench_scoring_v1"
-            or scoring_certificate.get("cohort_certificate_sha256") != digest(cert_path)
+            or scoring_certificate.get("cohort_certificate_sha256") != file_sha256(cert_path)
             or scoring_certificate.get("source_binding") != certificate["postflight"]
             or [row["provider"] for row in scoring_certificate["providers"]]
             != profile["providers"]
@@ -146,9 +143,9 @@ def _assemble_cohort(
         rows = read_jsonl(shard / "scored-results.jsonl")
         if not reviewed_sample and (
             scored_receipt["scored_results_sha256"]
-            != digest(shard / "scored-results.jsonl")
+            != file_sha256(shard / "scored-results.jsonl")
             or scored_receipt["score_summary_sha256"]
-            != digest(shard / "score-summary.json")
+            != file_sha256(shard / "score-summary.json")
             or scored_receipt["logical_results"] != profile["case_count"]
         ):
             raise ValueError(
@@ -209,7 +206,7 @@ def _assemble_cohort(
         if ca:
             ca_source = contained_path(shard, ca, reject_symlinks=True)
             if (
-                digest(ca_source)
+                file_sha256(ca_source)
                 != execution["network_isolation_probe"]["fixture_ca_sha256"]
             ):
                 raise ValueError(provider + ": fixture CA changed")
@@ -268,7 +265,7 @@ def _assemble_cohort(
                            "conversion")
         dataset["comparison"] = {key: profile[key] for key in comparison_keys if key in profile}
         dataset["comparison"]["kind"] = profile["comparison_kind"]
-        dataset["sample_manifest_sha256"] = digest(sample_manifest)
+        dataset["sample_manifest_sha256"] = file_sha256(sample_manifest)
         dataset["sample"] = {key: sample.get(key) for key in ("dataset_id", "sampling", "parent_distribution",
                                                              "sample_distribution", "quality_audit")}
     (output / "dataset.json").write_text(
@@ -290,14 +287,14 @@ def _assemble_cohort(
         encoding="utf-8",
     )
     if reviewed_sample:
-        review.setdefault("bindings", {})["results_jsonl_sha256"] = digest(output / "results.jsonl")
-        review["assembly"] = {"profile_sha256": digest(profile_path), "source_review_sha256": digest(review_path)}
-        _write_json(output / "result-review.json", review)
+        review.setdefault("bindings", {})["results_jsonl_sha256"] = file_sha256(output / "results.jsonl")
+        review["assembly"] = {"profile_sha256": file_sha256(profile_path), "source_review_sha256": file_sha256(review_path)}
+        write_json(output / "result-review.json", review)
         shutil.copy2(sample_manifest, output / "sample-manifest.json")
         correction = root / "fixture-correction.json"
         if correction.exists():
             receipt = json.loads(correction.read_bytes())
-            if (receipt.get("sample_manifest_sha256") != digest(sample_manifest)
+            if (receipt.get("sample_manifest_sha256") != file_sha256(sample_manifest)
                     or receipt.get("source_dataset_sha256") != profile["source_dataset_sha256"]):
                 raise ValueError("Fixture correction binding mismatch")
             shutil.copy2(correction, output / "fixture-correction.json")
@@ -305,12 +302,6 @@ def _assemble_cohort(
         shutil.copy2(cert_path, output / "cohort-certificate.json")
         shutil.copy2(scoring_certificate_path, output / "scoring-certificate.json")
     shutil.copy2(profile_path, output / "current-report.json")
-
-
-def _write_json(path: Path, value: object) -> None:
-    path.write_text(
-        json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
 
 
 def _write_rows(path: Path, rows: list[dict]) -> None:
@@ -464,7 +455,7 @@ def assemble(
                     cohorts[item["provider"]], variant_profile_path, scorer
                 )
             )
-    fingerprints = {path: digest(path) for path in inputs}
+    fingerprints = {path: file_sha256(path) for path in inputs}
     output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(
         prefix=".webmainbench-assemble-", dir=output.parent
@@ -587,16 +578,16 @@ def assemble(
                     "source_provider": source_provider,
                     "role": item.get("role", provider),
                     "profile": profile_name,
-                    "profile_sha256": digest(variant_profile_path),
+                    "profile_sha256": file_sha256(variant_profile_path),
                     "cohort_certificate": certificate_name,
-                    "cohort_certificate_sha256": digest(
+                    "cohort_certificate_sha256": file_sha256(
                         candidate / "cohort-certificate.json"
                     ),
                     "scoring_certificate": scoring_name,
-                    "scoring_certificate_sha256": digest(
+                    "scoring_certificate_sha256": file_sha256(
                         candidate / "scoring-certificate.json"
                     ),
-                    "source_results_sha256": digest(
+                    "source_results_sha256": file_sha256(
                         candidate / source_provider / "scored-results.jsonl"
                     ),
                 }
@@ -607,25 +598,25 @@ def assemble(
         require_unique_attempt_ids(calls, "Physical call")
         _write_rows(staging / "results.jsonl", rows)
         _write_rows(staging / "physical-attempts.jsonl", calls)
-        _write_json(staging / "score-summaries.json", summaries)
-        _write_json(staging / "execution.json", execution)
+        write_json(staging / "score-summaries.json", summaries)
+        write_json(staging / "execution.json", execution)
         dataset["coverage_plan"]["static_html"] = providers
         dataset["name"] = f"WebMainBench · {len(ids)} tasks · {len(providers)} methods"
-        _write_json(staging / "dataset.json", dataset)
+        write_json(staging / "dataset.json", dataset)
         if registry_path is not None:
-            _write_json(
+            write_json(
                 staging / "method-binding.json",
                 {
                     "schema_version": 2,
                     "kind": "webmainbench_method_cohort_binding",
-                    "registry_sha256": digest(registry_path),
-                    "baseline_profile_sha256": digest(profile_path),
-                    "baseline_certificate_sha256": digest(
+                    "registry_sha256": file_sha256(registry_path),
+                    "baseline_profile_sha256": file_sha256(profile_path),
+                    "baseline_certificate_sha256": file_sha256(
                         root / "cohort-certificate.json"
                     ),
                     "variants": bound_variants,
-                    "results_sha256": digest(staging / "results.jsonl"),
-                    "physical_attempts_sha256": digest(
+                    "results_sha256": file_sha256(staging / "results.jsonl"),
+                    "physical_attempts_sha256": file_sha256(
                         staging / "physical-attempts.jsonl"
                     ),
                     "logical_results": len(rows),
@@ -633,7 +624,7 @@ def assemble(
                 },
             )
         if any(
-            path.is_symlink() or digest(path) != expected
+            path.is_symlink() or file_sha256(path) != expected
             for path, expected in fingerprints.items()
         ):
             raise ValueError("Declared evidence changed during aggregation")

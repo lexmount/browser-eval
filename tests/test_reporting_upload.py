@@ -4,6 +4,7 @@ import zipfile
 
 import pytest
 
+from harness.record_io import file_sha256
 from harness.browser_use import report_publish as autonomous
 from harness.reporting.publication import snapshot_publication
 from harness.trajectory_replay import webarena_report_publish as replay
@@ -123,7 +124,7 @@ def test_browser_publication_verifies_full_export_before_binding(tmp_path, monke
     evidence_files = {}
     for name in ('manifest.json', 'run-config.json', 'attempts.jsonl', 'result-review.json'):
         (evidence / name).write_text('{}')
-        evidence_files[name] = autonomous.sha256(evidence / name)
+        evidence_files[name] = file_sha256(evidence / name)
     if outcome == 'missing-field':
         evidence_files.pop('result-review.json')
     elif outcome == 'empty-map':
@@ -131,7 +132,7 @@ def test_browser_publication_verifies_full_export_before_binding(tmp_path, monke
     proof = tmp_path / 'proof.json'
     proof.write_text(json.dumps({
         'schema': 'lex_browser_use_publication_attestation/2',
-        'archive_sha256': autonomous.sha256(archive), 'profile_sha256': autonomous.sha256(profile),
+        'archive_sha256': file_sha256(archive), 'profile_sha256': file_sha256(profile),
         'report': str(report), 'report_tree_sha256': autonomous.tree_sha256(report),
         'evidence': [str(evidence)], 'evidence_files': {str(evidence): evidence_files},
     }))
@@ -173,6 +174,7 @@ def test_browser_publication_verifies_full_export_before_binding(tmp_path, monke
     monkeypatch.setattr(autonomous, 'request', request)
     class Response:
         status = 200
+        headers = {}
         def __enter__(self):
             return self
         def __exit__(self, *args):
@@ -193,7 +195,7 @@ def test_browser_publication_verifies_full_export_before_binding(tmp_path, monke
         publication = json.loads(profile.read_text())['publication']
         assert publication['expected_version'] == 'ver_new'
         assert publication['site_slug'] == 'site-1' and publication['share_url'] == share_url
-        assert json.loads(proof.read_text())['profile_sha256'] == autonomous.sha256(profile)
+        assert json.loads(proof.read_text())['profile_sha256'] == file_sha256(profile)
     else:
         with pytest.raises((ValueError, RuntimeError)):
             autonomous.main(create=False)

@@ -1,12 +1,13 @@
 """Read report messages from language catalogs."""
-import json
 from functools import cache
 from pathlib import Path
+
+from harness.record_io import read_json
 
 
 @cache
 def _catalog(path: Path) -> dict:
-    return json.loads(path.read_text(encoding="utf-8"))
+    return read_json(path)
 
 
 def translate(path: Path, key: str, language: str, **values):

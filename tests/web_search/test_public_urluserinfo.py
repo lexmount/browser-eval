@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from harness.web_search.core import digest
+from harness.record_io import bytes_sha256
 from harness.web_search.report import _redact_url_userinfo, public_calls
 
 
@@ -75,7 +75,7 @@ def test_release_accepts_query_at_sign_without_rewriting_evidence(tmp_path):
     payload["related_url"] = "https://example.org?recipient=reader@example.net"
     raw = json.dumps(payload).encode()
     path.write_bytes(raw)
-    binding["sha256"] = digest(raw)
+    binding["sha256"] = bytes_sha256(raw)
     manifest_path.write_text(json.dumps(manifest))
     check(output)
     assert path.read_bytes() == raw

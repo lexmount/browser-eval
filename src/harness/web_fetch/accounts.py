@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import argparse
 import os
-import re
 import tempfile
 from pathlib import Path
 from typing import Any
 
+from harness.env_file import parse_env_file, read_env_statements
 from harness.web_fetch.methods import report_method_catalog
 
 
@@ -60,28 +60,9 @@ HOSTED_KEYS = tuple(dict.fromkeys(
     for key in account.get("env_vars", [])
 ))
 
-ASSIGNMENT = re.compile(
-    r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$"
-)
 
-
-def assignments(path: Path) -> dict[str, str]:
-    """Return first raw dotenv value for each key without evaluating it."""
-    values: dict[str, str] = {}
-    for line in path.expanduser().read_text(encoding="utf-8").splitlines():
-        match = ASSIGNMENT.fullmatch(line)
-        if match:
-            values.setdefault(match.group(1), match.group(2).strip())
-    return values
-
-
-def usable(raw: str | None) -> bool:
-    if raw is None:
-        return False
-    value = raw.strip()
-    if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
-        value = value[1:-1]
-    return bool(value)
+def usable(value: str | None) -> bool:
+    return bool(value and value.strip())
 
 
 def import_credentials(source: Path, target: Path) -> tuple[list[str], list[str]]:
@@ -89,19 +70,19 @@ def import_credentials(source: Path, target: Path) -> tuple[list[str], list[str]
     target = target.expanduser().resolve()
     if source == target:
         raise ValueError("Source and target env files must differ")
-    source_values = assignments(source)
-    target_values = assignments(target) if target.exists() else {}
+    source_values = parse_env_file(source)
+    source_statements = read_env_statements(source)
+    target_values = parse_env_file(target) if target.exists() else {}
     imported: list[str] = []
     missing: list[str] = []
     additions: list[str] = []
     for key in HOSTED_KEYS:
         if usable(target_values.get(key)):
             continue
-        raw = source_values.get(key)
-        if not usable(raw):
+        if not usable(source_values.get(key)):
             missing.append(key)
             continue
-        additions.append(f"{key}={raw}")
+        additions.append(source_statements[key])
         imported.append(key)
     if additions:
         existing = target.read_text(encoding="utf-8") if target.exists() else ""
@@ -113,6 +94,10 @@ def import_credentials(source: Path, target: Path) -> tuple[list[str], list[str]
         try:
             with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
                 handle.write(payload)
+            # An unterminated quote left in the target can absorb an appended assignment.
+            readable = parse_env_file(temporary)
+            if not all(usable(readable.get(key)) for key in imported):
+                raise ValueError(f"Fix the unterminated quote in {target} before importing")
             os.chmod(temporary, 0o600)
             os.replace(temporary, target)
         finally:

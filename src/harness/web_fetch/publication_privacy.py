@@ -18,6 +18,7 @@ from urllib.parse import unquote_plus, urlsplit
 from lexbench_webfetch.paths import contained_path
 
 from harness.record_io import file_sha256
+from harness.reporting.privacy import WEB_FETCH_RETAINED_DIAGNOSTIC, WEB_FETCH_USER_SEGMENT
 
 
 def require_public_method_options(configuration):
@@ -233,9 +234,6 @@ ENTITY_SENSITIVE_TAIL = re.compile(
     rb'(?im)((&quot;|&#0*34;|&#x0*22;|&apos;|&#0*39;|&#x0*27;)'
     + SENSITIVE_KEY + rb'\2\s*:\s*\2)(?!<|\[|&lt;|&#0*60;|&#x0*3c;)'
     rb'((?:(?!\2)[^\r\n<])*)(?=<|$)'
-)
-LOCAL_USER_PATH = re.compile(
-    rb'(?<![A-Za-z0-9])(?:/(?:Users|home)/[^/\s"\'<>]+/|/root/)'
 )
 
 REDACTIONS = (
@@ -488,7 +486,7 @@ def _scan_plain_publication_risk(data):
                          lambda match: html.unescape(match.group()), text)
     if redact_url_queries(url_surface)[1]:
         return 'sensitive URL query value'
-    if LOCAL_USER_PATH.search(decoded):
+    if WEB_FETCH_USER_SEGMENT.found(decoded):
         return 'machine-local user path'
     return None
 
@@ -588,7 +586,7 @@ def project_file(name, data):
         raise ValueError('Potential credential-shaped value in publication file: ' + name)
     google_matches = list(GOOGLE_KEY.finditer(data))
     sensitive_matches = auth_matches(data)
-    local_matches = list(LOCAL_USER_PATH.finditer(data))
+    local_matches = WEB_FETCH_USER_SEGMENT.subn(data)[1]
     url_projected, url_replacements = redact_url_queries(
         data.decode('utf-8', errors='surrogateescape'))
     if not google_matches and not sensitive_matches and not local_matches and not url_replacements and not inline_replacements:
@@ -598,7 +596,7 @@ def project_file(name, data):
     for pattern, _, replacement in REDACTIONS:
         projected = pattern.sub(lambda match: match.group() if _public_cors_policy(
             match.group()) else match.expand(replacement), projected)
-    projected = LOCAL_USER_PATH.sub(b'/[REDACTED_USER]/', projected)
+    projected = WEB_FETCH_USER_SEGMENT.redact(projected)
     categories = []
     kinds = []
     if google_matches or sensitive_matches or url_replacements or "credential" in inline_kinds:
@@ -611,7 +609,7 @@ def project_file(name, data):
         'path': name,
         'kinds': kinds,
         'reason': '; '.join(categories),
-        'replacements': len(google_matches) + len(sensitive_matches) + len(local_matches)
+        'replacements': len(google_matches) + len(sensitive_matches) + local_matches
                         + url_replacements + inline_replacements,
         'original_sha256': hashlib.sha256(original).hexdigest(),
         'published_sha256': hashlib.sha256(projected).hexdigest(),
@@ -781,7 +779,6 @@ def project_evidence_view(name, data, *, role, host_prefixes=(), host_names=(), 
                 for p in sorted(set(host_prefixes), key=len, reverse=True)]
     # User-home paths in retained diagnostics need a complete replacement, not
     # just a username replacement that would disclose the remaining directories.
-    local = re.compile(LOCAL_USER_PATH.pattern + rb'''[^\s"'<>\\\x00]*''')
 
     def text_view(value):
         before = value
@@ -793,7 +790,7 @@ def project_evidence_view(name, data, *, role, host_prefixes=(), host_names=(), 
             value = value.replace(host, '[HOSTNAME_OMITTED]')
             counts['hostname'] = counts.get('hostname', 0) + count
         raw = value.encode('utf-8')
-        raw, count = local.subn(b'[HOST_PATH_OMITTED]', raw)
+        raw, count = WEB_FETCH_RETAINED_DIAGNOSTIC.subn(raw)
         counts['local_path'] = counts.get('local_path', 0) + count
         raw, count = OTHER_SECRET.subn(b'[REDACTED_CREDENTIAL]', raw)
         counts['credential_shape'] = counts.get('credential_shape', 0) + count

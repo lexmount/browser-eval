@@ -17,14 +17,13 @@ from harness.lexbench.charts import combine_comparisons, render_chart
 from harness.lexbench.resource_evidence import load_matrix
 from harness.lexbench.resource_summary import summarize as summarize_linux_profiles
 from harness.lexbench.resource_summary import validate_summary as validate_linux_summary
-from harness.record_io import load_jsonl
+from harness.data_home import data_home
+from harness.record_io import bytes_sha256, load_jsonl
 from harness.report_languages import english_notice, generated_languages, write_language_contract
+from harness.reporting.privacy import LEXBENCH
 from harness.resource_calibration import duration_calibration
 from lexbench_webfetch.metrics import percentile
 from lexbench_webfetch.paths import contained_path, safe_identifier
-
-ROOT = pathlib.Path(os.environ.get("BROWSER_EVAL_DATA_HOME", pathlib.Path.home() / ".browser-eval"))
-
 
 REPOSITORY_ROOT = repository_root()
 
@@ -128,7 +127,7 @@ def main(argv=None):
         if not value:
             parser.error(f"Report profile requires paths.{name} or an explicit CLI path")
         value = pathlib.Path(value).expanduser()
-        return value if value.is_absolute() else (REPOSITORY_ROOT if name == "source" else ROOT) / value
+        return value if value.is_absolute() else (REPOSITORY_ROOT if name == "source" else data_home()) / value
 
     for name in ("cohort", "source", "output", "vendor_dir", "functional_correction"):
         setattr(args, name, configured_path(name, getattr(args, name)))
@@ -208,14 +207,10 @@ def main(argv=None):
         "off_engine": "m117_layout_off_engine_init_0918",
         "on_engine": "m117_layout_on_engine_init_0918",
     }
-    path_re = re.compile(r'/(?:Users|home|private/tmp|tmp|results|work)/[^\s\'"<>]+')
     endpoint_re = re.compile(r"(?:(?:https?|wss?)://)?127\.0\.0\.1:\d+")
 
-    def sha(data: bytes) -> str:
-        return hashlib.sha256(data).hexdigest()
-
     def clean(s: str) -> str:
-        return path_re.sub("<local path>", endpoint_re.sub("<local fixture>", s))
+        return LEXBENCH.redact(endpoint_re.sub("<local fixture>", s))
 
     def read_run(name: str):
         safe_identifier(name)
@@ -442,7 +437,7 @@ def main(argv=None):
                 raise ValueError(
                     "Invalid Lexbench report evidence: source.is_file() and (not source.is_symlink()) and (source.stat().st_size < 8000000)"
                 )
-            source_hash = sha(source.read_bytes())
+            source_hash = bytes_sha256(source.read_bytes())
             raw = source.read_text(errors="replace")
             data = clean(raw).encode()
             target = (
@@ -457,7 +452,7 @@ def main(argv=None):
             target.write_bytes(data)
             result[filename] = {
                 "url": str(target.relative_to(OUT)),
-                "sha256": sha(data),
+                "sha256": bytes_sha256(data),
                 "source_sha256": source_hash,
                 "bytes": len(data),
             }
@@ -542,7 +537,7 @@ def main(argv=None):
             reject_symlinks=True,
         )
         raw = definition_path.read_bytes()
-        if not sha(raw) == digest:
+        if not bytes_sha256(raw) == digest:
             raise ValueError("Invalid Lexbench report evidence: sha(raw) == digest")
         definition = json.loads(raw)
         item = {
@@ -709,7 +704,7 @@ def main(argv=None):
         def timestamp(value):
             return datetime.datetime.fromisoformat(value).timestamp()
 
-        host_context["observation_sha256"] = sha(observation_file.read_bytes())
+        host_context["observation_sha256"] = bytes_sha256(observation_file.read_bytes())
         host_context["rounds"] = {}
         for name, (_, manifest, _) in runs.items():
             start = timestamp(manifest["started_at"])
@@ -765,17 +760,17 @@ def main(argv=None):
             VERSION_RUNS, "resource-certification.json", reject_symlinks=True
         ).read_text()
     )
-    if not sha(comparison_file.read_bytes()) == resource_certificate["comparison_sha256"]:
+    if not bytes_sha256(comparison_file.read_bytes()) == resource_certificate["comparison_sha256"]:
         raise ValueError(
             "Invalid Lexbench report evidence: sha((VERSION_RUNS / 'resource-comparison.json').read_bytes()) == resource_certificate['comparison_sha256']"
         )
-    if not sha(version_protocol_file.read_bytes()) == resource_certificate["protocol_sha256"]:
+    if not bytes_sha256(version_protocol_file.read_bytes()) == resource_certificate["protocol_sha256"]:
         raise ValueError(
             "Invalid Lexbench report evidence: sha((VERSION_RUNS / 'protocol.json').read_bytes()) == resource_certificate['protocol_sha256']"
         )
     for rel, digest in resource_certificate["artifact_sha256"].items():
         path = contained_path(VERSION_RUNS, rel, reject_symlinks=True)
-        if not (path.is_file() and (not path.is_symlink()) and (sha(path.read_bytes()) == digest)):
+        if not (path.is_file() and (not path.is_symlink()) and (bytes_sha256(path.read_bytes()) == digest)):
             raise ValueError(
                 "Invalid Lexbench report evidence: path.is_file() and (not path.is_symlink()) and (sha(path.read_bytes()) == digest)"
             )
@@ -914,8 +909,8 @@ def main(argv=None):
         "bindings": {
             "resource_comparison_sha256": resource_certificate["comparison_sha256"],
             "resource_protocol_sha256": resource_certificate["protocol_sha256"],
-            "functional_114_results_sha256": sha((functional_114 / "results.jsonl").read_bytes()),
-            "functional_114_manifest_sha256": sha(
+            "functional_114_results_sha256": bytes_sha256((functional_114 / "results.jsonl").read_bytes()),
+            "functional_114_manifest_sha256": bytes_sha256(
                 (functional_114 / "run_manifest.json").read_bytes()
             ),
         },
@@ -977,7 +972,7 @@ def main(argv=None):
         "119_off": ("Moli 1.1.9 修复版 · 关闭 layout", "Moli 1.1.9 patched · layout off", "off"),
         "119_on": ("Moli 1.1.9 修复版 · 开启 layout", "Moli 1.1.9 patched · layout on", "on"),
     }
-    functional_task_ids_sha256 = sha(
+    functional_task_ids_sha256 = bytes_sha256(
         "".join(task_id + "\n" for task_id in sorted(selected)).encode()
     )
     if not len(dict(args.fixed_summary)) == len(args.fixed_summary):
@@ -1047,7 +1042,7 @@ def main(argv=None):
             manifest_path = contained_path(run_root, "run_manifest.json", reject_symlinks=True)
             if not (
                 not run_root.is_symlink()
-                and sha(manifest_path.read_bytes()) == binding["manifest_sha256"]
+                and bytes_sha256(manifest_path.read_bytes()) == binding["manifest_sha256"]
             ):
                 raise ValueError(
                     "Invalid Lexbench report evidence: not run_root.is_symlink() and sha((run_root / 'run_manifest.json').read_bytes()) == binding['manifest_sha256']"
@@ -1060,7 +1055,7 @@ def main(argv=None):
                 raise ValueError(
                     "Invalid Lexbench report evidence: source_result.resolve().parent == run_root.resolve() and (not source_result.is_symlink())"
                 )
-            if not sha(source_result.read_bytes()) == binding["results_sha256"]:
+            if not bytes_sha256(source_result.read_bytes()) == binding["results_sha256"]:
                 raise ValueError(
                     "Invalid Lexbench report evidence: sha(source_result.read_bytes()) == binding['results_sha256']"
                 )
@@ -1121,14 +1116,14 @@ def main(argv=None):
         public_bytes = (clean(json.dumps(candidate, ensure_ascii=False, indent=2)) + "\n").encode()
         url = f"data/candidates/{method_id}-fixed-summary.json"
         public_candidate_files[url] = public_bytes
-        evidence = {"url": url, "sha256": sha(public_bytes), "bytes": len(public_bytes)}
+        evidence = {"url": url, "sha256": bytes_sha256(public_bytes), "bytes": len(public_bytes)}
         fixed_candidates[method_id] = {
             "population": candidate["population"],
             "outcomes": candidate["outcomes"],
             "binary": candidate["binary"],
             "sources": candidate["sources"],
             "evidence": evidence,
-            "source_summary_sha256": sha(source_bytes),
+            "source_summary_sha256": bytes_sha256(source_bytes),
         }
         functional_methods.append(
             {
@@ -1220,7 +1215,7 @@ def main(argv=None):
         public_candidate_files[url] = public_bytes
         entry = {
             "summary": json.loads(public_bytes),
-            "evidence": {"url": url, "sha256": sha(public_bytes), "bytes": len(public_bytes)},
+            "evidence": {"url": url, "sha256": bytes_sha256(public_bytes), "bytes": len(public_bytes)},
         }
         if is_official:
             official_resource = entry
@@ -1242,7 +1237,7 @@ def main(argv=None):
         url = "data/candidates/resource-matrix.json"
         public_candidate_files[url] = public_bytes
         resource_matrix = {
-            "evidence": {"url": url, "sha256": sha(public_bytes), "bytes": len(public_bytes)},
+            "evidence": {"url": url, "sha256": bytes_sha256(public_bytes), "bytes": len(public_bytes)},
             "receipt": bundle["receipt"],
         }
         public_candidate_files["reproduction/run_resource_matrix.py"] = (
@@ -1270,7 +1265,7 @@ def main(argv=None):
     for item in functional_correction["configurations"]:
         correction_run = contained_path(FUNCTIONAL_CORRECTION, item["run_id"], reject_symlinks=True)
         if (
-            not sha(
+            not bytes_sha256(
                 contained_path(correction_run, "results.jsonl", reject_symlinks=True).read_bytes()
             )
             == item["results_sha256"]
@@ -1279,7 +1274,7 @@ def main(argv=None):
                 "Invalid Lexbench report evidence: sha((correction_run / 'results.jsonl').read_bytes()) == item['results_sha256']"
             )
         if (
-            not sha(
+            not bytes_sha256(
                 contained_path(
                     correction_run, "run_manifest.json", reject_symlinks=True
                 ).read_bytes()
@@ -1308,7 +1303,7 @@ def main(argv=None):
         "success_rates_changed": False,
         "evidence": {
             "url": "data/corrections/chromium-contract-retest.json",
-            "sha256": sha(correction_bytes),
+            "sha256": bytes_sha256(correction_bytes),
             "bytes": len(correction_bytes),
         },
     }
@@ -1372,7 +1367,7 @@ def main(argv=None):
         linux_resource_profiles = {
             "configurations": linux_public_summary["configurations"],
             "receipt": linux_public_summary["receipt"],
-            "evidence": {"url": url, "sha256": sha(public_bytes), "bytes": len(public_bytes)},
+            "evidence": {"url": url, "sha256": bytes_sha256(public_bytes), "bytes": len(public_bytes)},
         }
         public_candidate_files["reproduction/run_linux_resource_profiles.py"] = (
             args.linux_resource_profiles / "orchestrator.py"
@@ -1382,7 +1377,7 @@ def main(argv=None):
         public_candidate_files[original_url] = original_bytes
         resource_metrics_source = {
             "url": original_url,
-            "sha256": sha(original_bytes),
+            "sha256": bytes_sha256(original_bytes),
             "bytes": len(original_bytes),
         }
         resource_metrics = {}
@@ -1528,7 +1523,7 @@ def main(argv=None):
         "runs": {
             name: {
                 "run_id": label[name],
-                "manifest_sha256": sha((RUNS / label[name] / "run_manifest.json").read_bytes()),
+                "manifest_sha256": bytes_sha256((RUNS / label[name] / "run_manifest.json").read_bytes()),
                 "rows": call_count,
             }
             for name in label
@@ -1570,7 +1565,7 @@ def main(argv=None):
         "mermaid-LICENSE.txt": "ec9fb67dcb25eccc416ed56e1aab819222c805a2a4bfe4cb19e7556bf2ffde80",
     }.items():
         asset = contained_path(args.vendor_dir, name, reject_symlinks=True)
-        if not (not asset.is_symlink() and sha(asset.read_bytes()) == digest):
+        if not (not asset.is_symlink() and bytes_sha256(asset.read_bytes()) == digest):
             raise ValueError(
                 "Invalid Lexbench report evidence: not asset.is_symlink() and sha(asset.read_bytes()) == digest"
             )

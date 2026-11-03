@@ -5,6 +5,7 @@ import json
 
 import pytest
 
+from harness.record_io import json_bytes
 from harness.browser_use import report_publish as autonomous
 from harness.reporting import publication
 from harness.trajectory_replay import webarena_report_publish as replay
@@ -173,7 +174,7 @@ def test_legacy_replay_journal_only_finishes_the_already_installed_profile(
     updated = {
         "publication": {"base_url": "https://example.invalid", "expected_version": "ver_new"}
     }
-    payload = owner.json_bytes(updated)
+    payload = json_bytes(updated)
     target_proof = json.loads(proof.read_bytes())
     target_proof["profile_sha256"] = hashlib.sha256(payload).hexdigest()
     journal.write_text(

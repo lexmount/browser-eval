@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from harness.web_search.core import digest
+from harness.record_io import bytes_sha256
 from harness.web_search.profiles import load_profile_bytes, publication_authority
 
 
@@ -24,7 +24,7 @@ class CurrentProfileScenarios(unittest.TestCase):
         self.historical = self.root / "historical.json"
         self.historical.write_text(json.dumps(profile, indent=3) + "\n")
         self.raw = self.historical.read_bytes()
-        self.binding = {"path": "historical.json", "sha256": digest(self.raw)}
+        self.binding = {"path": "historical.json", "sha256": bytes_sha256(self.raw)}
         self.entry = self.root / "current.json"
         self.selection = {"schema": "web-search-current/1", "title": "Current", "profile": self.binding,
                           "methods": ["lexmount", "body", "summary"], "supplementary_profiles": [],
@@ -45,14 +45,14 @@ class CurrentProfileScenarios(unittest.TestCase):
         profile = json.loads(raw)
         self.assertEqual([m["id"] for m in profile["methods"]], ["lexmount", "body", "summary"])
         self.assertEqual(profile["cases"], json.loads(self.raw)["cases"])
-        self.assertNotEqual(digest(raw), digest(self.raw))
+        self.assertNotEqual(bytes_sha256(raw), bytes_sha256(self.raw))
         self.assertEqual(self.historical.read_bytes(), self.raw)
         self.assertEqual(load_profile_bytes(self.historical, root=self.root), self.raw)
         self.assertEqual(profile["publication"], {"authority": "target.json"})
         self.assertEqual(profile["protocol"]["order"], "complete provider batches")
 
     def test_formal_release_accepts_a_new_run_of_the_resolved_current_profile(self):
-        self.manifest["receipt"]["separate_collections"][0]["profile_sha256"] = digest(load_profile_bytes(self.entry, root=self.root))
+        self.manifest["receipt"]["separate_collections"][0]["profile_sha256"] = bytes_sha256(load_profile_bytes(self.entry, root=self.root))
         self.assertEqual(publication_authority(self.manifest, self.entry, root=self.root)["slug"], "search")
 
     def test_current_selection_rejects_changed_historical_input(self):
@@ -150,7 +150,7 @@ def test_publication_checks_pinned_files_and_real_population(tmp_path):
     from harness.web_search.profiles import verify_publication_inputs
     source = tmp_path / "proof.json"
     source.write_text("{}")
-    binding = {"path": source.name, "sha256": digest(source.read_bytes())}
+    binding = {"path": source.name, "sha256": bytes_sha256(source.read_bytes())}
     target = {"bindings": {"relevance": binding, "independent_review": binding}, "logical_results": 1, "cases": 1, "physical_calls": 1}
     manifest = {"rows": [{"attempts": [{}]}], "profile": {"cases": [{}]}, "relevance_sha256": binding["sha256"], "independent_review_sha256": binding["sha256"]}
     assert verify_publication_inputs(manifest, target, data_home=tmp_path)
@@ -177,7 +177,7 @@ def test_two_external_instances_resolve_without_repository_defaults(tmp_path):
         profile["cases"][0]["query"] = name + " query"
         raw = (json.dumps(profile) + "\n").encode()
         (root / "execution.json").write_bytes(raw)
-        selection = {"schema": "web-search-current/1", "title": name, "profile": {"path": "execution.json", "sha256": digest(raw)}, "methods": [m["id"] for m in profile["methods"]], "supplementary_profiles": [], "publication_target": "site.json"}
+        selection = {"schema": "web-search-current/1", "title": name, "profile": {"path": "execution.json", "sha256": bytes_sha256(raw)}, "methods": [m["id"] for m in profile["methods"]], "supplementary_profiles": [], "publication_target": "site.json"}
         path = root / "instance.json"
         path.write_text(json.dumps(selection))
         resolved = load_profile(path)

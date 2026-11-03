@@ -26,7 +26,8 @@ from lexbench_webfetch.paths import contained_path, safe_identifier
 from lexbench_webfetch.response_input import apply_request_status
 from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
 
-from harness.record_io import load_jsonl
+from harness.record_io import load_jsonl, optional_file_sha256
+from harness.reporting.privacy import WEB_FETCH_DIAGNOSTIC
 from harness.reporting.versions import software_identity
 from harness.web_fetch.artifacts import (
     PRIVATE_ARTIFACT_ROOT,
@@ -172,10 +173,6 @@ _AUTH_SECRET_VALUE = re.compile(
     r"(?![A-Za-z][A-Za-z0-9_-]*[ \t]+(?:<|\[)|(?:<|\[))"
     r"(?:[A-Za-z][A-Za-z0-9_-]*[ \t]+)?[^\s,;]+"
 )
-_POSIX_LOCAL_PATH = re.compile(
-    r"(?<![A-Za-z0-9])/(?:Users|home|private|tmp|var|opt|etc)/[^\s'\"<>]+"
-)
-_WINDOWS_LOCAL_PATH = re.compile(r"(?i)\b[A-Z]:\\[^\s'\"<>]+")
 
 
 def _public_text(value: Any, *, limit: int = 4096) -> str | None:
@@ -188,8 +185,7 @@ def _public_text(value: Any, *, limit: int = 4096) -> str | None:
     text = _JSON_SECRET_VALUE.sub(lambda match: match.group(1) + "[REDACTED]" + match.group(3), text)
     text = _LINE_SECRET_VALUE.sub(lambda match: match.group(1) + match.group(2) + " [REDACTED]", text)
     text, _ = redact_url_queries(text)
-    text = _POSIX_LOCAL_PATH.sub("[local-path]", text)
-    text = _WINDOWS_LOCAL_PATH.sub("[local-path]", text)
+    text = WEB_FETCH_DIAGNOSTIC.redact(text)
     return text[:limit]
 
 
@@ -593,7 +589,7 @@ def run_evaluation(
         "runtime_source_sha256": hashlib.sha256(SCORING_SOURCE_SHA256.encode()+b'\0'+b'\0'.join(
             p.relative_to(Path(__file__).parent).as_posix().encode()+b'\0'+p.read_bytes()
             for p in sorted(Path(__file__).parent.rglob('*.py')))).hexdigest(),
-        "provider_config_sha256": hashlib.sha256(provider_config_path.read_bytes()).hexdigest() if provider_config_path.is_file() else None,
+        "provider_config_sha256": optional_file_sha256(provider_config_path),
         "dataset_sha256": hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest() if dataset_path.is_file() or (benchmark_input_path(dataset_path).parent / 'source-inputs.json').is_file() else None,
         "network_preflight": ({"dns_mode": network_audit["dns_mode"],
                                "sha256": hashlib.sha256((output_dir / 'network-preflight.json').read_bytes()).hexdigest()}

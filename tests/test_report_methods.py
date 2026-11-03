@@ -109,11 +109,10 @@ class AdoptionTests(unittest.TestCase):
    self.assertIn('up to 5 seconds',translated)
    self.assertNotIn('Real-time',translated)
  def test_failed_candidate_verification_preserves_snapshot(self):
-  import json,sys,tempfile
+  import json,tempfile
   from pathlib import Path
   from unittest.mock import patch
-  sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'research'))
-  import refresh_adoption_candidates as survey
+  from harness.web_fetch import provider_adoption as survey
   with tempfile.TemporaryDirectory() as tmp:
    root=Path(tmp);(root/'research').mkdir()
    dest=root/'research/provider-adoption.json'
@@ -121,19 +120,43 @@ class AdoptionTests(unittest.TestCase):
    dest.write_text(json.dumps(original))
    (root/'research/webfetch-adopters.json').write_text(json.dumps({'included':[]}))
    before=dest.read_bytes()
-   with patch.object(survey,'ROOT',root),patch.object(survey,'metadata_batch',side_effect=RuntimeError('network failure')):
+   with patch.object(survey,'repository_root',lambda:root),patch.object(survey,'metadata_batch',side_effect=RuntimeError('network failure')):
     with self.assertRaises(RuntimeError):survey.refresh(discovered={'provider_signatures':{},'included':[]})
    self.assertEqual(dest.read_bytes(),before)
  def test_candidate_discovery_keeps_known_hits(self):
-  import sys
-  from pathlib import Path
-  sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'research'))
-  from refresh_adoption_candidates import candidate_union
+  from harness.web_fetch.provider_adoption import candidate_union
   current={'provider_signatures':{'langchain-webbase':['langchain-web-base-loader']},'included':[]}
   old={'included':[{'repo':'example/project','matches':[{'signature':'langchain-web-base-loader','path':'loader.py'},{'signature':'generic-web-fetch-tool','path':'other.py'}]}]}
   self.assertEqual(dict(candidate_union(current,old)),{('example/project','loader.py'):{'langchain-web-base-loader'}})
   current['candidate_catalog']=[{'repo':'inactive/project','path':'old.py','signatures':['langchain-web-base-loader']}]
   self.assertIn(('inactive/project','old.py'),candidate_union(current,{'included':[]}))
+ def test_search_checkpoint_stays_outside_the_checkout(self):
+  import json,os,tempfile
+  from pathlib import Path
+  from unittest.mock import patch
+  from harness.web_fetch import provider_adoption as survey
+  with tempfile.TemporaryDirectory() as tmp:
+   root=Path(tmp)/'checkout';(root/'research').mkdir(parents=True)
+   evidence=Path(tmp)/'evidence'
+   item={'repository':{'full_name':'a/b','private':False},'path':'x.py','html_url':'https://example.org','sha':'0'}
+   private={'repository':{'full_name':'c/d','private':True},'path':'y.py','html_url':'https://example.org','sha':'1'}
+   found={'total_count':2,'items':[item,private]}
+   with patch.dict(os.environ,{'WEB_FETCH_RESEARCH_EVIDENCE_DIR':str(evidence)}),patch.object(survey,'repository_root',lambda:root),patch.object(survey,'gh',return_value=found),patch.object(survey,'metadata_batch',return_value={}),patch.object(survey,'refresh') as refresh,patch.object(survey.time,'sleep'):
+    survey.search()
+   searches=json.loads((evidence/'adoption-searches.json').read_text())
+   self.assertEqual(searches,refresh.call_args.kwargs['discovered']['searches'])
+   self.assertEqual({x['repo'] for x in searches[0]['items']},{'a/b'})
+   self.assertEqual(list((root/'research').iterdir()),[])
+ def test_search_rejects_a_silent_known_positive_control(self):
+  import os,tempfile
+  from pathlib import Path
+  from unittest.mock import patch
+  from harness.web_fetch import provider_adoption as survey
+  with tempfile.TemporaryDirectory() as tmp:
+   root=Path(tmp);(root/'research').mkdir()
+   with patch.dict(os.environ,{'WEB_FETCH_RESEARCH_EVIDENCE_DIR':tmp}),patch.object(survey,'repository_root',lambda:root),patch.object(survey,'gh',return_value={'total_count':0,'items':[]}),patch.object(survey,'refresh') as refresh:
+    with self.assertRaisesRegex(RuntimeError,'Known-positive'):survey.search()
+   refresh.assert_not_called()
  def test_counts_deduplicate_repository_and_file(self):
   row={'repo':'Owner/Repo','url':'https://example.org','matches':[{'signature':s,'path':p,'url':'https://example.org/code'} for s,p in [('firecrawl-v1','a.py'),('firecrawl-sdk','a.py'),('firecrawl-v2','b.py'),('generic-web-fetch-tool','c.py')]]}
   result=adoption_counts({'included':[row,row],'provider_signatures':{'firecrawl':['firecrawl-v1','firecrawl-sdk','firecrawl-v2'],'lexmount-global':['lexmount-global-extract'],'exa':['exa-contents']}},['firecrawl','lexmount-global','exa'])

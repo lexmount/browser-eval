@@ -28,7 +28,8 @@ from urllib.parse import urlsplit
 
 from lexbench_webfetch.models import EvalCase
 
-from harness.record_io import parse_jsonl
+from harness.platform_capabilities import sandbox_exec_command
+from harness.record_io import bytes_sha256, parse_jsonl, write_json
 from harness.web_fetch.config import (
     add_failure_retry_argument,
     load_provider_config,
@@ -63,10 +64,6 @@ def selected_input(dataset: Path | None = None, expected_sha256: str | None = No
             expected_sha256 or task["sha256"], scorer_commit or selected["scorer"]["revision"])
 
 
-def sha256_bytes(value: bytes) -> str:
-    return hashlib.sha256(value).hexdigest()
-
-
 def iso_now() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -95,7 +92,7 @@ def load_source(
     *, expected_count: int = 545,
 ) -> list[dict]:
     payload = path.read_bytes()
-    actual = sha256_bytes(payload)
+    actual = bytes_sha256(payload)
     if actual != expected_sha256:
         raise ValueError(f"Unexpected WebMainBench-545 SHA-256: {actual}")
     records = parse_jsonl(payload, skip_blank=True)
@@ -201,7 +198,7 @@ def load_wcxb_source(root: Path, split: str = "test", *, manifest: Path | None =
 def load_selected_ids(path: Path, expected_dataset_sha256: str = DATASET_SHA256) -> tuple[set[str], dict]:
     """Load either the frozen JSON sample manifest or a plain one-ID-per-line file."""
     payload = path.read_bytes()
-    binding = {"path": str(path), "sha256": sha256_bytes(payload)}
+    binding = {"path": str(path), "sha256": bytes_sha256(payload)}
     if path.suffix.lower() != ".json":
         selected = {line.strip() for line in payload.decode("utf-8").splitlines() if line.strip()}
         return selected, {**binding, "format": "track_id_lines", "case_count": len(selected)}
@@ -390,10 +387,6 @@ def check_identity(name: str, identity: dict, expected_versions: dict | None = N
         )
 
 
-def write_json(path: Path, value: object) -> None:
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
 def public_metadata(value: dict) -> dict:
     """Keep diagnostics while excluding private/duplicated raw payloads."""
     return {key: item for key, item in value.items() if not key.startswith("_")}
@@ -440,9 +433,9 @@ def verify_loopback_sandbox(endpoint: str, ca_cert: Path, record: dict,
     probe = proxy_probe if preserve_original_origin else direct_probe
     probe_args = [origin.hostname or "", path] if preserve_original_origin else [path]
     completed = subprocess.run(
-        ["/usr/bin/sandbox-exec", "-p", LOOPBACK_SANDBOX_PROFILE, sys.executable, "-c", probe,
+        [*sandbox_exec_command(LOOPBACK_SANDBOX_PROFILE), sys.executable, "-c", probe,
          parsed.hostname or "127.0.0.1", str(parsed.port), *probe_args,
-         sha256_bytes(record["html"].encode("utf-8")), str(ca_cert)],
+         bytes_sha256(record["html"].encode("utf-8")), str(ca_cert)],
         capture_output=True, text=True, timeout=10, check=False,
     )
     if completed.returncode != 0:
@@ -450,7 +443,7 @@ def verify_loopback_sandbox(endpoint: str, ca_cert: Path, record: dict,
     result = json.loads(completed.stdout)
     return {
         "mode": "macos_sandbox_exec_loopback_only",
-        "profile_sha256": sha256_bytes(LOOPBACK_SANDBOX_PROFILE.encode()),
+        "profile_sha256": bytes_sha256(LOOPBACK_SANDBOX_PROFILE.encode()),
         **result,
     }
 
@@ -474,7 +467,7 @@ def run(args: argparse.Namespace) -> None:
         expected, distribution = validate_manifest(records, source_digest, sample)
         selected = {r["track_id"] for r in expected}
         records = [r for r in records if r["track_id"] in selected]
-        selection_binding = {"sha256": sha256_bytes(sample_bytes), "case_count": len(records),
+        selection_binding = {"sha256": bytes_sha256(sample_bytes), "case_count": len(records),
                              "scope": sample.get('scope'), "seed": sample.get('seed')}
         if args.profile is None:
             raise ValueError("WCXB execution requires an explicit --profile")
@@ -563,7 +556,7 @@ def run(args: argparse.Namespace) -> None:
             fixture_ca_artifact = "fixture-ca.pem"
             network_isolation_probe = verify_loopback_sandbox(
                 fixture_endpoint, ca_cert, records[0], args.preserve_original_origin)
-            network_isolation_probe["fixture_ca_sha256"] = sha256_bytes(ca_cert.read_bytes())
+            network_isolation_probe["fixture_ca_sha256"] = bytes_sha256(ca_cert.read_bytes())
         for index, record in enumerate(records, 1):
             body = record["html"].encode("utf-8")
             reference = record["groundtruth_content"].encode("utf-8")
@@ -594,9 +587,9 @@ def run(args: argparse.Namespace) -> None:
                     "error_type": response.error_type,
                     "error_message": response.error_message,
                     "provider_metadata": public_metadata(response.metadata),
-                    "input_html_sha256": sha256_bytes(body),
-                    "reference_sha256": sha256_bytes(reference),
-                    "output_sha256": sha256_bytes(response.content.encode("utf-8")),
+                    "input_html_sha256": bytes_sha256(body),
+                    "reference_sha256": bytes_sha256(reference),
+                    "output_sha256": bytes_sha256(response.content.encode("utf-8")),
                     "output_chars": len(response.content),
                     "physical_artifact_path": str(physical_artifact.relative_to(args.output)),
                 }
@@ -637,7 +630,7 @@ def run(args: argparse.Namespace) -> None:
         "environment": {"python": platform.python_version(), "platform": platform.platform()},
         "source_dataset_sha256": source_digest,
         "selection_manifest": selection_binding,
-        "runner_sha256": sha256_bytes(Path(__file__).read_bytes()),
+        "runner_sha256": bytes_sha256(Path(__file__).read_bytes()),
         "network_isolation_probe": network_isolation_probe,
         "fixture_ca_artifact": fixture_ca_artifact,
     }

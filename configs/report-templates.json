@@ -6,7 +6,7 @@
       "entrypoint": "scripts/build_report.py",
       "example": "https://artifact-site.lexmount.cn/s/p3sFcZrww_nx?version=ver_8ea488f5197c4b57a94c0e7987587e26",
       "build": "uv run --frozen python scripts/build_report.py --profile /absolute/instance-profile.json --evidence /absolute/path --output reports/webfetch",
-      "check": "make report-check",
+      "check": "make report-check PROFILE=/absolute/instance-profile.json",
       "wcxb_build": "uv run --frozen python scripts/build_report.py --profile /absolute/instance-profile.json --evidence /absolute/path --output reports/wcxb",
       "wcxb_check": "make wcxb-release-check PROFILE=/absolute/instance-profile.json",
       "wcxb_package": "uv run --frozen python scripts/publish_wcxb_artifact_site.py --package-only --profile /absolute/instance-profile.json --source /absolute/new-report --work /absolute/package",
@@ -55,19 +55,19 @@
     },
     "web-search": {
       "renderer": "src/harness/web_search/report.py",
-      "entrypoint": "scripts/build_search_report.py",
+      "entrypoint": "src/harness/web_search/cli.py",
       "example": "examples/web_search/README.md",
       "example_version": 1,
       "example_build": "uv run --frozen python -m harness.web_search.example --output /tmp/search-example",
-      "build": "uv run --frozen python scripts/build_search_report.py --profile /absolute/instance/current.json --source /absolute/run --output /absolute/report",
-      "check": "uv run --frozen python scripts/build_search_report.py --output /absolute/report --check",
+      "build": "uv run --frozen python -m harness.web_search report --profile /absolute/instance/current.json --source /absolute/run --output /absolute/report",
+      "check": "uv run --frozen python -m harness.web_search report --output /absolute/report --check",
       "tests": "tests/web_search/test_report.py",
       "variants": [
         "certified-api-comparison",
         "synthetic",
         "combined-cohorts"
       ],
-      "release_check": "uv run --frozen python scripts/build_search_report.py --output /absolute/report --release-check /absolute/visual-receipt.json --publication-plan /absolute/release/publication-plan.json"
+      "release_check": "uv run --frozen python -m harness.web_search report --output /absolute/report --release-check /absolute/visual-receipt.json --publication-plan /absolute/release/publication-plan.json"
     }
   }
 }

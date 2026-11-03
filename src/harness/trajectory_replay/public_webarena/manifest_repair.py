@@ -11,7 +11,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from harness.record_io import load_jsonl, same_json_record
+from harness.record_io import file_sha256, load_jsonl, same_json_record
 from harness.trajectory_replay.public_webarena.diagnostics import diagnose_summary
 from harness.trajectory_replay.public_webarena.metrics import summarize_attempts
 from harness.trajectory_replay.public_webarena.report import write_latest_report
@@ -24,11 +24,11 @@ def _read_rows(path: Path) -> list[dict[str, Any]]:
     return load_jsonl(path, skip_blank=True)
 
 
-def _sha256(path: Path) -> str:
+def _checked_sha256(path: Path) -> str:
     path = unlinked_path(path)
     if not path.is_file():
         raise ValueError(f"source evidence is missing: {path}")
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return file_sha256(path)
 
 
 def _key(row: dict[str, Any]) -> tuple[str, str]:
@@ -146,12 +146,12 @@ def _attempt_source_bindings(root: Path, row: dict[str, Any]) -> dict[Path, str]
     if unlinked_path(Path(str(row.get("evidence_directory") or ""))) != directory:
         raise ValueError("source attempt evidence directory differs from the declared run")
     attempt = directory / "attempt.json"
-    bound = {attempt: _sha256(attempt)}
+    bound = {attempt: _checked_sha256(attempt)}
     if not same_json_record(json.loads(attempt.read_bytes()), row):
         raise ValueError("source attempt projection differs from immutable raw evidence")
     if "source_attempt_path" in row or "source_attempt_sha256" in row:
         source = contained_path(root, row.get("source_attempt_path", ""), reject_symlinks=True)
-        bound[source] = _sha256(source)
+        bound[source] = _checked_sha256(source)
         if bound[source] != row.get("source_attempt_sha256"):
             raise ValueError("derived attempt predecessor hash differs")
         original = json.loads(source.read_bytes())
@@ -164,7 +164,7 @@ def _attempt_source_bindings(root: Path, row: dict[str, Any]) -> dict[Path, str]
     har = directory / "network.har"
     unlinked_path(har)
     if (row.get("network_har") or {}).get("status") != "error" or har.exists():
-        bound[har] = _sha256(har)
+        bound[har] = _checked_sha256(har)
     final = row.get("final_page_evidence") or {}
     for key, name in (("screenshot", "final.png"), ("page", "final-page.json")):
         path = unlinked_path(directory / name)
@@ -172,13 +172,13 @@ def _attempt_source_bindings(root: Path, row: dict[str, Any]) -> dict[Path, str]
         if metadata is not None:
             if not isinstance(metadata, dict) or metadata.get("path") != name:
                 raise ValueError("source final-page evidence path is invalid")
-            bound[path] = _sha256(path)
+            bound[path] = _checked_sha256(path)
             if metadata.get("sha256") != bound[path]:
                 raise ValueError("source final-page evidence hash differs")
         elif final.get("status") == "complete":
             raise ValueError("complete source attempt lacks bound final-page evidence")
         elif path.exists():
-            bound[path] = _sha256(path)
+            bound[path] = _checked_sha256(path)
     return bound
 
 
@@ -204,7 +204,7 @@ def build_supersession(
     base_attempts_path = base_run / "attempts.jsonl"
     correction_attempts_path = correction_run / "attempts.jsonl"
     sources = {
-        path: _sha256(path)
+        path: _checked_sha256(path)
         for path in (
             base_manifest_path,
             correction_manifest_path,
@@ -233,7 +233,7 @@ def build_supersession(
             prior_index = contained_path(
                 root, provenance.get("source_inputs_path", ""), reject_symlinks=True
             )
-            sources[prior_index] = _sha256(prior_index)
+            sources[prior_index] = _checked_sha256(prior_index)
             if sources[prior_index] != provenance.get("source_inputs_sha256"):
                 raise ValueError("prior supersession source index hash differs")
             index = json.loads(prior_index.read_bytes())
@@ -241,7 +241,7 @@ def build_supersession(
                 raise ValueError("prior supersession source index is invalid")
             for binding in index["files"]:
                 retained_path = contained_path(root, binding["retained_path"], reject_symlinks=True)
-                sources[retained_path] = _sha256(retained_path)
+                sources[retained_path] = _checked_sha256(retained_path)
                 if sources[retained_path] != binding.get("sha256"):
                     raise ValueError("retained historical source hash differs")
         for row in rows:
@@ -349,7 +349,7 @@ def build_supersession(
             json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
         write_latest_report(staging / "reports", manifest=manifest, summary=summary)
-        if any(_sha256(path) != sha for path, sha in sources.items()):
+        if any(_checked_sha256(path) != sha for path, sha in sources.items()):
             raise ValueError("source evidence changed during supersession")
         unlinked_path(output_root)
         if output_root.exists():

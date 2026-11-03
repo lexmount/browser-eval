@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from pathlib import Path
 from typing import Any
 
 from harness.distribution import repository_root
+from harness.record_io import read_json
 from harness.web_fetch.safety import unlinked_path
 from lexbench_webfetch.paths import contained_path
 
@@ -15,10 +14,6 @@ LAYERED_REVIEW_SCHEMA = "lex_browser_use_layered_failure_cause_review/2"
 DEFAULT_REVIEW_PATH = (
     repository_root() / "research/browser-use-failure-cause-review.json"
 )
-
-
-def sha256(path: Path) -> str | None:
-    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
 
 def review_path(profile: dict[str, Any], *, authority_root: Path | None = None) -> Path:
@@ -34,7 +29,7 @@ def review_path(profile: dict[str, Any], *, authority_root: Path | None = None) 
 
 
 def load_failure_cause_review(path: Path = DEFAULT_REVIEW_PATH) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    return read_json(path) if path.is_file() else {}
 
 
 def extract_failure_cause_review_cohort(

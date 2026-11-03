@@ -13,6 +13,8 @@ from statistics import median
 
 from lexbench_webfetch.paths import contained_path
 
+from harness.reporting.privacy import ANOMALY_REVIEW_LOCAL_PATH
+
 LAYERS = ('input', 'reference', 'request', 'raw', 'adapter', 'scorer', 'final_verdict')
 TRIGGER_VERSION = 2
 _SHORT_OUTPUT = 512
@@ -180,11 +182,7 @@ def detect_anomalies(root, records, dataset=None, reviewer_anomalies=None):
                 or metrics.get('blocked_page_hits')):
             found[attempt].add('blocked-or-forbidden-page')
         lowered = normalized.lower()
-        if re.search(
-            r"(?:^|[\s(])(?:/Users/[^\s:]+|/home/[^\s:]+|/private/(?:tmp|var)/[^\s:]+)",
-            text,
-            re.MULTILINE,
-        ):
+        if ANOMALY_REVIEW_LOCAL_PATH.search(text):
             found[attempt].add('public-artifact-local-path')
         if (re.search(r'\b403\b.{0,40}\bforbidden\b|\bforbidden\b.{0,40}\b403\b', lowered)
                 or 'anubis.techaro.lol' in lowered or 'botstopper' in lowered):

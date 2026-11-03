@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import os
-import re
 from pathlib import Path
 
 from harness.distribution import repository_root
+from harness.env_file import parse_env_file
 
 ROOT = repository_root()
 
@@ -18,17 +18,7 @@ def load_runtime_env(path: str | Path | None = None) -> None:
         return
     if not selected.is_file():
         raise ValueError(f"Trajectory Replay environment file is missing: {selected}")
-    for raw_line in selected.read_text(encoding="utf-8").splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        key = key.strip()
-        if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key):
-            continue
-        value = value.strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
-            value = value[1:-1]
+    for key, value in parse_env_file(selected).items():
         os.environ.setdefault(key, value)
 
 

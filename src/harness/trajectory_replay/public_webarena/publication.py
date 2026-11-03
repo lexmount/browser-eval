@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import html
 import json
 import posixpath
@@ -15,6 +14,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
+from harness.record_io import file_sha256, read_json
+from harness.reporting.privacy import PUBLIC_WEBARENA
 from harness.reporting.publication import archive_inventory
 from harness.trajectory_replay.public_webarena.result_audit import audit_result_set
 from harness.web_fetch.publication_target import publication_document, require_publication_version
@@ -28,7 +29,6 @@ PRIVATE_IPV4 = re.compile(
     r"(?<![0-9])(?:10(?:\.[0-9]{1,3}){3}|192\.168(?:\.[0-9]{1,3}){2}|"
     r"172\.(?:1[6-9]|2[0-9]|3[01])(?:\.[0-9]{1,3}){2})(?![0-9])"
 )
-LOCAL_USER_PATH = re.compile(r"/(?:Users|home|data)/[^/\s<>'\"]+")
 
 
 def public_projection(value: Any) -> Any:
@@ -40,7 +40,7 @@ def public_projection(value: Any) -> Any:
     if isinstance(value, tuple):
         return tuple(public_projection(item) for item in value)
     if isinstance(value, str):
-        return LOCAL_USER_PATH.sub("/[local-user]", PRIVATE_IPV4.sub("webarena.local", value))
+        return PUBLIC_WEBARENA.redact(PRIVATE_IPV4.sub("webarena.local", value))
     return value
 
 
@@ -89,18 +89,10 @@ FORBIDDEN_PUBLIC_RESULT_TERMS = (
 )
 
 
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        for chunk in iter(lambda: source.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
 def _read_json(path: Path) -> dict:
     if not path.is_file() or path.is_symlink():
         raise ValueError(f"required regular file is missing: {path}")
-    payload = json.loads(path.read_text(encoding="utf-8"))
+    payload = read_json(path)
     if not isinstance(payload, dict):
         raise ValueError(f"required JSON object is missing: {path}")
     return payload
@@ -176,9 +168,9 @@ def _validate_binding(formal_root: Path, authority: Path) -> tuple[dict, dict, d
         "run id": current.get("run_id") == manifest.get("run_id"),
         "suite hash": current.get("suite_sha256") == manifest.get("suite_sha256"),
         "manifest hash": (current.get("evidence") or {}).get("manifest_sha256")
-        == _sha256(manifest_path),
+        == file_sha256(manifest_path),
         "summary hash": (current.get("evidence") or {}).get("summary_sha256")
-        == _sha256(summary_path),
+        == file_sha256(summary_path),
         "results": current.get("results") == expected_results,
     }
     failed = [name for name, passed in checks.items() if not passed]
@@ -235,7 +227,7 @@ def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Pat
             if not path.is_file():
                 continue
             text = path.read_text(encoding="utf-8", errors="ignore")
-            if PRIVATE_IPV4.search(text) or LOCAL_USER_PATH.search(text):
+            if PRIVATE_IPV4.search(text) or PUBLIC_WEBARENA.found(text):
                 raise ValueError(f"private host or local user path in public report: {path.name}")
             found = next((term for term in FORBIDDEN_PUBLIC_RESULT_TERMS if term in text), None)
             if found:
@@ -257,10 +249,10 @@ def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Pat
         "agentic_browser_use": False,
         "run_id": manifest.get("run_id"),
         "suite_sha256": manifest.get("suite_sha256"),
-        "manifest_sha256": _sha256(formal_root / "run/manifest.json"),
-        "summary_sha256": _sha256(formal_root / "run/summary.json"),
-        "archive_sha256": _sha256(archive),
-        "profile_sha256": _sha256(authority),
+        "manifest_sha256": file_sha256(formal_root / "run/manifest.json"),
+        "summary_sha256": file_sha256(formal_root / "run/summary.json"),
+        "archive_sha256": file_sha256(archive),
+        "profile_sha256": file_sha256(authority),
         "archive_bytes": archive.stat().st_size,
         "files": len(files) + 1,
         "results": {
@@ -398,9 +390,9 @@ def publish_current(
 
     def package_check(frozen_archive, source):
         proof = _read_json(attestation)
-        if proof.get("profile_sha256") != _sha256(profile):
+        if proof.get("profile_sha256") != file_sha256(profile):
             raise ValueError("publication attestation does not bind the current profile")
-        if proof.get("archive_sha256") != _sha256(frozen_archive):
+        if proof.get("archive_sha256") != file_sha256(frozen_archive):
             raise ValueError("publication archive does not match its attestation")
         check_report_bundle(source)
         with tempfile.TemporaryDirectory(prefix="public-replay-package-check-") as temporary:
@@ -433,7 +425,7 @@ def publish_current(
         raise ValueError('Publication receipt share URL differs from the bound profile')
     resume = prior.get("submission_state") == "submitted_unverified" and prior.get(
         "archive_sha256"
-    ) == _sha256(archive)
+    ) == file_sha256(archive)
     config = PublishConfig(
         profile,
         archive,

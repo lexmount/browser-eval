@@ -12,8 +12,9 @@ from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
+from harness.record_io import file_sha256
 from harness.web_fetch.config import load_provider_config, load_runtime_env
-from harness.web_fetch.webmainbench_evidence import digest, read_jsonl, require_unique_attempt_ids
+from harness.web_fetch.webmainbench_evidence import read_jsonl, require_unique_attempt_ids
 from harness.web_fetch.webmainbench_runner import PROVIDERS, load_source
 from harness.web_fetch.webmainbench_scoring import verify_score
 
@@ -53,14 +54,14 @@ def _read_profile(path: Path) -> tuple[dict, str]:
 
 
 def _unchanged(files: dict[Path, str]) -> None:
-    if any(path.is_symlink() or digest(path) != expected for path, expected in files.items()):
+    if any(path.is_symlink() or file_sha256(path) != expected for path, expected in files.items()):
         raise ValueError("Declared inputs changed during execution")
 
 
 def source_binding(source: Path, scorer: Path, profile: dict) -> dict:
     if source.is_symlink() or scorer.is_symlink():
         raise ValueError("Symlinked source or scorer is forbidden")
-    if digest(source) != profile["source_dataset_sha256"]:
+    if file_sha256(source) != profile["source_dataset_sha256"]:
         raise ValueError("WebMainBench source bytes changed")
     records = load_source(source, expected_sha256=profile["source_dataset_sha256"])
     case_ids = [record["track_id"] for record in records]
@@ -74,7 +75,7 @@ def source_binding(source: Path, scorer: Path, profile: dict) -> dict:
         ["git", "-C", str(scorer), "status", "--porcelain", "--untracked-files=no"], text=True)
     if dirty:
         raise ValueError("Official scorer requires a clean tracked checkout")
-    return {"source_sha256": digest(source), "case_ids_sha256": case_digest,
+    return {"source_sha256": file_sha256(source), "case_ids_sha256": case_digest,
             "scorer_commit": commit, "case_count": len(records)}
 
 
@@ -82,7 +83,7 @@ def verify_declared_binary(profile: dict, binary: str) -> None:
     if not profile.get('binary_sha256'):
         return
     executable = shutil.which(binary)
-    if executable is None or digest(Path(executable)) != profile['binary_sha256']:
+    if executable is None or file_sha256(Path(executable)) != profile['binary_sha256']:
         raise ValueError('Declared browser binary differs before provider calls')
 
 
@@ -123,17 +124,17 @@ def verify_shard(shard: Path, provider: str, case_ids: set[str], profile: dict) 
     require_unique_attempt_ids(physical, "Physical")
     for row in rows:
         path = contained_path(shard, row["artifact_path"], reject_symlinks=True)
-        if path.is_symlink() or digest(path) != row["output_sha256"]:
+        if path.is_symlink() or file_sha256(path) != row["output_sha256"]:
             raise ValueError(provider + ": result artifact mismatch: " + row["track_id"])
     for row in physical:
         path = contained_path(shard, row["physical_artifact_path"], reject_symlinks=True)
-        if path.is_symlink() or digest(path) != row["output_sha256"]:
+        if path.is_symlink() or file_sha256(path) != row["output_sha256"]:
             raise ValueError(provider + ": physical artifact mismatch: " + row["attempt_id"])
     return {"provider": provider, "logical_results": len(rows), "physical_calls": len(physical),
             "request_successes": sum(bool(row["ok"]) for row in rows),
-            "results_sha256": digest(shard / "results.jsonl"),
-            "physical_attempts_sha256": digest(shard / "physical-attempts.jsonl"),
-            "execution_sha256": digest(shard / "execution.json")}
+            "results_sha256": file_sha256(shard / "results.jsonl"),
+            "physical_attempts_sha256": file_sha256(shard / "physical-attempts.jsonl"),
+            "execution_sha256": file_sha256(shard / "execution.json")}
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -158,7 +159,7 @@ def main(argv: list[str] | None = None) -> None:
         if path is not None:
             if path.is_symlink():
                 raise ValueError("Symlinked runtime input is forbidden")
-            bound[path] = digest(path)
+            bound[path] = file_sha256(path)
     load_runtime_env(args.env_file)
     settings = load_provider_config(args.config)
     if any(not isinstance(settings.get(name), dict) for name in profile["providers"]):
@@ -231,7 +232,7 @@ def scorer_source_binding(scorer: Path) -> dict[str, str]:
     files = sorted((scorer / "webmainbench/metrics").glob("*.py"))
     if not files:
         raise ValueError("Pinned scorer metrics source is absent")
-    return {str(path.relative_to(scorer)): digest(contained_path(
+    return {str(path.relative_to(scorer)): file_sha256(contained_path(
         scorer, path.relative_to(scorer), reject_symlinks=True)) for path in files}
 
 

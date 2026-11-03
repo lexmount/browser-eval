@@ -3,14 +3,13 @@
 from __future__ import annotations
 
 import copy
-import hashlib
 import json
 import shutil
 from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
-from harness.record_io import load_jsonl
+from harness.record_io import file_sha256, load_jsonl
 from harness.web_fetch.webmainbench_runner import load_source
 
 
@@ -68,7 +67,7 @@ def copy_alias_artifacts(
             original = contained_path(source, row[key], reject_symlinks=True)
             if not row[key].startswith(f"artifacts/{source_provider}/"):
                 raise ValueError("Variant artifact belongs to a different provider")
-            if digest(original) != expected_sha256:
+            if file_sha256(original) != expected_sha256:
                 raise ValueError("Variant artifact changed: " + row[key])
             relative = row[key].replace(
                 f"artifacts/{source_provider}/", f"artifacts/{provider}/", 1
@@ -76,7 +75,7 @@ def copy_alias_artifacts(
             target = contained_path(output, relative, reject_symlinks=True)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(original, target)
-            if digest(target) != expected_sha256:
+            if file_sha256(target) != expected_sha256:
                 raise ValueError("Variant artifact changed while copying: " + row[key])
 
 
@@ -89,12 +88,12 @@ def copy_bound(
     target_relative: str | None = None,
 ) -> None:
     source = contained_path(root, relative, reject_symlinks=True)
-    if digest(source) != expected:
+    if file_sha256(source) != expected:
         raise ValueError("Evidence artifact changed: " + relative)
     target = contained_path(output, target_relative or relative, reject_symlinks=True)
     target.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, target)
-    if digest(target) != expected:
+    if file_sha256(target) != expected:
         raise ValueError("Evidence changed while copying: " + relative)
 
 
@@ -117,10 +116,6 @@ def require_provider_batch(execution: dict, provider: str) -> dict:
             f"Expected exactly one execution batch for {provider}, found {len(batches)}"
         )
     return copy.deepcopy(batches[0])
-
-
-def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def read_jsonl(path: Path) -> list[dict]:
@@ -177,7 +172,7 @@ def load_sample_contract(source: Path, manifest_path: Path, profile_path: Path):
             or profile.get("case_count") != len(ids)
             or profile.get("runs_per_case") != 1 or profile.get("concurrency") != 1
             or profile.get("source_dataset_sha256") != manifest.get("parent", {}).get("sha256")
-            or profile.get("sample_manifest_sha256") != digest(manifest_path)):
+            or profile.get("sample_manifest_sha256") != file_sha256(manifest_path)):
         raise ValueError("Sample manifest and declared profile differ")
     records = load_source(source, set(ids), profile["source_dataset_sha256"],
                           expected_count=manifest["parent"].get("records"))
@@ -206,5 +201,5 @@ def scored_shard_bindings(root: Path, providers: list[str], *, shards=None) -> d
                 paths.add("correction-fixture-ca.pem")
         for relative in sorted(paths):
             path = contained_path(shard, relative, reject_symlinks=True)
-            bindings[f"{provider}/{relative}"] = digest(path)
+            bindings[f"{provider}/{relative}"] = file_sha256(path)
     return bindings

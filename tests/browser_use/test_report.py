@@ -30,6 +30,7 @@ from harness.browser_use.report_check import (
 )
 from harness.browser_use.report_i18n import localize_html
 from harness.browser_use.selection import load_pilot
+from harness.record_io import optional_file_sha256
 
 
 def _fix_log_fixture(tmp_path: Path) -> tuple[dict, dict]:
@@ -44,7 +45,7 @@ def _fix_log_fixture(tmp_path: Path) -> tuple[dict, dict]:
             "path": str(image_path),
             "kind": "image",
             "public_safe": True,
-            "sha256": report_module._sha256(image_path),
+            "sha256": optional_file_sha256(image_path),
             "provenance": {
                 "capture_method": "test fixture",
                 "run_id": "fixture-run",
@@ -86,7 +87,7 @@ def _fix_log_fixture(tmp_path: Path) -> tuple[dict, dict]:
                 "path": str(path),
                 "kind": "receipt",
                 "public_safe": True,
-                "sha256": report_module._sha256(path),
+                "sha256": optional_file_sha256(path),
             }
         )
         record[side] = {**run, "receipt": side, "image": "capture", "observation": localized}
@@ -106,21 +107,21 @@ def _fix_log_fixture(tmp_path: Path) -> tuple[dict, dict]:
             "path": str(test_path),
             "kind": "receipt",
             "public_safe": True,
-            "sha256": report_module._sha256(test_path),
+            "sha256": optional_file_sha256(test_path),
         }
     )
     model = {"schema": "lex_browser_use_fix_log/1", "records": [record], "artifacts": artifacts}
     source = tmp_path / "fix-log.json"
     source.write_text(json.dumps(model))
     return {
-        "fix_log": {"source_path": str(source), "source_sha256": report_module._sha256(source)}
+        "fix_log": {"source_path": str(source), "source_sha256": optional_file_sha256(source)}
     }, model
 
 
 def _persist_fix_log(profile: dict, model: dict) -> None:
     source = Path(profile["fix_log"]["source_path"])
     source.write_text(json.dumps(model))
-    profile["fix_log"]["source_sha256"] = report_module._sha256(source)
+    profile["fix_log"]["source_sha256"] = optional_file_sha256(source)
 
 
 def _revise_trajectory_comparison(profile: dict, model: dict) -> None:
@@ -147,7 +148,7 @@ def _revise_trajectory_comparison(profile: dict, model: dict) -> None:
             action_count=run["action_count"],
         )
         path.write_text(json.dumps(receipt))
-        artifact["sha256"] = report_module._sha256(path)
+        artifact["sha256"] = optional_file_sha256(path)
     _persist_fix_log(profile, model)
 
 
@@ -180,7 +181,7 @@ def _add_formal_certification(profile: dict, model: dict) -> None:
             "path": str(path),
             "kind": "receipt",
             "public_safe": True,
-            "sha256": report_module._sha256(path),
+            "sha256": optional_file_sha256(path),
         }
     )
     _persist_fix_log(profile, model)
@@ -209,7 +210,7 @@ def test_fix_log_renders_one_bilingual_model_and_hash_bound_real_artifact_links(
     public = json.loads((stage / "data/fix-log.json").read_text())
     assert str(tmp_path) not in json.dumps(public)
     for artifact in public["artifacts"]:
-        assert report_module._sha256(stage / artifact["href"]) == artifact["sha256"]
+        assert optional_file_sha256(stage / artifact["href"]) == artifact["sha256"]
 
 
 def test_fix_log_renders_revised_trajectory_without_claiming_shared_input(tmp_path: Path) -> None:
@@ -262,7 +263,7 @@ def test_fix_log_rejects_misrepresented_comparison_basis(
     else:
         receipt["trajectory_sha256"] = "9" * 64
     path.write_text(json.dumps(receipt))
-    artifact["sha256"] = report_module._sha256(path)
+    artifact["sha256"] = optional_file_sha256(path)
     _persist_fix_log(profile, model)
 
     expected = {
@@ -313,7 +314,7 @@ def test_formal_fix_rejects_borrowed_certification_after_trajectory_changes(
         action_count=run["action_count"],
     )
     path.write_text(json.dumps(receipt))
-    artifact["sha256"] = report_module._sha256(path)
+    artifact["sha256"] = optional_file_sha256(path)
     _persist_fix_log(profile, model)
 
     with pytest.raises(ValueError, match="formal fix evidence requires a matching"):
@@ -349,7 +350,7 @@ def test_fix_log_rejects_unbound_or_misrepresented_evidence(tmp_path: Path, chan
         artifact = model["artifacts"][1]
         path = Path(artifact["path"])
         path.write_text(json.dumps({"log": {"entries": []}}))
-        artifact["sha256"] = report_module._sha256(path)
+        artifact["sha256"] = optional_file_sha256(path)
     elif change == "exact_frame":
         model["artifacts"][0]["provenance"]["observation"] = "exact_error_frame"
     elif change == "symlink":
@@ -368,7 +369,7 @@ def test_fix_log_rejects_unbound_or_misrepresented_evidence(tmp_path: Path, chan
         receipt = json.loads(path.read_text())
         receipt["measurements"] = {"authorization": "fixture-secret"}
         path.write_text(json.dumps(receipt))
-        artifact["sha256"] = report_module._sha256(path)
+        artifact["sha256"] = optional_file_sha256(path)
     elif change == "formal":
         model["records"][0]["scope"] = "formal"
         model["records"][0]["certification"] = "test"
@@ -376,7 +377,7 @@ def test_fix_log_rejects_unbound_or_misrepresented_evidence(tmp_path: Path, chan
         model["records"][0]["after"]["receipt"] = "absent"
     source = Path(profile["fix_log"]["source_path"])
     source.write_text(json.dumps(model))
-    profile["fix_log"]["source_sha256"] = report_module._sha256(source)
+    profile["fix_log"]["source_sha256"] = optional_file_sha256(source)
     with pytest.raises(ValueError):
         report_module._load_fix_log(profile)
 
@@ -417,10 +418,10 @@ def test_fix_log_missing_source_diff_is_explicit_and_binary_bound(
     if explicit:
         run["source_diff_status"] = receipt["source_diff_status"] = "not_recorded"
     path.write_text(json.dumps(receipt))
-    artifact["sha256"] = report_module._sha256(path)
+    artifact["sha256"] = optional_file_sha256(path)
     source = Path(profile["fix_log"]["source_path"])
     source.write_text(json.dumps(model))
-    profile["fix_log"]["source_sha256"] = report_module._sha256(source)
+    profile["fix_log"]["source_sha256"] = optional_file_sha256(source)
     if explicit:
         loaded = report_module._load_fix_log(profile)
         assert loaded["records"][0]["before"]["binary_sha256"] == "3" * 64
@@ -515,7 +516,7 @@ def test_replay_bridge_rejects_symlink_bindings(tmp_path: Path, target: str) -> 
     profile = {
         "trajectory_replay_bridge": {
             "source_path": str(source),
-            "source_sha256": report_module._sha256(source),
+            "source_sha256": optional_file_sha256(source),
         }
     }
     with pytest.raises(ValueError, match="trajectory replay"):
@@ -535,7 +536,7 @@ def test_replay_bridge_responsibilities_match_bound_review(tmp_path: Path, count
     profile = {
         "trajectory_replay_bridge": {
             "source_path": str(source),
-            "source_sha256": report_module._sha256(source),
+            "source_sha256": optional_file_sha256(source),
         }
     }
     if counts == {"browser": 35, "benchmark": 1}:
@@ -558,7 +559,7 @@ def test_replay_bridge_checks_trajectory_profile_hash(tmp_path: Path) -> None:
     profile = {
         "trajectory_replay_bridge": {
             "source_path": str(source),
-            "source_sha256": report_module._sha256(source),
+            "source_sha256": optional_file_sha256(source),
         }
     }
     with pytest.raises(ValueError, match="profile.*hash-bound"):
@@ -574,7 +575,7 @@ def test_replay_bridge_accepts_current_bound_profile() -> None:
         "selection_sha256": bridge_data["selection_sha256"],
         "trajectory_replay_bridge": {
             "source_path": str(bridge_source.resolve()),
-            "source_sha256": report_module._sha256(bridge_source),
+            "source_sha256": optional_file_sha256(bridge_source),
         },
     }
     bridge = report_module._load_trajectory_replay_bridge(
@@ -1663,3 +1664,28 @@ def test_replay_control_uses_selected_counts_and_origin_inventory():
     assert "recorded_response" in english and "HAR" in english
     for obsolete in ("90/90", "36", "37", "Task 173", "Task 676", "Colima"):
         assert obsolete not in page
+
+
+def test_summary_percentiles_use_the_shared_nearest_rank_definition(monkeypatch) -> None:
+    monkeypatch.setattr(report_module, "MODEL_LABELS", {"model": "Model"})
+    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"engine": "Engine"})
+    rows = [
+        {
+            "model": "model",
+            "engine": "engine",
+            "score": 1,
+            "duration_ms": value,
+            "browser_tool_duration_ms": value,
+            "resource": {"cpu_ms": value},
+        }
+        for value in (1000, 3000)
+    ]
+
+    summary = report_module._primary_summary(rows)["model"]["engine"]
+
+    # Linear interpolation would report 2900 ms, a duration no call took.
+    assert summary["p95_duration_ms"] == 3000
+    assert summary["p95_browser_tool_duration_ms"] == 3000
+    assert summary["resources"]["cpu_ms"]["p95"] == 3000
+    assert summary["p50_duration_ms"] == 2000
+    assert report_module._primary_summary([])["model"]["engine"]["p95_duration_ms"] is None

@@ -2,15 +2,16 @@
 
 import copy
 import json
-import os
 from collections import Counter
 from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path
 from lexbench_websearch.inputs import resolve_profile
 
+from harness.data_home import data_home as default_data_home
+from harness.record_io import bytes_sha256
 from harness.web_fetch.publication_target import validate_service_base
-from harness.web_search.core import digest, validate_profile
+from harness.web_search.core import validate_profile
 
 
 def authority_root(path, root=None):
@@ -38,7 +39,7 @@ def _inside(root, relative):
 def _bound(root, binding):
     path = _inside(root, binding["path"])
     raw = path.read_bytes()
-    if digest(raw) != binding["sha256"]:
+    if bytes_sha256(raw) != binding["sha256"]:
         raise ValueError("Historical search profile binding changed")
     return resolve_profile(json.loads(raw))
 
@@ -87,7 +88,7 @@ def load_profile_bytes(path, *, root=None, cohort="primary"):
     profile["publication"] = {"authority": selection["publication_target"]}
     if selection.get("independent_result_review_scope"):
         profile["independent_result_review_scope"] = selection["independent_result_review_scope"]
-    profile["current_selection"] = {"sha256": digest(raw), "profile": binding, "methods": selection["methods"], "cohort": cohort}
+    profile["current_selection"] = {"sha256": bytes_sha256(raw), "profile": binding, "methods": selection["methods"], "cohort": cohort}
     for field in ("collection_revision", "cohort_revision"):
         profile.pop(field, None)
     if selection.get("independent_result_review_scope"):
@@ -144,8 +145,8 @@ def publication_authority(manifest, path, *, root=None, planned_target=None, exp
         expected_profile = expected[cohort]
         if bindings[prefix + "_profile"] != {k: expected_profile[k] for k in ("path", "sha256")}:
             raise ValueError("Live search target profile differs from the current selection")
-        accepted_profiles = {digest(load_profile_bytes(_inside(root, expected_profile["path"]), root=root))}
-        accepted_profiles.add(digest(load_profile_bytes(path, root=root, cohort=cohort)))
+        accepted_profiles = {bytes_sha256(load_profile_bytes(_inside(root, expected_profile["path"]), root=root))}
+        accepted_profiles.add(bytes_sha256(load_profile_bytes(path, root=root, cohort=cohort)))
         if receipt["profile_sha256"] not in accepted_profiles:
             raise ValueError("Search release uses a different collection profile")
         if receipt.get("receipt_sha256") != bindings[prefix + "_receipt"]["sha256"]:
@@ -171,12 +172,12 @@ def publication_metadata(manifest, review, relevance):
 def verify_publication_inputs(manifest, target, *, root=None, data_home=None):
     """Verify pinned source and previous-release files before a replacement upload."""
     root = Path(root) if root is not None else None
-    data_home = Path(data_home) if data_home is not None else Path(os.environ.get("BROWSER_EVAL_DATA_HOME", Path.home() / ".browser-eval")).expanduser()
+    data_home = Path(data_home) if data_home is not None else default_data_home()
     bound_paths = {}
     for name, binding in target["bindings"].items():
         base = root if root is not None and (root / binding["path"]).is_file() else data_home
         source = contained_path(base, binding["path"], reject_symlinks=True)
-        if not source.is_file() or digest(source.read_bytes()) != binding["sha256"]:
+        if not source.is_file() or bytes_sha256(source.read_bytes()) != binding["sha256"]:
             raise ValueError("Search publication binding changed: " + name)
         bound_paths[name] = source
     current_fields = [("relevance", "relevance_sha256"), ("independent_review", "independent_review_sha256")]

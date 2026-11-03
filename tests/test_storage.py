@@ -6,9 +6,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from harness.data_home import data_home
 from harness.web_fetch.storage import (
     current_evidence_dir,
-    data_home,
     require_canonical_inputs,
     require_current_report_profile,
     require_evidence,

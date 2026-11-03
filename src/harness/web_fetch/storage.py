@@ -9,13 +9,9 @@ from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path
 
+from harness.data_home import data_home
 from harness.record_io import load_jsonl
 from harness.web_fetch.methods import native_browser_engine
-
-
-def data_home() -> Path:
-    configured = os.environ.get("BROWSER_EVAL_DATA_HOME")
-    return Path(configured).expanduser().resolve() if configured else Path.home()/".browser-eval"
 
 
 def current_evidence_dir() -> Path:

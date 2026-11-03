@@ -23,6 +23,7 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from harness.distribution import repository_root
+from harness.record_io import canonical_json_sha256, file_sha256
 from harness.trajectory_replay.retrieval_acceptance import validate_contract
 from harness.trajectory_replay.webarena_runtime_source import (
     WEBARENA_VERIFIED_FORK_URL,
@@ -53,10 +54,6 @@ def _canonical_json(value: Any) -> bytes:
         sort_keys=True,
         separators=(",", ":"),
     ).encode("utf-8")
-
-
-def _digest(value: Any) -> str:
-    return hashlib.sha256(_canonical_json(value)).hexdigest()
 
 
 def _decode_pointer_token(value: str) -> str:
@@ -208,7 +205,7 @@ def load_corrections(
                     "and paired regressions"
                 )
         records[task_id] = MappingProxyType(copy.deepcopy(record))
-        record_sha256s[task_id] = _digest(record)
+        record_sha256s[task_id] = canonical_json_sha256(record)
     return CorrectionCatalog(
         records=MappingProxyType(records),
         record_sha256s=MappingProxyType(record_sha256s),
@@ -688,8 +685,8 @@ def apply_correction(
         task=corrected_task,
         correction_id=str(record["correction_id"]),
         correction_source_sha256=catalog.record_sha256s[task.task_id],
-        original_task_sha256=_digest(original),
-        corrected_task_sha256=_digest(corrected_task.model_dump(mode="json")),
+        original_task_sha256=canonical_json_sha256(original),
+        corrected_task_sha256=canonical_json_sha256(corrected_task.model_dump(mode="json")),
         rationale=str(record["rationale"]),
         replay_assertions=assertions,
         network_alternatives=MappingProxyType(
@@ -856,7 +853,7 @@ def _revision_file_sha256(path: Path) -> str:
     path = unlinked_path(path)
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"missing or symlinked source: {path}")
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return file_sha256(path)
 
 
 def _load_dataset_revision_bindings(path: Path | None = None) -> dict[int, dict[str, Any]]:
@@ -958,8 +955,8 @@ def revise_dataset(
         if task_id in revision_bindings:
             binding = revision_bindings[task_id]
             if (
-                _digest(original_data) != binding["task_sha256"]
-                or _digest(row) != binding["source_trajectory_sha256"]
+                canonical_json_sha256(original_data) != binding["task_sha256"]
+                or canonical_json_sha256(row) != binding["source_trajectory_sha256"]
             ):
                 raise ValueError(f"task {task_id}: revision authority differs from bound inputs")
             candidate_path = repository_root() / binding["candidate"]["path"]
@@ -979,8 +976,10 @@ def revise_dataset(
             corrected_data = original_data
             correction_id = binding["correction_id"]
             correction_sha256 = binding["reference"]["sha256"]
-            old_sha256 = _digest({"task": row["task"], "evaluation_input": row["evaluation_input"]})
-            new_sha256 = _digest(corrected_data)
+            old_sha256 = canonical_json_sha256(
+                {"task": row["task"], "evaluation_input": row["evaluation_input"]}
+            )
+            new_sha256 = canonical_json_sha256(corrected_data)
             row["tool_calls"] = candidate_calls
             row["source"] = {
                 "kind": "corrected_retrieval_candidate_pending_requalification",

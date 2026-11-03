@@ -3,8 +3,11 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from harness.record_io import file_sha256
 from harness.web_fetch.review_execution import (
-    run_content_packet, sha, validate_content_review, write_content_document,
+    run_content_packet,
+    validate_content_review,
+    write_content_document,
 )
 
 
@@ -16,7 +19,7 @@ class ContentReviewTests(unittest.TestCase):
             for name in ['source', 'outline', 'reference', 'target', 'chromium']:
                 path = work / name
                 path.write_text('literal content')
-                sources[name] = {'path': str(path), 'sha256': sha(path)}
+                sources[name] = {'path': str(path), 'sha256': file_sha256(path)}
             case = {'case_id': 'one', 'target': sources['target'],
                     'comparisons': {'chromium': sources['chromium']}}
             for name, key in [('source', 'source_html'), ('outline', 'source_outline'),
@@ -25,7 +28,7 @@ class ContentReviewTests(unittest.TestCase):
                 case[name + '_sha256'] = sources[name]['sha256']
             packet = work / 'packet.json'
             write_content_document(packet, {'cases': [case]})
-            item = {'path': str(packet), 'sha256': sha(packet)}
+            item = {'path': str(packet), 'sha256': file_sha256(packet)}
             review = {'cases': [{'case_id': 'one', 'page_purpose': 'article',
                                  'expected_content': 'body', 'verdict': 'acceptable',
                                  'coverage_evidence': ['beginning', 'ending'],
@@ -74,7 +77,7 @@ class ContentReviewTests(unittest.TestCase):
 
 def content_fixture(root):
     import json
-    from harness.web_fetch.review_execution import sha
+    from harness.record_io import file_sha256
 
     evidence, correction = root / 'evidence', root / 'correction'
     evidence.mkdir(); correction.mkdir()
@@ -86,12 +89,12 @@ def content_fixture(root):
         source.write_text('<main>synthetic body</main><script>hidden</script>')
         reference.write_text('synthetic body')
         cases.append({'id': name, 'url': 'https://example.invalid/' + name,
-                      'input_html_sha256': sha(source), 'reference_sha256': sha(reference)})
+                      'input_html_sha256': file_sha256(source), 'reference_sha256': file_sha256(reference)})
         for provider in ('custom', 'comparison'):
             path = evidence / f'{provider}-{name}.md'
             path.write_text('synthetic body')
             rows.append({'provider': provider, 'case_id': name, 'artifact_path': path.name,
-                         'output_sha256': sha(path)})
+                         'output_sha256': file_sha256(path)})
     (evidence / 'dataset.json').write_text(json.dumps({'cases': cases}))
     (evidence / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
     (correction / 'results.jsonl').write_text('')

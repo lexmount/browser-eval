@@ -3,15 +3,14 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 from typing import Any
 
 from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 
-from harness.record_io import load_jsonl
-from harness.trajectory_replay.catalog_contracts import file_sha256, validate_passing_evaluation
+from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl, read_json
+from harness.trajectory_replay.catalog_contracts import validate_passing_evaluation
 from harness.trajectory_replay.webarena_corrections import (
     apply_correction,
     evaluate_corrected_contract,
@@ -61,11 +60,6 @@ def validate_source_pass(
         or (corrected_task is not None and len(str(corrected_task)) != 64)
     ):
         raise ValueError(f"task {task_id} source pass has stale or incomplete provenance")
-
-
-def json_sha256(value: Any) -> str:
-    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def load_transition(path: Path) -> dict[str, Any]:
@@ -146,7 +140,7 @@ def compatible_source(
 def _regular_json(path: Path) -> dict[str, Any]:
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"transition evidence file is missing: {path.name}")
-    value = json.loads(path.read_text(encoding="utf-8"))
+    value = read_json(path)
     if not isinstance(value, dict):
         raise ValueError(f"transition evidence file is not an object: {path.name}")
     return value
@@ -209,7 +203,7 @@ def reevaluate_pass(
         "old_evaluation_sha256": before[old_evaluation_path],
         "actual_response_sha256": before[actual_response_path],
         "network_har_sha256": before[network_har_path],
-        "current_evaluation_sha256": json_sha256(current),
+        "current_evaluation_sha256": canonical_json_sha256(current),
     }
 
 
@@ -233,7 +227,7 @@ def load_receipt(
     ]
     if (
         receipt.get("schema") != RECEIPT_SCHEMA
-        or receipt.get("transition_sha256") != json_sha256(transition)
+        or receipt.get("transition_sha256") != canonical_json_sha256(transition)
         or receipt.get("from_revision") != transition["from_revision"]
         or receipt.get("compatible_from_revisions") != transition["compatible_from_revisions"]
         or receipt.get("compatible_sources") != transition["compatible_sources"]
@@ -414,7 +408,7 @@ def main(argv=None) -> None:
         raise ValueError("excluded transition evaluations were not found as old passes")
     receipt = {
         "schema": RECEIPT_SCHEMA,
-        "transition_sha256": json_sha256(transition),
+        "transition_sha256": canonical_json_sha256(transition),
         "from_revision": transition["from_revision"],
         "compatible_from_revisions": transition["compatible_from_revisions"],
         "compatible_sources": transition["compatible_sources"],

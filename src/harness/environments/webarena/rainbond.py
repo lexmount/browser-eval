@@ -24,6 +24,7 @@ from harness.environments.webarena.topology import (
     INITIALIZER_READINESS_PORT,
     SITE_CONTAINER_PORTS,
 )
+from harness.record_io import canonical_json_sha256
 from harness.web_fetch.config import repository_env
 
 SCHEMA = "lex_webarena_rainbond_pool/1"
@@ -36,8 +37,7 @@ _LOCAL_POOL_LOCKS_GUARD = threading.Lock()
 
 
 def _canonical_sha256(value: Any) -> str:
-    payload = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    return canonical_json_sha256(value, ensure_ascii=True)
 
 
 def _image_digest(value: str) -> str:

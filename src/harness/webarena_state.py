@@ -30,15 +30,13 @@ from webarena_verified.types.eval import (
     TaskEvalResult,
 )
 
+from harness.record_io import canonical_json_sha256
+
 PROTOCOL = "webarena_observed_form_state/1"
 
 
 def digest(value: Any) -> str:
-    return hashlib.sha256(
-        json.dumps(
-            value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
-        ).encode()
-    ).hexdigest()
+    return canonical_json_sha256(value, allow_nan=False)
 
 
 def rule_identity() -> dict[str, str]:

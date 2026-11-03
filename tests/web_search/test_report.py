@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from bs4 import BeautifulSoup
 
-from harness.web_search.core import digest
+from harness.record_io import bytes_sha256
 from harness.web_search.example import example
 from harness.web_search.report import build, check, fairness_table, load_run, release_check
 
@@ -33,11 +33,11 @@ class ReportScenarios(unittest.TestCase):
         self.assertEqual(manifest["authored"], {"assessment_revision": revision})
         manifest["assessment_revision"]["contract"]["root_cause"] = "Unapproved replacement control"
         manifest["authored"]["assessment_revision"] = manifest["assessment_revision"]["contract"]
-        manifest["content_sha256"] = digest(json.dumps(manifest["authored"]).encode())
+        manifest["content_sha256"] = bytes_sha256(json.dumps(manifest["authored"]).encode())
         from lexbench_websearch.inputs import implementation_sources
         implementation = implementation_sources()
         manifest["assessment_revision"]["implementation_sha256"] = {
-            name: digest(implementation[name].read_bytes())
+            name: bytes_sha256(implementation[name].read_bytes())
             for name in manifest["assessment_revision"]["implementation_sha256"]
         }
         path.write_text(json.dumps(manifest))
@@ -60,7 +60,7 @@ class ReportScenarios(unittest.TestCase):
         source.write_text("Original query inventory")
         content = self.root / "source-content.json"
         content.write_text(json.dumps({
-            "assets": [{"source": source.name, "path": "report-assets/query-source.txt", "sha256": digest(source.read_bytes())}],
+            "assets": [{"source": source.name, "path": "report-assets/query-source.txt", "sha256": bytes_sha256(source.read_bytes())}],
             "sections": [{"page": "dataset", "title": {"en": "Original queries", "zh": "原始查询"},
                           "paragraphs": [{"en": "Original definitions, independent of measured outcomes.", "zh": "原始题目，与实测结果分开保存。"}],
                           "sources": [{"label": {"en": "Inspect original source", "zh": "查看原始来源"}, "url": "report-assets/query-source.txt"}]}],
@@ -109,9 +109,9 @@ class ReportScenarios(unittest.TestCase):
         with patch("harness.web_search.report.authored_sections", side_effect=render):
             build(self.out, source=self.root / "fixture", content=content)
         manifest = json.loads((self.out / "manifest.json").read_text())
-        self.assertEqual(manifest["content_sha256"], digest(original))
+        self.assertEqual(manifest["content_sha256"], bytes_sha256(original))
         self.assertIn("原始结论", (self.out / "index.html").read_text())
-        self.assertNotEqual(manifest["content_sha256"], digest(content.read_bytes()))
+        self.assertNotEqual(manifest["content_sha256"], bytes_sha256(content.read_bytes()))
 
     def test_reader_routes_have_distinct_owners_and_keep_evidence(self):
         content = self.root / "concise-content.json"
@@ -218,7 +218,7 @@ class ReportScenarios(unittest.TestCase):
         rows_path.write_text("".join(json.dumps(row) + "\n" for row in rows))
         receipt_path = source / "receipt.json"
         receipt = json.loads(receipt_path.read_text())
-        receipt.update(profile_sha256=digest(profile_path.read_bytes()), results_sha256=digest(rows_path.read_bytes()))
+        receipt.update(profile_sha256=bytes_sha256(profile_path.read_bytes()), results_sha256=bytes_sha256(rows_path.read_bytes()))
         receipt_path.write_text(json.dumps(receipt))
         content = self.root / "content.json"
         content.write_text(json.dumps({"reading_model": True, "sections": [], "reading_sections": [
@@ -242,7 +242,7 @@ class ReportScenarios(unittest.TestCase):
         manifest = json.loads(original_manifest)
         for item in manifest["bundle"]:
             if item["path"] == "factual-sensitivity.json":
-                item["sha256"] = digest(sensitivity_path.read_bytes())
+                item["sha256"] = bytes_sha256(sensitivity_path.read_bytes())
         manifest_path.write_text(json.dumps(manifest))
         with self.assertRaisesRegex(ValueError, "Factual sensitivity"):
             check(self.out)
@@ -313,7 +313,7 @@ class ReportScenarios(unittest.TestCase):
         path.write_text(json.dumps(profile))
         receipt_path = source / "receipt.json"
         receipt = json.loads(receipt_path.read_text())
-        receipt["profile_sha256"] = digest(path.read_bytes())
+        receipt["profile_sha256"] = bytes_sha256(path.read_bytes())
         receipt_path.write_text(json.dumps(receipt))
         build(self.out, source=source)
         page = BeautifulSoup((self.out / "index.html").read_text(), "html.parser")
@@ -330,7 +330,7 @@ class ReportScenarios(unittest.TestCase):
         profile_path.write_text(json.dumps(profile))
         receipt_path = source / "receipt.json"
         receipt = json.loads(receipt_path.read_text())
-        receipt["profile_sha256"] = digest(profile_path.read_bytes())
+        receipt["profile_sha256"] = bytes_sha256(profile_path.read_bytes())
         receipt_path.write_text(json.dumps(receipt))
         from harness.web_search.relevance import import_annotations
         from lexbench_websearch.relevance import candidate_packet
@@ -373,7 +373,7 @@ class ReportScenarios(unittest.TestCase):
     def combined_fixture(self):
         import shutil
 
-        from harness.web_search.core import digest
+        from harness.record_io import bytes_sha256
 
         source = self.root / "fixture"
         second = self.root / "second"
@@ -392,8 +392,8 @@ class ReportScenarios(unittest.TestCase):
         (second / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
         receipt = json.loads((second / "receipt.json").read_text())
         receipt.update(
-            profile_sha256=digest((second / "profile.json").read_bytes()),
-            results_sha256=digest((second / "results.jsonl").read_bytes()),
+            profile_sha256=bytes_sha256((second / "profile.json").read_bytes()),
+            results_sha256=bytes_sha256((second / "results.jsonl").read_bytes()),
         )
         (second / "receipt.json").write_text(json.dumps(receipt))
         build(self.out, source=source, cohorts=[("extra", second)])
@@ -545,7 +545,7 @@ class ReportScenarios(unittest.TestCase):
                         {
                             "source": source.name,
                             "path": "research/response.json",
-                            "sha256": digest(source.read_bytes()),
+                            "sha256": bytes_sha256(source.read_bytes()),
                         }
                     ],
                     "sections": [
@@ -635,13 +635,13 @@ class ReportScenarios(unittest.TestCase):
             check(self.out)
 
     def test_full_release_requires_browser_route_coverage(self):
-        from harness.web_search.core import digest
+        from harness.record_io import bytes_sha256
 
         proof = self.root / "visual.json"
         proof.write_text(
             json.dumps(
                 {
-                    "manifest_sha256": digest((self.out / "manifest.json").read_bytes()),
+                    "manifest_sha256": bytes_sha256((self.out / "manifest.json").read_bytes()),
                     "captures": [],
                     "interactions": [],
                 }
@@ -678,13 +678,13 @@ class ReportScenarios(unittest.TestCase):
             check(self.out)
 
     def test_partial_matrix_is_rejected_even_with_updated_file_hash(self):
-        from harness.web_search.core import digest
+        from harness.record_io import bytes_sha256
 
         p = self.root / "fixture"
         rows = (p / "results.jsonl").read_text().splitlines()
         (p / "results.jsonl").write_text("\n".join(rows[:-1]))
         receipt = json.loads((p / "receipt.json").read_text())
-        receipt["results_sha256"] = digest((p / "results.jsonl").read_bytes())
+        receipt["results_sha256"] = bytes_sha256((p / "results.jsonl").read_bytes())
         (p / "receipt.json").write_text(json.dumps(receipt))
         with self.assertRaises(ValueError):
             load_run(p)
@@ -765,7 +765,7 @@ def test_dataset_inventory_has_bounded_scroll_for_large_catalogs(tmp_path):
 
 
 def test_main_quality_table_and_each_detail_share_all_frozen_grades(tmp_path):
-    from harness.web_search.core import digest
+    from harness.record_io import bytes_sha256
     from harness.web_search.relevance import import_annotations
     from lexbench_websearch.relevance import candidate_packet
     from harness.web_search.report import build, check
@@ -777,7 +777,7 @@ def test_main_quality_table_and_each_detail_share_all_frozen_grades(tmp_path):
     profile['protocol']['top_k'] = 5
     (source / 'profile.json').write_text(json.dumps(profile))
     receipt = json.loads((source / 'receipt.json').read_text())
-    receipt['profile_sha256'] = digest((source / 'profile.json').read_bytes())
+    receipt['profile_sha256'] = bytes_sha256((source / 'profile.json').read_bytes())
     (source / 'receipt.json').write_text(json.dumps(receipt))
     rows = [json.loads(line) for line in (source / 'results.jsonl').read_text().splitlines()]
     packet, _ = candidate_packet(profile, rows)
@@ -833,13 +833,13 @@ def test_factual_detail_uses_ten_result_budget_without_changing_frozen_five_metr
         raw = {'results': [{'url': f'https://other.invalid/{i}', 'title': 'Unrelated'} for i in range(5)] + [{'url': case['reference_urls'][0], 'title': 'Ada'}]}
         path = source / row['evidence']['path']
         path.write_text(json.dumps(raw))
-        row['evidence']['sha256'] = digest(path.read_bytes())
+        row['evidence']['sha256'] = bytes_sha256(path.read_bytes())
         row['results'] = normalize(raw)
         row['metrics'] = evaluate(case, row['results'])
         assert row['metrics']['labeled_source_hit_5'] == 0
     (source / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
     receipt = json.loads((source / 'receipt.json').read_bytes())
-    receipt.update(profile_sha256=digest((source/'profile.json').read_bytes()), results_sha256=digest((source/'results.jsonl').read_bytes()))
+    receipt.update(profile_sha256=bytes_sha256((source/'profile.json').read_bytes()), results_sha256=bytes_sha256((source/'results.jsonl').read_bytes()))
     (source / 'receipt.json').write_text(json.dumps(receipt))
     output = tmp_path / 'ten-results'
     build(output, source=source)

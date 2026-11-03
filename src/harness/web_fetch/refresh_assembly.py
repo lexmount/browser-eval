@@ -25,7 +25,7 @@ from lexbench_webfetch.scoring_regressions import (
     valid_correction_provenance,
 )
 
-from harness.record_io import load_jsonl
+from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl
 from harness.web_fetch.artifacts import (
     materialize_bound_artifacts,
     materialize_reference_checks,
@@ -51,10 +51,6 @@ from harness.web_fetch.speed_cohort import (
 )
 
 ROOT = repository_root()
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _read_json(path: Path) -> dict:
@@ -303,8 +299,7 @@ def _expected_v2_refresh_pairs(plan: dict, canonical: dict) -> set[tuple[str, st
 
 
 def _case_ids_sha256(case_ids: list[str]) -> str:
-    payload = json.dumps(sorted(case_ids), ensure_ascii=False, separators=(",", ":")).encode()
-    return hashlib.sha256(payload).hexdigest()
+    return canonical_json_sha256(sorted(case_ids))
 
 
 def _implementation_upgrades(plan: dict, canonical: dict) -> list[dict]:
@@ -366,12 +361,6 @@ def _implementation_upgrades(plan: dict, canonical: dict) -> list[dict]:
             if not isinstance(identity, dict) or not identity:
                 raise ValueError(f"Implementation upgrade has invalid {label}")
     return upgrades
-
-
-def _parameters_sha256(parameters: dict) -> str:
-    return hashlib.sha256(json.dumps(
-        parameters, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    ).encode()).hexdigest()
 
 
 def _correction_layers(
@@ -611,7 +600,7 @@ def _validate_impact_receipts(plan: dict, plan_path: Path, canonical: dict) -> l
     for upgrade in _implementation_upgrades(plan, canonical):
         binding = upgrade["impact_receipt"]
         path = contained_path(plan_path.parent, binding["path"], reject_symlinks=True)
-        if not path.is_file() or _sha256(path) != binding["sha256"]:
+        if not path.is_file() or file_sha256(path) != binding["sha256"]:
             raise ValueError("Implementation impact receipt bytes differ from refresh plan")
         receipt = _read_json(path)
         required = {
@@ -648,7 +637,7 @@ def _validate_correction_scope_receipts(
     for layer in layers:
         binding = layer["scope_receipt"]
         path = contained_path(plan_path.parent, binding["path"], reject_symlinks=True)
-        if not path.is_file() or _sha256(path) != binding["sha256"]:
+        if not path.is_file() or file_sha256(path) != binding["sha256"]:
             raise ValueError("Correction-layer scope receipt bytes differ from refresh plan")
         receipt = _read_json(path)
         entries = receipt.get("layers") if isinstance(receipt.get("layers"), list) else []
@@ -678,10 +667,10 @@ def _validate_correction_scope_receipts(
 def _bundle_matches_layer(root: Path, execution_path: Path, layer: dict) -> bool:
     binding = layer["source_bundle"]
     return binding == {
-        "dataset_sha256": _sha256(root / "dataset.json"),
-        "results_sha256": _sha256(root / "results.jsonl"),
+        "dataset_sha256": file_sha256(root / "dataset.json"),
+        "results_sha256": file_sha256(root / "results.jsonl"),
         "execution_file": execution_path.name,
-        "execution_sha256": _sha256(execution_path),
+        "execution_sha256": file_sha256(execution_path),
     }
 
 
@@ -711,7 +700,7 @@ def _validate_layer_execution(
         actual = {
             "runtime_source_sha256": batch.get("runtime_source_sha256"),
             "provider_config_sha256": batch.get("provider_config_sha256"),
-            "parameters_sha256": _parameters_sha256(batch.get("parameters", {})),
+            "parameters_sha256": canonical_json_sha256(batch.get("parameters", {})),
             "implementation_identity": provider_identity,
         }
         if actual != contract:
@@ -953,10 +942,10 @@ def _physical_record(record: dict) -> dict:
 def _bundle_identity(root: Path, execution_path: Path) -> dict:
     return {
         "label": root.name,
-        "dataset_sha256": _sha256(root / "dataset.json"),
-        "results_sha256": _sha256(root / "results.jsonl"),
+        "dataset_sha256": file_sha256(root / "dataset.json"),
+        "results_sha256": file_sha256(root / "results.jsonl"),
         "execution_file": execution_path.name,
-        "execution_sha256": _sha256(execution_path),
+        "execution_sha256": file_sha256(execution_path),
     }
 
 
@@ -987,8 +976,8 @@ def _write_composite_revisions(output: Path, selections: list[tuple[dict, Path]]
     by_root: dict[Path, list[dict]] = {}
     for row, root in selections:
         by_root.setdefault(root, []).append(row)
-    dataset_hash = _sha256(output / "dataset.json")
-    results_hash = _sha256(output / "results.jsonl")
+    dataset_hash = file_sha256(output / "dataset.json")
+    results_hash = file_sha256(output / "results.jsonl")
     scoring_changes, scoring_decisions, scoring_sources, scoring_receipts = {}, {}, [], []
     reference_changes, reference_decisions, reference_sources, reference_receipts = {}, {}, [], []
     history = output / "history" / "source-revisions"
@@ -1004,7 +993,7 @@ def _write_composite_revisions(output: Path, selections: list[tuple[dict, Path]]
             if not isinstance(receipts, list) or not receipts:
                 raise ValueError(f"Invalid selected source revision receipt: {path}")
             if kind == "scoring":
-                current = (_sha256(root / "dataset.json"), _sha256(root / "results.jsonl"))
+                current = (file_sha256(root / "dataset.json"), file_sha256(root / "results.jsonl"))
                 batches, _ = _source_batches(root)
                 projected = any(
                     isinstance(batch.get("projection"), dict)
@@ -1029,7 +1018,7 @@ def _write_composite_revisions(output: Path, selections: list[tuple[dict, Path]]
                        or not valid_correction_provenance(receipt) for receipt in receipts):
                     raise ValueError(f"Selected source has invalid scoring revision binding: {root}")
             if kind == "reference":
-                current = (_sha256(root / "dataset.json"), _sha256(root / "results.jsonl"))
+                current = (file_sha256(root / "dataset.json"), file_sha256(root / "results.jsonl"))
                 batches, _ = _source_batches(root)
                 projected = any(
                     isinstance(batch.get("projection"), dict)
@@ -1054,10 +1043,10 @@ def _write_composite_revisions(output: Path, selections: list[tuple[dict, Path]]
             relative = f"history/source-revisions/{index:03d}-{root.name}-{filename}"
             shutil.copy2(path, output / relative)
             source = {
-                "source_dataset_sha256": _sha256(root / "dataset.json"),
-                "source_results_sha256": _sha256(root / "results.jsonl"),
+                "source_dataset_sha256": file_sha256(root / "dataset.json"),
+                "source_results_sha256": file_sha256(root / "results.jsonl"),
                 "receipt_path": relative,
-                "receipt_sha256": _sha256(path),
+                "receipt_sha256": file_sha256(path),
             }
             changes = scoring_changes if kind == "scoring" else reference_changes
             decisions = scoring_decisions if kind == "scoring" else reference_decisions
@@ -1151,7 +1140,7 @@ def _assemble(
         raise ValueError("Final logical attempt count differs from the canonical matrix")
 
     baseline_binding = plan.get("baseline", {})
-    if _sha256(baseline / "dataset.json") != baseline_binding.get("dataset_sha256") or _sha256(
+    if file_sha256(baseline / "dataset.json") != baseline_binding.get("dataset_sha256") or file_sha256(
         baseline / "results.jsonl"
     ) != baseline_binding.get("results_sha256"):
         raise ValueError("Baseline bytes differ from evaluation/current-rerun.json")
@@ -1222,7 +1211,7 @@ def _assemble(
         == "equivalent_reference_bytes_with_independent_batch_captures"
     )
     ordered_main_reruns = (
-        sorted(main_reruns, key=lambda root: _sha256(root / "results.jsonl"))
+        sorted(main_reruns, key=lambda root: file_sha256(root / "results.jsonl"))
         if correction_layers else main_reruns
     )
     consumed_layers = set()
@@ -1340,7 +1329,7 @@ def _assemble(
                         "declared_scopes": _pair_scope_reasons(
                             plan, row["provider"], case["id"]
                         ),
-                        "source_results_sha256": _sha256(root / "results.jsonl"),
+                        "source_results_sha256": file_sha256(root / "results.jsonl"),
                         **({
                             "correction_layer": next(
                                 layer["id"] for layer in correction_layers
@@ -1389,7 +1378,7 @@ def _assemble(
                             **upgrade["reason"],
                             "baseline_provider": upgrade["baseline_provider"],
                         }],
-                        "source_results_sha256": _sha256(baseline / "results.jsonl"),
+                        "source_results_sha256": file_sha256(baseline / "results.jsonl"),
                         "excluded_attempt": None,
                     })
                 selected.append((selected_row, baseline))
@@ -1447,10 +1436,10 @@ def _assemble(
             if not isinstance(speed_plan.get("reason"), str) or not speed_plan["reason"].strip():
                 raise ValueError("Reused speed cohort requires a reason")
             bindings = {
-                "dataset_sha256": _sha256(speed_cohort / "dataset.json"),
-                "results_sha256": _sha256(speed_cohort / "results.jsonl"),
-                "execution_sha256": _sha256(speed_cohort / "execution.json"),
-                "speed_comparison_sha256": _sha256(speed_cohort / "speed-comparison.json"),
+                "dataset_sha256": file_sha256(speed_cohort / "dataset.json"),
+                "results_sha256": file_sha256(speed_cohort / "results.jsonl"),
+                "execution_sha256": file_sha256(speed_cohort / "execution.json"),
+                "speed_comparison_sha256": file_sha256(speed_cohort / "speed-comparison.json"),
             }
             if any(speed_plan.get(field) != digest for field, digest in bindings.items()):
                 raise ValueError("Reused speed cohort bytes differ from the refresh plan")
@@ -1458,7 +1447,7 @@ def _assemble(
                 "result-review.json", "scoring-revisions.json", "reference-revisions.json"
             )
             actual_auxiliary = {
-                name: _sha256(speed_cohort / name)
+                name: file_sha256(speed_cohort / name)
                 for name in auxiliary_names if (speed_cohort / name).is_file()
             }
             if speed_plan.get("auxiliary_sha256") != actual_auxiliary:
@@ -1501,8 +1490,8 @@ def _assemble(
             speed_execution_value.get("aggregate"),
         )
         expected_speed_summary["bindings"] = {
-            "dataset_sha256": _sha256(speed_cohort / "dataset.json"),
-            "results_sha256": _sha256(speed_cohort / "results.jsonl"),
+            "dataset_sha256": file_sha256(speed_cohort / "dataset.json"),
+            "results_sha256": file_sha256(speed_cohort / "results.jsonl"),
         }
         packaged_speed_summary = _read_json(speed_cohort / "speed-comparison.json")
         if packaged_speed_summary != expected_speed_summary:
@@ -1608,7 +1597,7 @@ def _assemble(
         "schema_version": 2 if upgrades else 1,
         "kind": "predeclared_webfetch_refresh_assembly",
         "assembled_at": datetime.now(UTC).isoformat(),
-        "plan_sha256": _sha256(plan_path),
+        "plan_sha256": file_sha256(plan_path),
         "canonical_dataset_sha256": hashlib.sha256(dataset_bytes).hexdigest(),
         "baseline": {
             **_bundle_identity(baseline, baseline_execution),
@@ -1621,8 +1610,8 @@ def _assemble(
         "final_logical_attempts": len(final_rows),
         "output_dataset_sha256": hashlib.sha256(dataset_bytes).hexdigest(),
         "output_results_sha256": hashlib.sha256(results_bytes).hexdigest(),
-        "output_execution_sha256": _sha256(output / "execution.json"),
-        "selection_audit_sha256": _sha256(output / "selection-audit.json"),
+        "output_execution_sha256": file_sha256(output / "execution.json"),
+        "selection_audit_sha256": file_sha256(output / "selection-audit.json"),
         "speed_cohort": speed_receipt,
         "provider_calls_performed_by_assembler": 0,
         "selection_policy": "exact profile scope; never select by score or retry outcome",

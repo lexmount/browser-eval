@@ -8,7 +8,6 @@ import hashlib
 import io
 import json
 import math
-import re
 import sys
 import tempfile
 from collections import Counter
@@ -18,8 +17,9 @@ from pathlib import Path
 from lexbench_webfetch.metrics import percentile
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
-from harness.record_io import parse_jsonl
-from harness.reporting.publication import atomic_create, json_bytes
+from harness.record_io import file_sha256, json_bytes, parse_jsonl
+from harness.reporting.privacy import WCXB_ERROR
+from harness.reporting.publication import atomic_create
 from harness.web_fetch import wcxb_metrics
 from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.web_fetch.wcxb_dataset import validate_manifest
@@ -101,14 +101,10 @@ def metric_implementation_binding(profile: dict, *, read=None, certificate=None,
     return actual
 
 
-def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def public_error(value: str | None) -> str | None:
     if value is None:
         return None
-    return re.sub(r"/(?:Users|home|private/var)/[^\s:]+", "[local path]", value)
+    return WCXB_ERROR.redact(value)
 
 
 def classify(row: dict, predicted: str, precision: float, recall: float, reference: str) -> str:
@@ -154,7 +150,7 @@ class EvidenceInputs:
 
     def check(self):
         for path, value in list(self.hashes.items()):
-            if path.is_symlink() or not path.is_file() or digest(path) != value:
+            if path.is_symlink() or not path.is_file() or file_sha256(path) != value:
                 raise ValueError("WCXB evidence changed during scoring")
 
 
@@ -297,7 +293,7 @@ def install_scores(root: Path, payloads: dict[str, bytes | Path], unchanged) -> 
             if path.is_symlink() or not path.is_file():
                 continue
             identity = path.stat()
-            if (identity.st_dev, identity.st_ino) == (device, inode) and digest(
+            if (identity.st_dev, identity.st_ino) == (device, inode) and file_sha256(
                 path
             ) == expected_hash:
                 path.unlink()
@@ -401,7 +397,7 @@ def _score(*, source, sample_manifest, evidence_root, profile_path, staging):
         correction_receipt, correction = load_full_paired_latency(
             correction_root, profile, set(by_id)
         )
-        if digest(correction_root / "receipt.json") != profile["latency_correction_receipt_sha256"]:
+        if file_sha256(correction_root / "receipt.json") != profile["latency_correction_receipt_sha256"]:
             raise ValueError("WCXB corrected timing receipt differs from current profile")
         correction_certificate = json.loads((correction_root / "certification.json").read_text())
         if (
@@ -416,7 +412,7 @@ def _score(*, source, sample_manifest, evidence_root, profile_path, staging):
             or correction_certificate.get("sample_sha256_after") != sample_hash
             or correction_certificate.get("calls_sha256") != correction_receipt["calls_sha256"]
             or correction_certificate.get("receipt_sha256")
-            != digest(correction_root / "receipt.json")
+            != file_sha256(correction_root / "receipt.json")
         ):
             raise ValueError("WCXB paired latency certification differs from corrected evidence")
     summaries = {}

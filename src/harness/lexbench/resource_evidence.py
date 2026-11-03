@@ -12,13 +12,13 @@ from pathlib import Path
 from lexbench_webfetch.paths import contained_path
 
 from harness.lexbench.resource_matrix import verify_calls
-from harness.record_io import load_jsonl
+from harness.record_io import file_sha256, load_jsonl
 
 
 def digest(path: Path) -> str:
     if path.is_symlink() or not path.is_file():
         raise ValueError("resource evidence must be a regular file")
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return file_sha256(path)
 
 
 def validate_measurements(rows: list[dict], protocol: dict, metrics: dict) -> None:

@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import os
 import shutil
 import subprocess
 import zipfile
@@ -11,7 +10,8 @@ from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path
 
-from harness.reporting.publication import atomic_write
+from harness.data_home import data_home
+from harness.record_io import bytes_sha256
 from harness.web_fetch.config import ROOT
 from harness.web_fetch.report_publish import PublishConfig
 from harness.web_fetch.report_publish import publish as publish_package
@@ -19,21 +19,13 @@ from harness.web_search import delivery as report_delivery
 from harness.web_search import profiles
 from harness.web_search import report as search_report
 from harness.web_search import visual as report_visual
-from harness.web_search.core import digest
+from harness.web_search.core import write_json
 from harness.web_search.profiles import (
     authority_root,
     collection_receipts,
     current_selection,
     publication_metadata,
 )
-
-
-def data_home():
-    return Path(os.environ.get("BROWSER_EVAL_DATA_HOME", Path.home() / ".browser-eval")).expanduser().resolve()
-
-
-def save(path, value):
-    atomic_write(path, (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode())
 
 
 def prepare(report, visual, content, sources, work, *, profile):
@@ -60,7 +52,7 @@ def prepare(report, visual, content, sources, work, *, profile):
     def bind(name, source, filename):
         destination = inputs / filename
         shutil.copyfile(source, destination)
-        bindings[name] = {"path": str(destination.relative_to(data_home())), "sha256": digest(destination.read_bytes())}
+        bindings[name] = {"path": str(destination.relative_to(data_home())), "sha256": bytes_sha256(destination.read_bytes())}
     for name, source, filename in (
         ("report_manifest", report / "manifest.json", "manifest.json"),
         ("content", content, "reader-content.json"),
@@ -76,9 +68,9 @@ def prepare(report, visual, content, sources, work, *, profile):
     for receipt in receipts:
         cohort = receipt["cohort"]
         source = sources[cohort]
-        if source.is_symlink() or digest((source / "receipt.json").read_bytes()) != receipt["receipt_sha256"]:
+        if source.is_symlink() or bytes_sha256((source / "receipt.json").read_bytes()) != receipt["receipt_sha256"]:
             raise ValueError("Publication collection receipt differs")
-        if digest((source / "profile.json").read_bytes()) != receipt["profile_sha256"]:
+        if bytes_sha256((source / "profile.json").read_bytes()) != receipt["profile_sha256"]:
             raise ValueError("Publication collection profile differs")
         bindings[cohort + "_profile"] = {k: expected[cohort][k] for k in ("path", "sha256")}
         bind(cohort + "_receipt", source / "receipt.json", cohort + "-receipt.json")
@@ -99,11 +91,11 @@ def prepare(report, visual, content, sources, work, *, profile):
     candidate = dict(target, bindings=bindings, methods=[m["id"] for m in profile["methods"]], cases=len(profile["cases"]), logical_results=len(manifest["rows"]),
                      physical_calls=sum(len(r.get("attempts", [r])) for r in manifest["rows"]),
                      **publication_metadata(manifest, review, relevance),
-                     archive_sha256=digest(archive.read_bytes()))
+                     archive_sha256=bytes_sha256(archive.read_bytes()))
     for obsolete in ("superseded_physical_calls", "cohort_inputs", "quality_judge"):
         candidate.pop(obsolete, None)
-    plan = {"instance": {"path": str(instance_path), "sha256": digest(instance_path.read_bytes())}, "title": manifest.get("authored", {}).get("title", {}).get(manifest.get("primary_language", "zh"), manifest["profile"].get("title", "Search API evaluation")), "schema": "search-publication-plan/1", "expected_target": {k: target[k] for k in ("base_url", "slug", "versionId", "visibility")}, "target": candidate, "archive_sha256": candidate["archive_sha256"]}
-    save(work / "publication-plan.json", plan)
+    plan = {"instance": {"path": str(instance_path), "sha256": bytes_sha256(instance_path.read_bytes())}, "title": manifest.get("authored", {}).get("title", {}).get(manifest.get("primary_language", "zh"), manifest["profile"].get("title", "Search API evaluation")), "schema": "search-publication-plan/1", "expected_target": {k: target[k] for k in ("base_url", "slug", "versionId", "visibility")}, "target": candidate, "archive_sha256": candidate["archive_sha256"]}
+    write_json(work / "publication-plan.json", plan)
     verify_plan(report, work)
     return work
 
@@ -111,15 +103,15 @@ def prepare(report, visual, content, sources, work, *, profile):
 def verify_plan(report, work):
     plan = json.loads((work / "publication-plan.json").read_bytes())
     manifest = json.loads((report / "manifest.json").read_bytes())
-    if digest((work / "report.zip").read_bytes()) != plan["archive_sha256"] or plan["target"]["archive_sha256"] != plan["archive_sha256"]:
+    if bytes_sha256((work / "report.zip").read_bytes()) != plan["archive_sha256"] or plan["target"]["archive_sha256"] != plan["archive_sha256"]:
         raise ValueError("Publication archive changed after planning")
-    if plan["target"]["bindings"]["report_manifest"]["sha256"] != digest((report / "manifest.json").read_bytes()):
+    if plan["target"]["bindings"]["report_manifest"]["sha256"] != bytes_sha256((report / "manifest.json").read_bytes()):
         raise ValueError("Publication plan belongs to another report")
     expected = plan["expected_target"]
     candidate = plan["target"]
     receipt_file = work / "publication-receipt.json"
     profile = Path(plan["instance"]["path"])
-    if digest(profile.read_bytes()) != plan["instance"]["sha256"]:
+    if bytes_sha256(profile.read_bytes()) != plan["instance"]["sha256"]:
         raise ValueError("Search instance changed after publication planning")
     root = authority_root(profile)
     selection = current_selection(profile)
@@ -132,10 +124,10 @@ def verify_plan(report, work):
     profiles.publication_authority(manifest, profile, root=root, planned_target=candidate, expected_target=expected)
     visual_binding = plan["target"]["bindings"]["visual_acceptance"]
     visual = contained_path(data_home(), visual_binding["path"], reject_symlinks=True)
-    if json.loads(visual.read_bytes())["manifest_sha256"] != digest((report / "manifest.json").read_bytes()):
+    if json.loads(visual.read_bytes())["manifest_sha256"] != bytes_sha256((report / "manifest.json").read_bytes()):
         raise ValueError("Publication visual evidence belongs to another build")
     delivery_binding = plan["target"]["bindings"]["delivery_index"]
-    if digest((work / "delivery/delivery-index.json").read_bytes()) != delivery_binding["sha256"]:
+    if bytes_sha256((work / "delivery/delivery-index.json").read_bytes()) != delivery_binding["sha256"]:
         raise ValueError("Publication delivery index changed")
 
     profiles.verify_publication_inputs(manifest, plan["target"], root=root)
@@ -149,13 +141,13 @@ def publish(report, work, *, transport=None):
     receipt_file = work / "publication-receipt.json"
     desired = {"publication": {"base_url": target["base_url"], "site_slug": target["slug"], "version_id": target["versionId"]}}
     if not authority.exists():
-        save(authority, desired)
+        write_json(authority, desired)
     elif json.loads(authority.read_bytes()) != desired:
         raise ValueError("Publication authority differs from the frozen plan")
     if not receipt_file.exists():
-        save(receipt_file, {"slug": target["slug"], "versionId": target["versionId"], "base_url": target["base_url"]})
+        write_json(receipt_file, {"slug": target["slug"], "versionId": target["versionId"], "base_url": target["base_url"]})
     def package_check(archive, source):
-        if digest(archive.read_bytes()) != plan["archive_sha256"]:
+        if bytes_sha256(archive.read_bytes()) != plan["archive_sha256"]:
             raise ValueError("Frozen publication archive changed")
         verify_plan(report, work)
     completed = json.loads(receipt_file.read_bytes())
@@ -180,7 +172,7 @@ def publish(report, work, *, transport=None):
             binding["path"] = str((frozen / Path(binding["path"]).name).relative_to(data_home()))
     profile = Path(plan["instance"]["path"])
     selection = current_selection(profile)
-    save(authority_root(profile) / selection["publication_target"], updated)
+    write_json(authority_root(profile) / selection["publication_target"], updated)
     return updated["url"]
 
 

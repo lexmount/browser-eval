@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from harness.record_io import canonical_json_sha256
 from harness.trajectory_replay import evaluator_transition
 from harness.trajectory_replay.evaluator_transition import _old_evaluation_identity
 
@@ -223,7 +224,7 @@ def _transition():
 def _receipt(transition):
     return {
         "schema": evaluator_transition.RECEIPT_SCHEMA,
-        "transition_sha256": evaluator_transition.json_sha256(transition),
+        "transition_sha256": canonical_json_sha256(transition),
         "from_revision": transition["from_revision"],
         "compatible_from_revisions": transition["compatible_from_revisions"],
         "compatible_sources": transition["compatible_sources"],

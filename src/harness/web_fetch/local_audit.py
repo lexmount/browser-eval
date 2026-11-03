@@ -11,7 +11,7 @@ from lexbench_webfetch.paths import contained_path
 from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 from lexbench_webfetch.scoring_regressions import build_correction_provenance
 
-from harness.record_io import canonical_json_sha256, file_sha256
+from harness.record_io import canonical_json_sha256, file_sha256, read_json
 from harness.web_fetch import adjudication_evidence, local_execution_contract
 from harness.web_fetch.publication_privacy import read_evidence_binding
 from harness.web_fetch.reference_inputs import benchmark_input_path, input_tree
@@ -292,7 +292,7 @@ def _read_bound_receipt(source: Path, receipt: dict, relative: str) -> dict:
     if not expected:
         raise ValueError("Local audit review receipt changed: " + relative)
     path = read_evidence_binding(source, {'path': relative, 'sha256': expected})
-    return json.loads(path.read_text(encoding="utf-8"))
+    return read_json(path)
 
 
 def _require_lineage(source: Path, receipt: dict) -> None:

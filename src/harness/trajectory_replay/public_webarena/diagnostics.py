@@ -31,7 +31,7 @@ from harness.environments import browser as browser_runtime
 from harness.environments.webarena import har as browser_har
 from harness.environments.webarena.config import SITE_TOKENS
 from harness.environments.webarena.topology import OFFICIAL_TRACE_PORTS
-from harness.record_io import parse_jsonl
+from harness.record_io import bytes_sha256, canonical_json_sha256, file_sha256, parse_jsonl
 from harness.trajectory_replay.diagnostics import (
     _check_diagnostic_snapshot,
     _diagnostic_snapshot,
@@ -304,11 +304,6 @@ RUN_SCHEMA = "lex_webarena_codex_repair_run/1"
 MAX_CONCURRENCY = 8
 
 
-def _json_sha256(value: Any) -> str:
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
-    return hashlib.sha256(encoded).hexdigest()
-
-
 def _file_binding(path: Path) -> dict[str, Any]:
     if path.is_symlink():
         raise ValueError(f"repair evidence file is symlinked: {path}")
@@ -441,7 +436,7 @@ def _packet_from_inputs(suite: dict[str, Any], suite_sha256: str, attempt_file: 
         "bindings": {
             "suite_sha256": suite_sha256,
             "task_id": task_id,
-            "task_sha256": _json_sha256(task),
+            "task_sha256": canonical_json_sha256(task),
             "task_contract_sha256": task_contract_sha256(task),
             "attempt_sha256": hashlib.sha256(attempt_raw).hexdigest(),
             "final_page": final_bindings,
@@ -489,10 +484,6 @@ def main_repair_packet(argv=None) -> None:
     _write_immutable(args.output, build_packet(args.suite, args.attempt))
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def _write_new(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("x", encoding="utf-8") as handle:
@@ -516,7 +507,7 @@ def _load_and_validate_packet(path: Path, suite: dict[str, Any]) -> dict[str, An
     if len(matches) != 1:
         raise ValueError(f"suite does not uniquely contain repair packet task: {task_id}")
     source_task = matches[0]
-    if bindings.get("task_sha256") != _json_sha256(source_task):
+    if bindings.get("task_sha256") != canonical_json_sha256(source_task):
         raise ValueError(f"repair packet task sha256 mismatch: {task_id}")
     if bindings.get("task_contract_sha256") != task_contract_sha256(source_task):
         raise ValueError(f"repair packet task contract sha256 mismatch: {task_id}")
@@ -547,7 +538,7 @@ def _load_and_validate_packet(path: Path, suite: dict[str, Any]) -> dict[str, An
         if (
             evidence_path.is_symlink()
             or not evidence_path.is_file()
-            or _sha256(evidence_path) != expected
+            or file_sha256(evidence_path) != expected
         ):
             raise ValueError(f"repair packet {key} evidence binding mismatch: {task_id}")
     bound_paths = {
@@ -668,7 +659,7 @@ def _changed_repair_inputs(bindings: dict[Path, str]) -> list[str]:
     return [
         str(path)
         for path, sha in bindings.items()
-        if path.is_symlink() or not path.is_file() or _sha256(path) != sha
+        if path.is_symlink() or not path.is_file() or file_sha256(path) != sha
     ]
 
 
@@ -716,7 +707,7 @@ def _run_repair_job(
         "ephemeral": True,
         "json_events": True,
         "timeout_seconds": timeout_seconds,
-        "packet_sha256": _sha256(packet_copy),
+        "packet_sha256": file_sha256(packet_copy),
         "qualification_effect": "none",
     }
     _write_new(
@@ -789,8 +780,8 @@ def _run_repair_job(
         "returncode": returncode,
         "model": model,
         "reasoning_effort": reasoning_effort,
-        "packet_sha256": _sha256(packet_copy),
-        "proposal_sha256": _json_sha256(proposal) if proposal is not None else None,
+        "packet_sha256": file_sha256(packet_copy),
+        "proposal_sha256": canonical_json_sha256(proposal) if proposal is not None else None,
         "qualification_effect": "none",
     }
     _write_new(
@@ -952,11 +943,11 @@ def main_codex_repairs(argv=None) -> None:
 
 
 def _recording_sha256(path: Path) -> str:
-    return hashlib.sha256(unlinked_path(path).read_bytes()).hexdigest()
+    return file_sha256(unlinked_path(path))
 
 
 def _resource_sha256(resource: Any) -> str:
-    return hashlib.sha256(resource.read_bytes()).hexdigest()
+    return bytes_sha256(resource.read_bytes())
 
 
 def _recorded_network_requests(path: Path) -> list[dict[str, Any]]:
@@ -1338,7 +1329,7 @@ def runtime_smoke_main(argv=None) -> None:
         "cpu_limit": args.cpus,
         "memory_limit": "1g",
         "login_verified": args.verify_login,
-        "config_sha256": _sha256(config_path),
+        "config_sha256": file_sha256(config_path),
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "engines": {},
     }
@@ -1409,7 +1400,7 @@ def runtime_smoke_main(argv=None) -> None:
             receipt["engines"][engine] = {
                 "container_image_id": container.image.id,
                 "pages": pages,
-                "har": {**har, "sha256": _sha256(har_path)},
+                "har": {**har, "sha256": file_sha256(har_path)},
             }
         finally:
             browser_runtime.cleanup_browser_runtime(

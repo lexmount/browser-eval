@@ -12,11 +12,10 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from harness.distribution import installed_data_path, repository_root
+from harness.distribution import bundled_data_path
 from harness.trajectory_replay.public_webarena.publication import REPORT_STEM, public_projection
 from harness.trajectory_replay.public_webarena.result_audit import audit_result_set
 
-ROOT = repository_root()
 PAGES = tuple(
     (slug, label, f"{REPORT_STEM}{suffix}.html")
     for slug, label, suffix in (
@@ -440,9 +439,7 @@ def _is_webarena_manifest(manifest: dict[str, Any]) -> bool:
 
 
 def _report_input(name: str) -> Path:
-    if (ROOT / "pyproject.toml").is_file():
-        return (ROOT / "evaluation/browser-use-public") / name
-    return installed_data_path("share/browser-harness-eval/public-webarena/" + name)
+    return bundled_data_path("evaluation/browser-use-public/" + name)
 
 
 def _load_public_research() -> tuple[dict[str, Any], dict[str, Any]]:

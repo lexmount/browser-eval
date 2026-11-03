@@ -6,10 +6,10 @@ from pathlib import Path
 import pytest
 
 from harness.distribution import source_path
+from harness.record_io import file_sha256
 from harness.trajectory_replay.catalog_contracts import (
     ACCEPTANCE_SCHEMAS,
     RUN_SCHEMAS,
-    file_sha256,
     repository_root,
     validate_catalog_comparison_release,
     validate_catalog_report_profile,

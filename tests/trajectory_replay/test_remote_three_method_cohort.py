@@ -11,9 +11,8 @@ from types import SimpleNamespace
 import pytest
 from webarena_verified.types.task import WebArenaSite
 
+from harness.record_io import canonical_json_sha256, file_sha256
 from harness.trajectory_replay import remote_execution as cohort
-from harness.trajectory_replay.remote_runtime import file_sha256
-from harness.trajectory_replay.webarena_replay import _json_sha256
 from tests.trajectory_replay.test_aggregate_webarena_three_method_cohorts import _reset_receipt
 
 
@@ -61,13 +60,13 @@ def _fixture(
     rows = [
         {
             "task_id": task_id,
-            "task_contract_sha256": _json_sha256(
+            "task_contract_sha256": canonical_json_sha256(
                 {"task": dataset_rows[task_id - 1]["task"], "evaluation_input": {}}
             ),
             "actions": actions,
-            "bound_calls_sha256": _json_sha256(actions),
+            "bound_calls_sha256": canonical_json_sha256(actions),
             "source_actions": actions,
-            "source_calls_sha256": _json_sha256(actions),
+            "source_calls_sha256": canonical_json_sha256(actions),
             "readiness": [],
         }
         for task_id in ids
@@ -223,7 +222,9 @@ def test_preflight_rejects_drift_and_frozen_answer(
     save()
     with pytest.raises(ValueError, match="frozen source/bound actions changed"):
         cohort.preflight_cohort(args)
-    manifest["tasks"][0]["bound_calls_sha256"] = _json_sha256(manifest["tasks"][0]["actions"])
+    manifest["tasks"][0]["bound_calls_sha256"] = canonical_json_sha256(
+        manifest["tasks"][0]["actions"]
+    )
     manifest["tasks"][0]["recorded_response"] = {"task_type": "RETRIEVE"}
     save()
     with pytest.raises(ValueError, match="frozen answers"):
@@ -256,13 +257,13 @@ def test_preflight_rejects_partial_method_and_existing_output(
     manifest["tasks"].append(
         {
             "task_id": 89,
-            "task_contract_sha256": _json_sha256(
+            "task_contract_sha256": canonical_json_sha256(
                 {"task": {"intent": "Task 89"}, "evaluation_input": {}}
             ),
             "actions": [{"action": "goto", "url": "https://example.com"}],
-            "bound_calls_sha256": _json_sha256([{"action": "goto", "url": "https://example.com"}]),
+            "bound_calls_sha256": canonical_json_sha256([{"action": "goto", "url": "https://example.com"}]),
             "source_actions": [{"action": "goto", "url": "https://example.com"}],
-            "source_calls_sha256": _json_sha256([{"action": "goto", "url": "https://example.com"}]),
+            "source_calls_sha256": canonical_json_sha256([{"action": "goto", "url": "https://example.com"}]),
             "readiness": [],
         }
     )

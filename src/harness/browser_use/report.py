@@ -28,9 +28,6 @@ from harness.browser_use.failure_cause_review import (
 from harness.browser_use.failure_cause_review import (
     review_path as failure_review_path,
 )
-from harness.browser_use.failure_cause_review import (
-    sha256 as file_sha256,
-)
 from harness.browser_use.publication import (
     evaluator_summary,
     evidence_metadata,
@@ -47,7 +44,7 @@ from harness.browser_use.selection import (
     report_selection_path,
     validate_against_official,
 )
-from harness.record_io import load_jsonl
+from harness.record_io import load_jsonl, optional_file_sha256, read_json, write_json
 from harness.report_languages import (
     add_language_argument,
     includes_english,
@@ -58,6 +55,7 @@ from harness.report_languages import (
 from harness.reporting.assets import bound_json_asset
 from harness.reporting.templates import template_identity
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
+from lexbench_webfetch.metrics import percentile
 
 ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli"}
 MODEL_LABELS = {"gpt-5.6-sol": "GPT-5.6 Sol"}
@@ -113,7 +111,7 @@ class Safe(str):
 
 
 def _read_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    return read_json(path) if path.is_file() else {}
 
 
 def _read_attempts(evidence: Path) -> list[dict[str, Any]]:
@@ -178,8 +176,8 @@ def _load_evidence_bundles(
                 "config": config,
                 "review": review,
                 "source_attempts": rows,
-                "attempts_sha256": _sha256(path / "attempts.jsonl"),
-                "manifest_sha256": _sha256(path / "manifest.json"),
+                "attempts_sha256": optional_file_sha256(path / "attempts.jsonl"),
+                "manifest_sha256": optional_file_sha256(path / "manifest.json"),
             }
         )
     expected_models = set(MODEL_LABELS)
@@ -227,10 +225,6 @@ def _load_evidence_bundles(
             if cohort != expected:
                 raise ValueError(f"model cohort is missing a registered browser: {model}")
     return bundles
-
-
-def _sha256(path: Path) -> str | None:
-    return hashlib.sha256(path.read_bytes()).hexdigest() if path.is_file() else None
 
 
 def _pct(value: float | None) -> str:
@@ -531,15 +525,6 @@ def _public_execution(row: dict[str, Any], *, authoritative: bool) -> dict[str, 
     }
 
 
-def _percentile(values: list[float], q: float) -> float | None:
-    if not values:
-        return None
-    values = sorted(values)
-    index = (len(values) - 1) * q
-    lo, hi = math.floor(index), math.ceil(index)
-    return values[lo] if lo == hi else values[lo] + (values[hi] - values[lo]) * (index - lo)
-
-
 def _primary_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, dict[str, Any]]]:
     result: dict[str, dict[str, dict[str, Any]]] = {}
     for model in MODEL_LABELS:
@@ -567,24 +552,24 @@ def _primary_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, dict[str
                 resource_summary[name] = {
                     "count": len(values),
                     "mean": statistics.fmean(values) if values else None,
-                    "p50": _percentile(values, 0.50),
-                    "p95": _percentile(values, 0.95),
+                    "p50": percentile(values, 0.50),
+                    "p95": percentile(values, 0.95),
                 }
             result[model][engine] = {
                 "completed": len(logical),
                 "passed": passed,
                 "score": passed / len(logical) if logical else None,
                 "mean_duration_ms": statistics.fmean(durations) if durations else None,
-                "p50_duration_ms": _percentile(durations, 0.50),
-                "p95_duration_ms": _percentile(durations, 0.95),
+                "p50_duration_ms": percentile(durations, 0.50),
+                "p95_duration_ms": percentile(durations, 0.95),
                 "mean_browser_tool_duration_ms": statistics.fmean(tool_durations)
                 if tool_durations
                 else None,
-                "p50_browser_tool_duration_ms": _percentile(tool_durations, 0.50),
-                "p95_browser_tool_duration_ms": _percentile(tool_durations, 0.95),
+                "p50_browser_tool_duration_ms": percentile(tool_durations, 0.50),
+                "p95_browser_tool_duration_ms": percentile(tool_durations, 0.95),
                 "mean_tokens": statistics.fmean(tokens) if tokens else None,
-                "p50_tokens": _percentile(tokens, 0.50),
-                "p95_tokens": _percentile(tokens, 0.95),
+                "p50_tokens": percentile(tokens, 0.50),
+                "p95_tokens": percentile(tokens, 0.95),
                 "resources": resource_summary,
             }
     return result
@@ -673,7 +658,7 @@ def _resolve_tasks(
                 update={"test_data_file": dataset_path}))
         if expected_data_checksum:
             dataset_path = Path(benchmark.config.test_data_file)
-            actual_data_checksum = _sha256(dataset_path)
+            actual_data_checksum = optional_file_sha256(dataset_path)
             if actual_data_checksum != expected_data_checksum:
                 raise ValueError(
                     "installed WebArena-Verified data checksum differs from measured evidence: "
@@ -1710,7 +1695,7 @@ def _extract_trace_screenshots(
                 output.append(
                     {
                         "path": f"screenshots/{destination.name}",
-                        "sha256": _sha256(destination),
+                        "sha256": optional_file_sha256(destination),
                         "label": f"最后页面画面 {index}/{total}",
                         "source": "playwright-screencast-frame",
                         "width": width,
@@ -1767,11 +1752,11 @@ def _write_execution_artifacts(
         "trajectory": steps,
         "screenshots": screenshots,
     }
-    _write_json(artifact_dir / PUBLIC_EXECUTION_ARTIFACTS["execution_evidence"], bundle)
+    write_json(artifact_dir / PUBLIC_EXECUTION_ARTIFACTS["execution_evidence"], bundle, parents=True)
     artifacts = {
         label: {
             "path": f"artifacts/{result_id}/executions/{execution}/{filename}",
-            "sha256": _sha256(artifact_dir / filename),
+            "sha256": optional_file_sha256(artifact_dir / filename),
         }
         for label, filename in PUBLIC_EXECUTION_ARTIFACTS.items()
     }
@@ -1947,7 +1932,7 @@ def _validate_replay_contract_definitions(bridge: dict[str, Any]) -> None:
     for name in ("trajectories", "corrections"):
         binding = (bridge.get("contract_definitions") or {}).get(name) or {}
         path = Path(str(binding.get("path") or ""))
-        if path.is_symlink() or not path.is_file() or _sha256(path) != binding.get("sha256"):
+        if path.is_symlink() or not path.is_file() or optional_file_sha256(path) != binding.get("sha256"):
             raise ValueError("trajectory replay contract definitions are not hash-bound")
         definitions[name] = _read_json(path)
     dataset = definitions["trajectories"]
@@ -2008,7 +1993,7 @@ def _load_trajectory_replay_bridge(
         return None
     source = Path(str(config.get("source_path") or ""))
     expected_hash = str(config.get("source_sha256") or "")
-    if source.is_symlink() or not source.is_file() or _sha256(source) != expected_hash:
+    if source.is_symlink() or not source.is_file() or optional_file_sha256(source) != expected_hash:
         raise ValueError("trajectory replay bridge is missing or is not hash-bound by the profile")
     bridge = _read_json(source)
     if bridge.get("schema") != "lex_browser_use_trajectory_replay_bridge/1":
@@ -2020,7 +2005,7 @@ def _load_trajectory_replay_bridge(
     if (
         trajectory_profile_path.is_symlink()
         or not trajectory_profile_path.is_file()
-        or _sha256(trajectory_profile_path) != trajectory_profile.get("sha256")
+        or optional_file_sha256(trajectory_profile_path) != trajectory_profile.get("sha256")
     ):
         raise ValueError("trajectory replay profile is missing or is not hash-bound")
     _validate_replay_contract_definitions(bridge)
@@ -2043,7 +2028,7 @@ def _load_trajectory_replay_bridge(
     if (
         review_path.is_symlink()
         or not review_path.is_file()
-        or _sha256(review_path) != review.get("sha256")
+        or optional_file_sha256(review_path) != review.get("sha256")
         or int(review.get("failed_results") or 0) != 36
         or int(review.get("verified_results") or 0) != 36
     ):
@@ -2513,11 +2498,6 @@ def _attempt_table(
     )
 
 
-def _write_json(path: Path, value: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-
-
 def _release_details(release: dict[str, Any]) -> str:
     rows = release.get("changes") or []
     details = (
@@ -2613,7 +2593,7 @@ def _write_fix_log(stage: Path, model: dict[str, Any], *, english: bool = False)
         if not english:
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(item["path"], destination)
-            if _sha256(destination) != item["sha256"]:
+            if optional_file_sha256(destination) != item["sha256"]:
                 raise ValueError("fix artifact changed during materialization")
         artifacts[item["id"]] = {**{k: v for k, v in item.items() if k != "path"}, "href": relative}
 
@@ -2690,7 +2670,7 @@ def _write_fix_log(stage: Path, model: dict[str, Any], *, english: bool = False)
     body += _table([pick("修复项", "Fix"), pick("验证范围", "Validation scope")], rows) if rows else f'<p>{pick("暂无已绑定验证证据的修复记录。", "No fix records with bound validation evidence are available.")}</p>'
     save("index.html", title, body)
     if not english:
-        _write_json(stage / "data/fix-log.json", {**model, "artifacts": list(artifacts.values())})
+        write_json(stage / "data/fix-log.json", {**model, "artifacts": list(artifacts.values())}, parents=True)
 
 
 def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_path: Path, include_english: bool = False, language: str | None = None, profile_path: Path | None = None) -> Path:
@@ -2878,7 +2858,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             "报告版本说明",
             "每个版本只记录影响读者判断的正式修正；结论、分母、耗时与证据影响直接展示，技术依据按需展开。",
         ) + _release_history(releases, str(release_data.get("history_scope") or ""))
-        _write_json(stage / "report-changes.json", release_data)
+        write_json(stage / "report-changes.json", release_data, parents=True)
         (stage / "changes/index.html").write_text(
             _page(title="变更记录", active="changes", body=changes, depth=1), encoding="utf-8"
         )
@@ -3627,20 +3607,20 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 for bundle in bundles
             },
         }
-        _write_json(stage / "data/interpretation-evidence.json", claims)
-        _write_json(
+        write_json(stage / "data/interpretation-evidence.json", claims, parents=True)
+        write_json(
             stage / "data/selection.json",
             {
                 "schema": "lex_browser_use_public_selection/1",
                 "selection_sha256": selection.sha256,
                 "tasks": tasks,
-            },
+            }, parents=True,
         )
         (stage / "data/results.jsonl").write_text(
             "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in public_attempts),
             encoding="utf-8",
         )
-        _write_json(
+        write_json(
             stage / "data/failure-cause-review.json",
             {
                 "schema": LAYERED_REVIEW_SCHEMA,
@@ -3654,24 +3634,24 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 },
                 "unresolved": sorted(failed_result_ids - set(verified_causes)),
                 "results": verified_causes,
-            },
+            }, parents=True,
         )
         if trajectory_replay_bridge is not None:
-            _write_json(stage / "data/trajectory-replay-bridge.json", trajectory_replay_bridge)
-            _write_json(
+            write_json(stage / "data/trajectory-replay-bridge.json", trajectory_replay_bridge, parents=True)
+            write_json(
                 stage / "data/trajectory-replay-failure-review.json",
-                _read_json(Path(str((trajectory_replay_bridge.get("moli_failure_review") or {}).get("path") or ""))),
+                _read_json(Path(str((trajectory_replay_bridge.get("moli_failure_review") or {}).get("path") or ""))), parents=True,
             )
-        _write_json(
+        write_json(
             stage / "data/evidence-index.json",
             {
                 "schema": "lex_browser_use_public_evidence_index/4",
                 "results": public_evidence_results,
-            },
+            }, parents=True,
         )
         audit = {
             "schema": "lex_browser_use_report/3",
-            "profile_sha256": _sha256(profile_path),
+            "profile_sha256": optional_file_sha256(profile_path),
             "template": template_identity("browser-use"),
             "result_count": len(attempts),
             "score_authority": {
@@ -3704,7 +3684,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     model_id: review_value.get("bindings") or {}
                     for model_id, review_value in failure_reviews.items()
                 },
-                "source_sha256": file_sha256(failure_review_path(profile)),
+                "source_sha256": optional_file_sha256(failure_review_path(profile)),
             },
             "review": {
                 "coverage": review.get("coverage"),
@@ -3715,8 +3695,8 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             if review
             else None,
         }
-        _write_json(stage / "data/summary.json", audit)
-        _write_json(stage / "report-data.json", audit)
+        write_json(stage / "data/summary.json", audit, parents=True)
+        write_json(stage / "report-data.json", audit, parents=True)
         public_env = {
             "schema": "lex_browser_use_public_environment/2",
             "protocol": {
@@ -3783,8 +3763,8 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 "official_evaluator": environment.get("official_evaluator"),
             },
         }
-        _write_json(stage / "data/environment.json", public_env)
-        _write_json(
+        write_json(stage / "data/environment.json", public_env, parents=True)
+        write_json(
             stage / "data/review.json",
             {
                 key: review.get(key)
@@ -3799,9 +3779,9 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     "unresolved",
                     "attempts",
                 )
-            },
+            }, parents=True,
         )
-        _write_json(
+        write_json(
             stage / "data/publication-privacy.json",
             {
                 "schema": "lex_browser_use_publication_privacy/1",
@@ -3826,7 +3806,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     "synthetic usernames and email addresses that are part of official task contracts",
                     "public benchmark task identifiers and expected values",
                 ],
-            },
+            }, parents=True,
         )
         _write_fix_log(stage, fix_log)
         if include_english:
@@ -3839,8 +3819,8 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             select_report_language(stage, language)
         from harness.reporting.versions import bind_build_version
         audit['browser_eval'] = bind_build_version(stage)
-        _write_json(stage / "data/summary.json", audit)
-        _write_json(stage / "report-data.json", audit)
+        write_json(stage / "data/summary.json", audit, parents=True)
+        write_json(stage / "report-data.json", audit, parents=True)
         (stage / ".generated-report").write_text("browser-use-report/2\n", encoding="utf-8")
         backup: Path | None = None
         if output.exists():

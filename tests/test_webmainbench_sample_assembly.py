@@ -3,9 +3,10 @@ import json
 
 import pytest
 
+from harness.record_io import file_sha256
 from harness.web_fetch import webmainbench_assembly as assembly
 from harness.web_fetch.webmainbench_diagnostics import sample_review_main
-from harness.web_fetch.webmainbench_evidence import digest, read_jsonl, scored_shard_bindings
+from harness.web_fetch.webmainbench_evidence import read_jsonl, scored_shard_bindings
 from tests.webmainbench_sample_fixture import sample_fixture, write_json, write_rows
 
 
@@ -32,11 +33,11 @@ def test_declared_sample_preserves_all_bound_results_calls_and_source(tmp_path, 
         assert actual == [{**row, 'case_id': row['track_id']} for row in expected]
     for row in read_jsonl(output / 'results.jsonl') + read_jsonl(output / 'physical-attempts.jsonl'):
         relative = row.get('physical_artifact_path', row.get('artifact_path'))
-        assert digest(output / relative) == row['output_sha256']
+        assert file_sha256(output / relative) == row['output_sha256']
     assert not list(output.rglob('private-notes.txt'))
     assert scored_shard_bindings(fixture['root'], list(providers)) == bindings
     review = json.loads((output / 'result-review.json').read_bytes())
-    assert review['bindings']['results_jsonl_sha256'] == digest(output / 'results.jsonl')
+    assert review['bindings']['results_jsonl_sha256'] == file_sha256(output / 'results.jsonl')
 
 
 @pytest.mark.parametrize('damage', ['review-bindings', 'review-provider', 'review-check', 'profile', 'source',

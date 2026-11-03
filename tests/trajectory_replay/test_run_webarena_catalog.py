@@ -2,20 +2,22 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import threading
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
+from harness.record_io import canonical_json_sha256, file_sha256
 from harness.trajectory_replay import catalog_runner
 from harness.trajectory_replay.catalog_binding import rebind_catalog
 from harness.trajectory_replay.catalog_contracts import (
     apply_action_overrides,
     catalog_action_overrides,
     completed_task_ids,
-    file_sha256,
     load_action_overrides,
     load_catalog_inputs,
     row_source_sites,
@@ -36,7 +38,6 @@ from harness.trajectory_replay.remote_execution import (
     sanitize_remote_text,
 )
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
-from harness.trajectory_replay.webarena_replay import _json_sha256
 
 _REMOTE_RUNTIME = {
     "protocolVersion": "1.3",
@@ -557,7 +558,7 @@ def _amendment(task_id: int, action_index: int, action: dict, updates: dict) -> 
     return {
         "task_id": task_id,
         "action_index": action_index,
-        "precondition_action_sha256": _json_sha256(action),
+        "precondition_action_sha256": canonical_json_sha256(action),
         "set": updates,
     }
 
@@ -689,7 +690,7 @@ def test_row_action_overrides_require_valid_catalog_source_hash(
         "action_overrides": {
             "schema": "lex_webarena_replay_action_overrides/1",
             "source_sha256": row_source_sha256,
-            "amendments_sha256": _json_sha256(amendments),
+            "amendments_sha256": canonical_json_sha256(amendments),
             "amendments": amendments,
         },
     }
@@ -704,7 +705,7 @@ def test_row_action_overrides_reject_empty_amendment_binding() -> None:
         "action_overrides": {
             "schema": "lex_webarena_replay_action_overrides/1",
             "source_sha256": source_sha256,
-            "amendments_sha256": _json_sha256([]),
+            "amendments_sha256": canonical_json_sha256([]),
             "amendments": [],
         },
     }
@@ -772,7 +773,7 @@ def test_catalog_requires_one_hash_bound_row_in_declared_order(tmp_path: Path) -
         {
             "task_id": task_id,
             "mode": "portable" if task_id == 0 else "direct",
-            "bound_calls_sha256": _json_sha256([action]),
+            "bound_calls_sha256": canonical_json_sha256([action]),
             **({} if task_id == 0 else {"source_actions": [action]}),
         }
         for task_id in range(3)
@@ -853,13 +854,13 @@ def test_catalog_binding_embeds_override_provenance_and_hashes_amended_actions(
                 {
                     "task_id": 0,
                     "mode": "portable",
-                    "bound_calls_sha256": _json_sha256([portable_action]),
+                    "bound_calls_sha256": canonical_json_sha256([portable_action]),
                 },
                 {
                     "task_id": 1,
                     "mode": "direct",
                     "source_actions": [direct_action],
-                    "bound_calls_sha256": _json_sha256([direct_action]),
+                    "bound_calls_sha256": canonical_json_sha256([direct_action]),
                 },
             ],
         },
@@ -881,10 +882,10 @@ def test_catalog_binding_embeds_override_provenance_and_hashes_amended_actions(
     )
     rows = {row["task_id"]: row for row in rebound["rows"]}
     assert rebound["action_overrides_sha256"] == file_sha256(overrides_path)
-    assert rows[0]["bound_calls_sha256"] == _json_sha256(
+    assert rows[0]["bound_calls_sha256"] == canonical_json_sha256(
         [{**portable_action, "wait_for_selector_hidden": ".loading-mask"}]
     )
-    assert rows[1]["bound_calls_sha256"] == _json_sha256(
+    assert rows[1]["bound_calls_sha256"] == canonical_json_sha256(
         [{**direct_action, "script_mode": "function_body"}]
     )
     assert rows[0]["action_overrides"]["source_sha256"] == file_sha256(overrides_path)
@@ -1009,6 +1010,108 @@ def test_runner_rejects_row_overrides_without_external_version_binding(
     )
     with pytest.raises(ValueError, match="requires its versioned action overrides"):
         catalog_runner.main()
+
+
+@pytest.mark.parametrize(
+    ("restart_cause", "expected_calls"),
+    [
+        ("runtime_poisoned", [(1, 0), (2, 1)]),
+        ("browser_exited", [(1, 0), (2, 1)]),
+        ("setup_failure", [(1, 0), (1, 1), (2, 1)]),
+    ],
+)
+def test_local_catalog_restart_replays_on_the_new_browser_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    restart_cause: str,
+    expected_calls: list[tuple[int, int]],
+) -> None:
+    class Browser:
+        def __init__(self) -> None:
+            self.returncode = None
+
+        def poll(self):
+            return self.returncode
+
+        def terminate(self) -> None:
+            self.returncode = -15
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+    browsers: list[Browser] = []
+    calls: list[tuple[int, str]] = []
+
+    def start_local_browser(_args, _profile):
+        browsers.append(Browser())
+        return browsers[-1], f"http://127.0.0.1:{9000 + len(browsers) - 1}"
+
+    def run_task(*, task_id, endpoint, **_kwargs):
+        first_call = not calls
+        calls.append((task_id, endpoint))
+        if first_call and restart_cause == "setup_failure":
+            raise RuntimeError("browser session did not start")
+        if first_call and restart_cause == "browser_exited":
+            browsers[-1].returncode = 1
+        return {
+            "task_id": task_id,
+            "status": "pass",
+            "runtime_poisoned": first_call and restart_cause == "runtime_poisoned",
+        }
+
+    catalog = {
+        "task_ids": [1, 2],
+        "rows": [{"task_id": 1, "mode": "recorded"}, {"task_id": 2, "mode": "recorded"}],
+    }
+    paths = {name: tmp_path / name for name in ("catalog", "suite", "sites", "receipt", "browser")}
+    for path in paths.values():
+        path.write_text("{}", encoding="utf-8")
+    environment = tmp_path / "environment"
+    environment.write_text("{}", encoding="utf-8")
+    for name, stub in {
+        "verify_webarena_runtime_source": lambda: SimpleNamespace(revision="a" * 40),
+        "load_catalog_inputs": lambda *args, **kwargs: (catalog, {}, {}),
+        "validate_environment_preparation": lambda *args: None,
+        "load_corrections": lambda: SimpleNamespace(source_sha256="b" * 64),
+        "remote_benchmark": lambda sites: None,
+        "_task_origins": lambda *args: set(),
+        "_bound_catalog_row": lambda _catalog, frozen, *args: frozen,
+        "start_local_browser": start_local_browser,
+        "_run_task": run_task,
+    }.items():
+        monkeypatch.setattr(catalog_runner, name, stub)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run",
+            "--catalog",
+            str(paths["catalog"]),
+            "--portable-suite",
+            str(paths["suite"]),
+            "--site-map",
+            str(paths["sites"]),
+            "--site-reset-receipt",
+            str(paths["receipt"]),
+            "--environment-profile",
+            str(environment),
+            "--binary",
+            str(paths["browser"]),
+            "--backend",
+            "playwright",
+            "--output",
+            str(tmp_path / "output"),
+        ],
+    )
+
+    prior_umask = os.umask(0o022)
+    try:
+        catalog_runner.main()
+    finally:
+        os.umask(prior_umask)
+
+    assert calls == [(task_id, f"http://127.0.0.1:{9000 + run}") for task_id, run in expected_calls]
+    assert len(browsers) == 2
+    assert all(browser.poll() is not None for browser in browsers)
 
 
 def test_rows_can_rebind_accepted_actions_from_distinct_source_deployments() -> None:

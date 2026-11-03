@@ -25,7 +25,7 @@ from lexbench_webfetch.scoring_regressions import (
     valid_correction_provenance,
 )
 
-from harness.record_io import canonical_json_sha256, read_completed_records
+from harness.record_io import canonical_json_sha256, json_bytes, read_completed_records
 from harness.web_fetch.artifacts import materialize_task_references
 from harness.web_fetch.reference_inputs import (
     input_tree,
@@ -60,7 +60,7 @@ REFERENCE_PROMOTION_REGRESSION_IDS = {
 
 def browser_observation_bytes(observation):
     """Return the exact portable bytes retained for one browser observation."""
-    return (json.dumps(observation,ensure_ascii=False,indent=2)+'\n').encode()
+    return json_bytes(observation)
 
 
 def _source_revision(case, capture, *, browser_observation=False):

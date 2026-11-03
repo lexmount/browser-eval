@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from harness.record_io import bytes_sha256
 from harness.trajectory_replay.retrieval_acceptance import (
     PROTOCOL,
     PROTOCOL_V2,
@@ -14,7 +15,6 @@ from harness.trajectory_replay.retrieval_acceptance import (
     pointer,
     project,
     require_current_retrieval,
-    text_digest,
 )
 from harness.trajectory_replay.retrieval_acceptance import (
     verify_attempt as _verify_attempt,
@@ -79,22 +79,22 @@ def reviewed_span_fixture(output="selected_spans"):
     annotations = [
         {
             "identity_sha256": digest("post-a"),
-            "semantic_text_sha256": text_digest(posts[0]["body"]),
-            "output_text_sha256": text_digest(posts[0]["title"]),
+            "semantic_text_sha256": bytes_sha256(posts[0]["body"].encode()),
+            "output_text_sha256": bytes_sha256(posts[0]["title"].encode()),
             "recommendation_count": 1,
             "spans": [{"start": 1, "end": 6}],
         },
         {
             "identity_sha256": digest("post-b"),
-            "semantic_text_sha256": text_digest(posts[1]["body"]),
-            "output_text_sha256": text_digest(posts[1]["title"]),
+            "semantic_text_sha256": bytes_sha256(posts[1]["body"].encode()),
+            "output_text_sha256": bytes_sha256(posts[1]["title"].encode()),
             "recommendation_count": 2,
             "spans": [],
         },
         {
             "identity_sha256": digest("post-c"),
-            "semantic_text_sha256": text_digest(posts[2]["body"]),
-            "output_text_sha256": text_digest(posts[2]["title"]),
+            "semantic_text_sha256": bytes_sha256(posts[2]["body"].encode()),
+            "output_text_sha256": bytes_sha256(posts[2]["title"].encode()),
             "recommendation_count": 0,
             "spans": [],
         },
@@ -705,7 +705,7 @@ def v3_review(contract, scope="distinct title values", reviewer_kind="agent"):
         "source_review_sha256": digest(source_review),
         "source_review_artifact": {
             "utf8": json.dumps(source_review),
-            "sha256": text_digest(json.dumps(source_review)),
+            "sha256": bytes_sha256(json.dumps(source_review).encode()),
             "content": copy.deepcopy(source_review),
         },
     }
@@ -1006,7 +1006,7 @@ def test_v3_predecessor_artifact_binding(mutation):
     raw = '{ "reviewer": "synthetic reviewer" }\n'
     artifact = {
         "utf8": raw,
-        "sha256": text_digest(raw),
+        "sha256": bytes_sha256(raw.encode()),
         "content": json.loads(raw),
         "bindings": [
             {
@@ -1029,7 +1029,7 @@ def test_v3_predecessor_artifact_binding(mutation):
     evidence["source_review_sha256"] = digest(evidence["source_review"])
     evidence["source_review_artifact"] = {
         "utf8": raw_review,
-        "sha256": text_digest(raw_review),
+        "sha256": bytes_sha256(raw_review.encode()),
         "content": copy.deepcopy(evidence["source_review"]),
     }
     contract["semantic_reference"]["evidence_sha256"] = digest(evidence)

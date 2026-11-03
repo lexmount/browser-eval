@@ -6,6 +6,8 @@ import pytest
 from bs4 import BeautifulSoup
 
 from harness.environments.webarena.topology import RECORDING_GATEWAYS
+from harness.record_io import canonical_json_sha256
+from harness.reporting.privacy import TRAJECTORY_REPLAY
 from harness.trajectory_replay.report_inputs import bound_dataset_path
 from harness.trajectory_replay.webarena_report import (
     LEGACY_REPLAY_VALIDITY_INPUTS,
@@ -14,13 +16,11 @@ from harness.trajectory_replay.webarena_report import (
     _copy_failure_screenshot,
     _detail_page,
     _historical_replay_validity_notice,
-    _json_sha256,
     _legacy_retrieval_provenance,
     _load_artifact,
     _measured_validity_identity,
     _metrics_table,
     _outcome_metrics,
-    _planned_actions_digest,
     _public_evidence,
     _reference_validity_by_task,
     _resource_table,
@@ -40,7 +40,6 @@ from harness.trajectory_replay.webarena_report_check import (
     _check_formal_execution_scope,
     _check_legacy_retrieval_audit,
     _check_result_detail_semantics,
-    _contains_local_path_outside_web_url,
     _semantic_page_inventory,
 )
 from harness.trajectory_replay.webarena_report_check import (
@@ -99,7 +98,7 @@ def build_replay_fixture(tmp_path: Path, monkeypatch, extra_methods=0, *, failed
          "task_id": 29, "status": "pass", "process_status": "pass",
          "evaluator_status": "pass", "action_count": 1,
          "completed_action_count": 1, "duration_ms": 100,
-         "planned_actions": actions, "planned_actions_sha256": _planned_actions_digest(actions),
+         "planned_actions": actions, "planned_actions_sha256": canonical_json_sha256(actions),
          "reference_validity": {"status": "valid"},
          "resource": {}, "evidence": {}}
         for method in methods
@@ -144,7 +143,7 @@ def build_replay_fixture(tmp_path: Path, monkeypatch, extra_methods=0, *, failed
         files[name] = path
     data["dataset_sha256"] = hashlib.sha256(files["dataset.json"].read_bytes()).hexdigest()
     frozen_task = json.loads(files["dataset.json"].read_text())["trajectories"][0]
-    contract_sha256 = _json_sha256({
+    contract_sha256 = canonical_json_sha256({
         "task": frozen_task["task"], "evaluation_input": frozen_task["evaluation_input"],
     })
     for attempt in attempts:
@@ -307,7 +306,7 @@ def test_method_specific_planned_actions_are_hash_bound() -> None:
     attempt = {
         "participant_id": "moli-fixed", "task_id": 29, "action_count": 1,
         "planned_actions": actions,
-        "planned_actions_sha256": _planned_actions_digest(actions),
+        "planned_actions_sha256": canonical_json_sha256(actions),
     }
     assert _validated_planned_actions(attempt) == actions
     with pytest.raises(ValueError, match="planned actions"):
@@ -567,7 +566,7 @@ def test_legacy_retrieval_provenance_binds_every_browser_to_saved_answer(tmp_pat
         "engines": ["chromium", "moli"],
         "attempts": [
             {"task_id": 243, "engine": browser,
-             "evaluation_input_sha256": _json_sha256(answer)}
+             "evaluation_input_sha256": canonical_json_sha256(answer)}
             for browser in ("chromium", "moli")
         ],
     }
@@ -582,7 +581,7 @@ def test_legacy_retrieval_provenance_binds_every_browser_to_saved_answer(tmp_pat
     results["attempts"][1]["evaluation_input_sha256"] = "0" * 64
     with pytest.raises(ValueError, match="differs from frozen Agent answer"):
         _legacy_retrieval_provenance(results, dataset)
-    results["attempts"][1]["evaluation_input_sha256"] = _json_sha256(answer)
+    results["attempts"][1]["evaluation_input_sha256"] = canonical_json_sha256(answer)
     results["attempts"].pop()
     with pytest.raises(ValueError, match="full browser-task matrix"):
         _legacy_retrieval_provenance(results, dataset)
@@ -1148,7 +1147,7 @@ def test_report_preserves_web_routes_that_resemble_linux_paths() -> None:
         "task_id": 317,
         "action_count": 1,
         "planned_actions": actions,
-        "planned_actions_sha256": _planned_actions_digest(actions),
+        "planned_actions_sha256": canonical_json_sha256(actions),
     }
 
     assert _clean(actions) == actions
@@ -1156,10 +1155,10 @@ def test_report_preserves_web_routes_that_resemble_linux_paths() -> None:
 
 
 def test_release_path_gate_ignores_web_routes_but_detects_machine_paths() -> None:
-    assert not _contains_local_path_outside_web_url(
+    assert not TRAJECTORY_REPLAY.found(
         "https://gitlab.example.test/root/project/-/issues"
     )
-    assert _contains_local_path_outside_web_url(
+    assert TRAJECTORY_REPLAY.found(
         "opened /root/private/result.json from https://example.test/root/public"
     )
 

@@ -21,7 +21,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from harness.environments.webarena.topology import RECORDED_PORT_SITES
-from harness.record_io import load_jsonl, same_json_record
+from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl, same_json_record
 from harness.trajectory_replay.public_webarena.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from harness.trajectory_replay.public_webarena.suite import (
     TRAJECTORY_SCHEMA,
@@ -168,14 +168,9 @@ def trajectory_semantic_conflicts(task: dict[str, Any]) -> tuple[str, ...]:
     return tuple(conflicts)
 
 
-def _json_sha256(value: Any) -> str:
-    content = json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    return hashlib.sha256(content.encode()).hexdigest()
-
-
 def task_contract_sha256(task: dict[str, Any]) -> str:
     """Bind qualification evidence to the exact executable task contract."""
-    return _json_sha256(
+    return canonical_json_sha256(
         {
             "id": task.get("id"),
             "title": task.get("title"),
@@ -465,7 +460,7 @@ def _apply_material_change(task: dict[str, Any], adjudication: dict[str, Any]) -
             or not corrected["actions"]
         ):
             raise ValueError(f"{task['id']}: corrected trajectory is invalid")
-        original_sha256 = _json_sha256(task["trajectory"])
+        original_sha256 = canonical_json_sha256(task["trajectory"])
         corrected = deepcopy(corrected)
         provenance = dict(corrected.get("provenance") or {})
         provenance.update(
@@ -656,7 +651,9 @@ def apply_adjudication(
             raise ValueError(f"{task['id']}: repaired eligibility requires reason")
         _apply_material_change(task, adjudication)
         if adjudication.get("corrected_trajectory") is not None:
-            public_adjudication["corrected_trajectory_sha256"] = _json_sha256(task["trajectory"])
+            public_adjudication["corrected_trajectory_sha256"] = canonical_json_sha256(
+                task["trajectory"]
+            )
         if requires_validation:
             public_adjudication["validated_run_sha256s"] = list(
                 validated_attempt_sha256s(
@@ -722,15 +719,11 @@ def task_ids_from_scope(
     return task_ids
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def qualification_shards(scope_path: Path, suite_path: Path) -> tuple[dict[str, Any], ...]:
     scope = json.loads(scope_path.read_text(encoding="utf-8"))
     if scope.get("schema") != "lex_browser_use_native_scope/1":
         raise ValueError("native scope schema is invalid")
-    suite_sha256 = _sha256(suite_path)
+    suite_sha256 = file_sha256(suite_path)
     if scope.get("suite_sha256") != suite_sha256:
         raise ValueError("native scope does not match suite sha256")
     shards: list[dict[str, Any]] = []
@@ -824,9 +817,11 @@ def validate_completed_shard(
         raise ValueError(f"{shard['id']}: incomplete qualification output; missing {missing}")
     manifest = json.loads(required["manifest.json"].read_text(encoding="utf-8"))
     provenance = manifest.get("artifact_provenance") or {}
-    if provenance.get("attempts_sha256") != _sha256(required["attempts.jsonl"]) or provenance.get(
+    if provenance.get("attempts_sha256") != file_sha256(
+        required["attempts.jsonl"]
+    ) or provenance.get(
         "summary_sha256"
-    ) != _sha256(required["summary.json"]):
+    ) != file_sha256(required["summary.json"]):
         raise ValueError(f"{shard['id']}: qualification artifact hash mismatch")
     protocol = manifest.get("protocol") or {}
     selection = protocol.get("task_selection") or {}
@@ -1024,10 +1019,10 @@ def run_qualification(args: argparse.Namespace) -> None:
         raise ValueError("WebArena runtime configs must be distinct isolated instances")
     # Rainbond refreshes runtime gateway URLs after a receipt-bound site reset.
     # Only the task suite and declared scope are static orchestration inputs.
-    frozen_inputs = {path: _sha256(path) for path in (suite_path, scope_path)}
+    frozen_inputs = {path: file_sha256(path) for path in (suite_path, scope_path)}
 
     def check_inputs() -> None:
-        if any(_sha256(path) != digest for path, digest in frozen_inputs.items()):
+        if any(file_sha256(path) != digest for path, digest in frozen_inputs.items()):
             raise ValueError("qualification inputs changed during orchestration")
 
     all_shards = qualification_shards(scope_path, suite_path)
@@ -1389,7 +1384,7 @@ def build_probe(suite: dict[str, Any], proposal: dict[str, Any]) -> dict[str, An
             and proposal["source_task_contract_sha256"] != task_contract_sha256(task)):
         raise ValueError("repair proposal source task contract changed")
     if (proposal.get("source_trajectory_sha256") is not None
-            and proposal["source_trajectory_sha256"] != _json_sha256(original)):
+            and proposal["source_trajectory_sha256"] != canonical_json_sha256(original)):
         raise ValueError("repair proposal source trajectory changed")
     if not harness_revalidation:
         if replace_actions:
@@ -1432,8 +1427,7 @@ def build_probe(suite: dict[str, Any], proposal: dict[str, Any]) -> dict[str, An
 
 
 def _proposal_digest(value: Any) -> str:
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(encoded).hexdigest()
+    return canonical_json_sha256(value, ensure_ascii=True)
 
 
 def build_proposal_suite(
@@ -2566,7 +2560,7 @@ def main_repair_proposal(argv=None, *, kind: str) -> None:
             allow_many=args.allow_many, reason=args.reason)]
     for proposal in proposals:
         task = next(task for task in suite["tasks"] if str(task["id"]) == proposal["task_id"])
-        proposal["source_trajectory_sha256"] = _json_sha256(task["trajectory"])
+        proposal["source_trajectory_sha256"] = canonical_json_sha256(task["trajectory"])
         proposal["source_task_contract_sha256"] = task_contract_sha256(task)
         proposal["input_sha256"] = {
             name: hashlib.sha256(content).hexdigest()

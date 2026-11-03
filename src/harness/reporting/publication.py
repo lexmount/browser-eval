@@ -10,16 +10,20 @@ import shutil
 import stat
 import tempfile
 import urllib.parse
+import urllib.request
 import uuid
 import zipfile
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import NamedTuple
 from urllib.error import HTTPError
 
 from lexbench_webfetch.paths import contained_path
 
+from harness.record_io import file_sha256, json_bytes
+from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.safety import evidence_tree_identity, reject_evidence_symlinks
 
 
@@ -236,10 +240,6 @@ def public_share_context(base: str, share_url: str) -> tuple[str, str]:
     return target.path, token
 
 
-def json_bytes(value: dict) -> bytes:
-    return (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode()
-
-
 def atomic_write(path: Path, payload: bytes) -> None:
     _destination(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -254,6 +254,107 @@ def atomic_write(path: Path, payload: bytes) -> None:
         temporary.replace(path)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+class PublicationResponse(NamedTuple):
+    status: int
+    body: bytes
+    headers: dict[str, str]
+
+
+@dataclass(frozen=True)
+class PublicationClient:
+    """One publisher's Artifact Site request behaviour, selected by data rather than a copied client."""
+
+    user_agent: str | None
+    timeout: int = 240
+    put_timeout: int | None = None
+    return_http_errors: bool = False
+    authorization_first: bool = True
+
+    def timeout_for(self, method: str | None) -> int:
+        return self.put_timeout if method == 'PUT' and self.put_timeout is not None else self.timeout
+
+    def headers(
+        self, base: str, content_type: str | None = None, *,
+        authenticated: bool = True, extra_headers: dict[str, str] | None = None,
+    ) -> dict[str, str]:
+        identity = {'User-Agent': self.user_agent} if self.user_agent else {}
+        credential = {'Authorization': 'Bearer ' + load_token(base_url=base)} if authenticated else {}
+        headers = {**credential, **identity} if self.authorization_first else {**identity, **credential}
+        if content_type:
+            headers['Content-Type'] = content_type
+        headers.update(extra_headers or {})
+        return headers
+
+    def request(
+        self, base: str, path: str, data: bytes | None = None, content_type: str | None = None, *,
+        method: str | None = None, authenticated: bool = True,
+        extra_headers: dict[str, str] | None = None,
+    ) -> PublicationResponse:
+        headers = self.headers(base, content_type, authenticated=authenticated, extra_headers=extra_headers)
+        request = urllib.request.Request(base + path, data=data, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout_for(method)) as response:
+                return PublicationResponse(response.status, response.read(), dict(response.headers.items()))
+        except HTTPError as error:
+            if not self.return_http_errors:
+                raise
+            try:
+                return PublicationResponse(error.code, error.read(), dict(error.headers.items()))
+            finally:
+                error.close()
+
+
+def response_json(status: int, raw: bytes, *, operation: str) -> dict:
+    """Decode an Artifact Site response without hiding its HTTP failure."""
+    if not 200 <= status < 300:
+        detail = raw.decode('utf-8', errors='replace').strip()[:500] or 'empty response'
+        raise RuntimeError(f'{operation} failed with HTTP {status}: {detail}')
+    try:
+        value = json.loads(raw)
+    except (TypeError, ValueError) as error:
+        raise RuntimeError(f'{operation} returned HTTP {status} without a valid JSON response') from error
+    if not isinstance(value, dict):
+        raise RuntimeError(f'{operation} returned a non-object JSON response')
+    return value
+
+
+def multipart_archive(
+    archive: Path, title: str, *, boundary_prefix: str, filename: str, boundary_seed: bytes | None = None,
+) -> tuple[bytes, str]:
+    """Build the same body for the same release so a retried operation replays identical bytes."""
+    seed = boundary_seed if boundary_seed is not None else title.encode() + b'\0' + file_sha256(archive).encode()
+    boundary = boundary_prefix + hashlib.sha256(seed).hexdigest()[:32]
+    fields = [
+        f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode()
+        for key, value in (('mode', 'zip'), ('title', title))
+    ]
+    fields.append(
+        f'--{boundary}\r\nContent-Disposition: form-data; name="file"; '
+        f'filename="{filename}"\r\nContent-Type: application/zip\r\n\r\n'.encode()
+        + archive.read_bytes()
+        + b'\r\n'
+    )
+    fields.append(f'--{boundary}--\r\n'.encode())
+    return b''.join(fields), 'multipart/form-data; boundary=' + boundary
+
+
+def _without_secrets(value):
+    if isinstance(value, dict):
+        return {key: _without_secrets(item) for key, item in value.items()
+                if key not in {'editToken', 'claimToken', 'token'}}
+    if isinstance(value, list):
+        return [_without_secrets(item) for item in value]
+    return value
+
+
+def write_receipt(path: Path, value: dict) -> bytes:
+    """Persist a private receipt without any credential the service returned; return its bytes."""
+    payload = json_bytes(_without_secrets(value))
+    atomic_write(path, payload)
+    os.chmod(path, 0o600)
+    return payload
 
 
 def recover_binding(

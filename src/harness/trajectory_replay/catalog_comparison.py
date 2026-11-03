@@ -9,11 +9,10 @@ from pathlib import Path
 from typing import Any
 
 from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
-from harness.record_io import load_jsonl
+from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl, read_json
 from harness.trajectory_replay.catalog_contracts import (
     apply_action_overrides,
     catalog_action_overrides,
-    file_sha256,
     load_catalog_inputs,
     row_source_sites,
 )
@@ -25,7 +24,6 @@ from harness.trajectory_replay.runtime_identity import (
     runtime_identity,
 )
 from harness.trajectory_replay.webarena_corrections import apply_correction, load_corrections
-from harness.trajectory_replay.webarena_replay import _json_sha256
 from harness.web_fetch.safety import unlinked_path, write_new_file
 
 RESULTS_SCHEMA = "lex_webarena_catalog_comparison_results/1"
@@ -46,7 +44,7 @@ _EVIDENCE_FILENAMES = {
 def _read(path: Path) -> dict[str, Any]:
     if path.is_symlink() or not path.is_file():
         raise ValueError(f"missing or symlinked comparison input: {path}")
-    return json.loads(path.read_text(encoding="utf-8"))
+    return read_json(path)
 
 
 def _artifact(path: Path, digest: str) -> dict[str, str]:
@@ -98,7 +96,7 @@ def build_catalog_comparison_dataset(
             set(TRUSTED_RECORDED_HOSTS),
             row_source_sites(catalog, frozen),
         )
-        if _json_sha256(actions) != frozen["bound_calls_sha256"]:
+        if canonical_json_sha256(actions) != frozen["bound_calls_sha256"]:
             raise ValueError(f"task {task_id}: report actions differ from executed catalog")
         task = {
             key: contract[key]
@@ -120,7 +118,7 @@ def build_catalog_comparison_dataset(
                 "evaluation_input": contract["eval"][0]["expected"],
                 "source": {
                     "kind": frozen.get("source_kind"),
-                    "catalog_row_sha256": _json_sha256(frozen),
+                    "catalog_row_sha256": canonical_json_sha256(frozen),
                 },
                 "verification": {
                     "contract": {"kind": "official_or_reviewed_correction"},
@@ -213,7 +211,7 @@ def _attempt(
     remote_browser = physical_runtime.get("remote_browser")
     actions = task["tool_calls"]
     uses_current_actions = (
-        physical.get("executed_actions_sha256") == _json_sha256(actions)
+        physical.get("executed_actions_sha256") == canonical_json_sha256(actions)
         and physical.get("action_count") == len(actions)
     )
     evidence = {}
@@ -244,7 +242,7 @@ def _attempt(
         if evaluation_exists
         else "not_run"
     )
-    contract_sha256 = _json_sha256(
+    contract_sha256 = canonical_json_sha256(
         {"task": task["task"], "evaluation_input": task["evaluation_input"]}
     )
     reference_validity = {
@@ -263,7 +261,7 @@ def _attempt(
         **(
             {
                 "planned_actions": actions,
-                "planned_actions_sha256": _json_sha256(actions),
+                "planned_actions_sha256": canonical_json_sha256(actions),
             }
             if uses_current_actions
             else {
@@ -378,8 +376,6 @@ def build_catalog_comparison_results(
 
 
 def inputs_main(argv=None) -> None:
-    from harness.trajectory_replay.catalog_contracts import file_sha256
-
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, required=True)
     parser.add_argument("--dataset-output", type=Path, required=True)

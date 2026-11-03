@@ -28,7 +28,7 @@ from lexbench_webfetch.scoring_regressions import (
     valid_correction_provenance,
 )
 
-from harness.record_io import load_jsonl
+from harness.record_io import bytes_sha256, canonical_json_sha256, file_sha256, load_jsonl
 from harness.web_fetch.result_review import write_review_document
 from harness.web_fetch.safety import (
     evidence_tree_identity,
@@ -81,9 +81,6 @@ def validate_teds_revision(root):
     if root.is_symlink() or any(path.is_symlink() for path in root.rglob("*")):
         raise ValueError("Refusing symlinked TEDS correction evidence")
 
-    def digest(path):
-        return hashlib.sha256(path.read_bytes()).hexdigest()
-
     receipt_path = contained_path(root, "teds-correction.json")
     reference_receipt_path = root / "reference-correction.json"
     scoring_receipt_path = root / "scoring-correction.json"
@@ -104,15 +101,15 @@ def validate_teds_revision(root):
     if review.get("status") != "passed" or review.get("logical_results") != expected_count:
         raise ValueError("TEDS correction review incomplete")
     if (
-        digest(receipt_path) != review.get("correction_receipt_sha256")
-        or digest(teds_output_path) != receipt.get("output_results_sha256")
+        file_sha256(receipt_path) != review.get("correction_receipt_sha256")
+        or file_sha256(teds_output_path) != receipt.get("output_results_sha256")
         or receipt["output_results_sha256"] != review.get("output_results_sha256")
-        or (digest(root / "original-results.jsonl") != receipt.get("input_results_sha256"))
-        or (digest(teds_dataset_path) != receipt.get("dataset_sha256"))
+        or (file_sha256(root / "original-results.jsonl") != receipt.get("input_results_sha256"))
+        or (file_sha256(teds_dataset_path) != receipt.get("dataset_sha256"))
     ):
         raise ValueError("TEDS correction evidence hash mismatch")
     for path, expected in receipt["source_code_sha256"].items():
-        if digest(contained_path(root / "correction-source", path)) != expected:
+        if file_sha256(contained_path(root / "correction-source", path)) != expected:
             raise ValueError("TEDS correction source hash mismatch")
     original = load_jsonl(root / "original-results.jsonl")
     current = load_jsonl(teds_output_path)
@@ -317,10 +314,6 @@ ROOT_CAUSE = (
 )
 
 
-def digest(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def original_official_metrics(row):
     """Keep the first official score snapshot across stacked score corrections."""
     return copy.deepcopy(row.get("official_metrics", row.get("metrics", {})))
@@ -407,7 +400,7 @@ def _revise_teds(source, output, scorer_repo, prior_corrected, scorer_commit):
         inherited = {
             row["attempt_id"]: row for row in iter(load_jsonl(prior_corrected / "results.jsonl"))
         }
-        inherited_receipt_sha256 = digest(prior_corrected / "teds-correction.json")
+        inherited_receipt_sha256 = file_sha256(prior_corrected / "teds-correction.json")
     providers = dataset["coverage_plan"]["static_html"]
     _require_teds_matrix(
         dataset, {"scope": {"providers": providers, "logical_results": len(records)}}, records
@@ -422,7 +415,7 @@ def _revise_teds(source, output, scorer_repo, prior_corrected, scorer_commit):
                 path = contained_path(
                     scorer_repo / "webmainbench/metrics", relative, reject_symlinks=True
                 )
-            if digest(path) != expected:
+            if file_sha256(path) != expected:
                 raise ValueError("Official source differs: " + relative)
     with tempfile.TemporaryDirectory(prefix="webmainbench-teds-cache-") as cache_dir:
         calculator = official_calculator(scorer_repo, Path(cache_dir), scorer_commit)
@@ -437,8 +430,8 @@ def _revise_teds(source, output, scorer_repo, prior_corrected, scorer_commit):
             artifact = contained_path(source, row["artifact_path"])
             reference_path = contained_path(source, "references/" + row["case_id"] + ".md")
             if (
-                digest(artifact) != row["output_sha256"]
-                or digest(reference_path) != row["reference_sha256"]
+                file_sha256(artifact) != row["output_sha256"]
+                or file_sha256(reference_path) != row["reference_sha256"]
             ):
                 raise ValueError("Evidence binding mismatch: " + row["attempt_id"])
             prior = inherited.get(row["attempt_id"])
@@ -582,14 +575,14 @@ def _revise_teds(source, output, scorer_repo, prior_corrected, scorer_commit):
             "provider_calls": 0,
             "scorer_commit": scorer_commit,
             "correction_provenance": provenance,
-            "input_results_sha256": digest(source / "results.jsonl"),
-            "output_results_sha256": digest(results_path),
-            "dataset_sha256": digest(source / "dataset.json"),
+            "input_results_sha256": file_sha256(source / "results.jsonl"),
+            "output_results_sha256": file_sha256(results_path),
+            "dataset_sha256": file_sha256(source / "dataset.json"),
             "sample_manifest_sha256": dataset.get("sample_manifest_sha256"),
             "inherited_correction_receipt_sha256": inherited_receipt_sha256,
             "inherited_logical_results": len(inherited),
             "source_code_sha256": {
-                str(source_name(path)): digest(path) for path in source_files
+                str(source_name(path)): file_sha256(path) for path in source_files
             },
             "scope": {"logical_results": len(records), "providers": sorted(summaries)},
             "changed_scores": changed,
@@ -643,12 +636,12 @@ def review_teds_correction(source, corrected):
         ("output_results_sha256", corrected / "results.jsonl"),
         ("dataset_sha256", corrected / "dataset.json"),
     ]:
-        if digest(path) != receipt[field]:
+        if file_sha256(path) != receipt[field]:
             raise ValueError("Correction hash mismatch: " + field)
     for relative, expected in receipt["source_code_sha256"].items():
-        if digest(contained_path(corrected / "correction-source", relative)) != expected:
+        if file_sha256(contained_path(corrected / "correction-source", relative)) != expected:
             raise ValueError("Correction implementation snapshot changed: " + relative)
-    if digest(corrected / "original-results.jsonl") != receipt["input_results_sha256"]:
+    if file_sha256(corrected / "original-results.jsonl") != receipt["input_results_sha256"]:
         raise ValueError("Original official records were not preserved byte-for-byte")
     before = load_jsonl(source / "results.jsonl")
     after = load_jsonl(corrected / "results.jsonl")
@@ -672,7 +665,7 @@ def review_teds_correction(source, corrected):
             continue
         if source_exists != corrected_exists:
             raise ValueError("Correction changed evidence file presence: " + name)
-        if digest(source / name) != digest(corrected / name):
+        if file_sha256(source / name) != file_sha256(corrected / name):
             raise ValueError("Unexpected change: " + name)
     _require_teds_matrix(json.loads((source / "dataset.json").read_text()), receipt, before, after)
     _require_finite_metrics(after)
@@ -687,7 +680,7 @@ def review_teds_correction(source, corrected):
         for metric in ("text_edit", "code_edit", "formula_edit", "table_edit"):
             if new["metrics"].get(metric) != old["metrics"].get(metric):
                 raise ValueError("Changed unrelated component: " + metric)
-        if digest(contained_path(corrected, new["artifact_path"])) != new["output_sha256"]:
+        if file_sha256(contained_path(corrected, new["artifact_path"])) != new["output_sha256"]:
             raise ValueError("Changed raw output bytes")
         if not old["ok"]:
             if new["metrics"]:
@@ -749,9 +742,9 @@ def review_teds_correction(source, corrected):
         "logical_results": expected_count,
         "changed_scores": len(changed),
         "provider_calls": 0,
-        "output_results_sha256": digest(corrected / "results.jsonl"),
-        "correction_receipt_sha256": digest(corrected / "teds-correction.json"),
-        "review_script_sha256": digest(Path(__file__)),
+        "output_results_sha256": file_sha256(corrected / "results.jsonl"),
+        "correction_receipt_sha256": file_sha256(corrected / "teds-correction.json"),
+        "review_script_sha256": file_sha256(Path(__file__)),
         "impacts": impacts,
     }
 
@@ -789,8 +782,7 @@ def normalized_edit(predicted: str, reference: str) -> float | None:
 
 
 def canonical_digest(value: object) -> str:
-    encoded = json.dumps(value, sort_keys=True, separators=(",", ":")).encode()
-    return hashlib.sha256(encoded).hexdigest()
+    return canonical_json_sha256(value, ensure_ascii=True)
 
 
 def independent_code(text: str) -> str:
@@ -845,7 +837,7 @@ def sample_review_main(argv=None, *, root=None) -> None:
     source_records, sample, profile = load_sample_contract(args.dataset, args.sample_manifest, args.profile)
     expected_ids = {row["track_id"] for row in source_records}
     expected_count = len(expected_ids)
-    sample_sha256 = digest(args.sample_manifest)
+    sample_sha256 = file_sha256(args.sample_manifest)
     providers = list(profile["providers"]) if args.providers is None else [value.strip() for value in args.providers.split(",") if value.strip()]
     if not providers or len(set(providers)) != len(providers) or not set(providers) <= set(profile["providers"]):
         raise ValueError("Providers must be a unique, non-empty subset of the declared provider matrix")
@@ -853,7 +845,7 @@ def sample_review_main(argv=None, *, root=None) -> None:
         raise ValueError("--single-shard requires exactly one provider")
     shards = {provider: args.single_shard or args.source_root / provider for provider in providers}
     fingerprints = scored_shard_bindings(args.source_root, providers, shards=shards)
-    authority_bindings = {path: digest(path) for path in (args.dataset, args.sample_manifest, args.profile)}
+    authority_bindings = {path: file_sha256(path) for path in (args.dataset, args.sample_manifest, args.profile)}
     source = {row["track_id"]: row for row in source_records}
     scorer_commit = profile["official_scorer_commit"]
     metric_manifest = profile.get("metric_source_manifest_sha256", METRIC_SOURCE_MANIFEST_SHA256)
@@ -894,7 +886,7 @@ def sample_review_main(argv=None, *, root=None) -> None:
             if (probe.get("mode") != "macos_sandbox_exec_loopback_only"
                     or probe.get("external_connect_errno") not in (1, 13)
                     or not ca_artifact.is_file()
-                    or digest(ca_artifact) != probe.get("fixture_ca_sha256")):
+                    or file_sha256(ca_artifact) != probe.get("fixture_ca_sha256")):
                 failures.append(f"{provider}: network isolation probe")
             else:
                 first = source[logical[0]["track_id"]]
@@ -915,7 +907,7 @@ def sample_review_main(argv=None, *, root=None) -> None:
         for row in logical:
             track_id = row["track_id"];record = source[track_id]
             artifact = contained_path(root, row["artifact_path"], reject_symlinks=True)
-            if digest(artifact) != row["output_sha256"]:
+            if file_sha256(artifact) != row["output_sha256"]:
                 failures.append(f"{provider}/{track_id}: artifact hash")
                 continue
             counts["artifacts"] += 1
@@ -995,9 +987,9 @@ def sample_review_main(argv=None, *, root=None) -> None:
         "checks": checks,
         "provider_notes": provider_notes,
         "failures": failures[:200],
-        "review_script_sha256": digest(Path(__file__)),
+        "review_script_sha256": file_sha256(Path(__file__)),
         "dataset_sha256": profile["source_dataset_sha256"],
-        "profile_sha256": digest(args.profile),
+        "profile_sha256": file_sha256(args.profile),
         "bindings": {"provider_files_sha256": fingerprints},
         "sample_manifest_sha256": sample_sha256,
         "sample_case_count": expected_count,
@@ -1005,7 +997,7 @@ def sample_review_main(argv=None, *, root=None) -> None:
     def unchanged():
         if (scored_shard_bindings(args.source_root, providers, shards=shards) != fingerprints
                 or any(contained_path(path.parent, path.name, reject_symlinks=True).is_symlink()
-                       or digest(path) != expected for path, expected in authority_bindings.items())):
+                       or file_sha256(path) != expected for path, expected in authority_bindings.items())):
             raise ValueError("Sample review inputs changed during audit")
         if args.output.exists() or args.output.is_symlink():
             raise ValueError("Review output appeared during audit")
@@ -1028,16 +1020,12 @@ def read_suspicion_jsonl(path: Path) -> list[dict]:
     return load_jsonl(path, skip_blank=True)
 
 
-def text_digest(text: str) -> str:
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
 def scan_suspicions(evidence: Path, source_dataset: Path) -> dict:
     reject_evidence_symlinks(evidence)
     if source_dataset.is_symlink():
         raise ValueError("Source dataset must not be symlinked")
     bindings = {
-        path: digest(path)
+        path: file_sha256(path)
         for path in (
             source_dataset,
             evidence / "dataset.json",
@@ -1060,8 +1048,8 @@ def scan_suspicions(evidence: Path, source_dataset: Path) -> dict:
     for case_id, case in cases.items():
         original = source[case_id]
         if (
-            text_digest(original["html"]) != case["input_html_sha256"]
-            or text_digest(original["groundtruth_content"]) != case["reference_sha256"]
+            bytes_sha256(original["html"].encode()) != case["input_html_sha256"]
+            or bytes_sha256(original["groundtruth_content"].encode()) != case["reference_sha256"]
         ):
             raise ValueError("Source/reference binding changed for " + case_id)
     records = read_suspicion_jsonl(evidence / "results.jsonl")
@@ -1163,7 +1151,7 @@ def scan_suspicions(evidence: Path, source_dataset: Path) -> dict:
         for row in records
         if signals.get(row["attempt_id"])
     ]
-    if any(path.is_symlink() or digest(path) != expected for path, expected in bindings.items()):
+    if any(path.is_symlink() or file_sha256(path) != expected for path, expected in bindings.items()):
         raise ValueError("Evidence changed during anomaly scan")
     return {
         "schema_version": 1,

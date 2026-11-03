@@ -7,18 +7,17 @@ import json
 from pathlib import Path
 
 from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
+from harness.record_io import canonical_json_sha256, file_sha256
 from harness.trajectory_replay.catalog_contracts import (
     ACTION_OVERRIDES_SCHEMA,
     apply_action_overrides,
     catalog_action_overrides,
-    file_sha256,
     load_action_overrides,
     load_catalog_inputs,
     row_source_sites,
 )
 from harness.trajectory_replay.public_webarena.suite import load_suite
 from harness.trajectory_replay.remote_runtime import load_remote_sites, rebind_remote_calls
-from harness.trajectory_replay.webarena_replay import _json_sha256
 
 
 def rebind_catalog(
@@ -90,12 +89,12 @@ def rebind_catalog(
             row["action_overrides"] = {
                 "schema": ACTION_OVERRIDES_SCHEMA,
                 "source_sha256": target["action_overrides_sha256"],
-                "amendments_sha256": _json_sha256(amendments),
+                "amendments_sha256": canonical_json_sha256(amendments),
                 "amendments": amendments,
             }
         else:
             row.pop("action_overrides", None)
-        row["bound_calls_sha256"] = _json_sha256(
+        row["bound_calls_sha256"] = canonical_json_sha256(
             rebind_remote_calls(
                 actions, sites, set(TRUSTED_RECORDED_HOSTS), row_source_sites(target, row)
             )

@@ -34,7 +34,7 @@ Use the existing scorer and report renderer.
 
 ### Hosted Markdown fetch services
 
-Five methods share `providers/hosted_fetch.py` and the existing HTTP client,
+Five methods share `src/harness/web_fetch/providers/hosted_fetch.py` and the existing HTTP client,
 runner and scorer. Their credentials and fixed options are declared in
 `configs/providers.example.json`; credentials come from the repository `.env`.
 

@@ -7,7 +7,6 @@ import hashlib
 import json
 import multiprocessing
 import os
-import socket
 import subprocess
 import sys
 import tempfile
@@ -17,13 +16,14 @@ import traceback
 from pathlib import Path
 from urllib.parse import quote, urlsplit
 
+from harness.env_file import parse_env_file
 from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
+from harness.record_io import file_sha256
 from harness.trajectory_replay.catalog_contracts import (
     RUN_SCHEMA,
     apply_action_overrides,
     catalog_action_overrides,
     completed_task_ids,
-    file_sha256,
     load_catalog_inputs,
     repository_root,
     row_source_sites,
@@ -31,11 +31,11 @@ from harness.trajectory_replay.catalog_contracts import (
     verify_physical_evidence,
 )
 from harness.trajectory_replay.remote_execution import (
-    _browser_command,
     _run_task,
-    _wait_cdp,
+    _stop_browser,
     finalize_timed_out_task,
     sanitize_remote_text,
+    start_local_browser,
 )
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls, remote_benchmark
 from harness.trajectory_replay.webarena_corrections import load_corrections
@@ -138,14 +138,7 @@ def _load_task_selection(path: Path) -> list[int]:
 def _load_env_values(path: Path) -> dict[str, str]:
     if path.is_symlink() or not path.is_file():
         raise ValueError("credential environment file must be a regular file")
-    values: dict[str, str] = {}
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        name, value = line.split("=", 1)
-        values[name.strip()] = value.strip().strip("\"'")
-    return values
+    return parse_env_file(path)
 
 
 def _kitesurf_cdp_config(
@@ -245,17 +238,6 @@ def _request_bridge_options(
         "request_bridge_origins": task_origins,
         "request_bridge_host_overrides": environment_profile.get("host_overrides") or [],
     }
-
-
-def _stop_browser(process: subprocess.Popen) -> None:
-    if process.poll() is not None:
-        return
-    process.terminate()
-    try:
-        process.wait(timeout=10)
-    except subprocess.TimeoutExpired:
-        process.kill()
-        process.wait(timeout=10)
 
 
 def _run_with_setup_recovery(
@@ -750,10 +732,6 @@ def main() -> None:
             record_outcome(outcome)
         return
 
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        port = sock.getsockname()[1]
-    endpoint = f"http://127.0.0.1:{port}"
     browser_args = argparse.Namespace(
         engine=args.engine,
         binary=args.binary,
@@ -761,23 +739,15 @@ def main() -> None:
     )
     with tempfile.TemporaryDirectory(prefix="webarena-catalog-") as profile:
         def start_browser() -> subprocess.Popen:
-            started = subprocess.Popen(
-                _browser_command(browser_args, port, profile),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.STDOUT,
-                start_new_session=True,
-            )
-            try:
-                _wait_cdp(endpoint, started)
-            except Exception:
-                _stop_browser(started)
-                raise
+            nonlocal endpoint
+            started, endpoint = start_local_browser(browser_args, profile)
             return started
 
         def restart_browser(current: subprocess.Popen) -> subprocess.Popen:
             _stop_browser(current)
             return start_browser()
 
+        endpoint = ""
         process = start_browser()
         try:
             for pending_index, frozen in enumerate(pending):

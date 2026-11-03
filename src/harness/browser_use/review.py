@@ -6,27 +6,14 @@ official WebArena-Verified evaluator score.
 
 from __future__ import annotations
 
-import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from harness.record_io import load_jsonl
+from harness.record_io import file_sha256, load_jsonl
 
 REQUIRED_ARTIFACTS = ("network_har", "agent_trace", "response", "evaluation", "events")
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for block in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(block)
-    return digest.hexdigest()
-
-
-def _attempts_sha256(path: Path) -> str:
-    return _sha256(path)
 
 
 def _read_attempts(path: Path) -> list[dict[str, Any]]:
@@ -75,7 +62,7 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
             exists = bool(raw_path) and path.is_file()
             checks[f"{name}_exists"] = exists
             if exists:
-                artifacts[name] = {"sha256": _sha256(path), "bytes": path.stat().st_size}
+                artifacts[name] = {"sha256": file_sha256(path), "bytes": path.stat().st_size}
 
         evaluation: dict[str, Any] = {}
         response: Any = None
@@ -142,8 +129,8 @@ def review_results(*, evidence: Path, selection_sha256: str) -> dict[str, Any]:
         },
         "reviewed_at": datetime.now(UTC).isoformat(),
         "bindings": {
-            "attempts_sha256": _attempts_sha256(attempts_path),
-            "manifest_sha256": _sha256(manifest_path),
+            "attempts_sha256": file_sha256(attempts_path),
+            "manifest_sha256": file_sha256(manifest_path),
             "selection_sha256": selection_sha256,
         },
         "protocol": {

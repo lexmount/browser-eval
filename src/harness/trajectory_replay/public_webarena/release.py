@@ -5,17 +5,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import shlex
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
-from harness.reporting.publication import (
-    atomic_write,
-    bind_publication_files,
-    json_bytes,
-    recover_binding,
-)
+from harness.data_home import data_home
+from harness.record_io import json_bytes
+from harness.reporting.publication import atomic_write, bind_publication_files, recover_binding
 from harness.trajectory_replay.public_webarena.publication import (
     build,
     check_report_bundle,
@@ -61,15 +59,14 @@ def main(project_root: Path) -> None:
     RECEIPT = (ROOT / "publish/webarena-fixed-trajectory-site-receipt.json")
     OPERATION = (ROOT / "publish/webarena-fixed-trajectory-operation.json")
     BINDING = (ROOT / "publish/webarena-fixed-trajectory-binding.json")
-    DEFAULT_FORMAL = (
-        Path.home() / ".browser-eval/evidence/current/formal/webarena-public-trajectories"
-    )
+    DEFAULT_FORMAL = data_home() / "evidence/current/formal/webarena-public-trajectories"
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--formal-root", type=Path, default=DEFAULT_FORMAL)
     parser.add_argument("--publish", action="store_true")
     parser.add_argument("--profile", type=Path, required=True)
     args = parser.parse_args()
     CURRENT = args.profile
+    quoted_profile = shlex.quote(str(CURRENT))
     if args.publish:
         recover_binding(CURRENT, ATTESTATION, BINDING, schema="public_webarena_binding/1")
     current = json.loads(CURRENT.read_text(encoding="utf-8"))
@@ -93,12 +90,12 @@ def main(project_root: Path) -> None:
         print(
             "AUDIT MODE: presentation-only fast gates. If the dataset, runner, scorer, "
             "evidence, denominator, or claimed result changed, first run "
-            "`make public-webarena-report-audit`."
+            f"`make public-webarena-report-audit PROFILE={quoted_profile}`."
         )
         if not args.publish:
             print(
                 "LOCAL ONLY: no network write. "
-                "Run `make public-webarena-report-release` to publish."
+                f"Run `make public-webarena-report-release PROFILE={quoted_profile}` to publish."
             )
             return
 

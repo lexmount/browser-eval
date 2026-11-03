@@ -11,7 +11,7 @@ evidence that the action boundary or observation scope holds.
 `qualification-matrix.json` separately records prefix compatibility, contract validity,
 current observation acceptance, diagnostic official evaluation, and remaining blockers.
 
-These definitions are **not** bound by `current-run.json`, are not a qualified 90-task dataset,
+These definitions are **not** bound by a run profile, are not a qualified 90-task dataset,
 and do not revise the published replay scores. A diagnostic score of 1 is not a new formal
 benchmark result. Task 108 has current-source acceptance without an official evaluator score.
 The additional nine-task batch is blocked: 50, 94, 188, and 231 replace frozen actions; 198

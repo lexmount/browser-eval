@@ -51,6 +51,7 @@ browser-use-eval = [
   "json-repair>=0.54,<1",
   "pillow>=11,<13",
   "playwright>=1.52,<2",
+  "psutil>=7,<8",
   "pyyaml>=6,<7",
   "regex>=2025.7,<2027",
   "requests>=2.32,<3",
@@ -129,8 +130,14 @@ include = ["harness*", "lexbench_webfetch*", "lexbench_websearch*"]
 "harness.web_fetch.workers" = ["*.mts", "*.mjs", "*.c"]
 "harness.environments.webarena" = ["runtime/*.ini", "topology.json"]
 
-[tool.setuptools.data-files]
-"share/browser-harness-eval/provenance" = ["pyproject.toml", "uv.lock"]
-"share/browser-harness-eval" = ["configs/providers.headless.json"]
-"share/browser-harness-eval/webmainbench" = ["evaluation/webmainbench-full/scoring-regressions.json"]
-"share/browser-harness-eval/public-webarena" = ["evaluation/browser-use-public/adoption-evidence.json", "evaluation/browser-use-public/benchmark-catalog.json", "evaluation/browser-use-public/report-changes.json"]
+# Copied to harness/distribution_data/ by setup.py; MANIFEST.in keeps them in the sdist.
+[tool.browser-eval]
+bundled-data = [
+  "pyproject.toml",
+  "uv.lock",
+  "configs/providers.headless.json",
+  "evaluation/webmainbench-full/scoring-regressions.json",
+  "evaluation/browser-use-public/adoption-evidence.json",
+  "evaluation/browser-use-public/benchmark-catalog.json",
+  "evaluation/browser-use-public/report-changes.json",
+]

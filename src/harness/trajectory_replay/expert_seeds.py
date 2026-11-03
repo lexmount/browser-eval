@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import copy
-import hashlib
 import json
 from pathlib import Path
 from typing import Any
+
+from harness.record_io import bytes_sha256, file_sha256, read_json
 
 BASE_SCHEMA = "lex_browser_use_replay_seeds/2"
 REPAIR_SCHEMA = "lex_webarena_expert_seed_repairs/1"
@@ -14,18 +15,6 @@ REPAIR_SCHEMA = "lex_webarena_expert_seed_repairs/1"
 
 def _canonical_bytes(value: Any) -> bytes:
     return json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
-
-
-def _sha256_bytes(value: bytes) -> str:
-    return hashlib.sha256(value).hexdigest()
-
-
-def _sha256(path: Path) -> str:
-    return _sha256_bytes(path.read_bytes())
-
-
-def _read_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _contains_ref(value: Any) -> bool:
@@ -117,7 +106,7 @@ def merge_expert_seed_manifest(
         for task in tasks.values()
         for candidate in task.get("candidates") or []
     }
-    spec_sha256 = repair_spec_sha256 or _sha256_bytes(_canonical_bytes(repair_spec))
+    spec_sha256 = repair_spec_sha256 or bytes_sha256(_canonical_bytes(repair_spec))
 
     for repair in repairs:
         if not isinstance(repair, dict) or "task_id" not in repair:
@@ -172,7 +161,7 @@ def merge_expert_seed_manifest(
     merged["expert_repairs"] = {
         "schema": REPAIR_SCHEMA,
         "base_manifest_sha256": base_manifest_sha256
-        or _sha256_bytes(_canonical_bytes(base_manifest)),
+        or bytes_sha256(_canonical_bytes(base_manifest)),
         "repair_spec_sha256": spec_sha256,
         "candidate_count": len(repairs),
         "policy": {
@@ -192,8 +181,8 @@ def build_expert_seed_manifest(
     base_path = Path(base_manifest_path).expanduser().resolve()
     repair_path = Path(repair_spec_path).expanduser().resolve()
     return merge_expert_seed_manifest(
-        _read_json(base_path),
-        _read_json(repair_path),
-        base_manifest_sha256=_sha256(base_path),
-        repair_spec_sha256=_sha256(repair_path),
+        read_json(base_path),
+        read_json(repair_path),
+        base_manifest_sha256=file_sha256(base_path),
+        repair_spec_sha256=file_sha256(repair_path),
     )

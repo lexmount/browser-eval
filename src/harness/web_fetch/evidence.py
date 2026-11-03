@@ -13,7 +13,7 @@ from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
-from harness.record_io import file_sha256, load_jsonl, parse_jsonl, read_completed_records
+from harness.record_io import file_sha256, load_jsonl, parse_jsonl, read_completed_records, read_json
 from harness.web_fetch.artifacts import (
     materialize_bound_artifacts,
     materialize_reference_checks,
@@ -605,7 +605,7 @@ def certification_main(argv=None):
 
 
 def _read(path: Path) -> dict:
-    value = json.loads(path.read_text(encoding="utf-8"))
+    value = read_json(path)
     if not isinstance(value, dict):
         raise ValueError(f"Expected JSON object: {path}")
     return value

@@ -2,6 +2,8 @@
 
 The starting delivery on 2026-09-27 contained 100 formal URL cases and 10 reserves. On 2026-09-29, insufficient current Kuaishou evidence prevented reliable rule authoring; the predeclared random procedure replaced `risk-107` with `risk-diverse-271`. The final 100 cases span 74 distinct sites. The nine unused reserves are outside the final scope and repository.
 
+The paths below are relative to the pinned definition directory that `definition_path("evaluation/risk-control/qualification")` resolves to; this checkout directory holds only this README.
+
 - `cohort/cohort-manifest.json`: URLs, site groups, target scope, language, broad qualification classes and one reference-text binding per formal case.
 - `cohort/cohort-receipt.json`: qualification criteria, overall audit, the single replacement, external complete-audit hashes and limits.
 - `cohort-policy.json`: cohort qualification and distribution constraints.

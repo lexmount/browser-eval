@@ -75,15 +75,24 @@ def test_entrypoint_prioritizes_checkout_over_noneditable_wheel(
     assert result.returncode == 0, result.stderr
 
 
-@pytest.mark.parametrize('name', ['assemble_headless.py', 'build_search_report.py'])
-def test_complete_cli_help_works_without_editable_install(
-    name, stale_wheel_install, tmp_path
-):
+def test_complete_cli_help_works_without_editable_install(stale_wheel_install, tmp_path):
     import site
     environment = {**os.environ, 'PYTHONPATH': os.pathsep.join(
         [str(stale_wheel_install), *site.getsitepackages()])}
     # These help commands only parse arguments; they do not collect or render results.
-    result = subprocess.run([sys.executable, '-S', str(ROOT/'scripts'/name), '--help'],
+    result = subprocess.run([sys.executable, '-S', str(ROOT/'scripts'/'assemble_headless.py'), '--help'],
                             cwd=tmp_path, env=environment, text=True, capture_output=True)
     assert result.returncode == 0, result.stderr
     assert 'usage:' in result.stdout.lower()
+
+
+def test_search_cli_help_runs_from_src_listed_before_installed_wheel(stale_wheel_install, tmp_path):
+    import site
+    # `python -m` has no bootstrap of its own: harness resolves from sys.path. Listing src
+    # first stands in for the editable install that `uv run --frozen` provides.
+    environment = {**os.environ, 'PYTHONPATH': os.pathsep.join(
+        [str(ROOT/'src'), str(stale_wheel_install), *site.getsitepackages()])}
+    result = subprocess.run([sys.executable, '-S', '-m', 'harness.web_search', 'report', '--help'],
+                            cwd=tmp_path, env=environment, text=True, capture_output=True)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.startswith('usage: python -m harness.web_search report ')

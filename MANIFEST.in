@@ -1,0 +1,7 @@
+# Inputs of the bundled-data build step; keep equal to tool.browser-eval.bundled-data.
+include uv.lock
+include configs/providers.headless.json
+include evaluation/webmainbench-full/scoring-regressions.json
+include evaluation/browser-use-public/adoption-evidence.json
+include evaluation/browser-use-public/benchmark-catalog.json
+include evaluation/browser-use-public/report-changes.json
