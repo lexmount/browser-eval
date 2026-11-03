@@ -75,6 +75,26 @@ def test_existing_hash_only_content_contract_remains_supported(content_inputs):
     assert load_bound_content(source, binding) == json.loads((source / 'content.json').read_bytes())
 
 
+def test_release_boundary_compares_every_generated_edition(content_inputs):
+    _, evidence, authority, binding = content_inputs
+    raw = json.dumps({'guide': {'zh': 'Synthetic finding', 'en': 'Current finding'}}).encode()
+    (evidence / 'content.json').write_bytes(raw)
+    binding = {**binding, 'sha256': hashlib.sha256(raw).hexdigest()}
+    binding_path = authority / 'evaluation/webmainbench-content-binding.json'
+    binding_path.parent.mkdir()
+    binding_path.write_text(json.dumps(binding), encoding='utf-8')
+    (evidence / 'report-content-binding.json').write_bytes(binding_path.read_bytes())
+    write_language_contract(evidence, include_english=True)
+    for route, body in (('guide/index.html', 'Synthetic finding'), ('en/guide/index.html', 'Current finding')):
+        page = evidence / route
+        page.parent.mkdir(parents=True)
+        page.write_text('<main>' + body + '</main>', encoding='utf-8')
+    validate_sample_content(evidence, authority_root=authority)
+    page.write_text('<main>Stale finding</main>', encoding='utf-8')
+    with pytest.raises(ValueError, match='differs from bound content: en'):
+        validate_sample_content(evidence, authority_root=authority)
+
+
 @pytest.mark.parametrize('tamper', ['none', 'rendered', 'binding', 'results'])
 def test_release_boundary_checks_rendered_content_and_exact_authority(content_inputs, tamper):
     source, evidence, authority, binding = content_inputs
