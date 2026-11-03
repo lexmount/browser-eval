@@ -1227,8 +1227,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             ):
                 raise ValueError("Review belongs to a different native response")
     output.mkdir(parents=True, exist_ok=True)
-    (output / "style.css").write_text(CSS)
-    (output / "app.js").write_text(JS)
+    (output / "style.css").write_text(CSS, encoding="utf-8")
+    (output / "app.js").write_text(JS, encoding="utf-8")
     for asset in model.get("assets", []):
         source = content.parent / asset["source"]
         target = output / asset["path"]
@@ -1416,7 +1416,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                     f"<details><summary>{lab[19]}</summary><pre>{esc(json.dumps(ref, ensure_ascii=False, indent=2))}</pre></details>",
                 ]
             )
-            raw_html = (home / "dataset/html" / (cid + ".html")).read_text()
+            raw_html = (home / "dataset/html" / (cid + ".html")).read_text(encoding="utf-8")
             source_soup = BeautifulSoup(raw_html, "html.parser")
             structured = [
                 str(e)
@@ -1505,7 +1505,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                     detail=True,
                     languages=languages,
                     state=state,
-                )
+                ),
+                encoding="utf-8",
             )
             compared = []
             for method in methods:
@@ -1565,7 +1566,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                     detail=True,
                     languages=languages,
                     state=state,
-                )
+                ),
+                encoding="utf-8",
             )
         bodies["dataset"] += table(
             [lab[14], message("source", lang), "Snapshot", lab[19]], dr, inventory=True
@@ -1698,7 +1700,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                     detail=True,
                     languages=languages,
                     state=state,
-                )
+                ),
+                encoding="utf-8",
             )
             elapsed = f"{r['elapsed_seconds']:.2f}" if r.get("elapsed_seconds") is not None else "—"
             field_cells = ""
@@ -1766,13 +1769,17 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         )
         for p in PAGES:
             (directory / (p + ".html")).write_text(
-                page(lang, p, titles[p], bodies[p], languages=languages, state=state)
+                page(lang, p, titles[p], bodies[p], languages=languages, state=state),
+                encoding="utf-8",
             )
     if "en" not in languages:
         (output / "en").mkdir()
-        (output / "en/index.html").write_text(message("english_not_generated_notice", "en"))
+        (output / "en/index.html").write_text(
+            message("english_not_generated_notice", "en"), encoding="utf-8"
+        )
     (output / "index.html").write_text(
-        f'<!doctype html><html lang="{language}"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url={language}/index.html"><title>Web Scraper</title></head><body><a href="{language}/index.html">Web Scraper</a></body></html>'
+        f'<!doctype html><html lang="{language}"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url={language}/index.html"><title>Web Scraper</title></head><body><a href="{language}/index.html">Web Scraper</a></body></html>',
+        encoding="utf-8",
     )
     files = {
         p.relative_to(output).as_posix(): digest(p.read_bytes())
@@ -1893,7 +1900,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
             raise ValueError("Report textual artifact has a publication privacy risk: " + name)
         if path.suffix != ".html":
             continue
-        soup = check_presentation(path.read_text())
+        soup = check_presentation(path.read_text(encoding="utf-8"))
         if soup.head is None:
             raise ValueError("Missing explicit head for hosted preview")
         if name != "index.html" and not soup.select_one('base[href="../"]'):
@@ -1925,16 +1932,18 @@ def check(output: Path, *, release=False, visual_receipt=None):
             target = output / unquote(u.path) if u.path else path
             if not target.resolve().is_relative_to(output.resolve()) or not target.is_file():
                 raise ValueError("Broken local target: " + link)
-            if u.fragment and not BeautifulSoup(target.read_text(), "html.parser").find(
-                id=u.fragment
-            ):
+            if u.fragment and not BeautifulSoup(
+                target.read_text(encoding="utf-8"), "html.parser"
+            ).find(id=u.fragment):
                 raise ValueError("Broken evidence anchor")
     if manifest.get("mode") != "full-cohort-progress":
         rows = [read_json(output / view["path"]) for view in views]
         methods = sorted({row["method"] for row in rows})
         names = manifest.get("method_labels", {})
         for lang in manifest["languages"]:
-            home_view = BeautifulSoup((output / lang / "index.html").read_text(), "html.parser")
+            home_view = BeautifulSoup(
+                (output / lang / "index.html").read_text(encoding="utf-8"), "html.parser"
+            )
             expected = BeautifulSoup(
                 operating_metrics(methods, rows, manifest.get("prices", {}), lang, names),
                 "html.parser",
@@ -1944,7 +1953,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
             if home_view.select_one("[data-operating-metrics]") != expected:
                 raise ValueError("Home latency/pricing differs from retained calls")
             account_view = BeautifulSoup(
-                (output / lang / "accounts.html").read_text(), "html.parser"
+                (output / lang / "accounts.html").read_text(encoding="utf-8"), "html.parser"
             )
             expected_price = BeautifulSoup(
                 price_table(methods, manifest.get("prices", {}), lang, names), "html.parser"
@@ -1964,7 +1973,9 @@ def check(output: Path, *, release=False, visual_receipt=None):
         if sum(len(v) for v in data.values()) != manifest["observations"]:
             raise ValueError("Published observations differ from evidence")
         for lang in manifest["languages"]:
-            soup = BeautifulSoup((output / lang / "index.html").read_text(), "html.parser")
+            soup = BeautifulSoup(
+                (output / lang / "index.html").read_text(encoding="utf-8"), "html.parser"
+            )
             summary = soup.select('[data-core-metrics="full-cohort"] tbody tr')
             if [r.get("data-method") for r in summary] != methods:
                 raise ValueError("Missing or reordered planned participant")
@@ -1985,8 +1996,12 @@ def check(output: Path, *, release=False, visual_receipt=None):
                     value = scores.get(method, {}).get(field, {}).get("f1")
                     if cell.get_text(strip=True) != ("—" if value is None else f"{value:.3f}"):
                         raise ValueError("Displayed quality differs from certified scores")
-            protocol = BeautifulSoup((output / lang / "protocol.html").read_text(), "html.parser")
-            accounts = BeautifulSoup((output / lang / "accounts.html").read_text(), "html.parser")
+            protocol = BeautifulSoup(
+                (output / lang / "protocol.html").read_text(encoding="utf-8"), "html.parser"
+            )
+            accounts = BeautifulSoup(
+                (output / lang / "accounts.html").read_text(encoding="utf-8"), "html.parser"
+            )
             expected_prices = BeautifulSoup(
                 price_table(methods, manifest.get("prices", {}), lang, names), "html.parser"
             )
@@ -2017,11 +2032,16 @@ def check(output: Path, *, release=False, visual_receipt=None):
                     c.get_text(strip=True) for c in observed_tables[0].select("td")
                 ] != [c.get_text(strip=True) for c in expected_table.select("td")]:
                     raise ValueError("Timing or usage values differ from retained calls")
-            inventory = BeautifulSoup((output / lang / "results.html").read_text(), "html.parser")
+            inventory = BeautifulSoup(
+                (output / lang / "results.html").read_text(encoding="utf-8"), "html.parser"
+            )
             if manifest.get("review"):
-                reviewed = BeautifulSoup((output / lang / "review.html").read_text(), "html.parser")
+                reviewed = BeautifulSoup(
+                    (output / lang / "review.html").read_text(encoding="utf-8"), "html.parser"
+                )
                 interpretations = BeautifulSoup(
-                    (output / lang / "interpretation.html").read_text(), "html.parser"
+                    (output / lang / "interpretation.html").read_text(encoding="utf-8"),
+                    "html.parser",
                 )
                 quality_rows = reviewed.select("[data-audited-quality] tbody tr")
                 compact_rows = interpretations.select("[data-interpretation-comparison] tbody tr")
@@ -2064,10 +2084,11 @@ def check(output: Path, *, release=False, visual_receipt=None):
             case_ids = {cid for values in data.values() for cid in values}
             for cid in case_ids:
                 source = BeautifulSoup(
-                    (output / lang / f"source-{cid}.html").read_text(), "html.parser"
+                    (output / lang / f"source-{cid}.html").read_text(encoding="utf-8"),
+                    "html.parser",
                 )
                 comparison = BeautifulSoup(
-                    (output / lang / f"case-{cid}.html").read_text(), "html.parser"
+                    (output / lang / f"case-{cid}.html").read_text(encoding="utf-8"), "html.parser"
                 )
                 if not source.select_one("[data-source-reference]") or not source.select_one(
                     "[data-source-outline]"
@@ -2081,7 +2102,8 @@ def check(output: Path, *, release=False, visual_receipt=None):
                 for method in expected_methods:
                     row = data[method][cid]
                     detail = BeautifulSoup(
-                        (output / lang / f"result-{method}-{cid}.html").read_text(), "html.parser"
+                        (output / lang / f"result-{method}-{cid}.html").read_text(encoding="utf-8"),
+                        "html.parser",
                     )
                     expected_fields = BeautifulSoup(
                         field_table(row, lang), "html.parser"
@@ -2105,7 +2127,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
         raise ValueError("Language route mismatch")
     if "en" not in manifest["languages"]:
         if en != {"index.html"} or not BeautifulSoup(
-            (output / "en/index.html").read_text(), "html.parser"
+            (output / "en/index.html").read_text(encoding="utf-8"), "html.parser"
         ).select_one("[data-language-notice] a[href='zh/index.html']"):
             raise ValueError("Missing English notice or stale English pages")
     if release:

@@ -559,7 +559,9 @@ def test_incomplete_direct_resume_rejects_damaged_snapshot_before_dispatch(tmp_p
             probe(home, ["cloudflare-json"], full=True, run_dir=target)
     # The in-flight request is unresolved; the snapshot must fail first, without dispatch.
     snapshot = target / "execution/pipeline.py"
-    snapshot.unlink() if damage == "missing" else snapshot.write_text("# altered execution")
+    snapshot.unlink() if damage == "missing" else snapshot.write_text(
+        "# altered execution", encoding="utf-8"
+    )
     with collection_context(), patch("harness.web_scraper.pipeline.provider_call") as call:
         with pytest.raises(ValueError, match="Frozen execution source changed"):
             probe(home, ["cloudflare-json"], full=True, run_dir=target)
@@ -658,7 +660,9 @@ def test_aggregation_reconciles_retry_history_and_final_selection(tmp_path, muta
     manifest["physical_calls"] = deepcopy(manifest["calls"]) + [last]
     manifest["calls"][-1] = last
     journal = run / "calls.journal.jsonl"
-    journal.write_text("".join(json.dumps(e) + "\n" for e in manifest["physical_calls"]))
+    journal.write_text(
+        "".join(json.dumps(e) + "\n" for e in manifest["physical_calls"]), encoding="utf-8"
+    )
     save_json(run / "manifest.json", manifest)
     assert load_run(run)[1][-1]["physical_attempt"] == 2
     if mutation == "missing-journal":
@@ -672,7 +676,9 @@ def test_aggregation_reconciles_retry_history_and_final_selection(tmp_path, muta
     elif mutation == "missing-physical":
         manifest["physical_calls"].remove(entry)
     elif mutation == "journal-omission":
-        journal.write_text("".join(json.dumps(e) + "\n" for e in manifest["physical_calls"][:-1]))
+        journal.write_text(
+            "".join(json.dumps(e) + "\n" for e in manifest["physical_calls"][:-1]), encoding="utf-8"
+        )
     elif mutation == "wrong-attempt":
         final["physical_attempt"] = 3
         save_json(path, final)
@@ -707,7 +713,9 @@ def test_zyte_basic_encoding_is_removed_from_retained_response(tmp_path, wire):
         row = provider_call("zyte-product", "<html>frozen</html>", "https://example.org")
         path = tmp_path / "retained.json"
         save_json(path, row)
-    assert encoded not in path.read_text() and secret not in path.read_text()
+    assert encoded not in path.read_text(encoding="utf-8") and secret not in path.read_text(
+        encoding="utf-8"
+    )
     assert "[REDACTED]" in json.dumps(read_json(path))
 
 
@@ -730,5 +738,7 @@ def test_zyte_basic_encoding_is_removed_from_checkpointed_transport_errors(tmp_p
     calls = list((target / "calls").glob("*.json"))
     assert len(calls) == 3
     for path in calls:
-        assert encoded not in path.read_text() and secret not in path.read_text()
+        assert encoded not in path.read_text(encoding="utf-8") and secret not in path.read_text(
+            encoding="utf-8"
+        )
         assert read_json(path)["error"] == "Basic [REDACTED]"

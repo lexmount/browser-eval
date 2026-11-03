@@ -20,9 +20,8 @@ def create(output: Path, *, language="zh", mode="compatibility"):
     }
     root = home / "dataset"
     save_json(root / "dataset/ground-truth.json", truth)
-    (
-        root / "evaluate.py"
-    ).write_text("""# Synthetic matching fixture; not measured benchmark output.
+    (root / "evaluate.py").write_text(
+        """# Synthetic matching fixture; not measured benchmark output.
 from decimal import Decimal
 def hard_matching(true, pred):
     if pred is None:
@@ -36,11 +35,13 @@ def metrics_from_tp_fp_fns(rows):
     p = 1.0 if fp == fn == 0 else tp / (tp + fp) if tp + fp else 0.0
     r = 1.0 if fp == fn == 0 else tp / (tp + fn) if tp + fn else 0.0
     return {'precision': p, 'recall': r, 'f1': 2*p*r/(p+r) if p+r else 0.0}
-""")
+""",
+        encoding="utf-8",
+    )
     for cid in truth:
         p = root / "html" / (cid + ".html")
         p.parent.mkdir(exist_ok=True)
-        p.write_text("<html><p>synthetic product</p></html>")
+        p.write_text("<html><p>synthetic product</p></html>", encoding="utf-8")
     files = {
         p.relative_to(root).as_posix(): {
             "sha256": digest(p.read_bytes()),
@@ -134,7 +135,7 @@ def metrics_from_tp_fp_fns(rows):
     if mode == "full-cohort-progress":
         import json
 
-        model = json.loads(content.read_text())
+        model = json.loads(content.read_text(encoding="utf-8"))
         methods = ["synthetic-success", "synthetic-blocked"]
         plan_path = home / "full-plan.json"
         plan = {
@@ -184,7 +185,9 @@ def metrics_from_tp_fp_fns(rows):
             )
             physical = []
             for cid in list(truth) if method == "synthetic-success" else list(truth)[:1]:
-                row = json.loads((run / "calls" / f"{method}-{cid}.json").read_text())
+                row = json.loads(
+                    (run / "calls" / f"{method}-{cid}.json").read_text(encoding="utf-8")
+                )
                 row["input_sha256"] = digest((root / "html" / (cid + ".html")).read_bytes())
                 dest = target / "calls" / f"{method}-{cid}.json"
                 save_json(dest, row)
@@ -195,7 +198,7 @@ def metrics_from_tp_fp_fns(rows):
                     }
                 )
             (target / "calls.journal.jsonl").write_text(
-                "".join(json.dumps(r) + "\n" for r in physical)
+                "".join(json.dumps(r) + "\n" for r in physical), encoding="utf-8"
             )
             model["evidence_runs"].append(
                 {

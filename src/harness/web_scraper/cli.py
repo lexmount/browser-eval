@@ -111,9 +111,9 @@ def main(argv=None):
                 args.home,
                 args.content,
                 args.output,
-                json.loads(args.options.read_text()),
+                json.loads(args.options.read_text(encoding="utf-8")),
                 args.fixture_base,
-                json.loads(args.cases.read_text()) if args.cases else None,
+                json.loads(args.cases.read_text(encoding="utf-8")) if args.cases else None,
             )
         )
     elif args.command in ("probe", "run"):

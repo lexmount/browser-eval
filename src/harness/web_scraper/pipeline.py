@@ -884,7 +884,7 @@ def probe(home: Path, methods: list[str], **options):
     run = Path(run)
     require_external_output(run)
     run.mkdir(parents=True, exist_ok=True)
-    with (run / "execution.lock").open("a") as lock:
+    with (run / "execution.lock").open("a", encoding="utf-8") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         return _probe_unlocked(home, methods, run_dir=run, **options)
 
@@ -1016,7 +1016,7 @@ def _probe_unlocked(
     attempts = {}
     dispatched_attempts = {}
     if journal.exists():
-        for line in journal.read_text().splitlines():
+        for line in journal.read_text(encoding="utf-8").splitlines():
             entry = json.loads(line)
             path = run / entry["path"]
             if digest(path.read_bytes()) != entry["sha256"]:
@@ -1138,7 +1138,7 @@ def _probe_unlocked(
             path = run / "calls" / f"{method}-{case_id}{suffix}.json"
             save_json(path, redact(row), exclusive=True)
             entry = {"path": path.relative_to(run).as_posix(), "sha256": digest(path.read_bytes())}
-            with journal.open("a") as checkpoint:
+            with journal.open("a", encoding="utf-8") as checkpoint:
                 checkpoint.write(json.dumps(entry) + "\n")
                 checkpoint.flush()
                 os.fsync(checkpoint.fileno())

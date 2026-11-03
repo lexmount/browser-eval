@@ -127,7 +127,7 @@ def fixture_check(home, base, cases, suffix=""):
 def run(home, profile, method, destination):
     require_external_output(destination)
     destination.mkdir(parents=True, exist_ok=True)
-    with (destination / "execution.lock").open("a") as lock:
+    with (destination / "execution.lock").open("a", encoding="utf-8") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         if (destination / "certificate.json").exists():
             contract = read_json(destination / "contract.json")
@@ -211,7 +211,11 @@ def collect(home, profile, method, destination):
         else:
             snapshot.write_bytes(Path(__file__).with_name(name).read_bytes())
     journal = destination / "calls.journal.jsonl"
-    entries = [json.loads(x) for x in journal.read_text().splitlines()] if journal.exists() else []
+    entries = (
+        [json.loads(x) for x in journal.read_text(encoding="utf-8").splitlines()]
+        if journal.exists()
+        else []
+    )
     completed, histories, logical_entries = {}, {}, {}
     for entry in entries:
         row = artifact(destination, entry)
@@ -310,7 +314,7 @@ def collect(home, profile, method, destination):
             "path": path.relative_to(destination).as_posix(),
             "sha256": digest(path.read_bytes()),
         }
-        with journal.open("a") as stream:
+        with journal.open("a", encoding="utf-8") as stream:
             stream.write(json.dumps(entry) + "\n")
             stream.flush()
             os.fsync(stream.fileno())

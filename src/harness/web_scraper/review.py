@@ -133,7 +133,7 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
         if prior is None and {r["method"] for r in outputs[cid]} != set(methods):
             raise ValueError("Audit requires the complete case-by-method matrix")
         source = home / "dataset/html" / (cid + ".html")
-        raw = source.read_text()
+        raw = source.read_text(encoding="utf-8")
         bindings[str(source)] = digest(source.read_bytes())
         soup = BeautifulSoup(raw, "html.parser")
         scripts = [str(e) for e in soup.select('script[type="application/ld+json"]')]
@@ -142,9 +142,9 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
         outline.parent.mkdir(exist_ok=True)
         text = soup.get_text("\n", strip=True)
         outline_text = text + "\n\nSTRUCTURED DATA AND METADATA\n" + "\n".join(metadata + scripts)
-        if outline.exists() and outline.read_text() != outline_text:
+        if outline.exists() and outline.read_text(encoding="utf-8") != outline_text:
             raise ValueError("Frozen source outline changed")
-        outline.write_text(outline_text)
+        outline.write_text(outline_text, encoding="utf-8")
         bindings[str(outline)] = digest(outline.read_bytes())
         cases.append(
             {
@@ -209,8 +209,8 @@ def validate(result, packet):
         methods = {o["method"] for o in item["outputs"]}
         if len(outputs) != len(methods) or {o["method"] for o in outputs} != methods:
             raise ValueError("Review must cover every method")
-        source = Path(item["source_html"]).read_text()
-        outline = Path(item["source_outline"]).read_text()
+        source = Path(item["source_html"]).read_text(encoding="utf-8")
+        outline = Path(item["source_outline"]).read_text(encoding="utf-8")
         for fields in [row["source_fields"], row["reference"], *[o["fields"] for o in outputs]]:
             if set(fields) != set(FIELDS):
                 raise ValueError("Review must cover every field")
@@ -224,7 +224,9 @@ def validate(result, packet):
         if correction["rule"] != "literal-fragment-selection":
             continue
         item = expected[correction["case_id"]]
-        sources = [Path(item[k]).read_text() for k in ("source_html", "source_outline")]
+        sources = [
+            Path(item[k]).read_text(encoding="utf-8") for k in ("source_html", "source_outline")
+        ]
         fragments = literal_fragments(correction["original_quote"], sources)
         if not fragments or correction["literal_quote"] not in fragments:
             raise ValueError("Review compound citation has unmatched source fragments")
@@ -256,7 +258,9 @@ def reconcile_citations(result, packet):
         if row.get("case_id") not in expected:
             continue
         item = expected[row["case_id"]]
-        sources = [Path(item[k]).read_text() for k in ("source_html", "source_outline")]
+        sources = [
+            Path(item[k]).read_text(encoding="utf-8") for k in ("source_html", "source_outline")
+        ]
         groups = [row["source_fields"], row["reference"], *[o["fields"] for o in row["outputs"]]]
         for fields in groups:
             for finding in fields.values():
@@ -484,7 +488,7 @@ def assemble(
                 or digest(source.read_bytes()) != decision["source_sha256"]
                 or not decision["reason"]
                 or not decision["source_quote"]
-                or decision["source_quote"] not in source.read_text()
+                or decision["source_quote"] not in source.read_text(encoding="utf-8")
             ):
                 raise ValueError("Final reference decision lacks exact source authority")
             if (cid, field) in final_decisions:
@@ -768,7 +772,7 @@ Return concise Chinese findings under the supplied schema. No API calls or file 
             str(raw),
             prompt,
         ]
-        with (logs / (path.stem + ".log")).open("w") as log:
+        with (logs / (path.stem + ".log")).open("w", encoding="utf-8") as log:
             process = sessions.start(
                 command,
                 cwd=work,

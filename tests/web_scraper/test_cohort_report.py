@@ -17,13 +17,15 @@ def test_progress_includes_unexecuted_cases_without_inventing_calls(tmp_path):
     manifest = read_json(output / "report-manifest.json")
     assert manifest["observations"] == 4
     assert len(manifest["planned_methods"]) == 2
-    inventory = BeautifulSoup((output / "zh/results.html").read_text(), "html.parser")
+    inventory = BeautifulSoup(
+        (output / "zh/results.html").read_text(encoding="utf-8"), "html.parser"
+    )
     assert len(inventory.select("tr[data-status]")) == 6
     assert len(inventory.select('tr[data-status="pending"]')) == 2
     for pending in inventory.select('tr[data-status="pending"]'):
         assert pending.select_one("code").get_text() in pending["data-search"]
         assert "https://" in pending["data-search"]
-    home = BeautifulSoup((output / "zh/index.html").read_text(), "html.parser")
+    home = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
     assert all(
         c.get_text(strip=True) == "—"
         for c in home.select("[data-core-metrics] tbody td:nth-child(n+6)")
@@ -31,7 +33,7 @@ def test_progress_includes_unexecuted_cases_without_inventing_calls(tmp_path):
     assert check(output)["state"] == "full-cohort-progress"
     # Evidence is grouped by method, loaded on demand, rather than copied per detail.
     assert len(list((output / "public-evidence").glob("*.json"))) == 2
-    assert "data-key=" in next((output / "zh").glob("result-*.html")).read_text()
+    assert "data-key=" in next((output / "zh").glob("result-*.html")).read_text(encoding="utf-8")
 
 
 def test_checkpoint_rejects_modified_calls_and_missing_participants(tmp_path):
@@ -40,7 +42,7 @@ def test_checkpoint_rejects_modified_calls_and_missing_participants(tmp_path):
     source = home / "runs/synthetic-success"
     call = next((source / "calls").glob("*.json"))
     original = call.read_bytes()
-    call.write_text("{}")
+    call.write_text("{}", encoding="utf-8")
     with pytest.raises(ValueError, match="Checkpoint call changed"):
         build(
             tmp_path / "tampered", home / "content.json", home=home, profile=home / "profile.json"
@@ -84,7 +86,7 @@ def test_contract_url_credentials_are_omitted_from_public_metadata(tmp_path):
     save_json(source / "contract.json", contract)
     output = tmp_path / "projected"
     build(output, home / "content.json", home=home, profile=home / "profile.json")
-    metadata = (output / "report-manifest.json").read_text()
+    metadata = (output / "report-manifest.json").read_text(encoding="utf-8")
     assert "private-pass" not in metadata
     assert "private-token" not in metadata
     manifest = read_json(output / "report-manifest.json")
@@ -136,9 +138,9 @@ def test_progress_release_check_rejects_changed_counts_even_with_new_file_hash(t
     output = tmp_path / "report"
     create(output, mode="full-cohort-progress")
     page = output / "zh/index.html"
-    soup = BeautifulSoup(page.read_text(), "html.parser")
+    soup = BeautifulSoup(page.read_text(encoding="utf-8"), "html.parser")
     soup.select_one("[data-core-metrics] tbody tr td:nth-child(3)").string = "99"
-    page.write_text(str(soup))
+    page.write_text(str(soup), encoding="utf-8")
     manifest = read_json(output / "report-manifest.json")
     manifest["files"]["zh/index.html"] = digest(page.read_bytes())
     save_json(output / "report-manifest.json", manifest)
@@ -228,11 +230,11 @@ def test_progress_check_rejects_timing_or_usage_value_changes(tmp_path, selector
     output = tmp_path / "report"
     create(output, mode="full-cohort-progress")
     page = output / "zh/protocol.html"
-    soup = BeautifulSoup(page.read_text(), "html.parser")
+    soup = BeautifulSoup(page.read_text(encoding="utf-8"), "html.parser")
     cell = soup.select_one(selector)
     marker = cell.select_one(".comparison-winner")
     (marker if marker is not None else cell).string = "9999"
-    page.write_text(str(soup))
+    page.write_text(str(soup), encoding="utf-8")
     manifest = read_json(output / "report-manifest.json")
     manifest["files"]["zh/protocol.html"] = digest(page.read_bytes())
     save_json(output / "report-manifest.json", manifest)
@@ -248,7 +250,7 @@ def test_external_participant_labels_are_used_without_changing_evidence_identity
     output = tmp_path / "labeled"
     build(output, home / "content.json", home=home, profile=home / "profile.json")
     check(output)
-    soup = BeautifulSoup((output / "zh/index.html").read_text(), "html.parser")
+    soup = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
     assert [
         r.select_one("td").get_text(strip=True) for r in soup.select("[data-core-metrics] tbody tr")
     ] == ["Source A", "Source B"]
@@ -266,9 +268,9 @@ def test_release_rejects_missing_operating_metrics_and_broken_drilldown(tmp_path
         "comparison": (f"case-{cid}.html", "[data-case-comparison] tbody tr"),
     }[change]
     path = output / "zh" / route
-    soup = BeautifulSoup(path.read_text(), "html.parser")
+    soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
     soup.select_one(selector).decompose()
-    path.write_text(str(soup))
+    path.write_text(str(soup), encoding="utf-8")
     manifest = read_json(output / "report-manifest.json")
     manifest["files"]["zh/" + route] = digest(path.read_bytes())
     save_json(output / "report-manifest.json", manifest)
@@ -285,16 +287,16 @@ def test_package_checks_release_and_includes_only_the_frozen_public_tree(tmp_pat
     output = tmp_path / "report"
     create(output, mode="full-cohort-progress")
     manifest = read_json(output / "report-manifest.json")
-    (tmp_path / "private-secret.txt").write_text("Never package siblings")
+    (tmp_path / "private-secret.txt").write_text("Never package siblings", encoding="utf-8")
     receipt = tmp_path / "visual.json"
-    receipt.write_text("{}")
+    receipt.write_text("{}", encoding="utf-8")
     with patch("harness.web_scraper.report.check") as release_check:
         result = package(output, tmp_path / "public.zip", visual_receipt=receipt)
     release_check.assert_called_once_with(output, release=True, visual_receipt=receipt)
     with zipfile.ZipFile(tmp_path / "public.zip") as bundle:
         assert set(bundle.namelist()) == set(manifest["files"]) | {"report-manifest.json"}
     assert result["files"] == len(manifest["files"]) + 1
-    (output / "app.js").write_text("changed after validation")
+    (output / "app.js").write_text("changed after validation", encoding="utf-8")
     with pytest.raises(ValueError, match="Report file changed"):
         package(output, tmp_path / "tampered.zip", visual_receipt=receipt)
     assert not (tmp_path / "tampered.zip").exists()
@@ -371,9 +373,10 @@ def test_secret_only_in_html_is_rejected_even_with_valid_inventory(tmp_path, mod
     output = tmp_path / "first"
     page = output / "zh/dataset.html"
     page.write_text(
-        page.read_text().replace(
+        page.read_text(encoding="utf-8").replace(
             "</main>", "<p>Authorization: Bearer secret-token-only-in-html-123456</p></main>"
-        )
+        ),
+        encoding="utf-8",
     )
     manifest = read_json(output / "report-manifest.json")
     manifest["files"]["zh/dataset.html"] = digest(page.read_bytes())
@@ -414,14 +417,14 @@ def test_configured_host_redaction_does_not_depend_on_one_deployment(tmp_path, m
     settings = tmp_path / "settings"
     settings.mkdir()
     (settings / ".env").write_text(
-        "WEB_SCRAPER_PUBLICATION_HOSTS=other-internal.example,192.0.2.77\n"
+        "WEB_SCRAPER_PUBLICATION_HOSTS=other-internal.example,192.0.2.77\n", encoding="utf-8"
     )
     monkeypatch.setattr(report, "repository_root", lambda: settings)
     output = tmp_path / "redacted"
     build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
     for path in (output / "public-evidence").glob("*.json"):
-        assert "other-internal.example" not in path.read_text()
-        assert "192.0.2.77" not in path.read_text()
+        assert "other-internal.example" not in path.read_text(encoding="utf-8")
+        assert "192.0.2.77" not in path.read_text(encoding="utf-8")
     # No environment file is required for public/synthetic reports.
     monkeypatch.setattr(report, "repository_root", lambda: tmp_path / "absent-settings")
     assert report.publication_host_names() == ()
@@ -505,8 +508,8 @@ def test_configured_private_host_is_projected_from_contract_and_rejected_on_chec
         return_value=("configured-fixture.example.test",),
     ):
         build(output, home / "content.json", home=home, profile=home / "profile.json")
-        assert (
-            "configured-fixture.example.test" not in (output / "report-manifest.json").read_text()
+        assert "configured-fixture.example.test" not in (output / "report-manifest.json").read_text(
+            encoding="utf-8"
         )
         manifest = read_json(output / "report-manifest.json")
         manifest["source_runs"][0]["contract"]["fixture_base"] = contract["fixture_base"]
@@ -550,7 +553,9 @@ def test_package_rejects_unbound_nested_manifest(tmp_path):
     output = tmp_path / "report"
     create(output)
     (output / "private").mkdir()
-    (output / "private/report-manifest.json").write_text('{"unbound":"private bytes"}')
+    (output / "private/report-manifest.json").write_text(
+        '{"unbound":"private bytes"}', encoding="utf-8"
+    )
     save_json(tmp_path / "unused.json", {})
     with pytest.raises(ValueError, match="file inventory differs"):
         package(output, tmp_path / "report.zip", visual_receipt=tmp_path / "unused.json")
@@ -606,3 +611,49 @@ def test_audited_f1_exposes_each_field_population_and_exclusions():
     assert list(first.stripped_strings) == ["—", "Scored 0/2; excluded 2"]
     assert not first.select_one(".comparison-winner")
     check_audited_quality(soup, ["native"], scores, 2, "en")
+
+
+def test_chinese_scraper_report_is_byte_identical_under_ascii_locale(tmp_path):
+    import subprocess
+    import sys
+
+    from tests.test_explicit_utf8_io import ascii_locale_environment
+
+    report = tmp_path / "utf8-report"
+    home = create(report)
+    expected = {
+        p.relative_to(report).as_posix(): p.read_bytes()
+        for p in report.rglob("*")
+        if p.suffix in (".html", ".js", ".css")
+    }
+    ascii_report = tmp_path / "ascii-report"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "harness.web_scraper.cli",
+            "--home",
+            str(home),
+            "report",
+            "--content",
+            str(home / "content.json"),
+            "--profile",
+            str(home / "profile.json"),
+            "--output",
+            str(ascii_report),
+            "--language",
+            "zh",
+        ],
+        cwd=Path(__file__).resolve().parents[2],
+        env=ascii_locale_environment(),
+        capture_output=True,
+        encoding="utf-8",
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    actual = {
+        p.relative_to(ascii_report).as_posix(): p.read_bytes()
+        for p in ascii_report.rglob("*")
+        if p.suffix in (".html", ".js", ".css")
+    }
+    assert actual == expected

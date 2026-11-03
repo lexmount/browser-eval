@@ -152,8 +152,8 @@ def test_client_error_gets_a_timer_and_remains_a_failed_result(tmp_path):
 def test_citation_reconciliation_changes_whitespace_only_and_keeps_raw_opinion(tmp_path):
     source = tmp_path / "source.html"
     outline = tmp_path / "source.txt"
-    source.write_text("<p>Price: 13,40\u00a0€</p>")
-    outline.write_text("Price: 13,40\u00a0€")
+    source.write_text("<p>Price: 13,40\u00a0€</p>", encoding="utf-8")
+    outline.write_text("Price: 13,40\u00a0€", encoding="utf-8")
     packet = {
         "cases": [{"case_id": "one", "source_html": str(source), "source_outline": str(outline)}]
     }
@@ -354,7 +354,7 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
     prior["cases"][0]["reference"]["sku"]["status"] = "incorrect"
     save_json(review_path, prior)
     rules = tmp_path / "rules.txt"
-    rules.write_text("Retain supported original annotations")
+    rules.write_text("Retain supported original annotations", encoding="utf-8")
     adjudication_work = tmp_path / "supported-adjudication"
     original_source = source.read_bytes()
     source.write_bytes(original_source + b"<!-- outside the retained quotation -->")
@@ -727,7 +727,9 @@ def test_repair_rejects_changed_inputs_before_certification(tmp_path, change):
             save_json(profile, plan)
         else:
             source = home / "dataset/html" / (rows[-1]["case_id"] + ".html")
-            source.write_text(source.read_text() + "<!-- changed -->")
+            source.write_text(
+                source.read_text(encoding="utf-8") + "<!-- changed -->", encoding="utf-8"
+            )
         return {"http_status": 200, "response": {"result": {"sku": "ok"}}}
 
     with (
@@ -750,7 +752,7 @@ def test_repair_does_not_dispatch_a_page_changed_before_its_turn(tmp_path):
 
     def provider(*args, **kwargs):
         source = home / "dataset/html" / (rows[-1]["case_id"] + ".html")
-        source.write_text(source.read_text() + "<!-- changed -->")
+        source.write_text(source.read_text(encoding="utf-8") + "<!-- changed -->", encoding="utf-8")
         return {"http_status": 200, "response": {"result": {"sku": "ok"}}}
 
     with (
@@ -894,7 +896,7 @@ def test_repair_clock_can_cross_cooldown_deadline(tmp_path):
 
 def test_compound_citation_cannot_discard_a_fabricated_price(tmp_path):
     source = tmp_path / "source.html"
-    source.write_text("Product details. Actual price: 13.40")
+    source.write_text("Product details. Actual price: 13.40", encoding="utf-8")
     packet = {
         "cases": [{"case_id": "one", "source_html": str(source), "source_outline": str(source)}]
     }

@@ -74,7 +74,9 @@ class PipelineScenarios(unittest.TestCase):
             save_json(home / "dataset/manifest.json", {"synthetic": True})
             (home / "dataset/html").mkdir()
             for key in truth:
-                (home / "dataset/html" / (key + ".html")).write_text("<html>input</html>")
+                (home / "dataset/html" / (key + ".html")).write_text(
+                    "<html>input</html>", encoding="utf-8"
+                )
             run = home / "runs/resumable"
             denied = {
                 "state": "response_received",
@@ -111,7 +113,7 @@ class PipelineScenarios(unittest.TestCase):
             self.assertEqual(len(manifest["physical_calls"]), 4)
             first = run / manifest["physical_calls"][0]["path"]
             self.assertEqual(read_json(first)["http_status"], 402)
-            first.write_text("{}")
+            first.write_text("{}", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "Physical call"):
                 load_run(run)
 
@@ -254,7 +256,7 @@ class PipelineScenarios(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             (root / "real").mkdir()
-            (root / "real/a.json").write_text("{}")
+            (root / "real/a.json").write_text("{}", encoding="utf-8")
             (root / "link").symlink_to(root / "real", target_is_directory=True)
             with self.assertRaises(ValueError):
                 read_json(root / "link/a.json")
@@ -269,7 +271,9 @@ class PipelineScenarios(unittest.TestCase):
             save_json(home / "dataset/manifest.json", {"synthetic": True})
             (home / "dataset/html").mkdir()
             for key in truth:
-                (home / "dataset/html" / (key + ".html")).write_text("<html>synthetic</html>")
+                (home / "dataset/html" / (key + ".html")).write_text(
+                    "<html>synthetic</html>", encoding="utf-8"
+                )
 
             def call(method, html, url, fixture):
                 return {
@@ -305,7 +309,9 @@ class PipelineScenarios(unittest.TestCase):
             save_json(home / "dataset/manifest.json", {"synthetic": True})
             (home / "dataset/html").mkdir()
             for key in truth:
-                (home / "dataset/html" / (key + ".html")).write_text("<html>input</html>")
+                (home / "dataset/html" / (key + ".html")).write_text(
+                    "<html>input</html>", encoding="utf-8"
+                )
             clock = [0.0]
             starts = []
 
@@ -350,11 +356,15 @@ class ReportScenarios(unittest.TestCase):
         self.assertEqual(result["observations"], 6)
         self.assertEqual(result["pages_per_language"], 21)
         for lang in ("en", "zh"):
-            soup = BeautifulSoup((self.output / lang / "results.html").read_text(), "html.parser")
+            soup = BeautifulSoup(
+                (self.output / lang / "results.html").read_text(encoding="utf-8"), "html.parser"
+            )
             self.assertEqual(len(soup.select("tr[data-status]")), 6)
             control = soup.select_one('[data-result-filter="status"] option')
             self.assertEqual(control["value"], "fail")
-            detail = next((self.output / lang).glob("result-synthetic-blocked-*.html")).read_text()
+            detail = next((self.output / lang).glob("result-synthetic-blocked-*.html")).read_text(
+                encoding="utf-8"
+            )
             self.assertIn("Synthetic route rejects archived HTML", detail)
             check_presentation(detail)
 
@@ -364,12 +374,16 @@ class ReportScenarios(unittest.TestCase):
         manifest = read_json(output / "report-manifest.json")
         self.assertEqual(manifest["languages"], ["zh"])
         self.assertEqual({p.name for p in (output / "en").glob("*.html")}, {"index.html"})
-        notice = BeautifulSoup((output / "en/index.html").read_text(), "html.parser")
+        notice = BeautifulSoup(
+            (output / "en/index.html").read_text(encoding="utf-8"), "html.parser"
+        )
         self.assertTrue(notice.select_one("[data-language-notice] a[href='zh/index.html']"))
-        page = BeautifulSoup((output / "zh/accounts.html").read_text(), "html.parser")
+        page = BeautifulSoup(
+            (output / "zh/accounts.html").read_text(encoding="utf-8"), "html.parser"
+        )
         self.assertEqual(page.find("a", string="English")["href"], "en/index.html")
         check(output)
-        (output / "en/stale.html").write_text("old English")
+        (output / "en/stale.html").write_text("old English", encoding="utf-8")
         with self.assertRaises(ValueError):
             check(output)
 
@@ -380,7 +394,7 @@ class ReportScenarios(unittest.TestCase):
         for lang in ("en", "zh"):
             other = "zh" if lang == "en" else "en"
             for path in (self.output / lang).glob("*.html"):
-                soup = BeautifulSoup(path.read_text(), "html.parser")
+                soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
                 self.assertEqual(soup.select_one('link[rel="stylesheet"]')["href"], "style.css")
                 self.assertEqual(soup.select_one("script[src]")["src"], "app.js")
                 self.assertIn(f"{lang}/index.html", [a["href"] for a in soup.select("nav a")])
@@ -396,28 +410,34 @@ class ReportScenarios(unittest.TestCase):
                     self.assertTrue(hosted.startswith(root), hosted)
                     self.assertTrue(Path(urlsplit(local).path).is_file(), local)
             detail = BeautifulSoup(
-                next((self.output / lang).glob("result-*.html")).read_text(), "html.parser"
+                next((self.output / lang).glob("result-*.html")).read_text(encoding="utf-8"),
+                "html.parser",
             )
             self.assertTrue(
                 detail.select_one("[data-src]")["data-src"].startswith("public-evidence/")
             )
         self.assertIsNotNone(
-            BeautifulSoup((self.output / "index.html").read_text(), "html.parser").head
+            BeautifulSoup(
+                (self.output / "index.html").read_text(encoding="utf-8"), "html.parser"
+            ).head
         )
 
     def test_release_rejects_page_relative_hosted_references(self):
         path = self.output / "en/index.html"
-        path.write_text(path.read_text().replace('href="style.css"', 'href="../style.css"'))
+        path.write_text(
+            path.read_text(encoding="utf-8").replace('href="style.css"', 'href="../style.css"'),
+            encoding="utf-8",
+        )
         manifest_path = self.output / "report-manifest.json"
         manifest = read_json(manifest_path)
         manifest["files"]["en/index.html"] = digest(path.read_bytes())
-        manifest_path.write_text(json.dumps(manifest))
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "hosted site root"):
             check(self.output)
 
     def test_tampered_output_rejected(self):
         p = self.output / "en/index.html"
-        p.write_text(p.read_text().replace("0.800", "0.900"))
+        p.write_text(p.read_text(encoding="utf-8").replace("0.800", "0.900"), encoding="utf-8")
         with self.assertRaises(ValueError):
             check(self.output)
 
@@ -435,20 +455,23 @@ class ReportScenarios(unittest.TestCase):
                     ),
                     "observations": [{"viewport": "narrow", "viewport_width": 1440}],
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         with self.assertRaisesRegex(ValueError, "viewport dimensions"):
             check(self.output, release=True, visual_receipt=receipt)
 
     def test_negative_highlight_summary_error_and_dialog_controls(self):
-        good = (self.output / "en/index.html").read_text()
+        good = (self.output / "en/index.html").read_text(encoding="utf-8")
         for bad in [
             good.replace("comparison-winner", "removed"),
             good.replace('data-sort="0.8"', 'data-sort="0.1"'),
         ]:
             with self.assertRaises(ValueError):
                 check_presentation(bad)
-        detail = next((self.output / "en").glob("result-synthetic-blocked-*.html")).read_text()
+        detail = next((self.output / "en").glob("result-synthetic-blocked-*.html")).read_text(
+            encoding="utf-8"
+        )
         for bad in [
             detail.replace("data-result-summary", "missing-summary"),
             detail.replace("data-failure-diagnosis", "missing-diagnosis"),
@@ -462,7 +485,7 @@ class ReportScenarios(unittest.TestCase):
         run = self.home / "runs/example-v1"
         manifest = read_json(run / "manifest.json")
         manifest["calls"].pop()
-        (run / "manifest.json").write_text(json.dumps(manifest))
+        (run / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
         with self.assertRaises(ValueError):
             load_run(run)
 

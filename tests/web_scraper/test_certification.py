@@ -38,7 +38,7 @@ def test_default_example_generates_chinese_and_english_notice():
         manifest = read_json(output / "report-manifest.json")
         assert manifest["languages"] == ["zh"]
         assert manifest["primary_language"] == "zh"
-        assert "data-language-notice" in (output / "en/index.html").read_text()
+        assert "data-language-notice" in (output / "en/index.html").read_text(encoding="utf-8")
         assert not (output / "en/results.html").exists()
 
 
