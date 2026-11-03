@@ -26,7 +26,7 @@ They must never be added to `metadata`, content, manifest or logs.
 
 ## Add an adapter
 
-1. Implement `Provider` and register its type in `src/harness/web_fetch/providers/base.py`.
+1. Implement `Provider` and add its type to `PROVIDER_TYPES` in `src/harness/web_fetch/providers/base.py`.
 2. Add an example configuration and tests using local fixtures.
 3. Assign its output contract in `methods.py`.
 
@@ -85,6 +85,11 @@ they do not select executable versions. The worker ships in the Python package,
 so these adapters also run from an installed wheel outside the checkout.
 Native Markdown routes do not require Docker. Resource measurement requires the
 Docker extra and a declared image containing the same worker bytes as the host.
+
+`ENGINES` in `src/harness/web_fetch/providers/headless.py` holds one definition per
+engine: its command-line templates, native CDP server arguments, completion
+semantics, task routes and recorded metadata. Add or change engine behaviour there.
+`tests/golden/headless-engine-routes.jsonl` pins each resulting command line.
 
 HTML conversion requires Node.js and `node-html-markdown` 2.0.0. A checkout uses
 the package installed by `npm ci`. Installed-wheel users must install that npm
