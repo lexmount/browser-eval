@@ -7,6 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from harness.record_io import bytes_sha256
+from harness.review_runner import validate_schema
 from harness.web_search import review
 from harness.web_search.core import normalize_response
 
@@ -560,7 +561,7 @@ def test_packet_schema_rejects_fabricated_or_extended_identities(tmp_path, ident
     result = opinion(packet, entry["sha256"])
     schema_bytes = (root / "schema.json").read_bytes()
     schema = review._packet_schema(json.loads(schema_bytes), packet, entry["sha256"])
-    review._validate_schema(result, schema)
+    validate_schema(result, schema)
     case = result["cases"][0]
     if identity == "case_id":
         case["case_id"] += "90"
@@ -575,7 +576,7 @@ def test_packet_schema_rejects_fabricated_or_extended_identities(tmp_path, ident
     else:
         result["packet_sha256"] = "0" * 64
     with pytest.raises(ValueError, match="enum"):
-        review._validate_schema(result, schema)
+        validate_schema(result, schema)
     assert (root / "schema.json").read_bytes() == schema_bytes
 
 
@@ -587,11 +588,11 @@ def test_packet_schema_accepts_empty_candidate_pool_without_empty_enums(tmp_path
     schema = review._packet_schema(review.SCHEMA, packet, entry["sha256"])
     assert '"enum": []' not in json.dumps(schema)
     result = opinion(packet, entry["sha256"])
-    review._validate_schema(result, schema)
+    validate_schema(result, schema)
     result["cases"][0]["candidate_grades"] = [{"candidate_id": "made-up", "grade": 0,
                                                 "reason": "test", "evidence": "test"}]
     with pytest.raises(ValueError, match="maximum"):
-        review._validate_schema(result, schema)
+        validate_schema(result, schema)
 
 
 @pytest.mark.parametrize("defect", ["bytes", "receipt", "command", "protocol", "extended-output-id"])

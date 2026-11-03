@@ -23,7 +23,7 @@ from lexbench_websearch.scoring import candidate_identity, classify
 
 from harness.record_io import bytes_sha256
 from harness.reporting.publication import atomic_write
-from harness.review_runner import ReviewerSessions
+from harness.review_runner import ReviewerSessions, validate_schema
 from harness.web_search.core import normalize_response
 from harness.web_search.diagnostics import error_evidence
 from harness.web_search.messages import report_text
@@ -493,41 +493,10 @@ def load_frozen(root):
     return contract
 
 
-def _validate_schema(value, schema):
-    """Validate the deliberately small JSON schema used by both review backends."""
-    kind = schema.get("type")
-    valid = {
-        "object": lambda: isinstance(value, dict),
-        "array": lambda: isinstance(value, list),
-        "string": lambda: isinstance(value, str),
-        "integer": lambda: type(value) is int,
-    }
-    if kind in valid and not valid[kind]():
-        raise ValueError("Review schema type mismatch")
-    if "enum" in schema and value not in schema["enum"]:
-        raise ValueError("Review schema enum mismatch")
-    if kind == "object":
-        if set(value) != set(schema["properties"]):
-            raise ValueError("Review schema fields mismatch")
-        for name, child in schema["properties"].items():
-            _validate_schema(value[name], child)
-    elif kind == "array":
-        if len(value) > schema.get("maxItems", len(value)):
-            raise ValueError("Review schema array exceeds maximum size")
-        for child in value:
-            _validate_schema(child, schema["items"])
-    elif kind == "string" and not value.strip():
-        raise ValueError("Review schema requires nonempty text")
-    elif kind == "integer" and not schema.get("minimum", value) <= value <= schema.get(
-        "maximum", value
-    ):
-        raise ValueError("Review schema integer range mismatch")
-
-
 def validate_result(packet, result, expected_hash, *, source_mode="frozen"):
     if source_mode not in REVIEW_PROMPTS:
         raise ValueError("Unsupported review source mode")
-    _validate_schema(result, SCHEMA)
+    validate_schema(result, SCHEMA)
     if result.get("packet_sha256") != expected_hash:
         raise ValueError("Review packet hash mismatch")
     actual = result.get("cases", [])

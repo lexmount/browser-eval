@@ -22,7 +22,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from functools import wraps
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import quote, quote_plus, urlsplit
 
 from harness.data_home import data_home as shared_data_home
 from harness.distribution import repository_root
@@ -394,7 +394,9 @@ def redact(value):
                 )
                 and len(secret) >= 8
             ):
-                value = value.replace(secret, "[REDACTED]")
+                for representation in {secret, quote(secret, safe=""), quote_plus(secret, safe="")}:
+                    value = value.replace(representation, "[REDACTED]")
+
     return value
 
 
@@ -965,6 +967,7 @@ def _probe_unlocked(
         ):
             if contract[field] != requested[field]:
                 raise ValueError("Resume contract changed: " + field)
+        verify_execution_snapshot(run, contract)
         if (run / "manifest.json").exists():
             load_run(run)
             return run
@@ -1167,18 +1170,25 @@ def _probe_unlocked(
     return run
 
 
-def load_run(run: Path):
-    manifest = read_json(run / "manifest.json")
-    contract = read_json(run / "contract.json")
-    if contract.get("pipeline_snapshot"):
-        snapshot = run / contract["pipeline_snapshot"]
+def verify_execution_snapshot(run, contract):
+    relative = contract.get("pipeline_snapshot")
+    if relative:
+        path = Path(relative)
+        snapshot = run / path
         if (
-            Path(contract["pipeline_snapshot"]).is_absolute()
-            or ".." in Path(contract["pipeline_snapshot"]).parts
+            path.is_absolute()
+            or ".." in path.parts
             or snapshot.is_symlink()
+            or not snapshot.is_file()
             or digest(snapshot.read_bytes()) != contract["pipeline_sha256"]
         ):
             raise ValueError("Frozen execution source changed")
+
+
+def load_run(run: Path):
+    manifest = read_json(run / "manifest.json")
+    contract = read_json(run / "contract.json")
+    verify_execution_snapshot(run, contract)
     if digest((run / "contract.json").read_bytes()) != manifest["contract_sha256"]:
         raise ValueError("Call contract changed")
     for entry in manifest.get("physical_calls", []):

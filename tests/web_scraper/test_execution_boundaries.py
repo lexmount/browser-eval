@@ -528,3 +528,39 @@ def test_null_native_envelopes_are_safe_at_every_projection_boundary(method, bad
 
     assert normalize(method, bad) is None
     assert normalize(method, good)["sku"] == "ok"
+
+
+def test_encoded_credentials_are_removed_from_retained_exception_messages():
+    from urllib.parse import urlencode
+
+    from harness.web_scraper.pipeline import redact
+
+    secret = "synthetic+token/with=encoded?parts"
+    error = "SSL failure fetching https://api.example.test/?" + urlencode({"token": secret})
+    with patch.dict("os.environ", {"DIFFBOT_API_TOKEN": secret}):
+        safe = redact({"error": error})["error"]
+    assert secret not in safe
+    assert urlencode({"token": secret}).split("=", 1)[1] not in safe
+    assert "[REDACTED]" in safe
+
+
+@pytest.mark.parametrize("damage", ["missing", "changed"])
+def test_incomplete_direct_resume_rejects_damaged_snapshot_before_dispatch(tmp_path, damage):
+    home = create(tmp_path / "example")
+    target = home / "runs/snapshot-damage"
+    with (
+        collection_context(),
+        patch(
+            "harness.web_scraper.pipeline.provider_call",
+            side_effect=[accepted(), KeyboardInterrupt],
+        ) as call,
+    ):
+        with pytest.raises(KeyboardInterrupt):
+            probe(home, ["cloudflare-json"], full=True, run_dir=target)
+    # The in-flight request is unresolved; the snapshot must fail first, without dispatch.
+    snapshot = target / "execution/pipeline.py"
+    snapshot.unlink() if damage == "missing" else snapshot.write_text("# altered execution")
+    with collection_context(), patch("harness.web_scraper.pipeline.provider_call") as call:
+        with pytest.raises(ValueError, match="Frozen execution source changed"):
+            probe(home, ["cloudflare-json"], full=True, run_dir=target)
+    call.assert_not_called()

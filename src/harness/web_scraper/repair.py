@@ -157,6 +157,7 @@ def collect(home, profile, method, destination):
         raise ValueError("Repair participant method differs")
     validate_native_options(method, participant["native_options"])
     verify_parent(home, participant)
+    frozen_inputs = read_json(home / "dataset/manifest.json")["files"]
     if (
         plan["timeout_seconds"] != 120
         or plan["calls_per_case"] != 1
@@ -251,6 +252,8 @@ def collect(home, profile, method, destination):
             while time.monotonic() - finished < pause:
                 time.sleep(min(1, pause - (time.monotonic() - finished)))
         raw = (home / "dataset/html" / (cid + ".html")).read_bytes()
+        if digest(raw) != frozen_inputs["html/" + cid + ".html"]["sha256"]:
+            raise ValueError("Frozen repair HTML changed before dispatch")
         row = {
             "method": method,
             "case_id": cid,
@@ -270,6 +273,7 @@ def collect(home, profile, method, destination):
                     fixture_url(plan["fixture_base"], cid, participant.get("fixture_suffix", ""))
                     if needs_fixture
                     else None,
+                    home=home,
                     native_options=participant["native_options"],
                     timeout=120,
                 )
@@ -326,6 +330,11 @@ def collect(home, profile, method, destination):
     )
     if before != after:
         raise ValueError("Repair fixtures changed")
+    validate_dataset(home)
+    if plan["dataset_manifest_sha256"] != digest((home / "dataset/manifest.json").read_bytes()):
+        raise ValueError("Repair dataset changed during collection")
+    if digest(profile.read_bytes()) != contract["profile_sha256"]:
+        raise ValueError("Repair profile changed during collection")
     verify_parent(home, participant)
     if code != {n: digest(Path(__file__).with_name(n).read_bytes()) for n in code}:
         raise ValueError("Repair implementation changed during calls")
@@ -342,7 +351,7 @@ def collect(home, profile, method, destination):
     save_json(destination / "manifest.json", manifest)
     certificate = {
         "schema": "failed-extraction-repair-certificate/1",
-        "profile_sha256": digest(profile.read_bytes()),
+        "profile_sha256": contract["profile_sha256"],
         "manifest_sha256": digest((destination / "manifest.json").read_bytes()),
         "case_count": len(completed),
         "method": method,
@@ -360,6 +369,13 @@ def compose(home, source, rows, repair):
     manifest = read_json(directory / "manifest.json")
     contract = read_json(directory / "contract.json")
     participant = contract["participant"]
+    if (
+        certificate["profile_sha256"] != contract["profile_sha256"]
+        or certificate["method"] != contract["method"]
+        or certificate["method"] != participant["method"]
+        or certificate["case_count"] != len(manifest["calls"])
+    ):
+        raise ValueError("Repair certificate and frozen contract identities differ")
     if Path(participant["parent_run"]).resolve() != source.resolve():
         raise ValueError("Repair belongs to another parent")
     _, predecessor = verify_parent(home, participant)

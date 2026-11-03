@@ -21,7 +21,7 @@ def native_test_credentials(monkeypatch):
             monkeypatch.setenv(key, "synthetic-test-credential")
 
 
-def parent_inputs(tmp_path, method="cloudflare-json", failed_overrides=None):
+def parent_inputs(tmp_path, method="cloudflare-json", failed_overrides=None, success_count=2):
     home = create(tmp_path / "example")
     source = home / "runs/parent"
     truth = read_json(home / "dataset/dataset/ground-truth.json")
@@ -34,12 +34,12 @@ def parent_inputs(tmp_path, method="cloudflare-json", failed_overrides=None):
             "method": method,
             "case_id": cid,
             "input_sha256": digest((home / "dataset/html" / (cid + ".html")).read_bytes()),
-            "http_status": 200 if i < 2 else None,
-            "compatibility": "structured_output" if i < 2 else "no_structured_output",
-            "normalized_fields": {"sku": str(i)} if i < 2 else None,
-            "response": {"result": {"sku": str(i)}} if i < 2 else {},
+            "http_status": 200 if i < success_count else None,
+            "compatibility": "structured_output" if i < success_count else "no_structured_output",
+            "normalized_fields": {"sku": str(i)} if i < success_count else None,
+            "response": {"result": {"sku": str(i)}} if i < success_count else {},
         }
-        if i >= 2:
+        if i >= success_count:
             row.update(failed_overrides or {})
         path = source / "calls" / (cid + ".json")
         save_json(path, row)
@@ -95,6 +95,12 @@ def test_repair_calls_only_original_failures_and_resumes_without_new_calls(tmp_p
     assert current[2]["elapsed_seconds"] >= 0
     assert current[2]["retry_missing_timers"] == 1
     assert len(current[2]["physical_attempts"]) == 2
+    certificate = read_json(destination / "certificate.json")
+    certificate["profile_sha256"] = "f" * 64
+    save_json(destination / "certificate.json", certificate)
+    revision["sha256"] = digest((destination / "certificate.json").read_bytes())
+    with pytest.raises(ValueError, match="identities differ"):
+        compose(home, source, deepcopy(rows), revision)
 
 
 def test_repair_cannot_replace_original_successes(tmp_path):
@@ -283,6 +289,11 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
     rules = tmp_path / "rules.txt"
     rules.write_text("Retain supported original annotations")
     adjudication_work = tmp_path / "supported-adjudication"
+    original_source = source.read_bytes()
+    source.write_bytes(original_source + b"<!-- outside the retained quotation -->")
+    with pytest.raises(ValueError, match="Adjudication source changed"):
+        prepare_adjudication(work, adjudication_work, rules)
+    source.write_bytes(original_source)
     adjudication_manifest = prepare_adjudication(work, adjudication_work, rules)
     for entry in adjudication_manifest["packets"]:
         packet = read_json(Path(entry["path"]))
@@ -295,6 +306,12 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
             opinion["source_fields"]["sku"]["values"] = ["synthetic product"]
             opinions.append(opinion)
         save_json(adjudication_work / "reviews" / Path(entry["path"]).name, {"cases": opinions})
+    from harness.web_scraper.review import completed
+
+    source.write_bytes(original_source + b"<!-- changed after preparation -->")
+    with pytest.raises(ValueError, match="Audit source changed"):
+        completed(adjudication_work)
+    source.write_bytes(original_source)
     supported = assemble(
         home,
         home / "content.json",
@@ -353,7 +370,7 @@ def test_review_freezes_complete_outputs_and_rejects_missing_field_or_method(tmp
         validate(missing, packet)
     missing = deepcopy(review)
     missing["cases"][0]["reference"].pop("sku")
-    with pytest.raises(ValueError, match="every field"):
+    with pytest.raises(ValueError, match="every field|schema fields"):
         validate(missing, packet)
     missing = deepcopy(review)
     missing["cases"][0]["source_fields"]["price"]["source_quote"] = "invented quote"
@@ -613,3 +630,106 @@ def test_repair_keeps_parent_fixture_suffix(tmp_path):
         run(home, profile, "firecrawl-json", tmp_path / "suffix")
     assert call.call_args.args[3].endswith("/" + cid + ".html")
     assert qualify.call_args.args[-1] == ".html"
+
+
+@pytest.mark.parametrize("change", ["profile", "dataset"])
+def test_repair_rejects_changed_inputs_before_certification(tmp_path, change):
+    from harness.web_scraper.pipeline import validate_dataset
+
+    home, _, profile, rows = parent_inputs(tmp_path)
+    target = tmp_path / "mutated"
+
+    def provider(*args, **kwargs):
+        if change == "profile":
+            plan = read_json(profile)
+            plan["timeout_seconds"] = 119
+            save_json(profile, plan)
+        else:
+            source = home / "dataset/html" / (rows[-1]["case_id"] + ".html")
+            source.write_text(source.read_text() + "<!-- changed -->")
+        return {"http_status": 200, "response": {"result": {"sku": "ok"}}}
+
+    with (
+        patch(
+            "harness.web_scraper.repair.validate_dataset",
+            side_effect=lambda path: validate_dataset(path, profile=home / "profile.json"),
+        ),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch("harness.web_scraper.repair.provider_call", side_effect=provider),
+    ):
+        with pytest.raises(ValueError, match="changed|mismatch"):
+            run(home, profile, "cloudflare-json", target)
+    assert not (target / "certificate.json").exists()
+    assert len(list((target / "calls").glob("*.json"))) == 1
+
+
+def test_repair_does_not_dispatch_a_page_changed_before_its_turn(tmp_path):
+    home, _, profile, rows = parent_inputs(tmp_path, success_count=1)
+    target = tmp_path / "changed-next"
+
+    def provider(*args, **kwargs):
+        source = home / "dataset/html" / (rows[-1]["case_id"] + ".html")
+        source.write_text(source.read_text() + "<!-- changed -->")
+        return {"http_status": 200, "response": {"result": {"sku": "ok"}}}
+
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch("harness.web_scraper.repair.provider_call", side_effect=provider) as calls,
+    ):
+        with pytest.raises(ValueError, match="changed before dispatch"):
+            run(home, profile, "cloudflare-json", target)
+        assert calls.call_count == 1
+    assert not (target / "certificate.json").exists()
+
+
+def test_local_baseline_repair_uses_selected_dataset_home(tmp_path):
+    home, _, profile, _ = parent_inputs(tmp_path, method="extruct")
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch(
+            "harness.web_scraper.repair.provider_call",
+            return_value={"http_status": 200, "response": {"result": {"sku": "ok"}}},
+        ) as call,
+    ):
+        run(home, profile, "extruct", tmp_path / "local-repair")
+    assert call.call_args.kwargs["home"] == home
+
+
+@pytest.mark.parametrize(
+    "invalid", [{"status": "ambigous"}, {"values": "not a list"}, {"values": [4]}]
+)
+def test_persisted_review_rejects_invalid_assessment_schema(tmp_path, invalid):
+    home = create(tmp_path / "example")
+    work = tmp_path / "audit"
+    manifest = prepare(home, home / "content.json", work)
+    packet = read_json(Path(manifest["packets"][0]["path"]))
+    finding = {
+        "status": "supported",
+        "values": [],
+        "source_quote": "synthetic product",
+        "source_locator": "p",
+        "reason": "source evidence",
+    }
+    cases = []
+    for case in packet["cases"]:
+        fields = {f: deepcopy(finding) for f in ("price", "sku", "availability")}
+        cases.append(
+            {
+                "case_id": case["case_id"],
+                "main_product": "synthetic product",
+                "source_fields": deepcopy(fields),
+                "reference": deepcopy(fields),
+                "outputs": [
+                    {"method": o["method"], "fields": deepcopy(fields), "projection_issue": ""}
+                    for o in case["outputs"]
+                ],
+            }
+        )
+    value = {"cases": cases}
+    value["cases"][0]["outputs"][0]["fields"]["sku"]["values"] = [""]
+    validate(value, packet)
+    value["cases"][0]["reference"]["sku"].update(invalid)
+    with pytest.raises(ValueError, match="schema"):
+        validate(value, packet)

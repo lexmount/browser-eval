@@ -9,7 +9,7 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-from harness.review_runner import run_reviewer
+from harness.review_runner import run_reviewer, validate_schema
 from harness.web_scraper.pipeline import (
     digest,
     load_run,
@@ -25,7 +25,7 @@ ASSESSMENT = {
     "additionalProperties": False,
     "properties": {
         "status": {"type": "string", "enum": ["supported", "incorrect", "absent", "ambiguous"]},
-        "values": {"type": "array", "items": {"type": "string"}},
+        "values": {"type": "array", "items": {"type": "string", "minLength": 0}},
         "source_quote": {"type": "string"},
         "source_locator": {"type": "string"},
         "reason": {"type": "string"},
@@ -60,7 +60,7 @@ SCHEMA = {
                             "properties": {
                                 "method": {"type": "string"},
                                 "fields": FIELD_SCHEMA,
-                                "projection_issue": {"type": "string"},
+                                "projection_issue": {"type": "string", "minLength": 0},
                             },
                             "required": ["method", "fields", "projection_issue"],
                         },
@@ -184,6 +184,21 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
 
 
 def validate(result, packet):
+    validate_schema({k: v for k, v in result.items() if k != "citation_format_corrections"}, SCHEMA)
+    if "citation_format_corrections" in result:
+        validate_schema(
+            result["citation_format_corrections"],
+            {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        key: {"type": "string"}
+                        for key in ("case_id", "original_quote", "literal_quote", "rule")
+                    },
+                },
+            },
+        )
     expected = {r["case_id"]: r for r in packet["cases"]}
     rows = result.get("cases", [])
     if len(rows) != len(expected) or {r["case_id"] for r in rows} != set(expected):
@@ -270,7 +285,11 @@ def prepare_adjudication(prior, work, rules, *, batch_size=4):
     prior, work, rules = Path(prior).resolve(), Path(work).resolve(), Path(rules).resolve()
     require_external_output(work)
     manifest = read_json(prior / "manifest.json")
-    bindings = {str(rules): digest(rules.read_bytes())}
+    bindings = dict(manifest["bindings"])
+    for name, sha in bindings.items():
+        if digest(Path(name).read_bytes()) != sha:
+            raise ValueError("Adjudication source changed")
+    bindings[str(rules)] = digest(rules.read_bytes())
     cases = []
     for entry in manifest["packets"]:
         source = Path(entry["path"])
