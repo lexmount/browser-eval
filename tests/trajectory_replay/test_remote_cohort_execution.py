@@ -44,6 +44,9 @@ def environment(tmp_path, monkeypatch, *, subset=None, reset_drift=False, call_d
         def __init__(self, *_args, **_kwargs):
             activity['starts'] += 1
 
+        def poll(self):
+            return None
+
         def terminate(self):
             activity['terminated'] += 1
 
@@ -52,6 +55,7 @@ def environment(tmp_path, monkeypatch, *, subset=None, reset_drift=False, call_d
             return 0
 
     monkeypatch.setattr(execution.subprocess, 'Popen', Process)
+    monkeypatch.setattr(execution, '_kernel_assigned_port', lambda _: 9222)
     monkeypatch.setattr(execution, '_wait_cdp', lambda *_: None)
     page = SimpleNamespace(
         url='https://admin.example/admin',

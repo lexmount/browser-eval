@@ -55,6 +55,7 @@ from harness.report_languages import (
 from harness.reporting.assets import bound_json_asset
 from harness.reporting.templates import template_identity
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
+from lexbench_webfetch.metrics import percentile
 
 ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli"}
 MODEL_LABELS = {"gpt-5.6-sol": "GPT-5.6 Sol"}
@@ -524,15 +525,6 @@ def _public_execution(row: dict[str, Any], *, authoritative: bool) -> dict[str, 
     }
 
 
-def _percentile(values: list[float], q: float) -> float | None:
-    if not values:
-        return None
-    values = sorted(values)
-    index = (len(values) - 1) * q
-    lo, hi = math.floor(index), math.ceil(index)
-    return values[lo] if lo == hi else values[lo] + (values[hi] - values[lo]) * (index - lo)
-
-
 def _primary_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, dict[str, Any]]]:
     result: dict[str, dict[str, dict[str, Any]]] = {}
     for model in MODEL_LABELS:
@@ -560,24 +552,24 @@ def _primary_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, dict[str
                 resource_summary[name] = {
                     "count": len(values),
                     "mean": statistics.fmean(values) if values else None,
-                    "p50": _percentile(values, 0.50),
-                    "p95": _percentile(values, 0.95),
+                    "p50": percentile(values, 0.50),
+                    "p95": percentile(values, 0.95),
                 }
             result[model][engine] = {
                 "completed": len(logical),
                 "passed": passed,
                 "score": passed / len(logical) if logical else None,
                 "mean_duration_ms": statistics.fmean(durations) if durations else None,
-                "p50_duration_ms": _percentile(durations, 0.50),
-                "p95_duration_ms": _percentile(durations, 0.95),
+                "p50_duration_ms": percentile(durations, 0.50),
+                "p95_duration_ms": percentile(durations, 0.95),
                 "mean_browser_tool_duration_ms": statistics.fmean(tool_durations)
                 if tool_durations
                 else None,
-                "p50_browser_tool_duration_ms": _percentile(tool_durations, 0.50),
-                "p95_browser_tool_duration_ms": _percentile(tool_durations, 0.95),
+                "p50_browser_tool_duration_ms": percentile(tool_durations, 0.50),
+                "p95_browser_tool_duration_ms": percentile(tool_durations, 0.95),
                 "mean_tokens": statistics.fmean(tokens) if tokens else None,
-                "p50_tokens": _percentile(tokens, 0.50),
-                "p95_tokens": _percentile(tokens, 0.95),
+                "p50_tokens": percentile(tokens, 0.50),
+                "p95_tokens": percentile(tokens, 0.95),
                 "resources": resource_summary,
             }
     return result

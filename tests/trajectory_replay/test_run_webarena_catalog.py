@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import threading
 import time
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -1008,6 +1010,108 @@ def test_runner_rejects_row_overrides_without_external_version_binding(
     )
     with pytest.raises(ValueError, match="requires its versioned action overrides"):
         catalog_runner.main()
+
+
+@pytest.mark.parametrize(
+    ("restart_cause", "expected_calls"),
+    [
+        ("runtime_poisoned", [(1, 0), (2, 1)]),
+        ("browser_exited", [(1, 0), (2, 1)]),
+        ("setup_failure", [(1, 0), (1, 1), (2, 1)]),
+    ],
+)
+def test_local_catalog_restart_replays_on_the_new_browser_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    restart_cause: str,
+    expected_calls: list[tuple[int, int]],
+) -> None:
+    class Browser:
+        def __init__(self) -> None:
+            self.returncode = None
+
+        def poll(self):
+            return self.returncode
+
+        def terminate(self) -> None:
+            self.returncode = -15
+
+        def wait(self, timeout=None):
+            return self.returncode
+
+    browsers: list[Browser] = []
+    calls: list[tuple[int, str]] = []
+
+    def start_local_browser(_args, _profile):
+        browsers.append(Browser())
+        return browsers[-1], f"http://127.0.0.1:{9000 + len(browsers) - 1}"
+
+    def run_task(*, task_id, endpoint, **_kwargs):
+        first_call = not calls
+        calls.append((task_id, endpoint))
+        if first_call and restart_cause == "setup_failure":
+            raise RuntimeError("browser session did not start")
+        if first_call and restart_cause == "browser_exited":
+            browsers[-1].returncode = 1
+        return {
+            "task_id": task_id,
+            "status": "pass",
+            "runtime_poisoned": first_call and restart_cause == "runtime_poisoned",
+        }
+
+    catalog = {
+        "task_ids": [1, 2],
+        "rows": [{"task_id": 1, "mode": "recorded"}, {"task_id": 2, "mode": "recorded"}],
+    }
+    paths = {name: tmp_path / name for name in ("catalog", "suite", "sites", "receipt", "browser")}
+    for path in paths.values():
+        path.write_text("{}", encoding="utf-8")
+    environment = tmp_path / "environment"
+    environment.write_text("{}", encoding="utf-8")
+    for name, stub in {
+        "verify_webarena_runtime_source": lambda: SimpleNamespace(revision="a" * 40),
+        "load_catalog_inputs": lambda *args, **kwargs: (catalog, {}, {}),
+        "validate_environment_preparation": lambda *args: None,
+        "load_corrections": lambda: SimpleNamespace(source_sha256="b" * 64),
+        "remote_benchmark": lambda sites: None,
+        "_task_origins": lambda *args: set(),
+        "_bound_catalog_row": lambda _catalog, frozen, *args: frozen,
+        "start_local_browser": start_local_browser,
+        "_run_task": run_task,
+    }.items():
+        monkeypatch.setattr(catalog_runner, name, stub)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run",
+            "--catalog",
+            str(paths["catalog"]),
+            "--portable-suite",
+            str(paths["suite"]),
+            "--site-map",
+            str(paths["sites"]),
+            "--site-reset-receipt",
+            str(paths["receipt"]),
+            "--environment-profile",
+            str(environment),
+            "--binary",
+            str(paths["browser"]),
+            "--backend",
+            "playwright",
+            "--output",
+            str(tmp_path / "output"),
+        ],
+    )
+
+    prior_umask = os.umask(0o022)
+    try:
+        catalog_runner.main()
+    finally:
+        os.umask(prior_umask)
+
+    assert calls == [(task_id, f"http://127.0.0.1:{9000 + run}") for task_id, run in expected_calls]
+    assert len(browsers) == 2
+    assert all(browser.poll() is not None for browser in browsers)
 
 
 def test_rows_can_rebind_accepted_actions_from_distinct_source_deployments() -> None:
