@@ -153,7 +153,12 @@ def main(argv=None):
     elif args.command == "review":
         from harness.web_scraper.review import prepare as prepare_review
         from harness.web_scraper.review import run as run_review
+        from harness.web_scraper.review import validate_review_options
 
+        try:
+            validate_review_options(limit=args.limit, workers=args.workers)
+        except ValueError as error:
+            parser.error(str(error))
         prepare_review(args.home, args.content, args.work, prior=args.prior)
         if not args.prepare_only:
             print(run_review(args.work, model=args.model, workers=args.workers, limit=args.limit))

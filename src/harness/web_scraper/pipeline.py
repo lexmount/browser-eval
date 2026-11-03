@@ -428,7 +428,10 @@ def redact(value):
                 )
                 and len(secret) >= 8
             ):
-                for representation in {secret, quote(secret, safe=""), quote_plus(secret, safe="")}:
+                representations = {secret, quote(secret, safe=""), quote_plus(secret, safe="")}
+                if key == "ZYTE_API_KEY":
+                    representations.add(base64.b64encode((secret + ":").encode()).decode())
+                for representation in representations:
                     value = value.replace(representation, "[REDACTED]")
 
     return value

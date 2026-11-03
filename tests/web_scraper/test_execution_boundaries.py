@@ -684,3 +684,51 @@ def test_aggregation_reconciles_retry_history_and_final_selection(tmp_path, muta
     save_json(run / "manifest.json", manifest)
     with pytest.raises(ValueError, match="final physical|attempt sequence|journal|retry|Retry"):
         load_run(run)
+
+
+@pytest.mark.parametrize("wire", ["json", "text"])
+def test_zyte_basic_encoding_is_removed_from_retained_response(tmp_path, wire):
+    import base64
+    import json
+
+    from harness.web_scraper.pipeline import provider_call, read_json
+
+    secret = "zyte-synthetic-secret-for-regression"
+    encoded = base64.b64encode((secret + ":").encode()).decode()
+    text = "Upstream diagnostic: Basic " + encoded
+    body = json.dumps({"message": text}).encode() if wire == "json" else text.encode()
+    with (
+        patch.dict("os.environ", {"ZYTE_API_KEY": secret}),
+        patch(
+            "harness.web_scraper.pipeline.request",
+            return_value=HttpResponse(502, "https://example.org", {}, body),
+        ),
+    ):
+        row = provider_call("zyte-product", "<html>frozen</html>", "https://example.org")
+        path = tmp_path / "retained.json"
+        save_json(path, row)
+    assert encoded not in path.read_text() and secret not in path.read_text()
+    assert "[REDACTED]" in json.dumps(read_json(path))
+
+
+def test_zyte_basic_encoding_is_removed_from_checkpointed_transport_errors(tmp_path):
+    import base64
+
+    from harness.web_scraper.pipeline import read_json
+
+    home = create(tmp_path / "example")
+    target = home / "runs/encoded-denial"
+    secret = "zyte-synthetic-secret-for-regression"
+    encoded = base64.b64encode((secret + ":").encode()).decode()
+    with (
+        patch("harness.web_scraper.pipeline.validate_dataset"),
+        patch("harness.web_scraper.pipeline.load_runtime_env"),
+        patch.dict("os.environ", {"ZYTE_API_KEY": secret}),
+        patch("harness.web_scraper.pipeline.request", side_effect=RuntimeError("Basic " + encoded)),
+    ):
+        probe(home, ["zyte-product"], full=True, run_dir=target)
+    calls = list((target / "calls").glob("*.json"))
+    assert len(calls) == 3
+    for path in calls:
+        assert encoded not in path.read_text() and secret not in path.read_text()
+        assert read_json(path)["error"] == "Basic [REDACTED]"

@@ -391,6 +391,10 @@ def original_execution_bindings(work):
             continue
         if digest(path.read_bytes()) != sha:
             raise ValueError("Original audit execution manifest changed")
+        contract = read_json(path.parent / "contract.json")
+        if "methods" not in contract or "case_ids" not in contract:
+            # Repairs are validated through compose, never the extraction-run loader.
+            continue
         _, rows = load_run(path.parent)
         for row in rows:
             key = (row["method"], row["case_id"])
@@ -432,8 +436,27 @@ def assemble(
     changed_keys = {
         (o["method"], cid) for cid, case in changed_inputs.items() for o in case["outputs"]
     }
-    repaired_keys = {(r["method"], r["case_id"]) for r in rows if r.get("repair_run_id")}
-    if original_keys != expected or changed_keys != repaired_keys:
+    original_items = {
+        (output["method"], cid): output
+        for cid, case in original_inputs.items()
+        for output in case["outputs"]
+    }
+    original_executions = (
+        original_execution_bindings(initial)
+        if any("execution_identity" not in item for item in original_items.values())
+        else {}
+    )
+    initial_identities = {
+        key: item.get("execution_identity", original_executions.get(key))
+        for key, item in original_items.items()
+    }
+    supplemental_keys = {
+        (row["method"], row["case_id"])
+        for row in rows
+        if row.get("repair_run_id")
+        and initial_identities.get((row["method"], row["case_id"])) != execution_identity(row)
+    }
+    if original_keys != expected or changed_keys != supplemental_keys:
         raise ValueError("Original or supplemental review scope is incomplete")
     disputed = {
         cid
@@ -521,15 +544,15 @@ def assemble(
         references[cid].pop("OutOfStock", None)
         for stock in references[cid].get("availability", []):
             references[cid][stock] = [stock]
-    original_executions = original_execution_bindings(initial)
     result_reviews = {}
     for row in rows:
         cid, method = row["case_id"], row["method"]
-        inputs = changed_inputs if row.get("repair_run_id") else original_inputs
+        supplemental_result = (method, cid) in supplemental_keys
+        inputs = changed_inputs if supplemental_result else original_inputs
         item = next(o for o in inputs[cid]["outputs"] if o["method"] == method)
         if item["native_response"] != row.get("response"):
             raise ValueError("Reviewed native response differs from current result")
-        if row.get("repair_run_id"):
+        if supplemental_result:
             # Existing supplemental packets used the complete serialized logical row.
             identity = item["execution_identity"]
             valid = {
@@ -538,12 +561,12 @@ def assemble(
             }
             if identity not in valid:
                 raise ValueError("Supplemental audit call identity differs")
-        elif original_executions.get((method, cid)) != execution_identity(row):
+        elif initial_identities.get((method, cid)) != execution_identity(row):
             raise ValueError("Original audit call identity differs")
         elif item.get("execution_identity", execution_identity(row)) != execution_identity(row):
             raise ValueError("Original packet call identity differs")
         current = {**row, "normalized_fields": normalize(method, row.get("response", {}))}
-        opinions = changed_opinions if row.get("repair_run_id") else original_opinions
+        opinions = changed_opinions if supplemental_result else original_opinions
         opinion = next(o for o in opinions[cid]["outputs"] if o["method"] == method)
         matched = field_results(home, references[cid], current, profile=profile)
         result_reviews[method + ":" + cid] = {
@@ -567,7 +590,7 @@ def assemble(
                 for field in FIELDS
             },
             "source_field_review": sources[cid]["source_fields"],
-            "basis": "supplemental" if row.get("repair_run_id") else "original",
+            "basis": "supplemental" if supplemental_result else "original",
             "native_response_sha256": digest(
                 json.dumps(row.get("response"), sort_keys=True, ensure_ascii=False).encode()
             ),
@@ -636,8 +659,16 @@ def assemble(
     return value
 
 
+def validate_review_options(*, limit=None, workers=4):
+    if limit is not None and (type(limit) is not int or limit <= 0):
+        raise ValueError("--limit must be a positive integer")
+    if type(workers) is not int or workers <= 0:
+        raise ValueError("--workers must be a positive integer")
+
+
 def run(work, *, model, workers=4, limit=None):
     """Review only missing packets; retain exact reviewer, inputs and raw logs."""
+    validate_review_options(limit=limit, workers=workers)
     work = Path(work).resolve()
     manifest = read_json(work / "manifest.json")
     for name, sha in manifest["bindings"].items():
@@ -756,7 +787,7 @@ Return concise Chinese findings under the supplied schema. No API calls or file 
         print("Reviewed", path.stem, len(result["cases"]), flush=True)
         return result
 
-    items = manifest["packets"][:limit] if limit else manifest["packets"]
+    items = manifest["packets"][:limit]
 
     def guarded(item):
         try:

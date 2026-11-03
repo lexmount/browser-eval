@@ -948,3 +948,129 @@ def test_repair_composition_accepts_verified_field_projection(tmp_path):
         current, _ = compose(home, source, projected, revision)
     assert current[0]["normalized_fields"] == {"sku": "offline projection"}
     assert current[-1]["normalized_fields"]["sku"] == "fixed"
+
+
+@pytest.mark.parametrize("limit", [0, -1])
+def test_review_rejects_nonpositive_limit_before_preparation_or_dispatch(tmp_path, limit):
+    from harness.web_scraper.cli import main
+    from harness.web_scraper.review import run as run_audit
+
+    with patch("harness.web_scraper.review.ReviewerSessions.start") as start:
+        with pytest.raises(ValueError, match="positive integer"):
+            run_audit(tmp_path / "absent", model="synthetic", limit=limit)
+        start.assert_not_called()
+    with (
+        patch("harness.web_scraper.review.prepare") as prepare_audit,
+        patch("harness.web_scraper.review.run") as dispatch,
+        pytest.raises(SystemExit) as error,
+    ):
+        main(
+            [
+                "review",
+                "--content",
+                str(tmp_path / "absent.json"),
+                "--work",
+                str(tmp_path / "work"),
+                "--model",
+                "synthetic",
+                "--limit",
+                str(limit),
+            ]
+        )
+    assert error.value.code == 2
+    prepare_audit.assert_not_called()
+    dispatch.assert_not_called()
+    assert not (tmp_path / "work").exists()
+
+
+def test_initial_audit_can_start_with_already_repaired_results(tmp_path):
+    from harness.web_scraper.review import assemble
+
+    home, source, profile, _ = parent_inputs(tmp_path)
+    target = tmp_path / "repaired"
+    content = tmp_path / "current-content.json"
+    initial = tmp_path / "initial"
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch("harness.web_scraper.repair.score_rows", return_value={}),
+        patch(
+            "harness.web_scraper.repair.provider_call",
+            return_value={
+                "state": "response_received",
+                "http_status": 200,
+                "response": {"result": {"sku": "new"}},
+            },
+        ),
+    ):
+        run(home, profile, "cloudflare-json", target)
+        save_json(
+            content,
+            {
+                "evidence_runs": [
+                    {
+                        "run": str(source),
+                        "repair": [
+                            {
+                                "path": str(target),
+                                "sha256": digest((target / "certificate.json").read_bytes()),
+                            }
+                        ],
+                    }
+                ]
+            },
+        )
+        manifest = prepare(home, content, initial)
+        for entry in manifest["packets"]:
+            path = Path(entry["path"])
+            packet = read_json(path)
+            # A legacy unrepaired item requires fallback extraction-manifest
+            # lookup while its repaired neighbor uses the explicit call identity.
+            packet["cases"][0]["outputs"][0].pop("execution_identity")
+            save_json(path, packet)
+            entry["sha256"] = digest(path.read_bytes())
+            finding = {
+                "status": "supported",
+                "values": [],
+                "source_quote": "synthetic product",
+                "source_locator": "p",
+                "reason": "Synthetic source context",
+            }
+            fields = {field: deepcopy(finding) for field in ("price", "sku", "availability")}
+            save_json(
+                initial / "reviews" / path.name,
+                {
+                    "cases": [
+                        {
+                            "case_id": c["case_id"],
+                            "main_product": "Synthetic",
+                            "source_fields": fields,
+                            "reference": fields,
+                            "outputs": [
+                                {"method": o["method"], "fields": fields, "projection_issue": ""}
+                                for o in c["outputs"]
+                            ],
+                        }
+                        for c in packet["cases"]
+                    ]
+                },
+            )
+        save_json(initial / "manifest.json", manifest)
+        save_json(initial / "reviewer.json", {"model": "synthetic"})
+        for name in ("supplemental", "adjudication"):
+            save_json(
+                tmp_path / name / "manifest.json",
+                {"bindings": {}, "packets": [], "case_count": 0, "result_count": 0},
+            )
+        result = assemble(
+            home,
+            content,
+            initial,
+            tmp_path / "supplemental",
+            tmp_path / "adjudication",
+            tmp_path / "complete.json",
+            profile=home / "profile.json",
+        )
+    assert result["result_count"] == 3
+    assert result["supplemental_results_reviewed"] == 0
+    assert {r["basis"] for r in result["results"].values()} == {"original"}
