@@ -41,8 +41,8 @@ def _entry_facts(case_id, entries):
 
 class DynamicReferenceTests(unittest.TestCase):
     def test_all_observed_fields_are_required(self):
-        captures=json.loads((ROOT/'research/dynamic-browser-captures.json').read_text())
-        captures+=json.loads((ROOT/'research/dynamic-expansion-captures.json').read_text())
+        captures=json.loads((ROOT/'research/dynamic-browser-captures.json').read_text(encoding='utf-8'))
+        captures+=json.loads((ROOT/'research/dynamic-expansion-captures.json').read_text(encoding='utf-8'))
         for c in captures:
             facts=_entry_facts(c['id'],c['entries'])
             ref=c['rendered_text']
@@ -66,7 +66,7 @@ class DynamicReferenceTests(unittest.TestCase):
     def test_new_observed_values_replace_old_fact_values(self):
         # Snapshot diagnostics can describe a new independent sample, without
         # silently changing the separately reviewed stable acceptance contract.
-        captures = json.loads((ROOT/'research/dynamic-expansion-captures.json').read_text())
+        captures = json.loads((ROOT/'research/dynamic-expansion-captures.json').read_text(encoding='utf-8'))
         case = next(c for c in captures if c['id'] == 'dynamic-iframe')
         updated = copy.deepcopy(case['entries'])
         old = updated[0]

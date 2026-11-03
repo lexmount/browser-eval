@@ -204,7 +204,7 @@ def main(argv: list[str] | None = None) -> None:
         subprocess.run(command, check=True)
         summaries.append(verify_shard(args.output_root / provider, provider, case_ids, profile))
         expected_binary = profile.get("binary_sha256")
-        if expected_binary and json.loads((args.output_root / provider / "execution.json").read_text())[
+        if expected_binary and json.loads((args.output_root / provider / "execution.json").read_text(encoding="utf-8"))[
                 "implementation_identity"]["binary_sha256"] != expected_binary:
             raise ValueError("Measured binary differs from declared version")
         _unchanged(bound)

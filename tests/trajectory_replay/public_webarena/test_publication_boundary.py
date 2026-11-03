@@ -16,18 +16,18 @@ from tests.public_webarena_fixture import write_report_fixture
 
 def test_stage_consumes_only_manifest_and_summary(tmp_path):
     source, _ = write_report_fixture(tmp_path)
-    (source / 'run/private-notes.txt').write_text('private diagnosis')
+    (source / 'run/private-notes.txt').write_text('private diagnosis', encoding='utf-8')
     (source / 'run/worker').mkdir()
-    (source / 'run/worker/raw-response.json').write_text('private raw response')
+    (source / 'run/worker/raw-response.json').write_text('private raw response', encoding='utf-8')
     staged = tmp_path / 'staged'
     stage_report(source, staged)
     assert {path.name for path in (staged / 'run').iterdir()} == {'manifest.json', 'summary.json'}
-    assert (source / 'run/private-notes.txt').read_text() == 'private diagnosis'
+    assert (source / 'run/private-notes.txt').read_text(encoding='utf-8') == 'private diagnosis'
 
 
 def test_failed_result_validation_leaves_no_staged_bundle(tmp_path):
     source, _ = write_report_fixture(tmp_path)
-    (source / 'run/summary.json').write_text('{}')
+    (source / 'run/summary.json').write_text('{}', encoding='utf-8')
     staged = tmp_path / 'staged'
     with pytest.raises(ValueError):
         stage_report(source, staged)
@@ -53,7 +53,7 @@ def test_stage_rejects_input_changes_during_rendering(tmp_path, monkeypatch):
 
     def changed(*args, **kwargs):
         result = original(*args, **kwargs)
-        (source / 'run/manifest.json').write_text('{}')
+        (source / 'run/manifest.json').write_text('{}', encoding='utf-8')
         return result
 
     monkeypatch.setattr(report, 'write_latest_report', changed)
@@ -70,7 +70,7 @@ def test_publication_excludes_undeclared_files_with_a_report_prefix(tmp_path, op
     stage_report(source, staged)
     declared = {path.name for path in (staged / 'reports').iterdir()}
     name = REPORT_STEM + '-private-notes.txt'
-    (staged / 'reports' / name).write_text('private investigation')
+    (staged / 'reports' / name).write_text('private investigation', encoding='utf-8')
     if operation == 'package':
         archive = tmp_path / 'public.zip'
         build(staged, archive, tmp_path / 'receipt.json', authority=authority)
@@ -81,7 +81,7 @@ def test_publication_excludes_undeclared_files_with_a_report_prefix(tmp_path, op
         output = export_public_report_bundle(staged, tmp_path / 'public')
         assert not (output / 'reports' / name).exists()
         assert {path.name for path in (output / 'reports').iterdir()} == declared
-        manifest = json.loads((output / 'run/manifest.json').read_text())
+        manifest = json.loads((output / 'run/manifest.json').read_text(encoding='utf-8'))
         assert set(manifest) == {'suite_sha256', 'artifact_provenance'}
 
 
@@ -106,14 +106,14 @@ def test_package_rejects_linked_outputs_before_replacing_any_file(tmp_path, role
     staged = tmp_path / 'staged'
     stage_report(source, staged)
     target = tmp_path / 'retained-evidence.txt'
-    target.write_text('retained evidence')
+    target.write_text('retained evidence', encoding='utf-8')
     archive, receipt = tmp_path / 'public.zip', tmp_path / 'receipt.json'
     selected = archive if role == 'archive' else receipt
     selected.symlink_to(target)
     with pytest.raises(ValueError):
         build(staged, archive, receipt, authority=authority)
     assert selected.is_symlink()
-    assert target.read_text() == 'retained evidence'
+    assert target.read_text(encoding='utf-8') == 'retained evidence'
     if role == 'attestation':
         assert not archive.exists()
 

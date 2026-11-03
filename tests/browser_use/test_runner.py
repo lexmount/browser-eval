@@ -1417,7 +1417,8 @@ def test_provider_credentials_come_only_from_the_repository_env(tmp_path, monkey
     assert _load_repo_env(tmp_path) == {"COWAGENT_REPO": "/explicit/cowagent"}
 
     (tmp_path / ".env").write_text(
-        "OPENAI_API_KEY=repository-key\nOPENAI_BASE_URL=https://models.invalid\n"
+        "OPENAI_API_KEY=repository-key\nOPENAI_BASE_URL=https://models.invalid\n",
+        encoding="utf-8"
     )
     assert _load_repo_env(tmp_path) == {
         "OPENAI_API_KEY": "repository-key",
@@ -1425,7 +1426,7 @@ def test_provider_credentials_come_only_from_the_repository_env(tmp_path, monkey
         "COWAGENT_REPO": "/explicit/cowagent",
     }
 
-    (tmp_path / ".env").write_text("OPENAI_BASE_URL=${OPENAI_BASE_URL}\n")
+    (tmp_path / ".env").write_text("OPENAI_BASE_URL=${OPENAI_BASE_URL}\n", encoding="utf-8")
     assert _load_repo_env(tmp_path)["OPENAI_BASE_URL"] == "${OPENAI_BASE_URL}"
 
 
@@ -1435,7 +1436,9 @@ def test_explicit_env_file_is_read_without_shell_interpolation(tmp_path, monkeyp
     (tmp_path / "cowagent/agent/protocol").mkdir(parents=True)
     (tmp_path / "cowagent/agent/protocol/agent.py").touch()
     env_file = tmp_path / "provider.env"
-    env_file.write_text("OPENAI_API_KEY=${SHELL_ONLY_KEY}\nOPENAI_BASE_URL=${SHELL_ONLY_URL}\n")
+    env_file.write_text(
+        "OPENAI_API_KEY=${SHELL_ONLY_KEY}\nOPENAI_BASE_URL=${SHELL_ONLY_URL}\n", encoding="utf-8"
+    )
     runner = "harness.browser_use.runner"
     for name in ("require_clean_git_checkout", "load_pilot", "configure_benchmark"):
         monkeypatch.setattr(f"{runner}.{name}", lambda *_args: None)

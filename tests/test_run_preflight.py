@@ -85,7 +85,7 @@ def test_dataset_validation_rejects_unexecutable_tasks(tmp_path, change):
     path = tmp_path / 'dataset.json'
     path.write_text(json.dumps({'tool': 'web_fetch', 'cases': [{
         'id': 'one', 'name': 'One', 'url': 'https://example.invalid/',
-        'category': 'synthetic', 'expected_any': ['Expected'], **change}]}))
+        'category': 'synthetic', 'expected_any': ['Expected'], **change}]}), encoding='utf-8')
     with pytest.raises(ValueError):
         load_dataset(path)
 
@@ -95,7 +95,7 @@ def test_dataset_validation_rejects_unexecutable_tasks(tmp_path, change):
                                    {'tool': 'web_fetch', 'cases': [{'id': 'incomplete'}]}])
 def test_invalid_dataset_shape_has_a_configuration_error(tmp_path, payload):
     path = tmp_path / 'dataset.json'
-    path.write_text(json.dumps(payload))
+    path.write_text(json.dumps(payload), encoding='utf-8')
     with pytest.raises(ValueError):
         load_dataset(path)
 

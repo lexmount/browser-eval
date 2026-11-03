@@ -52,7 +52,7 @@ def _verify_contract_source(path: str, expected_sha256: str) -> None:
         relative = authority.relative_to(prefix)
     except ValueError as error:
         raise ValueError("Native retrieval contract source must belong to evaluation/sources") from error
-    manifest = json.loads((definition_path('evaluation/source-inputs.json')).read_text())
+    manifest = json.loads((definition_path('evaluation/source-inputs.json')).read_text(encoding="utf-8"))
     if manifest.get("trees", {}).get("sources", {}).get(relative.as_posix()) != expected_sha256:
         raise ValueError("Native retrieval contract source hash is not in the source manifest")
     source = _verified_source_tree() / relative
@@ -62,7 +62,7 @@ def _verify_contract_source(path: str, expected_sha256: str) -> None:
 
 @lru_cache(maxsize=None)
 def _verify_task_definition(identifier: str, expected_sha256: str) -> None:
-    catalog = json.loads((definition_path('evaluation/dynamic-content-100-moli-webfetch/dataset-catalog.json')).read_text())
+    catalog = json.loads((definition_path('evaluation/dynamic-content-100-moli-webfetch/dataset-catalog.json')).read_text(encoding="utf-8"))
     declared = next((case for case in catalog.get("cases", [])
                      if case.get("id") == identifier), None)
     if declared is None or declared.get("definition_sha256") != expected_sha256:

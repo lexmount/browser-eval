@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 
 from lexbench_webfetch.paths import contained_path
 
-from harness.record_io import canonical_json_sha256
+from harness.record_io import canonical_json_sha256, read_json
 from harness.web_fetch.artifacts import (
     record_public_call_log_bindings,
     verify_record_public_call_logs,
@@ -66,7 +66,7 @@ def _require_local_record_correction(source, original, corrected, receipt=None):
         path = contained_path(source, "local-evidence/scoring-correction.json")
         if not path.is_file():
             raise ValueError("Changed local record lacks a correction receipt")
-        receipt = json.loads(path.read_text())
+        receipt = json.loads(path.read_text(encoding="utf-8"))
     identifier = original["attempt_id"]
     if (receipt.get("original_call_identities", {}).get(identifier)
             != local_measurement_call_sha256(original)
@@ -88,7 +88,7 @@ def _require_local_record_correction(source, original, corrected, receipt=None):
         # not silently add array selection to this historical contract.
         if not isinstance(pointer, list) or not pointer or any(not isinstance(key, str) for key in pointer):
             raise ValueError('Local URL correction requires object field names')
-        value = native_field_value(json.loads(path.read_text()), pointer)
+        value = native_field_value(json.loads(path.read_text(encoding="utf-8")), pointer)
         if (value != corrected.get("final_url")
                 or proof.get("original_value") != original.get("final_url")):
             raise ValueError("Local URL correction differs from native response")
@@ -223,7 +223,7 @@ def require_local_execution_contract(source, dataset, records, contract, executi
             raise ValueError("Local measurement output changed")
         verify_record_public_call_logs(source, record)
         binding = record_public_call_log_bindings(record)[0]
-        log = json.loads(contained_path(source, binding["path"]).read_text())
+        log = json.loads(contained_path(source, binding["path"]).read_text(encoding="utf-8"))
         if (any(log["identity"][key] != record[key]
                 for key in ("attempt_id", "provider", "case_id", "run"))
                 or log["output"]["path"] != record["artifact_path"]
@@ -241,9 +241,8 @@ def require_local_execution_contract(source, dataset, records, contract, executi
 def _require_local_runner_inputs(source, contract, execution, records):
     """Verify retained runner inputs and source observations, without certifying them."""
     inputs = contract['runner_inputs']
-    def read(key):
-        return json.loads(read_evidence_binding(source, inputs[key]).read_text())
-    frozen, configuration, network = (read(key) for key in ('dataset', 'providers', 'network'))
+    frozen, configuration, network = (read_json(read_evidence_binding(source, inputs[key]))
+                                      for key in ('dataset', 'providers', 'network'))
     canonical = local_measurement_cases(contract, source)
     if frozen['cases'] != canonical or inputs['dataset'] != contract['dataset_sources'][0]:
         raise ValueError('Local runner dataset differs from frozen task inputs')
@@ -290,7 +289,7 @@ def _require_local_runner_inputs(source, contract, execution, records):
         ends = [datetime.fromisoformat(row['completed_at']) for row in records if row['case_id'] == case['id']]
         for stage in ('pre', 'post'):
             capture = observations[case['id']][stage]
-            evidence = json.loads(read_evidence_binding(source, capture['evidence']).read_text())
+            evidence = json.loads(read_evidence_binding(source, capture['evidence']).read_text(encoding="utf-8"))
             for key, field in [('source', 'sha256'),
                                ('reference', 'reference_sha256'), ('extracted', 'extracted_sha256')]:
                 read_evidence_binding(source, capture[key])

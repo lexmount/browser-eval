@@ -10,7 +10,7 @@ from harness.web_fetch.reliability import assess_reliability
 
 def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False))
+    path.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
 
 
 def create_report(base: Path, *, english=False, headless=False):
@@ -65,7 +65,7 @@ def create_report(base: Path, *, english=False, headless=False):
         "metrics": {"content_sha256": digest, "content_pass": True},
     }
     write_json(root / "dataset.json", dataset)
-    (root / "results.jsonl").write_text(json.dumps(row) + "\n")
+    (root / "results.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
     write_json(root / "reliability.json", assess_reliability(dataset, [row]))
     write_json(root / "execution.json", {"batches": [{"attempt_ids": ["alpha__one"]}]})
     write_json(
@@ -100,7 +100,7 @@ def create_report(base: Path, *, english=False, headless=False):
                 continue
             path = root / ("en" if language == "en" else "") / route
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text("<html><body>" + content + "</body></html>")
+            path.write_text("<html><body>" + content + "</body></html>", encoding="utf-8")
     write_language_contract(root, include_english=english)
     return root, authority
 
@@ -112,7 +112,7 @@ def create_revision_report(base: Path):
     root, authority = create_report(base)
     home = root / "index.html"
     home.write_text(
-        home.read_text()
+        home.read_text(encoding="utf-8")
         + """
     <div id="home-rankings"><div role="tabpanel">
     <div class="track-guide">Guide</div><div class="track-meaning">Meaning</div>
@@ -121,7 +121,8 @@ def create_revision_report(base: Path):
     <details class="ranking-metric-help"><dl><dt>Metric</dt></dl></details>
     <div><table class="ranking" data-col="1"><thead><tr>
     <th>序号</th><th>任务通过率</th></tr></thead>
-    <tbody><tr><td>1</td><td>100%</td></tr></tbody></table></div></div></div>"""
+    <tbody><tr><td>1</td><td>100%</td></tr></tbody></table></div></div></div>""",
+        encoding="utf-8"
     )
     panels = "".join(
         f'<details class="interface-panel" id="interface-{name}"'
@@ -130,7 +131,7 @@ def create_revision_report(base: Path):
         for index, name in enumerate(SPECS)
     )
     (root / "adoption").mkdir()
-    (root / "adoption/index.html").write_text("<html><body>" + panels + "</body></html>")
+    (root / "adoption/index.html").write_text("<html><body>" + panels + "</body></html>", encoding="utf-8")
     write_json(
         root / "adoption/counts.json",
         {
@@ -151,5 +152,5 @@ def create_revision_report(base: Path):
     (root / "analysis/index.html").write_text("""<select data-filter="result">
     <option value="pass">任务通过</option><option value="fail" selected>任务失败</option>
     <option value="all">全部</option></select><table id="filtered-table"><thead><tr>
-    <th>序号</th><th>失败分类</th></tr></thead><tbody><tr><td>1</td><td>请求失败</td></tr></tbody></table>""")
+    <th>序号</th><th>失败分类</th></tr></thead><tbody><tr><td>1</td><td>请求失败</td></tr></tbody></table>""", encoding="utf-8")
     return root, authority

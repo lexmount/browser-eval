@@ -26,14 +26,15 @@ def repository(root, marker):
     root.mkdir()
     package = root / "webmainbench" / "metrics"
     package.mkdir(parents=True)
-    (package / "__init__.py").write_text("")
-    (package / "helper.py").write_text(f"MARKER = {marker!r}\n")
+    (package / "__init__.py").write_text("", encoding="utf-8")
+    (package / "helper.py").write_text(f"MARKER = {marker!r}\n", encoding="utf-8")
     (package / "calculator.py").write_text(
         "from webmainbench.metrics.helper import MARKER\n"
         "class MetricCalculator:\n"
         "    def __init__(self, config):\n"
         "        self.marker = MARKER\n"
-        "        self.config = config\n"
+        "        self.config = config\n",
+        encoding="utf-8"
     )
     subprocess.run(["git", "init", "-q", str(root)], check=True)
     subprocess.run(["git", "-C", str(root), "add", "."], check=True)
@@ -70,7 +71,8 @@ def test_dirty_checkout_is_rejected_before_import(tmp_path):
     root = tmp_path / "scorer"
     head = repository(root, "pinned")
     (root / "webmainbench/metrics/helper.py").write_text(
-        "raise AssertionError('must not execute')\n"
+        "raise AssertionError('must not execute')\n",
+        encoding="utf-8"
     )
     with pytest.raises(ValueError, match="clean"):
         official_calculator(root, tmp_path / "cache", head)
@@ -87,7 +89,8 @@ def test_failed_import_restores_the_previous_scorer_namespace(tmp_path):
     }
     broken_head = repository(broken, "broken")
     (broken / "webmainbench/metrics/calculator.py").write_text(
-        "raise RuntimeError('fixture import failure')\n"
+        "raise RuntimeError('fixture import failure')\n",
+        encoding="utf-8"
     )
     subprocess.run(["git", "-C", str(broken), "add", "."], check=True)
     subprocess.run(

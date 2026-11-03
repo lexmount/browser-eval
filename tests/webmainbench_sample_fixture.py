@@ -8,11 +8,11 @@ from harness.web_fetch.webmainbench_scoring import CORE_METRICS, SCORER_COMMIT, 
 
 
 def write_json(path, value):
-    path.write_text(json.dumps(value))
+    path.write_text(json.dumps(value), encoding='utf-8')
 
 
 def write_rows(path, rows):
-    path.write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    path.write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
 
 
 def sample_fixture(root, *, providers=('engine-a', 'new-engine'), size=2, parent_size=3,
@@ -48,14 +48,14 @@ def sample_fixture(root, *, providers=('engine-a', 'new-engine'), size=2, parent
             track_id = case['track_id']
             content = case['groundtruth_content']
             relative = f'artifacts/{provider}/{track_id}.md'
-            (shard / relative).write_text(content)
+            (shard / relative).write_text(content, encoding='utf-8')
             input_hash = hashlib.sha256(case['html'].encode()).hexdigest()
             reference_hash = hashlib.sha256(content.encode()).hexdigest()
             chain = []
             answers = ('first call failed',) * (recovery_call - 1) + (content,) if index == 0 else (content,)
             for physical, body in enumerate(answers, 1):
                 physical_path = f'artifacts/{provider}/{track_id}-p{physical:02d}.txt'
-                (shard / physical_path).write_text(body)
+                (shard / physical_path).write_text(body, encoding='utf-8')
                 chain.append({'provider': provider, 'track_id': track_id,
                               'attempt_id': f'{provider}__{track_id}__p{physical:02d}',
                               'physical_attempt': physical, 'elapsed_ms': 10,
@@ -86,7 +86,7 @@ def sample_fixture(root, *, providers=('engine-a', 'new-engine'), size=2, parent
                                                   'official_aggregate': aggregate(rows),
                                                   'scorer': {'commit': SCORER_COMMIT, 'metric_config': {'use_llm': False},
                                                              'metric_source_sha256': metric_sources}})
-        (shard / 'private-notes.txt').write_text('Never copy unbound files')
+        (shard / 'private-notes.txt').write_text('Never copy unbound files', encoding='utf-8')
     review = root / 'review.json'
     write_json(review, {'schema_version': 1, 'status': 'passed', 'failures': [],
                         'dataset_sha256': file_sha256(source), 'sample_manifest_sha256': file_sha256(manifest),

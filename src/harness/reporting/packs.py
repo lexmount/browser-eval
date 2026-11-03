@@ -173,7 +173,7 @@ def write_compact_packs(entries, destination, *, architecture=None, pack_limit=1
     (destination/'manifest.json.gz').write_bytes(raw)
     descriptor = {'schema_version':3, 'compressed_manifest':'manifest.json.gz',
                   'manifest_sha256':hashlib.sha256(raw).hexdigest()}
-    (destination/'manifest.json').write_text(json.dumps(descriptor,separators=(',',':')))
+    (destination/'manifest.json').write_text(json.dumps(descriptor,separators=(',',':')), encoding='utf-8')
     return wire
 
 

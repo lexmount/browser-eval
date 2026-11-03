@@ -883,7 +883,7 @@ class ProviderTest(unittest.TestCase):
                 timeout=0.4,
                 delay=0,
             )
-            manifest = json.loads((root / "manifest.json").read_text())
+            manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(seen_timeouts, [0.2, 0.2, 0.2, 0.2])
         self.assertEqual(len(records), 2)
         self.assertEqual([record["error_type"] for record in records], ["timeout", "timeout"])
@@ -920,7 +920,7 @@ class ProviderTest(unittest.TestCase):
 
     def test_release_configs_bind_strongest_tavily_and_exa_text_routes(self) -> None:
         for filename in ("configs/providers.example.json", "configs/providers.resources.json"):
-            providers = json.loads(Path(filename).read_text())["providers"]
+            providers = json.loads(Path(filename).read_text(encoding="utf-8"))["providers"]
             with self.subTest(filename=filename):
                 self.assertEqual(providers["tavily"]["extract_depth"], "advanced")
                 self.assertEqual(providers["tavily-resources"]["extract_depth"], "advanced")

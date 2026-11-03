@@ -161,7 +161,7 @@ def test_measured_installation_uses_verified_configuration(tmp_path):
         'moli-1.1.7': {'engine': 'moli', 'binary': '${FROZEN_OLD_BINARY:-/private/program}'},
         'moli-candidate': {'engine': 'moli', 'binary': '${FROZEN_NEW_BINARY}'},
     }
-    config.write_text(json.dumps({'providers': providers}))
+    config.write_text(json.dumps({'providers': providers}), encoding='utf-8')
     manifests = [{'provider_config_source': str(config),
                   'provider_config_sha256': hashlib.sha256(config.read_bytes()).hexdigest(),
                   'providers': [{'name': name} for name in providers]}]
@@ -180,7 +180,7 @@ def test_measured_installation_uses_verified_configuration(tmp_path):
 
     # A changed file must never silently become the historical authority.
     config.write_text(json.dumps({'providers': {
-        name: {**value, 'binary': '${TODAYS_BINARY}'} for name, value in providers.items()}}))
+        name: {**value, 'binary': '${TODAYS_BINARY}'} for name, value in providers.items()}}), encoding='utf-8')
     page = render(tmp_path, {}, records, manifests)
     assert 'TODAYS_BINARY' not in page and 'FROZEN_OLD_BINARY' not in page
     assert 'installation variables were not recorded' in page
@@ -206,7 +206,7 @@ def test_frozen_installation_rejects_ambiguous_cohort_and_batch_bindings(tmp_pat
         path = tmp_path / filename
         path.write_text(json.dumps({'providers': {'moli': {
             'engine': 'moli', 'binary': binary,
-            'resource_binary': '${CONTAINER_BROWSER}'}}, **extra}))
+            'resource_binary': '${CONTAINER_BROWSER}'}}, **extra}), encoding='utf-8')
         return {'provider_config_source': str(path),
                 'provider_config_sha256': hashlib.sha256(path.read_bytes()).hexdigest(),
                 'providers': [{'name': 'moli'}]}

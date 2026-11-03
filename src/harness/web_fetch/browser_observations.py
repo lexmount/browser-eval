@@ -864,7 +864,7 @@ def capture_batch(
         if checkpoint and checkpoint.is_symlink():
             raise ValueError("Browser observation checkpoint must not be symlinked")
         if checkpoint and checkpoint.exists():
-            saved = json.loads(checkpoint.read_text())
+            saved = json.loads(checkpoint.read_text(encoding="utf-8"))
             if (
                 saved.get("input_sha256") != fingerprint
                 or saved.get("observation", {}).get("case_id") != case["id"]

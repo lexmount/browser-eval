@@ -27,7 +27,7 @@ def test_wcxb_language_output_and_every_language_link(tmp_path, include_english)
     assert set(editions) == ({'zh', 'en'} if include_english else {'zh'})
     assert 'cases/4017.html' in routes and 'analysis/index.html' in routes
     for route in routes:
-        soup = BeautifulSoup((root / route).read_text(), 'html.parser')
+        soup = BeautifulSoup((root / route).read_text(encoding='utf-8'), 'html.parser')
         english_link = next(link for link in soup.select('header a') if link.get_text() == 'English')
         assert english_link['href'] == ('en/' + route if include_english else 'en/index.html')
         assert (root / english_link['href']).is_file()
@@ -52,9 +52,9 @@ def test_wcxb_command_forwards_requested_language(tmp_path, monkeypatch, include
     root = Path(__file__).resolve().parents[1]
     profile = tmp_path / 'instance.json'
     profile.write_text(json.dumps({'comparison_kind': 'wcxb_frozen_html_to_markdown',
-                                   'sample_manifest': str(tmp_path / 'locked/tasks.json')}))
+                                   'sample_manifest': str(tmp_path / 'locked/tasks.json')}), encoding='utf-8')
     binding = {'kind': 'test-content'}
-    (tmp_path / 'report-content-binding.json').write_text(json.dumps(binding))
+    (tmp_path / 'report-content-binding.json').write_text(json.dumps(binding), encoding='utf-8')
     argv = [str(root / 'scripts/build_report.py'), '--language', language, '--profile', str(profile), '--wcxb', '--evidence', str(tmp_path),
             '--output', str(tmp_path / 'new-report')]
     if include_english:
@@ -71,7 +71,7 @@ def test_wcxb_renders_supplied_interpretation_without_regenerating_prose(tmp_pat
     inputs = create_report_inputs(tmp_path, english_source=False)
     inputs[-1]['guide']['zh'] = '<section id="bound-finding">独立绑定的结论</section>'
     generate_wcxb(*inputs)
-    soup = BeautifulSoup((inputs[0] / 'guide/index.html').read_text(), 'html.parser')
+    soup = BeautifulSoup((inputs[0] / 'guide/index.html').read_text(encoding='utf-8'), 'html.parser')
     assert soup.select_one('main').decode_contents() == inputs[-1]['guide']['zh']
 
 
@@ -98,8 +98,8 @@ def test_wcxb_release_checks_bound_article_body(tmp_path, include_english, tampe
     language = 'en' if include_english else 'zh'
     if tamper == 'body':
         page = root / ('en/guide/index.html' if include_english else 'guide/index.html')
-        page.write_text(page.read_text().replace('Synthetic interpretation', 'Changed finding')
-                        if include_english else page.read_text().replace('合成报告解读', '篡改结论'))
+        page.write_text(page.read_text(encoding='utf-8').replace('Synthetic interpretation', 'Changed finding')
+                        if include_english else page.read_text(encoding='utf-8').replace('合成报告解读', '篡改结论'), encoding='utf-8')
     elif tamper == 'binding':
         binding['rendered_sha256']['guide'][language] = '0' * 64
     elif tamper == 'missing-binding':
@@ -125,13 +125,13 @@ def test_wcxb_instance_counts_versions_and_interfaces_follow_selected_evidence(t
     profile['max_failure_retries'] = 3
     generate_wcxb(root, rows, summary, truth, identities, profile, content, include_english=True)
     for prefix, count_text in [('', f'{len(providers)} 种配置'), ('en/', f'{len(providers)} configurations')]:
-        home = BeautifulSoup((root / prefix / 'index.html').read_text(), 'html.parser')
+        home = BeautifulSoup((root / prefix / 'index.html').read_text(encoding='utf-8'), 'html.parser')
         assert count_text in home.select_one('h1').get_text()
         assert 'Moli 2.3.4' in home.get_text()
         assert 'Moli moli' not in home.get_text()
         assert 'abcdef12' in home.get_text()
         for route in ('index.html', 'methodology/index.html', 'datasets/index.html', 'changes/index.html'):
-            text = (root / prefix / route).read_text()
+            text = (root / prefix / route).read_text(encoding='utf-8')
             assert 'six configurations' not in text
             assert '六种配置' not in text
             assert 'five browsers' not in text
@@ -140,11 +140,11 @@ def test_wcxb_instance_counts_versions_and_interfaces_follow_selected_evidence(t
                 from harness.web_fetch.wcxb_report_check import ReportShape, require_bilingual_shape
                 zh, en = ReportShape(), ReportShape()
                 zh.feed(text)
-                en.feed((root / 'en' / route).read_text())
+                en.feed((root / 'en' / route).read_text(encoding='utf-8'))
                 require_bilingual_shape(zh, en, route)
-        method = (root / prefix / 'methodology/index.html').read_text()
+        method = (root / prefix / 'methodology/index.html').read_text(encoding='utf-8')
         assert 'Kitesurf receives' not in method
-        interfaces = BeautifulSoup((root / prefix / 'adoption/index.html').read_text(), 'html.parser').select_one('pre').get_text()
+        interfaces = BeautifulSoup((root / prefix / 'adoption/index.html').read_text(encoding='utf-8'), 'html.parser').select_one('pre').get_text()
         assert 'kitesurf:' not in interfaces
         assert ('"engine": "chromium"' in interfaces) == ('chromium' in providers)
         from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
@@ -152,7 +152,7 @@ def test_wcxb_instance_counts_versions_and_interfaces_follow_selected_evidence(t
         _, calls = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile, set(truth))
         paired = summarize_full_paired_latency(calls, set(truth))
         lang = 'zh' if not prefix else 'en'
-        html = (root / prefix / 'index.html').read_text()
+        html = (root / prefix / 'index.html').read_text(encoding='utf-8')
         checked = require_home_interpretation(html, summary, paired, lang, scores=rows)
         checked.select_one('[data-f1-relation="higher"]')['data-count'] = '99'
         with pytest.raises(ValueError, match='counts differ'):
@@ -172,17 +172,17 @@ def test_wcxb_uses_measured_versions_and_actual_configuration_count(tmp_path):
     identities['moli-pr643'].update(engine='moli', reported_version='7.8.10-dev.42')
     generate_wcxb(*inputs, include_english=True)
     for prefix in ('', 'en/'):
-        home = BeautifulSoup((root / prefix / 'index.html').read_text(), 'html.parser')
+        home = BeautifulSoup((root / prefix / 'index.html').read_text(encoding='utf-8'), 'html.parser')
         assert str(len(summary['providers'])) in home.h1.get_text()
         assert 'Moli 7.8.9' in home.get_text()
         assert 'Moli 7.8.10-dev.42' in home.get_text()
-        accounts = BeautifulSoup((root / prefix / 'accounts/index.html').read_text(), 'html.parser')
+        accounts = BeautifulSoup((root / prefix / 'accounts/index.html').read_text(encoding='utf-8'), 'html.parser')
         assert accounts.select_one('a[href="https://github.com/lexmount/moli/releases/tag/v7.8.9"]')
         assert 'MOLI_BINARY' not in accounts.get_text()
         for route in ('index.html', 'accounts/index.html', 'adoption/index.html',
                       'methodology/index.html', 'datasets/index.html', 'review/index.html',
                       'changes/index.html', 'reproduce/index.html'):
-            text = (root / prefix / route).read_text()
+            text = (root / prefix / route).read_text(encoding='utf-8')
             assert '1.1.8' not in text
             assert 'six configurations' not in text and '六种配置' not in text
 
@@ -200,11 +200,11 @@ def test_new_wcxb_population_does_not_inherit_historical_findings(tmp_path):
     generate_wcxb(*inputs, include_english=True)
     assert json.dumps([rows, summary, references, identities, profile, content], sort_keys=True) == before
     for lang, prefix in (('zh', ''), ('en', 'en/')):
-        raw = (root / prefix / 'index.html').read_text()
+        raw = (root / prefix / 'index.html').read_text(encoding='utf-8')
         soup = require_home_interpretation(raw, summary, latency, lang, {"moli": "release", "moli-pr643": "pr"})
         assert soup.select_one('#moli-change') is None
         assert '5412' not in raw and '5458' not in raw and 'PR #643' not in raw
-        guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(), 'html.parser')
+        guide = BeautifulSoup((root / prefix / 'guide/index.html').read_text(encoding='utf-8'), 'html.parser')
         assert guide.select_one('main').decode_contents() == content['guide'][lang]
         wrong = BeautifulSoup(raw, 'html.parser')
         context = wrong.select_one('#paired-latency-context')
@@ -232,7 +232,7 @@ def test_wcxb_public_build_uses_bound_optional_case_and_profile_participants(tmp
     cohort = create_cohort(tmp_path / 'cohort', paired=True, providers=participants)
     score(**cohort)
     source = cohort['evidence_root']
-    profile = json.loads(cohort['profile_path'].read_text())
+    profile = json.loads(cohort['profile_path'].read_text(encoding='utf-8'))
     profile.update(source_repository='https://example.invalid/source', source_commit='a' * 40)
     optional_root = source / 'optional-new-case'
     builds = {}
@@ -243,7 +243,7 @@ def test_wcxb_public_build_uses_bound_optional_case_and_profile_participants(tmp
         for extension, field in (('md', 'output_sha256'), ('stderr', 'stderr_sha256')):
             path = optional_root / f'{name}.{extension}'
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text('Synthetic optional evidence')
+            path.write_text('Synthetic optional evidence', encoding='utf-8')
             builds[name][field] = hashlib.sha256(path.read_bytes()).hexdigest()
     receipt = optional_root / 'receipt.json'
     write_json(receipt, {'case_id': 'case-001', 'source_sha256': profile['source_dataset_sha256'],
@@ -259,7 +259,7 @@ def test_wcxb_public_build_uses_bound_optional_case_and_profile_participants(tmp
     write_json(content, {'schema_version': 1, 'guide': {'zh': guide, 'en': guide}})
     authority = tmp_path / 'authority'
     authority.mkdir()
-    (authority / 'contract.json').write_text('{}')
+    (authority / 'contract.json').write_text('{}', encoding='utf-8')
     binding = {'schema_version': 1, 'relative_path': 'report-content.json',
                'sha256': hashlib.sha256(content.read_bytes()).hexdigest(),
                'evidence': {receipt.relative_to(source).as_posix(): profile['optional_ui_receipt_sha256']},
@@ -273,9 +273,9 @@ def test_wcxb_public_build_uses_bound_optional_case_and_profile_participants(tmp
                       content_binding=binding, authority_root=authority, include_english=True)
     check_bound_interpretation(output, binding)
     assert (output / 'research/wcxb-optional-new-case/receipt.json').read_bytes() == receipt.read_bytes()
-    assert 'Only the supplied synthetic finding' in (output / 'guide/index.html').read_text()
-    assert '5412' not in (output / 'index.html').read_text()
-    assert set(json.loads((output / 'evidence/case-001.json').read_text())['outputs']) == set(profile['providers'])
+    assert 'Only the supplied synthetic finding' in (output / 'guide/index.html').read_text(encoding='utf-8')
+    assert '5412' not in (output / 'index.html').read_text(encoding='utf-8')
+    assert set(json.loads((output / 'evidence/case-001.json').read_text(encoding='utf-8'))['outputs']) == set(profile['providers'])
     assert before == {p.relative_to(source): hashlib.sha256(p.read_bytes()).hexdigest()
                       for p in source.rglob('*') if p.is_file()}
 
@@ -295,7 +295,7 @@ def test_wcxb_leaders_and_interfaces_follow_participants(tmp_path, tied):
         summary['providers'][provider]['mean_latency_ms'] = 11 if tied else 12 - index
     generate_wcxb(*inputs, include_english=True)
     for prefix in ('', 'en/'):
-        home = BeautifulSoup((root / prefix / 'index.html').read_text(), 'html.parser')
+        home = BeautifulSoup((root / prefix / 'index.html').read_text(encoding='utf-8'), 'html.parser')
         lead = home.select_one('main section p').get_text()
         assert 'Moli 7.0.1' in lead
         assert ('Moli 7.0.0' in lead) == tied
@@ -304,8 +304,8 @@ def test_wcxb_leaders_and_interfaces_follow_participants(tmp_path, tied):
         for metric in ('f1', 'mean'):
             marked = home.select(f'#wcxb-core td[data-metric="{metric}"] .comparison-winner')
             assert len(marked) == (0 if tied else 1)
-        method = BeautifulSoup((root / prefix / 'methodology/index.html').read_text(), 'html.parser')
-        adoption = BeautifulSoup((root / prefix / 'adoption/index.html').read_text(), 'html.parser')
+        method = BeautifulSoup((root / prefix / 'methodology/index.html').read_text(encoding='utf-8'), 'html.parser')
+        adoption = BeautifulSoup((root / prefix / 'adoption/index.html').read_text(encoding='utf-8'), 'html.parser')
         interface = adoption.select_one('main pre').get_text()
         for name in ('Kitesurf', 'Lightpanda', 'Obscura', 'Chromium'):
             assert name not in method.select_one('main').get_text()
@@ -327,7 +327,7 @@ def test_wcxb_release_highlights_accept_actual_ties_and_reject_corruption(tmp_pa
             stats[key] = 11.0 if tied else 11.0 + index
     generate_wcxb(*inputs, include_english=True)
     for prefix in ('', 'en/'):
-        source = (inputs[0] / prefix / 'index.html').read_text()
+        source = (inputs[0] / prefix / 'index.html').read_text(encoding='utf-8')
         require_comparison_highlights(source)
         page = BeautifulSoup(source, 'html.parser')
         marked = page.select('#wcxb-core .comparison-winner')
@@ -379,10 +379,10 @@ def test_wcxb_registered_aliases_use_shared_interfaces_and_bound_timing_roles(tm
     _, calls = load_full_paired_latency(root / 'research/wcxb-full-paired-latency', profile, set(references))
     timing = summarize_full_paired_latency(calls, set(references))
     for lang, prefix in (('zh', ''), ('en', 'en/')):
-        require_home_interpretation((root / prefix / 'index.html').read_text(), summary, timing, lang, pair)
-        provider = BeautifulSoup((root / prefix / f'providers/{new}.html').read_text(), 'html.parser')
+        require_home_interpretation((root / prefix / 'index.html').read_text(encoding='utf-8'), summary, timing, lang, pair)
+        provider = BeautifulSoup((root / prefix / f'providers/{new}.html').read_text(encoding='utf-8'), 'html.parser')
         assert ('未提供可核对的接口路线' if lang == 'zh' else 'do not provide a verifiable route') in provider.get_text()
-        adoption = BeautifulSoup((root / prefix / 'adoption/index.html').read_text(), 'html.parser')
+        adoption = BeautifulSoup((root / prefix / 'adoption/index.html').read_text(encoding='utf-8'), 'html.parser')
         example = adoption.select_one('main pre').get_text()
         assert 'Moli 1.1.7' in example
         assert 'fetch' in example

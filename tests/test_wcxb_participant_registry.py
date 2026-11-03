@@ -17,11 +17,11 @@ def test_wcxb_renderer_accepts_entirely_new_participant_ids(tmp_path):
         (root / 'artifacts' / name).rename(root / 'artifacts' / replacement)
     generate_wcxb(root, rows, summary, ground_truth, identities, profile, content, include_english=True)
     for prefix in ('', 'en/'):
-        home = (root / prefix / 'index.html').read_text()
+        home = (root / prefix / 'index.html').read_text(encoding='utf-8')
         assert all('providers/' + name + '.html' in home for name in names.values())
         assert 'data-baseline="' + names['moli'] + '"' in home
         assert 'data-candidate="' + names['moli-pr643'] + '"' in home
-        assert 'Only Kitesurf' not in (root / prefix / 'accounts/index.html').read_text()
+        assert 'Only Kitesurf' not in (root / prefix / 'accounts/index.html').read_text(encoding='utf-8')
 
 
 def test_public_wcxb_build_check_package_accept_external_nonhistorical_cohort(tmp_path):

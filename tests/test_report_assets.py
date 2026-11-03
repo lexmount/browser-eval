@@ -17,7 +17,7 @@ class ReportAssetsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp).resolve()
             (root / 'research').mkdir()
-            (root / 'research/example-content.json').write_text('{"figure.png": "hash"}')
+            (root / 'research/example-content.json').write_text('{"figure.png": "hash"}', encoding='utf-8')
             (root / 'research/methodology.png').write_bytes(b'common asset')
             check_external_asset_boundary(root)
             (root / 'research/figure.png').write_bytes(b'duplicate report asset')
@@ -28,7 +28,7 @@ class ReportAssetsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp).resolve()
             (root / 'research').mkdir()
-            (root / 'research/example-content.json').write_text('{"figure.png": "hash"}')
+            (root / 'research/example-content.json').write_text('{"figure.png": "hash"}', encoding='utf-8')
             (root / 'docs').mkdir()
             (root / 'docs/figure.png').write_bytes(b'report figure')
             with self.assertRaisesRegex(ValueError, 'duplicated'):
@@ -40,7 +40,7 @@ class ReportAssetsTest(unittest.TestCase):
             source = root / 'source'
             source.mkdir()
             (source / 'image.png').write_bytes(b'public image')
-            (source / 'private.log').write_text('must not be published')
+            (source / 'private.log').write_text('must not be published', encoding='utf-8')
             bindings = {'image.png': hashlib.sha256(b'public image').hexdigest()}
             copy_bound_assets(source, root / 'output', bindings)
             self.assertEqual((root / 'output/image.png').read_bytes(), b'public image')
@@ -123,11 +123,11 @@ def test_selected_json_assets_are_optional_bound_and_external(tmp_path):
     from harness.reporting.assets import bound_json_asset
     assert bound_json_asset(None, root=tmp_path) == (None, {})
     source = tmp_path / 'instance-history.json'
-    source.write_text('{"releases": []}')
+    source.write_text('{"releases": []}', encoding='utf-8')
     binding = {'path': str(source), 'sha256': hashlib.sha256(source.read_bytes()).hexdigest()}
     assert bound_json_asset(binding, root=tmp_path)[1] == {'releases': []}
     assert bound_json_asset({**binding, 'path': source.name}, root=tmp_path)[1] == {'releases': []}
-    source.write_text('{"releases": ["unrelated report"]}')
+    source.write_text('{"releases": ["unrelated report"]}', encoding='utf-8')
     with pytest.raises(ValueError, match='differs'):
         bound_json_asset(binding, root=tmp_path)
     alias = tmp_path/'alias.json'

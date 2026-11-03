@@ -37,7 +37,7 @@ def test_stage_builds_report_without_mutating_source_evidence(tmp_path, monkeypa
     }
     assert (source / "run/summary.json").read_bytes() == before
 
-    authority = json.loads(profile.read_text())
+    authority = json.loads(profile.read_text(encoding="utf-8"))
     archive, receipt = tmp_path / "report.zip", tmp_path / "attestation.json"
     result = build(staged, archive, receipt, authority=profile)
     assert result["archive_sha256"] == hashlib.sha256(archive.read_bytes()).hexdigest()
@@ -54,9 +54,9 @@ def test_stage_builds_report_without_mutating_source_evidence(tmp_path, monkeypa
     assert f"`make public-webarena-report-audit PROFILE={profile}`" in printed
     assert f"`make public-webarena-report-release PROFILE={profile}`" in printed
     assert (tmp_path / "publish/webarena-fixed-trajectory.zip").is_file()
-    assert json.loads(profile.read_text()) == authority
+    assert json.loads(profile.read_text(encoding="utf-8")) == authority
     authority["suite_sha256"] = "wrong"
-    profile.write_text(json.dumps(authority))
+    profile.write_text(json.dumps(authority), encoding="utf-8")
     rejected = tmp_path / "rejected.zip"
     with pytest.raises(ValueError, match="current report authority mismatch: suite hash"):
         build(staged, rejected, receipt, authority=profile)
@@ -74,12 +74,13 @@ def test_stage_builds_report_without_mutating_source_evidence(tmp_path, monkeypa
 def test_profile_is_updated_only_with_verified_publication_values(tmp_path):
     profile = tmp_path / "current-report.json"
     profile.write_text(
-        json.dumps({"publication": {"version_id": "old", "submitted_files_verified": 1}})
+        json.dumps({"publication": {"version_id": "old", "submitted_files_verified": 1}}),
+        encoding="utf-8"
     )
     from harness.reporting.publication import bind_publication_files
 
     attestation = tmp_path / "attestation.json"
-    attestation.write_text("{}")
+    attestation.write_text("{}", encoding="utf-8")
     bind_publication_files(
         profile,
         attestation,
@@ -88,11 +89,11 @@ def test_profile_is_updated_only_with_verified_publication_values(tmp_path):
         schema="public_webarena_binding/1",
     )
     assert (
-        json.loads(attestation.read_text())["profile_sha256"]
+        json.loads(attestation.read_text(encoding="utf-8"))["profile_sha256"]
         == hashlib.sha256(profile.read_bytes()).hexdigest()
     )
 
-    current = json.loads(profile.read_text())
+    current = json.loads(profile.read_text(encoding="utf-8"))
     assert current["publication"] == {
         "version_id": "ver_new",
         "submitted_files_verified": 71,
@@ -116,14 +117,14 @@ def publication_fixture(root):
     from harness.trajectory_replay.public_webarena import publication
 
     source, profile = write_report_fixture(root)
-    document = json.loads(profile.read_text())
+    document = json.loads(profile.read_text(encoding="utf-8"))
     document["publication"] = {
         "base_url": "https://reports.example",
         "site_slug": "site-one",
         "version_id": "ver_old",
         "share_url": "https://reports.example/v/token",
     }
-    profile.write_text(json.dumps(document))
+    profile.write_text(json.dumps(document), encoding="utf-8")
     staged = root / "staged"
     publication.stage_report(source, staged)
     archive, proof = root / "report.zip", root / "proof.json"
@@ -132,7 +133,8 @@ def publication_fixture(root):
     receipt.write_text(
         json.dumps(
             {"slug": "site-one", "versionId": "ver_old", "base_url": "https://reports.example"}
-        )
+        ),
+        encoding="utf-8"
     )
     return source, profile, staged, archive, proof, receipt, root / "operation.json"
 
@@ -151,7 +153,7 @@ def test_public_replay_submission_recovers_without_second_activation(tmp_path, f
     assert result["slug"] == "site-one" and result["version"] == "ver_new"
     assert len(service.uploads) == 1
     assert not journal.exists()
-    assert "private-secret" not in receipt.read_text()
+    assert "private-secret" not in receipt.read_text(encoding="utf-8")
     assert profile.read_bytes() == before
 
 
@@ -164,23 +166,23 @@ def test_public_replay_preflight_rejects_wrong_authority_or_package_before_reque
 
     source, profile, staged, archive, proof, receipt, journal = publication_fixture(tmp_path)
     if damage == "site":
-        document = json.loads(receipt.read_text())
+        document = json.loads(receipt.read_text(encoding="utf-8"))
         document["slug"] = "other-site"
-        receipt.write_text(json.dumps(document))
+        receipt.write_text(json.dumps(document), encoding="utf-8")
     elif damage == "share":
-        document = json.loads(receipt.read_text())
+        document = json.loads(receipt.read_text(encoding="utf-8"))
         document["share_url"] = "https://reports.example/v/other-report"
-        receipt.write_text(json.dumps(document))
+        receipt.write_text(json.dumps(document), encoding="utf-8")
     elif damage == "proof":
-        document = json.loads(proof.read_text())
+        document = json.loads(proof.read_text(encoding="utf-8"))
         document["profile_sha256"] = "0" * 64
-        proof.write_text(json.dumps(document))
+        proof.write_text(json.dumps(document), encoding="utf-8")
     else:
         with zipfile.ZipFile(archive, "a") as bundle:
             bundle.writestr("undeclared.txt", "not part of the bound report")
-        document = json.loads(proof.read_text())
+        document = json.loads(proof.read_text(encoding="utf-8"))
         document["archive_sha256"] = hashlib.sha256(archive.read_bytes()).hexdigest()
-        proof.write_text(json.dumps(document))
+        proof.write_text(json.dumps(document), encoding="utf-8")
     service = Service()
     with pytest.raises(ValueError):
         publish_current(profile, staged, archive, proof, receipt, journal, transport=service)
@@ -203,7 +205,10 @@ def test_release_retains_submission_when_export_verification_is_interrupted(tmp_
             if not interrupted[0]:
                 interrupted[0] = True
                 raise RuntimeError("synthetic export verification interruption")
-            return {"version": "ver_new", "files": json.loads(proof.read_text())["files"]}
+            return {
+                "version": "ver_new",
+                "files": json.loads(proof.read_text(encoding="utf-8"))["files"],
+            }
 
         def get(name):
             return Path(args[args.index("--" + name) + 1])
@@ -226,9 +231,11 @@ def test_release_retains_submission_when_export_verification_is_interrupted(tmp_
     )
     with pytest.raises(RuntimeError, match="synthetic export"):
         release.main(tmp_path)
-    assert json.loads(target.read_text())["submission_state"] == "submitted_unverified"
-    assert json.loads(profile.read_text())["publication"]["version_id"] == "ver_old"
+    assert (
+        json.loads(target.read_text(encoding="utf-8"))["submission_state"] == "submitted_unverified"
+    )
+    assert json.loads(profile.read_text(encoding="utf-8"))["publication"]["version_id"] == "ver_old"
     release.main(tmp_path)
     assert len(service.uploads) == 1
-    assert json.loads(target.read_text())["submission_state"] == "verified"
-    assert json.loads(profile.read_text())["publication"]["version_id"] == "ver_new"
+    assert json.loads(target.read_text(encoding="utf-8"))["submission_state"] == "verified"
+    assert json.loads(profile.read_text(encoding="utf-8"))["publication"]["version_id"] == "ver_new"

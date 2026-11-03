@@ -12,9 +12,9 @@ def test_historical_article_preserves_source_data_and_language(tmp_path):
     languages = {}
     for language, heading in [("zh", "旧文章"), ("en", "Older article")]:
         path = source / (language + ".txt")
-        path.write_text(f"<html><style>.essay {{color: black}}</style><main><h1>{heading}</h1><p>94/100</p></main></html>")
+        path.write_text(f"<html><style>.essay {{color: black}}</style><main><h1>{heading}</h1><p>94/100</p></main></html>", encoding='utf-8')
         languages[language] = {"path": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
-    (source / "archived-reading.json").write_text(json.dumps({"languages": languages}))
+    (source / "archived-reading.json").write_text(json.dumps({"languages": languages}), encoding='utf-8')
     output = tmp_path / "report"
     output.mkdir()
     copy_archived_reading(source, output)
@@ -24,7 +24,7 @@ def test_historical_article_preserves_source_data_and_language(tmp_path):
         assert "94/100" in rendered
         assert "current benchmark results" in rendered if language == "en" else "本轮评测结果" in rendered
         assert "<style>" not in rendered
-    (output / "en.txt").write_text("changed")
+    (output / "en.txt").write_text("changed", encoding='utf-8')
     with pytest.raises(ValueError, match="hash mismatch"):
         render_archived_reading(output, "en")
 
@@ -69,15 +69,15 @@ def test_bound_report_translations_are_external_and_tamper_evident(tmp_path):
     source = tmp_path / "source"
     source.mkdir()
     translations = source / "translations.json"
-    translations.write_text(json.dumps({"text": {"核验说明": "Review notes"}}))
+    translations.write_text(json.dumps({"text": {"核验说明": "Review notes"}}), encoding='utf-8')
     manifest = {"languages": {}, "translations": {
         "path": "translations.json", "sha256": hashlib.sha256(translations.read_bytes()).hexdigest()}}
-    (source / "archived-reading.json").write_text(json.dumps(manifest))
+    (source / "archived-reading.json").write_text(json.dumps(manifest), encoding='utf-8')
     output = tmp_path / "output"
     output.mkdir()
     copy_archived_reading(source, output)
     assert archived_translations(output) == {"核验说明": "Review notes"}
-    (output / "translations.json").write_text("changed")
+    (output / "translations.json").write_text("changed", encoding='utf-8')
     with pytest.raises(ValueError, match="translations hash mismatch"):
         archived_translations(output)
 
@@ -88,21 +88,21 @@ def test_article_translation_cannot_override_other_routes_or_remove_status(tmp_p
     languages = {}
     for language in ('zh', 'en'):
         path = tmp_path / (language + '.txt')
-        path.write_text('<main><p>核验记录</p></main>')
+        path.write_text('<main><p>核验记录</p></main>', encoding='utf-8')
         languages[language] = {'path': path.name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
     translation = tmp_path / 'translations.json'
-    translation.write_text(json.dumps({'text': {'核验记录': 'Archive-only label'}}))
+    translation.write_text(json.dumps({'text': {'核验记录': 'Archive-only label'}}), encoding='utf-8')
     (tmp_path / 'archived-reading.json').write_text(json.dumps({'languages': languages,
-        'translations': {'path': translation.name, 'sha256': hashlib.sha256(translation.read_bytes()).hexdigest()}}))
+        'translations': {'path': translation.name, 'sha256': hashlib.sha256(translation.read_bytes()).hexdigest()}}), encoding='utf-8')
     (tmp_path / 'guide').mkdir()
     banner = '<div data-evidence-state="local_measurement">本地未认证诊断快照 · 不可用于排名</div>'
     article = render_archived_reading(tmp_path)
-    (tmp_path / 'guide/index.html').write_text('<html lang="zh-CN"><main>'+banner+article+'</main></html>')
+    (tmp_path / 'guide/index.html').write_text('<html lang="zh-CN"><main>'+banner+article+'</main></html>', encoding='utf-8')
     root = '<html lang="zh-CN"><main><p>核验记录</p></main></html>'
-    (tmp_path / 'index.html').write_text(root)
+    (tmp_path / 'index.html').write_text(root, encoding='utf-8')
     write_english_report(tmp_path)
-    assert (tmp_path / 'en/index.html').read_text() == localize_html(root, PurePosixPath('index.html'))
-    guide = (tmp_path / 'en/guide/index.html').read_text()
+    assert (tmp_path / 'en/index.html').read_text(encoding='utf-8') == localize_html(root, PurePosixPath('index.html'))
+    guide = (tmp_path / 'en/guide/index.html').read_text(encoding='utf-8')
     assert 'data-evidence-state="local_measurement"' in guide
     assert 'Archive-only label' in guide
 

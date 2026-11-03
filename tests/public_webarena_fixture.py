@@ -59,8 +59,8 @@ def write_report_fixture(tmp_path: Path) -> tuple[Path, Path]:
         "by_complexity": {},
         "resource_comparison": {},
     }
-    (source / "run/manifest.json").write_text(json.dumps(manifest))
-    (source / "run/summary.json").write_text(json.dumps(summary))
+    (source / "run/manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (source / "run/summary.json").write_text(json.dumps(summary), encoding="utf-8")
     profile = tmp_path / "evaluation/browser-use-public/current-report.json"
     profile.parent.mkdir(parents=True)
     authority = {
@@ -79,7 +79,7 @@ def write_report_fixture(tmp_path: Path) -> tuple[Path, Path]:
         "results": {engine: {"passes": 1} for engine in ("chromium", "moli")},
         "publication": {"version_id": "unchanged"},
     }
-    profile.write_text(json.dumps(authority))
+    profile.write_text(json.dumps(authority), encoding="utf-8")
     return source, profile
 
 
@@ -97,8 +97,8 @@ def write_supersession_fixture(root: Path) -> tuple[Path, Path]:
                 screenshot, page, har = [evidence / name for name in (
                     "final.png", "final-page.json", "network.har")]
                 screenshot.write_bytes(b"synthetic screenshot")
-                page.write_text('{}')
-                har.write_text('{"log":{"entries":[]}}')
+                page.write_text('{}', encoding="utf-8")
+                har.write_text('{"log":{"entries":[]}}', encoding="utf-8")
                 checks = [{"status": "success" if status == "pass" else "failure",
                            "score": 1 if status == "pass" else 0}]
                 row = {
@@ -119,7 +119,7 @@ def write_supersession_fixture(root: Path) -> tuple[Path, Path]:
                         key: {"path": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
                         for key, path in (("screenshot", screenshot), ("page", page))}},
                 }
-                (evidence / "attempt.json").write_text(json.dumps(row))
+                (evidence / "attempt.json").write_text(json.dumps(row), encoding="utf-8")
                 rows.append(row)
         raw = ''.join(json.dumps(row) + '\n' for row in rows).encode()
         (directory / "attempts.jsonl").write_bytes(raw)
@@ -134,7 +134,7 @@ def write_supersession_fixture(root: Path) -> tuple[Path, Path]:
                             "browser_versions": {engine: "synthetic" for engine in engines}},
             "artifact_provenance": {"attempts_sha256": hashlib.sha256(raw).hexdigest()},
         }
-        (directory / "manifest.json").write_text(json.dumps(manifest))
+        (directory / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     return runs
 
 

@@ -311,7 +311,7 @@ class WebMainBenchReportTests(unittest.TestCase):
                                  {'status': 'passed'}, teds_revision=({}, revision_review),
                                  include_english=True)
             self.assertEqual(records, immutable_records)
-            home = (output / 'index.html').read_text()
+            home = (output / 'index.html').read_text(encoding='utf-8')
             self.assertIn('id="wmb-core-results" data-col="2" data-dir="desc"', home)
             home_soup = BeautifulSoup(home, 'html.parser')
             overall_values = [
@@ -319,33 +319,33 @@ class WebMainBenchReportTests(unittest.TestCase):
                 for cell in home_soup.select('#wmb-core-results tbody tr td:nth-of-type(3)')
             ]
             self.assertEqual(overall_values, sorted(overall_values, reverse=True))
-            self.assertNotIn('可能不计分', (output / 'methodology/index.html').read_text())
-            self.assertIn('wmb-guide-results', (output / 'guide/index.html').read_text())
+            self.assertNotIn('可能不计分', (output / 'methodology/index.html').read_text(encoding='utf-8'))
+            self.assertIn('wmb-guide-results', (output / 'guide/index.html').read_text(encoding='utf-8'))
             for prefix, label, original in (('', '修正后复算', '官方原始分'),
                                             ('en/', 'recomputed after correction', 'Original official score')):
                 for route in ('index.html', 'analysis/index.html', 'providers/kitesurf.html',
                               'attempts/kitesurf__case-one__r001.html'):
-                    page = (output / prefix / route).read_text()
+                    page = (output / prefix / route).read_text(encoding='utf-8')
                     self.assertIn(label, page)
                     if prefix == 'en/':
                         self.assertNotIn('overall（recomputed after correction）', page)
                         self.assertNotIn('table_TEDS（recomputed after correction）', page)
-                detail = (output / prefix / 'attempts/kitesurf__case-one__r001.html').read_text()
+                detail = (output / prefix / 'attempts/kitesurf__case-one__r001.html').read_text(encoding='utf-8')
                 self.assertIn(original, detail)
                 self.assertIn('0.000732234%', detail)
-                review_page = (output / prefix / 'review/index.html').read_text()
+                review_page = (output / prefix / 'review/index.html').read_text(encoding='utf-8')
                 self.assertIn('wmb-correction-effects', review_page)
                 self.assertIn('original-results.jsonl', review_page)
             # A successful API response containing an error page is not target body text.
-            (output / 'artifacts/chromium/case-one.md').write_text('ERR_ACCESS_DENIED')
+            (output / 'artifacts/chromium/case-one.md').write_text('ERR_ACCESS_DENIED', encoding='utf-8')
             generate_webmainbench(output, dataset, records, summaries, manifests,
                                  {'status': 'passed'}, teds_revision=({}, revision_review),
                                  include_english=True)
             self.assertEqual(records, immutable_records)
             for prefix, error_label in (('', '错误页，非目标正文'), ('en/', 'Error page, not target content')):
-                analysis = (output / prefix / 'analysis/index.html').read_text()
-                provider = (output / prefix / 'providers/chromium.html').read_text()
-                detail = (output / prefix / 'attempts/chromium__case-one__r001.html').read_text()
+                analysis = (output / prefix / 'analysis/index.html').read_text(encoding='utf-8')
+                provider = (output / prefix / 'providers/chromium.html').read_text(encoding='utf-8')
+                detail = (output / prefix / 'attempts/chromium__case-one__r001.html').read_text(encoding='utf-8')
                 self.assertIn('data-delivered="kitesurf lightpanda obscura moli" data-failed="chromium"', analysis)
                 for page in (analysis, provider):
                     self.assertIn('data-method="chromium" data-request="failed" data-failure="error_page"', page)
@@ -368,9 +368,9 @@ class WebMainBenchReportTests(unittest.TestCase):
             changed_manifests = [{**row, "provider": "fixture-browser" if row["provider"] == "chromium" else row["provider"]} for row in manifests]
             generate_webmainbench(other, selected, changed, changed_summaries, changed_manifests, include_english=True)
             import json
-            assert json.loads((other / "report-changes.json").read_text())["releases"] == []
+            assert json.loads((other / "report-changes.json").read_text(encoding='utf-8'))["releases"] == []
             for prefix in ("", "en/"):
-                methods = (other / prefix / "adoption/index.html").read_text()
+                methods = (other / prefix / "adoption/index.html").read_text(encoding='utf-8')
                 assert "Fixture Browser 204" in methods
                 assert "Chromium 152" not in methods
                 assert "Moli 1.1.5" not in methods and "Moli 1.1.7" not in methods

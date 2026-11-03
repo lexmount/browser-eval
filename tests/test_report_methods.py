@@ -14,7 +14,7 @@ class AdoptionTests(unittest.TestCase):
   with tempfile.TemporaryDirectory() as tmp:
    out=Path(tmp)
    (out/'dataset.json').write_text(json.dumps({
-       'comparison':{'kind':'uniform_native_local_measurement'}}))
+       'comparison':{'kind':'uniform_native_local_measurement'}}), encoding='utf-8')
    records=[{'provider':'renamed-moli','provider_type':'moli_webfetch',
              'provider_metadata':{}}]
    def render():
@@ -118,8 +118,8 @@ class AdoptionTests(unittest.TestCase):
    root=Path(tmp);(root/'research').mkdir()
    dest=root/'research/provider-adoption.json'
    original={'provider_signatures':{},'included':[]}
-   dest.write_text(json.dumps(original))
-   (root/'research/webfetch-adopters.json').write_text(json.dumps({'included':[]}))
+   dest.write_text(json.dumps(original), encoding='utf-8')
+   (root/'research/webfetch-adopters.json').write_text(json.dumps({'included':[]}), encoding='utf-8')
    before=dest.read_bytes()
    with patch.object(survey,'repository_root',lambda:root),patch.object(survey,'metadata_batch',side_effect=RuntimeError('network failure')):
     with self.assertRaises(RuntimeError):survey.refresh(discovered={'provider_signatures':{},'included':[]})
@@ -144,7 +144,7 @@ class AdoptionTests(unittest.TestCase):
    found={'total_count':2,'items':[item,private]}
    with patch.dict(os.environ,{'WEB_FETCH_RESEARCH_EVIDENCE_DIR':str(evidence)}),patch.object(survey,'repository_root',lambda:root),patch.object(survey,'gh',return_value=found),patch.object(survey,'metadata_batch',return_value={}),patch.object(survey,'refresh') as refresh,patch.object(survey.time,'sleep'):
     survey.search()
-   searches=json.loads((evidence/'adoption-searches.json').read_text())
+   searches=json.loads((evidence/'adoption-searches.json').read_text(encoding='utf-8'))
    self.assertEqual(searches,refresh.call_args.kwargs['discovered']['searches'])
    self.assertEqual({x['repo'] for x in searches[0]['items']},{'a/b'})
    self.assertEqual(list((root/'research').iterdir()),[])
@@ -184,7 +184,7 @@ def test_report_labels_distinguish_release_and_source_build_with_same_version(tm
         {'provider':'moli-release','binary_sha256':'stable','version':'1.1.15'},
         {'provider':'moli-candidate','binary_sha256':'branch',
          'version':'1.1.17 · candidate build (99a22382)'}]}
-    (tmp_path/'implementation-provenance.json').write_text(json.dumps(identities))
+    (tmp_path/'implementation-provenance.json').write_text(json.dumps(identities), encoding='utf-8')
     records=[{'provider':x['provider'],'provider_metadata':{'binary_sha256':x['binary_sha256']}}
              for x in identities['implementations']]
     original=provider_label('moli-release')
@@ -240,7 +240,7 @@ def test_bound_external_method_registry_is_scoped_to_its_report(tmp_path):
     dataset={'comparison':{'method_registry':{'external-build':{'engine':'moli','label':'External Moli build','source_url':'https://example.test/build'}}}}
     assert render(tmp_path,dataset,[]) == 'rendered'
     import json
-    (tmp_path/'dataset.json').write_text(json.dumps(dataset))
+    (tmp_path/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
     assert render(tmp_path,{'external-case':{'id':'external-case'}},[]) == 'rendered'
     assert native_browser_engine('external-build') is None
 
@@ -249,7 +249,7 @@ def test_new_participant_interface_and_access_are_bound_data(tmp_path):
     import json
     from harness.web_fetch.methods import with_measured_method_labels
     from harness.web_fetch.report_interfaces import render_interfaces
-    (tmp_path/'answer.txt').write_text('A complete saved answer')
+    (tmp_path/'answer.txt').write_text('A complete saved answer', encoding='utf-8')
     (tmp_path/'adoption').mkdir()
     contract={'entry':'Future CLI v9 fetch URL','auth':'No account',
               'params':[['url','string','Target page']],
@@ -270,7 +270,7 @@ def test_new_participant_interface_and_access_are_bound_data(tmp_path):
     def render(out, definition, records):
         return render_interfaces(out,records)
     html=render(tmp_path,dataset,rows)
-    output=json.loads((tmp_path/'adoption/interfaces/future-version.json').read_text())
+    output=json.loads((tmp_path/'adoption/interfaces/future-version.json').read_text(encoding='utf-8'))
     assert output['interface']==contract and output['access']==access
     assert 'Future CLI v9 fetch URL' in html
     assert 'MOLI_BINARY' not in json.dumps(output)

@@ -65,7 +65,7 @@ def _run(
                 ),
             }
         )
-    (directory / "inputs.json").write_text(json.dumps(inputs))
+    (directory / "inputs.json").write_text(json.dumps(inputs), encoding="utf-8")
     (directory / "progress.jsonl").write_text(
         "".join(
             json.dumps(
@@ -78,7 +78,8 @@ def _run(
             )
             + "\n"
             for task_id in ids
-        )
+        ),
+        encoding="utf-8"
     )
     return directory
 
@@ -192,7 +193,8 @@ def _scope(tmp_path, ids=None):
                 "task_count": len(ids),
                 "task_ids": ids,
             }
-        )
+        ),
+        encoding="utf-8"
     )
     return path
 
@@ -217,7 +219,8 @@ def _action_overrides(tmp_path):
                 ],
             }
         )
-        + "\n"
+        + "\n",
+        encoding="utf-8"
     )
     return path, hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -251,9 +254,9 @@ def test_acceptance_defers_revision_compatibility_to_physical_evidence(tmp_path,
     scope = _scope(tmp_path, [7])
     sweep = _run(tmp_path, "sweep", [7], {})
     inputs = sweep / "inputs.json"
-    payload = json.loads(inputs.read_text())
+    payload = json.loads(inputs.read_text(encoding="utf-8"))
     payload["webarena_revision"] = "0" * 40
-    inputs.write_text(json.dumps(payload))
+    inputs.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(ValueError, match="lacks evaluator transition evidence"):
         acceptance.audit(scope, [sweep], [])
@@ -268,9 +271,9 @@ def test_catalog_run_v1_with_legacy_evaluator_hash_remains_readable(tmp_path):
         schema="lex_trajectory_replay_catalog_run/1",
     )
     inputs = run / "inputs.json"
-    payload = json.loads(inputs.read_text())
+    payload = json.loads(inputs.read_text(encoding="utf-8"))
     payload["evaluator_fixes_sha256"] = payload.pop("webarena_revision")
-    inputs.write_text(json.dumps(payload))
+    inputs.write_text(json.dumps(payload), encoding="utf-8")
 
     binding, _rows = acceptance._read_run(run)
 
@@ -290,13 +293,13 @@ def test_acceptance_allows_declared_predecessor_only_with_paired_transition_rece
     scope = _scope(tmp_path, [7])
     sweep = _run(tmp_path, "sweep", [7], {7: "fail"})
     inputs = sweep / "inputs.json"
-    payload = json.loads(inputs.read_text())
+    payload = json.loads(inputs.read_text(encoding="utf-8"))
     payload["webarena_revision"] = transition["from_revision"]
-    inputs.write_text(json.dumps(payload))
+    inputs.write_text(json.dumps(payload), encoding="utf-8")
     authority = tmp_path / "transition.json"
     receipt = tmp_path / "receipt.json"
-    authority.write_text("{}")
-    receipt.write_text("{}")
+    authority.write_text("{}", encoding="utf-8")
+    receipt.write_text("{}", encoding="utf-8")
 
     ledger = acceptance.audit(
         scope,
@@ -327,14 +330,14 @@ def test_acceptance_replaces_only_declared_changed_catalog_tasks(tmp_path, monke
     sweep = _run(tmp_path, "sweep", [7, 8], {})
     replacement = _run(tmp_path, "replacement", [8], {}, catalog="new-catalog")
     progress = replacement / "progress.jsonl"
-    rows = [json.loads(line) for line in progress.read_text().splitlines()]
+    rows = [json.loads(line) for line in progress.read_text(encoding="utf-8").splitlines()]
     rows[0]["executed_actions_sha256"] = "new-actions"
-    progress.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    progress.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
     sweep_progress = sweep / "progress.jsonl"
-    rows = [json.loads(line) for line in sweep_progress.read_text().splitlines()]
+    rows = [json.loads(line) for line in sweep_progress.read_text(encoding="utf-8").splitlines()]
     for row in rows:
         row["executed_actions_sha256"] = f'old-{row["task_id"]}'
-    sweep_progress.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    sweep_progress.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
 
     ledger = acceptance.audit(
         scope,
@@ -363,9 +366,9 @@ def test_catalog_replacement_excludes_only_superseded_transition_evidence(
     replacement = _run(tmp_path, "replacement", [7], {}, catalog="new-catalog")
     for directory, action in ((sweep, "old-actions"), (replacement, "new-actions")):
         progress = directory / "progress.jsonl"
-        row = json.loads(progress.read_text())
+        row = json.loads(progress.read_text(encoding="utf-8"))
         row["executed_actions_sha256"] = action
-        progress.write_text(json.dumps(row) + "\n")
+        progress.write_text(json.dumps(row) + "\n", encoding="utf-8")
     old_evaluation = sweep / "old-evaluation.json"
     old_evaluation.write_text(
         json.dumps(
@@ -373,7 +376,8 @@ def test_catalog_replacement_excludes_only_superseded_transition_evidence(
                 "webarena_verified_evaluator_checksum": source["evaluator_checksum"],
                 "webarena_verified_data_checksum": source["data_checksum"],
             }
-        )
+        ),
+        encoding="utf-8"
     )
     replacement_evaluation = replacement / "replacement-evaluation.json"
     replacement_evaluation.write_bytes(old_evaluation.read_bytes())
@@ -422,8 +426,8 @@ def test_catalog_replacement_excludes_only_superseded_transition_evidence(
     monkeypatch.setattr(acceptance, "_verified_attempt", verified)
     authority = tmp_path / "transition.json"
     receipt = tmp_path / "receipt.json"
-    authority.write_text("{}")
-    receipt.write_text("{}")
+    authority.write_text("{}", encoding="utf-8")
+    receipt.write_text("{}", encoding="utf-8")
 
     ledger = acceptance.audit(
         scope,
@@ -447,9 +451,9 @@ def test_acceptance_rejects_replacement_with_unchanged_actions(tmp_path, monkeyp
     replacement = _run(tmp_path, "replacement", [7], {}, catalog="new-catalog")
     for directory in (sweep, replacement):
         progress = directory / "progress.jsonl"
-        row = json.loads(progress.read_text())
+        row = json.loads(progress.read_text(encoding="utf-8"))
         row["executed_actions_sha256"] = "same-actions"
-        progress.write_text(json.dumps(row) + "\n")
+        progress.write_text(json.dumps(row) + "\n", encoding="utf-8")
 
     with pytest.raises(ValueError, match="changed-catalog replacement"):
         acceptance.audit(
@@ -478,9 +482,9 @@ def test_acceptance_allows_repair_only_after_failed_catalog_replacement(
         (repair, "new-actions"),
     ):
         progress = directory / "progress.jsonl"
-        row = json.loads(progress.read_text())
+        row = json.loads(progress.read_text(encoding="utf-8"))
         row["executed_actions_sha256"] = action
-        progress.write_text(json.dumps(row) + "\n")
+        progress.write_text(json.dumps(row) + "\n", encoding="utf-8")
 
     ledger = acceptance.audit(
         scope,
@@ -725,9 +729,9 @@ def test_acceptance_carries_the_resolved_routing_binding(tmp_path, monkeypatch, 
         engine="moli",
     )
     if routing is not None:
-        inputs = json.loads((sweep / "inputs.json").read_text())
+        inputs = json.loads((sweep / "inputs.json").read_text(encoding="utf-8"))
         inputs["environment_host_overrides_sha256"] = routing
-        (sweep / "inputs.json").write_text(json.dumps(inputs))
+        (sweep / "inputs.json").write_text(json.dumps(inputs), encoding="utf-8")
 
     run = acceptance.audit(scope, [sweep], [])["runs"][0]
 
@@ -740,13 +744,13 @@ def test_acceptance_rejects_runs_with_different_resolved_routing(tmp_path, monke
     early = _run(tmp_path, "early", list(range(400)), {})
     late = _run(tmp_path, "late", list(range(400, 812)), {})
     for directory, routing in ((early, "first-route"), (late, "first-route")):
-        inputs = json.loads((directory / "inputs.json").read_text())
+        inputs = json.loads((directory / "inputs.json").read_text(encoding="utf-8"))
         inputs["environment_host_overrides_sha256"] = routing
-        (directory / "inputs.json").write_text(json.dumps(inputs))
+        (directory / "inputs.json").write_text(json.dumps(inputs), encoding="utf-8")
     acceptance.audit(scope, [early, late], [])
 
-    inputs = json.loads((late / "inputs.json").read_text())
+    inputs = json.loads((late / "inputs.json").read_text(encoding="utf-8"))
     inputs["environment_host_overrides_sha256"] = "second-route"
-    (late / "inputs.json").write_text(json.dumps(inputs))
+    (late / "inputs.json").write_text(json.dumps(inputs), encoding="utf-8")
     with pytest.raises(ValueError, match="mixed engine, backend, or deployment"):
         acceptance.audit(scope, [early, late], [])

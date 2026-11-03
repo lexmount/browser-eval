@@ -22,31 +22,31 @@ class InterruptedEvidenceTests(unittest.TestCase):
         dataset = {"tool": "web_fetch", "cases": [asdict(case) for case in cases],
                    "coverage_plan": {"web": ["fixture"]}}
         path = self.root / "input.json"
-        path.write_text(json.dumps(dataset))
+        path.write_text(json.dumps(dataset), encoding="utf-8")
         config = self.root / "providers.json"
-        config.write_text(json.dumps({"providers": {"fixture": {"type": "fixture"}}}))
+        config.write_text(json.dumps({"providers": {"fixture": {"type": "fixture"}}}), encoding="utf-8")
         run_evaluation(output_dir=self.source, dataset_meta=dataset, dataset_path=path,
                        cases=cases, providers=[FixtureProvider("fixture", {"type": "fixture", "fail_cases": ["fail"]})],
                        provider_config_path=config, runs=1, timeout=1, delay=0, max_failure_retries=0)
-        self.rows = [json.loads(line) for line in (self.source / "results.jsonl").read_text().split("\n") if line]
+        self.rows = [json.loads(line) for line in (self.source / "results.jsonl").read_text(encoding="utf-8").split("\n") if line]
         self.rows = self.rows[:2]
-        (self.source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in self.rows))
-        manifest = json.loads((self.source / "manifest.json").read_text())
+        (self.source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in self.rows), encoding="utf-8")
+        manifest = json.loads((self.source / "manifest.json").read_text(encoding="utf-8"))
         for key in ("completed_at", "attempt_ids", "attempt_count"):
             manifest.pop(key)
-        (self.source / "manifest.json").write_text(json.dumps(manifest))
+        (self.source / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
         self.original = {str(p.relative_to(self.source)): p.read_bytes()
                          for p in self.source.rglob("*") if p.is_file()}
 
     def test_recovers_every_saved_pass_and_failure_without_calls_or_source_mutation(self):
         output = self.root / "retained"
         project_provider_run(self.source, output, "fixture", retain_completed=True)
-        rows = [json.loads(line) for line in (output / "results.jsonl").read_text().split("\n") if line]
+        rows = [json.loads(line) for line in (output / "results.jsonl").read_text(encoding="utf-8").split("\n") if line]
         self.assertEqual(rows, self.rows)
         self.assertEqual([row["ok"] for row in rows], [True, False])
         self.assertEqual({str(p.relative_to(self.source)): p.read_bytes()
                           for p in self.source.rglob("*") if p.is_file()}, self.original)
-        batch = json.loads((output / "execution.json").read_text())["batches"][0]
+        batch = json.loads((output / "execution.json").read_text(encoding="utf-8"))["batches"][0]
         self.assertEqual(batch["attempt_ids"], [row["attempt_id"] for row in rows])
         self.assertEqual(batch["recovery"]["original_batch_completed"], False)
         self.assertEqual(batch["recovery"]["pending_logical_results"], 1)
@@ -55,7 +55,7 @@ class InterruptedEvidenceTests(unittest.TestCase):
     def test_rejects_changed_input_configuration_log_or_output(self):
         for kind in ("input", "config", "log", "output", "identity"):
             with self.subTest(kind=kind):
-                manifest = json.loads((self.source / "manifest.json").read_text())
+                manifest = json.loads((self.source / "manifest.json").read_text(encoding="utf-8"))
                 if kind == "input": target = Path(manifest["dataset"]["source"])
                 elif kind == "config": target = Path(manifest["provider_config_source"])
                 elif kind == "output": target = self.source / self.rows[0]["artifact_path"]
@@ -65,7 +65,7 @@ class InterruptedEvidenceTests(unittest.TestCase):
                 if kind == "identity":
                     changed = json.loads(json.dumps(self.rows))
                     changed[0]["attempt_id"] = "fixture__other__r001"
-                    target.write_text("".join(json.dumps(row) + "\n" for row in changed))
+                    target.write_text("".join(json.dumps(row) + "\n" for row in changed), encoding="utf-8")
                 else: target.write_bytes(before + b" ")
                 try:
                     with self.assertRaises(ValueError):
@@ -91,9 +91,9 @@ class ProviderAssemblyReviewPolicyTests(unittest.TestCase):
                                "comparison": {"require_independent_result_review": required},
                                "coverage_plan": {"web": [provider]}}
                     path = root / (provider + ".json")
-                    path.write_text(json.dumps(dataset))
+                    path.write_text(json.dumps(dataset), encoding="utf-8")
                     config = root / (provider + "-config.json")
-                    config.write_text(json.dumps({"providers": {provider: {"type": "fixture"}}}))
+                    config.write_text(json.dumps({"providers": {provider: {"type": "fixture"}}}), encoding="utf-8")
                     output = root / provider
                     run_evaluation(output_dir=output, dataset_meta=dataset, dataset_path=path,
                                    cases=[case], providers=[FixtureProvider(provider, {"type": "fixture"})],
@@ -107,7 +107,7 @@ class ProviderAssemblyReviewPolicyTests(unittest.TestCase):
                 from harness.record_io import parse_jsonl
                 for row in parse_jsonl((target / 'results.jsonl').read_bytes()):
                     verify_record_public_call_logs(target, row)
-                saved = json.loads((target / "dataset.json").read_text())
+                saved = json.loads((target / "dataset.json").read_text(encoding="utf-8"))
                 self.assertEqual(saved["comparison"]["require_independent_result_review"], required)
                 self.assertEqual(saved["coverage_plan"], {"web": ["fixture", "peer"]})
 
@@ -124,14 +124,14 @@ class CaseAssemblyExecutionBatchTests(unittest.TestCase):
                 dataset={'tool':'web_fetch','cases':[asdict(case)],
                          'comparison':{'require_independent_result_review':False},
                          'coverage_plan':{'web':['fixture','peer']}}
-                path=root/(cid+'.json');path.write_text(json.dumps(dataset))
-                config=root/(cid+'-config.json');config.write_text('{}')
+                path=root/(cid+'.json');path.write_text(json.dumps(dataset), encoding="utf-8")
+                config=root/(cid+'-config.json');config.write_text('{}', encoding="utf-8")
                 output=root/cid
                 run_evaluation(output_dir=output,dataset_meta=dataset,dataset_path=path,cases=[case],
                                providers=[FixtureProvider(n,{'type':'fixture'}) for n in ['fixture','peer']],
                                provider_config_path=config,runs=1,timeout=1,delay=0)
-                manifest=json.loads((output/'manifest.json').read_text())
-                (output/'execution.json').write_text(json.dumps({'batches':[manifest]}))
+                manifest=json.loads((output/'manifest.json').read_text(encoding="utf-8"))
+                (output/'execution.json').write_text(json.dumps({'batches':[manifest]}), encoding="utf-8")
                 (output/'manifest.json').unlink()
                 (output/'sources').mkdir(exist_ok=True);(output/'list-references').mkdir(exist_ok=True);runs.append(output)
             target=root/'assembled'
@@ -139,5 +139,5 @@ class CaseAssemblyExecutionBatchTests(unittest.TestCase):
             rows=parse_jsonl((target/'results.jsonl').read_bytes())
             self.assertEqual({(r['case_id'],r['provider']) for r in rows},
                              {(cid,p) for cid in ('first','second') for p in ('fixture','peer')})
-            self.assertEqual(len(json.loads((target/'execution.json').read_text())['batches']),2)
+            self.assertEqual(len(json.loads((target/'execution.json').read_text(encoding="utf-8"))['batches']),2)
             for row in rows:verify_record_public_call_logs(target,row)

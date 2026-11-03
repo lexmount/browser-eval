@@ -218,7 +218,8 @@ def test_load_suite_rejects_ref_only_and_invalid_selectors(tmp_path, action, sel
         {"action": "get_text", "selector": "h1", "save_as": "heading"},
     ]
     path.write_text(
-        json.dumps({"schema": "lex_browser_use_tasks/3", "tasks": [_task("bad", calls)]})
+        json.dumps({"schema": "lex_browser_use_tasks/3", "tasks": [_task("bad", calls)]}),
+        encoding="utf-8"
     )
     with pytest.raises(ValueError, match="bad: call 1: .*ref is not supported"):
         load_suite(path)
@@ -258,17 +259,23 @@ def test_only_pending_or_skipped_webarena_candidate_may_have_empty_trajectory(tm
         "environment": {"kind": "webarena_verified"},
     }
     path = tmp_path / "tasks.json"
-    path.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}))
+    path.write_text(
+        json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}), encoding="utf-8"
+    )
 
     assert load_suite(path).tasks[0].tool_calls == ()
     task["ground_truth"]["qualification"] = {
         "status": "skipped",
         "reason": "No mapped actions.",
     }
-    path.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}))
+    path.write_text(
+        json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}), encoding="utf-8"
+    )
     assert load_suite(path).tasks[0].tool_calls == ()
     task["ground_truth"]["qualification"] = {"status": "eligible"}
-    path.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}))
+    path.write_text(
+        json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}), encoding="utf-8"
+    )
     with pytest.raises(ValueError, match="only pending or skipped WebArena"):
         load_suite(path)
 

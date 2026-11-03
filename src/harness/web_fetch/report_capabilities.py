@@ -30,7 +30,7 @@ def task_capabilities(out, names, records, *, sources=None, language="zh"):
     measured=[r for r in records if r.get('provider_metadata',{}).get('output_contract')]
     if (not measured or not all(report_method(name).get('kind') == 'browser' for name in names)
             or not (out/'dataset.json').is_file()):return None
-    dataset=json.loads((out/'dataset.json').read_text())
+    dataset=json.loads((out/'dataset.json').read_text(encoding='utf-8'))
     cases={case['id']:case for case in dataset['cases']}
     matrix=browser_task_interface_matrix(cases,names,language=language)
     configured={}
@@ -110,7 +110,7 @@ def render_capabilities(out, names, *, table, cell, link, records=()):
     version_checks = source_version_checks(names, records)
     evidence = {'source_version_checks': version_checks, 'source_checks': report_method_catalog()['sources'], 'scope': '官方契约/固定源码能力，不是实测成绩',
                 'sources': sources, 'methods': {n: capabilities[n] for n in names if n in capabilities}, 'unreviewed': unknown}
-    (out / 'adoption' / 'capabilities.json').write_text(json.dumps(evidence, ensure_ascii=False, indent=2)+'\n')
+    (out / 'adoption' / 'capabilities.json').write_text(json.dumps(evidence, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     content_rows, runtime_rows, details = [], [], []
     for name in names:
         if name not in capabilities:

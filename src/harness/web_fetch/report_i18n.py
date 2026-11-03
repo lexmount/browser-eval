@@ -726,7 +726,7 @@ def write_english_report(out: Path, *, source_routes=None) -> int:
                 raise FileNotFoundError('Missing Chinese route: ' + str(route))
             sources.append(out / str(route))
     history_path = out / "report-changes.json"
-    translations = release_translations(json.loads(history_path.read_text())) if history_path.is_file() else {}
+    translations = release_translations(json.loads(history_path.read_text(encoding="utf-8"))) if history_path.is_file() else {}
     article_translations = archived_translations(out)
     english_root = out / "en"
     if source_routes is None and english_root.exists():
@@ -740,7 +740,7 @@ def write_english_report(out: Path, *, source_routes=None) -> int:
         )
     archived_manifest = out / "archived-reading.json"
     if archived_manifest.is_file():
-        allowed_source_text.update(json.loads(archived_manifest.read_text()).get("preserved_source_names", []))
+        allowed_source_text.update(json.loads(archived_manifest.read_text(encoding="utf-8")).get("preserved_source_names", []))
     for source_path in sources:
         source = PurePosixPath(source_path.relative_to(out).as_posix())
         target = out / "en" / Path(str(source))

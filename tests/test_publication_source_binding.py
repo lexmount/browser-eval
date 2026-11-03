@@ -44,7 +44,7 @@ def report(tmp_path):
     for name, text in files.items():
         path = source / name
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(text)
+        path.write_text(text, encoding="utf-8")
     archive = tmp_path / "report.zip"
     build(source, archive)
     check(archive, source)
@@ -52,7 +52,7 @@ def report(tmp_path):
 
 
 def refresh(source):
-    (source / "index.html").write_text("<html><body>New explanation</body></html>")
+    (source / "index.html").write_text("<html><body>New explanation</body></html>", encoding="utf-8")
     (source / "report-manifest.json").write_text(
         json.dumps(
             {
@@ -62,7 +62,8 @@ def refresh(source):
                     "changed_routes": ["index.html"],
                 }
             }
-        )
+        ),
+        encoding="utf-8"
     )
 
 
@@ -109,7 +110,7 @@ def test_declared_explanation_update_and_full_rebuild_remain_supported(report, t
     overlay = tmp_path / "update"
     build_incremental(source, archive, overlay)
     check(archive, source, overlay)
-    (source / "references/task.txt").write_text("Corrected independent reference")
+    (source / "references/task.txt").write_text("Corrected independent reference", encoding="utf-8")
     replacement = tmp_path / "replacement.zip"
     build(source, replacement)
     check(replacement, source)
@@ -137,7 +138,7 @@ def test_missing_source_bindings_require_full_repackaging(report, tmp_path):
 def test_source_cannot_replace_generated_privacy_disclosure(report):
     source, archive = report
     original = archive.read_bytes()
-    (source / "publication-privacy.json").write_text("{}")
+    (source / "publication-privacy.json").write_text("{}", encoding="utf-8")
     with pytest.raises(ValueError, match="reserved generated file"):
         build(source, archive)
     assert archive.read_bytes() == original
@@ -147,17 +148,17 @@ def test_declared_redaction_only_change_updates_original_binding(report, tmp_pat
     source, archive = report
     interface = source / "adoption/interfaces/example.json"
     interface.parent.mkdir(parents=True)
-    interface.write_text('{"access_token":"original-secret"}')
+    interface.write_text('{"access_token":"original-secret"}', encoding="utf-8")
     build(source, archive)
     refresh(source)
-    receipt = json.loads((source / "report-manifest.json").read_text())
+    receipt = json.loads((source / "report-manifest.json").read_text(encoding="utf-8"))
     receipt["presentation_refresh"]["changed_routes"].append("adoption/interfaces/example.json")
-    (source / "report-manifest.json").write_text(json.dumps(receipt))
-    interface.write_text('{"access_token":"replacement-secret"}')
+    (source / "report-manifest.json").write_text(json.dumps(receipt), encoding="utf-8")
+    interface.write_text('{"access_token":"replacement-secret"}', encoding="utf-8")
     overlay = tmp_path / "update"
     build_incremental(source, archive, overlay)
     check(archive, source, overlay)
-    manifest = json.loads((overlay / "manifest.json").read_text())
+    manifest = json.loads((overlay / "manifest.json").read_text(encoding="utf-8"))
     assert (
         manifest["files"]["adoption/interfaces/example.json"]["source_sha256"]
         == hashlib.sha256(interface.read_bytes()).hexdigest()

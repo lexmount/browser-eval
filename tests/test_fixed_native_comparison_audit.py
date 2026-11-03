@@ -102,7 +102,7 @@ def comparison_cohort(tmp_path: Path, *, call_order="case-alternating") -> dict[
         "cases": [{**asdict(case), "source_benchmark": {"input_media_kind": "html_page"}, "acceptance_contract": {"version": 1, "schema": "body_text", "minimum_records": 0, "stable_text_anchors": [{"id": "anchor", "alternatives": ["anchor"]}]}} for case in source_cases],
     }
     source_path = tmp_path / "source.json"
-    source_path.write_text(json.dumps(source))
+    source_path.write_text(json.dumps(source), encoding="utf-8")
     source_hash = hashlib.sha256(source_path.read_bytes()).hexdigest()
     measured = json.loads(json.dumps(source))
     measured["cases"][1]["retrieval_hints"] = {"version": 3, "mode": "native"}
@@ -115,7 +115,7 @@ def comparison_cohort(tmp_path: Path, *, call_order="case-alternating") -> dict[
         "dynamic": ["moli", "moli-stack-1432"],
     }
     measured_path = tmp_path / "measured.json"
-    measured_path.write_text(json.dumps(measured))
+    measured_path.write_text(json.dumps(measured), encoding="utf-8")
 
     configs = {
         name: {
@@ -139,7 +139,7 @@ def comparison_cohort(tmp_path: Path, *, call_order="case-alternating") -> dict[
         for name, character in (("moli", "a"), ("moli-stack-1432", "b"))
     }
     config_path = tmp_path / "providers.json"
-    config_path.write_text(json.dumps({"schema_version": 1, "providers": configs}))
+    config_path.write_text(json.dumps({"schema_version": 1, "providers": configs}), encoding="utf-8")
     evidence = tmp_path / "evidence"
     worker = evidence / "workers" / "interleaved"
     providers = [
@@ -159,10 +159,11 @@ def comparison_cohort(tmp_path: Path, *, call_order="case-alternating") -> dict[
         call_order=call_order,
     )
     materialize_bound_artifacts(evidence, worker, records)
-    manifest = json.loads((worker / "manifest.json").read_text())
-    (evidence / "dataset.json").write_text(json.dumps(measured))
+    manifest = json.loads((worker / "manifest.json").read_text(encoding="utf-8"))
+    (evidence / "dataset.json").write_text(json.dumps(measured), encoding="utf-8")
     (evidence / "results.jsonl").write_text(
-        "".join(json.dumps(row) + "\n" for row in records)
+        "".join(json.dumps(row) + "\n" for row in records),
+        encoding="utf-8"
     )
     (evidence / "execution.json").write_text(json.dumps({
         "schema_version": 1,
@@ -173,9 +174,9 @@ def comparison_cohort(tmp_path: Path, *, call_order="case-alternating") -> dict[
             "call_order": call_order,
         },
         "batches": [manifest],
-    }))
+    }), encoding="utf-8")
     observations = tmp_path / "observations.json"
-    observations.write_text("[]\n")
+    observations.write_text("[]\n", encoding="utf-8")
     finalize_aggregate(evidence, observations)
 
     receipt_path = tmp_path / "receipt.json"
@@ -201,7 +202,7 @@ def comparison_cohort(tmp_path: Path, *, call_order="case-alternating") -> dict[
             "runtime_source_sha256": manifest["runtime_source_sha256"],
             "evidence_state": "certified",
         },
-    }))
+    }), encoding="utf-8")
     return {
         "evidence": evidence,
         "source": source_path,
@@ -226,16 +227,16 @@ def run_audit(paths):
 
 
 def convert_to_provider_batches(paths):
-    config = json.loads(paths["config"].read_text())
-    paths["config"].write_text(json.dumps(config))
+    config = json.loads(paths["config"].read_text(encoding="utf-8"))
+    paths["config"].write_text(json.dumps(config), encoding="utf-8")
     config_sha = hashlib.sha256(paths["config"].read_bytes()).hexdigest()
 
     rows = [json.loads(line) for line in
-            paths["evidence"].joinpath("results.jsonl").read_text().splitlines()]
+            paths["evidence"].joinpath("results.jsonl").read_text(encoding="utf-8").splitlines()]
     providers = ["moli", "moli-stack-1432"]
 
     execution_path = paths["evidence"] / "execution.json"
-    execution = json.loads(execution_path.read_text())
+    execution = json.loads(execution_path.read_text(encoding="utf-8"))
     original = execution["batches"][0]
     batches = []
     for provider in providers:
@@ -256,11 +257,11 @@ def convert_to_provider_batches(paths):
         batches.append(batch)
     execution["aggregate"].update(batch_count=2, call_order="provider")
     execution["batches"] = batches
-    execution_path.write_text(json.dumps(execution))
+    execution_path.write_text(json.dumps(execution), encoding="utf-8")
 
-    receipt = json.loads(paths["receipt"].read_text())
+    receipt = json.loads(paths["receipt"].read_text(encoding="utf-8"))
     receipt["execution"]["call_order"] = "provider"
-    paths["receipt"].write_text(json.dumps(receipt))
+    paths["receipt"].write_text(json.dumps(receipt), encoding="utf-8")
 
 
 def test_comparison_audit_proves_protocol_and_lists_every_case(tmp_path):
@@ -276,7 +277,7 @@ def test_comparison_audit_proves_protocol_and_lists_every_case(tmp_path):
     assert [row["case_id"] for row in audit["cases"]] == ["web", "dynamic", "timeout"]
     assert audit["cases"][0]["call_order"] == ["moli", "moli-stack-1432"]
     assert audit["cases"][1]["call_order"] == ["moli-stack-1432", "moli"]
-    assert "`web`" in paths["markdown"].read_text()
+    assert "`web`" in paths["markdown"].read_text(encoding="utf-8")
 
 
 def test_comparison_audit_accepts_serial_provider_batches_with_native_defaults(tmp_path):
@@ -286,19 +287,19 @@ def test_comparison_audit_accepts_serial_provider_batches_with_native_defaults(t
     assert audit["scope"]["call_order"] == "serial_provider_batches"
     assert all(row["call_order"] == ["moli", "moli-stack-1432"]
                for row in audit["cases"])
-    assert "serial provider-batch order" in paths["markdown"].read_text()
+    assert "serial provider-batch order" in paths["markdown"].read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize("value", [None, False])
 def test_comparison_audit_requires_uniform_native_parameters(tmp_path, value):
     paths = comparison_cohort(tmp_path)
-    config = json.loads(paths["config"].read_text())
+    config = json.loads(paths["config"].read_text(encoding="utf-8"))
     for item in config["providers"].values():
         if value is None:
             item.pop("uniform_native_parameters")
         else:
             item["uniform_native_parameters"] = value
-    paths["config"].write_text(json.dumps(config))
+    paths["config"].write_text(json.dumps(config), encoding="utf-8")
     with pytest.raises(ValueError, match="provider configuration is not fixed native"):
         run_audit(paths)
 
@@ -306,17 +307,17 @@ def test_comparison_audit_requires_uniform_native_parameters(tmp_path, value):
 def test_comparison_audit_keeps_diagnostic_evidence_explicit(tmp_path):
     paths = comparison_cohort(tmp_path)
     dataset_path = paths["evidence"] / "dataset.json"
-    dataset = json.loads(dataset_path.read_text())
+    dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
     dataset.setdefault("comparison", {})["evidence_state"] = "diagnostic"
-    dataset_path.write_text(json.dumps(dataset))
+    dataset_path.write_text(json.dumps(dataset), encoding="utf-8")
     execution_path = paths["evidence"] / "execution.json"
-    execution = json.loads(execution_path.read_text())
+    execution = json.loads(execution_path.read_text(encoding="utf-8"))
     for batch in execution["batches"]:
         batch["evidence_state"] = "diagnostic"
-    execution_path.write_text(json.dumps(execution))
-    receipt = json.loads(paths["receipt"].read_text())
+    execution_path.write_text(json.dumps(execution), encoding="utf-8")
+    receipt = json.loads(paths["receipt"].read_text(encoding="utf-8"))
     receipt["execution"]["evidence_state"] = "diagnostic"
-    paths["receipt"].write_text(json.dumps(receipt))
+    paths["receipt"].write_text(json.dumps(receipt), encoding="utf-8")
 
     audit = run_audit(paths)
     assert audit["scope"]["evidence_state"] == "diagnostic"
@@ -326,23 +327,24 @@ def test_comparison_audit_keeps_diagnostic_evidence_explicit(tmp_path):
 def test_comparison_audit_rejects_incomplete_or_unfair_evidence(tmp_path, damage):
     paths = comparison_cohort(tmp_path)
     if damage == "missing_result":
-        rows = paths["evidence"].joinpath("results.jsonl").read_text().splitlines()
-        paths["evidence"].joinpath("results.jsonl").write_text("\n".join(rows[:-1]) + "\n")
+        rows = paths["evidence"].joinpath("results.jsonl").read_text(encoding="utf-8").splitlines()
+        paths["evidence"].joinpath("results.jsonl").write_text("\n".join(rows[:-1]) + "\n", encoding="utf-8")
     elif damage == "parameter_drift":
-        config = json.loads(paths["config"].read_text())
+        config = json.loads(paths["config"].read_text(encoding="utf-8"))
         config["providers"]["moli-stack-1432"]["max_bytes"] = 10
-        paths["config"].write_text(json.dumps(config))
+        paths["config"].write_text(json.dumps(config), encoding="utf-8")
     elif damage == "artifact":
-        row = json.loads(paths["evidence"].joinpath("results.jsonl").read_text().splitlines()[0])
-        paths["evidence"].joinpath(row["artifact_path"]).write_text("changed")
+        row = json.loads(paths["evidence"].joinpath("results.jsonl").read_text(encoding="utf-8").splitlines()[0])
+        paths["evidence"].joinpath(row["artifact_path"]).write_text("changed", encoding="utf-8")
     else:
         rows = [json.loads(line) for line in
-                paths["evidence"].joinpath("results.jsonl").read_text().splitlines()]
+                paths["evidence"].joinpath("results.jsonl").read_text(encoding="utf-8").splitlines()]
         rows[0]["started_at"], rows[-1]["started_at"] = (
             rows[-1]["started_at"], rows[0]["started_at"]
         )
         paths["evidence"].joinpath("results.jsonl").write_text(
-            "".join(json.dumps(row) + "\n" for row in rows)
+            "".join(json.dumps(row) + "\n" for row in rows),
+            encoding="utf-8"
         )
     with pytest.raises(ValueError):
         run_audit(paths)

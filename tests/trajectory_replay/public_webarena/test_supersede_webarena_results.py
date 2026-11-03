@@ -45,7 +45,10 @@ def test_complete_supersession_retains_raw_calls_and_rebuilds_a_portable_report(
         retained = (run / binding["retained_path"]).read_bytes()
         assert retained == before[Path(binding["path"])]
         assert hashlib.sha256(retained).hexdigest() == binding["sha256"]
-    rows = [json.loads(line) for line in (run / "attempts.jsonl").read_text().splitlines()]
+    rows = [
+        json.loads(line)
+        for line in (run / "attempts.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
     assert [(row["engine"], row["attempt"], row["status"]) for row in rows] == [
         ("chromium", 1, "pass"),
         ("moli", 1, "fail"),
@@ -62,7 +65,7 @@ def test_complete_supersession_retains_raw_calls_and_rebuilds_a_portable_report(
     from bs4 import BeautifulSoup
 
     results = output / "reports/webarena-trajectory-replay-latest-results.html"
-    page = BeautifulSoup(results.read_text(), "html.parser")
+    page = BeautifulSoup(results.read_text(encoding="utf-8"), "html.parser")
     assert "Synthetic task" in page.get_text()
     details = {
         link["href"].split("#")[0] for link in page.select("a[href]") if "-task-" in link["href"]
@@ -126,7 +129,7 @@ def test_unbound_or_incomplete_correction_cannot_leave_outputs(tmp_path, damage)
             row["status"] = "pass"
         else:
             row["is_retry"] = 0
-        path.write_text(json.dumps(row))
+        path.write_text(json.dumps(row), encoding="utf-8")
     elif damage == "screenshot":
         (attempt / "final.png").write_bytes(b"changed")
     elif damage == "missing-har":
@@ -140,7 +143,7 @@ def test_unbound_or_incomplete_correction_cannot_leave_outputs(tmp_path, damage)
         path = correction / "manifest.json"
         manifest = json.loads(path.read_bytes())
         manifest["protocol"]["sample_interval_ms"] = 300
-        path.write_text(json.dumps(manifest))
+        path.write_text(json.dumps(manifest), encoding="utf-8")
     elif damage == "empty-reason":
         reason = " "
     else:
@@ -206,7 +209,7 @@ def test_scope_cannot_accept_ambiguous_call_history(damage):
 def test_preparation_failure_is_retained_without_invented_page_evidence(tmp_path):
     base, correction = write_supersession_fixture(tmp_path)
     path = correction / "attempts.jsonl"
-    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
     row = rows[0]
     directory = Path(row["evidence_directory"])
     for name in ("network.har", "final.png", "final-page.json"):
@@ -228,13 +231,13 @@ def test_preparation_failure_is_retained_without_invented_page_evidence(tmp_path
             },
         }
     )
-    (directory / "attempt.json").write_text(json.dumps(row))
+    (directory / "attempt.json").write_text(json.dumps(row), encoding="utf-8")
     raw = "".join(json.dumps(row) + "\n" for row in rows).encode()
     path.write_bytes(raw)
     manifest_path = correction / "manifest.json"
     manifest = json.loads(manifest_path.read_bytes())
     manifest["artifact_provenance"]["attempts_sha256"] = hashlib.sha256(raw).hexdigest()
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     output = tmp_path / "derived"
     result = build_supersession(
         base, correction, output, {("case-a", "moli")}, reason="synthetic full rerun"

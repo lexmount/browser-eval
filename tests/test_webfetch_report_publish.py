@@ -16,12 +16,12 @@ from harness.web_fetch.report_publish import PublishConfig
 def fixture(root, mode="update"):
     source = root / "report"
     (source / "assets").mkdir(parents=True)
-    (source / "assets/style.css").write_text("body {color:black}")
-    (source / "assets/report.js").write_text("window.addEventListener('report-ready',initReport);")
-    (source / "index.html").write_text("<html><head></head><body>Test</body></html>")
-    (source / "dataset.json").write_text("{}")
-    (source / "results.jsonl").write_text("")
-    (source / "reliability.json").write_text('{"complete":true}')
+    (source / "assets/style.css").write_text("body {color:black}", encoding="utf-8")
+    (source / "assets/report.js").write_text("window.addEventListener('report-ready',initReport);", encoding="utf-8")
+    (source / "index.html").write_text("<html><head></head><body>Test</body></html>", encoding="utf-8")
+    (source / "dataset.json").write_text("{}", encoding="utf-8")
+    (source / "results.jsonl").write_text("", encoding="utf-8")
+    (source / "reliability.json").write_text('{"complete":true}', encoding="utf-8")
     archive = root / "report.zip"
     report_package.build(source, archive)
     profile = root / "profile.json"
@@ -37,9 +37,10 @@ def fixture(root, mode="update"):
                     "base_url": "https://reports.example",
                     "verified": True,
                 }
-            )
+            ),
+            encoding="utf-8"
         )
-    profile.write_text(json.dumps(target))
+    profile.write_text(json.dumps(target), encoding="utf-8")
     return PublishConfig(profile, archive, source, receipt, root / "pending.json", mode)
 
 
@@ -190,7 +191,8 @@ def test_reusing_receipt_does_not_require_archive_or_download_site(tmp_path):
                 "versionId": "ver_old",
                 "share_url": "https://reports.example/v/token",
             }
-        )
+        ),
+        encoding="utf-8"
     )
     previous = config.receipt.read_bytes()
     service = Service()
@@ -300,7 +302,7 @@ def test_invalid_service_base_fails_before_requests(tmp_path, base):
     config = fixture(tmp_path)
     profile = json.loads(config.profile.read_bytes())
     profile["artifact_hub_base_url"] = base
-    config.profile.write_text(json.dumps(profile))
+    config.profile.write_text(json.dumps(profile), encoding="utf-8")
     service = Service()
     with pytest.raises(ValueError):
         report_publish.publish(config, transport=service)
@@ -328,7 +330,7 @@ def test_report_rename_keeps_bound_target_and_receipt(tmp_path, monkeypatch, dam
                'version': {'id': 'ver_current'}, 'share_url': 'https://reports.example/s/site-one'}
     if damage == 'slug':
         receipt['slug'] = '../other'
-    path.write_text(json.dumps(receipt))
+    path.write_text(json.dumps(receipt), encoding="utf-8")
     before = path.read_bytes()
     monkeypatch.setenv('ARTIFACT_SITE_BASE_URL',
                        'https://another.example' if damage == 'host' else receipt['base_url'])
@@ -359,7 +361,7 @@ def test_report_rename_keeps_bound_target_and_receipt(tmp_path, monkeypatch, dam
     else:
         report_publish.rename_main(args)
         assert calls[0].full_url == 'https://reports.example/api/sites/site-one'
-        assert json.loads(path.read_text()) == {**receipt, 'title': 'after'}
+        assert json.loads(path.read_text(encoding="utf-8")) == {**receipt, 'title': 'after'}
         assert path.stat().st_mode & 0o777 == 0o600
 
 
@@ -369,7 +371,7 @@ def test_report_rename_keeps_bound_target_and_receipt(tmp_path, monkeypatch, dam
 def test_diagnostic_source_never_contacts_publication_service(tmp_path, state, mode):
     config = fixture(tmp_path, mode)
     (config.source / 'dataset.json').write_text(json.dumps({
-        'comparison': {'publication_state': state}}))
+        'comparison': {'publication_state': state}}), encoding="utf-8")
     service = Service()
     with pytest.raises(ValueError, match='Diagnostic'):
         report_publish.publish(config, transport=service, package_check=lambda *args: None)
@@ -399,14 +401,14 @@ def test_explicit_main_visibility_reuses_same_address_without_independent_share(
     assert result["visibility"] == "unlisted"
     assert service.changes == (initial_visibility != "unlisted")
     assert not any(path.endswith("/shares") for path in service.requests)
-    assert json.loads(config.receipt.read_text())["versionId"] == "ver_new"
+    assert json.loads(config.receipt.read_text(encoding="utf-8"))["versionId"] == "ver_new"
 
 
 def test_bound_diagnostic_publish_rejects_invalid_binding_before_network(tmp_path):
     config = fixture(tmp_path)
     binding = tmp_path / "unbound.json"
-    binding.write_text("{}")
-    (config.source / "report-manifest.json").write_text("{}")
+    binding.write_text("{}", encoding="utf-8")
+    (config.source / "report-manifest.json").write_text("{}", encoding="utf-8")
     config = replace(config, presentation_binding=binding, visibility="unlisted")
     def forbidden(*args, **kwargs):
         raise AssertionError("Invalid evidence must fail before network access")

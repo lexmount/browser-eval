@@ -36,7 +36,7 @@ def test_native_execution_keeps_dynamic_scenario_and_acceptance_without_injected
     assert plan_for_case(EvalCase(**selected['cases'][0])) is None
     with tempfile.TemporaryDirectory() as directory:
         path = Path(directory) / 'dataset.json'
-        path.write_text(json.dumps(selected))
+        path.write_text(json.dumps(selected), encoding="utf-8")
         _, cases = load_dataset(path)
         assert cases[0].track == 'dynamic'
         assert plan_for_case(cases[0]) is None
@@ -63,7 +63,7 @@ def test_native_execution_normalizes_every_dynamic_case_to_one_family_marker(cas
 
 def _write_dataset(tmp_path, case):
     path = tmp_path / "dataset.json"
-    path.write_text(json.dumps({"tool": "web_fetch", "cases": [case]}))
+    path.write_text(json.dumps({"tool": "web_fetch", "cases": [case]}), encoding="utf-8")
     return path
 
 
@@ -188,7 +188,7 @@ def test_current_completion_signals_are_bound_to_independent_capture_shape(histo
         Path("research/dynamic-browser-captures.json"),
         Path("research/dynamic-expansion-captures.json"),
     ):
-        captures.extend(json.loads(path.read_text()))
+        captures.extend(json.loads(path.read_text(encoding="utf-8")))
     normalized_selector = {
         "button Add to cart → parent card": "button",
         "iframe#iframe → h3.family-name (child document independently opened)": "h3.family-name",
@@ -379,7 +379,7 @@ def test_registry_rejects_answer_derived_selectors(tmp_path, monkeypatch, select
             "sha256": "a" * 64, "provider_output_used": False},
         "capabilities": {"completion": {"selector": selector, "minimum_count": 1}}}}}
     path = tmp_path / "registry.json"
-    path.write_text(json.dumps(registry))
+    path.write_text(json.dumps(registry), encoding="utf-8")
     monkeypatch.setattr(owner, "definition_path", lambda relative: path
                         if relative == "evaluation/native-retrieval-contracts.json"
                         else definition_path(relative))
@@ -394,10 +394,10 @@ def test_registry_rejects_answer_derived_selectors(tmp_path, monkeypatch, select
 
 def test_registry_source_hash_must_match_bound_external_bytes(tmp_path, monkeypatch):
     import harness.web_fetch.retrieval_hints as owner
-    registry = json.loads(definition_path("evaluation/native-retrieval-contracts.json").read_text())
+    registry = json.loads(definition_path("evaluation/native-retrieval-contracts.json").read_text(encoding="utf-8"))
     registry["contracts"]["delayed-ten-records"]["source_authority"]["sha256"] = "0" * 64
     path = tmp_path / "registry.json"
-    path.write_text(json.dumps(registry))
+    path.write_text(json.dumps(registry), encoding="utf-8")
     monkeypatch.setattr(owner, "definition_path", lambda relative: path
                         if relative == "evaluation/native-retrieval-contracts.json"
                         else definition_path(relative))
@@ -458,12 +458,12 @@ def test_registered_contract_from_an_installed_module(tmp_path, monkeypatch, cor
     monkeypatch.chdir(tmp_path)
     poison = tmp_path / "evaluation/native-retrieval-contracts.json"
     poison.parent.mkdir()
-    poison.write_text("untrusted repository registry")
+    poison.write_text("untrusted repository registry", encoding="utf-8")
 
     definitions = tmp_path / "benchmark-definitions"
     definitions.mkdir()
     dataset = definitions / "dataset.json"
-    dataset.write_text('{"cases": []}')
+    dataset.write_text('{"cases": []}', encoding="utf-8")
     expected = hashlib.sha256(b"independent source observation").hexdigest()
     manifest = {
         "schema_version": 1, "kind": "frozen_reference_inputs", "id": "installed-contract",
@@ -471,15 +471,15 @@ def test_registered_contract_from_an_installed_module(tmp_path, monkeypatch, cor
         "trees": {"sources": {"dynamic-delayed/render-audit.json": expected}},
     }
     manifest_path = definitions / "source-inputs.json"
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     source = tmp_path / "data/reference-inputs/installed-contract/sources/dynamic-delayed/render-audit.json"
     source.parent.mkdir(parents=True)
     source.write_bytes(b"changed source" if corrupt_source else b"independent source observation")
     monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data"))
-    registry = json.loads(definition_path("evaluation/native-retrieval-contracts.json").read_text())
+    registry = json.loads(definition_path("evaluation/native-retrieval-contracts.json").read_text(encoding="utf-8"))
     registry["contracts"]["delayed-ten-records"]["source_authority"]["sha256"] = expected
     registry_path = definitions / "contracts.json"
-    registry_path.write_text(json.dumps(registry))
+    registry_path.write_text(json.dumps(registry), encoding="utf-8")
     def installed_definition(relative):
         if relative == "evaluation/native-retrieval-contracts.json":
             return registry_path

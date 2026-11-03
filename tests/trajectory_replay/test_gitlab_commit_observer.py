@@ -16,7 +16,7 @@ def test_commit_observer_filters_locally_without_optional_total(task_id, duplica
     path = Path(
         f"evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-{task_id}.json"
     )
-    script = json.loads(path.read_text())["tool_calls"][-1]["script"]
+    script = json.loads(path.read_text(encoding="utf-8"))["tool_calls"][-1]["script"]
     commits = [
         {"id": "a" * 40, "author_name": "Kilian Valkhof", "committed_date": "2023-03-05T19:47:04Z"},
         {

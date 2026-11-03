@@ -151,7 +151,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
  quality_count=summary['quality_case_count']
  result_count=case_count*len(providers)
  visible_count=quality_count*len(providers)
- review_scope=json.loads((out/'research/wcxb-representative-review.json').read_text())
+ review_scope=json.loads((out/'research/wcxb-representative-review.json').read_text(encoding='utf-8'))
  reviewed_cases=review_scope['case_count']
  reviewed_results=review_scope['result_count']
  unreviewed_results=result_count-reviewed_results
@@ -171,7 +171,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
   _, selected_latency = load_full_paired_latency(out/'research/wcxb-full-paired-latency', profile, set(by_case))
   paired_latency = summarize_full_paired_latency(selected_latency, set(by_case))
 
- adoption_data=json.loads((out/'research/provider-adoption.json').read_text())
+ adoption_data=json.loads((out/'research/provider-adoption.json').read_text(encoding='utf-8'))
  cloudflare_matches=[(entry['repo'], match['path']) for entry in adoption_data['included']
                      for match in entry['matches'] if match['signature']=='cloudflare-markdown']
  cloudflare_repo_count=len({repo for repo,_ in cloudflare_matches})
@@ -1301,7 +1301,7 @@ def overview_card(records,cases,track,label,names,*,diagnostic=False):
 def review_summary(out, prefix='', *, highlight=True):
  path=out/'result-review.json'
  if not path.is_file():return ''
- audit=json.loads(path.read_text())
+ audit=json.loads(path.read_text(encoding='utf-8'))
  if audit.get('retained_reviews'):
   mode_note = (model_text(' 本次为已知程序结论的证据复核，不是独立盲审。', ' This round checked evidence with known machine outcomes; it was not an independent blind review.') if audit.get('review_protocol',{}).get('blind_initial_verdict') is False else '')
   if audit.get('review_protocol',{}).get('fresh_blind_initial_verdict') is True:
@@ -1920,7 +1920,7 @@ def overview_all_call_latency(records,cases):
 def result_ledger_section(out, records, prefix=''):
  path=out/'local-evidence/result-ledger.json'
  if not path.is_file():return ''
- ledger=validate_ledger(json.loads(path.read_text()),records,source=out)
+ ledger=validate_ledger(json.loads(path.read_text(encoding='utf-8')),records,source=out)
  rows=[('',cell(esc(row['id']))+cell(str(row['before_passes']))+cell(str(row['added_passes']))+
            cell(str(row['removed_passes']))+cell(str(row['totals']['pass']))+
            cell(str(row['totals']['excluded']))) for row in ledger['rounds']]
@@ -1958,7 +1958,7 @@ def overview_resources(out):
  path=out/'resource-cohort/resource-comparison.json'
  if not path.is_file():
   return '<p>当前证据没有独立的客户端资源测量；不从耗时或进程体积推测 CPU 与内存。</p>'
- summary=json.loads(path.read_text())
+ summary=json.loads(path.read_text(encoding='utf-8'))
  rendered,_=render_resource_comparison(summary,summary['providers'])
  return rendered
 
@@ -2189,7 +2189,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   if unknown:raise ValueError('Unknown dataset refresh cases: '+', '.join(sorted(unknown)))
  local_snapshot=dataset.get('comparison',{}).get('publication_state')=='local_audit_only_not_for_release'
  score_binding=dataset.get('comparison',{}).get('score_audit')
- score_audit=json.loads(contained_path(out,score_binding['path']).read_text()) if score_binding else None
+ score_audit=json.loads(contained_path(out,score_binding['path']).read_text(encoding='utf-8')) if score_binding else None
  diagnostic=bool(score_audit) or (local_snapshot and not local_pass_rate_ranking(dataset))
  if local_snapshot and not show_local_status_banners:
   raise ValueError('Uncertified local diagnostic status cannot be hidden')
@@ -2226,15 +2226,15 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  for c in dataset['cases']:
   contained_path(out,'references/'+c['id']+'.txt')
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
- (out/'assets/style.css').write_text(STYLE+EXTRA);(out/'assets/report.js').write_text(JS)
+ (out/'assets/style.css').write_text(STYLE+EXTRA, encoding='utf-8');(out/'assets/report.js').write_text(JS, encoding='utf-8')
  cases={c['id']:c for c in dataset['cases']};names=sorted(set(r['provider'] for r in records))
  tracks=active_tracks(cases);track_count=len(tracks);track_label=track_count_label(track_count)
- audit=json.loads((out/'result-review.json').read_text()) if (out/'result-review.json').is_file() else None
+ audit=json.loads((out/'result-review.json').read_text(encoding='utf-8')) if (out/'result-review.json').is_file() else None
  audited_attempts=review_index(audit)
  failure_reviews={}
  content_binding=dataset.get('comparison',{}).get('report_interpretation')
  if content_binding:
-  article_content=json.loads(contained_path(out,content_binding['path']).read_text())
+  article_content=json.loads(contained_path(out,content_binding['path']).read_text(encoding='utf-8'))
   failure_reviews=load_browser_failure_review(out,cases,records,article_content)
  bycase=defaultdict(list);byprovider=defaultdict(list)
  for r in records:bycase[r['case_id']].append(r);byprovider[r['provider']].append(r)
@@ -2248,13 +2248,13 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   description=model_text(f'{len(cases)} 个案例 · {len(names)} 种方法 · 按本轮任务通过率排序。',f'{len(cases)} cases · {len(names)} methods · Ordered by task pass rate for this sample.')
  release_path=out/'benchmark-release.json'
  if release_path.is_file():
-  release=json.loads(release_path.read_text())
+  release=json.loads(release_path.read_text(encoding='utf-8'))
   description='<span>'+description+'</span> · <a data-benchmark-release="'+esc(release['version'])+'" href="benchmark-release.json">'+esc('bench v'+release['version'])+'</a>'
  home='<div class="home-page">'+hero('Web Fetch 评测报告',description)
  TITLE='本轮调用链检查与日志范围' if dataset.get('comparison',{}).get('call_chain_audit') else '本报告的任务范围与验收规则'
  if authored_interpretation and dataset.get('comparison',{}).get('report_interpretation'):
   binding=dataset['comparison']['report_interpretation']
-  TITLE=json.loads(contained_path(out,binding['path']).read_text())['title']
+  TITLE=json.loads(contained_path(out,binding['path']).read_text(encoding='utf-8'))['title']
  reading_note='从分数差异、失败案例和实现机制，理解如何选择抓取方法。' if authored_interpretation else '查看本报告的任务范围、结果数量与验收规则。'
  if dataset.get('comparison',{}).get('call_chain_audit'):
   reading_url='guide/index.html'
@@ -2300,10 +2300,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  headers=['案例','类型','结果','失败分类','耗时','运行 ID']
  for c in ([case for case in cases.values() if case['id'] in (dataset_case_ids or set())] if presentation_only else cases.values()):
   v=c.get('source_verification',{});ref=reference_text(c)
-  (out/'references').mkdir(exist_ok=True);(out/'references'/f'{c["id"]}.txt').write_text(ref)
+  (out/'references').mkdir(exist_ok=True);(out/'references'/f'{c["id"]}.txt').write_text(ref, encoding='utf-8')
   if c.get('acceptance_contract'):
    target=contained_path(out,'contracts/'+c['id']+'.json');target.parent.mkdir(exist_ok=True)
-   target.write_text(json.dumps(machine_contract(c),ensure_ascii=False,indent=2)+'\n')
+   target.write_text(json.dumps(machine_contract(c),ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
   facts=[('',cell(esc(f['id']))+cell(esc(' / '.join(f['alternatives'])))) for f in c.get('required_facts',[])]
   resources=[('',cell(esc(x['id']))+cell('<br>'.join(link(u,u) for u in x.get('urls',[]))+('<br>入口地址规则：<code>'+esc(' / '.join(x['url_patterns']))+'</code>' if x.get('url_patterns') else ''))) for x in c.get('expected_resources',[])]
   rules=''.join(f'<p>{esc(x["id"])}：至少 {x.get("minimum",1)} 项；<code>{esc(x["pattern"])}</code></p>' for x in c.get('required_patterns',[]))
@@ -2335,7 +2335,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   if c.get('task_kind')=='structure':
    example=out/'sources'/c['id']/'items.json'
    if example.exists():
-    items=json.loads(example.read_text())
+    items=json.loads(example.read_text(encoding='utf-8'))
     sample=[('',cell(esc(x.get('title') or x.get('text','')))+cell(link(x['url'],'详情 ↗') if x.get('url') else '—')) for x in items]
     body+=section('公开条目快照','<p class="source-note">采集时的公开字段作为来源证据保留，不要求返回相同名单或排序；稳定任务按上方内容锚点与字段要求判定。</p><details><summary>展开 '+str(len(items))+' 条</summary>'+table(['名称 / 内容','入口'],sample)+'</details>')
   if c.get('body_requirements'):
@@ -2631,7 +2631,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   write(out,'changes/index.html','示例说明',hero('合成示例','本报告由本地测试适配器生成。没有正式评测发布记录。'))
  elif not authored_interpretation:
   review_path=out/'result-review.json'
-  review=json.loads(review_path.read_text()) if review_path.is_file() else {}
+  review=json.loads(review_path.read_text(encoding='utf-8')) if review_path.is_file() else {}
   updates=''.join('<article class="review-round"><div class="round-label">'+esc(row.get('date',''))+'</div><div><h3>'+model_text(row.get('title',''),row.get('title_en'))+'</h3><p>'+model_text(row.get('fix',''),row.get('fix_en'))+'</p><p class="source-note">'+model_text(row.get('scope',''),row.get('scope_en'))+'</p></div></article>' for row in review.get('review_rounds',[]))
   write(out,'changes/index.html','变更记录',hero('变更记录','列出本轮核验后的修正；修正读取已保存的返回，不代表重新调用产品。')+section('本轮结果修正','<div class="review-rounds">'+updates+'</div>')+section('详细依据','<p>'+link('../review/index.html','核验范围与修正说明')+' · '+link('../analysis/index.html','逐任务结果与证据')+' · '+link('../reproduce/index.html','运行参数与版本')+'</p>'))
  else:
@@ -2661,7 +2661,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
 
 def current_local_review_findings(out,dataset,records,audit):
  """Describe the current snapshot from bound calls, never cached release prose."""
- receipt=json.loads(read_evidence_binding(out,dataset['comparison']['task_replacement']).read_text())
+ receipt=json.loads(read_evidence_binding(out,dataset['comparison']['task_replacement']).read_text(encoding='utf-8'))
  added=receipt['provider_calls_added']
  cases={c['id']:c for c in dataset['cases']}
  eligible=[r for r in records if measured(r,cases[r['case_id']])]
@@ -2693,7 +2693,7 @@ def current_local_review_findings(out,dataset,records,audit):
    rows.append((f'本次新复核先隐藏程序结论；初判与程序有 {conflicts} 条分歧，已对照原始返回和题目要求裁定。原始独立意见保留，未新增网页调用。',
                 f'Fresh review withheld machine verdicts. {conflicts} initial disagreements were adjudicated against the original answers and task requirements. Initial independent opinions are preserved; no new webpage calls were added.'))
  elif supplements:
-  supplement_rows = [json.loads(read_evidence_binding(out, item).read_text()) for item in supplements]
+  supplement_rows = [json.loads(read_evidence_binding(out, item).read_text(encoding='utf-8')) for item in supplements]
   reviewed = sum(item['reviewed_attempts'] for item in supplement_rows)
   rows.append((f'新增调用中 {reviewed} 条已逐条补充复核，判定与程序一致；复核前已知机器汇总，不称为盲审。内容通过不保证代码可直接运行，具体质量问题见复核记录。',
                f'{reviewed} new-call results received supplemental per-answer review and agree with the scorer. The machine summary was already known; this was not blind review. A content pass does not guarantee executable code; quality issues are retained in the review records.'))
@@ -2708,13 +2708,13 @@ def write_review_page(out,records):
  if not path.is_file():
   write(out,'review/index.html','核验记录',hero('核验记录','本轮没有绑定独立核验记录。'))
   return
- audit=json.loads(path.read_text());reviewer=audit.get('reviewer',{})
+ audit=json.loads(path.read_text(encoding='utf-8'));reviewer=audit.get('reviewer',{})
  dataset_path=out/'dataset.json'
- dataset=json.loads(dataset_path.read_text()) if dataset_path.is_file() else {}
+ dataset=json.loads(dataset_path.read_text(encoding='utf-8')) if dataset_path.is_file() else {}
  metadata_path=repository_root()/'research/report-changes.json'
  if not metadata_path.is_file():
   raise ValueError('A reviewed report requires research/report-changes.json')
- changes=json.loads(metadata_path.read_text())
+ changes=json.loads(metadata_path.read_text(encoding='utf-8'))
  rounds=(audit['review_rounds'] if audit.get('kind')=='local_independent_review' else require_review_rounds(changes))
  rounds_html=''.join(
   f'<article class="review-round"><div class="round-label">第 {i} 轮<br><small>{esc(row.get("date",""))}</small></div><div><h3>{model_text(row.get("title",""),row.get("title_en"))}</h3><p><b>范围：</b>{model_text(row.get("scope",""),row.get("scope_en"))}</p><p><b>发现：</b>{model_text(row.get("finding",""),row.get("finding_en"))}</p><p><b>纠正：</b>{model_text(row.get("fix",""),row.get("fix_en"))}</p><p class="round-result"><b>未完成：</b>{model_text(row.get("pending",""),row.get("pending_en"))}</p></div></article>'
@@ -2752,7 +2752,7 @@ def write_review_page(out,records):
  page+=section('核验口径',method)
  dataset_path=out/'dataset.json'
  if dataset_path.is_file():
-  dataset=json.loads(dataset_path.read_text())
+  dataset=json.loads(dataset_path.read_text(encoding='utf-8'))
   findings=dataset.get('comparison',{}).get('call_chain_audit',{}).get('findings',[])
   if dataset.get('comparison',{}).get('task_replacement'):
    findings=current_local_review_findings(out,dataset,records,audit)
@@ -2764,11 +2764,11 @@ NATIVE_OPTION_LABELS={'wait_until':'页面完成条件','block_private_networks'
 
 def load_frozen_method_options(out,records):
  """Bind displayed controls to their actual configuration and call scope."""
- document=json.loads((out/'frozen-method-options.json').read_text())
+ document=json.loads((out/'frozen-method-options.json').read_text(encoding='utf-8'))
  if document.get('schema_version')!=2 or not document.get('source_config'):
   raise ValueError('Frozen option display requires a bound configuration and call scope')
  binding=document['source_config']
- source_config=json.loads(read_evidence_binding(out,binding).read_text())
+ source_config=json.loads(read_evidence_binding(out,binding).read_text(encoding='utf-8'))
  configuration=source_config['providers']
  config_hash=binding['sha256']
  if source_config.get('projection'):
@@ -2776,7 +2776,7 @@ def load_frozen_method_options(out,records):
   if source_config['projection']!='allowlisted_method_options':
    raise ValueError('Unknown frozen option configuration projection')
   config_hash=source_config.get('original_provider_config_sha256')
-  contract=json.loads((out/'local-run-contract.json').read_text())
+  contract=json.loads((out/'local-run-contract.json').read_text(encoding='utf-8'))
   if (not config_hash or config_hash!=contract.get('provider_config_sha256')
       or any(key not in NATIVE_OPTION_LABELS for options in configuration.values() for key in options)):
    raise ValueError('Public option configuration differs from its original call binding')
@@ -2862,7 +2862,7 @@ def render_execution_contract(dataset,records,manifests):
 
 
 def write_support(out,records,manifests,*,authored_interpretation=True):
- dataset=json.loads((out/'dataset.json').read_text()) if (out/'dataset.json').is_file() else {}
+ dataset=json.loads((out/'dataset.json').read_text(encoding='utf-8')) if (out/'dataset.json').is_file() else {}
  local_matrix=measurement_presentation(dataset).local_matrix
  headless=is_headless_cohort(records)
  methodology=hero('评测方法','按任务定义验收规则。同组已测方法使用相同的冻结任务与参考，覆盖数量在各榜单列明。')
@@ -2872,7 +2872,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  methodology+=section('每类怎么测',examples_html)+section('指标说明',metric_guide())
  methodology+=section('共同输入、计时边界与调用预算','<p>所有方法进入同一个评分入口，但按任务交付物验收，而不是强制使用同一种中间格式。网页与文档题验收可读正文；网页媒体题验收指定资源地址或登记文字；直接媒体文件题验收图片或视频字节；结构任务验收字段和稳定文字。HTML/Markdown 链接与明确配对的结构化名称—链接字段按同一规则核验；不把请求回显或诊断日志当成答案。原始输出与原始适配器状态保留，报告层不按方法名称改写任务结果。</p><div class="guide-grid"><article class="guide-card"><h3>计入耗时</h3><p>从准备发起该次 provider 调用开始，到形成可送入统一评分器的最终答案为止：线程调度、SDK/CLI/HTTP 调用、远端处理与网络下载、浏览器渲染与正文提取、本地解析、统一输入转换，以及文件字节读取、格式识别和 SHA-256 计算均在计时内。</p></article><article class="guide-card"><h3>不计入耗时</h3><p>数据集与参考加载、provider 配置校验、调用间限速等待、最终答案形成后的证据落盘、统一评分计算、报告汇总与页面生成不计入。供应商上报的服务端耗时只作附加证据，排名使用客户端观测的端到端耗时。</p></article></div><p>这个边界比较的是“拿到本任务最终交付物”所需时间：服务直接返回成品时计完整往返；本地方法若还需下载、渲染或解析，也必须完成后才停表。文档正文必须由参评方法交付为可读文字；直接媒体文件任务到字节校验完成即停止，不做无关的 Markdown 转换。所有方法使用同一外层计时器和截止预算。超时答案不接收；无法取消的调用会被隔离，整批结果因此不完整并触发不可靠状态，构建产物不得发布。</p><p>完整正文任务除原有核对点外，按参考正文最多五个连续位置检查字符六元组覆盖：每个位置至少达到 60%，通常要求至少四处达到 80%。所有位置一次性做全局容量分配；同一返回片段实例只能计入一个位置，位置排列顺序不影响结论。若页面存在经独立证据确认的合法重排，案例可显式登记不同位置门槛。比较忽略空白和排版符号但保留文字顺序；全文 F1 独立保留实际值。直接媒体文件任务必须有字节验收，资源 URL 不等于文件。</p>')
  if (out/'resource-cohort/resource-comparison.json').is_file():
-  resource_summary=json.loads((out/'resource-cohort/resource-comparison.json').read_text())
+  resource_summary=json.loads((out/'resource-cohort/resource-comparison.json').read_text(encoding='utf-8'))
   resource_environment=resource_summary.get('environment',{})
   resource_parameters=[
    (('任务数','Task count'),len(resource_summary.get('planned_cases',[]))),
@@ -2897,7 +2897,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
   if (out/'request-status-corrections.json').exists():revision_links.append(link('../request-status-corrections.json','请求状态纠正收据'))
   detail='当前成绩包含对保存输出的离线重算；收据记录输入、输出哈希、判定变化及供应商调用数，不把新规则伪装成原调用时的运行配置。'
   if headless and (out/'latency-corrections.json').exists():
-   latency_receipt=json.loads((out/'latency-corrections.json').read_text())
+   latency_receipt=json.loads((out/'latency-corrections.json').read_text(encoding='utf-8'))
    changes=latency_receipt.get('changes',[])
    if changes:
     affected='、'.join(provider_label(name) for name in sorted({change['provider'] for change in changes}))
@@ -2960,7 +2960,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
   common.append(('',cell(label)+cell(esc('；'.join(values)))))
  provenance={}
  if (out/'implementation-provenance.json').is_file():
-  provenance={x['binary_sha256']:x for x in json.loads((out/'implementation-provenance.json').read_text()).get('implementations',[])}
+  provenance={x['binary_sha256']:x for x in json.loads((out/'implementation-provenance.json').read_text(encoding='utf-8')).get('implementations',[])}
  provider_rows=[]
  for name in sorted({r['provider'] for r in records}):
   subset=[r for r in records if r['provider']==name]
@@ -3013,7 +3013,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
    support+=section(model_text(options_document['scope_title'],options_document['scope_title_en']),
                     '<p>'+model_text(options_document['scope_description'],options_document['scope_description_en'])+'</p>'
                     +table(['方法','固定选项'],config_rows,metrics=[]))
-  support+=local_call_chain_section(json.loads((out/'dataset.json').read_text()))
+  support+=local_call_chain_section(json.loads((out/'dataset.json').read_text(encoding='utf-8')))
  if not local_matrix:
   support+=section('发布与加载','<p>本地构建为每个任务、方法和证据生成可独立检查的逻辑路由；这不等于线上部署同样数量的独立 HTML。发布器会把整份报告编译成一个通用 HTML 外壳、共享样式与脚本，以及按内容寻址的压缩数据块。页面切换由前端路由完成，证据只在打开对应页面时读取，超过 256 KiB 的完整文本还需用户主动加载。</p><p class="source-note">发布清单记录逻辑路由数、源文件数、压缩块数和逐文件 SHA-256；发布门禁会重建每个文件并验证内部链接与原始下载字节。这样保留逐项可审计性，同时避免重复页面骨架和一次性加载全部证据。</p>')
  if not authored_interpretation:
@@ -3028,7 +3028,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
   check_binding=' --presentation-binding /absolute/path/to/report/presentation-binding.json' if frozen_binding else ''
   reproduce='<p>以下命令从本轮保存的证据构建本地报告，不重新调用产品：</p><pre>uv run --frozen python scripts/build_report.py --local-audit --language '+('zh --include-english' if _RENDER_CONTEXT.get().english_generated else 'zh')+' --evidence /absolute/path/to/report-evidence --output /absolute/path/to/report'+build_binding+'\nuv run --frozen python scripts/check_report.py /absolute/path/to/report'+check_binding+'</pre><p>使用与本轮结果对应的证据目录。调用时的版本、配置和评分器哈希见 '+link('../local-run-contract.json','调用前冻结协议')+' 与 '+link('../execution.json','执行批次')+'。上面的构建命令读取保存的评分；修改评分规则后，应先按声明范围复评分，不能仅重建页面就称成绩已经更新。</p>'
  if local_matrix and frozen_binding:
-  public_profile=json.loads((out/'presentation-binding.json').read_text())
+  public_profile=json.loads((out/'presentation-binding.json').read_text(encoding='utf-8'))
   if public_profile.get('publication_projection'):
    reproduce+='<p>'+model_text('公开副本已去掉本机目录信息。清单分别记录原始文件与公开副本的校验值；公开校验值不冒充原始调用标识。成绩、耗时和复核结论保持不变。','This public copy omits host paths. The manifest distinguishes original and public file hashes; public hashes do not claim to be original call identities. Scores, timings and review decisions are unchanged.')+' '+link('../'+public_profile['publication_projection']['path'],'PUBLICATION-PROJECTION.json')+'</p>'
   if public_profile.get('publication_evidence_views'):
@@ -3861,9 +3861,9 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
     def prose(key):
         return esc(content[key])
     correction_path = out / 'case-correction.json'
-    correction = json.loads(correction_path.read_text()) if correction_path.exists() else None
+    correction = json.loads(correction_path.read_text(encoding='utf-8')) if correction_path.exists() else None
     scoring_correction_path = out / 'scoring-correction.json'
-    scoring_correction = json.loads(scoring_correction_path.read_text()) if scoring_correction_path.exists() else None
+    scoring_correction = json.loads(scoring_correction_path.read_text(encoding='utf-8')) if scoring_correction_path.exists() else None
     def illustration(name, caption):
         if not (out / 'assets' / name).is_file():
             return ''

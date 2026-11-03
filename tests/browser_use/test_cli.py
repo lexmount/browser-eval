@@ -69,8 +69,8 @@ def test_positional_report_argument_reaches_the_owner(tmp_path):
 
 def test_review_command_binds_the_selection_and_restores_process_arguments(tmp_path, monkeypatch):
     # A manifest bound to another selection stops the review before anything is written.
-    (tmp_path / "attempts.jsonl").write_text("")
-    (tmp_path / "manifest.json").write_text('{"selection_sha256": "other"}')
+    (tmp_path / "attempts.jsonl").write_text("", encoding="utf-8")
+    (tmp_path / "manifest.json").write_text('{"selection_sha256": "other"}', encoding="utf-8")
     monkeypatch.setattr(sys, "argv", ["caller"])
     monkeypatch.chdir(ROOT)
     with pytest.raises(ValueError, match="pre-registered selection"):

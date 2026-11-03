@@ -51,9 +51,9 @@ class EvidenceIngestionTests(unittest.TestCase):
             "completed_at": "2026-09-02T12:00:05+00:00",
             "attempt_count": len(rows),
         }
-        (root / "dataset.json").write_text(json.dumps(self.dataset))
-        (root / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
-        (root / "execution.json").write_text(json.dumps({"batches": [batch]}))
+        (root / "dataset.json").write_text(json.dumps(self.dataset), encoding='utf-8')
+        (root / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding='utf-8')
+        (root / "execution.json").write_text(json.dumps({"batches": [batch]}), encoding='utf-8')
         return root
 
     def assert_unchanged(self):
@@ -78,27 +78,27 @@ class EvidenceIngestionTests(unittest.TestCase):
             .read_bytes()
             .startswith(self.before[Path("results.jsonl")])
         )
-        batch = json.loads((self.canonical / "execution.json").read_text())["batches"][-1]
+        batch = json.loads((self.canonical / "execution.json").read_text(encoding='utf-8'))["batches"][-1]
         self.assertEqual(batch["attempt_ids"], ["new__a", "new__b"])
         with self.assertRaises(ValueError):
             add_provider_run(self.canonical, self.incoming, "new")
 
     def test_partial_run_rejected_without_changes(self):
         p = self.incoming / "results.jsonl"
-        p.write_text(p.read_text().splitlines()[0] + "\n")
+        p.write_text(p.read_text(encoding='utf-8').splitlines()[0] + "\n", encoding='utf-8')
         with self.assertRaises(ValueError):
             add_provider_run(self.canonical, self.incoming, "new")
         self.assert_unchanged()
 
     def test_hash_or_dataset_changes_rejected(self):
         artifact = self.incoming / "artifacts/new/a.txt"
-        artifact.write_text("modified")
+        artifact.write_text("modified", encoding='utf-8')
         with self.assertRaises(ValueError):
             add_provider_run(self.canonical, self.incoming, "new")
         self.assert_unchanged()
         d = deepcopy(self.dataset)
         d["cases"][0]["name"] = "changed reference"
-        (self.incoming / "dataset.json").write_text(json.dumps(d))
+        (self.incoming / "dataset.json").write_text(json.dumps(d), encoding='utf-8')
         with self.assertRaises(ValueError):
             add_provider_run(self.canonical, self.incoming, "new")
         self.assert_unchanged()
@@ -107,9 +107,9 @@ class EvidenceIngestionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             add_provider_run(self.canonical, self.incoming, "new", {"sha256": "wrong"})
         path = self.incoming / "execution.json"
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding='utf-8'))
         data["batches"] *= 2
-        path.write_text(json.dumps(data))
+        path.write_text(json.dumps(data), encoding='utf-8')
         with self.assertRaises(ValueError):
             add_provider_run(self.canonical, self.incoming, "new")
         self.assert_unchanged()
@@ -154,10 +154,10 @@ class EvidenceIngestionTests(unittest.TestCase):
 
     def test_normalized_artifact_collision_rejected_before_staging(self):
         path = self.incoming/'results.jsonl'
-        rows = [json.loads(line) for line in path.read_text().splitlines()]
+        rows = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()]
         rows[1]['artifact_path'] = rows[0]['artifact_path'].replace('/', '//')
         rows[1]['metrics']['content_sha256'] = rows[0]['metrics']['content_sha256']
-        path.write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        path.write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
         with patch('harness.web_fetch.evidence.tempfile.mkdtemp', wraps=tempfile.mkdtemp) as staging:
             with self.assertRaisesRegex(ValueError, 'Duplicate artifact paths'):
                 add_provider_run(self.canonical, self.incoming, 'new')
@@ -166,9 +166,9 @@ class EvidenceIngestionTests(unittest.TestCase):
 
     def test_normalized_existing_artifact_collision_rejected_before_staging(self):
         path = self.incoming/'results.jsonl'
-        rows = [json.loads(line) for line in path.read_text().splitlines()]
+        rows = [json.loads(line) for line in path.read_text(encoding='utf-8').splitlines()]
         rows[0]['artifact_path'] = 'artifacts//existing/./a.txt'
-        path.write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        path.write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
         with patch('harness.web_fetch.evidence.tempfile.mkdtemp', wraps=tempfile.mkdtemp) as staging:
             with self.assertRaisesRegex(ValueError, 'Duplicate artifact paths'):
                 add_provider_run(self.canonical, self.incoming, 'new')
@@ -184,7 +184,7 @@ class TrackSupplementTests(EvidenceIngestionTests):
                 'cases': [{'id': 'a', 'track': 'web'}, {'id': 'b', 'track': 'web'},
                           {'id': 'c', 'track': 'dynamic', 'required_facts': [{'id': 'f', 'alternatives': ['real fact']}]},
                           {'id': 'd', 'track': 'dynamic'}]}
-        (self.canonical/'dataset.json').write_text(json.dumps(full))
+        (self.canonical/'dataset.json').write_text(json.dumps(full), encoding='utf-8')
         self.dataset = {'tool': 'web_fetch', 'cases': full['cases'][2:]}
         self.supplement = self.make_run('track', 'existing')
         self.before = {p.relative_to(self.canonical): p.read_bytes()
@@ -194,7 +194,7 @@ class TrackSupplementTests(EvidenceIngestionTests):
         self.prepare_track()
         self.assertEqual(add_provider_run(self.canonical, self.supplement, 'existing', track='dynamic'), 2)
         self.assertTrue((self.canonical/'results.jsonl').read_bytes().startswith(self.before[Path('results.jsonl')]))
-        data = json.loads((self.canonical/'dataset.json').read_text())
+        data = json.loads((self.canonical/'dataset.json').read_text(encoding='utf-8'))
         self.assertEqual(data['coverage_plan']['dynamic'], ['existing'])
         self.assertEqual(data['cases'], json.loads(self.before[Path('dataset.json')])['cases'])
         with self.assertRaises(ValueError):
@@ -206,9 +206,9 @@ class TrackSupplementTests(EvidenceIngestionTests):
 
     def test_changed_track_reference_rejected_without_mutation(self):
         self.prepare_track()
-        data = json.loads((self.supplement/'dataset.json').read_text())
+        data = json.loads((self.supplement/'dataset.json').read_text(encoding='utf-8'))
         data['cases'][0]['required_facts'][0]['alternatives'] = ['different fact']
-        (self.supplement/'dataset.json').write_text(json.dumps(data))
+        (self.supplement/'dataset.json').write_text(json.dumps(data), encoding='utf-8')
         with self.assertRaises(ValueError):
             add_provider_run(self.canonical, self.supplement, 'existing', track='dynamic')
         self.assert_unchanged()
@@ -218,7 +218,7 @@ class TrackSupplementTests(EvidenceIngestionTests):
         with self.assertRaises(ValueError):
             add_provider_run(self.canonical, self.supplement, 'existing', track='unknown')
         path = self.supplement/'results.jsonl'
-        path.write_text(path.read_text().splitlines()[0]+'\n')
+        path.write_text(path.read_text(encoding='utf-8').splitlines()[0]+'\n', encoding='utf-8')
         with self.assertRaises(ValueError):
             add_provider_run(self.canonical, self.supplement, 'existing', track='dynamic')
         self.assert_unchanged()

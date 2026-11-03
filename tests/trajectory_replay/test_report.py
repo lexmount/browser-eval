@@ -220,7 +220,9 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path)
     assert 'data-search="任务01 任务 01 example' in suite
     for html_path in reports.glob("*.html"):
         assert "人工复核" not in html_path.read_text(encoding="utf-8")
-    audit = json.loads((reports / "trajectory-replay-evaluation-latest-data.json").read_text())
+    audit = json.loads(
+        (reports / "trajectory-replay-evaluation-latest-data.json").read_text(encoding="utf-8")
+    )
     assert "human_review" not in audit["ground_truth_validation"]
     method = (reports / "trajectory-replay-evaluation-latest-method.html").read_text(
         encoding="utf-8"
@@ -331,7 +333,7 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path):
     detail_files = list(reports.glob("*-task-*.html"))
     assert len(detail_files) == 1
     assert f'href="{detail_files[0].name}"' in analysis
-    detail = detail_files[0].read_text()
+    detail = detail_files[0].read_text(encoding="utf-8")
     assert "<details" not in detail
     assert 'href="#' not in detail
     assert f'href="{detail_files[0].name}#case-steps"' in detail

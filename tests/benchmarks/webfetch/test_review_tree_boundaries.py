@@ -22,7 +22,7 @@ def task(**values):
 def test_loader_to_scorer_preserves_declared_tree_requirement(tmp_path, threshold):
     case = task(**({'ordered_tree_min_similarity': threshold} if threshold is not None else {}))
     path = tmp_path / 'dataset.json'
-    path.write_text(json.dumps({'tool': 'web_fetch', 'cases': [case]}))
+    path.write_text(json.dumps({'tool': 'web_fetch', 'cases': [case]}), encoding='utf-8')
     _, loaded = load_dataset(path)
     assert loaded[0].ordered_tree_reference == REFERENCE
     result = score_attempt(loaded[0], json.dumps(REFERENCE).encode(), ok=True)

@@ -17,7 +17,7 @@ def supporting_source(tmp_path):
     for name in ('dataset-catalog.json', 'source-inputs.json'):
         (prefix / 'evaluation' / name).write_bytes(original)
         registry['suites'][0]['files'][name] = hashlib.sha256(original).hexdigest()
-    (prefix / 'registry.json').write_text(json.dumps(registry))
+    (prefix / 'registry.json').write_text(json.dumps(registry), encoding='utf-8')
     git(root, 'add', '.')
     git(root, 'commit', '-qm', 'Supporting definition contracts')
     return root, git(root, 'rev-parse', 'HEAD'), original
@@ -67,9 +67,9 @@ def test_release_uses_original_blobs_despite_export_attributes(tmp_path, hub, lo
         prefix = 'src/lexbench_webfetch/definitions'
     attributes = f'NOTICE export-ignore\n{prefix}/evaluation/dataset-catalog.json export-ignore\n{prefix}/evaluation/source-inputs.json export-subst\n'
     if local_attributes:
-        (root / '.git/info/attributes').write_text(attributes)
+        (root / '.git/info/attributes').write_text(attributes, encoding='utf-8')
     else:
-        (root / '.gitattributes').write_text(attributes)
+        (root / '.gitattributes').write_text(attributes, encoding='utf-8')
     git(root, 'add', '.')
     git(root, 'commit', '--allow-empty', '-qm', 'Export attributes are not source bytes')
     revision = git(root, 'rev-parse', 'HEAD')
@@ -85,7 +85,7 @@ def test_raw_blob_reader_still_requires_exact_materialized_lfs_bytes(tmp_path, m
     root, _, original = supporting_source(tmp_path)
     path = root / 'src/lexbench_webfetch/definitions/evaluation/source-inputs.json'
     path.write_text('version https://git-lfs.github.com/spec/v1\noid sha256:'
-                    + hashlib.sha256(original).hexdigest() + '\nsize ' + str(len(original)) + '\n')
+                    + hashlib.sha256(original).hexdigest() + '\nsize ' + str(len(original)) + '\n', encoding='utf-8')
     git(root, 'add', '.')
     git(root, 'commit', '-qm', 'Pinned LFS object')
     revision = git(root, 'rev-parse', 'HEAD')

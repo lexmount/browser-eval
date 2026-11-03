@@ -95,7 +95,7 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
     attachments, parts_plan = {}, None
     if config.parts_manifest is not None:
         attachments = part_archives(config.parts_manifest)
-        parts_plan = json.loads(config.parts_manifest.read_text())
+        parts_plan = json.loads(config.parts_manifest.read_text(encoding="utf-8"))
         validation_inputs = (*validation_inputs,config.parts_manifest,*attachments.values())
     if package_check is None and (config.presentation_binding is not None or config.parts_manifest is not None or config.snapshot_audit):
         package_check = partial(check,presentation_binding=config.presentation_binding,external_archives=attachments,snapshot_audit=config.snapshot_audit)

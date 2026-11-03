@@ -123,24 +123,24 @@ export function createWebFetchTool(options) {
   if ('timeoutSeconds' in options.config.tools.web.fetch) throw Error('internal timeout override');
   return {execute: async (id, args) => ({details: {text: 'native answer', status: 200}, options, args})};
 }
-''')
-    source = (source_path('harness/web_fetch/workers/openclaw_webfetch_worker.mts', root=ROOT)).read_text()
+''', encoding="utf-8")
+    source = (source_path('harness/web_fetch/workers/openclaw_webfetch_worker.mts', root=ROOT)).read_text(encoding="utf-8")
     fixture_root = tmp_path / 'openclaw' / 'src/agents/tools'
     fixture_root.mkdir(parents=True)
-    (fixture_root / 'web-fetch.ts').write_text(f'export {{ createWebFetchTool }} from {json.dumps(stub.as_uri())};')
+    (fixture_root / 'web-fetch.ts').write_text(f'export {{ createWebFetchTool }} from {json.dumps(stub.as_uri())};', encoding="utf-8")
     open_worker = tmp_path / 'openclaw.mts'
-    open_worker.write_text(source)
+    open_worker.write_text(source, encoding="utf-8")
     env = dict(os.environ, OPENCLAW_REPO=str(tmp_path / 'openclaw'), BROWSER_EVAL_HARNESS_ROOT=str(source_path('harness', root=ROOT).parent))
     request = json.dumps(REQUEST) + '\n'
     result = subprocess.run([node, str(open_worker)], input=request, text=True, capture_output=True, env=env, timeout=5, check=True)
     answer = json.loads(result.stdout)
     assert answer['ok'], answer
     assert answer['raw_tool_response']['options']['config']['tools']['web']['fetch']['cacheTtlMinutes'] == 0
-    source = (source_path('harness/web_fetch/workers/dsh_webfetch_worker.mts', root=ROOT)).read_text()
+    source = (source_path('harness/web_fetch/workers/dsh_webfetch_worker.mts', root=ROOT)).read_text(encoding="utf-8")
     source = '\n'.join(line for line in source.splitlines() if '@deepseek-ai/' not in line or not line.startswith('import '))
     source = f'import {{Context, ToolCallId, SystemPrompt, ToolRuntime, WebRuntime, WebFetchHttp, ToolWeb, TimeoutPolicy}} from {json.dumps(stub.as_uri())};\n' + source
     deep_worker = tmp_path / 'deepseek.mts'
-    deep_worker.write_text(source)
+    deep_worker.write_text(source, encoding="utf-8")
     result = subprocess.run([node, str(deep_worker)], input=request, text=True, capture_output=True, env=env, timeout=5, check=True)
     answer = json.loads(result.stdout)
     assert 'raw_tool_response' in answer, answer

@@ -76,19 +76,19 @@ def suspicion_fixture(root):
     html = '<main>' + 'synthetic body ' * 80000 + '</main>'
     reference = 'synthetic body'
     source.write_text(json.dumps({'track_id': 'one', 'html': html,
-                                 'groundtruth_content': reference}) + '\n')
+                                 'groundtruth_content': reference}) + '\n', encoding='utf-8')
     (evidence / 'dataset.json').write_text(json.dumps({'cases': [{
-        'id': 'one', 'input_html_sha256': sha(html), 'reference_sha256': sha(reference)}]}))
+        'id': 'one', 'input_html_sha256': sha(html), 'reference_sha256': sha(reference)}]}), encoding='utf-8')
     rows = []
     for provider, ok in [('custom', False), ('other', False), ('successful', True)]:
         output = 'synthetic output'
-        (evidence / f'{provider}.md').write_text(output)
+        (evidence / f'{provider}.md').write_text(output, encoding='utf-8')
         rows.append({'provider': provider, 'case_id': 'one', 'attempt_id': provider + '__one',
                      'ok': ok, 'artifact_path': f'{provider}.md', 'output_sha256': sha(output),
                      'metrics': {}})
-    (evidence / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    (evidence / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
     (evidence / 'physical-attempts.jsonl').write_text(''.join(json.dumps({
-        'provider': row['provider'], 'track_id': 'one'}) + '\n' for row in rows))
+        'provider': row['provider'], 'track_id': 'one'}) + '\n' for row in rows), encoding='utf-8')
     return evidence, source
 
 
@@ -108,18 +108,18 @@ def test_scan_rejects_changed_or_unbound_output_and_duplicate_results(tmp_path):
 
     evidence, source = suspicion_fixture(tmp_path)
     output = evidence / 'custom.md'
-    output.write_text('tampered output')
+    output.write_text('tampered output', encoding='utf-8')
     with pytest.raises(ValueError, match='hash binding'):
         scan_suspicions(evidence, source)
-    output.write_text('synthetic output')
+    output.write_text('synthetic output', encoding='utf-8')
     results = evidence / 'results.jsonl'
-    original = results.read_text()
+    original = results.read_text(encoding='utf-8')
     rows = [json.loads(line) for line in original.splitlines()]
     del rows[0]['output_sha256']
-    results.write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    results.write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
     with pytest.raises(ValueError, match='hash binding'):
         scan_suspicions(evidence, source)
-    results.write_text(original + original.splitlines()[0] + '\n')
+    results.write_text(original + original.splitlines()[0] + '\n', encoding='utf-8')
     with pytest.raises(ValueError, match='one result per provider'):
         scan_suspicions(evidence, source)
 
@@ -147,7 +147,7 @@ def test_scan_rejects_inputs_changed_during_analysis(tmp_path, monkeypatch):
     def changing_read(path):
         rows = read(path)
         if path.name == 'results.jsonl':
-            source.write_text(source.read_text() + '\n')
+            source.write_text(source.read_text(encoding='utf-8') + '\n', encoding='utf-8')
         return rows
 
     monkeypatch.setattr(diagnostics, 'read_suspicion_jsonl', changing_read)

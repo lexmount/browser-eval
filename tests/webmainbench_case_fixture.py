@@ -41,11 +41,11 @@ def correction_fixture(root, providers=("kitesurf", "lightpanda", "obscura", "mo
             case = record["track_id"]
             body = "corrected" if replacement else "old"
             relative = f"artifacts/{provider}/{case}.md"
-            (path / relative).write_text(body)
+            (path / relative).write_text(body, encoding="utf-8")
             output_hash = file_sha256(path / relative)
             for index, content in enumerate(("failed retry", body) if replacement else (body,), 1):
                 physical = f"artifacts/{provider}/{case}-p{index:02d}.txt"
-                (path / physical).write_text(content)
+                (path / physical).write_text(content, encoding="utf-8")
                 calls.append({"provider": provider, "track_id": case,
                               "attempt_id": f"{provider}__{case}__p{index:02d}",
                               "physical_attempt": index, "elapsed_ms": 10,
@@ -76,8 +76,8 @@ def correction_fixture(root, providers=("kitesurf", "lightpanda", "obscura", "mo
         write_json(path / "score-summary.json", {"provider": provider, "case_count": len(selected),
                                                  "scorer": {"commit": SCORER_COMMIT},
                                                  "official_aggregate": aggregate(rows)})
-        (path / "private-worker.txt").write_text("private")
-        (path / f"artifacts/{provider}/unbound.txt").write_text("unbound")
+        (path / "private-worker.txt").write_text("private", encoding="utf-8")
+        (path / f"artifacts/{provider}/unbound.txt").write_text("unbound", encoding="utf-8")
 
     for provider in providers:
         shard(source / provider, provider, records)
@@ -95,7 +95,7 @@ def certification_fixture(tmp_path):
     write_rows(tmp_path / "source.jsonl", records)
     scorer = tmp_path / "scorer"
     (scorer / "webmainbench/metrics").mkdir(parents=True)
-    (scorer / "webmainbench/metrics/metric.py").write_text("frozen scorer")
+    (scorer / "webmainbench/metrics/metric.py").write_text("frozen scorer", encoding="utf-8")
     for command in (["git", "init", "-q", str(scorer)],
                     ["git", "-C", str(scorer), "add", "."],
                     ["git", "-C", str(scorer), "-c", "user.name=Test", "-c", "user.email=test@example.com",
@@ -111,7 +111,7 @@ def certification_fixture(tmp_path):
                "official_scorer_commit": commit, "metric_config": {"use_llm": False}}
     write_json(tmp_path / "profile.json", profile)
     write_json(tmp_path / "providers.json", {"providers": {p: {"type": "headless_markdown"} for p in profile["providers"]}})
-    (tmp_path / "credentials.env").write_text("SYNTHETIC_LOCAL_TEST=1\n")
+    (tmp_path / "credentials.env").write_text("SYNTHETIC_LOCAL_TEST=1\n", encoding="utf-8")
     (tmp_path / "configs").mkdir()
     (tmp_path / "configs/providers.headless.json").write_bytes((tmp_path / "providers.json").read_bytes())
     (tmp_path / "evaluation/webmainbench-full").mkdir(parents=True)
@@ -126,7 +126,7 @@ def measured_shard(root, provider, records, profile):
     for record in records:
         case = record["track_id"]
         relative = f"artifacts/{case}.md"
-        (root / relative).write_text("synthetic response")
+        (root / relative).write_text("synthetic response", encoding="utf-8")
         row = {"provider": provider, "track_id": case, "ok": True,
                "attempt_id": f"{provider}__{case}__r001", "artifact_path": relative,
                "output_sha256": file_sha256(root / relative), "physical_attempt_count": 1}

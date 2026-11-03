@@ -85,9 +85,9 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False, reference_revis
     cases = {c["id"]: c for c in dataset["cases"]}
     execution = contained_path(source, "execution.json")
     batches = (
-        json.loads(execution.read_text())["batches"]
+        json.loads(execution.read_text(encoding='utf-8'))["batches"]
         if execution.exists()
-        else [json.loads(contained_path(source, "manifest.json").read_text())]
+        else [json.loads(contained_path(source, "manifest.json").read_text(encoding='utf-8'))]
     )
     for record in records:
         reference_hash = record.get("metrics", {}).get("reference_sha256")
@@ -188,7 +188,7 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False, reference_revis
         return []
     # JSON Lines readers split on physical line boundaries. Escaping Unicode
     # line/paragraph separators keeps one attempt on exactly one line too.
-    temporary.write_text("".join(json.dumps(r, ensure_ascii=True) + "\n" for r in records))
+    temporary.write_text("".join(json.dumps(r, ensure_ascii=True) + "\n" for r in records), encoding='utf-8')
     temporary.replace(path)
     contained_path(source, "summary.json").write_text(
         json.dumps(summarize(records), ensure_ascii=False, indent=2) + "\n",
@@ -239,7 +239,7 @@ def score_published_snapshot(source, dataset, *, jobs=1, recovered=None, progres
         raise ValueError('Offline scoring jobs must be between 1 and 8')
     source = Path(source).resolve()
     records = parse_jsonl(contained_path(source, 'results.jsonl').read_bytes())
-    original = json.loads(contained_path(source, 'dataset.json').read_text())
+    original = json.loads(contained_path(source, 'dataset.json').read_text(encoding='utf-8'))
     validate_report_ids(original, records)
     cases = {case['id']: case for case in dataset['cases']}
     old_cases = {case['id']: case for case in original['cases']}
@@ -252,7 +252,7 @@ def score_published_snapshot(source, dataset, *, jobs=1, recovered=None, progres
         if changes - ALLOWED_FIELDS:
             raise ValueError('Published rescoring changed collection inputs: ' + key)
     privacy_path = contained_path(source, 'publication-privacy.json')
-    privacy = json.loads(privacy_path.read_text()) if privacy_path.is_file() else {'files': []}
+    privacy = json.loads(privacy_path.read_text(encoding='utf-8')) if privacy_path.is_file() else {'files': []}
     views = {item['path']: item for item in privacy['files'] if item.get('scored_output')}
     recovered = recovered or {}
     unknown = set(recovered) - {row['artifact_path'] for row in records}

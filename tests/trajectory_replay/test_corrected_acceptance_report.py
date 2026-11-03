@@ -19,7 +19,7 @@ def _attempt(tmp_path, name, **changes):
         **changes,
     }
     path = (tmp_path / name).resolve()
-    path.write_text(json.dumps(evaluation))
+    path.write_text(json.dumps(evaluation), encoding="utf-8")
     return {"task_id": 279, "evidence": {"evaluation": {
         "path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
     }}}
@@ -56,7 +56,7 @@ def test_corrected_contract_rejects_cross_method_difference(tmp_path):
 
 def test_corrected_contract_rejects_changed_artifact(tmp_path):
     attempt = _attempt(tmp_path, "changed.json")
-    (tmp_path / "changed.json").write_text("{}")
+    (tmp_path / "changed.json").write_text("{}", encoding="utf-8")
     with pytest.raises(ValueError, match="missing or changed"):
         _corrected_acceptance_by_task([attempt])
 

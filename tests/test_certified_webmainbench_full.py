@@ -62,7 +62,7 @@ def test_complete_cohort_has_bound_logical_and_physical_evidence(tmp_path):
 
 def test_missing_case_cannot_be_certified(tmp_path):
     shard = _cohort(tmp_path)
-    rows = [json.loads(line) for line in (shard / "results.jsonl").read_text().splitlines()]
+    rows = [json.loads(line) for line in (shard / "results.jsonl").read_text(encoding="utf-8").splitlines()]
     _write_jsonl(shard / "results.jsonl", rows[:1])
     with pytest.raises(ValueError, match="incomplete or mismatched"):
         verify_shard(shard, "moli", {"one", "two"},
@@ -71,7 +71,7 @@ def test_missing_case_cannot_be_certified(tmp_path):
 
 def test_changed_physical_output_cannot_be_certified(tmp_path):
     shard = _cohort(tmp_path)
-    (shard / "artifacts/one-p01.txt").write_text("changed")
+    (shard / "artifacts/one-p01.txt").write_text("changed", encoding="utf-8")
     with pytest.raises(ValueError, match="physical artifact mismatch"):
         verify_shard(shard, "moli", {"one", "two"},
                      {"case_count": 2, "source_dataset_sha256": "source"})
@@ -84,7 +84,7 @@ def test_changed_physical_output_cannot_be_certified(tmp_path):
 ])
 def test_foreign_method_or_task_cannot_enter_a_cohort(tmp_path, filename, key, value):
     shard = _cohort(tmp_path)
-    rows = [json.loads(line) for line in (shard / filename).read_text().splitlines()]
+    rows = [json.loads(line) for line in (shard / filename).read_text(encoding="utf-8").splitlines()]
     rows[0][key] = value
     _write_jsonl(shard / filename, rows)
     with pytest.raises(ValueError, match="incomplete or mismatched"):
@@ -98,7 +98,7 @@ def test_foreign_method_or_task_cannot_enter_a_cohort(tmp_path, filename, key, v
 @pytest.mark.parametrize("escape", ["traversal", "symlink"])
 def test_certification_rejects_artifacts_outside_the_cohort(tmp_path, filename, key, escape):
     shard = _cohort(tmp_path)
-    rows = [json.loads(line) for line in (shard / filename).read_text().splitlines()]
+    rows = [json.loads(line) for line in (shard / filename).read_text(encoding="utf-8").splitlines()]
     external = tmp_path / "outside.txt"
     external.write_bytes((shard / rows[0][key]).read_bytes())
     if escape == "traversal":
@@ -125,13 +125,13 @@ def test_declared_binary_is_checked_before_calls(tmp_path, monkeypatch):
 
 def test_candidate_run_requires_declared_clean_source_commit(tmp_path):
     subprocess.run(['git', 'init', '-q', str(tmp_path)], check=True)
-    (tmp_path / 'source.txt').write_text('fixed source')
+    (tmp_path / 'source.txt').write_text('fixed source', encoding="utf-8")
     subprocess.run(['git', '-C', str(tmp_path), 'add', 'source.txt'], check=True)
     subprocess.run(['git', '-C', str(tmp_path), '-c', 'user.name=Test',
                     '-c', 'user.email=test@example.com', 'commit', '-qm', 'fixture'], check=True)
     commit = subprocess.check_output(['git', '-C', str(tmp_path), 'rev-parse', 'HEAD'], text=True).strip()
     verify_source_checkout({'source_commit': commit}, tmp_path)
-    (tmp_path / 'source.txt').write_text('changed after build')
+    (tmp_path / 'source.txt').write_text('changed after build', encoding="utf-8")
     with pytest.raises(ValueError, match='clean commit'):
         verify_source_checkout({'source_commit': commit}, tmp_path)
 
@@ -151,13 +151,13 @@ def test_public_evidence_hides_local_build_path_without_losing_error():
 @pytest.mark.parametrize("escape", [None, "traversal", "symlink"])
 def test_scored_cohort_keeps_exact_measured_results_and_scorer_source(tmp_path, escape):
     shard = _cohort(tmp_path)
-    raw = [json.loads(line) for line in (shard / "results.jsonl").read_text().splitlines()]
+    raw = [json.loads(line) for line in (shard / "results.jsonl").read_text(encoding="utf-8").splitlines()]
     names = ("text_edit", "code_edit", "formula_edit", "table_edit", "table_TEDS")
     scored = [{**row, "metrics": {name: {"score": .5, "success": True} for name in names}} for row in raw]
     _write_jsonl(shard / "scored-results.jsonl", scored)
     scorer = tmp_path / "scorer"
     scorer.mkdir()
-    (scorer / "metric.py").write_text("frozen scorer")
+    (scorer / "metric.py").write_text("frozen scorer", encoding="utf-8")
     _write_json(shard / "score-summary.json", {
         "provider": "moli", "case_count": 2, "official_aggregate": aggregate(scored),
         "scorer": {"commit": "pinned", "metric_config": {"use_llm": False},
@@ -173,7 +173,7 @@ def test_scored_cohort_keeps_exact_measured_results_and_scorer_source(tmp_path, 
         if escape == "symlink":
             (scorer / "linked.py").symlink_to(external)
             relative = "linked.py"
-        summary = json.loads((shard / "score-summary.json").read_text())
+        summary = json.loads((shard / "score-summary.json").read_text(encoding="utf-8"))
         summary["scorer"]["metric_source_sha256"] = {relative: _digest(external.read_bytes())}
         _write_json(shard / "score-summary.json", summary)
         with pytest.raises(ValueError):

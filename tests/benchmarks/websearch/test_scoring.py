@@ -31,7 +31,7 @@ class IdentityScenarios(unittest.TestCase):
 def test_correction_provenance_executes_paired_controls_and_rejects_unknown_ids():
     from lexbench_websearch.qualification import validate_regressions
 
-    registry = json.loads(definition_path("scoring-regressions.json").read_text())
+    registry = json.loads(definition_path("scoring-regressions.json").read_text(encoding="utf-8"))
     validate_regressions({"root_cause": "fixture", "regression_ids": list(registry)})
     import pytest
 

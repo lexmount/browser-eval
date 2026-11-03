@@ -121,7 +121,7 @@ def main(argv=None):
     )
     args.output.mkdir(parents=True)
     if network_audit is not None:
-        (args.output / "network-preflight.json").write_text(json.dumps(network_audit, ensure_ascii=False, indent=2) + "\n")
+        (args.output / "network-preflight.json").write_text(json.dumps(network_audit, ensure_ascii=False, indent=2) + "\n", encoding='utf-8')
     def work(name):
         batches=[];records=[]
         for scope,path,config,selected in scopes:
@@ -131,7 +131,7 @@ def main(argv=None):
             provider=build_provider(name,config[name])
             rs,_=run_evaluation(output_dir=folder,dataset_meta=meta,dataset_path=args.dataset,cases=selected,providers=[provider],provider_config_path=path,runs=args.runs,timeout=args.timeout,delay=.5,provider_concurrency=1,max_failure_retries=args.max_failure_retries)
             materialize_bound_artifacts(args.output, folder, rs)
-            batches.append(json.loads((folder/'manifest.json').read_text()));records.extend(rs)
+            batches.append(json.loads((folder/'manifest.json').read_text(encoding='utf-8')));records.extend(rs)
         return records,batches
     aggregate_started_at=datetime.now(UTC).isoformat()
     if args.call_order == 'case-alternating':
@@ -143,7 +143,7 @@ def main(argv=None):
             max_failure_retries=args.max_failure_retries, call_order=args.call_order,
         )
         materialize_bound_artifacts(args.output, folder, records)
-        parts = [(records, [json.loads((folder / 'manifest.json').read_text())])]
+        parts = [(records, [json.loads((folder / 'manifest.json').read_text(encoding='utf-8'))])]
     else:
         with ThreadPoolExecutor(max_workers=args.workers) as pool:parts=list(pool.map(work,names))
     aggregate_completed_at=datetime.now(UTC).isoformat()
@@ -155,8 +155,8 @@ def main(argv=None):
         'call_order': args.call_order,
     },'batches':batches}
     for name,value in [('dataset.json',dataset),('execution.json',execution)]:
-        (args.output/name).write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n')
-    (args.output/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
+        (args.output/name).write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
+    (args.output/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records), encoding='utf-8')
     materialize_task_references(args.output, {'sources':sources,'list-references':list_references},
                                 [case.id for case in cases])
     if args.measure_only:

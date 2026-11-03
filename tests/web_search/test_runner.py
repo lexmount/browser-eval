@@ -19,7 +19,7 @@ class CollectionScenarios(unittest.TestCase):
             with self.subTest(explicit_order=explicit), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 p = self.profile(root)
-                profile = json.loads(p.read_text())
+                profile = json.loads(p.read_text(encoding="utf-8"))
                 profile["cases"].append(
                     dict(profile["cases"][0], id="second-case", query="Second query")
                 )
@@ -27,7 +27,7 @@ class CollectionScenarios(unittest.TestCase):
                 profile["protocol"].pop("order", None)
                 if explicit:
                     profile["protocol"]["order"] = "complete provider batches"
-                p.write_text(json.dumps(profile))
+                p.write_text(json.dumps(profile), encoding="utf-8")
                 calls = []
                 interrupted = False
 
@@ -66,7 +66,7 @@ class CollectionScenarios(unittest.TestCase):
                 self.assertEqual(len(calls), len(expected))
                 self.assertTrue((root / "run/results.jsonl").read_bytes().startswith(saved))
                 self.assertTrue(receipt["certified"])
-                contract = json.loads((root / "run/run-contract.json").read_text())
+                contract = json.loads((root / "run/run-contract.json").read_text(encoding="utf-8"))
                 self.assertNotIn("harness/web_search/report.py", contract["implementation"])
                 self.assertTrue({"uv.lock", "pyproject.toml", "harness/web_search/core.py", "harness/distribution.py"}.issubset(contract["implementation"]))
                 bound = {item["path"]: item["sha256"] for item in receipt["bindings"]}
@@ -80,9 +80,9 @@ class CollectionScenarios(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             p = self.profile(root)
-            profile = json.loads(p.read_text())
+            profile = json.loads(p.read_text(encoding="utf-8"))
             profile["protocol"]["order"] = "provider batch typo"
-            p.write_text(json.dumps(profile))
+            p.write_text(json.dumps(profile), encoding="utf-8")
             with patch("harness.web_search.runner.http_call") as http:
                 with self.assertRaisesRegex(ValueError, "execution order"):
                     run(p, root / "run", certified=True)
@@ -93,11 +93,11 @@ class CollectionScenarios(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             p = self.profile(root)
-            profile = json.loads(p.read_text())
+            profile = json.loads(p.read_text(encoding="utf-8"))
             profile["cases"].append(dict(profile["cases"][0], id="second-case"))
             profile["protocol"]["retry"] = True
             profile["protocol"]["order"] = "rotate methods by case and round"
-            p.write_text(json.dumps(profile))
+            p.write_text(json.dumps(profile), encoding="utf-8")
             calls = []
             recovered = False
 
@@ -130,7 +130,7 @@ class CollectionScenarios(unittest.TestCase):
             self.assertEqual((root / "run/resume-1/previous-results.jsonl").read_bytes(),
                              original + b'{"id":"incomplete')
             self.assertEqual(len(list((root / "run/resume-1/calls").glob("*.json"))), 4)
-            contract = json.loads((root / "run/resume-1/contract.json").read_text())
+            contract = json.loads((root / "run/resume-1/contract.json").read_text(encoding="utf-8"))
             self.assertEqual(
                 contract["recollect_case_ids"], ["fixture-0", "second-case"]
             )
@@ -144,9 +144,9 @@ class CollectionScenarios(unittest.TestCase):
             with self.subTest(status=status), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 p = self.profile(root)
-                profile = json.loads(p.read_text())
+                profile = json.loads(p.read_text(encoding="utf-8"))
                 profile["protocol"]["retry"] = True
-                p.write_text(json.dumps(profile))
+                p.write_text(json.dumps(profile), encoding="utf-8")
                 calls = []
 
                 def http(url, body=None, header=None, timeout=20):
@@ -165,7 +165,7 @@ class CollectionScenarios(unittest.TestCase):
                         run(p, root / "run", certified=True)
                 self.assertEqual(len(calls), 2)
                 self.assertEqual(len(set(calls)), 1)  # no spending on the next participant
-                rows = (root / "run/results.jsonl").read_text().splitlines()
+                rows = (root / "run/results.jsonl").read_text(encoding="utf-8").splitlines()
                 self.assertEqual(len(rows), 1)
                 self.assertEqual(len(json.loads(rows[0])["attempts"]), 2)
                 self.assertTrue((root / "run/interruption.json").exists())
@@ -178,7 +178,7 @@ class CollectionScenarios(unittest.TestCase):
         d["protocol"].pop("reference_scope", None)
         d.pop("reference_checks", None)
         p = root / "input.json"
-        p.write_text(json.dumps(d))
+        p.write_text(json.dumps(d), encoding="utf-8")
         return p
 
     def test_published_label_snapshot_requires_the_frozen_hash(self):
@@ -205,11 +205,11 @@ class CollectionScenarios(unittest.TestCase):
                     ), b"reference " * 20
                 order.append(url)
                 return dict(
-                    http_status=503 if url == json.loads(p.read_text())["methods"][0]["endpoint"] else 200,
+                    http_status=503 if url == json.loads(p.read_text(encoding="utf-8"))["methods"][0]["endpoint"] else 200,
                     elapsed_ms=20,
                     transport_exit=0,
                     transport_error="",
-                ), (b'{"error":"Unavailable"}' if url == json.loads(p.read_text())["methods"][0]["endpoint"] else b'{"results":[]}')
+                ), (b'{"error":"Unavailable"}' if url == json.loads(p.read_text(encoding="utf-8"))["methods"][0]["endpoint"] else b'{"results":[]}')
 
             with (
                 patch("harness.web_search.runner.http_call", side_effect=http),
@@ -252,10 +252,10 @@ class CollectionScenarios(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             p = self.profile(root)
-            profile = json.loads(p.read_text())
+            profile = json.loads(p.read_text(encoding="utf-8"))
             profile["methods"] = [profile["methods"][1]]
             profile["protocol"]["retry"] = True
-            p.write_text(json.dumps(profile))
+            p.write_text(json.dumps(profile), encoding="utf-8")
             calls = []
 
             def http(url, body=None, header=None, timeout=20):
@@ -279,7 +279,7 @@ class CollectionScenarios(unittest.TestCase):
             self.assertEqual(rows[0]["results"][0]["url"], "https://example.org/p")
             self.assertGreaterEqual(rows[0]["elapsed_ms"], 50)
             first = root / "run" / rows[0]["attempts"][0]["evidence"]["path"]
-            first.write_text("changed")
+            first.write_text("changed", encoding="utf-8")
             with self.assertRaises(ValueError):
                 load_run(root / "run")
 
@@ -287,10 +287,10 @@ class CollectionScenarios(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             p = self.profile(root)
-            profile = json.loads(p.read_text())
+            profile = json.loads(p.read_text(encoding="utf-8"))
             profile["methods"] = [profile["methods"][1]]
             profile["protocol"]["retry"] = True
-            p.write_text(json.dumps(profile))
+            p.write_text(json.dumps(profile), encoding="utf-8")
             calls = []
 
             def http(url, body=None, header=None, timeout=20):
@@ -390,7 +390,7 @@ class TransportAndResumeBoundaries(unittest.TestCase):
             profile = b'{"cases":[],"methods":[],"protocol":{"rounds":1}}'
             path = root / 'input.json'; path.write_bytes(profile)
             (root/'profile.json').write_bytes(profile)
-            (root/'run-contract.json').write_text(json.dumps({'profile_sha256':bytes_sha256(profile),'implementation':{}}))
+            (root/'run-contract.json').write_text(json.dumps({'profile_sha256':bytes_sha256(profile),'implementation':{}}), encoding="utf-8")
             (root/'results.jsonl').write_bytes(b'')
             with self.assertRaisesRegex(ValueError, 'same live'):
                 prepare_resume(path,root)
@@ -413,10 +413,10 @@ def test_subprocess_timeout_retries_and_finishes_the_complete_matrix():
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp)
         profile_path = CollectionScenarios().profile(root)
-        profile = json.loads(profile_path.read_text())
+        profile = json.loads(profile_path.read_text(encoding="utf-8"))
         profile['methods'] = [profile['methods'][1]]
         profile['protocol']['retry'] = True
-        profile_path.write_text(json.dumps(profile))
+        profile_path.write_text(json.dumps(profile), encoding="utf-8")
         provider_calls = []
         def subprocess_call(command, **kwargs):
             output = Path(command[command.index('--output') + 1])
@@ -444,9 +444,9 @@ def test_subprocess_timeout_retries_and_finishes_the_complete_matrix():
 
 def test_direct_diagnostic_collection_remains_uncertified(tmp_path):
     profile_path = CollectionScenarios().profile(tmp_path)
-    profile = json.loads(profile_path.read_text())
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
     profile['methods'] = [profile['methods'][1]]
-    profile_path.write_text(json.dumps(profile))
+    profile_path.write_text(json.dumps(profile), encoding="utf-8")
     calls = []
     def http(url, body=None, **kwargs):
         calls.append(body is not None)
@@ -458,10 +458,10 @@ def test_direct_diagnostic_collection_remains_uncertified(tmp_path):
           patch.dict(os.environ,DEEPSEEK_API_KEY='fixture')):
         from harness.web_search.runner import main as direct_main
         direct_main(['--profile',str(profile_path),'--output',str(tmp_path/'run'),'--diagnostic'])
-    receipt = json.loads((tmp_path/'run/receipt.json').read_text())
+    receipt = json.loads((tmp_path/'run/receipt.json').read_text(encoding="utf-8"))
     assert receipt['complete'] is True
     assert receipt['certified'] is False
-    assert json.loads((tmp_path/'run/run-contract.json').read_text())['diagnostic'] is True
+    assert json.loads((tmp_path/'run/run-contract.json').read_text(encoding="utf-8"))['diagnostic'] is True
     assert calls.count(True) == 1
 
 
@@ -519,10 +519,10 @@ def test_completed_resume_rejected_without_network_or_saved_file_changes(tmp_pat
     profile = CollectionScenarios().profile(tmp_path)
     output = tmp_path / "run"
     output.mkdir()
-    (output / "receipt.json").write_text("{}")
+    (output / "receipt.json").write_text("{}", encoding="utf-8")
     (output / "profile.json").write_bytes(profile.read_bytes())
-    (output / "run-contract.json").write_text("{}")
-    (output / "results.jsonl").write_text("")
+    (output / "run-contract.json").write_text("{}", encoding="utf-8")
+    (output / "results.jsonl").write_text("", encoding="utf-8")
     before = {p.name: p.read_bytes() for p in output.iterdir()}
     monkeypatch.setattr(runner, "load_runtime_env", lambda: None)
     for key in ("LEXMOUNT_SEARCH_API_KEY", "DEEPSEEK_API_KEY", "BOCHA_API_KEY"):
@@ -539,7 +539,7 @@ def test_invalid_billing_stops_before_any_paid_or_reference_call(tmp_path, monke
     path = CollectionScenarios().profile(tmp_path)
     profile = json.loads(path.read_bytes())
     profile['methods'][0]['billing'] = 'typo'
-    path.write_text(json.dumps(profile))
+    path.write_text(json.dumps(profile), encoding="utf-8")
     monkeypatch.setattr(runner, 'http_call', lambda *a, **kw: pytest.fail('Network called'))
     with pytest.raises(ValueError, match='billing policy'):
         runner.run(path, tmp_path / 'run', certified=True)
@@ -552,7 +552,7 @@ def test_business_error_is_retained_and_retried_instead_of_crashing_billing(tmp_
     profile = json.loads(path.read_bytes())
     profile['methods'] = [dict(profile['methods'][2], billing='http-200-nonempty')]
     profile['protocol']['retry'] = True
-    path.write_text(json.dumps(profile))
+    path.write_text(json.dumps(profile), encoding="utf-8")
     monkeypatch.setattr(runner, 'load_runtime_env', lambda: None)
     monkeypatch.setenv('BOCHA_API_KEY', 'fixture')
     def http(url, body=None, header=None, timeout=20):
@@ -561,7 +561,7 @@ def test_business_error_is_retained_and_retried_instead_of_crashing_billing(tmp_
         return receipt, raw
     monkeypatch.setattr(runner, 'http_call', http)
     runner.run(path, tmp_path / 'run')
-    rows = [json.loads(line) for line in (tmp_path / 'run/results.jsonl').read_text().splitlines()]
+    rows = [json.loads(line) for line in (tmp_path / 'run/results.jsonl').read_text(encoding="utf-8").splitlines()]
     assert len(rows) == 1 and len(rows[0]['attempts']) == 2
     assert rows[0]['error'] and rows[0]['results'] == [] and rows[0]['cost'] is None
     assert not json.loads((tmp_path / 'run/receipt.json').read_bytes())['certified']
@@ -577,7 +577,7 @@ def test_collection_receipt_binds_installed_scorer_and_detects_changed_sources(t
     for name, path in sources.items():
         assert original[prefix + name] == bytes_sha256(path.read_bytes())
     changed = tmp_path / 'scoring.py'
-    changed.write_text('changed scorer')
+    changed.write_text('changed scorer', encoding="utf-8")
     for name, path in sources.items():
         destination = tmp_path / 'implementation' / prefix / name
         destination.parent.mkdir(parents=True, exist_ok=True)

@@ -18,10 +18,10 @@ def audited_fixture(tmp_path, source_mode="frozen", packet_bound=False, scope="a
         profile = json.loads((source / "profile.json").read_bytes())
         profile["protocol"].update(rounds=rounds, score_round=score_round)
         review.save(source / "profile.json", profile)
-        original = [json.loads(line) for line in (source / "results.jsonl").read_text().splitlines()]
+        original = [json.loads(line) for line in (source / "results.jsonl").read_text(encoding="utf-8").splitlines()]
         rows = [dict(row, id=row["id"].removesuffix("r0") + f"r{number}", round=number)
                 for number in range(rounds) for row in original]
-        (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+        (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
         receipt = json.loads((source / "receipt.json").read_bytes())
         receipt.update(call_count=len(rows), profile_sha256=bytes_sha256((source / "profile.json").read_bytes()),
                        results_sha256=bytes_sha256((source / "results.jsonl").read_bytes()))
@@ -71,7 +71,7 @@ def audited_fixture(tmp_path, source_mode="frozen", packet_bound=False, scope="a
         text = review._input_text(contract, packet, entry["sha256"])
         attempt = job / "attempt-001"
         attempt.mkdir()
-        (attempt / "input.txt").write_text(text)
+        (attempt / "input.txt").write_text(text, encoding="utf-8")
         (attempt / "result.json").write_bytes(submission.read_bytes())
         schema_path = root / "schema.json"
         schema_receipt = {}
@@ -95,7 +95,7 @@ def test_scoring_input_check_validates_evidence_without_rechecking_html(tmp_path
         raise AssertionError("Evidence-only scoring must not parse report pages")
     monkeypatch.setattr("harness.web_search.report.BeautifulSoup", unexpected_html)
     assert check(out, evidence_only=True)
-    (out / "independent-review.json").write_text("{}")
+    (out / "independent-review.json").write_text("{}", encoding="utf-8")
     with pytest.raises(ValueError, match="hash mismatch|SHA|Hash"):
         check(out, evidence_only=True)
 
@@ -107,15 +107,15 @@ def test_review_release_counts_failures_and_retains_opinions(tmp_path, layout):
     review.save(path, evidence)
     out = tmp_path / "released"
     content = tmp_path / "content.json"
-    content.write_text(json.dumps({"presentation": layout}))
+    content.write_text(json.dumps({"presentation": layout}), encoding="utf-8")
     build(out, source=tmp_path / "fixture", review=path, content=content)
     assert check(out)
-    soup = BeautifulSoup((out / "index.html").read_text(), "html.parser")
+    soup = BeautifulSoup((out / "index.html").read_text(encoding="utf-8"), "html.parser")
     coverage = soup.select_one("[data-review-coverage]")
     assert coverage is not None
     assert coverage['data-review-percent'] == "100"
     assert "100%" in coverage.get_text()
-    summary = BeautifulSoup((out / "review.html").read_text(), "html.parser").select_one("[data-independent-review]")
+    summary = BeautifulSoup((out / "review.html").read_text(encoding="utf-8"), "html.parser").select_one("[data-independent-review]")
     assert "100%" in summary.get_text()
     if layout == 'comparison-report':
         assert coverage['data-reviewed-queries'] == f"{evidence['case_reviewed']}/{evidence['case_total']}"
@@ -131,11 +131,11 @@ def test_review_release_counts_failures_and_retains_opinions(tmp_path, layout):
         != manifest["profile"]["protocol"]["review"]
     )
     assert all(
-        "data-independent-opinion" in (out / route).read_text()
+        "data-independent-opinion" in (out / route).read_text(encoding="utf-8")
         for route in manifest["routes"]
         if route.startswith("details/")
     )
-    (out / "independent-review.json").write_text("{}")
+    (out / "independent-review.json").write_text("{}", encoding="utf-8")
     with pytest.raises(ValueError, match="hash mismatch"):
         check(out)
 
@@ -179,9 +179,9 @@ def test_review_opinion_cannot_be_removed_or_changed_in_rendered_details(tmp_pat
     out = tmp_path / "released"
     build(out, source=tmp_path / "fixture", review=path)
     detail = next((out / "details").glob("*.html"))
-    soup = BeautifulSoup(detail.read_text(), "html.parser")
+    soup = BeautifulSoup(detail.read_text(encoding="utf-8"), "html.parser")
     soup.select_one("[data-independent-opinion]").decompose()
-    detail.write_text(str(soup))
+    detail.write_text(str(soup), encoding="utf-8")
     with pytest.raises(ValueError, match="review detail"):
         check(out)
 
@@ -193,9 +193,9 @@ def test_current_review_metadata_must_agree_with_bound_evidence(tmp_path):
     out = tmp_path / "released"
     build(out, source=tmp_path / "fixture", review=path)
     manifest_path = out / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["profile"]["protocol"]["review"] = "No independent review"
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ValueError, match="metadata contradicts"):
         check(out)
 
@@ -233,10 +233,10 @@ def test_summary_rejects_tampered_review_scope(tmp_path, defect):
     review.save(path, evidence)
     output = tmp_path / "released"
     content = tmp_path / "content.json"
-    content.write_text(json.dumps({"presentation": "comparison-report"}))
+    content.write_text(json.dumps({"presentation": "comparison-report"}), encoding="utf-8")
     build(output, source=tmp_path / "fixture", review=path, content=content)
     homepage = output / "index.html"
-    doc = BeautifulSoup(homepage.read_text(), "html.parser")
+    doc = BeautifulSoup(homepage.read_text(encoding="utf-8"), "html.parser")
     coverage = doc.select_one("[data-review-coverage]")
     if defect == "outputs":
         coverage["data-reviewed-outputs"] = "999/999"
@@ -246,8 +246,8 @@ def test_summary_rejects_tampered_review_scope(tmp_path, defect):
         coverage.string = coverage.get_text().replace("100%", "99%")
     else:
         summary = output / "review.html"
-        summary.write_text(summary.read_text().replace("100%", "99%"))
-    homepage.write_text(str(doc))
+        summary.write_text(summary.read_text(encoding="utf-8").replace("100%", "99%"), encoding="utf-8")
+    homepage.write_text(str(doc), encoding="utf-8")
     with pytest.raises(ValueError, match="coverage|summary"):
         check(output)
 

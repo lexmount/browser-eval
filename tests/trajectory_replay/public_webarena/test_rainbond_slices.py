@@ -45,9 +45,9 @@ def test_slow_release_does_not_block_acquisition_of_another_slot(tmp_path, monke
         def reset(self, receipt_path):
             resetting.set()
             assert finish_reset.wait(5)
-            receipt = json.loads(receipt_path.read_text())
+            receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
             receipt["app_id"] = 201
-            receipt_path.write_text(json.dumps(receipt))
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
             return receipt
 
         def runtime_config(self, receipt):
@@ -196,13 +196,13 @@ def _pool(tmp_path: Path, api: FakeAPI) -> RainbondSlicePool:
 
 def test_new_slice_runtime_config_contains_four_unique_sites_and_two_shared_sites(tmp_path):
     config_path = _pool_config(tmp_path)
-    config = json.loads(config_path.read_text())
+    config = json.loads(config_path.read_text(encoding="utf-8"))
     shared = {
         "__MAP__": {"urls": ["http://shared-map.test"]},
         "__WIKIPEDIA__": {"urls": ["http://shared-wikipedia.test"]},
     }
     config["shared_environments"] = shared
-    config_path.write_text(json.dumps(config))
+    config_path.write_text(json.dumps(config), encoding="utf-8")
     pool = RainbondSlicePool(config_path, api=FakeAPI())
     receipt = {
         "components": {
@@ -321,7 +321,7 @@ def test_provision_creates_one_complete_isolated_app_without_serializing_token(t
     assert len({row["site_url"] for row in receipt["components"].values()}) == 4
     assert receipt["initializer"]["service_id"] == "service-initializer-201"
     assert all("run-a-1" in row["site_url"] for row in receipt["components"].values())
-    assert "TEST_RAINBOND_TOKEN" not in receipt_path.read_text()
+    assert "TEST_RAINBOND_TOKEN" not in receipt_path.read_text(encoding="utf-8")
     assert not any("secret-token" in json.dumps(call) for call in api.calls)
     deploy = next(call for call in api.calls if call[1].endswith("/operations"))
     assert set(deploy[2]["service_ids"]) == {
@@ -527,7 +527,7 @@ def test_stop_before_replace_keeps_old_app_stopped_and_receipt_on_failure(tmp_pa
     with pytest.raises(RuntimeError, match="injected domain failure"):
         pool.reset(receipt_path)
 
-    assert json.loads(receipt_path.read_text())["generation"] == first["generation"]
+    assert json.loads(receipt_path.read_text(encoding="utf-8"))["generation"] == first["generation"]
     operations = [
         body["action"]
         for method, path, body in api.calls
@@ -548,7 +548,7 @@ def test_default_reset_stops_dirty_app_and_keeps_receipt_on_failure(tmp_path):
     with pytest.raises(RuntimeError, match="injected domain failure"):
         pool.reset(receipt_path)
 
-    assert json.loads(receipt_path.read_text())["generation"] == first["generation"]
+    assert json.loads(receipt_path.read_text(encoding="utf-8"))["generation"] == first["generation"]
     operations = [
         body["action"]
         for method, path, body in api.calls
@@ -576,7 +576,7 @@ def test_reset_cleanup_does_not_hide_original_delete_failure(tmp_path):
     with pytest.raises(RuntimeError, match="old app delete failed") as caught:
         pool.reset(receipt_path)
 
-    assert json.loads(receipt_path.read_text())["generation"] == first["generation"]
+    assert json.loads(receipt_path.read_text(encoding="utf-8"))["generation"] == first["generation"]
     assert receipt_path.with_name("slice-receipt.replacement.json").exists()
     assert any("replacement cleanup failed" in note for note in caught.value.__notes__)
 
@@ -647,7 +647,7 @@ def test_provision_pool_rolls_back_already_created_slots(tmp_path, monkeypatch):
             if slot == 2:
                 raise RuntimeError("second slot failed")
             receipt_path.parent.mkdir(parents=True)
-            receipt_path.write_text("{}")
+            receipt_path.write_text("{}", encoding="utf-8")
             return {"slot": slot}
 
         def runtime_config(self, _receipt):
@@ -678,7 +678,7 @@ def test_provision_pool_preserves_failure_when_rollback_cleanup_fails(tmp_path, 
             if slot == 2:
                 raise RuntimeError("provision failed")
             receipt_path.parent.mkdir(parents=True, exist_ok=True)
-            receipt_path.write_text("{}")
+            receipt_path.write_text("{}", encoding="utf-8")
             return {"slot": slot}
 
         def runtime_config(self, _receipt):
@@ -718,14 +718,14 @@ def test_scale_pool_keeps_one_warm_slice_and_removes_only_excess(tmp_path, monke
                 "components": {site: {} for site in STATEFUL_SITES},
             }
             receipt_path.parent.mkdir(parents=True, exist_ok=True)
-            receipt_path.write_text(json.dumps(receipt))
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
             return receipt
 
         def runtime_config(self, _receipt):
             return {"ok": True}
 
         def validate_receipt(self, receipt_path):
-            return json.loads(receipt_path.read_text())
+            return json.loads(receipt_path.read_text(encoding="utf-8"))
 
         def destroy(self, receipt_path):
             destroyed.append(receipt_path)
@@ -762,14 +762,14 @@ def test_scale_pool_rolls_back_every_new_slot_after_partial_failure(tmp_path, mo
                 raise RuntimeError("slot 2 failed")
             receipt = {"pool_id": pool_id, "slot": slot}
             receipt_path.parent.mkdir(parents=True, exist_ok=True)
-            receipt_path.write_text(json.dumps(receipt))
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
             return receipt
 
         def runtime_config(self, _receipt):
             return {"ok": True}
 
         def validate_receipt(self, receipt_path):
-            return json.loads(receipt_path.read_text())
+            return json.loads(receipt_path.read_text(encoding="utf-8"))
 
         def destroy(self, receipt_path):
             destroyed.append(receipt_path.parent.name)
@@ -815,7 +815,7 @@ def test_scale_down_is_atomic_when_an_excess_slice_is_leased(tmp_path, monkeypat
             pass
 
         def validate_receipt(self, receipt_path):
-            return json.loads(receipt_path.read_text())
+            return json.loads(receipt_path.read_text(encoding="utf-8"))
 
         def destroy(self, receipt_path):
             destroyed.append(receipt_path)
@@ -825,8 +825,10 @@ def test_scale_down_is_atomic_when_an_excess_slice_is_leased(tmp_path, monkeypat
     for slot in (1, 2, 3):
         slot_dir = output / f"slice-{slot}"
         slot_dir.mkdir(parents=True)
-        (slot_dir / "slice-receipt.json").write_text(json.dumps({"pool_id": "warm", "slot": slot}))
-    (output / "slice-2" / "slice-lease.json").write_text("{}")
+        (slot_dir / "slice-receipt.json").write_text(
+            json.dumps({"pool_id": "warm", "slot": slot}), encoding="utf-8"
+        )
+    (output / "slice-2" / "slice-lease.json").write_text("{}", encoding="utf-8")
 
     with pytest.raises(RuntimeError, match="leased Rainbond slices"):
         scale_pool(tmp_path / "pool.json", output, "warm", count, minimum_ready=0)
@@ -847,7 +849,7 @@ def test_scale_down_continues_after_one_destroy_failure(tmp_path, monkeypatch):
             pass
 
         def validate_receipt(self, receipt_path):
-            return json.loads(receipt_path.read_text())
+            return json.loads(receipt_path.read_text(encoding="utf-8"))
 
         def destroy(self, receipt_path):
             slot = int(receipt_path.parent.name.removeprefix("slice-"))
@@ -861,7 +863,9 @@ def test_scale_down_continues_after_one_destroy_failure(tmp_path, monkeypatch):
     for slot in (1, 2, 3):
         slot_dir = output / f"slice-{slot}"
         slot_dir.mkdir(parents=True)
-        (slot_dir / "slice-receipt.json").write_text(json.dumps({"pool_id": "warm", "slot": slot}))
+        (slot_dir / "slice-receipt.json").write_text(
+            json.dumps({"pool_id": "warm", "slot": slot}), encoding="utf-8"
+        )
 
     with pytest.raises(RuntimeError, match="slot 3 delete failed"):
         scale_pool(tmp_path / "pool.json", output, "warm", 1)
@@ -882,9 +886,10 @@ def _ready_slot(output: Path, slot: int, app_id: int) -> Path:
                 "app_id": app_id,
                 "generation": f"generation-{slot}",
             }
-        )
+        ),
+        encoding="utf-8"
     )
-    (slot_dir / "webarena.config.json").write_text("{}")
+    (slot_dir / "webarena.config.json").write_text("{}", encoding="utf-8")
     return slot_dir
 
 
@@ -957,7 +962,9 @@ def test_release_replaces_dirty_generation_before_unlocking_slice(tmp_path, monk
     assert result["released_app_id"] == 101
     assert result["ready_app_id"] == 201
     assert not (slot_dir / "slice-lease.json").exists()
-    assert json.loads((slot_dir / "webarena.config.json").read_text()) == {"app_id": 201}
+    assert json.loads((slot_dir / "webarena.config.json").read_text(encoding="utf-8")) == {
+        "app_id": 201
+    }
 
 
 def test_failed_release_keeps_lease_so_dirty_slice_cannot_be_reassigned(tmp_path, monkeypatch):
@@ -1002,11 +1009,11 @@ def test_release_retry_only_unlinks_after_reset_was_persisted(tmp_path, monkeypa
                 "app_id": 201,
                 "generation": "generation-new",
             }
-            receipt_path.write_text(json.dumps(receipt))
+            receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
             return receipt
 
         def validate_receipt(self, receipt_path):
-            return json.loads(receipt_path.read_text())
+            return json.loads(receipt_path.read_text(encoding="utf-8"))
 
         def runtime_config(self, receipt):
             return {"app_id": receipt["app_id"]}
@@ -1053,10 +1060,10 @@ def test_release_does_not_mistake_task_preparation_for_cleanup(tmp_path, monkeyp
     slot_dir = _ready_slot(output, 1, 101)
     lease = acquire_slice(output, "task-a")
     receipt_path = slot_dir / "slice-receipt.json"
-    receipt = json.loads(receipt_path.read_text())
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     receipt["app_id"] = 201
-    receipt_path.write_text(json.dumps(receipt))
-    (slot_dir / "webarena.config.json").write_text(json.dumps({"app_id": 201}))
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
+    (slot_dir / "webarena.config.json").write_text(json.dumps({"app_id": 201}), encoding="utf-8")
     reset_calls = []
 
     class Pool:
@@ -1064,7 +1071,7 @@ def test_release_does_not_mistake_task_preparation_for_cleanup(tmp_path, monkeyp
             pass
 
         def validate_receipt(self, path):
-            return json.loads(path.read_text())
+            return json.loads(path.read_text(encoding="utf-8"))
 
         def runtime_config(self, current):
             return {"app_id": current["app_id"]}
@@ -1072,11 +1079,13 @@ def test_release_does_not_mistake_task_preparation_for_cleanup(tmp_path, monkeyp
         def reset(self, path):
             reset_calls.append(path)
             assert (
-                json.loads((slot_dir / "slice-lease.json").read_text())["release_from_app_id"]
+                json.loads((slot_dir / "slice-lease.json").read_text(encoding="utf-8"))[
+                    "release_from_app_id"
+                ]
                 == 201
             )
             clean = {**receipt, "app_id": 301}
-            path.write_text(json.dumps(clean))
+            path.write_text(json.dumps(clean), encoding="utf-8")
             return clean
 
     monkeypatch.setattr("harness.environments.webarena.rainbond.RainbondSlicePool", Pool)

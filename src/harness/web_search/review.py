@@ -714,7 +714,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
         attempt.mkdir()
         packet = json.loads((root / entry["path"]).read_bytes())
         text = _input_text(contract, packet, entry["sha256"])
-        (attempt / "input.txt").write_text(text)
+        (attempt / "input.txt").write_text(text, encoding="utf-8")
         result_path = attempt / "result.json"
         schema_path = attempt / "schema.json"
         save(schema_path, _packet_schema(json.loads((root / "schema.json").read_bytes()), packet, entry["sha256"]))
@@ -771,7 +771,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
             save(attempt / "status.json", state)
             save(job / "status.json", state)
         if state["status"] == "failed":
-            logs = "\n".join((attempt / name).read_text(errors="replace")
+            logs = "\n".join((attempt / name).read_text(errors="replace", encoding="utf-8")
                              for name in ("stdout.log", "stderr.log"))
             if re.search(r"\b429\b|rate[ _-]?limit|too many requests|usage limit", logs, re.I):
                 state["failure_kind"] = "rate_limit"
@@ -788,7 +788,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
         import fcntl
         job = root / "jobs" / entry["id"]
         job.mkdir(parents=True, exist_ok=True)
-        with (job / "process.lock").open("a") as lock:
+        with (job / "process.lock").open("a", encoding="utf-8") as lock:
             try:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as error:

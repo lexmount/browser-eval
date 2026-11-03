@@ -949,11 +949,11 @@ class ScoringPipelineTests(unittest.TestCase):
         ]
         self.dataset = {"id": "test", "tool": "web_fetch", "cases": [asdict(c) for c in self.cases]}
         self.path = self.root / "dataset.json"
-        self.path.write_text(json.dumps(self.dataset))
+        self.path.write_text(json.dumps(self.dataset), encoding="utf-8")
         refs = self.root / "list-references"
         refs.mkdir(exist_ok=True)
         for name in ("legacy", "unverified"):
-            (refs / f"{name}.json").write_text(json.dumps({**REFERENCE, "case_id": name}))
+            (refs / f"{name}.json").write_text(json.dumps({**REFERENCE, "case_id": name}), encoding="utf-8")
         texts = {"web": "Alpha\r\n", "dynamic": "Catalog\nCategory filter\n" + LINKS,
                  "challenge": "Catalog\n" + LINKS, "document": "Actual document",
                  "resource": "", "file": "This is not verified file bytes", "failed": "Alpha",
@@ -1007,10 +1007,10 @@ class ScoringPipelineTests(unittest.TestCase):
             changes = rescore_content.rescore(self.run)
         self.assertEqual(shared.call_count, len(self.cases))
         self.assertEqual(changes, [])
-        current = [json.loads(line) for line in (self.run / "results.jsonl").read_text().splitlines()]
+        current = [json.loads(line) for line in (self.run / "results.jsonl").read_text(encoding="utf-8").splitlines()]
         self.assertEqual(summarize(current), summary)
         self.assertEqual(
-            json.loads((self.run / "summary.json").read_text()),
+            json.loads((self.run / "summary.json").read_text(encoding="utf-8")),
             summary,
         )
         for before, after in zip(original, current):
@@ -1035,17 +1035,17 @@ class ScoringPipelineTests(unittest.TestCase):
     def test_script_selection_preserves_unselected_records_and_original_run_id(self):
         records, _ = self.live()
         records[0]["run_id"] = "original-call-identity"
-        (self.run / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in records))
+        (self.run / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in records), encoding="utf-8")
         self.dataset["cases"][0]["required_facts"] = [{"alternatives": ["Missing"]}]
-        (self.run / "dataset.json").write_text(json.dumps(self.dataset))
+        (self.run / "dataset.json").write_text(json.dumps(self.dataset), encoding="utf-8")
         changes = rescore_content.rescore(self.run, case_ids={"web"})
-        updated = [json.loads(line) for line in (self.run / "results.jsonl").read_text().splitlines()]
+        updated = [json.loads(line) for line in (self.run / "results.jsonl").read_text(encoding="utf-8").splitlines()]
         self.assertEqual(updated[1:], records[1:])
         self.assertEqual(updated[0]["run_id"], "original-call-identity")
         self.assertEqual(updated[0]["metrics"]["content_check_coverage"], 0)
         self.assertEqual(changes, [{"attempt_id": records[0]["attempt_id"], "before": True, "after": False}])
         self.assertEqual(
-            json.loads((self.run / "summary.json").read_text())["cases"]["web"]["task_pass_rate"],
+            json.loads((self.run / "summary.json").read_text(encoding="utf-8"))["cases"]["web"]["task_pass_rate"],
             0,
         )
 
@@ -1056,7 +1056,7 @@ class ScoringPipelineTests(unittest.TestCase):
         records[0]["scoring"] = {**preserved, "mode": "previous-mode", "scored_at": "old-time",
                                   "source_sha256": "old-source"}
         path = self.run / "results.jsonl"
-        path.write_text("".join(json.dumps(r) + "\n" for r in records))
+        path.write_text("".join(json.dumps(r) + "\n" for r in records), encoding="utf-8")
         original = deepcopy(records[0])
         original_manifest = (self.run / "manifest.json").read_bytes()
         original_dataset = (self.run / "dataset.json").read_bytes()
@@ -1066,7 +1066,7 @@ class ScoringPipelineTests(unittest.TestCase):
             with patch.object(rescore_content, "datetime") as clock:
                 clock.now.return_value = now
                 self.assertEqual(rescore_content.rescore(self.run, case_ids={"web"}), [])
-            updated = [json.loads(line) for line in path.read_text().splitlines()]
+            updated = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
             row = updated[0]
             self.assertEqual(updated[1:], records[1:])
             for key in original.keys() - {"scoring"}:
@@ -1100,7 +1100,7 @@ class ScoringPipelineTests(unittest.TestCase):
         self.assertEqual(rescored, original)
         self.assertEqual(summary, new_summary)
         rescore_content.rescore(self.run, case_ids={"web"})
-        row = json.loads((self.run / "results.jsonl").read_text().splitlines()[0])
+        row = json.loads((self.run / "results.jsonl").read_text(encoding="utf-8").splitlines()[0])
         for key in original[0]:
             self.assertEqual(row[key], original[0][key], key)
         self.assertFalse(row["ok"])
@@ -1115,7 +1115,7 @@ class ScoringPipelineTests(unittest.TestCase):
                 "error": {"upstream_status_code": 403, "message": "Source denied this request"}}))
         self.live()
         rescore_content.rescore(self.run, case_ids={"web"})
-        row = json.loads((self.run / "results.jsonl").read_text().splitlines()[0])
+        row = json.loads((self.run / "results.jsonl").read_text(encoding="utf-8").splitlines()[0])
         self.assertEqual(row["diagnosis"]["category"], "源站拒绝该次访问")
         self.assertEqual(row["failure_category"], row["diagnosis"]["category"])
         self.assertFalse(row["ok"])
@@ -1147,7 +1147,7 @@ class ScoringPipelineTests(unittest.TestCase):
         original = next(r for r in records if r["case_id"] == "file")
         original["metrics"].update(raw_file_pass=True, raw_file_sha256="independently-verified-file",
                                    deadline_overrun=True)
-        (self.run / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in records))
+        (self.run / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in records), encoding="utf-8")
         rescored, summary = runner.rescore_evaluation(run_dir=self.run, dataset_meta=self.dataset,
                                                      dataset_path=self.path, cases=self.cases)
         file_row = next(r for r in rescored if r["case_id"] == "file")
@@ -1155,7 +1155,7 @@ class ScoringPipelineTests(unittest.TestCase):
         self.assertEqual(file_row, original)
         self.assertEqual(summary["cases"]["file"]["task_pass_rate"], 0)
         rescore_content.rescore(self.run, case_ids={"file"})
-        script_rows = [json.loads(line) for line in (self.run / "results.jsonl").read_text().splitlines()]
+        script_rows = [json.loads(line) for line in (self.run / "results.jsonl").read_text(encoding="utf-8").splitlines()]
         file_row = next(r for r in script_rows if r["case_id"] == "file")
         self.assertEqual(file_row["metrics"], original["metrics"])
         self.assertEqual(summarize(script_rows)["cases"]["file"]["task_pass_rate"], 0)
@@ -1165,7 +1165,7 @@ class ScoringPipelineTests(unittest.TestCase):
         self.cases = [case(id='file', task_kind='file', source_verification={
             'mime': 'image/png', 'file_sha256': hashlib.sha256(raw).hexdigest()})]
         self.dataset['cases'] = [asdict(c) for c in self.cases]
-        self.path.write_text(json.dumps(self.dataset))
+        self.path.write_text(json.dumps(self.dataset), encoding="utf-8")
         self.provider.fetch.side_effect = lambda c, timeout: ProviderResult(
             ok=True, content='file attached', files=[{'data': raw}])
         original, _ = self.live()
@@ -1178,9 +1178,9 @@ class ScoringPipelineTests(unittest.TestCase):
             dataset_path=self.path, cases=self.cases)
         self.assertFalse(rescored[0]['metrics']['raw_file_pass'])
         self.assertEqual(rescored[0]['provider_metadata'], original[0]['provider_metadata'])
-        (self.run / 'dataset.json').write_text(json.dumps(self.dataset))
+        (self.run / 'dataset.json').write_text(json.dumps(self.dataset), encoding="utf-8")
         rescore_content.rescore(self.run)
-        row = json.loads((self.run / 'results.jsonl').read_text().strip())
+        row = json.loads((self.run / 'results.jsonl').read_text(encoding="utf-8").strip())
         self.assertFalse(row['metrics']['raw_file_pass'])
         self.assertEqual(row['provider_metadata'], original[0]['provider_metadata'])
 
@@ -1222,7 +1222,7 @@ class ScoringPipelineTests(unittest.TestCase):
             artifact.unlink(missing_ok=True)
             artifact.write_bytes(original)
             (self.run / "results.jsonl").write_text(
-                "".join(json.dumps(row) + "\n" for row in records))
+                "".join(json.dumps(row) + "\n" for row in records), encoding="utf-8")
             with self.subTest(artifact=kind, damage="none"):
                 runner.rescore_evaluation(
                     run_dir=self.run, dataset_meta=self.dataset,
@@ -1234,7 +1234,7 @@ class ScoringPipelineTests(unittest.TestCase):
                 artifact.unlink(missing_ok=True)
                 artifact.write_bytes(original)
                 (self.run / "results.jsonl").write_text(
-                    "".join(json.dumps(row) + "\n" for row in records))
+                    "".join(json.dumps(row) + "\n" for row in records), encoding="utf-8")
                 before = {name: (self.run / name).read_bytes() for name in snapshots}
                 if damage == "modified":
                     artifact.write_bytes(b"changed")
@@ -1262,7 +1262,7 @@ class ScoringPipelineTests(unittest.TestCase):
         records, _ = self.live()
         path = self.run / "results.jsonl"
         before = path.read_bytes()
-        (self.run / records[0]["artifact_path"]).write_text("Tampered")
+        (self.run / records[0]["artifact_path"]).write_text("Tampered", encoding="utf-8")
         for rescore in (
             lambda: runner.rescore_evaluation(run_dir=self.run, dataset_meta=self.dataset,
                                               dataset_path=self.path, cases=self.cases),

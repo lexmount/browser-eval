@@ -37,12 +37,12 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
             source.mkdir()
             output.mkdir()
             manifest = source / 'corrections.json'
-            manifest.write_text('{}')
-            (source / 'replacement.md').write_text('corrected reference')
+            manifest.write_text('{}', encoding='utf-8')
+            (source / 'replacement.md').write_text('corrected reference', encoding='utf-8')
             copy_correction_sources(
                 {'case': {'replacement_file': 'replacement.md'}}, manifest, output
             )
-            self.assertEqual((output / 'replacement.md').read_text(), 'corrected reference')
+            self.assertEqual((output / 'replacement.md').read_text(encoding='utf-8'), 'corrected reference')
             with self.assertRaises(ValueError):
                 copy_correction_sources(
                     {'case': {'replacement_file': '../replacement.md'}}, manifest, output
@@ -92,13 +92,13 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
                 'input_dataset_sha256': hashlib.sha256(before_dataset).hexdigest(),
                 'output_dataset_sha256': hashlib.sha256(after_dataset).hexdigest(),
             }
-            (root / 'scoring-correction.json').write_text(json.dumps(receipt))
+            (root / 'scoring-correction.json').write_text(json.dumps(receipt), encoding='utf-8')
             validate_webmainbench_scoring_revision(root)
             after[0]['official_metrics'] = {'changed': True}
             after_bytes = ''.join(json.dumps(row) + '\n' for row in after).encode()
             (root / 'results.jsonl').write_bytes(after_bytes)
             receipt['output_results_sha256'] = hashlib.sha256(after_bytes).hexdigest()
-            (root / 'scoring-correction.json').write_text(json.dumps(receipt))
+            (root / 'scoring-correction.json').write_text(json.dumps(receipt), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'changed provider evidence'):
                 validate_webmainbench_scoring_revision(root)
 
@@ -108,11 +108,11 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
             source, output = root / 'source', root / 'output'
             source.mkdir()
             output.mkdir()
-            (source / 'replacement.md').write_text('corrected reference')
+            (source / 'replacement.md').write_text('corrected reference', encoding='utf-8')
             copied = copy_contained_artifact(
                 source, 'replacement.md', output, 'nested/replacement.md'
             )
-            self.assertEqual(copied.read_text(), 'corrected reference')
+            self.assertEqual(copied.read_text(encoding='utf-8'), 'corrected reference')
             for source_name, output_name in [
                 ('../replacement.md', 'replacement.md'),
                 ('replacement.md', '../replacement.md'),
@@ -155,14 +155,14 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
                     'replacement_reference_sha256': 'new',
                 }],
             }
-            (root / 'reference-correction.json').write_text(json.dumps(receipt))
+            (root / 'reference-correction.json').write_text(json.dumps(receipt), encoding='utf-8')
             validate_reference_revision(root)
             after['output_sha256'] = 'changed-provider-output'
-            (root / 'results.jsonl').write_text(json.dumps(after) + '\n')
+            (root / 'results.jsonl').write_text(json.dumps(after) + '\n', encoding='utf-8')
             receipt['output_results_sha256'] = hashlib.sha256(
                 (root / 'results.jsonl').read_bytes()
             ).hexdigest()
-            (root / 'reference-correction.json').write_text(json.dumps(receipt))
+            (root / 'reference-correction.json').write_text(json.dumps(receipt), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'changed provider evidence'):
                 validate_reference_revision(root)
 
@@ -180,12 +180,12 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
             (source / 'results.jsonl').write_bytes(before)
             (corrected / 'results.jsonl').write_bytes(after)
             (corrected / 'original-results.jsonl').write_bytes(before)
-            (corrected / 'sample-manifest.json').write_text('{}')
+            (corrected / 'sample-manifest.json').write_text('{}', encoding='utf-8')
             receipt = {'provider_calls': 0, 'input_results_sha256': hashlib.sha256(before).hexdigest(),
                        'output_results_sha256': hashlib.sha256(after).hexdigest(),
                        'dataset_sha256': hashlib.sha256(dataset).hexdigest(),
                        'source_code_sha256': {}, 'scope': {'providers': ['a']}}
-            (corrected / 'teds-correction.json').write_text(json.dumps(receipt))
+            (corrected / 'teds-correction.json').write_text(json.dumps(receipt), encoding='utf-8')
             with patch('harness.web_fetch.webmainbench_diagnostics.valid_correction_provenance', return_value=True):
                 with self.assertRaisesRegex(ValueError, 'file presence: sample-manifest.json'):
                     review_teds_correction(source, corrected)
@@ -193,7 +193,7 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
     def test_revision_rejects_even_in_directory_symlinks(self):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
-            (root / 'original').write_text('{}')
+            (root / 'original').write_text('{}', encoding='utf-8')
             (root / 'linked').symlink_to(root / 'original')
             with self.assertRaisesRegex(ValueError, 'symlinked'):
                 validate_teds_revision(root)
@@ -204,7 +204,7 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
             self.assertIsNone(validate_teds_revision_if_present(root, [{'metrics': {}}]))
             with self.assertRaises(FileNotFoundError):
                 validate_teds_revision_if_present(root, [{'metrics': {}, 'official_metrics': {}}])
-            (root / 'teds-correction.json').write_text('{}')
+            (root / 'teds-correction.json').write_text('{}', encoding='utf-8')
             with patch('harness.web_fetch.webmainbench_diagnostics.validate_teds_revision') as validate:
                 validate_teds_revision_if_present(root, [{'metrics': {}}])
                 validate.assert_called_once_with(root)
@@ -221,14 +221,14 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
             for name, content in pages.items():
                 path = root / name
                 path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(content)
+                path.write_text(content, encoding='utf-8')
             check_teds_warnings(root, 98)
             for name, content in pages.items():
                 with self.subTest(page=name):
-                    (root / name).write_text('')
+                    (root / name).write_text('', encoding='utf-8')
                     with self.assertRaisesRegex(ValueError, 'validity warning'):
                         check_teds_warnings(root, 98)
-                    (root / name).write_text(content)
+                    (root / name).write_text(content, encoding='utf-8')
 
     def test_review_rejects_source_paths_outside_snapshot_directory(self):
         with tempfile.TemporaryDirectory() as folder:
@@ -245,7 +245,7 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
                 receipt = {'provider_calls': 0, 'input_results_sha256': expected,
                            'output_results_sha256': expected, 'dataset_sha256': expected,
                            'source_code_sha256': {relative: expected}}
-                (corrected / 'teds-correction.json').write_text(json.dumps(receipt))
+                (corrected / 'teds-correction.json').write_text(json.dumps(receipt), encoding='utf-8')
                 with self.subTest(path=relative), patch(
                     'harness.web_fetch.webmainbench_diagnostics.valid_correction_provenance', return_value=True
                 ), self.assertRaises(ValueError):
@@ -263,7 +263,7 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
             for name in ('dataset.json', 'sample-manifest.json', 'physical-attempts.jsonl',
                          'execution.json', 'result-review.json'):
                 for base in (source, corrected):
-                    (base / name).write_text('{}')
+                    (base / name).write_text('{}', encoding='utf-8')
             dataset=json.dumps({'cases':[{'id':str(i)} for i in range(200)]}).encode()
             for base in (source,corrected):(base/'dataset.json').write_bytes(dataset)
             for relative in ('../outside.md', str(outside), 'linked.md'):
@@ -279,7 +279,7 @@ class WebMainBenchReviewGuardsTests(unittest.TestCase):
                            'output_results_sha256': hashlib.sha256(final).hexdigest(),
                            'dataset_sha256': hashlib.sha256(dataset).hexdigest(), 'source_code_sha256': {},
                            'scope':{'providers':['a','b','c','d','e']}}
-                (corrected / 'teds-correction.json').write_text(json.dumps(receipt))
+                (corrected / 'teds-correction.json').write_text(json.dumps(receipt), encoding='utf-8')
                 with self.subTest(path=relative), patch(
                     'harness.web_fetch.webmainbench_diagnostics.valid_correction_provenance', return_value=True
                 ), self.assertRaises(ValueError):

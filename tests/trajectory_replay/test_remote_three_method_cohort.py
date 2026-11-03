@@ -117,7 +117,8 @@ def test_task_execution_order_matches_upstream_numeric_order(tmp_path, monkeypat
                 "schema": "lex_webarena_verified_pilot/1",
                 "tasks": [{"task_id": n} for n in [645, 66, 610]],
             }
-        )
+        ),
+        encoding="utf-8"
     )
     assert cohort.selected_task_ids(selection) == [66, 610, 645]
 
@@ -310,7 +311,9 @@ def test_https_admin_reset_requires_restored_application_settings(
     monkeypatch.setattr(
         cohort.subprocess,
         "run",
-        lambda *_a, **_k: (tmp_path / "site-reset.json").write_text(json.dumps(receipt)),
+        lambda *_a, **_k: (tmp_path / "site-reset.json").write_text(
+            json.dumps(receipt), encoding="utf-8"
+        ),
     )
     args = argparse.Namespace(
         output=tmp_path,

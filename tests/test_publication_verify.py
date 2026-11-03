@@ -22,7 +22,7 @@ class PublicationVerifyTests(unittest.TestCase):
         from harness.web_fetch.publication import verify_published_tree
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);(root/'index.html').write_bytes(b'<head></head>Report')
-            (root/'.generated-report').write_text('generated')
+            (root/'.generated-report').write_text('generated', encoding='utf-8')
             (root/'evidence').mkdir();(root/'evidence/output.txt').write_bytes(b'full saved answer')
             files={'index.html':(root/'index.html').read_bytes(),
                    'evidence/output.txt':(root/'evidence/output.txt').read_bytes()}
@@ -215,9 +215,9 @@ def _run_verify(profile, *extra, env=None):
 def test_verification_never_sends_a_token_outside_the_bound_host(tmp_path, monkeypatch):
     monkeypatch.delenv('ARTIFACT_SITE_BASE_URL', raising=False)
     flat = tmp_path / 'flat.json'
-    flat.write_text(json.dumps({'artifact_hub_base_url': 'https://reports.example'}))
+    flat.write_text(json.dumps({'artifact_hub_base_url': 'https://reports.example'}), encoding='utf-8')
     nested = tmp_path / 'nested.json'
-    nested.write_text(json.dumps({'publication': {'base_url': 'https://reports.example'}}))
+    nested.write_text(json.dumps({'publication': {'base_url': 'https://reports.example'}}), encoding='utf-8')
     for profile in (flat, nested):
         with pytest.raises(ValueError, match='differs from the bound profile'):
             _run_verify(profile, '--export', '--base-url', 'https://attacker.example')
@@ -225,6 +225,6 @@ def test_verification_never_sends_a_token_outside_the_bound_host(tmp_path, monke
             _run_verify(profile, '--export',
                         env={'ARTIFACT_SITE_BASE_URL': 'https://attacker.example'})
     unbound = tmp_path / 'unbound.json'
-    unbound.write_text('{}')
+    unbound.write_text('{}', encoding='utf-8')
     with pytest.raises(ValueError, match='explicit HTTPS base URL'):
         _run_verify(unbound, '--export')

@@ -104,7 +104,7 @@ def _require_promotion(path, *, dataset_sha256, capture_audit_sha256,
             '--reference-promotion receipt after reviewing the affected scope')
     if path.is_symlink():
         raise ValueError('Reference promotion receipt must not be a symlink')
-    receipt=json.loads(path.read_text())
+    receipt=json.loads(path.read_text(encoding='utf-8'))
     expected={
         'schema_version':2,
         'kind':'reference_freeze_promotion',
@@ -143,14 +143,14 @@ def select_freeze_cases(dataset, case_ids=None, exclude_case_ids=None):
 def load_browser_observations(dataset, path=None, directory=None):
     if path and directory:
         raise ValueError('Choose one browser observation source')
-    observations=json.loads(path.read_text()) if path else {}
+    observations=json.loads(path.read_text(encoding='utf-8')) if path else {}
     if not isinstance(observations,dict):
         raise ValueError('Browser observations must be keyed by case ID')
     if directory:
         for case in dataset['cases']:
             candidate=directory/case['id']/'current-browser-observation.json'
             if candidate.is_file():
-                row=json.loads(candidate.read_text())
+                row=json.loads(candidate.read_text(encoding='utf-8'))
                 if row.get('case_id') in observations:
                     raise ValueError('Duplicate browser observation: '+str(row.get('case_id')))
                 observations[row['case_id']]=row
@@ -166,7 +166,7 @@ def load_browser_observations(dataset, path=None, directory=None):
         manifest_path=contained_path(source,'manifest.json',reject_symlinks=True)
         if not manifest_path.is_file():
             raise ValueError('Legacy browser observations require their original run manifest; capture again with scope version 2')
-        original_manifest=json.loads(manifest_path.read_text())
+        original_manifest=json.loads(manifest_path.read_text(encoding='utf-8'))
         original_cases=legacy_reference_cases(legacy_reference_dataset(original_manifest,source))
     for cid,row in observations.items():
         if not isinstance(row,dict) or row.get('case_id')!=cid:
@@ -189,7 +189,7 @@ def compute_reference_update(dataset, captures, observations=None, *, refresh_ca
     """Compute the one authoritative frozen dataset/change set from captures."""
 
     frozen=deepcopy(dataset);observations=observations or {}
-    audit_rows=json.loads((captures/'audit.json').read_text())
+    audit_rows=json.loads((captures/'audit.json').read_text(encoding='utf-8'))
     audit={row['case_id']:row for row in audit_rows}
     changes=[];contexts={}
     for case in frozen['cases']:
@@ -219,10 +219,10 @@ def compute_reference_update(dataset, captures, observations=None, *, refresh_ca
                 and row.get('state')=='captured'
                 and not row.get('quality_issues')
                 and reference.is_file()
-                and bool(clean_reference_text(reference.read_text()).strip())
+                and bool(clean_reference_text(reference.read_text(encoding='utf-8')).strip())
             )
             if recoverable:
-                candidate=clean_reference_text(reference.read_text())
+                candidate=clean_reference_text(reference.read_text(encoding='utf-8'))
                 recoverable=all(
                     any(reference_anchor_in_text(candidate,alt)
                         for alt in fact['alternatives'])
@@ -246,7 +246,7 @@ def compute_reference_update(dataset, captures, observations=None, *, refresh_ca
             row=audit[cid]
             if row.get('status')!=200:
                 raise ValueError('Reference requires independent browser observation: '+cid)
-            raw_text=(captures/cid/'reference.txt').read_text()
+            raw_text=(captures/cid/'reference.txt').read_text(encoding='utf-8')
             text=clean_reference_text(raw_text);timestamp=row['checked_at']
             selector=row['selector']
             method='Independent HTTP response and reviewed article selector'
@@ -330,7 +330,7 @@ def main(argv=None):
         observations=load_browser_observations(
             dataset,args.browser_observations,args.browser_observation_directory)
         refresh_case_ids = ({change['case_id'] for change in
-            json.loads(args.reference_promotion.read_text()).get('changes', [])}
+            json.loads(args.reference_promotion.read_text(encoding='utf-8')).get('changes', [])}
             if args.reference_promotion else set())
         dataset,changes,contexts=compute_reference_update(
             dataset,args.captures,observations, refresh_case_ids=refresh_case_ids)
@@ -372,9 +372,9 @@ def main(argv=None):
             capture_record['state'] = ('captured' if row.get('status') == 200
                                        and not capture_record['quality_issues'] else 'needs_review')
             (target/'current-capture.json').write_text(
-                json.dumps(capture_record,ensure_ascii=False,indent=2)+'\n')
-        (target/'reference.txt').write_text(case['ground_truth_main_content'])
-    (args.output/'dataset.json').write_text(json.dumps(dataset,ensure_ascii=False,indent=2)+'\n')
+                json.dumps(capture_record,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
+        (target/'reference.txt').write_text(case['ground_truth_main_content'], encoding='utf-8')
+    (args.output/'dataset.json').write_text(json.dumps(dataset,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     refresh={'schema_version':1,'changed':changes,
         'reference_changed':bool(changes),'task_rules_changed':bool(changes),
         'created_at':datetime.now(timezone.utc).isoformat()}
@@ -391,16 +391,16 @@ def main(argv=None):
             'changes':promotion['changes'],
         }
         (args.output/'dataset.json').write_text(
-            json.dumps(dataset,ensure_ascii=False,indent=2)+'\n')
+            json.dumps(dataset,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     (args.output/'reference-refresh.json').write_text(
-        json.dumps(refresh,ensure_ascii=False,indent=2)+'\n')
+        json.dumps(refresh,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     print('Frozen exact-reference cases:',sum(requires_fresh_reference(c) for c in dataset['cases']),'; changed full-text references:', len(changes))
 
 
 def load_resumable_observations(checkpoint, cases):
     if not checkpoint.exists():
         return {}
-    rows = json.loads(checkpoint.read_text())
+    rows = json.loads(checkpoint.read_text(encoding='utf-8'))
     if not isinstance(rows, list):
         raise ValueError('Postcheck checkpoint must contain an observation list')
     done = {}
@@ -425,7 +425,7 @@ def postcheck_main(argv=None):
     p.add_argument('--timeout',type=int,default=3600)
     p.add_argument('--resume',action='store_true')
     args=p.parse_args(argv)
-    dataset=json.loads((args.run_dir/'dataset.json').read_text())
+    dataset=json.loads((args.run_dir/'dataset.json').read_text(encoding='utf-8'))
     if args.timeout < 0:
         p.error('--timeout must be nonnegative')
     cases=reference_cases(dataset)
@@ -450,7 +450,7 @@ def postcheck_main(argv=None):
                 relevant=completed_case_records(dataset,case,records)
                 if relevant is None or cid in done or cid in pending:
                     continue
-                rows=(json.loads(args.browser_observations.read_text())
+                rows=(json.loads(args.browser_observations.read_text(encoding='utf-8'))
                       if args.browser_observations and args.browser_observations.exists() else {})
                 if requires_browser_observation(case) or cid in rows:
                     if cid not in rows:continue
@@ -464,7 +464,7 @@ def postcheck_main(argv=None):
             for cid,future in list(pending.items()):
                 if future.done():
                     done[cid]=future.result();del pending[cid]
-            (args.captures/'observations.json').write_text(json.dumps(list(done.values()),ensure_ascii=False,indent=2)+'\n')
+            (args.captures/'observations.json').write_text(json.dumps(list(done.values()),ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
             if len(done)<len(cases):
                 if time.monotonic()-started>=args.timeout:
                     raise TimeoutError('Post-call observation deadline')
@@ -512,7 +512,7 @@ def prepare_promotion(*,dataset_path,captures,output,approved_by,approved_at,
         'correction_provenance':provenance}
     _validate_approval(receipt)
     output.parent.mkdir(parents=True,exist_ok=True)
-    output.write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n')
+    output.write_text(json.dumps(receipt,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     if candidate_output is not None:
         candidate_output.parent.mkdir(parents=True,exist_ok=True)
         candidate_output.write_bytes(candidate_bytes)
@@ -522,7 +522,7 @@ def prepare_promotion(*,dataset_path,captures,output,approved_by,approved_at,
         original['cases']=[updated.get(case['id'],case) for case in original['cases']]
         full_canonical_output.parent.mkdir(parents=True,exist_ok=True)
         full_canonical_output.write_text(
-            json.dumps(original,ensure_ascii=False,indent=2)+'\n')
+            json.dumps(original,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     return receipt,candidate_bytes
 
 
@@ -576,7 +576,7 @@ def promote(*,canonical_path,candidate_path,captures,receipt_path,receipt_target
             research_root=None,sources_root=None):
     require_mutable_inputs(canonical_path)
     canonical_bytes=read_dataset_bytes(canonical_path);canonical=json.loads(canonical_bytes)
-    receipt=json.loads(receipt_path.read_text())
+    receipt=json.loads(receipt_path.read_text(encoding='utf-8'))
     case_ids=[change['case_id'] for change in receipt.get('changes',[])]
     if not case_ids or len(case_ids)!=len(set(case_ids)):
         raise ValueError('Promotion receipt has an invalid affected case inventory')
@@ -662,7 +662,7 @@ def promote(*,canonical_path,candidate_path,captures,receipt_path,receipt_target
             (source/'current-source.html.txt').write_bytes(raw)
             (source/'current-capture.json').write_bytes(capture_record)
         (source/'reference.txt').write_bytes(reference)
-    canonical_path.write_text(json.dumps(final,ensure_ascii=False,indent=2)+'\n')
+    canonical_path.write_text(json.dumps(final,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     return {'dataset_sha256':hashlib.sha256(read_dataset_bytes(canonical_path)).hexdigest(),
             'receipt_sha256':receipt_sha,'affected_case_ids':case_ids}
 

@@ -282,14 +282,15 @@ def main(argv=None):
             "observed_extractors": extractors,
         }
     materialize_task_references(args.output, input_trees, [case.id for case in cases])
-    manifest = json.loads((args.output / "manifest.json").read_text())
+    manifest = json.loads((args.output / "manifest.json").read_text(encoding="utf-8"))
     manifest["dataset"]["source"] = args.dataset.name
     manifest["provider_config_source"] = args.config.name
     manifest["environment"].pop("hostname", None)
     for provider in manifest["providers"]:
         provider["implementation_identity"] = implementation_identities[provider["name"]]
     (args.output / "execution.json").write_text(
-        json.dumps({"batches": [manifest]}, ensure_ascii=False, indent=2) + "\n"
+        json.dumps({"batches": [manifest]}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8"
     )
     print("Completed:", len(records), "calls. Evidence:", args.output)
 
@@ -346,11 +347,11 @@ def check_evidence(
             )
     require_current_report_profile(root, report_profile)
     records = load_jsonl(root / "results.jsonl")
-    provider_configs = json.loads(provider_config.read_text())["providers"]
+    provider_configs = json.loads(provider_config.read_text(encoding="utf-8"))["providers"]
     names = set(provider_configs)
     provenance = {
         row["binary_sha256"]: row
-        for row in json.loads(provenance_path.read_text()).get("implementations", [])
+        for row in json.loads(provenance_path.read_text(encoding="utf-8")).get("implementations", [])
     }
     validate_report_ids(dataset, records)
     _require_evidence(len(records) == len(cases) * len(names), "Incomplete call count")
@@ -430,7 +431,7 @@ def check_evidence(
                 len({r["provider_metadata"]["binary_sha256"] for r in local}) == 1,
                 ("Local implementation changed inside report cohort", provider),
             )
-    batches = json.loads((root / "execution.json").read_text())["batches"]
+    batches = json.loads((root / "execution.json").read_text(encoding="utf-8"))["batches"]
     _require_evidence(
         Counter(i for b in batches for i in b["attempt_ids"])
         == Counter(r["attempt_id"] for r in records),

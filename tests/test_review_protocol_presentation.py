@@ -28,8 +28,8 @@ def test_current_review_text_reports_actual_blindness(tmp_path, blind):
                       'final_verdict': 'pass'}],
         'review_rounds': [], 'unresolved': 0,
         'adjudication_revision': {'adjudicated_attempt_ids': []}}
-    (tmp_path/'result-review.json').write_text(json.dumps(audit))
-    (tmp_path/'dataset.json').write_text(json.dumps(dataset))
+    (tmp_path/'result-review.json').write_text(json.dumps(audit), encoding='utf-8')
+    (tmp_path/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
     summary = report.review_summary(tmp_path)
     findings = report.current_local_review_findings(tmp_path, dataset, [record], audit)
     text = '\n'.join(row['text']+' '+row['text_en'] for row in findings)
@@ -43,7 +43,7 @@ def test_current_review_text_reports_actual_blindness(tmp_path, blind):
         assert 'Fresh review withheld machine verdicts' not in text
         assert '不是独立盲审' in summary
     report.write_review_page(tmp_path, [record])
-    page = (tmp_path/'review/index.html').read_text()
+    page = (tmp_path/'review/index.html').read_text(encoding='utf-8')
     if not blind:
         assert '本次重新检查的记录采用已知程序结论的证据复核' in page
         assert '发生变化的调用必须重新盲审' not in page

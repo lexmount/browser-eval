@@ -38,9 +38,9 @@ def test_concurrent_report_builds_keep_status_and_language_separate(tmp_path, mo
         else:
             row['provider_type'] = 'synthetic_other'
         (out/row['artifact_path']).parent.mkdir(parents=True)
-        (out/row['artifact_path']).write_text('output')
+        (out/row['artifact_path']).write_text('output', encoding='utf-8')
         report.generate(out, {'cases': [c]}, [row], [], include_english=fixture)
-        return (out/'index.html').read_text()
+        return (out/'index.html').read_text(encoding='utf-8')
 
     with ThreadPoolExecutor(max_workers=2) as pool:
         first = pool.submit(build, 'fixture', True)
@@ -50,7 +50,7 @@ def test_concurrent_report_builds_keep_status_and_language_separate(tmp_path, mo
     assert '合成示例 · 非正式评测' not in other_html
     assert 'href="en/index.html"' in fixture_html
     report.write(tmp_path, 'standalone.html', 'Standalone', 'body')
-    standalone = (tmp_path/'standalone.html').read_text()
+    standalone = (tmp_path/'standalone.html').read_text(encoding='utf-8')
     assert '合成示例 · 非正式评测' not in standalone
     assert 'href="en/index.html"' in standalone
 
@@ -91,10 +91,10 @@ def test_current_review_does_not_repeat_predecessor_scores(tmp_path, monkeypatch
              'unreviewed_attempt_ids': [records[1]['attempt_id']],
              'accepted_unreviewed_passes': 0, 'unresolved': 0,
              'adjudication_revision': {'adjudicated_attempt_ids': ['retained']}}
-    (tmp_path/'dataset.json').write_text(json.dumps(dataset))
-    (tmp_path/'result-review.json').write_text(json.dumps(audit))
+    (tmp_path/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+    (tmp_path/'result-review.json').write_text(json.dumps(audit), encoding='utf-8')
     report.write_review_page(tmp_path, records)
-    page = (tmp_path/'review/index.html').read_text()
+    page = (tmp_path/'review/index.html').read_text(encoding='utf-8')
     text = BeautifulSoup(page, 'html.parser').get_text(' ', strip=True)
     assert '当前通过 1 条，可比较 2 条，排除 0 条' in text
     assert '补充裁定 1 条' in text
@@ -110,11 +110,11 @@ def test_reproduction_command_runs_through_the_current_public_cli(tmp_path):
     c = case('fixture')
     r = record(c)
     (tmp_path/'dataset.json').write_text(json.dumps({
-        'cases': [c], 'comparison': {'kind': 'uniform_native_local_measurement'}}))
-    (tmp_path/'presentation-binding.json').write_text('{}')
+        'cases': [c], 'comparison': {'kind': 'uniform_native_local_measurement'}}), encoding='utf-8')
+    (tmp_path/'presentation-binding.json').write_text('{}', encoding='utf-8')
     with patch('harness.web_fetch.report_methods.render_methods', return_value='methods'):
         report.write_support(tmp_path, [r], [], authored_interpretation=False)
-    soup = BeautifulSoup((tmp_path/'reproduce/index.html').read_text(), 'html.parser')
+    soup = BeautifulSoup((tmp_path/'reproduce/index.html').read_text(encoding='utf-8'), 'html.parser')
     commands = next(p.get_text() for p in soup.select('pre') if 'scripts/build_report.py' in p.get_text())
     assert '--hide-local-status-banners' not in commands
     command = shlex.split(commands.splitlines()[0])

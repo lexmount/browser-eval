@@ -13,14 +13,14 @@ from harness.trajectory_replay.public_webarena.config import (
 def test_runtime_env_defaults_do_not_override_exported_values(tmp_path, monkeypatch):
     env_file = tmp_path / ".env"
     env_file.write_text(
-        "# comment\nWEBARENA_REDDIT_USERNAME='fixture-user'\nINVALID KEY=nope\n",
+        "# comment\nWEBARENA_HOST_OVERRIDE_ADDRESS='192.0.2.1'\nINVALID KEY=nope\n",
         encoding="utf-8",
     )
-    monkeypatch.setenv("WEBARENA_REDDIT_USERNAME", "exported-user")
+    monkeypatch.setenv("WEBARENA_HOST_OVERRIDE_ADDRESS", "192.0.2.2")
 
     load_runtime_env(env_file)
 
-    assert os.environ["WEBARENA_REDDIT_USERNAME"] == "exported-user"
+    assert os.environ["WEBARENA_HOST_OVERRIDE_ADDRESS"] == "192.0.2.2"
     assert "INVALID KEY" not in os.environ
 
 

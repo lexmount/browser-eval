@@ -52,9 +52,9 @@ class SecurityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp);source=root/'source';output=root/'output';outside=root/'outside'
             (source/'nested').mkdir(parents=True);output.mkdir();outside.mkdir()
-            (source/'nested/result.md').write_text('result')
+            (source/'nested/result.md').write_text('result', encoding='utf-8')
             copied=copy_contained_artifact(source,'nested/result.md',output,'artifacts/result.md')
-            self.assertEqual(copied.read_text(),'result')
+            self.assertEqual(copied.read_text(encoding='utf-8'),'result')
             (output/'escape').symlink_to(outside,target_is_directory=True)
             for source_path,target_path in [
                 ('../outside/result.md','artifacts/result.md'),
@@ -76,7 +76,7 @@ class SecurityTests(unittest.TestCase):
     def test_rescore_rejects_artifact_escape(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=Path(tmp)/'run';root.mkdir()
-            (root/'results.jsonl').write_text('{"case_id":"c","artifact_path":"../secret.txt"}\n')
+            (root/'results.jsonl').write_text('{"case_id":"c","artifact_path":"../secret.txt"}\n', encoding='utf-8')
             with self.assertRaises(ValueError):
                 rescore_evaluation(run_dir=root,dataset_meta={},dataset_path=Path('data.json'),cases=[EvalCase('c','c','https://example.com','static',[])])
 

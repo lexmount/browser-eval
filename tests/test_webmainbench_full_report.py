@@ -81,9 +81,9 @@ def render_full_report(tmp_path, binding_name, extra_methods=0, *, call_counts=N
                           "input_html_sha256": hashlib.sha256(b"<p>source</p>").hexdigest(),
                           "reference_sha256": hashlib.sha256(b"answer").hexdigest()}]}
     (tmp_path / "sources").mkdir()
-    (tmp_path / "sources/case-1.html.txt").write_text("<p>source</p>")
+    (tmp_path / "sources/case-1.html.txt").write_text("<p>source</p>", encoding="utf-8")
     (tmp_path / "references").mkdir()
-    (tmp_path / "references/case-1.md").write_text("answer")
+    (tmp_path / "references/case-1.md").write_text("answer", encoding="utf-8")
     profile = {"providers": providers, "versions": {provider: "1.0" for provider in providers},
                "variants": [
                    {"provider": "moli-pr785-fixed", "profile": "moli-pr785-fixed-report.json"},
@@ -104,7 +104,7 @@ def render_full_report(tmp_path, binding_name, extra_methods=0, *, call_counts=N
                     "guide_method_scope", "guide_conclusion", "audit_scope", "audit_findings",
                     "audit_resolution", "audit_limit")
     (tmp_path / "report-content.json").write_text(json.dumps({key: "说明" for key in content_keys}), encoding="utf-8")
-    content = json.loads((tmp_path / "report-content.json").read_text())
+    content = json.loads((tmp_path / "report-content.json").read_text(encoding="utf-8"))
     content["interfaces"] = {provider: "调用接口" for provider in providers}
     content["adoption_lead"] = "采用证据"
     content["adoption_limit"] = "采用限制"
@@ -148,7 +148,7 @@ def render_full_report(tmp_path, binding_name, extra_methods=0, *, call_counts=N
 ])
 def test_retry_summary_uses_recorded_call_counts(tmp_path, calls, recovered, failure_calls):
     providers, _ = render_full_report(tmp_path, 'method-binding.json', call_counts=calls)
-    page = BeautifulSoup((tmp_path/'methodology/index.html').read_text(), 'html.parser')
+    page = BeautifulSoup((tmp_path/'methodology/index.html').read_text(encoding="utf-8"), 'html.parser')
     text = page.find('h2', string='失败重试').find_parent('section').get_text()
     assert f'共 {sum(calls.get(name, 1) for name in providers)} 次调用' in text
     assert f'{recovered} 条请求在重试后成功' in text
@@ -244,14 +244,14 @@ def test_full_report_renders_registered_details_and_failure_evidence(tmp_path: P
     missing_handler = BeautifulSoup(str(analysis).replace(' onclick="openDiagnosis(this)"', '', 1), 'html.parser')
     with pytest.raises(ValueError, match='cannot open'):
         check_diagnosis_inventory(missing_handler)
-    assert json.loads((tmp_path / "report-manifest.json").read_text())["languages"] == ["zh"]
+    assert json.loads((tmp_path / "report-manifest.json").read_text(encoding="utf-8"))["languages"] == ["zh"]
     home_html = (tmp_path / "index.html").read_text(encoding="utf-8")
     with pytest.raises(ValueError, match="extremum"):
         check_presentation(home_html.replace("winner comparison-winner", "winner", 1))
     detail_html = (tmp_path / "results/index.html").read_text(encoding="utf-8")
-    index = json.loads((tmp_path / "result-shard-index.json").read_text())
-    artifact_index = json.loads((tmp_path / "artifact-shard-index.json").read_text())
-    shards = {path: json.loads((tmp_path / path).read_text()) for path in set(index.values())}
+    index = json.loads((tmp_path / "result-shard-index.json").read_text(encoding="utf-8"))
+    artifact_index = json.loads((tmp_path / "artifact-shard-index.json").read_text(encoding="utf-8"))
+    shards = {path: json.loads((tmp_path / path).read_text(encoding="utf-8")) for path in set(index.values())}
     check_result_payload(rows[0], index, artifact_index, shards)
     with pytest.raises(ValueError, match="Evidence target"):
         check_result_payload(rows[0], index, {**artifact_index, rows[0]["artifact_path"]: "shards/missing.json"}, shards)

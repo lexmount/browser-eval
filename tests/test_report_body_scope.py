@@ -63,10 +63,10 @@ class ReportBodyScopeTests(unittest.TestCase):
             data={'retained_reviews':{'path':'retained.json'},'reviewed_attempts':3,
                   'expected_attempts':3,'fresh_reviewed_attempts':1,'retained_reviewed_attempts':2,
                   'review_protocol':{'blind_initial_verdict':False}}
-            (out/'result-review.json').write_text(json.dumps(data))
+            (out/'result-review.json').write_text(json.dumps(data), encoding='utf-8')
             self.assertIn('已知程序结论',review_summary(out))
             data['review_protocol']['fresh_blind_initial_verdict']=True
-            (out/'result-review.json').write_text(json.dumps(data))
+            (out/'result-review.json').write_text(json.dumps(data), encoding='utf-8')
             rendered=review_summary(out)
             self.assertIn('先隐藏程序结论独立判断',rendered)
             self.assertNotIn('本次为已知程序结论',rendered)
@@ -74,7 +74,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             data.update(fresh_reviewed_attempts=1348,retained_reviewed_attempts=2952,
                         reviewed_attempts=4300,expected_attempts=4300,
                         fresh_blind_reviewed_attempts=1320,renewed_context_reviewed_attempts=28)
-            (out/'result-review.json').write_text(json.dumps(data))
+            (out/'result-review.json').write_text(json.dumps(data), encoding='utf-8')
             rendered=review_summary(out)
             self.assertIn('1320 条先隐藏程序结论',rendered)
             self.assertIn('28 条因规则或请求状态修正补充复裁',rendered)
@@ -92,7 +92,7 @@ class ReportBodyScopeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             out=Path(directory)
             for row in rows:
-                artifact=out/row['artifact_path'];artifact.parent.mkdir(parents=True,exist_ok=True);artifact.write_text('output')
+                artifact=out/row['artifact_path'];artifact.parent.mkdir(parents=True,exist_ok=True);artifact.write_text('output', encoding='utf-8')
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':cases},rows,[])
                 detail_paths=[out/'attempts'/f"{row['attempt_id']}.html" for row in rows]
@@ -103,14 +103,14 @@ class ReportBodyScopeTests(unittest.TestCase):
                 generate(out,{'cases':cases},rows,[],presentation_only=True)
                 self.assertEqual([path.read_bytes() for path in detail_paths],before)
                 generate(out,{'cases':cases},rows,[],presentation_only=True,detail_attempt_ids={rows[0]['attempt_id']})
-                self.assertIn('不支持所需输出格式',detail_paths[0].read_text())
+                self.assertIn('不支持所需输出格式',detail_paths[0].read_text(encoding='utf-8'))
                 self.assertNotEqual(detail_paths[0].read_bytes(),before[0])
                 self.assertEqual(detail_paths[1].read_bytes(),before[1])
                 self.assertEqual((out/'datasets/first.html').read_bytes(),dataset_before)
                 other_dataset=(out/'datasets/second.html').read_bytes()
                 cases[0]['name']='Updated frozen task name'
                 generate(out,{'cases':cases},rows,[],presentation_only=True,dataset_case_ids={'first'})
-                self.assertIn('Updated frozen task name',(out/'datasets/first.html').read_text())
+                self.assertIn('Updated frozen task name',(out/'datasets/first.html').read_text(encoding='utf-8'))
                 self.assertEqual((out/'datasets/second.html').read_bytes(),other_dataset)
                 self.assertEqual(detail_paths[1].read_bytes(),before[1])
                 with self.assertRaisesRegex(ValueError,'Unknown dataset'):
@@ -377,10 +377,10 @@ class ReportBodyScopeTests(unittest.TestCase):
                'attempts':[{'attempt_id':r['attempt_id'],'machine_verdict':'fail',
                             'agent_verdict':'fail','final_verdict':'fail','agent_evidence':'specific evidence'}]}
         with tempfile.TemporaryDirectory() as directory:
-            out=Path(directory);(out/'result-review.json').write_text(json.dumps(audit))
+            out=Path(directory);(out/'result-review.json').write_text(json.dumps(audit), encoding='utf-8')
             with patch('harness.web_fetch.report_methods.render_methods',return_value='methods'):
                 write_support(out,[r],[])
-            rendered=(out/'review/index.html').read_text()
+            rendered=(out/'review/index.html').read_text(encoding='utf-8')
             for phrase in ['当前状态','核验轮次','第 1 轮','核验协议与执行者']:
                 self.assertIn(phrase,rendered)
             for phrase in ['代理分歧 0','已裁定 0','未决 0']:
@@ -389,7 +389,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertNotIn('全部 1 条逐项核验',rendered)
             self.assertNotIn('机器失败项有证据',rendered)
             self.assertNotIn('核验 JSON',rendered)
-            self.assertNotIn('结果核验',(out/'reproduce/index.html').read_text())
+            self.assertNotIn('结果核验',(out/'reproduce/index.html').read_text(encoding='utf-8'))
 
     def test_text_coverage_repeated_denominator_removed_but_different_scopes_disclosed(self):
         a,b=case('a','body'),case('b','body')
@@ -564,26 +564,26 @@ class ReportBodyScopeTests(unittest.TestCase):
         c=case();r=record(c)
         r['metrics'].update(effective_entries=3,minimum_entries=3)
         with tempfile.TemporaryDirectory() as directory:
-            out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True);artifact.write_text('output')
+            out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True);artifact.write_text('output', encoding='utf-8')
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':[c]},[r],[])
-            self.assertEqual(json.loads((out/'report-languages.json').read_text())['languages'],['zh'])
-            self.assertIn('英文报告未生成',(out/'en/index.html').read_text())
+            self.assertEqual(json.loads((out/'report-languages.json').read_text(encoding='utf-8'))['languages'],['zh'])
+            self.assertIn('英文报告未生成',(out/'en/index.html').read_text(encoding='utf-8'))
             self.assertFalse((out/'en/attempts').exists())
-            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text(encoding='utf-8')
             for phrase in ['任务结果','列表任务：通过','— / — / —','全文指标无完整参考','标准答案与验收规则','有效条目数 / 声明最少数量','3 / 3']:
                 self.assertIn(phrase,detail)
             self.assertNotIn('正文未评测',detail)
             self.assertNotIn('评分方式',detail)
-            self.assertIn('100.0%',(out/'index.html').read_text())
-            self.assertNotIn('<th>达标率</th>',(out/'datasets/index.html').read_text())
-            self.assertIn('../analysis/index.html#inspect?query=list',(out/'datasets/list.html').read_text())
-            self.assertNotIn('正文未评测',(out/'datasets/list.html').read_text())
+            self.assertIn('100.0%',(out/'index.html').read_text(encoding='utf-8'))
+            self.assertNotIn('<th>达标率</th>',(out/'datasets/index.html').read_text(encoding='utf-8'))
+            self.assertIn('../analysis/index.html#inspect?query=list',(out/'datasets/list.html').read_text(encoding='utf-8'))
+            self.assertNotIn('正文未评测',(out/'datasets/list.html').read_text(encoding='utf-8'))
             for page in ['index.html', 'datasets/list.html']:
-                self.assertIn('稳定标题、栏目、说明', (out/page).read_text())
+                self.assertIn('稳定标题、栏目、说明', (out/page).read_text(encoding='utf-8'))
             with patch('harness.web_fetch.report_methods.render_methods',return_value='methods'):
                 write_support(out,[r],[])
-            self.assertIn('task-contracts',(out/'methodology/index.html').read_text())
+            self.assertIn('task-contracts',(out/'methodology/index.html').read_text(encoding='utf-8'))
 
     def test_body_detail_leads_with_exact_reference_and_output_and_explains_positions(self):
         c=case('article','body','document')
@@ -597,10 +597,10 @@ class ReportBodyScopeTests(unittest.TestCase):
         r['provider_metadata']={'document_extractor':'pypdf'}
         with tempfile.TemporaryDirectory() as directory:
             out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
-            artifact.write_text('alpha beta gamma delta')
+            artifact.write_text('alpha beta gamma delta', encoding='utf-8')
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':[c]},[r],[],include_english=True)
-            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text(encoding='utf-8')
             self.assertLess(detail.index('标准答案与实际返回'),detail.index('为什么这样判'))
             self.assertIn('alpha beta gamma delta',detail)
             for phrase in ['正文判定：', '每段至少达到 60.0%',
@@ -614,11 +614,11 @@ class ReportBodyScopeTests(unittest.TestCase):
             self.assertIn('方法直接取得原始文档 → pypdf → 可读正文',detail)
             self.assertIn('标准答案位置',detail)
             self.assertNotIn('第 1/1 段',detail)
-            english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text()
+            english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text(encoding='utf-8')
             for phrase in ['Body-text rule:', 'Every region must reach at least 60.0%',
                            'Complete actual-output lines used to score this region']:
                 self.assertIn(phrase,english)
-            dataset=(out/'datasets/article.html').read_text()
+            dataset=(out/'datasets/article.html').read_text(encoding='utf-8')
             self.assertIn('同一份标准答案',dataset)
             self.assertNotIn('字符六元组数',dataset)
 
@@ -631,11 +631,11 @@ class ReportBodyScopeTests(unittest.TestCase):
                                 'private_artifacts':[{'path':'private_artifacts/secret.bin'}]}
         with tempfile.TemporaryDirectory() as directory:
             out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
-            artifact.write_text('')
+            artifact.write_text('', encoding='utf-8')
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':[c]},[r],[],include_english=True)
-            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
-            english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text()
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text(encoding='utf-8')
+            english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text(encoding='utf-8')
             for phrase in ['href="#run-log"','id="run-log"','查看运行日志与证据',
                            '运行日志与证据','调用状态','查看完整运行字段','查看本次真实日志',
                            '这次历史调用没有保存可展示的 stderr / debug 日志','原始运行证据']:
@@ -657,11 +657,11 @@ class ReportBodyScopeTests(unittest.TestCase):
         r['call_log_sha256']=hashlib.sha256(log).hexdigest()
         with tempfile.TemporaryDirectory() as directory:
             out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
-            artifact.write_text('output')
+            artifact.write_text('output', encoding='utf-8')
             log_path=out/r['call_log_path'];log_path.write_bytes(log)
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':[c]},[r],[])
-            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text(encoding='utf-8')
             self.assertIn('查看本次真实日志',detail)
             self.assertIn('<ol class="log-lines">',detail)
             self.assertIn('event=request.start',detail)
@@ -674,7 +674,7 @@ class ReportBodyScopeTests(unittest.TestCase):
         logs=[]
         with tempfile.TemporaryDirectory() as directory:
             out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
-            artifact.write_text('output')
+            artifact.write_text('output', encoding='utf-8')
             for index,stderr in enumerate(('ERROR first physical call','final_url=https://example.com/retried'),1):
                 raw=json.dumps({'process':{'stderr':stderr,'exit_code':index-1}}).encode()
                 relative=f'call-logs/fixture/retried/physical-{index}.json'
@@ -721,13 +721,13 @@ class ReportBodyScopeTests(unittest.TestCase):
             out=Path(directory)
             for row in (first,second):
                 artifact=out/row['artifact_path'];artifact.parent.mkdir(parents=True,exist_ok=True)
-                artifact.write_text('output')
+                artifact.write_text('output', encoding='utf-8')
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':[c]},[first,second],[])
             for name in ('fixture-a','fixture-b'):
                 page=out/'providers'/f'{name}.html'
                 self.assertTrue(page.is_file(),name)
-                self.assertIn('1 条执行记录',page.read_text())
+                self.assertIn('1 条执行记录',page.read_text(encoding='utf-8'))
 
     def test_attempt_log_drilldown_uses_canonical_call_log_stderr_in_both_languages(self):
         c=case('debugged','body','web');r=record(c,passed=False,ok=False)
@@ -744,17 +744,17 @@ class ReportBodyScopeTests(unittest.TestCase):
                                             'bytes':len(debug)}}
         with tempfile.TemporaryDirectory() as directory:
             out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
-            artifact.write_text('output')
+            artifact.write_text('output', encoding='utf-8')
             log=out/debug_path;log.parent.mkdir(parents=True);log.write_bytes(debug)
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':[c]},[r],[],include_english=True)
-            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text(encoding='utf-8')
             self.assertIn('ERROR challenge page returned',detail)
             self.assertIn('../'+debug_path,detail)
             self.assertIn(hashlib.sha256(debug).hexdigest(),detail)
             for phrase in ['查看完整运行字段','查看本次真实日志','下载调用日志 JSON']:
                 self.assertIn(phrase,detail)
-            english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text()
+            english=(out/'en/attempts'/f"{r['attempt_id']}.html").read_text(encoding='utf-8')
             for phrase in ['View complete run fields','View this run\'s real log',
                            'ERROR challenge page returned','Download call-log JSON']:
                 self.assertIn(phrase,english)
@@ -772,11 +772,11 @@ class ReportBodyScopeTests(unittest.TestCase):
                                             'bytes':len(debug)}}
         with tempfile.TemporaryDirectory() as directory:
             out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
-            artifact.write_text('output')
+            artifact.write_text('output', encoding='utf-8')
             log=out/debug_path;log.parent.mkdir(parents=True);log.write_bytes(debug)
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':[c]},[r],[])
-            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text(encoding='utf-8')
             first_level=detail.split('<details class="diagnostic-log">',1)[0]
             self.assertIn('这次调用正常形成了可评分输出。',first_level)
             self.assertNotIn('WARN optional resource failed',first_level)
@@ -793,10 +793,10 @@ class ReportBodyScopeTests(unittest.TestCase):
         r=record(c)
         with tempfile.TemporaryDirectory() as directory:
             out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True)
-            artifact.write_text('Dummy PDF file')
+            artifact.write_text('Dummy PDF file', encoding='utf-8')
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':[c]},[r],[])
-            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text(encoding='utf-8')
             for phrase in ['冻结源文件的全部可提取正文共 14 个字符', '标准答案没有省略',
                            '只验证短文档文字提取', '不用于证明多页、表格或附录完整性']:
                 self.assertIn(phrase,detail)
@@ -808,11 +808,11 @@ class ReportBodyScopeTests(unittest.TestCase):
         r['provider_metadata']={'file_evaluation':{'files':[{'artifact_path':'artifacts/fixture/image/file.bin',
             'mime':'image/png','bytes':8,'sha256':'abc123','pass':True}]}}
         with tempfile.TemporaryDirectory() as directory:
-            out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True);artifact.write_text('')
+            out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True);artifact.write_text('', encoding='utf-8')
             delivered=out/'artifacts/fixture/image/file.bin';delivered.write_bytes(b'pngbytes')
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':[c]},[r],[])
-            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text(encoding='utf-8')
             for phrase in ['目标文件','本任务验收原始文件字节，不要求 Markdown','image/png','8','abc123','匹配']:
                 self.assertIn(phrase,detail)
             self.assertNotIn('本次没有交付可校验的原始文件字节',detail)
@@ -871,13 +871,13 @@ class ReportBodyScopeTests(unittest.TestCase):
             out=Path(directory)
             for r in records:
                 artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True,exist_ok=True)
-                artifact.write_text('\n'.join(r['metrics']['resource_candidate_urls']))
+                artifact.write_text('\n'.join(r['metrics']['resource_candidate_urls']), encoding='utf-8')
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), \
                     patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':cases},records,[],include_english=True)
             for (identifier, matched, recall, precision, extra, _, zh_detail, en_reason),r in zip(scenarios,records):
-                zh=(out/'attempts'/f'{r["attempt_id"]}.html').read_text()
-                en=(out/'en/attempts'/f'{r["attempt_id"]}.html').read_text()
+                zh=(out/'attempts'/f'{r["attempt_id"]}.html').read_text(encoding='utf-8')
+                en=(out/'en/attempts'/f'{r["attempt_id"]}.html').read_text(encoding='utf-8')
                 expected_values=f'{recall*100:.1f}% / {precision*100:.1f}%'
                 self.assertIn('资源召回率 / 纯净度',zh)
                 self.assertIn('Resource recall / precision',en)
@@ -921,8 +921,8 @@ class ReportBodyScopeTests(unittest.TestCase):
         from harness.web_fetch.storage import current_evidence_dir
         evidence=current_evidence_dir()
         if not (evidence/'results.jsonl').is_file():self.skipTest('requires persisted benchmark evidence')
-        cases={c['id']:c for c in json.loads((evidence/'dataset.json').read_text())['cases']}
-        records=[json.loads(s) for s in (evidence/'results.jsonl').read_text().splitlines()]
+        cases={c['id']:c for c in json.loads((evidence/'dataset.json').read_text(encoding='utf-8'))['cases']}
+        records=[json.loads(s) for s in (evidence/'results.jsonl').read_text(encoding='utf-8').splitlines()]
         if len({r['provider'] for r in records}) != 12:
             self.skipTest('requires persisted 12-provider general benchmark evidence')
         rendered=ranking(records,cases,'challenge')
@@ -960,17 +960,17 @@ class ReportBodyScopeTests(unittest.TestCase):
         self.assertIn('结构检查通过',reason(r,c))
         self.assertEqual(table_cells(ranking([r],{'list':c},'challenge'),'ranking-challenge')[0][3],'100.0%')
         with tempfile.TemporaryDirectory() as directory:
-            out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True);artifact.write_text('output')
+            out=Path(directory);artifact=out/r['artifact_path'];artifact.parent.mkdir(parents=True);artifact.write_text('output', encoding='utf-8')
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':[c]},[r],[])
-            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text()
+            detail=(out/'attempts'/f"{r['attempt_id']}.html").read_text(encoding='utf-8')
             for phrase in ['稳定内容检查','条目结构检查','完整且唯一条目数','稳定内容核对点','heading','Catalog','&lt;item&gt;']:
                 self.assertIn(phrase,detail)
             self.assertNotIn('obsolete identity failure',detail)
             self.assertNotIn('条已确认',detail)
             for phrase in ['评分方式','保存输出离线评分','评分时间','2026-09-04T01:00:00Z','规则校验值','rule-hash','2026-09-03T00:00:00Z']:
                 self.assertIn(phrase,detail)
-            self.assertIn('稳定文本锚点',(out/'datasets/list.html').read_text())
+            self.assertIn('稳定文本锚点',(out/'datasets/list.html').read_text(encoding='utf-8'))
         r['metrics'].update(stable_task_pass=False,stable_content_pass=False,
                             stable_task_errors=['missing_stable_anchor:heading'],list_task_pass=True)
         self.assertEqual(table_cells(ranking([r],{'list':c},'challenge'),'ranking-challenge')[0][3],'0.0%')
@@ -1003,7 +1003,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             rendered=stable_contract_details(c,evidence_root=root)
             self.assertIn('Fixed heading',rendered)
             self.assertNotIn('href="../sources/early.txt"',rendered)
-            (root/'sources').mkdir();(root/'sources/early.txt').write_text('Fixed heading')
+            (root/'sources').mkdir();(root/'sources/early.txt').write_text('Fixed heading', encoding='utf-8')
             self.assertIn('href="../sources/early.txt"',stable_contract_details(c,evidence_root=root))
 
     def test_body_coverage_explanation_uses_the_declared_unit_and_region_rules(self):
@@ -1052,7 +1052,7 @@ class ReportBodyScopeTests(unittest.TestCase):
                 self.assertEqual((out/f'assets/methodology/{name}.png').read_bytes(),b'fixture image bytes')
             with patch('harness.web_fetch.report_methods.render_methods',return_value='methods'):
                 write_support(out,[],[])
-            page=(out/'methodology/index.html').read_text()
+            page=(out/'methodology/index.html').read_text(encoding='utf-8')
             for name in ['annotation','validation','scoring']:
                 self.assertIn(f'../assets/methodology/{name}.png',page)
 
@@ -1061,8 +1061,8 @@ class ReportBodyScopeTests(unittest.TestCase):
             out = Path(directory)
             with patch('harness.web_fetch.report_methods.render_methods', return_value='methods'):
                 write_support(out, [], [])
-            methodology = (out/'methodology/index.html').read_text()
-            reproduce = (out/'reproduce/index.html').read_text()
+            methodology = (out/'methodology/index.html').read_text(encoding='utf-8')
+            reproduce = (out/'reproduce/index.html').read_text(encoding='utf-8')
         self.assertIn('变更后重跑范围', methodology)
         self.assertIn('只改展示时重建报告', methodology)
         self.assertIn('发布与加载', reproduce)
@@ -1084,9 +1084,9 @@ class ReportBodyScopeTests(unittest.TestCase):
         }
         with tempfile.TemporaryDirectory() as directory:
             source=Path(directory)/'source';source.mkdir();out=Path(directory)/'report'
-            (source/'dataset.json').write_text(json.dumps({'cases':[c]}))
-            (source/'results.jsonl').write_text(json.dumps(r)+'\n')
-            (source/'manifest.json').write_text('{}')
+            (source/'dataset.json').write_text(json.dumps({'cases':[c]}), encoding='utf-8')
+            (source/'results.jsonl').write_text(json.dumps(r)+'\n', encoding='utf-8')
+            (source/'manifest.json').write_text('{}', encoding='utf-8')
             artifact=source/r['artifact_path'];artifact.parent.mkdir(parents=True);artifact.write_bytes(b'output')
             private_path=source/r['provider_metadata']['raw_response_path']
             private_path.parent.mkdir(parents=True);private_path.write_bytes(private)
@@ -1096,7 +1096,7 @@ class ReportBodyScopeTests(unittest.TestCase):
                     expected=(assets/f'{name}.png').read_bytes()
                     self.assertTrue(expected.startswith(b'\x89PNG\r\n\x1a\n'))
                     self.assertEqual((staging/f'assets/methodology/{name}.png').read_bytes(),expected)
-                summary=json.loads((staging/'summary.json').read_text())
+                summary=json.loads((staging/'summary.json').read_text(encoding='utf-8'))
                 self.assertEqual(summary['challenge']['fixture']['scoring_scope'],'stable_contract')
                 self.assertEqual(summary['challenge']['fixture']['task_pass'],1)
                 self.assertFalse((staging/'private_artifacts').exists())
@@ -1114,8 +1114,8 @@ class ReportBodyScopeTests(unittest.TestCase):
             with self.subTest(hash=actual), tempfile.TemporaryDirectory() as directory:
                 source=Path(directory)/'source';source.mkdir();out=Path(directory)/'report'
                 r['metrics']['acceptance_contract_sha256']=actual
-                (source/'dataset.json').write_text(json.dumps({'cases':[c]}))
-                (source/'results.jsonl').write_text(json.dumps(r)+'\n')
+                (source/'dataset.json').write_text(json.dumps({'cases':[c]}), encoding='utf-8')
+                (source/'results.jsonl').write_text(json.dumps(r)+'\n', encoding='utf-8')
                 with patch('harness.web_fetch.report_build.generate') as generated:
                     with self.assertRaisesRegex(ValueError,'Acceptance contract hash missing or mismatched'):
                         build_report(source,out)
@@ -1127,8 +1127,8 @@ class ReportBodyScopeTests(unittest.TestCase):
         c=case();r=record(c);r['metrics']['scoring_source_sha256']='old-scorer'
         with tempfile.TemporaryDirectory() as directory:
             source=Path(directory)/'source';source.mkdir();out=Path(directory)/'report'
-            (source/'dataset.json').write_text(json.dumps({'cases':[c]}))
-            (source/'results.jsonl').write_text(json.dumps(r)+'\n')
+            (source/'dataset.json').write_text(json.dumps({'cases':[c]}), encoding='utf-8')
+            (source/'results.jsonl').write_text(json.dumps(r)+'\n', encoding='utf-8')
             with patch('harness.web_fetch.report_build.generate') as generated:
                 with self.assertRaisesRegex(ValueError,'Stale scoring implementation'):
                     build_report(source,out)

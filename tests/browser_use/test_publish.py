@@ -115,5 +115,8 @@ def test_bind_published_version_advances_profile_and_attestation(
 
     publisher.bind_published_version("ver_new")
 
-    assert json.loads(profile.read_text())["publication"]["expected_version"] == "ver_new"
-    assert json.loads(attestation.read_text())["profile_sha256"] == _sha256(profile)
+    assert (
+        json.loads(profile.read_text(encoding="utf-8"))["publication"]["expected_version"]
+        == "ver_new"
+    )
+    assert json.loads(attestation.read_text(encoding="utf-8"))["profile_sha256"] == _sha256(profile)

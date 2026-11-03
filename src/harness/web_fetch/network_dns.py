@@ -53,7 +53,7 @@ def configure_chromium_dns_profile(profile, mode):
     state.write_text(json.dumps({
         "dns_over_https": {"mode": "secure", "templates": DNS_ENDPOINT + "{?dns}"},
         "built_in_dns_client_enabled": True,
-    }))
+    }), encoding="utf-8")
     return {
         "dns_mode": "public_doh",
         "dns_endpoint": DNS_ENDPOINT,
@@ -286,7 +286,7 @@ async def crawl4ai_public_dns_browser(config):
                 endpoint = profile / "DevToolsActivePort"
                 while not endpoint.exists():
                     await asyncio.sleep(0.01)
-                port = int(endpoint.read_text().splitlines()[0])
+                port = int(endpoint.read_text(encoding="utf-8").splitlines()[0])
                 if not 1 <= port <= 65535:
                     raise ValueError("invalid Chrome debugging endpoint")
                 yield config.clone(cdp_url=f"http://127.0.0.1:{port}"), {
@@ -309,7 +309,7 @@ def validate_native_dns_library(library):
         raise ValueError("native_dns_library is required for Moli public_doh")
     path = pathlib.Path(library).expanduser().resolve()
     try:
-        manifest = json.loads(path.with_suffix(".json").read_text())
+        manifest = json.loads(path.with_suffix(".json").read_text(encoding="utf-8"))
         if manifest.get("platform") != "Darwin" or manifest.get("architecture") != platform.machine():
             raise ValueError("native DNS platform or architecture mismatch")
         expected = {source.name: hashlib.sha256(source.read_bytes()).hexdigest() for source in _native_dns_sources()}
@@ -338,7 +338,7 @@ def build_native_dns_library(destination):
                     },
                     "library_sha256": hashlib.sha256(staged.read_bytes()).hexdigest()}
         staged.replace(path)
-        path.with_suffix(".json").write_text(json.dumps(manifest, indent=2) + "\n")
+        path.with_suffix(".json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return validate_native_dns_library(path)
 
 

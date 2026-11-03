@@ -51,7 +51,8 @@ def test_runtime_smoke_validates_cpu_before_environment_access(tmp_path, monkeyp
 
     config = tmp_path / "config.json"
     config.write_text(
-        json.dumps({"environments": {"__WIKIPEDIA__": {"urls": ["https://wikipedia.example"]}}})
+        json.dumps({"environments": {"__WIKIPEDIA__": {"urls": ["https://wikipedia.example"]}}}),
+        encoding="utf-8"
     )
     monkeypatch.setattr(
         docker,
@@ -93,7 +94,8 @@ def test_runtime_smoke_uses_registered_engine_and_sites_and_cleans_resources(
 
     config = tmp_path / "config.json"
     config.write_text(
-        json.dumps({"environments": {"__WIKIPEDIA__": {"urls": ["https://wikipedia.example"]}}})
+        json.dumps({"environments": {"__WIKIPEDIA__": {"urls": ["https://wikipedia.example"]}}}),
+        encoding="utf-8"
     )
     output = tmp_path / "output"
     client, container, network, browser, manager = [MagicMock() for _ in range(5)]
@@ -133,7 +135,7 @@ def test_runtime_smoke_uses_registered_engine_and_sites_and_cleans_resources(
             pass
 
         def stop(self, path):
-            path.write_text('{"log":{"entries":[]}}')
+            path.write_text('{"log":{"entries":[]}}', encoding="utf-8")
             return {"entries": 0}
 
     monkeypatch.setattr(har, "CdpHarRecorder", Recorder)
@@ -157,7 +159,7 @@ def test_runtime_smoke_uses_registered_engine_and_sites_and_cleans_resources(
             manager.stop.assert_called_once()
         return
     runtime_smoke_main(argv)
-    receipt = json.loads((output / "receipt.json").read_text())
+    receipt = json.loads((output / "receipt.json").read_text(encoding="utf-8"))
     assert set(receipt["engines"]) == {"chromium"}
     assert receipt["diagnostic_only"] and not receipt["qualification_evidence"]
     assert receipt["config_sha256"] == hashlib.sha256(config.read_bytes()).hexdigest()

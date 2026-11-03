@@ -19,10 +19,10 @@ class WCXBContractTests(unittest.TestCase):
         from tests.wcxb_fixture import create_cohort
         with tempfile.TemporaryDirectory() as folder:
             cohort = create_cohort(Path(folder))
-            (cohort['source'] / 'evaluate.py').write_text('raise RuntimeError("executed")\n')
-            profile = json.loads(cohort['profile_path'].read_text())
+            (cohort['source'] / 'evaluate.py').write_text('raise RuntimeError("executed")\n', encoding='utf-8')
+            profile = json.loads(cohort['profile_path'].read_text(encoding='utf-8'))
             profile['official_evaluator_sha256'] = '0' * 64
-            cohort['profile_path'].write_text(json.dumps(profile))
+            cohort['profile_path'].write_text(json.dumps(profile), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'unsupported official metric provenance'):
                 score(**cohort)
 
@@ -45,7 +45,7 @@ class WCXBContractTests(unittest.TestCase):
         self.assertEqual(sample['primary_quality_case_count'], 504)
 
     def test_full_test_exclusions_follow_source_content_only(self):
-        manifest = json.loads((ROOT / 'evaluation/public-wcxb-test-qualified.json').read_text())
+        manifest = json.loads((ROOT / 'evaluation/public-wcxb-test-qualified.json').read_text(encoding='utf-8'))
         self.assertEqual(manifest['scope'], 'qualified_test')
         self.assertNotIn('exclusions', manifest)
         records = [
@@ -156,7 +156,7 @@ def test_wcxb_execution_reads_versions_only_from_selected_profile(tmp_path, monk
     from tests.wcxb_fixture import create_cohort
 
     fixture = create_cohort(tmp_path / 'inputs', providers=('moli', 'chromium'))
-    profile = json.loads(fixture['profile_path'].read_text())
+    profile = json.loads(fixture['profile_path'].read_text(encoding='utf-8'))
     args = SimpleNamespace(
         output=tmp_path / 'new-run', case_ids_file=fixture['sample_manifest'],
         benchmark='wcxb', provider='moli', dataset=fixture['source'],
@@ -183,12 +183,12 @@ def test_wcxb_execution_reads_versions_only_from_selected_profile(tmp_path, monk
         ({'moli': '2.0.0', 'chromium': '150.0'}, 'expected version 2.0.0'),
     ):
         profile['expected_versions'] = declared
-        args.profile.write_text(json.dumps(profile))
+        args.profile.write_text(json.dumps(profile), encoding='utf-8')
         with pytest.raises(ValueError, match=error):
             runner.run(args)
         assert not args.output.exists()
     profile['expected_versions'] = {'moli': '2.3.4', 'chromium': '150.0'}
-    args.profile.write_text(json.dumps(profile))
+    args.profile.write_text(json.dumps(profile), encoding='utf-8')
     with pytest.raises(Admitted):
         runner.run(args)
     assert observed == ['identity', 'identity']

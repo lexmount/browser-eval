@@ -37,7 +37,7 @@ def metric_contract():
 
 
 def resolve_template(track, *, root=ROOT):
-    registry = json.loads((root / "configs/report-templates.json").read_text())
+    registry = json.loads((root / "configs/report-templates.json").read_text(encoding="utf-8"))
     if registry.get("schema_version") != 1:
         raise ValueError("Unsupported report template registry")
     if track not in registry["tracks"]:

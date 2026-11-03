@@ -12,7 +12,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = sorted(path for path in (ROOT/'scripts').glob('*.py')
-                 if 'sys.path.' in path.read_text())
+                 if 'sys.path.' in path.read_text(encoding='utf-8'))
 
 
 @pytest.fixture(scope='module')
@@ -45,7 +45,7 @@ PROBE = r'''
 import ast, importlib, pathlib, sys
 script = pathlib.Path(sys.argv[1])
 prefix = []
-for node in ast.parse(script.read_text()).body:
+for node in ast.parse(script.read_text(encoding="utf-8")).body:
     prefix.append(node)
     if (isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
         and isinstance(node.value.func, ast.Attribute)

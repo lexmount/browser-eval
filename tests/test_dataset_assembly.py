@@ -103,7 +103,7 @@ def _fixture(tmp_path: Path) -> tuple[Path, dict]:
 def test_profile_review_scope_survives_dataset_assembly(tmp_path):
     path, _assembly = _fixture(tmp_path)
     profile_path = tmp_path / "profile.json"
-    profile = json.loads(profile_path.read_text())
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
     profile["require_independent_result_review"] = True
     for scope in ("all", "machine-failures"):
         profile["independent_result_review_scope"] = scope
@@ -161,7 +161,7 @@ def test_profile_dataset_assembly_rejects_stale_source_and_wrong_owner(tmp_path)
 
 def test_profile_dataset_assembly_applies_hash_locked_case_corrections(tmp_path):
     path, assembly = _fixture(tmp_path)
-    source_case = json.loads((tmp_path / "plain.json").read_text())["cases"][0]
+    source_case = json.loads((tmp_path / "plain.json").read_text(encoding="utf-8"))["cases"][0]
     definition_sha256 = hashlib.sha256(
         json.dumps(source_case, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
@@ -226,7 +226,7 @@ def test_profile_dataset_assembly_applies_hash_locked_case_corrections(tmp_path)
 )
 def test_profile_dataset_assembly_rejects_unbounded_case_corrections(tmp_path, mutate):
     path, assembly = _fixture(tmp_path)
-    source_case = json.loads((tmp_path / "plain.json").read_text())["cases"][0]
+    source_case = json.loads((tmp_path / "plain.json").read_text(encoding="utf-8"))["cases"][0]
     definition_sha256 = hashlib.sha256(
         json.dumps(
             source_case,
@@ -269,7 +269,7 @@ def test_profile_dataset_assembly_rejects_unbounded_case_corrections(tmp_path, m
 
 def test_input_changing_case_correction_requires_all_method_rerun(tmp_path):
     path, assembly = _fixture(tmp_path)
-    source_case = json.loads((tmp_path / "plain.json").read_text())["cases"][0]
+    source_case = json.loads((tmp_path / "plain.json").read_text(encoding="utf-8"))["cases"][0]
     definition_sha256 = hashlib.sha256(
         json.dumps(source_case, sort_keys=True, separators=(",", ":")).encode()
     ).hexdigest()
@@ -326,13 +326,13 @@ def test_explicit_external_profile_is_portable_and_preserves_input_hash_checks(t
     repository = tmp_path / 'checkout'
     path, assembly = _fixture(repository)
     profile = tmp_path / 'instance/profile.json'
-    _write(profile, json.loads((repository / 'profile.json').read_text()))
+    _write(profile, json.loads((repository / 'profile.json').read_text(encoding="utf-8")))
     dataset, raw = assemble_profile_dataset(path, repository=repository,
         profile_path_override=profile, require_output_hash=False)
     assert dataset['comparison']['reproduction_profile'] == 'profile.json'
     assert str(tmp_path).encode() not in raw
     source = repository / 'plain.json'
-    source.write_text('{"cases": []}')
+    source.write_text('{"cases": []}', encoding="utf-8")
     with pytest.raises(ValueError, match='source hash changed'):
         assemble_profile_dataset(path, repository=repository,
             profile_path_override=profile, require_output_hash=False)

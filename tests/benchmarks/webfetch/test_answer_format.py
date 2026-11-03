@@ -81,9 +81,9 @@ def test_literal_entities_are_not_reinterpreted_as_hidden_markup():
 
 def test_cli_rescores_saved_answer_with_saved_metadata(tmp_path):
     task, response, metadata = (tmp_path / name for name in ('task.json', 'answer.txt', 'metadata.json'))
-    task.write_text(json.dumps(CASE))
+    task.write_text(json.dumps(CASE), encoding='utf-8')
     response.write_bytes(TEXT)
-    metadata.write_text(json.dumps({'answer_format': 'plain_text'}))
+    metadata.write_text(json.dumps({'answer_format': 'plain_text'}), encoding='utf-8')
     original = hashlib.sha256(response.read_bytes()).hexdigest()
     args = [sys.executable, '-m', 'lexbench_webfetch.cli', 'score', '--task', str(task),
             '--response', str(response), '--metadata', str(metadata)]
@@ -92,7 +92,7 @@ def test_cli_rescores_saved_answer_with_saved_metadata(tmp_path):
     assert result['passed']
     assert result['metrics']['answer_format'] == 'plain_text'
     assert hashlib.sha256(response.read_bytes()).hexdigest() == original
-    metadata.write_text(json.dumps({'answer_format': 'invalid'}))
+    metadata.write_text(json.dumps({'answer_format': 'invalid'}), encoding='utf-8')
     run = subprocess.run(args, capture_output=True, text=True)
     assert run.returncode == 1
     assert 'answer_format must be' in run.stderr

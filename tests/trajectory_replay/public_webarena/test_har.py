@@ -143,7 +143,7 @@ def test_har_recorder_captures_new_tabs_and_evaluator_fields(tmp_path):
 
     summary = recorder.stop(output)
 
-    payload = json.loads(output.read_text())
+    payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload["log"]["creator"] == {"name": "browser-eval-cdp", "version": "3"}
     entry = payload["log"]["entries"][0]
     assert summary == {
@@ -184,7 +184,7 @@ def test_har_recorder_captures_new_tabs_and_evaluator_fields(tmp_path):
         "request": {**entry["request"], "method": "GET"},
     }
     assert NetworkEvent(data=MappingProxyType(navigation_entry)).is_navigation_event
-    serialized = output.read_text()
+    serialized = output.read_text(encoding="utf-8")
     assert "request-secret" not in serialized
     assert "request-cookie" not in serialized
     assert "response-cookie" not in serialized
@@ -285,7 +285,7 @@ def test_har_recorder_preserves_post_redirect_hop_when_cdp_reuses_request_id(tmp
     session.handlers["Network.loadingFinished"]({"requestId": "redirected"})
 
     summary = recorder.stop(tmp_path / "network.har")
-    entries = json.loads((tmp_path / "network.har").read_text())["log"]["entries"]
+    entries = json.loads((tmp_path / "network.har").read_text(encoding="utf-8"))["log"]["entries"]
 
     assert summary["request_count"] == 2
     assert summary["entry_count"] == 2
@@ -372,6 +372,8 @@ def test_har_recorder_omits_response_bodies_the_evaluator_cannot_parse(tmp_path)
 
     recorder.stop(output)
 
-    content = json.loads(output.read_text())["log"]["entries"][0]["response"]["content"]
+    content = json.loads(output.read_text(encoding="utf-8"))["log"]["entries"][0]["response"][
+        "content"
+    ]
     assert content == {"size": len('{"ok":true}'), "mimeType": "text/html"}
-    assert '{"ok":true}' not in output.read_text()
+    assert '{"ok":true}' not in output.read_text(encoding="utf-8")

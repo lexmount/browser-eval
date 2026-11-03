@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[2]
 def test_wrapper_honors_cli_and_caller_directory(tmp_path, environment_model, arguments, expected):
     binary = tmp_path / 'uv'
     log = tmp_path / 'call.json'
-    binary.write_text('#!/bin/sh\nprintf "%s\\n" "$PWD" "$@" > "$CALL_LOG"\n')
+    binary.write_text('#!/bin/sh\nprintf "%s\\n" "$PWD" "$@" > "$CALL_LOG"\n', encoding='utf-8')
     binary.chmod(0o755)
     env = {**os.environ, 'PATH': str(tmp_path) + os.pathsep + os.environ['PATH'],
            'CALL_LOG': str(log), 'BROWSER_EVAL_DATA_HOME': str(tmp_path / 'data')}
@@ -28,7 +28,7 @@ def test_wrapper_honors_cli_and_caller_directory(tmp_path, environment_model, ar
                              *arguments, '--output', 'relative-evidence'],
                             cwd=tmp_path, env=env, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
-    lines = log.read_text().splitlines()
+    lines = log.read_text(encoding='utf-8').splitlines()
     assert lines[0] == str(tmp_path)
     assert lines[-2:] == ['--output', 'relative-evidence']
     # Exercise the actual runner parser without starting sites or provider calls.

@@ -28,7 +28,7 @@ def test_export_cli_reports_reference_verification(tmp_path, monkeypatch, capsys
             },
         }
         if revision:
-            (target / "annotation-review.json").write_text(json.dumps(report))
+            (target / "annotation-review.json").write_text(json.dumps(report), encoding="utf-8")
         return target / "dataset.json"
     monkeypatch.setattr(benchmark, "export", export)
     arguments = ["lexbench-webfetch", "export", "--suite", "test", "--source",

@@ -14,9 +14,9 @@ class ContentOwnershipTests(unittest.TestCase):
         authority = root / "evaluation/webfetch-seven-family-430"
         self.assertFalse((authority / "current-report.json").exists())
         self.assertFalse((authority / "rerun-scope.json").exists())
-        assembly = json.loads((authority / "dataset-assembly.json").read_text())
+        assembly = json.loads((authority / "dataset-assembly.json").read_text(encoding='utf-8'))
         self.assertNotIn("profile", assembly)
-        archive = json.loads((root / "evaluation/publication-archives.json").read_text())
+        archive = json.loads((root / "evaluation/publication-archives.json").read_text(encoding='utf-8'))
         self.assertEqual(archive["schema_version"], 1)
         self.assertTrue(archive["archives"][0]["site_url"].startswith("https://"))
 

@@ -306,9 +306,9 @@ class ArticleContracts(unittest.TestCase):
         directory.mkdir()
         (directory / "cohort.json").write_text(json.dumps({
             "schema_version": 1, "case_count": 1,
-            "cases": [{**self.case, "url": "javascript:alert(1)"}]}))
+            "cases": [{**self.case, "url": "javascript:alert(1)"}]}), encoding="utf-8")
         (directory / "rules.json").write_text(json.dumps({
-            "schema_version": 1, "rules": [self.rule]}))
+            "schema_version": 1, "rules": [self.rule]}), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "HTTP"):
             compile_dataset(self.root, directory)
 
@@ -389,7 +389,7 @@ class ArticleContracts(unittest.TestCase):
                     qualification_reference={'path': 'qualification.json',
                                              'sha256': hashlib.sha256(raw).hexdigest()})
         source = self.root / 'independent-source.txt'
-        source.write_text('Two independently displayed posts with visible author and text.')
+        source.write_text('Two independently displayed posts with visible author and text.', encoding="utf-8")
         rule['post_coverage_review'] = {'source_evidence': [
             {'path': source.name, 'sha256': hashlib.sha256(source.read_bytes()).hexdigest()}]}
         task = compile_case(case, rule, self.root)
@@ -438,7 +438,7 @@ class ArticleContracts(unittest.TestCase):
         static['post_contract'].update(version=2, minimum_posts=2,
                                        allow_empty_outer_with_quotes=True)
         source = self.root / 'independent-source.txt'
-        source.write_text('Two independently displayed posts with visible author and text.')
+        source.write_text('Two independently displayed posts with visible author and text.', encoding="utf-8")
         static['post_coverage_review'] = {'source_evidence': [
             {'path': source.name, 'sha256': hashlib.sha256(source.read_bytes()).hexdigest()}]}
         static_task = compile_case(case, static, self.root)
@@ -447,14 +447,14 @@ class ArticleContracts(unittest.TestCase):
         with self.assertRaises(ValueError):
             compile_case(case, static, self.root)
         static['post_contract']['minimum_posts'] = 2
-        source.write_text('Changed capture')
+        source.write_text('Changed capture', encoding="utf-8")
         with self.assertRaisesRegex(ValueError, 'Changed article collection source'):
             compile_case(case, static, self.root)
         static['post_coverage_review']['source_evidence'] = []
         with self.assertRaisesRegex(ValueError, 'requires source evidence'):
             compile_case(case, static, self.root)
 
-        source.write_text('Two independently displayed posts with visible author and text.')
+        source.write_text('Two independently displayed posts with visible author and text.', encoding="utf-8")
         incomplete = copy.deepcopy(reference)
         incomplete['records'][0]['body_parts'][0]['complete_initial_text'] = False
         raw = json.dumps(incomplete).encode()
@@ -468,13 +468,13 @@ class ArticleContracts(unittest.TestCase):
         directory.mkdir()
         second = {**self.case, "id": "article-002"}
         (directory / "cohort.json").write_text(json.dumps({
-            "schema_version": 1, "case_count": 2, "cases": [self.case, second]}))
+            "schema_version": 1, "case_count": 2, "cases": [self.case, second]}), encoding="utf-8")
         path = directory / "rules.json"
-        path.write_text(json.dumps({"schema_version": 1, "rules": [self.rule]}))
+        path.write_text(json.dumps({"schema_version": 1, "rules": [self.rule]}), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "inventory"):
             compile_dataset(self.root, directory)
         path.write_text(json.dumps({"schema_version": 1, "rules": [self.rule, {
-            "id": second['id'], "status": "unresolved"}]}))
+            "id": second['id'], "status": "unresolved"}]}), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "Unresolved"):
             compile_dataset(self.root, directory)
 
@@ -482,7 +482,7 @@ class ArticleContracts(unittest.TestCase):
         # not require dropping a difficult case or rewriting an existing suite.
         second_rule = {**self.rule, "id": second['id']}
         path.write_text(json.dumps({"schema_version": 1,
-                                    "rules": [self.rule, second_rule]}))
+                                    "rules": [self.rule, second_rule]}), encoding="utf-8")
         dataset = compile_dataset(self.root, directory)
         self.assertEqual(dataset['case_count'], 2)
         self.assertEqual(dataset['site_count'], 1)
@@ -492,8 +492,8 @@ class ArticleContracts(unittest.TestCase):
                          [self.case['id'], second['id']])
 
     def test_approved_inventory_keeps_all_cases_and_disclosed_removals(self):
-        cohort = json.loads((DEFINITIONS / "cohort.json").read_text())
-        rules = json.loads((DEFINITIONS / "rules.json").read_text())['rules']
+        cohort = json.loads((DEFINITIONS / "cohort.json").read_text(encoding="utf-8"))
+        rules = json.loads((DEFINITIONS / "rules.json").read_text(encoding="utf-8"))['rules']
         self.assertEqual(cohort['case_count'], 100)
         self.assertEqual([c['id'] for c in cohort['cases']], [r['id'] for r in rules])
         self.assertEqual([c['id'] for c in cohort['cases']], [
@@ -546,8 +546,8 @@ class ArticleContracts(unittest.TestCase):
         self.assertTrue(all(r['post_coverage_review']['source_evidence'] for r in posts))
 
     def test_published_contracts_match_authoring_rules(self):
-        rules = json.loads((DEFINITIONS / "rules.json").read_text())["rules"]
-        tasks = json.loads((DEFINITIONS / "tasks.json").read_text())["cases"]
+        rules = json.loads((DEFINITIONS / "rules.json").read_text(encoding="utf-8"))["rules"]
+        tasks = json.loads((DEFINITIONS / "tasks.json").read_text(encoding="utf-8"))["cases"]
         by_id = {task["id"]: task for task in tasks}
         self.assertEqual(len(by_id), len(tasks), "Duplicate public task IDs")
         self.assertEqual(len({rule["id"] for rule in rules}), len(rules))
@@ -561,7 +561,7 @@ class ArticleContracts(unittest.TestCase):
                                      task.get("source_benchmark", {}).get(component))
 
     def test_published_tasks_bind_current_authoring_bytes(self):
-        tasks = json.loads((DEFINITIONS / "tasks.json").read_text())
+        tasks = json.loads((DEFINITIONS / "tasks.json").read_text(encoding="utf-8"))
         for name in ("cohort", "rules"):
             with self.subTest(source=name):
                 self.assertEqual(tasks["source_bindings"][name + "_sha256"],
@@ -578,10 +578,10 @@ class ArticleContracts(unittest.TestCase):
             (directory / name).write_bytes(raw)
 
         def replace_sources_then_compile(case, rule, evidence_home):
-            (directory / "cohort.json").write_text(json.dumps({**cohort, "case_count": 0}))
+            (directory / "cohort.json").write_text(json.dumps({**cohort, "case_count": 0}), encoding="utf-8")
             (directory / "rules.json").write_text(json.dumps({
                 "schema_version": 1,
-                "rules": [{**self.rule, "status": "unresolved"}]}))
+                "rules": [{**self.rule, "status": "unresolved"}]}), encoding="utf-8")
             return compile_case(case, rule, evidence_home)
 
         with patch("lexbench_webfetch.article_dataset.compile_case",

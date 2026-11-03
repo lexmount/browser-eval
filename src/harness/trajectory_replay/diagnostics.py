@@ -412,8 +412,8 @@ def cart_html(quantity="1", *, rows=1, fields=1, name):
 def bound_cart_scripts(dataset, candidate):
     dataset, candidate = unlinked_path(dataset), unlinked_path(candidate)
     before_inputs = _diagnostic_snapshot([dataset, candidate])
-    payload = json.loads(dataset.read_text())
-    revised = json.loads(candidate.read_text())
+    payload = json.loads(dataset.read_text(encoding="utf-8"))
+    revised = json.loads(candidate.read_text(encoding="utf-8"))
     if (
         hashlib.sha256(dataset.read_bytes()).hexdigest()
         != revised["repair"]["predecessor_dataset_sha256"]
@@ -477,7 +477,7 @@ def audit_cart_assertion(dataset, candidate, browser_binary, *, product):
         "schema": "lex_replay_cart_assertion_controls/1",
         "scope": "isolated_dom_not_task_scores",
         "network_allowed": False,
-        "task_id": json.loads(candidate.read_text())["task_id"],
+        "task_id": json.loads(candidate.read_text(encoding="utf-8"))["task_id"],
         "dataset_sha256": hashlib.sha256(dataset.read_bytes()).hexdigest(),
         "candidate_sha256": hashlib.sha256(candidate.read_bytes()).hexdigest(),
         "observations": observations,
@@ -746,7 +746,7 @@ def audit_saved_correction(
     ):
         raise ValueError("correction audit inputs must be regular, non-symlinked files")
     before_inputs = _diagnostic_snapshot(sources)
-    receipt = json.loads(receipt_path.read_text())
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     if receipt["site_map_sha256"] != _diagnostic_digest(site_map):
         raise ValueError("site map differs from saved execution")
     rows = [row for row in receipt["results"] if row["task_id"] == task_id]
@@ -789,7 +789,7 @@ def audit_saved_correction(
     from harness.trajectory_replay.remote_runtime import load_remote_sites, remote_benchmark
 
     benchmark = remote_benchmark(load_remote_sites(site_map))
-    response = json.loads((task_dir / "actual_response.json").read_text())
+    response = json.loads((task_dir / "actual_response.json").read_text(encoding="utf-8"))
     evaluations = []
     for source in (before_catalog, after_catalog):
         catalog = load_corrections(source)
@@ -807,7 +807,7 @@ def audit_saved_correction(
                 "evaluation": result.model_dump(mode="json"),
             }
         )
-    saved = json.loads((task_dir / "evaluation.json").read_text())
+    saved = json.loads((task_dir / "evaluation.json").read_text(encoding="utf-8"))
     if (
         evaluations[0]["score"] != saved["score"]
         or evaluations[0]["task_sha256"] != saved["corrected_task_sha256"]

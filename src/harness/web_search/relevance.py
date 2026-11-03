@@ -169,7 +169,7 @@ def export_annotations(profile, rows, destination):
     """Write a self-contained human annotation form; no evaluator API is called."""
     packet, _ = candidate_packet(profile, rows)
     destination.mkdir(parents=True, exist_ok=False)
-    (destination / "packet.json").write_text(json.dumps(packet, ensure_ascii=False, indent=2))
+    (destination / "packet.json").write_text(json.dumps(packet, ensure_ascii=False, indent=2), encoding="utf-8")
     payload = json.dumps(packet, ensure_ascii=False).replace("<", "\\u003c")
     page = ANNOTATION_HTML.replace("__PACKET__", payload)
     (destination / "index.html").write_text(page, encoding="utf-8")
@@ -487,7 +487,7 @@ def judge_main(argv=None):
 
     profile, rows = check(args.report, return_data=True, evidence_only=True)
     source_requirements = (
-        json.loads(args.source_requirements.read_text()) if args.source_requirements else {}
+        json.loads(args.source_requirements.read_text(encoding="utf-8")) if args.source_requirements else {}
     )
     predecessor = json.loads(args.reuse_evidence.read_bytes()) if args.reuse_evidence else None
     packet_format, source_policy = "search/1", "explicit-source/2"
@@ -529,9 +529,9 @@ def judge_main(argv=None):
     inherited_calls = {call["case_id"]: call for call in predecessor["judge"]["calls"]} if predecessor else {}
     reused_case_ids = set()
     binding = args.output / "contract.json"
-    if binding.exists() and json.loads(binding.read_text()) != contract:
+    if binding.exists() and json.loads(binding.read_text(encoding="utf-8")) != contract:
         raise ValueError("Existing judge run has different inputs or configuration")
-    binding.write_text(json.dumps(contract, ensure_ascii=False, indent=2))
+    binding.write_text(json.dumps(contract, ensure_ascii=False, indent=2), encoding="utf-8")
 
     def call_one(p):
         path = args.output / (hashlib.sha256(p["case_id"].encode()).hexdigest()[:16] + ".json")
@@ -552,14 +552,14 @@ def judge_main(argv=None):
             request["extra_params"] = {"enable_thinking": False}
         previous = inherited_calls.get(p["case_id"])
         if previous and reusable_judge_call(p, previous, request):
-            if path.exists() and json.loads(path.read_text()) != previous:
+            if path.exists() and json.loads(path.read_text(encoding="utf-8")) != previous:
                 raise ValueError("Saved inherited judge call changed")
-            path.write_text(json.dumps(previous, ensure_ascii=False, indent=2))
+            path.write_text(json.dumps(previous, ensure_ascii=False, indent=2), encoding="utf-8")
             parse_judgments(p, previous["response"])
             reused_case_ids.add(p["case_id"])
             return previous
         if path.exists():
-            saved = json.loads(path.read_text())
+            saved = json.loads(path.read_text(encoding="utf-8"))
             if saved["request"] != request:
                 raise ValueError("Saved judge request changed")
             # A saved invalid model answer is an inspection task, never permission
@@ -568,7 +568,7 @@ def judge_main(argv=None):
             parse_judgments(p, saved["response"])
             return saved
         journal = path.with_name(path.stem + "-attempts.json")
-        attempts = json.loads(journal.read_text()) if journal.exists() else []
+        attempts = json.loads(journal.read_text(encoding="utf-8")) if journal.exists() else []
         request_hash = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
         for index, previous in enumerate(attempts, 1):
             if (
@@ -592,7 +592,7 @@ def judge_main(argv=None):
 
         def preserve():
             temporary = journal.with_suffix(".tmp")
-            temporary.write_text(json.dumps(attempts, ensure_ascii=False, indent=2))
+            temporary.write_text(json.dumps(attempts, ensure_ascii=False, indent=2), encoding="utf-8")
             temporary.replace(journal)
 
         for number in range(len(attempts) + 1, contract["attempt_limit"] + 1):
@@ -646,7 +646,7 @@ def judge_main(argv=None):
                     "elapsed_ms": (time.monotonic() - started) * 1000,
                     "attempts": attempts,
                 }
-                path.write_text(json.dumps(saved, ensure_ascii=False, indent=2))
+                path.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding="utf-8")
                 _validate_judge_field_references(raw)
                 parse_judgments(p, raw)
                 break
@@ -696,4 +696,4 @@ def judge_main(argv=None):
         evidence["judge"].update(predecessor=predecessor, inherited_case_ids=sorted(reused_case_ids))
     verify_provenance(profile, rows, evidence, authority=report_authority(args.report))
     score(profile, rows, evidence["plan"], evidence["labels"])
-    (args.output / "relevance.json").write_text(json.dumps(evidence, ensure_ascii=False, indent=2))
+    (args.output / "relevance.json").write_text(json.dumps(evidence, ensure_ascii=False, indent=2), encoding="utf-8")

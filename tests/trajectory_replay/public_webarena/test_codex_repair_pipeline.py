@@ -318,7 +318,7 @@ def test_codex_repair_suite_combines_validated_proposals(tmp_path):
 
     result = build_proposal_suite(
         json.loads(suite_path.read_text(encoding="utf-8")),
-        [json.loads(proposal_path.read_text())], kind="codex_repair_validation",
+        [json.loads(proposal_path.read_text(encoding="utf-8"))], kind="codex_repair_validation",
     )
 
     assert [task["id"] for task in result["tasks"]] == ["webarena-4"]
@@ -357,7 +357,7 @@ def test_codex_repair_suite_rejects_duplicate_task_proposals(tmp_path):
     with pytest.raises(ValueError, match="unique"):
         build_proposal_suite(
             json.loads(suite_path.read_text(encoding="utf-8")),
-            [json.loads(proposal.read_text())] * 2, kind="codex_repair_validation",
+            [json.loads(proposal.read_text(encoding="utf-8"))] * 2, kind="codex_repair_validation",
         )
 
 
@@ -383,7 +383,9 @@ def test_authoring_job_cannot_read_reference_answer_from_declared_inputs(tmp_pat
     seen = []
 
     def fake_run(command, **kwargs):
-        packet = json.loads((Path(command[command.index("-C") + 1]) / "packet.json").read_text())
+        packet = json.loads(
+            (Path(command[command.index("-C") + 1]) / "packet.json").read_text(encoding="utf-8")
+        )
         seen.append(packet)
         assert "provenance_references" not in packet
         assert set(packet["evidence_references"]) == {"screenshot", "final_page", "network_har"}
@@ -393,7 +395,7 @@ def test_authoring_job_cannot_read_reference_answer_from_declared_inputs(tmp_pat
         assert "REFERENCE ANSWER MUST NOT REACH CODEX" not in author_input
         assert str(attempt_path) not in author_input
         assert "Do not open raw attempt files" in kwargs["input"]
-        Path(command[command.index("-o") + 1]).write_text(json.dumps(_proposal()))
+        Path(command[command.index("-o") + 1]).write_text(json.dumps(_proposal()), encoding="utf-8")
         return subprocess.CompletedProcess(command, 0, "", "")
 
     summary = run_repairs(suite_path, [packet_path], tmp_path / "run",
@@ -405,7 +407,7 @@ def test_authoring_job_cannot_read_reference_answer_from_declared_inputs(tmp_pat
 @pytest.mark.parametrize("field", ["attempt", "evidence_references", "redactions", "purpose"])
 def test_forged_packet_payload_is_rejected_before_launch(tmp_path, field):
     suite_path, _, packet_path = _packet_fixture(tmp_path)
-    packet = json.loads(packet_path.read_text())
+    packet = json.loads(packet_path.read_text(encoding="utf-8"))
     if field == "attempt":
         packet[field]["process_trace"].append({"action": "snapshot", "output": "injected answer"})
     elif field == "evidence_references":
@@ -425,7 +427,7 @@ def test_forged_packet_payload_is_rejected_before_launch(tmp_path, field):
 
 def test_legacy_packet_with_raw_attempt_access_is_rejected(tmp_path):
     suite_path, attempt_path, packet_path = _packet_fixture(tmp_path)
-    packet = json.loads(packet_path.read_text())
+    packet = json.loads(packet_path.read_text(encoding="utf-8"))
     packet["schema"] = "lex_webarena_codex_repair_packet/1"
     packet["evidence_references"]["attempt"] = str(attempt_path)
     _json(packet_path, packet)
@@ -454,7 +456,7 @@ def test_malformed_model_output_keeps_terminal_result_and_logs(tmp_path, payload
     suite_path, _, packet_path = _packet_fixture(tmp_path)
 
     def fake_run(command, **kwargs):
-        Path(command[command.index("-o") + 1]).write_text(json.dumps(payload))
+        Path(command[command.index("-o") + 1]).write_text(json.dumps(payload), encoding="utf-8")
         return subprocess.CompletedProcess(command, 0, "events retained", "stderr retained")
 
     output = tmp_path / "run"
@@ -462,17 +464,17 @@ def test_malformed_model_output_keeps_terminal_result_and_logs(tmp_path, payload
                           run_subprocess=fake_run)
     assert summary["status"] == "incomplete"
     assert summary["tasks"][0]["status"] == "proposal_invalid"
-    assert (output / "webarena-4/events.jsonl").read_text() == "events retained"
-    assert (output / "webarena-4/stderr.log").read_text() == "stderr retained"
-    assert json.loads((output / "webarena-4/result.json").read_text())["error"]
+    assert (output / "webarena-4/events.jsonl").read_text(encoding="utf-8") == "events retained"
+    assert (output / "webarena-4/stderr.log").read_text(encoding="utf-8") == "stderr retained"
+    assert json.loads((output / "webarena-4/result.json").read_text(encoding="utf-8"))["error"]
 
 
 def test_changed_evidence_during_job_cannot_complete_batch(tmp_path):
     suite_path, attempt_path, packet_path = _packet_fixture(tmp_path)
 
     def fake_run(command, **kwargs):
-        Path(command[command.index("-o") + 1]).write_text(json.dumps(_proposal()))
-        (attempt_path.parent / "final-page.json").write_text("changed during job")
+        Path(command[command.index("-o") + 1]).write_text(json.dumps(_proposal()), encoding="utf-8")
+        (attempt_path.parent / "final-page.json").write_text("changed during job", encoding="utf-8")
         return subprocess.CompletedProcess(command, 0, "", "")
 
     summary = run_repairs(suite_path, [packet_path], tmp_path / "run", max_workers=1,
@@ -488,13 +490,13 @@ def test_repair_model_configuration_is_bound_to_command_and_receipts(tmp_path):
     def fake_run(command, **kwargs):
         assert command[command.index("-m") + 1] == "test-model"
         assert "model_reasoning_effort='high'" in command
-        Path(command[command.index("-o") + 1]).write_text(json.dumps(_proposal()))
+        Path(command[command.index("-o") + 1]).write_text(json.dumps(_proposal()), encoding="utf-8")
         return subprocess.CompletedProcess(command, 0, "", "")
 
     summary = run_repairs(suite_path, [packet_path], tmp_path / "run", max_workers=1,
                           model="test-model", reasoning_effort="high", run_subprocess=fake_run)
     assert summary["model"] == summary["tasks"][0]["model"] == "test-model"
-    command = json.loads((tmp_path / "run/webarena-4/command.json").read_text())
+    command = json.loads((tmp_path / "run/webarena-4/command.json").read_text(encoding="utf-8"))
     assert command["reasoning_effort"] == "high"
 
 
@@ -523,10 +525,10 @@ def test_invalid_derived_suite_never_creates_or_overwrites_output(tmp_path, entr
     with pytest.raises(ValueError):
         getattr(qualification, entry)(args)
     assert not output.exists()
-    output.write_text("previous immutable evidence")
+    output.write_text("previous immutable evidence", encoding="utf-8")
     with pytest.raises(ValueError):
         getattr(qualification, entry)(args)
-    assert output.read_text() == "previous immutable evidence"
+    assert output.read_text(encoding="utf-8") == "previous immutable evidence"
 
 
 def test_worker_exception_retains_job_and_batch_receipts(tmp_path):
@@ -541,8 +543,13 @@ def test_worker_exception_retains_job_and_batch_receipts(tmp_path):
     assert summary["status"] == "incomplete"
     assert summary["tasks"][0]["status"] == "worker_failed"
     assert "synthetic transport failure" in summary["tasks"][0]["error"]
-    assert json.loads((output / "summary.json").read_text())["status"] == "incomplete"
-    assert json.loads((output / "webarena-4/result.json").read_text())["status"] == "worker_failed"
+    assert (
+        json.loads((output / "summary.json").read_text(encoding="utf-8"))["status"] == "incomplete"
+    )
+    assert (
+        json.loads((output / "webarena-4/result.json").read_text(encoding="utf-8"))["status"]
+        == "worker_failed"
+    )
 
 
 @pytest.mark.parametrize(
@@ -575,7 +582,7 @@ def test_deleted_input_keeps_terminal_incomplete_receipt(tmp_path):
     suite_path, attempt_path, packet_path = _packet_fixture(tmp_path)
 
     def fake_run(command, **kwargs):
-        Path(command[command.index("-o") + 1]).write_text(json.dumps(_proposal()))
+        Path(command[command.index("-o") + 1]).write_text(json.dumps(_proposal()), encoding="utf-8")
         (attempt_path.parent / "network.har").unlink()
         return subprocess.CompletedProcess(command, 0, "", "")
 
@@ -593,7 +600,7 @@ def test_codex_proposal_cannot_bypass_observation_with_scripted_output(tmp_path)
                                     "save_as": "heading"}]
 
     def fake_run(command, **kwargs):
-        Path(command[command.index("-o") + 1]).write_text(json.dumps(proposal))
+        Path(command[command.index("-o") + 1]).write_text(json.dumps(proposal), encoding="utf-8")
         return subprocess.CompletedProcess(command, 0, "", "")
 
     summary = run_repairs(suite_path, [packet_path], tmp_path / "run", max_workers=1,

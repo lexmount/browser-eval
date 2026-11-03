@@ -47,14 +47,18 @@ def _check_interpretation(
     participants: list[str] | None = None,
 ) -> None:
     manifest_path = root / "report-manifest.json"
-    manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
+    manifest = (
+        json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
+    )
     derived = manifest.get("interpretation_kind") == "data-derived"
     sections = []
     for language_root in language_roots(root):
         integrated = BeautifulSoup(
-            (language_root / "interpretation.html").read_text(), "html.parser"
+            (language_root / "interpretation.html").read_text(encoding="utf-8"), "html.parser"
         )
-        offline = BeautifulSoup((language_root / "article.html").read_text(), "html.parser")
+        offline = BeautifulSoup(
+            (language_root / "article.html").read_text(encoding="utf-8"), "html.parser"
+        )
         article = integrated.select_one("article.interpretation")
         standalone = offline.select_one("article.interpretation")
         if article is None or standalone is None or article.get_text() != standalone.get_text():
@@ -142,7 +146,7 @@ def _check_interpretation(
         for path in language_root.rglob("*.html"):
             if path.relative_to(language_root).parts[0] == "en":
                 continue
-            page = BeautifulSoup(path.read_text(), "html.parser")
+            page = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
             if page.select_one("header.top nav") is None:
                 continue
             links = page.select("header.top nav a[data-report-interpretation]")
@@ -526,13 +530,13 @@ def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, in
         if (profile_path.is_symlink() or manifest.get("profile_sha256")
                 != hashlib.sha256(profile_path.read_bytes()).hexdigest()):
             raise ValueError("report was built from a different instance profile")
-        profile = json.loads(profile_path.read_text())
+        profile = json.loads(profile_path.read_text(encoding="utf-8"))
         if manifest.get("execution_backend") != profile.get("execution_backend"):
             raise ValueError("report backend differs from the bound instance profile")
     for lang, note in (manifest.get("measurement_notes") or {}).items():
         language_root = root if lang == "zh" else root / lang
         for name in ("index.html", "environment.html"):
-            page = BeautifulSoup((language_root / name).read_text(), "html.parser")
+            page = BeautifulSoup((language_root / name).read_text(encoding="utf-8"), "html.parser")
             if not note or note not in page.get_text():
                 raise ValueError("declared measurement context is absent from the report")
     if report_languages(root) == ("zh",):

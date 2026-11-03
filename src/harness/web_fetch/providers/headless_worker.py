@@ -410,7 +410,7 @@ def fetch(request):
                             preferences.parent.mkdir()
                             preferences.write_text(json.dumps({
                                 'plugins': {'always_open_pdf_externally': True}
-                            }))
+                            }), encoding='utf-8')
                         persistent_context = p.chromium.launch_persistent_context(
                             profile.name, accept_downloads=True, ignore_https_errors=fixture_https, **launch)
                         browser = persistent_context.browser
@@ -480,7 +480,7 @@ def fetch(request):
         meta['fetch_html_ms'] = round((time.monotonic()-start)*1000, 2)
         converter = CONVERTER
         package = require_converter(request.get('node_html_markdown_path'))
-        meta['extractor_version'] = json.loads((package / 'package.json').read_text())['version']
+        meta['extractor_version'] = json.loads((package / 'package.json').read_text(encoding='utf-8'))['version']
         meta['converter_sha256'] = hashlib.sha256(converter.read_bytes()).hexdigest()
         meta['node_version'] = subprocess.run(
             [shutil.which('node') or 'node', '--version'], capture_output=True, text=True,

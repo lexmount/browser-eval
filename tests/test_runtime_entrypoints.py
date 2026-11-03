@@ -25,15 +25,16 @@ class RuntimeEntrypointTests(unittest.TestCase):
             root = Path(directory)
             scripts = root / "scripts"
             scripts.mkdir()
-            (scripts / "run_webarena_full_chromium.py").write_text("")
-            (scripts / "repair_webarena_case_42.py").write_text("")
+            (scripts / "run_webarena_full_chromium.py").write_text("", encoding='utf-8')
+            (scripts / "repair_webarena_case_42.py").write_text("", encoding='utf-8')
             harness = source_path("harness", root=root) / "trajectory_replay"
             harness.mkdir(parents=True)
-            (harness / "full_catalog.py").write_text("")
+            (harness / "full_catalog.py").write_text("", encoding='utf-8')
             (harness / "writer.py").write_text(
-                'SCHEMA = "lex_webarena_verified_full_replay_run/3"\n'
+                'SCHEMA = "lex_webarena_verified_full_replay_run/3"\n',
+                encoding='utf-8'
             )
-            (root / "Makefile").write_text("webarena-full-release-check:\n\ttrue\n")
+            (root / "Makefile").write_text("webarena-full-release-check:\n\ttrue\n", encoding='utf-8')
 
             findings = "\n".join(repository_contract_findings(root))
 
@@ -44,20 +45,20 @@ class RuntimeEntrypointTests(unittest.TestCase):
             self.assertIn("must not encode one dataset size", findings)
 
     def test_repository_pins_python_and_uv(self) -> None:
-        self.assertEqual((ROOT / ".python-version").read_text().strip(), "3.11")
+        self.assertEqual((ROOT / ".python-version").read_text(encoding='utf-8').strip(), "3.11")
         self.assertTrue((ROOT / "uv.lock").is_file())
-        makefile = (ROOT / "Makefile").read_text()
+        makefile = (ROOT / "Makefile").read_text(encoding='utf-8')
         self.assertIn("$(UV) run --frozen python", makefile)
         self.assertIn("$(UV) sync --frozen --all-extras", makefile)
         self.assertIn('open(".python-version")', makefile)
 
     def test_common_scoring_dependency_is_in_the_base_environment(self) -> None:
-        project = (ROOT / "pyproject.toml").read_text()
+        project = (ROOT / "pyproject.toml").read_text(encoding='utf-8')
         base = project.split("[project]", 1)[1].split("[project.scripts]", 1)[0]
         self.assertIn('beautifulsoup4', base)
 
     def test_browser_use_routine_and_release_checks_are_separate(self) -> None:
-        makefile = (ROOT / "Makefile").read_text()
+        makefile = (ROOT / "Makefile").read_text(encoding='utf-8')
         routine = makefile.split("browser-use-report-check:", 1)[1].split(
             "browser-use-release-check:", 1
         )[0]
@@ -86,7 +87,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
                 }, configs)
 
     def test_ci_uses_the_same_make_entrypoint(self) -> None:
-        workflow = (ROOT / ".github/workflows/ci.yml").read_text()
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding='utf-8')
         self.assertIn("astral-sh/setup-uv@", workflow)
         self.assertIn("make setup", workflow)
         self.assertIn("make ci", workflow)
@@ -94,7 +95,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
 
     def test_web_fetch_docs_do_not_recommend_system_python(self) -> None:
         for relative in ("README.md", "harness/web_fetch/README.md", "harness/web_fetch/HEADLESS.md"):
-            text = source_path(relative, root=ROOT).read_text()
+            text = source_path(relative, root=ROOT).read_text(encoding='utf-8')
             direct = re.findall(r"(?m)^\s*(?:python|python3)(?:\s|$)", text)
             self.assertEqual(direct, [], relative)
             unfrozen = re.findall(r"(?m)^\s*uv run (?!--frozen\b)", text)
@@ -107,7 +108,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
             'deepseek-harness-built-in': 'dd6322d604e00eec1ba5e0c8541159906a21094a',
         }
         for filename in ('providers.example.json', 'providers.resources.json'):
-            providers = json.loads((ROOT / 'configs' / filename).read_text())['providers']
+            providers = json.loads((ROOT / 'configs' / filename).read_text(encoding='utf-8'))['providers']
             self.assertEqual(
                 providers['moli-webfetch']['expected_reported_version'], 'moli 1.1.15'
             )
@@ -151,7 +152,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
                              'Python 3.11.12')
 
     def test_oss_bootstrap_installs_pinned_package_managers_outside_source_trees(self) -> None:
-        script = (ROOT / 'scripts/bootstrap_oss_baselines.sh').read_text()
+        script = (ROOT / 'scripts/bootstrap_oss_baselines.sh').read_text(encoding='utf-8')
         self.assertIn('node@24.15.0 pnpm@12.1.0', script)
         self.assertIn('openclaw_pnpm="$openclaw_node_root/node_modules/.bin/pnpm"', script)
         self.assertNotIn('dsh_pnpm', script)
@@ -169,7 +170,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         )
 
     def test_env_example_uses_the_bootstrapped_runtime_commands(self) -> None:
-        env_example = (ROOT / '.env.example').read_text()
+        env_example = (ROOT / '.env.example').read_text(encoding='utf-8')
         self.assertIn(
             'OPENCLAW_NODE=~/.browser-eval/toolchains/openclaw-node/node_modules/node/bin/node',
             env_example,
@@ -198,17 +199,17 @@ class RuntimeEntrypointTests(unittest.TestCase):
         )
 
     def test_openclaw_worker_does_not_publish_exception_stacks(self) -> None:
-        worker = (source_path('harness/web_fetch/workers/openclaw_webfetch_worker.mts', root=ROOT)).read_text()
+        worker = (source_path('harness/web_fetch/workers/openclaw_webfetch_worker.mts', root=ROOT)).read_text(encoding='utf-8')
         self.assertNotIn('error?.stack', worker)
         self.assertIn('content: message', worker)
 
     def test_langchain_worker_does_not_claim_unobserved_final_url(self) -> None:
-        worker = (source_path('harness/web_fetch/workers/langchain_webbase_worker.py', root=ROOT)).read_text()
+        worker = (source_path('harness/web_fetch/workers/langchain_webbase_worker.py', root=ROOT)).read_text(encoding='utf-8')
         self.assertNotIn('"final_url"', worker)
         self.assertIn('"document_metadata": metadata', worker)
 
     def test_legacy_webfetch_dataset_coverage_matches_expected_methods(self) -> None:
-        dataset = json.loads((definition_path('evaluation/dataset-catalog.json')).read_text())
+        dataset = json.loads((definition_path('evaluation/dataset-catalog.json')).read_text(encoding='utf-8'))
         expected = {
             "cloudflare-markdown", "cowagent-built-in", "crawl4ai",
             "deepseek-harness-built-in", "exa", "firecrawl",
@@ -225,7 +226,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
                 profile.write_text(json.dumps({
                     "artifact_hub_base_url": "https://reports.example.org",
                     "artifact_hub_site": slug,
-                }))
+                }), encoding='utf-8')
                 self.assertEqual(require_publication_site(
                     {"slug": slug}, profile, "https://reports.example.org"), slug)
                 with self.assertRaisesRegex(ValueError, "expected"):
@@ -235,14 +236,14 @@ class RuntimeEntrypointTests(unittest.TestCase):
     def test_publication_site_has_no_default_host(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             profile = Path(directory) / "report.json"
-            profile.write_text(json.dumps({"artifact_hub_site": "report-one"}))
+            profile.write_text(json.dumps({"artifact_hub_site": "report-one"}), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, "explicit HTTPS base URL"):
                 require_publication_site({"slug": "report-one"}, profile, "https://reports.example.org")
 
     def test_publication_version_defaults_to_profile_and_rejects_override(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             profile = Path(directory) / 'profile.json'
-            profile.write_text(json.dumps({'artifact_hub_expected_version': 'ver_profile'}))
+            profile.write_text(json.dumps({'artifact_hub_expected_version': 'ver_profile'}), encoding='utf-8')
             self.assertEqual(require_publication_version(profile), 'ver_profile')
             self.assertEqual(require_publication_version(profile, 'ver_profile'), 'ver_profile')
             with self.assertRaisesRegex(ValueError, 'expected'):
@@ -252,7 +253,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             profile = Path(directory) / 'profile.json'
             for value in (None, '', 'version-without-prefix', 7):
-                profile.write_text(json.dumps({'artifact_hub_expected_version': value}))
+                profile.write_text(json.dumps({'artifact_hub_expected_version': value}), encoding='utf-8')
                 with self.subTest(value=value), self.assertRaisesRegex(
                     ValueError, 'artifact_hub_expected_version'
                 ):
@@ -262,7 +263,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         for relative in ('scripts/publish_artifact_site.py',
                          'scripts/verify_artifact_site.py',
                          'scripts/rename_artifact_site.py'):
-            self.assertNotIn('load_runtime_env', (ROOT/relative).read_text(), relative)
+            self.assertNotIn('load_runtime_env', (ROOT/relative).read_text(encoding='utf-8'), relative)
 
 
 if __name__ == "__main__":

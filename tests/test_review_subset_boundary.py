@@ -23,8 +23,8 @@ def evidence_fixture(tmp_path):
                          'provider': provider, 'ok': True, 'artifact_path': relative,
                          'metrics': {'content_sha256': hashlib.sha256(payload).hexdigest(),
                                      'content_pass': True}})
-    (evidence / 'dataset.json').write_text(json.dumps({'cases': [{'id': 'first'}, {'id': 'second'}]}))
-    (evidence / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    (evidence / 'dataset.json').write_text(json.dumps({'cases': [{'id': 'first'}, {'id': 'second'}]}), encoding='utf-8')
+    (evidence / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
     return evidence, rows
 
 
@@ -33,9 +33,9 @@ def test_complete_case_subset_preserves_bound_bytes_and_only_selected_attempts(t
     output = tmp_path / 'subset'
     counts = prepare_review_subset(evidence, output, case_ids=['second'])
     assert counts == {'cases': 1, 'attempts': 2}
-    assert json.loads((output / 'dataset.json').read_text())['cases'] == [{'id': 'second'}]
+    assert json.loads((output / 'dataset.json').read_text(encoding='utf-8'))['cases'] == [{'id': 'second'}]
     selected = [row for row in rows if row['case_id'] == 'second']
-    assert [json.loads(line) for line in (output / 'results.jsonl').read_text().splitlines()] == selected
+    assert [json.loads(line) for line in (output / 'results.jsonl').read_text(encoding='utf-8').splitlines()] == selected
     assert sorted(path.name for path in (output / 'artifacts').iterdir()) == ['a-second.txt', 'b-second.txt']
     for row in selected:
         assert (output / row['artifact_path']).read_bytes() == (evidence / row['artifact_path']).read_bytes()
@@ -48,12 +48,12 @@ def test_invalid_scope_or_artifact_leaves_no_partial_output(tmp_path, fault):
     if fault == 'missing':
         selected.unlink()
     elif fault == 'wrong-hash':
-        selected.write_text('corrupt')
+        selected.write_text('corrupt', encoding='utf-8')
     elif fault == 'symlink':
         selected.unlink()
         selected.symlink_to(evidence / rows[0]['artifact_path'])
     elif fault == 'incomplete':
-        (evidence / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows[:-1]))
+        (evidence / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows[:-1]), encoding='utf-8')
     output = tmp_path / 'subset'
     with pytest.raises((ValueError, FileNotFoundError)):
         prepare_review_subset(evidence, output, case_ids=['absent' if fault == 'unknown' else 'second'])
@@ -67,7 +67,7 @@ def test_source_mutation_during_copy_does_not_expose_subset(tmp_path):
 
     def mutate_after_copy(destination, source, records):
         materialize_bound_artifacts(destination, source, records)
-        (source / 'dataset.json').write_text('{}')
+        (source / 'dataset.json').write_text('{}', encoding='utf-8')
 
     with patch('harness.web_fetch.artifacts.materialize_bound_artifacts', side_effect=mutate_after_copy):
         with pytest.raises(ValueError, match='Source evidence changed'):
@@ -82,7 +82,7 @@ def test_unsafe_destination_is_rejected_without_changes(tmp_path, destination):
     output = tmp_path / 'subset'
     if destination == 'existing':
         output.mkdir()
-        (output / 'keep').write_text('preserve')
+        (output / 'keep').write_text('preserve', encoding='utf-8')
     elif destination == 'nested':
         output = evidence / 'subset'
     else:
@@ -91,4 +91,4 @@ def test_unsafe_destination_is_rejected_without_changes(tmp_path, destination):
         prepare_review_subset(evidence, output, case_ids=['second'])
     assert {path.relative_to(evidence): path.read_bytes() for path in evidence.rglob('*') if path.is_file()} == before
     if destination == 'existing':
-        assert (output / 'keep').read_text() == 'preserve'
+        assert (output / 'keep').read_text(encoding='utf-8') == 'preserve'

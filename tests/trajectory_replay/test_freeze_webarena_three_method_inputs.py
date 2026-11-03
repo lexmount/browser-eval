@@ -88,7 +88,7 @@ def test_freeze_requires_all_90_tasks_and_current_retrieval_contracts(
     authority.mkdir()
     revision = authority / "task-0.json"
     _write(revision, {"tool_calls": calls})
-    affected_value = json.loads(affected.read_text())
+    affected_value = json.loads(affected.read_text(encoding="utf-8"))
     affected_value["candidates"][0]["source_revision"] = {
         "path": "task-0.json", "sha256": _sha256(revision),
     }
@@ -100,7 +100,7 @@ def test_freeze_requires_all_90_tasks_and_current_retrieval_contracts(
     assert frozen_elsewhere["tasks"][0]["source_actions"] == calls
     assert frozen_elsewhere["tasks"][0]["actions"] == result["tasks"][0]["actions"]
     assert frozen_elsewhere["tasks"][1:] == result["tasks"][1:]
-    revision.write_text('{"tool_calls": []}')
+    revision.write_text('{"tool_calls": []}', encoding="utf-8")
     with pytest.raises(ValueError, match="revised source actions changed"):
         freeze_method_inputs(**kwargs, reference_root=authority)
     _write(revision, {"tool_calls": calls})

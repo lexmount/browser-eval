@@ -15,7 +15,7 @@ from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 
 def write(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value))
+    path.write_text(json.dumps(value), encoding="utf-8")
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
@@ -76,9 +76,9 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
             provider_config_path=config_path, runs=1, timeout=timeout,
             delay=0, max_failure_retries=0)
         records.extend(rows)
-        batches.append(json.loads((evidence / "manifest.json").read_text()))
+        batches.append(json.loads((evidence / "manifest.json").read_text(encoding="utf-8")))
     (evidence / "results.jsonl").write_text(
-        "".join(json.dumps(row) + "\n" for row in records))
+        "".join(json.dumps(row) + "\n" for row in records), encoding="utf-8")
     write(evidence / "execution.json", {"batches": batches})
     contract_digest = write(evidence / "local-run-contract.json", {
         "schema_version": 1, "kind": "uniform_native_local_measurement",
@@ -113,19 +113,19 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
             runpy.run_path(str(root / "scripts" / script), run_name="__main__")
         except SystemExit as result:
             assert result.code == 0
-    manifest = json.loads((output / "report-manifest.json").read_text())
+    manifest = json.loads((output / "report-manifest.json").read_text(encoding="utf-8"))
     assert manifest["generated_languages"] == ["zh", "en"]
     for name in methods:
         for prefix in ['', 'en/']:
-            page = (output / prefix / f'attempts/{name}__task-{min(1,case_count-1)}__r001.html').read_text()
+            page = (output / prefix / f'attempts/{name}__task-{min(1,case_count-1)}__r001.html').read_text(encoding="utf-8")
             assert name+' 9.9.9' in page
             assert 'Moli 原生 Markdown' not in page
             assert 'Moli native Markdown' not in page
             assert 'native Markdown' in page
-    saved = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
+    saved = [json.loads(line) for line in (output / "results.jsonl").read_text(encoding="utf-8").splitlines()]
     assert len(saved) == case_count * method_count
     for prefix, unit in (("", "秒"), ("en/", "seconds")):
-        methodology = (output / prefix / "methodology/index.html").read_text()
+        methodology = (output / prefix / "methodology/index.html").read_text(encoding="utf-8")
         assert f"{timeout} {unit}" in methodology
         if timeout != 45:
             assert "45 秒" not in methodology
@@ -133,12 +133,12 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
     assert all(row["provider_metadata"]["reported_version"] == "9.9.9" for row in saved)
     if timeout == 30:
         for page in output.rglob("*.html"):
-            content = page.read_text()
+            content = page.read_text(encoding="utf-8")
             for stale in ("45 秒", "45-second", "6.1 秒", "6.1-second",
                           "node-html-markdown 2.0.0", "40.5 秒"):
                 assert stale not in content, (page.relative_to(output), stale)
     for prefix in ("", "en/"):
-        home = (output / prefix / "index.html").read_text()
+        home = (output / prefix / "index.html").read_text(encoding="utf-8")
         assert "synthetic-0 9.9.9" in home
         assert "synthetic-0 150.0.0.0" not in home
     for prefix in ("", "en/"):
@@ -159,22 +159,22 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
         if path.is_file():
             assert b"synthetic-private-credential" not in path.read_bytes()
     for prefix in ("", "en/"):
-        assert "12345" in (output / prefix / "reproduce/index.html").read_text()
+        assert "12345" in (output / prefix / "reproduce/index.html").read_text(encoding="utf-8")
     if case_count == 5:
         from harness.web_fetch.report_build import build_report
         from harness.web_fetch.report_package import build as package_report
         from harness.web_fetch.publication_check import check as check_package
         from harness.web_fetch.report_version import check_release
         from harness.web_fetch.report_build import validate_local_presentation
-        original_binding = json.loads((output / "execution.json").read_text())["aggregate"]["benchmark_release"]
+        original_binding = json.loads((output / "execution.json").read_text(encoding="utf-8"))["aggregate"]["benchmark_release"]
         assert original_binding["sha256"] == original_sha
         ordinary_rebuild = tmp_path / "ordinary-rebuild"
         build_report(output, ordinary_rebuild, local_audit=True, language="en", include_english=True)
-        assert json.loads((ordinary_rebuild / "execution.json").read_text())["aggregate"]["benchmark_release"] == original_binding
-        assert json.loads((ordinary_rebuild / "benchmark-release.json").read_text())["version"] == "1.1.0"
+        assert json.loads((ordinary_rebuild / "execution.json").read_text(encoding="utf-8"))["aggregate"]["benchmark_release"] == original_binding
+        assert json.loads((ordinary_rebuild / "benchmark-release.json").read_text(encoding="utf-8"))["version"] == "1.1.0"
         original_path = ordinary_rebuild / original_binding["path"]
         original_bytes = original_path.read_bytes()
-        original_path.write_text('{}')
+        original_path.write_text('{}', encoding="utf-8")
         with pytest.raises(ValueError, match="input release changed"):
             check_release(ordinary_rebuild, dataset, saved)
         original_path.write_bytes(original_bytes)
@@ -222,7 +222,7 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
                 write(damaged_paths[1], changed)
             else:
                 damaged_paths[2].write_text(pristine[damaged_paths[2]].decode().replace(
-                    'data-benchmark-release="1.1.0"', 'data-benchmark-release="99.0.0"'))
+                    'data-benchmark-release="1.1.0"', 'data-benchmark-release="99.0.0"'), encoding="utf-8")
             with pytest.raises(ValueError, match="[Bb]enchmark"):
                 validate_local_presentation(rebuilt, binding_path)
             with pytest.raises(ValueError, match="[Bb]enchmark"):
@@ -235,10 +235,10 @@ def test_external_matrix_through_build_and_check_clis(tmp_path, monkeypatch,
     from bs4 import BeautifulSoup
     from harness.web_fetch.report_check import check
     english_home = output / "en/index.html"
-    soup = BeautifulSoup(english_home.read_text(), "html.parser")
+    soup = BeautifulSoup(english_home.read_text(encoding="utf-8"), "html.parser")
     anchor = next(a for a in soup.select("a[href]") if not a.get("hreflang")
                   and ".html" in a["href"] and "?" not in a["href"])
     anchor["href"] += "?unexpected=1"
-    english_home.write_text(str(soup))
+    english_home.write_text(str(soup), encoding="utf-8")
     with pytest.raises(ValueError, match="evidence or navigation links differ"):
         check(output, authority_root=root)

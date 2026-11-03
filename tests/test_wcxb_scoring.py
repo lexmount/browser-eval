@@ -111,11 +111,11 @@ def test_invalid_cohort_is_rejected_without_partial_outputs(cohort, tmp_path, de
     logical = load_jsonl(run / "results.jsonl")
     physical = load_jsonl(run / "physical-attempts.jsonl")
     if defect == "late_artifact":
-        (run / logical[-1]["artifact_path"]).write_text("changed response")
+        (run / logical[-1]["artifact_path"]).write_text("changed response", encoding="utf-8")
     elif defect in ("final_physical", "prior_physical"):
         (
             run / physical[1 if defect == "final_physical" else 0]["physical_artifact_path"]
-        ).write_text("changed response")
+        ).write_text("changed response", encoding="utf-8")
     elif defect == "physical_escape":
         physical[0]["physical_artifact_path"] = "../../outside.txt"
         write_jsonl(run / "physical-attempts.jsonl", physical)
@@ -271,10 +271,10 @@ def test_inputs_changed_during_scoring_reject_all_outputs(cohort, monkeypatch, c
 def test_dataset_python_is_never_executed_even_with_stale_bytecode(cohort, tmp_path):
     module = cohort["source"] / "evaluate.py"
     sentinel = tmp_path / "executed"
-    module.write_text('raise RuntimeError("old external code executed")\n')
+    module.write_text('raise RuntimeError("old external code executed")\n', encoding="utf-8")
     stamp = module.stat()
     py_compile.compile(str(module), doraise=True)
-    module.write_text(f'from pathlib import Path; Path({str(sentinel)!r}).write_text("executed")\n')
+    module.write_text(f'from pathlib import Path; Path({str(sentinel)!r}).write_text("executed")\n', encoding="utf-8")
     os.utime(module, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
     summary = scoring.score(**cohort)
     assert summary['official_evaluator_sha256'] == scoring.UPSTREAM_EVALUATOR_SHA256

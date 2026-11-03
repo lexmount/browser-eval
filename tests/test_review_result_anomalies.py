@@ -18,7 +18,7 @@ from harness.web_fetch.review_execution import (
 class ReviewResultAnomaliesTests(unittest.TestCase):
     def test_prior_blind_review_can_be_upgraded_without_changing_verdict(self):
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory);(root/'a.txt').write_text('')
+            root=Path(directory);(root/'a.txt').write_text('', encoding='utf-8')
             dataset={'comparison':{'require_independent_result_review':True,
                                    'require_anomaly_review':True},
                      'cases':[{'id':'a','track':'web','task_kind':'body'}]}
@@ -28,7 +28,7 @@ class ReviewResultAnomaliesTests(unittest.TestCase):
                 'scope':'all','machine_judgments_withheld':True},'attempts':[{
                     'attempt_id':'p__a','machine_verdict':'pass','agent_verdict':'pass',
                     'agent_evidence':'beginning x; middle y; end z','final_verdict':'pass'}]}
-            (root/'dataset.json').write_text(json.dumps(dataset));(root/'results.jsonl').write_text(json.dumps(records[0])+'\n')
+            (root/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8');(root/'results.jsonl').write_text(json.dumps(records[0])+'\n', encoding='utf-8')
             import hashlib
             prior['bindings']={'dataset_sha256':hashlib.sha256((root/'dataset.json').read_bytes()).hexdigest(),
                                'results_sha256':hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()}
@@ -79,9 +79,9 @@ class ReviewResultAnomaliesTests(unittest.TestCase):
                  'corrective_action':'none','status':'no-defect',
                  'evaluation_defect':False,'correction_applied':False,
                  'rerun_required':False,'rerun_attempt_ids':[],'rerun_reason':'none'}
-            (root/'anomaly-batch-001.json').write_text(json.dumps({'groups':[row]}))
+            (root/'anomaly-batch-001.json').write_text(json.dumps({'groups':[row]}), encoding='utf-8')
             stale={**row,'group_id':'anomaly-group-002','attempt_ids':['p__b','p__c']}
-            (root/'anomaly-batch-002.json').write_text(json.dumps({'groups':[stale]}))
+            (root/'anomaly-batch-002.json').write_text(json.dumps({'groups':[stale]}), encoding='utf-8')
             reused,pending=cached_group_resolutions(root,current)
             self.assertEqual([(x['group_id'],x['attempt_ids']) for x in reused],
                              [('anomaly-group-009',['p__a'])])
@@ -92,13 +92,13 @@ class ReviewResultAnomaliesTests(unittest.TestCase):
             root=Path(directory)
             output=root/'anomaly-pending-001.json'
             output.write_text(json.dumps({'groups':[{
-                'group_id':'anomaly-group-001','attempt_ids':['p__old']}]}))
+                'group_id':'anomaly-group-001','attempt_ids':['p__old']}]}), encoding='utf-8')
             batch=[{'group_id':'anomaly-group-002','attempt_ids':['p__new']}]
             self.assertIsNone(load_matching_positional_output(output,batch))
             self.assertFalse(output.exists())
             preserved=root/'anomaly-pending-001.superseded.json'
             self.assertTrue(preserved.is_file())
-            self.assertEqual(json.loads(preserved.read_text())['groups'][0]['attempt_ids'],
+            self.assertEqual(json.loads(preserved.read_text(encoding='utf-8'))['groups'][0]['attempt_ids'],
                              ['p__old'])
 
     def test_prior_resolution_reuse_requires_exact_scope_and_triggers(self):

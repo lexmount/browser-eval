@@ -62,7 +62,7 @@ def test_training_quantity_and_section_scope_remain_required():
 
 
 def test_training_revision_binds_predecessor_hashes_and_current_contract():
-    receipt=json.loads((ROOT/'research/risk-control-training-list-revision.json').read_text())
+    receipt=json.loads((ROOT/'research/risk-control-training-list-revision.json').read_text(encoding='utf-8'))
     correction=receipt['correction']
     assert correction['provider_calls']==0
     assert correction['predecessor_dataset_sha256'] != correction['new_dataset_sha256']
@@ -72,7 +72,7 @@ def test_training_revision_binds_predecessor_hashes_and_current_contract():
     assert [s['id'] for s in group['required_columns']]==receipt['independent_browser_observation']['required_fields_unchanged']
     controls=load_scoring_regressions()
     assert {controls[i]['failure_mode'] for i in receipt['regression_ids']}=={'false-positive','false-negative'}
-    contracts=json.loads((definition_path('evaluation/risk-control/list-contracts.json')).read_text())
+    contracts=json.loads((definition_path('evaluation/risk-control/list-contracts.json')).read_text(encoding='utf-8'))
     assert contracts['contracts'][receipt['case_id']]['groups']==training_case()['composite_acceptance']['groups']
 
 

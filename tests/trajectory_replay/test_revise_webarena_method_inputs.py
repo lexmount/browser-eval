@@ -18,7 +18,9 @@ def revision_inputs(tmp_path):
     prior = {"tasks": [{"task_id": 1, "source_actions": calls,
                         "source_calls_sha256": digest(calls), "readiness": []}]}
     path = tmp_path / "candidate.json"
-    path.write_text(json.dumps({"task_id": 1, "tool_calls": [{"action": "back"}]}))
+    path.write_text(
+        json.dumps({"task_id": 1, "tool_calls": [{"action": "back"}]}), encoding="utf-8"
+    )
     revisions = {"1": {"cause": "observed navigation mismatch",
                        "prior_calls_sha256": digest(calls), "candidate": str(path)}}
     return prior, revisions, path
@@ -42,7 +44,7 @@ def test_revision_rejects_ambiguous_or_unbound_inputs(revision_inputs, damage, t
             data["tool_calls"] = []
         else:
             data["task_id"] = 2
-        path.write_text(json.dumps(data))
+        path.write_text(json.dumps(data), encoding="utf-8")
     else:
         parent = tmp_path / "alias"
         parent.symlink_to(tmp_path, target_is_directory=True)
@@ -62,7 +64,7 @@ def test_revision_rejects_candidate_changed_during_rebinding(revision_inputs, mo
 
     def changing(*args):
         value = rebind(*args)
-        path.write_text("{}")
+        path.write_text("{}", encoding="utf-8")
         return value
 
     monkeypatch.setattr(runtime, "rebind_remote_calls", changing)
@@ -90,11 +92,11 @@ def test_revision_command_binds_new_manifest_and_preserves_sources(revision_inpu
     sites.write_text(json.dumps({"schema": "lex_webarena_remote_sites/1", "sites": {
         "reddit": "http://reddit.test", "gitlab": "http://gitlab.test",
         "shopping": "http://shopping.test", "shopping_admin": "http://admin.test/admin",
-    }}))
+    }}), encoding="utf-8")
     prior["site_map_sha256"] = hashlib.sha256(sites.read_bytes()).hexdigest()
     prior_path, revisions_path = tmp_path / "prior.json", tmp_path / "revisions.json"
-    prior_path.write_text(json.dumps(prior))
-    revisions_path.write_text(json.dumps(revisions))
+    prior_path.write_text(json.dumps(prior), encoding="utf-8")
+    revisions_path.write_text(json.dumps(revisions), encoding="utf-8")
     before = {path: path.read_bytes() for path in (prior_path, revisions_path, sites)}
     output = tmp_path / "new" / "manifest.json"
     args = ["--prior", str(prior_path), "--revisions", str(revisions_path),
@@ -127,7 +129,7 @@ def test_repair_preserves_predecessor_and_binds_new_calls(tmp_path):
     saved = copy.deepcopy(prior)
     candidate = tmp_path / "candidate.json"
     calls = [{"action": "snapshot"}]
-    candidate.write_text(json.dumps({"task_id": 2, "tool_calls": calls}))
+    candidate.write_text(json.dumps({"task_id": 2, "tool_calls": calls}), encoding="utf-8")
     revision = {
         "2": {
             "cause": "dynamic selector",

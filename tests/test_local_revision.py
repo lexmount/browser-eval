@@ -29,7 +29,7 @@ def test_current_authority_survives_history_deletion_but_rejects_current_changes
     from harness.web_fetch.local_revision import compact_local_snapshot
     raw = b'Required article'
     (tmp_path/'answer.txt').write_bytes(raw)
-    (tmp_path/'native.json').write_text('{"answer":"Required article"}')
+    (tmp_path/'native.json').write_text('{"answer":"Required article"}', encoding='utf-8')
     native = (tmp_path/'native.json').read_bytes()
     case = {'id': 'a', 'url': 'https://example.test/', 'required_facts': [
         {'id': 'article', 'alternatives': ['Required article']}]}
@@ -41,12 +41,12 @@ def test_current_authority_survives_history_deletion_but_rejects_current_changes
     other = {**row, 'attempt_id': 'q__a', 'provider': 'q',
              'metrics': {**row['metrics'], 'scoring_source_sha256': '1'*64}}
     dataset = {'cases': [case], 'comparison': {}}
-    (tmp_path/'dataset.json').write_text(json.dumps(dataset))
-    (tmp_path/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in [row, other]))
+    (tmp_path/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+    (tmp_path/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in [row, other]), encoding='utf-8')
     config = tmp_path/'config.json'
     config.write_text(json.dumps({'cases': [], 'rescore_attempt_ids': ['p__a'],
         'authority': {'description': 'Shared parser correction'},
-        'regression_ids': ['ordinary-text-player-control-only', 'ordinary-text-with-player-control']}))
+        'regression_ids': ['ordinary-text-player-control-only', 'ordinary-text-with-player-control']}), encoding='utf-8')
     revise_local_snapshot(tmp_path, config)
     path = next((tmp_path/'local-evidence/offline-revisions').glob('*/receipt.json'))
     old_binding = {'path': path.relative_to(tmp_path).as_posix(),
@@ -55,8 +55,8 @@ def test_current_authority_survives_history_deletion_but_rejects_current_changes
     for directory in (tmp_path/'local-evidence/offline-revisions').iterdir():
         if directory.name != 'current':
             shutil.rmtree(directory)
-    dataset = json.loads((tmp_path/'dataset.json').read_text())
-    rows = [json.loads(line) for line in (tmp_path/'results.jsonl').read_text().splitlines()]
+    dataset = json.loads((tmp_path/'dataset.json').read_text(encoding='utf-8'))
+    rows = [json.loads(line) for line in (tmp_path/'results.jsonl').read_text(encoding='utf-8').splitlines()]
     expected = require_local_revision(tmp_path, binding, dataset, rows)
     assert expected['q__a'] == '1'*64
     if defect == 'case':
@@ -68,17 +68,17 @@ def test_current_authority_survives_history_deletion_but_rejects_current_changes
     elif defect == 'context':
         rows[0]['ok'] = False
     elif defect == 'answer':
-        (tmp_path/'answer.txt').write_text('Replaced answer')
+        (tmp_path/'answer.txt').write_text('Replaced answer', encoding='utf-8')
     elif defect == 'native':
-        (tmp_path/'native.json').write_text('{}')
+        (tmp_path/'native.json').write_text('{}', encoding='utf-8')
     if defect:
-        (tmp_path/'dataset.json').write_text(json.dumps(dataset))
-        (tmp_path/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
+        (tmp_path/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+        (tmp_path/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows), encoding='utf-8')
         authority_path = tmp_path/binding['path']
-        authority = json.loads(authority_path.read_text())
+        authority = json.loads(authority_path.read_text(encoding='utf-8'))
         authority['dataset_sha256'] = hashlib.sha256((tmp_path/'dataset.json').read_bytes()).hexdigest()
         authority['results_sha256'] = hashlib.sha256((tmp_path/'results.jsonl').read_bytes()).hexdigest()
-        authority_path.write_text(json.dumps(authority))
+        authority_path.write_text(json.dumps(authority), encoding='utf-8')
         binding['sha256'] = hashlib.sha256(authority_path.read_bytes()).hexdigest()
         with pytest.raises(ValueError):
             require_local_revision(tmp_path, binding, dataset, rows)
@@ -95,36 +95,36 @@ def test_offline_revision_preserves_calls_and_rejects_tampering(tmp_path):
                 'artifact_path': 'answer.txt', 'elapsed_ms': 7,
                 'metrics': score_attempt(case, raw, ok=True)}
     assert task_passed(True, original['metrics'])
-    (tmp_path / 'dataset.json').write_text(json.dumps({'cases': [case], 'comparison': {}}))
-    (tmp_path / 'results.jsonl').write_text(json.dumps(original) + '\n')
+    (tmp_path / 'dataset.json').write_text(json.dumps({'cases': [case], 'comparison': {}}), encoding='utf-8')
+    (tmp_path / 'results.jsonl').write_text(json.dumps(original) + '\n', encoding='utf-8')
     changed = {**case, 'acceptance_contract': {**case['acceptance_contract'],
         'text_exclusions': {'text_patterns': [r'^\s*\d+:\d{2}\s*/\s*Live\s*Watch full video\b']}}}
     config = tmp_path / 'config.json'
     config.write_text(json.dumps({'cases': [changed], 'rule_revision': True, 'authority': {'description': 'Retain ordinary page text requirement'},
-        'regression_ids': ['ordinary-text-player-control-only', 'ordinary-text-with-player-control']}))
-    invalid = json.loads(config.read_text())
+        'regression_ids': ['ordinary-text-player-control-only', 'ordinary-text-with-player-control']}), encoding='utf-8')
+    invalid = json.loads(config.read_text(encoding='utf-8'))
     invalid['rule_revision'] = False
-    config.write_text(json.dumps(invalid))
+    config.write_text(json.dumps(invalid), encoding='utf-8')
     with pytest.raises(ValueError, match='explicit rule revision'):
         revise_local_snapshot(tmp_path, config)
     invalid['rule_revision'] = True
-    config.write_text(json.dumps(invalid))
+    config.write_text(json.dumps(invalid), encoding='utf-8')
     receipt = revise_local_snapshot(tmp_path, config)
     assert receipt['provider_calls_added'] == 0
     assert receipt['rule_revision'] is True
     assert receipt['task_verdict_changes'] == [{'attempt_id': 'p__a', 'before': True, 'after': False}]
     assert (tmp_path / 'answer.txt').read_bytes() == raw
-    rows = [json.loads((tmp_path / 'results.jsonl').read_text())]
+    rows = [json.loads((tmp_path / 'results.jsonl').read_text(encoding='utf-8'))]
     assert rows[0]['scoring']['scored_at']
-    dataset = json.loads((tmp_path / 'dataset.json').read_text())
+    dataset = json.loads((tmp_path / 'dataset.json').read_text(encoding='utf-8'))
     path = next((tmp_path / 'local-evidence/offline-revisions').glob('*/receipt.json'))
     binding = {'path': str(path.relative_to(tmp_path)), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
     require_local_revision(tmp_path, binding, dataset, rows)
     # A self-consistent changed result hash does not authorize changing a call.
     rows[0]['elapsed_ms'] = 8
-    (tmp_path / 'results.jsonl').write_text(json.dumps(rows[0]) + '\n')
+    (tmp_path / 'results.jsonl').write_text(json.dumps(rows[0]) + '\n', encoding='utf-8')
     receipt['output_results_sha256'] = hashlib.sha256((tmp_path / 'results.jsonl').read_bytes()).hexdigest()
-    path.write_text(json.dumps(receipt))
+    path.write_text(json.dumps(receipt), encoding='utf-8')
     binding['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
     with pytest.raises(ValueError, match='measured call facts'):
         require_local_revision(tmp_path, binding, dataset, rows)
@@ -139,18 +139,18 @@ def test_contract_revision_is_explicit_without_runtime_policy_switch(tmp_path):
     original = {'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a', 'ok': True,
                 'artifact_path': 'answer.txt', 'metrics': score_attempt(case, raw, ok=True)}
     assert not task_passed(True, original['metrics'])
-    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [case], 'comparison': {}}))
-    (tmp_path/'results.jsonl').write_text(json.dumps(original)+'\n')
+    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [case], 'comparison': {}}), encoding='utf-8')
+    (tmp_path/'results.jsonl').write_text(json.dumps(original)+'\n', encoding='utf-8')
     changed = {k: v for k, v in case.items() if k != 'forbidden_any'}
     changed['diagnostic_any'] = ['CAPTCHA']
     config = tmp_path/'config.json'
     config.write_text(json.dumps({'cases': [changed], 'rule_revision': True,
         'authority': {'description': 'Explicit task revision: error words are diagnostic observations'},
-        'regression_ids': ['declared-forbidden-token-fails', 'unforbidden-captcha-documentation-passes']}))
+        'regression_ids': ['declared-forbidden-token-fails', 'unforbidden-captcha-documentation-passes']}), encoding='utf-8')
     receipt = revise_local_snapshot(tmp_path, config)
     assert receipt['rule_revision'] is True
     assert 'acceptance_policy_version' not in receipt
-    rows = [json.loads((tmp_path/'results.jsonl').read_text())]
+    rows = [json.loads((tmp_path/'results.jsonl').read_text(encoding='utf-8'))]
     assert 'acceptance_policy_version' not in rows[0]['metrics']
     assert task_passed(True, rows[0]['metrics'])
 
@@ -169,11 +169,11 @@ def test_same_input_keeps_distinct_revision_receipts(tmp_path):
     config = tmp_path/'config.json'
     preserved = None
     for reason in ['First declared correction', 'Second explicitly distinct revision']:
-        (tmp_path/'dataset.json').write_text(original_dataset)
-        (tmp_path/'results.jsonl').write_text(original_results)
+        (tmp_path/'dataset.json').write_text(original_dataset, encoding='utf-8')
+        (tmp_path/'results.jsonl').write_text(original_results, encoding='utf-8')
         config.write_text(json.dumps({'cases': [changed], 'rule_revision': True,
             'authority': {'description': reason},
-            'regression_ids': ['declared-forbidden-token-fails', 'unforbidden-captcha-documentation-passes']}))
+            'regression_ids': ['declared-forbidden-token-fails', 'unforbidden-captcha-documentation-passes']}), encoding='utf-8')
         receipt = revise_local_snapshot(tmp_path, config)
         path = tmp_path/receipt['input_dataset']['path']
         if preserved is None:
@@ -190,8 +190,8 @@ def _two_revision_chain(root):
     row = {'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a', 'ok': True,
            'artifact_path': 'answer.txt', 'elapsed_ms': 7,
            'metrics': score_attempt(case, raw, ok=True)}
-    (root/'dataset.json').write_text(json.dumps({'cases': [case], 'comparison': {}}))
-    (root/'results.jsonl').write_text(json.dumps(row)+'\n')
+    (root/'dataset.json').write_text(json.dumps({'cases': [case], 'comparison': {}}), encoding='utf-8')
+    (root/'results.jsonl').write_text(json.dumps(row)+'\n', encoding='utf-8')
     changed = {k: v for k, v in case.items() if k != 'forbidden_any'}
     changed['diagnostic_any'] = ['CAPTCHA']
     config = root/'config.json'
@@ -205,7 +205,7 @@ def _two_revision_chain(root):
             'authority': {'description': 'Declared correction ' + str(index)},
             'regression_ids': ['declared-forbidden-token-fails',
                                'unforbidden-captcha-documentation-passes'],
-            **({'predecessor_revision': parent} if parent else {})}))
+            **({'predecessor_revision': parent} if parent else {})}), encoding='utf-8')
         receipt = revise_local_snapshot(root, config)
         path = root/receipt['input_dataset']['path']
         path = path.parent/'receipt.json'
@@ -248,7 +248,7 @@ def test_revision_receipt_reports_malformed_fields_without_rewriting_evidence(tm
     results_before = (tmp_path/'results.jsonl').read_bytes()
     receipt[field] = value
     path = tmp_path/binding['path']
-    path.write_text(json.dumps(receipt))
+    path.write_text(json.dumps(receipt), encoding='utf-8')
     raw = path.read_bytes()
     binding['sha256'] = hashlib.sha256(raw).hexdigest()
     with pytest.raises(ValueError, match='revision\\.' + field):
@@ -273,17 +273,17 @@ def test_hash_connected_intermediate_revision_must_pass_full_validation(tmp_path
         parent[tamper] = []
     elif tamper == 'measured_call':
         old_path = tmp_path/parent['input_results']['path']
-        old = json.loads(old_path.read_text())
+        old = json.loads(old_path.read_text(encoding='utf-8'))
         old['elapsed_ms'] = 99
-        old_path.write_text(json.dumps(old)+'\n')
+        old_path.write_text(json.dumps(old)+'\n', encoding='utf-8')
         parent['input_results']['sha256'] = hashlib.sha256(old_path.read_bytes()).hexdigest()
     else:
         parent[tamper] = '0'*64
     parent_path = tmp_path/parent_binding['path']
-    parent_path.write_text(json.dumps(parent))
+    parent_path.write_text(json.dumps(parent), encoding='utf-8')
     latest['predecessor_revision']['sha256'] = hashlib.sha256(parent_path.read_bytes()).hexdigest()
     latest_path = tmp_path/latest_binding['path']
-    latest_path.write_text(json.dumps(latest))
+    latest_path.write_text(json.dumps(latest), encoding='utf-8')
     latest_binding['sha256'] = hashlib.sha256(latest_path.read_bytes()).hexdigest()
     with pytest.raises(ValueError, match=message):
         validate_revision_chain(tmp_path, latest_binding)[1:]
@@ -307,8 +307,8 @@ def _native_answer_revision_fixture(root):
                'raw_response_sha256': hashlib.sha256(native).hexdigest(),
                'raw_response_bytes': len(native)},
            'metrics': score_attempt(case, raw, ok=True)}
-    (root/'dataset.json').write_text(json.dumps({'cases': [case], 'comparison': {}}))
-    (root/'results.jsonl').write_text(json.dumps(row)+'\n')
+    (root/'dataset.json').write_text(json.dumps({'cases': [case], 'comparison': {}}), encoding='utf-8')
+    (root/'results.jsonl').write_text(json.dumps(row)+'\n', encoding='utf-8')
     config = {'cases': [], 'authority': {'description': 'Restore declared native fields from the same call; preserve the former derived answer and measured time.'},
         'regression_ids': ['native-json-resource-declared-image-field-preserved',
                            'native-json-resource-untyped-url-echo-rejected'],
@@ -318,7 +318,7 @@ def _native_answer_revision_fixture(root):
             'projection': {'schema_version': 1, 'content_pointer': ['content'],
                            'content_format': 'text'}}]}
     config_path = root/'correction.json'
-    config_path.write_text(json.dumps(config))
+    config_path.write_text(json.dumps(config), encoding='utf-8')
     receipt = revise_local_snapshot(root, config_path)
     receipt_path = root/receipt['input_dataset']['path']
     receipt_path = receipt_path.parent/'receipt.json'
@@ -329,7 +329,7 @@ def _native_answer_revision_fixture(root):
 
 def test_offline_native_correction_preserves_call_and_both_answers(tmp_path):
     original, receipt, _, binding, native_content = _native_answer_revision_fixture(tmp_path)
-    current = json.loads((tmp_path/'results.jsonl').read_text())
+    current = json.loads((tmp_path/'results.jsonl').read_text(encoding='utf-8'))
     assert receipt['provider_calls_added'] == 0
     assert receipt['changed_case_ids'] == []
     assert receipt['task_verdict_changes'] == []
@@ -338,9 +338,9 @@ def test_offline_native_correction_preserves_call_and_both_answers(tmp_path):
     assert 'failure_category' not in current
     assert (tmp_path/'answer.txt').read_bytes() == b'Body fact'
     assert current['artifact_path'] != original['artifact_path']
-    assert (tmp_path/current['artifact_path']).read_text() == native_content
+    assert (tmp_path/current['artifact_path']).read_text(encoding='utf-8') == native_content
     assert len(receipt['native_answer_corrections']) == 1
-    require_local_revision(tmp_path, binding, json.loads((tmp_path/'dataset.json').read_text()), [current])
+    require_local_revision(tmp_path, binding, json.loads((tmp_path/'dataset.json').read_text(encoding='utf-8')), [current])
 
 
 @pytest.mark.parametrize('failure', ['validation', 'install'])
@@ -354,7 +354,7 @@ def test_failed_native_revision_leaves_no_partial_files_and_can_retry(tmp_path, 
     def validate(*args, **kwargs):
         if failure == 'validation':
             # The current snapshot is still untouched even at the final gate.
-            row = json.loads((tmp_path/'results.jsonl').read_text())
+            row = json.loads((tmp_path/'results.jsonl').read_text(encoding='utf-8'))
             assert row['artifact_path'] == 'answer.txt'
             assert not list(tmp_path.glob('*-native-*'))
             raise ValueError('Injected validation rejection')
@@ -371,7 +371,7 @@ def test_failed_native_revision_leaves_no_partial_files_and_can_retry(tmp_path, 
     monkeypatch.setattr(Path, 'replace', replace)
     with pytest.raises((ValueError, OSError), match='Injected'):
         _native_answer_revision_fixture(tmp_path)
-    assert json.loads((tmp_path/'results.jsonl').read_text())['artifact_path'] == 'answer.txt'
+    assert json.loads((tmp_path/'results.jsonl').read_text(encoding='utf-8'))['artifact_path'] == 'answer.txt'
     assert not list(tmp_path.glob('*-native-*'))
     assert not (tmp_path/'local-evidence').exists()
     assert not tmp_path.with_name('.'+tmp_path.name+'-revision').exists()
@@ -388,12 +388,12 @@ def test_interrupted_install_is_recovered_before_next_revision(tmp_path):
     transaction = _RevisionTransaction(tmp_path)
     (transaction.work/'before').mkdir(parents=True)
     (transaction.work/'owner.json').write_text(json.dumps({
-        'kind': 'local_revision_transaction', 'source': str(tmp_path.resolve())}))
+        'kind': 'local_revision_transaction', 'source': str(tmp_path.resolve())}), encoding='utf-8')
     (transaction.work/'before/dataset.json').write_bytes(b'original')
     (transaction.work/'journal.json').write_text(json.dumps({
         'files': [{'path': 'dataset.json', 'existed': True},
                   {'path': 'partial/receipt.json', 'existed': False}],
-        'directories': ['partial']}))
+        'directories': ['partial']}), encoding='utf-8')
     (tmp_path/'dataset.json').write_bytes(b'incomplete')
     (tmp_path/'partial').mkdir()
     (tmp_path/'partial/receipt.json').write_bytes(b'partial')
@@ -407,7 +407,7 @@ def test_interrupted_install_is_recovered_before_next_revision(tmp_path):
 def test_native_correction_apply_and_verify_share_same_call_url_evidence(tmp_path, source_kind):
     from harness.web_fetch.local_revision import _require_native_answer_correction
     original, _, _, _, _ = _native_answer_revision_fixture(tmp_path)
-    row = json.loads((tmp_path/'results.jsonl').read_text())
+    row = json.loads((tmp_path/'results.jsonl').read_text(encoding='utf-8'))
     returned = 'https://returned.example.test/page'
     native = {'path': row['provider_metadata']['raw_response_path'],
               'sha256': row['provider_metadata']['raw_response_sha256']}
@@ -420,16 +420,16 @@ def test_native_correction_apply_and_verify_share_same_call_url_evidence(tmp_pat
     else:
         row['provider_metadata']['source_transport_receipt'] = {'response_url': returned}
         field = {'format': 'transport_response_url'}
-    (tmp_path/'results.jsonl').write_text(json.dumps(row)+'\n')
+    (tmp_path/'results.jsonl').write_text(json.dumps(row)+'\n', encoding='utf-8')
     declaration = {'schema_version': 2, 'content_format': 'text', 'content_pointer': ['content'],
                    'result_fields': {'final_url': field}}
-    config = json.loads((tmp_path/'correction.json').read_text())
+    config = json.loads((tmp_path/'correction.json').read_text(encoding='utf-8'))
     config['native_answer_corrections'] = [{'attempt_id': row['attempt_id'],
         'native_response': native, 'projection': declaration}]
     path = tmp_path/'same-call.json'
-    path.write_text(json.dumps(config))
+    path.write_text(json.dumps(config), encoding='utf-8')
     receipt = revise_local_snapshot(tmp_path, path)
-    corrected = json.loads((tmp_path/'results.jsonl').read_text())
+    corrected = json.loads((tmp_path/'results.jsonl').read_text(encoding='utf-8'))
     assert corrected['final_url'] == returned
     assert corrected['elapsed_ms'] == original['elapsed_ms']
     _require_native_answer_correction(tmp_path, row, corrected, receipt['native_answer_corrections'][0])
@@ -441,12 +441,12 @@ def test_native_correction_apply_and_verify_share_same_call_url_evidence(tmp_pat
 def test_native_correction_rejects_resource_base_url_before_install(tmp_path):
     _native_answer_revision_fixture(tmp_path)
     before = {p.relative_to(tmp_path): p.read_bytes() for p in tmp_path.rglob('*') if p.is_file()}
-    config = json.loads((tmp_path/'correction.json').read_text())
+    config = json.loads((tmp_path/'correction.json').read_text(encoding='utf-8'))
     config['native_answer_corrections'][0]['projection'].update(schema_version=2,
         answer_fields={'images': {'pointer': ['absent'], 'default': [],
             'format': 'html_attribute_urls', 'base_url': 'https://forged.example.test/'}})
     config_path = tmp_path/'wrong-base.json'
-    config_path.write_text(json.dumps(config))
+    config_path.write_text(json.dumps(config), encoding='utf-8')
     with pytest.raises(ValueError, match='verified result or request URL'):
         revise_local_snapshot(tmp_path, config_path)
     after = {p.relative_to(tmp_path): p.read_bytes() for p in tmp_path.rglob('*') if p.is_file() and p != config_path}
@@ -460,33 +460,33 @@ def test_native_correction_rejects_resource_base_url_before_install(tmp_path):
 ])
 def test_native_correction_rejects_self_consistent_but_false_projection(tmp_path, defect, message):
     _, receipt, path, binding, _ = _native_answer_revision_fixture(tmp_path)
-    current = json.loads((tmp_path/'results.jsonl').read_text())
+    current = json.loads((tmp_path/'results.jsonl').read_text(encoding='utf-8'))
     proof = receipt['native_answer_corrections'][0]
     if defect == 'clock': current['elapsed_ms'] += 1
     elif defect == 'metadata': current['provider_metadata']['injected'] = 'new answer data'
     elif defect == 'answer':
         artifact = tmp_path/current['artifact_path']
-        artifact.write_text('Different answer not supplied by the call')
+        artifact.write_text('Different answer not supplied by the call', encoding='utf-8')
         digest = hashlib.sha256(artifact.read_bytes()).hexdigest()
         current['metrics']['content_sha256'] = digest
         proof['corrected_artifact']['sha256'] = digest
     elif defect == 'source':
         source = tmp_path/proof['native_response']['path']
-        source.write_text(json.dumps({'content': 'Different native response'}))
+        source.write_text(json.dumps({'content': 'Different native response'}), encoding='utf-8')
         proof['native_response']['sha256'] = hashlib.sha256(source.read_bytes()).hexdigest()
     else: receipt.pop('native_answer_corrections')
-    (tmp_path/'results.jsonl').write_text(json.dumps(current)+'\n')
+    (tmp_path/'results.jsonl').write_text(json.dumps(current)+'\n', encoding='utf-8')
     receipt['output_results_sha256'] = hashlib.sha256((tmp_path/'results.jsonl').read_bytes()).hexdigest()
-    path.write_text(json.dumps(receipt))
+    path.write_text(json.dumps(receipt), encoding='utf-8')
     binding['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
     with pytest.raises(ValueError, match=message):
-        require_local_revision(tmp_path, binding, json.loads((tmp_path/'dataset.json').read_text()), [current])
+        require_local_revision(tmp_path, binding, json.loads((tmp_path/'dataset.json').read_text(encoding='utf-8')), [current])
 
 
 @pytest.mark.parametrize('field,changed', [('title', 'forged title'), ('final_url', 'https://forged.example.test/')])
 def test_native_context_revision_replays_native_fields_and_rejects_tampering(tmp_path, field, changed):
     original, _, _, _, _ = _native_answer_revision_fixture(tmp_path)
-    current = json.loads((tmp_path/'results.jsonl').read_text())
+    current = json.loads((tmp_path/'results.jsonl').read_text(encoding='utf-8'))
     native_path = tmp_path/current['provider_metadata']['raw_response_path']
     # Prepare a new immutable native acquisition fixture for this transition.
     payload = json.loads(native_path.read_bytes())
@@ -497,7 +497,7 @@ def test_native_context_revision_replays_native_fields_and_rejects_tampering(tmp
     current['provider_metadata'].update(raw_response_path='private_artifacts/context.response.bin',
         raw_response_sha256=hashlib.sha256(native).hexdigest(), raw_response_bytes=len(native))
     current.update(title=None, final_url=current['url'])
-    (tmp_path/'results.jsonl').write_text(json.dumps(current)+'\n')
+    (tmp_path/'results.jsonl').write_text(json.dumps(current)+'\n', encoding='utf-8')
     config = {'cases': [], 'authority': {'description': 'Recover native title and redirect without new calls.'},
         'regression_ids': ['native-title-must-match-original', 'native-returned-body-fact-with-title-remains-valid',
                            'native-final-url-must-match-original', 'native-returned-redirect-resolves-relative-image'],
@@ -506,9 +506,9 @@ def test_native_context_revision_replays_native_fields_and_rejects_tampering(tmp
             'projection': {'schema_version': 2, 'content_format': 'text', 'content_pointer': ['content'],
                 'result_fields': {key: {'pointer': [key]} for key in ('title', 'final_url')}}}]}
     config_path = tmp_path/'context-correction.json'
-    config_path.write_text(json.dumps(config))
+    config_path.write_text(json.dumps(config), encoding='utf-8')
     receipt = revise_local_snapshot(tmp_path, config_path)
-    fixed = json.loads((tmp_path/'results.jsonl').read_text())
+    fixed = json.loads((tmp_path/'results.jsonl').read_text(encoding='utf-8'))
     assert fixed['title'] == 'native title'
     assert fixed['final_url'] == 'https://returned.example.test/'
     assert fixed['elapsed_ms'] == original['elapsed_ms']
@@ -518,12 +518,12 @@ def test_native_context_revision_replays_native_fields_and_rejects_tampering(tmp
     _require_native_answer_correction(tmp_path, current, fixed, proof)
     from harness.web_fetch.local_revision import compact_local_snapshot
     history = next(path for path in (tmp_path/'local-evidence/offline-revisions').glob('*/receipt.json')
-                   if json.loads(path.read_text()) == receipt)
+                   if json.loads(path.read_text(encoding='utf-8')) == receipt)
     binding = {'path': history.relative_to(tmp_path).as_posix(),
                'sha256': hashlib.sha256(history.read_bytes()).hexdigest()}
     compact = compact_local_snapshot(tmp_path, binding)
-    rows = [json.loads(line) for line in (tmp_path/'results.jsonl').read_text().splitlines()]
-    require_local_revision(tmp_path, compact, json.loads((tmp_path/'dataset.json').read_text()), rows)
+    rows = [json.loads(line) for line in (tmp_path/'results.jsonl').read_text(encoding='utf-8').splitlines()]
+    require_local_revision(tmp_path, compact, json.loads((tmp_path/'dataset.json').read_text(encoding='utf-8')), rows)
     fixed[field] = changed
     with pytest.raises(ValueError, match='context correction'):
         _require_native_answer_correction(tmp_path, current, fixed, proof)
@@ -552,8 +552,8 @@ def _context_fixture(tmp_path):
         'case_id': 'a', 'url': url, 'ok': True, 'status_code': None,
         'artifact_path': 'answer.txt', 'elapsed_ms': 17, 'started_at': 'preserved',
         'provider_metadata': {'call_log': binding}, 'metrics': score_attempt(case, raw, ok=True)}
-    (tmp_path / 'dataset.json').write_text(json.dumps({'cases': [case], 'comparison': {}}))
-    (tmp_path / 'results.jsonl').write_text(json.dumps(row) + '\n')
+    (tmp_path / 'dataset.json').write_text(json.dumps({'cases': [case], 'comparison': {}}), encoding='utf-8')
+    (tmp_path / 'results.jsonl').write_text(json.dumps(row) + '\n', encoding='utf-8')
     request = {'attempt_id': 'p__a', 'stdout': stdout, 'diagnostic': diag,
         'call_log': binding, 'projection': {'schema_version': 1, 'format': 'fetch_log_http_error'}}
     config = {'cases': [], 'authority': {'description': 'Same physical call context correction'},
@@ -565,9 +565,9 @@ def _context_fixture(tmp_path):
 def test_context_only_revision_replays_same_call_and_preserves_answer(tmp_path):
     raw, old, request, config, put = _context_fixture(tmp_path)
     configuration = tmp_path / 'config.json'
-    configuration.write_text(json.dumps(config))
+    configuration.write_text(json.dumps(config), encoding='utf-8')
     receipt = revise_local_snapshot(tmp_path, configuration)
-    new = json.loads((tmp_path / 'results.jsonl').read_text())
+    new = json.loads((tmp_path / 'results.jsonl').read_text(encoding='utf-8'))
     assert (new['ok'], new['status_code'], new['error_type'], new['error_message']) == (
         False, 418, 'api_error', 'Moli returned HTTP 418')
     assert (tmp_path / 'answer.txt').read_bytes() == raw
@@ -584,7 +584,7 @@ def test_context_only_revision_replays_same_call_and_preserves_answer(tmp_path):
 def test_context_replay_rejects_unbound_or_ambiguous_context(tmp_path, mutation):
     from harness.web_fetch.local_revision import _native_context_proof
     raw, row, request, config, put = _context_fixture(tmp_path)
-    call = json.loads((tmp_path / 'call.json').read_text())
+    call = json.loads((tmp_path / 'call.json').read_text(encoding='utf-8'))
     if mutation == 'diagnostic':
         request['diagnostic'] = put('other.txt', 'invented diagnostic')
     elif mutation == 'identity':
@@ -633,7 +633,7 @@ def test_native_public_projection_uses_bound_answer_view_while_private_bytes_res
     from harness.web_fetch.local_revision import _require_native_answer_correction
     from harness.web_fetch.publication_privacy import project_evidence_view
     original, receipt, _, _, _ = _native_answer_revision_fixture(tmp_path)
-    corrected = json.loads((tmp_path/'results.jsonl').read_text())
+    corrected = json.loads((tmp_path/'results.jsonl').read_text(encoding='utf-8'))
     proof = receipt['native_answer_corrections'][0]
     (tmp_path/'artifacts').mkdir()
     # Public views may only stand for answer/native evidence roots.
@@ -660,7 +660,7 @@ def test_native_public_projection_uses_bound_answer_view_while_private_bytes_res
         view_binding=write_binding(name+'.receipt.json',json.dumps(view).encode())
         entries.append({'original_path':binding['path'],'original_sha256':binding['sha256'],'view_receipt':view_binding})
     index=write_binding('public-evidence/index.json',json.dumps({'kind':'post_score_public_evidence_view_inventory','provider_calls_added':0,'files':entries}).encode())
-    (tmp_path/'presentation-binding.json').write_text(json.dumps({'publication_evidence_views':index}))
+    (tmp_path/'presentation-binding.json').write_text(json.dumps({'publication_evidence_views':index}), encoding='utf-8')
     (tmp_path/proof['native_response']['path']).unlink()
     if defect:
         with pytest.raises(ValueError,match='bound public answer pair|declared original fields'):
@@ -674,7 +674,7 @@ def test_native_public_projection_uses_bound_answer_view_while_private_bytes_res
 @pytest.mark.parametrize('defect', ['missing_predicate', 'missing_manifest', 'wrong_predicate_hash'])
 def test_bad_frozen_input_proof_rejects_before_scoring_or_writes(tmp_path, monkeypatch, defect):
     _, _, _, _, _ = _native_answer_revision_fixture(tmp_path)
-    config = json.loads((tmp_path/'correction.json').read_text())
+    config = json.loads((tmp_path/'correction.json').read_text(encoding='utf-8'))
     results = (tmp_path/'results.jsonl').read_bytes()
     def put(name, data):
         (tmp_path/name).write_bytes(data)
@@ -686,7 +686,7 @@ def test_bad_frozen_input_proof_rejects_before_scoring_or_writes(tmp_path, monke
     elif defect=='missing_manifest':proof.pop('snapshot_manifest')
     else:proof['frozen_predicate']['sha256']='0'*64
     config['input_verdicts']=put('input-verdicts.json',json.dumps(proof).encode())
-    configuration=tmp_path/'next.json';configuration.write_text(json.dumps(config))
+    configuration=tmp_path/'next.json';configuration.write_text(json.dumps(config), encoding='utf-8')
     before={p.relative_to(tmp_path):p.read_bytes()for p in tmp_path.rglob('*')if p.is_file()}
     def forbidden_score(*args,**kwargs):raise AssertionError('Attempt scoring started before proof preflight')
     monkeypatch.setattr('lexbench_webfetch.scoring.score_attempt',forbidden_score)
@@ -701,7 +701,7 @@ def test_bad_predecessor_rejects_before_scoring_or_writes(tmp_path, monkeypatch)
         'authority':{'description':'Declared next revision'},
         'regression_ids':['ordinary-text-player-control-only','ordinary-text-with-player-control'],
         'predecessor_revision':{**latest_binding,'sha256':'0'*64}}
-    configuration=tmp_path/'next.json';configuration.write_text(json.dumps(config))
+    configuration=tmp_path/'next.json';configuration.write_text(json.dumps(config), encoding='utf-8')
     before={p.relative_to(tmp_path):p.read_bytes()for p in tmp_path.rglob('*')if p.is_file()}
     def forbidden_score(*args,**kwargs):raise AssertionError('Attempt scoring started before predecessor preflight')
     monkeypatch.setattr('lexbench_webfetch.scoring.score_attempt',forbidden_score)

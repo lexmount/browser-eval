@@ -34,7 +34,7 @@ def dynamic_case(**completion_overrides):
 
 def test_release_configs_select_firecrawl_actions_route():
     for filename in ("configs/providers.example.json", "configs/providers.resources.json"):
-        providers = json.loads(Path(filename).read_text())["providers"]
+        providers = json.loads(Path(filename).read_text(encoding="utf-8"))["providers"]
         if providers["firecrawl"].get("uniform_native_parameters"):
             assert "dynamic_wait_strategy" not in providers["firecrawl"]
         else:

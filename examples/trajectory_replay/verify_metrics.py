@@ -26,10 +26,10 @@ pids_current_mean pids_current_p95 pids_current_peak
 def verify(artifacts: Path) -> dict:
     rows = [
         json.loads(line)
-        for line in (artifacts / "attempts.jsonl").read_text().splitlines()
+        for line in (artifacts / "attempts.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
-    summary = json.loads((artifacts / "summary.json").read_text())
+    summary = json.loads((artifacts / "summary.json").read_text(encoding="utf-8"))
     primary = {}
     for row in rows:
         if not row.get("is_retry"):

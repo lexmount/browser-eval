@@ -34,7 +34,7 @@ class LatencyDiagnosticTests(unittest.TestCase):
             ))
         with tempfile.TemporaryDirectory() as folder:
             path = Path(folder) / 'monitor.log'
-            path.write_text('\n'.join(lines))
+            path.write_text('\n'.join(lines), encoding='utf-8')
             summary = _resource_samples(path, {
                 'started_at': start.isoformat(),
                 'completed_at': (start + timedelta(seconds=10)).isoformat(),
@@ -54,8 +54,8 @@ class LatencyDiagnosticTests(unittest.TestCase):
             (diagnostic / 'manifest.json').write_text(json.dumps({
                 'kind': 'moli_115_117_latency_rerun_v1',
                 'official_results_sha256': 'different',
-            }))
-            (root / 'results.jsonl').write_text('unchanged\n')
+            }), encoding='utf-8')
+            (root / 'results.jsonl').write_text('unchanged\n', encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'explicit expected manifest hash'):
                 load_diagnostic(root, {'cases': []}, [], [])
             expected = hashlib.sha256((diagnostic / 'manifest.json').read_bytes()).hexdigest()
@@ -70,16 +70,16 @@ def paired_inputs(root):
     dataset = root / 'source.jsonl'
     rows = [{'track_id': name, 'html': '<p>synthetic</p>',
              'groundtruth_content': 'synthetic'} for name in ('one', 'two', 'three')]
-    dataset.write_text(''.join(json.dumps(row) + '\n' for row in rows))
-    sample = root / 'sample.txt'; sample.write_text('one\ntwo\nthree\n')
+    dataset.write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
+    sample = root / 'sample.txt'; sample.write_text('one\ntwo\nthree\n', encoding='utf-8')
     argv = ['--dataset', str(dataset), '--sample', str(sample), '--source-count', '3',
             '--source-sha256', hashlib.sha256(dataset.read_bytes()).hexdigest(),
             '--output', str(root / 'output'), '--rounds', '3', '--all-cases']
     for name, version in [('older', '2.0.0'), ('newer', '2.1.0')]:
-        binary = root / name; binary.write_text('synthetic ' + version)
+        binary = root / name; binary.write_text('synthetic ' + version, encoding='utf-8')
         prior = root / (name + '.jsonl')
         prior.write_text(''.join(json.dumps({'track_id': row['track_id'], 'ok': True,
-                                            'elapsed_ms': 10}) + '\n' for row in rows))
+                                            'elapsed_ms': 10}) + '\n' for row in rows), encoding='utf-8')
         argv += ['--' + name, str(binary), '--prior-' + name, str(prior),
                  '--' + name + '-version', version]
     return argv
@@ -103,11 +103,11 @@ def fake_paired_environment(monkeypatch, root, *, mutate=False):
             return subprocess.CompletedProcess(command, 0, 'moli ' + version, '')
         calls.append(command)
         if mutate and len(calls) == 1:
-            (root / 'older').write_text('changed binary')
+            (root / 'older').write_text('changed binary', encoding='utf-8')
         return subprocess.CompletedProcess(command, 0, b'synthetic body', b'')
 
     sandbox = root / 'sandbox-exec'
-    sandbox.write_text('synthetic sandbox')
+    sandbox.write_text('synthetic sandbox', encoding='utf-8')
     monkeypatch.setattr(platform_capabilities.platform, 'system', lambda: 'Darwin')
     monkeypatch.setattr(platform_capabilities, 'SANDBOX_EXEC', sandbox)
     monkeypatch.setattr(runner, 'fixture_server', fixture)
@@ -126,8 +126,8 @@ def test_paired_calls_use_declared_versions_scope_and_balanced_order(tmp_path, m
     commands = fake_paired_environment(monkeypatch, tmp_path)
     paired_tail_main(argv)
     output = tmp_path / 'output'
-    selection = json.loads((output / 'selection.json').read_text())
-    calls = [json.loads(line) for line in (output / 'calls.jsonl').read_text().splitlines()]
+    selection = json.loads((output / 'selection.json').read_text(encoding='utf-8'))
+    calls = [json.loads(line) for line in (output / 'calls.jsonl').read_text(encoding='utf-8').splitlines()]
     assert set(selection['case_ids']) == {'one', 'two', 'three'}
     assert set(selection['binaries']) == {'2.0.0', '2.1.0'}
     assert len(commands) == len(calls) == 18

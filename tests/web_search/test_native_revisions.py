@@ -118,7 +118,7 @@ def test_native_correction_preserves_calls_and_checks_artifacts(tmp_path, monkey
         "expected_metrics": {"anchor_hit_5": 1},
     }
     controls = tmp_path / "controls.json"
-    controls.write_text(json.dumps({"regressions": [{"controls": [control]}]}))
+    controls.write_text(json.dumps({"regressions": [{"controls": [control]}]}), encoding="utf-8")
     monkeypatch.setattr(revisions, "NATIVE_CONTROLS", controls)
     revision = {
         "schema": "web-search-assessment-revision/1",
@@ -232,9 +232,9 @@ def revision_instance(root, revision):
     authority = root / "assessment-authority.json"
     authority.write_text(json.dumps({"assessment_revisions": {
         "schema": "search-assessment-authority/1", "approved_sha256": [identity],
-        "provenance": [{**{k: revision[k] for k in ("root_cause", "regression_ids", "provider_calls")}, "sha256": identity}]}}))
+        "provenance": [{**{k: revision[k] for k in ("root_cause", "regression_ids", "provider_calls")}, "sha256": identity}]}}), encoding="utf-8")
     instance = root / "instance.json"
-    instance.write_text(json.dumps({"assessment_authority": {"path": authority.name, "sha256": digest(authority.read_bytes())}}))
+    instance.write_text(json.dumps({"assessment_authority": {"path": authority.name, "sha256": digest(authority.read_bytes())}}), encoding="utf-8")
     return instance
 
 

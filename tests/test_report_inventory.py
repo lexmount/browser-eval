@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class ReportInventoryTests(unittest.TestCase):
     def setUp(self):
-        self.inventory = json.loads((ROOT/'configs/evaluation-inventory.json').read_text())
+        self.inventory = json.loads((ROOT/'configs/evaluation-inventory.json').read_text(encoding='utf-8'))
         digest = hashlib.sha256(b'fixture').hexdigest()
         self.dataset = {
             'cases': [{'id': cid, 'track': track, 'ground_truth_main_content': 'fixture',
@@ -44,7 +44,7 @@ class ReportInventoryTests(unittest.TestCase):
         files[root/'reliability.json'] = json.dumps(assess_reliability(self.dataset,self.records))
         for path, text in files.items():
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(text)
+            path.write_text(text, encoding='utf-8')
         for record in self.records:
             path = root / record['artifact_path']
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -52,11 +52,11 @@ class ReportInventoryTests(unittest.TestCase):
         for case in self.dataset['cases']:
             path = root / 'references' / (case['id'] + '.txt')
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(case['ground_truth_main_content'])
+            path.write_text(case['ground_truth_main_content'], encoding='utf-8')
         from harness.report_languages import english_notice
-        (root / 'report-languages.json').write_text(json.dumps({'primary_language': 'zh', 'languages': ['zh'], 'entrypoint': 'index.html'}))
+        (root / 'report-languages.json').write_text(json.dumps({'primary_language': 'zh', 'languages': ['zh'], 'entrypoint': 'index.html'}), encoding='utf-8')
         (root / 'en').mkdir()
-        (root / 'en/index.html').write_text(english_notice())
+        (root / 'en/index.html').write_text(english_notice(), encoding='utf-8')
         from harness.web_fetch.report_check import main
         main([str(root)], authority_root=authority)
 

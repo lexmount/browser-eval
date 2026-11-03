@@ -28,7 +28,7 @@ def fixture(tmp_path, *, resource=False, references=True):
     prior_path = tmp_path / 'prior-dataset.json'
     prior_path.write_bytes(prior_bytes)
     current = {**prior, 'name': 'Public title'}
-    (evidence / 'dataset.json').write_text(json.dumps(current))
+    (evidence / 'dataset.json').write_text(json.dumps(current), encoding='utf-8')
     (evidence / 'answer.txt').write_bytes(b'answer')
     row = {'attempt_id': 'custom-one', 'provider': 'custom', 'case_id': 'one', 'ok': True,
            'artifact_path': 'answer.txt', 'metrics': {'content_sha256': digest(b'answer'),
@@ -41,17 +41,17 @@ def fixture(tmp_path, *, resource=False, references=True):
               'attempts': [{'attempt_id': 'custom-one', 'machine_verdict': 'pass',
                             'agent_verdict': 'pass', 'final_verdict': 'pass',
                             'agent_evidence': 'Synthetic acceptance control'}]}
-    (evidence / 'result-review.json').write_text(json.dumps(review))
+    (evidence / 'result-review.json').write_text(json.dumps(review), encoding='utf-8')
     receipt = {'kind': 'audited_scoring_rule_revision', 'provider_calls': 0,
                'input_dataset_sha256': 'a' * 64, 'input_results_sha256': 'b' * 64,
                'output_dataset_sha256': digest(prior_bytes), 'output_results_sha256': digest(results),
                'changed_cases': [], 'task_decision_changes': []}
-    (evidence / 'scoring-revisions.json').write_text(json.dumps([receipt]))
+    (evidence / 'scoring-revisions.json').write_text(json.dumps([receipt]), encoding='utf-8')
     if references:
         reference = {**receipt, 'kind': 'audited_reference_correction',
                      'changed_cases': [{'case_id': 'one', 'fields': ['ground_truth_evidence'],
                                         'old_reference_sha256': 'c' * 64, 'new_reference_sha256': 'd' * 64}]}
-        (evidence / 'reference-revisions.json').write_text(json.dumps([reference]))
+        (evidence / 'reference-revisions.json').write_text(json.dumps([reference]), encoding='utf-8')
     return evidence, prior_path, current, [row]
 
 
@@ -88,18 +88,18 @@ def test_invalid_rebind_preserves_complete_source(tmp_path, fault):
             current['comparison']['require_anomaly_review'] = True
         else:
             current['coverage_plan'] = {'web': ['custom']}
-        (evidence / 'dataset.json').write_text(json.dumps(current))
+        (evidence / 'dataset.json').write_text(json.dumps(current), encoding='utf-8')
     elif fault == 'results':
         rows[0]['ok'] = False
-        (evidence / 'results.jsonl').write_text(json.dumps(rows[0]) + '\n')
+        (evidence / 'results.jsonl').write_text(json.dumps(rows[0]) + '\n', encoding='utf-8')
     elif fault == 'missing-history':
         (evidence / 'scoring-revisions.json').unlink()
     elif fault == 'invalid-history':
-        (evidence / 'scoring-revisions.json').write_text('{}')
+        (evidence / 'scoring-revisions.json').write_text('{}', encoding='utf-8')
     elif fault == 'broken-chain':
         history = json.loads((evidence / 'scoring-revisions.json').read_bytes())
         history[0]['output_dataset_sha256'] = 'e' * 64
-        (evidence / 'scoring-revisions.json').write_text(json.dumps(history))
+        (evidence / 'scoring-revisions.json').write_text(json.dumps(history), encoding='utf-8')
     elif fault == 'answer':
         (evidence / 'answer.txt').write_bytes(b'corrupt')
     elif fault == 'link':
@@ -110,7 +110,7 @@ def test_invalid_rebind_preserves_complete_source(tmp_path, fault):
         path.symlink_to(external)
         external_bytes = external.read_bytes()
     else:
-        (evidence / 'source-inputs.json').write_text('{}')
+        (evidence / 'source-inputs.json').write_text('{}', encoding='utf-8')
     before = {str(path.relative_to(evidence)): path.read_bytes() for path in evidence.rglob('*') if path.is_file()}
     with pytest.raises(ValueError):
         rebind_metadata_review(evidence, prior)
@@ -160,7 +160,7 @@ def test_repeated_neutral_changes_keep_reference_history_immutable(tmp_path):
     rebind_metadata_review(evidence, prior)
     prior.write_bytes((evidence / 'dataset.json').read_bytes())
     current['name'] = 'Second public title'
-    (evidence / 'dataset.json').write_text(json.dumps(current))
+    (evidence / 'dataset.json').write_text(json.dumps(current), encoding='utf-8')
     rebind_metadata_review(evidence, prior)
     assert (evidence / 'reference-revisions.json').read_bytes() == reference_bytes
     assert valid_reference_revision(evidence) and valid_scoring_revision(evidence)

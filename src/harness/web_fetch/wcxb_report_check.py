@@ -321,7 +321,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
     if not profile_path.is_file():
         raise ValueError("WCXB release authority is missing; pass --authority-root pointing to the selected instance bundle")
     reject_evidence_symlinks(profile_path)
-    profile = json.loads(profile_path.read_text())
+    profile = json.loads(profile_path.read_text(encoding='utf-8'))
     comparison = profile.get('paired_comparison') or {}
     from harness.web_fetch.wcxb_publication import inventory
     inventory(root, profile)
@@ -329,15 +329,15 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
     reject_evidence_symlinks(binding_path)
     content_binding = json.loads(binding_path.read_bytes())
     check_bound_interpretation(root, content_binding)
-    guide_sources = {lang: (root / prefix / 'guide/index.html').read_text()
+    guide_sources = {lang: (root / prefix / 'guide/index.html').read_text(encoding='utf-8')
                      for lang, prefix in [('zh', ''), ('en', 'en')]
                      if (root / prefix / 'guide/index.html').is_file()}
 
     sample_file = root / 'sample-manifest.json'
-    sample = json.loads(sample_file.read_text())
+    sample = json.loads(sample_file.read_text(encoding='utf-8'))
     require(sample.get('scope') == 'qualified_test', 'WCXB current selection is not source-qualified')
-    certificate = json.loads((root / 'certification.json').read_text())
-    summary = json.loads((root / 'wcxb-score-summary.json').read_text())
+    certificate = json.loads((root / 'certification.json').read_text(encoding='utf-8'))
+    summary = json.loads((root / 'wcxb-score-summary.json').read_text(encoding='utf-8'))
     scores = load_jsonl(root / 'wcxb-scores.jsonl', skip_blank=True)
     sample_hash = file_sha256(sample_file)
     require(sample_hash == profile['sample_manifest_sha256'] == summary['sample_sha256'], 'WCXB sample hash differs')
@@ -368,7 +368,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
         require(optional_receipt.is_file() and file_sha256(optional_receipt) == profile['optional_ui_receipt_sha256'],
                 'WCXB optional feature evidence differs from current profile')
         optional_root = optional_receipt.parent
-        optional = json.loads(optional_receipt.read_text())
+        optional = json.loads(optional_receipt.read_text(encoding='utf-8'))
         require(optional.get('case_id') in case_ids, 'Optional feature case is outside the current population')
         for name, binary_hash in (('release', profile['release_binary_sha256']),
                                   ('candidate', profile['candidate_binary_sha256'])):
@@ -394,7 +394,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
                     and abs(measured['p95_latency_ms'] - p95) < .01,
                     'WCXB Paired timing summary differs from certified full paired evidence')
 
-    evidence_hashes = json.loads((root / 'evidence-manifest.json').read_text())
+    evidence_hashes = json.loads((root / 'evidence-manifest.json').read_text(encoding='utf-8'))
     require(set(evidence_hashes) == case_ids, 'WCXB evidence inventory differs')
     by_case = {}
     for row in scores:
@@ -407,7 +407,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
     for case in case_ids:
         path = root / 'evidence' / f'{case}.json'
         require(path.is_file() and not path.is_symlink() and file_sha256(path) == evidence_hashes[case], 'WCXB case evidence differs')
-        evidence = json.loads(path.read_text())
+        evidence = json.loads(path.read_text(encoding='utf-8'))
         require(evidence['case_id'] == case and set(evidence['outputs']) == set(providers), 'WCXB case evidence participants differ')
         for provider in providers:
             require(hashlib.sha256(evidence['source_html'].encode()).hexdigest() == by_case[case][provider]['input_html_sha256'], 'WCXB source evidence hash differs')
@@ -496,7 +496,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
         untranslated = ReportShape(); untranslated.feed('<p>未翻译的界面文字</p>')
         require(bool(untranslated.untranslated), 'Untranslated-English negative control was accepted')
         broken = ReportShape()
-        broken.feed((root / 'en/index.html').read_text().replace('href="en/analysis/index.html"',
+        broken.feed((root / 'en/index.html').read_text(encoding='utf-8').replace('href="en/analysis/index.html"',
                     'href="en/broken.html"', 1))
         try:
             require_bilingual_shape(shapes['zh']['index.html'], broken, 'index.html')
@@ -504,9 +504,9 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
             pass
         else:
             raise AssertionError('A broken bilingual navigation link was accepted')
-    require_comparison_highlights((root / 'index.html').read_text())
+    require_comparison_highlights((root / 'index.html').read_text(encoding='utf-8'))
 
-    analysis = require_analysis_controls((root / 'analysis/index.html').read_text(), len(qualified) * len(providers))
+    analysis = require_analysis_controls((root / 'analysis/index.html').read_text(encoding='utf-8'), len(qualified) * len(providers))
     analysis.select_one('#diagnosis-dialog [data-diagnosis-link]').decompose()
     try:
         require_analysis_controls(analysis, len(qualified) * len(providers))
@@ -515,7 +515,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
     else:
         raise AssertionError('A broken diagnosis link was accepted')
     case = next(iter(sorted(qualified)))
-    detail = require_case_summary((root / 'cases' / f'{case}.html').read_text(), 'zh')
+    detail = require_case_summary((root / 'cases' / f'{case}.html').read_text(encoding='utf-8'), 'zh')
     label = '同一网页的全部方法结果'
     heading = next(node for node in detail.select('h2') if node.get_text(' ', strip=True) == label)
     heading.insert_after(BeautifulSoup(f'<h2>{label}</h2>', 'html.parser'))
@@ -543,7 +543,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
             else:
                 raise AssertionError('An altered bound interpretation was accepted: ' + selector)
     if profile.get('latency_correction_receipt_sha256'):
-        home = BeautifulSoup((root / 'index.html').read_text(), 'html.parser')
+        home = BeautifulSoup((root / 'index.html').read_text(encoding='utf-8'), 'html.parser')
         home.select_one('#paired-latency-context').decompose()
         try:
             require_home_interpretation(home, summary, paired_latency, 'zh', paired_methods)
@@ -565,9 +565,9 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
             else:
                 raise AssertionError('An incomplete paired latency cohort was accepted')
             (invalid / 'calls.jsonl').write_bytes(calls)
-            receipt = json.loads((invalid / 'receipt.json').read_text())
+            receipt = json.loads((invalid / 'receipt.json').read_text(encoding='utf-8'))
             receipt['binary_sha256']['pr'] = '0' * 64
-            (invalid / 'receipt.json').write_text(json.dumps(receipt))
+            (invalid / 'receipt.json').write_text(json.dumps(receipt), encoding='utf-8')
             try:
                 load_full_paired_latency(invalid, profile, case_ids)
             except ValueError:
@@ -636,7 +636,7 @@ def check_visual(root: Path, browser_binary: str) -> None:
                                     if errors:
                                         raise ValueError(f'Browser error: {lang} {route}: {errors}')
                                     if route == 'guide/index.html':
-                                        expected = BeautifulSoup((root / prefix / route).read_text(), 'html.parser')
+                                        expected = BeautifulSoup((root / prefix / route).read_text(encoding='utf-8'), 'html.parser')
                                         images = page.locator('main img')
                                         if images.count() != len(expected.select('main img')):
                                             raise ValueError('Guide lost a bound illustration')

@@ -12,7 +12,7 @@ def test_messages_select_languages_and_preserve_model_values(tmp_path):
         "en": {"count": "{passed}/{total} tasks", "columns": ["Task", "Result"]},
         "zh": {"count": "{passed}/{total} 题", "columns": ["题目", "结果"]},
         "fr": {"count": "{passed}/{total} tâches", "columns": ["Tâche", "Résultat"]},
-    }))
+    }), encoding="utf-8")
     assert translate(path, "count", "en", passed=2, total=3) == "2/3 tasks"
     assert translate(path, "count", "zh", passed=2, total=3) == "2/3 题"
     assert translate(path, "count", "fr", passed=2, total=3) == "2/3 tâches"
