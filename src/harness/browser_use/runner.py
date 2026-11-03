@@ -527,9 +527,10 @@ def _scheduled_tasks(tasks: tuple[PilotTask, ...], max_tasks: int | None) -> tup
 
 
 def _engine_order(engines: tuple[str, ...], task_index: int) -> tuple[str, ...]:
-    """Alternate call order by task so no registered browser always runs first."""
+    """Rotate call order by task so every registered browser takes every position."""
 
-    return engines if task_index % 2 == 0 else engines[::-1]
+    offset = task_index % len(engines)
+    return engines[offset:] + engines[:offset]
 
 
 def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
@@ -732,7 +733,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                 "isolation_unit": "docker-daemon-and-fixed-site-ports",
                 "parallelism_rule": "one active attempt per Docker daemon",
             },
-            "engine_order": "alternating by task",
+            "engine_order": "rotating by task",
             "sites": [site.value for site in SITE_PORTS],
             "official_container_hostname_allowlist": [CONTAINER_HOST_ALIAS],
         },

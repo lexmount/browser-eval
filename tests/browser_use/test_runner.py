@@ -1500,13 +1500,14 @@ def test_browser_use_run_stops_before_sites_start_without_site_accounts(
         runner_module.run(arguments)
 
 
-def test_engine_order_alternates_every_registered_browser() -> None:
+def test_engine_order_rotates_every_registered_browser() -> None:
     assert _engine_order(tuple(ENGINE_IMAGES), 0) == ("chromium", "moli")
     assert _engine_order(tuple(ENGINE_IMAGES), 1) == ("moli", "chromium")
     engines = ("a", "b", "c")
-    assert [_engine_order(engines, index) for index in range(3)] == [
+    assert [_engine_order(engines, index) for index in range(4)] == [
         ("a", "b", "c"),
-        ("c", "b", "a"),
+        ("b", "c", "a"),
+        ("c", "a", "b"),
         ("a", "b", "c"),
     ]
     assert _engine_order(("solo",), 1) == ("solo",)
