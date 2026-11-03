@@ -74,12 +74,8 @@ survived this pruning.
 
 ## Web Search
 
-| Script | Reached from |
-| --- | --- |
-| `build_search_report.py` | `configs/report-templates.json`, `src/harness/web_search/README.md` |
-| `review_search_results.py`, `publish_search_report.py` | `src/harness/web_search/README.md` |
-| `judge_search_relevance.py` | `src/harness/web_search/README.md`, benchmark-report skill |
-| `check_search_report_visual.py` | `src/harness/web_search/visual.py` |
+Report commands run through `python -m harness.web_search <command>`; the
+[track guide](../src/harness/web_search/README.md) lists them.
 
 ## Browser Use
 

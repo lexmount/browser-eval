@@ -89,7 +89,7 @@ one report entry and all evidence; reject unresolved or changed data attachments
 
 Web Search relevance labels cover every in-house case with the same frozen rubric.
 Use named human annotations by default. When the user explicitly selects a model
-judge, use `scripts/judge_search_relevance.py` and retain the exact model, prompt,
+judge, use `python -m harness.web_search judge` and retain the exact model, prompt,
 blind inputs, raw responses and quoted scoring evidence. Label the result as model
 preview relevance rather than human gold judgments. Both routes import through
 `--relevance`; neither may substitute nonempty responses or URL checks for labels.

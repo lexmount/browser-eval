@@ -8,7 +8,7 @@ import pytest
 
 @pytest.mark.parametrize("operation", [
     "import lexbench_websearch.rubric; import harness.web_search.relevance; import harness.web_search.review",
-    "from harness.web_search.relevance import judge_main; judge_main(['--help'])",
+    "from harness.web_search.cli import main; main(['judge', '--help'])",
 ])
 def test_rubric_import_and_judge_help_are_cold_offline(tmp_path, operation):
     code = '''import socket, urllib.request
