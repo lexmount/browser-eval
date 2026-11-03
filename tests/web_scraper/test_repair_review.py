@@ -849,7 +849,12 @@ def test_persisted_review_rejects_invalid_assessment_schema(tmp_path, invalid):
 def test_audit_interrupt_stops_sessions_before_waiting_for_workers(tmp_path):
     from harness.web_scraper.review import run as run_audit
 
-    save_json(tmp_path / "manifest.json", {"packets": [{"path": "queued"}], "bindings": {}})
+    packet = tmp_path / "queued.json"
+    save_json(packet, {})
+    save_json(
+        tmp_path / "manifest.json",
+        {"packets": [{"path": str(packet), "sha256": digest(packet.read_bytes())}], "bindings": {}},
+    )
     save_json(tmp_path / "schema.json", {})
     events = []
 
@@ -1228,3 +1233,69 @@ def test_supplemental_review_selects_only_changed_repaired_call(tmp_path):
         )
     assert result["result_count"] == 3 and result["supplemental_results_reviewed"] == 1
     assert [r["basis"] for r in result["results"].values()].count("supplemental") == 1
+
+
+@pytest.mark.parametrize("workers", [0, -1])
+def test_adjudication_invalid_workers_leave_no_workspace(tmp_path, workers):
+    from harness.web_scraper.cli import main
+
+    work = tmp_path / "adjudication"
+    with (
+        patch("harness.web_scraper.review.prepare_adjudication") as prepare_audit,
+        patch("harness.web_scraper.review.run") as dispatch,
+        pytest.raises(SystemExit) as error,
+    ):
+        main(
+            [
+                "adjudicate",
+                "--prior",
+                str(tmp_path / "prior"),
+                "--work",
+                str(work),
+                "--rules",
+                str(tmp_path / "rules.json"),
+                "--model",
+                "synthetic",
+                "--workers",
+                str(workers),
+            ]
+        )
+    assert error.value.code == 2
+    prepare_audit.assert_not_called()
+    dispatch.assert_not_called()
+    assert not work.exists()
+
+
+def test_limited_review_resume_advances_without_repeating_completed_packets(tmp_path):
+    from types import SimpleNamespace
+
+    from harness.web_scraper.review import run as run_audit
+
+    home = create(tmp_path / "example")
+    work = tmp_path / "review"
+    manifest = prepare(home, home / "content.json", work, batch_size=1)
+    assert len(manifest["packets"]) == 3
+    dispatched = []
+
+    def start(command, **kwargs):
+        raw = Path(command[command.index("--output-last-message") + 1])
+        packet = read_json(work / "packets" / raw.name)
+        dispatched.append(raw.name)
+        save_json(raw, review_payload(packet))
+        return SimpleNamespace(returncode=0)
+
+    with (
+        patch("harness.web_scraper.review.ReviewerSessions.start", side_effect=start),
+        patch("harness.web_scraper.review.ReviewerSessions.communicate"),
+    ):
+        for expected in (1, 2, 3, 3):
+            result = run_audit(work, model="synthetic", workers=1, limit=1)
+            assert result["packets"] == expected
+            assert result["needs_correction"] == []
+        assert dispatched == ["000.json", "001.json", "002.json"]
+        # Completed evidence still needs validation on a bounded resume.
+        target = work / "reviews/000.json"
+        save_json(target, {"cases": []})
+        with pytest.raises(ValueError):
+            run_audit(work, model="synthetic", workers=1, limit=1)
+        assert len(dispatched) == 3

@@ -163,9 +163,13 @@ def main(argv=None):
         if not args.prepare_only:
             print(run_review(args.work, model=args.model, workers=args.workers, limit=args.limit))
     elif args.command == "adjudicate":
-        from harness.web_scraper.review import prepare_adjudication
+        from harness.web_scraper.review import prepare_adjudication, validate_review_options
         from harness.web_scraper.review import run as run_review
 
+        try:
+            validate_review_options(workers=args.workers)
+        except ValueError as error:
+            parser.error(str(error))
         prepare_adjudication(args.prior, args.work, args.rules)
         print(run_review(args.work, model=args.model, workers=args.workers))
     elif args.command == "audit-assemble":

@@ -801,7 +801,19 @@ Return concise Chinese findings under the supplied schema. No API calls or file 
         print("Reviewed", path.stem, len(result["cases"]), flush=True)
         return result
 
-    items = manifest["packets"][:limit]
+    # Validate retained results before limiting the work still needing dispatch.
+    retained = []
+    pending = []
+    for item in manifest["packets"]:
+        path = Path(item["path"])
+        if digest(path.read_bytes()) != item["sha256"]:
+            raise ValueError("Audit packet changed")
+        target = work / "reviews" / path.name
+        if target.exists():
+            retained.append(validate(read_json(target), read_json(path)))
+        else:
+            pending.append(item)
+    items = pending[:limit]
 
     def guarded(item):
         try:
@@ -823,7 +835,7 @@ Return concise Chinese findings under the supplied schema. No API calls or file 
     finally:
         sessions.stop()
         executor.shutdown(wait=True, cancel_futures=True)
-    results = [r for r, error in outcomes if error is None]
+    results = retained + [r for r, error in outcomes if error is None]
     return {
         "packets": len(results),
         "cases": sum(len(x["cases"]) for x in results),
