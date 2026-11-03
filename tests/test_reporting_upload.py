@@ -8,7 +8,7 @@ import pytest
 from harness.record_io import file_sha256
 from harness.browser_use import report_publish as autonomous
 from harness.reporting.publication import snapshot_publication
-from harness.reporting.publish import staged_release_upload
+from harness.reporting.publish import staged_release_upload, upload_large_archive
 from harness.trajectory_replay import webarena_report_publish as replay
 
 
@@ -18,6 +18,14 @@ def private_binding_journals(monkeypatch, tmp_path):
     monkeypatch.setattr(replay, 'BINDING_JOURNAL', tmp_path / 'replay-binding.json')
     monkeypatch.setattr(autonomous, 'OPERATION_JOURNAL', tmp_path / 'autonomous-operation.json')
     monkeypatch.setattr(replay, 'OPERATION_JOURNAL', tmp_path / 'replay-operation.json')
+
+
+def test_new_site_upload_without_a_title_stops_before_any_request(tmp_path):
+    archive = tmp_path / 'archive.zip'
+    with zipfile.ZipFile(archive, 'w') as bundle:
+        bundle.writestr('index.html', 'Frozen release')
+    with pytest.raises(ValueError, match='requires a title'):
+        upload_large_archive(lambda *args, **kwargs: pytest.fail('sent a request'), archive)
 
 
 def test_private_archive_is_byte_exact_and_removed_on_error(tmp_path):

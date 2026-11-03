@@ -381,6 +381,176 @@ def test_bound_create_keeps_tokens_out_of_the_receipt_in_every_state(tmp_path, m
     assert_no_service_token_and_response_kept(*states)
 
 
+VERSION_FIELDS = {browser_use: ('versionId', 'version'), replay: ('version', 'versionId')}
+
+
+def bound_profile(owner, **fields):
+    owner.PROFILE.write_text(json.dumps({'publication': {
+        'base_url': BASE, 'site_slug': 'site-1', 'expected_version': 'ver_old', **fields,
+    }}), encoding='utf-8')
+
+
+def saved_receipt(owner, archive, **fields):
+    owner.RECEIPT.write_text(json.dumps({
+        'base_url': BASE, 'slug': 'site-1', 'archive_sha256': file_sha256(archive), **fields,
+    }), encoding='utf-8')
+
+
+def requested(wire, method):
+    return [request.selector for request, _ in wire if request.get_method() == method]
+
+
+def bound(owner):
+    return json.loads(owner.PROFILE.read_bytes())['publication']
+
+
+def receipt_of(owner):
+    return json.loads(owner.RECEIPT.read_bytes())
+
+
+@BOUND_TRACKS
+def test_bound_update_settles_one_version_key_from_the_lookup_and_keeps_response_fields(
+        tmp_path, monkeypatch, wire, owner, marker):
+    archive, wire.respond = lifecycle_site(
+        monkeypatch, tmp_path, owner, marker, active='ver_old',
+        uploaded={**SERVICE_RESPONSE, 'versionId': 'ver_from_response'},
+    )
+    bound_profile(owner, share_url=BASE + '/v/token')
+    saved_receipt(owner, archive, verified=True, phase='binding', version='ver_stale', versionId='ver_stale')
+    owner.main(create=False)
+    current, stale = VERSION_FIELDS[owner]
+    final = receipt_of(owner)
+    assert final[current] == 'ver_new' and bound(owner)['expected_version'] == 'ver_new'
+    assert stale not in final and 'phase' not in final and final['verified'] is True
+    assert_no_service_token_and_response_kept(owner.RECEIPT.read_bytes())
+    assert requested(wire, 'POST') == [
+        '/api/sites/site-1/versions?expected_version=ver_old']
+
+
+@BOUND_TRACKS
+def test_interrupted_binding_of_a_create_reuses_the_share_url_in_its_receipt(
+        tmp_path, monkeypatch, wire, owner, marker):
+    archive, wire.respond = lifecycle_site(monkeypatch, tmp_path, owner, marker)
+    current, stale = VERSION_FIELDS[owner]
+    saved_receipt(owner, archive, verified=False, phase='binding', share_url=BASE + '/v/saved',
+                  createdAt='kept', **{current: 'ver_stale', stale: 'ver_stale'})
+    owner.main(create=False)
+    assert requested(wire, 'POST') == []
+    assert '/v/saved' in requested(wire, 'GET')
+    assert bound(owner)['share_url'] == BASE + '/v/saved'
+    final = receipt_of(owner)
+    assert final['share_url'] == BASE + '/v/saved' and final['createdAt'] == 'kept'
+    assert final[current] == 'ver_new' and stale not in final and 'phase' not in final
+
+
+@BOUND_TRACKS
+def test_pending_create_receipt_without_a_verified_field_resumes_when_it_matches(
+        tmp_path, monkeypatch, wire, owner, marker):
+    archive, wire.respond = lifecycle_site(monkeypatch, tmp_path, owner, marker)
+    saved_receipt(owner, archive)
+    owner.main(create=False)
+    assert requested(wire, 'POST') == ['/api/sites/site-1/shares']
+    assert bound(owner)['site_slug'] == 'site-1'
+
+
+@BOUND_TRACKS
+@pytest.mark.parametrize('mismatch', [{'archive_sha256': 'other'}, {'base_url': 'https://other.example.invalid'}])
+def test_pending_create_receipt_without_a_verified_field_stops_on_a_mismatch(
+        tmp_path, monkeypatch, wire, owner, marker, mismatch):
+    archive, _ = lifecycle_site(monkeypatch, tmp_path, owner, marker)
+    saved_receipt(owner, archive, **mismatch)
+    with pytest.raises(ValueError, match='differs from the current release'):
+        owner.main(create=True)
+    assert not wire
+
+
+@BOUND_TRACKS
+def test_verified_receipt_is_not_a_pending_create(tmp_path, monkeypatch, wire, owner, marker):
+    archive, wire.respond = lifecycle_site(monkeypatch, tmp_path, owner, marker)
+    saved_receipt(owner, archive, slug='finished-site', verified=True)
+    with pytest.raises(ValueError, match='no bound site'):
+        owner.main(create=False)
+    assert not wire
+    owner.main(create=True)
+    assert requested(wire, 'POST') == ['/api/sites', '/api/sites/site-1/shares']
+    assert bound(owner)['site_slug'] == 'site-1'
+
+
+@BOUND_TRACKS
+@pytest.mark.parametrize('journal_matches', [True, False], ids=['own-journal', 'other-journal'])
+def test_resumed_create_settles_only_its_own_operation_journal(
+        tmp_path, monkeypatch, wire, owner, marker, journal_matches):
+    archive, wire.respond = lifecycle_site(monkeypatch, tmp_path, owner, marker)
+    saved_receipt(owner, archive, verified=False)
+    schema, prefix = {
+        browser_use: ('lex_browser_use_artifact_operation/1', 'browser-use-'),
+        replay: ('lex_webarena_replay_artifact_operation/1', 'trajectory-replay-'),
+    }[owner]
+    publication.PublicationOperation(owner.OPERATION_JOURNAL, prefix).pending(
+        publish.operation_identity(schema, base=BASE, archive_sha256=file_sha256(archive),
+                                   title='Title' if journal_matches else 'Another release'),
+        allow_create=True,
+    )
+    if journal_matches:
+        owner.main(create=False)
+        assert requested(wire, 'POST') == ['/api/sites/site-1/shares']
+        assert not owner.OPERATION_JOURNAL.exists()
+    else:
+        with pytest.raises(ValueError, match='differs from this release'):
+            owner.main(create=False)
+        assert not wire
+        assert owner.OPERATION_JOURNAL.exists()
+
+
+@pytest.mark.parametrize(('owner', 'marker', 'has_receipt'), [
+    (browser_use, browser_use.PUBLIC_REPORT_MARKER, True),
+    (replay, replay.PUBLIC_REPORT_MARKERS[0], True),
+    (replay, replay.PUBLIC_REPORT_MARKERS[0], False),
+], ids=['browser-use', 'replay', 'replay-no-receipt'])
+def test_bound_profile_with_no_share_url_creates_one_and_binds_it(
+        tmp_path, monkeypatch, wire, owner, marker, has_receipt):
+    archive, wire.respond = lifecycle_site(monkeypatch, tmp_path, owner, marker, active='ver_old')
+    bound_profile(owner)
+    if has_receipt:
+        saved_receipt(owner, archive, verified=True)
+    owner.main(create=False)
+    assert requested(wire, 'POST') == ['/api/sites/site-1/versions?expected_version=ver_old',
+                                       '/api/sites/site-1/shares']
+    assert bound(owner)['share_url'] == BASE + '/v/token'
+    assert receipt_of(owner)['share_url'] == BASE + '/v/token'
+
+
+@BOUND_TRACKS
+@pytest.mark.parametrize('deployed', ['same', 'different'])
+def test_remote_version_moved_resumes_only_when_the_export_proves_the_same_bytes(
+        tmp_path, monkeypatch, wire, owner, marker, deployed):
+    archive, site = lifecycle_site(monkeypatch, tmp_path, owner, marker)
+    bound_profile(owner, share_url=BASE + '/v/token')
+    saved_receipt(owner, archive, verified=True)
+    other = tmp_path / 'other.zip'
+    with zipfile.ZipFile(other, 'w') as bundle:
+        bundle.writestr('index.html', 'another release')
+
+    def respond(request):
+        if deployed == 'different' and request.selector.endswith('/export'):
+            return other.read_bytes()
+        return site(request)
+
+    wire.respond = respond
+    before = owner.PROFILE.read_bytes()
+    if deployed == 'different':
+        with pytest.raises(RuntimeError, match='differs from package'):
+            owner.main(create=False)
+        assert owner.PROFILE.read_bytes() == before
+        # The first export stops the run before it touches the site.
+        assert requested(wire, 'GET') == ['/api/sites/site-1', '/api/sites/site-1/export']
+        assert requested(wire, 'PATCH') == []
+    else:
+        owner.main(create=False)
+        assert bound(owner)['expected_version'] == 'ver_new'
+    assert requested(wire, 'POST') == []
+
+
 def test_browser_use_requires_its_receipt_and_replay_stages_large_archives(tmp_path, monkeypatch, wire):
     monkeypatch.setattr(publish, 'STAGED_UPLOAD_THRESHOLD', 0)
     bound = {'publication': {'base_url': BASE, 'site_slug': 'site-1', 'expected_version': 'ver_new'}}
