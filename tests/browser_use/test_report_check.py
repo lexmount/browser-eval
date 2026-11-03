@@ -205,6 +205,17 @@ def test_template_gate_binds_the_renderer_not_the_entry_point():
             checker.check_template_identity({"profile_sha256": "bound", "template": template})
 
 
+def test_template_gate_needs_no_registry_without_a_profile_hash(monkeypatch):
+    # Wheels do not bundle the registry, and an unprofiled report has nothing to bind.
+    def no_registry(_track):
+        raise FileNotFoundError("configs/report-templates.json")
+
+    monkeypatch.setattr(checker, "template_identity", no_registry)
+    checker.check_template_identity({})
+    with pytest.raises(FileNotFoundError):
+        checker.check_template_identity({"profile_sha256": "bound"})
+
+
 @pytest.mark.parametrize("defect", [None, "count", "host", "diagram"])
 def test_methodology_uses_selected_evidence_instead_of_historical_deployment(defect):
     content = (

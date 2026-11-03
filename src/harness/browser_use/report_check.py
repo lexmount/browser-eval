@@ -346,10 +346,10 @@ def check_methodology_evidence(content: str, tasks: list[dict], environment: dic
 def check_template_identity(audit: dict) -> None:
     """Bind the renderer: a moved entry point leaves reports built before the move valid."""
 
+    if not audit.get("profile_sha256"):
+        return
     template, maintained = audit.get("template") or {}, template_identity("browser-use")
-    if audit.get("profile_sha256") and any(
-        template.get(key) != maintained[key] for key in ("track", "renderer")
-    ):
+    if any(template.get(key) != maintained[key] for key in ("track", "renderer")):
         raise ValueError("report bypasses the maintained Browser Use template")
 
 
