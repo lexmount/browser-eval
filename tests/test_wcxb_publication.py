@@ -27,7 +27,8 @@ def report(tmp_path, monkeypatch):
     monkeypatch.setattr('harness.web_fetch.wcxb_report_check.check',
                         lambda path, **kw: checks.append(('semantic', path, kw)))
     monkeypatch.setattr('harness.reporting.links.check', lambda path: checks.append(('links', path)))
-    monkeypatch.setattr(release, 'load_token', lambda **kw: pytest.fail('synthetic transport loaded credentials'))
+    monkeypatch.setattr('harness.reporting.publication.load_token',
+                        lambda **kw: pytest.fail('synthetic transport loaded credentials'))
     return dict(source=source, authority_root=authority, work=tmp_path / 'private'), profile_path, checks
 
 

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import tempfile
 from pathlib import Path
@@ -18,6 +17,7 @@ from harness.trajectory_replay.report_compaction import (
 )
 from harness.trajectory_replay.report_inputs import bound_dataset_path
 from harness.trajectory_replay.webarena_report_check import check as check_report
+from harness.trajectory_replay.webarena_report_publish import tree_sha256
 from harness.trajectory_replay.webarena_report_visual import check as check_visual
 from harness.trajectory_replay.webarena_report_visual import receipt_is_current
 
@@ -28,15 +28,6 @@ ATTESTATION = Path("publish/trajectory-replay-artifact-site.attestation.json")
 VISUAL_RECEIPT = Path("publish/trajectory-replay-visual-qa.json")
 MAX_FILES = 2_000
 MAX_ARCHIVE_BYTES = 300_000_000
-
-
-def tree_sha256(root: Path) -> str:
-    digest = hashlib.sha256()
-    for path in sorted(item for item in root.rglob("*") if item.is_file()):
-        relative = path.relative_to(root).as_posix().encode()
-        digest.update(relative)
-        digest.update(hashlib.sha256(path.read_bytes()).digest())
-    return digest.hexdigest()
 
 
 def validate_release(

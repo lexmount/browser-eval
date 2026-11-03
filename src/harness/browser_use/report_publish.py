@@ -4,16 +4,13 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
-import os
 import urllib.parse
-import urllib.request
 from pathlib import Path
-from urllib.error import HTTPError
 
-from harness.record_io import file_sha256, json_bytes
+from harness.record_io import file_sha256
 from harness.reporting.publication import (
+    PublicationClient,
     PublicationOperation,
     PublicationSnapshot,
     archive_inventory,
@@ -22,10 +19,12 @@ from harness.reporting.publication import (
     binding_receipt_matches,
     public_share_context,
     recover_binding,
+    response_json,
     snapshot_publication,
+    write_receipt,
 )
+from harness.reporting.publication import multipart_archive as build_multipart_archive
 from harness.reporting.visual import tree_sha256 as _tree_sha256
-from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.safety import reject_evidence_symlinks
 
 ARCHIVE = Path("publish/browser-use-sites.zip")
@@ -35,6 +34,8 @@ PROFILE: Path | None = None
 OPERATION_JOURNAL = Path("publish/browser-use-artifact-site-operation-pending.json")
 BINDING_JOURNAL = Path("publish/browser-use-artifact-site-binding-pending.json")
 PUBLIC_REPORT_MARKER = "<title>首页 · Browser Use 评测</title>"
+CLIENT = PublicationClient("Browser-Use-Report-Publisher/1.0", return_http_errors=True)
+PUBLIC_CLIENT = PublicationClient("Browser-Use-Report-Publisher/1.0", timeout=60)
 
 
 def tree_sha256(root: Path) -> str:
@@ -99,39 +100,9 @@ def request(
     extra_headers: dict | None = None,
 ):
     base = base_url or publication_target(require_existing=False)[0]
-    headers = {
-        "Authorization": "Bearer " + load_token(base_url=base),
-        "User-Agent": "Browser-Use-Report-Publisher/1.0",
-    }
-    if content_type:
-        headers["Content-Type"] = content_type
-    headers.update(extra_headers or {})
-    req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=240) as response:
-            return response.status, response.read()
-    except HTTPError as error:
-        try:
-            return error.code, error.read()
-        finally:
-            error.close()
-
-
-def response_json(status: int, raw: bytes, *, operation: str) -> dict:
-    """Decode an Artifact Site response without hiding its HTTP failure."""
-
-    if not 200 <= status < 300:
-        detail = raw.decode("utf-8", errors="replace").strip()[:500] or "empty response"
-        raise RuntimeError(f"{operation} failed with HTTP {status}: {detail}")
-    try:
-        value = json.loads(raw)
-    except (TypeError, ValueError) as error:
-        raise RuntimeError(
-            f"{operation} returned HTTP {status} without a valid JSON response"
-        ) from error
-    if not isinstance(value, dict):
-        raise RuntimeError(f"{operation} returned a non-object JSON response")
-    return value
+    return CLIENT.request(
+        base, path, data, content_type, method=method, extra_headers=extra_headers
+    )[:2]
 
 
 def validate_public_preview(status: int, body: str) -> None:
@@ -147,38 +118,13 @@ def multipart_archive(
     archive = archive if archive is not None else ARCHIVE
     if not archive.is_file():
         raise ValueError(f"missing validated package: {ARCHIVE}")
-    seed = title.encode() + b"\0" + file_sha256(archive).encode()
-    boundary = "----browseruse" + hashlib.sha256(seed).hexdigest()[:32]
-    parts = []
-    for key, value in (
-        ("mode", "zip"),
-        ("title", title),
-    ):
-        parts.append(
-            (
-                f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'
-            ).encode()
-        )
-    parts.append(
-        (
-            f'--{boundary}\r\nContent-Disposition: form-data; name="file"; '
-            'filename="browser-use.zip"\r\nContent-Type: application/zip\r\n\r\n'
-        ).encode()
-        + archive.read_bytes()
-        + b"\r\n"
+    return build_multipart_archive(
+        archive, title, boundary_prefix="----browseruse", filename="browser-use.zip"
     )
-    parts.append(f"--{boundary}--\r\n".encode())
-    return b"".join(parts), "multipart/form-data; boundary=" + boundary
 
 
 def save_receipt(result: dict) -> None:
-    safe = {
-        key: value
-        for key, value in result.items()
-        if key not in {"editToken", "claimToken", "token"}
-    }
-    atomic_write(RECEIPT, json_bytes(safe))
-    os.chmod(RECEIPT, 0o600)
+    write_receipt(RECEIPT, result)
 
 
 def recover_publication_binding() -> None:
@@ -344,19 +290,16 @@ def _publish(*, create: bool, release: PublicationSnapshot) -> None:
     if archive_inventory(exported) != archive_inventory(release.archive):
         raise RuntimeError("deployed Artifact Site file tree differs from package")
     share_path, share_token = public_share_context(base, result["share_url"])
-    public = urllib.request.Request(
-        base + share_path, headers={"User-Agent": "Browser-Use-Report-Publisher/1.0"}
+    public = PUBLIC_CLIENT.request(base, share_path, authenticated=False)
+    if public.status != 200:
+        raise RuntimeError(f"public report returned {public.status}")
+    preview = PUBLIC_CLIENT.request(
+        base,
+        f"/api/preview/{result['slug']}",
+        authenticated=False,
+        extra_headers={"X-Artifact-Share": share_token},
     )
-    with urllib.request.urlopen(public, timeout=60) as response:
-        if response.status != 200:
-            raise RuntimeError(f"public report returned {response.status}")
-    preview = urllib.request.Request(
-        f"{base}/api/preview/{result['slug']}",
-        headers={"User-Agent": "Browser-Use-Report-Publisher/1.0", "X-Artifact-Share": share_token},
-    )
-    with urllib.request.urlopen(preview, timeout=60) as response:
-        body = response.read().decode("utf-8", errors="replace")
-        validate_public_preview(response.status, body)
+    validate_public_preview(preview.status, preview.body.decode("utf-8", errors="replace"))
     release.check()
     validate_package()
     release.check()
