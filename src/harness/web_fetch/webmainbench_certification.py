@@ -303,10 +303,3 @@ def main_score(argv: list[str] | None = None) -> None:
     with score_certificate.open("x", encoding="utf-8") as stream:
         stream.write(json.dumps(certificate, ensure_ascii=False, indent=2) + "\n")
     print("Certified complete scoring", flush=True)
-
-
-if __name__ == "__main__":
-    if sys.argv[1:2] == ["score"]:
-        main_score(sys.argv[2:])
-    else:
-        main()

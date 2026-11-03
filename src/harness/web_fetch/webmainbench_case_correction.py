@@ -265,7 +265,3 @@ def main() -> None:
     print(json.dumps({"case_id": result["case_id"], "providers": result["providers"],
                       "text_edit_effects": {name: [row["old_text_edit"], row["new_text_edit"]]
                                             for name, row in result["effects"].items()}}, ensure_ascii=False))
-
-
-if __name__ == "__main__":
-    main()

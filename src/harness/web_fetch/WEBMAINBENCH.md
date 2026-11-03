@@ -48,7 +48,7 @@ conversion, not current website availability or live browsing success.
 
 The retained 200-page sample's balanced Moli latency correction uses
 `scripts/run_certified_benchmark.py webmainbench-latency` and
-`scripts/apply_webmainbench_latency_correction.py`. Both delegate to
+`uv run --frozen python -m harness.web_fetch webmainbench-latency-correction`. Both delegate to
 `src/harness/web_fetch/webmainbench_latency_correction.py`. This frozen experiment
 keeps its declared versions, two rounds, final-round selection, macOS host
 observations and full 800-call scope. It does not change the scored outputs.
@@ -63,7 +63,7 @@ For a proven fixture error in the sample, apply the one-case replacement
 evidence to a new directory:
 
 ```bash
-uv run --frozen python scripts/apply_webmainbench_case_correction.py \
+uv run --frozen python -m harness.web_fetch webmainbench-case-correction \
   --source-root /absolute/path/original-provider-shards \
   --correction 'PROVIDER_ID=/absolute/path/one-case-replacement' \
   --dataset /absolute/path/WebMainBench_545.jsonl \
@@ -92,11 +92,11 @@ come only from the repository's local `.env`. Provider runs may incur charges.
 
 The supported complete-cohort commands are:
 
-- `scripts/run_certified_webmainbench_full.py`: freeze and recheck source,
+- `uv run --frozen --extra headless-eval --extra webmainbench-eval python -m harness.web_fetch webmainbench-full-run`: freeze and recheck source,
   scorer, binary and complete physical-call evidence around provider calls.
-- `scripts/score_certified_webmainbench_full.py`: score every declared method
+- `uv run --frozen --extra headless-eval --extra webmainbench-eval python -m harness.web_fetch webmainbench-full-score`: score every declared method
   and bind the score files to the cohort certificate.
-- `scripts/assemble_webmainbench_full.py`: verify and package the complete
+- `uv run --frozen --extra headless-eval --extra webmainbench-eval python -m harness.web_fetch webmainbench-full-assemble`: verify and package the complete
   baseline and all registry-declared variant cohorts.
 - `scripts/build_report.py --webmainbench-full`: build from persisted evidence
   after the current profile's correction, content and review bindings pass.
@@ -105,11 +105,11 @@ Run and score each independently declared cohort with its own profile. For
 an installed package, the corresponding commands are:
 
 ```bash
-python -m harness.web_fetch.webmainbench_certification \
+python -m harness.web_fetch webmainbench-full-run \
   --source /absolute/path/WebMainBench_545.jsonl --scorer /absolute/path/pinned-scorer \
   --profile /absolute/path/frozen-profile.json --config /absolute/path/providers.json \
   --env-file /absolute/path/checkout/.env --output-root /absolute/path/new-cohort
-python -m harness.web_fetch.webmainbench_certification score \
+python -m harness.web_fetch webmainbench-full-score \
   --source /absolute/path/WebMainBench_545.jsonl --scorer /absolute/path/pinned-scorer \
   --profile /absolute/path/frozen-profile.json --cohort /absolute/path/new-cohort
 ```
@@ -129,7 +129,7 @@ every public variant ID in the selected registry:
 
 ```bash
 uv run --frozen --extra headless-eval --extra webmainbench-eval python \
-  scripts/assemble_webmainbench_full.py \
+  -m harness.web_fetch webmainbench-full-assemble \
   --source-root /absolute/path/certified-baseline \
   --dataset /absolute/path/WebMainBench_545.jsonl \
   --profile /absolute/path/full-profile.json \
@@ -174,10 +174,10 @@ superseded evidence. Independent result review starts only on explicit request.
 The published report's profile and target bind the exact accepted comparison;
 assembling evidence alone does not authorize a release or change its scores.
 
-`scripts/correct_webmainbench_scoring.py` applies a schema-v3 decision-authority
+`uv run --frozen --extra webmainbench-eval python -m harness.web_fetch webmainbench-scoring-correction` applies a schema-v3 decision-authority
 manifest to the complete 545-page population. It requires `--source`,
 `--corrected-dataset`, `--manifest`, `--scorer-repo`, `--scorer-commit` and a new
-`--output` directory. `scripts/rescore_webmainbench_case_correction.py` uses the
+`--output` directory. `uv run --frozen --extra webmainbench-eval python -m harness.web_fetch webmainbench-case-rescore` uses the
 same arguments except `--manifest` to rescore an already certified case correction;
 its HTML, reference and physical calls must retain their certified identities.
 Both commands run offline through `src/harness/web_fetch/webmainbench_correction.py`,
@@ -186,14 +186,14 @@ revision succeeds. The scorer checkout must match the declared commit and have n
 tracked changes. Historical schema-v1 reference receipts remain readable; new
 reference corrections use the schema-v3 command.
 
-The retained sample's TEDS-only revision uses `scripts/correct_webmainbench_teds.py`.
+The retained sample's TEDS-only revision uses `uv run --frozen --extra webmainbench-eval python -m harness.web_fetch webmainbench-teds-correction`.
 Its scorer commit defaults to the frozen official baseline; `--scorer-commit` can
 declare another checkout explicitly. The checkout must match that commit and the
 source evidence's metric-source hashes. Revisions retain the first official score
 snapshots and aggregate, stage a complete new directory and reject source changes
 during scoring. `--prior-corrected` reuses an already validated correction while
 checking that its evidence also remains unchanged.
-`scripts/review_webmainbench_teds_correction.py --source <original-evidence>
+`uv run --frozen python -m harness.web_fetch webmainbench-teds-review --source <original-evidence>
 --corrected <revised-evidence>` checks its complete declared matrix, unchanged
 provider evidence and aggregate arithmetic. Both commands delegate to
 `webmainbench_diagnostics.py`. This is a deterministic integrity check; independent

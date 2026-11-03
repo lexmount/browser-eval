@@ -158,6 +158,7 @@ def competing_benchmark_pids() -> list[int]:
         "-m harness.browser_use.runner",
         "-m harness.trajectory_replay.",
         "scripts/run_webmainbench_benchmark.py",
+        "-m harness.web_fetch.webmainbench_runner",
         "scripts/run_benchmark.py",
         "scripts/build_report.py",
         "scripts/check_report.py",

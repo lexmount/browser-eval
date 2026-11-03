@@ -384,7 +384,6 @@ def test_invalid_certifier_provenance_is_rejected(tmp_path, damage):
     "command",
     [
         ["run_certified_webmainbench_latency.py"],
-        ["apply_webmainbench_latency_correction.py"],
         ["run_certified_benchmark.py", "webmainbench-latency"],
     ],
 )

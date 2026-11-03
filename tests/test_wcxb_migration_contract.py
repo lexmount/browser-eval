@@ -65,7 +65,7 @@ def test_source_only_scoring_cli_resolves_its_historical_profile(tmp_path, monke
     captured = {}
     monkeypatch.setattr(data, 'definition_path', lambda *args: pytest.fail('Historical CLI must not select HF defaults'))
     monkeypatch.setattr(wcxb_scoring, 'score', lambda **options: captured.update(options))
-    monkeypatch.setattr(sys, 'argv', ['score_wcxb_results.py', '--source', str(source), '--profile', str(profile),
+    monkeypatch.setattr(sys, 'argv', ['wcxb-score', '--source', str(source), '--profile', str(profile),
                                     '--evidence-root', str(tmp_path / 'evidence')])
     wcxb_scoring.main()
     assert captured['source'] == source and captured['sample_manifest'] == manifest

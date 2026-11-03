@@ -82,7 +82,7 @@ def test_public_wcxb_build_check_package_accept_external_nonhistorical_cohort(tm
          '--wcxb-source', str(cohort['source']), '--wcxb-sample', str(cohort['sample_manifest']),
          '--output', str(output), '--language', 'en'],
         ['scripts/check_report.py', str(output), '--profile', str(profile_path)],
-        ['scripts/publish_wcxb_artifact_site.py', '--package-only', '--source', str(output),
+        ['-m', 'harness.web_fetch', 'wcxb-publish', '--package-only', '--source', str(output),
          '--profile', str(profile_path), '--work', str(tmp_path / 'package')],
     ]
     for command in commands:

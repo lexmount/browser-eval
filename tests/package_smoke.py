@@ -453,7 +453,7 @@ def verify_teds_revision(root: Path, source_root: Path, *, with_writer: bool = F
                'correction_provenance': build_correction_provenance(
                    'structured-extraction', diagnostics.ROOT_CAUSE, diagnostics.CONTROLS)}
     (corrected / 'teds-correction.json').write_text(json.dumps(receipt))
-    subprocess.run([sys.executable, str(source_root / 'scripts/review_webmainbench_teds_correction.py'),
+    subprocess.run([sys.executable, '-m', 'harness.web_fetch', 'webmainbench-teds-review',
                     '--source', str(source), '--corrected', str(corrected)], check=True)
     _, audit = diagnostics.validate_teds_revision(corrected)
     assert audit['status'] == 'passed' and audit['provider_calls'] == 0
@@ -482,10 +482,10 @@ def verify_teds_revision(root: Path, source_root: Path, *, with_writer: bool = F
                     '-c', 'user.email=fixture@example.test', 'commit', '-qm', 'Synthetic scorer'], check=True)
     head = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', 'HEAD'], text=True).strip()
     written = root / 'teds-written'
-    subprocess.run([sys.executable, str(source_root / 'scripts/correct_webmainbench_teds.py'),
+    subprocess.run([sys.executable, '-m', 'harness.web_fetch', 'webmainbench-teds-correction',
                     '--source', str(source), '--output', str(written), '--scorer-repo', str(repo),
                     '--scorer-commit', head], check=True)
-    subprocess.run([sys.executable, str(source_root / 'scripts/review_webmainbench_teds_correction.py'),
+    subprocess.run([sys.executable, '-m', 'harness.web_fetch', 'webmainbench-teds-review',
                     '--source', str(source), '--corrected', str(written)], check=True)
     receipt, audit = diagnostics.validate_teds_revision(written)
     assert receipt['scorer_commit'] == head and audit['provider_calls'] == 0
@@ -520,8 +520,8 @@ def verify_release_check_helpers(root: Path, source_root: Path) -> None:
     rejected = subprocess.run([*command, str(pages), '--profile', str(profile)],
                               capture_output=True, text=True)
     assert rejected.returncode != 0 and 'guide/index.html' in rejected.stderr, rejected.stderr
-    for script in ('check_webmainbench_report.py', 'check_webmainbench_full_report.py'):
-        command = [sys.executable, str(source_root / 'scripts' / script)]
+    for name in ('webmainbench-check', 'webmainbench-full-check'):
+        command = [sys.executable, '-m', 'harness.web_fetch', name]
         subprocess.run([*command, '--help'], check=True, stdout=subprocess.DEVNULL)
         unbound = subprocess.run([*command, str(pages)], capture_output=True, text=True)
         assert unbound.returncode != 0 and 'authority' in unbound.stderr, unbound.stderr
@@ -1157,7 +1157,7 @@ def verify_wcxb_scoring(root, source_root):
     assert len(rows) == 6
     assert sum(row['delivered'] for row in rows) == 5
     subprocess.run([
-        sys.executable, str(source_root / 'scripts/score_wcxb_results.py'), '--help',
+        sys.executable, '-m', 'harness.web_fetch', 'wcxb-score', '--help',
     ], check=True, cwd=root, capture_output=True, text=True)
 
 
@@ -1235,7 +1235,7 @@ def verify_wcxb_boundaries(root, source_root):
     assert result['call_count'] == len(load_jsonl(output / 'calls.jsonl')) == 8
     profile['latency_correction_receipt_sha256'] = fixture['sha']((output / 'receipt.json').read_bytes())
     fixture['write_json'](options['profile_path'], profile)
-    subprocess.run([sys.executable, '-m', 'harness.web_fetch.wcxb_latency', 'certify',
+    subprocess.run([sys.executable, '-m', 'harness.web_fetch', 'wcxb-latency', 'certify',
                     '--profile', str(options['profile_path']), '--dataset', str(options['source']),
                     '--sample-manifest', str(options['sample_manifest']), '--evidence-root', str(output)],
                    check=True, cwd=root)
@@ -1251,8 +1251,8 @@ def verify_wcxb_boundaries(root, source_root):
         pass
     else:
         raise AssertionError('Installed WCXB boundary accepted an undeclared file')
-    for module in ('wcxb_latency', 'wcxb_publication'):
-        subprocess.run([sys.executable, '-m', 'harness.web_fetch.' + module, '--help'],
+    for command in ('wcxb-latency', 'wcxb-publish'):
+        subprocess.run([sys.executable, '-m', 'harness.web_fetch', command, '--help'],
                        check=True, cwd=root, stdout=subprocess.DEVNULL)
 
 def verify_report_acceptance(root, source_root):
@@ -1555,11 +1555,12 @@ def verify_full_cohort_commands(root, source_root):
             certification.main_score(['--source', 'source.jsonl', '--scorer', 'scorer', '--profile', 'profile.json', '--cohort', 'run'])
         assert len(calls) == 4
         assert (work / 'run/scoring-certificate.json').is_file()
-        for module in ('webmainbench_runner', 'webmainbench_scoring', 'webmainbench_certification'):
+        for module in ('webmainbench_runner', 'webmainbench_scoring'):
             original([sys.executable, '-m', 'harness.web_fetch.' + module, '--help'], check=True,
                      capture_output=True, text=True, cwd=work)
-        original([sys.executable, '-m', 'harness.web_fetch.webmainbench_certification', 'score', '--help'],
-                 check=True, capture_output=True, text=True, cwd=work)
+        for command in ('webmainbench-full-run', 'webmainbench-full-score'):
+            original([sys.executable, '-m', 'harness.web_fetch', command, '--help'],
+                     check=True, capture_output=True, text=True, cwd=work)
     finally:
         os.chdir(previous)
 
@@ -1672,8 +1673,8 @@ def main():
     REGISTRY = regression_registry_path()
     assert not REGISTRY.resolve().is_relative_to(args.source_root.resolve())
     assert {row['id'] for row in json.loads(REGISTRY.read_bytes())['cases']} == set(CONTROL_IDS)
-    for command in ('correct_webmainbench_scoring.py', 'rescore_webmainbench_case_correction.py'):
-        subprocess.run([sys.executable, str(args.source_root / 'scripts' / command), '--help'],
+    for command in ('webmainbench-scoring-correction', 'webmainbench-case-rescore'):
+        subprocess.run([sys.executable, '-m', 'harness.web_fetch', command, '--help'],
                        check=True, stdout=subprocess.DEVNULL)
     from harness.web_fetch.markdown import (
         CONVERTER,
