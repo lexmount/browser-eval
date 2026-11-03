@@ -146,6 +146,10 @@ def _server_commands():
         'resource': {'output_mode': 'resource'},
         'document-page': {'output_mode': 'document_page'},
         'file': {'output_mode': 'file'},
+        # One option at a time cannot pin the relative order of the template slots.
+        'all-options': {'http_proxy': 'http://127.0.0.1:8123', 'ca_cert': '/fixture/ca.pem',
+                        'allow_private_network': True, 'block_private_networks': True,
+                        'log_level': 'debug', 'output_mode': 'resource'},
     }
     return {f'{engine}/{label}': _server_command(engine, options)
             for engine in (*ENGINE_NAMES, 'unknown') for label, options in variants.items()}
