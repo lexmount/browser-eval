@@ -122,7 +122,8 @@ The site registry in `src/harness/environments/webarena/topology.json` names the
 from the same passwords. Set them in the repository `.env`; exported values do not override it.
 Site login and redaction stop with the missing variable names while a value is empty.
 Runtime JSON uses `credentials_env` to name the username and password variables of the repository
-`.env`; it does not contain their values and rejects inline `credentials`. The public WebArena
+`.env`; it does not contain their values and rejects inline `credentials`. A Rainbond slice's
+runtime config always names the site registry's variables. The public WebArena
 runner resolves them only in memory and stops before starting a browser when a task's login site
 names no variables or a variable that is empty. `--env-file` and exported variables supply ordinary settings, with the
 exported value winning, and cannot change a login. Saved error text and evaluator output are

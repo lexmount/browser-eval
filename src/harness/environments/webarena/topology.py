@@ -191,9 +191,14 @@ def public_host_replacements() -> dict[str, str]:
     return {host: BENCHMARK_HOST_PLACEHOLDER for host in hosts}
 
 
+def site_credential_names(site: str) -> dict[str, str]:
+    """Return the repository .env variable names that hold one site's login."""
+    return dict(_SITES[site]["credentials_env"])
+
+
 def site_credentials(site: str) -> dict[str, str]:
     """Resolve one site's login from the repository .env, naming anything unset."""
-    names = _SITES[site]["credentials_env"]
+    names = site_credential_names(site)
     values = {field: repository_credential(name) for field, name in names.items()}
     missing = sorted(names[field] for field, value in values.items() if not value.strip())
     if missing:

@@ -23,6 +23,7 @@ from harness.environments.webarena.topology import (
     ENV_CTRL_CONTAINER_PORT,
     INITIALIZER_READINESS_PORT,
     SITE_CONTAINER_PORTS,
+    site_credential_names,
 )
 from harness.record_io import canonical_json_sha256
 from harness.web_fetch.config import repository_env
@@ -808,7 +809,10 @@ class RainbondSlicePool:
     def runtime_config(self, receipt: dict[str, Any]) -> dict[str, Any]:
         environments = dict(self.config.shared_environments)
         for site, component in receipt["components"].items():
-            environments[f"__{site.upper()}__"] = {"urls": [component["site_url"]]}
+            environments[f"__{site.upper()}__"] = {
+                "urls": [component["site_url"]],
+                "credentials_env": site_credential_names(site),
+            }
         return {
             "image_lock": str(self.config.image_lock),
             "environments": environments,

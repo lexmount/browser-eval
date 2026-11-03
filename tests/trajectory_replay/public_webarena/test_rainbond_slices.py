@@ -217,6 +217,11 @@ def test_new_slice_runtime_config_contains_four_unique_sites_and_two_shared_site
     assert environments["__MAP__"] == shared["__MAP__"]
     assert environments["__WIKIPEDIA__"] == shared["__WIKIPEDIA__"]
     assert environments["__GITLAB__"]["urls"] == ["http://slice-2-gitlab.test"]
+    for site in STATEFUL_SITES:
+        assert environments[f"__{site.upper()}__"]["credentials_env"] == {
+            "username": f"WEBARENA_{site.upper()}_USERNAME",
+            "password": f"WEBARENA_{site.upper()}_PASSWORD",
+        }
 
 
 def test_app_deletion_waits_for_service_stop(tmp_path):
