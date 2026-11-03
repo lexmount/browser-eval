@@ -28,11 +28,7 @@ from harness.web_fetch.artifacts import (
     verify_record_artifacts,
 )
 from harness.web_fetch.models import report_family
-
-
-def _sha(path):
-    with Path(path).open('rb') as stream:
-        return hashlib.file_digest(stream, 'sha256').hexdigest()
+from harness.record_io import file_sha256 as _sha, json_bytes
 
 
 def _json(path):
@@ -47,7 +43,7 @@ def _write_bytes(path, raw):
 
 
 def _write(path, value):
-    _write_bytes(path, (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode())
+    _write_bytes(path, json_bytes(value))
 
 
 def _path(base, value):
