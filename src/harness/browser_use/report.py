@@ -1882,6 +1882,11 @@ def _replay_results(bridge: dict[str, Any]) -> dict[str, dict[str, Any]]:
     }
 
 
+def _replay_counts_are_valid(value: dict[str, Any]) -> bool:
+    tasks, passes = value["tasks"], value["passes"]
+    return type(tasks) is int and type(passes) is int and 0 <= passes <= tasks
+
+
 def _validate_replay_contract_definitions(bridge: dict[str, Any]) -> None:
     replay_engine, provenance = _replay_engine_field(bridge, "_trajectory_provenance")
     definitions = {}
@@ -1967,6 +1972,8 @@ def _load_trajectory_replay_bridge(
     _validate_replay_contract_definitions(bridge)
     result = bridge.get("effective_results") or {}
     measured = _replay_results(bridge)
+    if not all(_replay_counts_are_valid(value) for value in measured.values()):
+        raise ValueError("trajectory replay bridge has an invalid current control cardinality")
     replay_engine, provenance = _replay_engine_field(bridge, "_trajectory_provenance")
     reviewed_engine, review = _replay_engine_field(bridge, "_failure_review")
     source_tasks = {
@@ -1974,14 +1981,14 @@ def _load_trajectory_replay_bridge(
         for source, counts in (bridge.get("source_contract_counts") or {}).items()
     }
     failures = {
-        engine: int(value["tasks"]) - int(value["passes"]) for engine, value in measured.items()
+        engine: value["tasks"] - value["passes"] for engine, value in measured.items()
     }
     if (
         task_count < 1
         or replay_engine not in measured
         or reviewed_engine not in measured
         or int(result.get("logical_results") or 0) != task_count * len(measured)
-        or any(int(value["tasks"]) != task_count for value in measured.values())
+        or any(value["tasks"] != task_count for value in measured.values())
         or any(count != 0 for engine, count in failures.items() if engine != reviewed_engine)
         or int(provenance.get("expert_repair_spec") or 0) != source_tasks.get("expert_repair_spec")
         or int(provenance.get("successful_browser_use_execution") or 0)

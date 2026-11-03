@@ -1865,6 +1865,7 @@ def test_replay_bridge_cardinality_follows_its_own_engines_and_task_count(tmp_pa
         (lambda b: b["candidate_failure_review"].update(verified_results=1), "failure review"),
         (lambda b: b["effective_results"]["candidate"].update(passes=2), "failure review"),
         (lambda b: b.update(second_failure_review={}), "more than one"),
+        (lambda b: b["effective_results"]["third"].update(passes=True), "cardinality"),
     ],
     ids=[
         "logical-results",
@@ -1877,12 +1878,25 @@ def test_replay_bridge_cardinality_follows_its_own_engines_and_task_count(tmp_pa
         "review-verified",
         "measured-failures",
         "two-reviews",
+        "non-integer-passes",
     ],
 )
 def test_replay_bridge_rejects_inconsistent_derived_counts(tmp_path: Path, tamper, message) -> None:
     bridge = _synthetic_bridge(tmp_path)
     tamper(bridge)
     with pytest.raises(ValueError, match=message):
+        _load_bridge(tmp_path, bridge)
+
+
+def test_replay_bridge_rejects_more_failures_than_tasks(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="cardinality"):
+        _load_bridge(tmp_path, _synthetic_bridge(tmp_path, failures=6))
+
+
+def test_replay_bridge_rejects_more_passes_than_tasks(tmp_path: Path) -> None:
+    bridge = _synthetic_bridge(tmp_path)
+    bridge["effective_results"]["third"]["passes"] = 6
+    with pytest.raises(ValueError, match="cardinality"):
         _load_bridge(tmp_path, bridge)
 
 
