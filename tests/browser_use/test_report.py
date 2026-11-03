@@ -1855,6 +1855,7 @@ def test_replay_bridge_cardinality_follows_its_own_engines_and_task_count(tmp_pa
     [
         (lambda b: b["effective_results"].update(logical_results=14), "cardinality"),
         (lambda b: b["effective_results"]["third"].update(tasks=4), "cardinality"),
+        (lambda b: b["effective_results"]["third"].update(tasks=4, passes=4), "cardinality"),
         (lambda b: b["effective_results"]["third"].update(passes=4), "cardinality"),
         (lambda b: b["effective_results"].pop("base"), "counts differ"),
         (lambda b: b["base_trajectory_provenance"].update(expert_repair_spec=1), "cardinality"),
@@ -1887,6 +1888,7 @@ def test_replay_bridge_cardinality_follows_its_own_engines_and_task_count(tmp_pa
     ids=[
         "logical-results",
         "browser-tasks",
+        "browser-tasks-in-bounds",
         "unreviewed-failure",
         "provenance-browser-absent",
         "expert-total",
