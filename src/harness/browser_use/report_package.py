@@ -97,7 +97,3 @@ def main() -> None:
         profile_path=args.profile,
     )
     print(args.output)
-
-
-if __name__ == "__main__":
-    main()

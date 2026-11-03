@@ -992,7 +992,3 @@ def main() -> None:
         profile_path=args.profile,
     )
     print("Browser Use report integrity check passed")
-
-
-if __name__ == "__main__":
-    main()
