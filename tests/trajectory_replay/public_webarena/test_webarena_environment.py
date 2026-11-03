@@ -10,7 +10,10 @@ import pytest
 
 from harness import env_file
 from harness.environments.webarena.backend import DockerBackend
-from harness.trajectory_replay.public_webarena.config import load_runtime_env
+from harness.trajectory_replay.public_webarena.config import (
+    load_runtime_env,
+    redact_site_passwords,
+)
 from harness.trajectory_replay.public_webarena.publication import public_projection
 from harness.trajectory_replay.public_webarena.suite import BrowserTask
 from harness.trajectory_replay.public_webarena.webarena_environment import (
@@ -971,6 +974,14 @@ def test_redaction_covers_the_spellings_of_an_escaped_password(tmp_path, monkeyp
 
     assert "[REDACTED]" in redacted
     assert "slash" not in redacted
+
+
+def test_redaction_covers_a_password_inside_the_repr_of_a_larger_message():
+    password = "ab'cd"
+    message = repr('value "' + password)
+    assert "ab\\'cd" in message
+
+    assert "cd" not in redact_site_passwords(message, [password])
 
 
 def test_credentials_fail_closed_on_missing_or_inline_sources(tmp_path, monkeypatch):
