@@ -26,6 +26,8 @@ from lexbench_webfetch.metrics import percentile
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
 REPOSITORY_ROOT = repository_root()
+TEMPLATE_DIRECTORY = pathlib.Path(__file__).with_name("template")
+TEMPLATE_FILES = ("index.html", "messages.json", "app.js", "style.css", "README.md")
 
 
 def call_stats(values):
@@ -129,8 +131,19 @@ def main(argv=None):
         value = pathlib.Path(value).expanduser()
         return value if value.is_absolute() else (REPOSITORY_ROOT if name == "source" else data_home()) / value
 
-    for name in ("cohort", "source", "output", "vendor_dir", "functional_correction"):
+    for name in ("cohort", "output", "vendor_dir", "functional_correction"):
         setattr(args, name, configured_path(name, getattr(args, name)))
+    if args.source is not None or paths.get("source"):
+        args.source = configured_path("source", args.source)
+    else:
+        args.source = TEMPLATE_DIRECTORY
+    missing = [name for name in TEMPLATE_FILES if not (args.source / name).is_file()]
+    if missing:
+        parser.error(
+            f"Report template {args.source} lacks {', '.join(missing)}; "
+            "pass --source with a template directory, or in a checkout drop --source "
+            "and paths.source to use the maintained template"
+        )
     BENCH_ROOT = configured_path("runner", os.environ.get("LEXBENCH_REPORT_RUNNER_ROOT"))
     VERSION_RUNS = configured_path("version_runs")
     VERSION_CANDIDATE = configured_path("version_candidate")
@@ -1595,7 +1608,3 @@ def main(argv=None):
             indent=2,
         )
     )
-
-
-if __name__ == "__main__":
-    main()

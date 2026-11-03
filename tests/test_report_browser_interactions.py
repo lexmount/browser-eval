@@ -170,7 +170,7 @@ def test_wcxb_generated_filter_and_diagnosis_keyboard_return(tmp_path, browser, 
 
 def test_moli_actual_result_evidence_loader_and_keyboard_return(tmp_path, browser, display):
     from pathlib import Path
-    source = Path(__file__).resolve().parents[1] / 'scripts/moli_report'
+    source = Path(__file__).resolve().parents[1] / 'src/harness/lexbench/template'
     html = (source / 'index.html').read_text(encoding='utf-8').replace('{{lang}}', 'zh').replace('{{base}}', '')
     html = html.replace('{{messages}}', (source / 'messages.json').read_text(encoding='utf-8'))
     html = html.replace('<script defer src="mermaid.min.js"></script>', '')

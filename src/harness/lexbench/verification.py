@@ -1044,7 +1044,3 @@ def main(argv=None):
             parser.error("Release profile is unavailable; supply --profile")
         profile = json.loads(profile_path.read_bytes())
     print(json.dumps(verify(args.site, profile=profile)))
-
-
-if __name__ == "__main__":
-    main()

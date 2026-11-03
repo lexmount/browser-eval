@@ -18,7 +18,7 @@ class MoliReportRenderContractTests(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         script = source_path("harness/lexbench/assets/render_contract.cjs", root=root)
         subprocess.run(
-            [node, str(script), "--app", str(root / "scripts/moli_report/app.js")],
+            [node, str(script), "--app", str(root / "src/harness/lexbench/template/app.js")],
             check=True,
             capture_output=True,
             text=True,
@@ -27,7 +27,7 @@ class MoliReportRenderContractTests(unittest.TestCase):
 
 def test_catalog_editions_have_matching_keys_and_parameters():
     root = Path(__file__).resolve().parents[1]
-    catalog = json.loads((root / "scripts/moli_report/messages.json").read_text(encoding="utf-8"))
+    catalog = json.loads((root / "src/harness/lexbench/template/messages.json").read_text(encoding="utf-8"))
     english = catalog["en"]["messages"]
     chinese = catalog["zh"]["messages"]
     assert english.keys() == chinese.keys()

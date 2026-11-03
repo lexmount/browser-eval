@@ -276,7 +276,3 @@ def main(argv=None):
             {"publishable": result["publishable"], "methods": list(result["configurations"])}
         )
     )
-
-
-if __name__ == "__main__":
-    main()

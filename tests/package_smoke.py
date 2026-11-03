@@ -291,7 +291,7 @@ def verify_lexbench_package(root: Path, renderer: Path) -> None:
     from harness.lexbench.pack import package
 
     subprocess.run(
-        [sys.executable, '-m', 'harness.lexbench.report', '--help'],
+        [sys.executable, '-m', 'harness.lexbench', 'report', '--help'],
         cwd=root, check=True, capture_output=True, text=True,
     )
 
@@ -336,9 +336,9 @@ def verify_lexbench_package(root: Path, renderer: Path) -> None:
         assert 'data-english-not-generated' in (chinese_package / name).read_text(encoding='utf-8')
         assert 'bundle-loader.js' not in (chinese_package / name).read_text(encoding='utf-8')
     from harness.lexbench import reproduction, resource_profiles, verification
-    subprocess.run([sys.executable, "-m", "harness.lexbench.reproduction", "--help"],
+    subprocess.run([sys.executable, "-m", "harness.lexbench", "reproduce", "--help"],
                    check=True, cwd=root, capture_output=True, text=True)
-    subprocess.run([sys.executable, "-m", "harness.lexbench.resource_profiles", "--help"],
+    subprocess.run([sys.executable, "-m", "harness.lexbench", "resource-profiles", "--help"],
                    check=True, cwd=root, capture_output=True, text=True)
     public_collector = root / "collector.py"
     public_collector.write_bytes(Path(resource_profiles.__file__).read_bytes())
@@ -351,9 +351,9 @@ def verify_lexbench_package(root: Path, renderer: Path) -> None:
     contract = Path(verification.__file__).with_name('assets') / 'render_contract.cjs'
     subprocess.run(['node', str(contract), '--app', str(source / 'app.js')],
                    check=True, cwd=root, capture_output=True, text=True)
-    subprocess.run([sys.executable, '-m', 'harness.lexbench.verification', '--help'],
+    subprocess.run([sys.executable, '-m', 'harness.lexbench', 'check', '--help'],
                    check=True, cwd=root, capture_output=True, text=True)
-    subprocess.run([sys.executable, '-m', 'harness.lexbench.pack', '--help'],
+    subprocess.run([sys.executable, '-m', 'harness.lexbench', 'package', '--help'],
                    check=True, cwd=root, capture_output=True, text=True)
 
 
@@ -1696,7 +1696,7 @@ def main():
         verify_browser_report_checks(root, args.source_root)
         verify_release_check_helpers(root, args.source_root)
         verify_teds_revision(root, args.source_root, with_writer=args.webmainbench)
-        verify_lexbench_package(root, args.source_root / 'scripts/moli_report/app.js')
+        verify_lexbench_package(root, args.source_root / 'src/harness/lexbench/template/app.js')
         verify_dynamic_cohort(root, args.source_root)
         verify_review_revisions(root, args.source_root)
         verify_sample_assembly(root, args.source_root)
