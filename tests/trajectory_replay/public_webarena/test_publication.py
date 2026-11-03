@@ -58,6 +58,18 @@ def test_public_package_rejects_a_site_password_the_projection_missed(
     assert not (tmp_path / "a.zip").exists()
 
 
+@pytest.mark.parametrize(
+    "written",
+    ['a"&xtailx', 'a"&amp;xtailx', "a&quot;&amp;xtailx", 'a\\"&amp;xtailx', "a\\&quot;&amp;xtailx"],
+)
+def test_public_projection_redacts_escaped_site_passwords(tmp_path, monkeypatch, written):
+    secrets = tmp_path / "repository.env"
+    secrets.write_text('WEBARENA_REDDIT_PASSWORD=a"&xtailx\n', encoding="utf-8")
+    monkeypatch.setattr(env_file, "_repository_credentials_file", secrets)
+
+    assert public_projection({"error": f"alert: {written}"}) == {"error": "alert: [REDACTED]"}
+
+
 def test_public_package_accepts_a_report_without_the_site_password(tmp_path, monkeypatch):
     source, authority = write_report_fixture(tmp_path)
     staged = tmp_path / "staged"

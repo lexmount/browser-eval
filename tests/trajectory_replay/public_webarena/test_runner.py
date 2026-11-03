@@ -79,8 +79,19 @@ def test_task_execution_writes_redacted_evaluator_network_evidence(tmp_path, mon
     assert entry["request"]["headers"] == [{"name": "Authorization", "value": "[REDACTED]"}]
 
 
+@pytest.mark.parametrize(
+    ("password", "written"),
+    [
+        ("file-secret", "file-secret"),
+        ('a"&xtailx', 'a"&amp;xtailx'),
+        ('a"&xtailx', 'a\\"&amp;xtailx'),
+        ('a"&xtailx', "a\\&quot;&amp;xtailx"),
+    ],
+)
 @pytest.mark.parametrize("failure", ["execution", "evaluator_result", "evaluator_exception"])
-def test_failed_task_row_omits_the_login_password(tmp_path, monkeypatch, failure):
+def test_failed_task_row_omits_the_login_password(
+    tmp_path, monkeypatch, failure, password, written
+):
     from harness.trajectory_replay.public_webarena.evaluators import TaskEvaluation
 
     page = MagicMock()
@@ -92,20 +103,20 @@ def test_failed_task_row_omits_the_login_password(tmp_path, monkeypatch, failure
 
     def execute(_page, _calls, *, trace, **kwargs):
         if failure == "execution":
-            raise RuntimeError("login form echoed file-secret")
+            raise RuntimeError(f"login form echoed {written}")
         trace.append({"action": "navigate", "status": "pass"})
 
     monkeypatch.setattr(runner, "execute_steps", execute)
     registry = MagicMock()
     if failure == "evaluator_exception":
-        registry.evaluate.side_effect = RuntimeError("login form echoed file-secret")
+        registry.evaluate.side_effect = RuntimeError(f"login form echoed {written}")
     else:
         registry.evaluate.return_value = TaskEvaluation(
             "fail",
             0.0,
-            ({"output": "page", "expected": "x", "actual": ["file-secret"], "passed": False},),
+            ({"output": "page", "expected": "x", "actual": [written], "passed": False},),
             "test",
-            error="login form echoed file-secret",
+            error=f"login form echoed {written}",
         )
     task = BrowserTask(
         "task", "Task", ({"action": "navigate"},), (), (), "simple",
@@ -114,13 +125,13 @@ def test_failed_task_row_omits_the_login_password(tmp_path, monkeypatch, failure
 
     row = runner._run_task(
         "chromium", page, set(), MagicMock(), task, 1, 100, registry, tmp_path,
-        redact_text=lambda text: redact_site_passwords(text, ["file-secret"]),
+        redact_text=lambda text: redact_site_passwords(text, [password]),
     )
 
     assert row["status"] == "fail"
     assert "login form echoed [REDACTED]" in row["error"]
     assert "login form echoed [REDACTED]" in row["trace"][-1]["output"]
-    assert "file-secret" not in json.dumps(row)
+    assert password[-6:] not in json.dumps(row)
 
 
 def test_authoring_runtime_caps_ad_hoc_repair_target_waits():

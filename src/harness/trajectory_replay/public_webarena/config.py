@@ -33,19 +33,17 @@ def load_runtime_env(path: str | Path | None = None) -> None:
 
 
 def site_password_spellings(passwords: Iterable[str]) -> list[str]:
-    """Return each set password as written and as text escapes it, longest first."""
-    spellings = {
-        spelling
-        for password in passwords
-        if password.strip()
-        for spelling in (
-            password,
-            html.escape(password),
-            json.dumps(password)[1:-1],
-            json.dumps(password, ensure_ascii=False)[1:-1],
-            repr(password)[1:-1],
-        )
-    }
+    """Return each set password as written and under up to two text escapes, longest first."""
+    escapes: tuple[Callable[[str], str], ...] = (
+        html.escape,
+        lambda text: html.escape(text, quote=False),
+        lambda text: json.dumps(text)[1:-1],
+        lambda text: json.dumps(text, ensure_ascii=False)[1:-1],
+        lambda text: repr(text)[1:-1],
+    )
+    spellings = {password for password in passwords if password.strip()}
+    for _ in range(2):
+        spellings |= {escape(spelling) for spelling in spellings for escape in escapes}
     return sorted(spellings, key=len, reverse=True)
 
 
