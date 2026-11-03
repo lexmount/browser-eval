@@ -89,7 +89,7 @@ clean: ## Remove build outputs and tool caches; keeps reports and environments
 	find src tests scripts -type d -name __pycache__ -prune -exec rm -rf {} +
 
 import-env: ## Import benchmark credentials into the repository .env
-	$(PY) scripts/import_benchmark_env.py
+	$(PY) -m harness.web_fetch import-env
 
 runtime-check: ## Require the Python version in .python-version
 	@$(PY) -c 'import sys; pinned = open(".python-version").read().strip(); current = "%d.%d" % sys.version_info[:2]; sys.exit(0 if current == pinned else "Python " + pinned + " is required by .python-version; this is Python " + current)'
@@ -101,7 +101,7 @@ webfetch-diagnostic-report: runtime-check ## Build and check a diagnostic report
 	$(call require_profile,DIAGNOSTIC_PROFILE)
 	@test -n "$(OUTPUT)"
 	$(PY) scripts/build_report.py --profile "$(DIAGNOSTIC_PROFILE)" $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(EVIDENCE),--evidence "$(EVIDENCE)") --output "$(OUTPUT)"
-	$(PY) scripts/check_diagnostic_report.py "$(OUTPUT)" --profile "$(DIAGNOSTIC_PROFILE)"
+	$(PY) -m harness.web_fetch diagnostic-check "$(OUTPUT)" --profile "$(DIAGNOSTIC_PROFILE)"
 
 track-naming-check: runtime-check ## Check retired track names
 	$(PY) scripts/check_track_naming.py
@@ -158,7 +158,7 @@ report-check: runtime-check ## Check the Web Fetch report: PROFILE
 	$(call require_profile)
 	$(PY) scripts/check_report.py reports/webfetch --profile "$(PROFILE)"
 	$(PY) scripts/check_report_links.py reports/webfetch
-	$(PY) scripts/check_report_revision.py reports/webfetch
+	$(PY) -m harness.web_fetch report-revision-check reports/webfetch
 
 popular-sites-report: runtime-check ## Build the popular-sites report: PROFILE, EVIDENCE
 	$(call require_profile)
@@ -174,7 +174,7 @@ wcxb-release-check: runtime-check ## Run the WCXB release gate: PROFILE
 	$(call require_profile)
 	$(PY) scripts/check_report.py reports/wcxb --profile "$(PROFILE)"
 	$(PY) scripts/check_report_links.py reports/wcxb
-	$(PY) scripts/check_report_revision.py reports/wcxb
+	$(PY) -m harness.web_fetch report-revision-check reports/wcxb
 	$(UV) run --frozen --extra headless-eval python -m harness.web_fetch wcxb-visual reports/wcxb
 
 browser-use-report: runtime-check ## Build the Browser Use report: EVIDENCE

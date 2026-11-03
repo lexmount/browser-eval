@@ -105,9 +105,9 @@ def test_full_review_cannot_be_bypassed_by_stale_complete_flag(tmp_path, damage)
 
 def test_declared_small_matrix_packages_through_public_command(tmp_path):
     source, archive = report_tree(tmp_path, sampled=True)
-    entry = Path(__file__).resolve().parents[1] / "scripts/package_artifact_site.py"
     subprocess.run(
-        [sys.executable, str(entry), str(source), str(archive)], check=True, capture_output=True
+        [sys.executable, "-m", "harness.web_fetch", "site-package", str(source), str(archive)],
+        check=True, capture_output=True,
     )
     with zipfile.ZipFile(archive) as bundle:
         manifest = json.loads(bundle.read("manifest.json"))
@@ -230,9 +230,8 @@ def test_optimized_python_still_rejects_broken_links(tmp_path):
     source, archive = report_tree(tmp_path)
     (source / "index.html").write_text('<a href="absent.html">Broken target</a>', encoding="utf-8")
     archive.write_bytes(b"previous verified release")
-    entry = Path(__file__).resolve().parents[1] / "scripts/package_artifact_site.py"
     rejected = subprocess.run(
-        [sys.executable, "-O", str(entry), str(source), str(archive)],
+        [sys.executable, "-O", "-m", "harness.web_fetch", "site-package", str(source), str(archive)],
         capture_output=True,
         text=True,
     )
@@ -286,10 +285,7 @@ def test_symlinks_cannot_enter_publication(tmp_path, linked):
 
 
 def test_importing_command_does_not_parse_arguments_or_create_files(tmp_path):
-    entry = Path(__file__).resolve().parents[1] / "scripts/package_artifact_site.py"
-    code = 'import runpy,sys; sys.argv=["package", "--unknown"]; runpy.run_path(sys.argv[1])'
-    # Supply the file independently so command arguments stay deliberately invalid.
-    code = code.replace("sys.argv[1]", repr(str(entry)))
+    code = 'import sys; sys.argv=["package", "--unknown"]; import harness.web_fetch.report_package'
     subprocess.run([sys.executable, "-c", code], cwd=tmp_path, check=True, capture_output=True)
     assert not list(tmp_path.iterdir())
 

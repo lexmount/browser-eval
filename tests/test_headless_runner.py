@@ -431,7 +431,8 @@ def test_native_command_runs_a_custom_binary_and_preserves_its_identity(tmp_path
             '-c',
             "import runpy; from unittest.mock import patch; "
             "dns = patch('socket.getaddrinfo', return_value=[(2,1,6,'',('93.184.216.34',443))]); "
-            "dns.start(); runpy.run_path(" + repr(str(runner.ROOT / "scripts/run_headless_benchmark.py")) + ", run_name='__main__')",
+            "dns.start(); runpy.run_module('harness.web_fetch', run_name='__main__')",
+            "headless-run",
             "--dataset",
             str(dataset),
             "--config",

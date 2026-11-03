@@ -80,7 +80,7 @@ def test_complete_cli_help_works_without_editable_install(stale_wheel_install, t
     environment = {**os.environ, 'PYTHONPATH': os.pathsep.join(
         [str(stale_wheel_install), *site.getsitepackages()])}
     # These help commands only parse arguments; they do not collect or render results.
-    result = subprocess.run([sys.executable, '-S', str(ROOT/'scripts'/'assemble_headless.py'), '--help'],
+    result = subprocess.run([sys.executable, '-S', str(ROOT/'scripts'/'run_benchmark.py'), '--help'],
                             cwd=tmp_path, env=environment, text=True, capture_output=True)
     assert result.returncode == 0, result.stderr
     assert 'usage:' in result.stdout.lower()

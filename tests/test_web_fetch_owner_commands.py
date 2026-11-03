@@ -1,4 +1,4 @@
-"""WCXB and WebMainBench stages reach their owners through the one Web Fetch entry point."""
+"""Web Fetch, WCXB and WebMainBench stages reach their owners through the one entry point."""
 import os
 import re
 import subprocess
@@ -16,10 +16,34 @@ from harness.web_fetch.cli import OWNER_COMMANDS, build_parser, main
 ROOT = Path(__file__).resolve().parents[1]
 PROG = build_parser().prog
 DOCUMENTED_COMMAND_FILES = ("Makefile", "docs/benchmarks.md", "docs/architecture.md",
-                            "src/harness/web_fetch/README.md", "src/harness/web_fetch/WEBMAINBENCH.md")
+                            "src/harness/web_fetch/README.md", "src/harness/web_fetch/WEBMAINBENCH.md",
+                            "src/harness/web_fetch/HEADLESS.md")
 COMMAND_INDEX_FILES = (*DOCUMENTED_COMMAND_FILES, "configs/report-templates.json")
 # A distinctive option each owner declares, so the help cannot come from the router.
 OWNER_OPTIONS = {
+    "headless-run": "--cohort",
+    "headless-observations": "--observation-scope",
+    "headless-assemble": "--certificates",
+    "headless-check": "--rescore",
+    "headless-resources": "--run",
+    "review-headless": "--reviewer",
+    "review-anomalies": "--reviewer",
+    "review-merge": "--supplemental-evidence",
+    "review-rebase": "--reviewed-evidence",
+    "content-rescore": "source",
+    "scoring-revision": "--root-cause",
+    "reference-revision": "--root-cause",
+    "reference-finalize": "--observations",
+    "dynamic-append": "--source",
+    "dynamic-merge": "--reference",
+    "native-dns": "destination",
+    "report-revision-check": "--authority-root",
+    "diagnostic-check": "--deployed-archive",
+    "site-bundle-check": "archive",
+    "site-package": "--cached-content",
+    "site-publish": "--operation-journal",
+    "site-verify": "--expected-archive",
+    "import-env": "--target",
     "wcxb-select": "--qualified-test",
     "wcxb-latency": "--candidate",
     "wcxb-score": "--evidence-root",
@@ -160,6 +184,32 @@ def test_script_named_by_a_frozen_certifier_still_runs(script, option, tmp_path)
     assert option in result.stdout
 
 
+@pytest.mark.parametrize("script", ["run_benchmark.py", "build_report.py", "check_report.py",
+                                    "check_report_links.py"])
+def test_frozen_certifiers_keep_their_shared_scripts(script):
+    certifiers = list((ROOT / "src/harness/web_fetch/data/latency-certifiers").glob("*.py.txt"))
+    assert certifiers
+    assert all(f"scripts/{script}" in path.read_text(encoding="utf-8") for path in certifiers)
+    assert (ROOT / "scripts" / script).is_file()
+
+
+def test_reference_finalization_exit_status_reports_an_unverified_result(monkeypatch, capsys):
+    monkeypatch.setattr("harness.web_fetch.reference_lifecycle.finalize_reference_checks",
+                        lambda *_: {"status": "failed"})
+    with pytest.raises(SystemExit) as stopped:
+        main(["reference-finalize", "--run-dir", "run", "--observations", "observations.json"])
+    assert stopped.value.code == 1
+    assert '"failed"' in capsys.readouterr().out
+
+
+def test_diagnostic_check_requires_exactly_one_output(capsys):
+    for arguments in ([], ["first", "--output", "second"]):
+        with pytest.raises(SystemExit) as stopped:
+            main(["diagnostic-check", *arguments])
+        assert stopped.value.code == 2
+        assert "one output directory" in capsys.readouterr().err
+
+
 def named_commands(text):
     return {name for name in OWNER_COMMANDS if re.search(rf"(?<![\w-]){name}(?![\w-])", text)}
 
@@ -169,6 +219,13 @@ def test_every_owner_command_is_shown_by_a_guide_or_listed_as_pending():
     inventory = (ROOT / "scripts/README.md").read_text(encoding="utf-8")
     pending = named_commands(inventory.split("## Pending owner decision (#93)")[1].split("\n## ")[0])
     assert pending == set(OWNER_COMMANDS) - shown
+
+
+def test_command_inventory_runs_track_stages_through_the_locked_runtime():
+    inventory = (ROOT / "scripts/README.md").read_text(encoding="utf-8")
+    commands = re.findall(r"(?:uv run --frozen(?: --extra \S+)* )?python -m harness", inventory)
+    assert commands
+    assert [command for command in commands if not command.startswith("uv run --frozen")] == []
 
 
 def test_template_registry_names_the_public_package_command():

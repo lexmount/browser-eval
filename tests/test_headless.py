@@ -432,7 +432,7 @@ class HeadlessTests(unittest.TestCase):
                 record['metrics']['content_sha256'] = hashlib.sha256(artifact.read_bytes()).hexdigest()
             (evidence/'results.jsonl').write_text(
                 ''.join(json.dumps(row)+'\n' for row in records), encoding='utf-8')
-            argv = ['review_headless_results.py','--evidence',str(evidence),
+            argv = ['review-headless','--evidence',str(evidence),
                     '--work',str(work),'--batch-cases','1','--model','inherited',
                     '--reviewer','internal','--scope','all','--provider','p',
                     '--confirm-full-review','--prepare-only']
@@ -465,7 +465,7 @@ class HeadlessTests(unittest.TestCase):
                 artifact.write_bytes(b'Independent synthetic answer')
                 row['metrics']['content_sha256'] = hashlib.sha256(artifact.read_bytes()).hexdigest()
             (evidence/'results.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in rows), encoding='utf-8')
-            argv=['review_headless_results.py','--evidence',str(evidence),
+            argv=['review-headless','--evidence',str(evidence),
                   '--work',str(work),'--model','inherited','--reviewer','internal',
                   '--prepare-only']
             with patch('sys.argv',argv): review_main()
@@ -492,7 +492,7 @@ class HeadlessTests(unittest.TestCase):
             row['metrics']['content_sha256'] = hashlib.sha256(b'').hexdigest()
             (evidence/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             (evidence/'results.jsonl').write_text(json.dumps(row)+'\n', encoding='utf-8')
-            argv=['review_headless_results.py','--evidence',str(evidence),
+            argv=['review-headless','--evidence',str(evidence),
                   '--work',str(work),'--model','inherited','--reviewer','internal',
                   '--prepare-only']
             with patch('sys.argv',argv): review_main()

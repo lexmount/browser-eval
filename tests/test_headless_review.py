@@ -86,7 +86,7 @@ class HeadlessReviewTests(unittest.TestCase):
             dataset['cases']=dataset['cases'][:1]
             (path/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             for flags in ([],['-O']):
-                result=subprocess.run([sys.executable,*flags,str(root/'scripts/check_headless_evidence.py'),str(path)],capture_output=True,text=True)
+                result=subprocess.run([sys.executable,*flags,'-m','harness.web_fetch','headless-check',str(path),'--report-profile',str(path/'profile.json')],capture_output=True,text=True)
                 self.assertNotEqual(result.returncode,0)
                 self.assertIn('Task inventory differs',result.stderr)
                 self.assertNotIn('PASS:',result.stdout)
