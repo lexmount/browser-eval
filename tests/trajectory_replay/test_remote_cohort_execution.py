@@ -44,6 +44,9 @@ def environment(tmp_path, monkeypatch, *, subset=None, reset_drift=False, call_d
         def __init__(self, *_args, **_kwargs):
             activity['starts'] += 1
 
+        def poll(self):
+            return None
+
         def terminate(self):
             activity['terminated'] += 1
 

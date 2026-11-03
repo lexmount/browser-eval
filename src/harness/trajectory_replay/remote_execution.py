@@ -1192,12 +1192,7 @@ def _execute_cohort(args: argparse.Namespace) -> int:
                     flush=True,
                 )
         finally:
-            process.terminate()
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
+            _stop_browser(process)
     after = cohort_reference_hashes(args)
     verify_cohort_evidence(args.output, results, tasks)
     certified = certify_cohort(

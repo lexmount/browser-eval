@@ -459,6 +459,51 @@ def test_local_browser_is_stopped_when_startup_is_interrupted(
         started[0].wait()
 
 
+def test_cohort_teardown_never_waits_without_a_bound(tmp_path: Path, monkeypatch) -> None:
+    class UnkillableBrowser:
+        def __init__(self) -> None:
+            self.kills = 0
+
+        def poll(self):
+            return None
+
+        def terminate(self) -> None:
+            pass
+
+        def kill(self) -> None:
+            self.kills += 1
+
+        def wait(self, timeout=None):
+            assert timeout is not None, "unbounded wait for the browser"
+            raise subprocess.TimeoutExpired("browser", timeout)
+
+    def readiness_fails(*_args):
+        raise RuntimeError("readiness failed")
+
+    browser = UnkillableBrowser()
+    for name, stub in {
+        "cohort_reference_hashes": lambda _args: {},
+        "preflight_cohort": lambda _args: ({"task_ids": [1], "tasks": [{}]}, {}, None, {1: {}}),
+        "reset_cohort": lambda *_args: "reset",
+        "load_corrections": lambda: None,
+        "start_local_browser": lambda *_args: (browser, "http://127.0.0.1:1"),
+        "verify_browser_session": readiness_fails,
+    }.items():
+        monkeypatch.setattr(remote_execution, name, stub)
+    monkeypatch.setitem(
+        sys.modules,
+        "agent.tools.browser.browser_tool",
+        SimpleNamespace(BrowserTool=lambda config: None),
+    )
+
+    with pytest.raises(subprocess.TimeoutExpired):
+        remote_execution.run_cohort(
+            SimpleNamespace(cowagent=tmp_path, output=tmp_path / "run", tasks=None)
+        )
+
+    assert browser.kills == 1
+
+
 def _process_member(*, listening=(), error=None, children=()):
     def net_connections(kind):
         assert kind == "tcp"
