@@ -75,7 +75,11 @@ def test_missing_object_stays_missing_and_details_escape_untrusted_tags():
 
 
 def test_mounted_script_runs_alone_on_the_ports_it_is_given():
-    """The upstream Map container has neither this package nor the topology registry."""
+    """The upstream Map container has neither this package nor the topology registry.
+
+    `-I` alone keeps the virtualenv's site-packages, where this project is installed, so only
+    `-I -S` limits the script to the standard library it gets inside that container.
+    """
 
     class Nominatim(BaseHTTPRequestHandler):
         def do_GET(self):
@@ -96,7 +100,7 @@ def test_mounted_script_runs_alone_on_the_ports_it_is_given():
         port = probe.getsockname()[1]
     script = Path(map_detail.__file__)
     service = subprocess.Popen(
-        [sys.executable, "-I", str(script), "--port", str(port),
+        [sys.executable, "-I", "-S", str(script), "--port", str(port),
          "--nominatim-port", str(nominatim.server_port)],
     )
     try:
