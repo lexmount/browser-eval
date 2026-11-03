@@ -8,7 +8,6 @@ import hashlib
 import io
 import json
 import math
-import re
 import sys
 import tempfile
 from collections import Counter
