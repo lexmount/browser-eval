@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.stable_tasks import SCHEMA_FIELDS, UNIQUE_FIELDS
 
+from harness.reporting.presentation import esc
 from harness.web_fetch.models import report_family
 from harness.web_fetch.report_i18n import TEXT
 
@@ -505,7 +506,7 @@ def acceptance_scope(cases, records):
 
 
 def render_acceptance_scope(cases, records):
-    from harness.web_fetch.report import cell, esc, link, pct, provider_label, section, table
+    from harness.web_fetch.report import cell, link, pct, provider_label, section, table
     from harness.web_fetch.report import model_text as h
     scope = acceptance_scope(cases, records)
     fields = ('tasks', 'identity', 'literal', 'facts', 'body_regions', 'records', 'resources', 'full_reference', 'short_length_floor')

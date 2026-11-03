@@ -38,7 +38,8 @@ def custom_catalog(monkeypatch):
 
 def test_new_method_uses_one_registration_in_all_method_views(tmp_path, custom_catalog):
     from harness.web_fetch.report_methods import render_methods
-    from harness.web_fetch.report import hero, section, table, cell, link, esc
+    from harness.reporting.presentation import esc
+    from harness.web_fetch.report import hero, section, table, cell, link
     (tmp_path / 'answer.txt').write_text('Synthetic answer')
     (tmp_path / 'dataset.json').write_text('{}')
     records = [{'provider': 'acme-fetch', 'provider_type': 'acme', 'case_id': 'new-task',
@@ -106,7 +107,8 @@ def test_native_compatibility_version_is_not_published_for_a_renamed_engine():
 
 def test_diagnostic_method_view_uses_executable_version_before_cdp_version(tmp_path):
     from harness.web_fetch.report_methods import render_methods
-    from harness.web_fetch.report import hero, section, table, cell, link, esc
+    from harness.reporting.presentation import esc
+    from harness.web_fetch.report import hero, section, table, cell, link
     row = {'provider': 'new-moli', 'provider_type': 'headless_markdown',
            'provider_metadata': {'engine': 'moli', 'reported_version': 'moli 9.9.9',
                                  'browser_version': '150.0.0.0'}}

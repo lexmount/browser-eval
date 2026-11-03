@@ -1,9 +1,15 @@
-"""Track-independent semantic checks for comparison cells and result evidence UI."""
+"""Track-independent HTML escaping and semantic checks for comparisons and evidence UI."""
+import html as html_text
 import math
 from collections import defaultdict
 from html.parser import HTMLParser
 
 from bs4 import BeautifulSoup
+
+
+def esc(value, *, none=""):
+    """Escape one value for HTML text or a quoted attribute, rendering ``None`` as ``none``."""
+    return html_text.escape(str(none if value is None else value), quote=True)
 
 
 def check_presentation(html):

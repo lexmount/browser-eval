@@ -46,6 +46,7 @@ from harness.report_languages import (
  select_report_language,
  write_language_contract,
 )
+from harness.reporting.presentation import esc
 from harness.web_fetch.adjudication_evidence import adjudication_reason
 from harness.web_fetch.failure_diagnosis import diagnose
 from harness.web_fetch.methods import (
@@ -597,7 +598,6 @@ EXTRA+='''
 .wmb-denominator-example{margin:24px 0 4px}.wmb-denominator-example h3{margin:0 0 12px;font-size:20px}.wmb-denominator-example .wmb-flow{margin-bottom:12px}.wmb-denominator-matrix{width:100%;min-width:580px;border-collapse:collapse;background:var(--panel)}.wmb-denominator-matrix th,.wmb-denominator-matrix td{border:1px solid var(--line);padding:12px;text-align:left}.wmb-denominator-matrix thead th{background:var(--panel2)}.wmb-denominator-matrix tbody td:first-child{width:24%;font-weight:700}.wmb-denominator-matrix td b{display:block;font-size:24px;color:var(--accent)}.wmb-denominator-matrix td span{display:block;font-size:13px;color:var(--muted)}.wmb-denominator-example .wmb-flow-fallback{min-width:0;flex-wrap:wrap}.wmb-denominator-example .wmb-flow-fallback span{flex:1 1 220px}.wmb-denominator-example .wmb-flow .mermaid{min-width:0}.wmb-version-cases{display:grid;gap:12px;margin:18px 0}.wmb-version-case{border:1px solid var(--line);background:var(--panel);border-radius:12px;padding:16px}.wmb-version-case h3{margin:0 0 8px;font-size:17px}.wmb-version-case p{margin:8px 0;line-height:1.65}.wmb-version-case .actions{font-size:13px}
 '''
 
-def esc(s):return html.escape(str(s if s is not None else ''))
 def readable_output(s):
  return re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]',lambda m:'\\x'+format(ord(m[0]),'02x'),s)
 

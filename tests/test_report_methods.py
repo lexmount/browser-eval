@@ -9,7 +9,8 @@ class AdoptionTests(unittest.TestCase):
   import json,tempfile
   from pathlib import Path
   from harness.web_fetch.report_methods import render_methods
-  from harness.web_fetch.report import hero,section,table,cell,link,esc
+  from harness.reporting.presentation import esc
+  from harness.web_fetch.report import hero,section,table,cell,link
   with tempfile.TemporaryDirectory() as tmp:
    out=Path(tmp)
    (out/'dataset.json').write_text(json.dumps({
@@ -208,7 +209,8 @@ def test_report_labels_distinguish_release_and_source_build_with_same_version(tm
 
 def test_method_guide_discloses_retained_success_and_repaired_failure_builds(tmp_path):
     from harness.web_fetch.report_methods import render_methods
-    from harness.web_fetch.report import hero, section, table, cell, link, esc
+    from harness.reporting.presentation import esc
+    from harness.web_fetch.report import hero, section, table, cell, link
     records = [{'provider': 'sample', 'provider_type': 'fixture',
                 'provider_metadata': {'binary_sha256': build}}
                for build in ('retained-build', 'retained-build', 'repair-build')]

@@ -4,7 +4,8 @@ from pathlib import Path, PurePosixPath
 
 import pytest
 
-from harness.web_fetch.report import table, cell, link, esc
+from harness.reporting.presentation import esc
+from harness.web_fetch.report import table, cell, link
 from harness.web_fetch.report_i18n import localize_html, untranslated_english_narrative
 from harness.web_fetch.report_pricing import SOURCE, per_thousand, browser_monthly, render_pricing
 

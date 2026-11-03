@@ -34,7 +34,7 @@ class ContentReviewTests(unittest.TestCase):
                                  'coverage_evidence': ['beginning', 'ending'],
                                  'reference_assessment': 'reference covers the body', 'issues': []}]}
             write_content_document(work / 'reviews' / packet.name, review)
-            with patch('harness.web_fetch.review_execution.subprocess.run') as call:
+            with patch('harness.web_fetch.review_execution.run_reviewer') as call:
                 self.assertEqual(run_content_packet(item, work, 'model', 'codex'), review)
                 call.assert_not_called()
                 for name in sources:
@@ -123,7 +123,7 @@ def test_prepare_only_never_runs_reviewer_and_rejects_changed_resume(tmp_path):
     evidence, correction = content_fixture(tmp_path)
     argv = ['--evidence', str(evidence), '--correction', str(correction),
             '--work', str(tmp_path / 'work'), '--provider', 'custom', '--prepare-only']
-    with patch('harness.web_fetch.review_execution.subprocess.run') as call:
+    with patch('harness.web_fetch.review_execution.run_reviewer') as call:
         content_review_main(argv)
         content_review_main(argv)
         with pytest.raises(ValueError, match='workspace does not match'):
@@ -167,7 +167,7 @@ def test_input_drift_during_reviewer_execution_cannot_install_review(tmp_path):
         (evidence / 'sources' / 'one.html.txt').write_text('changed source')
         return subprocess.CompletedProcess(command, 0)
 
-    with patch('harness.web_fetch.review_execution.subprocess.run', side_effect=run):
+    with patch('harness.web_fetch.review_execution.run_reviewer', side_effect=run):
         with pytest.raises(ValueError, match='Review input changed'):
             run_content_packet(item, work, 'synthetic-model', 'synthetic-reviewer')
     assert not (work / 'reviews' / Path(item['path']).name).exists()
