@@ -248,7 +248,7 @@ def _completed_scope(config, sources, selected, continuations=None):
             raise ValueError('Completion requires actual invocation')
         dataset = _json(sources.bind(root / 'dataset.json'))
         case = next(c for c in dataset['cases'] if c['id'] == key[2])
-        policy = {**contract, 'max_failure_retries': contract.get('max_failure_retries', 0)}
+        policy = dict(contract)
         if contract.get('provider_config'):
             sources.binding(contract['provider_config'])
             policy['provider_config_sha256'] = contract['provider_config']['sha256']
@@ -786,10 +786,13 @@ def _parameter_scoring(before, record):
 
 def _validate_call_sequence(record, case, contract, continuation=None):
     """Validate the complete authorized physical-call sequence."""
+    allowance = contract.get('max_failure_retries')
+    if type(allowance) is not int or allowance < 0:
+        raise ValueError('Execution authorization requires an explicit nonnegative retry allowance')
     retry = record.get('provider_metadata', {}).get('retry', {})
     calls = retry.get('attempts') or [record]
-    if (retry.get('physical_attempts', len(calls)) != len(calls)
-            or retry.get('retries_used', len(calls) - 1) != len(calls) - 1):
+    if retry and (retry.get('physical_attempts') != len(calls)
+                  or retry.get('retries_used') != len(calls) - 1):
         raise ValueError('Parameter rerun has inconsistent physical call counts')
     if continuation:
         entry, prior, _ = continuation
@@ -799,8 +802,17 @@ def _validate_call_sequence(record, case, contract, continuation=None):
     if any(datetime.fromisoformat(call['started_at']) < datetime.fromisoformat(contract['created_at'])
            for call in [record, *calls]):
         raise ValueError('Parameter rerun predates its contract')
-    passes = [call.get('task_pass') if 'task_pass' in call else
-              task_passed(call['ok'], call['metrics'], case.get('task_kind', 'body')) for call in calls]
+    passes = []
+    for call in calls:
+        if 'metrics' in call:
+            passed = task_passed(call['ok'], call['metrics'], case.get('task_kind', 'body'))
+            if 'task_pass' in call and call['task_pass'] is not passed:
+                raise ValueError('Physical call verdict differs from its scoring metrics')
+        else:
+            passed = call.get('task_pass')
+        if type(passed) is not bool:
+            raise ValueError('Physical call requires an explicit boolean verdict')
+        passes.append(passed)
     if any(passes[:-1]) or (not passes[-1] and len(calls) <= contract['max_failure_retries']):
         raise ValueError('Parameter rerun violates stop-on-pass or requires its failure retry')
     if retry.get('attempts') and (calls[-1].get('content_sha256') != record['metrics']['content_sha256']

@@ -1328,3 +1328,40 @@ def test_matrix_task_metadata_matches_case_evidence(tmp_path, field, value):
     for source in (None, tmp_path/'spec.json'):
         with pytest.raises(ValueError, match='Saved case metadata differs from matrix'):
             check_saved_matrix(output, spec_path=source)
+
+
+@pytest.mark.parametrize('allowance', [None, -1, True, '1', 1.0])
+def test_call_sequence_rejects_missing_or_invalid_retry_authorization(allowance):
+    from harness.web_fetch.report_saved_matrix import _validate_call_sequence
+    with pytest.raises(ValueError, match='explicit nonnegative retry allowance'):
+        _validate_call_sequence({}, {}, {'max_failure_retries': allowance})
+
+
+@pytest.mark.parametrize('defect', [None, 'missing_count', 'missing_retries', 'contradictory_verdict'])
+def test_call_sequence_requires_consistent_retry_evidence(defect):
+    from harness.web_fetch.report_saved_matrix import _validate_call_sequence
+    record = {'started_at': '2026-10-31T01:00:00Z', 'ok': True, 'elapsed_ms': 10,
+              'metrics': {'request_ok': True, 'content_pass': True, 'content_sha256': 'a' * 64}}
+    call = {**record, 'task_pass': True, 'content_sha256': 'a' * 64}
+    retry = {'physical_attempts': 1, 'retries_used': 0, 'attempts': [call]}
+    record['provider_metadata'] = {'retry': retry}
+    contract = {'created_at': '2026-10-31T00:00:00Z', 'max_failure_retries': 1}
+    if defect == 'missing_count':
+        del retry['physical_attempts']
+    elif defect == 'missing_retries':
+        del retry['retries_used']
+    elif defect == 'contradictory_verdict':
+        call['task_pass'] = False
+    if defect:
+        with pytest.raises(ValueError, match='physical call counts|verdict differs'):
+            _validate_call_sequence(record, {}, contract)
+    else:
+        _validate_call_sequence(record, {}, contract)
+
+
+def test_explicit_zero_retry_contract_accepts_one_failed_call():
+    from harness.web_fetch.report_saved_matrix import _validate_call_sequence
+    record = {'started_at': '2026-10-31T01:00:00Z', 'ok': True,
+              'metrics': {'request_ok': True, 'content_pass': False}}
+    _validate_call_sequence(record, {}, {
+        'created_at': '2026-10-31T00:00:00Z', 'max_failure_retries': 0})

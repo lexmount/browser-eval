@@ -5,6 +5,20 @@ from dataclasses import dataclass
 from html import unescape
 from html.entities import html5 as _HTML_ENTITIES
 
+from markdown_it.common.html_re import HTML_TAG_RE
+
+
+def _mixed_html_tag_pattern(pattern):
+    """Extend the pinned Markdown grammar without silently accepting drift."""
+    name_suffix = r'[A-Za-z0-9\-]*'
+    if name_suffix not in pattern:
+        raise RuntimeError('Markdown HTML tag grammar changed; review namespace handling')
+    return re.compile(pattern.removeprefix('^').replace(
+        name_suffix, r'[A-Za-z0-9:_.\-]*'))
+
+
+_MIXED_HTML_TAG_PATTERN = _mixed_html_tag_pattern(HTML_TAG_RE.pattern)
+
 
 # Cover the alphabets whose word boundaries the literal scorer enforces.
 _CASE_CODEPOINTS = (*range(0x0250), *range(0x0370, 0x0530), *range(0x1E00, 0x2000),
@@ -972,14 +986,10 @@ def visible_mixed_html_text(text: str, *, excluded_html_selectors=()) -> str:
     # Mixed Markdown recognizes HTML tags using Markdown's tag grammar.
     # A tolerant HTML parser otherwise consumes prose after a comparison such
     # as x<y until an unrelated later tag supplies its closing angle bracket.
-    from markdown_it.common.html_re import HTML_TAG_RE
-    # Preserve namespaced native elements covered by the visibility contract.
-    tag_pattern = re.compile(HTML_TAG_RE.pattern.removeprefix('^').replace(
-        r'[A-Za-z0-9\-]*', r'[A-Za-z0-9:_.\-]*'))
     pieces, cursor = [], 0
     while (left := protected.find('<', cursor)) >= 0:
         pieces.append(protected[cursor:left])
-        tag = tag_pattern.match(protected, left)
+        tag = _MIXED_HTML_TAG_PATTERN.match(protected, left)
         if tag:
             pieces.append(tag[0])
             cursor = tag.end()

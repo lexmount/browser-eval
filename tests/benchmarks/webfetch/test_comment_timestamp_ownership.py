@@ -10,6 +10,23 @@ from .test_review_migration_articles import COMMENTS, public_case
 
 
 def controls():
+    # A bare colon inside a standalone-author serialization can equally be a
+    # body label or a second author. Do not manufacture a second owned record;
+    # independent heading/link/bold boundaries below remain accepted.
+    for surface in ('markdown', 'plain_text'):
+        for first in ('Alice:', 'Alice 说：'):
+            contract = deepcopy(COMMENTS)
+            contract['minimum_comments'] = 2
+            heading = '## Comments' if surface == 'markdown' else 'Comments'
+            yield {
+                'id': f'comment-mixed-colon-ownership-{surface}-{first}',
+                'failure_mode': 'false-positive', 'category': 'structured-extraction',
+                'root_cause': 'An inline colon paragraph does not establish independent authorship in a standalone-author serialization.',
+                'case': public_case('comment_contract', contract),
+                'artifact': f'Benchmark page\n\n{heading}\n\n{first}\n\nFirst reply.\n\nBob：Second reply.',
+                'ok': True, 'metadata': {'answer_format': surface},
+                'expected_task_pass': False, 'expected_metrics': {'article_comment_count': 1},
+            }
     for boundary in ('### Bob', '[Bob](https://example.test/bob)', '**Bob**'):
         contract = deepcopy(COMMENTS)
         contract['minimum_comments'] = 2

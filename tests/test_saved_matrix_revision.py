@@ -312,7 +312,7 @@ def test_completion_candidate_baseline_requires_explicit_whole_group_reselection
 
 
 @pytest.mark.parametrize('defect', [None, 'already_called', 'before_contract',
-                                  'early_first_call', 'duplicate', 'incomplete', 'undeclared', 'extra_baseline', 'retained_call', 'retained_task', 'completed_task', 'extra_uncommitted', 'missing_execution'])
+                                  'early_first_call', 'duplicate', 'incomplete', 'undeclared', 'extra_baseline', 'retained_call', 'retained_task', 'completed_task', 'extra_uncommitted', 'missing_execution', 'missing_retry_allowance'])
 @pytest.mark.parametrize('contract_form', ['single', 'multiple'])
 def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_form, monkeypatch):
     # History controls isolate execution proof; real native authorization has its
@@ -327,12 +327,15 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_
     if defect == 'before_contract':
         record['started_at'] = '2026-10-01T00:00:00Z'
     if defect == 'early_first_call':
-        record['provider_metadata']['retry'] = {'attempts': [{'started_at': '2026-10-01T00:00:00Z'}]}
+        record['provider_metadata']['retry'] = {'physical_attempts': 1, 'retries_used': 0,
+            'attempts': [{'started_at': '2026-10-01T00:00:00Z'}]}
     results = write(source/'completion.jsonl', record)
     spec['sources'].append({**deepcopy(spec['sources'][0]), 'case_ids': ['later'], 'results': results})
     spec['missing'] = []
-    contract = {'created_at': '2026-11-01T00:00:00Z', 'provider': 'method', 'cases': 1,
+    contract = {'created_at': '2026-11-01T00:00:00Z', 'provider': 'method', 'cases': 1, 'max_failure_retries': 0,
                 'jobs': [{'suite': 'first', 'case_ids': ['later']}]}
+    if defect == 'missing_retry_allowance':
+        del contract['max_failure_retries']
     if defect == 'already_called':
         old = json.loads(Path(baseline['path']).read_text())
         old['rows'][1].update(status='saved', called=True, record_path='record.json')
@@ -392,7 +395,8 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_
                                {('first', 'method', 'later'): (source, record, b'', source/'completion.jsonl')})
         return
     if defect:
-        message = {'missing_execution': 'lacks its execution contract',
+        message = {'missing_retry_allowance': 'explicit nonnegative retry allowance',
+                   'missing_execution': 'lacks its execution contract',
                    'extra_uncommitted': 'undeclared position',
                    'completed_task': 'undeclared task'}.get(defect)
         with pytest.raises(ValueError, match=message):

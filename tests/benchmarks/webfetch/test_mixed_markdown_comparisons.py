@@ -1,6 +1,20 @@
 import pytest
 
-from lexbench_webfetch.reference_quality import visible_mixed_html_text
+from lexbench_webfetch.reference_quality import visible_mixed_html_text, _mixed_html_tag_pattern
+
+
+def test_changed_markdown_tag_grammar_fails_explicitly():
+    with pytest.raises(RuntimeError, match='grammar changed'):
+        _mixed_html_tag_pattern(r'^</?[A-Za-z]+>')
+
+
+@pytest.mark.parametrize('name', ['native:element', 'native_element', 'native.element'])
+def test_namespaced_mixed_html_keeps_visibility_rules(name):
+    result = visible_mixed_html_text(
+        f'Prefix<sup>1</sup> x<y <{name} hidden>secret</{name}> Visible')
+    assert 'secret' not in result
+    assert 'x<y' in result
+    assert 'Visible' in result
 
 
 @pytest.mark.parametrize('comparison', ['x<y', 'a<b+c', 'k<n\n$$'])
