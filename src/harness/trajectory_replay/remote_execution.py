@@ -6,7 +6,6 @@ import argparse
 import hashlib
 import json
 import os
-import socket
 import subprocess
 import sys
 import tempfile
@@ -18,6 +17,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
+import psutil
 from webarena_verified.types.task import WebArenaSite
 
 from harness.distribution import repository_root, source_path
@@ -271,6 +271,76 @@ def _wait_cdp(endpoint: str, process: subprocess.Popen) -> None:
             pass
         time.sleep(0.1)
     raise TimeoutError("browser CDP did not become ready")
+
+
+def _kernel_assigned_port(process: subprocess.Popen) -> int:
+    """Return the loopback port that this browser's own process tree is listening on."""
+
+    owner = psutil.Process(process.pid)
+    for _ in range(300):
+        if process.poll() is not None:
+            raise RuntimeError(f"browser exited before CDP was ready: {process.returncode}")
+        try:
+            members = (owner, *owner.children(recursive=True))
+        except psutil.NoSuchProcess:
+            members = (owner,)
+        ports = set()
+        for member in members:
+            # An exiting process or a privileged helper cannot be inspected. The
+            # poll above reports the owner's exit, and other members can still answer.
+            try:
+                connections = member.net_connections(kind="tcp")
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+            ports.update(
+                connection.laddr.port
+                for connection in connections
+                if connection.status == psutil.CONN_LISTEN
+                and connection.laddr.ip == "127.0.0.1"
+            )
+        if len(ports) > 1:
+            raise RuntimeError(f"browser listens on several loopback ports: {sorted(ports)}")
+        if ports:
+            return ports.pop()
+        time.sleep(0.1)
+    raise TimeoutError("browser did not open a CDP port")
+
+
+def _stop_browser(process: subprocess.Popen) -> None:
+    if process.poll() is not None:
+        return
+    process.terminate()
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=10)
+
+
+def start_local_browser(
+    args: argparse.Namespace, profile: str
+) -> tuple[subprocess.Popen, str]:
+    """Start a browser on a kernel-assigned port and return it with its CDP endpoint.
+
+    Reserving a port and releasing it for the browser leaves a window in which
+    another process can take it. The readiness probe would then accept that
+    process, and the replay would drive the wrong browser.
+    """
+
+    process = subprocess.Popen(
+        _browser_command(args, 0, profile),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.STDOUT,
+        start_new_session=True,
+    )
+    try:
+        endpoint = f"http://127.0.0.1:{_kernel_assigned_port(process)}"
+        _wait_cdp(endpoint, process)
+    except BaseException:
+        # The browser runs in its own session, so an interrupt would orphan it.
+        _stop_browser(process)
+        raise
+    return process, endpoint
 
 
 def _browser_command(args: argparse.Namespace, port: int, profile: str) -> list[str]:
@@ -1068,10 +1138,6 @@ def _execute_cohort(args: argparse.Namespace) -> int:
     before = cohort_reference_hashes(args)
     if before != frozen_inputs:
         raise ValueError("Frozen cohort inputs changed during preflight or site reset")
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        port = sock.getsockname()[1]
-    endpoint = f"http://127.0.0.1:{port}"
     catalog = load_corrections()
     origins = {f"{urlsplit(url).scheme}://{urlsplit(url).netloc}" for url in sites.values()}
     results: list[dict] = []
@@ -1093,14 +1159,8 @@ def _execute_cohort(args: argparse.Namespace) -> int:
                     },
                 )
                 candidate_paths[task_id] = candidate
-        process = subprocess.Popen(
-            _browser_command(args, port, profile),
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.STDOUT,
-            start_new_session=True,
-        )
+        process, endpoint = start_local_browser(args, profile)
         try:
-            _wait_cdp(endpoint, process)
             readiness = verify_browser_session(
                 BrowserTool(config=browser_tool_config(endpoint)), sites
             )
@@ -1132,12 +1192,7 @@ def _execute_cohort(args: argparse.Namespace) -> int:
                     flush=True,
                 )
         finally:
-            process.terminate()
-            try:
-                process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
+            _stop_browser(process)
     after = cohort_reference_hashes(args)
     verify_cohort_evidence(args.output, results, tasks)
     certified = certify_cohort(

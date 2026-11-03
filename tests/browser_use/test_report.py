@@ -1664,3 +1664,28 @@ def test_replay_control_uses_selected_counts_and_origin_inventory():
     assert "recorded_response" in english and "HAR" in english
     for obsolete in ("90/90", "36", "37", "Task 173", "Task 676", "Colima"):
         assert obsolete not in page
+
+
+def test_summary_percentiles_use_the_shared_nearest_rank_definition(monkeypatch) -> None:
+    monkeypatch.setattr(report_module, "MODEL_LABELS", {"model": "Model"})
+    monkeypatch.setattr(report_module, "ENGINE_LABELS", {"engine": "Engine"})
+    rows = [
+        {
+            "model": "model",
+            "engine": "engine",
+            "score": 1,
+            "duration_ms": value,
+            "browser_tool_duration_ms": value,
+            "resource": {"cpu_ms": value},
+        }
+        for value in (1000, 3000)
+    ]
+
+    summary = report_module._primary_summary(rows)["model"]["engine"]
+
+    # Linear interpolation would report 2900 ms, a duration no call took.
+    assert summary["p95_duration_ms"] == 3000
+    assert summary["p95_browser_tool_duration_ms"] == 3000
+    assert summary["resources"]["cpu_ms"]["p95"] == 3000
+    assert summary["p50_duration_ms"] == 2000
+    assert report_module._primary_summary([])["model"]["engine"]["p95_duration_ms"] is None
