@@ -17,8 +17,7 @@ from harness.environments.webarena.config import SITES, verify_deployment_contra
 from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.record_io import canonical_json_sha256
 from harness.trajectory_replay import remote_runtime
-from harness.trajectory_replay import runner as replay_runner
-from harness.trajectory_replay.public_webarena import runner as public_runner
+from harness.trajectory_replay.core.docker_runner import start_fixture_server
 from harness.trajectory_replay.public_webarena import webarena_environment
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
 
@@ -283,9 +282,8 @@ def test_deployment_contract_rejects_map_local_ports_that_leave_the_registry(
         verify_deployment_contract(tmp_path)
 
 
-@pytest.mark.parametrize("runner", [replay_runner, public_runner])
-def test_fixture_servers_keep_the_host_alias_origin(runner, tmp_path: Path) -> None:
-    server, thread, origin = runner._start_fixture_server(tmp_path)
+def test_fixture_server_keeps_the_host_alias_origin(tmp_path: Path) -> None:
+    server, thread, origin = start_fixture_server(tmp_path)
     try:
         assert origin == f"http://host.docker.internal:{server.server_port}"
     finally:

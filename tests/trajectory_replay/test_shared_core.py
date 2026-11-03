@@ -3,10 +3,17 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
 import pytest
 
+from harness.trajectory_replay import runner as curated_runner
+from harness.trajectory_replay.core import docker_runner
+from harness.trajectory_replay.core.executor import judge_outputs, validate_outputs
+from harness.trajectory_replay.core.suite import BrowserTask
 from harness.trajectory_replay.metrics import summarize_attempts as summarize_curated
+from harness.trajectory_replay.public_webarena import runner as public_runner
 from harness.trajectory_replay.public_webarena.metrics import (
     summarize_attempts as summarize_public,
 )
@@ -120,3 +127,183 @@ def test_tracks_keep_their_own_schema_and_task_contract(tmp_path):
         load_curated(newer)
     with pytest.raises(ValueError, match="trajectory schema must be"):
         load_public(newer)
+
+
+def _browser_task(**fields) -> BrowserTask:
+    values = {
+        "task_id": "task",
+        "title": "Task",
+        "tool_calls": ({"action": "navigate", "url": "{fixture_origin}/a.html", "timeout_ms": 5},),
+        "assertions": (),
+        "tags": ("retrieve",),
+        "difficulty": "simple",
+        "ground_truth": {"expected_actions": ["navigate"]},
+        "source": {"kind": "test"},
+        **fields,
+    }
+    return BrowserTask(**values)
+
+
+def test_exact_ground_truth_judge_reports_expected_and_actual():
+    assertions = [{"output": "answer", "equals": "unique-73"}]
+
+    assert validate_outputs({"answer": "unique-73"}, assertions) == []
+    assert "exact mismatch" in validate_outputs({"answer": "near-73"}, assertions)[0]
+    assert judge_outputs({"answer": "unique-73"}, assertions)[0]["passed"] is True
+
+
+def test_http_origin_keeps_only_scheme_and_authority():
+    assert docker_runner.http_origin("https://example.com:8443/a?q=1") == (
+        "https://example.com:8443"
+    )
+    assert docker_runner.http_origin("about:blank") is None
+
+
+def test_materializing_a_task_replaces_only_the_fixture_origin():
+    task = _browser_task(
+        evaluator={"kind": "exact"}, environment={"kind": "none"}, trajectory={"actions": []}
+    )
+
+    result = docker_runner.materialize_task(task, "http://fixtures.test")
+
+    assert result.tool_calls == (
+        {"action": "navigate", "url": "http://fixtures.test/a.html", "timeout_ms": 5},
+    )
+    assert task.tool_calls[0]["url"] == "{fixture_origin}/a.html"
+    assert (result.evaluator, result.environment, result.trajectory) == (
+        task.evaluator,
+        task.environment,
+        task.trajectory,
+    )
+
+
+@pytest.mark.parametrize(
+    ("actions", "statuses", "passed"),
+    [
+        (["navigate"], ["pass"], True),
+        (["navigate"], ["fail"], False),
+        (["click"], ["pass"], False),
+        ([], [], False),
+    ],
+)
+def test_process_validation_needs_the_expected_actions_all_passing(actions, statuses, passed):
+    trace = [
+        {"action": action, "status": status}
+        for action, status in zip(actions, statuses, strict=True)
+    ]
+    trace.append({"action": "validate_assertions", "status": "pass"})
+
+    result = docker_runner.process_validation(_browser_task(), trace)
+
+    assert result == {
+        "expected_actions": ["navigate"],
+        "actual_actions": actions,
+        "all_calls_passed": bool(actions) and statuses == ["pass"],
+        "passed": passed,
+    }
+
+
+def test_tracks_keep_their_own_reset_scope(monkeypatch):
+    cleared = {}
+    monkeypatch.setattr(
+        docker_runner, "reset_browser_state", lambda page, origins: cleared.update(last=origins)
+    )
+    monkeypatch.setattr(
+        curated_runner, "reset_browser_state", lambda page, origins: cleared.update(last=origins)
+    )
+    monkeypatch.setattr(
+        public_runner, "reset_browser_state", lambda page, origins: cleared.update(last=origins)
+    )
+    first = SimpleNamespace(url="https://first.test/a")
+    second = SimpleNamespace(url="https://second.test/b")
+    first.context = SimpleNamespace(pages=[first, second])
+
+    curated_runner._reset_state(first, {"https://visited.test"})
+    assert cleared["last"] == {"https://visited.test", "https://first.test"}
+
+    public_runner._reset_state(first, {"https://visited.test"})
+    assert cleared["last"] == {
+        "https://visited.test",
+        "https://first.test",
+        "https://second.test",
+    }
+
+
+def test_tracks_keep_their_own_page_replacement(monkeypatch):
+    for runner in (curated_runner, public_runner):
+        monkeypatch.setattr(runner, "_reset_state", lambda *a: None)
+    replacement = MagicMock()
+    replacement.evaluate.return_value = {"width": 1280, "height": 900}
+    current = MagicMock()
+    other = MagicMock()
+    current.context.pages = [current, other]
+    current.context.new_page.return_value = replacement
+
+    curated_runner._prepare_page(current, set(), settle_ms=0)
+    current.close.assert_called_once()
+    other.close.assert_not_called()
+
+    public_runner._prepare_page(current, set(), settle_ms=0)
+    other.close.assert_called_once()
+
+
+def test_viewport_mismatch_stops_the_task_page():
+    context = MagicMock()
+    context.new_page.return_value.evaluate.return_value = {"width": 1, "height": 1}
+
+    with pytest.raises(RuntimeError, match="browser viewport mismatch"):
+        docker_runner.open_task_page(context, {"width": 1280, "height": 900}, settle_ms=0)
+
+
+def test_failed_engine_start_keeps_started_resources_for_cleanup(monkeypatch):
+    container = MagicMock()
+    monkeypatch.setattr(docker_runner, "start_browser_container", lambda *a, **k: container)
+    monkeypatch.setattr(docker_runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
+
+    def no_cdp(*args, **kwargs):
+        raise TimeoutError("no CDP")
+
+    monkeypatch.setattr(docker_runner, "wait_cdp", no_cdp)
+    client = MagicMock()
+    runtime = docker_runner.EngineRuntime()
+
+    with pytest.raises(TimeoutError, match="no CDP"):
+        docker_runner.start_engine(
+            runtime,
+            client,
+            MagicMock(),
+            engine="chromium",
+            image="image",
+            run_id="run",
+            cpus=2.0,
+            memory="2g",
+            reset_state=lambda *a: None,
+        )
+
+    assert runtime.networks == {"chromium": client.networks.create.return_value}
+    assert runtime.containers == {"chromium": container}
+    assert runtime.browsers == {}
+
+
+def test_only_the_public_environment_records_the_image_build_source():
+    container = MagicMock()
+    container.exec_run.return_value = SimpleNamespace(output=b"version", exit_code=0)
+    container.image.id = "sha256:image"
+    container.image.tags = ["image:tag"]
+    container.image.attrs = {
+        "Config": {"Labels": {"lex.browser-eval.source": "commit", "other": "ignored"}}
+    }
+    client = MagicMock()
+    client.info.return_value = {}
+    client.version.return_value = {}
+
+    shared = docker_runner.docker_environment(client, {"chromium": container})
+    public = public_runner._environment(client, {"chromium": container})
+
+    assert list(shared["images"]["chromium"]) == ["id", "tags"]
+    assert list(public) == list(shared)
+    assert public["images"]["chromium"] == {
+        "id": "sha256:image",
+        "tags": ["image:tag"],
+        "build_source": {"lex.browser-eval.source": "commit"},
+    }

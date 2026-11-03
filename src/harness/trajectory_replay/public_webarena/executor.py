@@ -10,6 +10,7 @@ from contextlib import nullcontext
 from typing import Any
 from urllib.parse import urlsplit
 
+from harness.trajectory_replay.core.executor import actionability_probe, body_text
 from harness.trajectory_replay.public_webarena.suite import validate_selector
 from harness.trajectory_replay.public_webarena.targets import locator_for
 
@@ -66,10 +67,6 @@ def _completed_action_navigation_timeout(exc: Exception) -> bool:
     )
 
 
-def _body_text(page: Any, timeout: int, limit: int) -> str:
-    return page.locator("body").first.inner_text(timeout=timeout)[:limit]
-
-
 def _evaluate_script(page: Any, script: str, script_mode: Any) -> Any:
     if script_mode is None:
         return page.evaluate(script)
@@ -103,32 +100,6 @@ def _bounded_evaluate_observation(value: Any, requested_max_chars: Any = None) -
             raise ValueError("structured observation exceeds the 4194304-byte evidence limit")
         return observation
     return observation[:limit]
-
-
-def _actionability_probe(page: Any, selector: str) -> dict[str, Any]:
-    """Capture post-failure DOM/actionability evidence without affecting scoring."""
-    return page.evaluate(
-        """selector => {
-          const element = document.querySelector(selector);
-          if (!element) return {found: false};
-          const style = getComputedStyle(element);
-          const rect = element.getBoundingClientRect();
-          return {
-            found: true,
-            connected: element.isConnected,
-            disabled: Boolean(element.disabled),
-            ariaDisabled: element.getAttribute('aria-disabled'),
-            display: style.display,
-            visibility: style.visibility,
-            opacity: style.opacity,
-            pointerEvents: style.pointerEvents,
-            rect: {x: rect.x, y: rect.y, width: rect.width, height: rect.height},
-            clientRectCount: element.getClientRects().length,
-            text: (element.textContent || '').trim().slice(0, 500)
-          };
-        }""",
-        selector,
-    )
 
 
 def _page_for_tab(page: Any, tab_index: int, timeout: int) -> Any:
@@ -353,7 +324,7 @@ def execute_steps(
                         )
                         or ""
                     )
-                    body = _body_text(action_page, action_remaining(), limit)
+                    body = body_text(action_page, action_remaining(), limit)
                 else:
                     title, body = document_observer(
                         action_page, action_remaining(), limit
@@ -713,7 +684,7 @@ def execute_steps(
             selector = call.get("selector")
             if action in {"click", "fill", "select"} and isinstance(selector, str):
                 try:
-                    record["actionability_probe"] = _actionability_probe(action_page, selector)
+                    record["actionability_probe"] = actionability_probe(action_page, selector)
                 except Exception as probe_exc:
                     record["actionability_probe_error"] = f"{type(probe_exc).__name__}: {probe_exc}"
             raise
@@ -722,35 +693,3 @@ def execute_steps(
             if trace_observer is not None:
                 trace_observer(records)
     return captured
-
-
-def judge_outputs(
-    outputs: dict[str, str], assertions: Iterable[dict[str, Any]]
-) -> list[dict[str, Any]]:
-    checks: list[dict[str, Any]] = []
-    for assertion in assertions:
-        name = str(assertion.get("output") or "")
-        actual = outputs.get(name, "")
-        expected = assertion.get("equals")
-        passed = isinstance(expected, str) and actual == expected
-        checks.append(
-            {
-                "output": name,
-                "kind": "exact string equality",
-                "expected": expected,
-                "actual": actual,
-                "passed": passed,
-            }
-        )
-    return checks
-
-
-def validate_outputs(outputs: dict[str, str], assertions: Iterable[dict[str, Any]]) -> list[str]:
-    failures: list[str] = []
-    for check in judge_outputs(outputs, assertions):
-        if not check["passed"]:
-            failures.append(
-                f"{check['output']} exact mismatch: expected {check['expected']!r}, "
-                f"got {check['actual']!r}"
-            )
-    return failures

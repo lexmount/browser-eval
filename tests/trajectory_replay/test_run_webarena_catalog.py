@@ -1105,7 +1105,7 @@ def test_local_catalog_restart_replays_on_the_new_browser_endpoint(
         "_task_origins": lambda *args: set(),
         "_bound_catalog_row": lambda _catalog, frozen, *args: frozen,
         "start_local_browser": start_local_browser,
-        "_run_task": run_task,
+        "run_replay_task": run_task,
     }.items():
         monkeypatch.setattr(catalog_runner, name, stub)
     monkeypatch.setattr(
@@ -1187,7 +1187,7 @@ def test_remote_task_passes_host_overrides_to_playwright_tool(
     monkeypatch.setattr(playwright_tool, "PlaywrightReplayTool", Tool)
     overrides = [{"pattern": "*.dev.example.test", "address": "192.0.2.142"}]
     with pytest.raises(StopConstruction):
-        remote_execution._run_task(
+        remote_execution.run_replay_task(
             task_id=281,
             row={},
             benchmark=Benchmark(),
