@@ -371,3 +371,18 @@ def test_correction_reuses_identical_inputs_and_calls_only_changed_cases(
             ]
         )
     assert len(requests) == 3
+
+
+def test_judge_host_allowlist_is_not_interpolated_from_the_shell(run_judge, monkeypatch):
+    from harness.web_fetch import config
+
+    monkeypatch.setenv("JUDGE_BASE_FROM_SHELL", "https://test.invalid/v1")
+    (config.ROOT / ".env").write_text(
+        "SEARCH_JUDGE_API_KEY=test-only\nSEARCH_JUDGE_BASE_URL=${JUDGE_BASE_FROM_SHELL}\n"
+    )
+    monkeypatch.setattr(
+        urllib.request, "urlopen", lambda *a, **kw: pytest.fail("token sent to a shell-chosen host")
+    )
+    with pytest.raises(ValueError):
+        run_judge([])
+    assert not run_judge.output.exists()

@@ -7,8 +7,13 @@ import pytest
 
 from harness.record_io import load_jsonl
 from harness.web_fetch import wcxb_latency as timing
+from harness.web_fetch import wcxb_scoring as scoring
 from harness.web_fetch.models import ProviderResult
 from tests.wcxb_fixture import create_cohort, sha, write_json
+
+
+# The earlier source-text digest that certified timing receipts may still name.
+SUPERSEDED_DIGEST = '35dc50a11b5b5475c6b36e444847ef75ff67dcd6c64fb553655b9adab13268cf'
 
 
 class LocalMethod:
@@ -21,6 +26,28 @@ class LocalMethod:
 
     def implementation_identity(self):
         return {'binary_sha256': sha(self.binary.read_bytes())}
+
+
+@pytest.fixture
+def metric_inputs(tmp_path, monkeypatch):
+    """Point the shared binding at copies a test may change."""
+    copies = {}
+    for name, attribute in (('module', 'METRIC_MODULE'), ('authority', 'METRIC_BINDINGS')):
+        source = getattr(scoring, attribute)
+        copies[name] = tmp_path / source.name
+        copies[name].write_bytes(source.read_bytes())
+        monkeypatch.setattr(scoring, attribute, copies[name])
+    return copies
+
+
+def append_newline(path):
+    """Change the bytes but not the metric digest, so only the watch list can notice."""
+    path.write_bytes(path.read_bytes() + b'\n')
+
+
+def certify_arguments(kwargs):
+    return ['--dataset', str(kwargs['dataset']), '--sample-manifest', str(kwargs['manifest']),
+            '--evidence-root', str(kwargs['output']), '--profile', str(kwargs['profile'])]
 
 
 @pytest.fixture
@@ -105,6 +132,23 @@ def test_mid_call_input_change_cannot_issue_receipt(experiment, monkeypatch, cha
         timing.collect(**kwargs)
     assert events
     assert (kwargs['output'] / 'calls.jsonl').is_file()
+    assert not (kwargs['output'] / 'receipt.json').exists()
+
+
+@pytest.mark.parametrize('changed', ['module', 'authority'])
+def test_mid_call_metric_change_cannot_issue_receipt(experiment, metric_inputs, monkeypatch, changed):
+    kwargs, events, _ = experiment
+    from harness.web_fetch import webmainbench_runner as runner
+    original = runner.fetch_record
+
+    def mutate(*args):
+        append_newline(metric_inputs[changed])
+        return original(*args)
+
+    monkeypatch.setattr(runner, 'fetch_record', mutate)
+    with pytest.raises(ValueError, match='changed'):
+        timing.collect(**kwargs)
+    assert events
     assert not (kwargs['output'] / 'receipt.json').exists()
 
 
@@ -209,6 +253,53 @@ def test_certification_rejects_calls_changed_during_source_recheck(experiment, m
     with pytest.raises(ValueError, match='changed during certification'):
         timing.certify(['--dataset', str(kwargs['dataset']), '--sample-manifest', str(kwargs['manifest']),
                         '--evidence-root', str(kwargs['output']), '--profile', str(kwargs['profile'])])
+    assert not (kwargs['output'] / 'certification.json').exists()
+
+
+@pytest.mark.parametrize('changed', ['module', 'authority'])
+def test_certification_rejects_metric_change_during_source_recheck(experiment, metric_inputs, monkeypatch, changed):
+    kwargs, _, authority = experiment
+    timing.collect(**kwargs)
+    authority['latency_correction_receipt_sha256'] = sha((kwargs['output'] / 'receipt.json').read_bytes())
+    write_json(kwargs['profile'], authority)
+    from harness.web_fetch import webmainbench_runner as runner
+    original = runner.load_wcxb_source
+    seen = []
+
+    def mutate(*args, **options):
+        result = original(*args, **options)
+        seen.append(1)
+        if len(seen) == 2:
+            append_newline(metric_inputs[changed])
+        return result
+
+    monkeypatch.setattr(runner, 'load_wcxb_source', mutate)
+    with pytest.raises(ValueError, match='changed during certification'):
+        timing.certify(certify_arguments(kwargs))
+    assert not (kwargs['output'] / 'certification.json').exists()
+
+
+def rebind_receipt_digest(kwargs, authority, value):
+    timing.collect(**kwargs)
+    receipt_path = kwargs['output'] / 'receipt.json'
+    write_json(receipt_path, {**json.loads(receipt_path.read_bytes()), 'metric_implementation_sha256': value})
+    authority['latency_correction_receipt_sha256'] = sha(receipt_path.read_bytes())
+    write_json(kwargs['profile'], authority)
+
+
+def test_certification_accepts_a_receipt_naming_the_superseded_digest(experiment):
+    kwargs, _, authority = experiment
+    rebind_receipt_digest(kwargs, authority, SUPERSEDED_DIGEST)
+    current = scoring.metric_implementation_binding(authority)
+    assert current != SUPERSEDED_DIGEST
+    assert timing.certify(certify_arguments(kwargs))['metric_implementation_sha256'] == current
+
+
+def test_certification_rejects_a_receipt_naming_an_unknown_digest(experiment):
+    kwargs, _, authority = experiment
+    rebind_receipt_digest(kwargs, authority, '0' * 64)
+    with pytest.raises(ValueError, match='timing metric implementation binding mismatch'):
+        timing.certify(certify_arguments(kwargs))
     assert not (kwargs['output'] / 'certification.json').exists()
 
 

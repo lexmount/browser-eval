@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Package the complete browser-use report for Artifact Hub."""
+"""Package the complete browser-use report for Artifact Site."""
 
 from __future__ import annotations
 

@@ -4,7 +4,6 @@ import base64
 import gzip
 import hashlib
 import json
-import os
 import subprocess
 import sys
 import tempfile
@@ -473,11 +472,9 @@ class PublicationPrivacyTests(unittest.TestCase):
             raw = b'<script>key="' + key + b'"</script>'
             raw_path = source / 'sources/case/source.html.txt'
             raw_path.write_bytes(raw)
-            malicious = 'https://example.test/" onmouseover="alert(1)'
-            env = {**os.environ, 'WEBFETCH_REPORT_PUBLIC_URL': malicious}
-            packaged = subprocess.run([sys.executable, str(repository / 'scripts/package_artifact_hub.py'),
+            packaged = subprocess.run([sys.executable, str(repository / 'scripts/package_artifact_site.py'),
                             str(source), str(root / 'publish/webfetch-sites.zip')],
-                           capture_output=True, env=env)
+                           capture_output=True)
             self.assertEqual(packaged.returncode, 0, packaged.stderr.decode())
             self.assertEqual(raw_path.read_bytes(), raw)
             with zipfile.ZipFile(root / 'publish/webfetch-sites.zip') as archive:
@@ -517,8 +514,6 @@ class PublicationPrivacyTests(unittest.TestCase):
                 self.assertGreaterEqual(len(privacy['files']), 1)
                 self.assertNotIn(b'publication-privacy.json', unpack('index.html'))
                 self.assertNotIn('接口账号使用占位符'.encode(), unpack('index.html'))
-                article = unpack('guide/article.html')
-                self.assertNotIn(malicious.encode(), article)
                 self.assertEqual(unpack('results.jsonl'), results.encode())
                 attempt = unpack('attempts/browser__case__r001.html')
                 self.assertEqual(attempt.count(b'data-file="references/case.txt"'), 1)
@@ -622,8 +617,8 @@ class PublicationPrivacyTests(unittest.TestCase):
                 with self.subTest(broken=broken):
                     (source / 'index.html').write_text('<html><body>' + broken + '</body></html>')
                     rejected = subprocess.run(
-                        [sys.executable, str(repository / 'scripts/package_artifact_hub.py'), str(source), str(root / 'publish/webfetch-sites.zip')],
-                        capture_output=True, env=env,
+                        [sys.executable, str(repository / 'scripts/package_artifact_site.py'), str(source), str(root / 'publish/webfetch-sites.zip')],
+                        capture_output=True,
                     )
                     self.assertNotEqual(rejected.returncode, 0)
                     self.assertIn(b'ValueError', rejected.stderr)

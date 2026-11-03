@@ -55,9 +55,9 @@ survived this pruning.
 | `check_diagnostic_report.py` | `make webfetch-diagnostic-report` |
 | `check_wcxb_visual.py` | `make wcxb-release-check` |
 | `check_publication_bundle.py` | `src/harness/web_fetch/README.md` |
-| `verify_artifact_hub.py` | executed by `src/harness/trajectory_replay/public_webarena/release.py` |
+| `verify_artifact_site.py` | executed by `src/harness/trajectory_replay/public_webarena/release.py` |
 | `restore_report_content.py` | `docs/architecture.md` |
-| `package_artifact_hub.py`, `publish_artifact_hub.py`, `publish_wcxb_artifact_site.py` | `configs/report-templates.json`, `docs/benchmarks.md` |
+| `package_artifact_site.py`, `publish_artifact_site.py`, `publish_wcxb_artifact_site.py` | `configs/report-templates.json`, `docs/benchmarks.md` |
 
 ## WCXB and WebMainBench
 
@@ -86,7 +86,7 @@ survived this pruning.
 | Script | Reached from |
 | --- | --- |
 | `build_browser_use_report.py`, `check_browser_use_report.py`, `check_browser_use_visual.py`, `review_browser_use_results.py` | `make browser-use-*` |
-| `package_browser_use_artifact_hub.py` | `configs/report-templates.json`, `docs/benchmarks.md` |
+| `package_browser_use_artifact_site.py` | `configs/report-templates.json`, `docs/benchmarks.md` |
 
 ## Browser Trajectory Replay
 
@@ -124,9 +124,9 @@ exclusive tests together.
 | `select_wcxb_sample.py` | regenerates `evaluation/public-wcxb-test-qualified.json`; only tests name the script |
 | `run_wcxb_paired_latency.py` | collects the paired timing cohort that `run_certified_benchmark.py wcxb-latency` certifies |
 | `check_webmainbench_report.py`, `check_webmainbench_full_report.py` | standalone release gates for the WebMainBench sample and complete reports; `report_build.py` imports the full-report check, not the script |
-| `authorize_artifact_hub.py` | saves the user-scoped Artifact Site token that `AGENTS.md` describes, without naming the script |
-| `rename_artifact_hub.py` | Artifact Site display-title maintenance |
-| `publish_browser_use_artifact_hub.py` | publishes the packaged Browser Use report to its bound target |
+| `authorize_artifact_site.py` | saves the user-scoped Artifact Site token that `AGENTS.md` describes, without naming the script |
+| `rename_artifact_site.py` | Artifact Site display-title maintenance |
+| `publish_browser_use_artifact_site.py` | publishes the packaged Browser Use report to its bound target |
 | `use_prepared_webarena_cohort_reset.py` | passed as `run_remote_three_method_cohort.py --cohort-reset-hook`; receipts outside Git bind its hash, not its name |
 | `build_browser_use_replay_seeds.py`, `build_webarena_expert_seeds.py`, `run_webarena_trajectory_replay.py`, `promote_webarena_trajectories.py` | seed, replay and promotion stages of the repository-curated dataset; `evaluation/trajectory-replay/webarena-verified/README.md` describes the stages without naming the scripts |
 | `merge_webarena_replay_results.py` | overlays formal correction shards onto the current replay matrix |

@@ -37,14 +37,19 @@ def _run_json(command: list[str], project_root: Path) -> dict:
     return json.loads(lines[-1])
 
 
-def _verification_command(publication: dict, archive: Path, project_root: Path) -> list[str]:
+def _verification_command(
+    publication: dict, profile: Path, archive: Path, project_root: Path
+) -> list[str]:
     return [
         sys.executable,
-        str(project_root / "scripts/verify_artifact_hub.py"),
+        str(project_root / "scripts/verify_artifact_site.py"),
         "--slug",
         str(publication["site_slug"]),
+        "--profile",
+        str(profile),
         "--base-url",
         str(publication["base_url"]),
+        "--export",
         "--expected-archive",
         str(archive),
     ]
@@ -106,7 +111,7 @@ def main(project_root: Path) -> None:
         if args.publish:
             if not RECEIPT.is_file():
                 raise ValueError(
-                    "the untracked Artifact Hub edit receipt is missing; restore or authorize "
+                    "the untracked Artifact Site edit receipt is missing; restore or authorize "
                     "the receipt for the site in current-report.json before publishing"
                 )
             published = _run_json(
@@ -133,11 +138,11 @@ def main(project_root: Path) -> None:
                 ROOT,
             )
             if published.get("slug") != publication["site_slug"]:
-                raise ValueError("publisher returned a different Artifact Hub site")
+                raise ValueError("publisher returned a different site")
             submitted_receipt = RECEIPT.read_bytes()
-            verified = _run_json(_verification_command(publication, ARCHIVE, ROOT), ROOT)
+            verified = _run_json(_verification_command(publication, CURRENT, ARCHIVE, ROOT), ROOT)
             if verified.get("version") != published.get("version"):
-                raise ValueError("published and exported Artifact Hub versions differ")
+                raise ValueError("published and exported Artifact Site versions differ")
             if verified.get("files") != attestation["files"]:
                 raise ValueError("export verification does not cover the complete package")
             if RECEIPT.read_bytes() != submitted_receipt:

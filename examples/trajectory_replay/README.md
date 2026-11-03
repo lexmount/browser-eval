@@ -127,8 +127,10 @@ TRAJECTORY_REPLAY_OUTPUT_DIR.
 Rule-based failure classification is always enabled. Optional LLM root-cause
 analysis is enabled with `TRAJECTORY_REPLAY_LLM_DIAGNOSTICS=1`; it uses
 `gpt-5.6-sol` with low reasoning by default and requires `OPENAI_API_KEY` plus
-`OPENAI_BASE_URL`. The LLM receives only failed-task evidence, produces a
-traceable hypothesis, and never changes pass/fail scoring.
+`OPENAI_BASE_URL` in the repository `.env`. Exported values are ignored; without
+both `.env` values the run records a missing-credentials error instead of a
+diagnosis. The LLM receives only failed-task evidence, produces a traceable
+hypothesis, and never changes pass/fail scoring.
 
 ## Browser-tool call count
 

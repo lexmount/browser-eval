@@ -45,6 +45,10 @@ def _load(path: Path) -> dict[str, Any]:
             raise ValueError(f"only mutable WebArena sites carry credentials: {name}")
         if row["mutable"] and "container_port" not in row:
             raise ValueError(f"mutable WebArena sites need a container port: {name}")
+        if row["mutable"]:
+            password = row["credentials"].get("password")
+            if not isinstance(password, str) or not password.strip():
+                raise ValueError(f"mutable WebArena sites need a nonblank password: {name}")
     return payload
 
 

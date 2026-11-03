@@ -948,9 +948,9 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
         rejected = subprocess.run([sys.executable, entry, *arguments], cwd=root,
                                   capture_output=True, text=True)
         assert rejected.returncode != 0 and 'symlink' in rejected.stderr.lower(), rejected.stderr
-    for command in ('package_browser_use_artifact_hub.py',
+    for command in ('package_browser_use_artifact_site.py',
                     'package_webarena_replay_artifact_site.py',
-                    'publish_browser_use_artifact_hub.py',
+                    'publish_browser_use_artifact_site.py',
                     'publish_webarena_replay_artifact_site.py'):
         subprocess.run([sys.executable, str(source_root / 'scripts' / command), '--help'],
                        check=True, cwd=root, stdout=subprocess.DEVNULL)
@@ -987,7 +987,7 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     package_webfetch(webfetch, webfetch_archive)
     from harness.web_fetch.publication_check import check as check_webfetch_package
     check_webfetch_package(webfetch_archive, webfetch)
-    for command in ('publish_artifact_hub.py', 'verify_artifact_hub.py',
+    for command in ('publish_artifact_site.py', 'verify_artifact_site.py',
                     'check_publication_bundle.py'):
         subprocess.run([sys.executable, str(source_root / 'scripts' / command), '--help'],
                        check=True, cwd=root, stdout=subprocess.DEVNULL)

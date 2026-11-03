@@ -12,7 +12,7 @@ from harness.web_fetch.artifact_auth import load_token, save_token, token_path
 
 class ArtifactAuthTests(unittest.TestCase):
     def test_authorization_persists_for_target_without_loading_repository_env(self):
-        script = Path(__file__).resolve().parents[1] / 'scripts/authorize_artifact_hub.py'
+        script = Path(__file__).resolve().parents[1] / 'scripts/authorize_artifact_site.py'
         with patch.dict(os.environ, {'ARTIFACT_SITE_TOKEN': 'ahp_process_fixture'}, clear=True), \
                 patch('sys.argv', [str(script), '--persist-existing', '--base-url', 'https://app.example']), \
                 patch('harness.web_fetch.config.load_runtime_env', side_effect=AssertionError('must not read .env')), \
@@ -24,11 +24,11 @@ class ArtifactAuthTests(unittest.TestCase):
 
     def test_per_host_precedence_and_independent_saves(self):
         with tempfile.TemporaryDirectory() as directory, patch('pathlib.Path.home', return_value=Path(directory)), patch.dict(os.environ, {}, clear=True):
-            legacy = Path(directory) / '.config/artifact-hub/token'
+            legacy = Path(directory) / '.config/artifact-hub/tokens/site.app.example'
             legacy.parent.mkdir(parents=True)
             legacy.write_text('ahp_legacy_fixture')
-            app = 'https://artifact-hub.app.example'
-            dev = 'https://artifact-hub.dev.example'
+            app = 'https://site.app.example'
+            dev = 'https://site.dev.example'
             self.assertEqual(load_token(base_url=app), 'ahp_legacy_fixture')
             save_token('ahp_app_fixture', base_url=app)
             save_token('ahp_dev_fixture', base_url=dev)
@@ -36,13 +36,23 @@ class ArtifactAuthTests(unittest.TestCase):
             self.assertEqual(load_token(base_url=dev), 'ahp_dev_fixture')
             self.assertEqual(legacy.read_text().strip(), 'ahp_legacy_fixture')
             self.assertEqual(stat.S_IMODE(token_path(app).stat().st_mode), 0o600)
-            with patch.dict(os.environ, {'ARTIFACT_HUB_TOKEN': 'ahp_environment_fixture'}):
+            with patch.dict(os.environ, {'ARTIFACT_SITE_TOKEN': 'ahp_environment_fixture'}):
                 self.assertEqual(load_token(base_url=app), 'ahp_environment_fixture')
             token_path(app).write_text('')
             self.assertEqual(load_token(base_url=app), 'ahp_legacy_fixture')
             token_path(app).write_text('not-a-valid-token')
             with self.assertRaises(ValueError):
                 load_token(base_url=app)
+
+    def test_host_agnostic_tokens_are_never_sent_to_a_target(self):
+        with tempfile.TemporaryDirectory() as directory, patch('pathlib.Path.home', return_value=Path(directory)), patch.dict(os.environ, {}, clear=True):
+            for relative in ('.config/artifact-site/token', '.config/artifact-hub/token',
+                             '.config/artifact-hub/tokens/other.example'):
+                path = Path(directory) / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('ahp_other_host_fixture')
+            with self.assertRaises(ValueError):
+                load_token(base_url='https://app.example')
 
     def test_host_key_includes_port_and_cannot_escape_credential_directory(self):
         with tempfile.TemporaryDirectory() as directory, patch('pathlib.Path.home', return_value=Path(directory)):
@@ -86,6 +96,18 @@ class ArtifactAuthTests(unittest.TestCase):
             self.assertEqual(load_token(base_url='https://app.example'), 'ahp_old_name_fixture')
             save_token('ahp_new_name_fixture', base_url='https://new.example')
             self.assertIn('.config/artifact-site/', str(token_path('https://new.example')))
+
+    def test_host_agnostic_previous_variable_never_replaces_a_host_scoped_token(self):
+        with tempfile.TemporaryDirectory() as directory, patch('pathlib.Path.home', return_value=Path(directory)), \
+                patch.dict(os.environ, {'ARTIFACT_HUB_TOKEN': 'ahp_stale_other_host'}, clear=True):
+            app = 'https://app.example'
+            self.assertEqual(load_token(base_url=app), 'ahp_stale_other_host')
+            old = Path(directory) / '.config/artifact-hub/tokens/app.example'
+            old.parent.mkdir(parents=True)
+            old.write_text('ahp_old_name_fixture')
+            self.assertEqual(load_token(base_url=app), 'ahp_old_name_fixture')
+            save_token('ahp_scoped_fixture', base_url=app)
+            self.assertEqual(load_token(base_url=app), 'ahp_scoped_fixture')
 
     def test_invalid_and_symlink(self):
         with tempfile.TemporaryDirectory() as directory, patch('pathlib.Path.home', return_value=Path(directory)):
@@ -138,3 +160,16 @@ def test_device_authorization_saves_approved_token_for_declared_host():
         save.assert_called_once_with('ahp_fixture', base_url='https://reports.example',
                                      replace_existing=False)
         assert 'ahp_fixture' not in output.getvalue()
+
+
+def test_authorization_requires_an_explicit_host():
+    from harness.web_fetch.artifact_auth import authorize_main
+
+    with patch.dict(os.environ, {}, clear=True), patch('sys.stderr', new_callable=io.StringIO), \
+            patch('urllib.request.urlopen', side_effect=AssertionError('must not make request')):
+        try:
+            authorize_main(['--device-code', 'fixture'])
+        except SystemExit as error:
+            assert error.code == 2
+            return
+    raise AssertionError('authorization chose a default host')

@@ -1,18 +1,16 @@
-"""Public report URL and exact release-target validation."""
-
-from harness.distribution import repository_root
+"""Exact release-target validation against the bound publication profile."""
 
 import json
-import os
 from pathlib import Path
 from urllib.parse import urlsplit
 
-ROOT = repository_root()
-DEFAULT_BASE = "https://artifact-hub.app.lexmount.com"
-
 
 def publication_document(document: dict) -> dict:
-    """Read flat or nested publication fields without changing their authority."""
+    """Read flat or nested publication fields without changing their authority.
+
+    ``artifact_hub_*`` are the stored keys of hash-bound profiles, not a current
+    product name: renaming them would change the profile hashes bound by certificates.
+    """
     if 'artifact_hub_base_url' in document:
         return document
     publication = document.get('publication')
@@ -54,21 +52,6 @@ def publication_base(
     return base
 
 
-def current_publication_target(
-    profile_path: Path, *, require_bound=True
-):
-    profile = json.loads(Path(profile_path).read_text())
-    base = profile.get("artifact_hub_base_url", DEFAULT_BASE)
-    slug = profile.get("artifact_hub_site")
-    if not isinstance(base, str) or not base.startswith("https://"):
-        raise ValueError("Current report profile has an invalid Artifact Hub target")
-    if not isinstance(slug, str) or not slug:
-        if require_bound:
-            raise ValueError("Current report profile has no bound Artifact Hub site")
-        return base.rstrip("/"), None
-    return base.rstrip("/"), slug
-
-
 def require_publication_version(
     profile_path: Path, requested_version: str | None = None, *, document: dict | None = None
 ) -> str:
@@ -84,17 +67,6 @@ def require_publication_version(
     return expected
 
 
-def public_report_url(profile_path: Path | None = None) -> str:
-    """Resolve links at render time; an installed offline example has no deployment."""
-    override = os.environ.get("WEBFETCH_REPORT_PUBLIC_URL")
-    if override:
-        return override.rstrip("/")
-    if profile_path is None:
-        return ""
-    base, slug = current_publication_target(profile_path, require_bound=False)
-    return f"{base}/api/preview/{slug}" if slug else ""
-
-
 def require_publication_site(
     receipt: dict, profile_path: Path, base_url: str | None = None, *, document: dict | None = None
 ) -> str:
@@ -107,7 +79,7 @@ def require_publication_site(
         raise ValueError(
             f"Publication receipt targets {receipt.get('slug')!r}; expected {expected!r}"
         )
-    expected_base = profile.get("artifact_hub_base_url", DEFAULT_BASE).rstrip("/")
+    expected_base = validate_service_base(profile.get("artifact_hub_base_url"))
     receipt_base = (receipt.get("base_url") or "").rstrip("/")
     requested_base = (base_url or "").rstrip("/")
     if receipt_base and requested_base and receipt_base != requested_base:

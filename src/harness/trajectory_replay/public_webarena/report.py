@@ -1668,7 +1668,7 @@ def _execution_details(
                 [final_attempt],
                 diagnostic,
             )
-            # Artifact Hub injects a site-root base URL; fragment links need the file.
+            # Artifact Site injects a site-root base URL; fragment links need the file.
             detail_body = detail_body.replace('href="#', f'href="{detail_name}#')
             detail_pages[detail_name] = _shell(
                 manifest,

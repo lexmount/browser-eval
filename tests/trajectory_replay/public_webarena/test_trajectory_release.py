@@ -101,11 +101,14 @@ def test_profile_is_updated_only_with_verified_publication_values(tmp_path):
 
 def test_verification_command_uses_required_slug_option(tmp_path):
     command = release._verification_command(
-        {"site_slug": "site", "base_url": "https://hub.example"},
+        {"site_slug": "site", "base_url": "https://reports.example"},
+        tmp_path / "profile.json",
         tmp_path / "report.zip",
         tmp_path,
     )
     assert command[2:4] == ["--slug", "site"]
+    assert command[4:6] == ["--profile", str(tmp_path / "profile.json")]
+    assert "--export" in command
     assert command[-2:] == ["--expected-archive", str(tmp_path / "report.zip")]
 
 

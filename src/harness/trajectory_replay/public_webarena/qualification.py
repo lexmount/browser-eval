@@ -980,7 +980,11 @@ def main_qualification(argv=None) -> None:
     parser.add_argument(
         "--env-file",
         type=Path,
-        help="dotenv file passed to every qualification shard; defaults to repository .env",
+        help=(
+            "dotenv file passed to every qualification shard; defaults to repository .env. "
+            "The Rainbond API token of a slice run ignores it and comes only from "
+            "the repository .env"
+        ),
     )
     parser.add_argument(
         "--browser-docker-host",

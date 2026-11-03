@@ -209,8 +209,8 @@ def test_imports_do_not_read_credentials_parse_args_or_create_files(tmp_path, mo
     monkeypatch.chdir(tmp_path)
     root = Path(__file__).resolve().parents[1]
     for name in (
-        "publish_artifact_hub.py",
-        "verify_artifact_hub.py",
+        "publish_artifact_site.py",
+        "verify_artifact_site.py",
         "check_publication_bundle.py",
     ):
         runpy.run_path(str(root / "scripts" / name))
@@ -330,7 +330,6 @@ def test_report_rename_keeps_bound_target_and_receipt(tmp_path, monkeypatch, dam
         receipt['slug'] = '../other'
     path.write_text(json.dumps(receipt))
     before = path.read_bytes()
-    monkeypatch.delenv('ARTIFACT_HUB_BASE_URL', raising=False)
     monkeypatch.setenv('ARTIFACT_SITE_BASE_URL',
                        'https://another.example' if damage == 'host' else receipt['base_url'])
     if damage == 'symlink':

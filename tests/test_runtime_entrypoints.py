@@ -11,7 +11,6 @@ from pathlib import Path
 
 from harness.web_fetch.headless_runner import require_expected_provider_versions
 from harness.web_fetch.publication_target import (
-    current_publication_target,
     require_publication_site,
     require_publication_version,
 )
@@ -227,13 +226,18 @@ class RuntimeEntrypointTests(unittest.TestCase):
                     "artifact_hub_base_url": "https://reports.example.org",
                     "artifact_hub_site": slug,
                 }))
-                self.assertEqual(current_publication_target(profile),
-                                 ("https://reports.example.org", slug))
                 self.assertEqual(require_publication_site(
                     {"slug": slug}, profile, "https://reports.example.org"), slug)
                 with self.assertRaisesRegex(ValueError, "expected"):
                     require_publication_site({"slug": "another-report"}, profile,
                                              "https://reports.example.org")
+
+    def test_publication_site_has_no_default_host(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            profile = Path(directory) / "report.json"
+            profile.write_text(json.dumps({"artifact_hub_site": "report-one"}))
+            with self.assertRaisesRegex(ValueError, "explicit HTTPS base URL"):
+                require_publication_site({"slug": "report-one"}, profile, "https://reports.example.org")
 
     def test_publication_version_defaults_to_profile_and_rejects_override(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -255,9 +259,9 @@ class RuntimeEntrypointTests(unittest.TestCase):
                     require_publication_version(profile)
 
     def test_publication_scripts_do_not_load_repository_eval_credentials(self) -> None:
-        for relative in ('scripts/publish_artifact_hub.py',
-                         'scripts/verify_artifact_hub.py',
-                         'scripts/rename_artifact_hub.py'):
+        for relative in ('scripts/publish_artifact_site.py',
+                         'scripts/verify_artifact_site.py',
+                         'scripts/rename_artifact_site.py'):
             self.assertNotIn('load_runtime_env', (ROOT/relative).read_text(), relative)
 
 
