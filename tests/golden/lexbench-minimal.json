@@ -1,0 +1,23 @@
+{
+ "README.md": "b184d4c4a2a3d4fd319b7736d13b076a1e8643db21808b9340a2ecdc46be17d9",
+ "app.js": "3dc0d01cec0df38bb690f9e242886ab9d0bf7bf59a04a9a818e6e2cca78276ca",
+ "assets/comparison-all-success-resources-zh.svg": "df8e3947fc1ea6e828fd9b8d2870c354d98da0ec6ff2e66ca80adcf52bda1d19",
+ "assets/comparison-version-success-resources-zh.svg": "96867cf90c16f5f8794f018a027a1df6cadce50d7784da4c09bddcd55d07e89f",
+ "data/cases.folded": "adbcf0553ffd132d06e37765db2c83cfc0dd54f629ae9f8555e8e6cea8a28c11",
+ "data/combined-comparison.json": "6cf469db7d95dfe4832376c2486b19754c21560d0c793899859af247a6368edd",
+ "data/corrections/chromium-contract-retest.json": "85f394076d599b71fbacdaec5a9e4b37f28517308dac270c7edf558a02c47e6b",
+ "data/evidence.folded": "67e7a872dc443844398400391fb750c2c406ad9cf4cf805b2412f7bcb8e03700",
+ "data/model.json": "06a2f9638ff591fcc900bae22788e6991773b04f0464b78652de652548c7d48f",
+ "data/version-comparison.json": "2d5076a9485a2cb944e9882a4190ddbb040d9f9ac117801ad754616aee6fdf0b",
+ "en.html": "c6ff11e22fa05b37ebdb950a557b5eb2b893a279617ccc9771e28bb1c35fc589",
+ "en/index.html": "690db8438fa023e0159c1b2805785ef7bb1124a74f5bdaf0ce0fc11079bcc8d5",
+ "index.html": "806b0ed8f22097127418eaec99f650c04ed4439d16bffc6e6fba4a773436feff",
+ "mermaid-LICENSE.txt": "a137884c043688569beeb64a6b6f27a237a346dce06b014436311cfa06afeb1f",
+ "mermaid.min.js": "9e3a4a3b08758d51e3f3c4d456f0b81942fc31550bc46a67ed8b7b20d0ff510c",
+ "report-languages.json": "9b74fd8293a5e57d7f8bb1887240ae86ceef5c8956d700c32c306f82d17a5c4b",
+ "reproduction/cohort.json": "a3db2aa57d103fef4ceccc31f6f2f2a14696a390b83f838dec776cf0f362bffd",
+ "reproduction/plot_version_summary.py": "062add8a46b3d0893bdbd052dd28b502b05960975ef7568f4af7413d508cdd3e",
+ "reproduction/protocol.json": "bbfd2ef106f12055cd0039524dae4ed227a591bb97f7aeebc745c869a0878dd6",
+ "reproduction/run.py": "280e8441917ecb19c13265ac6a0c97c02cd842ae39d95d8e64b95044c1944921",
+ "style.css": "41bf10e0d2e6e29d9a0ffe96473c5a90b17c1e73b2fdf260cd49cbf5e342cf5d"
+}
