@@ -62,7 +62,7 @@ from harness.trajectory_replay.webarena_review import (
 LEGACY_REPLAY_VALIDITY_INPUTS = {
     (
         "abaaa0e90aced74a831093f2d6d7c3371639acb984b3a2c057f3cc39632ea935",
-        "36ce56e10b1e8fa0f23dda916628c4dabb56576968d4bff1926cafe2706e1f0a",
+        "61bb38bce552b5c7eea0e1f5fcca1bc898f55e2e39ee6e72498cff346ca1e4e3",
         "3ca5d91cfec570490df202c9cb332957f7e850b70fc5af80b684709e97ef0893",
     )
 }
