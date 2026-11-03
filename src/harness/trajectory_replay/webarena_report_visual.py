@@ -425,7 +425,7 @@ def check(report: Path, receipt: Path) -> None:
                                 browser, hosted_origin, viewport={"width": width, "height": height}
                             )
                             url = f"http://127.0.0.1:{server.server_port}/{route}"
-                            # The optional Mermaid module is hosted remotely; core report
+                            # The optional Mermaid runtime is hosted remotely; core report
                             # content and its local interactions are ready at DOMContentLoaded.
                             page.goto(url, wait_until="domcontentloaded", timeout=10_000)
                             if "evidence-viewer" in route:
