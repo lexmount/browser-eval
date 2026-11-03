@@ -15,7 +15,9 @@ Browser Eval owns scoring, execution, evidence handling and local report generat
 
 Public WebArena human-recording replay is isolated under
 `src/harness/trajectory_replay/public_webarena/` with its [own examples and release
-contract](../examples/trajectory_replay/public_webarena/README.md).
+contract](../examples/trajectory_replay/public_webarena/README.md). That isolation covers
+report targets and denominators: both replay tracks build their metrics and suite loading on
+`src/harness/trajectory_replay/core/`.
 The curated replay tasks also record [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) as a scenario design source.
 The original CDP and driver inputs are versioned in [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser), with execution supplied by that upstream runtime.
 Headless fixed-action scenarios are replayed by the upstream runner on local

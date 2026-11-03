@@ -29,8 +29,8 @@ from harness.environments.webarena.topology import (
     RECORDED_PORT_SITES,
     SITE_CONTAINER_PORTS,
 )
+from harness.trajectory_replay.core.suite import BrowserTask
 from harness.trajectory_replay.public_webarena.config import redact_site_passwords
-from harness.trajectory_replay.public_webarena.suite import BrowserTask
 
 STATEFUL_SITES = frozenset({"shopping_admin", "shopping", "reddit", "gitlab"})
 _LEGACY_ORIGIN_RE = re.compile(

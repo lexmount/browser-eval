@@ -30,11 +30,12 @@ from harness.environments.browser import (
 )
 from harness.environments.webarena.topology import container_host_origin
 from harness.resource_accounting import DockerStatsResources, ResourceSampler, delta_counters
+from harness.trajectory_replay.core.suite import BrowserTask, validate_ground_truth_evidence
 from harness.trajectory_replay.diagnostics import diagnose_summary
 from harness.trajectory_replay.executor import execute_steps, judge_outputs, validate_outputs
 from harness.trajectory_replay.metrics import summarize_attempts
 from harness.trajectory_replay.report import write_latest_report
-from harness.trajectory_replay.suite import BrowserTask, load_suite, validate_ground_truth_evidence
+from harness.trajectory_replay.suite import load_suite
 from harness.web_fetch.safety import unlinked_path
 
 ENGINE_IMAGES = configured_browser_images()

@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.trajectory_replay import cli, runner
-from harness.trajectory_replay.suite import TaskSuite
+from harness.trajectory_replay.core.suite import TaskSuite
 
 ROOT = Path(__file__).resolve().parents[2]
 

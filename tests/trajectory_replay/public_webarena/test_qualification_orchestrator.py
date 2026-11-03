@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.trajectory_replay.core.suite import BrowserTask, TaskSuite
 from harness.trajectory_replay.public_webarena.qualification import (
     _write_immutable,
     build_scoped_repair_queue,
@@ -14,7 +15,6 @@ from harness.trajectory_replay.public_webarena.qualification import (
     task_contract_sha256,
     validate_completed_shard,
 )
-from harness.trajectory_replay.public_webarena.suite import BrowserTask, TaskSuite
 from harness.trajectory_replay.report_inputs import replay_input_path
 
 

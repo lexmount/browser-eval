@@ -18,6 +18,7 @@ from harness.environments.browser import (
     published_endpoint,
     start_browser_container,
 )
+from harness.trajectory_replay.core.suite import BrowserTask, TaskSuite
 from harness.trajectory_replay.public_webarena import diagnostics, runner
 from harness.trajectory_replay.public_webarena.config import redact_site_passwords
 from harness.trajectory_replay.public_webarena.runner import (
@@ -28,7 +29,6 @@ from harness.trajectory_replay.public_webarena.runner import (
     _http_origin,
     _prepare_page,
 )
-from harness.trajectory_replay.public_webarena.suite import BrowserTask, TaskSuite
 from harness.web_fetch import config as web_fetch_config
 
 
