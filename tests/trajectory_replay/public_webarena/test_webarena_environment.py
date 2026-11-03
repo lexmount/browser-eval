@@ -10,6 +10,7 @@ import pytest
 
 from harness import env_file
 from harness.environments.webarena.backend import DockerBackend
+from harness.environments.webarena.rainbond import RainbondSlicePool
 from harness.trajectory_replay.public_webarena.config import (
     load_runtime_env,
     redact_site_passwords,
@@ -151,9 +152,8 @@ def test_runtime_verification_rejects_mutable_or_wrong_image(tmp_path, monkeypat
         environment.verify_runtime(_Docker([]), (_task(),))
 
 
-def test_rainbond_slice_verification_and_reset_replace_the_complete_application(
-    tmp_path, monkeypatch
-):
+def _rainbond_slice_environment(tmp_path, monkeypatch):
+    """Run a credential-free slice config through the real runtime config, faking only the API."""
     pinned = "am1n3e/webarena-verified-shopping_admin@sha256:" + "d" * 64
     lock = tmp_path / "images.json"
     lock.write_text(
@@ -180,32 +180,15 @@ def test_rainbond_slice_verification_and_reset_replace_the_complete_application(
     receipt_path.write_text(json.dumps(first), encoding="utf-8")
     resets = []
 
-    class Pool:
+    class Pool(RainbondSlicePool):
         def __init__(self, path):
             assert path == tmp_path / "pool.json"
+            self.config_path = path
+            self.config = SimpleNamespace(image_lock=lock, shared_environments={})
 
         def validate_receipt(self, path):
             assert path == receipt_path
             return json.loads(path.read_text(encoding="utf-8"))
-
-        def runtime_config(self, receipt):
-            return {
-                "image_lock": str(lock),
-                "environments": {
-                    "__SHOPPING_ADMIN__": {
-                        "urls": [receipt["components"]["shopping_admin"]["site_url"]]
-                    }
-                },
-                "rainbond_slice": {
-                    "pool_config": str(tmp_path / "pool.json"),
-                    "receipt": "slice-receipt.json",
-                },
-            }
-
-        def persist_runtime_config(self, receipt, path, *, base_config):
-            value = {**base_config, **self.runtime_config(receipt)}
-            path.write_text(json.dumps(value), encoding="utf-8")
-            return value
 
         def reset(self, path):
             resets.append(path)
@@ -243,7 +226,19 @@ def test_rainbond_slice_verification_and_reset_replace_the_complete_application(
     )
     environment = WebArenaEnvironment(config)
     monkeypatch.setattr(environment, "_wait_site_ready", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr(environment, "_login_credentials", lambda _site: ("user", "password"))
+    return environment, config, receipt_path, resets
+
+
+def test_rainbond_slice_verification_and_reset_replace_the_complete_application(
+    tmp_path, monkeypatch
+):
+    environment, config, receipt_path, resets = _rainbond_slice_environment(tmp_path, monkeypatch)
+    _repository_env(
+        tmp_path,
+        monkeypatch,
+        "WEBARENA_SHOPPING_ADMIN_USERNAME=slice-user\n"
+        "WEBARENA_SHOPPING_ADMIN_PASSWORD=slice-password\n",
+    )
 
     runtime = environment.verify_runtime(object(), (_task(),))
     reset = environment.reset(_task(), object())
@@ -270,6 +265,17 @@ def test_rainbond_slice_verification_and_reset_replace_the_complete_application(
         "https://admin-slice-302.example.test"
     ]
     assert resets == [receipt_path]
+    assert environment._login_credentials("shopping_admin") == ("slice-user", "slice-password")
+    assert environment.redact_login_passwords("typed slice-password") == "typed [REDACTED]"
+    assert "slice-password" not in config.read_text(encoding="utf-8")
+
+
+def test_rainbond_slice_preflight_names_an_unset_login(tmp_path, monkeypatch):
+    environment, *_ = _rainbond_slice_environment(tmp_path, monkeypatch)
+    _repository_env(tmp_path, monkeypatch, "")
+
+    with pytest.raises(ValueError, match="WEBARENA_SHOPPING_ADMIN_PASSWORD"):
+        environment.verify_runtime(object(), (_task(),))
 
 
 def test_site_docker_client_defaults_or_uses_validated_unix_socket(tmp_path, monkeypatch):
