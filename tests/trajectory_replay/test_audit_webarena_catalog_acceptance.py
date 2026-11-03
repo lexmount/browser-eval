@@ -710,3 +710,25 @@ def test_acceptance_records_v2_participant_and_execution_contract(tmp_path, monk
     }
     assert ledger["runs"][0]["action_timeout_ms"] == 30_000
     assert ledger["runs"][0]["environment_profile_sha256"] == "environment"
+
+
+@pytest.mark.parametrize("routing", ["routing-digest", None])
+def test_acceptance_carries_the_resolved_routing_binding(tmp_path, monkeypatch, routing):
+    monkeypatch.setattr(acceptance, "_verified_attempt", _fake_verified)
+    scope = _scope(tmp_path)
+    sweep = _run(
+        tmp_path,
+        "sweep",
+        list(range(812)),
+        {},
+        schema="lex_webarena_full_replay_run/2",
+        engine="moli",
+    )
+    if routing is not None:
+        inputs = json.loads((sweep / "inputs.json").read_text())
+        inputs["environment_host_overrides_sha256"] = routing
+        (sweep / "inputs.json").write_text(json.dumps(inputs))
+
+    run = acceptance.audit(scope, [sweep], [])["runs"][0]
+
+    assert run.get("environment_host_overrides_sha256") == routing

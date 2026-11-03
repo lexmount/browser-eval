@@ -3,10 +3,26 @@
 import importlib
 import importlib.util
 import os
+import re
 import sys
 from pathlib import Path
 
 import pytest
+
+# Hermetic values: local credentials must not reach tests, and nothing here is real.
+def _recording_gateway():
+    """Read the gateway from a pinned input that still names it instead of restating it."""
+    pinned = Path(__file__).resolve().parents[1] / (
+        "evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-771.json"
+    )
+    found = re.search(r"http://((?:\d{1,3}\.){3}\d{1,3}):", pinned.read_text(encoding="utf-8"))
+    return found.group(1) if found else "192.0.2.5"
+
+
+os.environ["WEBARENA_RECORDING_GATEWAYS"] = _recording_gateway()
+for _site in ("SHOPPING", "SHOPPING_ADMIN", "REDDIT", "GITLAB"):
+    os.environ[f"WEBARENA_{_site}_USERNAME"] = f"synthetic-{_site.lower()}-user"
+    os.environ[f"WEBARENA_{_site}_PASSWORD"] = f"synthetic-{_site.lower()}-secret"
 
 
 def guard_browser_launches(patch):
@@ -55,11 +71,8 @@ def report_check_with_site_password(monkeypatch):
     def load(password):
         from harness.environments.webarena import topology
 
-        monkeypatch.setitem(
-            topology.DEFAULT_SITE_CREDENTIALS,
-            "registry-probe",
-            {"username": "probe", "password": password},
-        )
+        resolved = topology.known_site_secrets()
+        monkeypatch.setattr(topology, "known_site_secrets", lambda: (*resolved, password))
         return _private_report_check()
 
     return load
@@ -70,7 +83,7 @@ def report_check_without_site_passwords(monkeypatch):
     """Load a private copy of the release checker against a registry holding no passwords."""
     from harness.environments.webarena import topology
 
-    monkeypatch.setattr(topology, "DEFAULT_SITE_CREDENTIALS", {})
+    monkeypatch.setattr(topology, "known_site_secrets", tuple)
     return _private_report_check()
 
 

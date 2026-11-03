@@ -1,10 +1,13 @@
 from harness.browser_use.publication import sanitize, trajectory
+from harness.environments.webarena.topology import RECORDING_GATEWAYS
+
+GW = RECORDING_GATEWAYS[0]
 
 
 def test_sanitize_redacts_credentials_origins_and_local_paths() -> None:
     value = sanitize(
         {
-            "password": "hello1234",
+            "password": "synthetic-secret",
             "response_cookies": None,
             "url": "http://host.docker.internal:8023/dashboard/todos",
             "message": "Bearer abc.def from /Users/example/run/output.json",
@@ -26,7 +29,7 @@ def test_trajectory_pairs_tool_start_and_end_events() -> None:
             "data": {
                 "tool_call_id": "call-1",
                 "tool_name": "browser",
-                "arguments": {"action": "navigate", "url": "http://192.168.5.2:8023"},
+                "arguments": {"action": "navigate", "url": ("http://" + GW + ":8023")},
             },
         },
         {

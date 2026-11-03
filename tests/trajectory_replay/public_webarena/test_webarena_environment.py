@@ -278,8 +278,8 @@ def test_recorded_action_origins_are_materialized_from_runtime_config(tmp_path):
     environment, _ = _environment(tmp_path)
     environment.environments.update(
         {
-            "__GITLAB__": {"urls": ["http://10.2.131.41:18023"]},
-            "__REDDIT__": {"urls": ["http://10.2.131.41:19999"]},
+            "__GITLAB__": {"urls": ["http://192.0.2.41:18023"]},
+            "__REDDIT__": {"urls": ["http://192.0.2.41:19999"]},
         }
     )
     task = BrowserTask(
@@ -309,9 +309,9 @@ def test_recorded_action_origins_are_materialized_from_runtime_config(tmp_path):
 
     materialized = environment.materialize_task_actions(task)
 
-    assert materialized.tool_calls[0]["text"] == ("http://10.2.131.41:18023/convexegg/chatgpt")
+    assert materialized.tool_calls[0]["text"] == ("http://192.0.2.41:18023/convexegg/chatgpt")
     assert materialized.tool_calls[0]["target"]["value"] == (
-        'internal:attr=[title="http://10.2.131.41:19999/f/technology"i]'
+        'internal:attr=[title="http://192.0.2.41:19999/f/technology"i]'
     )
     assert materialized.trajectory is task.trajectory
 
@@ -394,8 +394,8 @@ def test_gitlab_reset_preserves_internal_port_and_sets_external_url(tmp_path, mo
         json.dumps(
             {
                 "image_lock": "images.json",
-                "docker_site_hostname": "10.2.131.41",
-                "environments": {"__GITLAB__": {"urls": ["http://10.2.131.41:18023"]}},
+                "docker_site_hostname": "192.0.2.41",
+                "environments": {"__GITLAB__": {"urls": ["http://192.0.2.41:18023"]}},
                 "control_urls": {"gitlab": "http://127.0.0.1:18024"},
             }
         ),
@@ -425,8 +425,8 @@ def test_gitlab_reset_preserves_internal_port_and_sets_external_url(tmp_path, mo
 
         def start(self, **kwargs):
             return SimpleNamespace(
-                url="http://10.2.131.41:18023",
-                env_ctrl_url="http://10.2.131.41:18024",
+                url="http://192.0.2.41:18023",
+                env_ctrl_url="http://192.0.2.41:18024",
             )
 
     docker_client = _Docker([pinned], "webarena_verified_gitlab")
@@ -447,13 +447,13 @@ def test_gitlab_reset_preserves_internal_port_and_sets_external_url(tmp_path, mo
                 "--verbose",
                 "init",
                 "--base-url",
-                "http://10.2.131.41:18023",
+                "http://192.0.2.41:18023",
             ],
             False,
         )
     ]
     assert result["sites"]["gitlab"]["external_url_configuration"] == {
-        "external_url": "http://10.2.131.41:18023",
+        "external_url": "http://192.0.2.41:18023",
         "internal_port": 8023,
         "mode": "explicit_official_init_verified",
     }
@@ -463,7 +463,7 @@ def test_reddit_reset_supplies_required_base_url_explicitly(tmp_path, monkeypatc
     environment, _ = _environment(tmp_path)
     pinned = "am1n3e/webarena-verified-reddit@sha256:" + "c" * 64
     environment.image_lock["images"]["reddit"] = {"pinned": pinned}
-    environment.environments["__REDDIT__"] = {"urls": ["http://10.2.131.41:19999"]}
+    environment.environments["__REDDIT__"] = {"urls": ["http://192.0.2.41:19999"]}
     environment.control_urls["reddit"] = "http://127.0.0.1:19998"
     task = BrowserTask(
         task_id="webarena-641",
@@ -487,8 +487,8 @@ def test_reddit_reset_supplies_required_base_url_explicitly(tmp_path, monkeypatc
 
         def start(self, **_kwargs):
             return SimpleNamespace(
-                url="http://10.2.131.41:19999",
-                env_ctrl_url="http://10.2.131.41:19998",
+                url="http://192.0.2.41:19999",
+                env_ctrl_url="http://192.0.2.41:19998",
             )
 
     docker_client = _Docker([pinned], "webarena_verified_reddit")
@@ -507,13 +507,13 @@ def test_reddit_reset_supplies_required_base_url_explicitly(tmp_path, monkeypatc
                 "--verbose",
                 "init",
                 "--base-url",
-                "http://10.2.131.41:19999",
+                "http://192.0.2.41:19999",
             ],
             False,
         )
     ]
     assert result["sites"]["reddit"]["external_url_configuration"] == {
-        "external_url": "http://10.2.131.41:19999",
+        "external_url": "http://192.0.2.41:19999",
         "mode": "explicit_official_init_verified",
     }
 
@@ -533,12 +533,12 @@ def test_stateful_backend_lets_entrypoint_configure_external_origin_once(site):
         image=f"{site}@sha256:digest",
         port_mappings={18023: 8023, 18024: 8877},
         volume_mappings={},
-        env_vars={"WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://10.2.131.41:18023"},
+        env_vars={"WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://192.0.2.41:18023"},
     )
 
     assert calls[0][1]["ports"] == {"8023/tcp": 18023, "8877/tcp": 18024}
     assert calls[0][1]["environment"] == {
-        "WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://10.2.131.41:18023",
+        "WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://192.0.2.41:18023",
         **(
             {"WA_ENV_CTRL_CMD_TIMEOUT_SEC": "600"} if site in {"shopping", "shopping_admin"} else {}
         ),
@@ -559,11 +559,11 @@ def test_gitlab_backend_preserves_internal_listener_for_explicit_init():
         image="gitlab@sha256:digest",
         port_mappings={18023: 8023, 18024: 8877},
         volume_mappings={},
-        env_vars={"WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://10.2.131.41:18023"},
+        env_vars={"WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://192.0.2.41:18023"},
     )
 
     assert calls[0][1]["environment"] == {
-        "WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://10.2.131.41:18023",
+        "WA_ENV_CTRL_EXTERNAL_SITE_URL": "http://192.0.2.41:18023",
         "WA_ENV_CTRL_SKIP_RECONFIGURE": "true",
     }
 
@@ -604,7 +604,7 @@ def test_gitlab_initializer_fails_closed_on_invalid_response():
 
     with pytest.raises(RuntimeError, match="invalid JSON"):
         WebArenaEnvironment._configure_external_url(
-            container, "http://10.2.131.41:18023", site="gitlab"
+            container, "http://192.0.2.41:18023", site="gitlab"
         )
 
 

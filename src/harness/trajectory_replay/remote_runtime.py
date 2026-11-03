@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import copy
 import hashlib
+import ipaddress
 import json
 import os
 import re
@@ -26,7 +27,11 @@ from harness.environments.webarena.runtime import (
     SITE_CREDENTIALS,
     SITE_PORTS,
 )
-from harness.environments.webarena.topology import LOCAL_RECORDED_HOSTS, READ_ONLY_SITE_PORTS
+from harness.environments.webarena.topology import (
+    LOCAL_RECORDED_HOSTS,
+    READ_ONLY_SITE_PORTS,
+    require_recording_gateways,
+)
 from harness.record_io import canonical_json_sha256, file_sha256, read_json
 from harness.trajectory_replay.retrieval_acceptance import digest as retrieval_digest
 from harness.trajectory_replay.retrieval_acceptance import validate_contract
@@ -112,6 +117,14 @@ def remote_benchmark(sites: dict[WebArenaSite, str]) -> WebArenaVerified:
     )
 
 
+def _is_private_ipv4(host: str | None) -> bool:
+    try:
+        address = ipaddress.ip_address(host or "")
+    except ValueError:
+        return False
+    return address.version == 4 and address.is_private
+
+
 def rebind_remote_calls(
     calls: list[dict[str, Any]],
     sites: dict[WebArenaSite, str],
@@ -135,6 +148,8 @@ def rebind_remote_calls(
         site = by_source_origin.get(parsed.netloc)
         if site is None and parsed.hostname in trusted_source_hosts:
             site = by_port.get(parsed.port)
+        if site is None and parsed.port in by_port and _is_private_ipv4(parsed.hostname):
+            require_recording_gateways()
         if site is None or site not in sites:
             return value
         target = urlsplit(sites[site])

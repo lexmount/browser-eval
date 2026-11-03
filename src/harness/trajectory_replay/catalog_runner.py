@@ -141,6 +141,37 @@ def _load_env_values(path: Path) -> dict[str, str]:
     return parse_env_file(path)
 
 
+def _optional_env_values(path: Path) -> dict[str, str]:
+    """An absent file means unset variables; a link or directory stays an error."""
+    return _load_env_values(path) if path.exists() or path.is_symlink() else {}
+
+
+def _load_environment_profile(path: Path, engine: str, env_file: Path) -> dict:
+    """Read the versioned profile and resolve its named routing variables locally."""
+
+    profile = json.loads(path.read_text(encoding="utf-8"))
+    names = profile.get("host_overrides_env")
+    if names is None or engine not in {"chromium", "kitesurf"}:
+        return profile
+    if (
+        not isinstance(names, dict)
+        or set(names) != {"pattern", "address"}
+        or "host_overrides" in profile
+    ):
+        raise ValueError("environment host override variables are invalid")
+    values = _optional_env_values(env_file)
+    missing = [name for name in names.values() if not values.get(name, "").strip()]
+    if missing:
+        raise ValueError(
+            f"{engine} replay on this environment requires {', '.join(sorted(missing))}"
+            f" in {env_file.name}"
+        )
+    return {
+        **profile,
+        "host_overrides": [{key: values[name].strip() for key, name in names.items()}],
+    }
+
+
 def _kitesurf_cdp_config(
     path: Path,
 ) -> tuple[str, dict[str, str], dict[str, object]]:
@@ -492,7 +523,10 @@ def main() -> None:
         "--credential-env-file",
         type=Path,
         default=repository_root(Path(__file__)) / ".env",
-        help="local credential source for a remote browser; values are never persisted",
+        help=(
+            "local source of remote browser credentials, which are never persisted, and of "
+            "the environment profile's private routing variables"
+        ),
     )
     parser.add_argument("--backend", choices=("browsertool", "playwright"), default="browsertool")
     parser.add_argument("--cowagent", type=Path)
@@ -575,8 +609,15 @@ def main() -> None:
             or any(row.get("action_overrides") is not None for row in catalog.get("rows") or [])
         ):
             raise ValueError("catalog requires its versioned action overrides input")
-        validate_environment_preparation(args.site_reset_receipt, args.environment_profile)
-        environment_profile = json.loads(args.environment_profile.read_text(encoding="utf-8"))
+        credential_env_file = args.credential_env_file.expanduser()
+        validate_environment_preparation(
+            args.site_reset_receipt,
+            args.environment_profile,
+            _optional_env_values(credential_env_file),
+        )
+        environment_profile = _load_environment_profile(
+            args.environment_profile, args.engine, credential_env_file
+        )
         corrections = load_corrections()
         benchmark = remote_benchmark(sites)
         if args.task_selection is not None and args.task_id:
@@ -617,6 +658,11 @@ def main() -> None:
                 file_sha256(args.task_selection) if args.task_selection is not None else None
             ),
         }
+        if "host_overrides" in environment_profile and "host_overrides_env" in environment_profile:
+            # The profile bytes only name the routing variables; bind the resolved values.
+            binding["environment_host_overrides_sha256"] = hashlib.sha256(
+                json.dumps(environment_profile["host_overrides"], sort_keys=True).encode()
+            ).hexdigest()
         prepared_catalog = args.catalog.read_bytes() if default_catalog else None
     if remote_binding is not None:
         binding["remote_browser"] = remote_binding

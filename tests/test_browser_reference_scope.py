@@ -325,7 +325,7 @@ def test_system_dns_selects_a_public_address_and_records_method(monkeypatch):
 
 
 @pytest.mark.parametrize('address', [
-    '127.0.0.1', '10.1.2.3', '192.168.1.2', '169.254.1.2', '::1', 'not-an-ip',
+    '127.0.0.1', '10.0.0.4', '192.168.0.2', '169.254.1.2', '::1', 'not-an-ip',
 ])
 def test_explicit_dns_override_rejects_private_or_invalid_addresses(address):
     with pytest.raises(ValueError):

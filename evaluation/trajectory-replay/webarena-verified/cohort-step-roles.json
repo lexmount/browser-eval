@@ -86,7 +86,7 @@
     {
       "task_id": 714,
       "path": "evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-714.json",
-      "sha256": "fe4386049a47f14c22b67ac3fe285b4daf83750efd12bbec23b0964349352767",
+      "sha256": "181d79313b973e88d02b49da9718b26e5ada411b8a522baa0a7be53bc3ec129b",
       "reason": "stabilize the time-sorted page and bind the vote click to post 19459 rather than a page-wide button ordinal"
     }
   ],

@@ -1,11 +1,11 @@
 {
   "schema": "webarena_qualified_trajectory_revision/1",
   "task_id": 714,
-  "canonical_calls_sha256": "a47928760c9f217136aa133cb7f388dc9ce779a6cbdf9289aad9c822789d49de",
+  "canonical_calls_sha256": "d8b39f6e8d64f3b192a56566ff6d68e3f71a640924dd269464257876b04d7e3b",
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://webarena-slice-warm-1-195-reddit.dev.lexmount.net"
+      "url": "http://host.docker.internal:9999"
     },
     {
       "action": "click",
@@ -17,7 +17,7 @@
     },
     {
       "action": "navigate",
-      "url": "http://webarena-slice-warm-1-195-reddit.dev.lexmount.net/f/gadgets"
+      "url": "http://host.docker.internal:9999/f/gadgets"
     },
     {
       "action": "click",

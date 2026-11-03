@@ -49,21 +49,22 @@ FORBIDDEN_READER_TERMS = (
     "仅对比通过",
 )
 
-# Site passwords come from the topology registry, the same source sanitize_text redacts.
-_FORBIDDEN_PUBLIC_TEXT = re.compile(
-    "(?:"
-    + "|".join(
-        (
-            *(re.escape(secret) for secret in known_site_secrets()),
-            r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
-            r"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}",
-            r"\bsk-[A-Za-z0-9_-]{12,}",
-            "(?-i:" + BROWSER_USE_CHECK_SOURCE + ")",
+def _forbidden_public_text() -> re.Pattern[str]:
+    """Build from resolved site passwords, the same source sanitize_text redacts."""
+    return re.compile(
+        "(?:"
+        + "|".join(
+            (
+                *(re.escape(secret) for secret in known_site_secrets()),
+                r"-----BEGIN [A-Z ]*PRIVATE KEY-----",
+                r"\bBearer\s+[A-Za-z0-9._~+/=-]{12,}",
+                r"\bsk-[A-Za-z0-9_-]{12,}",
+                "(?-i:" + BROWSER_USE_CHECK_SOURCE + ")",
+            )
         )
+        + ")",
+        flags=re.I,
     )
-    + ")",
-    flags=re.I,
-)
 
 
 def _check_reader_facing_ux(report_dir: Path, rendered_pages: dict[Path, str]) -> None:
@@ -278,6 +279,7 @@ def _check_execution_artifacts(
         extra = sorted(str(path) for path in actual_files - expected_files)
         missing = sorted(str(path) for path in expected_files - actual_files)
         raise ValueError(f"execution artifact tree differs; extra={extra}, missing={missing}")
+    forbidden_text = _forbidden_public_text()
     for path in actual_files:
         if path.suffix.lower() in {".har", ".zip"} or path.name in {
             "network.har",
@@ -290,11 +292,12 @@ def _check_execution_artifacts(
             ".html",
             ".css",
             ".js",
-        } and _FORBIDDEN_PUBLIC_TEXT.search(path.read_text(encoding="utf-8")):
+        } and forbidden_text.search(path.read_text(encoding="utf-8")):
             raise ValueError(f"published execution artifact contains sensitive text: {path}")
 
 
 def _check_public_privacy(report_dir: Path) -> None:
+    forbidden_text = _forbidden_public_text()
     text_suffixes = {".html", ".json", ".jsonl", ".js", ".css"}
     for path in report_dir.rglob("*"):
         if not path.is_file():
@@ -303,7 +306,7 @@ def _check_public_privacy(report_dir: Path) -> None:
             "trace" in path.name.lower() and path.suffix.lower() == ".zip"
         ):
             raise ValueError(f"private HAR or trace was copied into the public report: {path}")
-        if path.suffix.lower() in text_suffixes and _FORBIDDEN_PUBLIC_TEXT.search(
+        if path.suffix.lower() in text_suffixes and forbidden_text.search(
             path.read_text(encoding="utf-8")
         ):
             raise ValueError(f"published report contains sensitive text: {path}")

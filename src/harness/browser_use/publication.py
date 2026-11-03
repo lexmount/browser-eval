@@ -15,9 +15,6 @@ from harness.environments.webarena.topology import (
 from harness.record_io import optional_file_sha256, read_json
 from harness.reporting.privacy import BROWSER_USE
 
-_ORIGIN_REPLACEMENTS = public_origin_replacements()
-_HOST_REPLACEMENTS = public_host_replacements()
-_KNOWN_SECRET_VALUES = known_site_secrets()
 _SENSITIVE_KEY = re.compile(
     r"(?:authorization|cookie|password|passwd|secret|token|storage_state|api[_-]?key)", re.I
 )
@@ -27,12 +24,12 @@ _BEARER = re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]+")
 def sanitize_text(value: str) -> str:
     text = value
     for origin, placeholder in sorted(
-        _ORIGIN_REPLACEMENTS.items(), key=lambda item: len(item[0]), reverse=True
+        public_origin_replacements().items(), key=lambda item: len(item[0]), reverse=True
     ):
         text = text.replace(origin, placeholder)
-    for secret in _KNOWN_SECRET_VALUES:
+    for secret in known_site_secrets():
         text = text.replace(secret, "[REDACTED]")
-    for host, placeholder in _HOST_REPLACEMENTS.items():
+    for host, placeholder in public_host_replacements().items():
         text = text.replace(host, placeholder)
     text = _BEARER.sub("Bearer [REDACTED]", text)
     text = BROWSER_USE.redact(text)

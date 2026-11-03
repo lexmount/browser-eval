@@ -493,7 +493,7 @@
       "root_cause": "The frozen reference contains 12 title-matched Anker charger products. The deployed catalog's complete 28-item Anker population now contains 17 names meeting the same title rule, so the frozen list omits five current products.",
       "reference_receipt": {
         "path": "research/trajectory-replay-task280-revised-reference.json",
-        "sha256": "347955c046cfc451c74f214f4fe494e07625949c13ede11bd9dfca50efab28e1"
+        "sha256": "d96ca1f4d3b4922369b3168aedf6d5bac5b9040e8c988180ad3dd2efb7debbcc"
       },
       "regression_ids": [
         "tr-280-accept-complete-seventeen-products",
@@ -564,7 +564,7 @@
       "root_cause": "The frozen reference includes Nike womens Benassi Just Do It, which is absent from the deployed catalog's complete 148-item Nike population. The current population instead includes Nike Owaysis Mens Slide, changing both membership and the minimum price.",
       "reference_receipt": {
         "path": "research/trajectory-replay-task282-revised-reference.json",
-        "sha256": "495fd15c19ce76be4a839f83ee15d8817c388867c236e8484c0fbcd941d46c7e"
+        "sha256": "1020edbce795bd7cf75c152bc85897b672265df77935fe47d6916b37aa8959b8"
       },
       "regression_ids": [
         "tr-282-accept-current-nine-slides",

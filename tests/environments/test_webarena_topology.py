@@ -12,10 +12,13 @@ from webarena_verified.types.task import WebArenaSite
 from harness.browser_use.publication import sanitize, sanitize_text
 from harness.environments.webarena import runtime, topology
 from harness.environments.webarena.config import SITES, verify_deployment_contract
+from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.record_io import canonical_json_sha256
 from harness.trajectory_replay import remote_runtime
 from harness.trajectory_replay.public_webarena import webarena_environment
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
+
+GW = RECORDING_GATEWAYS[0]
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -28,7 +31,7 @@ FROZEN_SITE_PORTS = {
     WebArenaSite.GITLAB: (8023, 8024),
 }
 FROZEN_READ_ONLY_PORTS = {8888: WebArenaSite.WIKIPEDIA, 3000: WebArenaSite.MAP}
-FROZEN_LOCAL_HOSTS = {"127.0.0.1", "192.168.5.2", "host.docker.internal"}
+FROZEN_LOCAL_HOSTS = {"127.0.0.1", GW, "host.docker.internal"}
 FROZEN_TRUSTED_HOSTS = FROZEN_LOCAL_HOSTS | {
     "onestopmarket.example.com",
     "gitlab.example.com",
@@ -60,13 +63,18 @@ FROZEN_ORIGIN_REPLACEMENTS = {
     "http://host.docker.internal:7780": "__SHOPPING_ADMIN__",
     "http://host.docker.internal:9999": "__REDDIT__",
     "http://host.docker.internal:8023": "__GITLAB__",
-    "http://192.168.5.2:7770": "__SHOPPING__",
-    "http://192.168.5.2:7780/admin": "__SHOPPING_ADMIN__",
-    "http://192.168.5.2:7780": "__SHOPPING_ADMIN__",
-    "http://192.168.5.2:9999": "__REDDIT__",
-    "http://192.168.5.2:8023": "__GITLAB__",
+    ("http://" + GW + ":7770"): "__SHOPPING__",
+    ("http://" + GW + ":7780/admin"): "__SHOPPING_ADMIN__",
+    ("http://" + GW + ":7780"): "__SHOPPING_ADMIN__",
+    ("http://" + GW + ":9999"): "__REDDIT__",
+    ("http://" + GW + ":8023"): "__GITLAB__",
 }
-FROZEN_SECRETS = ("Password.123", "admin1234", "test1234", "hello1234")
+FROZEN_SECRETS = (
+    "synthetic-shopping-secret",
+    "synthetic-shopping_admin-secret",
+    "synthetic-reddit-secret",
+    "synthetic-gitlab-secret",
+)
 
 REMOTE_SITES = {
     WebArenaSite.SHOPPING: "https://shopping.remote.test",
@@ -77,8 +85,8 @@ REMOTE_SITES = {
     WebArenaSite.WIKIPEDIA: "https://wiki.remote.test",
 }
 RECORDED_CALLS = [
-    {"action": "navigate", "url": "http://192.168.5.2:9999/f/DIY"},
-    {"action": "navigate", "url": "http://192.168.5.2:7780/admin/sales/order/"},
+    {"action": "navigate", "url": ("http://" + GW + ":9999/f/DIY")},
+    {"action": "navigate", "url": ("http://" + GW + ":7780/admin/sales/order/")},
     {"action": "navigate", "url": "http://host.docker.internal:7770/checkout/cart/"},
     {"action": "fill", "text": "See http://127.0.0.1:8023/byteblaze/project and more"},
     {"action": "click", "selector": "a[href='http://onestopmarket.example.com:7770/x.html']"},
@@ -121,7 +129,7 @@ def test_registry_reproduces_frozen_port_and_host_tables() -> None:
 
 def test_recording_gateway_is_configuration_not_code() -> None:
     payload = json.loads(topology.TOPOLOGY_PATH.read_text(encoding="utf-8"))
-    assert list(payload["hosts"]["recording_gateways"]) == ["192.168.5.2"]
+    assert payload["hosts"]["recording_gateways_env"] == "WEBARENA_RECORDING_GATEWAYS"
     pattern = re.compile(r"192\\?\.168\\?\.5\\?\.2(?![0-9])")
     offenders = [
         str(path.relative_to(ROOT))
@@ -147,7 +155,7 @@ def test_bound_calls_digest_detects_a_missing_recording_gateway() -> None:
     without_gateway = set(topology.TRUSTED_RECORDED_HOSTS) - set(topology.RECORDING_GATEWAYS)
     rebound = rebind_remote_calls(RECORDED_CALLS, REMOTE_SITES, without_gateway)
 
-    assert rebound[0]["url"] == "http://192.168.5.2:9999/f/DIY"
+    assert rebound[0]["url"] == ("http://" + GW + ":9999/f/DIY")
     assert canonical_json_sha256(rebound) != FROZEN_BOUND_CALLS_SHA256
 
 
@@ -160,7 +168,7 @@ def _frozen_sanitize_text(value: str) -> str:
     for secret in FROZEN_SECRETS:
         text = text.replace(secret, "[REDACTED]")
     text = text.replace("host.docker.internal", "__BENCHMARK_HOST__")
-    text = text.replace("192.168.5.2", "__BENCHMARK_HOST__")
+    text = text.replace(GW, "__BENCHMARK_HOST__")
     text = re.sub(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]+", "Bearer [REDACTED]", text)
     return re.sub(r"/(?:Users|home|private|tmp|var|opt)/[^\s\"']+", "<LOCAL_PATH>", text)
 
@@ -168,11 +176,11 @@ def _frozen_sanitize_text(value: str) -> str:
 @pytest.mark.parametrize(
     "text",
     [
-        "http://192.168.5.2:7780/admin/sales/order/view/order_id/302/",
-        "http://host.docker.internal:7780/catalog and http://192.168.5.2:7770/cart",
-        "login MarvelsGrantMan136 / test1234 at http://192.168.5.2:9999/login",
-        "admin1234 Password.123 hello1234 http://host.docker.internal:8023/explore",
-        "gateway 192.168.5.2 and alias host.docker.internal:3000/#map",
+        ("http://" + GW + ":7780/admin/sales/order/view/order_id/302/"),
+        ("http://host.docker.internal:7780/catalog and http://" + GW + ":7770/cart"),
+        ("login synthetic-reddit-user / synthetic-reddit-secret at http://" + GW + ":9999/login"),
+        "synthetic-shopping_admin-secret synthetic-shopping-secret synthetic-gitlab-secret http://host.docker.internal:8023/explore",
+        ("gateway " + GW + " and alias host.docker.internal:3000/#map"),
         "loopback http://127.0.0.1:7770/ stays unredacted",
         "Bearer abc.def from /Users/example/run/output.json",
     ],
@@ -182,7 +190,7 @@ def test_public_redaction_output_is_unchanged(text: str) -> None:
 
 
 def test_public_redaction_still_removes_every_site_password() -> None:
-    record = {"message": " ".join(FROZEN_SECRETS), "url": "http://192.168.5.2:7780/admin/x"}
+    record = {"message": " ".join(FROZEN_SECRETS), "url": ("http://" + GW + ":7780/admin/x")}
     public = sanitize(record)
 
     assert public == {
@@ -274,23 +282,23 @@ def test_registry_rejects_ports_attributed_to_two_sites(tmp_path: Path, field: s
 
 
 @pytest.mark.parametrize("password", ["", "   ", None])
-def test_registry_rejects_a_blank_site_password(tmp_path: Path, password: str | None) -> None:
+def test_registry_rejects_a_blank_password_variable(tmp_path: Path, password: str | None) -> None:
     payload = json.loads(topology.TOPOLOGY_PATH.read_text(encoding="utf-8"))
-    payload["sites"]["gitlab"]["credentials"]["password"] = password
+    payload["sites"]["gitlab"]["credentials_env"]["password"] = password
     path = tmp_path / "topology.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
 
-    with pytest.raises(ValueError, match="nonblank password: gitlab"):
+    with pytest.raises(ValueError, match="password variable: gitlab"):
         topology._load(path)
 
 
-def test_registry_rejects_a_missing_site_password(tmp_path: Path) -> None:
+def test_registry_rejects_a_missing_site_password_variable(tmp_path: Path) -> None:
     payload = json.loads(topology.TOPOLOGY_PATH.read_text(encoding="utf-8"))
-    del payload["sites"]["gitlab"]["credentials"]["password"]
+    del payload["sites"]["gitlab"]["credentials_env"]["password"]
     path = tmp_path / "topology.json"
     path.write_text(json.dumps(payload), encoding="utf-8")
 
-    with pytest.raises(ValueError, match="nonblank password: gitlab"):
+    with pytest.raises(ValueError, match="password variable: gitlab"):
         topology._load(path)
 
 
@@ -313,3 +321,36 @@ assert site_url('shopping_admin', 'h') == 'http://h:7780/admin'
 """
     result = subprocess.run([sys.executable, "-c", program], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
+
+
+def test_site_credentials_and_redaction_use_resolved_values(monkeypatch) -> None:
+    monkeypatch.setenv("WEBARENA_GITLAB_PASSWORD", "another-resolved-secret")
+
+    assert topology.site_credentials("gitlab")["password"] == "another-resolved-secret"
+    assert sanitize_text("value another-resolved-secret") == "value [REDACTED]"
+
+
+def test_unset_site_credentials_stop_with_the_variable_names(monkeypatch) -> None:
+    monkeypatch.setenv("WEBARENA_REDDIT_USERNAME", "")
+    monkeypatch.setenv("WEBARENA_REDDIT_PASSWORD", "")
+
+    expected = "WEBARENA_REDDIT_PASSWORD, WEBARENA_REDDIT_USERNAME"
+    with pytest.raises(ValueError, match=expected):
+        runtime.SITE_CREDENTIALS[WebArenaSite.REDDIT]
+    with pytest.raises(ValueError, match=expected):
+        sanitize_text("public evidence must not pass without redaction")
+    assert runtime.SITE_CREDENTIALS.get(WebArenaSite.MAP) is None
+
+
+def test_unset_recording_gateway_stops_instead_of_passing_frozen_urls(monkeypatch) -> None:
+    from harness.trajectory_replay import remote_runtime
+
+    monkeypatch.setattr(topology, "RECORDING_GATEWAYS", ())
+    calls = [{"action": "navigate", "url": "http://192.168.0.2:7780/admin"}]
+
+    with pytest.raises(ValueError, match="WEBARENA_RECORDING_GATEWAYS"):
+        remote_runtime.rebind_remote_calls(calls, {}, set())
+    with pytest.raises(ValueError, match="WEBARENA_RECORDING_GATEWAYS"):
+        sanitize_text("public evidence must not pass without redaction")
+    public = [{"action": "navigate", "url": "http://webarena.example:7780/admin"}]
+    assert remote_runtime.rebind_remote_calls(public, {}, set()) == public

@@ -15,6 +15,7 @@ import psutil
 import pytest
 from webarena_verified.types.task import WebArenaSite
 
+from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.record_io import canonical_json_sha256
 from harness.trajectory_replay import remote_execution
 from harness.trajectory_replay.catalog_runner import _chromium_host_resolver_rules
@@ -26,6 +27,8 @@ from harness.trajectory_replay.remote_execution import (
     _wait_cdp,
 )
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
+
+GW = RECORDING_GATEWAYS[0]
 
 
 def _sites() -> dict[WebArenaSite, str]:
@@ -67,7 +70,7 @@ def test_retrieval_contract_is_bound_to_executed_remote_calls() -> None:
     rebound = rebind_remote_calls(
         candidate["tool_calls"],
         sites,
-        {"127.0.0.1", "192.168.5.2", "host.docker.internal"},
+        {"127.0.0.1", GW, "host.docker.internal"},
     )
     row = {"bound_calls_sha256": canonical_json_sha256(rebound)}
     assert _read_retrieval_contract(task_id, row, sites) == candidate
@@ -86,7 +89,7 @@ def test_retrieval_contract_uses_the_qualified_source_revision() -> None:
     rebound = rebind_remote_calls(
         candidate["tool_calls"],
         sites,
-        {"127.0.0.1", "192.168.5.2", "host.docker.internal"},
+        {"127.0.0.1", GW, "host.docker.internal"},
     )
     row = {
         "bound_calls_sha256": canonical_json_sha256(rebound),
@@ -107,7 +110,7 @@ def test_retrieval_contract_can_be_frozen_inside_a_catalog() -> None:
     rebound = rebind_remote_calls(
         candidate["tool_calls"],
         sites,
-        {"127.0.0.1", "192.168.5.2", "host.docker.internal"},
+        {"127.0.0.1", GW, "host.docker.internal"},
     )
     row = {
         "source_actions": candidate["tool_calls"],
@@ -273,7 +276,7 @@ def test_chromium_can_bind_profile_declared_private_ingress() -> None:
     rules = _chromium_host_resolver_rules(
         {
             "host_overrides": [
-                {"pattern": "*.dev.lexmount.net", "address": "10.2.62.142"}
+                {"pattern": "*.dev.example.test", "address": "192.0.2.142"}
             ]
         },
         "chromium",
@@ -287,13 +290,13 @@ def test_chromium_can_bind_profile_declared_private_ingress() -> None:
         9222,
         "/tmp/qualification-profile",
     )
-    assert "--host-resolver-rules=MAP *.dev.lexmount.net 10.2.62.142" in chrome
+    assert "--host-resolver-rules=MAP *.dev.example.test 192.0.2.142" in chrome
 
 
 def test_environment_host_overrides_are_not_compiled_for_other_engines() -> None:
     profile = {
         "host_overrides": [
-            {"pattern": "*.dev.lexmount.net", "address": "10.2.62.142"}
+            {"pattern": "*.dev.example.test", "address": "192.0.2.142"}
         ]
     }
     assert _chromium_host_resolver_rules(profile, "moli") is None

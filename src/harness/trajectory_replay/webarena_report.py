@@ -53,6 +53,7 @@ from harness.trajectory_replay.webarena_corrections import load_corrections
 from harness.trajectory_replay.webarena_review import (
     load_validated_failure_review,
     programmatic_failure,
+    review_evidence_path,
 )
 
 # This notice describes one retained historical cohort, not trajectory replay in
@@ -289,10 +290,9 @@ def _historical_replay_validity_notice(
 def _load_artifact(ref: dict[str, Any] | None) -> Any:
     if not ref or not ref.get("path"):
         return None
-    path = Path(str(ref["path"]))
+    path = review_evidence_path(ref["path"])
     if (
-        not path.is_absolute()
-        or any(part.is_symlink() for part in (path, *path.parents))
+        any(part.is_symlink() for part in (path, *path.parents))
         or not path.is_file()
         or file_sha256(path) != ref.get("sha256")
     ):

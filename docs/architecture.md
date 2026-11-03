@@ -138,6 +138,15 @@ uv run --frozen python scripts/restore_report_content.py \
   --output /absolute/data-home/report-assets/webmainbench-sample/report-content.json
 ```
 
+The binding pins the export by version and hashes, not by link, because Artifact
+Site share links stay out of this public repository. To obtain the export, a
+maintainer with access to the hosting site opens the report through the private
+publication target kept beside its external evidence, then downloads the version
+named by `source.version`. The site identities removed from older release records
+are found the same way. The `archive_sha256` check rejects any other archive.
+Without site access, the bound content cannot be restored; supply new authored
+content with its own binding instead.
+
 Restoration verifies the declared inventory, content and source bindings before
 creating a new file. It does not replace existing content. Changed measurements
 require updated content bindings rather than reuse of an old interpretation.

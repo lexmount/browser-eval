@@ -9,7 +9,7 @@ from lexbench_webfetch.metrics import task_measured, task_passed
 
 def test_environment_exclusion_is_symmetric_and_preserves_calls(tmp_path):
     proof = tmp_path / 'dns.json'
-    proof.write_text('{"address":"10.2.0.11"}')
+    proof.write_text('{"address":"10.0.0.11"}')
     dataset = {'cases': [{'id': 'a'}, {'id': 'b'}], 'comparison': {'excluded_cases': [
         {'case_id': 'a', 'reason': 'Private DNS address in local environment',
          'evidence_path': 'dns.json', 'evidence_sha256': hashlib.sha256(proof.read_bytes()).hexdigest()}]}}

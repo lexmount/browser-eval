@@ -51,6 +51,9 @@ from harness.environments.webarena.runtime import (
     wait_container_healthy,
     wait_magento_dependencies_ready,
 )
+from harness.environments.webarena.topology import RECORDING_GATEWAYS
+
+GW = RECORDING_GATEWAYS[0]
 
 
 def test_browser_config_requests_owned_context_and_supported_viewport_keys() -> None:
@@ -774,14 +777,14 @@ def test_login_context_requires_an_active_context_and_page(missing: str) -> None
 def test_container_host_gateway_returns_literal_ip() -> None:
     class Result:
         exit_code = 0
-        output = b"192.168.5.2 host.docker.internal\n"
+        output = (GW + " host.docker.internal\n").encode()
 
     class Container:
         def exec_run(self, command):
             assert command == ["getent", "hosts", "host.docker.internal"]
             return Result()
 
-    assert container_host_gateway(Container()) == "192.168.5.2"
+    assert container_host_gateway(Container()) == GW
 
 
 def test_wait_container_healthy_waits_past_starting(monkeypatch) -> None:

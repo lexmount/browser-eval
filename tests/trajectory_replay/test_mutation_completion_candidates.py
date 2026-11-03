@@ -15,6 +15,9 @@ from bs4 import BeautifulSoup
 from harness.environments.webarena.runtime import (
     configure_benchmark,
 )
+from harness.environments.webarena.topology import RECORDING_GATEWAYS
+
+GW = RECORDING_GATEWAYS[0]
 
 ROOT = Path(__file__).resolve().parents[2]
 CANDIDATES = (
@@ -38,7 +41,7 @@ def test_candidates_bind_frozen_actions_and_official_task_contract(candidates):
         int(row["task_id"]): row
         for row in json.loads(TRAJECTORIES.read_text(encoding="utf-8"))["trajectories"]
     }
-    benchmark = configure_benchmark(hostname="192.168.5.2")
+    benchmark = configure_benchmark(hostname=GW)
     assert set(candidates) == {
         399,
         404,
@@ -572,7 +575,7 @@ def test_order_candidate_does_not_replace_any_of_four_official_events(candidates
     assert candidate["official_network_evaluator_count"] == 4
     official = [
         row.expected.model_dump(exclude_none=True)
-        for row in configure_benchmark(hostname="192.168.5.2").get_task(506).eval
+        for row in configure_benchmark(hostname=GW).get_task(506).eval
         if row.evaluator == "NetworkEventEvaluator"
     ]
     assert [(row["http_method"], row["response_status"]) for row in official] == [
@@ -639,7 +642,7 @@ def test_wishlist_observer_binds_product_id_name_and_authenticated_item(candidat
     )
     assert not _observed(candidate, signed_in + separate_items)
     assert not _observed(candidate, signed_in + "<p>1 item</p>")
-    rainbond_origin = "http://webarena-slice-warm-1-195-shopping.dev.lexmount.net"
+    rainbond_origin = "http://webarena-shopping.dev.example.test"
     absolute_live_shape = (signed_in + item).replace(
         'href="/', f'href="{rainbond_origin}/'
     )
@@ -735,13 +738,13 @@ def test_old_task441_double_document_review_is_not_a_latest_moli_result(candidat
 def test_official_evaluator_requires_exact_network_event_and_success_response(
     tmp_path, candidates, task_id: int
 ):
-    benchmark = configure_benchmark(hostname="192.168.5.2")
+    benchmark = configure_benchmark(hostname=GW)
     rule = candidates[task_id]["official_network_event"]
     site_port = 9999 if task_id in {399, 404, 595} else 7770 if task_id in {571, 585} else 8023
     suffix = rule["url_suffix"]
     if isinstance(suffix, list):
         suffix = suffix[0]
-    url = f"http://192.168.5.2:{site_port}{suffix}"
+    url = f"http://{GW}:{site_port}{suffix}"
     if task_id == 415:
         body = {"note": {"noteable_type": "MergeRequest", "note": "@davepgreene"}}
         mime = "application/json"
@@ -780,7 +783,7 @@ def test_official_evaluator_requires_exact_network_event_and_success_response(
                                         [
                                             {
                                                 "name": "referer",
-                                                "value": "http://192.168.5.2:9999"
+                                                "value": ("http://" + GW + ":9999")
                                                 + rule["referer_suffix"],
                                             }
                                         ]

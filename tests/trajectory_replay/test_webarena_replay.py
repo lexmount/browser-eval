@@ -7,6 +7,7 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
+from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.trajectory_replay.webarena_dataset import OBSERVATION_PROTOCOL
 from harness.trajectory_replay.webarena_replay import (
     RECEIPT_SCHEMA,
@@ -28,6 +29,8 @@ from harness.trajectory_replay.webarena_replay import (
     select_tasks,
     validate_qualification_dataset,
 )
+
+GW = RECORDING_GATEWAYS[0]
 
 
 @pytest.mark.parametrize("prepare_environment", [True, False])
@@ -499,26 +502,26 @@ def test_qualification_binds_retrieval_protocol_per_task(tmp_path: Path) -> None
 def test_rebind_url_changes_only_known_local_site_ports() -> None:
     assert (
         _rebind_url(
-            "http://192.168.5.2:8023/group/project/-/issues?state=opened",
-            "192.168.9.2",
-            {"192.168.5.2"},
+            ("http://" + GW + ":8023/group/project/-/issues?state=opened"),
+            "192.0.2.9",
+            {GW},
         )
-        == "http://192.168.9.2:8023/group/project/-/issues?state=opened"
+        == "http://192.0.2.9:8023/group/project/-/issues?state=opened"
     )
-    assert _rebind_url("https://example.com:8023/path", "192.168.9.2", {"example.com"}) == (
-        "https://192.168.9.2:8023/path"
+    assert _rebind_url("https://example.com:8023/path", "192.0.2.9", {"example.com"}) == (
+        "https://192.0.2.9:8023/path"
     )
     assert (
-        _rebind_url("https://attacker.invalid:8023/path", "192.168.9.2", {"example.com"})
+        _rebind_url("https://attacker.invalid:8023/path", "192.0.2.9", {"example.com"})
         == "https://attacker.invalid:8023/path"
     )
-    assert _rebind_url("https://example.com/path", "192.168.9.2", {"example.com"}) == (
+    assert _rebind_url("https://example.com/path", "192.0.2.9", {"example.com"}) == (
         "https://example.com/path"
     )
 
 
 def test_origin_removes_environment_paths_before_storage_reset() -> None:
-    assert _origin("http://192.168.5.2:7780/admin") == "http://192.168.5.2:7780"
+    assert _origin("http://" + GW + ":7780/admin") == ("http://" + GW + ":7780")
 
 
 def test_every_failed_logical_replay_gets_one_clean_retry() -> None:

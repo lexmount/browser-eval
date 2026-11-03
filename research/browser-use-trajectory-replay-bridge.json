@@ -18,7 +18,7 @@
   },
   "trajectory_profile": {
     "path": "research/browser-use-bridge-inputs/trajectory-run-profile.json",
-    "sha256": "316f298f548bfb2d87cc10789f11bce84a501e40af0b6e372745bf47ed9577ed"
+    "sha256": "d096c5a204dce8231380f6eeeffd588d35f64900a4a3daf6c4bd12794cbfad7e"
   },
   "effective_results": {
     "run_id": "effective-1fa16f3963a8",

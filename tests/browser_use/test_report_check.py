@@ -299,7 +299,15 @@ def test_public_privacy_without_site_passwords_still_separates_clean_from_sensit
         report_check_without_site_passwords._check_public_privacy(tmp_path)
 
 
-@pytest.mark.parametrize("password", ["Password.123", "admin1234", "test1234", "hello1234"])
+@pytest.mark.parametrize(
+    "password",
+    [
+        "synthetic-shopping-secret",
+        "synthetic-shopping_admin-secret",
+        "synthetic-reddit-secret",
+        "synthetic-gitlab-secret",
+    ],
+)
 def test_public_privacy_still_rejects_the_current_site_passwords(tmp_path, password):
     (tmp_path / "data.json").write_text(json.dumps({"note": password}), encoding="utf-8")
     with pytest.raises(ValueError, match="published report contains sensitive text"):

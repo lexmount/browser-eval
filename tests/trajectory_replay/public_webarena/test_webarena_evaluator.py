@@ -20,7 +20,7 @@ def test_official_webarena_verified_evaluator_accepts_programmatic_evidence(tmp_
                 "environments": {
                     "__SHOPPING_ADMIN__": {
                         "urls": ["http://shopping-admin.test/admin"],
-                        "credentials": {"username": "admin", "password": "admin1234"},
+                        "credentials": {"username": "fixture-admin", "password": "fixture-secret"},
                     }
                 }
             }

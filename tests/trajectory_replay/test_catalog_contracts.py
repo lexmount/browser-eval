@@ -11,6 +11,7 @@ from harness.trajectory_replay.catalog_contracts import (
     ACCEPTANCE_SCHEMAS,
     RUN_SCHEMAS,
     repository_root,
+    resolved_deployment,
     validate_catalog_comparison_release,
     validate_catalog_report_profile,
     validate_environment_preparation,
@@ -439,3 +440,21 @@ def test_comparison_release_binds_population_review_and_publication(tmp_path):
     results.write_text(json.dumps(changed), encoding="utf-8")
     with pytest.raises(ValueError, match="results artifact changed"):
         validate_catalog_comparison_release(binding, data_home)
+
+
+def test_deployment_identity_resolves_named_variables_or_stops() -> None:
+    profile = {
+        "deployment": {
+            "acceptance_app_id_env": "DEMO_ACCEPTANCE",
+            "source_app_id_env": "DEMO_SOURCE",
+            "site_reset_between_tasks": False,
+        }
+    }
+
+    assert resolved_deployment(profile, {"DEMO_ACCEPTANCE": "12", "DEMO_SOURCE": "34"}) == {
+        "acceptance_app_id": 12,
+        "source_app_id": 34,
+        "site_reset_between_tasks": False,
+    }
+    with pytest.raises(ValueError, match="integer values for DEMO_ACCEPTANCE, DEMO_SOURCE"):
+        resolved_deployment(profile, {"DEMO_ACCEPTANCE": "not-a-number"})

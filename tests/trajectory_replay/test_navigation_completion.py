@@ -9,6 +9,9 @@ import pytest
 from harness.environments.webarena.runtime import (
     configure_benchmark,
 )
+from harness.environments.webarena.topology import RECORDING_GATEWAYS
+
+GW = RECORDING_GATEWAYS[0]
 
 
 @pytest.mark.parametrize(
@@ -16,8 +19,8 @@ from harness.environments.webarena.runtime import (
     [
         (
             156,
-            "http://192.168.5.2:8023/dashboard/merge_requests?assignee_username=byteblaze",
-            "http://192.168.5.2:8023/dashboard/merge_requests?assignee_username=other",
+            ("http://" + GW + ":8023/dashboard/merge_requests?assignee_username=byteblaze"),
+            ("http://" + GW + ":8023/dashboard/merge_requests?assignee_username=other"),
         ),
         (
             374,
@@ -29,7 +32,7 @@ from harness.environments.webarena.runtime import (
 def test_navigation_requires_exact_official_get_event(
     tmp_path, task_id: int, passing_url: str, nearby_wrong_url: str
 ) -> None:
-    benchmark = configure_benchmark(hostname="192.168.5.2")
+    benchmark = configure_benchmark(hostname=GW)
     response = {"task_type": "NAVIGATE", "status": "SUCCESS", "retrieved_data": None}
     har = tmp_path / "network.har"
 

@@ -30,7 +30,10 @@ from harness.browser_use.report_check import (
 )
 from harness.browser_use.report_i18n import localize_html
 from harness.browser_use.selection import load_pilot
+from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.record_io import optional_file_sha256
+
+GW = RECORDING_GATEWAYS[0]
 
 
 def _fix_log_fixture(tmp_path: Path) -> tuple[dict, dict]:
@@ -1060,7 +1063,7 @@ def build_browser_use_fixture(tmp_path: Path, monkeypatch, language="zh", *, fai
     return output, evidence, report
 
 
-@pytest.mark.parametrize("password", ["Rotated.Secret+42(x", "admin1234"])
+@pytest.mark.parametrize("password", ["Rotated.Secret+42(x", "synthetic-shopping_admin-secret"])
 def test_execution_artifact_check_rejects_registry_site_passwords(
     tmp_path: Path, monkeypatch, report_check_with_site_password, password
 ) -> None:
@@ -1356,7 +1359,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
                 },
                 "environment": {
                     "platform": "Linux fixture host",
-                    "site_access_host": "192.168.5.2",
+                    "site_access_host": GW,
                     "docker_architecture": "aarch64",
                     "docker_server_version": "28.0",
                     "webarena_verified_version": "1.2.3",
@@ -1416,7 +1419,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
     methodology_text = (output / "methodology/index.html").read_text(encoding="utf-8")
     assert "webarena-autonomous-evaluation-flow.png" in methodology_text
     assert "环境准备回执" in methodology_text
-    assert "192.168.5.2" in methodology_text
+    assert GW in methodology_text
     assert "不含点击序列" in methodology_text
     for page in (methodology_text, text):
         assert "Colima" not in page
