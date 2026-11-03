@@ -218,6 +218,18 @@ def test_silent_exit_while_the_browser_is_in_use_fails_the_call(tmp_path):
     assert harness.browsers[0].closed
 
 
+def test_port_check_ignores_the_log_of_an_earlier_attempt(tmp_path):
+    script = SERVER.replace(
+        "time.sleep(60)", "print('unsupported flag', file=sys.stderr)\nsys.exit(3)"
+    )
+    harness = Harness(tmp_path, script)
+    with pytest.raises(RuntimeError) as failure:
+        harness.run()
+    assert str(failure.value) == "unsupported flag\n"
+    assert len(harness.processes) == 2
+    assert harness.browsers == []
+
+
 def test_restart_attempts_are_bounded_and_report_the_server_log(tmp_path):
     harness = Harness(tmp_path, held=NATIVE_CDP_PORT_ATTEMPTS)
     with pytest.raises(RuntimeError, match="(?i)in use"):
