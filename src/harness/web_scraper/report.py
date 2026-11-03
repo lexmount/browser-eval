@@ -1336,6 +1336,11 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             )
             + bodies["index"]
         )
+        if not cohort:
+            bodies["index"] += operating_metrics(
+                methods, rows, model.get("prices", {}), lang, names
+            )
+            bodies["accounts"] += price_table(methods, model.get("prices", {}), lang, names)
         if cohort:
             core, timings = cohort_metrics(methods, rows, bindings, len(truth), lang, names)
             bodies["index"] = (
@@ -1892,6 +1897,16 @@ def check(output: Path, *, release=False, visual_receipt=None):
         path = output / name
         if path.is_symlink() or digest(path.read_bytes()) != sha:
             raise ValueError("Report file changed: " + name)
+        if path.suffix.lower() in {
+            ".html",
+            ".json",
+            ".js",
+            ".css",
+            ".txt",
+            ".md",
+            ".csv",
+        } and publication_risk(path.read_bytes()):
+            raise ValueError("Report textual artifact has a publication privacy risk: " + name)
         if path.suffix != ".html":
             continue
         soup = check_presentation(path.read_text())
@@ -1930,6 +1945,28 @@ def check(output: Path, *, release=False, visual_receipt=None):
                 id=u.fragment
             ):
                 raise ValueError("Broken evidence anchor")
+    if manifest.get("mode") != "full-cohort-progress":
+        rows = [read_json(output / view["path"]) for view in views]
+        methods = sorted({row["method"] for row in rows})
+        names = manifest.get("method_labels", {})
+        for lang in manifest["languages"]:
+            home_view = BeautifulSoup((output / lang / "index.html").read_text(), "html.parser")
+            expected = BeautifulSoup(
+                operating_metrics(methods, rows, manifest.get("prices", {}), lang, names),
+                "html.parser",
+            ).select_one("[data-operating-metrics]")
+            for anchor in expected.select('a[href="accounts.html"]'):
+                anchor["href"] = lang + "/accounts.html"
+            if home_view.select_one("[data-operating-metrics]") != expected:
+                raise ValueError("Home latency/pricing differs from retained calls")
+            account_view = BeautifulSoup(
+                (output / lang / "accounts.html").read_text(), "html.parser"
+            )
+            expected_price = BeautifulSoup(
+                price_table(methods, manifest.get("prices", {}), lang, names), "html.parser"
+            ).select_one("[data-price-table]")
+            if account_view.select_one("[data-price-table]") != expected_price:
+                raise ValueError("Cost/pricing coverage differs from bound source")
     if manifest.get("mode") == "full-cohort-progress":
         methods = manifest["planned_methods"]
         names = manifest.get("method_labels", {})

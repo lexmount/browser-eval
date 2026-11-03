@@ -310,7 +310,7 @@ def test_canonical_snapshot_paths_are_used_for_qualification_and_extraction(tmp_
 
     with (
         collection_context(),
-        patch("harness.web_scraper.pipeline.request", side_effect=request),
+        patch("harness.web_scraper.pipeline.fixture_request", side_effect=request),
         patch("harness.web_scraper.pipeline.provider_call", side_effect=accepted) as call,
     ):
         probe(
@@ -340,7 +340,7 @@ def test_redirecting_snapshot_is_rejected_before_any_provider_call(tmp_path):
 
     with (
         collection_context(),
-        patch("harness.web_scraper.pipeline.request", side_effect=redirect),
+        patch("harness.web_scraper.pipeline.fixture_request", side_effect=redirect),
         patch("harness.web_scraper.pipeline.provider_call") as call,
     ):
         with pytest.raises(ValueError, match="canonical frozen fixture"):
@@ -444,11 +444,11 @@ def test_initialization_resumes_after_snapshot_before_contract(tmp_path, snapsho
             assert call.call_count == 3
 
 
-@pytest.mark.parametrize("transport", ["requests", "urllib"])
+@pytest.mark.parametrize("transport", ["requests", "urllib", "fixture"])
 def test_continuously_streaming_response_has_a_total_deadline(transport):
     import time
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-    from threading import Thread
+    from threading import Event, Thread
 
     import requests
     from urllib3.exceptions import ReadTimeoutError
@@ -456,8 +456,11 @@ def test_continuously_streaming_response_has_a_total_deadline(transport):
     from harness.web_fetch.providers.http_client import request
     from harness.web_scraper.pipeline import total_deadline
 
+    connected = Event()
+
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
+            connected.set()
             self.send_response(200)
             self.send_header("Content-Length", "1000")
             self.end_headers()
@@ -482,14 +485,24 @@ def test_continuously_streaming_response_has_a_total_deadline(transport):
         if transport == "requests":
             with requests.get(url, stream=True, timeout=timeout) as response:
                 response.raw.read()
+        elif transport == "fixture":
+            from concurrent.futures import ThreadPoolExecutor
+
+            from harness.web_scraper.pipeline import fixture_request
+
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                pool.submit(fixture_request, url, timeout=timeout).result()
         else:
             request(url, timeout=timeout)
 
     started = time.monotonic()
     try:
         with pytest.raises((TimeoutError, requests.RequestException, ReadTimeoutError)):
-            consume(timeout=0.15)
-        assert time.monotonic() - started < 0.8
+            (consume.__wrapped__ if transport == "fixture" else consume)(
+                timeout=0.5 if transport == "fixture" else 0.15
+            )
+        assert connected.is_set(), "Deadline must interrupt a connected streaming reader"
+        assert time.monotonic() - started < (1.2 if transport == "fixture" else 0.8)
     finally:
         server.shutdown()
         server.server_close()
@@ -573,3 +586,27 @@ def test_streaming_stagehand_navigation_stops_in_time_to_release_session():
     finally:
         server.shutdown()
         server.server_close()
+
+
+def test_json_checkpoint_survives_partial_write_and_exclusive_collision(tmp_path):
+    from harness.web_scraper import pipeline
+
+    target = tmp_path / "checkpoint.json"
+    pipeline.save_json(target, {"committed": True})
+    original = target.read_bytes()
+
+    def interrupted(value, stream, **kwargs):
+        stream.write('{"partial":')
+        raise KeyboardInterrupt
+
+    with patch.object(pipeline.json, "dump", side_effect=interrupted):
+        with pytest.raises(KeyboardInterrupt):
+            pipeline.save_json(target, {"next": True})
+        with pytest.raises(KeyboardInterrupt):
+            pipeline.save_json(tmp_path / "new.json", {}, exclusive=True)
+    assert target.read_bytes() == original
+    assert not (tmp_path / "new.json").exists()
+    with pytest.raises(FileExistsError):
+        pipeline.save_json(target, {"overwrite": True}, exclusive=True)
+    assert target.read_bytes() == original
+    assert list(tmp_path.iterdir()) == [target]

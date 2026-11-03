@@ -122,6 +122,10 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
     policy = {"timeout_seconds": 120, "quality_retries": 0, "access_retries_after_repair": 1}
     if any(plan.get(key) != value for key, value in policy.items()):
         raise ValueError("Unsupported frozen timeout or retry policy")
+    if available_methods()[method]["input"] == "url" and (
+        not fixture_base or not fixture_base.startswith("https://")
+    ):
+        raise ValueError("URL participant requires frozen HTTPS fixtures before collection")
     binding = run_dir / "certification-precall.json"
     if (
         not binding.exists()

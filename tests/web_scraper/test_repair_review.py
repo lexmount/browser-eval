@@ -12,17 +12,17 @@ from harness.web_scraper.repair import compose, create_plan, run
 from harness.web_scraper.review import prepare, reconcile_citations, validate
 
 
-def parent_inputs(tmp_path):
+def parent_inputs(tmp_path, method="cloudflare-json", failed_overrides=None):
     home = create(tmp_path / "example")
     source = home / "runs/parent"
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     cases = sorted(truth)
-    contract = {"methods": ["cloudflare-json"], "case_ids": cases}
+    contract = {"methods": [method], "case_ids": cases}
     save_json(source / "contract.json", contract)
     entries, rows = [], []
     for i, cid in enumerate(cases):
         row = {
-            "method": "cloudflare-json",
+            "method": method,
             "case_id": cid,
             "input_sha256": digest((home / "dataset/html" / (cid + ".html")).read_bytes()),
             "http_status": 200 if i < 2 else None,
@@ -30,6 +30,8 @@ def parent_inputs(tmp_path):
             "normalized_fields": {"sku": str(i)} if i < 2 else None,
             "response": {"result": {"sku": str(i)}} if i < 2 else {},
         }
+        if i >= 2:
+            row.update(failed_overrides or {})
         path = source / "calls" / (cid + ".json")
         save_json(path, row)
         entries.append({"path": "calls/" + path.name, "sha256": digest(path.read_bytes())})
@@ -251,6 +253,15 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
     assert retained["sources"][cid]["source_fields"]["price"]["status"] == "absent"
     assert retained["sources"][cid]["reference_review"]["price"]["status"] == "supported"
     assert retained["reference_changes"] == []
+    changed = read_json(decision)
+    changed["decisions"][0].update(field="sku", accepted=["synthetic product"])
+    save_json(decision, changed)
+    amended = assemble(
+        *arguments, tmp_path / "amended.json", profile=home / "profile.json", decisions=decision
+    )
+    assert amended["audited_reference"][cid]["sku"] == ["synthetic product"]
+    assert amended["reference_changes"][0]["accepted"] == ["synthetic product"]
+    assert amended["sources"][cid]["reference_review"]["sku"]["status"] == "incorrect"
     path = Path(manifest["packets"][0]["path"])
     packet = read_json(path)
     packet["cases"][0]["outputs"][0]["native_response"] = {"substituted": True}
@@ -336,3 +347,156 @@ def test_cloudflare_url_repair_keeps_frozen_html_identity_and_declared_schema():
     assert body["response_format"]["json_schema"] == SCHEMA
     assert result["request"]["html_sha256"] == digest(b"<h1>Frozen</h1>")
     assert result["request"]["input"] == "url"
+
+
+@pytest.mark.parametrize("boundary", ["contract.json", "fixture-before.json", "snapshot"])
+def test_repair_initialization_recovers_before_any_dispatch(tmp_path, boundary):
+    import harness.web_scraper.repair as repair
+
+    home, _, profile, _ = parent_inputs(tmp_path)
+    target = tmp_path / "partial-init"
+    save = repair.save_json
+    write = Path.write_bytes
+    interrupted = False
+
+    def checkpoint(path, value, **kwargs):
+        nonlocal interrupted
+        save(path, value, **kwargs)
+        if path.name == boundary and not interrupted:
+            interrupted = True
+            raise KeyboardInterrupt
+
+    def snapshot(path, data):
+        nonlocal interrupted
+        value = write(path, data)
+        if boundary == "snapshot" and path.parent.name == "execution" and not interrupted:
+            interrupted = True
+            raise KeyboardInterrupt
+        return value
+
+    with (
+        patch.object(repair, "validate_dataset"),
+        patch.object(repair, "load_runtime_env"),
+        patch.object(repair, "score_rows", return_value={}),
+        patch.object(
+            repair,
+            "provider_call",
+            return_value={"http_status": 200, "response": {"result": {"sku": "ok"}}},
+        ) as calls,
+    ):
+        with (
+            patch.object(repair, "save_json", side_effect=checkpoint),
+            patch.object(Path, "write_bytes", snapshot),
+        ):
+            with pytest.raises(KeyboardInterrupt):
+                run(home, profile, "cloudflare-json", target)
+        calls.assert_not_called()
+        run(home, profile, "cloudflare-json", target)
+        assert calls.call_count == 1
+        # The completed fast path must validate the requested method, even under the same profile.
+        with pytest.raises(ValueError, match="another method"):
+            run(home, profile, "zyte-product", target)
+        assert calls.call_count == 1
+
+
+def test_sibling_repair_cannot_supersede_current_success(tmp_path):
+    home, source, profile, rows = parent_inputs(tmp_path)
+    response = {"http_status": 200, "response": {"result": {"sku": "new"}}}
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch("harness.web_scraper.repair.score_rows", return_value={}),
+        patch("harness.web_scraper.repair.provider_call", return_value=response),
+    ):
+        siblings = []
+        for name in ["a", "b"]:
+            directory = tmp_path / name
+            run(home, profile, "cloudflare-json", directory)
+            siblings.append(
+                {
+                    "path": str(directory),
+                    "sha256": digest((directory / "certificate.json").read_bytes()),
+                }
+            )
+        current, _ = compose(home, source, rows, siblings[0])
+        with pytest.raises(ValueError, match="predecessor|successful"):
+            compose(home, source, current, siblings[1])
+
+
+@pytest.mark.parametrize("method", ["firecrawl-json", "browserbase-stagehand"])
+def test_repair_url_route_is_qualified_and_snapshot_bound(tmp_path, method):
+    home, source, profile, rows = parent_inputs(tmp_path, method=method)
+    cid = rows[-1]["case_id"]
+    fixture = [
+        {
+            "case_id": cid,
+            "url": "https://frozen.example/" + cid,
+            "sha256": digest((home / "dataset/html" / (cid + ".html")).read_bytes()),
+        }
+    ]
+    target = tmp_path / "url-repair"
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch("harness.web_scraper.repair.score_rows", return_value={}),
+        patch("harness.web_scraper.repair.fixture_check", return_value=fixture) as qualify,
+        patch(
+            "harness.web_scraper.repair.provider_call",
+            return_value={"http_status": 200, "response": {"result": {"sku": "ok"}}},
+        ) as call,
+    ):
+        run(home, profile, method, target)
+        assert qualify.call_count == 2
+        assert call.call_args.args[3] == "https://frozen.example/" + cid
+        revision = {
+            "path": str(target),
+            "sha256": digest((target / "certificate.json").read_bytes()),
+        }
+        compose(home, source, rows, revision)
+    if method == "browserbase-stagehand":
+        assert (target / "execution/stagehand.py").exists()
+
+
+def test_repair_retains_preexisting_access_retry_time(tmp_path):
+    home, source, profile, rows = parent_inputs(
+        tmp_path,
+        failed_overrides={
+            "elapsed_seconds": 10,
+            "retry_execution_seconds": 2,
+            "retry_missing_timers": 1,
+        },
+    )
+    target = tmp_path / "repair"
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch("harness.web_scraper.repair.score_rows", return_value={}),
+        patch(
+            "harness.web_scraper.repair.provider_call",
+            return_value={"http_status": 200, "response": {"result": {"sku": "ok"}}},
+        ),
+    ):
+        run(home, profile, "cloudflare-json", target)
+        current, _ = compose(
+            home,
+            source,
+            rows,
+            {"path": str(target), "sha256": digest((target / "certificate.json").read_bytes())},
+        )
+    assert current[-1]["retry_execution_seconds"] == 12
+    assert current[-1]["retry_missing_timers"] == 1
+
+
+def test_relative_review_work_creates_absolute_packet_and_source_paths(tmp_path, monkeypatch):
+    home = create(tmp_path / "example")
+    monkeypatch.chdir(tmp_path)
+    manifest = prepare(
+        home.relative_to(tmp_path),
+        (home / "content.json").relative_to(tmp_path),
+        Path("relative-review"),
+    )
+    assert all(Path(p["path"]).is_absolute() for p in manifest["packets"])
+    for p in manifest["packets"]:
+        for case in read_json(Path(p["path"]))["cases"]:
+            assert Path(case["source_html"]).is_absolute()
+            assert Path(case["source_outline"]).is_absolute()

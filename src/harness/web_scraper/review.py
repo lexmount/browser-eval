@@ -76,6 +76,7 @@ SCHEMA = {
 
 def prepare(home, content, work, *, batch_size=4, prior=None):
     """Freeze all source pages and all selected outputs without machine verdicts."""
+    home, content, work = Path(home).resolve(), Path(content).resolve(), Path(work).resolve()
     require_external_output(work)
     work.mkdir(parents=True, exist_ok=True)
     model = read_json(content)
@@ -266,6 +267,7 @@ def reconcile_citations(result, packet):
 
 def prepare_adjudication(prior, work, rules, *, batch_size=4):
     """Recheck disputed references against the original benchmark's exact rules."""
+    prior, work, rules = Path(prior).resolve(), Path(work).resolve(), Path(rules).resolve()
     require_external_output(work)
     manifest = read_json(prior / "manifest.json")
     bindings = {str(rules): digest(rules.read_bytes())}
@@ -444,7 +446,9 @@ def assemble(
         for field, finding in opinion["reference"].items():
             if finding["status"] == "ambiguous":
                 excluded.setdefault(cid, []).append(field)
-            if cid in adjudicated and finding["status"] != "ambiguous":
+            if (cid in adjudicated or (cid, field) in final_decisions) and finding[
+                "status"
+            ] != "ambiguous":
                 accepted = opinion["source_fields"][field]["values"]
                 if field == "availability" and not set(accepted).issubset(
                     {"InStock", "OutOfStock"}
@@ -550,6 +554,7 @@ def assemble(
 
 
 def run(work, *, model, workers=4, limit=None):
+    work = Path(work).resolve()
     """Review only missing packets; retain exact reviewer, inputs and raw logs."""
     manifest = read_json(work / "manifest.json")
     for name, sha in manifest["bindings"].items():

@@ -97,6 +97,7 @@ function show(dialog, button) {
   if (!dialog.dataset.bound) {
     dialog.dataset.bound = "1";
     dialog.addEventListener("close", () => {
+      dialog.dataset.generation = String(Number(dialog.dataset.generation || 0) + 1);
       opener?.focus();
       opener = null;
     });
@@ -234,16 +235,20 @@ document.addEventListener("click", async (event) => {
   if (!button) return;
   const dialog = document.getElementById(button.dataset.callLogOpen);
   if (!dialog) return;
+  const generation = String(Number(dialog.dataset.generation || 0) + 1);
+  dialog.dataset.generation = generation;
   show(dialog, button);
   const container =
     dialog.querySelector("[data-diagnosis-body]") || dialog.querySelector("pre");
   container.textContent = tr("正在加载完整证据…", "Loading complete evidence…");
   try {
     const row = await evidence(button.dataset.src, button.dataset.key);
+    if (!dialog.open || dialog.dataset.generation !== generation) return;
     if (dialog.querySelector("[data-diagnosis-body]"))
       diagnosisContent(container, row, button.dataset.field);
     else container.textContent = JSON.stringify(row, null, 2);
   } catch (error) {
+    if (!dialog.open || dialog.dataset.generation !== generation) return;
     container.textContent =
       tr(
         "读取失败，可关闭后重试；原始文件链接仍可使用：",

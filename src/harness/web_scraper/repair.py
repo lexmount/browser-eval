@@ -8,16 +8,17 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from harness.web_fetch.config import load_runtime_env
-from harness.web_fetch.providers.http_client import request
 from harness.web_scraper.pipeline import (
     access_blocker,
     digest,
+    fixture_request,
     load_run,
     normalize,
     provider_call,
     read_json,
     redact,
     require_external_output,
+    requires_fixture,
     save_json,
     score_rows,
     validate_dataset,
@@ -114,7 +115,7 @@ def fixture_check(home, base, cases):
     result = []
     for cid in cases:
         url = base.rstrip("/") + "/" + cid
-        response = request(url, timeout=45, max_bytes=3_000_000)
+        response = fixture_request(url, timeout=45, max_bytes=3_000_000)
         expected = digest((home / "dataset/html" / (cid + ".html")).read_bytes())
         if response.status != 200 or response.url != url or digest(response.body) != expected:
             raise ValueError("Repair fixture bytes or canonical URL differ")
@@ -132,6 +133,8 @@ def run(home, profile, method, destination):
             if contract["profile_sha256"] != digest(profile.read_bytes()):
                 raise ValueError("Completed repair belongs to another profile")
             participant = contract["participant"]
+            if contract["method"] != method or participant["method"] != method:
+                raise ValueError("Completed repair belongs to another method")
             _, rows = verify_parent(home, participant)
             compose(
                 home,
@@ -160,7 +163,11 @@ def collect(home, profile, method, destination):
         raise ValueError("Repair dataset changed")
     code = {
         name: digest(Path(__file__).with_name(name).read_bytes())
-        for name in ("repair.py", "pipeline.py")
+        for name in (
+            ("repair.py", "pipeline.py", "stagehand.py")
+            if method == "browserbase-stagehand"
+            else ("repair.py", "pipeline.py")
+        )
     }
     contract = {
         "schema": "failed-extraction-repair-run/1",
@@ -172,20 +179,26 @@ def collect(home, profile, method, destination):
     target = destination / "contract.json"
     if target.exists() and read_json(target) != contract:
         raise ValueError("Repair resume contract changed")
-    needs_fixture = method in ("oxylabs-json", "firecrawl-json", "browserbase-json") or (
-        participant["native_options"].get("use_fixture_context")
-        or participant["native_options"].get("input_route") == "url"
-    )
+    needs_fixture = requires_fixture(method, participant["native_options"])
     before = (
         fixture_check(home, plan["fixture_base"], participant["case_ids"]) if needs_fixture else []
     )
     if not target.exists():
         save_json(target, contract, exclusive=True)
-        save_json(destination / "fixture-before.json", before, exclusive=True)
-        for name in code:
-            p = destination / "execution" / name
-            p.parent.mkdir(exist_ok=True)
-            p.write_bytes(Path(__file__).with_name(name).read_bytes())
+    receipt = destination / "fixture-before.json"
+    if receipt.exists():
+        if read_json(receipt) != before:
+            raise ValueError("Repair fixture receipt changed before dispatch")
+    else:
+        save_json(receipt, before, exclusive=True)
+    for name, expected in code.items():
+        snapshot = destination / "execution" / name
+        snapshot.parent.mkdir(exist_ok=True)
+        if snapshot.exists():
+            if snapshot.is_symlink() or digest(snapshot.read_bytes()) != expected:
+                raise ValueError("Repair execution snapshot changed before dispatch")
+        else:
+            snapshot.write_bytes(Path(__file__).with_name(name).read_bytes())
     journal = destination / "calls.journal.jsonl"
     entries = [json.loads(x) for x in journal.read_text().splitlines()] if journal.exists() else []
     completed = {}
@@ -306,13 +319,15 @@ def compose(home, source, rows, repair):
     participant = contract["participant"]
     if Path(participant["parent_run"]).resolve() != source.resolve():
         raise ValueError("Repair belongs to another parent")
-    verify_parent(home, participant)
+    _, predecessor = verify_parent(home, participant)
+    if rows != predecessor:
+        raise ValueError("Repair predecessor chain differs from current results")
     if digest((directory / "manifest.json").read_bytes()) != certificate["manifest_sha256"]:
         raise ValueError("Repair manifest changed")
     if digest((directory / "contract.json").read_bytes()) != manifest["contract_sha256"]:
         raise ValueError("Repair contract changed")
     for name, expected in contract["code_sha256"].items():
-        if name not in ("repair.py", "pipeline.py"):
+        if name not in ("repair.py", "pipeline.py", "stagehand.py"):
             raise ValueError("Unexpected repair execution source")
         snapshot = directory / "execution" / name
         if snapshot.is_symlink() or digest(snapshot.read_bytes()) != expected:
@@ -326,11 +341,7 @@ def compose(home, source, rows, repair):
     after = read_json(directory / "fixture-after.json")
     if before != after:
         raise ValueError("Repair fixture qualification differs")
-    needs_fixture = (
-        participant["native_options"].get("use_fixture_context")
-        or (participant["native_options"].get("input_route") == "url")
-        or participant["method"] in ("oxylabs-json", "firecrawl-json", "browserbase-json")
-    )
+    needs_fixture = requires_fixture(participant["method"], participant["native_options"])
     if needs_fixture:
         if {item["case_id"] for item in before} != set(participant["case_ids"]):
             raise ValueError("Repair fixture qualification is incomplete")
@@ -358,15 +369,21 @@ def compose(home, source, rows, repair):
         if replacement is None:
             result.append(row)
             continue
+        if row.get("compatibility") == "structured_output":
+            raise ValueError("Repair cannot replace a current successful result")
         previous = row.get("physical_attempts") or [row]
+        retry_seconds = (row.get("retry_execution_seconds") or 0) + (
+            row.get("elapsed_seconds") or 0
+        )
+        retry_missing = row.get("retry_missing_timers", 0) + (row.get("elapsed_seconds") is None)
         result.append(
             {
                 **replacement,
                 "repair_run_id": directory.name,
                 "physical_attempts": previous + [replacement],
                 "superseded_result": row,
-                "retry_execution_seconds": sum(x.get("elapsed_seconds") or 0 for x in previous),
-                "retry_missing_timers": sum(x.get("elapsed_seconds") is None for x in previous),
+                "retry_execution_seconds": retry_seconds,
+                "retry_missing_timers": retry_missing,
             }
         )
     truth = read_json(home / "dataset/dataset/ground-truth.json")

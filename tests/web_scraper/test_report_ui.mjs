@@ -102,3 +102,27 @@ await documentListeners.click({target: button});
 assert.match(body.textContent, /Context window exceeded/);
 assert.doesNotMatch(body.textContent, /读取失败/);
 console.log('PASS: method/field/query filters, pending scope, numeric sorting, exact lazy errors, text-only evidence, Escape and focus restoration');
+
+// A slow response or rejection from a closed selection cannot replace the new selection.
+for (const rejectOld of [false, true]) {
+  dialog.close();
+  let finishA, finishB, failA;
+  context.fetch = url => new Promise((resolve, reject) => {
+    if (url.includes('slow-a')) { finishA = resolve; failA = reject; }
+    else finishB = resolve;
+  });
+  button.dataset.src = `public-evidence/slow-a-${rejectOld}.json`;
+  const pendingA = documentListeners.click({target: button});
+  dialog.close();
+  button.dataset.src = `public-evidence/fast-b-${rejectOld}.json`;
+  const pendingB = documentListeners.click({target: button});
+  finishB({ok: true, json: async () => ({case: {...response, native_error: 'CURRENT B'}})});
+  await pendingB;
+  assert.match(body.textContent, /CURRENT B/);
+  if (rejectOld) failA(new Error('OBSOLETE A ERROR'));
+  else finishA({ok: true, json: async () => ({case: {...response, native_error: 'OBSOLETE A'}})});
+  await pendingA;
+  assert.match(body.textContent, /CURRENT B/);
+  assert.doesNotMatch(body.textContent, /OBSOLETE A/);
+}
+console.log('PASS: stale dialog success and rejection cannot overwrite a newer selection');

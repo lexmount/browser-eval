@@ -91,8 +91,9 @@ def test_contract_url_credentials_are_omitted_from_public_metadata(tmp_path):
         check(output)
 
 
-def test_cost_prices_and_latency_cannot_omit_a_compared_participant(tmp_path):
-    home = create(tmp_path / "first", mode="full-cohort-progress")
+@pytest.mark.parametrize("mode", ["compatibility", "full-cohort-progress"])
+def test_cost_prices_and_latency_cannot_omit_a_compared_participant(tmp_path, mode):
+    home = create(tmp_path / "first", mode=mode)
     content = read_json(home / "content.json")
     content["prices"].pop("synthetic-blocked")
     save_json(home / "content.json", content)
@@ -357,3 +358,20 @@ def test_mathematically_equal_f1_is_neutral_despite_float_arithmetic_noise():
     bindings[0]["scores"] = {"a": metrics(0.8104), "b": metrics(0.8101)}
     html, _ = cohort_metrics(["a", "b"], [], bindings, 140, "en")
     assert len(check_presentation(html).select(".comparison-winner")) == 4
+
+
+@pytest.mark.parametrize("mode", ["compatibility", "full-cohort-progress"])
+def test_secret_only_in_html_is_rejected_even_with_valid_inventory(tmp_path, mode):
+    create(tmp_path / "first", mode=mode)
+    output = tmp_path / "first"
+    page = output / "zh/dataset.html"
+    page.write_text(
+        page.read_text().replace(
+            "</main>", "<p>Authorization: Bearer secret-token-only-in-html-123456</p></main>"
+        )
+    )
+    manifest = read_json(output / "report-manifest.json")
+    manifest["files"]["zh/dataset.html"] = digest(page.read_bytes())
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="textual artifact.*privacy"):
+        check(output)

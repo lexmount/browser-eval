@@ -3,7 +3,7 @@
 import argparse
 from pathlib import Path
 
-from harness.web_scraper.pipeline import digest, save_json
+from harness.web_scraper.pipeline import digest, read_json, save_json
 from harness.web_scraper.report import PAGES, build
 
 
@@ -204,6 +204,18 @@ def metrics_from_tp_fp_fns(rows):
                     "plan_sha256": digest(plan_path.read_bytes()),
                 }
             )
+        save_json(content, model)
+    if mode != "full-cohort-progress":
+        model = read_json(content)
+        model["prices"] = {
+            m: {
+                "usd_per_1000": "$0 synthetic",
+                "terms": {"en": "Synthetic evidence", "zh": "合成数据"},
+                "verified_at": "2026-01-01",
+                "sources": ["https://example.org/synthetic-pricing"],
+            }
+            for m in ("synthetic-success", "synthetic-blocked")
+        }
         save_json(content, model)
     build(output, content, home=home, profile=profile, language=language)
     return home

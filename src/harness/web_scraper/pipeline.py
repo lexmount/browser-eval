@@ -12,7 +12,10 @@ import os
 import re
 import runpy
 import signal
+import subprocess
+import sys
 import tarfile
+import tempfile
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -48,11 +51,67 @@ def unsafe_parents(path: Path):
 
 def save_json(path: Path, data, *, exclusive=False):
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("x" if exclusive else "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2, allow_nan=False)
-        f.write("\n")
-        f.flush()
-        os.fsync(f.fileno())
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=path.parent, prefix="." + path.name + ".", delete=False
+        ) as f:
+            temporary = Path(f.name)
+            json.dump(data, f, ensure_ascii=False, indent=2, allow_nan=False)
+            f.write("\n")
+            f.flush()
+            os.fsync(f.fileno())
+        if exclusive:
+            os.link(temporary, path)
+        else:
+            os.replace(temporary, path)
+        fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(fd)
+        finally:
+            os.close(fd)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
+
+
+def fixture_request(url, *, timeout=60, max_bytes=10_000_000, headers=None):
+    """Bound fixture reads in worker threads by terminating the isolated HTTP reader."""
+    program = """
+import base64, json, sys
+from harness.web_fetch.providers.http_client import request
+r = request(**json.load(sys.stdin))
+print(json.dumps({'status': r.status, 'url': r.url, 'headers': r.headers,
+                  'body': base64.b64encode(r.body).decode()}))
+"""
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", program],
+            input=json.dumps(dict(url=url, timeout=timeout, max_bytes=max_bytes, headers=headers)),
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+            check=True,
+        )
+    except subprocess.TimeoutExpired as error:
+        raise TimeoutError("Fixture qualification wall-clock deadline exceeded") from error
+    except subprocess.CalledProcessError as error:
+        raise OSError("Fixture qualification HTTP reader failed") from error
+    from harness.web_fetch.providers.http_client import HttpResponse
+
+    value = json.loads(result.stdout)
+    return HttpResponse(
+        value["status"], value["url"], value["headers"], base64.b64decode(value["body"])
+    )
+
+
+def requires_fixture(method, options=None):
+    options = options or {}
+    return (
+        available_methods()[method]["input"] == "url"
+        or options.get("use_fixture_context")
+        or options.get("input_route") == "url"
+    )
 
 
 def data_home() -> Path:
@@ -707,6 +766,8 @@ def serve_fixtures(home: Path, *, port=8767):
 
 def access_blocker(row):
     """Stop calls after evidenced authentication, permission or quota denial."""
+    if row.get("state") == "input_blocked":
+        return "input_configuration"
     if row.get("state") == "credentials_missing":
         return "credentials_missing"
     status = row.get("http_status")
@@ -814,7 +875,7 @@ def _probe_unlocked(
             requested_url = f"{fixture_base.rstrip('/')}/{case_id}{fixture_suffix}"
             for attempt in range(3):
                 try:
-                    response = request(
+                    response = fixture_request(
                         requested_url,
                         headers={"Accept-Encoding": "gzip"},
                         timeout=60,
