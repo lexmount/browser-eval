@@ -82,7 +82,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -141,7 +141,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         }
       ],
       "evaluation_input": {
@@ -194,7 +194,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -263,7 +263,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -373,7 +373,7 @@
       "source": {
         "kind": "corrected_retrieval_candidate_pending_requalification",
         "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-67.json",
-        "sha256": "226387a18cc3ec45c6ae1945c6e3f87472879a8a889b468c53f75ea651540c0c"
+        "sha256": "023d838417088ad444940e9ef63980d8eaa49828b249d59f99ebb869748573a9"
       },
       "verification": {
         "browsers": [],
@@ -405,7 +405,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -496,7 +496,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "click",
@@ -575,7 +575,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "fill",
@@ -639,7 +639,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "click",
@@ -698,7 +698,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "fill",
@@ -785,7 +785,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -871,7 +871,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -945,7 +945,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -1050,7 +1050,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -1147,7 +1147,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -1269,7 +1269,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com"
+          "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com"
         },
         {
           "action": "click",
@@ -1336,7 +1336,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "fill",
@@ -1408,7 +1408,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "click",
@@ -1485,11 +1485,11 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com/-/commits/main?author=kilian"
+          "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com/-/commits/main?author=kilian"
         }
       ],
       "evaluation_input": {
@@ -1542,11 +1542,11 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/?personal=true&sort=stars_desc"
+          "url": "http://host.docker.internal:8023/?personal=true&sort=stars_desc"
         }
       ],
       "evaluation_input": {
@@ -1597,7 +1597,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -1758,7 +1758,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "click",
@@ -1899,7 +1899,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -2073,7 +2073,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "click",
@@ -2142,7 +2142,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "click",
@@ -2217,7 +2217,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "fill",
@@ -2448,7 +2448,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -2541,7 +2541,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://webarena-slice-warm-1-195-shopping-admin.dev.lexmount.net/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -2589,7 +2589,7 @@
       "source": {
         "kind": "corrected_retrieval_candidate_pending_requalification",
         "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-243.json",
-        "sha256": "6bbd9124f65221a096d90127483f523076046dc936d24cd680768d48640597f5"
+        "sha256": "899ec950da0c56a5a1fa1234c244f48e5df130942873d015aceeec1e9947be79"
       },
       "verification": {
         "browsers": [],
@@ -2838,7 +2838,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -2940,7 +2940,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -3040,7 +3040,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -3128,7 +3128,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -3140,7 +3140,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999/f/gadgets"
+          "url": "http://host.docker.internal:9999/f/gadgets"
         },
         {
           "action": "click",
@@ -3367,7 +3367,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -3447,7 +3447,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -3531,7 +3531,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -3766,7 +3766,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -3851,7 +3851,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -3981,7 +3981,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -4212,7 +4212,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -4380,7 +4380,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -4449,7 +4449,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -4535,7 +4535,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -4746,7 +4746,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/byteblaze/gimmiethat.space"
+          "url": "http://host.docker.internal:8023/byteblaze/gimmiethat.space"
         },
         {
           "action": "click",
@@ -4861,7 +4861,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770/ostent-16gb-memory-card-stick-storage-for-sony-ps-vita-psv1000-2000-pch-z081-z161-z321-z641.html"
+          "url": "http://host.docker.internal:7770/ostent-16gb-memory-card-stick-storage-for-sony-ps-vita-psv1000-2000-pch-z081-z161-z321-z641.html"
         },
         {
           "action": "click",
@@ -5132,7 +5132,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "click",
@@ -5850,7 +5850,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -5987,7 +5987,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -6086,7 +6086,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -6204,7 +6204,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999/f/pics"
+          "url": "http://host.docker.internal:9999/f/pics"
         },
         {
           "action": "click",
@@ -6227,11 +6227,11 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999/submit/connecticut"
+          "url": "http://host.docker.internal:9999/submit/connecticut"
         },
         {
           "action": "fill",
-          "text": "http://192.168.5.2:9999/submission_images/b02113033af32feae9ff147dbbe3764039368d67d193885bd04e65c2e6beea9c.jpg",
+          "text": "http://host.docker.internal:9999/submission_images/b02113033af32feae9ff147dbbe3764039368d67d193885bd04e65c2e6beea9c.jpg",
           "selector": "input[name=\"submission[url]\"]:visible",
           "replay_mode": "snapshot_ref_semantics"
         },
@@ -6302,7 +6302,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -6405,7 +6405,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "fill",
@@ -6429,7 +6429,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999/user/ThetaGang_wsb"
+          "url": "http://host.docker.internal:9999/user/ThetaGang_wsb"
         },
         {
           "action": "click",
@@ -6571,7 +6571,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "fill",
@@ -6664,7 +6664,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -6676,7 +6676,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999/f/DIY"
+          "url": "http://host.docker.internal:9999/f/DIY"
         },
         {
           "action": "click",
@@ -6749,7 +6749,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -6938,7 +6938,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -6950,7 +6950,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/byteblaze/gimmiethat.space/-/project_members"
+          "url": "http://host.docker.internal:8023/byteblaze/gimmiethat.space/-/project_members"
         }
       ],
       "evaluation_input": {
@@ -7003,11 +7003,11 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/CellularPrivacy/Android-IMSI-Catcher-Detector"
+          "url": "http://host.docker.internal:8023/CellularPrivacy/Android-IMSI-Catcher-Detector"
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/CellularPrivacy/Android-IMSI-Catcher-Detector/-/graphs/master/charts"
+          "url": "http://host.docker.internal:8023/CellularPrivacy/Android-IMSI-Catcher-Detector/-/graphs/master/charts"
         },
         {
           "action": "evaluate",
@@ -7019,7 +7019,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100"
+          "url": "http://host.docker.internal:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100"
         },
         {
           "action": "get_text",
@@ -7027,7 +7027,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100&page=2"
+          "url": "http://host.docker.internal:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100&page=2"
         },
         {
           "action": "get_text",
@@ -7035,7 +7035,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100&page=3"
+          "url": "http://host.docker.internal:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100&page=3"
         }
       ],
       "evaluation_input": {
@@ -7088,15 +7088,15 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com"
+          "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com"
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com/-/graphs/main/charts?from=2023-01-01&to=2023-12-31"
+          "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com/-/graphs/main/charts?from=2023-01-01&to=2023-12-31"
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com/-/commits/main?author=Kilian&since=2023-01-01T00%3A00%3A00Z&until=2023-12-31T23%3A59%3A59Z"
+          "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com/-/commits/main?author=Kilian&since=2023-01-01T00%3A00%3A00Z&until=2023-12-31T23%3A59%3A59Z"
         }
       ],
       "evaluation_input": {
@@ -7149,7 +7149,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -7161,7 +7161,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/primer/design/-/graphs/main/charts"
+          "url": "http://host.docker.internal:8023/primer/design/-/graphs/main/charts"
         },
         {
           "action": "scroll",
@@ -7172,7 +7172,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/primer/design/-/graphs/main"
+          "url": "http://host.docker.internal:8023/primer/design/-/graphs/main"
         }
       ],
       "evaluation_input": {
@@ -7227,7 +7227,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -7330,7 +7330,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/primer/design"
+          "url": "http://host.docker.internal:8023/primer/design"
         },
         {
           "action": "click",
@@ -7460,7 +7460,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/primer/design"
+          "url": "http://host.docker.internal:8023/primer/design"
         },
         {
           "action": "click",
@@ -7472,7 +7472,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/primer/design/-/milestones"
+          "url": "http://host.docker.internal:8023/primer/design/-/milestones"
         },
         {
           "action": "click",
@@ -7729,13 +7729,13 @@
   ],
   "revision": {
     "schema": "webarena_replay_dataset_revision/1",
-    "base_dataset_sha256": "61bb38bce552b5c7eea0e1f5fcca1bc898f55e2e39ee6e72498cff346ca1e4e3",
+    "base_dataset_sha256": "36ce56e10b1e8fa0f23dda916628c4dabb56576968d4bff1926cafe2706e1f0a",
     "correction_catalog_sha256": "25619b9e0345c49a79e579a88d7f81280870119e4ab4e8d72bd0a415b9de60b0",
     "changed_tasks": [
       {
         "task_id": 67,
         "correction_id": "fork-67-books-description-only",
-        "correction_record_sha256": "7057e6eb5cfd9c49d23d1984b9fce96e8ea13f68a4698dba5cef0eb70739bef2",
+        "correction_record_sha256": "85dee99ccb884bd3143886d13462cffb8f703186e9faa16dc5eaf0b2bf82f7f3",
         "original_task_sha256": "03dbaee9f03fac5aa766b36b1004236ff9ebea9d5544816c7e3108817db2a98e",
         "corrected_task_sha256": "2d92caf6476a5fb9370aef62da974343e3b1bd10993cf08dbcdbffa1a114aacf",
         "task_contract_sha256": "32d581ee7901a5647b53304aa147a5e74f98b1f7a7d1d7259444fb38c4a31408"
@@ -7751,7 +7751,7 @@
       {
         "task_id": 243,
         "correction_id": "fork-243-review-nickname",
-        "correction_record_sha256": "2779ea13532610de196ed6977a6518cd56545eca51b6e9a18289f52f0bf60cc9",
+        "correction_record_sha256": "23a16cf31dab5cad8e4c704091f69cc956a595ada31dfbe064a7d5b8fee2ce5b",
         "original_task_sha256": "219b7055268f0e21c1900a0f5c03afa5b0a85aa966fff9dd9e4f1302cc5057e6",
         "corrected_task_sha256": "538fa655a6a69a78ac66fa2524d7117b2b2ee0583b2fab3bebe7acf4f583a47d",
         "task_contract_sha256": "6a340931057fa929aeafb91739d39e114486d734f5bf13c3beaf8eb63649574d"

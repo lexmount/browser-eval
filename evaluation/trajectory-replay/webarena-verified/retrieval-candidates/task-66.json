@@ -3,7 +3,7 @@
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:9999"
+      "url": "http://host.docker.internal:9999"
     },
     {
       "action": "click",
@@ -52,7 +52,7 @@
   "retrieval_contract": {
     "schema": "lex_replay_current_run_retrieval/3",
     "task_id": 66,
-    "canonical_calls_sha256": "6f26e505ed350c7ab7b73cd46fb523002f362bbb8ccb9e20f7906096480bf661",
+    "canonical_calls_sha256": "be1424f4578a7d2a1ef8fc694e2333688eb5a318e3e19e992f6469cb52e4ca70",
     "sources": [
       {
         "name": "books",

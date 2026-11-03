@@ -1,11 +1,11 @@
 {
   "schema": "webarena_qualified_trajectory_revision/1",
   "task_id": 464,
-  "canonical_calls_sha256": "582dec5936d0e10a0752a2c4e2af0f164074fab5780cfce6151bc12c26d7ee78",
+  "canonical_calls_sha256": "e52acab45599fe5bc4a6791182bcedbe3ab8f8f4365c68bfea24371462358195",
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://webarena-slice-warm-1-195-shopping-admin.dev.lexmount.net/admin/catalog/product/edit/id/1796/"
+      "url": "http://host.docker.internal:7780/admin/catalog/product/edit/id/1796/"
     },
     {
       "action": "wait",

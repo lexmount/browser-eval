@@ -10715,12 +10715,12 @@
     },
     "webarena-replay": {
       "repository": "Lexmount/LexBench-WebArena-Replay",
-      "revision": "fc32333defbb032da76d7921623e4bd503c48f03",
-      "source_revision": "c533e002d24dd01f7f59b5ea9d8b7a41740495b4",
+      "revision": "ede6b17c21cef8a496b61e81c365934db5443919",
+      "source_revision": "267bf126d54d24495fa3a383e50211ce878a589c",
       "archive": {
         "path": "definitions.tar.gz",
-        "sha256": "331f587006bc24d30b67c7d0527e900485451a9c08f297eaad0570ba3c4cb73a",
-        "size": 1130836
+        "sha256": "5360d2be45aa7ddd1201f01a3a7538bd4b458a897c06382cdf2f3eec52984db0",
+        "size": 1130891
       },
       "datasets": {
         "corrected-90-v1": {
@@ -10728,14 +10728,14 @@
           "description": "Ninety historical corrected fixed-action inputs. Historical qualification is external and is not upgraded by this data edition.",
           "id_field": "id",
           "path": "datasets/corrected-90-v1.json",
-          "sha256": "f79640f79e06ade2873c1af08825dee5e28a0561c6dce8138bd18af81d394c7f"
+          "sha256": "1c27c6ef9fec3bfb55502610c7636dc6ccf43a429916b218ed9e618b28496800"
         },
         "full-812-v1": {
           "count": 812,
           "description": "All 812 WebArena-Verified tasks with accepted fixed actions: 705 portable and 107 direct action records. Separate task scope, not concatenated with the smaller editions.",
           "id_field": "id",
           "path": "datasets/full-812-v1.json",
-          "sha256": "aa589ee0c85cbd6b4f2d287c64dc6f44affde8e7e049088d3231ad2e370b788e"
+          "sha256": "9dab160321a581b003dc19a95bc5b553054550cba4ab0f006cc583c515a65cbe"
         },
         "human-qualified-v1": {
           "count": 30,
@@ -10767,19 +10767,19 @@
           "size": 3933
         },
         "definitions/canonical/corrected-90-v1.json": {
-          "sha256": "1a8c835f94d1cddfbf7e536dcdc1fda3545c6ba711bc6ddbd1536b4c0f87dd86",
+          "sha256": "086c078c22fc927b089d93924f5f03f3ba475e02b7721415cdb6f66a6b5c6cd9",
           "size": 219367
         },
         "definitions/catalog/full-812-v1.json": {
-          "sha256": "ea28e71ff7fade6dc3bcfef569fc6406df1b21725951ba23d617af9886b16eae",
+          "sha256": "c8dfc30ce11becb91e2bba1694a44f339c25489d197e89d0825d3939c5355a3f",
           "size": 738979
         },
         "definitions/datasets/corrected-90-v1.json": {
-          "sha256": "f79640f79e06ade2873c1af08825dee5e28a0561c6dce8138bd18af81d394c7f",
+          "sha256": "1c27c6ef9fec3bfb55502610c7636dc6ccf43a429916b218ed9e618b28496800",
           "size": 233532
         },
         "definitions/datasets/full-812-v1.json": {
-          "sha256": "aa589ee0c85cbd6b4f2d287c64dc6f44affde8e7e049088d3231ad2e370b788e",
+          "sha256": "9dab160321a581b003dc19a95bc5b553054550cba4ab0f006cc583c515a65cbe",
           "size": 2810400
         },
         "definitions/datasets/human-qualified-v1.json": {
@@ -10799,11 +10799,11 @@
           "size": 254160
         },
         "definitions/publication-input-bindings.json": {
-          "sha256": "bbfc8a7fdf653d7aef17b780e5e16c04f7752c80d1190f1dc85b9c77db4c2ecd",
+          "sha256": "2d521dd08731ebf5e8b0601e4f7ddbe47be802cb852deaa956b796294de25ef2",
           "size": 842514
         },
         "definitions/registry.json": {
-          "sha256": "1d2d8dcf8ece3ca70c2a6cf0d677267eb7a7376d306aec9790bdf7e4f7aebb47",
+          "sha256": "d63d4df7a69e586d07f412d69e18d82d5c8a3a2bbc1bc4809275604b10861713",
           "size": 1166
         },
         "definitions/scopes/corrected-90-v1.json": {
@@ -10828,6 +10828,121 @@
         }
       },
       "history": [
+        {
+          "repository": "Lexmount/LexBench-WebArena-Replay",
+          "revision": "fc32333defbb032da76d7921623e4bd503c48f03",
+          "source_revision": "c533e002d24dd01f7f59b5ea9d8b7a41740495b4",
+          "archive": {
+            "path": "definitions.tar.gz",
+            "sha256": "331f587006bc24d30b67c7d0527e900485451a9c08f297eaad0570ba3c4cb73a",
+            "size": 1130836
+          },
+          "datasets": {
+            "corrected-90-v1": {
+              "count": 90,
+              "description": "Ninety historical corrected fixed-action inputs. Historical qualification is external and is not upgraded by this data edition.",
+              "id_field": "id",
+              "path": "datasets/corrected-90-v1.json",
+              "sha256": "f79640f79e06ade2873c1af08825dee5e28a0561c6dce8138bd18af81d394c7f"
+            },
+            "full-812-v1": {
+              "count": 812,
+              "description": "All 812 WebArena-Verified tasks with accepted fixed actions: 705 portable and 107 direct action records. Separate task scope, not concatenated with the smaller editions.",
+              "id_field": "id",
+              "path": "datasets/full-812-v1.json",
+              "sha256": "aa589ee0c85cbd6b4f2d287c64dc6f44affde8e7e049088d3231ad2e370b788e"
+            },
+            "human-qualified-v1": {
+              "count": 30,
+              "description": "Thirty eligible human-recorded WebArena trajectories; a distinct population from the corrected and full editions.",
+              "id_field": "id",
+              "path": "datasets/human-qualified-v1.json",
+              "sha256": "4214b5d68a0be2e42b8ce80d3fb86e1bb8be615026c3a313a4b6ce4f31dd55bb"
+            }
+          },
+          "files": {
+            "LICENSE": {
+              "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+              "size": 11358
+            },
+            "NOTICE": {
+              "sha256": "920a4c89541b85a1fd320a68a60527c496e73f07aeac119940ecfd67d47cbb39",
+              "size": 129
+            },
+            "THIRD_PARTY.md": {
+              "sha256": "2e186f0e6e42b02e64b22328f3ad2ece25f476bd1d1101094d7a1545d396caa4",
+              "size": 806
+            },
+            "definitions/NOTICE.txt": {
+              "sha256": "2e186f0e6e42b02e64b22328f3ad2ece25f476bd1d1101094d7a1545d396caa4",
+              "size": 806
+            },
+            "definitions/annotations/human-evaluator-exclusions-v1.json": {
+              "sha256": "726d31d75441317ced94945f9e203fafe0164e4fe01ff5fc715c5e5d087f9af3",
+              "size": 3933
+            },
+            "definitions/canonical/corrected-90-v1.json": {
+              "sha256": "1a8c835f94d1cddfbf7e536dcdc1fda3545c6ba711bc6ddbd1536b4c0f87dd86",
+              "size": 219367
+            },
+            "definitions/catalog/full-812-v1.json": {
+              "sha256": "ea28e71ff7fade6dc3bcfef569fc6406df1b21725951ba23d617af9886b16eae",
+              "size": 738979
+            },
+            "definitions/datasets/corrected-90-v1.json": {
+              "sha256": "f79640f79e06ade2873c1af08825dee5e28a0561c6dce8138bd18af81d394c7f",
+              "size": 233532
+            },
+            "definitions/datasets/full-812-v1.json": {
+              "sha256": "aa589ee0c85cbd6b4f2d287c64dc6f44affde8e7e049088d3231ad2e370b788e",
+              "size": 2810400
+            },
+            "definitions/datasets/human-qualified-v1.json": {
+              "sha256": "4214b5d68a0be2e42b8ce80d3fb86e1bb8be615026c3a313a4b6ce4f31dd55bb",
+              "size": 193307
+            },
+            "definitions/historical/normalized-example-v1.json": {
+              "sha256": "a6d9c02ab5e9dca36fe9b9724a95a8338812ef756ae222a63de1705c627099a9",
+              "size": 81961
+            },
+            "definitions/inventories/human-candidates-v1.json": {
+              "sha256": "ed2832f9c061726cd856d2949313f6a543c770277122eb42dd38cd0a8d27fe0c",
+              "size": 2091243
+            },
+            "definitions/provenance/human-trace-inventory-v1.json": {
+              "sha256": "dc8a3bc883f79f2ce399f79d22a69cb856f94a6112a7aa84583b36c2252e2f7d",
+              "size": 254160
+            },
+            "definitions/publication-input-bindings.json": {
+              "sha256": "bbfc8a7fdf653d7aef17b780e5e16c04f7752c80d1190f1dc85b9c77db4c2ecd",
+              "size": 842514
+            },
+            "definitions/registry.json": {
+              "sha256": "1d2d8dcf8ece3ca70c2a6cf0d677267eb7a7376d306aec9790bdf7e4f7aebb47",
+              "size": 1166
+            },
+            "definitions/scopes/corrected-90-v1.json": {
+              "sha256": "7e0b6ba3627da4377b8632b6487188078acd2dc06a24bb3d50e0fc66c7ea22b5",
+              "size": 18426
+            },
+            "definitions/scopes/full-812-v1.json": {
+              "sha256": "3914ae9e31c6e816964a310c88521aff80fead1b6ef1725acd465dfc5165efb6",
+              "size": 7872
+            },
+            "definitions/site-map.json": {
+              "sha256": "4d23b426a8cf236d760a21c596ed71392b86a072af6701c47e7d61f054833236",
+              "size": 355
+            },
+            "definitions/suites/full-portable-v1.json": {
+              "sha256": "a31bd97f9bd16a764801af28fc77f51ffff53c6b456219dad6d49c3fac422e3c",
+              "size": 2938337
+            },
+            "definitions/suites/human-qualified-v1.json": {
+              "sha256": "4038325f148a37a5c36c8e16d7da25d468c2283323382eaba1de53d28c3242ae",
+              "size": 192627
+            }
+          }
+        },
         {
           "repository": "Lexmount/LexBench-WebArena-Replay",
           "revision": "c056d320615953a38d3d84c496f1cdd52243a3f7",
@@ -11058,7 +11173,11 @@
             }
           }
         }
-      ]
+      ],
+      "source_editions": {
+        "c533e002d24dd01f7f59b5ea9d8b7a41740495b4": "066d16477cf24de6940dd7fb907264e4ee54f55c",
+        "267bf126d54d24495fa3a383e50211ce878a589c": "ede6b17c21cef8a496b61e81c365934db5443919"
+      }
     },
     "headless-browser": {
       "repository": "Lexmount/LexBench-Headless-Browser",

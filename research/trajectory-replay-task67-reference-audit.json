@@ -4,7 +4,7 @@
   "source_observation_window_utc": ["2026-09-18T06:42:50Z", "2026-09-18T06:44:22Z"],
   "post_reset_recheck_utc": "2026-09-18T08:06:22Z",
   "source": {
-    "base_url": "http://webarena-slice-warm-1-195-reddit.dev.lexmount.net",
+    "base_url": "http://reddit.webarena.example",
     "listing_path": "/f/books",
     "listing_sha256": "29d858a6d242668bc9c2afe370426625fd6f6bafd8c4a3f3c48cd8eab231c5ed",
     "capture_method": "Read-only HTTP GET; parse main > article in visible Hot order, then each same-origin post detail and .submission__body.textContent; hash original HTML bytes and UTF-8 body text separately.",

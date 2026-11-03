@@ -3,23 +3,13 @@
 import importlib
 import importlib.util
 import os
-import re
 import sys
 from pathlib import Path
 
 import pytest
 
 # Hermetic values: local credentials must not reach tests, and nothing here is real.
-def _recording_gateway():
-    """Read the gateway from a pinned input that still names it instead of restating it."""
-    pinned = Path(__file__).resolve().parents[1] / (
-        "evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-771.json"
-    )
-    found = re.search(r"http://((?:\d{1,3}\.){3}\d{1,3}):", pinned.read_text(encoding="utf-8"))
-    return found.group(1) if found else "192.0.2.5"
-
-
-os.environ["WEBARENA_RECORDING_GATEWAYS"] = _recording_gateway()
+os.environ["WEBARENA_RECORDING_GATEWAYS"] = "192.0.2.5"
 for _site in ("SHOPPING", "SHOPPING_ADMIN", "REDDIT", "GITLAB"):
     os.environ[f"WEBARENA_{_site}_USERNAME"] = f"synthetic-{_site.lower()}-user"
     os.environ[f"WEBARENA_{_site}_PASSWORD"] = f"synthetic-{_site.lower()}-secret"

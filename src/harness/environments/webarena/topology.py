@@ -120,12 +120,6 @@ def site_url(site: str, host: str) -> str:
     return site_origin(site, host) + SITE_URL_SUFFIX.get(str(site), "")
 
 
-def require_recording_gateways() -> None:
-    """Stop before frozen gateway URLs could pass through unrecognized."""
-    if not RECORDING_GATEWAYS:
-        raise ValueError(f"inputs recorded through a gateway require {RECORDING_GATEWAYS_ENV}")
-
-
 def require_recorded_gateway(host: str | None) -> None:
     """Stop when a frozen private host would stay in actions instead of being rebound."""
     if host not in RECORDING_GATEWAYS:
@@ -136,7 +130,6 @@ def require_recorded_gateway(host: str | None) -> None:
 
 def public_origin_replacements() -> dict[str, str]:
     """Map every recorded mutable-site origin to its public site token."""
-    require_recording_gateways()
     replacements: dict[str, str] = {}
     for host in (CONTAINER_HOST_ALIAS, *RECORDING_GATEWAYS):
         for site in MUTABLE_SITE_PORTS:
@@ -148,7 +141,6 @@ def public_origin_replacements() -> dict[str, str]:
 
 def public_host_replacements() -> dict[str, str]:
     """Map container-visible WebArena hosts to the public benchmark-host placeholder."""
-    require_recording_gateways()
     hosts = (CONTAINER_HOST_ALIAS, *RECORDING_GATEWAYS)
     return {host: BENCHMARK_HOST_PLACEHOLDER for host in hosts}
 

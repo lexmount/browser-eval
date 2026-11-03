@@ -73,6 +73,7 @@ a report's population or changes saved results.
 | [Fetch 2.0.1](https://github.com/lexmount/lexbench-webfetch/releases/tag/bench-v2.0.1) | Expanded 550-entry catalog with complete compatibility fingerprints; separate population from 1.x |
 | [Search 1.0.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-v1.0.0) | First frozen Search catalog: scenario and factual task suites |
 | [Search 1.1.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-v1.1.0) | Correct numeric scoring and bind the catalog to its actual scorer; rescore saved cohorts before comparing |
+| [WebArena Replay 1.0.1](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay/tree/ede6b17c21cef8a496b61e81c365934db5443919) | Correct private recording hosts in the Browser Eval sources and their hash bindings. Task questions, exported actions, evaluator inputs and scoring rules are unchanged; results compare directly when execution settings match |
 
 A benchmark release uses one tag for its tasks, reference answers, scoring rules
 and evaluation code. Task suites use stable names rather than separate dataset

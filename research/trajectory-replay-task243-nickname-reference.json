@@ -1,7 +1,7 @@
 {
   "schema": "trajectory_replay_independent_reference/1",
   "task_id": 243,
-  "source_trajectory_sha256": "e9194b40320003bdfbc11157f88f234a8b40cc9dde91365696de96238920988f",
+  "source_trajectory_sha256": "bc4f6f845c6943571a51ca1f299a201f0e188e303d3723717fcd385ffadfc3b4",
   "fork_commit": "112cb4ed2303a4ce3f93cc1264cb5b8bf7b78145",
   "root_cause": "The original guest review has no customer ID or email, so its author cannot be linked to the annotated customer account. The revised task asks only for the review nickname, which is stored on the review itself.",
   "regression_ids": [

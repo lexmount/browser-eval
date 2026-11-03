@@ -16,15 +16,15 @@
     {
       "task_id": 66,
       "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-66-budget.json",
-      "sha256": "8066148fbbc8acd2d30e4488f384b053dbed7988a3605c28e5c6dd5033ded206",
+      "sha256": "de6d2f98db7356dfd69f88cb06a58c1189e4c6343b0bcb5bd06740891f04f02f",
       "reason": "allow the declared ten sequential post fetches to complete within the BrowserTool action budget"
     },
     {
       "task_id": 108,
       "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-108-stabilized.json",
-      "sha256": "b45982774cf2e89f2ae1d6df56024501185efa6a6f420aa6fda731b67ed446af",
+      "sha256": "6d4eb5bc955e105779385ad99a83e9740b97504fd472b289b7e62fc995208c04",
       "action_count": 16,
-      "stabilization_parent_sha256": "aae7171e90cb3f309400fa7c5289ae3e6a13254c8c075b0cf591f6468e81514a",
+      "stabilization_parent_sha256": "b3382b21a51601dcab0c58b97384908d4fc04939d059bbf7b1ba0cfe50cd4007",
       "paired_qualification": {
         "chromium_receipt_sha256": "0305006ef4c3da5d5fd095e20f8c1fab746379876f3402a094d47681e147ab61",
         "moli_receipt_sha256": "71c768f715d400af242801af069d35acac043e703763e296589c21d00f147eab"
@@ -57,14 +57,14 @@
     {
       "task_id": 243,
       "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-243.json",
-      "sha256": "6bbd9124f65221a096d90127483f523076046dc936d24cd680768d48640597f5",
+      "sha256": "899ec950da0c56a5a1fa1234c244f48e5df130942873d015aceeec1e9947be79",
       "action_count": 9,
       "reason": "read the nickname on the unique lowest-rated product review from the complete current review population, without inferring a customer email"
     },
     {
       "task_id": 313,
       "path": "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-313.json",
-      "sha256": "2ed9685a48cbd674e424df631f5133fdea800b7ada08dc3e60517f080838ad08",
+      "sha256": "1d861f41eb2aa7138cf763db4c16aef39a54c8332604c146a6fc014e5a7b5b80",
       "paired_qualification": {
         "chromium_receipt_sha256": "2ac325728dcf07cb68e6573c7542128cd01d588b819582ff1823066b83e6d82e",
         "moli_receipt_sha256": "983fc521bffbbf4439d129cfa8078665f33f2c6ef9ff20b6a5a9e7a8c1b19eac"
@@ -80,7 +80,7 @@
     {
       "task_id": 464,
       "path": "evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-464.json",
-      "sha256": "06dc0afaa7d3a2aef1c5e6777520069dc7add2b73e61825ce98692cd5d093746",
+      "sha256": "e732e955f2a2ca712e73c43620788b4e5d8b685a1225bb4f0f658a7a55be50d4",
       "reason": "submit the Magento product form through its visible Save control and await the completion message instead of an arbitrary short delay"
     },
     {

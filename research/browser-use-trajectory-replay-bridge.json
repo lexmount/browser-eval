@@ -3,7 +3,7 @@
   "benchmark": "WebArena-Verified 1.2.3",
   "selection_sha256": "2cb716552e36df7535e83ed6d2cf3f84283e3aca86072817cd6e039a38547c7b",
   "contract_definitions": {
-    "trajectories": {"path": "evaluation/trajectory-replay/webarena-verified/trajectories.json", "sha256": "61bb38bce552b5c7eea0e1f5fcca1bc898f55e2e39ee6e72498cff346ca1e4e3"},
+    "trajectories": {"path": "evaluation/trajectory-replay/webarena-verified/trajectories.json", "sha256": "36ce56e10b1e8fa0f23dda916628c4dabb56576968d4bff1926cafe2706e1f0a"},
     "corrections": {"path": "research/browser-use-bridge-inputs/task-corrections.json", "sha256": "15e1265dd8eb3910f1fb6f789b9370656f3e4beab60254bdde93ca36bc3ca606"}
   },
   "contract_counts": {"official_task_contract": 81, "corrected_replay_contract": 9},

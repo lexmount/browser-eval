@@ -6,11 +6,8 @@ import ipaddress
 import re
 import subprocess
 from pathlib import Path
-from types import MappingProxyType
 
 import pytest
-
-from harness.environments.webarena.topology import RECORDING_GATEWAYS
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,87 +42,6 @@ PLACEHOLDER_HOMES = frozenset(
         "two",
     }
 )
-_D = "evaluation/trajectory-replay/webarena-verified"
-PINNED_DATASET_INPUTS = MappingProxyType(
-    {
-        # The pinned webarena-replay dataset binds these and the data lock pins that dataset, so
-        # they change only through a new dataset edition. Each entry names a private host or the
-        # recording gateway. The digest keeps an exemption to these exact bytes.
-        # File hash in corrected-90-v1, and action digests in publication-input-bindings.
-        f"{_D}/retrieval-candidates/task-243.json": (
-            "6bbd9124f65221a096d90127483f523076046dc936d24cd680768d48640597f5"
-        ),
-        f"{_D}/trajectories-corrected.json": (
-            "624a0ea83c6e4c3533714e961656d7e4159189a9e4941017b06a5299e4dc31d5"
-        ),
-        # File hash in full-812-v1.
-        "research/trajectory-replay-task67-reference-audit.json": (
-            "7057e6eb5cfd9c49d23d1984b9fce96e8ea13f68a4698dba5cef0eb70739bef2"
-        ),
-        # Action digests in publication-input-bindings.
-        f"{_D}/retrieval-candidates/task-108-stabilized.json": (
-            "b45982774cf2e89f2ae1d6df56024501185efa6a6f420aa6fda731b67ed446af"
-        ),
-        f"{_D}/retrieval-candidates/task-132.json": (
-            "c8737bf60e76d97e1f29d504cb028db2abaa51af5876e0a826abe75afe383cce"
-        ),
-        f"{_D}/retrieval-candidates/task-168.json": (
-            "a7201b1ec4bac5f8092efcdf8bc05696a1f4c354c782b3a7340aba13eb10171e"
-        ),
-        f"{_D}/retrieval-candidates/task-204.json": (
-            "729ece693e0ec1105c1239cb993c9875caacb675668bead4aea00e86f61e358f"
-        ),
-        f"{_D}/retrieval-candidates/task-29.json": (
-            "eb3525342e22372a6241a7a19bfebfd3f491cc5b8ee55d95f4a4ddfdeec5d0fe"
-        ),
-        f"{_D}/retrieval-candidates/task-303.json": (
-            "dd8f29defdc326c2ad618d6c0cbb7c04311cb70203c914360e2fcad841859614"
-        ),
-        f"{_D}/retrieval-candidates/task-313.json": (
-            "2ed9685a48cbd674e424df631f5133fdea800b7ada08dc3e60517f080838ad08"
-        ),
-        f"{_D}/retrieval-candidates/task-314.json": (
-            "36341f8f8bd878ca57f91d570b51b249894e07c11ed0ba3eed3be41d0478b456"
-        ),
-        f"{_D}/retrieval-candidates/task-386.json": (
-            "87b32f3592d08b048d8d3eff74c3ebdae66801aabb6aafd5140580b5939ff805"
-        ),
-        f"{_D}/retrieval-candidates/task-784.json": (
-            "c926ed0c2617186bf70431006c2719aaf0ea1fda6f70224e9c10e114e24c7c63"
-        ),
-        f"{_D}/trajectory-candidates/task-404.json": (
-            "6b498639479005f5d8e089abbea3fd0f63acaa172e7b66ba7a6c50e4d3273609"
-        ),
-        f"{_D}/trajectory-candidates/task-464.json": (
-            "06dc0afaa7d3a2aef1c5e6777520069dc7add2b73e61825ce98692cd5d093746"
-        ),
-        f"{_D}/trajectory-candidates/task-610.json": (
-            "3cfb17cde4629344b3c9688204383c2779ac8030b042e80f5c6a6ca5d8b20d38"
-        ),
-        f"{_D}/trajectory-candidates/task-771.json": (
-            "cb2866eed4f9c08c1fb251db6487c3474aa1f86257c91efce174c385381908d1"
-        ),
-        # Exact parent of task-108-stabilized in its declared lineage.
-        f"{_D}/retrieval-candidates/task-108-ajax-proposal.json": (
-            "aae7171e90cb3f309400fa7c5289ae3e6a13254c8c075b0cf591f6468e81514a"
-        ),
-        # Action prefix equals the bound trajectory in trajectories-corrected.
-        f"{_D}/retrieval-candidates/task-66.json": (
-            "352bc6f546170e8f7201b0667b101307e0be0a4bf087d24a3384624209bf29c2"
-        ),
-        f"{_D}/retrieval-candidates/task-66-budget.json": (
-            "8066148fbbc8acd2d30e4488f384b053dbed7988a3605c28e5c6dd5033ded206"
-        ),
-        f"{_D}/retrieval-candidates/task-349.json": (
-            "33bb5bb5540970507b518d9d0097a7c378fe00284eaec8b5bb4d03e6b33f869b"
-        ),
-        # Base of trajectories-corrected, which records this file hash.
-        f"{_D}/trajectories.json": (
-            "61bb38bce552b5c7eea0e1f5fcca1bc898f55e2e39ee6e72498cff346ca1e4e3"
-        ),
-    }
-)
-
 _SITE = "artifact-" + "site"
 _HUB = "artifact-" + "hub"
 _HOME = re.compile(r"(?:(?<=file://)|(?<![\w./%-]))/(?:Users|home)/([A-Za-z0-9_][A-Za-z0-9_.-]*)")
@@ -185,26 +101,11 @@ def _tracked_texts() -> dict[str, str]:
     return texts
 
 
-def test_pinned_inputs_keep_their_exact_bytes() -> None:
-    actual = {
-        name: hashlib.sha256((ROOT / name).read_bytes()).hexdigest()
-        for name in PINNED_DATASET_INPUTS
-    }
-    assert actual == dict(PINNED_DATASET_INPUTS)
-
-
 def test_tracked_text_has_no_private_values() -> None:
     findings = {}
-    exempt_hits = set()
     for name, text in _tracked_texts().items():
         hosts = internal_hosts(text)
         addresses = private_addresses(text)
-        if name in PINNED_DATASET_INPUTS:
-            gateways = addresses & set(RECORDING_GATEWAYS)
-            if hosts or gateways:
-                exempt_hits.add(name)
-            hosts = set()
-            addresses -= gateways
         # Report counts and kinds only, so a failure log does not echo a value.
         kinds = {
             "home": len(personal_homes(text)),
@@ -215,7 +116,6 @@ def test_tracked_text_has_no_private_values() -> None:
         if any(kinds.values()):
             findings[name] = kinds
     assert findings == {}
-    assert exempt_hits == set(PINNED_DATASET_INPUTS), "remove exemptions that no longer apply"
 
 
 @pytest.mark.parametrize(

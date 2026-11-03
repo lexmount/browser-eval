@@ -3,7 +3,7 @@
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023"
+      "url": "http://host.docker.internal:8023"
     },
     {
       "action": "click",
@@ -15,7 +15,7 @@
     },
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023/primer/design/-/graphs/main/charts"
+      "url": "http://host.docker.internal:8023/primer/design/-/graphs/main/charts"
     },
     {
       "action": "scroll",
@@ -26,7 +26,7 @@
     },
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023/primer/design/-/graphs/main"
+      "url": "http://host.docker.internal:8023/primer/design/-/graphs/main"
     },
     {
       "action": "evaluate",
@@ -36,7 +36,7 @@
   "retrieval_contract": {
     "schema": "lex_replay_current_run_retrieval/1",
     "task_id": 314,
-    "canonical_calls_sha256": "7d8b2c3d376ef62b5dcd2e5e0f7f0fe04ea22adfdb637cd2c2852219df413751",
+    "canonical_calls_sha256": "e1feaa988da32bf746d85b3ae8baee00511d27cb1985e2f6209802fd70906a59",
     "sources": [
       {
         "name": "observation",

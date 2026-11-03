@@ -115,6 +115,24 @@ Browser Eval wrote the [30 public-web replay tasks](https://huggingface.co/datas
 
 [WebArena replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) has separate official tasks, self-hosted application state and evaluator rules. Its full task catalog is the current viewer population; qualified recordings and corrected-task editions remain versioned source inputs for the [public replay runtime](../examples/trajectory_replay/public_webarena/README.md). The original Headless driver runtime remains upstream-owned. Follow each dataset card for its input format and runtime contract.
 
+### WebArena replay input correction
+
+WebArena Replay 1.0.1 corrects the host values in Browser Eval's recorded replay inputs, which named private recording hosts. Exported task questions, actions and evaluator inputs are unchanged, so this is a patch edition. Its definitions change only the hashes that bind those corrected sources. The [release index](releases.md#benchmark-release-index) records the edition, and the data lock keeps the previous edition in `history`.
+
+Corrected inputs use the recorded container host, so they follow the same port-based rebinding as other recorded inputs and reach the sites in your site map. Older evidence still uses the earlier hosts. To replay or redact it, list those hosts in `WEBARENA_RECORDING_GATEWAYS`.
+
+The correction changes bytes that earlier evidence binds:
+
+| Earlier material | Effect | What to do |
+| --- | --- | --- |
+| Stored attempts for tasks 280 and 282 | Their correction record digest changed | Re-evaluate, or check them against a private copy of the original bytes |
+| A run or ordered sweep started before the correction | It stops on changed inputs | Start a new run or sweep |
+| A frozen cohort manifest | It stops when a recorded source revision changed | Freeze and qualify a new manifest |
+| Qualification receipts for corrected candidates | They refer to the earlier candidate bytes | Requalify those tasks |
+| An instance profile that binds the bridge or an earlier dataset hash | It stops with a hash error | Update the bound hash, or keep selecting the earlier edition by revision |
+
+Published reports and measured evidence are not changed. A profile may keep selecting an earlier edition through its recorded revision.
+
 ## Benchmark editions
 
 Every track identifies its benchmark code by the full source commit. A release

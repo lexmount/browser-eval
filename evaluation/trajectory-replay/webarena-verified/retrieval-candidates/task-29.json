@@ -3,7 +3,7 @@
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:9999"
+      "url": "http://host.docker.internal:9999"
     },
     {
       "action": "click",
@@ -15,7 +15,7 @@
     },
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:9999/f/DIY"
+      "url": "http://host.docker.internal:9999/f/DIY"
     },
     {
       "action": "click",
@@ -41,7 +41,7 @@
   "retrieval_contract": {
     "schema": "lex_replay_current_run_retrieval/1",
     "task_id": 29,
-    "canonical_calls_sha256": "4de8202bcc49843884cdab163b4d2e3cdf3a679fb23f1756a0bdf2c093558488",
+    "canonical_calls_sha256": "02ce1f7e6fc9b45956170ecbb862d82528c00f5db095caba31f157736ef1b65f",
     "sources": [
       {
         "name": "current",

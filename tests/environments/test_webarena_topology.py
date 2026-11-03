@@ -345,7 +345,7 @@ def test_unset_site_credentials_stop_with_the_variable_names(monkeypatch) -> Non
     assert runtime.SITE_CREDENTIALS.get(WebArenaSite.MAP) is None
 
 
-def test_unset_recording_gateway_stops_instead_of_passing_frozen_urls(monkeypatch) -> None:
+def test_unset_recording_gateway_stops_rebinding_a_private_recorded_host(monkeypatch) -> None:
     from harness.trajectory_replay import remote_runtime
 
     monkeypatch.setattr(topology, "RECORDING_GATEWAYS", ())
@@ -353,8 +353,6 @@ def test_unset_recording_gateway_stops_instead_of_passing_frozen_urls(monkeypatc
 
     with pytest.raises(ValueError, match="WEBARENA_RECORDING_GATEWAYS"):
         remote_runtime.rebind_remote_calls(calls, {}, set())
-    with pytest.raises(ValueError, match="WEBARENA_RECORDING_GATEWAYS"):
-        sanitize_text("public evidence must not pass without redaction")
     public = [{"action": "navigate", "url": "http://webarena.example:7780/admin"}]
     assert remote_runtime.rebind_remote_calls(public, {}, set()) == public
 
