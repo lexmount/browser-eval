@@ -184,3 +184,21 @@ def test_frozen_policy_source_is_materialized_and_hash_checked(tmp_path):
     with pytest.raises(ValueError, match='policy source changed'):
         materialize_native_route_contracts(tmp_path/'other', tmp_path,
             [{'native_route_contract': {'path': contract.name, 'sha256': hashlib.sha256(contract.read_bytes()).hexdigest()}}])
+
+
+@pytest.mark.parametrize(('interface', 'contract', 'expected'), [
+    ('ordinary_markdown', 'markdown', 'utf8'),
+    ('native_document_bytes', 'markdown', 'empty'),
+    ('ordinary_markdown', 'original_document_bytes_without_extracted_text', 'empty'),
+])
+def test_moli_format_label_does_not_replace_frozen_request_interface(tmp_path, interface, contract, expected):
+    from harness.web_fetch.native_routes import _expected_native_declaration
+    case = {'id': 'document', 'url': 'https://example.test/file.pdf',
+            'track': 'document', 'task_kind': 'body',
+            'source_benchmark': {'input_media_kind': 'direct_pdf'}}
+    record = {'case_id': case['id'], 'url': case['url'], 'provider_type': 'moli_webfetch',
+              'provider_metadata': {'output_contract': contract,
+                  'native_route_receipt': {'requests': [{'signature': {'interface': interface}}]}}}
+    declaration = _expected_native_declaration(tmp_path, record, b'', {'document': case})
+    assert declaration['content_format'] == expected
+    assert ('files' in declaration) == (expected == 'empty')

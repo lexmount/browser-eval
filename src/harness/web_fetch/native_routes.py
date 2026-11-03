@@ -533,9 +533,14 @@ def _expected_native_declaration(root, record, raw, cases_by_id, *, policy_versi
         payload = {}
     requests = record['provider_metadata']['native_route_receipt'].get('requests', [])
     interface = requests[0].get('signature', {}).get('interface') if requests else None
+    output_contract = record['provider_metadata'].get('output_contract', interface)
+    # Moli's format label is not an interface. Replay its frozen request route;
+    # retain explicit legacy raw-document contracts for historical evidence.
+    if record['provider_type'] == 'moli_webfetch' and output_contract == 'markdown':
+        output_contract = interface
     return native_answer_projection(record['provider_type'], case, payload,
                                     record['provider_metadata'].get('api_http_status', record.get('status_code')),
-                                    interface=record['provider_metadata'].get('output_contract', interface), policy_version=policy_version)
+                                    interface=output_contract, policy_version=policy_version)
 
 
 def verify_saved_native_answer(root, record, *, cases_by_id=None):
