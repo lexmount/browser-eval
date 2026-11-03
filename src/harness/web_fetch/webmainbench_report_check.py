@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 from lexbench_webfetch.metrics import percentile
 from lexbench_webfetch.paths import contained_path
 
-from harness.record_io import file_sha256, load_jsonl
+from harness.record_io import file_sha256, load_jsonl, read_json
 from harness.report_languages import (
     check_language_contract,
     generated_languages,
@@ -23,6 +23,7 @@ from harness.report_languages import (
 )
 from harness.reporting.assets import load_bound_content
 from harness.reporting.presentation import check_presentation
+from harness.reporting.release_check import checked_page, language_editions, open_report, read_page
 from harness.web_fetch.report import ERROR_PAGE, EXTRA, JS, STYLE
 from harness.web_fetch.report_changes import webmainbench_history
 from harness.web_fetch.safety import reject_evidence_symlinks
@@ -46,8 +47,8 @@ def validate_sample_content(root: Path, *, authority_root: Path, binding_path: P
         raise ValueError('Sample report content binding differs from authority')
     content = load_bound_content(root, json.loads(expected), evidence_root=root,
                                  authority_root=authority_root)
-    for language in generated_languages(root):
-        route = 'en/guide/index.html' if language == 'en' else 'guide/index.html'
+    for language, prefix in language_editions(root):
+        route = prefix + 'guide/index.html'
         page = contained_path(root, route, reject_symlinks=True).read_text(encoding='utf-8')
         body = re.search(r'<main>(.*)</main>', page, re.S)
         if body is None or body.group(1) != content['guide'][language]:
@@ -104,7 +105,7 @@ def check_interaction_script(script: str) -> None:
 
 def check_table_interaction(root: Path, *, provider_count: int, case_count: int) -> None:
     check_interaction_script((root / 'assets/report.js').read_text(encoding='utf-8'))
-    home = check_presentation((root / 'index.html').read_text(encoding='utf-8'))
+    home = checked_page(root / 'index.html')
     style_href = home.select_one('link[rel="stylesheet"]')
     script_src = home.select_one('script[src]')
     if (not style_href or not script_src
@@ -116,14 +117,14 @@ def check_table_interaction(root: Path, *, provider_count: int, case_count: int)
             or len(core.select('th[aria-sort="none"] > button[data-table-sort][onclick="sortReportTable(this)"]')) != 8
             or any(cell.get('data-sort') is None for cell in core.select('tbody > tr > td.number'))):
         raise ValueError('Core comparison lacks complete stable sorting semantics')
-    dataset = BeautifulSoup((root / 'dataset/index.html').read_text(encoding='utf-8'), 'html.parser')
+    dataset = read_page(root / 'dataset/index.html')
     dataset_table = dataset.select_one('table#dataset-inventory')
     if (not dataset.select_one('#dataset-q') or not dataset.select_one('#dataset-language')
             or not dataset.select_one('#dataset-level') or not dataset.select_one('#dataset-count')
             or not dataset_table or len(dataset_table.select('tbody > tr[data-dataset]')) != case_count
             or len(dataset_table.select('button[data-table-sort][onclick="sortReportTable(this)"]')) != 4):
         raise ValueError('Dataset inventory lacks complete search, filters or sorting')
-    analysis = BeautifulSoup((root / 'analysis/index.html').read_text(encoding='utf-8'), 'html.parser')
+    analysis = read_page(root / 'analysis/index.html')
     inventory = analysis.select_one('table#result-inventory')
     if (not inventory or len(inventory.select('tbody > tr[data-result]')) != case_count * provider_count
             or len(inventory.select('button[data-table-sort][onclick="sortReportTable(this)"]')) != 5
@@ -182,11 +183,12 @@ def check_latency_diagnostic(section, evidence: dict, *, formal_round=None) -> N
 
 
 def check(root: Path, *, authority_root: Path | None = None) -> None:
+    root = open_report(root)
     repo = authority_directory(authority_root, "evaluation/webmainbench-full/current-report.json")
     profile_path = repo / 'evaluation/webmainbench-full/current-report.json'
-    target = json.loads((repo / 'evaluation/webmainbench-full/publication-target.json').read_text(encoding='utf-8'))
+    target = read_json(repo / 'evaluation/webmainbench-full/publication-target.json')
     registry_path = repo / 'evaluation/webmainbench-full/moli-variants.json'
-    registry = json.loads(registry_path.read_text(encoding='utf-8'))
+    registry = read_json(registry_path)
     variants = registry['variants']
     variant_ids = [item['provider'] for item in variants]
     expected_variant_hashes = {
@@ -201,19 +203,17 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
             or not target.get('site_slug')):
         raise ValueError('WebMainBench publication target is not bound to the certified profile')
     _, method_binding = read_method_binding(root)
-    profile = json.loads(profile_path.read_text(encoding='utf-8'))
+    profile = read_json(profile_path)
     expected_providers = profile["providers"] + variant_ids
     provider_count = len(expected_providers)
     case_count = profile["case_count"]
     teds_path = root / 'teds-correction.json'
-    teds_receipt = json.loads(teds_path.read_text(encoding='utf-8')) if teds_path.is_file() else None
+    teds_receipt = read_json(teds_path) if teds_path.is_file() else None
     scoring_receipt_path = root / 'scoring-correction.json'
     if not scoring_receipt_path.is_file():
         raise ValueError('scoring-correction.json missing from report evidence')
-    scoring_binding = json.loads(
-        (repo / 'evaluation/webmainbench-full/scoring-correction-binding.json').read_text(encoding='utf-8')
-    )
-    scoring_receipt = json.loads(scoring_receipt_path.read_text(encoding='utf-8'))
+    scoring_binding = read_json(repo / 'evaluation/webmainbench-full/scoring-correction-binding.json')
+    scoring_receipt = read_json(scoring_receipt_path)
     bound_variants = {item['provider']: item for item in method_binding.get('variants', [])}
     if (method_binding.get('kind') not in {'webmainbench_seven_method_full_scope_binding', 'webmainbench_method_cohort_binding'}
             or method_binding.get('logical_results') != profile['case_count'] * (len(profile['providers']) + len(variants))
@@ -237,9 +237,9 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
             or scoring_receipt['scorer_commit'] not in methodology_html
             or 'lex-main 修正评分器提交' not in methodology_html):
         raise ValueError('Public report does not identify the bound lex-main scorer')
-    releases = json.loads((repo / 'research/report-changes.json').read_text(encoding='utf-8'))['releases']
+    releases = read_json(repo / 'research/report-changes.json')['releases']
     expected_releases = [item for item in releases if 'webmainbench_frozen_html_to_markdown' in item.get('comparison_kinds', [])]
-    history = BeautifulSoup((root / 'history/index.html').read_text(encoding='utf-8'), 'html.parser')
+    history = read_page(root / 'history/index.html')
     history_rows = history.select('tr[data-release-id]')
     if ([row['data-release-id'] for row in history_rows] != [item['id'] for item in expected_releases]
             or any(item['title'] not in row.get_text(' ', strip=True) or
@@ -247,25 +247,25 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
                    for row, item in zip(history_rows, expected_releases))):
         raise ValueError('WebMainBench release history differs from structured records')
     binding_path = repo / "evaluation/webmainbench-full/content-binding.json"
-    binding = json.loads(binding_path.read_text(encoding="utf-8"))
+    binding = read_json(binding_path)
     for path, expected in ((root / "report-content.json", binding["sha256"]),):
         if hashlib.sha256(path.read_bytes()).hexdigest() != expected:
             raise ValueError("Bound report asset changed: " + path.name)
-    failure_binding = json.loads((repo / "evaluation/webmainbench-full/failure-analysis-binding.json").read_text(encoding="utf-8"))
+    failure_binding = read_json(repo / "evaluation/webmainbench-full/failure-analysis-binding.json")
     failure_bytes = (root / "failure-analysis.json").read_bytes()
     if hashlib.sha256(failure_bytes).hexdigest() != failure_binding["sha256"]:
         raise ValueError("Bound failure analysis changed")
     failure_analysis = json.loads(failure_bytes)
-    manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
+    manifest = read_json(root / "report-manifest.json")
     if manifest != {"schema_version": 1, "report": "webmainbench-545-full",
                     "languages": ["zh"], "case_count": case_count, "provider_count": provider_count,
                     "result_count": case_count * provider_count}:
         raise ValueError("Incomplete WebMainBench report manifest")
-    dataset = json.loads((root / "dataset.json").read_text(encoding="utf-8"))
+    dataset = read_json(root / "dataset.json")
     records = load_jsonl(root / "results.jsonl")
     correction_binding = repo / 'evaluation/webmainbench-full/case-correction-binding.json'
     if correction_binding.exists():
-        receipt = json.loads((root / 'case-correction.json').read_text(encoding='utf-8'))
+        receipt = read_json(root / 'case-correction.json')
         if (receipt['preflight'] != receipt['postflight']
                 or receipt['current_results_sha256'] != hashlib.sha256((root / 'results.jsonl').read_bytes()).hexdigest()
                 or receipt['score_summaries_sha256'] != hashlib.sha256((root / 'score-summaries.json').read_bytes()).hexdigest()):
@@ -277,7 +277,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
             raise ValueError('Case correction missing a declared method')
         original_certificate = {key: receipt[key] for key in ('kind', 'preflight', 'postflight', 'results_sha256', 'physical_sha256')}
         certificate_bytes = (json.dumps(original_certificate, ensure_ascii=False, indent=2) + '\n').encode()
-        if hashlib.sha256(certificate_bytes).hexdigest() != json.loads(correction_binding.read_text(encoding='utf-8'))['sha256']:
+        if hashlib.sha256(certificate_bytes).hexdigest() != read_json(correction_binding)['sha256']:
             raise ValueError('Case correction certificate differs from repository binding')
         raw_parent = (teds_receipt['input_results_sha256'] if teds_receipt
                       else scoring_receipt['input_results_sha256'])
@@ -288,7 +288,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
                                     for p in receipt['preflight']['providers']).encode()
         if hashlib.sha256(replacement_bytes).hexdigest() != receipt['results_sha256']:
             raise ValueError('Corrected rows differ from certified calls')
-        case_scoring = json.loads((root / 'case-correction-scoring.json').read_text(encoding='utf-8'))
+        case_scoring = read_json(root / 'case-correction-scoring.json')
         if (case_scoring.get('kind') != 'webmainbench_case_correction_scoring_revision'
                 or case_scoring.get('provider_calls') != 0
                 or case_scoring.get('scorer_commit') != scoring_receipt.get('scorer_commit')
@@ -307,25 +307,25 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
                            for key in ("category_label", "cause", "treatment", "status"))
                    for row in failure_analysis["reviewed_failures"])):
         raise ValueError("Published failure analysis contains duplicate or empty reviews")
-    home = check_presentation((root / "index.html").read_text(encoding="utf-8"))
-    guide = check_presentation((root / "guide/index.html").read_text(encoding="utf-8"))
+    home = checked_page(root / "index.html")
+    guide = checked_page(root / "guide/index.html")
     profile_rows = guide.select('table#method-error-profiles tbody > tr')
     fix_slides = guide.select('[data-moli-fix-slide]')
-    content = json.loads((root / "report-content.json").read_text(encoding="utf-8"))
+    content = read_json(root / "report-content.json")
     if (len(profile_rows) != provider_count or len(fix_slides) != len(content["moli_fix_profiles"])
             or any(len(slide.select('.slide-facts > div')) != 4 for slide in fix_slides)):
         raise ValueError('Guide lacks the declared method error profiles or bound repair slides')
     illustrations = repo / 'evaluation/webmainbench-full/illustrations.json'
     overview_claims = None
     if illustrations.exists():
-        for asset in json.loads(illustrations.read_text(encoding='utf-8'))['assets']:
+        for asset in read_json(illustrations)['assets']:
             filename = 'assets/' + asset['name']
             if (hashlib.sha256(contained_path(root, filename).read_bytes()).hexdigest() != asset['sha256']
                     or not guide.select_one('img[src="' + filename + '"]')):
                 raise ValueError('Bound error analysis illustration missing or changed')
             if asset.get('role') == 'overview':
                 overview_claims = asset.get('claims')
-    summaries = json.loads((root / 'score-summaries.json').read_text(encoding='utf-8'))
+    summaries = read_json(root / 'score-summaries.json')
     expected_denominators = {
         'text_edit': 545, 'code_edit': 110, 'formula_edit': 257,
         'table_edit': 179, 'table_TEDS': 179,
@@ -380,7 +380,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
                        "cases/index.html?id=" + first_case}
     if not example_targets.issubset({link.get("href") for link in guide.select("a[href]")}):
         raise ValueError("Interpretation example lacks source, reference or same-case result")
-    analysis = BeautifulSoup((root / "analysis/index.html").read_text(encoding="utf-8"), "html.parser")
+    analysis = read_page(root / "analysis/index.html")
     check_diagnosis_inventory(analysis)
     check_table_interaction(root, provider_count=provider_count, case_count=case_count)
     if (len(analysis.select("tr[data-result]")) != case_count * provider_count or not analysis.select_one("#kind")
@@ -390,17 +390,17 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
         raise ValueError("Default diagnostic population is empty")
     if not (root / "en/index.html").is_file() or "返回中文报告" not in (root / "en/index.html").read_text(encoding="utf-8"):
         raise ValueError("English not-generated route missing")
-    case_template = BeautifulSoup((root / "cases/index.html").read_text(encoding="utf-8"), "html.parser")
+    case_template = read_page(root / "cases/index.html")
     if (not case_template.select_one("#case-results") or not case_template.select_one("#case-source")
             or not case_template.select_one("#case-reference") or not case_template.select_one("#case-comparison")):
         raise ValueError("Same-case comparison template is incomplete")
-    result_template = check_presentation((root / "results/index.html").read_text(encoding="utf-8"))
+    result_template = checked_page(root / "results/index.html")
     if not result_template.select_one('[data-result-summary]') or not result_template.select_one('#result-logs pre[data-kind="error"]'):
         raise ValueError("Shared result template lacks summary or exact error log")
-    index = json.loads((root / "result-shard-index.json").read_text(encoding="utf-8"))
-    artifact_index = json.loads((root / "artifact-shard-index.json").read_text(encoding="utf-8"))
+    index = read_json(root / "result-shard-index.json")
+    artifact_index = read_json(root / "artifact-shard-index.json")
     shard_paths = set(index.values()) | set(artifact_index.values())
-    shards = {path: json.loads(contained_path(root, path).read_text(encoding="utf-8")) for path in shard_paths}
+    shards = {path: read_json(contained_path(root, path)) for path in shard_paths}
     if len(index) != len(records) or len(shards) > 64:
         raise ValueError("Complete result shard index missing or oversized")
     failures = set()
@@ -504,8 +504,8 @@ def check_teds_warnings(root: Path, impossible_teds: int) -> None:
         variants.append(('en/', 'overall (under review)', f'{impossible_teds} TEDS records',
                          'score validity did not'))
     for prefix, label, count, warning in variants:
-        home = BeautifulSoup((root / prefix / 'index.html').read_text(encoding='utf-8'), 'html.parser')
-        review = BeautifulSoup((root / prefix / 'review/index.html').read_text(encoding='utf-8'), 'html.parser')
+        home = read_page(root / prefix / 'index.html')
+        review = read_page(root / prefix / 'review/index.html')
         if (label not in home.get_text(' ', strip=True)
                 or count not in review.get_text(' ', strip=True)
                 or warning not in review.get_text(' ', strip=True)):
@@ -515,21 +515,22 @@ def check_teds_warnings(root: Path, impossible_teds: int) -> None:
 def check_sample_report(root: Path, dataset: dict | None = None,
                         records: list[dict] | None = None, *,
                         authority_root: Path | None = None, profile_path: Path | None = None) -> None:
+    root = open_report(root)
     repo = (profile_path.parent.parent if profile_path is not None else
             authority_directory(authority_root, "evaluation/current-report.json"))
     profile_path = profile_path or repo / "evaluation/current-report.json"
     check_language_contract(root)
-    language_pairs = (('', 'zh'), ('en/', 'en')) if 'en' in generated_languages(root) else (('', 'zh'),)
-    prefixes = tuple(prefix for prefix, _ in language_pairs)
-    dataset = dataset or json.loads((root / "dataset.json").read_text(encoding="utf-8"))
+    language_pairs = language_editions(root)
+    prefixes = tuple(prefix for _, prefix in language_pairs)
+    dataset = dataset or read_json(root / "dataset.json")
     records = records or read_jsonl(root / "results.jsonl")
     latency_correction = validate_latency_correction(root)
-    current_profile = json.loads(profile_path.read_text(encoding='utf-8'))
+    current_profile = read_json(profile_path)
     diagnostic_profile = current_profile.get('latency_diagnostic')
     diagnostic_path = root / 'latency-diagnostic.json'
     if diagnostic_profile and not diagnostic_path.is_file():
         raise ValueError('Current WebMainBench release lacks the declared latency diagnostic')
-    latency_diagnostic = json.loads(diagnostic_path.read_text(encoding='utf-8')) if diagnostic_path.is_file() else None
+    latency_diagnostic = read_json(diagnostic_path) if diagnostic_path.is_file() else None
     if latency_diagnostic:
         if (latency_diagnostic.get('kind') != 'same_host_latency_diagnostic'
                 or latency_diagnostic.get('official_results_sha256') != file_sha256(prior_results_path(root))
@@ -539,12 +540,12 @@ def check_sample_report(root: Path, dataset: dict | None = None,
                 or set(latency_diagnostic.get('runs', {})) != {
                     'moli-115-control', 'moli-117-repeat'}):
             raise ValueError('Published latency diagnostic is incomplete or no longer bound to official evidence')
-    source_history = webmainbench_history(json.loads((repo / 'research/report-changes.json').read_text(encoding='utf-8')))
-    bundled_history = json.loads((root / 'report-changes.json').read_text(encoding='utf-8'))
+    source_history = webmainbench_history(read_json(repo / 'research/report-changes.json'))
+    bundled_history = read_json(root / 'report-changes.json')
     if bundled_history.get('releases') != source_history:
         raise ValueError('Bundled WebMainBench release history differs from the reviewed source')
-    for prefix, language in language_pairs:
-        changes = BeautifulSoup((root / prefix / 'changes/index.html').read_text(encoding='utf-8'), 'html.parser')
+    for language, prefix in language_pairs:
+        changes = read_page(root / prefix / 'changes/index.html')
         ids = [node.get('data-release-id') for node in changes.select('[data-release-id]')]
         if ids != [row['id'] for row in source_history]:
             raise ValueError(prefix + 'Release page omits a structured release record')
@@ -574,7 +575,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
         raise ValueError("WebMainBench report attempt IDs are not unique")
 
     sample_path = root / "sample-manifest.json"
-    sample = json.loads(sample_path.read_text(encoding="utf-8"))
+    sample = read_json(sample_path)
     sample_sha = file_sha256(sample_path)
     sample_ids = {row.get("track_id") for row in sample.get("cases", [])}
     if (sample_sha != dataset.get("sample_manifest_sha256")
@@ -582,7 +583,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
             or sample.get("sampling", {}).get("size") != 200):
         raise ValueError("WebMainBench sample binding mismatch")
 
-    review = json.loads((root / "result-review.json").read_text(encoding="utf-8"))
+    review = read_json(root / "result-review.json")
     if (review.get("status") != "passed" or set(review.get("providers", [])) != SAMPLE_PROVIDERS
             or review.get("sample_manifest_sha256") != sample_sha
             or review.get("sample_case_count") != 200
@@ -591,7 +592,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
         raise ValueError("WebMainBench independent review is missing or incomplete")
 
     anomaly_path = root / "webmainbench-anomaly-review.json"
-    anomaly = json.loads(anomaly_path.read_text(encoding="utf-8"))
+    anomaly = read_json(anomaly_path)
     scope = anomaly.get("scope", {})
     bindings = anomaly.get("bindings", {})
     triggered = anomaly.get("triggered_attempt_ids", [])
@@ -606,7 +607,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
             or bindings.get("score_summaries_json_sha256") != file_sha256(root / "score-summaries.json")):
         raise ValueError("WebMainBench anomaly review is missing, incomplete, or not bound to this report")
 
-    summaries = json.loads((root / "score-summaries.json").read_text(encoding="utf-8"))
+    summaries = read_json(root / "score-summaries.json")
     if set(summaries) != SAMPLE_PROVIDERS:
         raise ValueError("WebMainBench score-summary provider set mismatch")
     grouped = defaultdict(list)
@@ -618,7 +619,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
         for prefix in prefixes:
             detail = root / prefix / "attempts" / f'{row["attempt_id"]}.html'
             if detail.is_file():
-                detail_soup=check_presentation(detail.read_text(encoding='utf-8'))
+                detail_soup=checked_page(detail)
                 if row.get('error_message'):
                     exact=detail_soup.select_one('#result-logs pre[data-kind="error"]')
                     if exact is None or exact.get_text() != row['error_message']:
@@ -657,7 +658,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
         if not retry_chain_matches(row, attempts):
             raise ValueError("WebMainBench retry chain mismatch: " + row["attempt_id"])
 
-    executions = json.loads((root / "execution.json").read_text(encoding="utf-8")).get("batches", [])
+    executions = read_json(root / "execution.json").get("batches", [])
     if {row.get("provider") for row in executions} != SAMPLE_PROVIDERS:
         raise ValueError("WebMainBench execution manifest provider set mismatch")
 
@@ -665,7 +666,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
     localized_report_routes(root, {path.as_posix() for path in zh})
     if len(zh) != 16 + len(cases) + len(records):
         raise ValueError("WebMainBench route inventory mismatch")
-    analysis = BeautifulSoup((root / "analysis/index.html").read_text(encoding="utf-8"),"html.parser")
+    analysis = read_page(root / "analysis/index.html")
     if (len(analysis.select('table[data-wmb-table] tbody tr')) != len(records)
             or {tag.get('data-wmb-filter') for tag in analysis.select('[data-wmb-filter]')} != {
                 'method','axis','category','request','failure','metric','band','query'}):
@@ -705,8 +706,8 @@ def check_sample_report(root: Path, dataset: dict | None = None,
     expected_guide_sections = {"overall", "scope", "content", "tables", "version-differences", "delivery", "decision"}
     guides = {}
     for prefix, language in tuple((prefix, 'English' if code == 'en' else 'Chinese')
-                                  for prefix, code in language_pairs):
-        guide = BeautifulSoup((root / prefix / "guide/index.html").read_text(encoding="utf-8"), "html.parser")
+                                  for code, prefix in language_pairs):
+        guide = read_page(root / prefix / "guide/index.html")
         guides[prefix] = guide
         if {section.get("id") for section in guide.select(".wmb-editorial section[id]")} != expected_guide_sections:
             raise ValueError(f"WebMainBench {language} report interpretation is incomplete")
@@ -733,7 +734,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
             "../attempts/chromium__ccb6033c-0a12-4f9c-8c68-794f26129841__r001.html",
         }.issubset(guide_hrefs):
             raise ValueError(f"WebMainBench {language} guide lacks representative evidence links")
-    dataset_page = BeautifulSoup((root / "datasets/index.html").read_text(encoding="utf-8"),"html.parser")
+    dataset_page = read_page(root / "datasets/index.html")
     if len(dataset_page.select('table[data-wmb-table] tbody tr')) != 200:
         raise ValueError("WebMainBench 200-case filtered dataset inventory is incomplete")
     if dataset_page.select('[data-wmb-filter="request"]') or '公式' not in dataset_page.select('#wmb-cases th')[-1].get_text(strip=True):
@@ -745,11 +746,11 @@ def check_sample_report(root: Path, dataset: dict | None = None,
     if 'en' in generated_languages(root):
         timing_variants.append(('en/', 'Mean latency ↕'))
     for prefix, mean_label in timing_variants:
-        localized_home = BeautifulSoup((root / prefix / "index.html").read_text(encoding="utf-8"), "html.parser")
+        localized_home = read_page(root / prefix / "index.html")
         check_presentation(localized_home)
-        check_presentation((root / prefix / "guide/index.html").read_text(encoding='utf-8'))
+        checked_page(root / prefix / "guide/index.html")
         if latency_diagnostic:
-            guide_page = BeautifulSoup((root / prefix / 'guide/index.html').read_text(encoding='utf-8'), 'html.parser')
+            guide_page = read_page(root / prefix / 'guide/index.html')
             core = localized_home.select_one('#wmb-core-results')
             if (core is None or not core.find_next('p', class_='source-note')
                     or not core.find_next('p', class_='source-note').select_one(
@@ -814,10 +815,10 @@ def check_sample_report(root: Path, dataset: dict | None = None,
                 or len(localized_home.select(".wmb-denominator-matrix tbody td")) != 6
                 or localized_home.select_one(".wmb-denominator-example .mermaid") is None):
             raise ValueError(prefix + "WebMainBench home lacks the denominator example")
-        methodology = BeautifulSoup((root / prefix / "methodology/index.html").read_text(encoding="utf-8"), "html.parser")
+        methodology = read_page(root / prefix / "methodology/index.html")
         if methodology.select_one(".wmb-flow .mermaid") is None:
             raise ValueError(prefix + "WebMainBench methodology must lead with an evaluation-flow diagram")
-        localized_review = BeautifulSoup((root / prefix / "review/index.html").read_text(encoding="utf-8"), "html.parser")
+        localized_review = read_page(root / prefix / "review/index.html")
         review_text = localized_review.get_text(" ", strip=True)
         expected_review = "36 条，实际集中在 6 个页面" if not prefix else "36 of 1,200 results, concentrated in 6 pages"
         if expected_review not in review_text or len(localized_review.select("table.wide-prose-table tbody > tr")) < 6:
@@ -829,7 +830,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
         for detail in [row.get("metrics", {}).get("table_TEDS", {}).get("details", {})]
     )
     check_teds_warnings(root, impossible_teds)
-    adoption_page = BeautifulSoup((root / "adoption/index.html").read_text(encoding="utf-8"), "html.parser")
+    adoption_page = read_page(root / "adoption/index.html")
     for page, required in ((dataset_page, 2), (adoption_page, 1)):
         wide_tables = page.select(".table-wrap > table.wide-prose-table")
         if len(wide_tables) < required or any(len(table.select("thead th")) < 6 for table in wide_tables):
@@ -842,7 +843,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
         raise ValueError("WebMainBench table width, bounded slice layout or filter logic is missing")
     for case_id in cases:
         for prefix in prefixes:
-            case_page = BeautifulSoup((root / prefix / "datasets" / f"{case_id}.html").read_text(encoding="utf-8"), "html.parser")
+            case_page = read_page(root / prefix / "datasets" / f"{case_id}.html")
             hrefs = {link.get("href", "") for link in case_page.select("a[href]")}
             preview = case_page.select_one('#frozen-input iframe.wmb-html-preview')
             if preview is None or preview.get('sandbox') != [] or not preview.get('srcdoc'):
@@ -853,7 +854,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
                     or len(case_page.select("pre.wmb-source-pre")) != 2):
                 raise ValueError("WebMainBench case detail lacks independent reference or frozen input: " + case_id)
     for route in ("datasets/index.html", "analysis/index.html"):
-        localized = [BeautifulSoup((root / prefix / route).read_text(encoding="utf-8"), "html.parser")
+        localized = [read_page(root / prefix / route)
                      for prefix in prefixes]
         for selector in ("[data-wmb-filter]", "[data-wmb-slice-filter]"):
             inputs = [[(control.get("data-wmb-filter") or control.get("id"),
@@ -862,11 +863,11 @@ def check_sample_report(root: Path, dataset: dict | None = None,
             if len(inputs) == 2 and inputs[0] != inputs[1]:
                 raise ValueError("WebMainBench bilingual filter fields or values differ: " + route)
     for provider in SAMPLE_PROVIDERS:
-        method_page = BeautifulSoup((root / "providers" / f'{provider}.html').read_text(encoding="utf-8"),"html.parser")
+        method_page = read_page(root / "providers" / f'{provider}.html')
         if len(method_page.select('table[data-wmb-table] tbody tr')) != 200:
             raise ValueError(provider + ": filtered per-method result inventory is incomplete")
     for relative in zh:
-        editions = [BeautifulSoup((root / prefix / relative).read_text(encoding="utf-8"), "html.parser")
+        editions = [read_page(root / prefix / relative)
                     for prefix in prefixes]
         if len(editions) == 2 and Counter(tag.name for tag in editions[0].find_all()) != Counter(tag.name for tag in editions[1].find_all()):
             raise ValueError("WebMainBench bilingual semantic-shape mismatch: " + str(relative))

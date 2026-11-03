@@ -9,12 +9,12 @@ from collections import Counter
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
 
-from bs4 import BeautifulSoup
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path, safe_identifier, validate_http_url
 
-from harness.record_io import json_bytes, load_jsonl
+from harness.record_io import json_bytes, load_jsonl, read_json
 from harness.reporting.presentation import check_presentation
+from harness.reporting.release_check import checked_page, open_report, read_page
 from harness.reporting.versions import check_build_version
 from harness.web_fetch.artifacts import (
     verify_record_private_artifacts,
@@ -439,14 +439,14 @@ def check_diagnostic_report(output, profile=None):
     """Enforce the shared reader structure and evidence dialogs at release."""
 
 
-    output = Path(output)
+    output = open_report(output)
     model, files = load_diagnostic(output)
     if profile is not None:
-        require_diagnostic_scope(model, json.loads(Path(profile).read_text(encoding='utf-8')))
-    manifest = json.loads((output / "report-manifest.json").read_text(encoding='utf-8'))
+        require_diagnostic_scope(model, read_json(Path(profile)))
+    manifest = read_json(output / "report-manifest.json")
     check_build_version(output, manifest)
     if profile is not None:
-        binding = json.loads(Path(profile).read_text(encoding='utf-8')).get('diagnostic_input')
+        binding = read_json(Path(profile)).get('diagnostic_input')
         if binding and manifest.get('input_sha256') != binding['sha256']:
             raise ValueError('Rendered diagnostic instance does not bind the planned input')
     if manifest["template"]["track"] != "webfetch" or manifest["template"]["renderer"] not in {"src/harness/web_fetch/report.py", "harness/web_fetch/report.py"}:
@@ -462,10 +462,10 @@ def check_diagnostic_report(output, profile=None):
     for route in core:
         page = (output / route).read_text(encoding='utf-8')
         check_presentation(page)
-    home = BeautifulSoup((output / 'index.html').read_text(encoding='utf-8'), 'html.parser')
+    home = read_page(output / 'index.html')
     overall = diagnostic_call_summary(model['rows'], files)
     for route in ('index.html', 'guide/index.html'):
-        page = BeautifulSoup((output / route).read_text(encoding='utf-8'), 'html.parser')
+        page = read_page(output / route)
         rendered = page.select('[data-summary-overall]')
         expected_values = [overall[k] for k in ('total','delivered','accepted','mean_ms','p50_ms','p95_ms')]
         if (len(rendered) != 1 or [c.get('data-sort') for c in rendered[0].select('td')][3:]
@@ -496,7 +496,7 @@ def check_diagnostic_report(output, profile=None):
         width = re.fullmatch(r'width:([0-9.]+)%', fill.get('style', ''))
         if not width or abs(float(width[1]) - 100 * passed / total) > 1e-9:
             raise ValueError('Cohort chart percentage mismatch')
-    analysis = BeautifulSoup((output / 'analysis/index.html').read_text(encoding='utf-8'), 'html.parser')
+    analysis = read_page(output / 'analysis/index.html')
     expected_counts = diagnostic_failure_counts(model, files)
     actual_counts = analysis.select('[data-failure-type]')
     if Counter(c.get('data-failure-type') for c in actual_counts) != Counter({k: 1 for k in expected_counts}):
@@ -507,7 +507,7 @@ def check_diagnostic_report(output, profile=None):
                 or FAILURE_TYPES[kind] not in count.get_text()
                 or not count.select_one('a[href="analysis/index.html#issue='+kind+'"]')):
             raise ValueError('Failure type count or drilldown differs from saved checks')
-    guide = BeautifulSoup((output / 'guide/index.html').read_text(encoding='utf-8'), 'html.parser')
+    guide = read_page(output / 'guide/index.html')
     if not guide.select_one('#guide-results') or not guide.select_one('#guide-conclusions'):
         raise ValueError('Interpretation lacks outcome or conclusion')
     lead = guide.select_one('.hero .lead')
@@ -550,7 +550,7 @@ def check_diagnostic_report(output, profile=None):
                 raise ValueError('Interpretation specimen differs from bound evidence')
     for row in model["rows"]:
         route = "attempts/" + row["id"] + ".html"
-        soup = check_presentation((output / route).read_text(encoding='utf-8'))
+        soup = checked_page(output / route)
         if soup.select_one('[data-task-id]')["data-task-id"] != row["id"]:
             raise ValueError("Result identity mismatch")
         detail = soup.select_one('[data-report-detail]')
@@ -583,7 +583,7 @@ def check_diagnostic_report(output, profile=None):
             elif pre.get_text() != files[binding['path']].decode('utf-8'):
                 raise ValueError("Rendered evidence differs from saved output")
     for route in output.rglob("*.html"):
-        soup = BeautifulSoup(route.read_text(encoding='utf-8'), "html.parser")
+        soup = read_page(route)
         for node in soup.select("[href], [src], [data-evidence-file]"):
             if node.name == 'base':
                 continue

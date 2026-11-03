@@ -14,9 +14,10 @@ from lexbench_webfetch.metrics import task_measured, task_passed
 from lexbench_webfetch.paths import contained_path, safe_identifier
 from lexbench_webfetch.stable_tasks import validate_acceptance_contract
 
-from harness.record_io import file_sha256, load_jsonl
+from harness.record_io import file_sha256, load_jsonl, read_json
 from harness.report_languages import check_language_contract, generated_languages, visible_numbers
 from harness.reporting.presentation import check_presentation
+from harness.reporting.release_check import language_editions, open_report, read_page
 from harness.reporting.templates import resolve_template
 from harness.web_fetch.adjudication_evidence import (
     require_adjudication_evidence,
@@ -40,7 +41,6 @@ from harness.web_fetch.report_reading import render_archived_reading
 from harness.web_fetch.report_resources import check_resource_presentation
 from harness.web_fetch.report_version import check_release
 from harness.web_fetch.result_ledger import validate_ledger
-from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.web_fetch.storage import require_canonical_inputs, require_current_report_profile
 from harness.web_fetch.wcxb_report_check import check as check_wcxb
 from harness.web_fetch.webmainbench_report_check import check_sample_report
@@ -75,11 +75,11 @@ def require_public_evidence_page(content, relative, views):
 
 def check_public_evidence_pages(root, records):
     views = public_render_views(root, records)
-    languages = generated_languages(root)
+    editions = language_editions(root)
     for row in records:
         selected = views[row['attempt_id']]
-        for language in languages:
-            relative = ('en/' if language == 'en' else '')+'attempts/'+row['attempt_id']+'.html'
+        for _, prefix in editions:
+            relative = prefix+'attempts/'+row['attempt_id']+'.html'
             path = root/relative
             if not path.is_file():
                 raise ValueError('Public evidence result page is missing')
@@ -238,7 +238,7 @@ def check_localized_image_sources(zh, en, canonical):
 
 def check_saved_result_summary(root, dataset, records):
     cases = {case['id']: case for case in dataset['cases']}
-    summary = json.loads((root / 'summary.json').read_text(encoding="utf-8"))
+    summary = read_json(root / 'summary.json')
     groups = {}
     for row in records:
         key = (cases[row['case_id']].get('track', 'web'), row['provider'])
@@ -255,7 +255,7 @@ def check_saved_result_summary(root, dataset, records):
 
 def require_replacement_execution(root, binding, physical, logical):
     """Keep superseded task calls as history without counting them as current rows."""
-    receipt = json.loads(read_evidence_binding(root, binding).read_text(encoding="utf-8"))
+    receipt = read_json(read_evidence_binding(root, binding))
     previous = load_jsonl(read_evidence_binding(root, receipt['baseline_results']))
     calls = load_jsonl(read_evidence_binding(root, receipt['cohort_results']))
     expected_physical = Counter(row['attempt_id'] for row in previous + calls)
@@ -314,8 +314,7 @@ def check_local_diagnostic_presentation(root: Path, *, ranked=False):
 
 
 def check(root: Path, *, authority_root: Path, profile: Path | None = None, presentation_binding: Path | None = None, source_dataset: Path | None = None):
-    reject_evidence_symlinks(root)
-    root = root.resolve()
+    root = open_report(root)
     repository = authority_root.resolve()
     profile_path = None
     if profile:
@@ -323,11 +322,11 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             (repository / profile).resolve() if not profile.is_absolute() else profile.resolve()
         )
     if (root / 'dataset.json').is_file() and (root / 'results.jsonl').is_file():
-        check_release(root, json.loads((root / 'dataset.json').read_text(encoding="utf-8")),
+        check_release(root, read_json(root / 'dataset.json'),
                       load_jsonl(root / 'results.jsonl'), profile=profile_path)
-    if (root / 'report-manifest.json').is_file() and json.loads((root / 'report-manifest.json').read_text(encoding="utf-8")).get('evidence_state') == 'published_snapshot_score_audit':
+    if (root / 'report-manifest.json').is_file() and read_json(root / 'report-manifest.json').get('evidence_state') == 'published_snapshot_score_audit':
         from harness.web_fetch.published_snapshot import check_snapshot_audit
-        if profile_path and file_sha256(profile_path) != json.loads((root / 'report-manifest.json').read_text(encoding="utf-8")).get('profile_sha256'):
+        if profile_path and file_sha256(profile_path) != read_json(root / 'report-manifest.json').get('profile_sha256'):
             raise ValueError('Snapshot audit profile changed')
         return check_snapshot_audit(root)
     if (root / "wcxb-score-summary.json").is_file():
@@ -341,12 +340,12 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             if (profile_path.parent / "dataset.json").is_file()
             else repository / "evaluation"
         )
-        if not json.loads(profile_path.read_text(encoding="utf-8")).get('frozen_inputs'):
+        if not read_json(profile_path).get('frozen_inputs'):
             require_canonical_inputs(root, canonical)
-    d = json.loads((root / "dataset.json").read_text(encoding="utf-8"))
+    d = read_json(root / "dataset.json")
     manifest_path = root / 'report-manifest.json'
     if manifest_path.is_file():
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest = read_json(manifest_path)
         expected_template = resolve_template('webfetch', root=repository)
         if manifest.get('template') != expected_template:
             raise ValueError('Report manifest differs from the maintained template')
@@ -360,7 +359,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     if source_dataset:
         if not profile_path:
             raise ValueError('Frozen source dataset requires an explicit report profile')
-        profile_data = json.loads(profile_path.read_text(encoding="utf-8"))
+        profile_data = read_json(profile_path)
         if source_dataset.is_symlink():
             raise ValueError('Frozen source dataset rejects symlinks')
         source_raw = source_dataset.read_bytes()
@@ -387,11 +386,11 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     if local_measurement:
         check_local_diagnostic_presentation(root, ranked=sample_ranking)
         if (root / 'result-review.json').is_file():
-            review=json.loads((root / 'result-review.json').read_text(encoding="utf-8"))
+            review=read_json(root / 'result-review.json')
             require_current_review_state(rs,review)
             require_adjudication_evidence(root,d,rs,review)
         if (root / 'local-evidence/result-ledger.json').is_file():
-            ledger = validate_ledger(json.loads((root / 'local-evidence/result-ledger.json').read_text(encoding="utf-8")), rs, source=root)
+            ledger = validate_ledger(read_json(root / 'local-evidence/result-ledger.json'), rs, source=root)
             if ledger['states'][-1]['source_results_sha256'] != hashlib.sha256((root / 'results.jsonl').read_bytes()).hexdigest():
                 raise ValueError('Result ledger source hash differs from current results')
         if presentation_binding:
@@ -400,20 +399,20 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             checked_binding = validate_local_presentation(root, presentation_binding)[0]
             public_payload_views = bool(checked_binding.get("publication_evidence_views"))
             if checked_binding.get('offline_revision'):
-                current_receipt = json.loads(read_evidence_binding(root, checked_binding['offline_revision']).read_text(encoding="utf-8"))
+                current_receipt = read_json(read_evidence_binding(root, checked_binding['offline_revision']))
                 current_snapshot_authority = (current_receipt.get('kind') == 'current_local_snapshot_authority'
                                               and current_receipt.get('schema_version') == 1)
         else:
             require_local_measurement(root, d, rs)
         inventory = {track: {"case_ids": [case["id"] for case in d["cases"] if case.get("track", "web") == track], "providers": providers} for track, providers in d["coverage_plan"].items()}
-        local_contract = json.loads((root / "local-run-contract.json").read_text(encoding="utf-8"))
+        local_contract = read_json(root / "local-run-contract.json")
         canonical_cases = ({case["id"]: case for case in d["cases"]}
                            if presentation_binding and (current_snapshot_authority
                                or d.get('comparison', {}).get('task_replacement'))
                            else {case["id"]: case for case in local_measurement_cases(local_contract, root)})
         canonical_dataset = (root / "dataset.json" if local_contract.get("dataset_sources")
                              else repository / local_contract["dataset_path"])
-    elif source_dataset or (profile_path and (json.loads(profile_path.read_text(encoding="utf-8")).get('frozen_inputs') or (profile_path.parent / 'dataset.json').is_file())):
+    elif source_dataset or (profile_path and (read_json(profile_path).get('frozen_inputs') or (profile_path.parent / 'dataset.json').is_file())):
         inventory = {
             track: {
                 "case_ids": [
@@ -423,15 +422,15 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             }
             for track, providers in d.get("coverage_plan", {}).items()
         }
-        canonical_dataset = source_dataset or (root / 'dataset.json' if json.loads(profile_path.read_text(encoding="utf-8")).get('frozen_inputs') else profile_path.parent / "dataset.json")
+        canonical_dataset = source_dataset or (root / 'dataset.json' if read_json(profile_path).get('frozen_inputs') else profile_path.parent / "dataset.json")
     else:
-        inventory = json.loads((repository / "configs/evaluation-inventory.json").read_text(encoding="utf-8"))
+        inventory = read_json(repository / "configs/evaluation-inventory.json")
         canonical_dataset = repository / "evaluation/dataset.json"
     if d.get("comparison", {}).get("kind") in {"headless_html", "headless_markdown"}:
-        headless = json.loads((repository / "configs/providers.headless.json").read_text(encoding="utf-8"))
+        headless = read_json(repository / "configs/providers.headless.json")
         if profile_path is None:
             raise ValueError("Headless report checks require --profile")
-        profile = json.loads(profile_path.read_text(encoding="utf-8"))
+        profile = read_json(profile_path)
         if profile.get("comparison_kind") not in {"headless_html", "headless_markdown"}:
             raise ValueError(
                 "Legacy headless report cannot be checked against a different "
@@ -487,7 +486,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         reliability = require_complete_local_inventory(d, rs)
     else:
         reliability = require_reliable(d, rs)
-    saved_reliability = json.loads((root / "reliability.json").read_text(encoding="utf-8"))
+    saved_reliability = read_json(root / "reliability.json")
     if not saved_reliability == reliability:
         raise ValueError("Saved reliability status differs from report evidence")
     if local_measurement and d.get('comparison', {}).get('result_ledger'):
@@ -632,7 +631,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     if archived_manifest.is_file():
         # Validate the archived source before allowing its original case names.
         render_archived_reading(root, "en" if has_english else "zh")
-        allowed_english_source_text.update(json.loads(archived_manifest.read_text(encoding="utf-8")).get("preserved_source_names", []))
+        allowed_english_source_text.update(read_json(archived_manifest).get("preserved_source_names", []))
     if has_english:
         for relative in english_primary:
             if relative not in en_pages:
@@ -717,7 +716,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             ):
                 if not ("../" + delivered["artifact_path"] in text and delivered["sha256"] in text):
                     raise ValueError(p)
-    execution = json.loads((root / "execution.json").read_text(encoding="utf-8"))["batches"]
+    execution = read_json(root / "execution.json")["batches"]
     physical_attempts = Counter(i for b in execution for i in b["attempt_ids"])
     logical_attempts = Counter(r["attempt_id"] for r in rs)
     if current_snapshot_authority:
@@ -740,7 +739,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
     track_count = len({case.get("track", "web") for case in d["cases"]})
     require_home_comparison_layout(home, track_count, diagnostic=local_measurement and not sample_ranking, sample_ranking=sample_ranking)
     if (root / "resource-cohort/resource-comparison.json").is_file():
-        resource_summary = json.loads((root / "resource-cohort/resource-comparison.json").read_text(encoding="utf-8"))
+        resource_summary = read_json(root / "resource-cohort/resource-comparison.json")
         guide = (root / "guide/index.html").read_text(encoding="utf-8")
         for page_name, text in [("home", home), ("guide", guide)]:
             check_resource_presentation(text, resource_summary)
@@ -792,14 +791,13 @@ def main(argv=None, *, authority_root: Path | None = None):
 
 
 def check_revision(out: Path, *, authority_root: Path, profile_path: Path | None = None):
-    reject_evidence_symlinks(out)
-    out = out.resolve()
+    out = open_report(out)
     repository = authority_root.resolve()
     if (out / "wcxb-score-summary.json").is_file():
 
         check_wcxb(out, authority_root=repository, profile_path=profile_path)
         return "PASS: WCXB release scope and report acceptance checks verified"
-    dataset = json.loads((out / "dataset.json").read_text(encoding="utf-8"))
+    dataset = read_json(out / "dataset.json")
 
     if dataset.get("comparison", {}).get("kind") == "webmainbench_frozen_html_to_markdown":
 
@@ -813,9 +811,9 @@ def check_revision(out: Path, *, authority_root: Path, profile_path: Path | None
                                       load_jsonl(out/'results.jsonl'), binding)
     provenance_path = out / "implementation-provenance.json"
     if provenance_path.is_file():
-        provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
+        provenance = read_json(provenance_path)
         records = load_jsonl(out / "results.jsonl")
-        home = BeautifulSoup((out / "index.html").read_text(encoding="utf-8"), "html.parser")
+        home = read_page(out / "index.html")
         for item in provenance.get("implementations", []):
             name = item.get("provider")
             if native_browser_engine(name) != "moli" or not item.get("version"):
@@ -833,7 +831,7 @@ def check_revision(out: Path, *, authority_root: Path, profile_path: Path | None
     for path in out.rglob("*.html"):
         if not has_english and path.relative_to(out).parts[0] == "en":
             continue
-        soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+        soup = read_page(path)
         relative_parts = path.relative_to(out).parts
         is_english = relative_parts[0] == "en"
         is_browser_use = "browser-use" in relative_parts
@@ -932,19 +930,19 @@ def check_revision(out: Path, *, authority_root: Path, profile_path: Path | None
     if records and all(row.get('provider_type') == 'fixture' for row in records) and (
         synthetic or all(not native_browser_engine(row['provider']) for row in records)
     ):
-        methods = BeautifulSoup((out / 'adoption/index.html').read_text(encoding="utf-8"), 'html.parser')
+        methods = read_page(out / 'adoption/index.html')
         for name in {row['provider'] for row in records}:
             if methods.find(id='interface-' + name) is None:
                 raise ValueError('Synthetic adapter interface is missing: ' + name)
         return 'PASS: synthetic report presentation, declared adapters and bound interpretation verified'
-    counts = json.loads((out / "adoption/counts.json").read_text(encoding="utf-8"))["methods"]
+    counts = read_json(out / "adoption/counts.json")["methods"]
     names = {row["provider"] for row in load_jsonl(out / "results.jsonl")}
 
     if not {item["provider"] for item in counts} == set(PROFILES) | names:
         raise ValueError("Report presentation check failed")
     if len(counts) != len({item["provider"] for item in counts}):
         raise ValueError("Duplicate adoption provider counts")
-    interfaces = BeautifulSoup((out / "adoption/index.html").read_text(encoding="utf-8"), "html.parser").select(
+    interfaces = read_page(out / "adoption/index.html").select(
         '.interface-panel[id^="interface-"]'
     )
     interface_names = set(SPECS) | {name for name in names if native_browser_engine(name)}

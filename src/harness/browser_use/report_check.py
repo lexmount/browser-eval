@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 import re
 from collections import Counter
 from pathlib import Path
@@ -32,13 +31,12 @@ from harness.browser_use.report import (
 from harness.browser_use.selection import load_pilot, report_selection_path
 from harness.distribution import repository_root
 from harness.environments.webarena.topology import known_site_secrets
-from harness.record_io import file_sha256, load_jsonl, optional_file_sha256
+from harness.record_io import file_sha256, load_jsonl, optional_file_sha256, read_json
 from harness.report_languages import check_language_contract, generated_languages
 from harness.reporting.assets import bound_json_asset
 from harness.reporting.presentation import visible_text as _visible_text
 from harness.reporting.privacy import BROWSER_USE_CHECK_SOURCE
-from harness.reporting.templates import check_template_identity
-from harness.reporting.versions import check_build_version
+from harness.reporting.release_check import check_report_identity, open_report
 from harness.web_fetch.safety import reject_evidence_symlinks
 from lexbench_webfetch.paths import contained_path
 
@@ -238,7 +236,7 @@ def _check_execution_artifacts(
                 / str(number)
                 / PUBLIC_EXECUTION_ARTIFACTS["execution_evidence"]
             )
-            bundle = json.loads(bundle_path.read_text(encoding="utf-8"))
+            bundle = read_json(bundle_path)
             if (
                 bundle.get("schema") != "lex_browser_use_public_execution_evidence/3"
                 or bundle.get("result_id") != result_id
@@ -356,7 +354,7 @@ def check(
     authority_root: Path | None = None,
     profile_path: Path | None = None,
 ) -> None:
-    reject_evidence_symlinks(report_dir)
+    report_dir = open_report(report_dir)
     for evidence in [evidence_dir] if isinstance(evidence_dir, Path) else evidence_dir:
         reject_evidence_symlinks(evidence)
     repository = authority_root if authority_root is not None else repository_root()
@@ -375,7 +373,7 @@ def check(
             "Browser Use release authority is missing; pass --authority-root "
             "with the selected instance's bound evaluation and research files"
         )
-    profile = json.loads(profile_path.read_text(encoding="utf-8"))
+    profile = read_json(profile_path)
     if profile.get("schema") != "lex_browser_use_current_report/2":
         raise ValueError("unsupported Browser Use release authority schema")
     frozen = profile.get("official_dataset")
@@ -439,7 +437,7 @@ def check(
     )
     chinese_pages = (*pages, *task_pages, *result_pages)
     _, history = bound_json_asset(profile.get("report_history"), root=repository)
-    if json.loads((report_dir / "report-changes.json").read_text(encoding="utf-8")) != history:
+    if read_json(report_dir / "report-changes.json") != history:
         raise ValueError("Report history differs from the selected instance")
     check_language_contract(report_dir)
     english_pages = tuple(
@@ -483,11 +481,9 @@ def check(
     ):
         raise ValueError("report is missing one or more required report pages")
     selection = load_pilot(selection_path)
-    audit = json.loads(audit_path.read_text(encoding="utf-8"))
-    check_build_version(report_dir, audit)
-    check_template_identity(audit, "browser-use")
-    if audit.get("profile_sha256") and audit["profile_sha256"] != file_sha256(profile_path):
-        raise ValueError("report was built from a different instance profile")
+    audit = read_json(audit_path)
+    check_report_identity(report_dir, audit, "browser-use", profile_path,
+                          allow_unbound_profile=True)
     if audit.get("selection_sha256") != selection.sha256:
         raise ValueError("report was not built from the current pre-registered selection")
     rows = measured_rows
@@ -591,7 +587,7 @@ def check(
         or "逐结果覆盖" in review_index
     ):
         raise ValueError("review page must present review rounds, not a per-result audit table")
-    selected_tasks = json.loads((report_dir / "data/selection.json").read_text(encoding="utf-8"))[
+    selected_tasks = read_json(report_dir / "data/selection.json")[
         "tasks"
     ]
     environment = bundles[0]["manifest"].get("environment") or {}
@@ -708,9 +704,7 @@ def check(
     public_results = load_jsonl(report_dir / "data/results.jsonl", skip_blank=True)
     if len(public_results) != len(logical_rows):
         raise ValueError("public result projection must cover every logical result")
-    evidence_index = json.loads(
-        (report_dir / "data/evidence-index.json").read_text(encoding="utf-8")
-    )
+    evidence_index = read_json(report_dir / "data/evidence-index.json")
     _check_execution_artifacts(report_dir, logical_rows, public_results, evidence_index)
     check_public_privacy(report_dir)
     forbidden = {
@@ -897,14 +891,10 @@ def check(
                 cause_path
             ):
                 raise ValueError("current profile is not bound to the failure-cause review")
-        published_cause_review = json.loads(
-            (report_dir / "data/failure-cause-review.json").read_text(encoding="utf-8")
-        )
+        published_cause_review = read_json(report_dir / "data/failure-cause-review.json")
         if published_cause_review.get("results") != verified_causes:
             raise ValueError("published failure causes differ from verified reviews")
-        interpretation = json.loads(
-            (report_dir / "data/interpretation-evidence.json").read_text(encoding="utf-8")
-        )
+        interpretation = read_json(report_dir / "data/interpretation-evidence.json")
         scoring_claim = next(
             (
                 item
@@ -927,11 +917,9 @@ def check(
             != failed_count
         ):
             raise ValueError("programmatic failure locations do not cover every final failure")
-        remediation = json.loads(
-            contained_path(
+        remediation = read_json(contained_path(
                 repository, "research/browser-use-remediation.json", reject_symlinks=True
-            ).read_text(encoding="utf-8")
-        )
+            ))
         if remediation.get("schema") != "lex_browser_use_remediation/1":
             raise ValueError("unsupported Browser Use remediation schema")
         external_prefixes = ("benchmark_", "site_", "environment_", "mixed_")
