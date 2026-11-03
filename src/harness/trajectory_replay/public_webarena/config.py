@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from pathlib import Path
+from typing import Any
 
 from harness.distribution import repository_root
 from harness.env_file import parse_env_file
@@ -34,6 +35,19 @@ def redact_site_passwords(text: str, passwords: Iterable[str]) -> str:
     for password in sorted({item for item in passwords if item.strip()}, key=len, reverse=True):
         text = text.replace(password, "[REDACTED]")
     return text
+
+
+def map_strings(value: Any, transform: Callable[[str], str]) -> Any:
+    """Apply ``transform`` to every string value in nested JSON-like data, keeping its keys."""
+    if isinstance(value, dict):
+        return {key: map_strings(item, transform) for key, item in value.items()}
+    if isinstance(value, list):
+        return [map_strings(item, transform) for item in value]
+    if isinstance(value, tuple):
+        return tuple(map_strings(item, transform) for item in value)
+    if isinstance(value, str):
+        return transform(value)
+    return value
 
 
 def configure_browser_docker_host(value: str | None) -> None:

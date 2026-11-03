@@ -18,7 +18,7 @@ from harness.environments.webarena.topology import configured_site_secrets
 from harness.record_io import file_sha256, read_json
 from harness.reporting.privacy import PRIVATE_IPV4, PUBLIC_WEBARENA
 from harness.reporting.publication import archive_inventory
-from harness.trajectory_replay.public_webarena.config import redact_site_passwords
+from harness.trajectory_replay.public_webarena.config import map_strings, redact_site_passwords
 from harness.trajectory_replay.public_webarena.result_audit import audit_result_set
 from harness.web_fetch.publication_target import publication_document, require_publication_version
 from harness.web_fetch.report_publish import PublishConfig, publish
@@ -31,21 +31,13 @@ REPORT_STEM = "webarena-trajectory-replay-latest"
 
 def public_projection(value: Any) -> Any:
     """Remove host identities and site passwords while retaining report semantics and hashes."""
-    return _project(value, configured_site_secrets())
-
-
-def _project(value: Any, passwords: tuple[str, ...]) -> Any:
-    if isinstance(value, dict):
-        return {key: _project(item, passwords) for key, item in value.items()}
-    if isinstance(value, list):
-        return [_project(item, passwords) for item in value]
-    if isinstance(value, tuple):
-        return tuple(_project(item, passwords) for item in value)
-    if isinstance(value, str):
-        return PUBLIC_WEBARENA.redact(
-            PRIVATE_IPV4.sub("webarena.local", redact_site_passwords(value, passwords))
-        )
-    return value
+    passwords = configured_site_secrets()
+    return map_strings(
+        value,
+        lambda text: PUBLIC_WEBARENA.redact(
+            PRIVATE_IPV4.sub("webarena.local", redact_site_passwords(text, passwords))
+        ),
+    )
 
 
 def export_public_report_bundle(formal_root: Path, output_root: Path) -> Path:

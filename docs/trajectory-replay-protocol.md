@@ -125,8 +125,8 @@ Runtime JSON uses `credentials_env` to name the username and password variables 
 `.env`; it does not contain their values and rejects inline `credentials`. The public WebArena
 runner resolves them only in memory and stops before starting a browser when a task's login site
 names no variables or a variable that is empty. `--env-file` and exported variables supply ordinary settings, with the
-exported value winning, and cannot change a login. Saved error text is scrubbed of the passwords
-that the runtime JSON names, and public reports of the passwords that the site registry names.
+exported value winning, and cannot change a login. Saved error text and evaluator output are
+scrubbed of the passwords that the runtime JSON names, and public reports of the passwords that the site registry names.
 Rebuilding a public WebArena report from saved evidence does not need them; a password that is
 unset on the rebuilding host is not checked.
 The unmodified official evaluator reads the same credential-free JSON for URL rendering.

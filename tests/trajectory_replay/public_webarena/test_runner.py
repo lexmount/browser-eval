@@ -19,6 +19,7 @@ from harness.environments.browser import (
     start_browser_container,
 )
 from harness.trajectory_replay.public_webarena import diagnostics, runner
+from harness.trajectory_replay.public_webarena.config import redact_site_passwords
 from harness.trajectory_replay.public_webarena.runner import (
     ENGINE_IMAGES,
     _capture_final_page_evidence,
@@ -76,6 +77,50 @@ def test_task_execution_writes_redacted_evaluator_network_evidence(tmp_path, mon
     entry = json.loads(raw)["log"]["entries"][0]
     assert entry["request"]["url"] == "https://site.test/save"
     assert entry["request"]["headers"] == [{"name": "Authorization", "value": "[REDACTED]"}]
+
+
+@pytest.mark.parametrize("failure", ["execution", "evaluator_result", "evaluator_exception"])
+def test_failed_task_row_omits_the_login_password(tmp_path, monkeypatch, failure):
+    from harness.trajectory_replay.public_webarena.evaluators import TaskEvaluation
+
+    page = MagicMock()
+    page.context.pages = [page]
+    monkeypatch.setattr(runner, "ResourceSampler", lambda *a, **kw: MagicMock())
+    monkeypatch.setattr(runner, "_resource_result", lambda *a: {})
+    monkeypatch.setattr(runner, "_capture_final_page_evidence", lambda *a: {"status": "complete"})
+    monkeypatch.setattr(runner, "build_agent_response", lambda *a: None)
+
+    def execute(_page, _calls, *, trace, **kwargs):
+        if failure == "execution":
+            raise RuntimeError("login form echoed file-secret")
+        trace.append({"action": "navigate", "status": "pass"})
+
+    monkeypatch.setattr(runner, "execute_steps", execute)
+    registry = MagicMock()
+    if failure == "evaluator_exception":
+        registry.evaluate.side_effect = RuntimeError("login form echoed file-secret")
+    else:
+        registry.evaluate.return_value = TaskEvaluation(
+            "fail",
+            0.0,
+            ({"output": "page", "expected": "x", "actual": ["file-secret"], "passed": False},),
+            "test",
+            error="login form echoed file-secret",
+        )
+    task = BrowserTask(
+        "task", "Task", ({"action": "navigate"},), (), (), "simple",
+        {"expected_actions": ["navigate"]}, {},
+    )
+
+    row = runner._run_task(
+        "chromium", page, set(), MagicMock(), task, 1, 100, registry, tmp_path,
+        redact_text=lambda text: redact_site_passwords(text, ["file-secret"]),
+    )
+
+    assert row["status"] == "fail"
+    assert "login form echoed [REDACTED]" in row["error"]
+    assert "login form echoed [REDACTED]" in row["trace"][-1]["output"]
+    assert "file-secret" not in json.dumps(row)
 
 
 def test_authoring_runtime_caps_ad_hoc_repair_target_waits():
@@ -708,7 +753,10 @@ def test_webarena_run_mode_fails_closed_on_qualification_state(
     docker_call.assert_not_called()
 
 
-def test_environment_failure_evidence_omits_the_login_password(tmp_path, monkeypatch):
+@pytest.mark.parametrize("failure", ["environment", "evaluator"])
+def test_failed_attempt_evidence_omits_the_login_password(tmp_path, monkeypatch, failure):
+    from harness.trajectory_replay.public_webarena.evaluators import TaskEvaluation
+
     task = {
         "id": "webarena-1",
         "title": "Qualified",
@@ -758,6 +806,22 @@ def test_environment_failure_evidence_omits_the_login_password(tmp_path, monkeyp
     def failed_reset(self, *_args, **_kwargs):
         raise RuntimeError(f"login form echoed {self._credentials('reddit')['password']}")
 
+    page = MagicMock()
+    page.context.pages = [page]
+    registry = MagicMock()
+    registry.evaluate.return_value = TaskEvaluation(
+        "fail", 0.0, (), "test", error="login form echoed file-secret"
+    )
+    monkeypatch.setattr(runner, "EvaluatorRegistry", lambda **_: registry)
+    monkeypatch.setattr(runner, "ResourceSampler", lambda *a, **kw: MagicMock())
+    monkeypatch.setattr(runner, "_resource_result", lambda *a: {})
+    monkeypatch.setattr(runner, "_capture_final_page_evidence", lambda *a: {"status": "complete"})
+    monkeypatch.setattr(runner, "build_agent_response", lambda *a: None)
+    monkeypatch.setattr(
+        runner,
+        "execute_steps",
+        lambda _page, _calls, *, trace, **_: trace.append({"action": "navigate", "status": "pass"}),
+    )
     client = MagicMock()
     client.info.return_value = {"OSType": "linux", "CgroupVersion": "2"}
     monkeypatch.setattr(runner.docker, "from_env", lambda: client)
@@ -767,13 +831,18 @@ def test_environment_failure_evidence_omits_the_login_password(tmp_path, monkeyp
     monkeypatch.setattr(runner, "start_browser_container", lambda *a, **k: MagicMock())
     monkeypatch.setattr(runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
     monkeypatch.setattr(runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
-    monkeypatch.setattr(runner, "DockerStatsResources", lambda _: None)
+    monkeypatch.setattr(runner, "DockerStatsResources", lambda _: MagicMock())
     monkeypatch.setattr(runner, "_reset_state", lambda *a: None)
     monkeypatch.setattr(runner, "_prepare_page", lambda page, *a, **k: page)
     monkeypatch.setattr(runner, "_environment", lambda *a: {})
     monkeypatch.setattr(runner, "summarize_attempts", lambda *a, **k: {})
     monkeypatch.setattr(runner.WebArenaEnvironment, "verify_runtime", lambda *a: {})
-    monkeypatch.setattr(runner.WebArenaEnvironment, "reset", failed_reset)
+    monkeypatch.setattr(runner.WebArenaEnvironment, "prepare", lambda *a, **k: page)
+    monkeypatch.setattr(
+        runner.WebArenaEnvironment,
+        "reset",
+        failed_reset if failure == "environment" else lambda *a, **k: {},
+    )
     output = tmp_path / "output"
 
     runner.run_evaluation(
