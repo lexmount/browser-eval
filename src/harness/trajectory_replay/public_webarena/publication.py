@@ -30,6 +30,8 @@ from harness.web_fetch.safety import unlinked_path
 from lexbench_webfetch.paths import contained_path
 
 CLIENT = PublicationClient("Public-WebArena-Report-Publisher/1.0", put_timeout=90)
+# A pending operation replays its original bytes under its idempotency key, so this name stays.
+UPLOAD_NAME = "webfetch"
 REPORT_STEM = "webarena-trajectory-replay-latest"
 
 
@@ -447,6 +449,7 @@ def publish_current(
         receipt,
         journal,
         namespace="public-webarena",
+        upload_name=UPLOAD_NAME,
         client=CLIENT,
         package_check=package_check,
         title=str(_read_json(profile).get("title") or "WebArena 轨迹重放"),

@@ -367,20 +367,24 @@ def test_browser_use_requires_its_receipt_and_replay_stages_large_archives(tmp_p
     (web_search, 'Web-Search-Report-Publisher/1.0'),
     (public_webarena, 'Public-WebArena-Report-Publisher/1.0'),
 ], ids=['web-search', 'public-webarena'])
-def test_receipt_tracks_send_their_own_identity_and_upload_name(tmp_path, monkeypatch, wire, owner, agent):
+def test_receipt_tracks_send_their_own_identity_and_keep_replayable_upload_bytes(
+        tmp_path, monkeypatch, wire, owner, agent):
     config = web_fetch_release(tmp_path)
     monkeypatch.setattr(publish, 'STAGED_UPLOAD_THRESHOLD', 10**9)
     wire.respond = behind_wire(Service())
     namespace = {web_search: 'search', public_webarena: 'public-webarena'}[owner]
     publish.publish_receipt_release(publish.ReceiptRelease(
         config.profile, config.archive, config.source, config.receipt, config.journal,
-        namespace=namespace, client=owner.CLIENT, package_check=lambda *_: None,
+        namespace=namespace, upload_name=owner.UPLOAD_NAME, client=owner.CLIENT,
+        package_check=lambda *_: None,
         title='Title', mode='update',
     ))
     (upload, _), *_ = wire
     assert upload.get_header('User-agent') == agent
     assert upload.get_header('Idempotency-key').startswith(namespace + '-')
-    assert f'filename="{namespace}.zip"'.encode() in upload.data
+    digest = json.loads(config.receipt.read_bytes())['archive_sha256']
+    # A journal from before these tracks had their own adapter must replay byte-identically.
+    assert upload.data == publish.release_multipart(config.archive, 'Title', digest, 'webfetch')[0]
 
 
 def behind_wire(service):

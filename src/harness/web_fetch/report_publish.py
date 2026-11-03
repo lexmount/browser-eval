@@ -63,7 +63,7 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
     return publish_receipt_release(
         ReceiptRelease(
             config.profile, config.archive, config.source, config.receipt, config.journal,
-            namespace="webfetch", client=CLIENT, package_check=package_check or check,
+            namespace="webfetch", upload_name="webfetch", client=CLIENT, package_check=package_check or check,
             title=config.title, mode=config.mode, base_url=config.base_url,
             expected_version=config.expected_version, visibility=config.visibility,
             inputs=tuple(validation_inputs), check_reuse=package_check is not None,

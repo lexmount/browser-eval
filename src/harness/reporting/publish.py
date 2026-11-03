@@ -207,6 +207,7 @@ class ReceiptRelease:
     receipt: Path
     journal: Path
     namespace: str
+    upload_name: str
     client: PublicationClient
     package_check: Callable
     title: str
@@ -234,12 +235,12 @@ def activated_version(result):
     return version
 
 
-def release_multipart(archive, title, digest, namespace):
+def release_multipart(archive, title, digest, upload_name):
     return multipart_archive(
         archive,
         title,
-        boundary_prefix="----" + namespace,
-        filename=namespace + ".zip",
+        boundary_prefix="----" + upload_name,
+        filename=upload_name + ".zip",
         boundary_seed=(digest + "|" + title).encode(),
     )
 
@@ -410,7 +411,7 @@ def publish_receipt_release(config: ReceiptRelease, *, transport=None):
                 status = 200
             else:
                 body, content_type = release_multipart(
-                    release.archive, config.title, release.sha256, config.namespace
+                    release.archive, config.title, release.sha256, config.upload_name
                 )
                 endpoint = (
                     "/api/sites"

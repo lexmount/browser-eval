@@ -134,6 +134,8 @@ def verify_plan(report, work):
 
 
 CLIENT = PublicationClient("Web-Search-Report-Publisher/1.0", put_timeout=90)
+# A pending operation replays its original bytes under its idempotency key, so this name stays.
+UPLOAD_NAME = "webfetch"
 
 
 def publish(report, work, *, transport=None):
@@ -158,7 +160,7 @@ def publish(report, work, *, transport=None):
     else:
         result = publish_receipt_release(
             ReceiptRelease(authority, work / "report.zip", work / "delivery", receipt_file,
-                           work / "operation-pending.json", namespace="search", client=CLIENT,
+                           work / "operation-pending.json", namespace="search", upload_name=UPLOAD_NAME, client=CLIENT,
                            package_check=package_check, title=plan.get("title", "Search API evaluation"),
                            mode="update", visibility=target["visibility"],
                            inputs=(work / "publication-plan.json", work / "inputs")),
