@@ -10,6 +10,7 @@ from urllib.error import URLError
 
 import pytest
 
+from harness import env_file
 from harness.environments.browser import (
     ENGINE_PORTS,
     cleanup_browser_runtime,
@@ -18,6 +19,7 @@ from harness.environments.browser import (
     start_browser_container,
 )
 from harness.trajectory_replay.public_webarena import diagnostics, runner
+from harness.trajectory_replay.public_webarena.config import redact_site_passwords
 from harness.trajectory_replay.public_webarena.runner import (
     ENGINE_IMAGES,
     _capture_final_page_evidence,
@@ -75,6 +77,61 @@ def test_task_execution_writes_redacted_evaluator_network_evidence(tmp_path, mon
     entry = json.loads(raw)["log"]["entries"][0]
     assert entry["request"]["url"] == "https://site.test/save"
     assert entry["request"]["headers"] == [{"name": "Authorization", "value": "[REDACTED]"}]
+
+
+@pytest.mark.parametrize(
+    ("password", "written"),
+    [
+        ("file-secret", "file-secret"),
+        ('a"&xtailx', 'a"&amp;xtailx'),
+        ('a"&xtailx', 'a\\"&amp;xtailx'),
+        ('a"&xtailx', "a\\&quot;&amp;xtailx"),
+    ],
+)
+@pytest.mark.parametrize("failure", ["execution", "evaluator_result", "evaluator_exception"])
+def test_failed_task_row_omits_the_login_password(
+    tmp_path, monkeypatch, failure, password, written
+):
+    from harness.trajectory_replay.public_webarena.evaluators import TaskEvaluation
+
+    page = MagicMock()
+    page.context.pages = [page]
+    monkeypatch.setattr(runner, "ResourceSampler", lambda *a, **kw: MagicMock())
+    monkeypatch.setattr(runner, "_resource_result", lambda *a: {})
+    monkeypatch.setattr(runner, "_capture_final_page_evidence", lambda *a: {"status": "complete"})
+    monkeypatch.setattr(runner, "build_agent_response", lambda *a: None)
+
+    def execute(_page, _calls, *, trace, **kwargs):
+        if failure == "execution":
+            raise RuntimeError(f"login form echoed {written}")
+        trace.append({"action": "navigate", "status": "pass"})
+
+    monkeypatch.setattr(runner, "execute_steps", execute)
+    registry = MagicMock()
+    if failure == "evaluator_exception":
+        registry.evaluate.side_effect = RuntimeError(f"login form echoed {written}")
+    else:
+        registry.evaluate.return_value = TaskEvaluation(
+            "fail",
+            0.0,
+            ({"output": "page", "expected": "x", "actual": [written], "passed": False},),
+            "test",
+            error=f"login form echoed {written}",
+        )
+    task = BrowserTask(
+        "task", "Task", ({"action": "navigate"},), (), (), "simple",
+        {"expected_actions": ["navigate"]}, {},
+    )
+
+    row = runner._run_task(
+        "chromium", page, set(), MagicMock(), task, 1, 100, registry, tmp_path,
+        redact_text=lambda text: redact_site_passwords(text, [password]),
+    )
+
+    assert row["status"] == "fail"
+    assert "login form echoed [REDACTED]" in row["error"]
+    assert "login form echoed [REDACTED]" in row["trace"][-1]["output"]
+    assert password[-6:] not in json.dumps(row)
 
 
 def test_authoring_runtime_caps_ad_hoc_repair_target_waits():
@@ -705,6 +762,117 @@ def test_webarena_run_mode_fails_closed_on_qualification_state(
             qualification_required_passes=2 if qualification_run else None,
         )
     docker_call.assert_not_called()
+
+
+@pytest.mark.parametrize("password", ["file-secret", 'back\\slash"quote'])
+@pytest.mark.parametrize("failure", ["environment", "evaluator"])
+def test_failed_attempt_evidence_omits_the_login_password(
+    tmp_path, monkeypatch, failure, password
+):
+    from harness.trajectory_replay.public_webarena.evaluators import TaskEvaluation
+
+    task = {
+        "id": "webarena-1",
+        "title": "Qualified",
+        "difficulty": "simple",
+        "tags": ["webarena"],
+        "trajectory": {
+            "schema": "lex_browser_trajectory/1",
+            "actions": [{"action": "navigate", "url": "https://example.com", "save_as": "page"}],
+        },
+        "assertions": [],
+        "evaluator": {"kind": "webarena_verified", "task_id": 1, "revision": 1},
+        "environment": {
+            "kind": "webarena_verified",
+            "sites": ["reddit"],
+            "start_urls": ["__REDDIT__"],
+        },
+        "ground_truth": {
+            "expected_actions": ["navigate"],
+            "qualification": {"status": "eligible"},
+        },
+        "source": {"url": "https://example.com/source"},
+    }
+    suite = tmp_path / "suite.json"
+    suite.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}))
+    (tmp_path / "images.json").write_text(
+        json.dumps({"schema": "lex_webarena_environment_images/1", "images": {}})
+    )
+    config = tmp_path / "config.json"
+    config.write_text(
+        json.dumps(
+            {
+                "image_lock": "images.json",
+                "environments": {
+                    "__REDDIT__": {
+                        "urls": ["http://reddit.test"],
+                        "credentials_env": {"username": "TEST_USER", "password": "TEST_SECRET"},
+                    }
+                }
+            }
+        )
+    )
+    secrets = tmp_path / "repository.env"
+    secrets.write_text(f"TEST_USER=user\nTEST_SECRET={password}\n", encoding="utf-8")
+    monkeypatch.setattr(env_file, "_repository_credentials_file", secrets)
+    monkeypatch.setenv("TEST_SECRET", "exported-secret")
+
+    def failed_reset(self, *_args, **_kwargs):
+        raise RuntimeError(f"login form echoed {[self._credentials('reddit')['password']]!r}")
+
+    page = MagicMock()
+    page.context.pages = [page]
+    registry = MagicMock()
+    registry.evaluate.return_value = TaskEvaluation(
+        "fail", 0.0, (), "test", error=f"login form echoed {[password]!r}"
+    )
+    monkeypatch.setattr(runner, "EvaluatorRegistry", lambda **_: registry)
+    monkeypatch.setattr(runner, "ResourceSampler", lambda *a, **kw: MagicMock())
+    monkeypatch.setattr(runner, "_resource_result", lambda *a: {})
+    monkeypatch.setattr(runner, "_capture_final_page_evidence", lambda *a: {"status": "complete"})
+    monkeypatch.setattr(runner, "build_agent_response", lambda *a: None)
+    monkeypatch.setattr(
+        runner,
+        "execute_steps",
+        lambda _page, _calls, *, trace, **_: trace.append({"action": "navigate", "status": "pass"}),
+    )
+    client = MagicMock()
+    client.info.return_value = {"OSType": "linux", "CgroupVersion": "2"}
+    monkeypatch.setattr(runner.docker, "from_env", lambda: client)
+    monkeypatch.setattr(
+        runner, "sync_playwright", lambda: SimpleNamespace(start=lambda: MagicMock())
+    )
+    monkeypatch.setattr(runner, "start_browser_container", lambda *a, **k: MagicMock())
+    monkeypatch.setattr(runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
+    monkeypatch.setattr(runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
+    monkeypatch.setattr(runner, "DockerStatsResources", lambda _: MagicMock())
+    monkeypatch.setattr(runner, "_reset_state", lambda *a: None)
+    monkeypatch.setattr(runner, "_prepare_page", lambda page, *a, **k: page)
+    monkeypatch.setattr(runner, "_environment", lambda *a: {})
+    monkeypatch.setattr(runner, "summarize_attempts", lambda *a, **k: {})
+    monkeypatch.setattr(runner.WebArenaEnvironment, "verify_runtime", lambda *a: {})
+    monkeypatch.setattr(runner.WebArenaEnvironment, "prepare", lambda *a, **k: page)
+    monkeypatch.setattr(
+        runner.WebArenaEnvironment,
+        "reset",
+        failed_reset if failure == "environment" else lambda *a, **k: {},
+    )
+    output = tmp_path / "output"
+
+    runner.run_evaluation(
+        suite_path=suite,
+        output_dir=output,
+        reports_dir=tmp_path / "reports",
+        webarena_config_path=config,
+        engines=("chromium",),
+        max_retries=0,
+        generate_report=False,
+    )
+
+    attempts = (output / "attempts.jsonl").read_text(encoding="utf-8")
+    assert "login form echoed ['[REDACTED]']" in json.loads(attempts.splitlines()[0])["error"]
+    for spelling in (password, repr(password)[1:-1], json.dumps(password)[1:-1]):
+        assert spelling not in attempts
 
 
 def test_external_websocket_url_rewrites_container_advertised_host():

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 import signal
 import threading
@@ -21,6 +20,7 @@ from webarena_verified.environments.container.config import get_container_config
 from webarena_verified.environments.container.manager import ContainerManager
 from webarena_verified.types.task import WebArenaSite
 
+from harness.env_file import repository_credential
 from harness.environments.webarena.backend import MAGENTO_INIT_TIMEOUT_SECONDS, DockerBackend
 from harness.environments.webarena.manager import EnvironmentManager
 from harness.environments.webarena.rainbond import RainbondSlicePool
@@ -29,6 +29,7 @@ from harness.environments.webarena.topology import (
     RECORDED_PORT_SITES,
     SITE_CONTAINER_PORTS,
 )
+from harness.trajectory_replay.public_webarena.config import redact_site_passwords
 from harness.trajectory_replay.public_webarena.suite import BrowserTask
 
 STATEFUL_SITES = frozenset({"shopping_admin", "shopping", "reddit", "gitlab"})
@@ -132,6 +133,12 @@ class WebArenaEnvironment:
         sites = sorted(
             {str(site) for task in tasks for site in (task.environment or {}).get("sites") or []}
         )
+        # An unusable login must stop the run here, not record a failure for every attempt.
+        for site in sites:
+            if hasattr(self, f"_login_{site}"):
+                self._login_credentials(site)
+            else:
+                self._credentials(site)
         rows: dict[str, Any] = {}
         slice_receipt = (
             self.rainbond_pool.validate_receipt(self.rainbond_receipt_path)
@@ -229,32 +236,43 @@ class WebArenaEnvironment:
 
     def _credentials(self, site: str) -> dict[str, str]:
         config = self._site_config(site)
-        direct = config.get("credentials")
+        if config.get("credentials") is not None:
+            raise ValueError(
+                f"WebArena {site} runtime config must not persist credentials; "
+                "name the repository .env variables in credentials_env"
+            )
         references = config.get("credentials_env")
-        if direct is not None and references is not None:
-            raise ValueError(f"WebArena {site} credentials are configured twice")
-        if references is not None:
-            if not isinstance(references, dict) or set(references) != {"username", "password"}:
-                raise ValueError(
-                    f"WebArena {site} credentials_env requires username and password variable names"
-                )
-            names = {key: str(value or "").strip() for key, value in references.items()}
-            if not all(names.values()):
-                raise ValueError(
-                    f"WebArena {site} credentials_env requires non-empty variable names"
-                )
-            missing = [name for name in names.values() if not os.environ.get(name)]
-            if missing:
-                raise ValueError(
-                    f"WebArena {site} credential environment variables are missing: {missing}"
-                )
-            return {key: os.environ[name] for key, name in names.items()}
-        if not isinstance(direct, dict):
+        if references is None:
             return {}
-        return {
-            "username": str(direct.get("username") or ""),
-            "password": str(direct.get("password") or ""),
-        }
+        if not isinstance(references, dict) or set(references) != {"username", "password"}:
+            raise ValueError(
+                f"WebArena {site} credentials_env requires username and password variable names"
+            )
+        names = {key: str(value or "").strip() for key, value in references.items()}
+        if not all(names.values()):
+            raise ValueError(f"WebArena {site} credentials_env requires non-empty variable names")
+        values = {key: repository_credential(name) for key, name in names.items()}
+        missing = sorted(names[key] for key, value in values.items() if not value.strip())
+        if missing:
+            raise ValueError(
+                f"WebArena {site} requires {', '.join(missing)} in the repository .env"
+            )
+        return values
+
+    def redact_login_passwords(self, text: str) -> str:
+        """Remove the passwords this runtime config logs in with from text bound for evidence."""
+        references = (
+            config.get("credentials_env") if isinstance(config, dict) else None
+            for config in self.environments.values()
+        )
+        return redact_site_passwords(
+            text,
+            [
+                repository_credential(str(names.get("password") or "").strip())
+                for names in references
+                if isinstance(names, dict)
+            ],
+        )
 
     def resolve_url(self, value: str) -> str:
         if not value.startswith("__"):

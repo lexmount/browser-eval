@@ -11,6 +11,7 @@ import traceback
 import urllib.parse
 import urllib.request
 import uuid
+from collections.abc import Callable
 from functools import cache, partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -36,6 +37,7 @@ from harness.resource_accounting import (
     ResourceSampler,
     delta_counters,
 )
+from harness.trajectory_replay.public_webarena.config import map_strings
 from harness.trajectory_replay.public_webarena.diagnostics import diagnose_summary
 from harness.trajectory_replay.public_webarena.evaluators import (
     EvaluatorRegistry,
@@ -322,6 +324,7 @@ def _run_task(
     *,
     is_retry: bool = False,
     task_timeout_ms: int = 300_000,
+    redact_text: Callable[[str], str] = str,
 ) -> dict[str, Any]:
     def record_origin(frame: Any) -> None:
         if frame != page.main_frame:
@@ -422,6 +425,9 @@ def _run_task(
         if execution_status == "pass" and process_passed and result_passed and evidence_passed
         else "fail"
     )
+    # Harness and evaluator output only: the earlier steps stay what the frozen trajectory executed.
+    error = redact_text(error)
+    validation = map_strings(validation, redact_text)
     trace.append(
         {
             "index": len(task.tool_calls) + 1,
@@ -793,6 +799,9 @@ def run_evaluation(
     webarena_environment = (
         WebArenaEnvironment(webarena_config_path) if webarena_config_path is not None else None
     )
+    redact_text = (
+        webarena_environment.redact_login_passwords if webarena_environment is not None else str
+    )
     client = docker.from_env()
     validate_resource_controls(client.info())
     require_linux_cgroup_v2(client)
@@ -934,7 +943,7 @@ def run_evaluation(
                             artifact_dir,
                             is_retry=attempt > 1,
                             duration_ms=(time.perf_counter() - attempt_started) * 1000,
-                            error=traceback.format_exc(),
+                            error=redact_text(traceback.format_exc()),
                         )
                     else:
                         row = _run_task(
@@ -949,6 +958,7 @@ def run_evaluation(
                             artifact_dir,
                             is_retry=attempt > 1,
                             task_timeout_ms=execution_budget_ms,
+                            redact_text=redact_text,
                         )
                         row["execution_duration_ms"] = row["duration_ms"]
                         row["duration_ms"] = round(

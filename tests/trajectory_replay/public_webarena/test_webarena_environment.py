@@ -1,12 +1,20 @@
 from __future__ import annotations
 
+import html
 import json
+import os
 import time
 from types import SimpleNamespace
 
 import pytest
 
+from harness import env_file
 from harness.environments.webarena.backend import DockerBackend
+from harness.trajectory_replay.public_webarena.config import (
+    load_runtime_env,
+    redact_site_passwords,
+)
+from harness.trajectory_replay.public_webarena.publication import public_projection
 from harness.trajectory_replay.public_webarena.suite import BrowserTask
 from harness.trajectory_replay.public_webarena.webarena_environment import (
     WebArenaEnvironment,
@@ -86,6 +94,15 @@ class _Docker:
         return {"Architecture": "arm64"}
 
 
+_FIXTURE_LOGIN = "TEST_WEBARENA_USERNAME=fixture-user\nTEST_WEBARENA_PASSWORD=fixture-password\n"
+
+
+def _repository_env(tmp_path, monkeypatch, text):
+    path = tmp_path / "repository.env"
+    path.write_text(text, encoding="utf-8")
+    monkeypatch.setattr(env_file, "_repository_credentials_file", path)
+
+
 def _environment(tmp_path):
     pinned = "am1n3e/webarena-verified-shopping_admin@sha256:" + "a" * 64
     lock = tmp_path / "images.json"
@@ -114,8 +131,10 @@ def _environment(tmp_path):
     return WebArenaEnvironment(config), pinned
 
 
-def test_runtime_verification_binds_running_container_to_image_lock(tmp_path):
+def test_runtime_verification_binds_running_container_to_image_lock(tmp_path, monkeypatch):
     environment, pinned = _environment(tmp_path)
+    _named_credentials(environment)
+    _repository_env(tmp_path, monkeypatch, _FIXTURE_LOGIN)
 
     result = environment.verify_runtime(_Docker([pinned]), (_task(),))
 
@@ -123,8 +142,10 @@ def test_runtime_verification_binds_running_container_to_image_lock(tmp_path):
     assert len(result["image_lock_sha256"]) == 64
 
 
-def test_runtime_verification_rejects_mutable_or_wrong_image(tmp_path):
+def test_runtime_verification_rejects_mutable_or_wrong_image(tmp_path, monkeypatch):
     environment, _ = _environment(tmp_path)
+    _named_credentials(environment)
+    _repository_env(tmp_path, monkeypatch, _FIXTURE_LOGIN)
 
     with pytest.raises(RuntimeError, match="image mismatch"):
         environment.verify_runtime(_Docker([]), (_task(),))
@@ -222,6 +243,7 @@ def test_rainbond_slice_verification_and_reset_replace_the_complete_application(
     )
     environment = WebArenaEnvironment(config)
     monkeypatch.setattr(environment, "_wait_site_ready", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(environment, "_login_credentials", lambda _site: ("user", "password"))
 
     runtime = environment.verify_runtime(object(), (_task(),))
     reset = environment.reset(_task(), object())
@@ -689,11 +711,16 @@ def test_read_only_reset_checks_public_site_without_requiring_control_plane(tmp_
     }
 
 
-def test_shopping_admin_login_waits_for_navigation_commit_then_reloads(tmp_path):
+def test_shopping_admin_login_waits_for_navigation_commit_then_reloads(tmp_path, monkeypatch):
     environment, _ = _environment(tmp_path)
-    environment.environments["__SHOPPING_ADMIN__"]["credentials"] = {
-        "username": "fixture-user",
-        "password": "fixture-password",
+    _repository_env(
+        tmp_path,
+        monkeypatch,
+        "TEST_WEBARENA_USERNAME=fixture-user\nTEST_WEBARENA_PASSWORD=fixture-password\n",
+    )
+    environment.environments["__SHOPPING_ADMIN__"]["credentials_env"] = {
+        "username": "TEST_WEBARENA_USERNAME",
+        "password": "TEST_WEBARENA_PASSWORD",
     }
     calls = []
 
@@ -844,15 +871,23 @@ def test_waits_for_entrypoint_initialization_to_finish(monkeypatch):
     assert top_calls == [{"ps_args": "-eo pid,args"}] * 2
 
 
-def test_credentials_resolve_from_environment_without_persisting_values(tmp_path, monkeypatch):
-    environment, _ = _environment(tmp_path)
+def _named_credentials(environment):
     config = environment.environments["__SHOPPING_ADMIN__"]
     config["credentials_env"] = {
         "username": "TEST_WEBARENA_USERNAME",
         "password": "TEST_WEBARENA_PASSWORD",
     }
-    monkeypatch.setenv("TEST_WEBARENA_USERNAME", "fixture-user")
-    monkeypatch.setenv("TEST_WEBARENA_PASSWORD", "fixture-password")
+    return config
+
+
+def test_credentials_resolve_named_repository_values_without_persisting_them(tmp_path, monkeypatch):
+    environment, _ = _environment(tmp_path)
+    _named_credentials(environment)
+    _repository_env(
+        tmp_path,
+        monkeypatch,
+        "TEST_WEBARENA_USERNAME=fixture-user\nTEST_WEBARENA_PASSWORD=fixture-password\n",
+    )
 
     assert environment._credentials("shopping_admin") == {
         "username": "fixture-user",
@@ -862,21 +897,140 @@ def test_credentials_resolve_from_environment_without_persisting_values(tmp_path
     assert "fixture-password" not in environment.config_path.read_text()
 
 
-def test_credentials_fail_closed_on_missing_or_conflicting_sources(tmp_path, monkeypatch):
+def test_exported_and_selected_values_change_neither_the_login_nor_its_redaction(
+    tmp_path, monkeypatch
+):
     environment, _ = _environment(tmp_path)
-    config = environment.environments["__SHOPPING_ADMIN__"]
-    config["credentials_env"] = {
-        "username": "TEST_WEBARENA_USERNAME",
-        "password": "TEST_WEBARENA_PASSWORD",
+    registered = {
+        "username": "WEBARENA_SHOPPING_ADMIN_USERNAME",
+        "password": "WEBARENA_SHOPPING_ADMIN_PASSWORD",
     }
-    monkeypatch.setenv("TEST_WEBARENA_USERNAME", "fixture-user")
+    environment.environments["__SHOPPING_ADMIN__"]["credentials_env"] = registered
+    _repository_env(
+        tmp_path,
+        monkeypatch,
+        "WEBARENA_SHOPPING_ADMIN_USERNAME=file-user\n"
+        "WEBARENA_SHOPPING_ADMIN_PASSWORD=file-secret\n",
+    )
+    monkeypatch.setenv("WEBARENA_SHOPPING_ADMIN_PASSWORD", "exported-secret")
+    monkeypatch.delenv("WEBARENA_SHOPPING_ADMIN_USERNAME", raising=False)
+    selected = tmp_path / "selected.env"
+    selected.write_text(
+        "WEBARENA_SHOPPING_ADMIN_USERNAME=selected-user\n"
+        "WEBARENA_SHOPPING_ADMIN_PASSWORD=selected-secret\n"
+        "WEBARENA_TEST_ORDINARY_SETTING=from-selected-file\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("WEBARENA_TEST_ORDINARY_SETTING", raising=False)
 
+    load_runtime_env(selected)
+
+    assert environment._credentials("shopping_admin") == {
+        "username": "file-user",
+        "password": "file-secret",
+    }
+    assert environment.redact_login_passwords("typed file-secret") == "typed [REDACTED]"
+    assert public_projection({"note": "typed file-secret"}) == {"note": "typed [REDACTED]"}
+    # --env-file still selects ordinary settings for this process.
+    assert os.environ["WEBARENA_TEST_ORDINARY_SETTING"] == "from-selected-file"
+
+
+def test_redaction_follows_a_password_variable_the_runtime_config_names(tmp_path, monkeypatch):
+    environment, _ = _environment(tmp_path)
+    _named_credentials(environment)
+    _repository_env(
+        tmp_path,
+        monkeypatch,
+        "TEST_WEBARENA_USERNAME=fixture-user\nTEST_WEBARENA_PASSWORD=fixture-password\n",
+    )
+    monkeypatch.setenv("TEST_WEBARENA_PASSWORD", "exported-password")
+
+    assert environment.redact_login_passwords("typed fixture-password") == "typed [REDACTED]"
+    assert environment._credentials("shopping_admin")["password"] == "fixture-password"
+
+
+@pytest.mark.parametrize(
+    "written",
+    [
+        lambda password: password,
+        lambda password: repr(password),
+        lambda password: repr([password]),
+        lambda password: json.dumps(password),
+        lambda password: json.dumps({"password": password}),
+        lambda password: html.escape(password),
+    ],
+)
+def test_redaction_covers_the_spellings_of_an_escaped_password(tmp_path, monkeypatch, written):
+    password = "back\\slash\"quote'é<"
+    environment, _ = _environment(tmp_path)
+    _named_credentials(environment)
+    _repository_env(
+        tmp_path,
+        monkeypatch,
+        f"TEST_WEBARENA_USERNAME=fixture-user\nTEST_WEBARENA_PASSWORD={password}\n",
+    )
+
+    redacted = environment.redact_login_passwords(f"alert: {written(password)}")
+
+    assert "[REDACTED]" in redacted
+    assert "slash" not in redacted
+
+
+@pytest.mark.parametrize("password", ["ab'cd", "ab'\tcd", "ab\\'cd"])
+def test_redaction_covers_a_password_inside_the_repr_of_a_larger_message(password):
+    message = repr('value "' + password)
+    assert "\\'" in message
+
+    assert "cd" not in redact_site_passwords(message, [password])
+
+
+def test_credentials_fail_closed_on_missing_or_inline_sources(tmp_path, monkeypatch):
+    environment, _ = _environment(tmp_path)
+    config = _named_credentials(environment)
+    _repository_env(tmp_path, monkeypatch, "TEST_WEBARENA_USERNAME=fixture-user\n")
+    # An exported value must not stand in for one the repository file lacks.
+    monkeypatch.setenv("TEST_WEBARENA_PASSWORD", "exported-password")
+
+    with pytest.raises(ValueError, match="TEST_WEBARENA_PASSWORD in the repository .env"):
+        environment._credentials("shopping_admin")
     with pytest.raises(ValueError, match="TEST_WEBARENA_PASSWORD"):
+        environment.verify_runtime(_Docker([]), (_task(),))
+
+    config["credentials"] = {"username": "inline", "password": "inline"}
+    with pytest.raises(ValueError, match="must not persist credentials"):
+        environment._credentials("shopping_admin")
+    del config["credentials_env"]
+    with pytest.raises(ValueError, match="must not persist credentials"):
         environment._credentials("shopping_admin")
 
-    config["credentials"] = {"username": "duplicate", "password": "duplicate"}
-    with pytest.raises(ValueError, match="configured twice"):
-        environment._credentials("shopping_admin")
+
+def test_preflight_stops_on_a_login_site_without_credentials_env(tmp_path):
+    environment, _ = _environment(tmp_path)
+
+    with pytest.raises(ValueError, match="credentials are missing for site 'shopping_admin'"):
+        environment.verify_runtime(_Docker([]), (_task(),))
+
+
+def test_preflight_lets_a_site_without_a_login_omit_credentials_env(tmp_path):
+    environment, _ = _environment(tmp_path)
+    environment.environments["__WIKIPEDIA__"] = {"urls": ["http://wikipedia.test"]}
+    environment.image_lock["images"]["wikipedia"] = {
+        "pinned": "am1n3e/webarena-verified-wikipedia@sha256:" + "b" * 64
+    }
+    task = BrowserTask(
+        task_id="webarena-5",
+        title="Task",
+        tool_calls=(),
+        assertions=(),
+        tags=(),
+        difficulty="simple",
+        ground_truth={"expected_actions": []},
+        source={"url": "https://example.test"},
+        environment={"kind": "webarena_verified", "sites": ["wikipedia"]},
+    )
+
+    with pytest.raises(RuntimeError, match="image mismatch"):
+        environment.verify_runtime(_Docker([], name="webarena_verified_wikipedia"), (task,))
 
 
 def test_environment_tokens_resolve_exact_urls_and_path_suffixes(tmp_path):
@@ -998,8 +1152,11 @@ def test_official_form_login_paths_cover_all_stateful_sites(tmp_path, monkeypatc
         json.dumps({"image_lock": "images.json", "environments": environments}),
         encoding="utf-8",
     )
-    for name, value in variables.items():
-        monkeypatch.setenv(name, value)
+    _repository_env(
+        tmp_path,
+        monkeypatch,
+        "".join(f"{name}={value}\n" for name, value in variables.items()),
+    )
     environment = WebArenaEnvironment(config)
 
     pages = {}

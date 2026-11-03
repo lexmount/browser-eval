@@ -121,9 +121,14 @@ The site registry in `src/harness/environments/webarena/topology.json` names the
 `WEBARENA_<SITE>_USERNAME` and `WEBARENA_<SITE>_PASSWORD` variables, and public redaction is built
 from the same passwords. Set them in the repository `.env`; exported values do not override it.
 Site login and redaction stop with the missing variable names while a value is empty.
-Runtime JSON uses `credentials_env` to name the username and password environment variables; it
-does not contain their values. The runner resolves them only in memory and fails before login when
-a variable is absent or when both inline credentials and environment references are configured.
+Runtime JSON uses `credentials_env` to name the username and password variables of the repository
+`.env`; it does not contain their values and rejects inline `credentials`. The public WebArena
+runner resolves them only in memory and stops before starting a browser when a task's login site
+names no variables or a variable that is empty. `--env-file` and exported variables supply ordinary settings, with the
+exported value winning, and cannot change a login. Saved error text and evaluator output are
+scrubbed of the passwords that the runtime JSON names, and public reports of the passwords that the site registry names.
+Rebuilding a public WebArena report from saved evidence does not need them; a password that is
+unset on the rebuilding host is not checked.
 The unmodified official evaluator reads the same credential-free JSON for URL rendering.
 
 Before qualification, the optional runtime smoke starts each browser image without a CPU limit,
