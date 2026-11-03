@@ -29,7 +29,7 @@ if {exit_code}: sys.exit({exit_code})
 replies=json.loads({json.dumps(json.dumps(replies))})
 output.write_text(json.dumps(replies[payload['packet_sha256']]))
 print(json.dumps({{"model":"gpt-6.1-sol","usage":{{"output_tokens":12}}}}))
-''')
+''', encoding='utf-8')
     executable.chmod(0o700)
     return str(executable)
 
@@ -41,7 +41,7 @@ def test_real_child_is_isolated_then_reused(tmp_path, monkeypatch, source_mode):
     _, root, contract = example(tmp_path, source_mode=source_mode)
     account = tmp_path / "account"
     account.mkdir(exist_ok=True)
-    (account / "auth.json").write_text("fixture credential")
+    (account / "auth.json").write_text("fixture credential", encoding='utf-8')
     config_writes = []
     write_text = Path.write_text
 

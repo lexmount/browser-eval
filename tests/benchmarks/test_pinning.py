@@ -53,11 +53,11 @@ def fixture(root, monkeypatch, defect=None, *, jsonl=False):
         manifest.pop('archive')
     lock = source_path('harness/benchmarks/data-lock.json', root=root)
     lock.parent.mkdir(parents=True)
-    lock.write_text(json.dumps({'datasets': {'websearch': before}}))
+    lock.write_text(json.dumps({'datasets': {'websearch': before}}), encoding='utf-8')
     imported = root / 'evaluation/lexbench-websearch.json'
     imported.parent.mkdir()
     imported.write_text(json.dumps({'repository': 'old', 'revision': 'old', 'datasets': {},
-                                   'definition_files': {'registry.json': 'old'}}))
+                                   'definition_files': {'registry.json': 'old'}}), encoding='utf-8')
     if defect == 'archive': manifest['archive']['sha256'] = '0' * 64
     if defect == 'file': manifest['files']['definitions/registry.json']['sha256'] = '0' * 64
     if defect == 'identity': manifest['track'] = 'webfetch'
@@ -139,20 +139,20 @@ def test_main_history_pagination_cannot_leave_the_configured_endpoint(monkeypatc
 def test_pin_updates_current_bindings_and_retains_prior_snapshot(tmp_path, monkeypatch):
     lock, imported = fixture(tmp_path, monkeypatch)
     pinning.pin(tmp_path, 'websearch', 'a' * 40)
-    selected = json.loads(lock.read_text())['datasets']['websearch']
+    selected = json.loads(lock.read_text(encoding='utf-8'))['datasets']['websearch']
     assert selected['revision'] == 'a' * 40
     assert selected['history'][0]['revision'] == '0' * 40
-    assert json.loads(imported.read_text())['datasets']['sample']['count'] == 1
+    assert json.loads(imported.read_text(encoding='utf-8'))['datasets']['sample']['count'] == 1
     assert pinning.validate_binding(tmp_path, 'lexbench-websearch') == 'a' * 40
-    assert json.loads(imported.read_text())['repository'] == 'https://huggingface.co/datasets/Lexmount/LexBench-Web-Search'
+    assert json.loads(imported.read_text(encoding='utf-8'))['repository'] == 'https://huggingface.co/datasets/Lexmount/LexBench-Web-Search'
 
 
 def test_first_selection_registers_a_supported_benchmark_without_fake_history(tmp_path, monkeypatch):
     lock, imported = fixture(tmp_path, monkeypatch)
-    lock.write_text(json.dumps({'datasets': {}}))
+    lock.write_text(json.dumps({'datasets': {}}), encoding='utf-8')
     imported.unlink()
     pinning.pin(tmp_path, 'websearch', 'a' * 40)
-    selected = json.loads(lock.read_text())['datasets']['websearch']
+    selected = json.loads(lock.read_text(encoding='utf-8'))['datasets']['websearch']
     assert selected['repository'] == 'Lexmount/LexBench-Web-Search'
     assert selected['revision'] == 'a' * 40
     assert selected['datasets']['sample']['count'] == 1
@@ -202,8 +202,8 @@ def test_jsonl_population_is_verified_even_without_an_import_binding(tmp_path, m
 def test_jsonl_release_updates_existing_import_binding(tmp_path, monkeypatch):
     lock, imported = fixture(tmp_path, monkeypatch, jsonl=True)
     pinning.pin(tmp_path, 'websearch', 'a' * 40)
-    selected = json.loads(lock.read_text())['datasets']['websearch']
-    actual = json.loads(imported.read_text())
+    selected = json.loads(lock.read_text(encoding='utf-8'))['datasets']['websearch']
+    actual = json.loads(imported.read_text(encoding='utf-8'))
     assert actual['datasets'] == selected['datasets']
     assert actual['datasets']['sample']['format'] == 'jsonl'
     assert pinning.validate_binding(tmp_path, 'lexbench-websearch') == 'a' * 40
@@ -221,7 +221,7 @@ def test_pin_preserves_only_a_default_present_in_the_new_release(tmp_path, monke
     lock = json.loads(paths[0].read_bytes())
     lock['datasets']['websearch']['default_dataset'] = default
     lock['datasets']['websearch']['revision'] = 'a' * 40
-    paths[0].write_text(json.dumps(lock))
+    paths[0].write_text(json.dumps(lock), encoding='utf-8')
     before = {path: path.read_bytes() for path in paths}
     if default == 'retired':
         with pytest.raises(ValueError, match='Default dataset is absent'):
@@ -257,7 +257,7 @@ def test_pin_checks_composed_sources_in_both_update_directions(tmp_path, monkeyp
         replacements = {'path': 'datasets/replacement.json', 'sha256': 'b' * 64,
                         'count': 2, 'format': 'jsonl', 'id_field': 'task_id'}
         other['datasets']['sample'][difference] = replacements[difference]
-    paths[0].write_text(json.dumps(lock))
+    paths[0].write_text(json.dumps(lock), encoding='utf-8')
     before = {path: path.read_bytes() for path in paths}
     if difference or direction == 'source':
         with pytest.raises(ValueError, match='dataset source|source file|explicit coordinated selection'):
@@ -417,7 +417,7 @@ def coordinated_fixture(root, monkeypatch, defect=None):
         imported = root / 'evaluation' / ('lexbench-' + track + '.json')
         imported.parent.mkdir(exist_ok=True)
         imported.write_text(json.dumps({'repository': 'old', 'revision': 'old',
-                                       'datasets': old_registry['datasets'], 'definition_files': {}}))
+                                       'datasets': old_registry['datasets'], 'definition_files': {}}), encoding='utf-8')
         paths.append(imported)
     consumer = releases['websearch'][0]
     provider = releases['simpleqa-verified'][0]
@@ -431,7 +431,7 @@ def coordinated_fixture(root, monkeypatch, defect=None):
     }}
     lock_path = source_path('harness/benchmarks/data-lock.json', root=root)
     lock_path.parent.mkdir(parents=True)
-    lock_path.write_text(json.dumps(lock))
+    lock_path.write_text(json.dumps(lock), encoding='utf-8')
     paths.append(lock_path)
     def fetch(url, timeout):
         url = url if isinstance(url, str) else url.full_url
@@ -566,7 +566,7 @@ def test_first_selection_preserves_manifest_composition(tmp_path, monkeypatch, p
     lock['datasets']['websearch'] = {'repository': 'Lexmount/websearch'}
     if provider_state == 'missing':
         lock['datasets'].pop('simpleqa-verified')
-    paths[-1].write_text(json.dumps(lock))
+    paths[-1].write_text(json.dumps(lock), encoding='utf-8')
     if provider_state == 'matching':
         pinning.pin(tmp_path, 'simpleqa-verified', 'a' * 40)
     before = {path: path.read_bytes() for path in paths}
@@ -695,7 +695,7 @@ def test_legacy_composition_requires_owned_bytes_or_explicit_provider(tmp_path, 
         lock['datasets']['websearch'].update(
             revision='a' * 40, datasets=consumer['datasets'],
             dataset_sources={'factual-v1': 'simpleqa-verified'})
-    paths[-1].write_text(json.dumps(lock))
+    paths[-1].write_text(json.dumps(lock), encoding='utf-8')
     def manifest(repository, revision, *args):
         return json.dumps(consumer if repository.endswith('/websearch') else provider).encode()
     def archive(repository, revision, binding):
@@ -747,7 +747,7 @@ def test_published_webmainbench_runtime_selection_is_used_by_pin(tmp_path, monke
                 'scorer': {'repository': scorer['repository'], 'revision': '0' * 40}}
     if missing:
         previous = {'repository': previous['repository']}
-    lock.write_text(json.dumps({'datasets': {'webmainbench': previous}}))
+    lock.write_text(json.dumps({'datasets': {'webmainbench': previous}}), encoding='utf-8')
     monkeypatch.setattr(pinning, 'read_hf_file', lambda *args: (output / 'manifest.json').read_bytes())
     monkeypatch.setattr(pinning, 'fetch_archive', lambda *args: (output / 'definitions.tar.gz').read_bytes())
     if missing:
@@ -782,7 +782,7 @@ def test_legacy_runtime_settings_require_a_known_edition(tmp_path, monkeypatch, 
         if option == 'scorer':
             expected['revision'] = 'd' * 40
         previous['history'] = [{'revision': 'a' * 40, option: expected}]
-    paths[0].write_text(json.dumps(lock))
+    paths[0].write_text(json.dumps(lock), encoding='utf-8')
     before = {path: path.read_bytes() for path in paths}
     if known != 'unknown':
         pinning.pin(tmp_path, 'websearch', 'a' * 40)

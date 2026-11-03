@@ -57,7 +57,7 @@ def test_identity_update_reports_malformed_receipt_field_without_writes(tmp_path
     from harness.web_fetch.adjudication_evidence import prepare_reviewed_page_identities
 
     captures = tmp_path / "captures.json"
-    captures.write_text('[{"url":"https://example.test/","text":"source"}]')
+    captures.write_text('[{"url":"https://example.test/","text":"source"}]', encoding='utf-8')
     receipt = {
         "kind": "retrospective_page_identity_review", "provider_calls_added": 0,
         "captures_path": captures.name,
@@ -78,7 +78,7 @@ def test_identity_update_reports_malformed_receipt_field_without_writes(tmp_path
     else:
         receipt[field] = value
     path = tmp_path / "review.json"
-    path.write_text(json.dumps(receipt))
+    path.write_text(json.dumps(receipt), encoding='utf-8')
     binding = {"path": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
     dataset = {"cases": [], "comparison": {"page_identity_review": binding}}
     unchanged = json.dumps(dataset)
@@ -114,7 +114,7 @@ def test_review_inputs_require_original_bound_bytes(tmp_path, monkeypatch, entry
 
     def save(name, value):
         path = tmp_path / name
-        path.write_text(json.dumps(value))
+        path.write_text(json.dumps(value), encoding='utf-8')
         return {"path": name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
 
     dataset = {"cases": [], "comparison": {}}
@@ -144,7 +144,7 @@ def test_review_inputs_require_original_bound_bytes(tmp_path, monkeypatch, entry
                 tmp_path, dataset, dataset, [])
             error = "Page identity capture changed before rescoring"
     if changed:
-        (tmp_path / binding["path"]).write_text("{}")
+        (tmp_path / binding["path"]).write_text("{}", encoding='utf-8')
         with pytest.raises(ValueError, match=error):
             invoke()
     else:
@@ -160,7 +160,7 @@ def test_compact_retention_keeps_actual_opinion_without_old_matrices(tmp_path, d
     from harness.web_fetch.adjudication_evidence import (
         compact_retained_review_dependencies, require_retained_reviews)
     text = 'Required complete article.'
-    (tmp_path/'answer.txt').write_text(text)
+    (tmp_path/'answer.txt').write_text(text, encoding='utf-8')
     old_case = {'id': 'a', 'url': 'https://example.test/',
         'required_facts': [{'id': 'article', 'alternatives': [text]}], 'forbidden_any': ['CAPTCHA']}
     case = {k: v for k, v in old_case.items() if k != 'forbidden_any'}
@@ -173,7 +173,7 @@ def test_compact_retention_keeps_actual_opinion_without_old_matrices(tmp_path, d
         'adjudication': wording}
     def bind(name, value):
         path = tmp_path/name
-        path.write_text(json.dumps(value))
+        path.write_text(json.dumps(value), encoding='utf-8')
         return {'path': name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
     results = bind('old-results.jsonl', record)
     prior = bind('old-review.json', {'results_sha256': results['sha256'], 'attempts': [opinion]})
@@ -190,7 +190,7 @@ def test_compact_retention_keeps_actual_opinion_without_old_matrices(tmp_path, d
     if defect == 'case':
         case['required_facts'] = ['Different requirement']
     elif defect == 'answer':
-        (tmp_path/'answer.txt').write_text('Changed')
+        (tmp_path/'answer.txt').write_text('Changed', encoding='utf-8')
     elif defect == 'context':
         record['ok'] = False
     elif defect == 'opinion':
@@ -209,7 +209,7 @@ def test_compact_retention_keeps_actual_opinion_without_old_matrices(tmp_path, d
 
 def fixture(tmp_path):
     text = 'Required complete article.'
-    (tmp_path / 'answer.txt').write_text(text)
+    (tmp_path / 'answer.txt').write_text(text, encoding='utf-8')
     case = {'id': 'a', 'url': 'https://example.test/', 'required_facts': [
         {'id': 'article', 'alternatives': [text]}], 'diagnostic_any': ['CAPTCHA']}
     metrics = score_attempt(case, text.encode(), ok=True)
@@ -265,7 +265,7 @@ def test_supplemental_review_binds_new_opinion_task_and_complete_answer(tmp_path
     import json
     from harness.web_fetch.adjudication_evidence import _require_supplemental_reviews
     text = 'Complete document and sqlite3 test.db'
-    (tmp_path/'answer.txt').write_text(text)
+    (tmp_path/'answer.txt').write_text(text, encoding='utf-8')
     case = {'id': 'a', 'required_facts': ['sqlite3 test.db']}
     record = {'attempt_id': 'p__a', 'case_id': 'a', 'artifact_path': 'answer.txt',
               'metrics': {'content_sha256': hashlib.sha256(text.encode()).hexdigest()}}
@@ -280,10 +280,10 @@ def test_supplemental_review_binds_new_opinion_task_and_complete_answer(tmp_path
         row['review_evidence']['samples'][0]['text'] = 'Invented answer'
         supplement['attempts'] = [copy.deepcopy(row)]
     path = tmp_path/'supplement.json'
-    path.write_text(json.dumps(supplement))
+    path.write_text(json.dumps(supplement), encoding='utf-8')
     binding = {'path': path.name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
     review = {'attempts': [row], 'results_sha256': 'a'*64, 'supplemental_reviews': [binding]}
-    if defect == 'answer': (tmp_path/'answer.txt').write_text('Changed answer')
+    if defect == 'answer': (tmp_path/'answer.txt').write_text('Changed answer', encoding='utf-8')
     elif defect == 'opinion': row['agent_verdict'] = 'fail'
     elif defect == 'case': case['required_facts'] = ['different command']
     elif defect == 'binding': binding['sha256'] = 'b'*64
@@ -309,7 +309,7 @@ def test_retention_requires_unchanged_decision_dependencies(tmp_path, defect, wo
                 'forbidden_any': ['CAPTCHA']}
     case = {k: v for k, v in old_case.items() if k != 'forbidden_any'}
     case['diagnostic_any'] = ['CAPTCHA']
-    (tmp_path/'answer.txt').write_text(text)
+    (tmp_path/'answer.txt').write_text(text, encoding='utf-8')
     metrics = score_attempt(case, text.encode(), ok=True)
     record = {'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a', 'ok': True,
               'artifact_path': 'answer.txt', 'metrics': metrics}
@@ -320,7 +320,7 @@ def test_retention_requires_unchanged_decision_dependencies(tmp_path, defect, wo
         original['adjudication_evidence'] = {'rule_ids': ['forbidden_any']}
     def bind(name, value, *, jsonl=False):
         path = tmp_path/name
-        path.write_text(json.dumps(value) + ('\n' if jsonl else ''))
+        path.write_text(json.dumps(value) + ('\n' if jsonl else ''), encoding='utf-8')
         return {'path': name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
     old_record = copy.deepcopy(record)
     assert review_input_identity(record) == review_input_identity(old_record)
@@ -335,7 +335,7 @@ def test_retention_requires_unchanged_decision_dependencies(tmp_path, defect, wo
     review = {'attempts': [row], 'retained_reviewed_attempts': 1,
               'fresh_reviewed_attempts': 0, 'retained_reviews': bind('retention.json', receipt)}
     if defect == 'positive_rule': case['required_facts'] = ['A different article']
-    elif defect == 'answer': (tmp_path/'answer.txt').write_text('Changed answer')
+    elif defect == 'answer': (tmp_path/'answer.txt').write_text('Changed answer', encoding='utf-8')
     elif defect == 'opinion': row['agent_evidence'] = 'Rewritten opinion'
     elif defect == 'verdict': row['final_verdict'] = 'fail'
     elif defect == 'count': review['fresh_reviewed_attempts'] = 1
@@ -353,7 +353,7 @@ def test_fresh_review_keeps_the_immutable_blind_initial_opinion(tmp_path, defect
     import json
     from harness.web_fetch.adjudication_evidence import _require_supplemental_reviews
     case, record, row = fixture(tmp_path)
-    text = (tmp_path/'answer.txt').read_text()
+    text = (tmp_path/'answer.txt').read_text(encoding='utf-8')
     row.update(content_sha256=record['metrics']['content_sha256'],
                agent_evidence='The required article is absent.', reviewer_anomalies=[],
                review_evidence={'case_sha256': canonical_json_sha256(case),
@@ -366,7 +366,7 @@ def test_fresh_review_keeps_the_immutable_blind_initial_opinion(tmp_path, defect
     elif defect == 'anomaly': row['reviewer_anomalies'] = ['Invented anomaly']
     def bind(name, document):
         path = tmp_path/name
-        path.write_text(json.dumps(document))
+        path.write_text(json.dumps(document), encoding='utf-8')
         return {'path': name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
     supplement = {'kind': 'supplemental_saved_output_review', 'provider_calls_added': 0,
         'results_sha256': 'a'*64, 'reviewed_attempts': 1, 'reviewer': {'model': 'reviewer'},

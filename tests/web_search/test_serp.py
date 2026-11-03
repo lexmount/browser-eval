@@ -56,7 +56,7 @@ class SerpContracts(unittest.TestCase):
             profile.pop("reference_checks", None)
             profile.pop("reference_artifacts", None)
             original = root / "original.json"
-            original.write_text(json.dumps(profile))
+            original.write_text(json.dumps(profile), encoding="utf-8")
             calls, phase, revised_calls = [], 0, 0
 
             def http(url, body=None, header=None, timeout=20):
@@ -83,22 +83,22 @@ class SerpContracts(unittest.TestCase):
                 original_profile = original.read_bytes()
                 profile["methods"][0]["output_options"] = {"interface": "public"}
                 corrected = root / "corrected.json"
-                corrected.write_text(json.dumps(profile))
+                corrected.write_text(json.dumps(profile), encoding="utf-8")
                 proof = root / "interface.json"
-                proof.write_text('{"synthetic":true,"accepted_fields":["query","limit"]}')
+                proof.write_text('{"synthetic":true,"accepted_fields":["query","limit"]}', encoding="utf-8")
                 revision = {"schema": "web-search-execution-revision/1", "root_cause": "Synthetic service interface changed", "superseded_methods": ["lexmount"], "previous_profile_sha256": bytes_sha256(original_profile), "profile_sha256": bytes_sha256(corrected.read_bytes()), "evidence": [{"path": proof.name, "sha256": bytes_sha256(proof.read_bytes())}]}
                 revision_path = root / "revision.json"
-                revision_path.write_text(json.dumps(revision))
+                revision_path.write_text(json.dumps(revision), encoding="utf-8")
                 # A correction must account for old physical calls before spending again.
                 profile["protocol"]["max_calls_per_method"]["lexmount"] = 2
                 insufficient = root / "insufficient.json"
-                insufficient.write_text(json.dumps(profile))
-                revision_path.write_text(json.dumps({**revision, "profile_sha256": bytes_sha256(insufficient.read_bytes())}))
+                insufficient.write_text(json.dumps(profile), encoding="utf-8")
+                revision_path.write_text(json.dumps({**revision, "profile_sha256": bytes_sha256(insufficient.read_bytes())}), encoding="utf-8")
                 with self.assertRaisesRegex(ValueError, "physical call budget"):
                     prepare_execution_revision(insufficient, root / "run", revision_path)
                 self.assertEqual((root / "run/profile.json").read_bytes(), original_profile)
                 self.assertFalse((root / "run/resume-1").exists())
-                revision_path.write_text(json.dumps(revision))
+                revision_path.write_text(json.dumps(revision), encoding="utf-8")
                 phase = 1
                 with self.assertRaisesRegex(RuntimeError, "interruption"):
                     run(corrected, root / "run", resume=True, execution_revision=revision_path, certified=True)
@@ -220,7 +220,7 @@ class SerpContracts(unittest.TestCase):
             p["protocol"]["retry"] = True
             p["protocol"]["max_calls_per_method"] = len(p["cases"])  # one retry doubles the ceiling
             profile = root / "profile.json"
-            profile.write_text(json.dumps(p))
+            profile.write_text(json.dumps(p), encoding="utf-8")
             with patch("harness.web_search.runner.http_call") as call:
                 with self.assertRaisesRegex(ValueError, "budget"):
                     run(profile, root / "run")
@@ -238,7 +238,7 @@ class SerpContracts(unittest.TestCase):
             profile.pop("reference_checks", None)
             profile.pop("reference_artifacts", None)
             p = root / "input.json"
-            p.write_text(json.dumps(profile))
+            p.write_text(json.dumps(profile), encoding="utf-8")
             calls = []
 
             def http(url, body=None, header=None, timeout=20):
@@ -271,36 +271,36 @@ class SerpContracts(unittest.TestCase):
             self.assertTrue(all(len(r["results"]) == (0 if r["method"] == "brightdata" else 5) for r in rows))
             self.assertEqual(receipt["physical_call_count"], 8)
             self.assertTrue(receipt["certified"])
-            contract = json.loads((root / "run/run-contract.json").read_text())
+            contract = json.loads((root / "run/run-contract.json").read_text(encoding="utf-8"))
             self.assertIn("no retries", contract["timer"])
             # Correct the saved native projection through the public report boundary,
             # preserving every paid call and exposing the correction's provenance.
             revision = {"schema": "web-search-assessment-revision/1", "root_cause": "Native relative links require the recorded request URL", "regression_ids": ["relative-serp-links", "unsafe-serp-links", "top-five-boundary"], "provider_calls": 0, "normalization": "request-url/1", "regressions_sha256": bytes_sha256(NATIVE_CONTROLS.read_bytes())}
             content = root / "content.json"
             (root / "controls.json").write_bytes(NATIVE_CONTROLS.read_bytes())
-            content.write_text(json.dumps({"presentation": "comparison-report", "summary_metrics": "retrieval", "sections": [], "assessment_revision": revision, "assets": [{"source": "controls.json", "path": "report-assets/scoring-regressions.json", "sha256": revision["regressions_sha256"]}]}))
+            content.write_text(json.dumps({"presentation": "comparison-report", "summary_metrics": "retrieval", "sections": [], "assessment_revision": revision, "assets": [{"source": "controls.json", "path": "report-assets/scoring-regressions.json", "sha256": revision["regressions_sha256"]}]}), encoding="utf-8")
             from tests.web_search.test_native_revisions import revision_instance
             instance = revision_instance(root, revision)
             with patch("harness.web_search.runner.http_call") as network:
                 build(root / "report", source=root / "run", content=content, profile_path=instance)
                 _, corrected_rows = check(root / "report", return_data=True)
                 network.assert_not_called()
-            manifest = json.loads((root / "report/manifest.json").read_text())
+            manifest = json.loads((root / "report/manifest.json").read_text(encoding="utf-8"))
             for row in (r for r in rows if r["method"] == "brightdata"):
                 path = row["evidence"]["path"]
-                self.assertIn("synthetic-private-session", (root / "run" / path).read_text())
-                self.assertNotIn("synthetic-private-session", (root / "report" / path).read_text())
+                self.assertIn("synthetic-private-session", (root / "run" / path).read_text(encoding="utf-8"))
+                self.assertNotIn("synthetic-private-session", (root / "report" / path).read_text(encoding="utf-8"))
                 self.assertTrue(any(r["path"] == path for r in manifest["evidence_redactions"]))
             dataset_text = BeautifulSoup(
-                (root / "report/dataset.html").read_text(), "html.parser"
+                (root / "report/dataset.html").read_text(encoding="utf-8"), "html.parser"
             ).get_text()
             self.assertIn("接口请求相同数量", dataset_text)
             self.assertNotIn("三家", dataset_text)
-            method_page = BeautifulSoup((root / "report/research.html").read_text(), "html.parser")
+            method_page = BeautifulSoup((root / "report/research.html").read_text(encoding="utf-8"), "html.parser")
             fairness = method_page.select_one("[data-fairness]")
             self.assertNotIn("三家", fairness.get_text())
             self.assertEqual([row.select("td")[2].get_text() for row in fairness.select("tbody tr")], ["5 × 2", "5 × 2", "默认 × 2", "5 × 2"])
-            performance = BeautifulSoup((root / "report/performance.html").read_text(), "html.parser")
+            performance = BeautifulSoup((root / "report/performance.html").read_text(encoding="utf-8"), "html.parser")
             conditional = performance.select_one("[data-successful-latency]")
             self.assertIsNotNone(conditional)
             self.assertEqual([row.select("td")[2].get_text() for row in conditional.select("tbody tr")], ["2", "2", "1", "2"])
@@ -309,32 +309,32 @@ class SerpContracts(unittest.TestCase):
             self.assertEqual(len(manifest["assessment_revision"]["changes"]), 1)
             self.assertEqual(manifest["receipt"]["physical_call_count"], 8)
             detail = root / "report/details" / (failed_id + ".html")
-            original_detail = detail.read_text()
+            original_detail = detail.read_text(encoding="utf-8")
             error = BeautifulSoup(original_detail, "html.parser").select_one("[data-error]").get_text()
             for value in ("status_code: 502", "x-brd-error-code: captcha", "redirect location was rejected"):
                 self.assertIn(value, error)
-            detail.write_text(original_detail.replace("x-brd-error-code: captcha", "x-brd-error-code: removed"))
+            detail.write_text(original_detail.replace("x-brd-error-code: captcha", "x-brd-error-code: removed"), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "Exact error"):
                 check(root / "report")
-            detail.write_text(original_detail)
+            detail.write_text(original_detail, encoding="utf-8")
             comparison = root / "report/results.html"
-            original_comparison = comparison.read_text()
+            original_comparison = comparison.read_text(encoding="utf-8")
             parsed = BeautifulSoup(original_comparison, "html.parser")
             data_node = parsed.select_one("[data-comparison-data]")
             data = json.loads(data_node.string)
             self.assertEqual(data["primary_factual_metric"], "source")
             data["primary_factual_metric"] = "answer"
             data_node.string = json.dumps(data)
-            comparison.write_text(str(parsed))
+            comparison.write_text(str(parsed), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "Result comparison"):
                 check(root / "report")
-            comparison.write_text(original_comparison)
+            comparison.write_text(original_comparison, encoding="utf-8")
             export(root / "report", root / "delivery")
             self.assertTrue(verify(root / "report", root / "delivery"))
-            packed = json.loads((root / "delivery/delivery-index.json").read_text())
+            packed = json.loads((root / "delivery/delivery-index.json").read_text(encoding="utf-8"))
             self.assertTrue(all(r["evidence"]["path"] in packed["files"] for r in rows))
             manifest["assessment_revision"]["changes"] = []
-            (root / "report/manifest.json").write_text(json.dumps(manifest))
+            (root / "report/manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "provenance"):
                 check(root / "report")
 

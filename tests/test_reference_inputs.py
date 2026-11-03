@@ -46,14 +46,14 @@ def external_dataset(inputs):
             {"id": "case-a", "url": "https://example.invalid", "definition_sha256": definition}
         ],
     }
-    (dataset.parent / "dataset-catalog.json").write_text(json.dumps(catalog))
+    (dataset.parent / "dataset-catalog.json").write_text(json.dumps(catalog), encoding="utf-8")
     manifest.update(
         schema_version=2,
         catalog="dataset-catalog.json",
         catalog_sha256=sha((dataset.parent / "dataset-catalog.json").read_bytes()),
         files={"dataset.json": sha(original)},
     )
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     dataset.unlink()
     return original
 
@@ -66,11 +66,11 @@ def test_catalog_is_non_executable_and_cannot_misdescribe_frozen_tasks(inputs):
     catalog_path = dataset.parent / "dataset-catalog.json"
     with pytest.raises(ValueError, match="dataset.tool"):
         load_dataset(catalog_path)
-    catalog = json.loads(catalog_path.read_text())
+    catalog = json.loads(catalog_path.read_text(encoding="utf-8"))
     catalog["cases"][0]["id"] = "another-task"
-    catalog_path.write_text(json.dumps(catalog))
+    catalog_path.write_text(json.dumps(catalog), encoding="utf-8")
     manifest["catalog_sha256"] = sha(catalog_path.read_bytes())
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ValueError, match="catalog metadata differs"):
         import_inputs(manifest_path, source)
 
@@ -92,7 +92,7 @@ def test_external_dataset_preserves_frozen_bytes_and_canonical_evidence_contract
     shutil.copytree(output, evidence)
     require_canonical_inputs(evidence, dataset.parent)
     check_reference_input_boundary(dataset.parent)
-    dataset.write_text("unbound local fallback")
+    dataset.write_text("unbound local fallback", encoding="utf-8")
     assert read_dataset_bytes(dataset) == original
     with pytest.raises(ValueError, match="duplicated"):
         check_reference_input_boundary(dataset.parent)
@@ -102,7 +102,7 @@ def test_dataset_only_inputs_preserve_bytes_without_inventing_source_trees(input
     dataset, manifest_path, source, manifest = inputs
     original = external_dataset(inputs)
     manifest["trees"] = {}
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     output = import_inputs(manifest_path, source)
     assert read_dataset_bytes(dataset) == original
     assert sorted(path.name for path in output.iterdir()) == ["dataset.json"]
@@ -117,11 +117,11 @@ def test_dataset_only_inputs_reject_undeclared_source_trees(inputs, location):
     dataset, manifest_path, source, manifest = inputs
     external_dataset(inputs)
     manifest["trees"] = {}
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     output = import_inputs(manifest_path, source)
     tree = (dataset.parent if location == "checkout" else output) / "sources"
     tree.mkdir()
-    (tree / "private.txt").write_text("undeclared source material")
+    (tree / "private.txt").write_text("undeclared source material", encoding="utf-8")
     with pytest.raises(ValueError, match="[Uu]ndeclared|duplicated"):
         input_tree(dataset, "sources")
     if location == "checkout":
@@ -186,10 +186,10 @@ def test_public_cli_runs_bound_dataset_and_keeps_original_manifest_hash(
     original = external_dataset(inputs)
     if not with_source_tree:
         manifest["trees"] = {}
-        manifest_path.write_text(json.dumps(manifest))
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     import_inputs(manifest_path, source)
     env = tmp_path / "empty.env"
-    env.write_text("")
+    env.write_text("", encoding="utf-8")
     output = tmp_path / "run"
     args = build_parser().parse_args(
         [
@@ -206,12 +206,12 @@ def test_public_cli_runs_bound_dataset_and_keeps_original_manifest_hash(
         ]
     )
     assert command_run(args) == 0
-    manifest = json.loads((output / "manifest.json").read_text())
+    manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     assert manifest["dataset_sha256"] == sha(original)
-    scoped = json.loads((output / "dataset.json").read_text())
+    scoped = json.loads((output / "dataset.json").read_text(encoding="utf-8"))
     assert scoped.pop("comparison")["publication_state"] == "diagnostic_not_for_release"
     assert scoped == json.loads(original)
-    records = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
+    records = [json.loads(line) for line in (output / "results.jsonl").read_text(encoding="utf-8").splitlines()]
     assert len(records) == 1 and records[0]["metrics"]["content_pass"]
     assert (output / records[0]["artifact_path"]).read_bytes()
     check(output / "report")
@@ -241,9 +241,9 @@ def test_external_dataset_binding_rejects_changed_missing_or_redirected_inputs(i
     external_dataset(inputs)
     output = import_inputs(manifest_path, source)
     if damage == "catalog":
-        (dataset.parent / "dataset-catalog.json").write_text("{}")
+        (dataset.parent / "dataset-catalog.json").write_text("{}", encoding="utf-8")
     elif damage == "dataset":
-        (output / "dataset.json").write_text("{}")
+        (output / "dataset.json").write_text("{}", encoding="utf-8")
     elif damage == "missing":
         (output / "dataset.json").unlink()
     else:
@@ -276,7 +276,8 @@ def inputs(tmp_path, monkeypatch):
                     }
                 ],
             }
-        )
+        ),
+        encoding="utf-8"
     )
     source = tmp_path / "approved-copy"
     (source / "sources/case-a").mkdir(parents=True)
@@ -296,15 +297,15 @@ def inputs(tmp_path, monkeypatch):
         "trees": {"sources": files},
     }
     manifest_path = checkout / "source-inputs.json"
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "private-data"))
     return dataset, manifest_path, source, manifest
 
 
 def test_import_is_allowlisted_and_dataset_adjacent_repository_copy_is_not_used(inputs):
     dataset, manifest_path, source, manifest = inputs
-    (source / "private-review.json").write_text("not an input")
-    (source / "sources/case-a/private-worker-log.txt").write_text("not an input")
+    (source / "private-review.json").write_text("not an input", encoding="utf-8")
+    (source / "sources/case-a/private-worker-log.txt").write_text("not an input", encoding="utf-8")
     output = import_inputs(manifest_path, source)
     assert input_tree(dataset, "sources") == output / "sources"
     assert sorted(
@@ -313,8 +314,8 @@ def test_import_is_allowlisted_and_dataset_adjacent_repository_copy_is_not_used(
     assert (output / "sources/case-a/reference.txt").read_bytes() == b"independent fixture"
     # A repository-side copy cannot mask changed or absent externally bound data.
     (dataset.parent / "sources/case-a").mkdir(parents=True)
-    (dataset.parent / "sources/case-a/reference.txt").write_text("unbound fallback")
-    (output / "sources/case-a/reference.txt").write_text("changed")
+    (dataset.parent / "sources/case-a/reference.txt").write_text("unbound fallback", encoding="utf-8")
+    (output / "sources/case-a/reference.txt").write_text("changed", encoding="utf-8")
     with pytest.raises(ValueError, match="changed"):
         input_tree(dataset, "sources")
 
@@ -351,7 +352,7 @@ def test_invalid_source_cannot_leave_a_partial_import(inputs, damage):
     dataset, manifest_path, source, _ = inputs
     path = source / "sources/case-a/reference.txt"
     if damage == "changed":
-        path.write_text("different")
+        path.write_text("different", encoding="utf-8")
     elif damage == "missing":
         path.unlink()
     else:
@@ -372,7 +373,7 @@ def test_installed_inventory_is_exact_and_rejects_missing_extra_or_linked_files(
     if damage == "missing":
         path.unlink()
     elif damage == "extra":
-        (output / "sources/extra.txt").write_text("unbound")
+        (output / "sources/extra.txt").write_text("unbound", encoding="utf-8")
     else:
         path.unlink()
         path.symlink_to(source / "sources/case-a/reference.txt")
@@ -388,7 +389,7 @@ def test_corrupted_installed_tree_is_not_treated_as_optional_absent_data(inputs,
     output = import_inputs(manifest_path, source)
     shutil.rmtree(output / "sources")
     if replacement == "file":
-        (output / "sources").write_text("wrong tree type")
+        (output / "sources").write_text("wrong tree type", encoding="utf-8")
     with pytest.raises(ValueError, match="missing or is not a directory"):
         input_tree(dataset, "sources")
 
@@ -408,14 +409,14 @@ def test_cli_check_preserves_existing_bytes_and_refuses_overwrite(inputs):
 def test_manifest_rejects_wrong_dataset_escaping_paths_and_invalid_bindings(inputs, damage):
     dataset, manifest_path, _, manifest = inputs
     if damage == "dataset":
-        dataset.write_text("{}")
+        dataset.write_text("{}", encoding="utf-8")
     elif damage == "path":
         manifest["trees"]["sources"] = {"../../escape": "a" * 64}
     elif damage == "hash":
         manifest["trees"]["sources"] = {"safe": "invalid"}
     else:
         manifest["schema_version"] = 99
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ValueError):
         load_manifest(manifest_path, dataset)
 
@@ -469,7 +470,7 @@ def test_packed_snapshot_import_restores_only_hash_bound_benchmark_inputs(tmp_pa
     assert (output / "list-references/list-a.json").read_bytes() == b'{"items": []}'
     assert not (output / "results").exists()
     assert requested.count("https://artifact.example/release/data/0.gz?version=frozen") == 1
-    receipt = json.loads((output / "import-receipt.json").read_text())
+    receipt = json.loads((output / "import-receipt.json").read_text(encoding="utf-8"))
     assert receipt["input_file_count"] == 3
     assert receipt["downloaded_packs"] == ["data/0.gz"]
 
@@ -543,7 +544,7 @@ def test_packed_snapshot_import_rejects_changed_or_escaping_evidence(
 
 def test_explicit_custom_dataset_uses_its_own_sources_without_global_state(tmp_path):
     dataset = tmp_path / "custom.json"
-    dataset.write_text("{}")
+    dataset.write_text("{}", encoding="utf-8")
     assert input_tree(dataset, "sources") == tmp_path / "sources"
     require_mutable_inputs(dataset)
 
@@ -557,7 +558,7 @@ def test_canonical_validation_compares_evidence_against_external_inputs(inputs, 
     for path in (source / "sources/case-a").iterdir():
         (evidence / "sources/case-a" / path.name).write_bytes(path.read_bytes())
     require_canonical_inputs(evidence, dataset.parent)
-    (evidence / "sources/case-a/reference.txt").write_text("different")
+    (evidence / "sources/case-a/reference.txt").write_text("different", encoding="utf-8")
     with pytest.raises(ValueError, match="canonical input tree"):
         require_canonical_inputs(evidence, dataset.parent)
 
@@ -617,9 +618,9 @@ def test_cohort_copies_bound_external_list_references(inputs, tmp_path):
     external_dataset(inputs)
     import_inputs(manifest_path, source)
     config = tmp_path / 'providers.json'
-    config.write_text(json.dumps({'providers': {'fixture': {'type': 'fixture'}}}))
+    config.write_text(json.dumps({'providers': {'fixture': {'type': 'fixture'}}}), encoding="utf-8")
     env = tmp_path / 'empty.env'
-    env.write_text('')
+    env.write_text('', encoding="utf-8")
     output = tmp_path / 'run'
     benchmark_runner.main(['--dataset', str(dataset), '--provider-config', str(config),
         '--providers', 'fixture', '--env-file', str(env), '--output', str(output),
@@ -643,7 +644,7 @@ def test_shared_preflight_requires_declared_inputs_even_without_freshness_rules(
     from harness.web_fetch.reference_lifecycle import preflight_reference_checks
 
     dataset, manifest_path, source, _ = inputs
-    cases = json.loads(dataset.read_text())["cases"]
+    cases = json.loads(dataset.read_text(encoding="utf-8"))["cases"]
     with pytest.raises(FileNotFoundError, match="not installed"):
         preflight_reference_checks(cases, dataset)
     import_inputs(manifest_path, source)
@@ -686,7 +687,7 @@ def test_headless_runner_rejects_missing_inputs_before_provider_or_output(
 _BOUND_INPUT_AUTHORITY = (Path(__file__).resolve().parents[1] /
                           "evaluation/lexbench-webfetch.json")
 _BOUND_INPUT_DIRECTORIES = [Path(relative).parent for relative in
-    json.loads(_BOUND_INPUT_AUTHORITY.read_text())["definition_files"]
+    json.loads(_BOUND_INPUT_AUTHORITY.read_text(encoding="utf-8"))["definition_files"]
     if Path(relative).name == "source-inputs.json"]
 
 
@@ -703,7 +704,7 @@ def bound_checkout(tmp_path):
 def test_binding_only_checkout_rejects_copied_reference_inputs(bound_checkout, relative, artifact):
     copied = bound_checkout / relative / artifact
     copied.parent.mkdir(parents=True, exist_ok=True)
-    copied.write_text("synthetic private input")
+    copied.write_text("synthetic private input", encoding="utf-8")
     with pytest.raises(ValueError, match="duplicated in checkout"):
         check_reference_input_boundary(bound_checkout / "evaluation")
 
@@ -717,9 +718,9 @@ def test_binding_only_checkout_accepts_clean_historical_directories(bound_checko
 
 def test_binding_only_checkout_checks_installed_manifest_hash(bound_checkout):
     authority = bound_checkout / "evaluation/lexbench-webfetch.json"
-    document = json.loads(authority.read_text())
+    document = json.loads(authority.read_text(encoding="utf-8"))
     document["definition_files"]["evaluation/source-inputs.json"] = "0" * 64
-    authority.write_text(json.dumps(document))
+    authority.write_text(json.dumps(document), encoding="utf-8")
     with pytest.raises(ValueError, match="differs from checkout binding"):
         check_reference_input_boundary(bound_checkout / "evaluation")
 

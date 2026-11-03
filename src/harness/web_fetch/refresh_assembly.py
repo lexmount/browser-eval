@@ -1084,7 +1084,7 @@ def _write_composite_revisions(output: Path, selections: list[tuple[dict, Path]]
                 scoring_receipts, list(scoring_decisions.values())
             ),
         }
-        (output / "scoring-revisions.json").write_text(json.dumps([receipt], indent=2) + "\n")
+        (output / "scoring-revisions.json").write_text(json.dumps([receipt], indent=2) + "\n", encoding="utf-8")
         if not valid_scoring_revision(output):
             raise ValueError("Assembled scoring revision provenance is invalid")
     if reference_changes:
@@ -1100,7 +1100,7 @@ def _write_composite_revisions(output: Path, selections: list[tuple[dict, Path]]
                 reference_receipts, list(reference_decisions.values())
             ),
         }
-        (output / "reference-revisions.json").write_text(json.dumps([receipt], indent=2) + "\n")
+        (output / "reference-revisions.json").write_text(json.dumps([receipt], indent=2) + "\n", encoding="utf-8")
         if not reference_revision_cases(output):
             raise ValueError("Assembled reference revision provenance is invalid")
 

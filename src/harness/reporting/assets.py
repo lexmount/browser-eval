@@ -127,9 +127,9 @@ def check_external_asset_boundary(root: Path) -> None:
                              + path.relative_to(root).as_posix())
     names = set()
     for manifest in (root / 'research').glob('*-content.json'):
-        names.update(json.loads(manifest.read_text()))
+        names.update(json.loads(manifest.read_text(encoding='utf-8')))
     for profile in (root / 'evaluation').rglob('current-report.json'):
-        names.update(json.loads(profile.read_text()).get('report_assets', {}))
+        names.update(json.loads(profile.read_text(encoding='utf-8')).get('report_assets', {}))
     for directory in ('harness', 'research', 'evaluation', 'docs', 'examples', 'scripts', 'tests'):
         for path in (root / directory).rglob('*'):
             if not path.is_file():

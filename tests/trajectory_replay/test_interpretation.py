@@ -22,11 +22,11 @@ def test_interpretation_is_reachable_from_summary_and_nested_evidence(tmp_path):
             path.parent.mkdir(parents=True, exist_ok=True)
             active = "interpretation" if route == "interpretation.html" else "results"
             path.write_text(_shell(lang, active, "Title", "<p>Evidence</p>",
-                                   depth=route.count("/"), current_route=route))
+                                   depth=route.count("/"), current_route=route), encoding="utf-8")
         _add_interpretation_navigation(root, lang)
         for route in ("index.html", "interpretation.html", "result/example.html"):
             path = root / route
-            page = BeautifulSoup(path.read_text(), "html.parser")
+            page = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
             links = page.select('header nav a[data-report-interpretation]')
             assert len(links) == 1
             target = (root / "interpretation.html").resolve()
@@ -62,8 +62,8 @@ def build(tmp_path, specimen=None, sources=None, *,
     if failures:
         article["sections"][0]["data"] = "failure_matrix"
     source, audit = tmp_path / "article.json", tmp_path / "audit.json"
-    source.write_text(json.dumps(article))
-    audit.write_text(json.dumps({"bindings": {"results_sha256": "cohort"}}))
+    source.write_text(json.dumps(article), encoding="utf-8")
+    audit.write_text(json.dumps({"bindings": {"results_sha256": "cohort"}}), encoding="utf-8")
     for lang in ("zh", "en"):
         args = dict(source=source, contract_audit=audit, results_sha256="cohort",
                     methods={"browser": {"label": "浏览器"}} if failures else {},
@@ -75,17 +75,20 @@ def build(tmp_path, specimen=None, sources=None, *,
         root = tmp_path if lang == "zh" else tmp_path / "en"
         root.mkdir(exist_ok=True)
         (root / "interpretation.html").write_text(
-            '<a href="article.html" download>Download</a>' + body
+            '<a href="article.html" download>Download</a>' + body,
+            encoding="utf-8"
         )
         _, offline = render_interpretation(**args, standalone=True, report_url=report_url)
-        (root / "article.html").write_text(standalone_document(title, offline, lang, ""))
+        (root / "article.html").write_text(
+            standalone_document(title, offline, lang, ""), encoding="utf-8"
+        )
     return payload
 
 
 def test_downloaded_article_links_keep_share_access_and_failure_filters(tmp_path):
     url = "https://example.test/api/preview/site/interpretation.html?__artifact_share=public-share"
     build(tmp_path, report_url=url, failures=True)
-    page = BeautifulSoup((tmp_path / "article.html").read_text(), "html.parser")
+    page = BeautifulSoup((tmp_path / "article.html").read_text(encoding="utf-8"), "html.parser")
     link = page.select_one("[data-category] a")
     target = urlsplit(link["href"])
     assert target.path == "/api/preview/site/results.html"
@@ -105,7 +108,7 @@ def test_release_rejects_broken_downloaded_failure_links(tmp_path, mutation):
     url = "https://example.test/api/preview/site/interpretation.html?__artifact_share=public-share"
     build(tmp_path, report_url=url, failures=True)
     path = tmp_path / "article.html"
-    page = BeautifulSoup(path.read_text(), "html.parser")
+    page = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
     link = page.select_one("[data-category] a")
     if mutation == "share":
         link["href"] = link["href"].replace("__artifact_share=public-share&", "")
@@ -113,7 +116,7 @@ def test_release_rejects_broken_downloaded_failure_links(tmp_path, mutation):
         link["href"] = link["href"].replace("status=fail", "status=pass")
     else:
         link["href"] = link["href"].replace("/api/preview/site/", "/v/public-share/")
-    path.write_text(str(page))
+    path.write_text(str(page), encoding="utf-8")
     with pytest.raises(ValueError, match="standalone article failure link"):
         _check_interpretation(tmp_path)
 
@@ -121,7 +124,7 @@ def test_release_rejects_broken_downloaded_failure_links(tmp_path, mutation):
 def test_article_views_share_content_and_escape_source(tmp_path):
     build(tmp_path)
     _check_interpretation(tmp_path)
-    offline = (tmp_path / "article.html").read_text()
+    offline = (tmp_path / "article.html").read_text(encoding="utf-8")
     assert "<head>" in offline and "</head><body>" in offline
     assert offline.count("data:image/png;base64,") == 1
     assert not BeautifulSoup(offline, "html.parser").select("script")
@@ -132,10 +135,10 @@ def test_release_rejects_inaccessible_interpretation_navigation(tmp_path, mutati
     build(tmp_path)
     path = tmp_path / "result/example.html"
     path.parent.mkdir()
-    path.write_text(_shell("zh", "results", "结果", "<p>证据</p>", depth=1))
+    path.write_text(_shell("zh", "results", "结果", "<p>证据</p>", depth=1), encoding="utf-8")
     _add_interpretation_navigation(tmp_path, "zh")
     _check_interpretation(tmp_path)
-    page = BeautifulSoup(path.read_text(), "html.parser")
+    page = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
     link = page.select_one("a[data-report-interpretation]")
     if mutation == "missing":
         link.decompose()
@@ -145,7 +148,7 @@ def test_release_rejects_inaccessible_interpretation_navigation(tmp_path, mutati
         page.select_one("nav").append(BeautifulSoup(str(link), "html.parser"))
     else:
         link["aria-current"] = "page"
-    path.write_text(str(page))
+    path.write_text(str(page), encoding="utf-8")
     with pytest.raises(ValueError, match="interpretation navigation"):
         _check_interpretation(tmp_path)
 
@@ -155,7 +158,9 @@ def test_sources_are_localized_and_preserved_in_offline_article(tmp_path):
                               "label": {"zh": "<b>源码</b>", "en": "<b>Source</b>"}}])
     _check_interpretation(tmp_path)
     for prefix, label in (("", "<b>源码</b>"), ("en/", "<b>Source</b>")):
-        page = BeautifulSoup((tmp_path / f"{prefix}article.html").read_text(), "html.parser")
+        page = BeautifulSoup(
+            (tmp_path / f"{prefix}article.html").read_text(encoding="utf-8"), "html.parser"
+        )
         link = page.select_one(".article-sources a")
         assert link.text == label
         assert link["href"] == "https://example.test/source?x=1&y=2"
@@ -180,7 +185,9 @@ def test_specimen_preserves_values_and_localizes_explanations(tmp_path):
                      "caption": {"zh": "独立实验", "en": "Isolated fixture"}})
     _check_interpretation(tmp_path)
     for prefix, label in (("", "事件"), ("en/", "Event")):
-        page = BeautifulSoup((tmp_path / f"{prefix}article.html").read_text(), "html.parser")
+        page = BeautifulSoup(
+            (tmp_path / f"{prefix}article.html").read_text(encoding="utf-8"), "html.parser"
+        )
         assert page.select_one(".article-specimen th").text == label
         assert page.select(".article-specimen td")[-1].text == "1"
         assert not page.select(".article-specimen b")
@@ -202,7 +209,7 @@ def test_specimen_rejects_ragged_or_unlocalized_content(tmp_path, specimen):
 def test_article_release_gate_rejects_broken_views(tmp_path, mutation):
     build(tmp_path)
     path = tmp_path / ("interpretation.html" if mutation == "no_download" else "article.html")
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     if mutation == "script":
         text += "<script>alert(1)</script>"
     if mutation == "missing_image":
@@ -213,8 +220,8 @@ def test_article_release_gate_rejects_broken_views(tmp_path, mutation):
         text = text.replace("download", "data-removed")
     if mutation == "localization":
         path = tmp_path / "en/interpretation.html"
-        text = path.read_text().replace('id="mechanism"', 'id="other"')
-    path.write_text(text)
+        text = path.read_text(encoding="utf-8").replace('id="mechanism"', 'id="other"')
+    path.write_text(text, encoding="utf-8")
     with pytest.raises(ValueError):
         _check_interpretation(tmp_path)
 
@@ -252,10 +259,11 @@ def test_outcome_chart_uses_each_selected_method_population(tmp_path, lang):
                     }
                 ],
             }
-        )
+        ),
+        encoding="utf-8"
     )
     audit = tmp_path / "audit.json"
-    audit.write_text(json.dumps({"bindings": {"results_sha256": "cohort"}}))
+    audit.write_text(json.dumps({"bindings": {"results_sha256": "cohort"}}), encoding="utf-8")
     rows = [
         {"participant_id": method, "task_id": index, "status": status}
         for method, states in {

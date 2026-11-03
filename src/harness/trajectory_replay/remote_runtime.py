@@ -1017,11 +1017,13 @@ def main_revise(argv=None) -> None:
     bound = {
         path: checked_file_sha256(path) for path in (args.prior, args.revisions, args.site_map)
     }
-    prior = json.loads(args.prior.read_text())
+    prior = json.loads(args.prior.read_text(encoding="utf-8"))
     if prior["site_map_sha256"] != bound[args.site_map]:
         raise ValueError("site map changed")
     result = revise_method_inputs(
-        prior, json.loads(args.revisions.read_text()), load_remote_sites(args.site_map)
+        prior,
+        json.loads(args.revisions.read_text(encoding="utf-8")),
+        load_remote_sites(args.site_map),
     )
     if any(checked_file_sha256(path) != sha for path, sha in bound.items()):
         raise ValueError("revision input changed during compilation")

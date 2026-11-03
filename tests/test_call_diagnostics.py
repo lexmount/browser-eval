@@ -93,8 +93,8 @@ def test_runner_keeps_real_observations_for_every_outcome(tmp_path, outcome):
 
     case = EvalCase('case', 'Case', 'https://example.invalid/', 'static', ['Expected'])
     dataset = {'tool': 'web_fetch', 'cases': [asdict(case)]}
-    source = tmp_path / 'dataset.json';source.write_text(json.dumps(dataset))
-    config = tmp_path / 'providers.json';config.write_text('{}')
+    source = tmp_path / 'dataset.json';source.write_text(json.dumps(dataset), encoding='utf-8')
+    config = tmp_path / 'providers.json';config.write_text('{}', encoding='utf-8')
     provider = ObservedFixture()
     records, _ = run_evaluation(output_dir=tmp_path/'evidence', dataset_meta=dataset,
         dataset_path=source, cases=[case], providers=[provider], provider_config_path=config,

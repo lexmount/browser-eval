@@ -21,7 +21,7 @@ from harness.record_io import file_sha256, json_bytes
 def verify_dependency_metadata(source_root: Path) -> None:
     from importlib.metadata import requires
 
-    project = tomllib.loads((source_root / 'pyproject.toml').read_text())
+    project = tomllib.loads((source_root / 'pyproject.toml').read_text(encoding='utf-8'))
     expected_webarena = next(value for value in project['project']['optional-dependencies']['browser-use-eval']
                              if value.startswith('webarena-verified '))
     if not any(value.split(';', 1)[0].strip() == expected_webarena
@@ -73,7 +73,7 @@ def verify_lexbench_input_ownership(source_root: Path) -> None:
 
 def verify_package_tree(source_root: Path, package_root: Path, *, package_name='harness') -> None:
     """Require the installed library's exact current source and declared assets."""
-    project = tomllib.loads((source_root / 'pyproject.toml').read_text())
+    project = tomllib.loads((source_root / 'pyproject.toml').read_text(encoding='utf-8'))
     directories = project['tool']['setuptools'].get('package-dir', {})
 
     def source_directory(package):
@@ -122,7 +122,7 @@ def verify_bundled_data(source_root: Path, package_root: Path) -> None:
     """Installed readers must reach the packaged copy, never the checkout."""
     from harness.distribution import bundled_data_path
 
-    project = tomllib.loads((source_root / 'pyproject.toml').read_text())
+    project = tomllib.loads((source_root / 'pyproject.toml').read_text(encoding='utf-8'))
     for relative in project['tool']['browser-eval']['bundled-data']:
         path = bundled_data_path(relative)
         if not path.resolve().is_relative_to(package_root):
@@ -152,8 +152,8 @@ def verify_review_revisions(root: Path, source_root: Path) -> None:
         path.mkdir()
         for row in rows:
             (path / row['artifact_path']).write_bytes(b'')
-        (path / 'dataset.json').write_text(json.dumps(document))
-        (path / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+        (path / 'dataset.json').write_text(json.dumps(document), encoding='utf-8')
+        (path / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
         if reviewed:
             review = {'schema_version': 1, 'reviewer': {'agent': 'synthetic control'},
                       'bindings': {
@@ -167,16 +167,16 @@ def verify_review_revisions(root: Path, source_root: Path) -> None:
                     'attempt_id': row['attempt_id'], 'machine_verdict': verdict,
                     'agent_verdict': verdict, 'final_verdict': verdict,
                     'agent_evidence': 'Independent synthetic answer control'})
-            (path / 'result-review.json').write_text(json.dumps(review))
+            (path / 'result-review.json').write_text(json.dumps(review), encoding='utf-8')
         return path
 
     prior = bundle('review-prior', dataset, records, reviewed=True)
     corrected = deepcopy(records)
     corrected[0]['metrics']['content_pass'] = False
     current = bundle('review-current', dataset, corrected, reviewed=False)
-    review = json.loads((prior / 'result-review.json').read_text())
+    review = json.loads((prior / 'result-review.json').read_text(encoding='utf-8'))
     review['attempts'][0].update(agent_verdict='fail', final_verdict=None)
-    (prior / 'result-review.json').write_text(json.dumps(review))
+    (prior / 'result-review.json').write_text(json.dumps(review), encoding='utf-8')
     before = (current / 'results.jsonl').read_bytes()
     rebased = rebase_review(current, prior, root / 'rebased-review.json', None, install=True)
     assert rebased['attempts'][0]['agent_verdict'] == 'fail'
@@ -200,7 +200,7 @@ def verify_review_revisions(root: Path, source_root: Path) -> None:
                    '--reviewer', 'internal', '--prepare-only']
         for _ in range(2):
             subprocess.run(command, check=True, cwd=root, capture_output=True, text=True)
-        session = json.loads((work / 'review-session.json').read_text())
+        session = json.loads((work / 'review-session.json').read_text(encoding='utf-8'))
         assert session['bindings']['results_sha256'] == hashlib.sha256(before).hexdigest()
         assert set(session['artifacts_sha256']) == {'a.txt', 'b.txt'}
         assert not (work / 'result-review.json').exists()
@@ -209,22 +209,22 @@ def verify_review_revisions(root: Path, source_root: Path) -> None:
     from harness.web_fetch.result_review import merge_reviews, prepare_review_subset
     selected = root / 'installed-review-subset'
     prepare_review_subset(current, selected, case_ids=['b'])
-    assert json.loads((selected / 'dataset.json').read_text())['cases'] == [{'id': 'b', 'task_kind': 'body'}]
+    assert json.loads((selected / 'dataset.json').read_text(encoding='utf-8'))['cases'] == [{'id': 'b', 'task_kind': 'body'}]
     assert (selected / 'b.txt').read_bytes() == b''
     assert not (selected / 'a.txt').exists()
     changed = root / 'installed-refresh-subset'
     prepare_review_subset(refreshed, changed, prior_evidence=current)
-    assert json.loads((changed / 'results.jsonl').read_text()) == corrected[0]
+    assert json.loads((changed / 'results.jsonl').read_text(encoding='utf-8')) == corrected[0]
 
     sharded = bundle('installed-shard-evidence', dataset, corrected, reviewed=True)
     prior_path = sharded / 'result-review.json'
-    failure_review = json.loads(prior_path.read_text())
+    failure_review = json.loads(prior_path.read_text(encoding='utf-8'))
     failure_review['review_protocol'].update(
         scope='machine-failures', production_scorer_forbidden=True,
         direct_artifact_evidence_required=True)
     failure_review['attempts'] = failure_review['attempts'][:1]
     failure_review['reviewer']['model'] = 'synthetic'
-    prior_path.write_text(json.dumps(failure_review))
+    prior_path.write_text(json.dumps(failure_review), encoding='utf-8')
     shard = root / 'installed-pass-shard.json'
     shard.write_text(json.dumps({
         'schema_version': 1, 'bindings': failure_review['bindings'],
@@ -234,7 +234,7 @@ def verify_review_revisions(root: Path, source_root: Path) -> None:
                            'direct_artifact_evidence_required': True},
         'attempts': [{'attempt_id': corrected[1]['attempt_id'], 'agent_verdict': 'pass',
                       'agent_evidence': 'Synthetic installation acceptance control'}],
-    }))
+    }), encoding='utf-8')
     merged = merge_reviews(sharded, [shard], prior_path, prior_review=prior_path, install=True)
     assert merged['reviewed_attempts'] == 2
     require_result_review(sharded, dataset, corrected)
@@ -244,14 +244,14 @@ def verify_review_revisions(root: Path, source_root: Path) -> None:
     prior_dataset.write_bytes((sharded / 'dataset.json').read_bytes())
     metadata_dataset = json.loads(prior_dataset.read_bytes())
     metadata_dataset['name'] = 'Synthetic public title'
-    (sharded / 'dataset.json').write_text(json.dumps(metadata_dataset))
+    (sharded / 'dataset.json').write_text(json.dumps(metadata_dataset), encoding='utf-8')
     (sharded / 'scoring-revisions.json').write_text(json.dumps([{
         'kind': 'audited_scoring_rule_revision', 'provider_calls': 0,
         'input_dataset_sha256': 'a' * 64, 'input_results_sha256': 'b' * 64,
         'output_dataset_sha256': hashlib.sha256(prior_dataset.read_bytes()).hexdigest(),
         'output_results_sha256': hashlib.sha256((sharded / 'results.jsonl').read_bytes()).hexdigest(),
         'changed_cases': [], 'task_decision_changes': [],
-    }]))
+    }]), encoding='utf-8')
     before_metadata_results = (sharded / 'results.jsonl').read_bytes()
     rebind_metadata_review(sharded, prior_dataset)
     assert valid_scoring_revision(sharded)
@@ -272,8 +272,8 @@ def verify_sample_assembly(root: Path, source_root: Path) -> None:
                '--sample-manifest', str(fixture['manifest']), '--profile', str(fixture['profile']),
                '--review', str(fixture['review']), '--output', str(fixture['output'])]
     subprocess.run(command, check=True, cwd=root, capture_output=True, text=True)
-    rows = [json.loads(line) for line in (fixture['output'] / 'results.jsonl').read_text().splitlines()]
-    calls = [json.loads(line) for line in (fixture['output'] / 'physical-attempts.jsonl').read_text().splitlines()]
+    rows = [json.loads(line) for line in (fixture['output'] / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
+    calls = [json.loads(line) for line in (fixture['output'] / 'physical-attempts.jsonl').read_text(encoding='utf-8').splitlines()]
     assert len(rows) == 4 and len(calls) == 6
     assert {row['provider'] for row in rows} == {'native', 'new-engine'}
     for row in rows + calls:
@@ -301,16 +301,16 @@ def verify_lexbench_package(root: Path, renderer: Path) -> None:
         path = source / name
         path.parent.mkdir(exist_ok=True)
         prefix = '../' if name.startswith('en/') else ''
-        path.write_text(f'<script defer src="{prefix}mermaid.min.js"></script>')
+        path.write_text(f'<script defer src="{prefix}mermaid.min.js"></script>', encoding='utf-8')
     for name in ('app.js', 'style.css', 'mermaid.min.js', 'mermaid-LICENSE.txt'):
-        (source / name).write_text(name)
+        (source / name).write_text(name, encoding='utf-8')
     (source / 'app.js').write_bytes(renderer.read_bytes())
     (source / 'messages.json').write_bytes(renderer.with_name('messages.json').read_bytes())
     (source / 'evidence.bin').write_bytes(bytes(range(256)))
     destination = root / 'lexbench-package'
     summary = package(source, destination, pack_limit=80)
     assert summary['bundled_files'] == 2
-    catalog = json.loads((destination / 'bundle-manifest.json').read_text())['files']
+    catalog = json.loads((destination / 'bundle-manifest.json').read_text(encoding='utf-8'))['files']
     entry = catalog['evidence.bin']
     payload = gzip.decompress((destination / entry['pack']).read_bytes())
     data = payload[entry['offset']:entry['offset'] + entry['size']]
@@ -318,22 +318,23 @@ def verify_lexbench_package(root: Path, renderer: Path) -> None:
     assert hashlib.sha256(data).hexdigest() == entry['sha256']
     assert (destination / 'bundle-loader.js').is_file()
     for name in ('index.html', 'en.html', 'en/index.html'):
-        assert 'bundle-loader.js' in (destination / name).read_text()
+        assert 'bundle-loader.js' in (destination / name).read_text(encoding='utf-8')
     from harness.report_languages import check_language_contract, write_language_contract
 
     (source / 'en/index.html').unlink()
     write_language_contract(source, include_english=False)
-    notice = (source / 'en/index.html').read_text()
+    notice = (source / 'en/index.html').read_text(encoding='utf-8')
     (source / 'en.html').write_text(
-        notice.replace('href="../index.html"', 'href="index.html"')
+        notice.replace('href="../index.html"', 'href="index.html"'),
+        encoding='utf-8'
     )
     chinese_package = root / 'lexbench-chinese-package'
     package(source, chinese_package)
     check_language_contract(chinese_package)
     assert (chinese_package / 'report-languages.json').is_file()
     for name in ('en.html', 'en/index.html'):
-        assert 'data-english-not-generated' in (chinese_package / name).read_text()
-        assert 'bundle-loader.js' not in (chinese_package / name).read_text()
+        assert 'data-english-not-generated' in (chinese_package / name).read_text(encoding='utf-8')
+        assert 'bundle-loader.js' not in (chinese_package / name).read_text(encoding='utf-8')
     from harness.lexbench import reproduction, resource_profiles, verification
     subprocess.run([sys.executable, "-m", "harness.lexbench.reproduction", "--help"],
                    check=True, cwd=root, capture_output=True, text=True)
@@ -376,7 +377,7 @@ def verify_dynamic_cohort(root: Path, source_root: Path) -> None:
     dataset = {'cases': [{'id': 'one', 'name': 'One', 'url': 'https://example.invalid/',
                           'category': 'dynamic', 'track': 'dynamic'}]}
     for directory in (reference, measured):
-        (directory / 'dataset.json').write_text(json.dumps(dataset))
+        (directory / 'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
     metadata = {}
     for name, raw in [('result', b'answer'), ('stdout', b'process output')]:
         relative = f'artifacts/{name}.txt'
@@ -398,12 +399,12 @@ def verify_dynamic_cohort(root: Path, source_root: Path) -> None:
         'provider_config_source': '/home/private/custom.json',
         'provider_config_sha256': config_hash,
         'runtime_identity_record': {'provider_config_sha256': config_hash},
-    }]}))
-    (measured / 'runtime-identity.json').write_text('{"provider_config_sha256": "unrelated"}')
+    }]}), encoding='utf-8')
+    (measured / 'runtime-identity.json').write_text('{"provider_config_sha256": "unrelated"}', encoding='utf-8')
     merge(reference, [measured], output)
     assert (output / 'results.jsonl').read_bytes() == records
     assert (output / 'artifacts/stdout.txt').read_bytes() == b'process output'
-    batch = json.loads((output / 'execution.json').read_text())['batches'][0]
+    batch = json.loads((output / 'execution.json').read_text(encoding='utf-8'))['batches'][0]
     assert batch['provider_config_source'] == 'custom.json'
     assert batch['provider_config_path_omitted'] is True
     assert batch['provider_config_sha256'] == config_hash
@@ -433,10 +434,10 @@ def verify_teds_revision(root: Path, source_root: Path, *, with_writer: bool = F
         (directory / 'references').mkdir()
         (directory / 'references/one.md').write_bytes(b'reference')
         (directory / 'dataset.json').write_text(json.dumps({
-            'cases': [{'id': 'one', 'meta': {}}], 'coverage_plan': {'static_html': ['custom']}}))
-    (source / 'results.jsonl').write_text(original)
-    (corrected / 'original-results.jsonl').write_text(original)
-    (corrected / 'results.jsonl').write_text(json.dumps({**row, 'official_metrics': metrics}) + '\n')
+            'cases': [{'id': 'one', 'meta': {}}], 'coverage_plan': {'static_html': ['custom']}}), encoding='utf-8')
+    (source / 'results.jsonl').write_text(original, encoding='utf-8')
+    (corrected / 'original-results.jsonl').write_text(original, encoding='utf-8')
+    (corrected / 'results.jsonl').write_text(json.dumps({**row, 'official_metrics': metrics}) + '\n', encoding='utf-8')
     summary = aggregate([row])
     for directory in (source, corrected):
         initial = {'official_aggregate': summary, 'dimensions': {},
@@ -444,7 +445,7 @@ def verify_teds_revision(root: Path, source_root: Path, *, with_writer: bool = F
         if directory == corrected:
             initial['original_official_aggregate'] = summary
         (directory / 'score-summaries.json').write_text(json.dumps({
-            'custom': initial}))
+            'custom': initial}), encoding='utf-8')
     receipt = {'schema_version': 2, 'provider_calls': 0, 'source_code_sha256': {},
                'input_results_sha256': file_sha256(source / 'results.jsonl'),
                'output_results_sha256': file_sha256(corrected / 'results.jsonl'),
@@ -452,7 +453,7 @@ def verify_teds_revision(root: Path, source_root: Path, *, with_writer: bool = F
                'scope': {'logical_results': 1, 'providers': ['custom']}, 'changed_scores': [],
                'correction_provenance': build_correction_provenance(
                    'structured-extraction', diagnostics.ROOT_CAUSE, diagnostics.CONTROLS)}
-    (corrected / 'teds-correction.json').write_text(json.dumps(receipt))
+    (corrected / 'teds-correction.json').write_text(json.dumps(receipt), encoding='utf-8')
     subprocess.run([sys.executable, '-m', 'harness.web_fetch', 'webmainbench-teds-review',
                     '--source', str(source), '--corrected', str(corrected)], check=True)
     _, audit = diagnostics.validate_teds_revision(corrected)
@@ -462,12 +463,12 @@ def verify_teds_revision(root: Path, source_root: Path, *, with_writer: bool = F
     repo = root / 'synthetic-scorer'
     package = repo / 'webmainbench/metrics'
     package.mkdir(parents=True)
-    (package / '__init__.py').write_text('')
+    (package / '__init__.py').write_text('', encoding='utf-8')
     (package / 'base.py').write_text(
         'from dataclasses import dataclass\n'
         '@dataclass\nclass MetricResult:\n'
         '    name: str\n    score: float\n    details: dict\n'
-        '    success: bool\n    error_message: str | None = None\n')
+        '    success: bool\n    error_message: str | None = None\n', encoding='utf-8')
     (package / 'calculator.py').write_text(
         'from .base import MetricResult\n'
         'class TableMetric:\n'
@@ -475,7 +476,7 @@ def verify_teds_revision(root: Path, source_root: Path, *, with_writer: bool = F
         "        return MetricResult('table_TEDS', 0.4, {}, True)\n"
         'class MetricCalculator:\n'
         '    def __init__(self, config):\n'
-        "        self.metrics = {'table_TEDS': TableMetric()}\n")
+        "        self.metrics = {'table_TEDS': TableMetric()}\n", encoding='utf-8')
     subprocess.run(['git', 'init', '-q', str(repo)], check=True)
     subprocess.run(['git', '-C', str(repo), 'add', '.'], check=True)
     subprocess.run(['git', '-C', str(repo), '-c', 'user.name=Fixture',
@@ -489,7 +490,7 @@ def verify_teds_revision(root: Path, source_root: Path, *, with_writer: bool = F
                     '--source', str(source), '--corrected', str(written)], check=True)
     receipt, audit = diagnostics.validate_teds_revision(written)
     assert receipt['scorer_commit'] == head and audit['provider_calls'] == 0
-    assert json.loads((written / 'score-summaries.json').read_text())[
+    assert json.loads((written / 'score-summaries.json').read_text(encoding='utf-8'))[
         'custom']['original_official_aggregate'] == summary
 
 
@@ -499,8 +500,8 @@ def verify_release_check_helpers(root: Path, source_root: Path) -> None:
 
     pages = root / 'release-check'
     (pages / 'analysis').mkdir(parents=True)
-    (pages / 'index.html').write_text('<html lang="zh"><p>合成报告</p></html>')
-    (pages / 'analysis/index.html').write_text('<html lang="zh"><p>结果</p></html>')
+    (pages / 'index.html').write_text('<html lang="zh"><p>合成报告</p></html>', encoding='utf-8')
+    (pages / 'analysis/index.html').write_text('<html lang="zh"><p>结果</p></html>', encoding='utf-8')
     write_language_contract(pages, include_english=False)
     assert set(localized_report_routes(pages, {'index.html', 'analysis/index.html'})) == {'zh'}
     require_analysis_controls('''<select id="compare-baseline"></select>
@@ -512,10 +513,10 @@ def verify_release_check_helpers(root: Path, source_root: Path) -> None:
     command = [sys.executable, str(source_root / 'scripts/check_report.py')]
     subprocess.run([*command, '--help'], check=True, stdout=subprocess.DEVNULL)
     from harness.web_fetch.wcxb_publication import write_inventory
-    (pages / 'wcxb-score-summary.json').write_text('{}')
+    (pages / 'wcxb-score-summary.json').write_text('{}', encoding='utf-8')
     profile = root / "selected-profile.json"
-    profile.write_text(json.dumps({"comparison_kind": "wcxb_frozen_html_to_markdown"}))
-    (root / "report-content-binding.json").write_text("{}")
+    profile.write_text(json.dumps({"comparison_kind": "wcxb_frozen_html_to_markdown"}), encoding='utf-8')
+    (root / "report-content-binding.json").write_text("{}", encoding='utf-8')
     write_inventory(pages, json.loads(profile.read_bytes()))
     rejected = subprocess.run([*command, str(pages), '--profile', str(profile)],
                               capture_output=True, text=True)
@@ -536,14 +537,14 @@ def verify_environment_preparation(root: Path, source_root: Path) -> None:
         assert not Path(owner.__file__).resolve().is_relative_to(source_root.resolve())
     source, target = root / 'synthetic-source.env', root / 'synthetic-target.env'
     source.write_text(''.join(f'{key}=synthetic-value\n' for key in accounts.HOSTED_KEYS)
-                      + 'UNRELATED_SECRET=synthetic-unrelated\n')
-    target.write_text(f'{accounts.HOSTED_KEYS[0]}=synthetic-existing\n')
+                      + 'UNRELATED_SECRET=synthetic-unrelated\n', encoding='utf-8')
+    target.write_text(f'{accounts.HOSTED_KEYS[0]}=synthetic-existing\n', encoding='utf-8')
     command = [sys.executable, str(source_root / 'scripts/import_benchmark_env.py'),
                '--source', str(source), '--target', str(target)]
     result = subprocess.run(command, check=True, cwd=root, capture_output=True, text=True)
     assert 'synthetic-value' not in result.stdout + result.stderr
-    assert 'UNRELATED_SECRET' not in target.read_text()
-    assert 'synthetic-existing' in target.read_text()
+    assert 'UNRELATED_SECRET' not in target.read_text(encoding='utf-8')
+    assert 'synthetic-existing' in target.read_text(encoding='utf-8')
     assert target.stat().st_mode & 0o777 == 0o600
     def registry(url, *, headers=None):
         if 'auth.docker.io' in url:
@@ -589,13 +590,13 @@ def verify_replay_diagnostics(root: Path, source_root: Path) -> None:
     trace.write_text(json.dumps([
         {'index': 1, 'result': 'button disabled: Submit'},
         {'index': 2, 'arguments': {'action': 'click', 'selector': 'button:has-text("Submit")'}},
-    ]))
+    ]), encoding='utf-8')
     results = stage / 'results.json'
     results.write_text(json.dumps({'attempts': [{
         'participant_id': 'custom', 'task_id': 'one', 'status': 'pass',
         'evidence': {'trace': {'path': str(trace),
                              'sha256': hashlib.sha256(trace.read_bytes()).hexdigest()}},
-    }]}))
+    }]}), encoding='utf-8')
     output = stage / 'diagnostic.json'
     args = [sys.executable, str(source_root / 'scripts/audit_replay_readiness.py'),
             '--results', str(results), '--output', str(output)]
@@ -608,17 +609,17 @@ def verify_replay_diagnostics(root: Path, source_root: Path) -> None:
     task = stage / 'task-1'
     task.mkdir()
     for name in ('network.har', 'trace.json'):
-        (task / name).write_text('{}')
+        (task / name).write_text('{}', encoding='utf-8')
     sites, before_catalog, after_catalog = [stage / name for name in (
         'sites.json', 'before.json', 'after.json')]
     for path in (sites, before_catalog, after_catalog):
-        path.write_text('{}')
+        path.write_text('{}', encoding='utf-8')
     digest = hashlib.sha256(b'{}').hexdigest()
     (stage / 'receipt.json').write_text(json.dumps({
         'method_id': 'custom', 'site_map_sha256': digest, 'results': [{
             'task_id': 1, 'status': 'fail', 'score': None, 'completed_actions': 0,
             'action_count': 1, 'evidence_sha256': {'trace': digest, 'network_har': digest}}],
-    }))
+    }), encoding='utf-8')
     audit = diagnostics.audit_saved_correction(
         task_dir=task, task_id=1, site_map=sites,
         before_catalog=before_catalog, after_catalog=after_catalog)
@@ -645,7 +646,7 @@ def verify_replay_supersession(root: Path, source_root: Path) -> None:
     assert manifest['artifact_provenance']['source_inputs_sha256'] == hashlib.sha256(source_bytes).hexdigest()
     for row in json.loads(source_bytes)['files']:
         assert (run / row['retained_path']).read_bytes() == before[Path(row['path'])]
-    rows = [json.loads(line) for line in (run / 'attempts.jsonl').read_text().splitlines()]
+    rows = [json.loads(line) for line in (run / 'attempts.jsonl').read_text(encoding='utf-8').splitlines()]
     assert [(row['engine'], row['attempt'], row['status']) for row in rows] == [
         ('chromium', 1, 'pass'), ('moli', 1, 'fail'), ('moli', 2, 'pass')]
     shutil.rmtree(base)
@@ -668,10 +669,10 @@ def verify_qualification_commands(root: Path, source_root: Path) -> None:
     native_suite, native_images, native_exclusions = [stage / name for name in (
         'native-suite.json', 'native-images.json', 'native-exclusions.json')]
     native_suite.write_text(json.dumps({'tasks': [{
-        'id': 'custom-native', 'environment': {'sites': ['custom']}}]}))
-    native_images.write_text(json.dumps({'images': {'custom': {'architecture': 'arm64'}}}))
+        'id': 'custom-native', 'environment': {'sites': ['custom']}}]}), encoding='utf-8')
+    native_images.write_text(json.dumps({'images': {'custom': {'architecture': 'arm64'}}}), encoding='utf-8')
     native_exclusions.write_text(json.dumps({
-        'schema': 'lex_webarena_evaluator_exclusions/1', 'excluded_tasks': []}))
+        'schema': 'lex_webarena_evaluator_exclusions/1', 'excluded_tasks': []}), encoding='utf-8')
     native_output = stage / 'native-scope.json'
     native_args = [sys.executable, str(source_root / 'scripts/build_webarena_native_scope.py'),
                    '--suite', str(native_suite), '--image-lock', str(native_images),
@@ -688,7 +689,7 @@ def verify_qualification_commands(root: Path, source_root: Path) -> None:
         'id': 'task-1', 'trajectory': {'actions': [original_action]},
         'ground_truth': {'response_builder': {
             'kind': 'null_after_verified_path', 'task_type': 'mutate'}},
-    }]}))
+    }]}), encoding='utf-8')
     repair_config = stage / 'repair-config.json'
     repair_config.write_text(json.dumps({
         'schema': 'lex_browser_use_action_repair/1', 'task_id': 'task-1',
@@ -696,7 +697,7 @@ def verify_qualification_commands(root: Path, source_root: Path) -> None:
             'start_index': 1, 'expected_actions': [original_action],
             'replacement_actions': [{**original_action, 'text': 'Corrected title'}],
         }],
-    }))
+    }), encoding='utf-8')
     repair_output = stage / 'repair-proposal.json'
     arguments = ['--suite', str(repair_source), '--config', str(repair_config),
                  '--output', str(repair_output)]
@@ -720,8 +721,8 @@ def verify_qualification_commands(root: Path, source_root: Path) -> None:
     fixture = runpy.run_path(str(source_root / 'tests/public_webarena_fixture.py'))
     candidate, decisions = fixture['authoring_suite_fixture']()
     candidate_path, decisions_path = stage / 'candidate.json', stage / 'decisions.json'
-    candidate_path.write_text(json.dumps(candidate))
-    decisions_path.write_text(json.dumps(decisions))
+    candidate_path.write_text(json.dumps(candidate), encoding='utf-8')
+    decisions_path.write_text(json.dumps(decisions), encoding='utf-8')
     original = candidate_path.read_bytes()
     for name, entry, arguments in (
         ('observation', qualification.main_observation_suite, ['--task-ids', 'webarena-1']),
@@ -735,14 +736,14 @@ def verify_qualification_commands(root: Path, source_root: Path) -> None:
         entry(args)
         assert output.read_bytes() == derived and candidate_path.read_bytes() == original
         assert qualification.load_suite(output).tasks[0].task_id == 'webarena-1'
-        output.write_text('retained independent input')
+        output.write_text('retained independent input', encoding='utf-8')
         try:
             entry(args)
         except ValueError:
             pass
         else:
             raise AssertionError('Installed derivation replaced an existing input')
-        assert output.read_text() == 'retained independent input'
+        assert output.read_text(encoding='utf-8') == 'retained independent input'
     suite = stage / 'suite.json'
     suite.write_text(json.dumps({'schema': 'lex_browser_use_tasks/4', 'tasks': [{
         'id': 'a', 'title': 'Candidate', 'difficulty': 'simple', 'tags': ['mutate'],
@@ -751,7 +752,7 @@ def verify_qualification_commands(root: Path, source_root: Path) -> None:
         'source': {'url': 'https://example.invalid/task'},
         'evaluator': {'kind': 'webarena_verified', 'task_id': 1, 'revision': 1},
         'environment': {'kind': 'webarena_verified', 'sites': ['shopping']},
-    }]}))
+    }]}), encoding='utf-8')
     scope = stage / 'scope.json'
     scope.write_text(json.dumps({
         'schema': 'lex_browser_use_native_scope/1',
@@ -759,9 +760,9 @@ def verify_qualification_commands(root: Path, source_root: Path) -> None:
         'included_task_ids': ['a'], 'excluded_tasks': [],
         'qualification_batches': [{'id': 'shopping', 'sites': ['shopping'],
                                    'shard_count': 1, 'task_ids': ['a']}],
-    }))
+    }), encoding='utf-8')
     config = stage / 'config.json'
-    config.write_text('{}')
+    config.write_text('{}', encoding='utf-8')
     evidence = stage / 'evidence'
     partial = evidence / 'pass-1/shopping-0-of-1/partial.txt'
     partial.parent.mkdir(parents=True)
@@ -775,7 +776,7 @@ def verify_qualification_commands(root: Path, source_root: Path) -> None:
     assert partial.read_bytes() == b'preserve partial evidence'
     assert not (evidence / '_failed').exists() and not (evidence / 'pass-2').exists()
     queue = stage / 'queue.json'
-    queue.write_text(json.dumps({'tasks': [{'task_id': 'a', 'disposition': 'eligible'}]}))
+    queue.write_text(json.dumps({'tasks': [{'task_id': 'a', 'disposition': 'eligible'}]}), encoding='utf-8')
     for command, arguments in (
         ('build_webarena_qualification_subset.py', ['--qualification', str(queue),
                                                   '--dispositions', 'eligible',
@@ -794,7 +795,7 @@ def verify_repair_commands(root: Path, source_root: Path) -> None:
     assert not Path(diagnostics.__file__).resolve().is_relative_to(source_root.resolve())
     stage = root / 'repairs'
     stage.mkdir()
-    suite = json.loads((root / 'qualification/suite.json').read_text())
+    suite = json.loads((root / 'qualification/suite.json').read_text(encoding='utf-8'))
     task = suite['tasks'][0]
     task['source']['verified_evaluators'] = [{
         'evaluator': 'AgentResponseEvaluator', 'expected': {
@@ -802,11 +803,11 @@ def verify_repair_commands(root: Path, source_root: Path) -> None:
         },
     }]
     suite_path = stage / 'suite.json'
-    suite_path.write_text(json.dumps(suite))
+    suite_path.write_text(json.dumps(suite), encoding='utf-8')
     screenshot, page, har = stage / 'final.png', stage / 'page.json', stage / 'network.har'
     screenshot.write_bytes(b'fixture screenshot')
-    page.write_text(json.dumps({'visible_text': 'Observed heading'}))
-    har.write_text(json.dumps({'log': {'entries': []}}))
+    page.write_text(json.dumps({'visible_text': 'Observed heading'}), encoding='utf-8')
+    har.write_text(json.dumps({'log': {'entries': []}}), encoding='utf-8')
     attempt = stage / 'attempt.json'
     attempt.write_text(json.dumps({
         'task_id': 'a', 'evidence_directory': str(stage),
@@ -816,7 +817,7 @@ def verify_repair_commands(root: Path, source_root: Path) -> None:
             key: {'path': path.name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
             for key, path in (('screenshot', screenshot), ('page', page))
         }},
-    }))
+    }), encoding='utf-8')
     proposal = {
         'schema': 'lex_browser_use_repair_proposal/1', 'task_id': 'a',
         'reason': 'Observe the visible heading',
@@ -825,14 +826,14 @@ def verify_repair_commands(root: Path, source_root: Path) -> None:
                              'shape': [{'$output': 'heading'}]},
     }
     proposal_path = stage / 'proposal.json'
-    proposal_path.write_text(json.dumps(proposal))
+    proposal_path.write_text(json.dumps(proposal), encoding='utf-8')
     scripts = source_root / 'scripts'
     packet = stage / 'packet.json'
     subprocess.run([sys.executable, str(scripts / 'build_webarena_repair_packet.py'),
                     '--suite', str(suite_path), '--attempt', str(attempt),
                     '--output', str(packet)], check=True, cwd=stage)
-    assert json.loads(packet.read_text())['schema'] == diagnostics.PACKET_SCHEMA
-    assert 'PRIVATE REFERENCE' not in packet.read_text()
+    assert json.loads(packet.read_text(encoding='utf-8'))['schema'] == diagnostics.PACKET_SCHEMA
+    assert 'PRIVATE REFERENCE' not in packet.read_text(encoding='utf-8')
     for entry in ('build_webarena_repair_probe.py', 'build_webarena_repair_batch.py',
                   'build_webarena_codex_repair_suite.py'):
         output = stage / (entry + '.json')
@@ -845,12 +846,12 @@ def verify_repair_commands(root: Path, source_root: Path) -> None:
         'import json, pathlib, sys\n'
         'args = sys.argv\n'
         'packet = pathlib.Path(args[args.index("-C") + 1]) / "packet.json"\n'
-        'value = json.loads(packet.read_text())\n'
+        'value = json.loads(packet.read_text(encoding="utf-8"))\n'
         'assert "provenance_references" not in value\n'
         'assert "attempt" not in value["evidence_references"]\n'
-        'assert "PRIVATE REFERENCE" not in packet.read_text()\n' +
+        'assert "PRIVATE REFERENCE" not in packet.read_text(encoding="utf-8")\n' +
         'pathlib.Path(args[args.index("-o") + 1]).write_text(' +
-        repr(json.dumps(proposal)) + ')\n')
+        repr(json.dumps(proposal)) + ')\n', encoding='utf-8')
     fake.chmod(0o700)
     completed = subprocess.run([
         sys.executable, str(scripts / 'run_webarena_codex_repairs.py'),
@@ -871,16 +872,16 @@ def verify_adjudication_commands(root: Path, source_root: Path) -> None:
     stage.mkdir()
     suite_path = stage / 'suite.json'
     suite_path.write_bytes((root / 'repairs/build_webarena_repair_probe.py.json').read_bytes())
-    suite = json.loads(suite_path.read_text())
+    suite = json.loads(suite_path.read_text(encoding='utf-8'))
     task = suite['tasks'][0]
     rows = []
     for index in (1, 2):
         directory = stage / f'pass-{index}'
         directory.mkdir()
         (directory / 'final.png').write_bytes(b'synthetic screenshot')
-        (directory / 'final-page.json').write_text('{"visible_text":"Observed heading"}')
+        (directory / 'final-page.json').write_text('{"visible_text":"Observed heading"}', encoding='utf-8')
         (directory / 'network.har').write_text(json.dumps({'log': {'creator': {
-            'name': HAR_CREATOR_NAME, 'version': HAR_CREATOR_VERSION}, 'entries': []}}))
+            'name': HAR_CREATOR_NAME, 'version': HAR_CREATOR_VERSION}, 'entries': []}}), encoding='utf-8')
         row = {'task_id': task['id'], 'engine': 'chromium', 'attempt': 1, 'is_retry': False,
                'qualification_run': True, 'qualification_pass_index': index,
                'qualification_required_passes': 2, 'run_id': f'run-{index}',
@@ -892,10 +893,10 @@ def verify_adjudication_commands(root: Path, source_root: Path) -> None:
                    key: {'path': name, 'sha256': hashlib.sha256(
                        (directory / name).read_bytes()).hexdigest()}
                    for key, name in (('screenshot', 'final.png'), ('page', 'final-page.json'))}}}
-        (directory / 'attempt.json').write_text(json.dumps(row))
+        (directory / 'attempt.json').write_text(json.dumps(row), encoding='utf-8')
         rows.append(row)
     projection = stage / 'attempts.jsonl'
-    projection.write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    projection.write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
     scripts = source_root / 'scripts'
     queue, final = stage / 'queue.json', stage / 'final.json'
     for command, arguments in (
@@ -910,7 +911,7 @@ def verify_adjudication_commands(root: Path, source_root: Path) -> None:
     applied = q.load_suite(stage / 'applied.json').tasks[0]
     assert applied.ground_truth['qualification']['status'] == 'eligible'
     assert len(applied.ground_truth['qualification']['validated_run_sha256s']) == 2
-    decisions = json.loads(final.read_text())
+    decisions = json.loads(final.read_text(encoding='utf-8'))
     decision = decisions['tasks'][0]
     decision['disposition'] = 'needs_trace_repair'
     decision['adjudication']['reason'] = 'Use the current heading locator'
@@ -918,7 +919,7 @@ def verify_adjudication_commands(root: Path, source_root: Path) -> None:
     corrected['actions'][-1]['selector'] = 'main h1'
     decision['adjudication']['corrected_trajectory'] = corrected
     proposed = stage / 'proposed.json'
-    proposed.write_text(json.dumps(decisions))
+    proposed.write_text(json.dumps(decisions), encoding='utf-8')
     for command in ('build_webarena_repair_validation_suite.py',
                     'build_webarena_evidence_revalidation_suite.py'):
         output = stage / (command + '.json')
@@ -966,7 +967,7 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     )
     frozen = root / 'package-source'
     frozen.mkdir()
-    (frozen / 'index.html').write_text('Installed publication control')
+    (frozen / 'index.html').write_text('Installed publication control', encoding='utf-8')
     output, proof = root / 'package.zip', root / 'package.json'
     package_archive(
         frozen, output, proof, inputs=[], validate=lambda: None,
@@ -974,18 +975,18 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     )
     with zipfile.ZipFile(output) as archive:
         assert archive.read('index.html') == b'Installed publication control'
-    assert json.loads(proof.read_text())['archive_sha256'] == hashlib.sha256(
+    assert json.loads(proof.read_text(encoding='utf-8'))['archive_sha256'] == hashlib.sha256(
         output.read_bytes()
     ).hexdigest()
     from harness.web_fetch.report_package import build as package_webfetch
     webfetch = root / 'webfetch-report'
     (webfetch / 'assets').mkdir(parents=True)
-    (webfetch / 'assets/style.css').write_text('body {color:black}')
-    (webfetch / 'assets/report.js').write_text("window.addEventListener('report-ready',initReport);")
-    (webfetch / 'index.html').write_text('<html><body>Installed Web Fetch report</body></html>')
-    (webfetch / 'dataset.json').write_text('{}')
-    (webfetch / 'results.jsonl').write_text('')
-    (webfetch / 'reliability.json').write_text('{"complete":true}')
+    (webfetch / 'assets/style.css').write_text('body {color:black}', encoding='utf-8')
+    (webfetch / 'assets/report.js').write_text("window.addEventListener('report-ready',initReport);", encoding='utf-8')
+    (webfetch / 'index.html').write_text('<html><body>Installed Web Fetch report</body></html>', encoding='utf-8')
+    (webfetch / 'dataset.json').write_text('{}', encoding='utf-8')
+    (webfetch / 'results.jsonl').write_text('', encoding='utf-8')
+    (webfetch / 'reliability.json').write_text('{"complete":true}', encoding='utf-8')
     webfetch_archive = root / 'webfetch.zip'
     package_webfetch(webfetch, webfetch_archive)
     from harness.web_fetch.publication_check import check as check_webfetch_package
@@ -998,10 +999,10 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     from harness.web_fetch.report_publish import publish as submit_webfetch
     target = root / 'webfetch-profile.json'
     target.write_text(json.dumps({'artifact_hub_base_url': 'https://reports.invalid',
-                                 'artifact_hub_site': 'installed-site'}))
+                                 'artifact_hub_site': 'installed-site'}), encoding='utf-8')
     receipt = root / 'webfetch-receipt.json'
     receipt.write_text(json.dumps({'slug': 'installed-site', 'versionId': 'ver_installed',
-                                  'share_url': 'https://reports.invalid/v/installed'}))
+                                  'share_url': 'https://reports.invalid/v/installed'}), encoding='utf-8')
     summary = submit_webfetch(PublishConfig(target, webfetch_archive, webfetch, receipt,
                                            root / 'webfetch-operation.json'))
     assert summary['versionId'] == 'ver_installed'
@@ -1054,13 +1055,13 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
         'engines': ['fixture'], 'engine_labels': {'fixture': 'Fixture'},
         'models': ['fixture'], 'model_labels': {'fixture': 'Fixture'},
         'baseline_engine': 'fixture',
-    }))
+    }), encoding='utf-8')
     implicit = subprocess.run([
         sys.executable, *entry, str(report), '--evidence', str(report),
     ], cwd=authority, capture_output=True, text=True)
     assert implicit.returncode != 0 and '--authority-root' in implicit.stderr, implicit.stderr
-    (report / 'manifest.json').write_text(json.dumps({'protocol': {'model': 'fixture'}}))
-    (report / 'attempts.jsonl').write_text('')
+    (report / 'manifest.json').write_text(json.dumps({'protocol': {'model': 'fixture'}}), encoding='utf-8')
+    (report / 'attempts.jsonl').write_text('', encoding='utf-8')
     configured = subprocess.run([
         sys.executable, *entry, str(report), '--evidence', str(report),
         '--authority-root', str(authority),
@@ -1176,7 +1177,7 @@ def verify_wcxb_rendering(root, source_root):
         report = inputs[0]
         import re
 
-        guide = (report / 'guide/index.html').read_text()
+        guide = (report / 'guide/index.html').read_text(encoding='utf-8')
         assert re.findall(r'<main\b[^>]*>(.*?)</main>', guide, re.S) == [
             inputs[-1]['guide']['zh']]
         check_bound_interpretation(report, {'rendered_sha256': {'guide': {
@@ -1184,7 +1185,7 @@ def verify_wcxb_rendering(root, source_root):
             for lang, body in inputs[-1]['guide'].items()}}})
         check_language_contract(report)
         assert generated_languages(report) == (('zh', 'en') if english else ('zh',))
-        case = (report / 'cases/4017.html').read_text()
+        case = (report / 'cases/4017.html').read_text(encoding='utf-8')
         assert ('href="en/cases/4017.html"' if english else 'href="en/index.html"') in case
         assert (report / ('en/cases/4017.html' if english else 'en/index.html')).is_file()
 
@@ -1202,7 +1203,7 @@ def verify_wcxb_boundaries(root, source_root):
     options = fixture['create_cohort'](root / 'wcxb-boundaries')
     binaries = {name: root / ('wcxb-' + name) for name in ('release', 'pr')}
     for name, binary in binaries.items():
-        binary.write_text(name)
+        binary.write_text(name, encoding='utf-8')
     profile = json.loads(options['profile_path'].read_bytes())
     profile.update(release_binary_sha256=fixture['sha'](binaries['release'].read_bytes()),
                    candidate_binary_sha256=fixture['sha'](binaries['pr'].read_bytes()), concurrency=1)
@@ -1241,10 +1242,10 @@ def verify_wcxb_boundaries(root, source_root):
                    check=True, cwd=root)
     assert json.loads((output / 'certification.json').read_bytes())['physical_call_count'] == 8
     report = root / 'wcxb-report'
-    report.mkdir();(report / 'index.html').write_text('<h1>Synthetic package</h1>')
+    report.mkdir();(report / 'index.html').write_text('<h1>Synthetic package</h1>', encoding='utf-8')
     wcxb_publication.write_inventory(report, profile)
     assert set(wcxb_publication.inventory(report, profile)) == {'index.html', 'public-files.json'}
-    (report / 'private-note.txt').write_text('not declared')
+    (report / 'private-note.txt').write_text('not declared', encoding='utf-8')
     try:
         wcxb_publication.inventory(report, profile)
     except ValueError:
@@ -1264,7 +1265,7 @@ def verify_report_acceptance(root, source_root):
     command = [sys.executable, '-O', str(source_root / 'scripts/check_report.py'),
                str(report), '--authority-root', str(authority)]
     subprocess.run(command, check=True, cwd=root, capture_output=True, text=True)
-    (report / 'artifacts/one.txt').write_text('changed output')
+    (report / 'artifacts/one.txt').write_text('changed output', encoding='utf-8')
     result = subprocess.run(command, cwd=root, capture_output=True, text=True)
     assert result.returncode != 0 and 'PASS:' not in result.stdout
     presentation, authority = fixture['create_revision_report'](root / 'report-presentation')
@@ -1289,12 +1290,12 @@ def verify_cowagent_isolation(root):
                 'from types import SimpleNamespace\nclass WebFetch:\n'
                 ' def __init__(self, config): pass\n'
                 ' def execute(self, args):\n'
-                '  return SimpleNamespace(status="success",result="' + version + '")\n')
+                '  return SimpleNamespace(status="success",result="' + version + '")\n', encoding='utf-8')
             safety = repo / 'agent/tools/utils/url_safety.py'
             safety.parent.mkdir()
-            safety.write_text('# independent fixture\n')
+            safety.write_text('# independent fixture\n', encoding='utf-8')
             for package in (repo / 'agent', repo / 'agent/tools', source.parent):
-                (package / '__init__.py').write_text('')
+                (package / '__init__.py').write_text('', encoding='utf-8')
             subprocess.run(['git', 'init', '-q', str(repo)], check=True)
             subprocess.run(['git', '-C', str(repo), 'add', '.'], check=True)
             subprocess.run(['git', '-C', str(repo), '-c', 'user.name=Fixture',
@@ -1328,22 +1329,22 @@ def verify_public_trajectory_publication(root, source_root):
     write_fixture = runpy.run_path(str(source_root / 'tests/public_webarena_fixture.py'))[
         'write_report_fixture']
     source, authority = write_fixture(root / 'public-trajectory')
-    (source / 'run/private-worker-notes.txt').write_text('private diagnostics')
+    (source / 'run/private-worker-notes.txt').write_text('private diagnostics', encoding='utf-8')
     staged = root / 'trajectory-staged'
     stage_report(source, staged)
     assert {path.name for path in (staged / 'run').iterdir()} == {'manifest.json', 'summary.json'}
     assert check_report_bundle(staged)['pages'] == 6
     private_name = 'webarena-trajectory-replay-latest-private-notes.txt'
-    (staged / 'reports' / private_name).write_text('private report notes')
+    (staged / 'reports' / private_name).write_text('private report notes', encoding='utf-8')
     archive, attestation = root / 'trajectory.zip', root / 'trajectory-attestation.json'
     result = build(staged, archive, attestation, authority=authority)
     assert result['archive_sha256'] == hashlib.sha256(archive.read_bytes()).hexdigest()
     with zipfile.ZipFile(archive) as bundle:
         assert private_name not in bundle.namelist()
         assert bundle.read('index.html') == bundle.read('webarena-trajectory-replay-latest.html')
-    profile = json.loads(authority.read_text())
+    profile = json.loads(authority.read_text(encoding='utf-8'))
     profile['suite_sha256'] = 'wrong'
-    authority.write_text(json.dumps(profile))
+    authority.write_text(json.dumps(profile), encoding='utf-8')
     try:
         build(staged, root / 'rejected.zip', attestation, authority=authority)
     except ValueError as error:
@@ -1376,7 +1377,7 @@ def verify_oss_workers(root, source_root, *, with_libraries):
         'export function createWebFetchTool(options) {\n'
         ' if (options.config.tools.web.fetch.cacheTtlMinutes !== 0) throw Error("cache enabled");\n'
         ' return {async execute(id, args) { return {details: {text: "Local tool fixture",\n'
-        ' status: 200, finalUrl: args.url}}; }};\n}\n')
+        ' status: 200, finalUrl: args.url}}; }};\n}\n', encoding='utf-8')
     output = subprocess.run([node, '--experimental-strip-types',
                              str(workers['openclaw_webfetch_worker.mts'])],
                             input=json.dumps({'url': 'https://example.invalid/',
@@ -1466,14 +1467,14 @@ def verify_aggregate_finalization(root, source_root):
     fixture = runpy.run_path(str(source_root / 'tests/test_finalize_benchmark_run.py'))
     valid = root / 'finalize-valid'
     worker, observations, _, relative = fixture['retained_run'](valid)
-    (worker / 'reference-checks/private-notes.txt').write_text('private diagnostic')
+    (worker / 'reference-checks/private-notes.txt').write_text('private diagnostic', encoding='utf-8')
     finalize_aggregate(valid, observations)
     finalize_aggregate(valid, observations)
     assert (valid / relative).read_bytes() == observations.read_bytes()
     assert not (valid / 'reference-checks/private-notes.txt').exists()
     invalid = root / 'finalize-corrupt'
     worker, observations, _, relative = fixture['retained_run'](invalid)
-    (worker / relative).write_text('corrupted independent observation')
+    (worker / relative).write_text('corrupted independent observation', encoding='utf-8')
     before = (invalid / 'execution.json').read_bytes()
     try:
         finalize_aggregate(invalid, observations)
@@ -1605,10 +1606,10 @@ def verify_certified_cohort(root):
                 'source_verification': {'reference_mode': 'live_exact', 'method': 'independent HTTP capture'}}
         (stage / 'tasks.json').write_text(json.dumps({'schema_version': 1,
             'id': 'certification-control', 'name': 'Certification control', 'tool': 'web_fetch',
-            'cases': [case], 'coverage_plan': {'web': ['fixture']}}))
+            'cases': [case], 'coverage_plan': {'web': ['fixture']}}), encoding='utf-8')
         (stage / 'methods.json').write_text(json.dumps({'providers': {
-            'fixture': {'type': 'fixture'}}}))
-        (stage / 'empty.env').write_text('')
+            'fixture': {'type': 'fixture'}}}), encoding='utf-8')
+        (stage / 'empty.env').write_text('', encoding='utf-8')
         subprocess.run([sys.executable, '-c',
             'from harness.web_fetch.certification import main; main()',
             '--dataset', 'tasks.json', '--provider-config', 'methods.json',
@@ -1616,9 +1617,9 @@ def verify_certified_cohort(root):
             '--providers', 'fixture', '--case-ids', 'local-page', '--workers', '1',
             '--capture-workers', '1'], cwd=stage, check=True, capture_output=True, text=True)
         output = stage / 'run'
-        records = [json.loads(line) for line in (output / 'results.jsonl').read_text().splitlines()]
-        dataset = json.loads((output / 'dataset.json').read_text())
-        batches = json.loads((output / 'execution.json').read_text())['batches']
+        records = [json.loads(line) for line in (output / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
+        dataset = json.loads((output / 'dataset.json').read_text(encoding='utf-8'))
+        batches = json.loads((output / 'execution.json').read_text(encoding='utf-8'))['batches']
         assert len(records) == 1 and records[0]['provider'] == 'fixture'
         require_verified_reference_checks(batches, cases=dataset, records=records, source=output)
         assert requests == ['/source', '/source']
@@ -1716,7 +1717,7 @@ def main():
         binary = root / 'browser'
         binary.write_text('#!/bin/sh\nif [ "$1" = "--version" ]; '
                           'then printf "fixture 7.4.0\\n"; '
-                          'else printf "Independent fixture output\\n"; fi\n')
+                          'else printf "Independent fixture output\\n"; fi\n', encoding='utf-8')
         binary.chmod(0o700)
         dataset = root / 'dataset.json'
         dataset.write_text(json.dumps({'tool': 'web_fetch', 'id': 'fixture',
@@ -1724,14 +1725,14 @@ def main():
             'coverage_plan': {'web': ['custom']}, 'cases': [{
             'id': 'one', 'name': 'One', 'url': 'https://1.1.1.1/',
             'category': 'web', 'expected_any': ['Independent fixture output'],
-        }]}))
+        }]}), encoding='utf-8')
         config = root / 'providers.json'
         config.write_text(json.dumps({'providers': {'custom': {
             'type': 'headless_markdown', 'engine': 'moli', 'binary': str(binary),
             'expected_version': '7.4.0',
-        }}}))
+        }}}), encoding='utf-8')
         env = root / 'empty.env'
-        env.write_text('')
+        env.write_text('', encoding='utf-8')
         subprocess.run([
             sys.executable, '-m', 'harness.web_fetch', 'run', '--dataset', str(dataset),
             '--provider-config', str(config), '--providers', 'custom',
@@ -1740,10 +1741,10 @@ def main():
             '--fail-on-failure',
         ], check=True, cwd=root)
         records = [json.loads(line)
-                   for line in (root / 'run/results.jsonl').read_text().splitlines()]
+                   for line in (root / 'run/results.jsonl').read_text(encoding='utf-8').splitlines()]
         assert len(records) == 1 and records[0]['metrics']['content_pass']
         assert records[0]['provider_metadata']['worker_sha256']
-        scoped = json.loads((root / 'run/dataset.json').read_text())
+        scoped = json.loads((root / 'run/dataset.json').read_text(encoding='utf-8'))
         assert scoped['coverage_plan'] == {'web': ['custom']}
         assert scoped['comparison']['publication_state'] == 'diagnostic_not_for_release'
         from harness.web_fetch.benchmark_runner import main as run_cohort
@@ -1751,7 +1752,7 @@ def main():
                     '--providers', 'custom', '--env-file', str(env),
                     '--output', str(root / 'cohort'), '--workers', '1', '--measure-only'])
         cohort = [json.loads(line) for line in
-                  (root / 'cohort/results.jsonl').read_text().splitlines()]
+                  (root / 'cohort/results.jsonl').read_text(encoding='utf-8').splitlines()]
         assert len(cohort) == 1 and cohort[0]['metrics']['content_pass']
         assert (root / 'cohort' / cohort[0]['artifact_path']).is_file()
         from harness.web_fetch.rescoring import rescore
@@ -1774,7 +1775,7 @@ def main():
             regression_ids=['body-only-word-boundary-answer-title-supplies-required-fact'],
         )
         assert receipt['provider_calls'] == 0 and receipt['task_decision_changes'] == []
-        revised = json.loads((root / 'cohort/results.jsonl').read_text())
+        revised = json.loads((root / 'cohort/results.jsonl').read_text(encoding='utf-8'))
         assert revised['metrics'] == cohort[0]['metrics']
         assert revised['attempt_id'] == cohort[0]['attempt_id']
         cohort = [revised]
@@ -1782,7 +1783,7 @@ def main():
         canonical_reference = root / 'canonical-reference.json'
         document = json.loads((root / 'cohort/dataset.json').read_bytes())
         document['cases'][0]['ground_truth_evidence'] = {'kind': 'synthetic_installation_control'}
-        canonical_reference.write_text(json.dumps(document))
+        canonical_reference.write_text(json.dumps(document), encoding='utf-8')
         before_reference = (root / 'cohort/results.jsonl').read_bytes()
         reference_receipt = revise_reference(
             root / 'cohort', canonical_reference,
@@ -1801,7 +1802,7 @@ def main():
             (root / 'cohort' / directory).mkdir(exist_ok=True)
         assemble(root / 'cohort', root / 'certificates', [], root / 'assembled')
         assembled = [json.loads(line) for line in
-                     (root / 'assembled/results.jsonl').read_text().splitlines()]
+                     (root / 'assembled/results.jsonl').read_text(encoding='utf-8').splitlines()]
         assert assembled == cohort
         for relative, _ in artifact_bindings(cohort[0]):
             assert ((root / 'assembled' / relative).read_bytes()
@@ -1813,9 +1814,9 @@ def main():
                        check=True, cwd=root, capture_output=True, text=True)
         from harness.reporting.links import check
         check(root / 'run/report')
-        reference = (root / 'run/report/references/one.txt').read_text()
+        reference = (root / 'run/report/references/one.txt').read_text(encoding='utf-8')
         assert 'Independent fixture output' in reference
-        detail = (root / 'run/report/attempts/custom__one__r001.html').read_text()
+        detail = (root / 'run/report/attempts/custom__one__r001.html').read_text(encoding='utf-8')
         assert '验收规则（无全文参考）' in detail
         assert '检查下列目标资源' not in detail
         package = require_converter(str(args.node_html_markdown_path))

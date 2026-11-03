@@ -15,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def ci_workflow():
     return yaml.safe_load(
-        (ROOT / ".github/workflows/ci.yml").read_text()
+        (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     )
 
 
@@ -85,7 +85,7 @@ def pr_checkout(tmp_path):
                 path.unlink()
             else:
                 path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(content)
+                path.write_text(content, encoding="utf-8")
         git(tmp_path, "add", ".")
         git(tmp_path, "commit", "--allow-empty", "-m", "Test change")
 

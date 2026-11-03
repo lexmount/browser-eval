@@ -11,7 +11,7 @@ class AnnotationEvidenceTests(unittest.TestCase):
             root = Path(temp)
             evidence = root / 'sources/example/stable-page.txt'
             evidence.parent.mkdir(parents=True)
-            evidence.write_text('下载')
+            evidence.write_text('下载', encoding='utf-8')
             case = {
                 'id': 'example',
                 'acceptance_contract': {'stable_text_anchors': [{
@@ -25,6 +25,6 @@ class AnnotationEvidenceTests(unittest.TestCase):
             self.assertRegex(
                 case['source_benchmark']['stable_annotation']['anchor_evidence_sha256'],
                 r'^[0-9a-f]{64}$')
-            evidence.write_text('Unrelated')
+            evidence.write_text('Unrelated', encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'lacks independent evidence'):
                 bind_annotation_evidence(case, root)

@@ -83,7 +83,7 @@ def require_canonical_inputs(evidence: Path, canonical: Path) -> None:
             if not actual.is_file():
                 raise ValueError(f"Persistent evidence differs from canonical input: {relative}")
             expected_dataset = json.loads(read_dataset_bytes(expected))
-            actual_dataset = json.loads(actual.read_text())
+            actual_dataset = json.loads(actual.read_text(encoding="utf-8"))
             # Cases and shared scoring configuration are canonical. A measured
             # cohort owns its display identity, provider coverage plan and
             # comparison metadata; forcing those into the general dataset would
@@ -113,7 +113,7 @@ def require_canonical_inputs(evidence: Path, canonical: Path) -> None:
 
 def require_frozen_case_source(evidence: Path, profile_path: Path, source: Path) -> None:
     """Verify all task bytes against the profile-bound pre-call dataset."""
-    profile = json.loads(profile_path.read_text())
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
     expected_hash = profile.get("source_native_dataset_sha256")
     if not expected_hash or not profile.get("frozen_inputs"):
         raise ValueError("Pre-call case verification requires both source and report input bindings")
@@ -132,10 +132,10 @@ def require_frozen_case_source(evidence: Path, profile_path: Path, source: Path)
 
 def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     """Reject evidence from another valid cohort when building the current report."""
-    profile = json.loads(profile_path.read_text())
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
     if profile.get("comparison_kind") == "wcxb_frozen_html_to_markdown":
         raise ValueError("WCXB evidence uses the certified cohort validator, not the legacy current-report profile validator")
-    dataset = json.loads((evidence / "dataset.json").read_text())
+    dataset = json.loads((evidence / "dataset.json").read_text(encoding="utf-8"))
     records = load_jsonl(evidence / "results.jsonl")
     evidence_binding = profile.get("evidence_binding")
     if evidence_binding is not None:
@@ -224,7 +224,7 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
             receipt_path = evidence / "teds-correction.json"
             if (not receipt_path.is_file() or receipt_path.is_symlink()
                     or hashlib.sha256(receipt_path.read_bytes()).hexdigest() != revision.get("receipt_sha256")
-                    or json.loads(receipt_path.read_text()).get("kind") != revision.get("kind")):
+                    or json.loads(receipt_path.read_text(encoding="utf-8")).get("kind") != revision.get("kind")):
                 failures.append("scoring_revision")
         for key in ("max_failure_retries", "source_dataset_sha256", "official_scorer_commit",
                     "sample_manifest_sha256", "official_metrics", "metric_config", "input_contract"):
@@ -276,9 +276,9 @@ def require_current_report_profile(evidence: Path, profile_path: Path) -> None:
     if resource_profile.get("required"):
         resource_root = evidence / "resource-cohort"
         try:
-            resource_dataset = json.loads((resource_root / "dataset.json").read_text())
+            resource_dataset = json.loads((resource_root / "dataset.json").read_text(encoding="utf-8"))
             resource_records = load_jsonl(resource_root / "results.jsonl")
-            resource_summary = json.loads((resource_root / "resource-comparison.json").read_text())
+            resource_summary = json.loads((resource_root / "resource-comparison.json").read_text(encoding="utf-8"))
         except (FileNotFoundError, json.JSONDecodeError):
             failures.append("resource_profile_missing")
         else:

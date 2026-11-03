@@ -230,9 +230,9 @@ def public_calls(profile, rows, source, sources):
 
 
 def load_run(source):
-    profile = json.loads((source / "profile.json").read_text())
+    profile = json.loads((source / "profile.json").read_text(encoding="utf-8"))
     validate_profile(profile)
-    receipt = json.loads((source / "receipt.json").read_text())
+    receipt = json.loads((source / "receipt.json").read_text(encoding="utf-8"))
     synthetic = receipt.get("synthetic") is True and receipt.get("certified") is False
     if receipt.get("synthetic") is True and not synthetic:
         raise ValueError("Synthetic evidence cannot be certified")
@@ -269,7 +269,7 @@ def load_run(source):
     for phase in ("before", "after"):
         reference_file = source / f"references-{phase}.json"
         if reference_file.exists():
-            for url, capture in json.loads(reference_file.read_text()).items():
+            for url, capture in json.loads(reference_file.read_text(encoding="utf-8")).items():
                 if profile["protocol"].get("reference_scope") == "identity":
                     actual_available = reference_available(
                         profile, url, capture, (source / capture["path"]).read_bytes()
@@ -287,8 +287,8 @@ def load_run(source):
     if receipt.get("certified") and receipt["reference_capture_issues"]:
         raise ValueError("Certified source capture is incomplete")
     if receipt.get("certified") and profile["protocol"].get("reference_scope") == "identity":
-        before = json.loads((source / "references-before.json").read_text())
-        after = json.loads((source / "references-after.json").read_text())
+        before = json.loads((source / "references-before.json").read_text(encoding="utf-8"))
+        after = json.loads((source / "references-after.json").read_text(encoding="utf-8"))
         expected_refs = {u for c in profile["cases"] for u in c.get("anchors", [])}
         expected_refs.update(profile.get("reference_artifacts", {}))
         if (
@@ -495,7 +495,7 @@ def build(
     rows, public_files, redactions, billing_corrections = public_calls(profile, rows, source, sources)
     scoring_revision = None
     if correction:
-        revision = json.loads(correction.read_text())
+        revision = json.loads(correction.read_text(encoding="utf-8"))
         profile, rows, changes = apply_identity_correction(profile, rows, revision)
         scoring_revision = {
             "contract": revision,
@@ -516,8 +516,8 @@ def build(
     languages = ["zh", "en"] if include_english or language == "en" else ["zh"]
     routes = []
     selected = scoring_rows(profile, rows)
-    review_data = json.loads(review.read_text()) if review else None
-    relevance_data = json.loads(relevance.read_text()) if relevance else None
+    review_data = json.loads(review.read_text(encoding="utf-8")) if review else None
+    relevance_data = json.loads(relevance.read_text(encoding="utf-8")) if relevance else None
     review_percent = None
     if review is not None:
         validate_public_review(profile, selected, review_data, authority=authority, relevance=relevance_data)
@@ -574,7 +574,7 @@ def build(
         target.write_bytes((content.parent / asset["source"]).read_bytes())
         bundle.append({"path": asset["path"], "sha256": asset["sha256"]})
     if (output / "manifest.json").exists():
-        old_manifest = json.loads((output / "manifest.json").read_text())
+        old_manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
         for route in [*old_manifest["routes"], *old_manifest.get("language_notices", [])]:
             old = (output / route).resolve()
             if old.is_relative_to(output) and old.is_file():
@@ -691,7 +691,7 @@ def build(
                         link['data-reviewed-outputs'] = f"{review_data['output_reviewed']}/{review_data['output_total']}"
                     footer.append(link)
                 document.main.append(footer)
-            path.write_text(str(document).replace("</head>", REPORT_PAGE_MARKER + "</head>"))
+            path.write_text(str(document).replace("</head>", REPORT_PAGE_MARKER + "</head>"), encoding="utf-8")
             routes.append(prefix + route)
 
         hit_key = "anchor_hit_5" if profile["protocol"]["top_k"] == 5 else "anchor_hit_10"
@@ -1332,7 +1332,7 @@ def build(
 
 def check(output, *, return_data=False, evidence_only=False):
     authority = report_authority(output)
-    manifest = json.loads((output / "manifest.json").read_text())
+    manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     if not evidence_only:
         check_build_version(output, manifest)
     if manifest.get("assessment_revision"):
@@ -1365,8 +1365,8 @@ def check(output, *, return_data=False, evidence_only=False):
         relevance_path = output / "relevance-judgments.json"
         if bytes_sha256(relevance_path.read_bytes()) != manifest["relevance_sha256"]:
             raise ValueError("Relevance judgments hash mismatch")
-        relevance_data = json.loads(relevance_path.read_text())
-    review_data = json.loads((output / "independent-review.json").read_text()) if manifest.get("independent_review_sha256") else None
+        relevance_data = json.loads(relevance_path.read_text(encoding="utf-8"))
+    review_data = json.loads((output / "independent-review.json").read_text(encoding="utf-8")) if manifest.get("independent_review_sha256") else None
     if manifest.get("report_assessment") is not None:
         expected_assessment = {
             "relevance": {key: relevance_data["judge"][key] for key in ("kind", "name")} if relevance_data else None,
@@ -1405,7 +1405,7 @@ def check(output, *, return_data=False, evidence_only=False):
             prefix = "" if lang == "zh" else lang + "/"
             if prefix + "review.html" not in manifest["routes"]:
                 raise ValueError("Independent review page is missing")
-            soup = BeautifulSoup((output / (prefix + "index.html")).read_text(), "html.parser")
+            soup = BeautifulSoup((output / (prefix + "index.html")).read_text(encoding="utf-8"), "html.parser")
             coverage = soup.select_one("[data-review-coverage]")
             query_scope = f"{review_data['case_reviewed']}/{review_data['case_total']}"
             output_scope = f"{review_data['output_reviewed']}/{review_data['output_total']}"
@@ -1417,13 +1417,13 @@ def check(output, *, return_data=False, evidence_only=False):
             for attr, value in (("data-reviewed-queries", query_scope), ("data-reviewed-outputs", output_scope)):
                 if coverage.get(attr) != value:
                     raise ValueError("Independent review coverage differs from the accepted evidence")
-            review_page = BeautifulSoup((output / (prefix + "review.html")).read_text(), "html.parser")
+            review_page = BeautifulSoup((output / (prefix + "review.html")).read_text(encoding="utf-8"), "html.parser")
             expected = BeautifulSoup(render_summary(review_data, lang == "zh"), "html.parser")
             actual = review_page.select_one("[data-independent-review]")
             if actual is None or actual.get_text() != expected.get_text():
                 raise ValueError("Independent review summary differs from the accepted evidence")
             for row in scoring_rows(manifest["profile"], manifest["rows"]):
-                detail = BeautifulSoup((output / (prefix + "details/" + row["id"] + ".html")).read_text(), "html.parser")
+                detail = BeautifulSoup((output / (prefix + "details/" + row["id"] + ".html")).read_text(encoding="utf-8"), "html.parser")
                 expected = BeautifulSoup(render_detail(review_data, row["id"], lang == "zh"), "html.parser")
                 actual = detail.select("[data-independent-opinion], [data-review-not-selected]")
                 if len(actual) != 1 or actual[0].get_text() != expected.get_text():
@@ -1434,7 +1434,7 @@ def check(output, *, return_data=False, evidence_only=False):
     }
     if factual_cases:
         sensitivity_path = output / "factual-sensitivity.json"
-        sensitivity = json.loads(sensitivity_path.read_text())
+        sensitivity = json.loads(sensitivity_path.read_text(encoding="utf-8"))
         expected_sensitivity = {
             row["id"]: factual_sensitivity(factual_cases[row["case_id"]], row["results"], rule=sensitivity.get("rule"), cutoff=manifest["profile"]["protocol"]["top_k"])
             for row in scoring_rows(manifest["profile"], manifest["rows"]) if row["case_id"] in factual_cases
@@ -1454,7 +1454,7 @@ def check(output, *, return_data=False, evidence_only=False):
             raise ValueError("Result belongs to the wrong cohort")
     for lang in (() if evidence_only else manifest["languages"]):
         prefix = "" if lang == "zh" else lang + "/"
-        soup = BeautifulSoup((output / (prefix + "research.html")).read_text(), "html.parser")
+        soup = BeautifulSoup((output / (prefix + "research.html")).read_text(encoding="utf-8"), "html.parser")
         expected = BeautifulSoup(
             fairness_table(manifest["profile"], manifest["rows"], lang == "zh"), "html.parser"
         )
@@ -1468,7 +1468,7 @@ def check(output, *, return_data=False, evidence_only=False):
                     if (manifest.get("authored") or {}).get("reading_model")
                     else "index.html"
                 )
-                home = BeautifulSoup((output / (prefix + summary_route)).read_text(), "html.parser")
+                home = BeautifulSoup((output / (prefix + summary_route)).read_text(encoding="utf-8"), "html.parser")
                 section = home.select_one("[data-cohort-summary]")
                 expected_section = BeautifulSoup(
                     cohort_summary(manifest["profile"], manifest["rows"], lang == "zh"), "html.parser"
@@ -1476,12 +1476,12 @@ def check(output, *, return_data=False, evidence_only=False):
                 if section is None or section.get_text() != expected_section.get_text():
                     raise ValueError("Missing or incorrect cohort summary")
             for route in (("dataset.html",) if (manifest.get("authored") or {}).get("presentation") == "comparison-report" else ("dataset.html", "results.html")):
-                inventory = BeautifulSoup((output / (prefix + route)).read_text(), "html.parser")
+                inventory = BeautifulSoup((output / (prefix + route)).read_text(encoding="utf-8"), "html.parser")
                 options = inventory.select("[data-cohort-filter] option")
                 if {o["value"] for o in options} != {"all", *(g["id"] for g in groups)}:
                     raise ValueError("Incomplete cohort filter")
         for route in (("dataset.html",) if (manifest.get("authored") or {}).get("presentation") == "comparison-report" else ("dataset.html", "results.html")):
-            inventory = BeautifulSoup((output / (prefix + route)).read_text(), "html.parser")
+            inventory = BeautifulSoup((output / (prefix + route)).read_text(encoding="utf-8"), "html.parser")
             inventory_profile = quality_dataset(manifest["profile"], manifest.get("authored") or {})[0] if route == "dataset.html" else manifest["profile"]
             if route == "dataset.html" and Counter(r.get("data-case-id") for r in inventory.select("[data-row]")) != Counter(c["id"] for c in inventory_profile["cases"]):
                 raise ValueError("Active dataset differs from reviewed quality population")
@@ -1579,7 +1579,7 @@ def check(output, *, return_data=False, evidence_only=False):
         return True
     for route in manifest["routes"]:
         path = output / route
-        soup = BeautifulSoup(path.read_text(), "html.parser")
+        soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
         check_presentation(soup)
         authored = manifest.get("authored") or {}
         if authored.get("reading_model") and "details/" not in route:
@@ -1878,11 +1878,11 @@ def main(argv=None):
 def release_check(output, visual_receipt, *, publication_plan=None):
     """Combine deterministic evidence checks with the separate operated-browser gate."""
     check(output)
-    proof = json.loads(visual_receipt.read_text())
+    proof = json.loads(visual_receipt.read_text(encoding="utf-8"))
     manifest = output / "manifest.json"
     if proof["manifest_sha256"] != bytes_sha256(manifest.read_bytes()):
         raise ValueError("Visual check belongs to a different build")
-    report_manifest = json.loads(manifest.read_text())
+    report_manifest = json.loads(manifest.read_text(encoding="utf-8"))
     if not report_manifest.get("receipt", {}).get("synthetic"):
         if not report_manifest.get("receipt", {}).get("certified"):
             raise ValueError("A formal release requires certified collection evidence")

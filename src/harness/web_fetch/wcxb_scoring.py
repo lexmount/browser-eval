@@ -399,7 +399,7 @@ def _score(*, source, sample_manifest, evidence_root, profile_path, staging):
         )
         if file_sha256(correction_root / "receipt.json") != profile["latency_correction_receipt_sha256"]:
             raise ValueError("WCXB corrected timing receipt differs from current profile")
-        correction_certificate = json.loads((correction_root / "certification.json").read_text())
+        correction_certificate = json.loads((correction_root / "certification.json").read_text(encoding="utf-8"))
         if (
             correction_certificate.get("kind") != "certified_wcxb_paired_latency"
             or correction_certificate.get("complete") is not True

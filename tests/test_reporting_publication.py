@@ -33,13 +33,13 @@ def test_packet_guards_detect_input_edits_even_with_restored_mtime(tmp_path, dam
             target.write_bytes(target.read_bytes()[::-1])
             os.utime(target, ns=(before.st_atime_ns, before.st_mtime_ns))
         elif damage == 'new-file':
-            (report / 'extra.txt').write_text('unexpected')
+            (report / 'extra.txt').write_text('unexpected', encoding='utf-8')
         elif damage == 'deleted-file':
             (report / 'index.html').unlink()
         elif damage == 'replacement':
             page = report / 'index.html'
             page.unlink()
-            page.write_text('different page')
+            page.write_text('different page', encoding='utf-8')
         else:
             (report / 'linked').symlink_to(authority)
         with pytest.raises(ValueError):
@@ -49,9 +49,9 @@ def test_packet_guards_detect_input_edits_even_with_restored_mtime(tmp_path, dam
 def fixture(tmp_path):
     report = tmp_path / 'report'
     report.mkdir()
-    (report / 'index.html').write_text('validated page')
+    (report / 'index.html').write_text('validated page', encoding='utf-8')
     authority = tmp_path / 'profile.json'
-    authority.write_text('{}')
+    authority.write_text('{}', encoding='utf-8')
     output = tmp_path / 'release.zip'
     receipt = tmp_path / 'release.json'
     output.write_bytes(b'previous archive')
@@ -70,7 +70,7 @@ def test_package_installs_complete_archive_and_receipt(tmp_path):
     with zipfile.ZipFile(output) as archive:
         assert archive.namelist() == ['index.html']
         assert archive.read('index.html') == b'validated page'
-    assert json.loads(receipt.read_text()) == result
+    assert json.loads(receipt.read_text(encoding='utf-8')) == result
     assert result['archive_bytes'] == output.stat().st_size
 
 
@@ -79,11 +79,11 @@ def test_changed_or_rejected_inputs_preserve_prior_release(tmp_path, damage):
     report, authority, output, receipt = fixture(tmp_path)
     def validate():
         if damage == 'page':
-            (report / 'index.html').write_text('not validated')
+            (report / 'index.html').write_text('not validated', encoding='utf-8')
         elif damage == 'profile':
-            authority.write_text('{"changed":true}')
+            authority.write_text('{"changed":true}', encoding='utf-8')
         elif damage == 'new-file':
-            (report / 'extra.html').write_text('not validated')
+            (report / 'extra.html').write_text('not validated', encoding='utf-8')
         elif damage == 'symlink':
             (report / 'secret').symlink_to(authority)
         else:
@@ -126,11 +126,11 @@ def test_unsafe_package_is_rejected_before_replacing_release(tmp_path, target):
     elif target == 'linked':
         (report / 'assets').symlink_to(tmp_path, target_is_directory=True)
     elif target == 'dot-file':
-        (report / '.env').write_text('private')
+        (report / '.env').write_text('private', encoding='utf-8')
     elif target == 'backslash':
-        (report / 'folder\\private.html').write_text('unsafe cross-platform path')
+        (report / 'folder\\private.html').write_text('unsafe cross-platform path', encoding='utf-8')
     elif target == 'control':
-        (report / 'private\n.html').write_text('unsafe control character')
+        (report / 'private\n.html').write_text('unsafe control character', encoding='utf-8')
     else:
         options['max_bytes'] = 1
     with pytest.raises(ValueError):
@@ -152,7 +152,7 @@ def test_track_package_uses_frozen_gates_and_preserves_previous_release(
     evidence = tmp_path / 'evidence'
     evidence.mkdir()
     for name in ('manifest.json', 'run-config.json', 'attempts.jsonl', 'result-review.json'):
-        (evidence / name).write_text('{}')
+        (evidence / name).write_text('{}', encoding='utf-8')
     authority = tmp_path / 'authority'
     current = authority / "evaluation/browser-use/current-report.json"
     current.parent.mkdir(parents=True)
@@ -163,28 +163,28 @@ def test_track_package_uses_frozen_gates_and_preserves_previous_release(
             "sha256": selection_hash,
         },
         "selection_sha256": selection_hash,
-    }))
-    (current.parent / "webarena-verified-pilot.json").write_text("{}")
+    }), encoding='utf-8')
+    (current.parent / "webarena-verified-pilot.json").write_text("{}", encoding='utf-8')
     (authority / 'research').mkdir()
     dataset = tmp_path / 'dataset.json'
-    dataset.write_text('{}')
+    dataset.write_text('{}', encoding='utf-8')
     from harness.reporting.visual import file_sha256
     profile.write_text(json.dumps({
         'dataset': {'path': str(dataset), 'sha256': file_sha256(dataset)}
-    }))
+    }), encoding='utf-8')
     review = tmp_path / 'review.json'
-    review.write_text('{}')
+    review.write_text('{}', encoding='utf-8')
     results = evidence / 'manifest.json'
     (report / 'report-manifest.json').write_text(json.dumps({
         'dataset_sha256': file_sha256(dataset), 'results_sha256': file_sha256(results)
-    }))
+    }), encoding='utf-8')
     if track == 'browser-use':
-        (report / '.generated-report').write_text('browser-use-report/2\n')
+        (report / '.generated-report').write_text('browser-use-report/2\n', encoding='utf-8')
     def validate(*args, **kwargs):
         if damage == 'report':
-            (report / 'index.html').write_text('changed after gate')
+            (report / 'index.html').write_text('changed after gate', encoding='utf-8')
         elif damage == 'profile':
-            (current if track == 'browser-use' else profile).write_text('{} changed')
+            (current if track == 'browser-use' else profile).write_text('{} changed', encoding='utf-8')
         return {}
     monkeypatch.setattr(
         autonomous if track == 'browser-use' else replay, 'validate_release', validate

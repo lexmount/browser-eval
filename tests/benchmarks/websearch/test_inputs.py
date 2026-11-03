@@ -142,10 +142,10 @@ def test_public_cli_exports_installed_definitions_and_scores(tmp_path):
     result = call("export", "scenarios-v1")
     assert result.returncode == 0 and len(json.loads(result.stdout)["cases"]) == 149
     packet = tmp_path / "packet.json"
-    packet.write_text(json.dumps({"ranking": ["a"], "grades": {"a": 3}}))
+    packet.write_text(json.dumps({"ranking": ["a"], "grades": {"a": 3}}), encoding="utf-8")
     result = call("score", str(packet))
     assert result.returncode == 0 and json.loads(result.stdout)["precision"] == 0.2
-    packet.write_text(json.dumps({"ranking": ["a"], "grades": {"a": 4}}))
+    packet.write_text(json.dumps({"ranking": ["a"], "grades": {"a": 4}}), encoding="utf-8")
     assert call("score", str(packet)).returncode != 0
 
 
@@ -196,7 +196,7 @@ def test_benchmark_runtime_avoids_execution_tracks_and_provider_clients():
         "subprocess",
     }
     for path in Path(inputs.__file__).parent.glob("*.py"):
-        for node in ast.walk(ast.parse(path.read_text())):
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
             if isinstance(node, ast.Import):
                 modules = [alias.name for alias in node.names]
             elif isinstance(node, ast.ImportFrom) and not node.level:

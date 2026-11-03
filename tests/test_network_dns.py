@@ -18,7 +18,7 @@ class NetworkDnsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             profile = Path(directory)
             metadata = configure_chromium_dns_profile(profile, "public_doh")
-            state = json.loads((profile / "Local State").read_text())
+            state = json.loads((profile / "Local State").read_text(encoding="utf-8"))
             self.assertEqual(state["dns_over_https"], {
                 "mode": "secure", "templates": DNS_ENDPOINT + "{?dns}",
             })
@@ -211,8 +211,8 @@ class CrawlBrowserDnsTests(unittest.IsolatedAsyncioTestCase):
             async def launch_persistent_context(self, directory, **kwargs):
                 observed.update(directory=directory, arguments=kwargs)
                 profile = pathlib.Path(directory)
-                observed["settings"] = json.loads((profile / "Local State").read_text())
-                (profile / "DevToolsActivePort").write_text("12345\n/browser-endpoint\n")
+                observed["settings"] = json.loads((profile / "Local State").read_text(encoding="utf-8"))
+                (profile / "DevToolsActivePort").write_text("12345\n/browser-endpoint\n", encoding="utf-8")
                 return Context()
         class Driver:
             async def __aenter__(self):

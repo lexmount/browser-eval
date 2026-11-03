@@ -472,7 +472,7 @@ def test_comparison_rejected_results_leave_no_partial_dataset(tmp_path, monkeypa
     config = tmp_path / "config.json"
     config.write_text(json.dumps({"catalog_path": "catalog", "suite_path": "suite",
                                  "site_map_path": "sites", "profile_path": "profile",
-                                 "scope_path": "scope", "participants": []}))
+                                 "scope_path": "scope", "participants": []}), encoding="utf-8")
     dataset, results = tmp_path / "dataset.json", tmp_path / "results.json"
     monkeypatch.setattr(catalog_comparison, "build_catalog_comparison_dataset",
                         lambda **kwargs: {"trajectories": []})

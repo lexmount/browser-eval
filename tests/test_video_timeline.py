@@ -46,7 +46,7 @@ def test_renderer_migration_cannot_drop_retained_material(timeline):
 def test_retained_asset_must_exist(timeline, tmp_path):
     contract = {"retained": [{"id": "source-map", "scenes": ["a"], "asset": "diagram.txt"}]}
     assert validator.validate(timeline, contract, tmp_path)
-    (tmp_path / "diagram.txt").write_text("retained diagram")
+    (tmp_path / "diagram.txt").write_text("retained diagram", encoding="utf-8")
     assert validator.validate(timeline, contract, tmp_path) == []
 
 
@@ -76,7 +76,7 @@ def test_cli_reports_valid_and_invalid_timeline(timeline, tmp_path, broken):
     if broken:
         timeline["scenes"][0]["end"] = 3
     source = tmp_path / "timeline.json"
-    source.write_text(json.dumps(timeline))
+    source.write_text(json.dumps(timeline), encoding="utf-8")
     result = subprocess.run([sys.executable, str(SCRIPT), str(source)],
                             capture_output=True, text=True, check=False)
     assert result.returncode == int(broken), result.stdout + result.stderr

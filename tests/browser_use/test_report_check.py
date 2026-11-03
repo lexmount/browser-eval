@@ -27,7 +27,8 @@ def authority(root: Path, **updates) -> Path:
                 "model_labels": {"fixture-model": "Fixture"},
                 **updates,
             }
-        )
+        ),
+        encoding="utf-8"
     )
     return profile
 
@@ -99,7 +100,7 @@ def test_rejects_linked_report_and_evidence_before_reading(tmp_path, kind):
             evidence = linked
     else:
         outside = tmp_path / "outside.json"
-        outside.write_text("{}")
+        outside.write_text("{}", encoding="utf-8")
         (root / "artifact.json").symlink_to(outside)
     with pytest.raises(ValueError, match="[Ss]ymlink"):
         checker.check(report, evidence, None, require_complete=False)
@@ -117,7 +118,7 @@ def test_complete_check_rejects_unbound_review_before_evidence(tmp_path):
     )
     review = root / "research/review.json"
     review.parent.mkdir()
-    review.write_text("{}")
+    review.write_text("{}", encoding="utf-8")
     with pytest.raises(ValueError, match="bound to the failure-cause review"):
         checker.check(
             tmp_path / "report",
@@ -143,7 +144,7 @@ def test_complete_check_rejects_escaping_or_linked_review(tmp_path, relative):
     )
     if relative == "research/linked.json":
         outside = tmp_path / "outside.json"
-        outside.write_text("{}")
+        outside.write_text("{}", encoding="utf-8")
         (root / "research").mkdir()
         (root / relative).symlink_to(outside)
     with pytest.raises(ValueError, match="relative|[Ss]ymlink"):
@@ -175,7 +176,7 @@ def test_linked_authority_profile_is_rejected(tmp_path):
 def test_external_profile_and_bound_review_do_not_use_default_authority(tmp_path, monkeypatch):
     root = tmp_path / 'authority'
     source = tmp_path / 'external-review.json'
-    source.write_text('{}')
+    source.write_text('{}', encoding="utf-8")
     profile = authority(root, failure_cause_review={
         'required_for_publication': True, 'source_path': str(source),
         'source_sha256': hashlib.sha256(source.read_bytes()).hexdigest()})
@@ -184,7 +185,7 @@ def test_external_profile_and_bound_review_do_not_use_default_authority(tmp_path
         monkeypatch.setattr(renderer, name, getattr(renderer, name))
     external = tmp_path / 'instance.json'
     external.write_bytes(profile.read_bytes())
-    (profile.parent / 'webarena-verified-pilot.json').write_text('{}')
+    (profile.parent / 'webarena-verified-pilot.json').write_text('{}', encoding="utf-8")
     profile.unlink()
     def evidence_boundary(_paths):
         raise LookupError('bound external inputs reached')
@@ -192,7 +193,7 @@ def test_external_profile_and_bound_review_do_not_use_default_authority(tmp_path
     with pytest.raises(LookupError, match='external inputs reached'):
         checker.check(tmp_path / 'report', tmp_path / 'evidence', None,
                       require_complete=True, profile_path=external, authority_root=root)
-    source.write_text('{"changed":true}')
+    source.write_text('{"changed":true}', encoding="utf-8")
     with pytest.raises(ValueError, match='bound to the failure-cause review'):
         checker.check(tmp_path / 'report', tmp_path / 'evidence', None,
                       require_complete=True, profile_path=external, authority_root=root)

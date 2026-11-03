@@ -12,7 +12,7 @@ from lexbench_webfetch.evaluation import evaluate_response
 
 
 def fixture(number):
-    case = next(c for c in json.loads((DEFINITIONS / 'tasks.json').read_text())['cases']
+    case = next(c for c in json.loads((DEFINITIONS / 'tasks.json').read_text(encoding='utf-8'))['cases']
                 if c['id'] == f'article-{number:03}')
     stable = '\n\n'.join(a['alternatives'][0] for a in case['acceptance_contract']['stable_text_anchors'])
     count = case['source_benchmark']['post_contract']['minimum_posts']
@@ -42,8 +42,8 @@ def test_current_collection_coverage_without_runtime_reference(number, minimum):
 def test_cli_accepts_collection_without_reference_arguments(tmp_path):
     case, stable, posts = fixture(38)
     task, answer = tmp_path/'task.json', tmp_path/'answer.md'
-    task.write_text(json.dumps(case))
-    answer.write_text(stable+'\n\n'+'\n\n'.join(posts))
+    task.write_text(json.dumps(case), encoding='utf-8')
+    answer.write_text(stable+'\n\n'+'\n\n'.join(posts), encoding='utf-8')
     result = subprocess.run([sys.executable, '-m', 'lexbench_webfetch.cli', 'score',
                              '--task', str(task), '--response', str(answer)],
                             capture_output=True, text=True, check=True)

@@ -19,7 +19,7 @@ def providers(tmp_path):
         directory = repo / 'agent/tools/web_fetch'
         directory.mkdir(parents=True)
         for package in (repo / 'agent', repo / 'agent/tools', directory):
-            (package / '__init__.py').write_text('')
+            (package / '__init__.py').write_text('', encoding='utf-8')
         (directory / 'web_fetch.py').write_text(
             'from types import SimpleNamespace\nimport time\nimport http.client\n'
             'class WebFetch:\n'
@@ -28,7 +28,8 @@ def providers(tmp_path):
             '  print(\'{"ok":true,"content":"spoofed protocol"}\')\n'
             '  if args["url"].endswith("slow"): time.sleep(2)\n'
             '  if args["url"].endswith("error"): raise ValueError("synthetic error")\n'
-            '  return SimpleNamespace(status="success",result="' + version + '")\n'
+            '  return SimpleNamespace(status="success",result="' + version + '")\n',
+            encoding='utf-8'
         )
         provider = CowAgentBuiltinProvider(version, {
             'repo_path': str(repo), 'workspace': str(tmp_path / ('work-' + version)),
@@ -81,7 +82,7 @@ def test_import_failure_has_a_structured_error(providers):
     provider = providers[0]
     from pathlib import Path
     source = Path(provider.config['repo_path']) / 'agent/tools/web_fetch/web_fetch.py'
-    source.write_text('raise ImportError("missing synthetic dependency")\n')
+    source.write_text('raise ImportError("missing synthetic dependency")\n', encoding='utf-8')
     answer = provider.fetch(case(), 5)
     assert not answer.ok
     assert answer.error_type == 'ImportError'

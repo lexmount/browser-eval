@@ -2000,7 +2000,7 @@ def build_webarena_replay_report(
         illustrations = source.parent / "trajectory-replay-illustrations"
         asset_dir = output / "assets/interpretation"
         asset_dir.mkdir(parents=True, exist_ok=True)
-        article = json.loads(source.read_text())
+        article = json.loads(source.read_text(encoding="utf-8"))
         for section in article["sections"]:
             if section.get("figure"):
                 for lang in languages:
@@ -2021,7 +2021,7 @@ def build_webarena_replay_report(
             "@media print{.interpretation{max-width:none}.interpretation details{display:block}.table-scroll{overflow:visible}table{min-width:0;font-size:9pt}figure{break-inside:avoid}.interpretation .diagram-scroll{overflow:visible}.interpretation .diagram-scroll img,.interpretation .article-specimen table{min-width:0}}"
         )
         css_path = output / "assets/report.css"
-        css = css_path.read_text() + article_css
+        css = css_path.read_text(encoding="utf-8") + article_css
         css_path.write_text(css, encoding="utf-8")
         for lang in languages:
             language_root = output if lang == "zh" else output / "en"
@@ -2048,7 +2048,7 @@ def build_webarena_replay_report(
                 standalone_document(title, offline, lang, css), encoding="utf-8")
             home = language_root / "index.html"
             label = "报告解读：失败机制、修复与评测边界" if lang == "zh" else "Interpretation: failure mechanisms, repairs and evaluation limits"
-            home.write_text(home.read_text().replace("<main>", f'<main><p><a href="interpretation.html">{label}</a></p>', 1), encoding="utf-8")
+            home.write_text(home.read_text(encoding="utf-8").replace("<main>", f'<main><p><a href="interpretation.html">{label}</a></p>', 1), encoding="utf-8")
             _add_interpretation_navigation(language_root, lang)
 
     if interpretation_path is None:
@@ -2080,7 +2080,7 @@ def build_webarena_replay_report(
                 lang, "interpretation", title, f'<p><a href="article.html" download>{download}</a></p>' + body,
                 current_route="interpretation.html"), encoding="utf-8")
             (root / "article.html").write_text(standalone_document(
-                title, body, lang, (output / "assets/report.css").read_text()), encoding="utf-8")
+                title, body, lang, (output / "assets/report.css").read_text(encoding="utf-8")), encoding="utf-8")
             _add_interpretation_navigation(root, lang)
 
     if not include_english:
@@ -2659,7 +2659,7 @@ def build_main(argv=None) -> None:
     if args.content is not None or args.content_bindings is not None:
         content_source = args.content or data_home() / "report-assets/trajectory-replay"
         bindings_path = args.content_bindings or Path("research/trajectory-replay-content.json")
-        bindings = json.loads(bindings_path.read_text())
+        bindings = json.loads(bindings_path.read_text(encoding="utf-8"))
         with tempfile.TemporaryDirectory(prefix="replay-content-") as directory:
             content = Path(directory).resolve()
             copy_bound_assets(content_source, content, bindings)

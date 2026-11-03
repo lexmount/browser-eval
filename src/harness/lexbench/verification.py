@@ -17,7 +17,7 @@ from harness.data_home import data_home
 from harness.lexbench.charts import combine_comparisons, render_chart
 from harness.lexbench.resource_evidence import validate_matrix
 from harness.lexbench.resource_summary import validate_summary
-from harness.record_io import file_sha256
+from harness.record_io import file_sha256, read_json
 from harness.report_languages import check_language_contract, generated_languages
 from harness.reporting.privacy import LEXBENCH_CHECK_SOURCE
 from harness.web_fetch.safety import reject_evidence_symlinks
@@ -41,8 +41,8 @@ def validate(model, site, check_files=True):
         notice = site / "en.html"
         if (
             not notice.is_file()
-            or "data-english-not-generated" not in notice.read_text()
-            or 'href="index.html"' not in notice.read_text()
+            or "data-english-not-generated" not in notice.read_text(encoding="utf-8")
+            or 'href="index.html"' not in notice.read_text(encoding="utf-8")
         ):
             fail("English flat-entry not-generated notice is missing")
     if model.get("schema") != "moli_layout_report/2":
@@ -88,7 +88,7 @@ def validate(model, site, check_files=True):
     )
     accepted = {"off": 0, "on": 0}
     for item in inv:
-        case = json.loads((site / "data/cases" / f"{item['id']}.json").read_text())
+        case = json.loads((site / "data/cases" / f"{item['id']}.json").read_text(encoding="utf-8"))
         flags = {
             mode: len(case["modes"][mode]["attempts"]) == protocol["k_runs"]
             and all(a["status"] == "pass" for a in case["modes"][mode]["attempts"])
@@ -168,7 +168,7 @@ def validate(model, site, check_files=True):
         model.get("linux_comparison") or model.get("macos_comparison"),
     ):
         fail("combined chart registry, baseline or measurement mismatch")
-    if json.loads((site / "data/combined-comparison.json").read_text()) != combined:
+    if json.loads((site / "data/combined-comparison.json").read_text(encoding="utf-8")) != combined:
         fail("combined chart data target")
     with tempfile.TemporaryDirectory() as directory:
         for language in languages:
@@ -200,7 +200,7 @@ def validate(model, site, check_files=True):
             or path.stat().st_size != info.get("bytes")
         ):
             fail("fixed summary integrity")
-        summary = json.loads(path.read_text())
+        summary = json.loads(path.read_text(encoding="utf-8"))
         if summary.get("schema") != "lexbench_moli_fixed_layout_summary/1":
             fail("fixed summary schema")
         layout = "off" if method_id.endswith("_off") else "on"
@@ -249,7 +249,7 @@ def validate(model, site, check_files=True):
             path = site / "data/fixed-cases" / f"{item['id']}.json"
             if not path.is_file() or path.is_symlink():
                 fail("fixed case evidence target")
-            detail = json.loads(path.read_text())
+            detail = json.loads(path.read_text(encoding="utf-8"))
             if set(detail["methods"]) != set(candidates) or set(item["passes"]) != set(candidates):
                 fail("fixed case registry")
             for method_id, result in detail["methods"].items():
@@ -292,7 +292,7 @@ def validate(model, site, check_files=True):
                 or path.stat().st_size != info["bytes"]
             ):
                 fail("Linux resource evidence integrity")
-            return json.loads(path.read_text())
+            return read_json(path)
 
         summary = resource_document(profiles["evidence"])
         validate_summary(summary, model["resource_builds"])
@@ -364,7 +364,7 @@ def validate(model, site, check_files=True):
             or path.stat().st_size != info.get("bytes")
         ):
             fail("resource integrity")
-        summary = json.loads(path.read_text()) if check_files else resource.get("summary")
+        summary = json.loads(path.read_text(encoding="utf-8")) if check_files else resource.get("summary")
         if (
             summary != resource.get("summary")
             or summary.get("schema") != "lexbench_moli_macos_fixed_resource_summary/1"
@@ -462,7 +462,7 @@ def validate(model, site, check_files=True):
             or path.stat().st_size != info.get("bytes")
         ):
             fail("resource matrix evidence integrity")
-        bundle = json.loads(path.read_text())
+        bundle = json.loads(path.read_text(encoding="utf-8"))
         if bundle["receipt"] != matrix.get("receipt"):
             fail("resource matrix receipt identity")
         source = site / "reproduction/run_resource_matrix.py"
@@ -520,9 +520,9 @@ def validate(model, site, check_files=True):
             path = site / f"assets/comparison-macos-success-resources-{lang}.svg"
             if (
                 not path.is_file()
-                or "RSS" not in path.read_text()
-                or "CPU" not in path.read_text()
-                or "PSS" in path.read_text()
+                or "RSS" not in path.read_text(encoding="utf-8")
+                or "CPU" not in path.read_text(encoding="utf-8")
+                or "PSS" in path.read_text(encoding="utf-8")
             ):
                 fail("macOS chart axes")
     correction = model.get("functional_contract_correction") or {}
@@ -545,7 +545,7 @@ def validate(model, site, check_files=True):
     ):
         fail("functional correction evidence integrity")
     if check_files:
-        receipt = json.loads(correction_path.read_text())
+        receipt = json.loads(correction_path.read_text(encoding="utf-8"))
         if receipt.get("schema") != "moli_functional_contract_correction/1" or receipt.get(
             "harness_commit"
         ) != correction.get("harness_commit"):
@@ -574,7 +574,7 @@ def validate(model, site, check_files=True):
         p = site / "data/cases" / f"{item['id']}.json"
         if check_files and not p.is_file():
             fail("broken case target")
-        c = json.loads(p.read_text()) if check_files else item.get("_case")
+        c = json.loads(p.read_text(encoding="utf-8")) if check_files else item.get("_case")
         if not c:
             fail("missing case")
         if c["id"] != item["id"] or c["stratum"] != item["stratum"]:
@@ -649,7 +649,7 @@ def validate(model, site, check_files=True):
             fail("headline traffic")
     counts = {key: 0 for key in ("both_pass", "both_fail", "off_fail_on_pass", "off_pass_on_fail")}
     for item in inv:
-        c = json.loads((site / "data/cases" / f"{item['id']}.json").read_text())
+        c = json.loads((site / "data/cases" / f"{item['id']}.json").read_text(encoding="utf-8"))
         for off, on in zip(
             c["modes"]["off"]["attempts"], c["modes"]["on"]["attempts"], strict=True
         ):
@@ -675,7 +675,7 @@ def validate(model, site, check_files=True):
     common = [
         (c["modes"]["off"]["attempts"][i], c["modes"]["on"]["attempts"][i])
         for c in (
-            json.loads((site / "data/cases" / f"{item['id']}.json").read_text()) for item in inv
+            json.loads((site / "data/cases" / f"{item['id']}.json").read_text(encoding="utf-8")) for item in inv
         )
         for i in range(3)
         if all(
@@ -736,7 +736,7 @@ def validate(model, site, check_files=True):
             or file_sha256(path) != info["sha256"]
         ):
             fail("correction evidence integrity")
-        rows = json.loads(path.read_text())
+        rows = json.loads(path.read_text(encoding="utf-8"))
         if len(rows) != calls_per_mode or correction["calls"] != calls_per_mode:
             fail("correction scope")
         if not near(sum(x["cpu_total_ms"] for x in rows), correction["old_cpu_ms"]):
@@ -744,7 +744,7 @@ def validate(model, site, check_files=True):
     for path, language in [(site / "index.html", "zh-CN")] + (
         [(site / "en/index.html", "en")] if "en" in languages else []
     ):
-        if not path.is_file() or f'lang="{language}"' not in path.read_text():
+        if not path.is_file() or f'lang="{language}"' not in path.read_text(encoding="utf-8"):
             fail("locale shell")
     for asset in ("app.js", "style.css"):
         if not (site / asset).is_file():
@@ -753,7 +753,7 @@ def validate(model, site, check_files=True):
         fail("missing offline bundle instructions")
     if (
         not (site / "data/version-comparison.json").is_file()
-        or json.loads((site / "data/version-comparison.json").read_text()) != comparison
+        or json.loads((site / "data/version-comparison.json").read_text(encoding="utf-8")) != comparison
     ):
         fail("version comparison data target")
     charts = {
@@ -768,11 +768,11 @@ def validate(model, site, check_files=True):
             continue
         if (
             not chart.is_file()
-            or '<title id="title">' not in chart.read_text()
-            or title not in chart.read_text()
+            or '<title id="title">' not in chart.read_text(encoding="utf-8")
+            or title not in chart.read_text(encoding="utf-8")
         ):
             fail("summary chart target " + chart_name)
-        chart_text = chart.read_text()
+        chart_text = chart.read_text(encoding="utf-8")
         for row in version_rows:
             for key in ("pss_change_pct", "cpu_change_pct"):
                 if f"{row[key]:+.2f}%" not in chart_text:
@@ -786,8 +786,8 @@ def validate(model, site, check_files=True):
                     )
     if not (site / "reproduction/plot_version_summary.py").is_file():
         fail("missing chart reproduction script")
-    js = (site / "app.js").read_text()
-    css = (site / "style.css").read_text()
+    js = (site / "app.js").read_text(encoding="utf-8")
+    css = (site / "style.css").read_text(encoding="utf-8")
     if (
         "data-report-detail" not in js
         or "data-evidence" not in js
@@ -805,7 +805,7 @@ def validate(model, site, check_files=True):
             if (
                 p.is_file()
                 and p.suffix in (".json", ".jsonl", ".log", ".html", ".js", ".css")
-                and bad.search(p.read_text(errors="replace"))
+                and bad.search(p.read_text(errors="replace", encoding="utf-8"))
             ):
                 fail("private path or endpoint leaked")
     return True
@@ -828,7 +828,7 @@ def validate_release(model, profile):
 def verify_evidence(site: pathlib.Path, *, profile: dict | None = None) -> dict:
     reject_evidence_symlinks(site)
     SITE = site.resolve()
-    model = json.loads(contained_path(SITE, "data/model.json", reject_symlinks=True).read_text())
+    model = json.loads(contained_path(SITE, "data/model.json", reject_symlinks=True).read_text(encoding="utf-8"))
     if profile is not None:
         validate_release(model, profile)
     validate(model, SITE)
@@ -948,42 +948,42 @@ def verify_evidence(site: pathlib.Path, *, profile: dict | None = None) -> dict:
         shutil.copytree(SITE, temp)
         failure_id = next(x["id"] for x in model["cases"] if x["off_passes"] == 0)
         bad_case = temp / "data/cases" / f"{failure_id}.json"
-        original = bad_case.read_text()
+        original = bad_case.read_text(encoding="utf-8")
         item = json.loads(original)
         item["modes"]["off"]["attempts"][0]["failure"] = {"class": "cdp_semantic", "detail": ""}
-        bad_case.write_text(json.dumps(item))
+        bad_case.write_text(json.dumps(item), encoding="utf-8")
         try:
             validate(model, temp)
         except ValueError:
             negative_controls += 1
         else:
             fail("missing-error negative control passed")
-        bad_case.write_text(original)
+        bad_case.write_text(original, encoding="utf-8")
         item = json.loads(original)
         item["modes"]["off"]["attempts"][0]["evidence"]["baseline"]["grader.json"]["url"] = (
             "data/evidence/absent.json"
         )
-        bad_case.write_text(json.dumps(item))
+        bad_case.write_text(json.dumps(item), encoding="utf-8")
         try:
             validate(model, temp)
         except ValueError:
             negative_controls += 1
         else:
             fail("broken-target negative control passed")
-        bad_case.write_text(original)
+        bad_case.write_text(original, encoding="utf-8")
         item = json.loads(original)
         item["modes"]["off"]["attempts"][0]["evidence"]["baseline"].pop("stderr.log", None)
         item["modes"]["off"]["attempts"][0]["evidence"]["baseline"].pop("cdp.jsonl", None)
-        bad_case.write_text(json.dumps(item))
+        bad_case.write_text(json.dumps(item), encoding="utf-8")
         try:
             validate(model, temp)
         except ValueError:
             negative_controls += 1
         else:
             fail("missing-failure-log negative control passed")
-        bad_case.write_text(original)
+        bad_case.write_text(original, encoding="utf-8")
         leak = temp / "data/leak.log"
-        leak.write_text("evidence stored at /results/internal/attempt.json")
+        leak.write_text("evidence stored at /results/internal/attempt.json", encoding="utf-8")
         try:
             validate(model, temp)
         except ValueError:

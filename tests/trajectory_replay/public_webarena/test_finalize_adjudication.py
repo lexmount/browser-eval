@@ -391,13 +391,13 @@ def test_finalization_rejects_projection_verdict_drift_in_both_directions(
     rows = [_write_attempt(tmp_path, task, index) for index in (1, 2)]
     if projection_passes:
         source = Path(rows[0]["evidence_directory"]) / "attempt.json"
-        raw = json.loads(source.read_text())
+        raw = json.loads(source.read_text(encoding="utf-8"))
         raw["status"] = "fail"
-        source.write_text(json.dumps(raw))
+        source.write_text(json.dumps(raw), encoding="utf-8")
     else:
         rows[0]["status"] = "fail"
     projection = tmp_path / "attempts.jsonl"
-    projection.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    projection.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
     with pytest.raises(ValueError, match="projection differs"):
         finalize_adjudication(
             {"tasks": [task]}, {"tasks": [{"task_id": task["id"], "disposition": "eligible"}]},
@@ -414,7 +414,7 @@ def test_finalization_rejects_requalified_changes_to_immutable_task_fields(tmp_p
         candidate[field] = {"verified_evaluators": [{"expected": "different oracle"}]}
     projection = tmp_path / "attempts.jsonl"
     projection.write_text("".join(json.dumps(_write_attempt(tmp_path, candidate, index)) + "\n"
-                                  for index in (1, 2)))
+                                  for index in (1, 2)), encoding="utf-8")
     with pytest.raises(ValueError, match="immutable"):
         finalize_adjudication(
             {"tasks": [original]}, {"tasks": [{"task_id": original["id"],
@@ -431,7 +431,7 @@ def test_duplicate_task_inventory_cannot_be_silently_collapsed(tmp_path, invento
     validated = {"tasks": [task]}
     projection = tmp_path / "attempts.jsonl"
     projection.write_text("".join(json.dumps(_write_attempt(tmp_path, task, index)) + "\n"
-                                  for index in (1, 2)))
+                                  for index in (1, 2)), encoding="utf-8")
     target = {"canonical": suite, "decisions": decisions, "validated": validated}[inventory]
     target["tasks"] *= 2
     with pytest.raises(ValueError, match="duplicate"):
@@ -443,7 +443,7 @@ def test_empty_candidate_cannot_gain_eligibility_from_passing_metadata(tmp_path)
     task["trajectory"]["actions"] = []
     projection = tmp_path / "attempts.jsonl"
     projection.write_text("".join(json.dumps(_write_attempt(tmp_path, task, index)) + "\n"
-                                  for index in (1, 2)))
+                                  for index in (1, 2)), encoding="utf-8")
     with pytest.raises(ValueError, match="non-empty trajectory"):
         finalize_adjudication(
             {"tasks": [task]}, {"tasks": [{"task_id": task["id"], "disposition": "eligible"}]},

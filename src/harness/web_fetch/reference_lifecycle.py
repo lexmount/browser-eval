@@ -1042,7 +1042,7 @@ def _valid_scoring_revision(source, *, validate_reviews, review_sha256=None) -> 
     if not receipt_path.is_file() or not (root/'dataset.json').is_file() or not (root/'results.jsonl').is_file():
         return False
     try:
-        rows = json.loads(receipt_path.read_text())
+        rows = json.loads(receipt_path.read_text(encoding="utf-8"))
     except (OSError, ValueError, TypeError):
         return False
     current_dataset = sha256((root/'dataset.json').read_bytes())
@@ -1059,7 +1059,7 @@ def _valid_scoring_revision(source, *, validate_reviews, review_sha256=None) -> 
     dataset = None
     records = None
     try:
-        dataset = json.loads((root/'dataset.json').read_text())
+        dataset = json.loads((root/'dataset.json').read_text(encoding="utf-8"))
         records = load_jsonl(root/'results.jsonl')
     except (OSError, ValueError, TypeError):
         dataset = None
@@ -1087,7 +1087,7 @@ def _valid_scoring_revision(source, *, validate_reviews, review_sha256=None) -> 
         try:
             from harness.web_fetch.result_review import require_result_review
             if dataset is None or records is None:
-                dataset = json.loads((root/'dataset.json').read_text())
+                dataset = json.loads((root/'dataset.json').read_text(encoding="utf-8"))
                 records = load_jsonl(root/'results.jsonl')
             assembled_review_valid = (require_result_review(root, dataset, records) is not None
                                       if validate_reviews else review_hash in blind_review_hashes)
@@ -1109,7 +1109,7 @@ def _valid_scoring_revision(source, *, validate_reviews, review_sha256=None) -> 
     presentation_path = root/'report-binding-revisions.json'
     if presentation_path.is_file():
         try:
-            presentation_rows = json.loads(presentation_path.read_text())
+            presentation_rows = json.loads(presentation_path.read_text(encoding="utf-8"))
             if not isinstance(presentation_rows, list):
                 return False
             for receipt in presentation_rows:
@@ -1145,7 +1145,7 @@ def _valid_scoring_revision(source, *, validate_reviews, review_sha256=None) -> 
     reference_path = root/'reference-revisions.json'
     if reference_path.is_file():
         try:
-            reference_rows = json.loads(reference_path.read_text())
+            reference_rows = json.loads(reference_path.read_text(encoding="utf-8"))
         except (OSError, ValueError, TypeError):
             return False
         for receipt in reference_rows if isinstance(reference_rows, list) else ():
@@ -1304,7 +1304,7 @@ def latency_correction_original_elapsed(source, *, records=None) -> dict[tuple[s
     if not results_path.is_file():
         raise ReferenceLifecycleError("Latency correction receipt has no bound results")
     try:
-        receipt = json.loads(receipt_path.read_text())
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         records = load_jsonl(results_path)
     except (OSError, ValueError, TypeError) as error:
         raise ReferenceLifecycleError("Invalid latency correction receipt") from error
@@ -1361,7 +1361,7 @@ def reference_revision_cases(source) -> dict[str, set[str]]:
     if not path.is_file() or not (root / "dataset.json").is_file() or not (root / "results.jsonl").is_file():
         return {}
     try:
-        receipts = json.loads(path.read_text())
+        receipts = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError, TypeError):
         return {}
     current_dataset = sha256((root / "dataset.json").read_bytes())
@@ -1406,7 +1406,7 @@ def reference_revision_cases(source) -> dict[str, set[str]]:
     scoring_path = root / "scoring-revisions.json"
     if scoring_path.is_file():
         try:
-            scoring = json.loads(scoring_path.read_text())
+            scoring = json.loads(scoring_path.read_text(encoding="utf-8"))
         except (OSError, ValueError, TypeError):
             return {}
         allowed = {

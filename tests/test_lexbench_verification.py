@@ -176,7 +176,7 @@ def report(tmp_path):
             lang,
         )
     save(site, "reproduction/plot_version_summary.py", b"# synthetic chart source\n")
-    messages = (ROOT / 'scripts/moli_report/messages.json').read_text().replace('<', '\\u003c')
+    messages = (ROOT / 'scripts/moli_report/messages.json').read_text(encoding="utf-8").replace('<', '\\u003c')
     shell = '<script type="application/json" id="report-messages">' + messages + '</script>'
     save(site, "index.html", ('<html lang="zh-CN">' + shell + '</html>').encode())
     save(site, "en/index.html", b'<html lang="en"></html>')
@@ -455,7 +455,8 @@ def chinese_only_report(report):
         path.unlink()
     write_language_contract(site, include_english=False)
     (site / "en.html").write_text(
-        (site / "en/index.html").read_text().replace('href="../index.html"', 'href="index.html"')
+        (site / "en/index.html").read_text(encoding="utf-8").replace('href="../index.html"', 'href="index.html"'),
+        encoding="utf-8"
     )
     return site, model
 
@@ -495,9 +496,9 @@ def test_requested_editions_are_generated_and_verified_end_to_end(report, includ
     )
     assert generated_languages(site) == (("zh", "en") if include_english else ("zh",))
     assert len(list((site / "assets").glob("*.svg"))) == (4 if include_english else 2)
-    assert 'lang="zh-CN"' in (site / "index.html").read_text()
+    assert 'lang="zh-CN"' in (site / "index.html").read_text(encoding="utf-8")
     for entry in ("en.html", "en/index.html"):
-        html = (site / entry).read_text()
+        html = (site / entry).read_text(encoding="utf-8")
         assert ('lang="en"' in html) is include_english
         assert ("data-english-not-generated" in html) is not include_english
     assert verify(site)["result"] == "pass"

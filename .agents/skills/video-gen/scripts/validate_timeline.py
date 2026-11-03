@@ -33,6 +33,6 @@ def validate(timeline, contract=None, asset_root=None):
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('timeline');p.add_argument('--contract');p.add_argument('--asset-root');a=p.parse_args()
-    errors=validate(json.loads(Path(a.timeline).read_text()),json.loads(Path(a.contract).read_text()) if a.contract else None,a.asset_root)
+    errors=validate(json.loads(Path(a.timeline).read_text(encoding='utf-8')),json.loads(Path(a.contract).read_text(encoding='utf-8')) if a.contract else None,a.asset_root)
     print('\n'.join(errors) if errors else 'Timeline consistency passed; playback comprehension requires separate review.')
     raise SystemExit(bool(errors))

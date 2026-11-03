@@ -28,9 +28,9 @@ class MergeInternalReviewShardsTests(unittest.TestCase):
             {"attempt_id": "passed", "provider": "b", "case_id": "case",
              "ok": True, "metrics": {"content_pass": True}},
         ]
-        (evidence / "dataset.json").write_text(json.dumps(dataset))
+        (evidence / "dataset.json").write_text(json.dumps(dataset), encoding="utf-8")
         (evidence / "results.jsonl").write_text(
-            "".join(json.dumps(row) + "\n" for row in records))
+            "".join(json.dumps(row) + "\n" for row in records), encoding="utf-8")
         bindings = {
             "dataset_sha256": digest(evidence / "dataset.json"),
             "results_sha256": digest(evidence / "results.jsonl"),
@@ -47,7 +47,7 @@ class MergeInternalReviewShardsTests(unittest.TestCase):
                           "final_verdict": "fail", "adjudication": None}],
         }
         prior_path = evidence / "result-review.json"
-        prior_path.write_text(json.dumps(prior))
+        prior_path.write_text(json.dumps(prior), encoding="utf-8")
         shard = {
             "schema_version": 1, "bindings": bindings,
             "reviewer": {"model": "new-model"},
@@ -59,7 +59,7 @@ class MergeInternalReviewShardsTests(unittest.TestCase):
                           "agent_evidence": "required text present"}],
         }
         shard_path = root / "shard.json"
-        shard_path.write_text(json.dumps(shard))
+        shard_path.write_text(json.dumps(shard), encoding="utf-8")
         return evidence, prior_path, shard_path
 
     def test_prior_failure_review_and_blinded_pass_shard_form_full_review(self):
@@ -84,9 +84,9 @@ class MergeInternalReviewShardsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             evidence, prior, shard = self.fixture(root)
-            document = json.loads(shard.read_text())
+            document = json.loads(shard.read_text(encoding="utf-8"))
             document["review_protocol"].pop("production_scorer_forbidden")
-            shard.write_text(json.dumps(document))
+            shard.write_text(json.dumps(document), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "not scorer-independent"):
                 merge_reviews(evidence, [shard], root / "full.json", prior_review=prior)
 
@@ -94,15 +94,15 @@ class MergeInternalReviewShardsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             evidence, prior, shard = self.fixture(root)
-            document = json.loads(shard.read_text())
+            document = json.loads(shard.read_text(encoding="utf-8"))
             document["attempts"][0]["agent_verdict"] = "fail"
-            shard.write_text(json.dumps(document))
+            shard.write_text(json.dumps(document), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "requires adjudication"):
                 merge_reviews(evidence, [shard], root / "full.json", prior_review=prior)
             adjudications = root / "adjudications.json"
             adjudications.write_text(json.dumps({
                 "passed": {"final_verdict": "fail", "reason": "confirmed false positive"}
-            }))
+            }), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "requires correction and re-review"):
                 merge_reviews(
                     evidence, [shard], root / "full.json", prior_review=prior,
@@ -122,9 +122,9 @@ class MergeInternalReviewShardsTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             evidence, prior, shard = self.fixture(root)
-            document = json.loads(shard.read_text())
+            document = json.loads(shard.read_text(encoding="utf-8"))
             document["attempts"][0]["agent_evidence"] = "  "
-            shard.write_text(json.dumps(document))
+            shard.write_text(json.dumps(document), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "Review evidence is empty"):
                 merge_reviews(evidence, [shard], root / "full.json", prior_review=prior)
 
@@ -135,11 +135,11 @@ class ReviewInstallationSafetyTests(unittest.TestCase):
             root = Path(directory)
             evidence, prior, shard = self.fixture(root)
             original = prior.read_bytes()
-            document = json.loads(shard.read_text())
+            document = json.loads(shard.read_text(encoding="utf-8"))
             document['attempts'][0]['agent_verdict'] = 'fail'
-            shard.write_text(json.dumps(document))
+            shard.write_text(json.dumps(document), encoding="utf-8")
             decisions = root / 'decisions.json'
-            decisions.write_text(json.dumps({'passed': {'final_verdict': 'fail', 'reason': 'error'}}))
+            decisions.write_text(json.dumps({'passed': {'final_verdict': 'fail', 'reason': 'error'}}), encoding="utf-8")
             output = root / 'full.json'
             with self.assertRaises(ValueError):
                 merge_reviews(evidence, [shard], output, prior_review=prior,
@@ -172,9 +172,9 @@ class ReviewInstallationSafetyTests(unittest.TestCase):
             root = Path(directory)
             evidence, prior, shard = self.fixture(root)
             original = prior.read_bytes()
-            document = json.loads(shard.read_text())
+            document = json.loads(shard.read_text(encoding="utf-8"))
             document['review_protocol'].pop('machine_judgments_withheld')
-            shard.write_text(json.dumps(document))
+            shard.write_text(json.dumps(document), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, 'not scorer-independent'):
                 merge_reviews(evidence, [shard], root / 'full.json', prior_review=prior, install=True)
             self.assertEqual(prior.read_bytes(), original)
@@ -188,7 +188,7 @@ class ReviewInstallationSafetyTests(unittest.TestCase):
             write = result_review.write_review_document
 
             def change_input(target, review, *, before_replace=None):
-                shard.write_text('{}')
+                shard.write_text('{}', encoding="utf-8")
                 return write(target, review, before_replace=before_replace)
 
             with patch.object(result_review, 'write_review_document', side_effect=change_input):
@@ -221,7 +221,7 @@ class ReviewInstallationSafetyTests(unittest.TestCase):
             root = Path(directory)
             evidence, prior, shard = self.fixture(root)
             merged = merge_reviews(evidence, [shard], prior, prior_review=prior, install=True)
-            self.assertEqual(json.loads(prior.read_text()), merged)
+            self.assertEqual(json.loads(prior.read_text(encoding="utf-8")), merged)
 
 
 if __name__ == '__main__':

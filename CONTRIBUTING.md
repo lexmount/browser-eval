@@ -81,7 +81,7 @@ make setup-test
 make ci
 ```
 
-Development checks use the Python version in `.python-version` (3.11) and Node.js 22. The base example does not need Node.js. `make ci` also needs [ShellCheck](https://github.com/koalaman/shellcheck#installing) and downloads Chromium through Playwright. `make help` lists the targets; `make clean` removes build outputs and caches; `make format FILES="path.py ..."` formats selected files only, because Ruff formatting is not applied repository-wide.
+Development checks use the Python version in `.python-version` (3.11) and Node.js 22. The base example does not need Node.js. `make ci` also needs [ShellCheck](https://github.com/koalaman/shellcheck#installing) and downloads Chromium through Playwright. `make help` lists the targets; `make clean` removes build outputs and caches; `make format FILES="path.py ..."` formats selected files only, because Ruff formatting is not applied repository-wide. Text file reads and writes name `encoding="utf-8"`; `tests/test_explicit_utf8_io.py` enforces this and lists the hash-bound sources that must wait for their next authorized revision.
 
 Use focused checks while editing:
 

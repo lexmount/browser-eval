@@ -77,7 +77,7 @@ def validate_ledger(ledger, records=None, *, source=None):
         if source is None:
             raise ValueError('Result ledger needs its bound predecessor evidence')
         from harness.web_fetch.local_revision import require_local_task_replacement
-        prior = json.loads(read_evidence_binding(source, ledger['predecessor']).read_text())
+        prior = json.loads(read_evidence_binding(source, ledger['predecessor']).read_text(encoding='utf-8'))
         validate_ledger(prior, source=source)
         count = len(prior['states'])
         if ledger['states'][:count] != prior['states'] or len(ledger['states']) <= count:
@@ -86,13 +86,13 @@ def validate_ledger(ledger, records=None, *, source=None):
             event = state.get('replacement')
             if not event:
                 continue
-            receipt = json.loads(read_evidence_binding(source, event['receipt']).read_text())
+            receipt = json.loads(read_evidence_binding(source, event['receipt']).read_text(encoding='utf-8'))
             if receipt['baseline_results']['sha256'] != previous['source_results_sha256']:
                 raise ValueError('Task replacement does not continue the predecessor results')
-            dataset = json.loads(read_evidence_binding(source, event['output_dataset']).read_text())
+            dataset = json.loads(read_evidence_binding(source, event['output_dataset']).read_text(encoding='utf-8'))
             output = load_jsonl(read_evidence_binding(source, event['output_results']))
             require_local_task_replacement(source, event['receipt'], dataset, output)
-            proof = json.loads(read_evidence_binding(source, event['output_verdicts']).read_text())
+            proof = json.loads(read_evidence_binding(source, event['output_verdicts']).read_text(encoding='utf-8'))
             if (proof['input_results_sha256'] != state['source_results_sha256']
                     or event['output_results']['sha256'] != state['source_results_sha256']
                     or set(proof['verdicts']) != set(state['verdicts'])

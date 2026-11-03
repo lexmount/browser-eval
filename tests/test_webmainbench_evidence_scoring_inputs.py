@@ -17,19 +17,19 @@ def command(tmp_path, monkeypatch):
     dataset = tmp_path / 'selected.jsonl'
     records = [{'track_id': 'same-case' if i == 0 else f'case-{i}',
                 'groundtruth_content': 'new reference'} for i in range(545)]
-    dataset.write_text(''.join(json.dumps(row) + '\n' for row in records))
+    dataset.write_text(''.join(json.dumps(row) + '\n' for row in records), encoding='utf-8')
     old_dataset = tmp_path / 'historical.jsonl'
     old_dataset.write_text(''.join(json.dumps({**row, 'groundtruth_content': 'historical reference'})
-                                   + '\n' for row in records))
+                                   + '\n' for row in records), encoding='utf-8')
     old_sha = hashlib.sha256(old_dataset.read_bytes()).hexdigest()
     selected_sha = hashlib.sha256(dataset.read_bytes()).hexdigest()
     scorer = tmp_path / 'scorer'
     scorer.mkdir()
     current_commit = 'b' * 40
     artifact = evidence / 'answer.txt'
-    artifact.write_text('saved answer')
+    artifact.write_text('saved answer', encoding='utf-8')
     (evidence / 'results.jsonl').write_text(json.dumps({'track_id': 'same-case', 'provider': 'fixture',
-        'ok': True, 'artifact_path': artifact.name, 'output_sha256': file_sha256(artifact), 'meta': {}}) + '\n')
+        'ok': True, 'artifact_path': artifact.name, 'output_sha256': file_sha256(artifact), 'meta': {}}) + '\n', encoding='utf-8')
     def select(path, expected, commit):
         return path or dataset, expected or selected_sha, commit or current_commit
     monkeypatch.setattr(scoring, 'selected_input', select)
@@ -53,7 +53,7 @@ def command(tmp_path, monkeypatch):
     def run(recorded_sha=selected_sha, recorded_commit=current_commit, extra=(), manifest=True):
         if manifest:
             (evidence / 'dataset.json').write_text(json.dumps({'source_sha256': recorded_sha,
-                'official_scorer_commit': recorded_commit, 'case_ids': ['same-case']}))
+                'official_scorer_commit': recorded_commit, 'case_ids': ['same-case']}), encoding='utf-8')
         monkeypatch.setattr(sys, 'argv', ['score', '--evidence', str(evidence), *extra])
         return scoring.main()
     return SimpleNamespace(run=run, evidence=evidence, dataset=dataset, sha=selected_sha,

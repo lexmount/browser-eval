@@ -76,7 +76,7 @@ def test_offline_cache_miss_has_no_network_fallback(download, monkeypatch):
 
 def test_extra_cached_definition_cannot_enter_the_next_run(download):
     root = data.snapshot("webfetch")
-    (root / "definitions/unbound.json").write_text('{}')
+    (root / "definitions/unbound.json").write_text('{}', encoding='utf-8')
     data._resolve.cache_clear()
     with pytest.raises(ValueError, match="inventory differs"):
         data.snapshot("webfetch")
@@ -146,7 +146,7 @@ def test_lock_cache_is_defensive_and_invalidates_after_atomic_update(tmp_path, m
     module = tmp_path / 'data.py'
     lock = tmp_path / 'data-lock.json'
     current = {'repository': 'Lexmount/test', 'revision': 'a' * 40, 'files': {'x': {'sha256': 'original'}}}
-    lock.write_text(json.dumps({'datasets': {'webfetch': current}}))
+    lock.write_text(json.dumps({'datasets': {'webfetch': current}}), encoding='utf-8')
     monkeypatch.setattr(data, '__file__', str(module))
     original_read = type(lock).read_bytes
     reads = []
@@ -161,7 +161,7 @@ def test_lock_cache_is_defensive_and_invalidates_after_atomic_update(tmp_path, m
     assert len(reads) == 1
     current['revision'] = 'b' * 40
     replacement = tmp_path / 'replacement.json'
-    replacement.write_text(json.dumps({'datasets': {'webfetch': current}}))
+    replacement.write_text(json.dumps({'datasets': {'webfetch': current}}), encoding='utf-8')
     replacement.replace(lock)
     assert data.binding('webfetch')['revision'] == 'b' * 40
     assert len(reads) == 2
@@ -207,7 +207,7 @@ def test_default_download_command_prepares_all_registered_datasets(tmp_path, mon
         for name in ["existing-family", "newly-registered-family"]
     }
     module = tmp_path / "data.py"
-    (tmp_path / "data-lock.json").write_text(json.dumps({"datasets": registered}))
+    (tmp_path / "data-lock.json").write_text(json.dumps({"datasets": registered}), encoding='utf-8')
     monkeypatch.setattr(data, "__file__", str(module))
     calls = []
     monkeypatch.setattr("sys.argv", ["dataset-download"])
@@ -270,7 +270,7 @@ def test_public_snapshot_revalidates_warm_files_and_inventory(download, mutation
     elif mutation == 'delete':
         target.unlink()
     else:
-        (root / 'definitions/unlocked.json').write_text('{}')
+        (root / 'definitions/unlocked.json').write_text('{}', encoding='utf-8')
     # Do not clear resolution caches: public snapshots are verified every time.
     with pytest.raises(ValueError, match='hash or size|inventory differs'):
         data.snapshot('webfetch')
@@ -307,13 +307,13 @@ def test_warm_directory_lookup_rejects_changed_subtree(download, monkeypatch, tm
     elif mutation == 'delete':
         target.unlink()
     elif mutation == 'add-file':
-        (root / 'extra.json').write_text('{}')
+        (root / 'extra.json').write_text('{}', encoding='utf-8')
     elif mutation == 'add-symlink':
         (root / 'alias.json').symlink_to(target)
     else:
         outside = tmp_path / 'outside'
         outside.mkdir()
-        (outside / 'private.txt').write_text('outside must not be read')
+        (outside / 'private.txt').write_text('outside must not be read', encoding='utf-8')
         (root / 'alias-directory').symlink_to(outside, target_is_directory=True)
     with pytest.raises(ValueError, match='hash or size|inventory differs|symlinks'):
         data.definition_path('webfetch', directory)
@@ -391,7 +391,7 @@ def test_track_symlink_cannot_redirect_cached_inputs(download, tmp_path, warm, m
     if not warm:
         data._resolve.cache_clear()
     authored = tmp_path / 'authored.json'
-    authored.write_text('{"local":true}')
+    authored.write_text('{"local":true}', encoding='utf-8')
     assert read(authored) == {'local': True}
     with pytest.raises(ValueError, match='symlinks'):
         if operation == 'snapshot':

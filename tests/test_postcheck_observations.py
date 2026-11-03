@@ -15,12 +15,12 @@ def inputs(tmp_path):
     run = tmp_path / "run"
     run.mkdir()
     (run / "manifest.json").write_text(
-        json.dumps({"reference_checks": {"cases": {"page": binding}}}))
+        json.dumps({"reference_checks": {"cases": {"page": binding}}}), encoding="utf-8")
     captures = tmp_path / "captures"
     folder = captures / "page"
     folder.mkdir(parents=True)
     text = "Independent complete source"
-    (folder / "reference.txt").write_text(text)
+    (folder / "reference.txt").write_text(text, encoding="utf-8")
     row = {
         "case_id": "page", "url": scope["url"], "scope_identity": scope,
         "independent": True, "source": "independent HTTP GET (no provider output)",
@@ -33,7 +33,7 @@ def inputs(tmp_path):
 
 
 def save_capture(captures, row):
-    (captures / "page" / "evidence.json").write_text(json.dumps(row))
+    (captures / "page" / "evidence.json").write_text(json.dumps(row), encoding="utf-8")
 
 
 def test_http_capture_retains_measured_completion_and_content_hash(inputs):
@@ -69,7 +69,7 @@ def test_browser_observation_is_validated_without_repair(inputs, field, value):
     row["content_text"] = "Independent complete source"
     row[field] = value
     path = run / "browser.json"
-    path.write_text(json.dumps({"page": row}))
+    path.write_text(json.dumps({"page": row}), encoding="utf-8")
     with pytest.raises(ValueError):
         build_observations(run, captures, path)
 
@@ -78,7 +78,7 @@ def test_duplicate_browser_observations_are_rejected(inputs):
     run, captures, row, _ = inputs
     row["content_text"] = "Independent complete source"
     path = run / "browser.json"
-    path.write_text(json.dumps([row, deepcopy(row)]))
+    path.write_text(json.dumps([row, deepcopy(row)]), encoding="utf-8")
     with pytest.raises(ValueError):
         build_observations(run, captures, path)
 
@@ -87,7 +87,7 @@ def test_valid_browser_observation_is_preserved(inputs):
     run, captures, row, _ = inputs
     row["content_text"] = "Independent complete source"
     path = run / "browser.json"
-    path.write_text(json.dumps([row]))
+    path.write_text(json.dumps([row]), encoding="utf-8")
     assert build_observations(run, captures, path) == [row]
 
 
@@ -95,7 +95,7 @@ def test_browser_required_scope_rejects_http_substitution(inputs):
     run, captures, row, binding = inputs
     binding["source_verification"]["observation_route"] = "browser"
     (run / "manifest.json").write_text(
-        json.dumps({"reference_checks": {"cases": {"page": binding}}}))
+        json.dumps({"reference_checks": {"cases": {"page": binding}}}), encoding="utf-8")
     save_capture(captures, row)
     with pytest.raises(ValueError):
         build_observations(run, captures)

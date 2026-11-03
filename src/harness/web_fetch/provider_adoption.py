@@ -127,8 +127,8 @@ def candidate_union(current, earlier):
 
 def refresh(previous_snapshot=None, discovered=None):
     dest = repository_root() / 'research/provider-adoption.json'
-    data = discovered if discovered is not None else json.loads(dest.read_text())
-    prior = json.loads((repository_root() / 'research/webfetch-adopters.json').read_text())
+    data = discovered if discovered is not None else json.loads(dest.read_text(encoding='utf-8'))
+    prior = json.loads((repository_root() / 'research/webfetch-adopters.json').read_text(encoding='utf-8'))
     candidates = candidate_union(data, prior)
     if previous_snapshot:
         for key, sigs in candidate_union(data, previous_snapshot).items():
@@ -242,7 +242,7 @@ def refresh(previous_snapshot=None, discovered=None):
         | {repo.lower() for repo in names}
     )
     temporary = dest.with_suffix('.json.tmp')
-    temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
+    temporary.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     temporary.replace(dest)
     print('Verified', len(included), 'repositories; official implementation control passed', flush=True)
 
@@ -254,7 +254,7 @@ def search():
     dest = repository_root() / 'research/provider-adoption.json'
     checkpoint = research_evidence_dir() / 'adoption-searches.json'
     checkpoint.parent.mkdir(parents=True, exist_ok=True)
-    previous = json.loads(dest.read_text()) if dest.exists() else None
+    previous = json.loads(dest.read_text(encoding='utf-8')) if dest.exists() else None
     searches = []
     hits = defaultdict(list)
     for provider, queries in QUERIES.items():
@@ -276,7 +276,7 @@ def search():
             })
             for item in items:
                 hits[item['repo']].append({**item, 'signature': signature, 'provider': provider})
-            checkpoint.write_text(json.dumps(searches, ensure_ascii=False, indent=2) + '\n')
+            checkpoint.write_text(json.dumps(searches, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
             print(provider, signature, result['total_count'], len(items), flush=True)
             time.sleep(7)
     names = sorted(hits)

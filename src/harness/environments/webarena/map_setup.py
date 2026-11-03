@@ -261,7 +261,7 @@ def setup(
         archive = state / name
         receipt = state / (name + ".json")
         if receipt.exists():
-            previous = json.loads(receipt.read_text())
+            previous = json.loads(receipt.read_text(encoding="utf-8"))
             if previous.get("sha256") != digest or previous.get("bytes") != size:
                 raise ValueError(f"Dataset revision requires a new volume: {name}")
             if previous.get("query_only", False) != query_only:
@@ -317,7 +317,10 @@ def setup(
         os.sync()
         temporary = receipt.with_suffix(".tmp")
         temporary.write_text(
-            json.dumps({"sha256": digest, "bytes": size, "files": counts, "query_only": query_only})
+            json.dumps(
+                {"sha256": digest, "bytes": size, "files": counts, "query_only": query_only}
+            ),
+            encoding="utf-8",
         )
         temporary.replace(receipt)
         os.sync()
@@ -353,7 +356,7 @@ def version_browser_assets(
     manifest: Path = Path("/app/tmp/manifest.json"),
 ) -> None:
     """Give patched precompiled assets new URLs so browsers cannot reuse stale JS."""
-    data = json.loads(manifest.read_text())
+    data = json.loads(manifest.read_text(encoding="utf-8"))
     changed = False
     for logical, filename in data["assets"].items():
         if not logical.endswith(".js"):
@@ -383,7 +386,7 @@ def version_browser_assets(
         changed = True
     if changed:
         temporary = manifest.with_suffix(".tmp")
-        temporary.write_text(json.dumps(data))
+        temporary.write_text(json.dumps(data), encoding="utf-8")
         temporary.replace(manifest)
 
 
@@ -409,7 +412,7 @@ def configure_tiles(
     config, count = re.subn(
         r"(?m)^([ \t]*)ModTileMissingRequestTimeout[ \t]+\d+[ \t]*$",
         r"\g<1>ModTileMissingRequestTimeout 120",
-        apache.read_text(),
+        apache.read_text(encoding="utf-8"),
     )
     if count != 1:
         raise ValueError("Unexpected Apache tile timeout configuration")
@@ -428,13 +431,15 @@ def configure_tiles(
             '"http://127.0.0.1:8091/$1/$2"\n'
         )
         config = config.replace(catch_all, detail + catch_all)
-    apache.write_text(config)
+    apache.write_text(config, encoding="utf-8")
     config, count = re.subn(
-        r"(?m)^num_threads[ \t]*=[ \t]*\d+[ \t]*$", "num_threads=2", renderd.read_text()
+        r"(?m)^num_threads[ \t]*=[ \t]*\d+[ \t]*$",
+        "num_threads=2",
+        renderd.read_text(encoding="utf-8"),
     )
     if count != 1:
         raise ValueError("Unexpected render worker configuration")
-    renderd.write_text(config)
+    renderd.write_text(config, encoding="utf-8")
 
 
 def serve(root: Path, reserve: int, command: list[str], detail: list[str] | None = None) -> int:
@@ -583,7 +588,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     setup(
         args.root,
-        json.loads(args.contract.read_text())["components"]["map"],
+        json.loads(args.contract.read_text(encoding="utf-8"))["components"]["map"],
         args.reserve_gib * GIB,
         args.source_base,
         args.compression,

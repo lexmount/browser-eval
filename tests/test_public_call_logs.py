@@ -31,7 +31,7 @@ def run(root: Path, provider: Provider, *, retry: int = 0, timeout: float = 2):
 
 
 def load_log(root: Path, binding: dict):
-    return json.loads((root / binding["path"]).read_text())
+    return json.loads((root / binding["path"]).read_text(encoding="utf-8"))
 
 
 class ResultProvider(Provider):
@@ -108,7 +108,7 @@ class PublicCallLogTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             record = run(root, ResultProvider(result))
-            serialized = (root / record["provider_metadata"]["call_log"]["path"]).read_text()
+            serialized = (root / record["provider_metadata"]["call_log"]["path"]).read_text(encoding="utf-8")
             for secret in ("refresh-secret", "aws-secret", "header-secret", "json-secret",
                            "query-secret"):
                 self.assertNotIn(secret, serialized)
@@ -172,7 +172,7 @@ class PublicCallLogTests(unittest.TestCase):
             self.assertEqual(log["output"]["sha256"], record["metrics"]["content_sha256"])
             self.assertFalse(log["output"]["empty"])
             self.assertEqual(log["capture"]["raw_response"], "retained_private_hash_bound")
-            serialized = (root / binding["path"]).read_text()
+            serialized = (root / binding["path"]).read_text(encoding="utf-8")
             self.assertNotIn("never-publish", serialized)
             self.assertNotIn("/Users/", serialized)
             verify_record_public_call_logs(root, record)
@@ -245,14 +245,14 @@ class PublicCallLogTests(unittest.TestCase):
             root = Path(directory)
             record = run(root, ResultProvider(ProviderResult(True, "Expected")))
             binding = record["provider_metadata"]["call_log"]
-            (root / binding["path"]).write_text("{}")
+            (root / binding["path"]).write_text("{}", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "changed"):
                 verify_record_public_call_logs(root, record)
 
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             record = run(root, ResultProvider(ProviderResult(True, "Expected")))
-            (root / record["artifact_path"]).write_text("changed")
+            (root / record["artifact_path"]).write_text("changed", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "output binding changed"):
                 verify_record_public_call_logs(root, record)
 

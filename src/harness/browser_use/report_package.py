@@ -48,7 +48,7 @@ def package(
     profile = profile_path or authority / "evaluation/browser-use/current-report.json"
     names = ("manifest.json", "run-config.json", "attempts.jsonl", "result-review.json")
     inputs = [profile]
-    profile_data = json.loads(profile.read_text())
+    profile_data = json.loads(profile.read_text(encoding="utf-8"))
     history_path, _ = bound_json_asset(profile_data.get("report_history"), root=profile.parent)
     if history_path is not None:
         inputs.append(history_path)

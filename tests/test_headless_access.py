@@ -17,7 +17,7 @@ class HeadlessAccessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'adoption').mkdir()
-            (root/'body.txt').write_text('Public body')
+            (root/'body.txt').write_text('Public body', encoding='utf-8')
             row={'provider':'kitesurf','case_id':'static-simple','attempt_id':'kitesurf-example',
                  'artifact_path':'body.txt','provider_metadata':{'api_token':'credential-canary',
                  'headers':{'Authorization':'Bearer credential-canary'},'engine':'kitesurf'}}
@@ -25,14 +25,14 @@ class HeadlessAccessTests(unittest.TestCase):
             self.assertEqual(body.count('<h3>账号与获取入口</h3>'), len(SPECS))
             for name, access in accesses.items():
                 if name in SPECS:
-                    saved = json.loads((root / f'adoption/interfaces/{name}.json').read_text())
+                    saved = json.loads((root / f'adoption/interfaces/{name}.json').read_text(encoding='utf-8'))
                     self.assertEqual(saved['access']['account'], access['account'])
                 self.assertTrue(access['configuration'])
                 self.assertTrue(access['links'])
                 self.assertTrue(all(url.startswith('https://') for _, url in access['links']))
             self.assertIn('&lt;API_TOKEN&gt;', body)
             self.assertNotIn('credential-canary', body)
-            self.assertNotIn('credential-canary',(root/'adoption/interfaces/kitesurf.json').read_text())
+            self.assertNotIn('credential-canary',(root/'adoption/interfaces/kitesurf.json').read_text(encoding='utf-8'))
 
 
     def test_exported_chromium_interface_uses_observed_completion(self):
@@ -40,13 +40,13 @@ class HeadlessAccessTests(unittest.TestCase):
             with self.subTest(wait=wait), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 (root / 'adoption').mkdir()
-                (root / 'body.txt').write_text('Body')
+                (root / 'body.txt').write_text('Body', encoding='utf-8')
                 record = {'provider': 'chromium', 'case_id': 'static-simple',
                           'attempt_id': 'chromium__static-simple__r001',
                           'artifact_path': 'body.txt',
                           'provider_metadata': {'navigation_wait_until': wait}}
                 render_interfaces(root, [record])
-                interface = json.loads((root / 'adoption/interfaces/chromium.json').read_text())['interface']
+                interface = json.loads((root / 'adoption/interfaces/chromium.json').read_text(encoding='utf-8'))['interface']
                 self.assertEqual(interface['request']['wait_until'], wait)
                 self.assertEqual(next(row[2] for row in interface['params'] if row[0] == 'wait_until'), wait)
         self.assertEqual(SPECS['chromium']['request']['wait_until'], 'load')

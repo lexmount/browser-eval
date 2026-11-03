@@ -113,7 +113,7 @@ class DynamicEntryMatchingTests(unittest.TestCase):
     def test_all_frozen_captures_and_missing_records(self):
         captures = []
         for filename in ('dynamic-browser-captures.json', 'dynamic-expansion-captures.json'):
-            captures += json.loads((ROOT/'research'/filename).read_text())
+            captures += json.loads((ROOT/'research'/filename).read_text(encoding='utf-8'))
         for capture in captures:
             facts = _entry_facts(capture['id'], capture['entries'])
             with self.subTest(case=capture['id']):
@@ -123,7 +123,7 @@ class DynamicEntryMatchingTests(unittest.TestCase):
                 self.assertFalse(any(v for k, v in hits.items() if k.startswith('entry-1-')))
 
     def test_every_new_capture_field_corruption_is_rejected(self):
-        captures = json.loads((ROOT/'research/dynamic-expansion-captures.json').read_text())
+        captures = json.loads((ROOT/'research/dynamic-expansion-captures.json').read_text(encoding='utf-8'))
         for capture in captures:
             facts = _entry_facts(capture['id'], capture['entries'])
             for fact in facts:
@@ -141,15 +141,15 @@ class DynamicEntryMatchingTests(unittest.TestCase):
         """
         evidence=current_evidence_dir()
         if not (evidence/'results.jsonl').is_file():self.skipTest('requires persisted benchmark evidence')
-        cases = {c['id']: c for c in json.loads((evidence/'dataset.json').read_text())['cases']
+        cases = {c['id']: c for c in json.loads((evidence/'dataset.json').read_text(encoding='utf-8'))['cases']
                  if c.get('track') == 'dynamic'}
         checked = 0
-        for line in (evidence/'results.jsonl').read_text().splitlines():
+        for line in (evidence/'results.jsonl').read_text(encoding='utf-8').splitlines():
             record = json.loads(line)
             if record['case_id'] not in cases or not record['ok']:
                 continue
             facts = cases[record['case_id']]['required_facts']
-            raw = (evidence/record['artifact_path']).read_text()
+            raw = (evidence/record['artifact_path']).read_text(encoding='utf-8')
             folded = normalize_for_match(raw)
             if not all(any(fact_in_text(folded, normalize_for_match(a)) for a in f['alternatives']) for f in facts):
                 continue

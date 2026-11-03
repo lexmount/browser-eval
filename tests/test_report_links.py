@@ -37,14 +37,14 @@ class ReportLinkCheckTest(unittest.TestCase):
             root = Path(directory)
             source = root / "local-evidence" / "capture" / "source.html"
             source.parent.mkdir(parents=True)
-            source.write_text('<a href="original-site-only.html">Source navigation</a>')
+            source.write_text('<a href="original-site-only.html">Source navigation</a>', encoding='utf-8')
             home = root / "index.html"
-            home.write_text('<a href="local-evidence/capture/source.html">Frozen source</a>')
+            home.write_text('<a href="local-evidence/capture/source.html">Frozen source</a>', encoding='utf-8')
             self.assertEqual(self.run_check(root).returncode, 0)
-            home.write_text('<a href="local-evidence/capture/missing.html">Missing evidence</a>')
+            home.write_text('<a href="local-evidence/capture/missing.html">Missing evidence</a>', encoding='utf-8')
             self.assertEqual(self.run_check(root).returncode, 1)
-            home.write_text('<a href="local-evidence/capture/source.html">Frozen source</a>')
-            source.write_text('<meta content="1" name="browser-eval-report"><a href="missing.html">Report navigation</a>')
+            home.write_text('<a href="local-evidence/capture/source.html">Frozen source</a>', encoding='utf-8')
+            source.write_text('<meta content="1" name="browser-eval-report"><a href="missing.html">Report navigation</a>', encoding='utf-8')
             self.assertEqual(self.run_check(root).returncode, 1)
 
     def test_rejects_missing_fragment(self) -> None:
@@ -61,12 +61,12 @@ class ReportLinkCheckTest(unittest.TestCase):
         for attribute in ('data-filter','data-wmb-filter'):
             with self.subTest(attribute=attribute), tempfile.TemporaryDirectory() as directory:
                 root=Path(directory)
-                (root/'index.html').write_text('<a href="analysis.html#inspect?query=case-a">结果</a>')
-                (root/'analysis.html').write_text('<input '+attribute+'="query"><select '+attribute+'="result"><option value="">全部</option><option value="fail">失败</option></select>')
+                (root/'index.html').write_text('<a href="analysis.html#inspect?query=case-a">结果</a>', encoding='utf-8')
+                (root/'analysis.html').write_text('<input '+attribute+'="query"><select '+attribute+'="result"><option value="">全部</option><option value="fail">失败</option></select>', encoding='utf-8')
                 self.assertEqual(self.run_check(root).returncode,0)
-                (root/'index.html').write_text('<a href="analysis.html#inspect?unknown=case-a">结果</a>')
+                (root/'index.html').write_text('<a href="analysis.html#inspect?unknown=case-a">结果</a>', encoding='utf-8')
                 self.assertEqual(self.run_check(root).returncode,1)
-                (root/'index.html').write_text('<a href="analysis.html#inspect?result=invalid">结果</a>')
+                (root/'index.html').write_text('<a href="analysis.html#inspect?result=invalid">结果</a>', encoding='utf-8')
                 self.assertEqual(self.run_check(root).returncode,1)
 
     def test_honors_document_base(self) -> None:

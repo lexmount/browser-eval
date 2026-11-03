@@ -61,7 +61,8 @@ def test_llm_credentials_come_only_from_repository_env(module, monkeypatch, tmp_
     assert summary["failure_diagnostics"]["llm"]["error_type"] == "RuntimeError"
 
     (tmp_path / ".env").write_text(
-        "OPENAI_API_KEY=repository-key\nOPENAI_BASE_URL=https://models.invalid\n"
+        "OPENAI_API_KEY=repository-key\nOPENAI_BASE_URL=https://models.invalid\n",
+        encoding="utf-8"
     )
     module.diagnose_summary({}, use_llm=True)
     assert calls[0]["api_key"] == "repository-key"
@@ -70,7 +71,8 @@ def test_llm_credentials_come_only_from_repository_env(module, monkeypatch, tmp_
     assert os.environ["BROWSERBASE_API_KEY"] == "unrelated-shell-key"
 
     (tmp_path / ".env").write_text(
-        "OPENAI_API_KEY=repository-key\nOPENAI_BASE_URL=${OPENAI_BASE_URL}\n"
+        "OPENAI_API_KEY=repository-key\nOPENAI_BASE_URL=${OPENAI_BASE_URL}\n",
+        encoding="utf-8"
     )
     module.diagnose_summary({}, use_llm=True)
     assert calls[1]["api_base"] == "${OPENAI_BASE_URL}"

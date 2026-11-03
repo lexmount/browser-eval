@@ -193,22 +193,22 @@ class HeadlessReportTests(unittest.TestCase):
             records=[{'attempt_id':f'{provider}__a__r001','provider':provider,
                       'case_id':'a','ok':True,'metrics':{'content_pass':True}}
                      for provider in providers]
-            (source/'dataset.json').write_text(json.dumps(dataset))
-            (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records))
+            (source/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+            (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records), encoding='utf-8')
             review={'schema_version':1,'bindings':{
                 'dataset_sha256':hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
                 'results_sha256':hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()},
                 'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
                 'attempts':[{'attempt_id':row['attempt_id'],'machine_verdict':'pass',
                              'agent_verdict':'pass','final_verdict':'pass'} for row in records]}
-            (source/'result-review.json').write_text(json.dumps(review))
+            (source/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             projected=deepcopy(dataset);projected['coverage_plan']['web']=['keep']
             projected['comparison']['excluded_providers']=['lexmount-cn','lexmount-global']
-            (output/'dataset.json').write_text(json.dumps(projected))
-            (output/'results.jsonl').write_text(json.dumps(records[0])+'\n')
+            (output/'dataset.json').write_text(json.dumps(projected), encoding='utf-8')
+            (output/'results.jsonl').write_text(json.dumps(records[0])+'\n', encoding='utf-8')
             self.assertTrue(copy_projected_review(
                 source,output,['lexmount-global','lexmount-cn']))
-            rebound=json.loads((output/'result-review.json').read_text())
+            rebound=json.loads((output/'result-review.json').read_text(encoding='utf-8'))
             self.assertEqual([row['attempt_id'] for row in rebound['attempts']],['keep__a__r001'])
             self.assertEqual(rebound['reviewed_attempts'],1)
             self.assertEqual(rebound['total_attempts'],1)
@@ -237,23 +237,23 @@ class HeadlessReportTests(unittest.TestCase):
             aggregate={'started_at':'2026-09-01T00:00:00+00:00',
                 'completed_at':'2026-09-01T00:00:10+00:00','providers':providers,
                 'case_ids':['a','b'],'batch_count':3}
-            (source/'dataset.json').write_text(json.dumps(dataset))
-            (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records))
+            (source/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+            (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records), encoding='utf-8')
             (source/'execution.json').write_text(json.dumps({'schema_version':1,
-                                                              'aggregate':aggregate,'batches':batches}))
+                                                              'aggregate':aggregate,'batches':batches}), encoding='utf-8')
             summary=build_speed_summary(dataset,records,batches,aggregate)
             summary['bindings']={'dataset_sha256':hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
                                  'results_sha256':hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()}
-            (source/'speed-comparison.json').write_text(json.dumps(summary))
+            (source/'speed-comparison.json').write_text(json.dumps(summary), encoding='utf-8')
             with patch('harness.web_fetch.assembly.require_verified_reference_checks'):
                 _copy_speed_bundle(source,target,dataset,records,batches,
                                    excluded_providers=['lexmount-global','lexmount-cn'])
-            projected=json.loads((target/'speed-comparison.json').read_text())
+            projected=json.loads((target/'speed-comparison.json').read_text(encoding='utf-8'))
             self.assertEqual(projected['providers'],['keep'])
             self.assertEqual([row['provider'] for row in projected['rows']],['keep'])
-            self.assertEqual(json.loads((target/'dataset.json').read_text())['coverage_plan'],
+            self.assertEqual(json.loads((target/'dataset.json').read_text(encoding='utf-8'))['coverage_plan'],
                              {'web':['keep']})
-            self.assertEqual(len((target/'results.jsonl').read_text().splitlines()),2)
+            self.assertEqual(len((target/'results.jsonl').read_text(encoding='utf-8').splitlines()),2)
 
     def test_article_speed_uses_all_common_tasks_of_displayed_providers(self):
         cases = {cid: {'id': cid, 'track': 'web'} for cid in ('a', 'b', 'c')}
@@ -314,28 +314,28 @@ class HeadlessReportTests(unittest.TestCase):
                      'cases':[{'id':'body','task_kind':'body'}]}
             record={'attempt_id':'p__body__r001','provider':'p','case_id':'body','ok':True,
                     'metrics':{'content_pass':True}}
-            (root/'dataset.json').write_text(json.dumps(dataset))
-            (root/'results.jsonl').write_text(json.dumps(record)+'\n')
+            (root/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+            (root/'results.jsonl').write_text(json.dumps(record)+'\n', encoding='utf-8')
             review={'schema_version':1,'bindings':{
                 'dataset_sha256':hashlib.sha256((root/'dataset.json').read_bytes()).hexdigest(),
                 'results_sha256':hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()},
                 'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
                 'attempts':[{'attempt_id':record['attempt_id'],'machine_verdict':'pass',
                              'agent_verdict':'pass','final_verdict':'pass'}]}
-            (root/'result-review.json').write_text(json.dumps(review))
+            (root/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             history=[{'kind':'audited_scoring_rule_revision','provider_calls':0,
                       'input_dataset_sha256':'a'*64,'input_results_sha256':'b'*64,
                       'output_dataset_sha256':'c'*64,'output_results_sha256':'d'*64,
                       'changed_cases':[],'task_decision_changes':[]}]
-            (root/'scoring-revisions.json').write_text(json.dumps(history))
+            (root/'scoring-revisions.json').write_text(json.dumps(history), encoding='utf-8')
             self.assertTrue(bind_assembled_scoring_revision(root))
             self.assertTrue(valid_scoring_revision(root))
-            bound=json.loads((root/'scoring-revisions.json').read_text())[-1]
+            bound=json.loads((root/'scoring-revisions.json').read_text(encoding='utf-8'))[-1]
             self.assertEqual(bound['input_results_sha256'],'d'*64)
             self.assertFalse(bind_assembled_scoring_revision(root))
-            history=json.loads((root/'scoring-revisions.json').read_text())
+            history=json.loads((root/'scoring-revisions.json').read_text(encoding='utf-8'))
             history[0]['changed_cases']=[{'case_id':'tampered','fields':[]}]
-            (root/'scoring-revisions.json').write_text(json.dumps(history))
+            (root/'scoring-revisions.json').write_text(json.dumps(history), encoding='utf-8')
             self.assertFalse(valid_scoring_revision(root))
 
     def test_late_full_review_can_bind_one_missing_assembly_edge(self):
@@ -345,8 +345,8 @@ class HeadlessReportTests(unittest.TestCase):
                      'cases':[{'id':'body','task_kind':'body'}]}
             record={'attempt_id':'p__body__r001','provider':'p','case_id':'body','ok':True,
                     'metrics':{'content_pass':True}}
-            (root/'dataset.json').write_text(json.dumps(dataset))
-            (root/'results.jsonl').write_text(json.dumps(record)+'\n')
+            (root/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+            (root/'results.jsonl').write_text(json.dumps(record)+'\n', encoding='utf-8')
             current_bindings={
                 'dataset_sha256':hashlib.sha256((root/'dataset.json').read_bytes()).hexdigest(),
                 'results_sha256':hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()}
@@ -354,11 +354,11 @@ class HeadlessReportTests(unittest.TestCase):
                 'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
                 'attempts':[{'attempt_id':record['attempt_id'],'machine_verdict':'pass',
                              'agent_verdict':'pass','final_verdict':'pass'}]}
-            (root/'result-review.json').write_text(json.dumps(current_review))
+            (root/'result-review.json').write_text(json.dumps(current_review), encoding='utf-8')
             gap_target={'dataset_sha256':'e'*64,'results_sha256':'f'*64}
             staged=current_review | {
                 'bindings':gap_target,'unresolved':0,'accepted_unreviewed_passes':0}
-            staged_path=root/'assembly-review.json';staged_path.write_text(json.dumps(staged))
+            staged_path=root/'assembly-review.json';staged_path.write_text(json.dumps(staged), encoding='utf-8')
             history=[
                 {'kind':'audited_scoring_rule_revision','provider_calls':0,
                  'input_dataset_sha256':'a'*64,'input_results_sha256':'b'*64,
@@ -370,10 +370,10 @@ class HeadlessReportTests(unittest.TestCase):
                  'output_results_sha256':current_bindings['results_sha256'],
                  'changed_cases':[],'task_decision_changes':[]},
             ]
-            (root/'scoring-revisions.json').write_text(json.dumps(history))
+            (root/'scoring-revisions.json').write_text(json.dumps(history), encoding='utf-8')
             self.assertTrue(bind_missing_assembled_scoring_gap(root,staged_path))
             self.assertTrue(valid_scoring_revision(root))
-            repaired=json.loads((root/'scoring-revisions.json').read_text())
+            repaired=json.loads((root/'scoring-revisions.json').read_text(encoding='utf-8'))
             self.assertEqual(repaired[1]['kind'],'audited_assembled_scoring_revision')
             self.assertEqual(repaired[1]['output_results_sha256'],'f'*64)
 
@@ -383,16 +383,16 @@ class HeadlessReportTests(unittest.TestCase):
             root=Path(temp);source=root/'source';output=root/'output'
             source.mkdir();output.mkdir()
             for target in (source,output):
-                (target/'dataset.json').write_text('{"cases": []}\n')
-                (target/'results.jsonl').write_text('')
+                (target/'dataset.json').write_text('{"cases": []}\n', encoding='utf-8')
+                (target/'results.jsonl').write_text('', encoding='utf-8')
             review={'bindings':{
                 'dataset_sha256':hashlib.sha256((source/'dataset.json').read_bytes()).hexdigest(),
                 'results_sha256':hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()}}
-            (source/'result-review.json').write_text(json.dumps(review))
+            (source/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             self.assertTrue(copy_bound_review(source,output))
-            self.assertEqual(json.loads((output/'result-review.json').read_text()),review)
+            self.assertEqual(json.loads((output/'result-review.json').read_text(encoding='utf-8')),review)
             (output/'result-review.json').unlink()
-            (output/'dataset.json').write_text('{"cases": [1]}\n')
+            (output/'dataset.json').write_text('{"cases": [1]}\n', encoding='utf-8')
             self.assertFalse(copy_bound_review(source,output))
             self.assertFalse((output/'result-review.json').exists())
 
@@ -406,7 +406,7 @@ class HeadlessReportTests(unittest.TestCase):
             receipts=[{'kind':'audited_body_scoring_revision',
                        'prior_result_review_path':relative,
                        'prior_result_review_sha256':hashlib.sha256(payload).hexdigest()}]
-            (source/'scoring-revisions.json').write_text(json.dumps(receipts))
+            (source/'scoring-revisions.json').write_text(json.dumps(receipts), encoding='utf-8')
             self.assertTrue(copy_scoring_revision_history(source,output))
             self.assertEqual((output/relative).read_bytes(),payload)
             archive.write_bytes(b'tampered')
@@ -430,7 +430,7 @@ class HeadlessReportTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp)
             batches=[{'run_id':'one'},{'run_id':'two'}]
-            (root/'execution.json').write_text(json.dumps({'batches':batches}))
+            (root/'execution.json').write_text(json.dumps({'batches':batches}), encoding='utf-8')
             with patch('harness.web_fetch.assembly.require_verified_reference_checks') as verify:
                 self.assertEqual(read_verified_batches(root,{'cases':[]},[]),batches)
                 verify.assert_called_once_with(batches,cases={'cases':[]},records=[],source=root,
@@ -473,8 +473,8 @@ class HeadlessReportTests(unittest.TestCase):
                 path=source/relative;path.parent.mkdir(parents=True,exist_ok=True)
                 path.write_bytes(payload)
             secret=source/'worker-secrets/session-token.txt'
-            secret.parent.mkdir();secret.write_text('must not copy')
-            (source/'reference-checks/private-note.txt').write_text('synthetic private note')
+            secret.parent.mkdir();secret.write_text('must not copy', encoding='utf-8')
+            (source/'reference-checks/private-note.txt').write_text('synthetic private note', encoding='utf-8')
 
             _copy_speed_bundle(source,target,dataset,[row],batches)
 
@@ -486,11 +486,11 @@ class HeadlessReportTests(unittest.TestCase):
     def test_speed_bundle_rejects_any_symlink_even_when_unreferenced(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);source=root/'source';target=root/'target';source.mkdir()
-            outside=root/'secret';outside.write_text('secret')
-            (source/'dataset.json').write_text('{"cases": []}')
-            (source/'results.jsonl').write_text('')
-            (source/'execution.json').write_text('{"batches": []}')
-            (source/'speed-comparison.json').write_text('{}')
+            outside=root/'secret';outside.write_text('secret', encoding='utf-8')
+            (source/'dataset.json').write_text('{"cases": []}', encoding='utf-8')
+            (source/'results.jsonl').write_text('', encoding='utf-8')
+            (source/'execution.json').write_text('{"batches": []}', encoding='utf-8')
+            (source/'speed-comparison.json').write_text('{}', encoding='utf-8')
             (source/'unreferenced-link').symlink_to(outside)
             with self.assertRaisesRegex(ValueError,'contains a symlink'):
                 _copy_speed_bundle(source,target,{'cases':[]},[],[])
@@ -508,10 +508,10 @@ class HeadlessReportTests(unittest.TestCase):
                 'checked_at':(now-timedelta(seconds=10)).isoformat(),
                 'reference_sha256':sha256('Reference body')}}
         dataset={'cases':[case],'coverage_plan':{'web':['p']}}
-        (root/'dataset.json').write_text(json.dumps(dataset))
+        (root/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
         checks=preflight_reference_checks([case],root/'dataset.json',now=now-timedelta(seconds=5))
         manifest={'started_at':(now-timedelta(seconds=4)).isoformat(),'reference_checks':checks}
-        (root/'manifest.json').write_text(json.dumps(manifest))
+        (root/'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
         record={'attempt_id':'p__body__r001','provider':'p','case_id':'body',
             'started_at':(now-timedelta(seconds=3)).isoformat(),
             'completed_at':(now-timedelta(seconds=2)).isoformat(),'elapsed_ms':1000,
@@ -521,7 +521,7 @@ class HeadlessReportTests(unittest.TestCase):
             'checked_at':(now-timedelta(seconds=1)).isoformat(),
             'scope_identity':checks['cases']['body']['scope_identity'],
             'completion':{'satisfied':True,'elapsed_ms':100,'timeout_ms':1000}}
-        (root/'results.jsonl').write_text(json.dumps(record)+'\n')
+        (root/'results.jsonl').write_text(json.dumps(record)+'\n', encoding='utf-8')
         return case,record,observation
 
     def test_case_projection_preserves_live_binding_and_record(self):
@@ -531,10 +531,10 @@ class HeadlessReportTests(unittest.TestCase):
             result=certify_case(root,root/'certified',case,[record],observation)
             self.assertEqual(result['status'],'verified')
             target=root/'certified/body'
-            manifest=json.loads((target/'manifest.json').read_text())
+            manifest=json.loads((target/'manifest.json').read_text(encoding='utf-8'))
             require_verified_reference_checks(manifest,cases=[case],records=[record],source=target)
             self.assertEqual((root/'manifest.json').read_bytes(),before)
-            self.assertEqual(json.loads((target/'results.jsonl').read_text()),record)
+            self.assertEqual(json.loads((target/'results.jsonl').read_text(encoding='utf-8')),record)
             with self.assertRaises(FileExistsError):
                 certify_case(root,root/'certified',case,[record],observation)
 
@@ -554,13 +554,13 @@ class HeadlessReportTests(unittest.TestCase):
         from harness.web_fetch.report_build import build_report
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);case,record,observation=self.prepare(root)
-            dataset=json.loads((root/'dataset.json').read_text())
+            dataset=json.loads((root/'dataset.json').read_text(encoding='utf-8'))
             dataset['comparison']={'kind':'headless_html'}
-            (root/'dataset.json').write_text(json.dumps(dataset))
-            artifact=root/'artifacts/output.txt';artifact.parent.mkdir();artifact.write_text('Reference body')
+            (root/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+            artifact=root/'artifacts/output.txt';artifact.parent.mkdir();artifact.write_text('Reference body', encoding='utf-8')
             record.update(artifact_path='artifacts/output.txt',provider_type='headless_html',ok=True)
             record['metrics']['content_sha256']=sha256(artifact.read_bytes())
-            (root/'results.jsonl').write_text(json.dumps(record)+'\n')
+            (root/'results.jsonl').write_text(json.dumps(record)+'\n', encoding='utf-8')
             (root/'sources').mkdir();(root/'list-references').mkdir()
             observation['completion']['satisfied']=False
             certify_case(root,root/'certified',case,[record],observation)
@@ -568,7 +568,7 @@ class HeadlessReportTests(unittest.TestCase):
                 assemble(root,root/'certified',[],root/'published')
             self.assertFalse((root/'published').exists())
             assemble(root,root/'certified',[],root/'diagnostic',retain_unverified=True)
-            preserved=json.loads((root/'diagnostic/results.jsonl').read_text())
+            preserved=json.loads((root/'diagnostic/results.jsonl').read_text(encoding='utf-8'))
             self.assertEqual(preserved,record)
             with self.assertRaises(ReferenceLifecycleError):
                 build_report(root/'diagnostic',root/'report')
@@ -586,9 +586,9 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                 attempt=name+'__'+cid
                 artifact='artifacts/'+attempt+'.txt'
                 (root/artifact).parent.mkdir(exist_ok=True)
-                (root/artifact).write_text('Expected complete body' if passed else 'Access denied')
+                (root/artifact).write_text('Expected complete body' if passed else 'Access denied', encoding='utf-8')
                 (root/'attempts').mkdir(exist_ok=True)
-                (root/'attempts'/f'{attempt}.html').write_text('<p>Canonical result and error</p>')
+                (root/'attempts'/f'{attempt}.html').write_text('<p>Canonical result and error</p>', encoding='utf-8')
                 rows.append({'provider':name,'provider_type':'headless_markdown','case_id':cid,
                              'attempt_id':attempt,'artifact_path':artifact,'ok':passed,'elapsed_ms':ms,
                              'started_at':'2026-10-09T00:00:00Z','provider_metadata':(
@@ -603,14 +603,14 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                  'scoring':'正文是验收目标，最终页面地址只用于诊断。','conclusions':'结合正文与交付结果选择方法。',
                  'providers':{name:{'explanation':'这一节解释实际返回的内容。',
                                     'specimen_case_id':'risk-case'} for name in ['moli','lightpanda']}}
-        p=root/'report-assets/content.json';p.parent.mkdir();p.write_text(json.dumps(content,ensure_ascii=False))
+        p=root/'report-assets/content.json';p.parent.mkdir();p.write_text(json.dumps(content,ensure_ascii=False), encoding='utf-8')
         binding={'path':'report-assets/content.json','sha256':hashlib.sha256(p.read_bytes()).hexdigest()}
         return cases,rows,binding
 
     def bind_failure_review(self, root, cases, rows, binding):
         result_path = root/'results.jsonl'
         if not result_path.exists():
-            result_path.write_text(''.join(json.dumps(row)+'\n' for row in rows))
+            result_path.write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
         failed = next(row for row in rows if not row['ok'])
         artifact = root/failed['artifact_path']
         review = {'schema':'webfetch_failure_review/1',
@@ -622,8 +622,8 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                                'remediation_status':'保留失败；评测端不绕过访问限制。',
                                'evidence_paths':[{'path':failed['artifact_path'],
                                   'sha256':hashlib.sha256(artifact.read_bytes()).hexdigest()}]}]}
-        path=root/'report-assets/failures.json';path.write_text(json.dumps(review,ensure_ascii=False))
-        content_path=root/binding['path'];content=json.loads(content_path.read_text())
+        path=root/'report-assets/failures.json';path.write_text(json.dumps(review,ensure_ascii=False), encoding='utf-8')
+        content_path=root/binding['path'];content=json.loads(content_path.read_text(encoding='utf-8'))
         content.update(require_failure_review=True, failure_review={
             'path':'report-assets/failures.json','sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
         content['background']='网页正文与文件内容按各自交付要求验收。'
@@ -636,7 +636,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
 
         content['case_examples']=[{'provider':'lightpanda','case_id':'web-case',
                                   'explanation':'这个实例返回全部固定正文，满足相同验收要求。'}]
-        content_path.write_text(json.dumps(content,ensure_ascii=False))
+        content_path.write_text(json.dumps(content,ensure_ascii=False), encoding='utf-8')
         binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
         return review
 
@@ -646,19 +646,19 @@ class CurrentBrowserArticleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);cases,rows,binding=self.example(root)
             self.bind_failure_review(root,cases,rows,binding)
-            path=root/binding['path'];content=json.loads(path.read_text())
+            path=root/binding['path'];content=json.loads(path.read_text(encoding='utf-8'))
             content.update(focus_provider='lightpanda',comparison_provider='moli',version_baseline='moli',
                 comparisons=[{'id':'complete-scope','title':'全部任务','tracks':['web','risk_control'],'left':'lightpanda','right':'moli'}],
                 results_explanation='两种配置在相同任务上的完整结果。')
             for row in rows:
                 row['metrics'].update(word_recall=0.8,word_precision=0.7,word_f1=0.75)
             content['evidence_sha256']=canonical_json_sha256(_headless_article_input(cases,rows,['moli','lightpanda']))
-            (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
-            review_path=root/content['failure_review']['path'];review=json.loads(review_path.read_text())
-            review['results_sha256']=hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest();review_path.write_text(json.dumps(review))
+            (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
+            review_path=root/content['failure_review']['path'];review=json.loads(review_path.read_text(encoding='utf-8'))
+            review['results_sha256']=hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest();review_path.write_text(json.dumps(review), encoding='utf-8')
             content['failure_review']['sha256']=hashlib.sha256(review_path.read_bytes()).hexdigest()
-            path.write_text(json.dumps(content,ensure_ascii=False));binding['sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
-            body=render_explainer(root,cases,rows,content_binding=binding);page=root/'guide/index.html';page.write_text(body)
+            path.write_text(json.dumps(content,ensure_ascii=False), encoding='utf-8');binding['sha256']=hashlib.sha256(path.read_bytes()).hexdigest()
+            body=render_explainer(root,cases,rows,content_binding=binding);page=root/'guide/index.html';page.write_text(body, encoding='utf-8')
             check_current_browser_article(root,cases,rows,binding)
             parsed=BeautifulSoup(body,'html.parser')
             self.assertEqual(len(parsed.select('[data-reading-speed]')),6)
@@ -675,9 +675,9 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                 ('version scope','[data-version-relation]','data-count','99'),
             ]:
                 with self.subTest(label=label):
-                    changed=BeautifulSoup(body,'html.parser');node=changed.select_one(selector);node[attribute]=value;page.write_text(str(changed))
+                    changed=BeautifulSoup(body,'html.parser');node=changed.select_one(selector);node[attribute]=value;page.write_text(str(changed), encoding='utf-8')
                     with self.assertRaises(ValueError):check_current_browser_article(root,cases,rows,binding)
-            page.write_text(body)
+            page.write_text(body, encoding='utf-8')
 
     def test_empty_response_has_zero_delivered_characters(self):
         from harness.web_fetch.report_explainer import browser_example_evidence
@@ -714,10 +714,10 @@ class CurrentBrowserArticleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);cases,rows,binding=self.example(root);row=rows[0]
             answer='Navigation\n'*900+'# Product body\nVisible article text'
-            (root/row['artifact_path']).write_text(answer)
+            (root/row['artifact_path']).write_text(answer, encoding='utf-8')
             evidence=browser_example_evidence(root,cases[row['case_id']],row,focus='# Product body')
             self.assertTrue(evidence['actual'].startswith('# Product body'))
-            self.assertEqual((root/row['artifact_path']).read_text(),answer)
+            self.assertEqual((root/row['artifact_path']).read_text(encoding='utf-8'),answer)
             with self.assertRaisesRegex(ValueError,'focus is absent'):
                 browser_example_evidence(root,cases[row['case_id']],row,focus='Invented body')
 
@@ -727,7 +727,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             root=Path(temp);cases,rows,binding=self.example(root)
             self.bind_failure_review(root,cases,rows,binding)
             body=render_explainer(root,cases,rows,content_binding=binding)
-            (root/'guide/index.html').write_text(body)
+            (root/'guide/index.html').write_text(body, encoding='utf-8')
             model=check_current_browser_article(root,cases,rows,binding)
             self.assertEqual(model['stats']['moli']['failure_counts'],{'http_status':1})
             self.assertEqual(model['stats']['moli']['reviewed_failure_counts'],{'source_access_denied':1})
@@ -738,7 +738,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             self.assertIn('data-browser-figure="report-assets/delivery.png"',body)
             self.assertIn('05 失败任务与正文缺失',body)
             # Only the authored specimen embeds complete output in the independent edition.
-            offline=(root/'guide/article.html').read_text()
+            offline=(root/'guide/article.html').read_text(encoding='utf-8')
             self.assertIn('offline-result-lightpanda__web-case',offline)
             self.assertIn('src="data:image/png;base64,',offline)
             from bs4 import BeautifulSoup
@@ -755,7 +755,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                             body.replace('data-example-verdict=','data-hidden-verdict=',1),
                             body.replace('data-reading-contents=','data-hidden-contents=',1),
                             body.replace('P50 是中位数','P50 值',1)]:
-                page.write_text(changed)
+                page.write_text(changed, encoding='utf-8')
                 with self.assertRaises(ValueError):
                     check_current_browser_article(root,cases,rows,binding)
 
@@ -799,7 +799,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);cases,rows,binding=self.example(root)
             original=self.bind_failure_review(root,cases,rows,binding)
-            content_path=root/binding['path'];content=json.loads(content_path.read_text())
+            content_path=root/binding['path'];content=json.loads(content_path.read_text(encoding='utf-8'))
             review_path=root/content['failure_review']['path']
             mutations=[lambda value:value.update(failures=[]),
                        lambda value:value['failures'].append(deepcopy(value['failures'][0])),
@@ -812,13 +812,13 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                        lambda value:value['failures'][0]['evidence_paths'][0].update(sha256='0'*64)]
             for mutation in mutations:
                 value=deepcopy(original);mutation(value)
-                review_path.write_text(json.dumps(value,ensure_ascii=False))
+                review_path.write_text(json.dumps(value,ensure_ascii=False), encoding='utf-8')
                 content['failure_review']['sha256']=hashlib.sha256(review_path.read_bytes()).hexdigest()
-                content_path.write_text(json.dumps(content,ensure_ascii=False))
+                content_path.write_text(json.dumps(content,ensure_ascii=False), encoding='utf-8')
                 binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
                 with self.subTest(mutation=mutations.index(mutation)), self.assertRaises(ValueError):
                     current_browser_article_model(root,cases,rows,binding)
-            content.pop('failure_review');content_path.write_text(json.dumps(content))
+            content.pop('failure_review');content_path.write_text(json.dumps(content), encoding='utf-8')
             binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
             with self.assertRaisesRegex(ValueError,'requires a failure review'):
                 current_browser_article_model(root,cases,rows,binding)
@@ -828,7 +828,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);cases,rows,binding=self.example(root)
             body=render_explainer(root,cases,rows,content_binding=binding)
-            (root/'guide/index.html').write_text(body)
+            (root/'guide/index.html').write_text(body, encoding='utf-8')
             model=check_current_browser_article(root,cases,rows,binding)
             self.assertEqual(model['cases'],2)
             self.assertEqual(model['stats']['moli']['pass_rate'],0.5)
@@ -862,12 +862,12 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             row=next(row for row in rows if not row['ok'])
             row['error_message']='BEGIN FULL DEBUG LOG\n'+('debug line\n'*12000)+'FINAL ERROR: connection reset'
             original=row['error_message']
-            content_path=root/binding['path'];content=json.loads(content_path.read_text())
+            content_path=root/binding['path'];content=json.loads(content_path.read_text(encoding='utf-8'))
             content['evidence_sha256']=canonical_json_sha256(_headless_article_input(cases,rows,['moli','lightpanda']))
-            content_path.write_text(json.dumps(content,ensure_ascii=False))
+            content_path.write_text(json.dumps(content,ensure_ascii=False), encoding='utf-8')
             binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
             body=render_explainer(root,cases,rows,content_binding=binding)
-            page=root/'guide/index.html';page.write_text(body)
+            page=root/'guide/index.html';page.write_text(body, encoding='utf-8')
             model=check_current_browser_article(root,cases,rows,binding)
             excerpt=BeautifulSoup(body,'html.parser').select_one('[data-browser-error="moli"]').get_text()
             self.assertLess(len(excerpt),4100)
@@ -876,7 +876,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             self.assertIn('完整错误和日志见结果详情',excerpt)
             self.assertEqual(row['error_message'],original)
             self.assertEqual(model['stats']['moli']['specimen']['error_message'],original)
-            page.write_text(body.replace('FINAL ERROR: connection reset','different failure',1))
+            page.write_text(body.replace('FINAL ERROR: connection reset','different failure',1), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'error excerpt'):
                 check_current_browser_article(root,cases,rows,binding)
 
@@ -891,23 +891,23 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             for row in rows:
                 if row['provider']=='moli':row['provider_metadata']['binary_sha256']='example-binary'
             (root/'implementation-provenance.json').write_text(json.dumps({'implementations':[
-                {'provider':'moli','binary_sha256':'example-binary','version':'9.2.3'}]}))
-            content_path=root/binding['path'];content=json.loads(content_path.read_text())
+                {'provider':'moli','binary_sha256':'example-binary','version':'9.2.3'}]}), encoding='utf-8')
+            content_path=root/binding['path'];content=json.loads(content_path.read_text(encoding='utf-8'))
             content['evidence_sha256']=canonical_json_sha256(_headless_article_input(cases,rows,['moli','lightpanda']))
-            content_path.write_text(json.dumps(content));binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
-            (root/'dataset.json').write_text(json.dumps({'cases':list(cases.values()),'comparison':{'report_interpretation':binding}}))
-            (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
-            (root/'index.html').write_text('<a href="providers/moli.html">Moli 9.2.3</a>')
+            content_path.write_text(json.dumps(content), encoding='utf-8');binding['sha256']=hashlib.sha256(content_path.read_bytes()).hexdigest()
+            (root/'dataset.json').write_text(json.dumps({'cases':list(cases.values()),'comparison':{'report_interpretation':binding}}), encoding='utf-8')
+            (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
+            (root/'index.html').write_text('<a href="providers/moli.html">Moli 9.2.3</a>', encoding='utf-8')
             body=with_measured_method_labels(render_explainer)(root,cases,rows,content_binding=binding)
             self.assertIn('Moli 9.2.3',body)
-            page=root/'guide/index.html';page.write_text(body)
+            page=root/'guide/index.html';page.write_text(body, encoding='utf-8')
             # The real-provider public revision boundary must finish the bound
             # semantic check before proceeding to unrelated release stages.
             with patch('harness.web_fetch.report_check.check_language_contract',side_effect=FollowingReleaseStage) as following:
                 with self.assertRaises(FollowingReleaseStage):
                     check_revision(root,authority_root=Path(__file__).resolve().parents[1])
                 following.assert_called_once()
-            page.write_text(body.replace('data-browser-interface="moli"','data-missing-interface="moli"',1))
+            page.write_text(body.replace('data-browser-interface="moli"','data-missing-interface="moli"',1), encoding='utf-8')
             with patch('harness.web_fetch.report_check.check_language_contract') as following:
                 with self.assertRaisesRegex(ValueError,'interface matrix'):
                     check_revision(root,authority_root=Path(__file__).resolve().parents[1])
@@ -942,7 +942,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);cases,rows,binding=self.example(root)
             body=render_explainer(root,cases,rows,content_binding=binding)
-            page=root/'guide/index.html';page.write_text(body)
+            page=root/'guide/index.html';page.write_text(body, encoding='utf-8')
             changes=[body.replace(' data-winner="true"','',1),
                      body.replace('data-value="0.5"','data-value="0.9"',1),
                      body.replace('data-browser-error="moli"','data-removed="moli"',1),
@@ -958,9 +958,9 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                      body.replace('data-browser-wait=','data-removed-wait=',1)]
             for changed in changes:
                 with self.subTest(change=changes.index(changed)):
-                    page.write_text(changed)
+                    page.write_text(changed, encoding='utf-8')
                     with self.assertRaises(ValueError):check_current_browser_article(root,cases,rows,binding)
-            page.write_text(body)
+            page.write_text(body, encoding='utf-8')
             (root/'attempts/moli__risk-case.html').unlink()
             with self.assertRaisesRegex(ValueError,'target is broken'):
                 check_current_browser_article(root,cases,rows,binding)
@@ -972,9 +972,9 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             changed=deepcopy(rows);changed[0]['elapsed_ms']=100
             with self.assertRaisesRegex(ValueError,'evidence changed'):
                 render_explainer(root,cases,changed,content_binding=binding)
-            p=root/binding['path'];content=json.loads(p.read_text())
+            p=root/binding['path'];content=json.loads(p.read_text(encoding='utf-8'))
             content['evidence_sha256']=canonical_json_sha256(_headless_article_input(cases,rows[:-1],['moli','lightpanda']))
-            p.write_text(json.dumps(content));binding['sha256']=hashlib.sha256(p.read_bytes()).hexdigest()
+            p.write_text(json.dumps(content), encoding='utf-8');binding['sha256']=hashlib.sha256(p.read_bytes()).hexdigest()
             with self.assertRaisesRegex(ValueError,'complete declared matrix'):
                 render_explainer(root,cases,rows[:-1],content_binding=binding)
 
@@ -1001,38 +1001,38 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                          'timeout_seconds':5,'runs_per_case':1,'concurrency':1,'conversion':'offline fixture',
                          'reference_binding_mode':'frozen_task_contracts','publication_state':'verified',
                          'unverified_reference_cases':[]}}
-            input_path=root/'dataset.json';input_path.write_text(json.dumps(dataset))
-            configuration=root/'providers.json';configuration.write_text('{}')
+            input_path=root/'dataset.json';input_path.write_text(json.dumps(dataset), encoding='utf-8')
+            configuration=root/'providers.json';configuration.write_text('{}', encoding='utf-8')
             metadata,cases=load_dataset(input_path)
             rows,_=run_evaluation(output_dir=source,dataset_meta=metadata,dataset_path=input_path,
                                  cases=cases,providers=[FixtureProvider('moli',{'type':'fixture','fail_cases':['risk-case']}),
                                                        FixtureProvider('lightpanda',{'type':'fixture'})],
                                  provider_config_path=configuration,runs=1,timeout=5,delay=0)
-            measured=json.loads((source/'dataset.json').read_text());case_map={c['id']:c for c in measured['cases']}
+            measured=json.loads((source/'dataset.json').read_text(encoding='utf-8'));case_map={c['id']:c for c in measured['cases']}
             content={'schema':'webfetch_browser_interpretation/1',
                      'evidence_sha256':canonical_json_sha256(_headless_article_input(case_map,rows,['moli','lightpanda'])),
                      'title':'新一轮浏览器结果','intro':'统一规则的合成测试。',
                      'scoring':'正文必须满足题目要求。','conclusions':'完整比较所有调用。',
                      'providers':{name:{'specimen_case_id':'risk-case','explanation':'展示实际调用及程序验收结果。'} for name in ['moli','lightpanda']}}
-            content_path=source/'report-assets/content.json';content_path.parent.mkdir();content_path.write_text(json.dumps(content,ensure_ascii=False))
+            content_path=source/'report-assets/content.json';content_path.parent.mkdir();content_path.write_text(json.dumps(content,ensure_ascii=False), encoding='utf-8')
             binding={'path':'report-assets/content.json','sha256':hashlib.sha256(content_path.read_bytes()).hexdigest()}
             self.bind_failure_review(source,case_map,rows,binding)
             provenance=source/'implementation-provenance.json'
             provenance.write_text(json.dumps({'schema_version':1,'implementations':[
-                {'provider':'moli','binary_sha256':'synthetic','version':'synthetic'}]}))
+                {'provider':'moli','binary_sha256':'synthetic','version':'synthetic'}]}), encoding='utf-8')
             measured['comparison']['implementation_provenance']={
                 'path':'implementation-provenance.json','sha256':hashlib.sha256(provenance.read_bytes()).hexdigest()}
             measured['comparison']['report_interpretation']=binding
-            (source/'dataset.json').write_text(json.dumps(measured))
+            (source/'dataset.json').write_text(json.dumps(measured), encoding='utf-8')
             before=(source/'results.jsonl').read_bytes()
             build_report(source,report)
             for relative in ('guide/index.html','guide/article.html'):
-                page=(report/relative).read_text()
+                page=(report/relative).read_text(encoding='utf-8')
                 for stale in ('45 秒','90 秒','45 seconds','90 seconds'):
                     self.assertNotIn(stale,page)
-            self.assertIn('5 秒',(report/'methodology/index.html').read_text())
+            self.assertIn('5 秒',(report/'methodology/index.html').read_text(encoding='utf-8'))
             self.assertEqual((report/'results.jsonl').read_bytes(),before)
-            analysis=(report/'analysis/index.html').read_text()
+            analysis=(report/'analysis/index.html').read_text(encoding='utf-8')
             self.assertNotIn('已核验判定',analysis,
                              'A machine-only cohort must not claim independently reviewed verdicts')
             self.assertIn('程序判定',analysis)
@@ -1040,11 +1040,11 @@ class CurrentBrowserArticleTests(unittest.TestCase):
             self.assertEqual((report/'report-assets/failures.json').read_bytes(),(source/'report-assets/failures.json').read_bytes())
             self.assertEqual((report/'report-assets/delivery.png').read_bytes(),(source/'report-assets/delivery.png').read_bytes())
             failed=next(row for row in rows if not row['ok'])
-            self.assertIn('失败原因专题核验',(report/'attempts'/f"{failed['attempt_id']}.html").read_text())
+            self.assertIn('失败原因专题核验',(report/'attempts'/f"{failed['attempt_id']}.html").read_text(encoding='utf-8'))
             self.assertEqual((report/'implementation-provenance.json').read_bytes(),provenance.read_bytes())
             check_current_browser_article(report,case_map,rows,binding)
             from bs4 import BeautifulSoup
-            offline=BeautifulSoup((report/'guide/article.html').read_text(),'html.parser')
+            offline=BeautifulSoup((report/'guide/article.html').read_text(encoding='utf-8'),'html.parser')
             self.assertFalse(offline.select('script,link[rel="stylesheet"]'))
             for anchor in offline.select('a[href]'):
                 self.assertTrue(anchor['href'].startswith(('http://','https://','#')))
@@ -1055,22 +1055,22 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                     detail=offline.find(id='offline-result-'+row['attempt_id'])
                     self.assertIsNotNone(detail)
                     self.assertIn(row['attempt_id'],detail.get_text())
-            self.assertIn('新一轮浏览器结果',(report/'index.html').read_text())
-            home=(report/'index.html').read_text()
+            self.assertIn('新一轮浏览器结果',(report/'index.html').read_text(encoding='utf-8'))
+            home=(report/'index.html').read_text(encoding='utf-8')
             self.assertLess(home.index('id="overall-ranking"'),home.index('id="overview"'))
-            self.assertNotIn('达标率',(report/'datasets/index.html').read_text())
-            self.assertNotIn('全部方法执行结果',(report/'datasets/risk-case.html').read_text())
-            self.assertIn('../analysis/index.html#inspect?query=risk-case',(report/'datasets/risk-case.html').read_text())
-            self.assertIn('查看各方法执行结果',(report/'datasets/risk-case.html').read_text())
-            self.assertNotIn('其余六种方法',(report/'accounts/index.html').read_text())
-            self.assertTrue('Moli 1.1.1 的普通网页' not in (report/'adoption/index.html').read_text(),'Measured-method introduction retained an old generic version')
+            self.assertNotIn('达标率',(report/'datasets/index.html').read_text(encoding='utf-8'))
+            self.assertNotIn('全部方法执行结果',(report/'datasets/risk-case.html').read_text(encoding='utf-8'))
+            self.assertIn('../analysis/index.html#inspect?query=risk-case',(report/'datasets/risk-case.html').read_text(encoding='utf-8'))
+            self.assertIn('查看各方法执行结果',(report/'datasets/risk-case.html').read_text(encoding='utf-8'))
+            self.assertNotIn('其余六种方法',(report/'accounts/index.html').read_text(encoding='utf-8'))
+            self.assertTrue('Moli 1.1.1 的普通网页' not in (report/'adoption/index.html').read_text(encoding='utf-8'),'Measured-method introduction retained an old generic version')
 
             # Exercise the published CLI and release gate with a compact profile,
             # without duplicating complete task/reference content into Git.
             import subprocess, sys
             from harness.web_fetch.storage import frozen_input_bindings
-            manifest=json.loads((source/'manifest.json').read_text())
-            (source/'execution.json').write_text(json.dumps({'batches':[manifest]}))
+            manifest=json.loads((source/'manifest.json').read_text(encoding='utf-8'))
+            (source/'execution.json').write_text(json.dumps({'batches':[manifest]}), encoding='utf-8')
             profile={'schema_version':1,'dataset_id':measured['id'],
                      'comparison_kind':measured['comparison']['kind'],'case_count':2,
                      'case_ids_sha256':hashlib.sha256(json.dumps([c['id'] for c in measured['cases']],
@@ -1085,34 +1085,34 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                 profile_path=Path(profile_dir)/'current-report.json'
                 measured['comparison']['reproduction_profile']='instances/current-report.json'
                 measured['comparison']['report_output']='reports/synthetic-browser'
-                (source/'dataset.json').write_text(json.dumps(measured))
+                (source/'dataset.json').write_text(json.dumps(measured), encoding='utf-8')
                 profile['frozen_inputs']=frozen_input_bindings(source)
-                profile_path.write_text(json.dumps(profile))
+                profile_path.write_text(json.dumps(profile), encoding='utf-8')
                 cli_report=root/'cli-report'
                 build=subprocess.run([sys.executable,'scripts/build_report.py','--profile',str(profile_path),
                                       '--evidence',str(source),'--output',str(cli_report),'--language','zh'],
                                      cwd=repository,capture_output=True,text=True)
                 self.assertEqual(build.returncode,0,build.stderr)
-                self.assertIn('新一轮浏览器结果',(cli_report/'index.html').read_text())
-                self.assertIn('data-english-not-generated',(cli_report/'en/index.html').read_text())
+                self.assertIn('新一轮浏览器结果',(cli_report/'index.html').read_text(encoding='utf-8'))
+                self.assertIn('data-english-not-generated',(cli_report/'en/index.html').read_text(encoding='utf-8'))
                 gate=subprocess.run([sys.executable,'scripts/check_report.py',str(cli_report),
                                      '--profile',str(profile_path)],cwd=repository,capture_output=True,text=True)
                 self.assertEqual(gate.returncode,0,gate.stderr+gate.stdout)
                 revision_gate=subprocess.run([sys.executable,'scripts/check_report_revision.py',str(cli_report)],
                                              cwd=repository,capture_output=True,text=True)
                 self.assertEqual(revision_gate.returncode,0,revision_gate.stderr+revision_gate.stdout)
-                self.assertIn(measured['comparison']['reproduction_profile'],(cli_report/'reproduce/index.html').read_text())
+                self.assertIn(measured['comparison']['reproduction_profile'],(cli_report/'reproduce/index.html').read_text(encoding='utf-8'))
                 manifest_path=cli_report/'report-manifest.json';original_manifest=manifest_path.read_bytes()
                 for mutation in ('renderer','dataset_sha256'):
                     manifest=json.loads(original_manifest)
                     if mutation=='renderer':manifest['template']['renderer']='copied_renderer.py'
                     else:manifest['dataset_sha256']='0'*64
-                    manifest_path.write_text(json.dumps(manifest))
+                    manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
                     rejected=subprocess.run([sys.executable,'scripts/check_report.py',str(cli_report),
                                              '--profile',str(profile_path)],cwd=repository,capture_output=True,text=True)
                     self.assertNotEqual(rejected.returncode,0)
                 manifest_path.write_bytes(original_manifest)
-            content_path.write_text('{}')
+            content_path.write_text('{}', encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'differs from binding'):
                 build_report(source,root/'tampered-report')
             self.assertFalse((root/'tampered-report').exists())

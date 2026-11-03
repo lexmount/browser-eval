@@ -155,7 +155,7 @@ def test_published_reproduction_source_uses_adjacent_frozen_bindings(frozen, tmp
     "field,value", [("jobs", 2), ("try_layout", True), ("k", 1), ("seed", "other")]
 )
 def test_changed_experiment_contract_is_rejected(frozen, field, value):
-    protocol = json.loads(frozen["protocol"].read_text())
+    protocol = json.loads(frozen["protocol"].read_text(encoding="utf-8"))
     protocol[field] = value
     write(frozen["protocol"], protocol)
     with pytest.raises(ValueError, match="frozen layout cohort"):
@@ -164,7 +164,7 @@ def test_changed_experiment_contract_is_rejected(frozen, field, value):
 
 
 def test_parent_path_in_frozen_input_is_rejected_before_execution(frozen):
-    protocol = json.loads(frozen["protocol"].read_text())
+    protocol = json.loads(frozen["protocol"].read_text(encoding="utf-8"))
     protocol["inputs"]["../outside"] = "a" * 64
     write(frozen["protocol"], protocol)
     with pytest.raises(ValueError, match="relative"):
@@ -184,13 +184,13 @@ def test_input_change_during_execution_is_rejected(frozen, monkeypatch):
 def test_existing_execution_is_preserved(frozen, monkeypatch):
     previous = frozen["out"] / "off_baseline"
     previous.mkdir(parents=True)
-    (previous / "kept").write_text("earlier evidence")
+    (previous / "kept").write_text("earlier evidence", encoding="utf-8")
     monkeypatch.setattr(
         reproduction.subprocess, "run", lambda *a, **k: pytest.fail("execution started")
     )
     with pytest.raises(ValueError, match="Run already exists"):
         reproduction.main([*arguments(frozen), "--execute"])
-    assert (previous / "kept").read_text() == "earlier evidence"
+    assert (previous / "kept").read_text(encoding="utf-8") == "earlier evidence"
 
 
 def test_command_import_and_help_have_no_private_input_dependency(tmp_path):

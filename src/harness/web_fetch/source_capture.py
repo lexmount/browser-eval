@@ -289,7 +289,8 @@ def capture(case, out, resolved_hosts=None):
         "timeout_ms": completion_timeout_ms,
     }
     (dest / "evidence.json").write_text(
-        json.dumps(result, ensure_ascii=False, indent=2) + "\n"
+        json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8"
     )
     print(
         case["id"],

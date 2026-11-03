@@ -102,7 +102,7 @@ class FrozenInputs(unittest.TestCase):
             'files': {p.name: bench.digest(p) for p in suite.iterdir()}}]})
 
     def test_complete_inputs_export_without_private_extras(self):
-        (self.source / 'private.log').write_text('not public')
+        (self.source / 'private.log').write_text('not public', encoding='utf-8')
         output = self.root / 'export'
         result = bench.export('synthetic', self.source, output)
         self.assertEqual(result, output / 'dataset.json')
@@ -166,7 +166,7 @@ class FrozenInputs(unittest.TestCase):
         relative = 'review-evidence/article.html'
         target = self.review_source / relative
         target.parent.mkdir(parents=True)
-        target.write_text('<main>unique fact and independently checked fact</main>')
+        target.write_text('<main>unique fact and independently checked fact</main>', encoding='utf-8')
         definition['review_inputs'] = {'synthetic': {relative: bench.digest(target)}}
         definition['changes'][0]['set']['required_facts'].append({
             'id': 'independent', 'alternatives': ['independently checked fact']})
@@ -190,7 +190,7 @@ class FrozenInputs(unittest.TestCase):
     def test_independent_review_evidence_is_explicit_bound_and_not_a_parent_replacement(self):
         target = self.additional_review_revision()
         original = (self.source/'dataset.json').read_bytes()
-        (self.review_source/'private.log').write_text('not an input')
+        (self.review_source/'private.log').write_text('not an input', encoding='utf-8')
         path = bench.export('synthetic', self.source, self.root/'revised',
                             revision='source-annotation-v2', review_source=self.review_source)
         report = bench.read(path.parent/'annotation-review.json')
@@ -227,7 +227,7 @@ class FrozenInputs(unittest.TestCase):
                     target.unlink()
                 target.write_bytes(original)
                 if mode == 'changed':
-                    target.write_text('changed observation')
+                    target.write_text('changed observation', encoding='utf-8')
                 if mode == 'missing':
                     target.unlink()
                 if mode == 'symlink':
@@ -348,10 +348,10 @@ class FrozenInputs(unittest.TestCase):
         output = self.root / 'existing'
         output.mkdir()
         marker = output / 'saved'
-        marker.write_text('evidence')
+        marker.write_text('evidence', encoding='utf-8')
         with self.assertRaisesRegex(ValueError, 'new directory'):
             bench.export('synthetic', self.source, output)
-        self.assertEqual(marker.read_text(), 'evidence')
+        self.assertEqual(marker.read_text(encoding='utf-8'), 'evidence')
 
     def test_missing_and_changed_inputs_fail_without_export(self):
         target = self.source / 'sources/article.json'
@@ -419,7 +419,7 @@ class FrozenInputs(unittest.TestCase):
             bench.validate('synthetic')
 
     def test_changed_shipped_file_fails(self):
-        (self.suites / 'synthetic/tasks.json').write_text('{}')
+        (self.suites / 'synthetic/tasks.json').write_text('{}', encoding='utf-8')
         with self.assertRaisesRegex(ValueError, 'Changed suite file'):
             bench.validate('synthetic')
 

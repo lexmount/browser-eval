@@ -27,7 +27,7 @@ def test_visual_outputs_cannot_replace_or_extend_inputs(tmp_path, kind):
         report = linked
     elif kind == "linked-receipt":
         target = tmp_path / "target"
-        target.write_text("original")
+        target.write_text("original", encoding="utf-8")
         receipt.symlink_to(target)
     else:
         receipt = report / "receipt.json"
@@ -56,9 +56,9 @@ def test_render_failure_or_input_change_cannot_install_receipt(tmp_path, monkeyp
     report = tmp_path / "report"
     report.mkdir()
     index = report / "index.html"
-    index.write_text("<html>original</html>")
+    index.write_text("<html>original</html>", encoding="utf-8")
     binary = tmp_path / "browser"
-    binary.write_text("original binary")
+    binary.write_text("original binary", encoding="utf-8")
     monkeypatch.setenv("BROWSER_USE_VISUAL_BROWSER", str(binary))
     receipt = tmp_path / "receipt.json"
     receipt.write_bytes(b"previous receipt")
@@ -85,9 +85,9 @@ def test_render_failure_or_input_change_cannot_install_receipt(tmp_path, monkeyp
             if args:
                 return None
             if drift == "report":
-                index.write_text("<html>changed</html>")
+                index.write_text("<html>changed</html>", encoding="utf-8")
             if drift == "browser":
-                binary.write_text("changed binary")
+                binary.write_text("changed binary", encoding="utf-8")
             return {"overflow": 0, "clipped": [], "vertical": [], "textOverflow": []}
 
         def close(self):

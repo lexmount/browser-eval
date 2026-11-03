@@ -9,15 +9,15 @@ from harness.web_fetch.source_capture import resource_links_main
 
 def test_resource_head_checks_declared_mime_and_preserves_output(tmp_path):
     (tmp_path / 'image.png').write_bytes(b'synthetic source')
-    (tmp_path / 'text.txt').write_text('independent source')
+    (tmp_path / 'text.txt').write_text('independent source', encoding='utf-8')
     dataset, output = tmp_path / 'dataset.json', tmp_path / 'check.json'
     with local_report_server(tmp_path) as origin:
         dataset.write_text(json.dumps({'cases': [{'id': 'one', 'url': origin + '/',
             'expected_resources': [{'urls': ['image.png', 'text.txt'],
-                                    'mime_types': ['image/png']}]}]}))
+                                    'mime_types': ['image/png']}]}]}), encoding='utf-8')
         args = ['--dataset', str(dataset), '--output', str(output)]
         resource_links_main(args)
-    rows = json.loads(output.read_text())['checks']
+    rows = json.loads(output.read_text(encoding='utf-8'))['checks']
     assert {row['url'].rsplit('/', 1)[1]: row['pass'] for row in rows} == {
         'image.png': True, 'text.txt': False}
     before = output.read_bytes()
@@ -31,7 +31,7 @@ def test_resource_conflicting_acceptance_is_rejected_before_calls(tmp_path):
     dataset, output = tmp_path / 'dataset.json', tmp_path / 'check.json'
     dataset.write_text(json.dumps({'cases': [{'url': 'https://example.invalid/',
         'expected_resources': [{'urls': ['one'], 'mime_types': ['image/png']},
-                               {'urls': ['one'], 'mime_types': ['text/html']}]}]}))
+                               {'urls': ['one'], 'mime_types': ['text/html']}]}]}), encoding='utf-8')
     with pytest.raises(ValueError, match='conflicting'):
         resource_links_main(['--dataset', str(dataset), '--output', str(output)])
     assert not output.exists()

@@ -19,7 +19,7 @@ def sha(raw):
 
 def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value) + "\n")
+    path.write_text(json.dumps(value) + "\n", encoding="utf-8")
 
 
 def write_jsonl(path, rows):
@@ -97,7 +97,7 @@ def create_cohort(root: Path, *, paired=False, providers=("alpha", "beta", "gamm
                 relative = f"artifacts/{cid}-p{number:02d}.txt"
                 path = run_dir / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text(content)
+                path.write_text(content, encoding="utf-8")
                 call = {
                     "provider": provider,
                     "run_id": run_id,
@@ -129,7 +129,7 @@ def create_cohort(root: Path, *, paired=False, providers=("alpha", "beta", "gamm
                 total_elapsed_ms=sum(row["elapsed_ms"] for row in attempts),
                 retry_selection="final_physical_attempt_is_authoritative",
             )
-            (run_dir / final["artifact_path"]).write_text(content)
+            (run_dir / final["artifact_path"]).write_text(content, encoding="utf-8")
             logical.append(final)
         write_jsonl(run_dir / "results.jsonl", logical)
         write_jsonl(run_dir / "physical-attempts.jsonl", physical)
@@ -258,16 +258,16 @@ def create_report_inputs(tmp_path, *, english_source=True):
     shutil.copy2(Path(__file__).resolve().parents[1] / 'research/provider-adoption.json',
                  root / 'research/provider-adoption.json')
     (root / 'content').mkdir()
-    (root / 'content/wcxb-repair-zh.fragment').write_text('<section id="guide-repair">合成样例')
+    (root / 'content/wcxb-repair-zh.fragment').write_text('<section id="guide-repair">合成样例', encoding="utf-8")
     if english_source:
-        (root / 'content/wcxb-repair-en.fragment').write_text('<section id="guide-repair">Synthetic specimen')
+        (root / 'content/wcxb-repair-en.fragment').write_text('<section id="guide-repair">Synthetic specimen', encoding="utf-8")
     rows, ground_truth, calls = [], {}, []
     for case in CASES:
         ground_truth[case] = {'main_content': 'Independent article 0', 'page_type': 'article',
                               'with': ['Independent'], 'without': ['Forbidden']}
         target = root / f'inputs/{case}.txt'
         target.parent.mkdir(exist_ok=True)
-        target.write_text('<main>Independent article 0</main>')
+        target.write_text('<main>Independent article 0</main>', encoding="utf-8")
         for provider in PROVIDERS:
             row = deepcopy(next(row for row in original
                                 if row['provider'] == provider and row['case_id'] == 'case-000'))
@@ -276,7 +276,7 @@ def create_report_inputs(tmp_path, *, english_source=True):
             rows.append(row)
             artifact = root / f'artifacts/{provider}/{case}.txt'
             artifact.parent.mkdir(parents=True, exist_ok=True)
-            artifact.write_text('Independent article 0')
+            artifact.write_text('Independent article 0', encoding="utf-8")
     for round_number in (0, 1):
         for index, case in enumerate(CASES):
             methods = ('release', 'pr') if (index + round_number) % 2 == 0 else ('pr', 'release')

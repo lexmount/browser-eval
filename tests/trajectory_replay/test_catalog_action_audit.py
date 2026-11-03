@@ -27,9 +27,13 @@ def _write_inputs(tmp_path: Path, scripts: list[str]) -> tuple[Path, Path]:
             }
         )
     catalog = tmp_path / "catalog.json"
-    catalog.write_text(json.dumps({"task_ids": list(range(1, len(rows) + 1)), "rows": rows}))
+    catalog.write_text(
+        json.dumps({"task_ids": list(range(1, len(rows) + 1)), "rows": rows}), encoding="utf-8"
+    )
     suite = tmp_path / "suite.json"
-    suite.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": []}))
+    suite.write_text(
+        json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": []}), encoding="utf-8"
+    )
     return catalog, suite
 
 

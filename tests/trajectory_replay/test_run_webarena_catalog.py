@@ -56,10 +56,10 @@ def test_environment_profile_reads_named_routing_only_for_engines_that_use_it(tm
     profile = tmp_path / "environment.json"
     env_file = tmp_path / "local.env"
     names = {"pattern": "DEMO_ROUTE_PATTERN", "address": "DEMO_ROUTE_ADDRESS"}
-    profile.write_text(json.dumps({"host_overrides_env": names}))
+    profile.write_text(json.dumps({"host_overrides_env": names}), encoding="utf-8")
     with pytest.raises(ValueError, match="requires DEMO_ROUTE_ADDRESS, DEMO_ROUTE_PATTERN in the"):
         catalog_runner._load_environment_profile(profile, "chromium", env_file)
-    env_file.write_text("DEMO_ROUTE_PATTERN=*.dev.example.test\n")
+    env_file.write_text("DEMO_ROUTE_PATTERN=*.dev.example.test\n", encoding="utf-8")
 
     assert "host_overrides" not in catalog_runner._load_environment_profile(
         profile, "moli", env_file
@@ -68,7 +68,8 @@ def test_environment_profile_reads_named_routing_only_for_engines_that_use_it(tm
         catalog_runner._load_environment_profile(profile, "chromium", env_file)
 
     env_file.write_text(
-        "DEMO_ROUTE_PATTERN=*.dev.example.test\nDEMO_ROUTE_ADDRESS=192.0.2.142\n"
+        "DEMO_ROUTE_PATTERN=*.dev.example.test\nDEMO_ROUTE_ADDRESS=192.0.2.142\n",
+        encoding="utf-8"
     )
     resolved = catalog_runner._load_environment_profile(profile, "kitesurf", env_file)
     assert resolved["host_overrides"] == [
@@ -311,7 +312,7 @@ def test_remote_watchdog_commits_timeout_and_returns(tmp_path: Path) -> None:
     assert outcome["runtime_poisoned"] is True
     assert outcome["runtime_metadata"] == _REMOTE_RUNTIME
     assert outcome["error"].startswith("ExternalTaskTimeout:")
-    assert json.loads((task_dir / "result.json").read_text()) == outcome
+    assert json.loads((task_dir / "result.json").read_text(encoding="utf-8")) == outcome
     trace_text = (task_dir / "trace.json").read_text(encoding="utf-8")
     assert "private-account" not in trace_text
     assert "private-token" not in trace_text
@@ -472,8 +473,8 @@ def test_task_watchdog_kills_browser_commits_timeout_and_returns(tmp_path: Path)
     assert returned_process is process
     assert outcome["runtime_poisoned"] is True
     assert outcome["error"].startswith("ExternalTaskTimeout:")
-    assert json.loads((task_dir / "result.json").read_text()) == outcome
-    assert json.loads((task_dir / "trace.json").read_text())[-1]["status"] == "fail"
+    assert json.loads((task_dir / "result.json").read_text(encoding="utf-8")) == outcome
+    assert json.loads((task_dir / "trace.json").read_text(encoding="utf-8"))[-1]["status"] == "fail"
 
 
 def test_dead_browser_restarts_before_next_task_without_replaying_result(
@@ -1268,7 +1269,7 @@ def _catalog_run_inputs(
         lambda path, current: path,
     )
     for name in ("catalog.json", "suite.json", "sites.json", "receipt.json", "browser"):
-        (tmp_path / name).write_text("{}")
+        (tmp_path / name).write_text("{}", encoding="utf-8")
     (tmp_path / "environment.json").write_text(
         json.dumps(
             {
@@ -1277,12 +1278,14 @@ def _catalog_run_inputs(
                     "address": "WEBARENA_HOST_OVERRIDE_ADDRESS",
                 }
             }
-        )
+        ),
+        encoding="utf-8"
     )
     env_file = tmp_path / "local.env"
     env_file.write_text(
         "WEBARENA_HOST_OVERRIDE_PATTERN=*.dev.example.test\n"
-        f"WEBARENA_HOST_OVERRIDE_ADDRESS={address}\n"
+        f"WEBARENA_HOST_OVERRIDE_ADDRESS={address}\n",
+        encoding="utf-8"
     )
     monkeypatch.setattr(
         "sys.argv",
@@ -1311,7 +1314,7 @@ def _catalog_run_inputs(
         ],
     )
     catalog_runner.main()
-    return json.loads((tmp_path / output / "inputs.json").read_text())
+    return json.loads((tmp_path / output / "inputs.json").read_text(encoding="utf-8"))
 
 
 def test_run_inputs_bind_resolved_routing_and_stop_when_it_changes(monkeypatch, tmp_path) -> None:
@@ -1354,8 +1357,8 @@ def test_run_entry_stops_before_a_browser_starts_without_site_accounts(
         "harness.trajectory_replay.report_inputs.replay_input_path",
         lambda path, current: path,
     )
-    (tmp_path / "environment.json").write_text("{}")
-    (tmp_path / "browser").write_text("")
+    (tmp_path / "environment.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "browser").write_text("", encoding="utf-8")
     monkeypatch.setattr(
         catalog_runner.subprocess,
         "Popen",

@@ -186,11 +186,11 @@ def test_native_dataset_marker_reaches_real_runner_without_per_case_assistance(t
     dataset = native_fetch_dataset(source)
     assert native_fetch_dataset(dataset) == dataset
     path = tmp_path / "dataset.json"
-    path.write_text(json.dumps(dataset))
+    path.write_text(json.dumps(dataset), encoding="utf-8")
     _, cases = load_dataset(path)
     provider = build_provider("native", {"type": "fixture", "uniform_native_parameters": True})
     config = tmp_path / "providers.json"
-    config.write_text(json.dumps({"providers": {"native": {"type": "fixture", "uniform_native_parameters": True}}}))
+    config.write_text(json.dumps({"providers": {"native": {"type": "fixture", "uniform_native_parameters": True}}}), encoding="utf-8")
     rows, _ = run_evaluation(output_dir=tmp_path / "run", dataset_meta=dataset, dataset_path=path,
         cases=cases, providers=[provider], provider_config_path=config, runs=1, timeout=45, delay=0)
     assert len(rows) == 1 and rows[0]["ok"]

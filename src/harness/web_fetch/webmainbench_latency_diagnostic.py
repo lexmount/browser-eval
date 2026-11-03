@@ -483,11 +483,11 @@ def paired_tail_main(argv=None) -> None:
             "scope": "latency only; preserve original output, scoring and verdict",
         }
     (args.output / "runner-source.py").write_bytes(frozen_source)
-    (args.output / "selection.json").write_text(json.dumps(selection, indent=2) + "\n")
+    (args.output / "selection.json").write_text(json.dumps(selection, indent=2) + "\n", encoding='utf-8')
     with webmainbench_runner.fixture_server([source[case_id] for case_id in cases]) as (base, ca_cert):
         selection["network_probe"] = webmainbench_runner.verify_loopback_sandbox(base, ca_cert, source[cases[0]])
-        (args.output / "selection.json").write_text(json.dumps(selection, indent=2) + "\n")
-        with (args.output / "calls.jsonl").open("w") as stream:
+        (args.output / "selection.json").write_text(json.dumps(selection, indent=2) + "\n", encoding='utf-8')
+        with (args.output / "calls.jsonl").open("w", encoding='utf-8') as stream:
             for round_index in range(args.rounds):
                 order = cases.copy()
                 random.Random(117 + round_index).shuffle(order)

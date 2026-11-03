@@ -20,7 +20,7 @@ def test_local_language_setting_and_process_override(tmp_path, monkeypatch):
     from harness.report_languages import configured_report_language, resolve_report_language
     monkeypatch.delenv("BROWSER_EVAL_REPORT_LANGUAGE", raising=False)
     assert configured_report_language() == "en"
-    (tmp_path / ".env").write_text("BROWSER_EVAL_REPORT_LANGUAGE=zh\n")
+    (tmp_path / ".env").write_text("BROWSER_EVAL_REPORT_LANGUAGE=zh\n", encoding="utf-8")
     assert configured_report_language() == "zh"
     monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
     assert configured_report_language() == "en"
@@ -39,7 +39,7 @@ def test_language_resolution_respects_choice_and_renderer_capability(
     monkeypatch.delenv("BROWSER_EVAL_REPORT_LANGUAGE", raising=False)
     if saved:
         contract = {"languages": ["zh"]} if saved == "legacy" else {"primary_language": saved}
-        (tmp_path / "report-languages.json").write_text(json.dumps(contract))
+        (tmp_path / "report-languages.json").write_text(json.dumps(contract), encoding="utf-8")
     expected = requested or ("zh" if saved == "legacy" else saved) or (
         "en" if "en" in supported else supported[0]
     )
@@ -54,22 +54,22 @@ def test_chinese_output_has_notice_without_translated_routes(tmp_path):
     write_language_contract(tmp_path, include_english=False)
     assert generated_languages(tmp_path) == ("zh",)
     check_language_contract(tmp_path)
-    notice = (tmp_path / "en/index.html").read_text()
+    notice = (tmp_path / "en/index.html").read_text(encoding="utf-8")
     assert "英文报告未生成" in notice
     assert 'href="../index.html"' in notice
     assert 'new URL("en/",b.href)' in notice
     assert "location.origin+location.pathname" not in notice
-    (tmp_path / "en/old.html").write_text("stale")
+    (tmp_path / "en/old.html").write_text("stale", encoding="utf-8")
     with pytest.raises(ValueError, match="stale English"):
         check_language_contract(tmp_path)
 
 
 def test_explicit_english_retains_generated_pages(tmp_path):
     (tmp_path / "en").mkdir()
-    (tmp_path / "en/index.html").write_text("English edition")
+    (tmp_path / "en/index.html").write_text("English edition", encoding="utf-8")
     write_language_contract(tmp_path, include_english=True)
     assert generated_languages(tmp_path) == ("zh", "en")
-    assert (tmp_path / "en/index.html").read_text() == "English edition"
+    assert (tmp_path / "en/index.html").read_text(encoding="utf-8") == "English edition"
     check_language_contract(tmp_path)
 
 
@@ -82,13 +82,13 @@ def test_flat_notice_returns_within_the_report_root():
 
 def test_default_rejects_accidentally_generated_english(tmp_path):
     (tmp_path / "en").mkdir()
-    (tmp_path / "en/index.html").write_text("unrequested")
+    (tmp_path / "en/index.html").write_text("unrequested", encoding="utf-8")
     with pytest.raises(ValueError, match="must not be generated"):
         write_language_contract(tmp_path, include_english=False)
 
 
 def test_language_contract_rejects_unknown_modes(tmp_path):
-    (tmp_path / "report-languages.json").write_text(json.dumps({"languages": ["en"]}))
+    (tmp_path / "report-languages.json").write_text(json.dumps({"languages": ["en"]}), encoding="utf-8")
     with pytest.raises(ValueError, match="unsupported"):
         generated_languages(tmp_path)
 
@@ -111,23 +111,23 @@ def test_primary_english_keeps_explicit_chinese_navigation_and_evidence(tmp_path
     base = f'<base href="{base_href}">' if base_href else ""
     def page(content, head=""):
         return f'<html><head>{REPORT_PAGE_MARKER}{head}</head><body>{content}</body></html>'
-    (tmp_path / "index.html").write_text(page('<header><a href="index.html">Home</a></header>'))
+    (tmp_path / "index.html").write_text(page('<header><a href="index.html">Home</a></header>'), encoding="utf-8")
     (tmp_path / "en").mkdir()
-    (tmp_path / "en/index.html").write_text(page('<header><a href="../index.html">中文</a></header>'))
+    (tmp_path / "en/index.html").write_text(page('<header><a href="../index.html">中文</a></header>'), encoding="utf-8")
     detail = tmp_path / "results/task/index.html"
     detail.parent.mkdir(parents=True)
-    detail.write_text(page(f'<header><a href="{home_href}?token=abc#overview">Home</a></header>', base))
+    detail.write_text(page(f'<header><a href="{home_href}?token=abc#overview">Home</a></header>', base), encoding="utf-8")
     evidence = tmp_path / "artifacts/original.html"
     evidence.parent.mkdir()
-    evidence.write_text(page('<header><a href="../index.html">Original</a></header>'))
+    evidence.write_text(page('<header><a href="../index.html">Original</a></header>'), encoding="utf-8")
     evidence_bytes = evidence.read_bytes()
     write_language_contract(tmp_path, include_english=True)
     assert select_report_language(tmp_path, "en") == tmp_path / "en/index.html"
-    assert 'href="../index.html?report-language=zh"' in (tmp_path / "en/index.html").read_text()
-    assert 'token=abc&amp;report-language=zh#overview' in detail.read_text()
-    assert 'data-report-language-entry' in (tmp_path / "index.html").read_text()
+    assert 'href="../index.html?report-language=zh"' in (tmp_path / "en/index.html").read_text(encoding="utf-8")
+    assert 'token=abc&amp;report-language=zh#overview' in detail.read_text(encoding="utf-8")
+    assert 'data-report-language-entry' in (tmp_path / "index.html").read_text(encoding="utf-8")
     assert evidence.read_bytes() == evidence_bytes
-    contract = json.loads((tmp_path / "report-languages.json").read_text())
+    contract = json.loads((tmp_path / "report-languages.json").read_text(encoding="utf-8"))
     assert contract["entrypoint"] == "en/index.html"
 
 
@@ -149,7 +149,8 @@ def test_environment_changes_new_report_default_without_overriding_saved_choice(
     monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "zh")
     assert primary_report_language(tmp_path) == "zh"
     (tmp_path / "index.html").write_text(
-        '<html><head><meta name="browser-eval-report" content="1"></head></html>'
+        '<html><head><meta name="browser-eval-report" content="1"></head></html>',
+        encoding="utf-8"
     )
     write_language_contract(tmp_path, include_english=False)
     select_report_language(tmp_path, "zh")
@@ -171,19 +172,19 @@ def test_invalid_environment_language_fails_early(tmp_path, monkeypatch):
 @pytest.mark.parametrize("damage", ["unsupported", "missing_edition", "wrong_entry", "missing_redirect"])
 def test_release_rejects_a_wrong_primary_language(tmp_path, damage):
     from harness.report_languages import REPORT_PAGE_MARKER, select_report_language
-    (tmp_path / "index.html").write_text(f'<html><head>{REPORT_PAGE_MARKER}</head></html>')
+    (tmp_path / "index.html").write_text(f'<html><head>{REPORT_PAGE_MARKER}</head></html>', encoding="utf-8")
     (tmp_path / "en").mkdir()
-    (tmp_path / "en/index.html").write_text('English')
+    (tmp_path / "en/index.html").write_text('English', encoding="utf-8")
     write_language_contract(tmp_path, include_english=True)
     select_report_language(tmp_path, "en")
     check_language_contract(tmp_path)
     path = tmp_path / "report-languages.json"
-    contract = json.loads(path.read_text())
+    contract = json.loads(path.read_text(encoding="utf-8"))
     if damage == "unsupported": contract["primary_language"] = "fr"
     elif damage == "missing_edition": contract["languages"] = ["zh"]
     elif damage == "wrong_entry": contract["entrypoint"] = "index.html"
-    else: (tmp_path / "index.html").write_text('Chinese root without selected-language redirect')
-    path.write_text(json.dumps(contract))
+    else: (tmp_path / "index.html").write_text('Chinese root without selected-language redirect', encoding="utf-8")
+    path.write_text(json.dumps(contract), encoding="utf-8")
     with pytest.raises(ValueError, match="language|entrypoint"):
         check_language_contract(tmp_path)
 
@@ -225,7 +226,7 @@ def test_body_contract_conclusion_is_localized(passed, anchors, expected):
 @pytest.mark.parametrize("metadata_name", ["report-languages.json", "report-manifest.json"])
 def test_saved_language_survives_environment_changes_for_every_track(tmp_path, monkeypatch, metadata_name):
     from harness.report_languages import resolve_report_language
-    (tmp_path / metadata_name).write_text(json.dumps({"primary_language": "zh", "languages": ["zh"]}))
+    (tmp_path / metadata_name).write_text(json.dumps({"primary_language": "zh", "languages": ["zh"]}), encoding="utf-8")
     monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
     assert resolve_report_language(tmp_path) == "zh"
     assert resolve_report_language(tmp_path, "en") == "en"
@@ -235,7 +236,7 @@ def test_saved_language_survives_environment_changes_for_every_track(tmp_path, m
 def test_quoted_local_configuration_is_available_without_process_environment(tmp_path, monkeypatch, selected):
     from harness.report_languages import configured_report_language
     monkeypatch.delenv("BROWSER_EVAL_REPORT_LANGUAGE", raising=False)
-    (tmp_path / ".env").write_text(f"export BROWSER_EVAL_REPORT_LANGUAGE='{selected}' # report language\n")
+    (tmp_path / ".env").write_text(f"export BROWSER_EVAL_REPORT_LANGUAGE='{selected}' # report language\n", encoding="utf-8")
     assert configured_report_language() == selected
 
 
@@ -243,10 +244,10 @@ def test_nonlanguage_manifest_is_not_selected_or_modified(tmp_path, monkeypatch)
     from harness.report_languages import resolve_report_language
     path = tmp_path / "manifest.json"
     original = '{"task_count":3}'
-    path.write_text(original)
+    path.write_text(original, encoding="utf-8")
     monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
     assert resolve_report_language(tmp_path) == "en"
-    assert path.read_text() == original
+    assert path.read_text(encoding="utf-8") == original
     assert resolve_report_language(tmp_path, supported=("zh",)) == "zh"
     with pytest.raises(ValueError):
         resolve_report_language(tmp_path, "en", supported=("zh",))
@@ -256,10 +257,10 @@ def test_nested_header_navigation_rewrites_every_chinese_home_link(tmp_path):
     from harness.report_languages import REPORT_PAGE_MARKER, select_report_language
     (tmp_path / "en").mkdir()
     source = '<html><head>' + REPORT_PAGE_MARKER + '</head><body><header><nav><a href="index.html">Home</a></nav><a href="index.html">中文</a></header></body></html>'
-    (tmp_path / "index.html").write_text(source)
-    (tmp_path / "en/index.html").write_text(source.replace('href="index.html"', 'href="../index.html"'))
+    (tmp_path / "index.html").write_text(source, encoding="utf-8")
+    (tmp_path / "en/index.html").write_text(source.replace('href="index.html"', 'href="../index.html"'), encoding="utf-8")
     write_language_contract(tmp_path, include_english=True)
     select_report_language(tmp_path, "en")
     from bs4 import BeautifulSoup
-    page = BeautifulSoup((tmp_path / "en/index.html").read_text(), "html.parser")
+    page = BeautifulSoup((tmp_path / "en/index.html").read_text(encoding="utf-8"), "html.parser")
     assert [a["href"] for a in page.select("header a")] == ["../index.html?report-language=zh"] * 2

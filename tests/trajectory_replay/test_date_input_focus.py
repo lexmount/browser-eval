@@ -10,7 +10,7 @@ ROOT = Path('evaluation/trajectory-replay/webarena-verified/trajectory-candidate
 
 
 def calls(task_id):
-    return json.loads((ROOT / f'task-{task_id}.json').read_text())['tool_calls']
+    return json.loads((ROOT / f'task-{task_id}.json').read_text(encoding='utf-8'))['tool_calls']
 
 
 def run(script, setup):

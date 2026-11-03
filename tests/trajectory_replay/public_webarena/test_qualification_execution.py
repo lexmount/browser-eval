@@ -20,7 +20,7 @@ def inputs(tmp_path):
         'source': {'url': 'https://example.test/task'},
         'evaluator': {'kind': 'webarena_verified', 'task_id': 1, 'revision': 1},
         'environment': {'kind': 'webarena_verified', 'sites': ['shopping']},
-    }]}))
+    }]}), encoding='utf-8')
     scope = tmp_path / 'scope.json'
     scope.write_text(json.dumps({
         'schema': 'lex_browser_use_native_scope/1',
@@ -28,9 +28,9 @@ def inputs(tmp_path):
         'included_task_ids': ['a'],
         'qualification_batches': [{'id': 'shopping', 'sites': ['shopping'],
                                    'shard_count': 1, 'task_ids': ['a']}],
-    }))
+    }), encoding='utf-8')
     config = tmp_path / 'config.json'
-    config.write_text('{}')
+    config.write_text('{}', encoding='utf-8')
     evidence = tmp_path / 'evidence'
     argv = ['--suite', str(suite), '--native-scope', str(scope), '--webarena-config',
             str(config), '--evidence-root', str(evidence)]
@@ -52,9 +52,9 @@ def test_dry_run_never_relocates_incomplete_previous_evidence(tmp_path, monkeypa
 @pytest.mark.parametrize('batch_id', ['../escape', '/absolute', 'a/b', 'a\\b'])
 def test_shard_planning_rejects_batch_ids_that_escape_output(tmp_path, batch_id):
     suite, scope, _, _ = inputs(tmp_path)
-    data = json.loads(scope.read_text())
+    data = json.loads(scope.read_text(encoding='utf-8'))
     data['qualification_batches'][0]['id'] = batch_id
-    scope.write_text(json.dumps(data))
+    scope.write_text(json.dumps(data), encoding='utf-8')
     with pytest.raises(ValueError, match='batch.*identifier'):
         qualification.qualification_shards(scope, suite)
 
@@ -70,7 +70,7 @@ def write_shard(command, *, check, env):
     evidence.mkdir(parents=True)
     (evidence / 'network.har').write_text(json.dumps({
         'log': {'creator': {'name': 'browser-eval-cdp', 'version': '3'}, 'entries': []},
-    }))
+    }), encoding='utf-8')
     task = qualification.load_suite(Path(flags['--suite'])).tasks[0]
     task_payload = {
         'id': task.task_id, 'title': task.title, 'trajectory': task.trajectory,
@@ -86,9 +86,9 @@ def write_shard(command, *, check, env):
         'trace': [], 'evidence_directory': str(evidence),
         'task_contract_sha256': qualification.task_contract_sha256(task_payload),
     }
-    (evidence / 'attempt.json').write_text(json.dumps(row))
-    (output / 'attempts.jsonl').write_text(json.dumps(row) + '\n')
-    (output / 'summary.json').write_text('{}')
+    (evidence / 'attempt.json').write_text(json.dumps(row), encoding='utf-8')
+    (output / 'attempts.jsonl').write_text(json.dumps(row) + '\n', encoding='utf-8')
+    (output / 'summary.json').write_text('{}', encoding='utf-8')
     def digest(path):
         return hashlib.sha256(path.read_bytes()).hexdigest()
     selection = {
@@ -103,7 +103,7 @@ def write_shard(command, *, check, env):
         'protocol': {'qualification_run': True, 'engines': ['chromium'],
                      'max_failure_retries': 0, 'task_filter': ['a'], 'task_selection': selection,
                      'qualification_pass_index': pass_index, 'qualification_required_passes': 2},
-    }))
+    }), encoding='utf-8')
     return output
 
 
@@ -116,7 +116,9 @@ def test_two_pass_execution_preserves_incomplete_output_and_resumes(tmp_path, mo
 
     def child(command, **kwargs):
         calls.append(write_shard(command, **kwargs))
-        (tmp_path / 'config.json').write_text(json.dumps({'runtime_generation': len(calls)}))
+        (tmp_path / "config.json").write_text(
+            json.dumps({"runtime_generation": len(calls)}), encoding="utf-8"
+        )
 
     monkeypatch.setattr(qualification.subprocess, 'run', child)
     qualification.main_qualification(argv)
@@ -140,7 +142,7 @@ def test_invalid_child_execution_cannot_write_final_queue(tmp_path, monkeypatch,
     def child(command, **kwargs):
         if fault == 'input-drift':
             write_shard(command, **kwargs)
-            suite.write_text('{"changed": true}')
+            suite.write_text('{"changed": true}', encoding='utf-8')
 
     monkeypatch.setattr(qualification.subprocess, 'run', child)
     with pytest.raises(ValueError, match='incomplete qualification|inputs changed'):
@@ -187,10 +189,12 @@ def test_derived_suite_commands_preserve_existing_outputs_and_validate_before_wr
     output = tmp_path / 'derived.json'
     if kind == 'subset':
         queue = tmp_path / 'queue.json'
-        queue.write_text(json.dumps({'tasks': [{'task_id': 'a', 'disposition': 'eligible'}]}))
-        data = json.loads(suite.read_text())
+        queue.write_text(
+            json.dumps({"tasks": [{"task_id": "a", "disposition": "eligible"}]}), encoding="utf-8"
+        )
+        data = json.loads(suite.read_text(encoding='utf-8'))
         data['tasks'][0]['tags'] = ['mutate']
-        suite.write_text(json.dumps(data))
+        suite.write_text(json.dumps(data), encoding='utf-8')
         main = qualification.main_subset
         argv = ['--suite', str(suite), '--qualification', str(queue), '--dispositions',
                 'eligible', '--task-types', 'mutate', '--output', str(output)]
@@ -201,15 +205,15 @@ def test_derived_suite_commands_preserve_existing_outputs_and_validate_before_wr
     original = output.read_bytes()
     main(argv)
     assert output.read_bytes() == original
-    data = json.loads(suite.read_text())
+    data = json.loads(suite.read_text(encoding='utf-8'))
     data['tasks'][0]['title'] = 'Changed task'
-    suite.write_text(json.dumps(data))
+    suite.write_text(json.dumps(data), encoding='utf-8')
     with pytest.raises(ValueError, match='refusing to overwrite'):
         main(argv)
     assert output.read_bytes() == original
     output.unlink()
     data['tasks'][0]['ground_truth']['expected_actions'] = []
-    suite.write_text(json.dumps(data))
+    suite.write_text(json.dumps(data), encoding='utf-8')
     with pytest.raises(ValueError, match='action sequence'):
         main(argv)
     assert not output.exists()

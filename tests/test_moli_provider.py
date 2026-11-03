@@ -185,7 +185,8 @@ class MoliTests(unittest.TestCase):
             "import sys\n"
             "if sys.argv[1:] == ['--version']:\n"
             "    print('moli 1.1.4')\n"
-            "    raise SystemExit(0)\n" + script
+            "    raise SystemExit(0)\n" + script,
+            encoding="utf-8"
         )
         self.binary.chmod(0o700)
         config.setdefault("expected_reported_version", "moli 1.1.4")
@@ -1351,7 +1352,7 @@ class MoliTests(unittest.TestCase):
         finally:
             if pid_file.exists():
                 try:
-                    os.killpg(int(pid_file.read_text()), signal.SIGKILL)
+                    os.killpg(int(pid_file.read_text(encoding="utf-8")), signal.SIGKILL)
                 except ProcessLookupError:
                     pass
 

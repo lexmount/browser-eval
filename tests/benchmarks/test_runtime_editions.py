@@ -39,17 +39,17 @@ def test_historical_file_does_not_require_current_downloads(tmp_path, monkeypatc
 def test_scorer_install_selects_exact_commit_and_rejects_changed_cache(tmp_path, monkeypatch, damage):
     source = tmp_path / 'upstream';source.mkdir()
     git(source, 'init', '-q')
-    module = source / 'webmainbench/module.py';module.parent.mkdir();module.write_text('first')
+    module = source / 'webmainbench/module.py';module.parent.mkdir();module.write_text('first', encoding='utf-8')
     git(source, 'add', '.');git(source, 'commit', '-qm', 'First')
     revision = git(source, 'rev-parse', 'HEAD')
-    module.write_text('second');git(source, 'commit', '-qam', 'Second')
+    module.write_text('second', encoding='utf-8');git(source, 'commit', '-qam', 'Second')
     monkeypatch.setattr(data, 'binding', lambda track: {'scorer': {'repository': str(source), 'revision': revision}})
     monkeypatch.setattr(data, 'cache_home', lambda: tmp_path / 'datasets')
     installed = scoring.prepare_scorer()
     assert git(installed, 'rev-parse', 'HEAD') == revision
-    assert (installed / 'webmainbench/module.py').read_text() == 'first'
+    assert (installed / 'webmainbench/module.py').read_text(encoding='utf-8') == 'first'
     if damage:
-        (installed / 'webmainbench/module.py').write_text('changed')
+        (installed / 'webmainbench/module.py').write_text('changed', encoding='utf-8')
         if damage == 'revision':git(installed, 'commit', '-qam', 'Changed')
         with pytest.raises(ValueError, match='clean tracked|commit mismatch'):
             scoring.prepare_scorer()
@@ -68,8 +68,8 @@ def test_fetch_score_cli_works_offline_with_an_empty_dataset_cache(tmp_path):
     import sys
     task = tmp_path / 'task.json'
     task.write_text(json.dumps({'id': 'local', 'url': 'https://example.org',
-                               'required_facts': [{'id': 'fact', 'alternatives': ['Complete answer']}]}))
-    response = tmp_path / 'response.txt';response.write_text('Complete answer')
+                               'required_facts': [{'id': 'fact', 'alternatives': ['Complete answer']}]}), encoding='utf-8')
+    response = tmp_path / 'response.txt';response.write_text('Complete answer', encoding='utf-8')
     environment = {**os.environ, 'BROWSER_EVAL_DATASET_CACHE': str(tmp_path / 'empty-cache'), 'HF_HUB_OFFLINE': '1'}
     result = subprocess.run([sys.executable, '-m', 'lexbench_webfetch.cli', 'score', '--task', str(task),
                              '--response', str(response)], cwd=tmp_path, env=environment,

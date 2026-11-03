@@ -87,18 +87,18 @@ def test_public_package_accepts_a_report_without_the_site_password(tmp_path, mon
 def test_public_bundle_contains_reports_and_minimal_binding(tmp_path):
     source, _ = write_report_fixture(tmp_path)
     manifest_path = source / "run/manifest.json"
-    manifest = json.loads(manifest_path.read_text())
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["artifact_provenance"] = {"artifact_directory": "/data/example/run"}
     manifest["private_notes"] = "private reviewer notes"
-    manifest_path.write_text(json.dumps(manifest))
-    source_summary = json.loads((source / "run/summary.json").read_text())
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    source_summary = json.loads((source / "run/summary.json").read_text(encoding="utf-8"))
     formal = tmp_path / "formal"
     stage_report(source, formal)
 
     target = export_public_report_bundle(formal, tmp_path / "public")
 
-    manifest = json.loads((target / "run/manifest.json").read_text())
-    summary = json.loads((target / "run/summary.json").read_text())
+    manifest = json.loads((target / "run/manifest.json").read_text(encoding="utf-8"))
+    summary = json.loads((target / "run/summary.json").read_text(encoding="utf-8"))
     assert manifest == {
         "suite_sha256": "suite",
         "artifact_provenance": {"artifact_directory": "/[local-user]/run"},

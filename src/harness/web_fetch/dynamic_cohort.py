@@ -78,9 +78,9 @@ def measured_batches(measured, records, reference_cases, previous, execution):
     """Validate the original manifests as a partition, without rewriting provenance."""
     path = measured / "execution.json"
     if path.exists():
-        batches = json.loads(path.read_text()).get("batches")
+        batches = json.loads(path.read_text(encoding="utf-8")).get("batches")
     else:
-        batches = [json.loads((measured / "manifest.json").read_text())]
+        batches = [json.loads((measured / "manifest.json").read_text(encoding="utf-8"))]
     if not isinstance(batches, list) or not batches:
         raise ValueError("Invalid or empty supplement execution batches")
     require_verified_reference_checks(
@@ -211,8 +211,8 @@ def append(source, reference, measured, checks):
     # copytree follows links by default; reject them before any evidence reads.
     for root in (source, reference, measured):
         reject_evidence_symlinks(root)
-    dataset = json.loads((source / "dataset.json").read_text())
-    supplement = json.loads((reference / "dataset.json").read_text())
+    dataset = json.loads((source / "dataset.json").read_text(encoding="utf-8"))
+    supplement = json.loads((reference / "dataset.json").read_text(encoding="utf-8"))
     incoming_bytes = (measured / "results.jsonl").read_bytes()
     records = parse_jsonl(incoming_bytes)
     previous_bytes = (source / "results.jsonl").read_bytes()
@@ -224,12 +224,12 @@ def append(source, reference, measured, checks):
     new_ids = set(reference_cases)
     if new_ids & {c["id"] for c in dataset["cases"]}:
         raise ValueError("Supplement already present; refusing replacement")
-    measured_cases = cases_by_id(json.loads((measured / "dataset.json").read_text()))
+    measured_cases = cases_by_id(json.loads((measured / "dataset.json").read_text(encoding="utf-8")))
     if {key: frozen_case(case) for key, case in reference_cases.items()} != {
         key: frozen_case(case) for key, case in measured_cases.items()
     }:
         raise ValueError("Measured dataset differs from frozen reference identity or scoring")
-    execution = json.loads((source / "execution.json").read_text())
+    execution = json.loads((source / "execution.json").read_text(encoding="utf-8"))
     if not isinstance(execution.get("batches"), list):
         raise ValueError("Invalid execution batches")
     batches, providers = measured_batches(measured, records, reference_cases, previous, execution)
@@ -354,7 +354,8 @@ def append(source, reference, measured, checks):
                 ):
                     raise ValueError(f"Staged source evidence hash mismatch: {c['id']}/{relative}")
             (target / "render-audit.json").write_text(
-                json.dumps(audits[c["id"]], ensure_ascii=False, indent=2) + "\n"
+                json.dumps(audits[c["id"]], ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8"
             )
         materialize_bound_artifacts(staged, measured, records)
         for name, content in outputs.items():
@@ -424,7 +425,7 @@ def merge(reference, runs, output):
             ("dataset.json", dataset),
             ("execution.json", {"batches": batches}),
         ]:
-            (staged / filename).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+            (staged / filename).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         (staged / "results.jsonl").write_bytes(
             b"".join(
                 raw + (b"\n" if raw and not raw.endswith(b"\n") else b"")

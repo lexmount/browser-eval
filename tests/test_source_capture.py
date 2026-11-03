@@ -62,7 +62,8 @@ def dataset_file(tmp_path, base):
                     for name in ("page", "retry", "missing")
                 ]
             }
-        )
+        ),
+        encoding="utf-8"
     )
     return path
 
@@ -81,19 +82,19 @@ def test_capture_commits_complete_independent_http_scope_and_preserves_failures(
     assert results[2]["status"] == 404
     assert hits.count("/retry") == 2
     assert dataset.read_bytes() == before
-    assert json.loads((output / "audit.json").read_text()) == results
+    assert json.loads((output / "audit.json").read_text(encoding="utf-8")) == results
     for result in results:
         directory = output / result["case_id"]
         assert (
             hashlib.sha256((directory / "source.html").read_bytes()).hexdigest()
             == result["sha256"]
         )
-        assert (directory / "reference.txt").read_text() == "Independent source body"
+        assert (directory / "reference.txt").read_text(encoding="utf-8") == "Independent source body"
         assert (
             hashlib.sha256((directory / "reference.txt").read_bytes()).hexdigest()
             == result["reference_sha256"]
         )
-        assert json.loads((directory / "evidence.json").read_text()) == result
+        assert json.loads((directory / "evidence.json").read_text(encoding="utf-8")) == result
         assert result["independent"] is True
         assert result["scope_identity"]["case_id"] == result["case_id"]
         assert result["scope_identity"]["url"] == result["url"]
@@ -126,7 +127,7 @@ def test_cli_selects_exact_scope_and_records_declared_dns(tmp_path, source_site)
     )
     assert hits == ["/page"]
     assert socket.getaddrinfo is original
-    audit = json.loads((output / "audit.json").read_text())
+    audit = json.loads((output / "audit.json").read_text(encoding="utf-8"))
     assert [row["case_id"] for row in audit] == ["page"]
     assert audit[0]["dns_override"]["ip"] == "127.0.0.1"
     assert not (output / "retry").exists()
@@ -249,7 +250,7 @@ def test_real_http_capture_can_bind_a_postcheck_without_inventing_receipts(tmp_p
     run.mkdir()
     binding = {"scope_identity": capture["scope_identity"],
                "source_verification": {"observation_route": "http"}}
-    (run / "manifest.json").write_text(json.dumps({"reference_checks": {"cases": {"page": binding}}}))
+    (run / "manifest.json").write_text(json.dumps({"reference_checks": {"cases": {"page": binding}}}), encoding="utf-8")
     observed = build_observations(run, captures)[0]
     assert observed["completion"] == capture["completion"]
     assert observed["checked_at"] == capture["checked_at"]

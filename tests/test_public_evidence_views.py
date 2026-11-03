@@ -82,7 +82,7 @@ def test_saved_public_view_verifier_rejects_changed_bytes_or_false_identity(tmp_
     path.write_bytes(public)
     proof = tmp_path/'view-receipt.json'
     def binding():
-        proof.write_text(json.dumps(receipt))
+        proof.write_text(json.dumps(receipt), encoding='utf-8')
         return {'path': proof.name, 'sha256': hashlib.sha256(proof.read_bytes()).hexdigest()}
     assert require_public_evidence_view(tmp_path, binding()) == receipt
     path.write_bytes(b'different')
@@ -127,7 +127,7 @@ def _declared_view_snapshot(tmp_path):
     (tmp_path/'public-views.json').write_bytes(index_raw)
     profile = {'publication_evidence_views': {'path': 'public-views.json',
                                             'sha256': hashlib.sha256(index_raw).hexdigest()}}
-    (tmp_path/'presentation-binding.json').write_text(json.dumps(profile))
+    (tmp_path/'presentation-binding.json').write_text(json.dumps(profile), encoding='utf-8')
     return original_binding, original, public, index, profile
 
 
@@ -147,7 +147,7 @@ def test_bound_view_rejects_changed_inventory_and_unrelated_authority(tmp_path, 
     from harness.web_fetch.publication_privacy import read_evidence_binding
     binding, _, _, index, profile = _declared_view_snapshot(tmp_path)
     if defect == 'inventory_hash':
-        (tmp_path/'public-views.json').write_text('{}')
+        (tmp_path/'public-views.json').write_text('{}', encoding='utf-8')
     else:
         if defect == 'wrong_original': binding['sha256'] = '0'*64
         if defect == 'metadata_alias':
@@ -157,7 +157,7 @@ def test_bound_view_rejects_changed_inventory_and_unrelated_authority(tmp_path, 
         raw = json.dumps(index).encode()
         (tmp_path/'public-views.json').write_bytes(raw)
         profile['publication_evidence_views']['sha256'] = hashlib.sha256(raw).hexdigest()
-        (tmp_path/'presentation-binding.json').write_text(json.dumps(profile))
+        (tmp_path/'presentation-binding.json').write_text(json.dumps(profile), encoding='utf-8')
     with pytest.raises(ValueError):
         read_evidence_binding(tmp_path, binding)
 
@@ -255,7 +255,7 @@ def test_public_call_log_view_support_does_not_weaken_acquisition_checks(tmp_pat
     raw = json.dumps(index).encode()
     (root/'public-views.json').write_bytes(raw)
     profile['publication_evidence_views']['sha256'] = hashlib.sha256(raw).hexdigest()
-    (root/'presentation-binding.json').write_text(json.dumps(profile))
+    (root/'presentation-binding.json').write_text(json.dumps(profile), encoding='utf-8')
     (root/row['artifact_path']).write_bytes(public)
     with pytest.raises(ValueError, match='output binding changed'):
         verify_record_public_call_logs(root, row)
@@ -439,7 +439,7 @@ def test_large_public_view_cache_still_reads_new_bytes_and_rejects_new_secret(tm
     path.write_bytes(public)
     receipt_path = tmp_path/'receipt.json'
     def bind():
-        receipt_path.write_text(json.dumps(receipt))
+        receipt_path.write_text(json.dumps(receipt), encoding='utf-8')
         return {'path': 'receipt.json',
                 'sha256': hashlib.sha256(receipt_path.read_bytes()).hexdigest()}
     binding = bind()

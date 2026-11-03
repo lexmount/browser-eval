@@ -16,7 +16,7 @@ def matching_catalog(tmp_path):
     release = read(definitions() / "benchmark-release.json")
     release["scoring_source_sha256"] = SCORING_SOURCE_SHA256
     path = tmp_path / "catalog.json"
-    path.write_text(json.dumps(release))
+    path.write_text(json.dumps(release), encoding="utf-8")
     return path
 
 
@@ -31,7 +31,7 @@ def test_catalog_binds_every_registered_suite(matching_catalog):
 
 @pytest.mark.parametrize("change", ["omitted_suite", "count", "reference", "scorer", "tag"])
 def test_published_catalog_rejects_changed_population_rules_or_reference_bindings(tmp_path, change, matching_catalog):
-    release = json.loads(matching_catalog.read_text())
+    release = json.loads(matching_catalog.read_text(encoding="utf-8"))
     if change == "omitted_suite":
         release["suites"].pop()
     elif change == "count":
@@ -43,7 +43,7 @@ def test_published_catalog_rejects_changed_population_rules_or_reference_binding
     else:
         release["tag"] = "bench-v99.0.0"
     path = tmp_path / "release.json"
-    path.write_text(json.dumps(release))
+    path.write_text(json.dumps(release), encoding="utf-8")
     expected = {"tag": "tag differs", "scorer": "scoring source changed"}.get(
         change, "task or frozen reference bindings changed")
     with pytest.raises(ValueError, match=expected):
@@ -162,12 +162,12 @@ def test_dataset_drift_and_duplicate_ids_are_rejected():
 
 def test_freeze_is_exclusive_and_manifest_is_portable(tmp_path):
     source = tmp_path / "dataset.json"
-    source.write_text(json.dumps(dataset()))
+    source.write_text(json.dumps(dataset()), encoding="utf-8")
     target = tmp_path / "benchmark-release.json"
     freeze_release(source, target, benchmark="sample-benchmark", version="1.0.0")
-    frozen = json.loads(target.read_text())
+    frozen = json.loads(target.read_text(encoding="utf-8"))
     verify_release(frozen, dataset())
-    assert str(tmp_path) not in target.read_text()
+    assert str(tmp_path) not in target.read_text(encoding="utf-8")
     with pytest.raises(FileExistsError):
         freeze_release(source, target, benchmark="sample-benchmark", version="1.0.1")
     link = tmp_path / "link.json"
@@ -179,7 +179,7 @@ def test_freeze_is_exclusive_and_manifest_is_portable(tmp_path):
 def test_public_cli_freezes_and_compares_real_files(tmp_path, capsys, monkeypatch):
     from lexbench_webfetch.cli import main
     source = tmp_path / "dataset.json"
-    source.write_text(json.dumps(dataset()))
+    source.write_text(json.dumps(dataset()), encoding="utf-8")
     frozen = tmp_path / "release.json"
     monkeypatch.setattr("sys.argv", ["lexbench-webfetch", "release", "--dataset", str(source),
                                     "--output", str(frozen), "--benchmark", "sample-benchmark",

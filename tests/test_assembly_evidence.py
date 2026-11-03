@@ -58,7 +58,7 @@ def test_assembly_preserves_all_physical_call_evidence(source, tmp_path):
     root, records = source
     target = tmp_path / 'assembled'
     assemble(root, tmp_path / 'certificates', [], target)
-    assert [json.loads(line) for line in (target / 'results.jsonl').read_text().splitlines()] == records
+    assert [json.loads(line) for line in (target / 'results.jsonl').read_text(encoding='utf-8').splitlines()] == records
     for relative, _ in artifact_bindings(records[0]):
         assert (target / relative).read_bytes() == (root / relative).read_bytes()
 
@@ -69,37 +69,37 @@ def test_canonical_dataset_promotes_an_explicit_full_review_policy(source, tmp_p
     from harness.web_fetch.scoring_revision import revise
 
     root, _ = source
-    baseline = json.loads((root / 'dataset.json').read_text())
+    baseline = json.loads((root / 'dataset.json').read_text(encoding='utf-8'))
     baseline['comparison'] = {
         'require_independent_result_review': False,
         'independent_result_review_scope': 'machine-failures',
     }
-    (root / 'dataset.json').write_text(json.dumps(baseline))
+    (root / 'dataset.json').write_text(json.dumps(baseline), encoding='utf-8')
     revise(root, root / 'dataset.json', root_cause_category='answer-surface',
         root_cause='Synthetic retained-answer correction is checked on the complete cohort.',
         regression_ids=['body-only-word-boundary-answer-title-supplies-required-fact'])
-    baseline = json.loads((root / 'dataset.json').read_text())
+    baseline = json.loads((root / 'dataset.json').read_text(encoding='utf-8'))
     canonical = tmp_path / 'canonical.json'
     promoted = json.loads(json.dumps(baseline))
     promoted['comparison'] = {
         'require_independent_result_review': True,
         'independent_result_review_scope': 'all',
     }
-    canonical.write_text(json.dumps(promoted))
+    canonical.write_text(json.dumps(promoted), encoding='utf-8')
 
     output = tmp_path / 'assembled-for-full-review'
     assemble(root, tmp_path / 'certificates', [], output,
              canonical_dataset=canonical)
 
-    comparison = json.loads((output / 'dataset.json').read_text())['comparison']
+    comparison = json.loads((output / 'dataset.json').read_text(encoding='utf-8'))['comparison']
     assert comparison['require_independent_result_review'] is True
     assert comparison['independent_result_review_scope'] == 'all'
     assert not (output / 'result-review.json').exists()
     assert not valid_scoring_revision(output)
 
-    record = json.loads((output / 'results.jsonl').read_text())
+    record = json.loads((output / 'results.jsonl').read_text(encoding='utf-8'))
     with pytest.raises(ValueError, match='review is required but missing'):
-        require_result_review(output, json.loads((output / 'dataset.json').read_text()),
+        require_result_review(output, json.loads((output / 'dataset.json').read_text(encoding='utf-8')),
                               [record])
     review = {
         'schema_version': 1,
@@ -120,29 +120,29 @@ def test_canonical_dataset_promotes_an_explicit_full_review_policy(source, tmp_p
             'final_verdict': 'pass',
         }],
     }
-    (output / 'result-review.json').write_text(json.dumps(review))
+    (output / 'result-review.json').write_text(json.dumps(review), encoding='utf-8')
     assert bind_assembled_scoring_revision(output, source=root)
     assert valid_scoring_revision(output)
 
 
 def test_canonical_dataset_without_review_policy_keeps_baseline_policy(source, tmp_path):
     root, _ = source
-    baseline = json.loads((root / 'dataset.json').read_text())
+    baseline = json.loads((root / 'dataset.json').read_text(encoding='utf-8'))
     baseline['comparison'] = {
         'require_independent_result_review': False,
         'independent_result_review_scope': 'machine-failures',
     }
-    (root / 'dataset.json').write_text(json.dumps(baseline))
+    (root / 'dataset.json').write_text(json.dumps(baseline), encoding='utf-8')
     canonical = tmp_path / 'canonical.json'
     inherited = json.loads(json.dumps(baseline))
     inherited['comparison'] = {}
-    canonical.write_text(json.dumps(inherited))
+    canonical.write_text(json.dumps(inherited), encoding='utf-8')
 
     output = tmp_path / 'assembled-with-inherited-review-policy'
     assemble(root, tmp_path / 'certificates', [], output,
              canonical_dataset=canonical)
 
-    comparison = json.loads((output / 'dataset.json').read_text())['comparison']
+    comparison = json.loads((output / 'dataset.json').read_text(encoding='utf-8'))['comparison']
     assert comparison['require_independent_result_review'] is False
     assert comparison['independent_result_review_scope'] == 'machine-failures'
 
@@ -151,8 +151,8 @@ def test_provider_replacement_scope_selects_bound_pair_without_reading_scores(tm
     baseline, incoming = tmp_path/'baseline', tmp_path/'incoming'
     baseline.mkdir(); incoming.mkdir()
     dataset = {'cases': [{'id': 'one'}, {'id': 'two'}]}
-    (baseline/'dataset.json').write_text(json.dumps(dataset))
-    (incoming/'dataset.json').write_text(json.dumps(dataset))
+    (baseline/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+    (incoming/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
     prior = [
         {'attempt_id': 'old-one', 'provider': 'p', 'case_id': 'one',
          'provider_metadata': {'binary_sha256': 'a'*64}},
@@ -166,7 +166,7 @@ def test_provider_replacement_scope_selects_bound_pair_without_reading_scores(tm
          'provider_metadata': {'binary_sha256': 'a'*64}, 'metrics': {'content_pass': True}},
     ]
     for root, rows in ((baseline, prior), (incoming, current)):
-        (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
     receipt = {
         'schema_version': 1, 'kind': 'audited_provider_replacement_scope',
         'provider_calls': 0,
@@ -180,7 +180,7 @@ def test_provider_replacement_scope_selects_bound_pair_without_reading_scores(tm
             'reason': 'The original call ended before returning a result.',
         }],
     }
-    path = tmp_path/'scope.json'; path.write_text(json.dumps(receipt))
+    path = tmp_path/'scope.json'; path.write_text(json.dumps(receipt), encoding='utf-8')
     selected, checked = _selected_provider_replacement_rows(
         baseline, incoming, current, path)
     assert [row['attempt_id'] for row in selected] == ['new-one']
@@ -196,8 +196,8 @@ def test_implementation_correction_replaces_only_a_declared_failed_pair(
     baseline, incoming = tmp_path/'baseline', tmp_path/'incoming'
     baseline.mkdir(); incoming.mkdir()
     dataset = {'cases': [{'id': 'one', 'task_kind': 'body'}]}
-    (baseline/'dataset.json').write_text(json.dumps(dataset))
-    (incoming/'dataset.json').write_text(json.dumps(dataset))
+    (baseline/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+    (incoming/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
     prior = {'attempt_id': 'old-one', 'provider': 'p', 'case_id': 'one',
              'ok': False,
              'metrics': {'content_pass': False, 'forbidden_hits': []},
@@ -207,10 +207,10 @@ def test_implementation_correction_replaces_only_a_declared_failed_pair(
                'metrics': {'content_pass': selected_passes},
                'provider_metadata': {'binary_sha256': 'b'*64}}
     for root, rows in ((baseline, [prior]), (incoming, [current])):
-        (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
     receipt = _replacement_scope_receipt(
         baseline, incoming, prior, current, category='implementation_correction')
-    path = tmp_path/'scope.json'; path.write_text(json.dumps(receipt))
+    path = tmp_path/'scope.json'; path.write_text(json.dumps(receipt), encoding='utf-8')
 
     selected, checked = _selected_provider_replacement_rows(
         baseline, incoming, [current], path)
@@ -223,8 +223,8 @@ def test_implementation_correction_rejects_a_declared_baseline_pass(tmp_path):
     baseline, incoming = tmp_path/'baseline', tmp_path/'incoming'
     baseline.mkdir(); incoming.mkdir()
     dataset = {'cases': [{'id': 'one', 'task_kind': 'body'}]}
-    (baseline/'dataset.json').write_text(json.dumps(dataset))
-    (incoming/'dataset.json').write_text(json.dumps(dataset))
+    (baseline/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+    (incoming/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
     prior = {'attempt_id': 'old-one', 'provider': 'p', 'case_id': 'one',
              'ok': True, 'metrics': {'content_pass': True},
              'provider_metadata': {'binary_sha256': 'a'*64}}
@@ -232,10 +232,10 @@ def test_implementation_correction_rejects_a_declared_baseline_pass(tmp_path):
                'ok': False, 'metrics': {'content_pass': False},
                'provider_metadata': {'binary_sha256': 'b'*64}}
     for root, rows in ((baseline, [prior]), (incoming, [current])):
-        (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
     receipt = _replacement_scope_receipt(
         baseline, incoming, prior, current, category='implementation_correction')
-    path = tmp_path/'scope.json'; path.write_text(json.dumps(receipt))
+    path = tmp_path/'scope.json'; path.write_text(json.dumps(receipt), encoding='utf-8')
 
     with pytest.raises(ValueError, match='baseline machine verdict is not a failure'):
         _selected_provider_replacement_rows(baseline, incoming, [current], path)
@@ -267,7 +267,7 @@ def _replacement_scope_receipt(
 def test_assembled_baseline_keeps_scope_history_when_appending_replacement(source, tmp_path):
     baseline = tmp_path/'baseline'
     assemble(source[0], tmp_path/'certificates', [], baseline)
-    dataset = json.loads((baseline/'dataset.json').read_text())
+    dataset = json.loads((baseline/'dataset.json').read_text(encoding='utf-8'))
     case = EvalCase(**dataset['cases'][0])
 
     class Fixture(Provider):
@@ -280,11 +280,11 @@ def test_assembled_baseline_keeps_scope_history_when_appending_replacement(sourc
         providers=[Fixture('retrying', {'type':'fixture'})],
         provider_config_path=tmp_path/'providers.json', runs=1,
         timeout=1, delay=0)
-    prior = json.loads((baseline/'results.jsonl').read_text())
-    current = json.loads((incoming/'results.jsonl').read_text())
+    prior = json.loads((baseline/'results.jsonl').read_text(encoding='utf-8'))
+    current = json.loads((incoming/'results.jsonl').read_text(encoding='utf-8'))
     current_receipt = _replacement_scope_receipt(baseline, incoming, prior, current)
     current_path = tmp_path/'current-scope.json'
-    current_path.write_text(json.dumps(current_receipt))
+    current_path.write_text(json.dumps(current_receipt), encoding='utf-8')
 
     historical_receipt = {
         **current_receipt,
@@ -300,35 +300,35 @@ def test_assembled_baseline_keeps_scope_history_when_appending_replacement(sourc
     }
     historical = baseline/'history/provider-replacement-scopes/000-historical.json'
     historical.parent.mkdir(parents=True)
-    historical.write_text(json.dumps(historical_receipt))
+    historical.write_text(json.dumps(historical_receipt), encoding='utf-8')
     historical_index = [{
         'path':'history/provider-replacement-scopes/000-historical.json',
         'sha256':hashlib.sha256(historical.read_bytes()).hexdigest(),
         'replacements':historical_receipt['replacements'],
     }]
     (baseline/'provider-replacement-scopes.json').write_text(
-        json.dumps(historical_index))
+        json.dumps(historical_index), encoding='utf-8')
 
     output = tmp_path/'assembled'
     assemble(baseline, tmp_path/'certificates', [], output,
         provider_replacements=[incoming],
         provider_replacement_scope_receipts=[current_path])
-    selection = json.loads((output/'selection-audit.json').read_text())
+    selection = json.loads((output/'selection-audit.json').read_text(encoding='utf-8'))
     corrected = next(row for row in selection if row.get('case_id') == case.id)
     assert corrected['selection_category'] == 'invalid_prior_call'
     assert corrected['selection_reason'] == 'The original call ended before returning a result.'
-    index = json.loads((output/'provider-replacement-scopes.json').read_text())
+    index = json.loads((output/'provider-replacement-scopes.json').read_text(encoding='utf-8'))
     assert index[0] == historical_index[0]
     assert (output/index[0]['path']).read_bytes() == historical.read_bytes()
     assert len(index) == 2
     assert index[1]['replacements'] == current_receipt['replacements']
-    assert json.loads((output/index[1]['path']).read_text()) == current_receipt
+    assert json.loads((output/index[1]['path']).read_text(encoding='utf-8')) == current_receipt
 
 
 def test_assembled_provider_replacement_accepts_no_certificate_tree(source, tmp_path):
     baseline = tmp_path / 'baseline'
     assemble(source[0], tmp_path / 'certificates', [], baseline)
-    dataset = json.loads((baseline / 'dataset.json').read_text())
+    dataset = json.loads((baseline / 'dataset.json').read_text(encoding='utf-8'))
     case = EvalCase(**dataset['cases'][0])
 
     class Fixture(Provider):
@@ -345,9 +345,9 @@ def test_assembled_provider_replacement_accepts_no_certificate_tree(source, tmp_
     assemble(baseline, None, [], output, provider_replacements=[incoming])
     assert (output / 'results.jsonl').is_file()
 
-    manifest = json.loads((incoming / 'manifest.json').read_text())
+    manifest = json.loads((incoming / 'manifest.json').read_text(encoding='utf-8'))
     manifest['attempt_ids'] = []
-    (incoming / 'manifest.json').write_text(json.dumps(manifest))
+    (incoming / 'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
     with pytest.raises(ValueError):
         assemble(baseline, None, [], tmp_path / 'invalid-incoming',
                  provider_replacements=[incoming])
@@ -384,7 +384,7 @@ def test_inherited_provider_replacement_scope_history_rejects_damage(tmp_path, d
     }
     stored = root/'history/provider-replacement-scopes/000-scope.json'
     stored.parent.mkdir(parents=True)
-    stored.write_text(json.dumps(receipt))
+    stored.write_text(json.dumps(receipt), encoding='utf-8')
     relative = str(stored.relative_to(root))
     digest = hashlib.sha256(stored.read_bytes()).hexdigest()
     if damage == 'missing':
@@ -395,11 +395,11 @@ def test_inherited_provider_replacement_scope_history_rejects_damage(tmp_path, d
         relative = '../outside.json'
     elif damage == 'symlink':
         actual = root/'actual.json'
-        actual.write_text(json.dumps(receipt))
+        actual.write_text(json.dumps(receipt), encoding='utf-8')
         stored.unlink()
         stored.symlink_to(actual)
     (root/'provider-replacement-scopes.json').write_text(json.dumps([{
-        'path':relative, 'sha256':digest, 'replacements':receipt['replacements']}]))
+        'path':relative, 'sha256':digest, 'replacements':receipt['replacements']}]), encoding='utf-8')
     with pytest.raises(ValueError):
         _provider_replacement_scope_history(root)
 
@@ -407,7 +407,7 @@ def test_inherited_provider_replacement_scope_history_rejects_damage(tmp_path, d
 def test_inherited_provider_replacement_scope_history_requires_its_index(tmp_path):
     history = tmp_path/'baseline/history/provider-replacement-scopes'
     history.mkdir(parents=True)
-    (history/'000-scope.json').write_text('{}')
+    (history/'000-scope.json').write_text('{}', encoding='utf-8')
     with pytest.raises(ValueError, match='has no index'):
         _provider_replacement_scope_history(tmp_path/'baseline')
 
@@ -416,14 +416,14 @@ def test_inherited_provider_replacement_scope_history_requires_its_index(tmp_pat
 def test_assembly_retains_config_identity_while_omitting_local_paths(source, tmp_path, config_source):
     root, _ = source
     path = root / 'manifest.json'
-    manifest = json.loads(path.read_text())
+    manifest = json.loads(path.read_text(encoding='utf-8'))
     manifest['provider_config_source'] = config_source
     manifest['provider_config_sha256'] = hashlib.sha256(b'custom configuration').hexdigest()
-    path.write_text(json.dumps(manifest))
+    path.write_text(json.dumps(manifest), encoding='utf-8')
     original = path.read_bytes()
     target = tmp_path / 'assembled'
     assemble(root, tmp_path / 'certificates', [], target)
-    projected = json.loads((target / 'execution.json').read_text())['batches'][0]
+    projected = json.loads((target / 'execution.json').read_text(encoding='utf-8'))['batches'][0]
     assert projected['provider_config_source'] == (
         'custom.json' if config_source.startswith('/') else config_source
     )
@@ -467,7 +467,7 @@ def test_assembly_uses_reference_inputs_from_the_declared_task_owner(source, tmp
             return ProviderResult(True, 'Expected')
 
     root, _ = source
-    dataset = json.loads((root / 'dataset.json').read_text())
+    dataset = json.loads((root / 'dataset.json').read_text(encoding='utf-8'))
     original = dataset['cases'][0]
     case = EvalCase(**original) if operation == 'replacement' else EvalCase(
         'two', 'Two', 'https://example.invalid/two', 'synthetic', ['Expected'])
@@ -479,15 +479,15 @@ def test_assembly_uses_reference_inputs_from_the_declared_task_owner(source, tmp
     for owner, text in ((root, 'old source'), (incoming, 'new source')):
         folder = owner / 'sources' / case.id
         folder.mkdir(parents=True, exist_ok=True)
-        (folder / 'reference.txt').write_text(text)
+        (folder / 'reference.txt').write_text(text, encoding='utf-8')
         reference = owner / 'list-references' / (case.id + '.json')
         reference.parent.mkdir(exist_ok=True)
-        reference.write_text(json.dumps({'case_id': case.id, 'source': text}))
+        reference.write_text(json.dumps({'case_id': case.id, 'source': text}), encoding='utf-8')
     output = tmp_path / 'assembled'
     assemble(root, tmp_path / 'certificates', [incoming] if operation == 'replacement' else [],
              output, additions=[incoming] if operation == 'addition' else [])
-    assert (output / 'sources' / case.id / 'reference.txt').read_text() == 'new source'
-    assert json.loads((output / 'list-references' / (case.id + '.json')).read_text())['source'] == 'new source'
+    assert (output / 'sources' / case.id / 'reference.txt').read_text(encoding='utf-8') == 'new source'
+    assert json.loads((output / 'list-references' / (case.id + '.json')).read_text(encoding='utf-8'))['source'] == 'new source'
 
 
 @pytest.mark.parametrize('damage', [None, 'changed', 'missing'])
@@ -509,25 +509,25 @@ def test_assembly_copies_only_certificate_bound_reference_checks(tmp_path, damag
     run_evaluation(output_dir=root, dataset_meta=dataset, dataset_path=tmp_path / 'dataset.json',
         cases=[case], providers=[Fixture('fixture', {'type': 'fixture'})],
         provider_config_path=tmp_path / 'providers.json', runs=1, timeout=1, delay=0)
-    manifest = json.loads((root / 'manifest.json').read_text())
+    manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
     now = datetime.now(timezone.utc)
     observations = tmp_path / 'observations.json'
     observations.write_text(json.dumps([{'case_id': 'one', 'independent': True,
         'content_text': text, 'checked_at': now.isoformat(),
         'scope_identity': manifest['reference_checks']['cases']['one']['scope_identity'],
-        'completion': {'satisfied': True, 'elapsed_ms': 1, 'timeout_ms': 1000}}]))
+        'completion': {'satisfied': True, 'elapsed_ms': 1, 'timeout_ms': 1000}}]), encoding='utf-8')
     finalize_reference_checks(root, observations, now=now + timedelta(seconds=1))
-    manifest = json.loads((root / 'manifest.json').read_text())
-    (root / 'execution.json').write_text(json.dumps({'batches': [manifest]}))
+    manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
+    (root / 'execution.json').write_text(json.dumps({'batches': [manifest]}), encoding='utf-8')
     (root / 'manifest.json').unlink()
     for folder in ('sources', 'list-references'):
         (root / folder).mkdir(exist_ok=True)
-    (root / 'reference-checks/private-note.txt').write_text('synthetic private note')
+    (root / 'reference-checks/private-note.txt').write_text('synthetic private note', encoding='utf-8')
     output = tmp_path / 'assembled'
     relative = manifest['reference_checks']['postcheck']['evidence_path']
     if damage:
         if damage == 'changed':
-            (root / relative).write_text('[]')
+            (root / relative).write_text('[]', encoding='utf-8')
         else:
             (root / relative).unlink()
         with pytest.raises((ValueError, OSError)):
@@ -538,7 +538,7 @@ def test_assembly_copies_only_certificate_bound_reference_checks(tmp_path, damag
     assemble(root, tmp_path / 'certificates', [], output)
     assert (output / relative).read_bytes() == (root / relative).read_bytes()
     assert not (output / 'reference-checks/private-note.txt').exists()
-    (output / 'reference-checks/private-note.txt').write_text('synthetic private note')
+    (output / 'reference-checks/private-note.txt').write_text('synthetic private note', encoding='utf-8')
     report = build_report(output, tmp_path / 'report').parent
     assert (report / relative).read_bytes() == (root / relative).read_bytes()
     assert not (report / 'reference-checks/private-note.txt').exists()
@@ -553,9 +553,9 @@ def test_assembly_rejects_links_inside_reference_trees(source, tmp_path, tree, k
     actual = root / 'same-bytes'
     if kind == 'directory':
         actual.mkdir()
-        (actual / 'reference.txt').write_text('synthetic source')
+        (actual / 'reference.txt').write_text('synthetic source', encoding='utf-8')
     else:
-        actual.write_text('synthetic source')
+        actual.write_text('synthetic source', encoding='utf-8')
     (folder / 'linked').symlink_to(actual, target_is_directory=kind == 'directory')
     output = tmp_path / 'rejected'
     with pytest.raises(ValueError, match='[Ss]ymlink'):
@@ -572,7 +572,7 @@ def test_assembly_rejects_links_in_custom_canonical_sources(source, tmp_path):
     (canonical.parent / 'sources').mkdir()
     (canonical.parent / 'list-references').mkdir()
     actual = canonical.parent / 'reference.txt'
-    actual.write_text('synthetic source')
+    actual.write_text('synthetic source', encoding='utf-8')
     (canonical.parent / 'sources/linked').symlink_to(actual)
     output = tmp_path / 'rejected'
     with pytest.raises(ValueError, match='[Ss]ymlink'):
@@ -604,7 +604,7 @@ def test_assembly_uses_verified_external_reference_trees(source, tmp_path, monke
     manifest = checkout / 'source-inputs.json'
     manifest.write_text(json.dumps({'schema_version': 1, 'kind': 'frozen_reference_inputs',
         'id': 'assembly-fixture', 'dataset': 'dataset.json',
-        'dataset_sha256': hashlib.sha256(canonical.read_bytes()).hexdigest(), 'trees': trees}))
+        'dataset_sha256': hashlib.sha256(canonical.read_bytes()).hexdigest(), 'trees': trees}), encoding='utf-8')
     external = import_inputs(manifest, approved)
     target = tmp_path / 'external-assembly'
     if damage:
@@ -637,13 +637,13 @@ def test_assembly_materializes_registered_multi_source_canonical_references(
         path.write_bytes(raw)
     canonical = tmp_path / 'canonical' / 'dataset.json'
     canonical.parent.mkdir()
-    dataset = json.loads((root / 'dataset.json').read_text())
+    dataset = json.loads((root / 'dataset.json').read_text(encoding='utf-8'))
     dataset.setdefault('comparison', {})['input_sources'] = [{
         'path': 'registered/owner/dataset.json',
         'sha256': hashlib.sha256(source_dataset.read_bytes()).hexdigest(),
         'case_ids': ['one'],
     }]
-    canonical.write_text(json.dumps(dataset))
+    canonical.write_text(json.dumps(dataset), encoding='utf-8')
     monkeypatch.setattr(assembly_module, 'REPOSITORY', tmp_path)
     target = tmp_path / 'assembled-multi-source'
     assemble(root, tmp_path / 'certificates', [], target, canonical_dataset=canonical)
@@ -651,7 +651,7 @@ def test_assembly_materializes_registered_multi_source_canonical_references(
     assert (target / 'list-references/one.json').read_bytes() == b'{"case_id":"one"}'
 
     dataset['comparison']['input_sources'][0]['sha256'] = '0' * 64
-    canonical.write_text(json.dumps(dataset))
+    canonical.write_text(json.dumps(dataset), encoding='utf-8')
     with pytest.raises(ValueError, match='input source changed'):
         assemble(root, tmp_path / 'certificates', [], tmp_path / 'rejected-multi-source',
                  canonical_dataset=canonical)
@@ -663,10 +663,10 @@ def test_multi_source_canonical_uses_prior_bound_reference_for_reused_case(
     current = tmp_path / 'registered/current/dataset.json'
     for path, cases in ((earlier, ['one', 'two']), (current, ['two'])):
         path.parent.mkdir(parents=True)
-        path.write_text(json.dumps({'cases': [{'id': case} for case in cases]}))
+        path.write_text(json.dumps({'cases': [{'id': case} for case in cases]}), encoding='utf-8')
     prior = earlier.parent / 'sources/two/reference.txt'
     prior.parent.mkdir(parents=True)
-    prior.write_text('earlier bound capture')
+    prior.write_text('earlier bound capture', encoding='utf-8')
     canonical_path = tmp_path / 'canonical/dataset.json'
     canonical_path.parent.mkdir()
     canonical = {
@@ -680,11 +680,11 @@ def test_multi_source_canonical_uses_prior_bound_reference_for_reused_case(
              'case_ids': ['two']},
         ]},
     }
-    canonical_path.write_text(json.dumps(canonical))
+    canonical_path.write_text(json.dumps(canonical), encoding='utf-8')
     monkeypatch.setattr(assembly_module, 'REPOSITORY', tmp_path)
     output = tmp_path / 'materialized'
     assembly_module._materialize_canonical_references(output, canonical, canonical_path)
-    assert (output / 'sources/two/reference.txt').read_text() == 'earlier bound capture'
+    assert (output / 'sources/two/reference.txt').read_text(encoding='utf-8') == 'earlier bound capture'
 
 
 @pytest.mark.parametrize('change', ['changed-retry', 'missing-retry', 'linked-primary', 'linked-root'])
@@ -726,7 +726,7 @@ def test_scored_cohort_composition_keeps_authority_without_starting_review(sourc
     assert valid_scoring_revision(root)
     original_bytes = (root / 'results.jsonl').read_bytes()
     original_history = (root / 'scoring-revisions.json').read_bytes()
-    dataset = json.loads((root / 'dataset.json').read_text())
+    dataset = json.loads((root / 'dataset.json').read_text(encoding='utf-8'))
     incoming_dataset = json.loads(json.dumps(dataset))
     if operation == 'replacement':
         incoming_dataset['cases'][0]['description'] = 'Corrected reader-facing explanation.'
@@ -750,16 +750,16 @@ def test_scored_cohort_composition_keeps_authority_without_starting_review(sourc
         provider_replacements=[incoming] if operation == 'replacement' else [])
     assert valid_scoring_revision(output)
     assert (output / 'diagnostics/inherited-scoring-history.json').read_bytes() == original_history
-    receipt = json.loads((output / 'scoring-revisions.json').read_text())[-1]
+    receipt = json.loads((output / 'scoring-revisions.json').read_text(encoding='utf-8'))[-1]
     assert receipt['inherited_scoring_authority']['receipts_sha256'] == hashlib.sha256(original_history).hexdigest()
     assert receipt['task_decision_changes'] == []
     assert not (output / 'result-review.json').exists()
     assert (root / 'results.jsonl').read_bytes() == original_bytes
     assert (root / 'scoring-revisions.json').read_bytes() == original_history
-    result = [json.loads(line) for line in (output / 'results.jsonl').read_text().splitlines()]
+    result = [json.loads(line) for line in (output / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
     inputs = ([json.loads(line) for line in original_bytes.splitlines()]
               if operation == 'addition' else [])
-    inputs += [json.loads(line) for line in (incoming / 'results.jsonl').read_text().splitlines()]
+    inputs += [json.loads(line) for line in (incoming / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
     indexed = {(row['provider'], row['case_id']): row for row in inputs}
     assert len(result) == len(indexed)
     for row in result:
@@ -780,7 +780,7 @@ def test_scored_cohort_composition_keeps_authority_without_starting_review(sourc
 def test_provider_replacement_rejects_request_bearing_task_changes(
         source, tmp_path, field, changed):
     root, _ = source
-    dataset = json.loads((root / 'dataset.json').read_text())
+    dataset = json.loads((root / 'dataset.json').read_text(encoding='utf-8'))
     incoming_dataset = json.loads(json.dumps(dataset))
     incoming_dataset['cases'][0][field] = changed
     case = EvalCase(**incoming_dataset['cases'][0])
@@ -805,13 +805,13 @@ def test_scored_cohort_composition_rejects_invalid_authority_or_changed_verdict(
 
     root, _ = source
     if damage == 'declared-review':
-        metadata = json.loads((root / 'dataset.json').read_text())
+        metadata = json.loads((root / 'dataset.json').read_text(encoding='utf-8'))
         metadata.setdefault('comparison', {})['require_independent_result_review'] = True
-        (root / 'dataset.json').write_text(json.dumps(metadata))
+        (root / 'dataset.json').write_text(json.dumps(metadata), encoding='utf-8')
     revise(root, root / 'dataset.json', root_cause_category='answer-surface',
         root_cause='Synthetic retained-answer correction is checked on the complete cohort.',
         regression_ids=['body-only-word-boundary-answer-title-supplies-required-fact'])
-    dataset = json.loads((root / 'dataset.json').read_text())
+    dataset = json.loads((root / 'dataset.json').read_text(encoding='utf-8'))
     case = EvalCase(**dataset['cases'][0])
     class Fixture(Provider):
         def fetch(self, case, timeout):
@@ -823,14 +823,14 @@ def test_scored_cohort_composition_rejects_invalid_authority_or_changed_verdict(
         provider_config_path=tmp_path / 'providers.json', runs=1, timeout=1, delay=0)
     if damage == 'source-authority':
         path = root / 'scoring-revisions.json'
-        history = json.loads(path.read_text())
+        history = json.loads(path.read_text(encoding='utf-8'))
         history[-1]['output_results_sha256'] = 'f' * 64
-        path.write_text(json.dumps(history))
+        path.write_text(json.dumps(history), encoding='utf-8')
     elif damage == 'incoming-verdict':
         path = incoming / 'results.jsonl'
-        row = json.loads(path.read_text())
+        row = json.loads(path.read_text(encoding='utf-8'))
         row['metrics']['content_pass'] = False
-        path.write_text(json.dumps(row) + '\n')
+        path.write_text(json.dumps(row) + '\n', encoding='utf-8')
     protected = {folder: {p.relative_to(folder): p.read_bytes() for p in folder.rglob('*')
                           if p.is_file()} for folder in (root, incoming)}
     output = tmp_path / 'assembled'

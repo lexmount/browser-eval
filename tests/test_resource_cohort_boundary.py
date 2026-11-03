@@ -52,8 +52,8 @@ def runs(tmp_path):
     records = make_run(resource, 5, resource=True)
     package(resource)
     (resource / 'workers').mkdir()
-    (resource / 'workers/private-note.txt').write_text('synthetic private note')
-    (resource / 'artifacts/unbound-debug.txt').write_text('synthetic unbound bytes')
+    (resource / 'workers/private-note.txt').write_text('synthetic private note', encoding='utf-8')
+    (resource / 'artifacts/unbound-debug.txt').write_text('synthetic unbound bytes', encoding='utf-8')
     return base, resource, records
 
 
@@ -77,13 +77,13 @@ def test_resource_package_omits_local_paths_without_changing_config_hash(tmp_pat
     root = tmp_path / 'resource'
     make_run(root, 5, resource=True)
     path = root / 'manifest.json'
-    manifest = json.loads(path.read_text())
+    manifest = json.loads(path.read_text(encoding='utf-8'))
     manifest['provider_config_source'] = '/home/private/resource-custom.json'
     manifest['provider_config_sha256'] = hashlib.sha256(b'custom resources').hexdigest()
-    path.write_text(json.dumps(manifest))
+    path.write_text(json.dumps(manifest), encoding='utf-8')
     original = path.read_bytes()
     package(root)
-    batch = json.loads((root / 'execution.json').read_text())['batches'][0]
+    batch = json.loads((root / 'execution.json').read_text(encoding='utf-8'))['batches'][0]
     assert batch['provider_config_source'] == 'resource-custom.json'
     assert batch['provider_config_sha256'] == manifest['provider_config_sha256']
     assert 'hostname' not in batch['environment']
@@ -94,10 +94,10 @@ def test_resource_identity_conflict_does_not_write_partial_package_metadata(tmp_
     root = tmp_path / 'resource'
     make_run(root, 5, resource=True)
     path = root / 'manifest.json'
-    manifest = json.loads(path.read_text())
+    manifest = json.loads(path.read_text(encoding='utf-8'))
     manifest['provider_config_sha256'] = 'a' * 64
     manifest['runtime_identity_record'] = {'provider_config_sha256': 'b' * 64}
-    path.write_text(json.dumps(manifest))
+    path.write_text(json.dumps(manifest), encoding='utf-8')
     original = path.read_bytes()
     with pytest.raises(ValueError, match='Conflicting provider configuration hashes'):
         package(root)
@@ -111,12 +111,12 @@ def test_invalid_resource_comparison_fails_without_exposing_output(runs, tmp_pat
     base, resource, records = runs
     if damage.startswith('summary'):
         path = resource / 'resource-comparison.json'
-        summary = json.loads(path.read_text())
+        summary = json.loads(path.read_text(encoding='utf-8'))
         if damage == 'summary-binding':
             summary['bindings']['results_sha256'] = '0' * 64
         else:
             summary['rows'][0]['metrics']['cpu_ms']['mean'] = 999
-        path.write_text(json.dumps(summary))
+        path.write_text(json.dumps(summary), encoding='utf-8')
     elif damage == 'linked-artifact':
         path = resource / records[0]['artifact_path']
         actual = resource / 'same-bytes.txt'
@@ -127,10 +127,10 @@ def test_invalid_resource_comparison_fails_without_exposing_output(runs, tmp_pat
         relative = 'artifacts/fixture/missing.txt'
         records[0]['provider_metadata'].update(raw_stdout_path=relative,
             raw_stdout_sha256=hashlib.sha256(b'missing bytes').hexdigest())
-        (resource / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in records))
-        summary = json.loads((resource / 'resource-comparison.json').read_text())
+        (resource / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in records), encoding='utf-8')
+        summary = json.loads((resource / 'resource-comparison.json').read_text(encoding='utf-8'))
         summary['bindings']['results_sha256'] = hashlib.sha256((resource / 'results.jsonl').read_bytes()).hexdigest()
-        (resource / 'resource-comparison.json').write_text(json.dumps(summary))
+        (resource / 'resource-comparison.json').write_text(json.dumps(summary), encoding='utf-8')
     output = tmp_path / 'rejected'
     with pytest.raises(ValueError):
         assemble(base, tmp_path / 'certificates', [], output, resource_cohort=resource)
@@ -140,8 +140,8 @@ def test_invalid_resource_comparison_fails_without_exposing_output(runs, tmp_pat
 @pytest.mark.parametrize('damage', ['missing-provider', 'duplicate-case', 'boolean', 'infinite', 'negative'])
 def test_resource_summary_rejects_incomplete_scope_and_invalid_measurements(runs, damage):
     _, resource, records = runs
-    dataset = json.loads((resource / 'dataset.json').read_text())
-    batches = json.loads((resource / 'execution.json').read_text())['batches']
+    dataset = json.loads((resource / 'dataset.json').read_text(encoding='utf-8'))
+    batches = json.loads((resource / 'execution.json').read_text(encoding='utf-8'))['batches']
     if damage == 'missing-provider':
         dataset['coverage_plan']['web'].append('absent-method')
     elif damage == 'duplicate-case':
@@ -158,7 +158,7 @@ def resource_population_fixture(tmp_path):
     from copy import deepcopy
     root = tmp_path / 'resource-populations'
     original = make_run(root, 6, resource=True)
-    dataset = json.loads((root / 'dataset.json').read_text())
+    dataset = json.loads((root / 'dataset.json').read_text(encoding='utf-8'))
     dataset['coverage_plan']['web'] = ['fixture', 'other']
     records = deepcopy(original)
     for index, row in enumerate(records):
@@ -171,7 +171,7 @@ def resource_population_fixture(tmp_path):
         added['provider'] = 'other'
         added['attempt_id'] = row['attempt_id'].replace('fixture', 'other')
         records.append(added)
-    batches = [json.loads((root / 'manifest.json').read_text())]
+    batches = [json.loads((root / 'manifest.json').read_text(encoding='utf-8'))]
     return dataset, records, batches
 
 
@@ -239,8 +239,8 @@ def test_resource_release_checks_populations_measurements_and_unique_highlights(
 
 def test_resource_sampling_note_follows_recorded_interval(runs):
     _, resource, records = runs
-    dataset = json.loads((resource / 'dataset.json').read_text())
-    batches = json.loads((resource / 'execution.json').read_text())['batches']
+    dataset = json.loads((resource / 'dataset.json').read_text(encoding='utf-8'))
+    batches = json.loads((resource / 'execution.json').read_text(encoding='utf-8'))['batches']
     for row in records:
         row['provider_metadata']['resource_environment']['sample_interval_ms'] = 125
     summary = build_summary(dataset, records, batches)
@@ -251,8 +251,8 @@ def test_resource_sampling_note_follows_recorded_interval(runs):
 @pytest.mark.parametrize('interval', [None, 0, -1, True, '50', float('nan'), float('inf')])
 def test_resource_summary_rejects_missing_or_invalid_sampling_evidence(runs, interval):
     _, resource, records = runs
-    dataset = json.loads((resource / 'dataset.json').read_text())
-    batches = json.loads((resource / 'execution.json').read_text())['batches']
+    dataset = json.loads((resource / 'dataset.json').read_text(encoding='utf-8'))
+    batches = json.loads((resource / 'execution.json').read_text(encoding='utf-8'))['batches']
     for row in records:
         environment = row['provider_metadata']['resource_environment']
         if interval is None:

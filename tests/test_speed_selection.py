@@ -22,7 +22,7 @@ def test_speed_selection_uses_external_inputs_and_copies_only_selected_tasks(tmp
     cases = [{'id': f'case-{index}', 'url': f'https://h{index}.example/',
               'ground_truth_main_content': 'Independent text ' * (index + 1)}
              for index in range(10)]
-    dataset.write_text(json.dumps({'cases': cases}))
+    dataset.write_text(json.dumps({'cases': cases}), encoding='utf-8')
     approved = tmp_path / 'approved'
     trees = {'sources': {}, 'list-references': {}}
     for case in cases:
@@ -37,18 +37,18 @@ def test_speed_selection_uses_external_inputs_and_copies_only_selected_tasks(tmp
     manifest = dataset.parent / 'source-inputs.json'
     manifest.write_text(json.dumps({'schema_version': 1, 'kind': 'frozen_reference_inputs',
         'id': 'speed-fixture', 'dataset': dataset.name,
-        'dataset_sha256': hashlib.sha256(dataset.read_bytes()).hexdigest(), 'trees': trees}))
+        'dataset_sha256': hashlib.sha256(dataset.read_bytes()).hexdigest(), 'trees': trees}), encoding='utf-8')
     import_inputs(manifest, approved)
     output = tmp_path / 'selected'
     monkeypatch.setattr(sys, 'argv', ['select-speed', '--dataset', str(dataset),
                                     '--output', str(output), '--count', '5'])
     selection_main()
-    selected = {case['id'] for case in json.loads((output / 'dataset.json').read_text())['cases']}
+    selected = {case['id'] for case in json.loads((output / 'dataset.json').read_text(encoding='utf-8'))['cases']}
     assert len(selected) == 5
     assert {path.name for path in (output / 'sources').iterdir()} == selected
     assert {path.stem for path in (output / 'list-references').iterdir()} == selected
     for identifier in selected:
-        assert (output / 'sources' / identifier / 'reference.txt').read_text() == identifier
+        assert (output / 'sources' / identifier / 'reference.txt').read_text(encoding='utf-8') == identifier
     assert not (dataset.parent / 'sources').exists()
 
 

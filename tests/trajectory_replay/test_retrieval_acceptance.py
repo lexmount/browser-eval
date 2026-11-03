@@ -524,7 +524,7 @@ def test_saved_answer_is_recomputed_and_cross_run_replay_rejected(tmp_path, monk
         ("evaluation", evaluation),
     ]:
         path = tmp_path / (name + ".json")
-        path.write_text(json.dumps(value))
+        path.write_text(json.dumps(value), encoding="utf-8")
         attempt["evidence"][name] = {
             "path": str(path),
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
@@ -544,7 +544,7 @@ def test_saved_answer_is_recomputed_and_cross_run_replay_rejected(tmp_path, monk
         original = evaluation[field]
         evaluation[field] = "stale"
         path = tmp_path / "evaluation.json"
-        path.write_text(json.dumps(evaluation))
+        path.write_text(json.dumps(evaluation), encoding="utf-8")
         attempt["evidence"]["evaluation"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
         with pytest.raises(ValueError, match="provenance"):
             verify_attempt(attempt, contract, calls)
@@ -554,19 +554,19 @@ def test_saved_answer_is_recomputed_and_cross_run_replay_rejected(tmp_path, monk
     evaluation["status"] = "fail"
     evaluation["evaluators_results"][0].update(score=0, status="fail")
     path = tmp_path / "evaluation.json"
-    path.write_text(json.dumps(evaluation))
+    path.write_text(json.dumps(evaluation), encoding="utf-8")
     attempt["evidence"]["evaluation"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
     with pytest.raises(ValueError, match="contradicts"):
         verify_attempt(attempt, contract, calls)
     attempt.update(status="fail", evaluator_status="fail")
     verify_attempt(attempt, contract, calls)
     evaluation["task_id"] = 999
-    path.write_text(json.dumps(evaluation))
+    path.write_text(json.dumps(evaluation), encoding="utf-8")
     attempt["evidence"]["evaluation"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
     with pytest.raises(ValueError, match="task differs"):
         verify_attempt(attempt, contract, calls)
     evaluation["task_id"] = 1
-    path.write_text(json.dumps(evaluation))
+    path.write_text(json.dumps(evaluation), encoding="utf-8")
     attempt["evidence"]["evaluation"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
     wrong_run = copy.deepcopy(attempt)
     wrong_run["run_id"] = "other-run"
@@ -612,7 +612,7 @@ def test_evaluation_must_itself_bind_the_declared_task_correction(monkeypatch):
 def test_catalog_hash_and_symlink_are_enforced(tmp_path):
     calls, contract, _ = fixture()
     path = tmp_path / "contracts.json"
-    path.write_text(json.dumps({"schema": PROTOCOL, "contracts": [contract]}))
+    path.write_text(json.dumps({"schema": PROTOCOL, "contracts": [contract]}), encoding="utf-8")
     binding = {
         "protocol": PROTOCOL,
         "path": path.name,
@@ -632,7 +632,10 @@ def test_v2_catalog_preserves_per_task_v1_and_v2_contract_protocols(tmp_path):
     v2_calls, v2_contract, _ = reviewed_span_fixture()
     v2_contract["task_id"] = 2
     path = tmp_path / "mixed-contracts.json"
-    path.write_text(json.dumps({"schema": PROTOCOL_V2, "contracts": [v1_contract, v2_contract]}))
+    path.write_text(
+        json.dumps({"schema": PROTOCOL_V2, "contracts": [v1_contract, v2_contract]}),
+        encoding="utf-8",
+    )
     binding = {
         "protocol": PROTOCOL_V2,
         "path": path.name,
@@ -662,7 +665,7 @@ def test_official_evaluator_uses_current_observation_not_the_frozen_answer(
     from webarena_verified.types.tracing import NetworkTrace
 
     tasks = json.loads(
-        files("webarena_verified").joinpath("assets/dataset/webarena-verified.json").read_text()
+        files("webarena_verified").joinpath("assets/dataset/webarena-verified.json").read_text(encoding="utf-8")
     )
     task = WebArenaVerifiedTask.model_validate(next(row for row in tasks if row["task_id"] == 77))
     calls, contract, rows = fixture()
@@ -933,7 +936,7 @@ def test_v3_full_official_evaluator(tmp_path, values, score):
     from webarena_verified.types.tracing import NetworkTrace
 
     tasks = json.loads(
-        files("webarena_verified").joinpath("assets/dataset/webarena-verified.json").read_text()
+        files("webarena_verified").joinpath("assets/dataset/webarena-verified.json").read_text(encoding="utf-8")
     )
     task = WebArenaVerifiedTask.model_validate(next(row for row in tasks if row["task_id"] == 163))
     answer = build(*distinct_fixture(values))["actual_response"]
@@ -961,7 +964,7 @@ def test_v3_span_full_evaluator(tmp_path, expected, score):
     from webarena_verified.types.tracing import NetworkTrace
 
     tasks = json.loads(
-        files("webarena_verified").joinpath("assets/dataset/webarena-verified.json").read_text()
+        files("webarena_verified").joinpath("assets/dataset/webarena-verified.json").read_text(encoding="utf-8")
     )
     raw_task = copy.deepcopy(next(row for row in tasks if row["task_id"] == 163))
     raw_task["eval"][0]["expected"]["retrieved_data"] = expected

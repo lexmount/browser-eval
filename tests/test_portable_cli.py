@@ -62,7 +62,7 @@ def test_offline_example_runs_without_a_repository(tmp_path, unbound_diagnostics
                     ignore=shutil.ignore_patterns("__pycache__"))
     # A shared case ID does not bind another dataset's source observation.
     (installation / "research").mkdir()
-    (installation / "research/failure-sources.json").write_text(unbound_diagnostics)
+    (installation / "research/failure-sources.json").write_text(unbound_diagnostics, encoding="utf-8")
     env = {**os.environ, "PYTHONPATH": str(installation)}
     imported = subprocess.run([
         sys.executable, "-c",
@@ -78,21 +78,21 @@ def test_offline_example_runs_without_a_repository(tmp_path, unbound_diagnostics
                                 cwd=tmp_path, env=env, capture_output=True, text=True)
         assert result.returncode == expected_code, result.stdout + result.stderr
     run = tmp_path / "run"
-    rows = [json.loads(line) for line in (run / "results.jsonl").read_text().splitlines()]
+    rows = [json.loads(line) for line in (run / "results.jsonl").read_text(encoding="utf-8").splitlines()]
     assert len(rows) == 2
     assert {row["ok"] for row in rows} == {True, False}
     reported = [json.loads(line) for line in
-                (run / "report/results.jsonl").read_text().splitlines()]
+                (run / "report/results.jsonl").read_text(encoding="utf-8").splitlines()]
     assert reported == rows
-    reliability = json.loads((run / "report/reliability.json").read_text())
+    reliability = json.loads((run / "report/reliability.json").read_text(encoding="utf-8"))
     assert reliability["complete"]
     assert reliability["expected_calls"] == 2
-    home = (run / "report/index.html").read_text()
+    home = (run / "report/index.html").read_text(encoding="utf-8")
     assert "合成示例" in home
     assert "非正式评测" in home
     assert "实测报告" not in home
     assert "网页抓取成功之后，内容离可用还有多远" not in home
-    guide = (run / "report/guide/index.html").read_text()
+    guide = (run / "report/guide/index.html").read_text(encoding="utf-8")
     assert "本报告的任务范围与验收规则" in guide
     from harness.reporting.links import check
     check(run / "report")

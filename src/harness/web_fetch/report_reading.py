@@ -73,7 +73,7 @@ def copy_archived_reading(source: Path, out: Path) -> None:
     manifest = source / "archived-reading.json"
     if not manifest.is_file():
         return
-    data = json.loads(manifest.read_text())
+    data = json.loads(manifest.read_text(encoding='utf-8'))
     for item in [*data["languages"].values(), *([data["translations"]] if data.get("translations") else [])]:
         origin = contained_path(source, item["path"])
         if origin.is_symlink() or file_sha256(origin) != item["sha256"]:
@@ -88,7 +88,7 @@ def render_archived_reading(out: Path, language: str = "zh") -> str | None:
     manifest = out / "archived-reading.json"
     if not manifest.is_file():
         return None
-    data = json.loads(manifest.read_text())
+    data = json.loads(manifest.read_text(encoding='utf-8'))
     item = data["languages"][language]
     raw = contained_path(out, item["path"]).read_bytes()
     if hashlib.sha256(raw).hexdigest() != item["sha256"]:
@@ -112,7 +112,7 @@ def archived_translations(out: Path) -> dict[str, str]:
     manifest = out / "archived-reading.json"
     if not manifest.is_file():
         return {}
-    item = json.loads(manifest.read_text()).get("translations")
+    item = json.loads(manifest.read_text(encoding='utf-8')).get("translations")
     if not item:
         return {}
     raw = contained_path(out, item["path"], reject_symlinks=True).read_bytes()

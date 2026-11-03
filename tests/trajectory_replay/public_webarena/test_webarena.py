@@ -423,7 +423,7 @@ def test_declared_trace_audit_freezes_inputs_and_preserves_outputs(tmp_path, mon
     catalog = tmp_path / "catalog.json"
     rows = [{"task_id": task, "file_name": f"{task}.trace.zip",
              "download_url": f"https://drive.google.com/uc?id={task}"} for task in (7, 11)]
-    catalog.write_text(json.dumps({"count": 2, "traces": rows}))
+    catalog.write_text(json.dumps({"count": 2, "traces": rows}), encoding="utf-8")
     for row in rows:
         with zipfile.ZipFile(tmp_path / row["file_name"], "w") as archive:
             archive.writestr("trace.trace", json.dumps({"type": "context-options",
@@ -434,7 +434,7 @@ def test_declared_trace_audit_freezes_inputs_and_preserves_outputs(tmp_path, mon
     def inspect(path, **kwargs):
         result = original(path, **kwargs)
         if damage == "catalog":
-            catalog.write_text("{}")
+            catalog.write_text("{}", encoding="utf-8")
         elif damage == "trace":
             path.write_bytes(path.read_bytes() + b"changed")
         return result
@@ -445,7 +445,7 @@ def test_declared_trace_audit_freezes_inputs_and_preserves_outputs(tmp_path, mon
         (tmp_path / rows[0]["file_name"]).unlink()
         with pytest.raises(RuntimeError, match="incomplete"):
             webarena.main_audit_traces(args)
-        result = json.loads(output.read_text())
+        result = json.loads(output.read_text(encoding="utf-8"))
         assert not result["complete"] and result["downloaded_count"] == 1
     elif damage:
         with pytest.raises(ValueError, match="inputs changed"):
@@ -453,7 +453,7 @@ def test_declared_trace_audit_freezes_inputs_and_preserves_outputs(tmp_path, mon
         assert not output.exists()
     else:
         webarena.main_audit_traces(args)
-        result = json.loads(output.read_text())
+        result = json.loads(output.read_text(encoding="utf-8"))
         assert result["expected_count"] == result["downloaded_count"] == 2
         assert result["complete"] and result["zero_action_task_ids"] == [7, 11]
         assert set(result["trace_sha256"]) == {row["file_name"] for row in rows}

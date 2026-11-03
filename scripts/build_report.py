@@ -76,14 +76,14 @@ if __name__ == '__main__':
         parser.error('--local-audit cannot be combined with a release profile, WCXB, WebMainBench, or public benchmark research')
     if args.profile:
         args.profile=(ROOT/args.profile).resolve() if not args.profile.is_absolute() else args.profile.resolve()
-        if json.loads(args.profile.read_text()).get('variant') == 'published-snapshot-audit':
+        if json.loads(args.profile.read_text(encoding='utf-8')).get('variant') == 'published-snapshot-audit':
             if not args.evidence or not args.output or args.local_audit or args.wcxb or args.include_english:
                 parser.error('snapshot audit requires a separate --evidence, --output and bound --profile')
             requested_language(args.output, supported=('zh',))
             from harness.web_fetch.published_snapshot import build_snapshot_audit
             print(build_snapshot_audit(args.evidence, args.output, profile=args.profile))
             raise SystemExit(0)
-        if json.loads(args.profile.read_text()).get('variant') == 'diagnostic-cohorts':
+        if json.loads(args.profile.read_text(encoding='utf-8')).get('variant') == 'diagnostic-cohorts':
             args.diagnostic_cohorts=True
     if args.diagnostic_cohorts:
         if not args.output or (not args.evidence and not args.profile):
@@ -127,7 +127,7 @@ if __name__ == '__main__':
         profile_path=args.profile
     else:
         parser.error('Select an external report instance with --profile')
-    profile=json.loads(profile_path.read_text())
+    profile=json.loads(profile_path.read_text(encoding='utf-8'))
     if args.wcxb and profile.get('comparison_kind')!='wcxb_frozen_html_to_markdown':
         parser.error('The WCXB profile does not describe the WCXB matrix')
     if profile.get('comparison_kind')=='wcxb_frozen_html_to_markdown':
@@ -136,7 +136,7 @@ if __name__ == '__main__':
         from harness.web_fetch.webmainbench_runner import selected_wcxb_input
         corpus, sample = selected_wcxb_input(args.wcxb_source, args.wcxb_sample, profile=profile_path)
         print(build_wcxb_report(args.evidence,corpus,sample,profile,args.output or ROOT/'reports/wcxb',
-                                content_binding=json.loads(profile_path.with_name('report-content-binding.json').read_text()),
+                                content_binding=json.loads(profile_path.with_name('report-content-binding.json').read_text(encoding='utf-8')),
                                 authority_root=ROOT, include_english=args.include_english,
                                 language=requested_language(args.output or ROOT/'reports/wcxb')))
         raise SystemExit(0)

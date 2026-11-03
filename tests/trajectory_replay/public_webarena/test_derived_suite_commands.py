@@ -24,8 +24,8 @@ def invoke(entry, arguments):
 def command_inputs(tmp_path, kind):
     suite, qualification = authoring_suite_fixture()
     source, receipt = tmp_path / 'suite.json', tmp_path / 'qualification.json'
-    source.write_text(json.dumps(suite))
-    receipt.write_text(json.dumps(qualification))
+    source.write_text(json.dumps(suite), encoding='utf-8')
+    receipt.write_text(json.dumps(qualification), encoding='utf-8')
     output = tmp_path / 'derived/suite.json'
     args = ['--suite', str(source), '--output', str(output)]
     if kind == 'authoring':
@@ -40,9 +40,9 @@ def command_inputs(tmp_path, kind):
 @pytest.mark.parametrize('kind', ['authoring', 'observation'])
 def test_invalid_derived_suite_never_becomes_a_visible_output(tmp_path, kind):
     source, output, entry, args = command_inputs(tmp_path, kind)
-    payload = json.loads(source.read_text())
+    payload = json.loads(source.read_text(encoding='utf-8'))
     del payload['tasks'][0]['title']
-    source.write_text(json.dumps(payload))
+    source.write_text(json.dumps(payload), encoding='utf-8')
     with pytest.raises(ValueError):
         invoke(entry, args)
     assert not output.exists()
@@ -52,10 +52,10 @@ def test_invalid_derived_suite_never_becomes_a_visible_output(tmp_path, kind):
 def test_command_refuses_to_replace_a_different_derived_suite(tmp_path, kind):
     _, output, entry, args = command_inputs(tmp_path, kind)
     output.parent.mkdir()
-    output.write_text('retained evidence\n')
+    output.write_text('retained evidence\n', encoding='utf-8')
     with pytest.raises(ValueError):
         invoke(entry, args)
-    assert output.read_text() == 'retained evidence\n'
+    assert output.read_text(encoding='utf-8') == 'retained evidence\n'
 
 
 @pytest.mark.parametrize('kind', ['authoring', 'observation'])
@@ -110,13 +110,13 @@ def test_explicit_empty_cli_task_scope_cannot_select_all_tasks(tmp_path):
 def test_command_rejects_output_symlink_without_changing_its_target(tmp_path, kind):
     _, output, entry, args = command_inputs(tmp_path, kind)
     target = tmp_path / 'retained.json'
-    target.write_text('retained evidence\n')
+    target.write_text('retained evidence\n', encoding='utf-8')
     output.parent.mkdir()
     output.symlink_to(target)
     with pytest.raises(ValueError):
         invoke(entry, args)
     assert output.is_symlink()
-    assert target.read_text() == 'retained evidence\n'
+    assert target.read_text(encoding='utf-8') == 'retained evidence\n'
 
 
 @pytest.mark.parametrize('timeout', [0, -1, True, 1.5])

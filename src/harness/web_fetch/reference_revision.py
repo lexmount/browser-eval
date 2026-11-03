@@ -116,7 +116,7 @@ def _revise_staged(
     history = json.loads(receipt_path.read_bytes()) if receipt_path.exists() else []
     review_path = source / "result-review.json"
     if review_path.is_file():
-        review = json.loads(review_path.read_text())
+        review = json.loads(review_path.read_text(encoding="utf-8"))
         if review.get("bindings") != {
             "dataset_sha256": bytes_sha256(before_dataset),
             "results_sha256": bytes_sha256(before_results),
@@ -136,9 +136,9 @@ def _revise_staged(
     original_hashes = {}
     execution_path = source / "execution.json"
     batches = (
-        json.loads(execution_path.read_text())["batches"]
+        json.loads(execution_path.read_text(encoding="utf-8"))["batches"]
         if execution_path.is_file()
-        else [json.loads((source / "manifest.json").read_text())]
+        else [json.loads((source / "manifest.json").read_text(encoding="utf-8"))]
     )
     for batch in batches:
         for case_id, binding in batch.get("reference_checks", {}).get("cases", {}).items():
@@ -204,7 +204,7 @@ def _revise_staged(
     dataset["cases"] = updated
     records = parse_jsonl(before_results)
     validate_report_ids(dataset, records)
-    dataset_path.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
+    dataset_path.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     # Keep the independently retained corrected source files beside the revised
     # dataset; provider artifacts remain byte-for-byte untouched.
     selected = {
@@ -285,7 +285,7 @@ def _revise_staged(
     ]
     # Append-only history: a later reference correction is a new graph edge,
     # never a reason to rewrite an earlier receipt's endpoint.
-    receipt_path.write_text(json.dumps([*history, receipt], ensure_ascii=False, indent=2) + "\n")
+    receipt_path.write_text(json.dumps([*history, receipt], ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     # A reference correction is a separate, hash-bound transition.  Never
     # rewrite historical scoring outputs to the new reference result: doing so
     # destroys the chronological scoring chain.  The validator follows the

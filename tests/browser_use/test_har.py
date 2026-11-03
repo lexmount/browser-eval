@@ -146,7 +146,7 @@ def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(
     path = tmp_path / "bridged.har"
     recorder.stop(context, path)
 
-    entries = json.loads(path.read_text())["log"]["entries"]
+    entries = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"]
     assert len(entries) == 1
     assert entries[0]["request"]["postData"]["text"] == '{"enabled":true}'
     assert all(
@@ -238,7 +238,7 @@ def test_native_form_har_restores_real_redirect_and_safe_cookie(tmp_path) -> Non
 
     path = tmp_path / "native-form.har"
     recorder.stop(object(), path)
-    entry = json.loads(path.read_text())["log"]["entries"][0]
+    entry = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"][0]
 
     assert entry["request"]["postData"]["text"] == "product=42"
     assert entry["response"]["status"] == 302
@@ -373,7 +373,7 @@ def test_request_bridge_preserves_redirect_and_browser_generated_get(
     path = tmp_path / "redirect.har"
     recorder.stop(context, path)
 
-    entries = json.loads(path.read_text())["log"]["entries"]
+    entries = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"]
     assert [(row["request"]["method"], row["request"]["url"]) for row in entries] == [
         ("POST", first_request.url),
         ("GET", second_request.url),
@@ -439,7 +439,7 @@ def test_playwright_transport_records_mutation_and_json_body_without_cdp_session
     path = tmp_path / "playwright.har"
     recorder.stop(context, path)
 
-    entries = json.loads(path.read_text())["log"]["entries"]
+    entries = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"]
     assert entries == [
         {
             "request": {
@@ -518,7 +518,7 @@ def test_playwright_transport_keeps_failed_request_as_status_zero(tmp_path) -> N
     path = tmp_path / "failed.har"
     recorder.stop(context, path)
 
-    entry = json.loads(path.read_text())["log"]["entries"][0]
+    entry = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"][0]
     assert entry["response"]["status"] == 0
     assert entry["_capture"] == {
         "state": "failed",
@@ -555,7 +555,7 @@ def test_navigation_response_fills_a_missing_cdp_document_event(tmp_path) -> Non
     path = tmp_path / "navigation.har"
     recorder.stop(context, path)
 
-    entries = json.loads(path.read_text())["log"]["entries"]
+    entries = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"]
     assert entries == [
         {
             "request": {
@@ -640,7 +640,7 @@ def test_capture_explicitly_retains_navigation_json_with_finite_limits(tmp_path)
     recorder.stop(context, path)
     assert recorder.errors == []
     assert (
-        json.loads(path.read_text())["log"]["entries"][0]["response"]["content"]["text"]
+        json.loads(path.read_text(encoding="utf-8"))["log"]["entries"][0]["response"]["content"]["text"]
         == '{"saved":true}'
     )
     assert [method for method, _ in session.calls].count("Network.enable") == 1
@@ -750,7 +750,9 @@ def test_parameterized_json_body_is_captured_byte_exactly(tmp_path) -> None:
 
     recorder.stop(object(), path)
 
-    content = json.loads(path.read_text())["log"]["entries"][0]["response"]["content"]
+    content = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"][0]["response"][
+        "content"
+    ]
     assert content["text"] == expected
 
 
@@ -794,13 +796,13 @@ def test_stop_is_idempotent_and_does_not_overwrite_har(tmp_path) -> None:
     recorder = CdpHarRecorder()
     path = tmp_path / "network.har"
     recorder.stop(object(), path)
-    first = path.read_text()
-    path.write_text("sentinel")
+    first = path.read_text(encoding="utf-8")
+    path.write_text("sentinel", encoding="utf-8")
 
     recorder.stop(object(), path)
 
     assert first != "sentinel"
-    assert path.read_text() == "sentinel"
+    assert path.read_text(encoding="utf-8") == "sentinel"
 
 
 def test_stop_serializes_one_response_snapshot_when_callbacks_append(tmp_path) -> None:
@@ -834,7 +836,7 @@ def test_stop_serializes_one_response_snapshot_when_callbacks_append(tmp_path) -
 
     recorder.stop(object(), path)
 
-    entries = json.loads(path.read_text())["log"]["entries"]
+    entries = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"]
     assert [entry["request"]["url"] for entry in entries] == ["http://example.test/first"]
 
 
@@ -865,7 +867,9 @@ def test_stop_decodes_base64_json_for_official_har_parser(tmp_path) -> None:
 
     recorder.stop(object(), path)
 
-    content = json.loads(path.read_text())["log"]["entries"][0]["response"]["content"]
+    content = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"][0]["response"][
+        "content"
+    ]
     assert content == {"mimeType": "application/json", "text": '{"items_qty":1}'}
 
 
@@ -908,7 +912,9 @@ def test_recorder_captures_json_body_when_loading_finishes(tmp_path) -> None:
     path = tmp_path / "network.har"
     recorder.stop(object(), path)
 
-    content = json.loads(path.read_text())["log"]["entries"][0]["response"]["content"]
+    content = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"][0]["response"][
+        "content"
+    ]
     assert content["text"] == '{"items_qty":1}'
     assert session.calls == 1
     assert recorder.errors == []
@@ -938,7 +944,9 @@ def test_invalid_base64_is_not_written_as_plain_json(tmp_path) -> None:
 
     recorder.stop(object(), path)
 
-    content = json.loads(path.read_text())["log"]["entries"][0]["response"]["content"]
+    content = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"][0]["response"][
+        "content"
+    ]
     assert content["text"] == ""
     assert recorder.errors
 
@@ -991,7 +999,7 @@ def test_timing_and_redirect_chain_preserve_official_evaluation_events(tmp_path)
     recorder._record_finished(session, key, {"requestId": "same", "timestamp": 10.4})
     path = tmp_path / "timed.har"
     recorder.stop(object(), path)
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     entries = payload["log"]["entries"]
     first, second = entries
     assert first["startedDateTime"] == "2023-11-14T22:13:20.250000Z"
@@ -1015,7 +1023,7 @@ def test_timing_and_redirect_chain_preserve_official_evaluation_events(tmp_path)
         {"request": e["request"], "response": e["response"]} for e in entries
     ]
     plain = tmp_path / "plain.har"
-    plain.write_text(json.dumps(payload))
+    plain.write_text(json.dumps(payload), encoding="utf-8")
     prior = NetworkTrace.from_har(plain)
     for old, new in zip(prior.events, original.events, strict=True):
         assert (
@@ -1050,7 +1058,7 @@ def test_missing_timestamps_remain_missing_and_sessions_do_not_alias(tmp_path) -
         )
     path = tmp_path / "network.har"
     recorder.stop(object(), path)
-    entries = json.loads(path.read_text())["log"]["entries"]
+    entries = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"]
     assert [entry["_cdp"]["sessionOrdinal"] for entry in entries] == [0, 1]
     for entry in entries:
         assert "startedDateTime" not in entry
@@ -1090,7 +1098,7 @@ def test_stop_barrier_delivers_queued_request_before_snapshot(tmp_path) -> None:
 
     recorder.stop(object(), path)
 
-    entry = json.loads(path.read_text())["log"]["entries"][0]
+    entry = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"][0]
     assert entry["request"]["method"] == "POST"
     assert entry["response"]["status"] == 0
     assert entry["_capture"] == {
@@ -1124,7 +1132,7 @@ def test_stop_retains_request_only_document_without_fabricating_success(tmp_path
 
     recorder.stop(object(), path)
 
-    entry = json.loads(path.read_text())["log"]["entries"][0]
+    entry = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"][0]
     assert entry["request"]["url"] == "http://example.test/save"
     assert entry["response"]["status"] == 0
     assert entry["_capture"]["state"] == "incomplete"
@@ -1165,7 +1173,7 @@ def test_stop_retains_pending_redirect_target_with_its_ordinal(tmp_path) -> None
 
     recorder.stop(object(), path)
 
-    first, second = json.loads(path.read_text())["log"]["entries"]
+    first, second = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"]
     assert (first["request"]["method"], first["response"]["status"]) == ("POST", 302)
     assert (second["request"]["method"], second["response"]["status"]) == ("GET", 0)
     assert second["_cdp"]["redirectOrdinal"] == 1
@@ -1229,13 +1237,14 @@ def test_stop_drains_only_an_observed_slow_document_navigation(tmp_path) -> None
 
     recorder.stop(object(), path)
 
-    entry = json.loads(path.read_text())["log"]["entries"][0]
+    entry = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"][0]
     assert page.calls == 1
     assert entry["response"]["status"] == 302
     assert "_capture" not in entry
-    assert [item["request"]["url"] for item in json.loads(path.read_text())["log"]["entries"]] == [
-        "http://example.test/save"
-    ]
+    assert [
+        item["request"]["url"]
+        for item in json.loads(path.read_text(encoding="utf-8"))["log"]["entries"]
+    ] == ["http://example.test/save"]
 
 
 def test_stop_does_not_drain_unfinished_subresource_or_idle_page(tmp_path) -> None:
@@ -1273,7 +1282,7 @@ def test_stop_does_not_drain_unfinished_subresource_or_idle_page(tmp_path) -> No
 
     recorder.stop(object(), path)
 
-    entries = json.loads(path.read_text())["log"]["entries"]
+    entries = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"]
     assert idle.barriers == 2
     assert subresource.barriers == 2
     assert entries[0]["request"]["url"] == "http://example.test/events"
@@ -1323,7 +1332,7 @@ def test_stop_drains_iframe_document_by_request_terminal_event(tmp_path) -> None
 
     recorder.stop(object(), path)
 
-    entry = json.loads(path.read_text())["log"]["entries"][0]
+    entry = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"][0]
     assert page.calls == 1
     assert entry["response"]["status"] == 200
     assert "_capture" not in entry
@@ -1366,7 +1375,7 @@ def test_stop_ends_document_drain_on_loading_failed(tmp_path) -> None:
 
     recorder.stop(object(), path)
 
-    entry = json.loads(path.read_text())["log"]["entries"][0]
+    entry = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"][0]
     assert page.calls == 1
     assert entry["response"]["status"] == 0
     assert entry["_capture"] == {"state": "failed", "errorText": "net::ERR_ABORTED"}
@@ -1423,7 +1432,7 @@ def test_redirect_json_body_is_scoped_to_the_final_ordinal(tmp_path) -> None:
 
     recorder.stop(object(), path)
 
-    first, second = json.loads(path.read_text())["log"]["entries"]
+    first, second = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"]
     assert first["response"]["content"]["text"] == ""
     assert second["response"]["content"]["text"] == '{"final":true}'
 
@@ -1461,7 +1470,7 @@ def test_request_order_places_older_pending_document_before_newer_completed_one(
 
     recorder.stop(object(), path)
 
-    entries = json.loads(path.read_text())["log"]["entries"]
+    entries = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"]
     assert [entry["request"]["url"] for entry in entries] == [
         "http://example.test/old",
         "http://example.test/new",
@@ -1494,7 +1503,7 @@ def test_request_order_is_stable_when_completed_responses_arrive_in_reverse(tmp_
 
     recorder.stop(object(), path)
 
-    entries = json.loads(path.read_text())["log"]["entries"]
+    entries = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"]
     assert [entry["request"]["url"] for entry in entries] == [
         "http://example.test/first",
         "http://example.test/second",
@@ -1547,7 +1556,7 @@ def test_redirect_chain_uses_request_order_when_responses_interleave(tmp_path) -
 
     recorder.stop(object(), path)
 
-    entries = json.loads(path.read_text())["log"]["entries"]
+    entries = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"]
     assert [entry["request"]["url"] for entry in entries] == [
         "http://example.test/save",
         "http://example.test/done",
@@ -1611,7 +1620,7 @@ def test_body_fallback_callbacks_do_not_mutate_frozen_lifecycle_snapshot(tmp_pat
 
     recorder.stop(object(), path)
 
-    first, second = json.loads(path.read_text())["log"]["entries"]
+    first, second = json.loads(path.read_text(encoding="utf-8"))["log"]["entries"]
     assert first["response"]["content"]["text"] == '{"ok":true}'
     assert second["response"]["status"] == 0
     assert second["_capture"]["state"] == "incomplete"

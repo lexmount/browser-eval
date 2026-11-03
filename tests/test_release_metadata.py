@@ -17,12 +17,12 @@ def source_project():
     path = ROOT / "pyproject.toml"
     if not path.is_file():
         pytest.skip("Source metadata is checked before the installed-wheel gate")
-    return tomllib.loads(path.read_text())["project"]
+    return tomllib.loads(path.read_text(encoding="utf-8"))["project"]
 
 
 def test_package_lock_and_installed_version_agree():
     project = source_project()
-    locked = tomllib.loads((ROOT / "uv.lock").read_text())
+    locked = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
     package = next(p for p in locked["package"] if p["name"] == project["name"])
     assert package["version"] == project["version"]
     assert importlib.metadata.version(project["name"]) == project["version"]
@@ -33,11 +33,11 @@ def test_package_lock_and_installed_version_agree():
 
 def test_project_citations_do_not_claim_a_specific_release():
     source_project()
-    cff = (ROOT / "CITATION.cff").read_text()
+    cff = (ROOT / "CITATION.cff").read_text(encoding="utf-8")
     assert not re.search(r"^(version|date-released):", cff, re.M)
     citations = []
     for path in [ROOT / "README.md", ROOT / "docs/README.zh-CN.md"]:
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         block = re.search(r"```bibtex\n(.*?)```", text, re.S).group(1)
         assert not re.search(r"\bversion\s*=", block)
         url = re.search(r"url\s*=\s*\{([^}]+)\}", block).group(1)
@@ -69,7 +69,7 @@ def test_all_git_dependencies_resolve_to_locked_source_commits():
     from urllib.parse import parse_qs, urlsplit
 
     project = source_project()
-    packages = tomllib.loads((ROOT / "uv.lock").read_text())["package"]
+    packages = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))["package"]
     dependencies = list(project["dependencies"])
     for extra in project.get("optional-dependencies", {}).values():
         dependencies.extend(extra)

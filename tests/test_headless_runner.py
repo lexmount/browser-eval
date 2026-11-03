@@ -47,11 +47,11 @@ def test_evidence_checker_uses_explicit_custom_population(tmp_path, damage):
         "comparison": comparison,
     }
     canonical = tmp_path / "canonical.json"
-    canonical.write_text(json.dumps(dataset))
+    canonical.write_text(json.dumps(dataset), encoding="utf-8")
     evidence = tmp_path / "evidence"
     evidence.mkdir()
-    (evidence / "dataset.json").write_text(json.dumps(dataset))
-    (evidence / "output.txt").write_text("fixture")
+    (evidence / "dataset.json").write_text(json.dumps(dataset), encoding="utf-8")
+    (evidence / "output.txt").write_text("fixture", encoding="utf-8")
     rows = [
         {
             "provider": name,
@@ -70,15 +70,16 @@ def test_evidence_checker_uses_explicit_custom_population(tmp_path, damage):
         rows.pop()
     elif damage == "output-hash":
         rows[0]["metrics"]["content_sha256"] = "0" * 64
-    (evidence / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+    (evidence / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
     (evidence / "execution.json").write_text(
-        json.dumps({"batches": [{"attempt_ids": [row["attempt_id"] for row in rows]}]})
+        json.dumps({"batches": [{"attempt_ids": [row["attempt_id"] for row in rows]}]}),
+        encoding="utf-8"
     )
     config, provenance, profile = [
         tmp_path / name for name in ("methods.json", "provenance.json", "profile.json")
     ]
-    config.write_text(json.dumps({"providers": {name: {} for name in methods}}))
-    provenance.write_text(json.dumps({"implementations": []}))
+    config.write_text(json.dumps({"providers": {name: {} for name in methods}}), encoding="utf-8")
+    provenance.write_text(json.dumps({"implementations": []}), encoding="utf-8")
     profile.write_text(
         json.dumps(
             {
@@ -89,7 +90,8 @@ def test_evidence_checker_uses_explicit_custom_population(tmp_path, damage):
                 "providers": methods,
                 "case_ids_sha256": hashlib.sha256(b'["fixture"]').hexdigest(),
             }
-        )
+        ),
+        encoding="utf-8"
     )
     args = [
         str(evidence),
@@ -152,7 +154,8 @@ def experiment(tmp_path, monkeypatch):
                     }
                 ],
             }
-        )
+        ),
+        encoding="utf-8"
     )
     config = tmp_path / "custom-methods.json"
     output = tmp_path / "result"
@@ -164,7 +167,7 @@ def experiment(tmp_path, monkeypatch):
         [(2, 1, 6, '', ('93.184.216.34', 443))])
 
     def run(payload, *extra):
-        config.write_text(json.dumps(payload))
+        config.write_text(json.dumps(payload), encoding="utf-8")
         monkeypatch.setattr(
             sys,
             "argv",
@@ -180,8 +183,8 @@ def experiment(tmp_path, monkeypatch):
             ],
         )
         runner.main()
-        return json.loads((output / "dataset.json").read_text()), json.loads(
-            (output / "execution.json").read_text()
+        return json.loads((output / "dataset.json").read_text(encoding="utf-8")), json.loads(
+            (output / "execution.json").read_text(encoding="utf-8")
         )["batches"][0]
 
     return run, dataset, config, output
@@ -236,7 +239,7 @@ def test_headless_rejects_linked_reference_inputs_before_browser_calls(experimen
     folder = dataset.parent / tree
     folder.mkdir()
     actual = dataset.parent / "same-source.txt"
-    actual.write_text("synthetic source")
+    actual.write_text("synthetic source", encoding="utf-8")
     (folder / "linked").symlink_to(actual)
     with pytest.raises(ValueError, match="[Ss]ymlink"):
         run({"providers": {"future": {"type": "headless_markdown", "expected_version": "9.2.0"}}})
@@ -380,7 +383,8 @@ def test_native_command_runs_a_custom_binary_and_preserves_its_identity(tmp_path
     binary.write_text(
         '#!/bin/sh\nif [ "$1" = "--version" ]; then\n'
         '  printf "fixture-browser 7.4.0\\n"\nelse\n'
-        '  printf "Independent fixture output\\n"\nfi\n'
+        '  printf "Independent fixture output\\n"\nfi\n',
+        encoding="utf-8"
     )
     binary.chmod(0o700)
     dataset = tmp_path / "tasks.json"
@@ -399,7 +403,8 @@ def test_native_command_runs_a_custom_binary_and_preserves_its_identity(tmp_path
                     }
                 ],
             }
-        )
+        ),
+        encoding="utf-8"
     )
     config = tmp_path / "methods.json"
     config.write_text(
@@ -414,10 +419,11 @@ def test_native_command_runs_a_custom_binary_and_preserves_its_identity(tmp_path
                     }
                 }
             }
-        )
+        ),
+        encoding="utf-8"
     )
     env_file = tmp_path / "empty.env"
-    env_file.write_text("")
+    env_file.write_text("", encoding="utf-8")
     output = tmp_path / "measured"
     completed = subprocess.run(
         [
@@ -441,11 +447,11 @@ def test_native_command_runs_a_custom_binary_and_preserves_its_identity(tmp_path
         cwd=tmp_path,
     )
     assert completed.returncode == 0, completed.stderr
-    records = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
+    records = [json.loads(line) for line in (output / "results.jsonl").read_text(encoding="utf-8").splitlines()]
     assert len(records) == 1
     assert records[0]["ok"]
     assert records[0]["metrics"]["content_pass"]
-    manifest = json.loads((output / "execution.json").read_text())["batches"][0]
+    manifest = json.loads((output / "execution.json").read_text(encoding="utf-8"))["batches"][0]
     identity = manifest["providers"][0]["implementation_identity"]
     assert identity["binary_sha256"] == hashlib.sha256(binary.read_bytes()).hexdigest()
     assert identity["reported_version"] == "fixture-browser 7.4.0"
@@ -456,7 +462,7 @@ def test_generic_provider_validation_enforces_the_same_declared_version(tmp_path
     from harness.web_fetch.providers.headless import HeadlessProvider
 
     binary = tmp_path / "synthetic-browser"
-    binary.write_text('#!/bin/sh\nprintf "fixture-browser 7.4.0\\n"\n')
+    binary.write_text('#!/bin/sh\nprintf "fixture-browser 7.4.0\\n"\n', encoding="utf-8")
     binary.chmod(0o700)
     for expected, accepted in [("7.4.0", True), ("7.5.0", False)]:
         provider = HeadlessProvider(
@@ -481,12 +487,12 @@ def test_browser_cohort_inherits_source_eligibility(experiment, state):
     from harness.web_fetch.report_package import build
 
     run, path, _, output = experiment
-    dataset = json.loads(path.read_text())
+    dataset = json.loads(path.read_text(encoding="utf-8"))
     comparison = {'publication_state': state, 'evidence_state': 'diagnostic',
                   'unqualified_reference_cases': ['fixture'],
                   'source_qualification': {'status': 'not_qualified', 'sha256': 'a' * 64}}
     dataset['comparison'] = comparison
-    path.write_text(json.dumps(dataset))
+    path.write_text(json.dumps(dataset), encoding="utf-8")
     selected, manifest = run({'providers': {'future': {'type': 'headless_markdown',
                                                        'expected_version': '9.2.0'}}})
     for key, value in comparison.items():
@@ -506,12 +512,12 @@ def test_synthetic_inputs_remain_non_release_after_selection_and_native_calls(tm
     from harness.web_fetch.reference_lifecycle import require_certifiable_evidence
     from harness.web_fetch.report_package import build
 
-    dataset = json.loads((source_path('harness/web_fetch/data/fixture-dataset.json', root=runner.ROOT)).read_text())
+    dataset = json.loads((source_path('harness/web_fetch/data/fixture-dataset.json', root=runner.ROOT)).read_text(encoding="utf-8"))
     original = dataset['cases'][0]
     dataset['cases'] = [{**original, 'id': f'page-{index}',
                          'url': f'https://host-{index}.invalid/'} for index in range(5)]
     tasks = tmp_path / 'tasks.json'
-    tasks.write_text(json.dumps(dataset))
+    tasks.write_text(json.dumps(dataset), encoding="utf-8")
     if speed_selection:
         selected = tmp_path / 'selected'
         result = subprocess.run([sys.executable, '-c',
@@ -520,18 +526,18 @@ def test_synthetic_inputs_remain_non_release_after_selection_and_native_calls(tm
             text=True, capture_output=True)
         assert result.returncode == 0, result.stdout + result.stderr
         tasks = selected / 'dataset.json'
-        assert json.loads(tasks.read_text())['comparison']['publication_state'] == (
+        assert json.loads(tasks.read_text(encoding="utf-8"))['comparison']['publication_state'] == (
             dataset['comparison']['publication_state'])
     binary = tmp_path / 'browser'
     binary.write_text('#!/bin/sh\nif [ "$1" = "--version" ]; then\n'
                       'echo "fixture-browser 7.4.0"\nelse\n'
-                      'echo "Expected fixture content"\nfi\n')
+                      'echo "Expected fixture content"\nfi\n', encoding="utf-8")
     binary.chmod(0o700)
     methods = tmp_path / 'methods.json'
     methods.write_text(json.dumps({'providers': {'native': {'type': 'headless_markdown',
-        'engine': 'moli', 'binary': str(binary), 'expected_version': '7.4.0'}}}))
+        'engine': 'moli', 'binary': str(binary), 'expected_version': '7.4.0'}}}), encoding="utf-8")
     env = tmp_path / 'empty.env'
-    env.write_text('')
+    env.write_text('', encoding="utf-8")
     output = tmp_path / 'measured'
     result = subprocess.run([sys.executable, '-c',
         "from unittest.mock import patch; "
@@ -540,9 +546,9 @@ def test_synthetic_inputs_remain_non_release_after_selection_and_native_calls(tm
         '--config', str(methods), '--env-file', str(env), '--output', str(output)],
         text=True, capture_output=True)
     assert result.returncode == 0, result.stdout + result.stderr
-    saved = json.loads((output / 'dataset.json').read_text())
+    saved = json.loads((output / 'dataset.json').read_text(encoding="utf-8"))
     assert saved['comparison']['publication_state'] == dataset['comparison']['publication_state']
-    assert len((output / 'results.jsonl').read_text().splitlines()) == 5
+    assert len((output / 'results.jsonl').read_text(encoding="utf-8").splitlines()) == 5
     with pytest.raises(ValueError, match='Diagnostic'):
         require_certifiable_evidence(saved)
     with pytest.raises(ValueError, match='Diagnostic'):

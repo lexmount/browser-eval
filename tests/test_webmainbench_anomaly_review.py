@@ -69,7 +69,7 @@ class WebMainBenchAnomalyReviewTests(unittest.TestCase):
 
     def test_rejects_changed_results_file(self):
         root, receipt, dataset, records = self.fixture()
-        (root / "results.jsonl").write_text("changed\n")
+        (root / "results.jsonl").write_text("changed\n", encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "results_jsonl_sha256 mismatch"):
             validate_webmainbench_anomaly_review(receipt, root, dataset, records)
 

@@ -20,7 +20,7 @@ def require_converter(configured: str | None = None) -> Path:
     if not shutil.which('node') or not CONVERTER.is_file():
         raise ValueError('HTML conversion requires Node.js and the packaged converter')
     try:
-        version = json.loads((package / 'package.json').read_text())['version']
+        version = json.loads((package / 'package.json').read_text(encoding='utf-8'))['version']
     except (OSError, ValueError, KeyError, TypeError) as error:
         raise ValueError('HTML conversion requires node-html-markdown 2.0.0; set node_html_markdown_path') from error
     if version != '2.0.0':

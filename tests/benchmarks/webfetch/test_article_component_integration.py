@@ -113,8 +113,8 @@ class StaticCommentCoverageIntegration(unittest.TestCase):
     def test_cli_scores_static_comments_without_reference_arguments(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "task.json").write_text(json.dumps(self.case))
-            (root / "answer.md").write_text(self.complete)
+            (root / "task.json").write_text(json.dumps(self.case), encoding="utf-8")
+            (root / "answer.md").write_text(self.complete, encoding="utf-8")
             result = subprocess.run([sys.executable, "-m", "lexbench_webfetch.cli", "score",
                 "--task", str(root / "task.json"), "--response", str(root / "answer.md")],
                 text=True, capture_output=True, check=True)

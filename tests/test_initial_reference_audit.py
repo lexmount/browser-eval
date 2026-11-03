@@ -22,7 +22,7 @@ class InitialReferenceAuditTests(unittest.TestCase):
         folder = self.root / "sources/sample"
         folder.mkdir(parents=True, exist_ok=True)
         (folder / name).write_bytes(raw)
-        (folder / "evidence.json").write_text(json.dumps({"sha256": hashlib.sha256(raw).hexdigest()}))
+        (folder / "evidence.json").write_text(json.dumps({"sha256": hashlib.sha256(raw).hexdigest()}), encoding="utf-8")
         return folder
 
     def test_exact_reconstruction_and_hashes_no_body_or_writes(self):
@@ -62,7 +62,7 @@ class InitialReferenceAuditTests(unittest.TestCase):
 
     def test_current_initial_and_rendered_files_are_not_globally_absent(self):
         folder = self.source(name="initial.html.txt")
-        (folder / "rendered.txt").write_text("Hello world")
+        (folder / "rendered.txt").write_text("Hello world", encoding="utf-8")
         row = audit_case(self.case, self.root)
         self.assertTrue(row["paired_capture_files_present"])
         self.assertEqual(row["rendered_snapshot_sha256"], row["reference_sha256"])
@@ -77,9 +77,9 @@ class InitialReferenceAuditTests(unittest.TestCase):
 
     def test_summary_preserves_unknown_and_detects_mismatches(self):
         folder = self.source()
-        (folder / "evidence.json").write_text(json.dumps({"sha256": "wrong"}))
+        (folder / "evidence.json").write_text(json.dumps({"sha256": "wrong"}), encoding="utf-8")
         dataset = self.root / "dataset.json"
-        dataset.write_text(json.dumps({"cases": [self.case, {**self.case, "id": "missing"}]}))
+        dataset.write_text(json.dumps({"cases": [self.case, {**self.case, "id": "missing"}]}), encoding="utf-8")
         report = audit_dataset(dataset)
         self.assertEqual(report["by_track"]["web"]["exact_reconstructions"], 1)
         self.assertEqual(report["summary"]["unknown_reconstruction_case_ids"], ["missing"])

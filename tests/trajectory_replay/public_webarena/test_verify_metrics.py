@@ -28,23 +28,23 @@ def test_independent_audit_detects_tampered_aggregate_and_intersection(tmp_path)
         }
         for engine, duration, memory in (("chromium", 100, 200), ("moli", 50, 80))
     ]
-    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)))
+    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)), encoding="utf-8")
     summary = summarize_attempts(rows, engines=("chromium", "moli"))
     path = tmp_path / "summary.json"
-    path.write_text(json.dumps(summary))
+    path.write_text(json.dumps(summary), encoding="utf-8")
     assert module.verify(tmp_path)["status"] == "pass"
     summary["resource_comparison"]["by_engine"]["moli"]["duration_ms"]["p95"] = 99
-    path.write_text(json.dumps(summary))
+    path.write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(ValueError, match="moli.duration_ms.p95"):
         module.verify(tmp_path)
     summary = summarize_attempts(rows, engines=("chromium", "moli"))
     summary["resource_comparison"]["intersection_results"] = 0
-    path.write_text(json.dumps(summary))
+    path.write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(ValueError, match="successful task intersection mismatch"):
         module.verify(tmp_path)
     summary["resource_comparison"]["intersection_results"] = 1
     summary["resource_comparison"]["by_engine"]["moli"].clear()
-    path.write_text(json.dumps(summary))
+    path.write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(ValueError, match="required metric set"):
         module.verify(tmp_path)
 
@@ -63,7 +63,7 @@ def test_independent_audit_enforces_retry_matrix_and_success_evidence(tmp_path):
         evidence.mkdir(parents=True)
         if status == "pass":
             for name in ("attempt.json", "network.har", "final.png", "final-page.json"):
-                (evidence / name).write_text("ok")
+                (evidence / name).write_text("ok", encoding="utf-8")
         rows.append(
             {
                 "engine": engine,
@@ -87,9 +87,10 @@ def test_independent_audit_enforces_retry_matrix_and_success_evidence(tmp_path):
             "evidence_directory": str(retry_evidence),
         }
     )
-    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)))
+    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)), encoding="utf-8")
     (tmp_path / "summary.json").write_text(
-        json.dumps(summarize_attempts(rows, engines=("chromium", "moli")))
+        json.dumps(summarize_attempts(rows, engines=("chromium", "moli"))),
+        encoding="utf-8"
     )
     (tmp_path / "manifest.json").write_text(
         json.dumps(
@@ -106,24 +107,25 @@ def test_independent_audit_enforces_retry_matrix_and_success_evidence(tmp_path):
                     ],
                 },
             }
-        )
+        ),
+        encoding="utf-8"
     )
     assert module.verify(tmp_path)["retry_samples"] == 1
 
     rows[0]["evidence_directory"] = str(retry_evidence)
-    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)))
+    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)), encoding="utf-8")
     with pytest.raises(ValueError, match="evidence path differs"):
         module.verify(tmp_path)
     rows[0]["evidence_directory"] = str(tmp_path / "tasks" / "a" / "chromium" / "attempt-1")
-    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)))
+    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)), encoding="utf-8")
 
     rows[-1]["is_retry"] = False
-    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)))
+    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)), encoding="utf-8")
     with pytest.raises(ValueError, match="duplicate primary sample"):
         module.verify(tmp_path)
 
     rows[-1]["is_retry"] = True
-    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)))
+    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)), encoding="utf-8")
     (tmp_path / "tasks" / "a" / "chromium" / "attempt-1" / "network.har").unlink()
     with pytest.raises(ValueError, match="missing network.har"):
         module.verify(tmp_path)

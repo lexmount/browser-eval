@@ -19,7 +19,7 @@ def test_historical_binding_selects_its_exact_definition_bytes(tmp_path, monkeyp
     expected = hashlib.sha256(b'frozen older definition').hexdigest()
     (checkout / 'evaluation/lexbench-webfetch.json').write_text(json.dumps({
         'kind': 'external_benchmark_binding', 'repository': 'https://github.com/lexmount/lexbench-webfetch',
-        'revision': source_revision, 'definition_files': {relative: expected}}))
+        'revision': source_revision, 'definition_files': {relative: expected}}), encoding='utf-8')
     entries = [{'revision': rev, 'source_revision': source_revision, 'files': {
         'definitions/' + relative: {'sha256': expected if selected.get(matching) == rev else 'different'}}}
         for rev in revisions]

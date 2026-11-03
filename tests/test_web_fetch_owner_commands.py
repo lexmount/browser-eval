@@ -163,8 +163,8 @@ def named_commands(text):
 
 
 def test_every_owner_command_is_shown_by_a_guide_or_listed_as_pending():
-    shown = named_commands("\n".join((ROOT / path).read_text() for path in COMMAND_INDEX_FILES))
-    inventory = (ROOT / "scripts/README.md").read_text()
+    shown = named_commands("\n".join((ROOT / path).read_text(encoding="utf-8") for path in COMMAND_INDEX_FILES))
+    inventory = (ROOT / "scripts/README.md").read_text(encoding="utf-8")
     pending = named_commands(inventory.split("## Pending owner decision (#93)")[1].split("\n## ")[0])
     assert pending == set(OWNER_COMMANDS) - shown
 

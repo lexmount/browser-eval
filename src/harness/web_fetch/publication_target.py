@@ -56,7 +56,7 @@ def require_publication_version(
     profile_path: Path, requested_version: str | None = None, *, document: dict | None = None
 ) -> str:
     """Require the profile-bound current site version for a compare-and-swap update."""
-    profile = document if document is not None else json.loads(Path(profile_path).read_text())
+    profile = document if document is not None else json.loads(Path(profile_path).read_text(encoding="utf-8"))
     expected = profile.get("artifact_hub_expected_version")
     if not isinstance(expected, str) or not expected.startswith("ver_"):
         raise ValueError("Current report profile is missing a valid artifact_hub_expected_version")
@@ -71,7 +71,7 @@ def require_publication_site(
     receipt: dict, profile_path: Path, base_url: str | None = None, *, document: dict | None = None
 ) -> str:
     """Refuse to publish the current report through another site's receipt."""
-    profile = document if document is not None else json.loads(profile_path.read_text())
+    profile = document if document is not None else json.loads(profile_path.read_text(encoding="utf-8"))
     expected = profile.get("artifact_hub_site")
     if not isinstance(expected, str) or not expected:
         raise ValueError("Current report profile is missing artifact_hub_site")

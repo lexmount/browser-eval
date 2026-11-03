@@ -55,7 +55,7 @@ def experiment(tmp_path, monkeypatch):
     options = create_cohort(tmp_path / 'inputs')
     binaries = {name: tmp_path / name for name in ('release', 'pr')}
     for name, binary in binaries.items():
-        binary.write_text(name)
+        binary.write_text(name, encoding='utf-8')
     authority = json.loads(options['profile_path'].read_bytes())
     authority.update(release_binary_sha256=sha(binaries['release'].read_bytes()),
                      candidate_binary_sha256=sha(binaries['pr'].read_bytes()), concurrency=1)

@@ -23,7 +23,7 @@ def measured_run(tmp_path):
     profile["protocol"].pop("reference_scope", None)
     profile.pop("reference_checks", None)
     profile_path = tmp_path / "profile.json"
-    profile_path.write_text(json.dumps(profile))
+    profile_path.write_text(json.dumps(profile), encoding="utf-8")
 
     def http(url, body=None, *args, **kwargs):
         return {"http_status": 200, "elapsed_ms": 1, "transport_exit": 0, "transport_error": ""}, (
@@ -43,13 +43,13 @@ def measured_run(tmp_path):
 
 def replace_rows(output, change):
     path = output / "results.jsonl"
-    rows = [json.loads(line) for line in path.read_text().splitlines()]
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
     change(rows[0])
-    path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
     receipt_path = output / "receipt.json"
-    receipt = json.loads(receipt_path.read_text())
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     receipt["results_sha256"] = bytes_sha256(path.read_bytes())
-    receipt_path.write_text(json.dumps(receipt))
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
 
 
 @pytest.mark.parametrize(
@@ -89,8 +89,8 @@ def test_synthetic_exception_cannot_promote_evidence_to_certified(tmp_path):
     source = tmp_path / "fixture"
     assert load_run(source)[2]["synthetic"] is True
     path = source / "receipt.json"
-    receipt = json.loads(path.read_text())
+    receipt = json.loads(path.read_text(encoding="utf-8"))
     receipt["certified"] = True
-    path.write_text(json.dumps(receipt))
+    path.write_text(json.dumps(receipt), encoding="utf-8")
     with pytest.raises(ValueError, match="Synthetic evidence cannot be certified"):
         load_run(source)

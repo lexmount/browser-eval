@@ -25,7 +25,7 @@ def revision(tmp_path):
         for case_id in ("one", "two"):
             name = provider + "-" + case_id + ".md"
             for root in (source, corrected):
-                (root / name).write_text("synthetic response")
+                (root / name).write_text("synthetic response", encoding="utf-8")
             rows.append(
                 {
                     "attempt_id": provider + "__" + case_id,
@@ -42,7 +42,7 @@ def revision(tmp_path):
             )
     dataset = {"cases": [{"id": "one"}, {"id": "two"}]}
     for root in (source, corrected):
-        (root / "dataset.json").write_text(json.dumps(dataset))
+        (root / "dataset.json").write_text(json.dumps(dataset), encoding="utf-8")
     receipt = {
         "schema_version": 2,
         "provider_calls": 0,
@@ -58,22 +58,22 @@ def revision(tmp_path):
     def save():
         original = "".join(json.dumps(row) + "\n" for row in rows)
         after = [{**row, "official_metrics": copy.deepcopy(row["metrics"])} for row in rows]
-        (source / "results.jsonl").write_text(original)
-        (corrected / "original-results.jsonl").write_text(original)
-        (corrected / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in after))
+        (source / "results.jsonl").write_text(original, encoding="utf-8")
+        (corrected / "original-results.jsonl").write_text(original, encoding="utf-8")
+        (corrected / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in after), encoding="utf-8")
         receipt.update(
             input_results_sha256=file_sha256(source / "results.jsonl"),
             output_results_sha256=file_sha256(corrected / "results.jsonl"),
             dataset_sha256=file_sha256(corrected / "dataset.json"),
         )
-        (corrected / "teds-correction.json").write_text(json.dumps(receipt))
+        (corrected / "teds-correction.json").write_text(json.dumps(receipt), encoding="utf-8")
         for provider in ("first", "second"):
             current = aggregate([row for row in rows if row["provider"] == provider])
             summaries[provider] = {
                 "official_aggregate": current,
                 "original_official_aggregate": copy.deepcopy(current),
             }
-        (corrected / "score-summaries.json").write_text(json.dumps(summaries))
+        (corrected / "score-summaries.json").write_text(json.dumps(summaries), encoding="utf-8")
 
     save()
     return source, corrected, rows, receipt, summaries, save
@@ -111,7 +111,7 @@ def test_count_alone_cannot_certify_a_revision(revision, damage):
             del summaries["second"]
         else:
             summaries["first"]["official_aggregate"]["scores"]["table_TEDS"] = float("nan")
-        (corrected / "score-summaries.json").write_text(json.dumps(summaries))
+        (corrected / "score-summaries.json").write_text(json.dumps(summaries), encoding="utf-8")
     with pytest.raises(ValueError):
         diagnostics.review_teds_correction(source, corrected)
 
@@ -166,7 +166,7 @@ def test_cli_does_not_install_an_audit_if_evidence_changes_during_validation(rev
     writer = diagnostics.write_review_document
 
     def concurrent_change(target, result, **kwargs):
-        (corrected / "first-one.md").write_text("changed during validation")
+        (corrected / "first-one.md").write_text("changed during validation", encoding="utf-8")
         return writer(target, result, **kwargs)
 
     monkeypatch.setattr(diagnostics, "write_review_document", concurrent_change)
@@ -182,11 +182,11 @@ def test_revision_reader_rejects_a_hash_consistent_but_incomplete_matrix(revisio
     rows[1]["case_id"] = "one"
     save()
     path = corrected / "teds-correction-review.json"
-    audit = json.loads(path.read_text())
+    audit = json.loads(path.read_text(encoding="utf-8"))
     audit.update(
         output_results_sha256=file_sha256(corrected / "results.jsonl"),
         correction_receipt_sha256=file_sha256(corrected / "teds-correction.json"),
     )
-    path.write_text(json.dumps(audit))
+    path.write_text(json.dumps(audit), encoding="utf-8")
     with pytest.raises(ValueError, match="matrix"):
         diagnostics.validate_teds_revision(corrected)

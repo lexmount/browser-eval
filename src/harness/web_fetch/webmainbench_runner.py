@@ -471,7 +471,7 @@ def run(args: argparse.Namespace) -> None:
                              "scope": sample.get('scope'), "seed": sample.get('seed')}
         if args.profile is None:
             raise ValueError("WCXB execution requires an explicit --profile")
-        profile = json.loads(args.profile.read_text())
+        profile = json.loads(args.profile.read_text(encoding="utf-8"))
         expected_versions = profile.get('expected_versions')
         if (not isinstance(expected_versions, dict)
                 or set(expected_versions) != set(profile['providers'])

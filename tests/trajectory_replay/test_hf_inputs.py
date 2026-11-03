@@ -18,7 +18,7 @@ from harness.trajectory_replay.report_inputs import bound_dataset_path, replay_i
 
 
 def dump(path, value):
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path
 
 
@@ -166,7 +166,7 @@ def test_current_catalog_rebinds_once_and_rejects_changed_resume_inputs(tmp_path
     def resolve(track, relative, revision=None):
         return source_paths[relative]
 
-    target = json.loads(sites_path.read_text())
+    target = json.loads(sites_path.read_text(encoding="utf-8"))
     target["sites"] = {
         k: v.replace("public.example", "deployment.invalid") for k, v in target["sites"].items()
     }
@@ -177,7 +177,7 @@ def test_current_catalog_rebinds_once_and_rejects_changed_resume_inputs(tmp_path
         assert selected == binding and portable == suite
         assert load_catalog_inputs(selected, portable, deployment)[0]["task_ids"] == [1, 2]
         assert current_catalog_inputs(deployment, binding) == (selected, portable)
-        payload = json.loads(catalog.read_text())
+        payload = json.loads(catalog.read_text(encoding="utf-8"))
         payload["rows"][0]["source_kind"] = "changed"
         dump(catalog, payload)
         with pytest.raises(ValueError, match="different catalog input binding"):

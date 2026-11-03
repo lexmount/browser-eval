@@ -47,10 +47,10 @@ def test_supplemental_diagnostic_rejects_wrong_scope_and_changed_bytes(tmp_path,
     if change == "mutations":
         data["mutations_submitted"] = True
     path = tmp_path / "probe.json"
-    path.write_text(json.dumps(data))
+    path.write_text(json.dumps(data), encoding="utf-8")
     reference = {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
     if change == "bytes":
-        path.write_text(json.dumps({**data, "extra": True}))
+        path.write_text(json.dumps({**data, "extra": True}), encoding="utf-8")
     with pytest.raises(ValueError):
         _supplemental_diagnostic({"supplemental_diagnostic": reference}, 576)
 
@@ -58,7 +58,7 @@ def test_supplemental_diagnostic_rejects_wrong_scope_and_changed_bytes(tmp_path,
 def test_supplemental_diagnostic_accepts_hash_bound_read_only_probe(tmp_path):
     data = _diagnostic()
     path = tmp_path / "probe.json"
-    path.write_text(json.dumps(data))
+    path.write_text(json.dumps(data), encoding="utf-8")
     reference = {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
     assert _supplemental_diagnostic({"supplemental_diagnostic": reference}, 576) == data
 
@@ -152,7 +152,7 @@ def test_local_header_fixture_is_not_labeled_as_a_site_replay(tmp_path):
          "wire_referer_path": "/header-page", "har_referer_path": None},
     ]}}]}]
     path = tmp_path / "headers.json"
-    path.write_text(json.dumps(data))
+    path.write_text(json.dumps(data), encoding="utf-8")
     ref = {"path": str(path), "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
     assert _supplemental_diagnostic({"supplemental_diagnostic": ref}, 576) == data
     for lang in ("zh", "en"):

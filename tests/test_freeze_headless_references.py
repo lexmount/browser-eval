@@ -45,7 +45,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             with self.subTest(policy=policy), tempfile.TemporaryDirectory() as directory:
                 root=Path(directory)
                 captures=root/'captures';captures.mkdir()
-                (captures/'audit.json').write_text('[]\n')
+                (captures/'audit.json').write_text('[]\n', encoding='utf-8')
                 source=root/'input.json';output=root/'frozen'
                 dataset={'comparison': policy, 'cases': [{
                     'id': 'synthetic-stable', 'track': 'web',
@@ -53,12 +53,12 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                                             'minimum_records': 0,
                                             'stable_text_anchors': [{'id': 'body',
                                                 'alternatives': ['Source prose']}]}}]}
-                source.write_text(json.dumps(dataset))
+                source.write_text(json.dumps(dataset), encoding='utf-8')
                 main(['--dataset', str(source), '--captures', str(captures),
                       '--output', str(output)])
-                frozen=json.loads((output/'dataset.json').read_text())
+                frozen=json.loads((output/'dataset.json').read_text(encoding='utf-8'))
                 self.assertEqual(frozen['comparison'], policy)
-                self.assertEqual(json.loads(source.read_text()), dataset)
+                self.assertEqual(json.loads(source.read_text(encoding='utf-8')), dataset)
 
     def test_promotion_reports_missing_computed_change_as_validation_error(self):
         with self.assertRaisesRegex(ValueError,'omit promoted case: missing'):
@@ -82,13 +82,13 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                      'approved_at':'2026-09-11T00:00:00+00:00',
                      'task_decision_changes':[],
                      'correction_provenance':provenance()}
-            path.write_text(json.dumps(receipt))
+            path.write_text(json.dumps(receipt), encoding='utf-8')
             self.assertEqual(_require_promotion(
                 path,dataset_sha256='d'*64,capture_audit_sha256='e'*64,
                 candidate_dataset_sha256='f'*64,changes=[self.change]),receipt)
             tampered=json.loads(json.dumps(receipt))
             tampered['changes'][0]['source_revision']['revision']='oldid:124'
-            path.write_text(json.dumps(tampered))
+            path.write_text(json.dumps(tampered), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'does not match'):
                 _require_promotion(path,dataset_sha256='d'*64,
                                    capture_audit_sha256='e'*64,
@@ -100,7 +100,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             None,dataset_sha256='d'*64,capture_audit_sha256='e'*64,
             candidate_dataset_sha256='f'*64,changes=[]))
         with tempfile.TemporaryDirectory() as directory:
-            path=Path(directory)/'promotion.json';path.write_text('{}')
+            path=Path(directory)/'promotion.json';path.write_text('{}', encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'no reference scope changed'):
                 _require_promotion(path,dataset_sha256='d'*64,
                                    capture_audit_sha256='e'*64,
@@ -116,7 +116,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                 'approved_by':'independent-reference-review',
                 'approved_at':'2026-09-11T00:00:00+00:00',
                 'task_decision_changes':[],
-            }))
+            }), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'valid correction provenance'):
                 _require_promotion(path,dataset_sha256='d'*64,
                     capture_audit_sha256='e'*64,
@@ -134,7 +134,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                 'task_decision_changes':[],
                 'correction_provenance':build_correction_provenance(
                     'reference-evidence',ROOT_CAUSE,[REGRESSIONS[0]])
-            }))
+            }), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'paired scope regressions'):
                 _require_promotion(path,dataset_sha256='d'*64,
                     capture_audit_sha256='e'*64,
@@ -155,9 +155,9 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                    'sha256':'a'*64,
                    'extracted_sha256':hashlib.sha256(text.encode()).hexdigest(),
                    'quality_issues':[]}
-            (captures/'audit.json').write_text(json.dumps([audit]))
+            (captures/'audit.json').write_text(json.dumps([audit]), encoding='utf-8')
             target=captures/case['id'];target.mkdir()
-            (target/'reference.txt').write_text(text)
+            (target/'reference.txt').write_text(text, encoding='utf-8')
 
             frozen,changes,_=compute_reference_update({'cases':[case]},captures)
 
@@ -177,7 +177,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             audit={'case_id':case['id'],'status':403,'state':'unavailable',
                    'checked_at':'2026-09-14T00:00:00Z','selector':'main',
                    'sha256':'b'*64,'quality_issues':['http_status_403']}
-            (captures/'audit.json').write_text(json.dumps([audit]))
+            (captures/'audit.json').write_text(json.dumps([audit]), encoding='utf-8')
 
             with self.assertRaisesRegex(ValueError, 'requires independent browser observation'):
                 compute_reference_update({'cases':[case]},captures)
@@ -198,22 +198,22 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                                          hashlib.sha256(old.encode()).hexdigest()}}
             dataset={'cases':[case],'coverage_plan':{'web':['p']}}
             dataset_path=root/'dataset.json'
-            dataset_path.write_text(json.dumps(dataset))
+            dataset_path.write_text(json.dumps(dataset), encoding='utf-8')
             for identifier in (case['id'], 'outside-task-scope'):
                 folder=root/'sources'/identifier
                 folder.mkdir(parents=True)
-                (folder/'reference.txt').write_text(identifier)
+                (folder/'reference.txt').write_text(identifier, encoding='utf-8')
                 reference=root/'list-references'/(identifier+'.json')
                 reference.parent.mkdir(exist_ok=True)
-                reference.write_text('{}')
+                reference.write_text('{}', encoding='utf-8')
             capture={'case_id':'freeze-fixture','status':200,'checked_at':checked,
                      'selector':'#mw-content-text .mw-parser-output','sha256':'c'*64,
                      'extracted_sha256':hashlib.sha256(new.encode()).hexdigest(),
                      'quality_issues':[]}
-            audit_path=captures/'audit.json';audit_path.write_text(json.dumps([capture]))
+            audit_path=captures/'audit.json';audit_path.write_text(json.dumps([capture]), encoding='utf-8')
             case_capture=captures/'freeze-fixture';case_capture.mkdir()
-            (case_capture/'reference.txt').write_text(new)
-            (case_capture/'source.html').write_text('<main>'+new+'</main>')
+            (case_capture/'reference.txt').write_text(new, encoding='utf-8')
+            (case_capture/'source.html').write_text('<main>'+new+'</main>', encoding='utf-8')
             output=root/'frozen'
 
             with self.assertRaises(SystemExit):
@@ -230,7 +230,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
                 root_cause_category='reference-evidence',root_cause=ROOT_CAUSE,
                 regression_ids=REGRESSIONS)
             self.assertEqual(candidate_path.read_bytes(),candidate_bytes)
-            self.assertEqual(json.loads(full_path.read_text())['cases'][0]
+            self.assertEqual(json.loads(full_path.read_text(encoding='utf-8'))['cases'][0]
                              ['ground_truth_main_content'],new)
             with self.assertRaisesRegex(ValueError,'Destination exists'):
                 prepare_promotion(dataset_path=dataset_path,captures=captures,
@@ -240,7 +240,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             change=receipt['changes'][0]
             main(['--captures',str(captures),'--dataset',str(dataset_path),
                   '--output',str(output),'--reference-promotion',str(promotion)])
-            refresh=json.loads((output/'reference-refresh.json').read_text())
+            refresh=json.loads((output/'reference-refresh.json').read_text(encoding='utf-8'))
             self.assertTrue((output/'list-references'/f'{case["id"]}.json').is_file())
             self.assertFalse((output/'sources/outside-task-scope').exists())
             self.assertFalse((output/'list-references/outside-task-scope.json').exists())
@@ -249,7 +249,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             self.assertEqual(refresh['changed'],[change])
             self.assertEqual((output/'reference-promotion.json').read_bytes(),
                              promotion.read_bytes())
-            frozen=json.loads((output/'dataset.json').read_text())
+            frozen=json.loads((output/'dataset.json').read_text(encoding='utf-8'))
             self.assertEqual(
                 frozen['comparison']['reference_freeze_promotion']['changes'],[change])
             frozen['comparison'].pop('reference_freeze_promotion')
@@ -276,7 +276,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             research=root/'research';sources=root/'sources'
             stale=sources/'javascript-spa'/'unavailable-reference.json'
             stale.parent.mkdir(parents=True)
-            stale.write_text('{"state":"unavailable"}')
+            stale.write_text('{"state":"unavailable"}', encoding='utf-8')
             target=research/'promotion.json'
             result=promote(canonical_path=canonical,candidate_path=candidate,
                 captures=captures,receipt_path=receipt,receipt_target=target,
@@ -285,16 +285,16 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             self.assertEqual(result['affected_case_ids'],['javascript-spa'])
             source=sources/'javascript-spa'
             self.assertEqual(json.loads(
-                (source/'current-browser-observation.json').read_text()),observation)
-            self.assertEqual((source/'reference.txt').read_text(),new)
+                (source/'current-browser-observation.json').read_text(encoding='utf-8')),observation)
+            self.assertEqual((source/'reference.txt').read_text(encoding='utf-8'),new)
             self.assertFalse((source/'current-source.html.txt').exists())
             self.assertFalse((source/'current-capture.json').exists())
             self.assertFalse((source/'unavailable-reference.json').exists())
-            verification=json.loads(canonical.read_text())['cases'][0]['source_verification']
+            verification=json.loads(canonical.read_text(encoding='utf-8'))['cases'][0]['source_verification']
             self.assertIn('browser_observation_sha256',verification)
             self.assertIn('rendered_content_sha256',verification)
             self.assertNotIn('source_snapshot_sha256',verification)
-            change=json.loads(receipt.read_text())['changes'][0]
+            change=json.loads(receipt.read_text(encoding='utf-8'))['changes'][0]
             self.assertNotIn('source_snapshot_sha256',change['source_revision'])
 
     def test_prepared_browser_candidate_promotes_from_observation_directory(self):
@@ -306,7 +306,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             observation_source=observation_directory/'javascript-spa'
             observation_source.mkdir(parents=True)
             (observation_source/'current-browser-observation.json').write_text(
-                json.dumps(observation))
+                json.dumps(observation), encoding='utf-8')
             result=promote(canonical_path=canonical,candidate_path=candidate,
                 captures=captures,receipt_path=receipt,
                 receipt_target=root/'research'/'promotion.json',
@@ -332,7 +332,7 @@ class FreezeHeadlessReferenceTests(unittest.TestCase):
             (canonical,captures,observations,receipt,candidate,
              observation,_)=self._browser_promotion_fixture(root)
             observation['content_text']='Different rendered content after preparation'
-            observations.write_text(json.dumps({'javascript-spa':observation}))
+            observations.write_text(json.dumps({'javascript-spa':observation}), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'Candidate bytes differ'):
                 promote(canonical_path=canonical,candidate_path=candidate,
                     captures=captures,receipt_path=receipt,

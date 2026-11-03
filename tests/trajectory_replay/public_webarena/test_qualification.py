@@ -1112,7 +1112,7 @@ def test_qualification_ordinals_require_actual_integers(tmp_path, field, value):
     row, path = _write_validated_attempt(tmp_path, task, pass_index=1)
     second = _write_validated_attempt(tmp_path, task, pass_index=2)[1]
     row[field] = value
-    path.write_text(json.dumps(row))
+    path.write_text(json.dumps(row), encoding="utf-8")
     with pytest.raises(ValueError):
         validated_attempt_sha256s(
             {"validated_attempt_paths": [str(path), str(second)]}, task.task_id,
@@ -1126,13 +1126,13 @@ def test_correction_queue_rejects_projection_verdict_drift(tmp_path, projection_
     rows = [_write_validated_attempt(tmp_path, task, pass_index=index)[0] for index in (1, 2)]
     if projection_passes:
         source = Path(rows[0]["evidence_directory"]) / "attempt.json"
-        original = json.loads(source.read_text())
+        original = json.loads(source.read_text(encoding="utf-8"))
         original["status"] = "fail"
-        source.write_text(json.dumps(original))
+        source.write_text(json.dumps(original), encoding="utf-8")
     else:
         rows[0]["status"] = "fail"
     attempts = tmp_path / "attempts.jsonl"
-    attempts.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    attempts.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
     with pytest.raises(ValueError, match="projection differs"):
         build_repair_queue(TaskSuite("lex_browser_use_tasks/4", (task,)), attempts)
 
@@ -1143,10 +1143,10 @@ def test_correction_queue_cannot_treat_boolean_raw_metadata_as_integer_projectio
     rows = [_write_validated_attempt(tmp_path, task, pass_index=index, statuses=statuses)[0]
             for index in (1, 2)]
     source = Path(rows[0]["evidence_directory"]) / "attempt.json"
-    original = json.loads(source.read_text())
+    original = json.loads(source.read_text(encoding="utf-8"))
     original["attempt"] = True
-    source.write_text(json.dumps(original))
+    source.write_text(json.dumps(original), encoding="utf-8")
     attempts = tmp_path / "attempts.jsonl"
-    attempts.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    attempts.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
     with pytest.raises(ValueError, match="projection differs"):
         build_repair_queue(TaskSuite("lex_browser_use_tasks/4", (task,)), attempts)

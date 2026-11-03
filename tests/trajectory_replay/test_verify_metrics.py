@@ -25,23 +25,23 @@ def test_independent_audit_detects_tampered_aggregate_and_paired_operands(tmp_pa
         }
         for engine, duration, memory in (("chromium", 100, 200), ("moli", 50, 80))
     ]
-    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)))
+    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)), encoding="utf-8")
     summary = summarize_attempts(rows, engines=("chromium", "moli"))
     path = tmp_path / "summary.json"
-    path.write_text(json.dumps(summary))
+    path.write_text(json.dumps(summary), encoding="utf-8")
     assert module.verify(tmp_path)["status"] == "pass"
     summary["resource_comparison"]["by_engine"]["moli"]["duration_ms"]["p95"] = 99
-    path.write_text(json.dumps(summary))
+    path.write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(ValueError, match="moli.duration_ms.p95"):
         module.verify(tmp_path)
     summary = summarize_attempts(rows, engines=("chromium", "moli"))
     summary["resource_comparison"]["paired_ratios"]["metrics"]["duration_ms"]["values"][0][
         "numerator"
     ] = 49
-    path.write_text(json.dumps(summary))
+    path.write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(ValueError, match="numerator"):
         module.verify(tmp_path)
     summary["resource_comparison"]["by_engine"]["moli"].clear()
-    path.write_text(json.dumps(summary))
+    path.write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(ValueError, match="required metric set"):
         module.verify(tmp_path)

@@ -19,7 +19,7 @@ def test_resume_checks_dataset_selection_before_requests_or_saved_changes(tmp_pa
     profile['protocol'].pop('reference_scope', None)
     profile.pop('reference_checks', None)
     source = tmp_path / 'profile.json'
-    source.write_text(json.dumps(profile))
+    source.write_text(json.dumps(profile), encoding='utf-8')
     output = tmp_path / 'run'
     monkeypatch.setattr(runner, 'load_runtime_env', lambda: None)
     for method in profile['methods']:
@@ -39,24 +39,24 @@ def test_resume_checks_dataset_selection_before_requests_or_saved_changes(tmp_pa
     assert contract['installed_benchmark_datasets'] == data.dependencies('websearch')
     if changed == 'missing':
         contract.pop('installed_benchmark_datasets')
-        (output / 'run-contract.json').write_text(json.dumps(contract))
+        (output / 'run-contract.json').write_text(json.dumps(contract), encoding='utf-8')
     if entry != 'resume':
         new = json.loads(source.read_bytes())
         new['methods'][0]['endpoint'] = 'https://replacement.invalid/search'
         revised = tmp_path / 'revised-profile.json'
-        revised.write_text(json.dumps(new))
+        revised.write_text(json.dumps(new), encoding='utf-8')
         proof = tmp_path / 'request-contract.txt'
-        proof.write_text('The native request endpoint changed; retained methods stay frozen.')
+        proof.write_text('The native request endpoint changed; retained methods stay frozen.', encoding='utf-8')
         revision = tmp_path / 'revision.json'
         revision.write_text(json.dumps({
             'schema': 'web-search-execution-revision/1', 'root_cause': 'Native request endpoint changed',
             'superseded_methods': [new['methods'][0]['id']],
             'previous_profile_sha256': bytes_sha256(source.read_bytes()),
             'profile_sha256': bytes_sha256(revised.read_bytes()),
-            'evidence': [{'path': proof.name, 'sha256': bytes_sha256(proof.read_bytes())}]}))
+            'evidence': [{'path': proof.name, 'sha256': bytes_sha256(proof.read_bytes())}]}), encoding='utf-8')
     if entry == 'revised-collector':
         collector = tmp_path / 'collector-revision.py'
-        collector.write_text('request_serializer_revision = 2\n')
+        collector.write_text('request_serializer_revision = 2\n', encoding='utf-8')
         implementation = runner.collection_implementation()
         implementation['collector-revision.py'] = bytes_sha256(collector.read_bytes())
         original_source = runner.implementation_source
@@ -68,7 +68,7 @@ def test_resume_checks_dataset_selection_before_requests_or_saved_changes(tmp_pa
         lock['datasets'][changed]['revision'] = 'f' * 40
     selected = tmp_path / 'selection'
     selected.mkdir()
-    (selected / 'data-lock.json').write_text(json.dumps(lock))
+    (selected / 'data-lock.json').write_text(json.dumps(lock), encoding='utf-8')
     monkeypatch.setattr(data, '__file__', str(selected / 'data.py'))
     before = {p.relative_to(output): p.read_bytes() for p in output.rglob('*') if p.is_file()}
     def resume():

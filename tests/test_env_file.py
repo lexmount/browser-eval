@@ -335,7 +335,7 @@ def test_local_setting_uses_one_precedence(tmp_path, monkeypatch) -> None:
     from harness.env_file import local_setting, select_env_file
 
     local = tmp_path / "local.env"
-    local.write_text("DEMO_SETTING=from-file\nDEMO_SPACED=' keep spaces '\n")
+    local.write_text("DEMO_SETTING=from-file\nDEMO_SPACED=' keep spaces '\n", encoding="utf-8")
     monkeypatch.delenv("DEMO_SETTING", raising=False)
     monkeypatch.delenv("DEMO_SPACED", raising=False)
 
@@ -359,7 +359,7 @@ def test_local_setting_stops_on_an_unusable_file(tmp_path, monkeypatch) -> None:
 
     monkeypatch.delenv("DEMO_SETTING", raising=False)
     target = tmp_path / "real.env"
-    target.write_text("DEMO_SETTING=value\n")
+    target.write_text("DEMO_SETTING=value\n", encoding="utf-8")
     link = tmp_path / "link.env"
     link.symlink_to(target)
     with pytest.raises(ValueError, match="regular file"):
@@ -402,7 +402,7 @@ def test_a_missing_env_file_keeps_its_error_and_a_link_to_a_file_still_parses(tm
     with pytest.raises(FileNotFoundError):
         parse_env_file(tmp_path / "absent.env")
     target = tmp_path / "real.env"
-    target.write_text("DEMO_SETTING=value\n")
+    target.write_text("DEMO_SETTING=value\n", encoding="utf-8")
     link = tmp_path / "link.env"
     link.symlink_to(target)
     assert parse_env_file(link) == {"DEMO_SETTING": "value"}

@@ -41,8 +41,8 @@ time.sleep(60)
 def read_started(path, seconds=10):
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
-        if path.exists() and path.read_text().count(" ") == 1:
-            session, child = path.read_text().split()
+        if path.exists() and path.read_text(encoding="utf-8").count(" ") == 1:
+            session, child = path.read_text(encoding="utf-8").split()
             return int(session), int(child)
         time.sleep(.02)
     pytest.fail("Reviewer did not start")
@@ -71,13 +71,13 @@ def test_foreground_timeout_message_matches_subprocess_run(tmp_path):
 
 def test_foreground_log_file_receives_merged_output(tmp_path):
     log = tmp_path / "reviewer.log"
-    with log.open("w") as stream:
+    with log.open("w", encoding="utf-8") as stream:
         completed = run_reviewer(
             python("import sys; print('out', flush=True); print('err', file=sys.stderr)"),
             stdout=stream, stderr=subprocess.STDOUT, timeout=30,
         )
     assert completed.returncode == 0 and completed.stdout is None
-    assert log.read_text().split() == ["out", "err"]
+    assert log.read_text(encoding="utf-8").split() == ["out", "err"]
 
 
 def test_foreground_timeout_kills_only_the_direct_child_in_this_session(tmp_path):

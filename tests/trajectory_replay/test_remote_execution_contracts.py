@@ -392,7 +392,7 @@ def test_local_browser_endpoint_cannot_be_taken_by_another_process(
     """Another process that claims a requested port before the spawn must not win."""
 
     binary = tmp_path / "server"
-    binary.write_text(_NATIVE_SERVER.format(python=sys.executable))
+    binary.write_text(_NATIVE_SERVER.format(python=sys.executable), encoding="utf-8")
     binary.chmod(0o700)
     foreign: list[http.server.HTTPServer] = []
     real_popen = subprocess.Popen
@@ -421,7 +421,7 @@ def test_local_browser_endpoint_cannot_be_taken_by_another_process(
 
 def test_local_browser_that_exits_before_binding_is_reported(tmp_path: Path) -> None:
     binary = tmp_path / "server"
-    binary.write_text("#!/bin/sh\nexit 3\n")
+    binary.write_text("#!/bin/sh\nexit 3\n", encoding="utf-8")
     binary.chmod(0o700)
 
     with pytest.raises(RuntimeError, match="browser exited before CDP was ready: 3"):
@@ -434,7 +434,7 @@ def test_local_browser_is_stopped_when_startup_is_interrupted(
     tmp_path: Path, monkeypatch
 ) -> None:
     binary = tmp_path / "server"
-    binary.write_text(_NATIVE_SERVER.format(python=sys.executable))
+    binary.write_text(_NATIVE_SERVER.format(python=sys.executable), encoding="utf-8")
     binary.chmod(0o700)
     started: list[subprocess.Popen] = []
     real_popen = subprocess.Popen

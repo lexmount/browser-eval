@@ -20,24 +20,24 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_local_quickstart_runs_and_rebuilds_without_provider_calls(tmp_path, complete, method_name):
     site = tmp_path / "site"
     site.mkdir()
-    page = (ROOT / "examples/web_fetch/site/index.html").read_text()
+    page = (ROOT / "examples/web_fetch/site/index.html").read_text(encoding="utf-8")
     if not complete:
         page = page[:page.index("  <p>Local examples")]+"</main></html>"
-    (site / "index.html").write_text(page)
+    (site / "index.html").write_text(page, encoding="utf-8")
     handler = functools.partial(
         SimpleHTTPRequestHandler, directory=str(site)
     )
     server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
     worker = threading.Thread(target=server.serve_forever, daemon=True)
     worker.start()
-    dataset = json.loads((ROOT / "examples/web_fetch/dataset.json").read_text())
+    dataset = json.loads((ROOT / "examples/web_fetch/dataset.json").read_text(encoding="utf-8"))
     for case in dataset["cases"]:
         case["url"] = f"http://127.0.0.1:{server.server_port}/"
     definition = tmp_path / "dataset.json"
-    definition.write_text(json.dumps(dataset))
+    definition.write_text(json.dumps(dataset), encoding="utf-8")
     # Configuration keys are caller labels, not version or implementation selectors.
     config = tmp_path / "providers.json"
-    config.write_text(json.dumps({"providers": {method_name: {"type": "http"}}}))
+    config.write_text(json.dumps({"providers": {method_name: {"type": "http"}}}), encoding="utf-8")
     if method_name == "http":
         config = ROOT / "configs/providers.quickstart.json"
     run = tmp_path / "evidence"
@@ -57,7 +57,7 @@ def test_local_quickstart_runs_and_rebuilds_without_provider_calls(tmp_path, com
         server.shutdown()
         server.server_close()
         worker.join()
-    records = [json.loads(line) for line in (run / "results.jsonl").read_text().splitlines()]
+    records = [json.loads(line) for line in (run / "results.jsonl").read_text(encoding="utf-8").splitlines()]
     assert len(records) == len(dataset["cases"])
     assert all(row["ok"] and row["provider"] == method_name for row in records)
     assert all(task_passed(row["ok"], row["metrics"], "body") == complete for row in records)
@@ -68,5 +68,5 @@ def test_local_quickstart_runs_and_rebuilds_without_provider_calls(tmp_path, com
     assert (run / "report/index.html").exists()
     for path in [run / "report/index.html", run / "report/analysis/index.html",
                  run / "report/providers" / f"{method_name}.html"]:
-        assert "Moli 1.1.5" not in path.read_text()
+        assert "Moli 1.1.5" not in path.read_text(encoding="utf-8")
     check(run / "report")

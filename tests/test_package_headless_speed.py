@@ -103,12 +103,12 @@ class SpeedPackagingTests(unittest.TestCase):
     def test_packager_requires_versioned_aggregate_execution(self):
         with tempfile.TemporaryDirectory() as temporary:
             root=Path(temporary)
-            (root/"dataset.json").write_text(json.dumps({"cases":[]}))
-            (root/"results.jsonl").write_text("")
+            (root/"dataset.json").write_text(json.dumps({"cases":[]}), encoding="utf-8")
+            (root/"results.jsonl").write_text("", encoding="utf-8")
             with patch("sys.argv",["package_headless_speed.py","--run",str(root)]):
                 with self.assertRaisesRegex(ValueError,"aggregate execution.json"):
                     main()
-            (root/"execution.json").write_text(json.dumps({"schema_version":99}))
+            (root/"execution.json").write_text(json.dumps({"schema_version":99}), encoding="utf-8")
             with patch("sys.argv",["package_headless_speed.py","--run",str(root)]):
                 with self.assertRaisesRegex(ValueError,"execution schema"):
                     main()
@@ -138,20 +138,20 @@ class SpeedPackagingTests(unittest.TestCase):
             batch={"providers":[{"name":"one"}],"attempt_ids":["one__a__r001"],
                    "attempt_count":1,"started_at":"2026-01-01T00:00:01Z",
                    "completed_at":"2026-01-01T00:00:02Z"}
-            (root/"dataset.json").write_text(json.dumps(dataset))
-            (root/"results.jsonl").write_text(json.dumps(record)+"\n")
-            (root/"execution.json").write_text(json.dumps({"batches":[batch]}))
+            (root/"dataset.json").write_text(json.dumps(dataset), encoding="utf-8")
+            (root/"results.jsonl").write_text(json.dumps(record)+"\n", encoding="utf-8")
+            (root/"execution.json").write_text(json.dumps({"batches":[batch]}), encoding="utf-8")
             argv=["package_headless_speed.py","--run",str(root),
                   "--upgrade-execution-metadata"]
             with patch("sys.argv",argv), \
                     patch("harness.web_fetch.speed_cohort.require_verified_reference_checks"):
                 main()
-            execution=json.loads((root/"execution.json").read_text())
+            execution=json.loads((root/"execution.json").read_text(encoding="utf-8"))
             self.assertEqual(execution["schema_version"],1)
             self.assertEqual(execution["aggregate"]["providers"],["one"])
             self.assertEqual(execution["aggregate"]["started_at"],
                              "2026-01-01T00:00:01+00:00")
-            self.assertEqual(json.loads((root/"speed-comparison.json").read_text())
+            self.assertEqual(json.loads((root/"speed-comparison.json").read_text(encoding="utf-8"))
                              ["schema_version"],2)
 
 

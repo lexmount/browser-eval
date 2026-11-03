@@ -120,7 +120,7 @@ def _machine_verdict(source, record, case, reviewed=None, *, revision_checks=Non
             if authority not in revision_checks:
                 root = Path(authority)
                 candidates = [root / 'result-review.json', *sorted((root / 'review-history').glob('*.json'))]
-                source_dataset = json.loads((root / 'dataset.json').read_text())
+                source_dataset = json.loads((root / 'dataset.json').read_text(encoding="utf-8"))
                 source_records = load_jsonl(root / 'results.jsonl')
                 authenticated = []
                 for path in candidates:
@@ -156,7 +156,7 @@ def _require_result_review(source, dataset, records, review_document=None, *, an
         if required:
             raise ValueError('Independent result review is required but missing')
         return None
-    review = review_document if review_document is not None else json.loads(path.read_text())
+    review = review_document if review_document is not None else json.loads(path.read_text(encoding="utf-8"))
     if review.get('schema_version') != 1:
         raise ValueError('Unsupported result review schema')
     protocol = review.get('review_protocol', {})
@@ -239,7 +239,7 @@ def rebind_unchanged_result_review(path, before_dataset, before_results,
     """Rebind a blind review only when its actual review inputs are unchanged."""
     if not path.is_file():
         return False
-    review = json.loads(path.read_text())
+    review = json.loads(path.read_text(encoding="utf-8"))
     old_dataset_hash = hashlib.sha256(before_dataset).hexdigest()
     old_results_hash = hashlib.sha256(before_results).hexdigest()
     if review.get('bindings') != {
@@ -321,7 +321,7 @@ def rebind_unchanged_result_review(path, before_dataset, before_results,
         'provider_calls': 0,
         'condition': 'cases, coverage, review-visible inputs, artifact hashes, scope and machine verdicts unchanged',
     }
-    path.write_text(json.dumps(review, ensure_ascii=False, indent=2)+'\n')
+    path.write_text(json.dumps(review, ensure_ascii=False, indent=2)+'\n', encoding="utf-8")
     return True
 
 
@@ -466,8 +466,8 @@ def _revision_suffix(receipts, prior_bindings, current_bindings):
 
 def merge_scoring_reviews(evidence: Path, prior_path: Path, supplemental_evidence: Path):
     dataset, records, current_bindings = _read_review_evidence(evidence)
-    receipts = json.loads((evidence / "scoring-revisions.json").read_text())
-    prior = json.loads(prior_path.read_text())
+    receipts = json.loads((evidence / "scoring-revisions.json").read_text(encoding="utf-8"))
+    prior = json.loads(prior_path.read_text(encoding="utf-8"))
     suffix = _revision_suffix(receipts, prior.get("bindings", {}), current_bindings)
     changed_cases = {
         row["case_id"] for receipt in suffix for row in receipt.get("changed_cases", [])
@@ -571,7 +571,7 @@ def merge_refresh_reviews(
         # matrix must pass a fresh anomaly audit before publication.
         prior = require_blind_result_review(prior_evidence, prior_dataset, prior_records)
     else:
-        prior = json.loads(prior_review_path.read_text())
+        prior = json.loads(prior_review_path.read_text(encoding="utf-8"))
         if prior.get("bindings") != prior_bindings:
             raise ValueError("Staged prior review is bound to different evidence")
         protocol = prior.get("review_protocol", {})
@@ -743,7 +743,7 @@ def rebase_review(
         raise ValueError("Reviewed and current attempt inventories differ")
 
     review_path = review_file or (reviewed / "result-review.json")
-    prior = json.loads(review_path.read_text())
+    prior = json.loads(review_path.read_text(encoding="utf-8"))
     if prior.get("bindings") != reviewed_bindings:
         raise ValueError("Prior review is not bound to reviewed evidence")
     if prior.get("review_protocol", {}).get("machine_judgments_withheld") is not True:
@@ -758,7 +758,7 @@ def rebase_review(
         if review_input_identity(row) != review_input_identity(reviewed_by_id[attempt_id]):
             raise ValueError("Reviewer-visible evidence changed: " + attempt_id)
 
-    decisions = json.loads(adjudications.read_text()) if adjudications else {}
+    decisions = json.loads(adjudications.read_text(encoding="utf-8")) if adjudications else {}
     cases = {case["id"]: case for case in current_dataset["cases"]}
     attempts = []
     for row in current_rows:
@@ -1152,9 +1152,9 @@ def prepare_review_subset(evidence: Path, output: Path, *, case_ids=None,
         comparison = dict(dataset.get("comparison", {}))
         comparison["require_independent_result_review"] = True
         subset["comparison"] = comparison
-        (staging / "dataset.json").write_text(json.dumps(subset, ensure_ascii=False, indent=2) + "\n")
+        (staging / "dataset.json").write_text(json.dumps(subset, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         (staging / "results.jsonl").write_text(
-            "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in records))
+            "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in records), encoding="utf-8")
         evidence_artifacts.materialize_bound_artifacts(staging, evidence, records)
         if prior_evidence and evidence_tree_identity(prior_evidence) != prior_identity:
             raise ValueError("Prior review evidence changed during subset preparation")
@@ -1227,7 +1227,7 @@ def rebind_metadata_review(evidence: Path, prior_dataset: Path, *, rebound_at=No
         history = json.loads(history_path.read_bytes())
         history[-1]["scored_at"] = rebound_at
         history[-1]["metadata_change"] = {"changed_top_level_fields": changed_fields}
-        history_path.write_text(json.dumps(history, ensure_ascii=False, indent=2) + "\n")
+        history_path.write_text(json.dumps(history, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         if not valid_scoring_revision(staged):
             raise ValueError("Metadata update would leave an invalid scoring history")
         if reference_path.exists() and not valid_reference_revision(staged):

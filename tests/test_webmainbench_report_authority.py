@@ -41,7 +41,7 @@ def test_sample_uses_selected_profile_before_releasing_without_declared_diagnost
     report.mkdir()
     write_language_contract(report, include_english=False)
     document(report, "dataset.json", {"cases": []})
-    (report / "results.jsonl").write_text("")
+    (report / "results.jsonl").write_text("", encoding="utf-8")
     document(authority, "evaluation/current-report.json",
              {"latency_diagnostic": {"required": True}})
     with pytest.raises(ValueError, match="lacks the declared latency diagnostic"):
@@ -53,7 +53,7 @@ def test_sample_uses_selected_history_after_profile_validation(tmp_path):
     report.mkdir()
     write_language_contract(report, include_english=False)
     document(report, "dataset.json", {"cases": []})
-    (report / "results.jsonl").write_text("")
+    (report / "results.jsonl").write_text("", encoding="utf-8")
     document(authority, "evaluation/current-report.json", {})
     release = {
         "id": "fixture", "date": "2026-01-01", "title": "合成变更",
@@ -65,7 +65,7 @@ def test_sample_uses_selected_history_after_profile_validation(tmp_path):
     history = document(report, "report-changes.json", {"releases": [{"id": "extra"}]})
     with pytest.raises(ValueError, match="release history differs"):
         check_sample_report(report, authority_root=authority)
-    history.write_text(json.dumps({"releases": [release]}))
+    history.write_text(json.dumps({"releases": [release]}), encoding="utf-8")
     with pytest.raises(FileNotFoundError, match="changes/index.html"):
         check_sample_report(report, authority_root=authority)
 
@@ -87,6 +87,6 @@ def test_complete_report_checks_selected_profile_and_target_binding(tmp_path):
              {"schema_version": 2, "kind": "webmainbench_method_cohort_binding"})
     with pytest.raises(ValueError, match="scoring-correction.json missing"):
         check(report, authority_root=authority)
-    profile.write_text('{"providers": ["changed"], "case_count": 1}')
+    profile.write_text('{"providers": ["changed"], "case_count": 1}', encoding="utf-8")
     with pytest.raises(ValueError, match="publication target is not bound"):
         check(report, authority_root=authority)

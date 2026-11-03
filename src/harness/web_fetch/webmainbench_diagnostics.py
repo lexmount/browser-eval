@@ -93,8 +93,8 @@ def validate_teds_revision(root):
     else:
         teds_output_path = prior_results_path(root)
         teds_dataset_path = contained_path(root, "dataset.json")
-    receipt = json.loads(receipt_path.read_text())
-    review = json.loads(contained_path(root, "teds-correction-review.json").read_text())
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    review = json.loads(contained_path(root, "teds-correction-review.json").read_text(encoding="utf-8"))
     if not valid_correction_provenance(receipt) or receipt.get("provider_calls") != 0:
         raise ValueError("Invalid TEDS correction provenance")
     expected_count = receipt.get("scope", {}).get("logical_results")
@@ -117,7 +117,7 @@ def validate_teds_revision(root):
         raise ValueError("TEDS correction scope mismatch")
     if len({row["attempt_id"] for row in current}) != expected_count:
         raise ValueError("Duplicate corrected result")
-    _require_teds_matrix(json.loads(teds_dataset_path.read_text()), receipt, original, current)
+    _require_teds_matrix(json.loads(teds_dataset_path.read_text(encoding="utf-8")), receipt, original, current)
     _require_finite_metrics(current)
     for before, after in zip(original, current):
         if after.get("official_metrics") != before.get("official_metrics", before.get("metrics")):
@@ -222,7 +222,7 @@ def validate_reference_revision(root):
 
 def validate_webmainbench_scoring_revision(root):
     """Verify the zero-call shared-population correction and provider identity."""
-    receipt = json.loads(contained_path(root, "scoring-correction.json").read_text())
+    receipt = json.loads(contained_path(root, "scoring-correction.json").read_text(encoding="utf-8"))
     before_results = contained_path(root, "pre-scoring-correction-results.jsonl")
     after_results = contained_path(root, "results.jsonl")
     before_dataset = contained_path(root, "pre-scoring-correction-dataset.json")
@@ -390,8 +390,8 @@ def revise_teds(source, output, scorer_repo, *, prior_corrected=None, scorer_com
 def _revise_teds(source, output, scorer_repo, prior_corrected, scorer_commit):
     validate_controls()
     provenance = build_correction_provenance("structured-extraction", ROOT_CAUSE, CONTROLS)
-    dataset = json.loads((source / "dataset.json").read_text())
-    summaries = json.loads((source / "score-summaries.json").read_text())
+    dataset = json.loads((source / "dataset.json").read_text(encoding="utf-8"))
+    summaries = json.loads((source / "score-summaries.json").read_text(encoding="utf-8"))
     records = load_jsonl(source / "results.jsonl")
     inherited = {}
     inherited_receipt_sha256 = None
@@ -473,8 +473,8 @@ def _revise_teds(source, output, scorer_repo, prior_corrected, scorer_commit):
                 )
                 current = metric_dict(
                     metric.calculate(
-                        artifact.read_text(),
-                        reference_path.read_text(),
+                        artifact.read_text(encoding="utf-8"),
+                        reference_path.read_text(encoding="utf-8"),
                         table_edit_result=dependency,
                     )
                 )
@@ -540,10 +540,12 @@ def _revise_teds(source, output, scorer_repo, prior_corrected, scorer_commit):
         shutil.copy2(source / "results.jsonl", output / "original-results.jsonl")
         results_path = output / "results.jsonl"
         results_path.write_text(
-            "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in corrected)
+            "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in corrected),
+            encoding="utf-8"
         )
         (output / "score-summaries.json").write_text(
-            json.dumps(summaries, ensure_ascii=False, indent=2) + "\n"
+            json.dumps(summaries, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8"
         )
         from lexbench_webfetch import ordered_tree as ordered_tree_module
         from lexbench_webfetch import scoring as scoring_module
@@ -591,7 +593,8 @@ def _revise_teds(source, output, scorer_repo, prior_corrected, scorer_commit):
             "latency_changed": False,
         }
         (output / "teds-correction.json").write_text(
-            json.dumps(receipt, ensure_ascii=False, indent=2) + "\n"
+            json.dumps(receipt, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8"
         )
     return receipt
 
@@ -628,7 +631,7 @@ def review_teds_correction(source, corrected):
     """Verify a TEDS-only revision's matrix, arithmetic and preserved evidence offline."""
     reject_evidence_symlinks(source)
     reject_evidence_symlinks(corrected)
-    receipt = json.loads((corrected / "teds-correction.json").read_text())
+    receipt = json.loads((corrected / "teds-correction.json").read_text(encoding="utf-8"))
     if not valid_correction_provenance(receipt) or receipt.get("provider_calls") != 0:
         raise ValueError("Correction lacks executable regression provenance")
     for field, path in [
@@ -645,7 +648,7 @@ def review_teds_correction(source, corrected):
         raise ValueError("Original official records were not preserved byte-for-byte")
     before = load_jsonl(source / "results.jsonl")
     after = load_jsonl(corrected / "results.jsonl")
-    expected_count = len(json.loads((source / "dataset.json").read_text())["cases"]) * len(
+    expected_count = len(json.loads((source / "dataset.json").read_text(encoding="utf-8"))["cases"]) * len(
         receipt["scope"]["providers"]
     )
     if len(before) != expected_count or len(after) != len(before):
@@ -667,7 +670,7 @@ def review_teds_correction(source, corrected):
             raise ValueError("Correction changed evidence file presence: " + name)
         if file_sha256(source / name) != file_sha256(corrected / name):
             raise ValueError("Unexpected change: " + name)
-    _require_teds_matrix(json.loads((source / "dataset.json").read_text()), receipt, before, after)
+    _require_teds_matrix(json.loads((source / "dataset.json").read_text(encoding="utf-8")), receipt, before, after)
     _require_finite_metrics(after)
     changed = []
     for old, new in zip(before, after):
@@ -708,13 +711,13 @@ def review_teds_correction(source, corrected):
     if changed != receipt["changed_scores"]:
         raise ValueError("Changed-score inventory mismatch")
     require_valid_teds_for_release(after)
-    summaries = json.loads((corrected / "score-summaries.json").read_text())
+    summaries = json.loads((corrected / "score-summaries.json").read_text(encoding="utf-8"))
     if set(summaries) != set(receipt["scope"]["providers"]):
         raise ValueError("TEDS correction summary methods differ from declared matrix")
     impacts = {}
     for provider, summary in summaries.items():
         records = [row for row in after if row["provider"] == provider]
-        if len(records) != len(json.loads((source / "dataset.json").read_text())["cases"]):
+        if len(records) != len(json.loads((source / "dataset.json").read_text(encoding="utf-8"))["cases"]):
             raise ValueError("Provider scope mismatch")
         current = summary["official_aggregate"]
         expected = aggregate(records)

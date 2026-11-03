@@ -192,7 +192,7 @@ def test_map_acceptance_checks_full_frozen_contract(tmp_path, monkeypatch, damag
         assert not output.exists()
         return
     map_setup.map_check_main(["--url", "https://map.example", "--output", str(output)])
-    receipt = json.loads(output.read_text())
+    receipt = json.loads(output.read_text(encoding="utf-8"))
     assert receipt["status"] == "pass" and len(receipt["checks"]) == 14
     monkeypatch.setattr(
         map_setup,

@@ -129,7 +129,7 @@ def _revise_unlocked(
         )
     review_path = source / "result-review.json"
     if review_path.is_file():
-        review = json.loads(review_path.read_text())
+        review = json.loads(review_path.read_text(encoding="utf-8"))
         if review.get("bindings") != {
             "dataset_sha256": hashlib.sha256(before_dataset).hexdigest(),
             "results_sha256": hashlib.sha256(before_results).hexdigest(),
@@ -144,7 +144,7 @@ def _revise_unlocked(
         reference_receipt_path.read_bytes() if reference_receipt_path.is_file() else None
     )
     prior_reference_receipts = (
-        json.loads(reference_receipt_path.read_text()) if revised_reference_hashes else None
+        json.loads(reference_receipt_path.read_text(encoding="utf-8")) if revised_reference_hashes else None
     )
     dataset = json.loads(before_dataset)
     canonical = json.loads(read_dataset_bytes(canonical_path))
@@ -189,7 +189,7 @@ def _revise_unlocked(
     if validate_only and changed:
         raise ValueError('Scoring validation cannot change task requirements')
     if not validate_only:
-        dataset_path.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
+        dataset_path.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     staged_dataset = read_dataset_bytes(dataset_path)
     try:
         decisions = rescore(
@@ -269,7 +269,7 @@ def _revise_unlocked(
         **review_revision,
     }
     history.append(receipt)
-    receipt_path.write_text(json.dumps(history, ensure_ascii=False, indent=2) + "\n")
+    receipt_path.write_text(json.dumps(history, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     # Reference receipts are immutable history.  Their output can remain an
     # ancestor of the current bundle; lifecycle validation follows the later
     # scoring edge instead of rebinding the historical receipt in place.
@@ -318,9 +318,9 @@ def rebind_report_interpretation(source: Path, binding: dict, *, implementation_
         receipt[f'{side}_dataset_sha256'] = digest
         receipt[f'{side}_dataset_path'] = relative
     path = source/'report-binding-revisions.json'
-    history = json.loads(path.read_text()) if path.exists() else []
+    history = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
     history.append(receipt)
-    path.write_text(json.dumps(history, ensure_ascii=False, indent=2)+'\n')
+    path.write_text(json.dumps(history, ensure_ascii=False, indent=2)+'\n', encoding="utf-8")
     dataset_path.write_bytes(after)
     return receipt
 
@@ -339,7 +339,7 @@ def revise(
     source = source.resolve()
     lock_id = hashlib.sha256(str(source).encode()).hexdigest()[:20]
     lock_path = Path(tempfile.gettempdir()) / f"browser-eval-scoring-revision-{lock_id}.lock"
-    with lock_path.open("a+") as lock:
+    with lock_path.open("a+", encoding="utf-8") as lock:
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
         try:
             return _revise_unlocked(

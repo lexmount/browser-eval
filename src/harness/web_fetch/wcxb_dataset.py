@@ -163,6 +163,6 @@ def main() -> None:
     if args.qualified_test:
         payload['primary_quality_case_count'] = len(selected)
     validate_manifest(records, source_hash, payload)
-    args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+    args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding='utf-8')
     print(json.dumps({"source_sha256": source_hash, "sample_sha256": hashlib.sha256(args.output.read_bytes()).hexdigest(),
                       "distribution": distribution}, ensure_ascii=False))

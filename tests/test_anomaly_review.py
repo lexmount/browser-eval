@@ -13,9 +13,9 @@ class AnomalyReviewTests(unittest.TestCase):
     def test_deterministic_triggers_cover_cross_layer_suspicion(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); (root/'artifacts').mkdir(); (root/'raw').mkdir()
-            (root/'artifacts/empty.txt').write_text('')
-            (root/'artifacts/a.txt').write_text('same short boilerplate')
-            (root/'artifacts/b.txt').write_text('same short boilerplate')
+            (root/'artifacts/empty.txt').write_text('', encoding='utf-8')
+            (root/'artifacts/a.txt').write_text('same short boilerplate', encoding='utf-8')
+            (root/'artifacts/b.txt').write_text('same short boilerplate', encoding='utf-8')
             (root/'raw/doc.bin').write_bytes(b'x' * 1000)
             rows = [
                 {'attempt_id':'p__empty','provider':'p','case_id':'empty','ok':True,
@@ -39,7 +39,7 @@ class AnomalyReviewTests(unittest.TestCase):
 
     def test_real_stable_structure_forbidden_shape_triggers(self):
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory); (root/'answer.txt').write_text('all product records')
+            root=Path(directory); (root/'answer.txt').write_text('all product records', encoding='utf-8')
             row={'attempt_id':'moli-webfetch__dynamic-react-cart__r001',
                  'provider':'moli-webfetch','case_id':'dynamic-react-cart','ok':True,
                  'artifact_path':'answer.txt','metrics':{
@@ -53,7 +53,8 @@ class AnomalyReviewTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'answer.txt').write_text(
-                'Error\n    at execute (/Users/person/project/worker.ts:12:3)'
+                'Error\n    at execute (/Users/person/project/worker.ts:12:3)',
+                encoding='utf-8'
             )
             row = {'attempt_id': 'p__case', 'provider': 'p', 'case_id': 'case',
                    'ok': False, 'error_type': 'tool_error', 'elapsed_ms': 1000,
@@ -65,7 +66,7 @@ class AnomalyReviewTests(unittest.TestCase):
 
     def test_persisted_raw_response_and_file_artifacts_trigger_tiny_output(self):
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory); (root/'answer.txt').write_text('')
+            root=Path(directory); (root/'answer.txt').write_text('', encoding='utf-8')
             row={'attempt_id':'p__doc','provider':'p','case_id':'doc','ok':True,
                  'artifact_path':'answer.txt','metrics':{},'provider_metadata':{
                      'raw_response_path':'private_artifacts/p/doc.response.bin',
@@ -87,7 +88,7 @@ class AnomalyReviewTests(unittest.TestCase):
             rows=[]
             def add(case, text='', *, ok=True, error=None, status=None, route='ordinary_markdown',
                     blocked=False, complete=None, forbidden=None, document_response=None):
-                path=f'{case}.txt'; (root/path).write_text(text)
+                path=f'{case}.txt'; (root/path).write_text(text, encoding='utf-8')
                 metrics={'task_kind':'structure' if route=='challenge_json_trace' else 'body',
                          'content_pass':False, 'blocked_page':blocked,
                          'blocked_page_hits':['verification'] if blocked else [],
@@ -134,7 +135,7 @@ class AnomalyReviewTests(unittest.TestCase):
 
             valid_files=[]
             for case in ('image-10','video-05','video-08'):
-                path=f'{case}.txt'; (root/path).write_text('')
+                path=f'{case}.txt'; (root/path).write_text('', encoding='utf-8')
                 valid_files.append({'attempt_id':f'moli-webfetch__{case}__r001',
                     'provider':'moli-webfetch','case_id':case,'ok':True,'artifact_path':path,
                     'metrics':{'task_kind':'file','content_pass':False},'provider_metadata':{
@@ -147,7 +148,7 @@ class AnomalyReviewTests(unittest.TestCase):
             root=Path(directory)
             rows=[]
             for case in ('static-simple','redirect'):
-                (root/f'{case}.txt').write_text('Example Domain shared answer')
+                (root/f'{case}.txt').write_text('Example Domain shared answer', encoding='utf-8')
                 rows.append({'attempt_id':f'p__{case}','provider':'p','case_id':case,'ok':True,
                              'artifact_path':f'{case}.txt','metrics':{'content_pass':True}})
             dataset={'cases':[{'id':case,'source_verification':{'reference_sha256':'a'*64}}
@@ -162,7 +163,7 @@ class AnomalyReviewTests(unittest.TestCase):
             for index in range(10):
                 case_id = f'document-{index:02d}'
                 artifact = f'{case_id}.txt'
-                (root / artifact).write_text(f'answer {index}')
+                (root / artifact).write_text(f'answer {index}', encoding='utf-8')
                 cases.append({'id': case_id, 'track': 'document'})
                 rows.append({
                     'attempt_id': f'provider__{case_id}__r001',
@@ -191,7 +192,7 @@ class AnomalyReviewTests(unittest.TestCase):
 
             def row(index, passed=False):
                 artifact = f'answer-{index}.txt'
-                (root / artifact).write_text(f'answer {index}')
+                (root / artifact).write_text(f'answer {index}', encoding='utf-8')
                 return {
                     'attempt_id': f'provider__case-{index}__r001',
                     'provider': 'provider', 'case_id': f'case-{index}',
@@ -212,7 +213,7 @@ class AnomalyReviewTests(unittest.TestCase):
 
     def test_required_review_blocks_unresolved_and_uncorrected_defect(self):
         with tempfile.TemporaryDirectory() as directory:
-            root=Path(directory); (root/'empty.txt').write_text('')
+            root=Path(directory); (root/'empty.txt').write_text('', encoding='utf-8')
             dataset={'comparison':{'require_anomaly_review':True}}
             records=[{'attempt_id':'p__a','provider':'p','case_id':'a','ok':True,
                       'artifact_path':'empty.txt','metrics':{}}]
@@ -240,7 +241,7 @@ class AnomalyReviewTests(unittest.TestCase):
     def test_transport_timeout_raw_gap_requires_bound_call_log(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / 'empty.txt').write_text('')
+            (root / 'empty.txt').write_text('', encoding='utf-8')
             (root / 'call-logs').mkdir()
             empty_sha = hashlib.sha256(b'').hexdigest()
             log = {

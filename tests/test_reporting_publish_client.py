@@ -236,9 +236,9 @@ def lifecycle_site(monkeypatch, tmp_path, owner, marker):
     with zipfile.ZipFile(archive, 'w') as bundle:
         bundle.writestr('index.html', marker)
     profile = tmp_path / 'profile.json'
-    profile.write_text(json.dumps({'publication': {'base_url': BASE, 'title': 'Title'}}))
+    profile.write_text(json.dumps({'publication': {'base_url': BASE, 'title': 'Title'}}), encoding='utf-8')
     attestation = tmp_path / 'attestation.json'
-    attestation.write_text('{}')
+    attestation.write_text('{}', encoding='utf-8')
     for name, value in (('ARCHIVE', archive), ('PROFILE', profile), ('ATTESTATION', attestation),
                         ('RECEIPT', tmp_path / 'receipt.json'),
                         ('BINDING_JOURNAL', tmp_path / 'binding.json'),
@@ -392,7 +392,7 @@ def test_wcxb_publish_keeps_its_wire_contract_and_a_public_share_check(wcxb_repo
 def test_rename_keeps_its_identity_free_request_and_short_timeout(tmp_path, monkeypatch, wire):
     monkeypatch.delenv('ARTIFACT_SITE_BASE_URL', raising=False)
     receipt = tmp_path / 'receipt.json'
-    receipt.write_text(json.dumps({'slug': 'site-one', 'base_url': BASE}))
+    receipt.write_text(json.dumps({'slug': 'site-one', 'base_url': BASE}), encoding='utf-8')
     wire.respond = lambda request: b'{"slug":"site-one","title":"after"}'
     web_fetch.rename_main([str(receipt), '--title', 'after'])
     assert sent(wire) == [('PATCH', '/api/sites/site-one', [BEARER, JSON_BODY], 30)]
