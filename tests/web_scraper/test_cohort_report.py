@@ -375,3 +375,48 @@ def test_secret_only_in_html_is_rejected_even_with_valid_inventory(tmp_path, mod
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="textual artifact.*privacy"):
         check(output)
+
+
+def test_report_defaults_and_saved_primary_use_shared_language_policy(tmp_path, monkeypatch):
+    import harness.report_languages as languages
+
+    home = create(tmp_path / "first")
+    monkeypatch.setattr(languages, "REPORT_LANGUAGE_ENV_FILE", tmp_path / "no-env")
+    monkeypatch.delenv("BROWSER_EVAL_REPORT_LANGUAGE", raising=False)
+    output = tmp_path / "english-default"
+    build(output, home / "content.json", home=home, profile=home / "profile.json")
+    assert read_json(output / "report-manifest.json")["primary_language"] == "en"
+    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "zh")
+    assert languages.resolve_report_language(output) == "en"
+    other = tmp_path / "configured-chinese"
+    build(other, home / "content.json", home=home, profile=home / "profile.json")
+    assert read_json(other / "report-manifest.json")["languages"] == ["zh"]
+
+
+def test_configured_host_redaction_does_not_depend_on_one_deployment(tmp_path, monkeypatch):
+    import harness.web_scraper.report as report
+
+    home = create(tmp_path / "first")
+    source = home / "runs/example-v1"
+    manifest = read_json(source / "manifest.json")
+    entry = manifest["calls"][0]
+    path = source / entry["path"]
+    row = read_json(path)
+    row["response"]["debug"] = "backend other-internal.example at 192.0.2.77"
+    save_json(path, row)
+    entry["sha256"] = digest(path.read_bytes())
+    save_json(source / "manifest.json", manifest)
+    settings = tmp_path / "settings"
+    settings.mkdir()
+    (settings / ".env").write_text(
+        "WEB_SCRAPER_PUBLICATION_HOSTS=other-internal.example,192.0.2.77\n"
+    )
+    monkeypatch.setattr(report, "repository_root", lambda: settings)
+    output = tmp_path / "redacted"
+    build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
+    for path in (output / "public-evidence").glob("*.json"):
+        assert "other-internal.example" not in path.read_text()
+        assert "192.0.2.77" not in path.read_text()
+    # No environment file is required for public/synthetic reports.
+    monkeypatch.setattr(report, "repository_root", lambda: tmp_path / "absent-settings")
+    assert report.publication_host_names() == ()

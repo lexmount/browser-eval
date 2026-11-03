@@ -10,11 +10,13 @@ from pathlib import Path
 from harness.web_fetch.config import load_runtime_env
 from harness.web_scraper.pipeline import (
     access_blocker,
+    available_methods,
     digest,
-    fixture_request,
+    fixture_url,
     load_run,
     normalize,
     provider_call,
+    qualify_fixture,
     read_json,
     redact,
     require_external_output,
@@ -58,6 +60,9 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
             "failed_case_ids": failures,
             "previous_repairs": previous,
             "native_options": validate_native_options(method, options.get(method, {})),
+            "fixture_suffix": contract.get("fixture_suffix", "")
+            if contract.get("fixture_base")
+            else "",
             "minimum_call_interval_seconds": 13 if method == "diffbot-product" else 0,
             "post_call_cooldown_seconds": 10 if method == "diffbot-product" else 0,
         }
@@ -68,6 +73,7 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
         "fixture_base": fixture_base,
         "timeout_seconds": 120,
         "calls_per_case": 1,
+        "access_retries_after_repair": 1,
         "selection": "All original non-structured results; never replace successful originals",
     }
     save_json(output, plan, exclusive=True)
@@ -109,18 +115,12 @@ def artifact(directory, entry):
     return read_json(path)
 
 
-def fixture_check(home, base, cases):
-    if not base or not base.startswith("https://"):
-        raise ValueError("Repair URL input requires frozen HTTPS fixtures")
-    result = []
-    for cid in cases:
-        url = base.rstrip("/") + "/" + cid
-        response = fixture_request(url, timeout=45, max_bytes=3_000_000)
-        expected = digest((home / "dataset/html" / (cid + ".html")).read_bytes())
-        if response.status != 200 or response.url != url or digest(response.body) != expected:
-            raise ValueError("Repair fixture bytes or canonical URL differ")
-        result.append({"case_id": cid, "url": url, "sha256": expected})
-    return result
+def fixture_check(home, base, cases, suffix=""):
+    return [
+        {key: item[key] for key in ("case_id", "url", "sha256")}
+        for cid in cases
+        for item in [qualify_fixture(home, base, cid, suffix=suffix, timeout=45)]
+    ]
 
 
 def run(home, profile, method, destination):
@@ -157,17 +157,18 @@ def collect(home, profile, method, destination):
         raise ValueError("Repair participant method differs")
     validate_native_options(method, participant["native_options"])
     verify_parent(home, participant)
-    if plan["timeout_seconds"] != 120 or plan["calls_per_case"] != 1:
+    if (
+        plan["timeout_seconds"] != 120
+        or plan["calls_per_case"] != 1
+        or type(plan.get("access_retries_after_repair", 1)) is not int
+        or plan.get("access_retries_after_repair", 1) not in (0, 1)
+    ):
         raise ValueError("Unsupported repair execution budget")
     if plan["dataset_manifest_sha256"] != digest((home / "dataset/manifest.json").read_bytes()):
         raise ValueError("Repair dataset changed")
     code = {
         name: digest(Path(__file__).with_name(name).read_bytes())
-        for name in (
-            ("repair.py", "pipeline.py", "stagehand.py")
-            if method == "browserbase-stagehand"
-            else ("repair.py", "pipeline.py")
-        )
+        for name in ("repair.py", "pipeline.py")
     }
     contract = {
         "schema": "failed-extraction-repair-run/1",
@@ -181,7 +182,14 @@ def collect(home, profile, method, destination):
         raise ValueError("Repair resume contract changed")
     needs_fixture = requires_fixture(method, participant["native_options"])
     before = (
-        fixture_check(home, plan["fixture_base"], participant["case_ids"]) if needs_fixture else []
+        fixture_check(
+            home,
+            plan["fixture_base"],
+            participant["case_ids"],
+            participant.get("fixture_suffix", ""),
+        )
+        if needs_fixture
+        else []
     )
     if not target.exists():
         save_json(target, contract, exclusive=True)
@@ -201,24 +209,40 @@ def collect(home, profile, method, destination):
             snapshot.write_bytes(Path(__file__).with_name(name).read_bytes())
     journal = destination / "calls.journal.jsonl"
     entries = [json.loads(x) for x in journal.read_text().splitlines()] if journal.exists() else []
-    completed = {}
+    completed, histories, logical_entries = {}, {}, {}
     for entry in entries:
         row = artifact(destination, entry)
-        if row["case_id"] in completed or row["case_id"] not in participant["case_ids"]:
+        cid = row["case_id"]
+        prior = histories.setdefault(cid, [])
+        if (
+            cid not in participant["case_ids"]
+            or row.get("physical_attempt", 1) != len(prior) + 1
+            or (prior and not access_blocker(prior[-1]))
+        ):
             raise ValueError("Duplicate or undeclared repaired case")
-        completed[row["case_id"]] = row
+        prior.append(row)
+        completed[cid] = row
+        logical_entries[cid] = entry
     inflight = destination / "inflight.json"
     if inflight.exists():
         pending = read_json(inflight)
-        if pending["case_id"] not in completed:
+        if pending["case_id"] not in completed or completed[pending["case_id"]].get(
+            "physical_attempt", 1
+        ) != pending.get("physical_attempt", 1):
             raise ValueError("Ambiguous repair dispatch requires reconciliation")
         inflight.unlink()
     load_runtime_env()
+    missing = [key for key in available_methods()[method]["keys"] if not os.getenv(key)]
+    if missing:
+        raise PermissionError("Missing credentials before dispatch: " + ", ".join(missing))
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     finished = time.monotonic() if entries else None
     for cid in participant["case_ids"]:
         if cid in completed:
-            continue
+            if not access_blocker(completed[cid]):
+                continue
+            if len(histories[cid]) > plan.get("access_retries_after_repair", 1):
+                raise PermissionError("Repair access retry budget exhausted; calls retained")
         if finished is not None:
             pause = max(
                 participant["minimum_call_interval_seconds"],
@@ -233,6 +257,7 @@ def collect(home, profile, method, destination):
             "input_sha256": digest(raw),
             "started_at": datetime.now(UTC).isoformat(),
             "kind": "failure_repair",
+            "physical_attempt": len(histories.get(cid, [])) + 1,
         }
         save_json(inflight, row, exclusive=True)
         started = time.monotonic()
@@ -242,7 +267,9 @@ def collect(home, profile, method, destination):
                     method,
                     raw.decode(),
                     truth[cid]["url"],
-                    plan["fixture_base"].rstrip("/") + "/" + cid if needs_fixture else None,
+                    fixture_url(plan["fixture_base"], cid, participant.get("fixture_suffix", ""))
+                    if needs_fixture
+                    else None,
                     native_options=participant["native_options"],
                     timeout=120,
                 )
@@ -262,7 +289,13 @@ def collect(home, profile, method, destination):
             )
         row["elapsed_seconds"] = time.monotonic() - started
         row["finished_at"] = datetime.now(UTC).isoformat()
-        path = destination / "calls" / (cid + ".json")
+        prior_calls = histories.get(cid, [])
+        if prior_calls:
+            row["physical_attempts"] = prior_calls + [dict(row)]
+            row["retry_execution_seconds"] = sum(r.get("elapsed_seconds") or 0 for r in prior_calls)
+            row["retry_missing_timers"] = sum(r.get("elapsed_seconds") is None for r in prior_calls)
+        suffix = "" if row["physical_attempt"] == 1 else "-attempt" + str(row["physical_attempt"])
+        path = destination / "calls" / (cid + suffix + ".json")
         save_json(path, redact(row), exclusive=True)
         entry = {
             "path": path.relative_to(destination).as_posix(),
@@ -275,12 +308,21 @@ def collect(home, profile, method, destination):
         inflight.unlink()
         entries.append(entry)
         completed[cid] = row
+        logical_entries[cid] = entry
+        histories.setdefault(cid, []).append(row)
         finished = time.monotonic()
         print(method, cid[:10], row["compatibility"], row.get("http_status"), flush=True)
         if access_blocker(row):
             raise PermissionError("Repair stopped on native access denial")
     after = (
-        fixture_check(home, plan["fixture_base"], participant["case_ids"]) if needs_fixture else []
+        fixture_check(
+            home,
+            plan["fixture_base"],
+            participant["case_ids"],
+            participant.get("fixture_suffix", ""),
+        )
+        if needs_fixture
+        else []
     )
     if before != after:
         raise ValueError("Repair fixtures changed")
@@ -290,7 +332,8 @@ def collect(home, profile, method, destination):
     save_json(destination / "fixture-after.json", after)
     manifest = {
         "contract_sha256": digest(target.read_bytes()),
-        "calls": entries,
+        "calls": [logical_entries[cid] for cid in participant["case_ids"]],
+        "physical_calls": entries,
         "fixtures": {
             name: digest((destination / name).read_bytes())
             for name in ("fixture-before.json", "fixture-after.json")
@@ -301,11 +344,11 @@ def collect(home, profile, method, destination):
         "schema": "failed-extraction-repair-certificate/1",
         "profile_sha256": digest(profile.read_bytes()),
         "manifest_sha256": digest((destination / "manifest.json").read_bytes()),
-        "case_count": len(entries),
+        "case_count": len(completed),
         "method": method,
     }
     save_json(destination / "certificate.json", certificate)
-    return {"method": method, "repaired_calls": len(entries)}
+    return {"method": method, "repaired_calls": len(completed), "physical_calls": len(entries)}
 
 
 def compose(home, source, rows, repair):
@@ -335,7 +378,7 @@ def compose(home, source, rows, repair):
     if digest((directory / "contract.json").read_bytes()) != manifest["contract_sha256"]:
         raise ValueError("Repair contract changed")
     for name, expected in contract["code_sha256"].items():
-        if name not in ("repair.py", "pipeline.py", "stagehand.py"):
+        if name not in ("repair.py", "pipeline.py"):
             raise ValueError("Unexpected repair execution source")
         snapshot = directory / "execution" / name
         if snapshot.is_symlink() or digest(snapshot.read_bytes()) != expected:
@@ -357,6 +400,8 @@ def compose(home, source, rows, repair):
             raw = home / "dataset/html" / (item["case_id"] + ".html")
             if item["sha256"] != digest(raw.read_bytes()):
                 raise ValueError("Repair fixture qualification source changed")
+    for entry in manifest.get("physical_calls", manifest["calls"]):
+        artifact(directory, entry)
     replacements = {}
     for entry in manifest["calls"]:
         row = artifact(directory, entry)
@@ -388,10 +433,12 @@ def compose(home, source, rows, repair):
             {
                 **replacement,
                 "repair_run_id": directory.name,
-                "physical_attempts": previous + [replacement],
+                "physical_attempts": previous
+                + (replacement.get("physical_attempts") or [replacement]),
                 "superseded_result": row,
-                "retry_execution_seconds": retry_seconds,
-                "retry_missing_timers": retry_missing,
+                "retry_execution_seconds": retry_seconds
+                + (replacement.get("retry_execution_seconds") or 0),
+                "retry_missing_timers": retry_missing + replacement.get("retry_missing_timers", 0),
             }
         )
     truth = read_json(home / "dataset/dataset/ground-truth.json")

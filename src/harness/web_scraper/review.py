@@ -446,9 +446,7 @@ def assemble(
         for field, finding in opinion["reference"].items():
             if finding["status"] == "ambiguous":
                 excluded.setdefault(cid, []).append(field)
-            if (cid in adjudicated or (cid, field) in final_decisions) and finding[
-                "status"
-            ] != "ambiguous":
+            if finding["status"] == "incorrect":
                 accepted = opinion["source_fields"][field]["values"]
                 if field == "availability" and not set(accepted).issubset(
                     {"InStock", "OutOfStock"}
@@ -554,8 +552,8 @@ def assemble(
 
 
 def run(work, *, model, workers=4, limit=None):
-    work = Path(work).resolve()
     """Review only missing packets; retain exact reviewer, inputs and raw logs."""
+    work = Path(work).resolve()
     manifest = read_json(work / "manifest.json")
     for name, sha in manifest["bindings"].items():
         if digest(Path(name).read_bytes()) != sha:

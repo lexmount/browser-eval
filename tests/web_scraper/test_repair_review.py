@@ -12,6 +12,15 @@ from harness.web_scraper.repair import compose, create_plan, run
 from harness.web_scraper.review import prepare, reconcile_citations, validate
 
 
+@pytest.fixture(autouse=True)
+def native_test_credentials(monkeypatch):
+    from harness.web_scraper.pipeline import available_methods
+
+    for method in available_methods().values():
+        for key in method["keys"]:
+            monkeypatch.setenv(key, "synthetic-test-credential")
+
+
 def parent_inputs(tmp_path, method="cloudflare-json", failed_overrides=None):
     home = create(tmp_path / "example")
     source = home / "runs/parent"
@@ -262,6 +271,42 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
     assert amended["audited_reference"][cid]["sku"] == ["synthetic product"]
     assert amended["reference_changes"][0]["accepted"] == ["synthetic product"]
     assert amended["sources"][cid]["reference_review"]["sku"]["status"] == "incorrect"
+    # A supported adjudication must retain the original reference, even if its
+    # separately proposed source values differ. Explicit final decisions are tested above.
+    from harness.web_scraper.review import prepare_adjudication
+
+    review_path = work / "reviews" / "000.json"
+    prior_bytes = review_path.read_bytes()
+    prior = read_json(review_path)
+    prior["cases"][0]["reference"]["sku"]["status"] = "incorrect"
+    save_json(review_path, prior)
+    rules = tmp_path / "rules.txt"
+    rules.write_text("Retain supported original annotations")
+    adjudication_work = tmp_path / "supported-adjudication"
+    adjudication_manifest = prepare_adjudication(work, adjudication_work, rules)
+    for entry in adjudication_manifest["packets"]:
+        packet = read_json(Path(entry["path"]))
+        opinions = []
+        for case in packet["cases"]:
+            opinion = deepcopy(prior["cases"][0])
+            opinion["case_id"] = case["case_id"]
+            opinion["outputs"] = []
+            opinion["reference"]["sku"]["status"] = "supported"
+            opinion["source_fields"]["sku"]["values"] = ["synthetic product"]
+            opinions.append(opinion)
+        save_json(adjudication_work / "reviews" / Path(entry["path"]).name, {"cases": opinions})
+    supported = assemble(
+        home,
+        home / "content.json",
+        work,
+        tmp_path / "supplemental",
+        adjudication_work,
+        tmp_path / "supported.json",
+        profile=home / "profile.json",
+    )
+    assert supported["audited_reference"][cid]["sku"] == ["1"]
+    assert supported["reference_changes"] == []
+    review_path.write_bytes(prior_bytes)
     path = Path(manifest["packets"][0]["path"])
     packet = read_json(path)
     packet["cases"][0]["outputs"][0]["native_response"] = {"substituted": True}
@@ -425,7 +470,7 @@ def test_sibling_repair_cannot_supersede_current_success(tmp_path):
             compose(home, source, current, siblings[1])
 
 
-@pytest.mark.parametrize("method", ["firecrawl-json", "browserbase-stagehand"])
+@pytest.mark.parametrize("method", ["firecrawl-json", "browserbase-json"])
 def test_repair_url_route_is_qualified_and_snapshot_bound(tmp_path, method):
     home, source, profile, rows = parent_inputs(tmp_path, method=method)
     cid = rows[-1]["case_id"]
@@ -455,8 +500,6 @@ def test_repair_url_route_is_qualified_and_snapshot_bound(tmp_path, method):
             "sha256": digest((target / "certificate.json").read_bytes()),
         }
         compose(home, source, rows, revision)
-    if method == "browserbase-stagehand":
-        assert (target / "execution/stagehand.py").exists()
 
 
 def test_repair_retains_preexisting_access_retry_time(tmp_path):
@@ -502,3 +545,71 @@ def test_relative_review_work_creates_absolute_packet_and_source_paths(tmp_path,
         for case in read_json(Path(p["path"]))["cases"]:
             assert Path(case["source_html"]).is_absolute()
             assert Path(case["source_outline"]).is_absolute()
+
+
+def test_repair_resumes_access_denial_with_one_new_call_and_keeps_usage(tmp_path):
+    home, source, profile, rows = parent_inputs(tmp_path)
+    target = tmp_path / "quota-repair"
+    denial = {"http_status": 402, "response": {"error": "Insufficient credits"}}
+    success = {"http_status": 200, "response": {"result": {"sku": "new"}}}
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch("harness.web_scraper.repair.score_rows", return_value={}),
+        patch("harness.web_scraper.repair.provider_call", side_effect=[denial, success]) as call,
+    ):
+        with pytest.raises(PermissionError, match="native access denial"):
+            run(home, profile, "cloudflare-json", target)
+        assert not (target / "certificate.json").exists()
+        run(home, profile, "cloudflare-json", target)
+        run(home, profile, "cloudflare-json", target)
+        assert call.call_count == 2
+        manifest = read_json(target / "manifest.json")
+        assert len(manifest["calls"]) == 1 and len(manifest["physical_calls"]) == 2
+        current, _ = compose(
+            home,
+            source,
+            rows,
+            {"path": str(target), "sha256": digest((target / "certificate.json").read_bytes())},
+        )
+    assert current[-1]["compatibility"] == "structured_output"
+    assert len(current[-1]["physical_attempts"]) == 3
+    assert current[-1]["physical_attempts"][1]["http_status"] == 402
+
+
+def test_repair_missing_credentials_never_consumes_a_call(tmp_path, monkeypatch):
+    home, _, profile, _ = parent_inputs(tmp_path)
+    target = tmp_path / "no-key"
+    monkeypatch.delenv("CLOUDFLARE_API_TOKEN")
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch("harness.web_scraper.repair.provider_call") as call,
+    ):
+        for _ in range(3):
+            with pytest.raises(PermissionError, match="Missing credentials"):
+                run(home, profile, "cloudflare-json", target)
+        call.assert_not_called()
+        assert not (target / "calls.journal.jsonl").exists()
+        assert not (target / "certificate.json").exists()
+
+
+def test_repair_keeps_parent_fixture_suffix(tmp_path):
+    home, _, profile, rows = parent_inputs(tmp_path, method="firecrawl-json")
+    plan = read_json(profile)
+    plan["participants"]["firecrawl-json"]["fixture_suffix"] = ".html"
+    save_json(profile, plan)
+    cid = rows[-1]["case_id"]
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch("harness.web_scraper.repair.score_rows", return_value={}),
+        patch("harness.web_scraper.repair.fixture_check", return_value=[]) as qualify,
+        patch(
+            "harness.web_scraper.repair.provider_call",
+            return_value={"http_status": 200, "response": {"data": {"json": {"sku": "ok"}}}},
+        ) as call,
+    ):
+        run(home, profile, "firecrawl-json", tmp_path / "suffix")
+    assert call.call_args.args[3].endswith("/" + cid + ".html")
+    assert qualify.call_args.args[-1] == ".html"

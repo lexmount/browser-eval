@@ -38,7 +38,6 @@ Historical predictions are separate from new measurements.
 | `zyte-product` | Product extraction, `userHtml` | Uploaded HTML with original URL as context |
 | `diffbot-product` | Product API POST | Raw uploaded HTML with original URL as context |
 | `browserbase-json` | Native JSON extraction | Frozen HTTPS URL and JSON Schema; built-in extraction |
-| `browserbase-stagehand` | Hosted Stagehand Extract | Frozen HTTPS URL; provider-hosted browser and inference |
 | `extruct` | Upstream local baseline | Archived HTML |
 
 Browser infrastructure requiring a separately connected model is outside this

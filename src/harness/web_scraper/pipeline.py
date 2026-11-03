@@ -114,6 +114,41 @@ def requires_fixture(method, options=None):
     )
 
 
+def fixture_url(base, case_id, suffix=""):
+    if not base or not base.startswith("https://") or suffix not in ("", ".html"):
+        raise ValueError("Frozen fixture requires HTTPS and a declared path suffix")
+    return f"{base.rstrip('/')}/{case_id}{suffix}"
+
+
+def qualify_fixture(home, base, case_id, *, suffix="", timeout=60):
+    url = fixture_url(base, case_id, suffix)
+    for attempt in range(3):
+        try:
+            response = fixture_request(url, headers={"Accept-Encoding": "gzip"}, timeout=timeout)
+            break
+        except (TimeoutError, OSError):
+            if attempt == 2:
+                raise
+            time.sleep(2)
+    body = (
+        gzip.decompress(response.body)
+        if response.headers.get("content-encoding") == "gzip"
+        else response.body
+    )
+    expected = digest((home / "dataset/html" / (case_id + ".html")).read_bytes())
+    if response.status != 200 or digest(body) != expected:
+        raise ValueError("Remote fixture differs from frozen HTML: " + case_id)
+    if response.url != url:
+        raise ValueError("Use the canonical frozen fixture URL without redirects")
+    return {
+        "case_id": case_id,
+        "sha256": expected,
+        "http_status": response.status,
+        "url": url,
+        "qualification_fetch_attempts": attempt + 1,
+    }
+
+
 def data_home() -> Path:
     return shared_data_home() / "web-scraper"
 
@@ -316,13 +351,8 @@ def available_methods():
         "scrapegraph-extract": {"keys": ["SGAI_API_KEY"], "input": "html"},
         "scrapfly-product": {"keys": ["SCRAPFLY_API_KEY"], "input": "html"},
         "oxylabs-json": {"keys": ["OXYLABS_API_KEY"], "input": "url"},
-        "brightdata-scrapers": {"keys": ["BRIGHTDATA_API_TOKEN"], "input": "site_specific"},
         "extruct": {"keys": [], "input": "html"},
         "browserbase-json": {"keys": ["BROWSERBASE_API_KEY"], "input": "url"},
-        "browserbase-stagehand": {
-            "keys": ["BROWSERBASE_API_KEY", "BROWSERBASE_PROJECT_ID"],
-            "input": "url",
-        },
     }
 
 
@@ -448,24 +478,6 @@ def provider_call(
                 "endpoint": "local:extruct",
                 "html_sha256": digest(html.encode()),
                 "source_url": source_url,
-            },
-        }
-    if method == "browserbase-stagehand":
-        if not fixture_url:
-            return {"state": "input_blocked", "error": "A frozen HTTPS snapshot URL is required"}
-        started = time.monotonic()
-        from harness.web_scraper.stagehand import extract
-
-        result = extract(fixture_url, SCHEMA, timeout=timeout, deadline_wrapper=total_deadline)
-        return {
-            **redact(result),
-            "elapsed_seconds": time.monotonic() - started,
-            "request": {
-                "input": "url",
-                "endpoint": "stagehand:extract",
-                "html_sha256": digest(html.encode()),
-                "source_url": source_url,
-                "fixture_url": fixture_url,
             },
         }
     if method == "cloudflare-json":
@@ -656,32 +668,44 @@ def normalize(method: str, payload: dict):
         if not result.get("availability") and len(stock) == 1:
             result["availability"] = stock[0]
         return result
+
+    def mapping(value):
+        return value if isinstance(value, dict) else {}
+
     if method == "firecrawl-json":
-        item = payload.get("data", {}).get("json")
+        item = mapping(payload.get("data")).get("json")
     elif method == "browserbase-json":
         status = payload.get("statusCode")
         if not isinstance(status, int) or not 200 <= status < 300:
             return None
         item = payload.get("content")
-    elif method in ("cloudflare-json", "browserbase-stagehand"):
+    elif method == "cloudflare-json":
         item = payload.get("result")
     elif method == "oxylabs-json":
-        results = payload.get("results") or []
-        item = results[0].get("json") if len(results) == 1 else None
+        results = payload.get("results")
+        item = (
+            mapping(results[0]).get("json")
+            if isinstance(results, list) and len(results) == 1
+            else None
+        )
     elif method == "scrapegraph-extract":
         item = payload.get("json")
     elif method == "scrapfly-product":
-        p = payload.get("data") or payload.get("result", {}).get("extracted_data", {}).get("data")
+        p = payload.get("data") or mapping(
+            mapping(payload.get("result")).get("extracted_data")
+        ).get("data")
         if isinstance(p, dict):
-            offers = p.get("offers") or []
-            offer = offers[0] if offers else {}
+            offers = p.get("offers")
+            offer = mapping(offers[0]) if isinstance(offers, list) and offers else {}
             price = offer.get("price")
             if isinstance(price, dict):
                 price = price.get("amount")
             stock = offer.get("availability")
+            if stock is not None and not isinstance(stock, str):
+                stock = None
             item = {
                 "price": price,
-                "sku": (p.get("identifiers") or {}).get("sku"),
+                "sku": mapping(p.get("identifiers")).get("sku"),
                 "availability": {
                     "available": "InStock",
                     "unavailable": "OutOfStock",
@@ -698,9 +722,9 @@ def normalize(method: str, payload: dict):
             else None
         )
     elif method == "diffbot-product":
-        objects = payload.get("objects", [])
-        p = objects[0] if len(objects) == 1 else None
-        offer = p.get("offerPriceDetails", {}).get("amount", p.get("offerPrice")) if p else None
+        objects = payload.get("objects")
+        p = mapping(objects[0]) if isinstance(objects, list) and len(objects) == 1 else {}
+        offer = mapping(p.get("offerPriceDetails")).get("amount", p.get("offerPrice"))
         item = (
             {"price": offer, "sku": p.get("sku"), "availability": p.get("availability")}
             if p
@@ -771,7 +795,10 @@ def access_blocker(row):
     if row.get("state") == "credentials_missing":
         return "credentials_missing"
     status = row.get("http_status")
-    message = str(row.get("response", {})) + str(row.get("error", ""))
+    response = row.get("response")
+    message = str(row.get("error", ""))
+    if isinstance(response, dict):
+        message += " ".join(str(response.get(key, "")) for key in ("error", "errors", "message"))
     if status == 401:
         return "authentication"
     if status == 402:
@@ -790,11 +817,13 @@ def access_blocker(row):
             re.I,
         ):
             return "authentication"
-        if re.search(r"permission denied|access denied|forbidden|not authorized", message, re.I):
+        if re.search(
+            r"permission denied|access denied|forbidden|not authorized", message, re.I
+        ) and not re.search(r"target page|download|fetch|session", message, re.I):
             return "permission"
         if re.search(
-            r"quota|credits?|balance|free plan|usage period|upgrade|subscription|payment|"
-            r"insufficient|expired",
+            r"quota|credits?|account balance|insufficient balance|free plan|usage period|"
+            r"subscription|payment|account.*expired",
             message,
             re.I,
         ):
@@ -872,36 +901,7 @@ def _probe_unlocked(
 
     def verify_remote():
         def one(case_id):
-            requested_url = f"{fixture_base.rstrip('/')}/{case_id}{fixture_suffix}"
-            for attempt in range(3):
-                try:
-                    response = fixture_request(
-                        requested_url,
-                        headers={"Accept-Encoding": "gzip"},
-                        timeout=60,
-                    )
-                    break
-                except (TimeoutError, OSError):
-                    if attempt == 2:
-                        raise
-                    time.sleep(2)
-            expected = digest((home / "dataset/html" / (case_id + ".html")).read_bytes())
-            body = (
-                gzip.decompress(response.body)
-                if response.headers.get("content-encoding") == "gzip"
-                else response.body
-            )
-            if response.status != 200 or digest(body) != expected:
-                raise ValueError("Remote fixture differs from frozen HTML: " + case_id)
-            if response.url != requested_url:
-                raise ValueError("Use the canonical frozen fixture URL without redirects")
-            return {
-                "case_id": case_id,
-                "sha256": expected,
-                "http_status": response.status,
-                "url": requested_url,
-                "qualification_fetch_attempts": attempt + 1,
-            }
+            return qualify_fixture(home, fixture_base, case_id, suffix=fixture_suffix)
 
         if not fixture_base:
             return []
@@ -943,9 +943,6 @@ def _probe_unlocked(
         "dataset_manifest_sha256": digest((home / "dataset/manifest.json").read_bytes()),
         "pipeline_sha256": digest(Path(__file__).read_bytes()),
         "pipeline_snapshot": "execution/pipeline.py",
-        "stagehand_sha256": digest(Path(__file__).with_name("stagehand.py").read_bytes())
-        if "browserbase-stagehand" in methods
-        else None,
         "baseline_extractor": read_json(PROFILE).get("baseline_extractor")
         if "extruct" in methods
         else None,
@@ -964,7 +961,6 @@ def _probe_unlocked(
             "fixture_suffix",
             "dataset_manifest_sha256",
             "pipeline_sha256",
-            "stagehand_sha256",
             "baseline_extractor",
         ):
             if contract[field] != requested[field]:
@@ -979,18 +975,12 @@ def _probe_unlocked(
         if snapshot.exists() and digest(snapshot.read_bytes()) != requested["pipeline_sha256"]:
             raise ValueError("Pre-dispatch pipeline snapshot changed")
         snapshot.write_bytes(Path(__file__).read_bytes())
-        if "browserbase-stagehand" in methods:
-            stagehand_source = Path(__file__).with_name("stagehand.py")
-            snapshot = run / "execution/stagehand.py"
-            if snapshot.exists() and digest(snapshot.read_bytes()) != requested["stagehand_sha256"]:
-                raise ValueError("Pre-dispatch adapter snapshot changed")
-            snapshot.write_bytes(stagehand_source.read_bytes())
-            contract["stagehand_sha256"] = digest(stagehand_source.read_bytes())
         save_json(run / "contract.json", contract, exclusive=True)
     journal = run / "calls.journal.jsonl"
     prior = {}
     physical = []
     attempts = {}
+    dispatched_attempts = {}
     if journal.exists():
         for line in journal.read_text().splitlines():
             entry = json.loads(line)
@@ -1002,6 +992,8 @@ def _probe_unlocked(
             prior[key] = entry
             physical.append(entry)
             attempts[key] = attempts.get(key, 0) + 1
+            if record.get("state") not in ("credentials_missing", "input_blocked"):
+                dispatched_attempts[key] = dispatched_attempts.get(key, 0) + 1
     if {p.relative_to(run).as_posix() for p in (run / "calls").glob("*.json")} - {
         e["path"] for e in physical
     }:
@@ -1032,7 +1024,7 @@ def _probe_unlocked(
                 if not (full and access_blocker(prior_row)):
                     records.append(entry)
                     continue
-                if attempts[(method, case_id)] > contract["access_retry_limit"]:
+                if dispatched_attempts.get((method, case_id), 0) > contract["access_retry_limit"]:
                     raise PermissionError("Access remains blocked; declared retry budget exhausted")
             missing = [key for key in registry[method]["keys"] if not os.getenv(key)]
             raw = (home / "dataset/html" / (case_id + ".html")).read_bytes()
@@ -1042,13 +1034,10 @@ def _probe_unlocked(
                 "input_sha256": digest(raw),
                 "kind": "structured_extraction_attempt" if full else "compatibility_probe",
             }
+            if missing and full:
+                raise PermissionError("Missing credentials before dispatch: " + ", ".join(missing))
             if missing:
                 row.update(state="credentials_missing", missing_variables=missing)
-            elif registry[method]["input"] == "site_specific":
-                row.update(
-                    state="input_blocked",
-                    error="Site-specific scraper cannot be substituted for a generic HTML parser",
-                )
             else:
                 if last_call_started is not None:
                     remaining = max(
@@ -1084,7 +1073,7 @@ def _probe_unlocked(
                             method,
                             raw.decode("utf-8"),
                             truth[case_id]["url"],
-                            f"{fixture_base.rstrip('/')}/{case_id}{fixture_suffix}"
+                            fixture_url(fixture_base, case_id, fixture_suffix)
                             if fixture_base
                             else None,
                             **({"home": home} if method == "extruct" else {}),
@@ -1192,11 +1181,6 @@ def load_run(run: Path):
             raise ValueError("Frozen execution source changed")
     if digest((run / "contract.json").read_bytes()) != manifest["contract_sha256"]:
         raise ValueError("Call contract changed")
-    if (
-        contract.get("stagehand_sha256")
-        and digest((run / "execution/stagehand.py").read_bytes()) != contract["stagehand_sha256"]
-    ):
-        raise ValueError("Frozen Stagehand client changed")
     for entry in manifest.get("physical_calls", []):
         relative = Path(entry["path"])
         if relative.is_absolute() or ".." in relative.parts:

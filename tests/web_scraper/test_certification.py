@@ -96,9 +96,7 @@ def test_unexpected_native_envelope_retains_no_fabricated_fields(payload):
     assert normalize("scrapfly-product", payload) is None
 
 
-@pytest.mark.parametrize(
-    "method", ["firecrawl-json", "oxylabs-json", "browserbase-json", "browserbase-stagehand"]
-)
+@pytest.mark.parametrize("method", ["firecrawl-json", "oxylabs-json", "browserbase-json"])
 def test_certification_rejects_missing_url_fixture_before_dispatch(tmp_path, method):
     from harness.web_scraper.certification import run
     from harness.web_scraper.pipeline import save_json

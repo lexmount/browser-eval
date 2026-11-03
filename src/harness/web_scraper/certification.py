@@ -2,7 +2,6 @@
 
 import argparse
 import importlib.util
-import sys
 from pathlib import Path
 
 from harness.reporting.templates import metric_contract
@@ -25,11 +24,7 @@ from harness.web_scraper.pipeline import (
 def create_plan(home, methods, output):
     require_external_output(output)
     registry = available_methods()
-    if (
-        not methods
-        or len(set(methods)) != len(methods)
-        or any(m not in registry or registry[m]["input"] == "site_specific" for m in methods)
-    ):
+    if not methods or len(set(methods)) != len(methods) or any(m not in registry for m in methods):
         raise ValueError("Select distinct complete extraction interfaces or the extruct baseline")
     validate_dataset(home)
     truth = read_json(home / "dataset/dataset/ground-truth.json")
@@ -81,34 +76,7 @@ def frozen_probe(run_dir, expected_sha):
         function = getattr(module, name, None)
         if function is not None and function.__defaults__ == (frozen_profile,):
             function.__defaults__ = (PROFILE,)
-    contract = read_json(run_dir / "contract.json")
-    adapter_sha = contract.get("stagehand_sha256")
-    adapter = None
-    if adapter_sha:
-        adapter_source = run_dir / "execution/stagehand.py"
-        if adapter_source.is_symlink() or digest(adapter_source.read_bytes()) != adapter_sha:
-            raise ValueError("Frozen native adapter changed")
-        adapter_spec = importlib.util.spec_from_file_location(
-            "harness.web_scraper.stagehand", adapter_source
-        )
-        adapter = importlib.util.module_from_spec(adapter_spec)
-        adapter_spec.loader.exec_module(adapter)
-
-    def collect(*args, **kwargs):
-        if adapter is None:
-            return module.probe(*args, **kwargs)
-        name = "harness.web_scraper.stagehand"
-        previous = sys.modules.get(name)
-        sys.modules[name] = adapter
-        try:
-            return module.probe(*args, **kwargs)
-        finally:
-            if previous is None:
-                sys.modules.pop(name, None)
-            else:
-                sys.modules[name] = previous
-
-    return collect
+    return module.probe
 
 
 def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None):
@@ -133,8 +101,6 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
         and any(path.name != "execution.lock" for path in run_dir.iterdir())
     ):
         raise ValueError("Pre-call receipt is absent from an already-started execution")
-    if available_methods()[method]["input"] == "site_specific":
-        raise ValueError("A site-specific scraper is not a generic archived-HTML participant")
     validate_dataset(home)
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     case_hash = digest(("\n".join(sorted(truth)) + "\n").encode())

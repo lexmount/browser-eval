@@ -1,6 +1,5 @@
 """Interrupted, denied and resumed native API collection scenarios."""
 
-import json
 import sys
 from contextlib import ExitStack
 from pathlib import Path
@@ -10,11 +9,9 @@ from unittest.mock import patch
 import pytest
 
 from harness.web_fetch.providers.http_client import HttpResponse
-from harness.web_scraper.certification import frozen_probe
 from harness.web_scraper.certification import run as certified_run
 from harness.web_scraper.example import create
-from harness.web_scraper.pipeline import access_blocker, digest, load_run, probe, save_json
-from harness.web_scraper.stagehand import extract
+from harness.web_scraper.pipeline import access_blocker, load_run, probe, save_json
 
 
 def collection_context():
@@ -189,29 +186,6 @@ def test_certified_preflight_failure_can_resume_without_replacing_receipt(tmp_pa
     assert read_json(target / "certificate.json")["case_count"] == 3
 
 
-def test_frozen_resume_uses_its_adapter_snapshot_not_current_adapter(tmp_path):
-    source = tmp_path / "execution/pipeline.py"
-    source.parent.mkdir()
-    source.write_text(
-        "from pathlib import Path\nPROFILE = Path('/obsolete/snapshot/profile.json')\n"
-        "def validate_dataset(home, profile=PROFILE):\n return profile\n"
-        "def probe(*args, **kwargs):\n"
-        " from harness.web_scraper.stagehand import extract\n"
-        ' return extract("frozen", {}), validate_dataset(None)\n'
-    )
-    adapter = source.with_name("stagehand.py")
-    adapter.write_text('def extract(*args, **kwargs):\n return "frozen adapter"\n')
-    save_json(tmp_path / "contract.json", {"stagehand_sha256": digest(adapter.read_bytes())})
-    with patch("harness.web_scraper.stagehand.extract", return_value="current adapter"):
-        collector = frozen_probe(tmp_path, digest(source.read_bytes()))
-        from harness.web_scraper.certification import PROFILE
-
-        assert collector() == ("frozen adapter", PROFILE)
-        from harness.web_scraper.stagehand import extract as current
-
-        assert current("url", {}) == "current adapter"
-
-
 def test_raw_html_text_denial_preserves_status_and_body():
     from harness.web_scraper.pipeline import provider_call
 
@@ -253,21 +227,6 @@ def test_endpoint_permission_denial_pauses_without_quota_wording():
         )
         == "quota_or_permission"
     )
-
-
-def test_repository_project_identifier_overrides_shell(tmp_path):
-    import os
-
-    from harness.web_fetch.config import load_runtime_env
-
-    env = tmp_path / ".env"
-    env.write_text("BROWSERBASE_PROJECT_ID=repository-project\n")
-    with (
-        patch("harness.web_fetch.config.ROOT", tmp_path),
-        patch.dict(os.environ, {"BROWSERBASE_PROJECT_ID": "shell-project"}),
-    ):
-        load_runtime_env()
-        assert os.environ["BROWSERBASE_PROJECT_ID"] == "repository-project"
 
 
 def test_predispatch_storage_failure_does_not_complete_a_provider_attempt(tmp_path):
@@ -397,29 +356,6 @@ def test_resumed_collection_observes_frozen_pacing_before_dispatch(tmp_path):
     assert started[1] - resumed_at >= 13
 
 
-def test_stagehand_phases_share_one_timeout_budget():
-    clock = [0.0]
-    timeouts = []
-
-    def request(url, **kwargs):
-        timeouts.append(kwargs["timeout"])
-        clock[0] += min(50, kwargs["timeout"])
-        body = {"success": True, "data": {"sessionId": "synthetic"}, "result": {"sku": "X"}}
-        return HttpResponse(200, url, {}, json.dumps(body).encode())
-
-    with (
-        patch("harness.web_scraper.stagehand.time.monotonic", side_effect=lambda: clock[0]),
-        patch("harness.web_scraper.stagehand.request", side_effect=request),
-        patch.dict(
-            "os.environ",
-            {"BROWSERBASE_API_KEY": "synthetic", "BROWSERBASE_PROJECT_ID": "synthetic"},
-        ),
-    ):
-        extract("https://frozen.example/1.html", {}, timeout=120)
-    assert timeouts == [115, 65, 15, 5]
-    assert clock[0] == 120
-
-
 @pytest.mark.parametrize("snapshot_state", ["empty", "matching", "changed"])
 def test_initialization_resumes_after_snapshot_before_contract(tmp_path, snapshot_state):
     import harness.web_scraper.pipeline as pipeline
@@ -508,86 +444,6 @@ def test_continuously_streaming_response_has_a_total_deadline(transport):
         server.server_close()
 
 
-def test_stagehand_timeout_retains_setup_failure_phase_and_cleanup():
-    def request(url, **kwargs):
-        if url.endswith("/navigate"):
-            raise TimeoutError("Synthetic navigation timeout")
-        body = {"success": True, "data": {"sessionId": "synthetic"}}
-        return HttpResponse(200, url, {}, json.dumps(body).encode())
-
-    with (
-        patch("harness.web_scraper.stagehand.request", side_effect=request),
-        patch.dict(
-            "os.environ",
-            {"BROWSERBASE_API_KEY": "synthetic", "BROWSERBASE_PROJECT_ID": "synthetic"},
-        ),
-    ):
-        result = extract("https://frozen.example/1.html", {})
-    assert result["state"] == "call_error"
-    assert result["failure_phase"] == "snapshot_navigation"
-    calls = result["response"]["calls"]
-    assert [r["phase"] for r in calls] == [
-        "session_setup",
-        "snapshot_navigation",
-        "session_cleanup",
-    ]
-    assert calls[0]["http_status"] == 200
-    assert calls[1]["error"] == "Synthetic navigation timeout"
-    assert calls[2]["http_status"] == 200
-
-
-def test_streaming_stagehand_navigation_stops_in_time_to_release_session():
-    import time
-    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-    from threading import Thread
-
-    paths = []
-
-    class Handler(BaseHTTPRequestHandler):
-        def do_POST(self):
-            paths.append(self.path)
-            self.rfile.read(int(self.headers.get("Content-Length", 0)))
-            if self.path.endswith("/navigate"):
-                self.send_response(200)
-                self.send_header("Content-Length", "1000")
-                self.end_headers()
-                try:
-                    for _ in range(100):
-                        self.wfile.write(b" ")
-                        self.wfile.flush()
-                        time.sleep(0.01)
-                except (BrokenPipeError, ConnectionResetError):
-                    pass
-            else:
-                body = json.dumps({"success": True, "data": {"sessionId": "test"}}).encode()
-                self.send_response(200)
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-
-        def log_message(self, *args):
-            pass
-
-    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
-    Thread(target=server.serve_forever, daemon=True).start()
-    try:
-        with (
-            patch("harness.web_scraper.stagehand.BASE", f"http://127.0.0.1:{server.server_port}"),
-            patch.dict(
-                "os.environ", {"BROWSERBASE_API_KEY": "test", "BROWSERBASE_PROJECT_ID": "test"}
-            ),
-        ):
-            started = time.monotonic()
-            result = extract("https://frozen.example/1", {}, timeout=0.5)
-            assert time.monotonic() - started < 0.8
-        assert result["failure_phase"] == "snapshot_navigation"
-        assert paths == ["/sessions/start", "/sessions/test/navigate", "/sessions/test/end"]
-        assert result["response"]["calls"][-1]["http_status"] == 200
-    finally:
-        server.shutdown()
-        server.server_close()
-
-
 def test_json_checkpoint_survives_partial_write_and_exclusive_collision(tmp_path):
     from harness.web_scraper import pipeline
 
@@ -610,3 +466,65 @@ def test_json_checkpoint_survives_partial_write_and_exclusive_collision(tmp_path
         pipeline.save_json(target, {"overwrite": True}, exclusive=True)
     assert target.read_bytes() == original
     assert list(tmp_path.iterdir()) == [target]
+
+
+def test_repeated_missing_credentials_do_not_exhaust_full_run(tmp_path):
+    home = create(tmp_path / "example")
+    target = home / "runs/no-key"
+    with (
+        collection_context(),
+        patch.dict("os.environ", {}, clear=True),
+        patch("harness.web_scraper.pipeline.provider_call") as call,
+    ):
+        for _ in range(3):
+            with pytest.raises(PermissionError, match="Missing credentials"):
+                probe(home, ["cloudflare-json"], full=True, run_dir=target)
+        assert not (target / "calls.journal.jsonl").exists()
+        call.assert_not_called()
+    with (
+        collection_context(),
+        patch("harness.web_scraper.pipeline.provider_call", side_effect=accepted) as call,
+    ):
+        probe(home, ["cloudflare-json"], full=True, run_dir=target)
+        assert call.call_count == 3
+
+
+@pytest.mark.parametrize(
+    "response",
+    [
+        {"success": False, "error": "session expired"},
+        {
+            "success": False,
+            "error": "page could not load",
+            "content": "account balance upgrade credits",
+        },
+    ],
+)
+def test_target_error_content_never_spends_account_retry_budget(response):
+    assert access_blocker({"http_status": 200, "response": response}) is None
+
+
+@pytest.mark.parametrize(
+    "method,bad,good",
+    [
+        ("firecrawl-json", {"data": None}, {"data": {"json": {"sku": "ok"}}}),
+        ("scrapfly-product", {"result": None}, {"data": {"identifiers": {"sku": "ok"}}}),
+        (
+            "scrapfly-product",
+            {"result": {"extracted_data": None}},
+            {"result": {"extracted_data": {"data": {"identifiers": {"sku": "ok"}}}}},
+        ),
+        ("diffbot-product", {"objects": None}, {"objects": [{"sku": "ok"}]}),
+        (
+            "diffbot-product",
+            {"objects": [None]},
+            {"objects": [{"offerPriceDetails": None, "sku": "ok"}]},
+        ),
+        ("oxylabs-json", {"results": [None]}, {"results": [{"json": {"sku": "ok"}}]}),
+    ],
+)
+def test_null_native_envelopes_are_safe_at_every_projection_boundary(method, bad, good):
+    from harness.web_scraper.pipeline import normalize
+
+    assert normalize(method, bad) is None
+    assert normalize(method, good)["sku"] == "ok"

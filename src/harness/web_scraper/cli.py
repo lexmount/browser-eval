@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
+from harness.report_languages import add_language_argument
 from harness.web_scraper.pipeline import (
     data_home,
     prepare,
@@ -63,7 +64,7 @@ def main(argv=None):
     p.add_argument("--content", type=Path, required=True)
     p.add_argument("--profile", type=Path, required=True, help="External report-instance profile")
     p.add_argument("--output", type=Path, required=True)
-    p.add_argument("--language", choices=["en", "zh"], default="zh")
+    add_language_argument(p)
     p.add_argument("--run", type=Path)
     p = sub.add_parser("check")
     p.add_argument("output", type=Path)

@@ -115,29 +115,6 @@ class PipelineScenarios(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Physical call"):
                 load_run(run)
 
-    def test_native_stagehand_streams_keep_errors_and_complete_results(self):
-        from harness.web_fetch.providers.http_client import HttpResponse
-        from harness.web_scraper.stagehand import decode_response
-
-        def response(events):
-            return HttpResponse(
-                200,
-                "https://example.org",
-                {},
-                b"".join(("data: " + json.dumps(e) + "\n\n").encode() for e in events),
-            )
-
-        success = {"type": "system", "data": {"status": "finished", "result": {"sku": "S1"}}}
-        failure = {"type": "system", "data": {"status": "error", "error": "Free plan expired"}}
-        value, events = decode_response(response([success]))
-        self.assertEqual(value["result"], {"sku": "S1"})
-        self.assertEqual(events, [success])
-        value, _ = decode_response(response([failure]))
-        self.assertFalse(value["success"])
-        self.assertEqual(value["message"], "Free plan expired")
-        with self.assertRaises(ValueError):
-            decode_response(response([{"type": "log", "data": {}}]))
-
     def test_browser_capture_png_and_jpeg_dimensions(self):
         import struct
 

@@ -13,6 +13,9 @@ from urllib.parse import unquote, urljoin, urlsplit
 
 from bs4 import BeautifulSoup
 
+from harness.distribution import repository_root
+from harness.env_file import parse_env_file
+from harness.report_languages import resolve_report_language
 from harness.reporting.presentation import check_presentation
 from harness.reporting.templates import metric_contract
 from harness.web_fetch.publication_privacy import project_evidence_view, publication_risk
@@ -244,7 +247,6 @@ def cohort_source(source, selection, home, truth):
         raise ValueError("Full cohort plan, population or execution binding differs")
     for relative, sha in [
         ("execution/pipeline.py", contract["pipeline_sha256"]),
-        ("execution/stagehand.py", contract.get("stagehand_sha256")),
     ]:
         if sha and digest((source / relative).read_bytes()) != sha:
             raise ValueError("Frozen execution changed")
@@ -1089,7 +1091,18 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
     return review, interpretation
 
 
-def build(output: Path, content: Path, *, home: Path, run=None, language="zh", profile=PROFILE):
+def publication_host_names():
+    path = repository_root() / ".env"
+    settings = parse_env_file(path) if path.is_file() else {}
+    return tuple(
+        host.strip()
+        for host in settings.get("WEB_SCRAPER_PUBLICATION_HOSTS", "").split(",")
+        if host.strip()
+    )
+
+
+def build(output: Path, content: Path, *, home: Path, run=None, language=None, profile=PROFILE):
+    language = resolve_report_language(output, language)
     if language not in LABELS:
         raise ValueError("Unsupported language")
     languages = ("zh",) if language == "zh" else ("en", "zh")
@@ -1275,7 +1288,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             raw,
             role="native_response",
             content_format="json",
-            host_names=("go-connect.connect.svc.cluster.local", "10.255.255.1"),
+            host_names=publication_host_names(),
         )
         projected = json.loads(public)
         before = list(bucket.values()) if cohort else [bucket]
