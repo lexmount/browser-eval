@@ -140,7 +140,7 @@ def replay_native_http_error_context(stdout: bytes, diagnostic: bytes, requested
             'error_message': f'Moli returned HTTP {status}'}
 
 
-def _route_for_case(case: EvalCase, *, native_default: bool = False) -> str:
+def _route_for_case(case: EvalCase, *, native_default: bool = False, document_output: str = "native") -> str:
     """Select one output contract before applying page-family extraction rules."""
     if case.task_kind == "file":
         return "raw_file"
@@ -148,7 +148,7 @@ def _route_for_case(case: EvalCase, *, native_default: bool = False) -> str:
         if case.task_kind == "resource":
             return "native_resource_html"
         media = declared_input_media_kind(case, required=case.track == "document")
-        if case.track == "document" and media in {"direct_pdf", "direct_docx"}:
+        if case.track == "document" and document_output == "native" and media in {"direct_pdf", "direct_docx"}:
             return "native_document_bytes"
         return "dynamic_native_markdown" if case.track == "dynamic" else "ordinary_markdown"
     return "resource_native_markdown" if case.task_kind == "resource" else "dynamic_native_markdown" if case.track == "dynamic" else "ordinary_markdown"
@@ -162,7 +162,8 @@ def _family_wait_until(config, track):
 
 class MoliWebFetchProvider(Provider):
     def native_route(self, case) -> NativeRoute:
-        interface = _route_for_case(case, native_default=True)
+        interface = _route_for_case(case, native_default=True,
+                                    document_output=self.config.get("document_output", "native"))
         fields = (['original_bytes'] if interface in {'raw_file', 'native_document_bytes'}
                   else ['stdout', 'diagnostic.main_document_url'])
         return NativeRoute('cli', interface, tuple(fields))
@@ -208,6 +209,8 @@ class MoliWebFetchProvider(Provider):
             or any(character not in "0123456789abcdef" for character in expected_sha256)
         ):
             errors.append("expected_binary_sha256")
+        if self.config.get("document_output", "native") not in {"native", "markdown"}:
+            errors.append("document_output")
         if self.config.get("wait_until", "done") not in _WAIT_UNTIL_VALUES:
             errors.append("wait_until")
         if self.config.get("dynamic_wait_until", "domstable") not in _WAIT_UNTIL_VALUES:
@@ -316,7 +319,8 @@ class MoliWebFetchProvider(Provider):
         return errors
 
     def native_cli_command(self, case):
-        route = _route_for_case(case, native_default=True)
+        route = _route_for_case(case, native_default=True,
+                                    document_output=self.config.get("document_output", "native"))
         argv = [str(self.config.get('binary', 'moli')), 'fetch']
         native_dynamic = case.track == 'dynamic' and case.retrieval_hints == NATIVE_RETRIEVAL_HINTS
         if route not in {'raw_file', 'native_document_bytes'}:
@@ -358,7 +362,8 @@ class MoliWebFetchProvider(Provider):
 
     def _native_command(self, case, binary, command, dump, layout, include_subdocuments,
                         wait_metadata, family_wait, track_waits, native_dynamic_task):
-        route = _route_for_case(case, native_default=True)
+        route = _route_for_case(case, native_default=True,
+                                    document_output=self.config.get("document_output", "native"))
         command = [binary, *self.native_cli_command(case)[1:]]
         dump = None if route in {'raw_file', 'native_document_bytes'} else 'html' if case.task_kind == 'resource' else 'markdown'
         if not native_dynamic_task:

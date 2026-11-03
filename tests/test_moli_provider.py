@@ -229,6 +229,39 @@ class MoliTests(unittest.TestCase):
                     self.assertEqual(result.content.strip(), "native output")
                     self.assertEqual(result.metadata["dump"], "html" if kind == "resource" else "markdown")
 
+    def test_uniform_document_markdown_uses_one_command_for_all_input_media(self):
+        provider = self.provider(
+            "assert sys.argv[sys.argv.index('--dump') + 1] == 'markdown'\n"
+            "assert sys.argv[sys.argv.index('--wait-until') + 1] == 'done'\n"
+            "print('native document text')\n",
+            uniform_native_parameters=True, document_output="markdown", wait_until="done")
+        for media in ("direct_pdf", "direct_docx", "html_page"):
+            case = self.case_with(track="document", task_kind="body",
+                                  source_benchmark={"input_media_kind": media})
+            result = provider.fetch(case, 5)
+            self.assertTrue(result.ok, result.error_message)
+            self.assertEqual(result.content.strip(), "native document text")
+            self.assertEqual(result.metadata["route"], "ordinary_markdown")
+            self.assertEqual(provider.native_route(case).interface, "ordinary_markdown")
+
+    def test_uniform_document_markdown_preserves_native_failure(self):
+        provider = self.provider(
+            "print('raw download output only supports automatic output or --dump json', file=sys.stderr)\n"
+            "raise SystemExit(1)\n",
+            uniform_native_parameters=True, document_output="markdown", wait_until="done")
+        case = self.case_with(track="document", task_kind="body",
+                              source_benchmark={"input_media_kind": "direct_pdf"})
+        with patch("harness.web_fetch.document_text.extract_document_text", side_effect=AssertionError("caller conversion")):
+            result = provider.fetch(case, 5)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.content, "")
+        self.assertFalse(result.files)
+
+    def test_invalid_document_output_rejected(self):
+        provider = self.provider("print('unused')\n", uniform_native_parameters=True,
+                                 document_output="pdf_to_markdown")
+        self.assertIn("document_output", provider.validate())
+
     def test_fixed_native_cli_omits_internal_timers(self):
         provider = self.provider(
             "import sys\n"
