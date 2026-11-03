@@ -318,6 +318,15 @@ def _redact_plain_url_queries(text):
             url, units = raw, None
         query_start = url.find('?')
         changes = []
+        authority_start = url.find('://') + 3
+        authority_end = min((i for i in (url.find('/', authority_start),
+                                        url.find('?', authority_start),
+                                        url.find('#', authority_start)) if i >= 0), default=len(url))
+        at = url.rfind('@', authority_start, authority_end)
+        if at >= 0 and url[authority_start:at] != '[REDACTED]':
+            changes.append((units[authority_start][1] if units else authority_start,
+                            units[at-1][2] if units else at))
+            replacements += 1
         if query_start >= 0:
             query_end = url.find('#', query_start)
             if query_end < 0:

@@ -11,11 +11,13 @@ import json
 import os
 import re
 import runpy
+import signal
 import tarfile
 import time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
+from functools import wraps
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -307,6 +309,32 @@ def redact(value):
     return value
 
 
+def total_deadline(function):
+    """Interrupt socket reads as well as connection setup on the serial Unix runner."""
+    @wraps(function)
+    def bounded(*args, timeout=120, **kwargs):
+        def expired(signum, frame):
+            raise TimeoutError("Native extraction wall-clock deadline exceeded")
+
+        previous = signal.getsignal(signal.SIGALRM)
+        started = time.monotonic()
+        signal.signal(signal.SIGALRM, expired)
+        old_timer = signal.setitimer(signal.ITIMER_REAL, timeout)
+        try:
+            return function(*args, timeout=timeout, **kwargs)
+        finally:
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            signal.signal(signal.SIGALRM, previous)
+            if old_timer[0]:
+                signal.setitimer(
+                    signal.ITIMER_REAL,
+                    max(0.000001, old_timer[0] - (time.monotonic() - started)),
+                    old_timer[1],
+                )
+    return bounded
+
+
+@total_deadline
 def provider_call(method, html, source_url, fixture_url=None, *, timeout=120, home=None):
     """One native route per provider; no hidden fallback or quality retry."""
     if method == "extruct":
@@ -804,11 +832,17 @@ def _probe_unlocked(
             return run
     else:
         contract = requested
-        (run / "execution").mkdir()
-        (run / "execution/pipeline.py").write_bytes(Path(__file__).read_bytes())
+        (run / "execution").mkdir(exist_ok=True)
+        snapshot = run / "execution/pipeline.py"
+        if snapshot.exists() and digest(snapshot.read_bytes()) != requested["pipeline_sha256"]:
+            raise ValueError("Pre-dispatch pipeline snapshot changed")
+        snapshot.write_bytes(Path(__file__).read_bytes())
         if "browserbase-stagehand" in methods:
             stagehand_source = Path(__file__).with_name("stagehand.py")
-            (run / "execution/stagehand.py").write_bytes(stagehand_source.read_bytes())
+            snapshot = run / "execution/stagehand.py"
+            if snapshot.exists() and digest(snapshot.read_bytes()) != requested["stagehand_sha256"]:
+                raise ValueError("Pre-dispatch adapter snapshot changed")
+            snapshot.write_bytes(stagehand_source.read_bytes())
             contract["stagehand_sha256"] = digest(stagehand_source.read_bytes())
         save_json(run / "contract.json", contract, exclusive=True)
     journal = run / "calls.journal.jsonl"

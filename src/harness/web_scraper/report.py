@@ -953,6 +953,12 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
         for p in sorted(output.rglob("*"))
         if p.is_file()
     }
+    public_bindings, metadata_receipt = project_evidence_view(
+        "public-evidence/metadata.json",
+        json.dumps(bindings, ensure_ascii=False).encode(),
+        role="native_response",
+        content_format="json",
+    )
     save_json(
         output / "report-manifest.json",
         {
@@ -970,7 +976,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             "languages": list(languages),
             "case_count": len(truth),
             "observations": len(rows),
-            "source_runs": bindings,
+            "source_runs": json.loads(public_bindings),
+            "source_metadata_view": metadata_receipt,
             "public_evidence_views": public_receipts,
             "files": files,
         },
@@ -981,6 +988,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
 
 def check(output: Path, *, release=False, visual_receipt=None):
     manifest = read_json(output / "report-manifest.json")
+    if publication_risk((output / "report-manifest.json").read_bytes()):
+        raise ValueError("Report metadata has a publication privacy risk")
     if manifest["template"] != VERSION:
         raise ValueError("Wrong template")
     if manifest.get("metric_contract") != metric_contract():

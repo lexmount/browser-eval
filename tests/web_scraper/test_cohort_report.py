@@ -59,6 +59,24 @@ def test_public_evidence_requires_complete_projection_receipts(tmp_path):
         check(output)
 
 
+def test_contract_url_credentials_are_omitted_from_public_metadata(tmp_path):
+    home = create(tmp_path / "first", mode="full-cohort-progress")
+    source = home / "runs/synthetic-success"
+    contract = read_json(source / "contract.json")
+    contract["fixture_base"] = "https://private-user:private-pass@frozen.example/?api_key=private-token"
+    save_json(source / "contract.json", contract)
+    output = tmp_path / "projected"
+    build(output, home / "content.json", home=home, profile=home / "profile.json")
+    metadata = (output / "report-manifest.json").read_text()
+    assert "private-pass" not in metadata
+    assert "private-token" not in metadata
+    manifest = read_json(output / "report-manifest.json")
+    manifest["source_runs"][0]["contract"]["fixture_base"] = contract["fixture_base"]
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="metadata.*privacy"):
+        check(output)
+
+
 def test_cost_prices_and_latency_cannot_omit_a_compared_participant(tmp_path):
     home = create(tmp_path / "first", mode="full-cohort-progress")
     content = read_json(home / "content.json")

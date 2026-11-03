@@ -3,6 +3,7 @@
 import json
 import sys
 from contextlib import ExitStack
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -384,8 +385,83 @@ def test_stagehand_phases_share_one_timeout_budget():
         ),
     ):
         extract("https://frozen.example/1.html", {}, timeout=120)
-    assert timeouts == [120, 70, 20]
+    assert timeouts == [115, 65, 15, 5]
     assert clock[0] == 120
+
+
+@pytest.mark.parametrize("snapshot_state", ["empty", "matching", "changed"])
+def test_initialization_resumes_after_snapshot_before_contract(tmp_path, snapshot_state):
+    import harness.web_scraper.pipeline as pipeline
+
+    home = create(tmp_path / "example")
+    target = home / "runs/interrupted-init"
+    (target / "execution").mkdir(parents=True)
+    if snapshot_state != "empty":
+        (target / "execution/pipeline.py").write_bytes(
+            Path(pipeline.__file__).read_bytes() if snapshot_state == "matching" else b"changed"
+        )
+    with (
+        collection_context(),
+        patch("harness.web_scraper.pipeline.provider_call", side_effect=accepted) as call,
+    ):
+        if snapshot_state == "changed":
+            with pytest.raises(ValueError, match="snapshot changed"):
+                probe(home, ["cloudflare-json"], full=True, run_dir=target)
+            call.assert_not_called()
+        else:
+            probe(home, ["cloudflare-json"], full=True, run_dir=target)
+            assert call.call_count == 3
+
+
+@pytest.mark.parametrize("transport", ["requests", "urllib"])
+def test_continuously_streaming_response_has_a_total_deadline(transport):
+    import time
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+
+    import requests
+    from urllib3.exceptions import ReadTimeoutError
+
+    from harness.web_fetch.providers.http_client import request
+    from harness.web_scraper.pipeline import total_deadline
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.send_header("Content-Length", "1000")
+            self.end_headers()
+            try:
+                for _ in range(100):
+                    self.wfile.write(b" ")
+                    self.wfile.flush()
+                    time.sleep(0.02)
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    worker = Thread(target=server.serve_forever, daemon=True)
+    worker.start()
+
+    @total_deadline
+    def consume(*, timeout):
+        url = f"http://127.0.0.1:{server.server_port}"
+        if transport == "requests":
+            with requests.get(url, stream=True, timeout=timeout) as response:
+                response.raw.read()
+        else:
+            request(url, timeout=timeout)
+
+    started = time.monotonic()
+    try:
+        with pytest.raises((TimeoutError, requests.RequestException, ReadTimeoutError)):
+            consume(timeout=0.15)
+        assert time.monotonic() - started < 0.8
+    finally:
+        server.shutdown()
+        server.server_close()
 
 
 def test_stagehand_timeout_retains_setup_failure_phase_and_cleanup():
