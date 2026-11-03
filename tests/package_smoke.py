@@ -1806,6 +1806,8 @@ def main():
         subprocess.run([sys.executable, '-c',
                         'from harness.web_fetch.resource_cohort import main; main(["--help"])'],
                        check=True, cwd=root, capture_output=True, text=True)
+        subprocess.run([sys.executable, '-m', 'harness.web_search', 'report', '--help'],
+                       check=True, cwd=root, capture_output=True, text=True)
         from harness.reporting.links import check
         check(root / 'run/report')
         reference = (root / 'run/report/references/one.txt').read_text()
