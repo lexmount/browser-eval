@@ -585,7 +585,7 @@ def map_check_main(argv=None):
     print(json.dumps({"status": result["status"], "checks": len(result["checks"])}))
 
 
-if __name__ == "__main__":
+def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("/data"))
     parser.add_argument("--contract", type=Path, required=True)
@@ -598,7 +598,7 @@ if __name__ == "__main__":
         action="store_true",
         help="Omit osm2pgsql flatnode import/update cache for frozen queries",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     component = json.loads(args.contract.read_text(encoding="utf-8"))["components"]["map"]
     local_services = component["local_services"]
     setup(
@@ -609,20 +609,23 @@ if __name__ == "__main__":
         args.compression,
         args.query_only,
     )
-    if args.serve:
-        configure_browser_assets(component["service_port"])
-        version_browser_assets()
-        configure_tiles(args.root, local_services)
-        raise SystemExit(
-            serve(
-                args.root,
-                args.reserve_gib * GIB,
-                [
-                    "/entrypoint.sh",
-                    "/usr/bin/supervisord",
-                    "-c",
-                    "/etc/supervisor/conf.d/supervisord.conf",
-                ],
-                detail_service_command(local_services),
-            )
-        )
+    if not args.serve:
+        return 0
+    configure_browser_assets(component["service_port"])
+    version_browser_assets()
+    configure_tiles(args.root, local_services)
+    return serve(
+        args.root,
+        args.reserve_gib * GIB,
+        [
+            "/entrypoint.sh",
+            "/usr/bin/supervisord",
+            "-c",
+            "/etc/supervisor/conf.d/supervisord.conf",
+        ],
+        detail_service_command(local_services),
+    )
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

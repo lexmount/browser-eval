@@ -9,16 +9,20 @@ import shutil
 import subprocess
 import sys
 import tarfile
-from unittest.mock import patch
+from pathlib import Path
+from unittest.mock import Mock, call, patch
 
 import pytest
 
+from harness.environments.webarena import map_setup
 from harness.environments.webarena.map_setup import (
+    GIB,
     MAPPINGS,
     configure_browser_assets,
     configure_tiles,
     detail_service_command,
     extract_archive,
+    main,
     require_space,
     restore_compressed,
     serve,
@@ -29,6 +33,7 @@ from harness.environments.webarena.map_setup import (
 )
 
 LOCAL_SERVICES = {"rails_port": 3000, "nominatim_port": 8085, "detail_port": 8091}
+CONTRACT = Path(__file__).parents[2] / "deploy/webarena/site-delivery-contract.json"
 
 
 def archive_at(path, members):
@@ -438,6 +443,63 @@ def test_detail_service_command_carries_the_contract_ports():
     assert detail_service_command(LOCAL_SERVICES) == [
         "python3", "/opt/map_detail.py", "--port", "8091", "--nominatim-port", "8085",
     ]
+
+
+def steps_of_main():
+    """Replace every step that touches the container; their order and arguments stay visible."""
+    steps = Mock()
+    steps.serve.return_value = 7
+    names = ("setup", "configure_browser_assets", "version_browser_assets",
+             "configure_tiles", "serve")
+    return steps, patch.multiple(map_setup, **{name: getattr(steps, name) for name in names})
+
+
+def test_serving_hands_the_repository_contract_values_to_each_step(tmp_path):
+    component = json.loads(CONTRACT.read_text(encoding="utf-8"))["components"]["map"]
+    steps, patched = steps_of_main()
+    with patched:
+        status = main(["--root", str(tmp_path), "--contract", str(CONTRACT), "--reserve-gib", "5",
+                       "--source-base", "https://mirror.invalid/map", "--compression", "zstd",
+                       "--serve", "--query-only"])
+    assert status == 7
+    assert steps.mock_calls == [
+        call.setup(tmp_path, component, 5 * GIB, "https://mirror.invalid/map", "zstd", True),
+        call.configure_browser_assets(8080),
+        call.version_browser_assets(),
+        call.configure_tiles(tmp_path, LOCAL_SERVICES),
+        call.serve(
+            tmp_path,
+            5 * GIB,
+            ["/entrypoint.sh", "/usr/bin/supervisord", "-c",
+             "/etc/supervisor/conf.d/supervisord.conf"],
+            ["python3", "/opt/map_detail.py", "--port", "8091", "--nominatim-port", "8085"],
+        ),
+    ]
+
+
+def test_setup_without_serve_stops_after_the_volume_is_ready(tmp_path):
+    component = json.loads(CONTRACT.read_text(encoding="utf-8"))["components"]["map"]
+    steps, patched = steps_of_main()
+    with patched:
+        status = main(["--root", str(tmp_path), "--contract", str(CONTRACT)])
+    assert status == 0
+    assert steps.mock_calls == [call.setup(tmp_path, component, 64 * GIB, "", "", False)]
+
+
+def test_contract_without_local_ports_stops_the_script_before_any_download(tmp_path):
+    component = json.loads(CONTRACT.read_text(encoding="utf-8"))["components"]["map"]
+    del component["local_services"]
+    contract = tmp_path / "contract.json"
+    contract.write_text(json.dumps({"components": {"map": component}}), encoding="utf-8")
+    root = tmp_path / "volume"
+    result = subprocess.run(
+        [sys.executable, map_setup.__file__, "--root", str(root), "--contract", str(contract)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "KeyError: 'local_services'" in result.stderr
+    assert not root.exists()
 
 
 def test_tile_configuration_rejects_multiple_virtual_hosts(tmp_path):
