@@ -107,6 +107,37 @@ def test_resume_rejects_changed_context_before_overwriting_work(tmp_path, phase,
     assert snapshot(work) == before
 
 
+@pytest.mark.parametrize("phase", ["blind", "anomaly"])
+def test_resume_rejects_a_changed_reviewer_runner(tmp_path, phase):
+    evidence = fixture(tmp_path)
+    work = tmp_path / "work"
+    main = review_main if phase == "blind" else anomaly_main
+    argv = [
+        "review",
+        "--evidence",
+        str(evidence),
+        "--work",
+        str(work),
+        "--model",
+        "synthetic-model",
+        "--reviewer",
+        "internal",
+        "--prepare-only",
+    ]
+    with patch("sys.argv", argv):
+        main()
+    before = snapshot(work)
+    changed = tmp_path / "review_runner.py"
+    changed.write_text("# changed runner\n")
+    with (
+        patch("sys.argv", argv),
+        patch("harness.review_runner.__file__", str(changed)),
+        pytest.raises(ValueError, match="use a new review directory"),
+    ):
+        main()
+    assert snapshot(work) == before
+
+
 def completed_blind_batch(work):
     (work / "batch-001.json").write_text(
         json.dumps(

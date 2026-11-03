@@ -15,6 +15,7 @@ from lexbench_webfetch import metrics
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
+from harness import review_runner
 from harness.record_io import file_sha256, load_jsonl, parse_jsonl, write_json
 from harness.review_runner import run_reviewer
 from harness.web_fetch import anomaly_review, result_review
@@ -1260,6 +1261,7 @@ def bind_review_workspace(evidence, work, records, bindings, options, *, prior=N
             path.name: file_sha256(path)
             for path in [
                 Path(__file__),
+                Path(review_runner.__file__),
                 Path(anomaly_review.__file__),
                 Path(result_review.__file__),
                 Path(metrics.__file__),
