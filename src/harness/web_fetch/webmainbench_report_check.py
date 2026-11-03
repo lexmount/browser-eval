@@ -22,7 +22,6 @@ from harness.report_languages import (
     localized_report_routes,
 )
 from harness.reporting.assets import load_bound_content
-from harness.reporting.presentation import check_presentation
 from harness.reporting.release_check import checked_page, language_editions, open_report, read_page
 from harness.web_fetch.report import ERROR_PAGE, EXTRA, JS, STYLE
 from harness.web_fetch.report_changes import webmainbench_history
@@ -746,8 +745,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
     if 'en' in generated_languages(root):
         timing_variants.append(('en/', 'Mean latency ↕'))
     for prefix, mean_label in timing_variants:
-        localized_home = read_page(root / prefix / "index.html")
-        check_presentation(localized_home)
+        localized_home = checked_page(root / prefix / "index.html")
         checked_page(root / prefix / "guide/index.html")
         if latency_diagnostic:
             guide_page = read_page(root / prefix / 'guide/index.html')

@@ -1,8 +1,8 @@
 """Every track gate opens its report through the shared flow, and the flow fails closed.
 
 Gate-level controls below reach the shared page and language rules wherever a synthetic
-report can get that far. The sample WebMainBench gate re-reads its guide at the end of a
-complete 200-case report, which no fixture here renders.
+report can get that far. No fixture here renders the complete 200-case report whose home
+and guide the sample WebMainBench gate re-reads last, or a complete certified WCXB report.
 """
 
 import hashlib
