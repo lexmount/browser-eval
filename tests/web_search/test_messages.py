@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.web_search.messages import report_text, zh_text
+from harness.web_search.pages import reader_pages
 
 PACKAGE = Path(__file__).resolve().parents[2] / "src/harness/web_search"
 CATALOG = json.loads((PACKAGE / "messages.json").read_text(encoding="utf-8"))["zh"]
@@ -37,13 +38,12 @@ def _fields(template):
 
 def test_every_lookup_is_a_literal_catalog_key_and_every_key_is_used():
     lookups = list(_lookups())
-    dynamic = [(name, line) for name, line, source, _, _ in lookups if source is None]
-    pages = [f"navigation|{source}" for source in ("Overview", "Queries", "Results", "Findings", "Latency diagnostics",
-             "Method & market", "Decisions", "API outputs", "Retrieval quality", "Speed and cost", "Tests and sources",
-             "Query comparison", "Method & FAQ", "Result audit")]
-    assert dynamic == [("pages.py", 28)]
+    dynamic = [name for name, _, source, _, _ in lookups if source is None]
+    pages = {f"navigation|{row['en']}" for presentation in (None, "comparison-report")
+             for row in reader_pages(presentation, reviewed=True)}
+    assert dynamic == ["pages.py"]
     used = {f"{context}|{source}" if context else source for _, _, source, context, _ in lookups if source is not None}
-    assert set(CATALOG) - used == set(pages)
+    assert set(CATALOG) - used == pages
     assert used - set(CATALOG) == set()
 
 
