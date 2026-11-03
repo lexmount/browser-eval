@@ -10,6 +10,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.record_io import file_sha256
 from harness.reporting import publication
 from harness.reporting import publish as shared
 from harness.web_fetch import publication_check, report_package, report_publish
@@ -98,6 +99,57 @@ class Service:
         else:
             raise AssertionError("Unexpected request or report readback: " + path)
         return 200, json.dumps(value).encode()
+
+
+DATA_TARGET = {"base_url": "https://reports.example", "site_slug": "data-one", "version_id": "ver_data"}
+
+
+def with_data_attachment(config, root, *, planned, bound):
+    """Plan one data attachment against ``planned`` while the profile binds ``bound``."""
+    part = root / "part.zip"
+    part.write_bytes(b"part bytes")
+    manifest = root / "parts.json"
+    manifest.write_text(
+        json.dumps({"parts": {"data": {"archive": part.name, "sha256": file_sha256(part)}}, "publications": planned}),
+        encoding="utf-8",
+    )
+    profile = json.loads(config.profile.read_bytes())
+    if bound is not None:
+        profile["data_publications"] = bound
+    config.profile.write_text(json.dumps(profile), encoding="utf-8")
+    return replace(config, parts_manifest=manifest)
+
+
+@pytest.mark.parametrize(
+    ("planned", "bound", "message"),
+    [
+        ({"data": DATA_TARGET}, {"data": {**DATA_TARGET, "version_id": "ver_other"}}, "differ from the publication authority"),
+        ({"data": DATA_TARGET}, {"data": {**DATA_TARGET, "site_slug": "data-two"}}, "differ from the publication authority"),
+        ({"data": DATA_TARGET}, None, "differ from the publication authority"),
+        (
+            {"data": {**DATA_TARGET, "base_url": "https://other.example"}},
+            {"data": {**DATA_TARGET, "base_url": "https://other.example"}},
+            "must use the profile-bound publication service",
+        ),
+    ],
+    ids=["other-version", "other-site", "unbound", "other-service"],
+)
+def test_data_attachment_target_mismatch_stops_before_any_request(tmp_path, planned, bound, message):
+    config = with_data_attachment(fixture(tmp_path), tmp_path, planned=planned, bound=bound)
+    receipt = config.receipt.read_bytes()
+    service = Service()
+    with pytest.raises(ValueError, match=message):
+        report_publish.publish(config, transport=service)
+    assert service.requests == []
+    assert config.receipt.read_bytes() == receipt
+    assert not config.journal.exists()
+
+
+def test_data_attachment_bound_to_the_report_target_publishes(tmp_path):
+    config = with_data_attachment(fixture(tmp_path), tmp_path, planned={"data": DATA_TARGET}, bound={"data": DATA_TARGET})
+    service = Service()
+    assert report_publish.publish(config, transport=service, package_check=lambda *args: None)["versionId"] == "ver_new"
+    assert len(service.uploads) == 1
 
 
 SCENARIOS = [
