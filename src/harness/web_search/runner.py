@@ -316,7 +316,7 @@ def collection_implementation():
     names = (
         "harness/web_search/runner.py", "harness/web_search/core.py",
         "harness/web_search/adapters.py", "harness/web_search/profiles.py",
-        "harness/web_fetch/config.py", "harness/record_io.py", "uv.lock", "pyproject.toml",
+        "harness/web_fetch/config.py", "harness/env_file.py", "harness/record_io.py", "uv.lock", "pyproject.toml",
         "harness/benchmarks/data.py", "harness/distribution.py",
     )
     sources = {name: implementation_source(name) for name in names}

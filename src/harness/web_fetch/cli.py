@@ -25,7 +25,7 @@ from harness.web_fetch.config import (
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.runner import rescore_evaluation, run_evaluation
-from harness.web_fetch.storage import data_home
+from harness.data_home import data_home
 
 EXAMPLES = Path(__file__).parent / "data"
 

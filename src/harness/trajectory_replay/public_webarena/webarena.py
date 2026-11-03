@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import shutil
 import time
@@ -21,6 +20,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from harness.data_home import configured_data_home
 from harness.trajectory_replay.public_webarena.suite import TRAJECTORY_SCHEMA
 from harness.web_fetch.safety import unlinked_path, write_new_file
 
@@ -579,10 +579,10 @@ def main_fetch_traces(argv=None) -> None:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--jobs", type=int, default=2)
     args = parser.parse_args(argv)
-    configured_home = os.environ.get("BROWSER_EVAL_DATA_HOME")
-    if args.output is None and not configured_home:
+    configured_home = configured_data_home()
+    if args.output is None and configured_home is None:
         parser.error("--output or BROWSER_EVAL_DATA_HOME is required")
-    output = args.output or Path(str(configured_home)) / "evidence/current/webarena-human-traces"
+    output = args.output or configured_home / "evidence/current/webarena-human-traces"
     if args.jobs < 1 or args.jobs > 8:
         parser.error("--jobs must be between 1 and 8")
     from harness.trajectory_replay.report_inputs import replay_input_path

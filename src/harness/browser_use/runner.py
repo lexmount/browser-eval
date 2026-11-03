@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import Any, TextIO
 
 import docker
-from dotenv import dotenv_values
 from json_repair import repair_json
 from webarena_verified import WebArenaVerified
 from webarena_verified.environments.container.manager import ContainerManager
@@ -25,6 +24,7 @@ from webarena_verified.environments.container.manager import ContainerManager
 from harness.browser_use.model import OpenAIResponsesModel
 from harness.browser_use.selection import PilotTask, load_pilot, validate_against_official
 from harness.container_isolation import require_linux_cgroup_v2
+from harness.env_file import parse_env_file
 from harness.environments.browser import (
     ENGINE_PORTS,
     configured_browser_images,
@@ -69,8 +69,9 @@ SCHEMA = "lex_browser_use_attempt/1"
 
 def _read_dotenv(path: Path) -> dict[str, str]:
     """Read one dotenv file literally, dropping blank values; a missing file reads as empty."""
-    # Interpolation would resolve an undefined ${NAME} from the process environment.
-    return {key: value for key, value in dotenv_values(path, interpolate=False).items() if value}
+    if not path.is_file():
+        return {}
+    return {key: value for key, value in parse_env_file(path).items() if value}
 
 
 def _load_repo_env(repo_root: Path) -> dict[str, str]:

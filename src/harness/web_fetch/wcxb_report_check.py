@@ -29,7 +29,8 @@ from harness.reporting.assets import authored_main
 from harness.reporting.presentation import check_presentation
 from harness.reporting.visual import local_report_server
 from harness.web_fetch.safety import reject_evidence_symlinks
-from harness.web_fetch.storage import data_home
+from harness.data_home import data_home
+from harness.env_file import parse_env_file
 from harness.web_fetch.wcxb_latency import load_full_paired_latency, summarize_full_paired_latency
 from harness.web_fetch.wcxb_scoring import paired_latency_methods
 
@@ -584,10 +585,10 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
 
 
 def binary_from_env(path: Path) -> str:
-    for line in path.read_text().splitlines():
-        if line.startswith('CHROMIUM_BINARY='):
-            return line.split('=', 1)[1].strip().strip('"').strip("'")
-    raise ValueError('CHROMIUM_BINARY is missing from the local benchmark .env')
+    binary = parse_env_file(path).get('CHROMIUM_BINARY')
+    if not binary:
+        raise ValueError('CHROMIUM_BINARY is missing from the local benchmark .env')
+    return binary
 
 
 def check_visual(root: Path, browser_binary: str) -> None:

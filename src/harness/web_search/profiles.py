@@ -2,13 +2,13 @@
 
 import copy
 import json
-import os
 from collections import Counter
 from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path
 from lexbench_websearch.inputs import resolve_profile
 
+from harness.data_home import data_home as default_data_home
 from harness.web_fetch.publication_target import validate_service_base
 from harness.web_search.core import digest, validate_profile
 
@@ -171,7 +171,7 @@ def publication_metadata(manifest, review, relevance):
 def verify_publication_inputs(manifest, target, *, root=None, data_home=None):
     """Verify pinned source and previous-release files before a replacement upload."""
     root = Path(root) if root is not None else None
-    data_home = Path(data_home) if data_home is not None else Path(os.environ.get("BROWSER_EVAL_DATA_HOME", Path.home() / ".browser-eval")).expanduser()
+    data_home = Path(data_home) if data_home is not None else default_data_home()
     bound_paths = {}
     for name, binding in target["bindings"].items():
         base = root if root is not None and (root / binding["path"]).is_file() else data_home

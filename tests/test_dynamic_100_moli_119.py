@@ -10,7 +10,7 @@ import pytest
 from harness.web_fetch import local_audit
 from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.report import local_audit_banner, provider_configuration
-from harness.web_fetch.storage import data_home
+from harness.data_home import data_home
 from lexbench_webfetch.stable_tasks import validate_acceptance_contract
 from tests.conftest import read_frozen_dataset_bytes
 

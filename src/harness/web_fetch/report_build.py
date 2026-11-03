@@ -84,7 +84,8 @@ from harness.web_fetch.safety import (
     unlinked_path,
     validate_report_ids,
 )
-from harness.web_fetch.storage import data_home, require_selection_history
+from harness.data_home import data_home
+from harness.web_fetch.storage import require_selection_history
 from harness.web_fetch.wcxb_dataset import validate_manifest
 from harness.web_fetch.wcxb_latency import load_full_paired_latency
 from harness.web_fetch.wcxb_scoring import paired_latency_methods

@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import argparse
-import os
 from pathlib import Path
 
+from harness.data_home import data_home
 from harness.trajectory_replay.catalog_action_audit import validate_catalog_action_audit
 from harness.trajectory_replay.catalog_contracts import (
     repository_root,
@@ -26,8 +26,7 @@ def main() -> None:
     parser.add_argument(
         "--data-home",
         type=Path,
-        default=Path(os.environ.get("BROWSER_EVAL_DATA_HOME", Path.home() / ".browser-eval"))
-        / "evidence/current",
+        default=data_home() / "evidence/current",
     )
     parser.add_argument(
         "--action-overrides",

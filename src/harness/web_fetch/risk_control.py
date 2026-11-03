@@ -20,7 +20,7 @@ from harness.web_fetch.artifacts import diagnostic_log_binding
 from harness.web_fetch.config import load_dataset, load_provider_config, load_runtime_env
 from harness.web_fetch.reference_inputs import benchmark_input_path, read_dataset_bytes
 from harness.web_fetch.retrieval_hints import plan_for_case
-from harness.web_fetch.storage import data_home
+from harness.data_home import data_home
 
 
 def _digest(path: Path) -> str:

@@ -27,7 +27,7 @@ from harness.web_fetch.publication import upload_large_archive
 from harness.web_fetch.publication_target import publication_base, require_publication_version
 from harness.web_fetch.report_publish import response_json
 from harness.web_fetch.safety import evidence_tree_identity, reject_evidence_symlinks
-from harness.web_fetch.storage import data_home
+from harness.data_home import data_home
 
 INVENTORY = 'public-files.json'
 

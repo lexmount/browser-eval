@@ -2,7 +2,6 @@
 
 import argparse
 import json
-import os
 import shutil
 import subprocess
 import zipfile
@@ -11,6 +10,7 @@ from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path
 
+from harness.data_home import data_home
 from harness.reporting.publication import atomic_write
 from harness.web_fetch.config import ROOT
 from harness.web_fetch.report_publish import PublishConfig
@@ -26,10 +26,6 @@ from harness.web_search.profiles import (
     current_selection,
     publication_metadata,
 )
-
-
-def data_home():
-    return Path(os.environ.get("BROWSER_EVAL_DATA_HOME", Path.home() / ".browser-eval")).expanduser().resolve()
 
 
 def save(path, value):
