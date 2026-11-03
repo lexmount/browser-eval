@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "dataset": {
+    "id": "zyte-product-extraction-140",
+    "repository": "scrapinghub/product-extraction-benchmark",
+    "commit": "cba97d7a8d42aeefd4021bc15d482f297faceaa3",
+    "cases": 140,
+    "files": {
+      "dataset/ground-truth.json": "5be72a7a44898427343d136d84b21ef377f2f68503c6212c2ab9970e1399899a",
+      "evaluate.py": "864ff31d8f06cc70546bb9b477c15912369e85dda1a5015c766ef42130de9fd7"
+    },
+    "inventory_sha256": "3d2456e66c053e3e6b2c3b4c4dab880ec1afd5e3bd6d64674eb5163a5aead514"
+  },
+  "historical_f1": {
+    "Zyte": {
+      "price": 0.918,
+      "sku": 0.841,
+      "availability": 0.957
+    },
+    "Diffbot": {
+      "price": 0.824,
+      "sku": 0.765,
+      "availability": 0.943
+    },
+    "extruct": {
+      "price": 0.685,
+      "sku": 0.537,
+      "availability": 0.626
+    }
+  },
+  "baseline_extractor": {
+    "url": "https://raw.githubusercontent.com/scrapinghub/product-extraction-benchmark/cba97d7a8d42aeefd4021bc15d482f297faceaa3/extractors/run_extruct.py",
+    "path": "extractors/run_extruct.py",
+    "sha256": "409abc3a2e5c26c09324ed988aeb363544f68032ce6548ec880b21cf919d0aeb",
+    "dependencies": {
+      "extruct": "0.18.0",
+      "price-parser": "0.5.0"
+    }
+  },
+  "name": "Zyte product extraction benchmark",
+  "source_license": "MIT, Copyright (c) 2021 Zyte"
+}

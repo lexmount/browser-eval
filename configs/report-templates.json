@@ -64,6 +64,22 @@
         "combined-cohorts"
       ],
       "release_check": "uv run --frozen python scripts/build_search_report.py --output /absolute/report --release-check /absolute/visual-receipt.json --publication-plan /absolute/release/publication-plan.json"
+    },
+    "web-scraper": {
+      "renderer": "src/harness/web_scraper/report.py",
+      "entrypoint": "src/harness/web_scraper/cli.py",
+      "example": "examples/web_scraper/README.md",
+      "example_version": 1,
+      "example_build": "uv run --frozen python -m harness.web_scraper.example --output /tmp/scraper-example",
+      "build": "uv run --frozen python -m harness.web_scraper.cli report --profile /absolute/report-profile.json --content /absolute/content.json --output /absolute/report --language zh",
+      "check": "uv run --frozen python -m harness.web_scraper.cli check /absolute/report",
+      "tests": "tests/web_scraper/test_pipeline.py",
+      "variants": [
+        "research-and-compatibility",
+        "synthetic"
+      ],
+      "release_check": "uv run --frozen python -m harness.web_scraper.cli check /absolute/report --release --visual-receipt /absolute/visual-receipt.json",
+      "benchmark": "src/harness/benchmarks/cards/zyte-product-extraction.json"
     }
   }
 }

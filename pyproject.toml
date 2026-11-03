@@ -68,6 +68,12 @@ oss-eval = [
     "python-pptx==1.0.2",
 ]
 
+web-scraper-eval = [
+  "extruct==0.18.0",
+  "price-parser==0.5.0",
+  "requests>=2.32,<3",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = ["--import-mode=importlib"]
@@ -78,6 +84,8 @@ markers = [
 [tool.ruff]
 line-length = 100
 include = [
+  "src/harness/web_scraper/**/*.py",
+  "tests/web_scraper/**/*.py",
   "src/harness/environments/**/*.py",
   "tests/environments/**/*.py",
   "src/harness/browser_use/**/*.py",
@@ -94,6 +102,7 @@ select = ["B", "E", "F", "I", "TID252", "UP"]
 ban-relative-imports = "all"
 
 [tool.ruff.lint.per-file-ignores]
+"src/harness/web_scraper/report.py" = ["E501"]
 # Retain scorer import spelling so published source hashes remain verifiable.
 "src/lexbench_webfetch/*.py" = ["TID252"]
 "src/lexbench_websearch/*.py" = ["TID252"]
