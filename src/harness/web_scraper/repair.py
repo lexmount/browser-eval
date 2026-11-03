@@ -320,7 +320,15 @@ def compose(home, source, rows, repair):
     if Path(participant["parent_run"]).resolve() != source.resolve():
         raise ValueError("Repair belongs to another parent")
     _, predecessor = verify_parent(home, participant)
-    if rows != predecessor:
+
+    def predecessor_identity(row):
+        # Aggregation may attach physical call inventories; native logical calls stay identical.
+        value = {k: v for k, v in row.items() if k != "physical_attempts"}
+        if "superseded_result" in value:
+            value["superseded_result"] = predecessor_identity(value["superseded_result"])
+        return value
+
+    if [predecessor_identity(r) for r in rows] != [predecessor_identity(r) for r in predecessor]:
         raise ValueError("Repair predecessor chain differs from current results")
     if digest((directory / "manifest.json").read_bytes()) != certificate["manifest_sha256"]:
         raise ValueError("Repair manifest changed")

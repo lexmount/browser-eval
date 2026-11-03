@@ -418,7 +418,9 @@ def test_sibling_repair_cannot_supersede_current_success(tmp_path):
                     "sha256": digest((directory / "certificate.json").read_bytes()),
                 }
             )
-        current, _ = compose(home, source, rows, siblings[0])
+        enriched = deepcopy(rows)
+        enriched[-1]["physical_attempts"] = [deepcopy(rows[-1])]
+        current, _ = compose(home, source, enriched, siblings[0])
         with pytest.raises(ValueError, match="predecessor|successful"):
             compose(home, source, current, siblings[1])
 
