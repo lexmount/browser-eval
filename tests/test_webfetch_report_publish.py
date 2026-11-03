@@ -122,7 +122,7 @@ def test_interruption_resumes_one_activation(tmp_path, monkeypatch, mode, staged
         service.interrupt("clear")
         clear(operation, identity)
 
-    monkeypatch.setattr(report_publish, "atomic_write", fail_receipt)
+    monkeypatch.setattr("harness.reporting.publication.atomic_write", fail_receipt)
     monkeypatch.setattr(report_publish.PublicationOperation, "clear", fail_clear)
     with pytest.raises(OSError, match="simulated"):
         report_publish.publish(config, transport=service)
@@ -203,7 +203,7 @@ def test_imports_do_not_read_credentials_parse_args_or_create_files(tmp_path, mo
     import sys
 
     monkeypatch.setattr(
-        report_publish, "load_token", lambda **kwargs: pytest.fail("credential read")
+        "harness.reporting.publication.load_token", lambda **kwargs: pytest.fail("credential read")
     )
     monkeypatch.setattr(sys, "argv", ["command", "--unknown"])
     monkeypatch.chdir(tmp_path)
@@ -337,10 +337,11 @@ def test_report_rename_keeps_bound_target_and_receipt(tmp_path, monkeypatch, dam
         link.symlink_to(path)
         path = link
     calls = []
-    monkeypatch.setattr(report_publish, 'load_token', lambda **kwargs: 'ahp_fixture')
+    monkeypatch.setattr('harness.reporting.publication.load_token', lambda **kwargs: 'ahp_fixture')
 
     class Response(io.BytesIO):
         status = 200
+        headers = {}
 
     def request(value, **kwargs):
         calls.append(value)

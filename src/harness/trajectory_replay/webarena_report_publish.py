@@ -6,16 +6,15 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import tempfile
 import urllib.parse
-import urllib.request
 from io import BytesIO
 from pathlib import Path
 from urllib.error import HTTPError
 
-from harness.record_io import file_sha256, json_bytes
+from harness.record_io import file_sha256
 from harness.reporting.publication import (
+    PublicationClient,
     PublicationOperation,
     PublicationSnapshot,
     archive_inventory,
@@ -24,11 +23,13 @@ from harness.reporting.publication import (
     binding_receipt_matches,
     public_share_context,
     recover_binding,
+    response_json,
     snapshot_publication,
+    write_receipt,
 )
+from harness.reporting.publication import multipart_archive as build_multipart_archive
 from harness.reporting.visual import tree_sha256 as _tree_sha256
 from harness.trajectory_replay.report_inputs import bound_dataset_path
-from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.publication import upload_large_archive
 
 ARCHIVE = Path("publish/trajectory-replay-artifact-site.zip")
@@ -43,6 +44,13 @@ PUBLIC_REPORT_MARKERS = (
     "<title>Browser Trajectory Replay</title>",
 )
 STAGED_UPLOAD_THRESHOLD = 23 * 1024 * 1024
+# A staged file PUT may need longer to finish on slower upstream connections.
+CLIENT = PublicationClient(
+    "Trajectory-Replay-Artifact-Site-Publisher/1.0",
+    put_timeout=1_200,
+    return_http_errors=True,
+    authorization_first=False,
+)
 
 
 def recover_publication_binding() -> None:
@@ -58,19 +66,6 @@ def recover_publication_binding() -> None:
 
 def tree_sha256(root: Path) -> str:
     return _tree_sha256(root, framed_paths=False)
-
-
-def response_json(status: int, raw: bytes, *, operation: str) -> dict:
-    if not 200 <= status < 300:
-        detail = raw.decode("utf-8", errors="replace").strip()[:500] or "empty response"
-        raise RuntimeError(f"{operation} failed with HTTP {status}: {detail}")
-    try:
-        value = json.loads(raw)
-    except (TypeError, ValueError) as error:
-        raise RuntimeError(f"{operation} returned HTTP {status} without valid JSON") from error
-    if not isinstance(value, dict):
-        raise RuntimeError(f"{operation} returned non-object JSON")
-    return value
 
 
 def publication_target(*, require_bound: bool) -> tuple[dict, str, str, str]:
@@ -98,27 +93,15 @@ def request(
     authenticated: bool = True,
     extra_headers: dict[str, str] | None = None,
 ) -> tuple[int, bytes, dict[str, str]]:
-    headers = {"User-Agent": "Trajectory-Replay-Artifact-Site-Publisher/1.0"}
-    if authenticated:
-        headers["Authorization"] = "Bearer " + load_token(base_url=base)
-    if content_type:
-        headers["Content-Type"] = content_type
-    if extra_headers:
-        headers.update(extra_headers)
-    req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
-    try:
-        with urllib.request.urlopen(req, timeout=request_timeout(method)) as response:
-            return response.status, response.read(), dict(response.headers.items())
-    except HTTPError as error:
-        try:
-            return error.code, error.read(), dict(error.headers.items())
-        finally:
-            error.close()
-
-
-def request_timeout(method: str | None) -> int:
-    """Allow a staged file PUT to finish on slower upstream connections."""
-    return 1_200 if method == "PUT" else 240
+    return CLIENT.request(
+        base,
+        path,
+        data,
+        content_type,
+        method=method,
+        authenticated=authenticated,
+        extra_headers=extra_headers,
+    )
 
 
 def validate_package() -> dict:
@@ -177,29 +160,12 @@ def validate_package() -> dict:
 
 def multipart_archive(title: str, *, archive: Path | None = None) -> tuple[bytes, str]:
     archive = archive if archive is not None else ARCHIVE
-    identity = hashlib.sha256()
-    identity.update(title.encode())
-    identity.update(b"\0")
-    identity.update(file_sha256(archive).encode())
-    boundary = "----trajectoryreplay" + identity.hexdigest()[:32]
-    parts = []
-    for key, value in (("mode", "zip"), ("title", title)):
-        parts.append(
-            (
-                f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'
-            ).encode()
-        )
-    parts.append(
-        (
-            f'--{boundary}\r\nContent-Disposition: form-data; name="file"; '
-            'filename="browser-trajectory-replay.zip"\r\n'
-            "Content-Type: application/zip\r\n\r\n"
-        ).encode()
-        + archive.read_bytes()
-        + b"\r\n"
+    return build_multipart_archive(
+        archive,
+        title,
+        boundary_prefix="----trajectoryreplay",
+        filename="browser-trajectory-replay.zip",
     )
-    parts.append(f"--{boundary}--\r\n".encode())
-    return b"".join(parts), "multipart/form-data; boundary=" + boundary
 
 
 def staged_archive_upload(
@@ -377,11 +343,7 @@ def bind_publication(
 
 
 def save_receipt(value: dict) -> None:
-    safe = {
-        key: item for key, item in value.items() if key not in {"editToken", "claimToken", "token"}
-    }
-    atomic_write(RECEIPT, json_bytes(safe))
-    os.chmod(RECEIPT, 0o600)
+    write_receipt(RECEIPT, value)
 
 
 def pending_created_site(base: str, *, archive: Path | None = None) -> str:
