@@ -1914,6 +1914,18 @@ def test_replay_bridge_rejects_inconsistent_derived_counts(tmp_path: Path, tampe
         _load_bridge(tmp_path, bridge)
 
 
+def test_replay_bridge_rejects_a_review_of_another_browser(tmp_path: Path) -> None:
+    bridge = _synthetic_bridge(tmp_path)
+    review = bridge["candidate_failure_review"]
+    review_path = Path(review["path"])
+    data = json.loads(review_path.read_text(encoding="utf-8"))
+    data["cause_groups"][0]["results"][0]["engine"] = "base"
+    review_path.write_text(json.dumps(data), encoding="utf-8")
+    review["sha256"] = optional_file_sha256(review_path)
+    with pytest.raises(ValueError, match="responsibility inventory"):
+        _load_bridge(tmp_path, bridge)
+
+
 def test_replay_bridge_rejects_more_failures_than_tasks(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="cardinality"):
         _load_bridge(tmp_path, _synthetic_bridge(tmp_path, failures=6))
