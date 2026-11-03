@@ -357,7 +357,7 @@ def translate_text(value: str) -> str:
                 lambda m: f"The table compares all four configurations. CPU, memory, and network measurements cover only the browser container, excluding CowAgent and the model service; mean, P50, and P95 are computed across {m.group(1)} logical task results. Because the model changes action counts and time spent on pages, these are whole-configuration comparisons and cannot be attributed to the browser core alone.",
             ),
             (
-                r"(.+?) · (Chromium|Moli 1\.1\.3) 结果",
+                r"(.+?) · (.+?) 结果",
                 lambda m: f"{m.group(1)} · {m.group(2)} result",
             ),
             (

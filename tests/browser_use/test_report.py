@@ -2005,6 +2005,10 @@ def test_report_follows_a_registry_of_another_size_without_module_state(
         output / "en/reproduce/index.html"
     ).read_text(encoding="utf-8")
     assert "Chromium" not in analysis and "Moli" not in analysis
+    dataset = (output / "en/datasets/44.html").read_text(encoding="utf-8")
+    for link in ("Model A · Alpha 1.0", "Model A · Beta", "model-b · Gamma 3.0"):
+        assert f"{link} result" in dataset
+    assert " 结果</a>" not in dataset
 
     # A later smaller cohort inherits nothing from the build before it.
     one = {
