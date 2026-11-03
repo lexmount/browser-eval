@@ -25,12 +25,15 @@ from harness.browser_use.report import (
 from harness.browser_use.report_check import (
     FORBIDDEN_READER_TERMS,
     _check_execution_artifacts,
-    _check_public_privacy,
     _check_reader_facing_ux,
+    check_public_privacy,
 )
 from harness.browser_use.report_i18n import localize_html
 from harness.browser_use.selection import load_pilot
+from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.record_io import optional_file_sha256
+
+GW = RECORDING_GATEWAYS[0]
 
 
 def _fix_log_fixture(tmp_path: Path) -> tuple[dict, dict]:
@@ -1060,7 +1063,7 @@ def build_browser_use_fixture(tmp_path: Path, monkeypatch, language="zh", *, fai
     return output, evidence, report
 
 
-@pytest.mark.parametrize("password", ["Rotated.Secret+42(x", "admin1234"])
+@pytest.mark.parametrize("password", ["Rotated.Secret+42(x", "synthetic-shopping_admin-secret"])
 def test_execution_artifact_check_rejects_registry_site_passwords(
     tmp_path: Path, monkeypatch, report_check_with_site_password, password
 ) -> None:
@@ -1191,10 +1194,10 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     bundles = _load_evidence_bundles(evidence)
     logical = _logical_results(bundles[0]["source_attempts"])
     _check_execution_artifacts(output, logical, public_results, evidence_index)
-    _check_public_privacy(output)
+    check_public_privacy(output)
     legitimate_route = output / "legitimate-route.json"
     legitimate_route.write_text('{"href":"/users/sign_out"}', encoding="utf-8")
-    _check_public_privacy(output)
+    check_public_privacy(output)
     legitimate_route.unlink()
     index_row = next(item for item in evidence_index["results"] if item["result_id"] == result_id)
     assert index_row["execution_count"] == 2
@@ -1217,7 +1220,7 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     private_trace = output / f"artifacts/{result_id}/executions/1/agent_trace.zip"
     private_trace.write_bytes(b"private trace")
     with pytest.raises(ValueError, match="private HAR or trace"):
-        _check_public_privacy(output)
+        check_public_privacy(output)
     with pytest.raises(ValueError, match="artifact tree differs"):
         _check_execution_artifacts(output, logical, public_results, evidence_index)
     private_trace.unlink()
@@ -1356,7 +1359,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
                 },
                 "environment": {
                     "platform": "Linux fixture host",
-                    "site_access_host": "192.168.5.2",
+                    "site_access_host": GW,
                     "docker_architecture": "aarch64",
                     "docker_server_version": "28.0",
                     "webarena_verified_version": "1.2.3",
@@ -1416,7 +1419,7 @@ def test_report_renders_measured_runtime_identities(tmp_path: Path, monkeypatch)
     methodology_text = (output / "methodology/index.html").read_text(encoding="utf-8")
     assert "webarena-autonomous-evaluation-flow.png" in methodology_text
     assert "环境准备回执" in methodology_text
-    assert "192.168.5.2" in methodology_text
+    assert GW in methodology_text
     assert "不含点击序列" in methodology_text
     for page in (methodology_text, text):
         assert "Colima" not in page

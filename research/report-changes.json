@@ -12,8 +12,6 @@
       "summary": "发布 Chromium 与 Moli 1.1.3 的 90 题固定轨迹重放结果：Chromium 90/90，Moli 54/90；36 个最终失败全部完成证据绑定复核。Agent 与模型调用为零。",
       "publication": {
         "service": "Artifact Site",
-        "site_slug": "7dF7uNK5SKIx",
-        "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
         "version": "ver_e92fe2d3c5a24001a36593fe6ca6fb4e"
       },
       "effects": {
@@ -44,8 +42,6 @@
       "summary": "新增每题的目标、验收输入和标准动作页；结果页可筛选同题浏览器成败关系，并从失败结果下钻到确切报错、失败动作、复核原因、完整工具返回、页面截图和公开证据。核心指标增加资源与网络统计。",
       "publication": {
         "service": "Artifact Site",
-        "site_slug": "7dF7uNK5SKIx",
-        "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
         "version": "ver_0f4f162b973a4ba7afba2fb4e18d6173"
       },
       "effects": {
@@ -76,8 +72,6 @@
       "summary": "同题结果改为可选择基准与多个浏览器的成败分组；Moli 第 464、465 题由笼统的验收失败细化为验收请求未出现，并链接到可能触发提交的动作及原始判定。",
       "publication": {
         "service": "Artifact Site",
-        "site_slug": "7dF7uNK5SKIx",
-        "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
         "version": "ver_ddc682f036c347a9a23c0831d611854c"
       },
       "effects": {
@@ -108,8 +102,6 @@
       "summary": "评测集按任务目标、站点、类型和轨迹来源筛选；每题分别下钻到任务合同与全部浏览器实测结果。核验页按范围、发现、纠正和未完成记录两轮核验。结果页统一命名为“结果分析”，环境页统一命名为“环境与方法”；拓扑图中英文分别标注。长任务目标在列表中以两行预览，全文仍在详情页。",
       "publication": {
         "service": "Artifact Site",
-        "site_slug": "7dF7uNK5SKIx",
-        "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
         "version": "ver_fe02b959308441a1b88e01d3fa198ba4"
       },
       "effects": {
@@ -140,8 +132,6 @@
       "summary": "逐题结果页按动作序号并排展示已验证的固定轨迹与实际执行，保留未执行步骤；点击任一步可查看标准与实际参数、完整工具返回、日志及原始报错。最后页面截图明确不冒充该步即时截图。",
       "publication": {
         "service": "Artifact Site",
-        "site_slug": "7dF7uNK5SKIx",
-        "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
         "version": "ver_fcd443ac19fe403f8baa3442262246e1"
       },
       "effects": {
@@ -1927,8 +1917,6 @@
       ],
       "publication": {
         "service": "Artifact Site",
-        "site_slug": "gdwtSGOel0va",
-        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
         "version": "ver_460f324bc0c04d53a866517db54edd13"
       },
       "title": "七种 Moli 配置统一采用 Linux Release 资源口径",
@@ -1978,8 +1966,6 @@
       ],
       "publication": {
         "service": "Artifact Site",
-        "site_slug": "gdwtSGOel0va",
-        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
         "version": "ver_2f4844c0550241b78f7c80d8614bca87"
       },
       "title": "发布七种 Moli 配置与 Release 资源对照",
@@ -2043,8 +2029,6 @@
       "summary": "六种固定配置按同一顺序呈现在总表和一张汇总图中，以 1.1.4 关闭布局为成功率基线。首页保留核心结果和可展开的资源明细；方法、解读与证据页面统一描述完整评测。通过率与资源测量值不变。",
       "publication": {
         "service": "Artifact Site",
-        "site_slug": "gdwtSGOel0va",
-        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
         "version": "ver_297e78e469d84077a0e95c813b34df91"
       },
       "changes": [
@@ -2094,8 +2078,6 @@
       "summary": "新增修复版 1.1.9 关闭布局、开启布局及官方 1.1.9 开启布局：372 题分别通过 1、360、255 题。三个方法各完成独立的 557 题 × 5 次资源实验；macOS RSS 与历史 Linux PSS 分开展示，图表和表格给出带正负号的资源变化。",
       "publication": {
         "service": "Artifact Site",
-        "site_slug": "gdwtSGOel0va",
-        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
         "version": "ver_4d7cfe448a8e4ac98287607dc6a2266a"
       },
       "changes": [
@@ -2150,8 +2132,6 @@
       "date_timezone": "Asia/Shanghai",
       "publication": {
         "service": "Artifact Site",
-        "site_slug": "gdwtSGOel0va",
-        "share_url": "https://artifact-site.lexmount.cn/v/w1vgSkFJjvmCL6kPaHmj4K8sUZ8iTI8t",
         "version": "ver_96cd695de0d54d72bc5e7bfe09ac3ba6"
       },
       "comparison_kinds": [

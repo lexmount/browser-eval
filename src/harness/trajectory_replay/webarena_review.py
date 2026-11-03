@@ -7,12 +7,14 @@ import re
 from pathlib import Path
 from typing import Any
 
+from harness.data_home import data_home
 from harness.record_io import file_sha256
 from harness.trajectory_replay.participants import (
     bind_participant,
     participant_registry,
     resolve_participant_id,
 )
+from lexbench_webfetch.paths import contained_path
 
 REVIEW_SCHEMA = "lex_webarena_trajectory_replay_failure_review/1"
 
@@ -64,6 +66,15 @@ def programmatic_failure(attempt: dict[str, Any]) -> dict[str, Any]:
     return {"stage": "pass", "step": None, "message": ""}
 
 
+def review_evidence_path(value: str | Path) -> Path:
+    """Resolve an evidence reference; portable references are data-home relative."""
+
+    path = Path(str(value))
+    if path.is_absolute():
+        return path
+    return contained_path(data_home(), str(value), reject_symlinks=True)
+
+
 def load_validated_failure_review(
     results_path: str | Path, review_path: str | Path,
     *, methods: list[dict[str, Any]] | None = None,
@@ -88,8 +99,8 @@ def load_validated_failure_review(
     current_rows = {(row["participant_id"], int(row["task_id"])): row for row in attempts}
     cohort_keys = {review["bindings"]["effective_results_sha256"]: set(current_rows)}
     for ref in review.get("inherited_result_cohorts") or []:
-        source = Path(ref.get("path") or "")
-        if (not source.is_absolute() or not source.is_file()
+        source = review_evidence_path(ref.get("path") or "")
+        if (not source.is_file()
                 or any(part.is_symlink() for part in (source, *source.parents))
                 or file_sha256(source) != ref.get("sha256")):
             raise ValueError("inherited result cohort evidence is missing or changed")
@@ -132,8 +143,8 @@ def load_validated_failure_review(
             reviewed[key] = {**bind_participant(item, registry), "cause_group": group}
             if item.get("supplemental_diagnostic"):
                 ref = item["supplemental_diagnostic"]
-                source = Path(ref["path"])
-                if (not source.is_absolute() or not source.is_file()
+                source = review_evidence_path(ref["path"])
+                if (not source.is_file()
                         or any(part.is_symlink() for part in (source, *source.parents))
                         or file_sha256(source) != ref.get("sha256")):
                     raise ValueError("supplemental diagnostic evidence is missing or changed")

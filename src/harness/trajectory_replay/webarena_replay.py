@@ -43,6 +43,7 @@ from harness.environments.webarena.runtime import (
     site_container_manager,
     verify_session_viewport,
 )
+from harness.environments.webarena.topology import CREDENTIAL_SITES, require_site_credentials
 from harness.record_io import canonical_json_sha256, file_sha256
 from harness.resource_accounting import DockerStatsResources, ResourceSampler
 from harness.trajectory_replay.retrieval_acceptance import (
@@ -1326,6 +1327,7 @@ def run_replay_suite(  # noqa: PLR0913
     )
     task_ids = list(plan["task_ids"] if selected_task_ids is None else selected_task_ids)
     tasks = select_tasks(seeds, task_ids)
+    require_site_credentials(CREDENTIAL_SITES)
     engines = list(plan["engines"])
     if qualification_engine is not None:
         if (

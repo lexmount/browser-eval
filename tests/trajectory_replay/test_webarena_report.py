@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 from bs4 import BeautifulSoup
 
-from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.record_io import canonical_json_sha256
 from harness.reporting.privacy import TRAJECTORY_REPLAY
 from harness.trajectory_replay.report_inputs import bound_dataset_path
@@ -1441,13 +1440,12 @@ def test_supplemental_requests_keep_unavailable_url_and_observed_version():
     assert 'Read failed before a URL was recorded' in html
 
 
-def test_local_environment_page_names_the_profile_bound_site_gateway(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_environment_page_never_names_a_recording_gateway(tmp_path: Path, monkeypatch) -> None:
     _, _, _, profile, _, _, files = build_replay_fixture(tmp_path, monkeypatch)
-    gateway = next(iter(RECORDING_GATEWAYS))
+    gateway = ".".join(("10", "77", "3", "9"))
+    monkeypatch.setenv("WEBARENA_RECORDING_GATEWAYS", gateway)
 
-    def environment_page(hosts: list[str], name: str) -> str:
+    def environment_page(hosts: list[str], name: str, language: str) -> str:
         execution = {
             key: value for key, value in profile["execution"].items() if key != "site_stack"
         }
@@ -1459,15 +1457,15 @@ def test_local_environment_page_names_the_profile_bound_site_gateway(
         build_webarena_replay_report(
             results_path=files["results.json"], dataset_path=files["dataset.json"],
             review_path=files["review.json"], profile_path=files["profile.json"],
-            output_dir=output, language="en",
+            output_dir=output, language=language,
         )
-        return (output / "en/environment.html").read_text(encoding="utf-8")
+        route = "en/environment.html" if language == "en" else "environment.html"
+        return (output / route).read_text(encoding="utf-8")
 
-    page = environment_page([gateway, "host.docker.internal"], "bound")
-    assert f"Colima gateway {gateway}|" in page
-    assert f"{gateway} is the host gateway inside the Colima VM" in page
-    for hosts, name in (([], "unbound"), (["host.docker.internal", "unregistered.test"], "other")):
-        page = environment_page(hosts, name)
-        assert gateway not in page
-        assert "Colima gateway|" in page
-        assert "The site gateway is the host gateway inside the Colima VM" in page
+    page = environment_page([gateway, "host.docker.internal"], "english", "en")
+    assert gateway not in page
+    assert "Colima gateway|" in page
+    assert "The site gateway is the host gateway inside the Colima VM" in page
+    page = environment_page([gateway, "host.docker.internal"], "chinese", "zh")
+    assert gateway not in page
+    assert "所用网关是 Colima" in page

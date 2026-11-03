@@ -51,6 +51,9 @@ from harness.environments.webarena.runtime import (
     wait_container_healthy,
     wait_magento_dependencies_ready,
 )
+from harness.environments.webarena.topology import RECORDING_GATEWAYS
+
+GW = RECORDING_GATEWAYS[0]
 
 
 def test_browser_config_requests_owned_context_and_supported_viewport_keys() -> None:
@@ -774,14 +777,14 @@ def test_login_context_requires_an_active_context_and_page(missing: str) -> None
 def test_container_host_gateway_returns_literal_ip() -> None:
     class Result:
         exit_code = 0
-        output = b"192.168.5.2 host.docker.internal\n"
+        output = (GW + " host.docker.internal\n").encode()
 
     class Container:
         def exec_run(self, command):
             assert command == ["getent", "hosts", "host.docker.internal"]
             return Result()
 
-    assert container_host_gateway(Container()) == "192.168.5.2"
+    assert container_host_gateway(Container()) == GW
 
 
 def test_wait_container_healthy_waits_past_starting(monkeypatch) -> None:
@@ -1458,3 +1461,35 @@ def test_explicit_env_file_is_read_without_shell_interpolation(tmp_path, monkeyp
         run(args)
 
     assert reached.value.args == ("${SHELL_ONLY_KEY}", "${SHELL_ONLY_URL}")
+
+
+def test_browser_use_run_stops_before_sites_start_without_site_accounts(
+    monkeypatch, tmp_path
+) -> None:
+    from harness import env_file
+    from harness.browser_use import runner as runner_module
+
+    monkeypatch.setattr(env_file, "_repository_credentials_file", tmp_path / "absent.env")
+    local = tmp_path / "run.env"
+    local.write_text("OPENAI_API_KEY=synthetic-key\n", encoding="utf-8")
+    cowagent = tmp_path / "cowagent"
+    (cowagent / "agent/protocol").mkdir(parents=True)
+    (cowagent / "agent/protocol/agent.py").write_text("", encoding="utf-8")
+    monkeypatch.setattr(runner_module, "require_clean_git_checkout", lambda path: "commit")
+    monkeypatch.setattr(runner_module, "load_pilot", lambda path: object())
+    monkeypatch.setattr(
+        runner_module, "prepare_sites", lambda *args, **kwargs: pytest.fail("sites started")
+    )
+    monkeypatch.setattr(
+        runner_module, "configure_benchmark", lambda *args: pytest.fail("run continued")
+    )
+    arguments = SimpleNamespace(
+        repo_root=str(tmp_path),
+        env_file=str(local),
+        cowagent_repo=str(cowagent),
+        output=str(tmp_path / "output"),
+        selection=str(tmp_path / "selection.json"),
+    )
+
+    with pytest.raises(ValueError, match="WEBARENA_SHOPPING_PASSWORD"):
+        runner_module.run(arguments)

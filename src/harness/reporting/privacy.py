@@ -8,6 +8,11 @@ import re
 from dataclasses import dataclass
 
 _WEB_URL = re.compile(r"https?://[^\s\"']+")
+# Public surfaces share this one recognizer; each decides whether to replace a match or stop.
+PRIVATE_IPV4 = re.compile(
+    r"(?<![0-9])(?:10(?:\.[0-9]{1,3}){3}|192\.168(?:\.[0-9]{1,3}){2}|"
+    r"172\.(?:1[6-9]|2[0-9]|3[01])(?:\.[0-9]{1,3}){2})(?![0-9])"
+)
 
 
 @dataclass(frozen=True)

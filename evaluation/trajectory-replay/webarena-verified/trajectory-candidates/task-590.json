@@ -3,7 +3,7 @@
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://webarena-slice-warm-1-195-gitlab.dev.lexmount.net/primer/design"
+      "url": "http://host.docker.internal:8023/primer/design"
     },
     {
       "action": "click",
@@ -15,7 +15,7 @@
     },
     {
       "action": "navigate",
-      "url": "http://webarena-slice-warm-1-195-gitlab.dev.lexmount.net/primer/design/-/milestones"
+      "url": "http://host.docker.internal:8023/primer/design/-/milestones"
     },
     {
       "action": "click",

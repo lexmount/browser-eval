@@ -8,31 +8,49 @@ from pathlib import Path
 from typing import Any
 
 from harness.environments.webarena.topology import (
+    RECORDING_GATEWAYS,
+    RECORDING_GATEWAYS_ENV,
     known_site_secrets,
     public_host_replacements,
     public_origin_replacements,
 )
 from harness.record_io import optional_file_sha256, read_json
-from harness.reporting.privacy import BROWSER_USE
+from harness.reporting.privacy import BROWSER_USE, PRIVATE_IPV4
 
-_ORIGIN_REPLACEMENTS = public_origin_replacements()
-_HOST_REPLACEMENTS = public_host_replacements()
-_KNOWN_SECRET_VALUES = known_site_secrets()
 _SENSITIVE_KEY = re.compile(
     r"(?:authorization|cookie|password|passwd|secret|token|storage_state|api[_-]?key)", re.I
 )
 _BEARER = re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]+")
 
 
+def private_recorded_hosts(text: str) -> set[str]:
+    """Return private IPv4 addresses that redaction left in public text."""
+    return set(PRIVATE_IPV4.findall(text))
+
+
+def require_no_private_hosts(text: str, path: Path) -> None:
+    """Fail closed before a recording host reaches a public report."""
+    if private_recorded_hosts(text):
+        raise ValueError(
+            f"published report contains a private address: {path}. If it is a recording host, "
+            f"list it in {RECORDING_GATEWAYS_ENV} and rebuild. Every listed value, including "
+            "page text, is replaced with the host placeholder"
+        )
+
+
 def sanitize_text(value: str) -> str:
     text = value
+    # Hostnames are case-insensitive, so any spelling of a listed gateway is redacted.
+    for host in RECORDING_GATEWAYS:
+        if host != host.upper():
+            text = re.sub(re.escape(host), host, text, flags=re.I)
     for origin, placeholder in sorted(
-        _ORIGIN_REPLACEMENTS.items(), key=lambda item: len(item[0]), reverse=True
+        public_origin_replacements().items(), key=lambda item: len(item[0]), reverse=True
     ):
         text = text.replace(origin, placeholder)
-    for secret in _KNOWN_SECRET_VALUES:
+    for secret in known_site_secrets():
         text = text.replace(secret, "[REDACTED]")
-    for host, placeholder in _HOST_REPLACEMENTS.items():
+    for host, placeholder in public_host_replacements().items():
         text = text.replace(host, placeholder)
     text = _BEARER.sub("Bearer [REDACTED]", text)
     text = BROWSER_USE.redact(text)

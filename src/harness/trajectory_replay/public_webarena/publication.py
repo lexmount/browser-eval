@@ -15,7 +15,7 @@ from typing import Any
 from urllib.parse import unquote, urlsplit
 
 from harness.record_io import file_sha256, read_json
-from harness.reporting.privacy import PUBLIC_WEBARENA
+from harness.reporting.privacy import PRIVATE_IPV4, PUBLIC_WEBARENA
 from harness.reporting.publication import archive_inventory
 from harness.trajectory_replay.public_webarena.result_audit import audit_result_set
 from harness.web_fetch.publication_target import publication_document, require_publication_version
@@ -25,10 +25,6 @@ from lexbench_webfetch.paths import contained_path
 
 REPORT_STEM = "webarena-trajectory-replay-latest"
 
-PRIVATE_IPV4 = re.compile(
-    r"(?<![0-9])(?:10(?:\.[0-9]{1,3}){3}|192\.168(?:\.[0-9]{1,3}){2}|"
-    r"172\.(?:1[6-9]|2[0-9]|3[01])(?:\.[0-9]{1,3}){2})(?![0-9])"
-)
 
 
 def public_projection(value: Any) -> Any:

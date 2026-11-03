@@ -55,7 +55,11 @@ from harness.environments.webarena.runtime import (
     site_runtime_compatibility,
     verify_session_viewport,
 )
-from harness.environments.webarena.topology import CONTAINER_HOST_ALIAS
+from harness.environments.webarena.topology import (
+    CONTAINER_HOST_ALIAS,
+    CREDENTIAL_SITES,
+    require_site_credentials,
+)
 from harness.record_io import load_jsonl
 from harness.resource_accounting import (
     DockerStatsResources,
@@ -540,6 +544,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     output_dir = Path(args.output).expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     selection = load_pilot(args.selection)
+    require_site_credentials(CREDENTIAL_SITES)
     benchmark = configure_benchmark()
     resolved = validate_against_official(selection, benchmark)
     model = OpenAIResponsesModel(

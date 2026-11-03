@@ -342,3 +342,19 @@ def test_browser_session_setup_error_closes_probe_and_propagates(
     with pytest.raises(RuntimeError, match="owned CDP context"):
         cohort.verify_browser_session(tool)
     assert closed == [True]
+
+
+def test_cohort_preflight_stops_before_any_browser_without_site_accounts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from harness import env_file
+
+    args, _manifest, _save = _fixture(tmp_path, monkeypatch)
+    monkeypatch.setattr(env_file, "_repository_credentials_file", tmp_path / "absent.env")
+    monkeypatch.setattr(cohort, "remote_benchmark", lambda _: pytest.fail("the run continued"))
+    monkeypatch.setattr(
+        cohort, "validate_remote_cohort_reset_receipt", lambda *a, **k: pytest.fail("reset used")
+    )
+    with pytest.raises(ValueError, match="WEBARENA_[A-Z_]+_PASSWORD"):
+        cohort.preflight_cohort(args)
+    assert not args.output.exists()

@@ -5,9 +5,9 @@ from harness.web_fetch.network_preflight import inspect_system_dns, require_usab
 
 class NetworkPreflightTests(unittest.TestCase):
     def test_non_public_dns_is_not_a_fair_public_comparison(self):
-        for addresses,accepted in ((['43.162.217.19'],True),(['2606:4700:4700::1111'],True),
-            (['10.2.0.11'],False),(['127.0.0.1'],False),(['169.254.1.1'],False),
-            (['fd00::1'],False),(['43.162.217.19','10.2.0.11'],False)):
+        for addresses,accepted in ((['185.199.108.153'],True),(['2606:4700:4700::1111'],True),
+            (['10.0.0.11'],False),(['127.0.0.1'],False),(['169.254.1.1'],False),
+            (['fd00::1'],False),(['185.199.108.153','10.0.0.11'],False)):
             with self.subTest(addresses=addresses):
                 def resolve(host,port,**kwargs):
                     return [(socket.AF_INET6 if ':' in a else socket.AF_INET,socket.SOCK_STREAM,6,'',(a,port)) for a in addresses]
@@ -20,7 +20,7 @@ class NetworkPreflightTests(unittest.TestCase):
     def test_synthetic_dns_fails_before_calls_but_public_dns_passes(self):
         for address, accepted in [
             ('198.19.93.254', False),
-            ('10.2.0.11', False),
+            ('10.0.0.11', False),
             ('185.199.108.153', True),
         ]:
             with self.subTest(address=address):
@@ -85,7 +85,7 @@ class NetworkPreflightTests(unittest.TestCase):
                 calls.append(case.id)
                 raise AssertionError("No provider calls allowed in invalid DNS environment")
         provider = GuardedFixture('guarded', {'type': 'openclaw_builtin'})
-        fake = [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('10.2.0.11', 443))]
+        fake = [(socket.AF_INET, socket.SOCK_STREAM, 6, '', ('10.0.0.11', 443))]
         with TemporaryDirectory() as directory, patch('socket.getaddrinfo', return_value=fake):
             output = Path(directory) / 'measurement'
             with self.assertRaisesRegex(ValueError, 'non-public'):

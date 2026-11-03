@@ -3,11 +3,11 @@
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023/CellularPrivacy/Android-IMSI-Catcher-Detector"
+      "url": "http://host.docker.internal:8023/CellularPrivacy/Android-IMSI-Catcher-Detector"
     },
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023/CellularPrivacy/Android-IMSI-Catcher-Detector/-/graphs/master/charts"
+      "url": "http://host.docker.internal:8023/CellularPrivacy/Android-IMSI-Catcher-Detector/-/graphs/master/charts"
     },
     {
       "action": "evaluate",
@@ -19,7 +19,7 @@
     },
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100"
+      "url": "http://host.docker.internal:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100"
     },
     {
       "action": "get_text",
@@ -27,7 +27,7 @@
     },
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100&page=2"
+      "url": "http://host.docker.internal:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100&page=2"
     },
     {
       "action": "get_text",
@@ -35,7 +35,7 @@
     },
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100&page=3"
+      "url": "http://host.docker.internal:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100&page=3"
     },
     {
       "action": "evaluate",
@@ -45,7 +45,7 @@
   "retrieval_contract": {
     "schema": "lex_replay_current_run_retrieval/1",
     "task_id": 784,
-    "canonical_calls_sha256": "c19a76b510700ab55ec51f4e29b64007bc45e9006a5efc270d754f5841dd1739",
+    "canonical_calls_sha256": "94396171d66b7622658c7420c74ea1d2a92f33cd5f473c485d3205244a16eacb",
     "sources": [
       {
         "name": "observation",

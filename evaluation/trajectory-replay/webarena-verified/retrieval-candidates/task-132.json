@@ -3,11 +3,11 @@
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023"
+      "url": "http://host.docker.internal:8023"
     },
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com/-/commits/main?author=kilian"
+      "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com/-/commits/main?author=kilian"
     },
     {
       "action": "evaluate",
@@ -17,7 +17,7 @@
   "retrieval_contract": {
     "schema": "lex_replay_current_run_retrieval/1",
     "task_id": 132,
-    "canonical_calls_sha256": "7c3455f4de71b7780e242804db462eb23c9bd8fc4658fc11c34cd4018c5cc7f0",
+    "canonical_calls_sha256": "5df350cf2187738b9ec3bc3d0a906541771f93ca26b68b212b5c010654ae1b38",
     "sources": [
       {
         "name": "observation",

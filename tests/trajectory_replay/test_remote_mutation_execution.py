@@ -291,3 +291,16 @@ def test_preflight_cannot_change_frozen_inputs_before_browser_start(tmp_path, mo
     with pytest.raises(ValueError, match='inputs changed during diagnostic preflight'):
         execution.main_mutation_diagnostic(argv)
     assert not output.exists() and activity['created'] == 0
+
+
+def test_diagnostic_stops_before_any_browser_without_site_accounts(tmp_path, monkeypatch):
+    from harness import env_file
+
+    argv, _, output, activity = environment(tmp_path, monkeypatch)
+    monkeypatch.setattr(env_file, '_repository_credentials_file', tmp_path / 'absent.env')
+
+    with pytest.raises(ValueError, match='WEBARENA_[A-Z_]+_PASSWORD'):
+        execution.main_mutation_diagnostic(argv)
+    assert activity['created'] == 0
+    assert activity['trigger'] == 0
+    assert not output.exists()

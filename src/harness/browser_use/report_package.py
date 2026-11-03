@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 from harness.browser_use.failure_cause_review import review_path
-from harness.browser_use.report_check import check
+from harness.browser_use.report_check import check, check_public_privacy
 from harness.browser_use.report_publish import tree_sha256
 from harness.browser_use.report_visual import check as check_visual
 from harness.browser_use.report_visual import receipt_is_current
@@ -29,6 +29,7 @@ def validate_release(
 ) -> None:
     """Run every release gate before creating a publishable archive."""
 
+    check_public_privacy(report)
     check(report, evidence, None, require_complete=True,
           authority_root=authority_root, profile_path=profile_path)
     check_links(report)
