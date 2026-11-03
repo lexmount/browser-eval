@@ -1,7 +1,7 @@
 """Bounded, registry-driven same-task comparisons for measured search results."""
 
-import html
 import json
+from functools import partial
 from urllib.parse import urlsplit
 
 from lexbench_websearch.evidence_quality import is_benchmark_page
@@ -14,6 +14,7 @@ from lexbench_websearch.scoring import (
     task_acceptance,
 )
 
+from harness.reporting.presentation import esc
 from harness.reporting.privacy import WEB_SEARCH_PREVIEW
 from harness.web_search.relevance import parse_judgments
 
@@ -202,7 +203,7 @@ def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=No
     t = lambda en, cn: cn if zh else en
     data = comparison_data(profile, selected_rows, zh, detail_link, relevance, primary_factual_metric=primary_factual_metric)
     cutoff = data["cutoff"]
-    e = lambda value: html.escape(str(value), quote=True)
+    e = partial(esc, none="None")
     items = [item for case in data["cases"] for output in case["outputs"].values()
              if output for item in output["items"]]
     delivered_fields = t("Each column shows the first five results with their returned titles and snippets.",
