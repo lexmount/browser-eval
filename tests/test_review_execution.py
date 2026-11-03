@@ -79,7 +79,7 @@ def test_resume_rejects_changed_context_before_overwriting_work(tmp_path, phase,
     ]
     with (
         patch("sys.argv", argv),
-        patch("subprocess.run", side_effect=AssertionError("No reviewer calls")),
+        patch("subprocess.Popen", side_effect=AssertionError("No reviewer calls")),
     ):
         main()
         main()  # Exact-input preparation is resumable.
@@ -100,7 +100,7 @@ def test_resume_rejects_changed_context_before_overwriting_work(tmp_path, phase,
         (evidence / "answer.txt").write_text("changed answer")
     with (
         patch("sys.argv", argv),
-        patch("subprocess.run", side_effect=AssertionError("No reviewer calls")),
+        patch("subprocess.Popen", side_effect=AssertionError("No reviewer calls")),
     ):
         with pytest.raises(ValueError):
             main()
@@ -143,7 +143,7 @@ def test_cached_blind_judgment_is_retained_but_changed_packet_is_rejected(tmp_pa
     completed_blind_batch(work)
     with (
         patch("sys.argv", argv),
-        patch("subprocess.run", side_effect=AssertionError("No reviewer calls")),
+        patch("subprocess.Popen", side_effect=AssertionError("No reviewer calls")),
     ):
         review_main()
     result = json.loads((work / "result-review.json").read_text())
@@ -235,7 +235,7 @@ def test_invalid_execution_limits_fail_before_work_or_calls(tmp_path, phase, opt
         value,
     ]
     main = review_main if phase == "blind" else anomaly_main
-    with patch("sys.argv", argv), patch("subprocess.run", side_effect=AssertionError("No calls")):
+    with patch("sys.argv", argv), patch("subprocess.Popen", side_effect=AssertionError("No calls")):
         with pytest.raises(SystemExit):
             main()
     assert not work.exists()

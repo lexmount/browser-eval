@@ -16,6 +16,7 @@ from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
 from harness.record_io import file_sha256, load_jsonl, parse_jsonl, write_json
+from harness.review_runner import run_reviewer
 from harness.web_fetch import anomaly_review, result_review
 from harness.web_fetch.anomaly_review import LAYERS, TRIGGER_VERSION, detect_anomalies
 from harness.web_fetch.artifacts import (
@@ -631,13 +632,7 @@ def review_main():
             problem = ""
             for protocol_attempt in range(args.protocol_retries + 1):
                 try:
-                    completed = subprocess.run(
-                        command,
-                        cwd=work,
-                        text=True,
-                        capture_output=True,
-                        timeout=args.timeout_seconds,
-                    )
+                    completed = run_reviewer(command, cwd=work, timeout=args.timeout_seconds)
                     if completed.returncode:
                         problem = completed.stderr or completed.stdout
                         continue
@@ -1147,9 +1142,7 @@ def anomaly_main():
         problem = ""
         for _ in range(args.protocol_retries + 1):
             try:
-                completed = subprocess.run(
-                    command, cwd=work, text=True, capture_output=True, timeout=args.timeout_seconds
-                )
+                completed = run_reviewer(command, cwd=work, timeout=args.timeout_seconds)
                 if completed.returncode:
                     problem = completed.stderr or completed.stdout
                     continue
@@ -1528,7 +1521,7 @@ failures. Findings require verification against current code before fixes."""
     logs = work / "logs"
     logs.mkdir(exist_ok=True)
     with (logs / (path.stem + ".log")).open("w") as log:
-        process = subprocess.run(
+        process = run_reviewer(
             command, cwd=work, stdout=log, stderr=subprocess.STDOUT, timeout=3600
         )
     if process.returncode:

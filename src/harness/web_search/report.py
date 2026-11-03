@@ -2,12 +2,12 @@
 
 import argparse
 import copy
-import html
 import json
 import math
 import posixpath
 import re
 from collections import Counter
+from functools import partial
 from pathlib import Path
 from statistics import median
 from urllib.parse import parse_qs, urlsplit
@@ -36,6 +36,7 @@ from harness.report_languages import (
     write_language_contract,
 )
 from harness.reporting.presentation import check_presentation
+from harness.reporting.presentation import esc as escape_text
 from harness.reporting.versions import FILENAME, bind_build_version, check_build_version
 from harness.web_fetch.publication_privacy import SENSITIVE_KEY, project_file
 from harness.web_search.comparison import render_comparison
@@ -124,8 +125,8 @@ if(document.querySelector('.mermaid')&&innerWidth>700){let s=document.createElem
 """
 
 
-def esc(value):
-    return html.escape(str(value), quote=True)
+# Search pages keep their established literal rendering of an absent value.
+esc = partial(escape_text, none="None")
 
 
 def fmt(value):
