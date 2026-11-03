@@ -53,24 +53,25 @@ def extract(url, schema, *, timeout=120):
 
     def call(path, body):
         start = time.monotonic()
-        response = request(
-            BASE + path,
-            method="POST",
-            headers=headers,
-            json_body=body,
-            timeout=timeout,
-            max_bytes=10_000_000,
-        )
-        payload, events = decode_response(response)
-        calls.append(
-            {
-                "phase": phase,
-                "http_status": response.status,
-                "elapsed_seconds": time.monotonic() - start,
-                "response": payload,
-                "events": events,
-            }
-        )
+        receipt = {"phase": phase}
+        calls.append(receipt)
+        try:
+            response = request(
+                BASE + path,
+                method="POST",
+                headers=headers,
+                json_body=body,
+                timeout=timeout,
+                max_bytes=10_000_000,
+            )
+            receipt.update(http_status=response.status, raw_response=response.text())
+            payload, events = decode_response(response)
+            receipt.update(response=payload, events=events)
+        except Exception as error:
+            receipt["error"] = str(error)
+            raise
+        finally:
+            receipt["elapsed_seconds"] = time.monotonic() - start
         if response.status != 200 or payload.get("success") is False:
             return payload, response.status, False
         return payload, response.status, True
@@ -119,10 +120,19 @@ def extract(url, schema, *, timeout=120):
             "response": {"result": payload.get("result") if ok else None, "calls": calls},
             "extractor": {"api": BASE, "model": MODEL, "inference": "native Model Gateway"},
         }
+    except Exception as error:
+        return {
+            "state": "call_error",
+            "http_status": calls[-1].get("http_status") if calls else None,
+            "failure_phase": phase,
+            "error": str(error),
+            "response": {"result": None, "calls": calls},
+            "extractor": {"api": BASE, "model": MODEL, "inference": "native Model Gateway"},
+        }
     finally:
         if session:
             phase = "session_cleanup"
             try:
                 call(f"/sessions/{session}/end", {})
-            except Exception as error:
-                calls.append({"phase": phase, "error": str(error)})
+            except Exception:
+                pass  # call() already retained the failed cleanup attempt.

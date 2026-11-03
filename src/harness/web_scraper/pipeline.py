@@ -49,6 +49,8 @@ def save_json(path: Path, data, *, exclusive=False):
     with path.open("x" if exclusive else "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2, allow_nan=False)
         f.write("\n")
+        f.flush()
+        os.fsync(f.fileno())
 
 
 def data_home() -> Path:
@@ -422,7 +424,9 @@ def provider_call(method, html, source_url, fixture_url=None, *, timeout=120, ho
         )
         url = endpoint + "?" + urlencode(params)
         started = time.monotonic()
-        session = _RAW_SESSIONS.setdefault(method, requests.Session())
+        session = _RAW_SESSIONS.get(method)
+        if session is None:
+            session = _RAW_SESSIONS[method] = requests.Session()
         with session.post(
             url,
             data=html.encode(),
@@ -434,11 +438,15 @@ def provider_call(method, html, source_url, fixture_url=None, *, timeout=120, ho
             raw = response.raw.read(10_000_001, decode_content=True)
             if len(raw) > 10_000_000:
                 raise ValueError("Provider response exceeded limit")
+            try:
+                payload = json.loads(raw)
+            except ValueError:
+                payload = {"non_json_response": raw.decode("utf-8", "replace")}
             return {
                 "state": "response_received",
                 "http_status": response.status_code,
                 "elapsed_seconds": time.monotonic() - started,
-                "response": redact(json.loads(raw)),
+                "response": redact(payload),
                 "provider_usage": {
                     k: response.headers.get(k)
                     for k in ("X-Scrapfly-Api-Cost", "X-Scrapfly-Remaining-Api-Credit")
@@ -508,9 +516,11 @@ def normalize(method: str, payload: dict):
             item = {
                 "price": price,
                 "sku": (p.get("identifiers") or {}).get("sku"),
-                "availability": {"available": "InStock", "unavailable": "OutOfStock"}.get(
-                    stock, stock
-                ),
+                "availability": {
+                    "available": "InStock",
+                    "unavailable": "OutOfStock",
+                    "sold_out": "OutOfStock",
+                }.get(stock, stock),
             }
         else:
             item = None
@@ -598,6 +608,10 @@ def access_blocker(row):
         return "authentication"
     if status == 402:
         return "quota_or_payment"
+    if status == 403 and re.search(
+        r"forbidden|access denied|not authorized|permission", message, re.I
+    ):
+        return "permission"
     if status in (403, 429) or row.get("state") == "provider_error":
         if re.search(
             r"quota|credits?|balance|free plan|usage period|upgrade|subscription|payment|"
@@ -793,6 +807,19 @@ def _probe_unlocked(
         e["path"] for e in physical
     }:
         raise ValueError("Uncheckpointed call exists; preserve and reconcile it before resuming")
+    inflight = run / "inflight.json"
+    if inflight.exists():
+        pending = read_json(inflight)
+        completed = prior.get((pending["method"], pending["case_id"]))
+        if (
+            completed is None
+            or read_json(run / completed["path"]).get("physical_attempt")
+            != pending["physical_attempt"]
+        ):
+            raise ValueError(
+                "Ambiguous in-flight attempt; reconcile retained evidence before resuming"
+            )
+        inflight.unlink()
     records = []
     last_call_started = None
     last_call_finished = None
@@ -835,6 +862,22 @@ def _probe_unlocked(
                                 min_call_interval - (time.monotonic() - last_call_started),
                                 post_call_cooldown - (time.monotonic() - last_call_finished),
                             )
+                    save_json(
+                        inflight,
+                        {
+                            "method": method,
+                            "case_id": case_id,
+                            "physical_attempt": attempts.get((method, case_id), 0) + 1,
+                            "input_sha256": digest(raw),
+                            "state": "dispatch_pending",
+                        },
+                        exclusive=True,
+                    )
+                    descriptor = os.open(run, os.O_RDONLY)
+                    try:
+                        os.fsync(descriptor)
+                    finally:
+                        os.close(descriptor)
                     last_call_started = time.monotonic()
                     row.update(
                         provider_call(
@@ -853,7 +896,11 @@ def _probe_unlocked(
                         else "no_structured_output"
                     )
                 except Exception as error:
-                    row.update(state="call_error", error=redact(str(error)))
+                    row.update(
+                        state="call_error",
+                        error=redact(str(error)),
+                        elapsed_seconds=time.monotonic() - last_call_started,
+                    )
                 last_call_finished = time.monotonic()
             number = attempts.get((method, case_id), 0) + 1
             row["physical_attempt"] = number
@@ -870,6 +917,8 @@ def _probe_unlocked(
                 checkpoint.write(json.dumps(entry) + "\n")
                 checkpoint.flush()
                 os.fsync(checkpoint.fileno())
+            if inflight.exists():
+                inflight.unlink()
             records.append(entry)
             physical.append(entry)
             print(
@@ -901,7 +950,18 @@ def _probe_unlocked(
         and read_json(PROFILE).get("baseline_extractor") != contract["baseline_extractor"]
     ):
         raise ValueError("Baseline extractor binding changed during execution")
-    save_json(run / "remote-fixture-after.json", verify_remote(), exclusive=True)
+    receipt = verify_remote()
+    after = run / "remote-fixture-after.json"
+    if after.exists():
+        old = read_json(after)
+
+        def identity(items):
+            return [(r["case_id"], r["sha256"], r["http_status"]) for r in items]
+
+        if identity(old) != identity(receipt):
+            raise ValueError("Existing final fixture receipt differs")
+    else:
+        save_json(after, receipt, exclusive=True)
     save_json(
         run / "manifest.json",
         {
@@ -963,10 +1023,40 @@ def load_run(run: Path):
     return contract, rows
 
 
-def score_run(home: Path, run: Path):
+PROJECTION_REGRESSIONS = (
+    "scrapfly-available-is-in-stock",
+    "scrapfly-sold-out-is-out-of-stock",
+    "scrapfly-unknown-stock-stays-unknown",
+)
+
+
+def check_projection_controls():
+    for native, expected in (
+        ("available", "InStock"),
+        ("sold_out", "OutOfStock"),
+        ("preorder", "preorder"),
+    ):
+        actual = normalize("scrapfly-product", {"data": {"offers": [{"availability": native}]}})
+        if actual.get("availability") != expected:
+            raise ValueError("Native stock projection regression failed")
+        if native == "preorder" and any(f in actual for f in ("InStock", "OutOfStock")):
+            raise ValueError("Unknown availability was promoted to known stock")
+
+
+def score_run(home: Path, run: Path, *, reproject=False, output=None):
     """Score the declared population; retain empty predictions for failed calls."""
     from decimal import InvalidOperation
 
+    if output and (
+        Path(output).resolve().is_relative_to(ROOT.resolve())
+        or Path(output).resolve().is_relative_to((run / "calls").resolve())
+        or Path(output).resolve().is_relative_to((run / "execution").resolve())
+    ):
+        raise ValueError("Score revisions must stay outside Git and preserve physical evidence")
+    if reproject and output is None:
+        raise ValueError("A projection correction requires a separate output file")
+    if reproject:
+        check_projection_controls()
     contract, rows = load_run(run)
     validate_dataset(home)
     if contract["dataset_manifest_sha256"] != digest((home / "dataset/manifest.json").read_bytes()):
@@ -975,6 +1065,11 @@ def score_run(home: Path, run: Path):
     truth = {key: all_truth[key] for key in contract["case_ids"]}
     if contract["kind"] == "full_archived_extraction" and set(truth) != set(all_truth):
         raise ValueError("Full-cohort scoring requires all frozen cases")
+    original_rows = rows
+    if reproject:
+        rows = [
+            {**r, "normalized_fields": normalize(r["method"], r.get("response", {}))} for r in rows
+        ]
     scorer = official_scorer(home)
     original_decimal = scorer["decimal_matching"]
 
@@ -1006,7 +1101,23 @@ def score_run(home: Path, run: Path):
         "call_manifest_sha256": digest((run / "manifest.json").read_bytes()),
         "scorer_sha256": digest((home / "dataset/evaluate.py").read_bytes()),
     }
-    target = run / "scores.json"
+    if reproject:
+        result["projection_revision"] = {
+            "schema": "native-field-projection/1",
+            "root_cause": "Native sold_out stock label was not mapped to OutOfStock",
+            "regression_ids": list(PROJECTION_REGRESSIONS),
+            "pipeline_sha256": digest(Path(__file__).read_bytes()),
+            "original_scores_sha256": digest((run / "scores.json").read_bytes()),
+            "changed_cases": [
+                r["case_id"]
+                for old, r in zip(original_rows, rows, strict=True)
+                if old.get("normalized_fields") != r.get("normalized_fields")
+            ],
+            "provider_calls_added": 0,
+        }
+    target = Path(output) if output else run / "scores.json"
+    if reproject and target.resolve() == (run / "scores.json").resolve():
+        raise ValueError("A correction must preserve original scores")
     if target.exists():
         if read_json(target) != result:
             raise ValueError("Existing score differs; use an explicit correction")

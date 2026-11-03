@@ -43,6 +43,14 @@ def main(argv=None):
             p.add_argument("--largest-page", action="store_true")
     p = sub.add_parser("score")
     p.add_argument("run", type=Path)
+    p.add_argument(
+        "--reproject",
+        action="store_true",
+        help="Recompute native field projection without provider calls",
+    )
+    p.add_argument(
+        "--output", type=Path, help="Separate score revision; never replaces collected evidence"
+    )
     p = sub.add_parser("report")
     p.add_argument("--content", type=Path, required=True)
     p.add_argument("--profile", type=Path, required=True, help="External report-instance profile")
@@ -77,7 +85,7 @@ def main(argv=None):
             )
         )
     elif args.command == "score":
-        print(score_run(args.home, args.run))
+        print(score_run(args.home, args.run, reproject=args.reproject, output=args.output))
     elif args.command == "report":
         from harness.web_scraper.report import build
 

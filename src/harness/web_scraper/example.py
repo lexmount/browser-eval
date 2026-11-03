@@ -7,7 +7,7 @@ from harness.web_scraper.pipeline import digest, save_json
 from harness.web_scraper.report import PAGES, build
 
 
-def create(output: Path, *, language="zh"):
+def create(output: Path, *, language="zh", mode="compatibility"):
     home = output.parent / (output.name + "-synthetic-inputs")
     home.mkdir(parents=True, exist_ok=False)
     truth = {
@@ -114,6 +114,68 @@ def create(output: Path, *, language="zh"):
             },
         },
     )
+    if mode == "full-cohort-progress":
+        import json
+
+        model = json.loads(content.read_text())
+        methods = ["synthetic-success", "synthetic-blocked"]
+        plan_path = home / "full-plan.json"
+        plan = {
+            "case_count": len(truth),
+            "participants": {m: {} for m in methods},
+            "case_ids_sha256": digest(("\n".join(sorted(truth)) + "\n").encode()),
+        }
+        save_json(plan_path, plan)
+        model["mode"] = mode
+        model["cohort_plan"] = {"path": str(plan_path), "sha256": digest(plan_path.read_bytes())}
+        model["evidence_runs"] = []
+        for method in methods:
+            target = home / "runs" / method
+            source = b"# explicitly synthetic execution snapshot\n"
+            save_json(
+                target / "contract.json",
+                {
+                    "kind": "full_archived_extraction",
+                    "case_ids": list(truth),
+                    "methods": [method],
+                    "dataset_manifest_sha256": sha,
+                    "pipeline_sha256": digest(source),
+                },
+            )
+            (target / "execution").mkdir()
+            (target / "execution/pipeline.py").write_bytes(source)
+            save_json(
+                target / "certification-precall.json",
+                {
+                    "profile_sha256": digest(plan_path.read_bytes()),
+                    "method": method,
+                    "dataset_manifest_sha256": sha,
+                    "pipeline_sha256": digest(source),
+                },
+            )
+            physical = []
+            for cid in list(truth) if method == "synthetic-success" else list(truth)[:1]:
+                row = json.loads((run / "calls" / f"{method}-{cid}.json").read_text())
+                row["input_sha256"] = digest((root / "html" / (cid + ".html")).read_bytes())
+                dest = target / "calls" / f"{method}-{cid}.json"
+                save_json(dest, row)
+                physical.append(
+                    {
+                        "path": dest.relative_to(target).as_posix(),
+                        "sha256": digest(dest.read_bytes()),
+                    }
+                )
+            (target / "calls.journal.jsonl").write_text(
+                "".join(json.dumps(r) + "\n" for r in physical)
+            )
+            model["evidence_runs"].append(
+                {
+                    "run": method,
+                    "plan": str(plan_path),
+                    "plan_sha256": digest(plan_path.read_bytes()),
+                }
+            )
+        save_json(content, model)
     build(output, content, home=home, profile=profile, language=language)
     return home
 
@@ -122,5 +184,8 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--language", choices=["en", "zh"], default="zh")
+    p.add_argument(
+        "--mode", choices=["compatibility", "full-cohort-progress"], default="compatibility"
+    )
     a = p.parse_args()
-    create(a.output, language=a.language)
+    create(a.output, language=a.language, mode=a.mode)

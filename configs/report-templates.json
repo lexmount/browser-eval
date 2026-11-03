@@ -73,13 +73,15 @@
       "example_build": "uv run --frozen python -m harness.web_scraper.example --output /tmp/scraper-example",
       "build": "uv run --frozen python -m harness.web_scraper.cli report --profile /absolute/report-profile.json --content /absolute/content.json --output /absolute/report --language zh",
       "check": "uv run --frozen python -m harness.web_scraper.cli check /absolute/report",
-      "tests": "tests/web_scraper/test_pipeline.py",
+      "tests": "tests/web_scraper/",
       "variants": [
         "research-and-compatibility",
+        "full-cohort-progress",
         "synthetic"
       ],
       "release_check": "uv run --frozen python -m harness.web_scraper.cli check /absolute/report --release --visual-receipt /absolute/visual-receipt.json",
-      "benchmark": "src/harness/benchmarks/cards/zyte-product-extraction.json"
+      "benchmark": "src/harness/benchmarks/cards/zyte-product-extraction.json",
+      "cohort_example_build": "uv run --frozen python -m harness.web_scraper.example --output /tmp/scraper-cohort-example --mode full-cohort-progress"
     }
   }
 }

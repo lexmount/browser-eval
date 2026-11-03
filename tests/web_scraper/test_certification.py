@@ -38,5 +38,52 @@ def test_default_example_generates_chinese_and_english_notice():
         manifest = read_json(output / "report-manifest.json")
         assert manifest["languages"] == ["zh"]
         assert manifest["primary_language"] == "zh"
-        assert 'data-language-notice' in (output / "en/index.html").read_text()
+        assert "data-language-notice" in (output / "en/index.html").read_text()
         assert not (output / "en/results.html").exists()
+
+
+@pytest.mark.parametrize(
+    ("native", "expected"),
+    [("available", "InStock"), ("sold_out", "OutOfStock"), ("unavailable", "OutOfStock")],
+    ids=["scrapfly-available-is-in-stock", "scrapfly-sold-out-is-out-of-stock", "unavailable"],
+)
+def test_native_stock_labels_preserve_both_stock_directions(native, expected):
+    from harness.web_scraper.pipeline import normalize
+
+    result = normalize("scrapfly-product", {"data": {"offers": [{"availability": native}]}})
+    assert result["availability"] == expected
+    assert result[expected] == expected
+    assert ({"InStock", "OutOfStock"} - {expected}).isdisjoint(result)
+
+
+def test_scrapfly_unknown_stock_stays_unknown():
+    from harness.web_scraper.pipeline import normalize
+
+    result = normalize("scrapfly-product", {"data": {"offers": [{"availability": "preorder"}]}})
+    assert not {"InStock", "OutOfStock"} & result.keys()
+
+
+def test_transport_failure_retains_elapsed_time(tmp_path):
+    from harness.web_scraper.pipeline import load_run, probe
+
+    home = create(tmp_path / "example")
+    clock = [0.0]
+
+    def timeout(*args, **kwargs):
+        clock[0] += 5
+        raise TimeoutError("Synthetic transport timeout")
+
+    with (
+        patch("harness.web_scraper.pipeline.validate_dataset"),
+        patch("harness.web_scraper.pipeline.load_runtime_env"),
+        patch("harness.web_scraper.pipeline.time.monotonic", side_effect=lambda: clock[0]),
+        patch("harness.web_scraper.pipeline.provider_call", side_effect=timeout),
+        patch.dict(
+            "os.environ",
+            {"CLOUDFLARE_ACCOUNT_ID": "synthetic", "CLOUDFLARE_API_TOKEN": "synthetic"},
+        ),
+    ):
+        run = probe(home, ["cloudflare-json"], full=True)
+    _, rows = load_run(run)
+    assert len(rows) == 3
+    assert all(r["state"] == "call_error" and r["elapsed_seconds"] == 5 for r in rows)

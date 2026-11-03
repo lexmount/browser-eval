@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import math
 import re
+import statistics
 import struct
 from html import escape as esc
 from pathlib import Path
@@ -16,9 +18,11 @@ from harness.web_scraper.pipeline import (
     PROFILE,
     digest,
     load_run,
+    normalize,
     read_json,
     redact,
     save_json,
+    score_run,
     validate_dataset,
 )
 
@@ -124,7 +128,7 @@ LABELS = {
 PAGES = ("index", "dataset", "results", "protocol", "candidates", "research", "accounts")
 CSS = """*{box-sizing:border-box}html{color-scheme:light;--bg:#f8f9fb;--panel:white;--ink:#17283b;--muted:#516277;--line:#d7dfe8;--accent:#075f79;--soft:#e1f3ed}html.dark{color-scheme:dark;--bg:#101923;--panel:#172431;--ink:#e8f0f7;--muted:#afbfce;--line:#354b60;--accent:#7cdbed;--soft:#174638}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 system-ui,-apple-system,"PingFang SC",sans-serif}header,main,footer{max-width:1190px;margin:auto;padding:24px 32px}header{padding-bottom:0}.eyebrow{font-size:13px;letter-spacing:.06em;color:var(--muted)}h1{font-size:clamp(28px,4vw,44px);line-height:1.25;letter-spacing:-.025em;margin:18px 0}h2{font-size:25px;margin:34px 0 12px}h3{font-size:19px;margin:26px 0 10px}p{max-width:900px}a{color:var(--accent);text-underline-offset:3px}nav{display:flex;flex-wrap:wrap;gap:7px;margin:20px 0}nav a,button,select{font:inherit;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);padding:7px 12px;cursor:pointer;text-decoration:none}nav a[aria-current]{background:var(--ink);color:var(--bg)}.notice{border-left:4px solid var(--accent);padding:10px 16px;background:var(--panel);font-size:14px}.table-wrap{overflow:auto;max-width:100%;border:1px solid var(--line);border-radius:10px;background:var(--panel)}.inventory{max-height:540px}table{border-collapse:collapse;min-width:650px;width:100%;font-size:14px}th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:var(--panel);position:sticky;top:0;z-index:1;color:var(--muted);white-space:nowrap}td{max-width:440px}td code{overflow-wrap:anywhere}.comparison-winner{background:var(--soft);font-weight:700;padding:3px 7px;border-radius:5px}section{margin:24px 0 40px}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;list-style:none;padding:0;counter-reset:stage}.flow li{counter-increment:stage;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}.flow li:before{content:counter(stage,decimal-leading-zero);display:block;color:var(--accent);font-size:24px;font-weight:700}code,pre{font:12px/1.6 ui-monospace,monospace}pre{overflow:auto;padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:8px;max-height:540px;white-space:pre-wrap;overflow-wrap:anywhere}code{overflow-wrap:anywhere}dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;width:min(950px,94vw);max-height:90vh;overflow:auto}dialog::backdrop{background:#0008}dialog pre{max-height:62vh}details{margin:12px 0}summary{cursor:pointer;color:var(--accent)}footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line)}.controls{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}.status{font-weight:600}small{color:var(--muted)}@media(max-width:650px){header,main,footer{padding:20px 16px}.flow{grid-template-columns:1fr 1fr}nav{gap:5px}nav a{font-size:13px;padding:6px 9px}td,th{padding:10px}}"""
 CSS += ".diagram{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px}.diagram img{display:block;width:100%;min-width:850px;height:auto}"
-JS = """document.querySelector('#theme').onclick=()=>{document.documentElement.classList.toggle('dark')};for(const b of document.querySelectorAll('[data-call-log-open]'))b.onclick=async()=>{const d=document.getElementById(b.dataset.callLogOpen);d.showModal();const p=d.querySelector('pre');try{const r=await fetch(b.dataset.src);if(!r.ok)throw Error('HTTP '+r.status);p.textContent=JSON.stringify(await r.json(),null,2)}catch(e){p.textContent=String(e)}};for(const b of document.querySelectorAll('[data-call-log-close]'))b.onclick=()=>b.closest('dialog').close();const f=document.querySelector('#filter');if(f){const update=()=>{for(const r of document.querySelectorAll('tr[data-status]'))r.hidden=f.value!=='all'&&r.dataset.status!==f.value};f.onchange=update;update()}"""
+JS = """document.querySelector('#theme').onclick=()=>{document.documentElement.classList.toggle('dark')};for(const b of document.querySelectorAll('[data-call-log-open]'))b.onclick=async()=>{const d=document.getElementById(b.dataset.callLogOpen);d.showModal();const p=d.querySelector('pre');try{const r=await fetch(b.dataset.src);if(!r.ok)throw Error('HTTP '+r.status);const value=await r.json();p.textContent=JSON.stringify(b.dataset.key?value[b.dataset.key]:value,null,2)}catch(e){p.textContent=String(e)}};for(const b of document.querySelectorAll('[data-call-log-close]'))b.onclick=()=>b.closest('dialog').close();const f=document.querySelector('#filter');if(f){const update=()=>{for(const r of document.querySelectorAll('tr[data-status]'))r.hidden=f.value!=='all'&&r.dataset.status!==f.value};f.onchange=update;update()}"""
 
 
 def table(headers, rows, *, inventory=False, attrs=""):
@@ -143,8 +147,18 @@ def table(headers, rows, *, inventory=False, attrs=""):
     )
 
 
-def page(language, route, title, body, *, detail=False, languages=("en", "zh")):
+def page(
+    language, route, title, body, *, detail=False, languages=("en", "zh"), state="compatibility"
+):
     labels = LABELS[language]
+    if state != "compatibility":
+        labels = list(labels)
+        labels[7] = (
+            "全量评测进度 · 未完成的方法不计质量分"
+            if language == "zh"
+            else "Full-cohort progress · quality unavailable for incomplete methods"
+        )
+        labels[2] = "结果与失败" if language == "zh" else "Results and failures"
     other = "zh" if language == "en" else "en"
     nav = "".join(
         f'<a href="{p}.html"'
@@ -157,7 +171,7 @@ def page(language, route, title, body, *, detail=False, languages=("en", "zh")):
     other_route = route if not detail else "results"
     if other not in languages:
         other_route = "index"
-    html = f'<!doctype html><html lang="{language}"><head><base href="../"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Scraper</title><link rel="stylesheet" href="../style.css"></head><body><header><div class="eyebrow">WEB SCRAPER / STRUCTURED EXTRACTION</div><h1>{esc(title)}</h1><p class="notice" data-evidence-state="compatibility">{labels[7]}</p><nav>{nav}<a href="../{other}/{other_route}.html">{"中文" if other == "zh" else "English"}</a><button id="theme">{labels[8]}</button></nav></header><main>{body}</main><footer>Web Scraper · {VERSION} · <a href="../report-manifest.json">{"输入与文件校验" if language == "zh" else "Input and file bindings"}</a></footer><script src="../app.js"></script></body></html>'
+    html = f'<!doctype html><html lang="{language}"><head><base href="../"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · Web Scraper</title><link rel="stylesheet" href="../style.css"></head><body><header><div class="eyebrow">WEB SCRAPER / STRUCTURED EXTRACTION</div><h1>{esc(title)}</h1><p class="notice" data-evidence-state="{state}">{labels[7]}</p><nav>{nav}<a href="../{other}/{other_route}.html">{"中文" if other == "zh" else "English"}</a><button id="theme">{labels[8]}</button></nav></header><main>{body}</main><footer>Web Scraper · {VERSION} · <a href="../report-manifest.json">{"输入与文件校验" if language == "zh" else "Input and file bindings"}</a></footer><script src="../app.js"></script></body></html>'
     # Artifact Site injects a site-root base even on nested pages. Use the same
     # root-relative references locally, where our own base supplies that root.
     soup = BeautifulSoup(html, "html.parser")
@@ -169,11 +183,261 @@ def page(language, route, title, body, *, detail=False, languages=("en", "zh")):
     return str(soup)
 
 
+def cohort_source(source, selection, home, truth):
+    """Validate a complete certified run or an immutable journal checkpoint."""
+    contract = read_json(source / "contract.json")
+    plan_path = Path(selection["plan"])
+    plan = read_json(plan_path)
+    precall = read_json(source / "certification-precall.json")
+    if (
+        digest(plan_path.read_bytes()) != selection["plan_sha256"]
+        or precall["profile_sha256"] != selection["plan_sha256"]
+        or set(contract["case_ids"]) != set(truth)
+        or contract["kind"] != "full_archived_extraction"
+        or plan["case_count"] != len(truth)
+        or plan["case_ids_sha256"] != digest(("\n".join(sorted(truth)) + "\n").encode())
+        or contract["methods"] != [precall["method"]]
+        or precall["method"] not in plan["participants"]
+        or precall["dataset_manifest_sha256"] != contract["dataset_manifest_sha256"]
+        or precall["pipeline_sha256"] != contract["pipeline_sha256"]
+    ):
+        raise ValueError("Full cohort plan, population or execution binding differs")
+    for relative, sha in [
+        ("execution/pipeline.py", contract["pipeline_sha256"]),
+        ("execution/stagehand.py", contract.get("stagehand_sha256")),
+    ]:
+        if sha and digest((source / relative).read_bytes()) != sha:
+            raise ValueError("Frozen execution changed")
+    certificate = source / "certificate.json"
+    if certificate.exists():
+        contract, rows = load_run(source)
+        cert = read_json(certificate)
+        for name, key in [
+            ("manifest.json", "manifest_sha256"),
+            ("scores.json", "scores_sha256"),
+            ("certification-precall.json", "precall_sha256"),
+        ]:
+            if digest((source / name).read_bytes()) != cert[key]:
+                raise ValueError("Certified evidence changed")
+        if cert["profile_sha256"] != selection["plan_sha256"] or cert["case_count"] != len(truth):
+            raise ValueError("Certificate population or profile differs")
+        saved = read_json(source / "scores.json")
+        # Recompute through the original scoring boundary, without provider calls.
+        recalculated = score_run(home, source)
+        if saved != recalculated:
+            raise ValueError("Certified scores do not reproduce")
+        physical = read_json(source / "manifest.json").get("physical_calls", [])
+        attempts_by_key = {}
+        for entry in physical:
+            attempt = read_json(source / entry["path"])
+            attempts_by_key.setdefault((attempt["method"], attempt["case_id"]), []).append(attempt)
+        for row in rows:
+            attempts = attempts_by_key.get((row["method"], row["case_id"]), [])
+            if len(attempts) > 1:
+                row["physical_attempts"] = attempts
+        assessment = None
+        if selection.get("assessment"):
+            assessment = selection["assessment"]
+            assessment_path = Path(assessment["path"])
+            if digest(assessment_path.read_bytes()) != assessment["sha256"]:
+                raise ValueError("Field projection assessment changed")
+            saved = score_run(home, source, reproject=True, output=assessment_path)
+            rows = [
+                {
+                    **r,
+                    "collected_normalized_fields": r.get("normalized_fields"),
+                    "normalized_fields": normalize(r["method"], r.get("response", {})),
+                    "projection_revision": saved["projection_revision"],
+                }
+                for r in rows
+            ]
+        return (
+            contract,
+            rows,
+            {
+                "certified": True,
+                "scores": saved["scores"],
+                "certificate_sha256": digest(certificate.read_bytes()),
+                "assessment": assessment,
+            },
+        )
+    journal = source / "calls.journal.jsonl"
+    raw = journal.read_bytes()
+    if not raw.endswith(b"\n"):
+        raise ValueError("Checkpoint contains an unfinished journal entry; retry after the write")
+    latest, physical = {}, []
+    for line in raw.splitlines():
+        entry = json.loads(line)
+        relative = Path(entry["path"])
+        if relative.is_absolute() or ".." in relative.parts:
+            raise ValueError("Unsafe checkpoint evidence path")
+        path = source / relative
+        row = read_json(path)
+        if digest(path.read_bytes()) != entry["sha256"]:
+            raise ValueError("Checkpoint call changed")
+        key = (row["method"], row["case_id"])
+        if (
+            key[0] not in contract["methods"]
+            or key[1] not in truth
+            or row["input_sha256"]
+            != digest((home / "dataset/html" / (key[1] + ".html")).read_bytes())
+        ):
+            raise ValueError("Checkpoint call is outside the frozen input scope")
+        physical.append(row)
+        latest[key] = row
+    rows = []
+    for key, value in latest.items():
+        row = dict(value)
+        row["physical_attempts"] = [r for r in physical if (r["method"], r["case_id"]) == key]
+        rows.append(row)
+    return (
+        contract,
+        rows,
+        {
+            "access_blocked": read_json(source / "access-blocked.json")
+            if (source / "access-blocked.json").exists()
+            else None,
+            "certified": False,
+            "scores": {},
+            "checkpoint_sha256": digest(raw),
+            "physical_calls": len(physical),
+        },
+    )
+
+
+def cohort_metrics(methods, rows, bindings, count, lang):
+    """One full-population summary, with incomplete quality left unavailable."""
+    scores = {m: b["scores"][m] for b in bindings if b.get("certified") for m in b["scores"]}
+    fields = ("price", "sku", "availability", "OutOfStock")
+    blocked = {b["contract"]["methods"][0] for b in bindings if b.get("access_blocked")}
+    records = []
+    for method in methods:
+        subset = [r for r in rows if r["method"] == method]
+        complete = method in scores
+        cells = [
+            esc(method),
+            str(count),
+            str(len(subset)),
+            str(sum(r.get("compatibility") == "structured_output" for r in subset)),
+            ("已完成" if lang == "zh" else "Complete")
+            if complete
+            else (
+                ("额度／权限受限" if lang == "zh" else "Access limited")
+                if method in blocked
+                else ("尚未完成" if lang == "zh" else "Incomplete")
+            ),
+        ]
+        for field in fields:
+            value = scores.get(method, {}).get(field, {}).get("f1")
+            cells.append("—" if value is None else f"{value:.3f}")
+        records.append(cells)
+    result = BeautifulSoup(
+        table(
+            (
+                [
+                    "方法",
+                    "计划页数",
+                    "已执行",
+                    "返回字段",
+                    "全量状态",
+                    "价格 F1",
+                    "SKU F1",
+                    "库存 F1",
+                    "缺货 F1",
+                ]
+                if lang == "zh"
+                else [
+                    "Method",
+                    "Planned pages",
+                    "Executed",
+                    "Structured output",
+                    "Full scope",
+                    "Price F1",
+                    "SKU F1",
+                    "Stock F1",
+                    "Out-of-stock F1",
+                ]
+            ),
+            records,
+            attrs='data-core-metrics="full-cohort"',
+        ),
+        "html.parser",
+    )
+    for method, row in zip(methods, result.select("tbody tr"), strict=True):
+        row["data-method"] = method
+        for field, cell in zip(fields, row.select("td")[5:], strict=True):
+            if method not in scores:
+                continue
+            value = scores[method][field]["f1"]
+            values = [score[field]["f1"] for score in scores.values()]
+            cell.attrs.update(
+                {"data-metric": field, "data-metric-direction": "max", "data-sort": str(value)}
+            )
+            if value == max(values) and values.count(value) == 1:
+                cell.string = ""
+                span = result.new_tag("span", attrs={"class": "comparison-winner"})
+                span.string = f"{value:.3f}"
+                cell.append(span)
+    note = (
+        "F1 取值 0–1，越高越好；只展示已完成全部页面并通过证据校验的方法。返回字段不代表字段正确。机器评分，尚未进行独立人工复核。"
+        if lang == "zh"
+        else "F1 ranges from 0 to 1; higher is better. Quality is shown only for complete verified cohorts. Structured output does not establish correctness. Machine scoring; no independent human review."
+    )
+    latency = []
+    for method in methods:
+        for successful in (False, True):
+            selected = [
+                r
+                for r in rows
+                if r["method"] == method
+                and (not successful or r.get("compatibility") == "structured_output")
+            ]
+            values = sorted(
+                r["elapsed_seconds"] for r in selected if r.get("elapsed_seconds") is not None
+            )
+            label = (
+                ("返回字段调用" if successful else "所有已执行调用")
+                if lang == "zh"
+                else ("Structured-output calls" if successful else "All executed calls")
+            )
+            latency.append(
+                [
+                    esc(method),
+                    label,
+                    str(len(values)),
+                    f"{statistics.mean(values):.2f}" if values else "—",
+                    f"{statistics.median(values):.2f}" if values else "—",
+                    f"{values[max(0, math.ceil(len(values) * 0.95) - 1)]:.2f}" if values else "—",
+                ]
+            )
+    return str(result) + "<p>" + note + "</p>", table(
+        ["Method", "Population", "N", "Mean (s)", "P50 (s)", "P95 (s)"]
+        if lang == "en"
+        else ["方法", "统计范围", "调用数", "平均（秒）", "P50（秒）", "P95（秒）"],
+        latency,
+    )
+
+
 def build(output: Path, content: Path, *, home: Path, run=None, language="zh", profile=PROFILE):
     if language not in LABELS:
         raise ValueError("Unsupported language")
     languages = ("zh",) if language == "zh" else ("en", "zh")
     model = read_json(content)
+    if language == "en" and any(
+        page.get("body", {}).get("zh") and not page.get("body", {}).get("en")
+        for page in model["pages"].values()
+    ):
+        raise ValueError("English content is missing; generate the English edition first")
+    cohort = model.get("mode") == "full-cohort-progress"
+    state = "full-cohort-progress" if cohort else "compatibility"
+    cohort_plan = None
+    if cohort:
+        cohort_plan = read_json(Path(model["cohort_plan"]["path"]))
+        if (
+            digest(Path(model["cohort_plan"]["path"]).read_bytes())
+            != model["cohort_plan"]["sha256"]
+        ):
+            raise ValueError("Report cohort plan changed")
     validate_dataset(home, profile)
     binding = read_json(profile).get("research_report", {}).get("content", {}).get("sha256")
     if binding and digest(content.read_bytes()) != binding:
@@ -190,8 +454,15 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
     for selection in selections:
         source = Path(selection["run"])
         source = source if source.is_absolute() else home / "runs" / source
-        contract, records = load_run(source)
-        if contract.get("kind") not in ("input_compatibility_only", "input_size_boundary_only"):
+        extra = {}
+        if cohort:
+            contract, records, extra = cohort_source(source, selection, home, truth)
+        else:
+            contract, records = load_run(source)
+        if not cohort and contract.get("kind") not in (
+            "input_compatibility_only",
+            "input_size_boundary_only",
+        ):
             raise ValueError(
                 "Research report accepts compatibility evidence only; full quality cohorts need their own certified report mode"
             )
@@ -213,11 +484,24 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
         bindings.append(
             {
                 "run_id": source.name,
-                "manifest_sha256": digest((source / "manifest.json").read_bytes()),
+                "manifest_sha256": digest((source / "manifest.json").read_bytes())
+                if (source / "manifest.json").exists()
+                else None,
+                **extra,
                 "methods": selection.get("methods"),
                 "contract": contract,
             }
         )
+    if cohort:
+        expected_cases = digest(("\n".join(sorted(truth)) + "\n").encode())
+        if (
+            cohort_plan["case_count"] != len(truth)
+            or cohort_plan["case_ids_sha256"] != expected_cases
+            or set(cohort_plan["participants"])
+            != {m for b in bindings for m in b["contract"]["methods"]}
+            or len(bindings) != len(cohort_plan["participants"])
+        ):
+            raise ValueError("Report is missing a planned method or uses a substituted population")
     keys = [(r["method"], r["case_id"]) for r in rows]
     if len(keys) != len(set(keys)):
         raise ValueError("Select exactly one compatibility observation per method and case")
@@ -238,8 +522,16 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             raise ValueError("Unsafe or changed report asset")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(source.read_bytes())
-    for r in rows:
-        save_json(output / "evidence" / f"{r['method']}-{r['case_id']}.json", r, exclusive=True)
+    if cohort:
+        for method in cohort_plan["participants"]:
+            save_json(
+                output / "evidence" / (method + ".json"),
+                {r["case_id"]: r for r in rows if r["method"] == method},
+                exclusive=True,
+            )
+    else:
+        for r in rows:
+            save_json(output / "evidence" / f"{r['method']}-{r['case_id']}.json", r, exclusive=True)
     for lang in languages:
         lab = LABELS[lang]
         directory = output / lang
@@ -250,7 +542,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             for i, p in enumerate(PAGES)
         }
         # Scope and observed current interfaces lead; historical scores remain separate.
-        methods = sorted({r["method"] for r in rows})
+        methods = (
+            list(cohort_plan["participants"]) if cohort else sorted({r["method"] for r in rows})
+        )
         summary = []
         for method in methods:
             subset = [r for r in rows if r["method"] == method]
@@ -279,6 +573,12 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             )
             + bodies["index"]
         )
+        if cohort:
+            core, timings = cohort_metrics(methods, rows, bindings, len(truth), lang)
+            bodies["index"] = core + model["pages"].get("index", {}).get("body", {}).get(lang, "")
+            bodies["protocol"] += (
+                "<h2>" + ("调用耗时" if lang == "zh" else "Call latency") + "</h2>" + timings
+            )
         hr = []
         fields = ("price", "sku", "availability")
         historical_fields = (*fields, "OutOfStock")
@@ -316,7 +616,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
                     }
                 )
         historical_title = lab[22].replace("140", str(len(truth)))
-        bodies["index"] += "<section><h2>" + historical_title + "</h2>" + str(soup) + "</section>"
+        bodies["research" if cohort else "index"] += (
+            "<section><h2>" + historical_title + "</h2>" + str(soup) + "</section>"
+        )
         dr = []
         pin = read_json(profile)["dataset"]
         for cid, gt in sorted(truth.items()):
@@ -340,12 +642,32 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             ok = r.get("compatibility") == "structured_output"
             status = lab[12] if ok else lab[11]
             url = "result-" + key + ".html"
-            error = r.get("error") or ("Missing: " + ", ".join(r.get("missing_variables", [])))
-            if r.get("response") and not ok:
-                error = json.dumps(r["response"], ensure_ascii=False)
+            error = r.get("error") or ""
+            payload = r.get("response") or {}
+            if not error and not ok:
+                value = payload.get("error") or payload.get("message") or payload.get("errors")
+                if isinstance(value, dict):
+                    error = str(value.get("message") or value.get("type") or value)
+                elif value:
+                    error = (
+                        json.dumps(value, ensure_ascii=False)
+                        if not isinstance(value, str)
+                        else value
+                    )
+                elif r.get("missing_variables"):
+                    error = ("缺少凭据：" if lang == "zh" else "Missing credentials: ") + ", ".join(
+                        r["missing_variables"]
+                    )
+                else:
+                    error = (
+                        "未返回可识别的商品字段"
+                        if lang == "zh"
+                        else "No recognizable product fields returned"
+                    )
             if ok:
                 error = ""
-            evidence = "../evidence/" + key + ".json"
+            evidence = "../evidence/" + (r["method"] if cohort else key) + ".json"
+            evidence_key = f' data-key="{cid}"' if cohort else ""
             detail = f'<article data-report-detail="{"passed" if ok else "failed"}"><div data-result-summary><h2>{status}</h2><p>{esc(r["method"])} · {esc(r["state"])} · HTTP {r.get("http_status", "—")}</p><p><code>{cid}</code></p><small>{esc(r["run_id"])}</small></div>'
             if not ok:
                 detail += f'<p data-failure-diagnosis>{esc(error)}</p><details id="result-logs" open><summary>{lab[21]}</summary><pre data-kind="error">{esc(error)}</pre></details>'
@@ -363,7 +685,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
                 .replace("<pre>", "<details open><summary>JSON</summary><pre>")
                 .replace("</pre>", "</pre></details>")
             )
-            detail += f'<p><button data-call-log-open="evidence" data-src="{evidence}">{lab[9]}</button> · <a href="{evidence}">JSON</a></p><dialog id="evidence" aria-labelledby="evidence-title"><h2 id="evidence-title">{lab[21]}</h2><button data-call-log-close>{lab[10]}</button><pre></pre></dialog></article>'
+            detail += f'<p><button data-call-log-open="evidence" data-src="{evidence}"{evidence_key}>{lab[9]}</button> · <a href="{evidence}">JSON</a></p><dialog id="evidence" aria-labelledby="evidence-title"><h2 id="evidence-title">{lab[21]}</h2><button data-call-log-close>{lab[10]}</button><pre></pre></dialog></article>'
             (directory / url).write_text(
                 page(
                     lang,
@@ -372,16 +694,33 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
                     detail,
                     detail=True,
                     languages=languages,
+                    state=state,
                 )
             )
             elapsed = f"{r['elapsed_seconds']:.2f}" if r.get("elapsed_seconds") is not None else "—"
             inventory.append(
                 f'<tr data-status="{"pass" if ok else "fail"}"><td>{esc(r["method"])}</td><td><a href="{url}"><code>{cid[:12]}</code></a></td><td>{status}</td><td>{r.get("http_status") or "—"}</td><td>{elapsed}</td><td><a href="{url}">{lab[9]}</a></td></tr>'
             )
+        if cohort:
+            observed = {(r["method"], r["case_id"]) for r in rows}
+            for method in methods:
+                for cid in sorted(truth):
+                    if (method, cid) not in observed:
+                        pending = "待执行" if lang == "zh" else "Not executed"
+                        inventory.append(
+                            f'<tr data-status="pending"><td>{esc(method)}</td><td><code>{cid[:12]}</code></td><td>{pending}</td><td>—</td><td>—</td><td>—</td></tr>'
+                        )
         initial = (
             "fail" if any(r.get("compatibility") != "structured_output" for r in rows) else "all"
         )
         filt = f'<label>{lab[16]} <select id="filter"><option value="fail" {"selected" if initial == "fail" else ""}>{lab[11]}</option><option value="pass">{lab[12]}</option><option value="all" {"selected" if initial == "all" else ""}>{lab[13]}</option></select></label>'
+        if cohort:
+            filt = filt.replace(
+                "</select>",
+                '<option value="pending">'
+                + ("待执行" if lang == "zh" else "Not executed")
+                + "</option></select>",
+            )
         bodies["results"] += (
             '<div class="controls">'
             + filt
@@ -395,7 +734,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
         )
         for p in PAGES:
             (directory / (p + ".html")).write_text(
-                page(lang, p, titles[p], bodies[p], languages=languages)
+                page(lang, p, titles[p], bodies[p], languages=languages, state=state)
             )
     if "en" not in languages:
         (output / "en").mkdir()
@@ -420,6 +759,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
         output / "report-manifest.json",
         {
             "template": VERSION,
+            "mode": state,
+            "planned_methods": list(cohort_plan["participants"]) if cohort else None,
             "renderer_sha256": digest(Path(__file__).read_bytes()),
             "content_sha256": digest(content.read_bytes()),
             "profile_sha256": digest(profile.read_bytes()),
@@ -466,7 +807,9 @@ def check(output: Path, *, release=False, visual_receipt=None):
         if (
             name != "index.html"
             and not notice
-            and not soup.select_one('[data-evidence-state="compatibility"]')
+            and not soup.select_one(
+                '[data-evidence-state="' + manifest.get("mode", "compatibility") + '"]'
+            )
         ):
             raise ValueError("Missing evidence state")
         if (
@@ -489,6 +832,47 @@ def check(output: Path, *, release=False, visual_receipt=None):
                 id=u.fragment
             ):
                 raise ValueError("Broken evidence anchor")
+    if manifest.get("mode") == "full-cohort-progress":
+        methods = manifest["planned_methods"]
+        data = {m: read_json(output / "evidence" / (m + ".json")) for m in methods}
+        scores = {
+            m: b["scores"][m]
+            for b in manifest["source_runs"]
+            if b.get("certified")
+            for m in b["scores"]
+        }
+        if sum(len(v) for v in data.values()) != manifest["observations"]:
+            raise ValueError("Published observations differ from evidence")
+        for lang in manifest["languages"]:
+            soup = BeautifulSoup((output / lang / "index.html").read_text(), "html.parser")
+            summary = soup.select('[data-core-metrics="full-cohort"] tbody tr')
+            if [r.get("data-method") for r in summary] != methods:
+                raise ValueError("Missing or reordered planned participant")
+            for method, row in zip(methods, summary, strict=True):
+                cells = row.select("td")
+                expected = [
+                    manifest["case_count"],
+                    len(data[method]),
+                    sum(
+                        r.get("compatibility") == "structured_output" for r in data[method].values()
+                    ),
+                ]
+                if [c.get_text(strip=True) for c in cells[1:4]] != [str(x) for x in expected]:
+                    raise ValueError("Full cohort progress count differs")
+                for field, cell in zip(
+                    ("price", "sku", "availability", "OutOfStock"), cells[5:], strict=True
+                ):
+                    value = scores.get(method, {}).get(field, {}).get("f1")
+                    if cell.get_text(strip=True) != ("—" if value is None else f"{value:.3f}"):
+                        raise ValueError("Displayed quality differs from certified scores")
+            inventory = BeautifulSoup((output / lang / "results.html").read_text(), "html.parser")
+            if len(inventory.select("tr[data-status]")) != len(methods) * manifest["case_count"]:
+                raise ValueError("Full planned result inventory is incomplete")
+            if (
+                len(inventory.select('tr[data-status="pending"]'))
+                != len(methods) * manifest["case_count"] - manifest["observations"]
+            ):
+                raise ValueError("Pending population differs")
     en = {p.relative_to(output / "en").as_posix() for p in (output / "en").glob("*.html")}
     zh = {p.relative_to(output / "zh").as_posix() for p in (output / "zh").glob("*.html")}
     if "en" in manifest["languages"] and en != zh:
@@ -543,7 +927,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
     return {
         "pages_per_language": len(zh),
         "observations": manifest["observations"],
-        "state": "compatibility",
+        "state": manifest.get("mode", "compatibility"),
         "files": len(actual),
         "release": release,
     }

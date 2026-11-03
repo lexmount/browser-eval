@@ -2,6 +2,7 @@
 
 import argparse
 import importlib.util
+import sys
 from pathlib import Path
 
 from harness.web_scraper.pipeline import (
@@ -66,12 +67,49 @@ def frozen_probe(run_dir, expected_sha):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     module.ROOT, module.PROFILE = ROOT, PROFILE
-    return module.probe
+    contract = read_json(run_dir / "contract.json")
+    adapter_sha = contract.get("stagehand_sha256")
+    adapter = None
+    if adapter_sha:
+        adapter_source = run_dir / "execution/stagehand.py"
+        if adapter_source.is_symlink() or digest(adapter_source.read_bytes()) != adapter_sha:
+            raise ValueError("Frozen native adapter changed")
+        adapter_spec = importlib.util.spec_from_file_location(
+            "harness.web_scraper.stagehand", adapter_source
+        )
+        adapter = importlib.util.module_from_spec(adapter_spec)
+        adapter_spec.loader.exec_module(adapter)
+
+    def collect(*args, **kwargs):
+        if adapter is None:
+            return module.probe(*args, **kwargs)
+        name = "harness.web_scraper.stagehand"
+        previous = sys.modules.get(name)
+        sys.modules[name] = adapter
+        try:
+            return module.probe(*args, **kwargs)
+        finally:
+            if previous is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = previous
+
+    return collect
 
 
 def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None):
     plan = read_json(profile)
     participant = plan["participants"][method]
+    policy = {"timeout_seconds": 120, "quality_retries": 0, "access_retries_after_repair": 1}
+    if any(plan.get(key) != value for key, value in policy.items()):
+        raise ValueError("Unsupported frozen timeout or retry policy")
+    binding = run_dir / "certification-precall.json"
+    if (
+        not binding.exists()
+        and run_dir.exists()
+        and any(path.name != "execution.lock" for path in run_dir.iterdir())
+    ):
+        raise ValueError("Pre-call receipt is absent from an already-started execution")
     if available_methods()[method]["input"] == "site_specific":
         raise ValueError("A site-specific scraper is not a generic archived-HTML participant")
     validate_dataset(home)
@@ -96,9 +134,8 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
     collector = probe
     if binding.exists():
         original = read_json(binding)
-        if original["pipeline_sha256"] != precall["pipeline_sha256"]:
-            collector = frozen_probe(run_dir, original["pipeline_sha256"])
-            precall["pipeline_sha256"] = original["pipeline_sha256"]
+        collector = frozen_probe(run_dir, original["pipeline_sha256"])
+        precall["pipeline_sha256"] = original["pipeline_sha256"]
         if original != precall:
             raise ValueError("Certified resume inputs changed")
     else:

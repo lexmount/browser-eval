@@ -76,6 +76,13 @@ once, and both physical responses remain inspectable. The final response is scor
 there is no best-response selection or quality retry. The certificate is emitted
 only after the complete scope and reference checks pass.
 
+A native-field mapping correction can be scored from retained responses with
+`score RUN --reproject --output /absolute/data/scores-revision.json`. This keeps
+collected fields and original scores intact, runs paired stock-label controls,
+and binds the reason, regression IDs, projection source hash and changed case IDs
+in the separate assessment. No provider calls are made. Report selections must
+bind that assessment's path and hash explicitly.
+
 `probe` checks three stock/field strata; `probe --largest-page` checks the largest
 input. These are compatibility diagnostics, not a substitute for a 140-page run.
 The lower-level `run` command also collects the full population, but formal cohorts
@@ -96,9 +103,19 @@ default; English navigation shows a not-generated notice with a return link.
 
 For a research report, pass `report --profile /absolute/report-profile.json
 --content /absolute/content.json --output /absolute/new-report`. The external profile
-binds dataset provenance and optional authored content hashes. The current research
-renderer accepts compatibility diagnostics and rejects full-quality cohorts;
-certified full runs can already be scored and inspected in their saved evidence.
+binds dataset provenance and optional authored content hashes. The `full-cohort-progress` model binds a predeclared cohort plan and one source
+per participant. It validates certificates for complete cohorts and immutable
+journal entries for paused cohorts. Quality is shown only for complete certified
+methods; the result inventory includes every planned method and case, with
+unexecuted cases labeled separately. Raw evidence is grouped by method and loaded
+on demand. This progress report does not certify an incomplete comparison.
+
+Exercise this mode with the same renderer:
+
+```sh
+uv run --frozen python -m harness.web_scraper.example \
+  --output /tmp/scraper-cohort-example --mode full-cohort-progress
+```
 
 The separate release check requires a receipt from browser checks covering the
 core route classes, generated languages, themes and viewport sizes:
