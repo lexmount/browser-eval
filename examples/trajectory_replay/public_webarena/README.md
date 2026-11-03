@@ -69,8 +69,9 @@ domains. Reset deletes and recreates the whole slice from the pinned baseline; d
 removes the application. Read-only Map and Wikipedia services may be shared when
 separately deployed; they are different services, not substitutes for each other.
 Set both shared URLs in `shared_environments` in the pool config. Every newly
-provisioned slice then receives its own four writable-site URLs plus the same
-Map and Wikipedia URLs in its generated runtime config. Scaling the pool does
+provisioned slice then receives its own four writable-site URLs and their login
+variable names plus the same Map and Wikipedia URLs in its generated runtime
+config, which never holds login values. Scaling the pool does
 not copy the large Map or Wikipedia volumes.
 
 The baseline also contains a small digest-pinned initializer component. It calls the

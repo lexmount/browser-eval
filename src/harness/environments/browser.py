@@ -9,6 +9,8 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from harness.environments.webarena.topology import CONTAINER_HOST_ALIAS
+
 DEFAULT_BROWSER_IMAGES = {
     "chromium": "lex-browser-eval-chromium:local",
     "moli": "lex-browser-eval-moli:local",
@@ -90,7 +92,7 @@ def start_browser_container(
         "shm_size": "512m",
         "security_opt": ["no-new-privileges"],
         "network": network,
-        "extra_hosts": {"host.docker.internal": "host-gateway"},
+        "extra_hosts": {CONTAINER_HOST_ALIAS: "host-gateway"},
     }
     if cpus is not None:
         if cpus <= 0:

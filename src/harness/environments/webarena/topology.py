@@ -149,6 +149,16 @@ OFFICIAL_TRACE_PORTS: dict[str, tuple[int, ...]] = {
 ENV_CTRL_CONTAINER_PORT: int = int(_SERVICES["env_ctrl_port"])
 INITIALIZER_READINESS_PORT: int = int(_SERVICES["initializer_readiness_port"])
 MAGENTO_ELASTICSEARCH_PORT: int = int(_SERVICES["magento_elasticsearch_port"])
+# Bound inside the Map container. map_setup.py and map_detail.py run there without this
+# registry, so these ports reach them through the mounted site delivery contract.
+MAP_LOCAL_SERVICE_PORTS: dict[str, int] = {
+    name: int(port) for name, port in _SERVICES["map_local_services"].items()
+}
+
+
+def container_host_origin(port: int) -> str:
+    """Return the origin a browser container uses for a server on the Docker host."""
+    return f"http://{CONTAINER_HOST_ALIAS}:{port}"
 
 
 def site_origin(site: str, host: str) -> str:
@@ -191,9 +201,14 @@ def public_host_replacements() -> dict[str, str]:
     return {host: BENCHMARK_HOST_PLACEHOLDER for host in hosts}
 
 
+def site_credential_names(site: str) -> dict[str, str]:
+    """Return the repository .env variable names that hold one site's login."""
+    return dict(_SITES[site]["credentials_env"])
+
+
 def site_credentials(site: str) -> dict[str, str]:
     """Resolve one site's login from the repository .env, naming anything unset."""
-    names = _SITES[site]["credentials_env"]
+    names = site_credential_names(site)
     values = {field: repository_credential(name) for field, name in names.items()}
     missing = sorted(names[field] for field, value in values.items() if not value.strip())
     if missing:

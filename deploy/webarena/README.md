@@ -32,6 +32,8 @@ Use the Map digest from the image lock. Persist `/map-data` and `/var/lib/postgr
 | `src/harness/environments/webarena/map_detail.py` | `/opt/map_detail.py` |
 | `deploy/webarena/site-delivery-contract.json` | `/opt/map-contract.json` |
 
+`map_setup.py` and `map_detail.py` run in the upstream image without the topology registry. The ports they use inside the container come from the Map component of the mounted contract (`service_port` and `local_services`), which `verify_deployment_contract` keeps equal to the registry. Update the contract and both scripts together.
+
 Startup links `/var/cache/renderd/tiles` to `/map-data/tiles` to preserve rendered tiles across recreation. Rendering concurrency is 2; a missing tile gets up to 120 seconds. Use container resource limits so other shared-node workloads do not cause tile rejection. Readiness checks `/tile/0/0/0.png` before admitting traffic. Startup also synchronizes gzip copies of compiled JavaScript; stale compressed assets would otherwise send remote browsers to `localhost`. Requests remain same-origin.
 
 The image's Rails OSM object database contains no nodes, ways or relations. Search uses restored Nominatim data, so the original object links would return 404. The detail endpoint queries that same frozen data by OSM type and ID, displaying names, addresses, coordinates and available tags at the original `/node/`, `/way/` and `/relation/` paths. Required route relations absent from Nominatim accept only exact records bound to a fixed Wikidata revision, OSM ID and source hash. Other missing objects still return 404; the endpoint does not invent content or claim full OSM history or membership.

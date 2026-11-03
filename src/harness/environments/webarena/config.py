@@ -14,6 +14,7 @@ from urllib.parse import urlparse
 
 from harness.environments.webarena.topology import (
     ENV_CTRL_CONTAINER_PORT,
+    MAP_LOCAL_SERVICE_PORTS,
     SITE_CONTAINER_PORTS,
     TOPOLOGY,
 )
@@ -251,6 +252,8 @@ def verify_deployment_contract(root: Path) -> dict:
                 )
     map_site = delivery["components"]["map"]
     names = [Path(urlparse(url).path).name for url in map_site["data_urls"]]
+    if map_site.get("local_services") != MAP_LOCAL_SERVICE_PORTS:
+        raise ValueError("Map local service ports differ from the topology registry")
     digests = map_site["data_archive_sha256"]
     sizes = map_site["data_archive_bytes"]
     if (
