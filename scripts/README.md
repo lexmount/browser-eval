@@ -74,7 +74,7 @@ survived this pruning.
 
 ## Web Search
 
-Report commands run through `python -m harness.web_search <command>`; the
+Report commands run through `uv run --frozen python -m harness.web_search <command>`; the
 [track guide](../src/harness/web_search/README.md) lists them.
 
 ## Browser Use

@@ -24,11 +24,11 @@ Report commands share one entry point; `--help` after any command lists its opti
 
 | Command | Purpose |
 | --- | --- |
-| `python -m harness.web_search report` | Build, check, release-check or export a report |
-| `python -m harness.web_search visual` | Capture the reader evidence that a release check binds |
-| `python -m harness.web_search judge` | Run explicitly selected model relevance judgments on a frozen report |
-| `python -m harness.web_search review` | Freeze, run and collect the independent result review |
-| `python -m harness.web_search publish` | Freeze and publish a checked report to its bound Artifact Site |
+| `uv run --frozen python -m harness.web_search report` | Build, check, release-check or export a report |
+| `uv run --frozen python -m harness.web_search visual` | Capture the reader evidence that a release check binds |
+| `uv run --frozen python -m harness.web_search judge` | Run explicitly selected model relevance judgments on a frozen report |
+| `uv run --frozen python -m harness.web_search review` | Freeze, run and collect the independent result review |
+| `uv run --frozen python -m harness.web_search publish` | Freeze and publish a checked report to its bound Artifact Site |
 
 ## SERP providers and finite quotas
 
@@ -50,7 +50,7 @@ Reference responses are captured before and after collection, with immutable has
 - Domain fraction tests host boundaries, excluding suffix lookalikes. Empty responses have no domain fraction; list fill and error counts remain visible.
 - Duplicate fraction uses conservative URL normalization. Semantic query parameters are preserved.
 - Factual probes match published supporting URLs and reference-answer cues. A versioned assessment revision interprets explicit accepted ranges and alternatives from the published answer; historical literal metrics remain reproducible from unchanged collection profiles. Preview fields and all delivered text are evaluated separately. Source matching is not whole-web recall; phrase presence is not semantic correctness. A separate diagnostic excludes explicitly named benchmark mirrors without promoting later results.
-- Full scenario relevance uses complete named human annotations, or an explicitly selected frozen model through `python -m harness.web_search judge`. Both produce nDCG@5, Precision@5 and Success@5 through the same scorer. Model inputs omit provider identities and original ranks; retained requests, responses and quoted fields bind every label. Empty and all-zero pools remain in the population. Pass the resulting evidence with `--relevance`; label model judgments clearly.
+- Full scenario relevance uses complete named human annotations, or an explicitly selected frozen model through `uv run --frozen python -m harness.web_search judge`. Both produce nDCG@5, Precision@5 and Success@5 through the same scorer. Model inputs omit provider identities and original ranks; retained requests, responses and quoted fields bind every label. Empty and all-zero pools remain in the population. Pass the resulting evidence with `--relevance`; label model judgments clearly.
 - Snippet, summary and content lengths count Unicode characters. Text quantity does not establish correctness or source faithfulness.
 - Client wall time includes request setup, network transfer, response bytes and any declared retry. Mean, median and nearest-rank P95 share each declared cohort's complete query population. Successful nonempty calls are reported separately. Serial latency does not measure throughput or an SLA.
 - Prices remain in their native currencies. Empty DeepSeek successes are free under its published rule. Transport failures have unknown billing. Lexmount cost stays unavailable until pricing is supplied. Estimates are not invoices and exclude downstream models and extra fetches.
@@ -76,7 +76,7 @@ uv run --frozen python -m harness.web_search report --output /tmp/search-example
 
 The example is synthetic and labels its numbers accordingly. Report checks reject broken links, altered evidence, duplicate summaries, missing error details and incorrect winner markers. Before delivery, inspect each generated top-level tab once at the normal desktop layout. Responsive and theme behavior belongs to reusable renderer tests instead of every report release. A local report is not a certified public release.
 
-Capture reader evidence with `python -m harness.web_search visual /absolute/report --receipt /absolute/visual-receipt.json`. The separate full gate is `python -m harness.web_search report --output /absolute/report --release-check /absolute/visual-receipt.json`. It binds the report manifest to one reviewed capture of each top-level tab. Link, evidence, filter and pagination structure is checked during generation. Keep this receipt and screenshots outside Git.
+Capture reader evidence with `uv run --frozen python -m harness.web_search visual /absolute/report --receipt /absolute/visual-receipt.json`. The separate full gate is `uv run --frozen python -m harness.web_search report --output /absolute/report --release-check /absolute/visual-receipt.json`. It binds the report manifest to one reviewed capture of each top-level tab. Link, evidence, filter and pagination structure is checked during generation. Keep this receipt and screenshots outside Git.
 
 Supplemental cohorts use the same collector with another explicitly selected frozen profile. Present completed cohorts in one report with `--source /absolute/primary-run --cohort social=/absolute/social-run`. Repeat `--cohort NAME=RUN` for additional non-overlapping cohorts. The builder verifies each source independently, rejects duplicate cases and incompatible execution protocols, and renders one query inventory and one result inventory with group filters. The overall table describes saved calls across the fixed query mix; per-cohort timing remains visible and does not become a new same-window measurement. Optional external content supplies bilingual `cohort_labels`. Collection profiles and receipts remain immutable. `--site-prefix` is available when a separately requested nested report is needed. Qualified equivalent-page corrections use `--identity-correction /absolute/path/to/qualified-correction.json`: the report retains the collection profile, original evidence and an explicit before/after scoring receipt. This changes neither calls nor latency. A source observation must prove each alias and the correction must name its cause and regression controls.
 Each report has its own external publication authority. It binds the frozen collection profile, report manifest, scoring evidence, archive and exact remote version. Update this binding after a successful upload; preserve the collection profile and use the expected remote version for subsequent updates.
@@ -148,7 +148,7 @@ missing slots count toward the five-slot denominator. A query with no relevant
 pooled candidate receives zero nDCG and precision and stays in the population.
 Known-URL discovery and site constraints remain separate diagnostics.
 
-For explicitly authorized model annotations, run `python -m harness.web_search judge`
+For explicitly authorized model annotations, run `uv run --frozen python -m harness.web_search judge`
 with `--report`, `--output`, `--model` and `--base-url`. Supply the credential through
 `SEARCH_JUDGE_API_KEY`; do not put credentials in CLI arguments. The runner freezes
 its contract, retains each response, resumes completed queries and refuses changed
@@ -219,7 +219,7 @@ and successful provider output are different states; findings require explicit
 disposition before the final audited report is released.
 
 A formal reviewed release passes `--review /absolute/review-evidence.json` to
-`python -m harness.web_search report`. It must contain all opinions in the declared scope and
+`uv run --frozen python -m harness.web_search report`. It must contain all opinions in the declared scope and
 an adjudication for every dataset issue, output issue and finding. Each decision
 binds the original opinion hash, its resolution, reason and evidence. Provider
 limitations are recorded separately from corrected evaluation defects. The build
@@ -249,7 +249,7 @@ standalone cost and interpretation routes are not generated in this layout.
 
 ## Publish a replacement
 
-`python -m harness.web_search publish` freezes the checked report, source receipts,
+`uv run --frozen python -m harness.web_search publish` freezes the checked report, source receipts,
 content, visual evidence and lossless delivery archive before any upload. Pass
 `--report`, `--visual-receipt`, `--content`, each `--source COHORT=RUN` and a new
 `--output` directory inside `BROWSER_EVAL_DATA_HOME`. The next release is checked
