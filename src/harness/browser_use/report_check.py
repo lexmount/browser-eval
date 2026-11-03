@@ -37,7 +37,7 @@ from harness.report_languages import check_language_contract, generated_language
 from harness.reporting.assets import bound_json_asset
 from harness.reporting.presentation import visible_text as _visible_text
 from harness.reporting.privacy import BROWSER_USE_CHECK_SOURCE
-from harness.reporting.templates import template_identity
+from harness.reporting.templates import check_template_identity
 from harness.reporting.versions import check_build_version
 from harness.web_fetch.safety import reject_evidence_symlinks
 from lexbench_webfetch.paths import contained_path
@@ -347,16 +347,6 @@ def check_methodology_evidence(content: str, tasks: list[dict], environment: dic
         raise ValueError("methodology is missing the evaluation-flow diagram")
 
 
-def check_template_identity(audit: dict) -> None:
-    """Bind the renderer: a moved entry point leaves reports built before the move valid."""
-
-    if not audit.get("profile_sha256"):
-        return
-    template, maintained = audit.get("template") or {}, template_identity("browser-use")
-    if any(template.get(key) != maintained[key] for key in ("track", "renderer")):
-        raise ValueError("report bypasses the maintained Browser Use template")
-
-
 def check(
     report_dir: Path,
     evidence_dir: Path | list[Path],
@@ -495,7 +485,7 @@ def check(
     selection = load_pilot(selection_path)
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
     check_build_version(report_dir, audit)
-    check_template_identity(audit)
+    check_template_identity(audit, "browser-use")
     if audit.get("profile_sha256") and audit["profile_sha256"] != file_sha256(profile_path):
         raise ValueError("report was built from a different instance profile")
     if audit.get("selection_sha256") != selection.sha256:

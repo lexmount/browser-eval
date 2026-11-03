@@ -17,7 +17,7 @@ from bs4 import BeautifulSoup
 
 from harness.reporting.presentation import visible_text as _visible_text
 from harness.reporting.privacy import TRAJECTORY_REPLAY
-from harness.reporting.templates import template_identity
+from harness.reporting.templates import check_template_identity
 from harness.reporting.versions import check_build_version
 from harness.trajectory_replay.report_languages import language_roots, report_languages
 from harness.web_fetch.safety import reject_evidence_symlinks
@@ -518,21 +518,12 @@ def _check_formal_execution_scope(manifest: dict) -> None:
         raise ValueError("formal report requires a complete method-reset task cohort")
 
 
-def check_template_identity(manifest: dict) -> None:
-    """Bind the renderer: a moved entry point leaves reports built before the move valid."""
-    if not manifest.get("profile_sha256"):
-        return
-    template, maintained = manifest.get("template") or {}, template_identity("trajectory-replay")
-    if any(template.get(key) != maintained[key] for key in ("track", "renderer")):
-        raise ValueError("report bypasses the maintained replay template")
-
-
 def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, int]:
     reject_evidence_symlinks(report_dir)
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
     check_build_version(root, manifest)
-    check_template_identity(manifest)
+    check_template_identity(manifest, "trajectory-replay")
     if profile_path is not None:
         if (profile_path.is_symlink() or manifest.get("profile_sha256")
                 != hashlib.sha256(profile_path.read_bytes()).hexdigest()):

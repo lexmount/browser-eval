@@ -8,8 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from harness.reporting.templates import resolve_template, template_identity
-from harness.trajectory_replay import webarena_report_check as checker
+from harness.reporting.templates import check_template_identity, resolve_template, template_identity
 from harness.trajectory_replay.cli import COMMANDS, PROG, main
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -147,14 +146,15 @@ def test_every_command_is_named_by_a_guide_or_the_pending_owner_table():
 
 
 def test_report_template_gate_binds_the_renderer_not_the_moved_entry_point():
-    current = template_identity("trajectory-replay")
-    checker.check_template_identity({})
-    checker.check_template_identity({"profile_sha256": "bound", "template": current})
+    track = "trajectory-replay"
+    current = template_identity(track)
+    check_template_identity({}, track)
+    check_template_identity({"profile_sha256": "bound", "template": current}, track)
     # A report built before the move keeps the entry point it recorded.
-    checker.check_template_identity({
+    check_template_identity({
         "profile_sha256": "bound",
         "template": {**current, "entrypoint": "scripts/build_webarena_replay_report.py"},
-    })
+    }, track)
     for template in (None, {**current, "renderer": "other.py"}, {**current, "track": "other"}):
-        with pytest.raises(ValueError, match="bypasses the maintained replay template"):
-            checker.check_template_identity({"profile_sha256": "bound", "template": template})
+        with pytest.raises(ValueError, match="bypasses the maintained trajectory-replay template"):
+            check_template_identity({"profile_sha256": "bound", "template": template}, track)
