@@ -1131,7 +1131,10 @@ def test_initial_audit_can_start_with_already_repaired_results(tmp_path):
         dispatch.assert_not_called()
 
 
-@pytest.mark.parametrize("malformed", ["null", "list", "missing-fields"])
+@pytest.mark.parametrize(
+    "malformed",
+    ["null", "list", "missing-fields", "unknown-correction", "unknown-whitespace-correction"],
+)
 def test_malformed_raw_review_is_quarantined_and_resume_completes(tmp_path, malformed):
     from types import SimpleNamespace
 
@@ -1142,7 +1145,20 @@ def test_malformed_raw_review_is_quarantined_and_resume_completes(tmp_path, malf
     manifest = prepare(home, home / "content.json", work)
     packet = read_json(Path(manifest["packets"][0]["path"]))
     raw = work / "raw/000.json"
+    correction = review_payload(packet)
+    correction["citation_format_corrections"] = [
+        {
+            "case_id": "outside-packet",
+            "original_quote": "synthetic; product",
+            "literal_quote": "synthetic",
+            "rule": "whitespace-only"
+            if malformed == "unknown-whitespace-correction"
+            else "literal-fragment-selection",
+        }
+    ]
     bad = {
+        "unknown-correction": correction,
+        "unknown-whitespace-correction": correction,
         "null": None,
         "list": [],
         "missing-fields": {"cases": [{"case_id": packet["cases"][0]["case_id"]}]},
@@ -1299,3 +1315,28 @@ def test_limited_review_resume_advances_without_repeating_completed_packets(tmp_
         with pytest.raises(ValueError):
             run_audit(work, model="synthetic", workers=1, limit=1)
         assert len(dispatched) == 3
+
+
+@pytest.mark.parametrize("duplicate", ["same-run", "overlapping-run"])
+def test_review_rejects_duplicate_executions_before_freezing_packets(tmp_path, duplicate):
+    import shutil
+
+    home = create(tmp_path / "example")
+    content = read_json(home / "content.json")
+    selection = deepcopy(content["evidence_runs"][0])
+    if duplicate == "overlapping-run":
+        source = home / "runs" / selection["run"]
+        copied = home / "runs" / "overlapping"
+        shutil.copytree(source, copied)
+        selection["run"] = "overlapping"
+    content["evidence_runs"].append(selection)
+    save_json(home / "duplicate.json", content)
+    work = tmp_path / "review"
+    with (
+        patch("harness.web_scraper.review.ReviewerSessions.start") as dispatch,
+        pytest.raises(ValueError, match="duplicate case-method"),
+    ):
+        prepare(home, home / "duplicate.json", work)
+    dispatch.assert_not_called()
+    assert not (work / "manifest.json").exists()
+    assert not (work / "packets").exists()

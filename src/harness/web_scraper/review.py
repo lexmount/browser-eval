@@ -85,6 +85,7 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
     truth_path = home / "dataset/dataset/ground-truth.json"
     truth = read_json(truth_path)
     outputs = {cid: [] for cid in truth}
+    executions = set()
     methods = []
     bindings = {str(truth_path): digest(truth_path.read_bytes())}
     prior_identities = {}
@@ -109,6 +110,10 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
                     bindings[str(path)] = digest(path.read_bytes())
         bindings[str(run / "manifest.json")] = digest((run / "manifest.json").read_bytes())
         for row in rows:
+            key = (row["case_id"], row["method"])
+            if key in executions:
+                raise ValueError("Audit selections contain duplicate case-method executions")
+            executions.add(key)
             if prior is not None and not needs_supplemental_review(row, prior_identities):
                 continue
             method = row["method"]
@@ -198,6 +203,9 @@ def validate_structure(result):
                 },
             },
         )
+        case_ids = {row["case_id"] for row in result["cases"]}
+        if any(c["case_id"] not in case_ids for c in result["citation_format_corrections"]):
+            raise ValueError("Review citation correction names an out-of-packet case")
 
 
 def validate(result, packet):
