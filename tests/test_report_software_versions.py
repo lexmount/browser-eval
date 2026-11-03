@@ -111,6 +111,10 @@ def test_installed_package_does_not_borrow_an_unrelated_checkout(tmp_path, monke
     'trajectory_replay/messages.json',
     'environments/webarena/runtime/php-fpm-qemu.ini',
     'web_fetch/templates/interpretation-headless.css',
+    'web_fetch/assets/report-style.css',
+    'trajectory_replay/assets/webarena-report.js',
+    'browser_use/assets/report.css',
+    'web_search/assets/comparison.js',
 ])
 def test_installed_runtime_asset_changes_identify_a_different_build(tmp_path, monkeypatch, asset):
     from pathlib import Path
