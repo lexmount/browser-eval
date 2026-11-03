@@ -430,6 +430,19 @@ def test_template_source_without_the_template_stops_before_reading_evidence(tmp_
     assert not (tmp_path / 'output').exists()
 
 
+def test_packaged_install_without_the_default_template_names_both_routes(tmp_path, monkeypatch, capsys):
+    from harness.lexbench import report
+    monkeypatch.setattr(report, 'TEMPLATE_DIRECTORY', tmp_path / 'absent-template')
+    with pytest.raises(SystemExit) as stopped:
+        report.main(['--profile', str(report_profile(tmp_path))])
+    assert stopped.value.code == 2
+    message = capsys.readouterr().err
+    assert 'lacks index.html' in message
+    assert 'pass --source with a template directory' in message
+    assert 'drop --source and paths.source' in ' '.join(message.split())
+    assert not (tmp_path / 'output').exists()
+
+
 @pytest.mark.parametrize('change', ['none', 'attempt', 'source'])
 def test_comparison_reads_only_the_declared_task_bytes(tmp_path, change):
     from harness.lexbench.report import read_comparison_task

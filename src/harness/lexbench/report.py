@@ -141,7 +141,8 @@ def main(argv=None):
     if missing:
         parser.error(
             f"Report template {args.source} lacks {', '.join(missing)}; "
-            "in a checkout, drop --source and paths.source to use the maintained template"
+            "pass --source with a template directory, or in a checkout drop --source "
+            "and paths.source to use the maintained template"
         )
     BENCH_ROOT = configured_path("runner", os.environ.get("LEXBENCH_REPORT_RUNNER_ROOT"))
     VERSION_RUNS = configured_path("version_runs")
