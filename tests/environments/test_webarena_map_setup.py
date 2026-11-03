@@ -502,6 +502,47 @@ def test_contract_without_local_ports_stops_the_script_before_any_download(tmp_p
     assert not root.exists()
 
 
+def test_mounted_script_initializes_a_volume_with_only_the_standard_library(tmp_path):
+    """The upstream Map image mounts this one file and has no `harness` package.
+
+    `-I` alone keeps the virtualenv's site-packages, where this project is installed, so only
+    `-I -S` limits the script to the standard library it gets inside that container.
+    """
+    mounted = tmp_path / "opt/map_setup.py"
+    mounted.parent.mkdir()
+    shutil.copyfile(map_setup.__file__, mounted)
+    root = tmp_path / "volume"
+    state = root / ".map-setup"
+    state.mkdir(parents=True)
+    component = {
+        "data_urls": [],
+        "data_archive_bytes": {},
+        "data_archive_sha256": {},
+        "local_services": LOCAL_SERVICES,
+    }
+    for name, mappings in MAPPINGS.items():
+        path = archive_at(state / name, [(prefix + "/data", b"verified") for prefix in mappings])
+        component["data_urls"].append("https://example.invalid/" + name)
+        component["data_archive_bytes"][name] = path.stat().st_size
+        component["data_archive_sha256"][name] = hashlib.sha256(path.read_bytes()).hexdigest()
+    contract = tmp_path / "contract.json"
+    contract.write_text(json.dumps({"components": {"map": component}}), encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, "-I", "-S", str(mounted), "--root", str(root), "--contract", str(contract),
+         "--reserve-gib", "0"],
+        capture_output=True,
+        text=True,
+        cwd=mounted.parent,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "All Map archives verified and initialized" in result.stdout
+    for mappings in MAPPINGS.values():
+        for target in mappings.values():
+            assert (root / target / "data").read_bytes() == b"verified"
+
+
 def test_tile_configuration_rejects_multiple_virtual_hosts(tmp_path):
     root = tmp_path / "volume"
     tiles = root / "tiles"
