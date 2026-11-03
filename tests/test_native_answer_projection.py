@@ -282,3 +282,20 @@ def test_historical_selector_replays_old_file_scope_and_checks_saved_source(tmp_
         verify_saved_native_answer(tmp_path, record)
     metadata['native_answer_projection'] = old
     assert record == frozen
+
+
+def test_moli_markdown_route_preserves_historical_document_contract():
+    from harness.web_fetch import native_projection as projection
+    case = {'task_kind': 'body', 'track': 'document',
+            'source_benchmark': {'input_media_kind': 'direct_pdf'}}
+    historical = projection.native_answer_projection('moli_webfetch', case, {},
+        interface='original_document_bytes_without_extracted_text')
+    assert historical['content_format'] == 'empty'
+    assert historical['files'] == {'format': 'raw_bytes'}
+    markdown = projection.native_answer_projection('moli_webfetch', case, {},
+        interface='ordinary_markdown')
+    assert markdown['content_format'] == 'utf8'
+    assert 'files' not in markdown
+    direct_file = projection.native_answer_projection('moli_webfetch',
+        {**case, 'task_kind': 'file'}, {}, interface='ordinary_markdown')
+    assert direct_file['files'] == {'format': 'raw_bytes'}
