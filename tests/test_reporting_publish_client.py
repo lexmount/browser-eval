@@ -51,7 +51,11 @@ def wire(monkeypatch):
 
     def urlopen(request, *, timeout):
         calls.append((request, timeout))
-        return Response(calls.respond(request))
+        reply = calls.respond(request)
+        status, raw = reply if isinstance(reply, tuple) else (200, reply)
+        response = Response(raw)
+        response.status = status
+        return response
 
     monkeypatch.setattr(urllib.request, 'urlopen', urlopen)
     return calls
@@ -453,6 +457,64 @@ def test_pending_create_receipt_without_a_verified_field_resumes_when_it_matches
     owner.main(create=False)
     assert requested(wire, 'POST') == ['/api/sites/site-1/shares']
     assert bound(owner)['site_slug'] == 'site-1'
+
+
+def assert_release_stayed_unbound(owner):
+    assert 'site_slug' not in bound(owner)
+    assert receipt_of(owner)['verified'] is False
+
+
+@BOUND_TRACKS
+@pytest.mark.parametrize('reply', [
+    {'url': BASE.replace('https://', 'http://') + '/v/token'}, {},
+], ids=['plain-http', 'no-url'])
+def test_share_creation_without_an_https_url_stops_before_the_share_is_used(
+        tmp_path, monkeypatch, wire, owner, marker, reply):
+    _, site = lifecycle_site(monkeypatch, tmp_path, owner, marker)
+    wire.respond = lambda request: (
+        json.dumps(reply).encode() if request.selector.endswith('/shares') else site(request))
+    with pytest.raises(RuntimeError, match='omitted public URL'):
+        owner.main(create=True)
+    assert not [path for path in requested(wire, 'GET') if path.startswith('/v/')]
+    assert_release_stayed_unbound(owner)
+
+
+def test_title_update_failure_stops_browser_use_before_it_verifies_the_release(tmp_path, monkeypatch, wire):
+    _, site = lifecycle_site(monkeypatch, tmp_path, browser_use, browser_use.PUBLIC_REPORT_MARKER)
+
+    def respond(request):
+        if request.get_method() == 'PATCH':
+            raise HTTPError(request.full_url, 500, 'broken', email.message.Message(), io.BytesIO(b'broken'))
+        return site(request)
+
+    wire.respond = respond
+    with pytest.raises(RuntimeError, match='site title update failed with HTTP 500: broken'):
+        browser_use.main(create=True)
+    assert not [path for path in requested(wire, 'GET') if path.endswith('/export')]
+    assert_release_stayed_unbound(browser_use)
+
+
+@pytest.mark.parametrize(('owner', 'marker', 'status'), [
+    (browser_use, browser_use.PUBLIC_REPORT_MARKER, 202),
+    (replay, replay.PUBLIC_REPORT_MARKERS[0], 202),
+    (replay, replay.PUBLIC_REPORT_MARKERS[0], 404),
+], ids=['browser-use-202', 'replay-202', 'replay-404'])
+def test_public_share_that_is_not_ok_stops_before_the_release_is_bound(
+        tmp_path, monkeypatch, wire, owner, marker, status):
+    _, site = lifecycle_site(monkeypatch, tmp_path, owner, marker)
+
+    def respond(request):
+        if not request.selector.startswith('/v/'):
+            return site(request)
+        if status >= 400:
+            raise HTTPError(request.full_url, status, 'gone', email.message.Message(), io.BytesIO(b'gone'))
+        return status, b'<!doctype html>'
+
+    wire.respond = respond
+    with pytest.raises(RuntimeError, match=f'public report returned HTTP {status}'):
+        owner.main(create=True)
+    assert not [path for path in requested(wire, 'GET') if path.startswith('/api/preview/')]
+    assert_release_stayed_unbound(owner)
 
 
 @BOUND_TRACKS

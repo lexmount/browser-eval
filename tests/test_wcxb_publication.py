@@ -128,6 +128,22 @@ def test_wrong_remote_version_stops_before_any_upload(report):
     assert profile_path.read_bytes() == before
 
 
+def test_changed_profile_version_cannot_take_over_a_pending_operation(report):
+    kwargs, profile_path, _ = report
+    site = Site();site.version = 'ver_somebody_else'
+    with pytest.raises(ValueError, match='version changed'):
+        release.publish(**kwargs, transport=site)
+    journal = next(kwargs['work'].glob('wcxb-update-*.json'))
+    pending = journal.read_bytes()
+    assert json.loads(pending)['expected_version'] == 'ver_old'
+    write_json(profile_path, {**json.loads(profile_path.read_bytes()), 'artifact_hub_expected_version': 'ver_other'})
+    site.calls.clear()
+    with pytest.raises(ValueError, match='version differs from its pending operation'):
+        release.publish(**kwargs, transport=site)
+    assert site.calls == []
+    assert journal.read_bytes() == pending
+
+
 def test_failed_export_verification_resumes_without_reupload(report):
     kwargs, profile_path, _ = report
     before = profile_path.read_bytes()
