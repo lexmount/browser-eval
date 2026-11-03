@@ -60,7 +60,7 @@ def verify(report: Path, receipt: Path) -> bool:
     prepare_check(report, receipt)
     proof = json.loads(receipt.read_text())
     if (proof.get('schema') != SCHEMA or proof.get('producer_sources') != producer_sources()):
-        raise ValueError('Incomplete visual producer proof; regenerate with python -m harness.web_search visual')
+        raise ValueError('Incomplete visual producer proof; regenerate with check_search_report_visual.py')
     if proof.get('manifest_sha256') != file_sha256(report / 'manifest.json'):
         raise ValueError('Visual check belongs to a different build')
     binary = Path(browser_executable())
