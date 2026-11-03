@@ -36,13 +36,6 @@ CURATED_SAVED_OUTPUT_ACTIONS = frozenset(
 )
 
 
-def complexity_tier(step_count: int) -> str:
-    if step_count < 1:
-        raise ValueError("a task must contain at least one step")
-    lower = ((step_count - 1) // 5) * 5 + 1
-    return f"step_{lower:02d}_{lower + 4:02d}"
-
-
 @dataclass(frozen=True)
 class BrowserTask:
     task_id: str
