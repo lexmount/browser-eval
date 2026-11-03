@@ -88,3 +88,80 @@ def test_requested_english_requires_matching_authored_translation(tmp_path):
             profile=home / "profile.json",
             language="en",
         )
+
+
+def test_latency_uses_one_population_and_separates_missing_time_and_retries():
+    rows = [
+        {"method": "a", "elapsed_seconds": 1, "compatibility": "structured_output"},
+        {"method": "a", "elapsed_seconds": 2, "compatibility": "structured_output"},
+        {"method": "a", "elapsed_seconds": 10, "retry_execution_seconds": 0.5},
+        {"method": "a", "state": "call_error"},
+        {"method": "b", "elapsed_seconds": 100, "compatibility": "structured_output"},
+    ]
+    _, html = cohort_metrics(["a", "b"], rows, [], 140, "en")
+    soup = check_presentation(html)
+    cells = [[c.get_text(strip=True) for c in r.select("td")] for r in soup.select("tbody tr")]
+    assert cells[0][2:] == ["3", "1", "0.50", "4.33", "2.00", "10.00"]
+    assert cells[1][2:] == ["2", "0", "0.00", "1.50", "1.50", "2.00"]
+
+
+def test_usage_retains_denied_physical_attempt_without_inventing_a_charge():
+    from harness.web_scraper.report import usage_table
+
+    failed = {"response": {"success": False}, "http_status": 402}
+    paid = {"response": {"data": {"metadata": {"creditsUsed": 5}}}}
+    rows = [{"method": "native", "physical_attempts": [failed, paid]}]
+    soup = BeautifulSoup(usage_table(["native"], rows, "en"), "html.parser")
+    assert [c.get_text(strip=True) for c in soup.select("tbody td")] == [
+        "native",
+        "2",
+        "1",
+        "5 credits",
+    ]
+
+
+@pytest.mark.parametrize(
+    "selector", ["[data-latency-table] td:nth-child(6)", "[data-usage-table] td:nth-child(2)"]
+)
+def test_progress_check_rejects_timing_or_usage_value_changes(tmp_path, selector):
+    output = tmp_path / "report"
+    create(output, mode="full-cohort-progress")
+    page = output / "zh/protocol.html"
+    soup = BeautifulSoup(page.read_text(), "html.parser")
+    cell = soup.select_one(selector)
+    marker = cell.select_one(".comparison-winner")
+    (marker if marker is not None else cell).string = "9999"
+    page.write_text(str(soup))
+    manifest = read_json(output / "report-manifest.json")
+    manifest["files"]["zh/protocol.html"] = digest(page.read_bytes())
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="Timing or usage"):
+        check(output)
+
+
+def test_external_participant_labels_are_used_without_changing_evidence_identity(tmp_path):
+    home = create(tmp_path / "first", mode="full-cohort-progress")
+    content = read_json(home / "content.json")
+    content["method_labels"] = {"synthetic-success": "Source A", "synthetic-blocked": "Source B"}
+    save_json(home / "content.json", content)
+    output = tmp_path / "labeled"
+    build(output, home / "content.json", home=home, profile=home / "profile.json")
+    check(output)
+    soup = BeautifulSoup((output / "zh/index.html").read_text(), "html.parser")
+    assert [
+        r.select_one("td").get_text(strip=True) for r in soup.select("[data-core-metrics] tbody tr")
+    ] == ["Source A", "Source B"]
+
+
+def test_mathematically_equal_f1_is_neutral_despite_float_arithmetic_noise():
+    def metrics(value):
+        return {f: {"f1": value} for f in ("price", "sku", "availability", "OutOfStock")}
+
+    bindings = [
+        {"certified": True, "scores": {"a": metrics(2 / 3), "b": metrics(0.6666666666666667)}}
+    ]
+    html, _ = cohort_metrics(["a", "b"], [], bindings, 140, "en")
+    assert not check_presentation(html).select(".comparison-winner")
+    bindings[0]["scores"] = {"a": metrics(0.8104), "b": metrics(0.8101)}
+    html, _ = cohort_metrics(["a", "b"], [], bindings, 140, "en")
+    assert len(check_presentation(html).select(".comparison-winner")) == 4

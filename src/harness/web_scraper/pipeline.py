@@ -486,7 +486,7 @@ def provider_call(method, html, source_url, fixture_url=None, *, timeout=120, ho
 
 def normalize(method: str, payload: dict):
     """Map exposed fields only. Never infer answers from labels or source URLs."""
-    if payload.get("success") is False:
+    if not isinstance(payload, dict) or payload.get("success") is False:
         return None
     if method == "extruct":
         item = payload.get("result")

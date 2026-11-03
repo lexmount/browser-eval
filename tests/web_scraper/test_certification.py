@@ -87,3 +87,10 @@ def test_transport_failure_retains_elapsed_time(tmp_path):
     _, rows = load_run(run)
     assert len(rows) == 3
     assert all(r["state"] == "call_error" and r["elapsed_seconds"] == 5 for r in rows)
+
+
+@pytest.mark.parametrize("payload", [None, [], "invalid", 42])
+def test_unexpected_native_envelope_retains_no_fabricated_fields(payload):
+    from harness.web_scraper.pipeline import normalize
+
+    assert normalize("scrapfly-product", payload) is None

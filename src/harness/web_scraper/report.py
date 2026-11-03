@@ -305,8 +305,9 @@ def cohort_source(source, selection, home, truth):
     )
 
 
-def cohort_metrics(methods, rows, bindings, count, lang):
+def cohort_metrics(methods, rows, bindings, count, lang, labels=None):
     """One full-population summary, with incomplete quality left unavailable."""
+    labels = labels or {}
     scores = {m: b["scores"][m] for b in bindings if b.get("certified") for m in b["scores"]}
     fields = ("price", "sku", "availability", "OutOfStock")
     blocked = {b["contract"]["methods"][0] for b in bindings if b.get("access_blocked")}
@@ -315,7 +316,7 @@ def cohort_metrics(methods, rows, bindings, count, lang):
         subset = [r for r in rows if r["method"] == method]
         complete = method in scores
         cells = [
-            esc(method),
+            esc(labels.get(method, method)),
             str(count),
             str(len(subset)),
             str(sum(r.get("compatibility") == "structured_output" for r in subset)),
@@ -368,8 +369,9 @@ def cohort_metrics(methods, rows, bindings, count, lang):
         for field, cell in zip(fields, row.select("td")[5:], strict=True):
             if method not in scores:
                 continue
-            value = scores[method][field]["f1"]
-            values = [score[field]["f1"] for score in scores.values()]
+            # F1 comes from integer counts; discard only floating arithmetic noise.
+            value = round(scores[method][field]["f1"], 12)
+            values = [round(score[field]["f1"], 12) for score in scores.values()]
             cell.attrs.update(
                 {"data-metric": field, "data-metric-direction": "max", "data-sort": str(value)}
             )
@@ -402,19 +404,112 @@ def cohort_metrics(methods, rows, bindings, count, lang):
             )
             latency.append(
                 [
-                    esc(method),
+                    esc(labels.get(method, method)),
                     label,
                     str(len(values)),
+                    str(len(selected) - len(values)),
+                    f"{sum(r.get('retry_execution_seconds', 0) for r in selected):.2f}",
                     f"{statistics.mean(values):.2f}" if values else "—",
                     f"{statistics.median(values):.2f}" if values else "—",
                     f"{values[max(0, math.ceil(len(values) * 0.95) - 1)]:.2f}" if values else "—",
                 ]
             )
-    return str(result) + "<p>" + note + "</p>", table(
-        ["Method", "Population", "N", "Mean (s)", "P50 (s)", "P95 (s)"]
+    timing = BeautifulSoup(
+        table(
+            [
+                "Method",
+                "Population",
+                "Timed N",
+                "Untimed N",
+                "Extra retry time (s)",
+                "Mean (s)",
+                "P50 (s)",
+                "P95 (s)",
+            ]
+            if lang == "en"
+            else [
+                "方法",
+                "统计范围",
+                "有计时",
+                "无计时",
+                "重试额外耗时（秒）",
+                "平均（秒）",
+                "P50（秒）",
+                "P95（秒）",
+            ],
+            latency,
+            attrs='data-latency-table="true"',
+        ),
+        "html.parser",
+    )
+    groups = {}
+    for ordinal, row in enumerate(timing.select("tbody tr")):
+        population = "structured" if ordinal % 2 else "all"
+        for metric, cell in zip(("mean", "p50", "p95"), row.select("td")[5:], strict=True):
+            method = methods[ordinal // 2]
+            selected = [
+                r["elapsed_seconds"]
+                for r in rows
+                if r["method"] == method
+                and r.get("elapsed_seconds") is not None
+                and (population == "all" or r.get("compatibility") == "structured_output")
+            ]
+            if not selected:
+                continue
+            value = (
+                statistics.mean(selected)
+                if metric == "mean"
+                else statistics.median(selected)
+                if metric == "p50"
+                else sorted(selected)[max(0, math.ceil(len(selected) * 0.95) - 1)]
+            )
+            name = population + "-" + metric
+            cell.attrs.update(
+                {"data-metric": name, "data-metric-direction": "min", "data-sort": str(value)}
+            )
+            groups.setdefault(name, []).append((value, cell))
+    for values in groups.values():
+        lowest = min(v for v, _ in values)
+        if sum(v == lowest for v, _ in values) == 1:
+            cell = next(cell for value, cell in values if value == lowest)
+            value = cell.get_text()
+            cell.clear()
+            span = timing.new_tag("span", attrs={"class": "comparison-winner"})
+            span.string = value
+            cell.append(span)
+    return str(result) + "<p>" + note + "</p>", str(timing)
+
+
+def usage_table(methods, rows, lang, labels=None):
+    labels = labels or {}
+    records = []
+    for method in methods:
+        subset = [r for r in rows if r["method"] == method]
+        physical = [a for r in subset for a in r.get("physical_attempts", [r])]
+        observed = []
+        for r in physical:
+            headers = r.get("provider_usage", {})
+            response = r.get("response")
+            response = response if isinstance(response, dict) else {}
+            data = response.get("data")
+            metadata = data.get("metadata", {}) if isinstance(data, dict) else {}
+            value = headers.get("X-Scrapfly-Api-Cost", metadata.get("creditsUsed"))
+            if value is not None:
+                observed.append(float(value))
+        records.append(
+            [
+                esc(labels.get(method, method)),
+                str(len(physical)),
+                str(len(observed)),
+                f"{sum(observed):g} credits" if observed else "—",
+            ]
+        )
+    return table(
+        ["Method", "Physical attempts", "Usage receipts", "Reported usage"]
         if lang == "en"
-        else ["方法", "统计范围", "调用数", "平均（秒）", "P50（秒）", "P95（秒）"],
-        latency,
+        else ["方法", "物理调用数", "有用量回执", "服务报告用量"],
+        records,
+        attrs='data-usage-table="true"',
     )
 
 
@@ -423,6 +518,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
         raise ValueError("Unsupported language")
     languages = ("zh",) if language == "zh" else ("en", "zh")
     model = read_json(content)
+    names = model.get("method_labels", {})
     if language == "en" and any(
         page.get("body", {}).get("zh") and not page.get("body", {}).get("en")
         for page in model["pages"].values()
@@ -574,10 +670,22 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             + bodies["index"]
         )
         if cohort:
-            core, timings = cohort_metrics(methods, rows, bindings, len(truth), lang)
+            core, timings = cohort_metrics(methods, rows, bindings, len(truth), lang, names)
             bodies["index"] = core + model["pages"].get("index", {}).get("body", {}).get(lang, "")
             bodies["protocol"] += (
                 "<h2>" + ("调用耗时" if lang == "zh" else "Call latency") + "</h2>" + timings
+            )
+        if cohort:
+            bodies["protocol"] += (
+                "<h2>"
+                + ("接口用量" if lang == "zh" else "Reported usage")
+                + "</h2>"
+                + usage_table(methods, rows, lang, names)
+            )
+            bodies["protocol"] += (
+                "<p>用量来自响应中的 creditsUsed 或原生计费响应头，包含保留的重试。不同服务的 credit 单价不同，不能直接横向比较。空白表示接口没有提供逐次用量；这不表示免费。账号余额与额度条件见账号页。</p>"
+                if lang == "zh"
+                else "<p>Usage comes from native response metadata or billing headers, including retained retries. Credit prices differ between services. An unavailable receipt does not mean zero cost; see Accounts for balances and access requirements.</p>"
             )
         hr = []
         fields = ("price", "sku", "availability")
@@ -593,12 +701,12 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
                     text = '<span class="comparison-winner">' + text + "</span>"
                 cells.append(f'<span data-history="{field}">{text}</span>')
             hr.append(cells)
-        names = [*lab[23:26], "缺货 F1" if lang == "zh" else "Out-of-stock F1"]
+        historical_names = [*lab[23:26], "缺货 F1" if lang == "zh" else "Out-of-stock F1"]
         headers = [
             lab[15],
             *[
                 f"{name}<br><small>{sum(bool(gt.get(field)) for gt in truth.values())}/{len(truth)} annotated</small>"
-                for name, field in zip(names, historical_fields, strict=True)
+                for name, field in zip(historical_names, historical_fields, strict=True)
             ],
         ]
         if lang == "zh":
@@ -644,8 +752,15 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             url = "result-" + key + ".html"
             error = r.get("error") or ""
             payload = r.get("response") or {}
+            if not isinstance(payload, dict):
+                payload = {"message": json.dumps(payload, ensure_ascii=False)}
             if not error and not ok:
-                value = payload.get("error") or payload.get("message") or payload.get("errors")
+                value = (
+                    payload.get("error")
+                    or payload.get("message")
+                    or payload.get("errors")
+                    or payload.get("non_json_response")
+                )
                 if isinstance(value, dict):
                     error = str(value.get("message") or value.get("type") or value)
                 elif value:
@@ -668,9 +783,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
                 error = ""
             evidence = "../evidence/" + (r["method"] if cohort else key) + ".json"
             evidence_key = f' data-key="{cid}"' if cohort else ""
-            detail = f'<article data-report-detail="{"passed" if ok else "failed"}"><div data-result-summary><h2>{status}</h2><p>{esc(r["method"])} · {esc(r["state"])} · HTTP {r.get("http_status", "—")}</p><p><code>{cid}</code></p><small>{esc(r["run_id"])}</small></div>'
+            detail = f'<article data-report-detail="{"passed" if ok else "failed"}"><div data-result-summary><h2>{status}</h2><p>{esc(names.get(r["method"], r["method"]))} · {esc(r["state"])} · HTTP {r.get("http_status", "—")}</p><p><code>{cid}</code></p><small>{esc(r["run_id"])}</small></div>'
             if not ok:
-                detail += f'<p data-failure-diagnosis>{esc(error)}</p><details id="result-logs" open><summary>{lab[21]}</summary><pre data-kind="error">{esc(error)}</pre></details>'
+                detail += f'<p data-failure-diagnosis>{"未返回可评分字段；程序错误见下方。" if lang == "zh" else "No scoreable fields returned; see the program error below."}</p><details id="result-logs" open><summary>{lab[21]}</summary><pre data-kind="error">{esc(error)}</pre></details>'
             ref = {f: truth[cid].get(f, []) for f in fields}
             detail += (
                 table(
@@ -690,7 +805,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
                 page(
                     lang,
                     "results",
-                    r["method"] + " · " + cid[:10],
+                    names.get(r["method"], r["method"]) + " · " + cid[:10],
                     detail,
                     detail=True,
                     languages=languages,
@@ -699,7 +814,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             )
             elapsed = f"{r['elapsed_seconds']:.2f}" if r.get("elapsed_seconds") is not None else "—"
             inventory.append(
-                f'<tr data-status="{"pass" if ok else "fail"}"><td>{esc(r["method"])}</td><td><a href="{url}"><code>{cid[:12]}</code></a></td><td>{status}</td><td>{r.get("http_status") or "—"}</td><td>{elapsed}</td><td><a href="{url}">{lab[9]}</a></td></tr>'
+                f'<tr data-status="{"pass" if ok else "fail"}"><td>{esc(names.get(r["method"], r["method"]))}</td><td><a href="{url}"><code>{cid[:12]}</code></a></td><td>{status}</td><td>{r.get("http_status") or "—"}</td><td>{elapsed}</td><td><a href="{url}">{lab[9]}</a></td></tr>'
             )
         if cohort:
             observed = {(r["method"], r["case_id"]) for r in rows}
@@ -708,7 +823,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
                     if (method, cid) not in observed:
                         pending = "待执行" if lang == "zh" else "Not executed"
                         inventory.append(
-                            f'<tr data-status="pending"><td>{esc(method)}</td><td><code>{cid[:12]}</code></td><td>{pending}</td><td>—</td><td>—</td><td>—</td></tr>'
+                            f'<tr data-status="pending"><td>{esc(names.get(method, method))}</td><td><code>{cid[:12]}</code></td><td>{pending}</td><td>—</td><td>—</td><td>—</td></tr>'
                         )
         initial = (
             "fail" if any(r.get("compatibility") != "structured_output" for r in rows) else "all"
@@ -761,6 +876,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             "template": VERSION,
             "mode": state,
             "planned_methods": list(cohort_plan["participants"]) if cohort else None,
+            "method_labels": names,
             "renderer_sha256": digest(Path(__file__).read_bytes()),
             "content_sha256": digest(content.read_bytes()),
             "profile_sha256": digest(profile.read_bytes()),
@@ -834,6 +950,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
                 raise ValueError("Broken evidence anchor")
     if manifest.get("mode") == "full-cohort-progress":
         methods = manifest["planned_methods"]
+        names = manifest.get("method_labels", {})
         data = {m: read_json(output / "evidence" / (m + ".json")) for m in methods}
         scores = {
             m: b["scores"][m]
@@ -865,6 +982,21 @@ def check(output: Path, *, release=False, visual_receipt=None):
                     value = scores.get(method, {}).get(field, {}).get("f1")
                     if cell.get_text(strip=True) != ("—" if value is None else f"{value:.3f}"):
                         raise ValueError("Displayed quality differs from certified scores")
+            protocol = BeautifulSoup((output / lang / "protocol.html").read_text(), "html.parser")
+            rows = [r for method in methods for r in data[method].values()]
+            _, expected_time = cohort_metrics(
+                methods, rows, manifest["source_runs"], manifest["case_count"], lang, names
+            )
+            for selector, expected_html in [
+                ("[data-latency-table]", expected_time),
+                ("[data-usage-table]", usage_table(methods, rows, lang, names)),
+            ]:
+                observed_tables = protocol.select(selector)
+                expected_table = BeautifulSoup(expected_html, "html.parser").select_one(selector)
+                if len(observed_tables) != 1 or [
+                    c.get_text(strip=True) for c in observed_tables[0].select("td")
+                ] != [c.get_text(strip=True) for c in expected_table.select("td")]:
+                    raise ValueError("Timing or usage values differ from retained calls")
             inventory = BeautifulSoup((output / lang / "results.html").read_text(), "html.parser")
             if len(inventory.select("tr[data-status]")) != len(methods) * manifest["case_count"]:
                 raise ValueError("Full planned result inventory is incomplete")
