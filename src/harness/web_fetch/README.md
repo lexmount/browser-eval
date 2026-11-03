@@ -1036,7 +1036,7 @@ and execution limits. The manifest declares the parent population and selected
 tasks; the assembler does not infer a population from the available shard files.
 Sample execution is serial, with one logical result per method and task.
 
-`uv run --frozen python -m harness.web_fetch webmainbench-review` is an explicit deterministic audit entry. It
+`uv run --frozen --extra webmainbench-eval python -m harness.web_fetch webmainbench-review` is an explicit deterministic audit entry. It
 checks saved evidence without calling a provider or importing the official
 scorer for its independent text, code and formula checks. Its receipt binds the
 profile and every reviewed record, output, summary, execution record and fixture

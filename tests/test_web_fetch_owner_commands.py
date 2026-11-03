@@ -1,5 +1,6 @@
 """WCXB and WebMainBench stages reach their owners through the one Web Fetch entry point."""
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -14,6 +15,8 @@ from harness.web_fetch.cli import OWNER_COMMANDS, build_parser, main
 
 ROOT = Path(__file__).resolve().parents[1]
 PROG = build_parser().prog
+DOCUMENTED_COMMAND_FILES = ("Makefile", "docs/benchmarks.md", "docs/architecture.md",
+                            "src/harness/web_fetch/README.md", "src/harness/web_fetch/WEBMAINBENCH.md")
 # A distinctive option each owner declares, so the help cannot come from the router.
 OWNER_OPTIONS = {
     "wcxb-select": "--qualified-test",
@@ -131,3 +134,24 @@ def test_template_registry_names_the_public_package_command():
     template = resolve_template("webfetch")
     assert template["wcxb_package"].startswith(
         "uv run --frozen python -m harness.web_fetch wcxb-publish --package-only ")
+
+
+@pytest.mark.parametrize(("command", "extra"), [
+    ("wcxb-visual", "headless-eval"),
+    ("webmainbench-score", "webmainbench-eval"),
+    ("webmainbench-review", "webmainbench-eval"),
+    ("webmainbench-scoring-correction", "webmainbench-eval"),
+    ("webmainbench-case-rescore", "webmainbench-eval"),
+    ("webmainbench-teds-correction", "webmainbench-eval"),
+    ("webmainbench-full-run", "headless-eval"),
+    ("webmainbench-full-run", "webmainbench-eval"),
+    ("webmainbench-full-score", "webmainbench-eval"),
+])
+def test_documented_uv_commands_name_the_extra_their_stage_imports(command, extra):
+    root = repository_root()
+    invocation = re.compile(
+        r"(?:\buv|\$\(UV\)) run\b(?:(?!\brun\b)[^`\n]|\\\n)*?-m harness\.web_fetch " + re.escape(command) + r"(?![\w-])")
+    found = [match.group(0) for path in DOCUMENTED_COMMAND_FILES
+             for match in invocation.finditer((root / path).read_text(encoding="utf-8"))]
+    assert found, f"no uv invocation of {command} is documented"
+    assert all(f"--extra {extra} " in text for text in found), found

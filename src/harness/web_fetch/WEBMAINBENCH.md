@@ -92,11 +92,11 @@ come only from the repository's local `.env`. Provider runs may incur charges.
 
 The supported complete-cohort commands are:
 
-- `uv run --frozen python -m harness.web_fetch webmainbench-full-run`: freeze and recheck source,
+- `uv run --frozen --extra headless-eval --extra webmainbench-eval python -m harness.web_fetch webmainbench-full-run`: freeze and recheck source,
   scorer, binary and complete physical-call evidence around provider calls.
-- `uv run --frozen python -m harness.web_fetch webmainbench-full-score`: score every declared method
+- `uv run --frozen --extra headless-eval --extra webmainbench-eval python -m harness.web_fetch webmainbench-full-score`: score every declared method
   and bind the score files to the cohort certificate.
-- `uv run --frozen python -m harness.web_fetch webmainbench-full-assemble`: verify and package the complete
+- `uv run --frozen --extra headless-eval --extra webmainbench-eval python -m harness.web_fetch webmainbench-full-assemble`: verify and package the complete
   baseline and all registry-declared variant cohorts.
 - `scripts/build_report.py --webmainbench-full`: build from persisted evidence
   after the current profile's correction, content and review bindings pass.
@@ -174,10 +174,10 @@ superseded evidence. Independent result review starts only on explicit request.
 The published report's profile and target bind the exact accepted comparison;
 assembling evidence alone does not authorize a release or change its scores.
 
-`uv run --frozen python -m harness.web_fetch webmainbench-scoring-correction` applies a schema-v3 decision-authority
+`uv run --frozen --extra webmainbench-eval python -m harness.web_fetch webmainbench-scoring-correction` applies a schema-v3 decision-authority
 manifest to the complete 545-page population. It requires `--source`,
 `--corrected-dataset`, `--manifest`, `--scorer-repo`, `--scorer-commit` and a new
-`--output` directory. `uv run --frozen python -m harness.web_fetch webmainbench-case-rescore` uses the
+`--output` directory. `uv run --frozen --extra webmainbench-eval python -m harness.web_fetch webmainbench-case-rescore` uses the
 same arguments except `--manifest` to rescore an already certified case correction;
 its HTML, reference and physical calls must retain their certified identities.
 Both commands run offline through `src/harness/web_fetch/webmainbench_correction.py`,
@@ -186,7 +186,7 @@ revision succeeds. The scorer checkout must match the declared commit and have n
 tracked changes. Historical schema-v1 reference receipts remain readable; new
 reference corrections use the schema-v3 command.
 
-The retained sample's TEDS-only revision uses `uv run --frozen python -m harness.web_fetch webmainbench-teds-correction`.
+The retained sample's TEDS-only revision uses `uv run --frozen --extra webmainbench-eval python -m harness.web_fetch webmainbench-teds-correction`.
 Its scorer commit defaults to the frozen official baseline; `--scorer-commit` can
 declare another checkout explicitly. The checkout must match that commit and the
 source evidence's metric-source hashes. Revisions retain the first official score
