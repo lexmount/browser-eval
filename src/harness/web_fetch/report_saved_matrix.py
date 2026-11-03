@@ -425,6 +425,10 @@ def _load_saved_matrix(spec_path):
             or len(set(exclusions)) != len(exclusions) or not set(exclusions) <= family_ids
             or exclusions and set(exclusions) == family_ids):
         raise ValueError('Invalid excluded report families')
+    omitted = spec.get('excluded_report_providers', [])
+    if (not isinstance(omitted, list) or any(not isinstance(x, str) for x in omitted)
+            or len(set(omitted)) != len(omitted) or not set(omitted) < set(providers)):
+        raise ValueError('Invalid excluded report providers')
     expected = {(s, p, cid) for s in suites for p in providers for cid in cases[s]}
     selected, historical = {}, {}
     source_groups = [(False, x) for x in spec['sources']] + [(True, x) for x in spec.get('superseded_sources', [])]
@@ -709,15 +713,8 @@ def _load_saved_matrix(spec_path):
                 revision=_saved_revision(spec, sources, cases, selected, completed))
 
 
-def _parameter_execution(root, record, case, contract, sources, baseline=None):
-    """Check actual native requests against the authorized configuration, not just themselves."""
-    from harness.web_fetch.native_routes import (
-        native_route_cell, _request_parameters, verify_native_route_contract,
-    )
-    from harness.web_fetch.providers.base import build_provider
+def _native_execution_manifest(root, record, sources):
     metadata = record.get('provider_metadata', {})
-    if not metadata.get('native_route_receipt', {}).get('contract_sha256'):
-        raise ValueError('Parameter rerun lacks its execution contract')
     if (root / 'manifest.json').is_file():
         manifest = _json(sources.bind(root / 'manifest.json'))
     else:
@@ -728,6 +725,19 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None):
         if len(matches) != 1:
             raise ValueError('Native execution manifest is missing or ambiguous')
         manifest = matches[0]
+    return manifest
+
+
+def _parameter_execution(root, record, case, contract, sources, baseline=None):
+    """Check actual native requests against the authorized configuration, not just themselves."""
+    from harness.web_fetch.native_routes import (
+        native_route_cell, _request_parameters, verify_native_route_contract,
+    )
+    from harness.web_fetch.providers.base import build_provider
+    metadata = record.get('provider_metadata', {})
+    if not metadata.get('native_route_receipt', {}).get('contract_sha256'):
+        raise ValueError('Parameter rerun lacks its execution contract')
+    manifest = _native_execution_manifest(root, record, sources)
     expected_hash = contract.get('provider_config_sha256')
     if not expected_hash or manifest.get('provider_config_sha256') != expected_hash:
         raise ValueError('Parameter rerun configuration differs from authorization')
@@ -783,6 +793,48 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None):
     expected_parameters = resolve_unchanged(expected_parameters, baseline_parameters)
     if actual_parameters != expected_parameters:
         raise ValueError('Parameter rerun request differs from authorization')
+    return {'provider_type': actual['provider_type'], 'transport': actual['transport'],
+            'endpoint_sha256': actual.get('endpoint_sha256'), 'request': actual_parameters,
+            'dns_mode': config.get('dns_mode', 'system'),
+            'timeout_seconds': contract['timeout_seconds'],
+            'max_failure_retries': contract.get('max_failure_retries')}
+
+
+def _uniform_execution_settings(calls, exceptions=()):
+    """Compare observed options, allowing only exact, independently bound exceptions."""
+    def signature(value):
+        def normalize(item):
+            if isinstance(item, dict):
+                return {key: normalize(child) for key, child in item.items()}
+            if isinstance(item, list):
+                return [normalize(child) for child in item]
+            if isinstance(item, float) and item.is_integer():
+                return int(item)
+            return item
+        return json.dumps(normalize(value), sort_keys=True, allow_nan=False)
+    approved = {}
+    for entry in exceptions:
+        key = entry['suite'], entry['provider'], entry['case_id']
+        if key not in calls or key in approved or not str(entry.get('reason', '')).strip():
+            raise ValueError('Configuration exception is unscoped, duplicated, or unexplained')
+        if not isinstance(entry.get('expected'), dict) or not isinstance(entry.get('equivalent_to'), dict):
+            raise ValueError('Configuration exception requires exact observed and equivalent settings')
+        approved[key] = signature(entry['expected']), signature(entry['equivalent_to'])
+    observed = set()
+    for key, attempts in calls.items():
+        if not attempts:
+            raise ValueError('Whole-group selection lacks execution settings')
+        for settings in attempts:
+            if not isinstance(settings, dict) or not settings:
+                raise ValueError('Whole-group selection lacks execution settings')
+            value = signature(settings)
+            if key in approved:
+                expected, equivalent = approved[key]
+                if value != expected:
+                    raise ValueError('Configuration exception differs from observed settings')
+                value = equivalent
+            observed.add(value)
+    return len(observed) == 1
 
 
 def _parameter_scoring(before, record):
@@ -849,6 +901,10 @@ def _validate_call_sequence(record, case, contract, continuation=None):
         raise ValueError('Parameter rerun exceeds retry allowance')
 
 
+_PARAMETER_SELECTIONS = {'replace_track_if_pass_count_improves',
+                         'replace_family_if_pass_count_improves'}
+
+
 def _parameter_reruns(inputs):
     """Validate complete declared reruns before applying an explicit retention policy."""
     config = inputs['spec'].get('parameter_reruns')
@@ -856,11 +912,14 @@ def _parameter_reruns(inputs):
         return {}
     sources = inputs['sources']
     contract = _json(sources.binding(config['contract']))
+    if (contract.get('selection') is not None and contract['selection'] != config.get('selection')
+            and not config.get('selection_amendment')):
+        raise ValueError('Changing a frozen parameter selection requires an amendment')
     if config.get('selection_amendment'):
         amendment = _json(sources.binding(config['selection_amendment']))
         if amendment.get('selection') != config.get('selection'):
             raise ValueError('Parameter selection amendment differs from report policy')
-    if config.get('selection') != 'replace_track_if_pass_count_improves':
+    if config.get('selection') not in _PARAMETER_SELECTIONS:
         raise ValueError('Unsupported parameter rerun selection policy')
     jobs = contract['jobs']
     if len({job['id'] for job in jobs}) != len(jobs):
@@ -918,10 +977,27 @@ def _parameter_reruns(inputs):
             _, before, _, _ = inputs['selected'][key]
             if revision:
                 before = revision['records'].get(key, before)
-            _parameter_execution(root, record, cases[cid], contract, sources, before)
+            candidate_settings = [_parameter_execution(root, record, cases[cid], contract, sources, before)]
             if continuation and continuation[1] is not None:
                 prior_root, prior_record, _ = continuation[1]
-                _parameter_execution(prior_root, prior_record, cases[cid], contract, sources, before)
+                candidate_settings.append(_parameter_execution(prior_root, prior_record, cases[cid], contract, sources, before))
+            if config['selection'] == 'replace_family_if_pass_count_improves':
+                baseline_settings = []
+                baseline_calls = [inputs['selected'][key][:2]]
+                prior = inputs.get('continuations', {}).get(key)
+                if prior and prior[1] is not None:
+                    baseline_calls.append(prior[1][:2])
+                for old_root, old_record in baseline_calls:
+                    manifest = _native_execution_manifest(old_root, old_record, sources)
+                    policy = {'provider_config_sha256': manifest.get('provider_config_sha256'),
+                              'timeout_seconds': manifest['parameters']['timeout'],
+                              'max_failure_retries': manifest['parameters'].get('max_failure_retries')}
+                    if type(policy['max_failure_retries']) is not int:
+                        raise ValueError('Baseline comparison lacks its retry policy')
+                    baseline_settings.append(_parameter_execution(old_root, old_record, original_case,
+                                                                  policy, sources, old_record))
+                inputs.setdefault('parameter_settings', {})[key] = {
+                    'before': baseline_settings, 'candidate': candidate_settings}
             _parameter_scoring(before, record)
             candidates[key] = root, record, line, path
         if seen != set(source_ids):
@@ -933,16 +1009,29 @@ def _parameter_reruns(inputs):
 
 
 def _parameter_group_decisions(inputs, candidates):
-    """Select whole method/track groups, including regressions in a winning group."""
+    """Use the authorized partition without changing frozen historical track policies."""
     groups, membership = {}, {}
     revision = inputs['revision']
+    spec = inputs.get('spec', {})
+    by_family = spec.get('parameter_reruns', {}).get('selection') == 'replace_family_if_pass_count_improves'
+    if by_family and not spec.get('report_families'):
+        raise ValueError('Family parameter selection requires the report family registry')
+    def group_for(key):
+        suite, provider, cid = key
+        case = inputs['cases'][suite][cid]
+        if revision:
+            case = revision['cases'].get((suite, cid), case)
+        family = _presentation_family(case, suite, spec['report_families']) if by_family else case.get('track', 'web')
+        return provider, family
     for key, (_, candidate, _, _) in candidates.items():
         suite, provider, cid = key
         original_case = inputs['cases'][suite][cid]
         case = revision['cases'].get((suite, cid), original_case) if revision else original_case
-        group = provider, case.get('track', 'web')
+        group = group_for(key)
+        if by_family and group[1] in spec.get('excluded_report_families', []):
+            raise ValueError('Family parameter selection includes an excluded report family')
         membership[key] = group
-        counts = groups.setdefault(group, {'provider': provider, 'track': group[1],
+        counts = groups.setdefault(group, {'provider': provider, 'family' if by_family else 'track': group[1],
                                           'count': 0, 'before_passed': 0, 'candidate_passed': 0})
         before = inputs['selected'][key][1]
         if revision:
@@ -950,13 +1039,23 @@ def _parameter_group_decisions(inputs, candidates):
         counts['count'] += 1
         for label, record in [('before_passed', before), ('candidate_passed', candidate)]:
             counts[label] += bool(task_passed(record['ok'], record['metrics'], case.get('task_kind', 'body')))
-    for counts in groups.values():
-        counts['selected_new'] = counts['candidate_passed'] > counts['before_passed']
     for group in groups:
-        expected = {key for key in inputs['selected'] if key[1] == group[0]
-                    and inputs['cases'][key[0]][key[2]].get('track', 'web') == group[1]}
+        expected = {key for key in inputs['selected'] if group_for(key) == group}
         if expected != {key for key, value in membership.items() if value == group}:
-            raise ValueError('Parameter selection must cover the complete method/track group')
+            raise ValueError('Parameter selection must cover the complete method/' + ('family' if by_family else 'track') + ' group')
+    for group, counts in groups.items():
+        counts['selected_new'] = counts['candidate_passed'] > counts['before_passed']
+        if by_family:
+            keys = [key for key, value in membership.items() if value == group]
+            eligible = {label: _uniform_execution_settings({
+                key: inputs.get('parameter_settings', {}).get(key, {}).get(label, []) for key in keys})
+                for label in ('before', 'candidate')}
+            if not any(eligible.values()):
+                raise ValueError('Neither complete report family has uniform native settings')
+            counts['before_uniform'] = eligible['before']
+            counts['candidate_uniform'] = eligible['candidate']
+            counts['selected_new'] = eligible['candidate'] and (
+                not eligible['before'] or counts['selected_new'])
     return {key: groups[group] for key, group in membership.items()}
 
 
@@ -1001,7 +1100,7 @@ def _validate_completion_retention(inputs, candidates, decisions=None):
             if final is not None and previous == call_identity(final[1]):
                 continue
             authorized_selection = (key in candidates and
-                spec.get('parameter_reruns', {}).get('selection') == 'replace_track_if_pass_count_improves')
+                spec.get('parameter_reruns', {}).get('selection') in _PARAMETER_SELECTIONS)
             alternatives = [inputs['selected'][key][1], candidates[key][1]] if authorized_selection else []
             if previous not in [call_identity(record) for record in alternatives]:
                 raise ValueError('Completion replaced a retained baseline call: ' + '/'.join(key))
@@ -1044,6 +1143,7 @@ def _adopted_groups(inputs, candidates):
             policies.update(dict.fromkeys(scope, _execution_policy(cohort['contract'], sources)))
         if set(policies) != expected:
             raise ValueError('Adoption requires execution authorization for every selected call')
+        settings_by_group = {}
         for key, original in nested['selected'].items():
             suite, provider, cid = key
             case = inputs['cases'][suite][cid]
@@ -1071,11 +1171,13 @@ def _adopted_groups(inputs, candidates):
             # Retry decisions belong to the frozen acquisition score, not to a
             # later offline revision of that saved answer.
             _validate_call_sequence(before_score, execution_case, policy, nested['continuations'].get(key))
-            _parameter_execution(root, before_score, execution_case, policy, sources, before)
+            group = provider, _presentation_family(case, suite, spec['report_families'])
+            settings = settings_by_group.setdefault(group, {}).setdefault(key, [])
+            settings.append(_parameter_execution(root, before_score, execution_case, policy, sources, before))
             continuation = nested['continuations'].get(key)
             if continuation and continuation[1]:
                 prior_root, prior_record, _ = continuation[1]
-                _parameter_execution(prior_root, prior_record, execution_case, policy, sources, before)
+                settings.append(_parameter_execution(prior_root, prior_record, execution_case, policy, sources, before))
             adopted[key] = {'selected': (root, record, raw, results), 'original': original,
                             'authority_path': authority_path, 'index': index,
                             'note': authority['description'],
@@ -1083,6 +1185,15 @@ def _adopted_groups(inputs, candidates):
                             'before_case': nested['cases'][suite][cid],
                             'attachments': nested['revision']['attachments'] if nested['revision'] else {},
                             'revision': nested['revision']['receipt'] if record != before_score else None}
+        exceptions = authority.get('configuration_exceptions', [])
+        exception_keys = {(entry['suite'], entry['provider'], entry['case_id']) for entry in exceptions}
+        if not exception_keys <= expected:
+            raise ValueError('Adoption configuration exception exceeds the selected population')
+        for settings in settings_by_group.values():
+            scoped = [entry for entry in exceptions
+                      if (entry['suite'], entry['provider'], entry['case_id']) in settings]
+            if not _uniform_execution_settings(settings, scoped):
+                raise ValueError('Adoption mixes native settings within a report family')
         for path, digest in nested['sources'].tracked.items():
             sources.bind(path, digest)
     return adopted
@@ -1124,7 +1235,8 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
     sources = inputs['sources']
     bind, binding, tracked = sources.bind, sources.binding, sources.tracked
     spec_path = sources.base / Path(spec_path).name
-    providers, suites, cases = inputs['providers'], inputs['suites'], inputs['cases']
+    providers = [p for p in inputs['providers'] if p not in spec.get('excluded_report_providers', [])]
+    suites, cases = inputs['suites'], inputs['cases']
     selected, historical = inputs['selected'], inputs['historical']
     continuations, missing = inputs['continuations'], inputs['missing']
     replacement_scope, cells = inputs['replacement_scope'], inputs['replacement_cells']
@@ -1146,20 +1258,23 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
     if revision:
         for name, path in revision['attachments'].items():
             copy(path, 'review-assets/'+name+'.json')
-        if spec.get('excluded_report_families'):
+        if spec.get('excluded_report_families') or spec.get('excluded_report_providers'):
             _write(output/'score-revision-history.json', revision['receipt'])
             visible = {(suite, cid) for suite, group in cases.items() for cid, case in group.items()
-                       if _presentation_family(case, suite, spec['report_families'])
+                       if not spec.get('excluded_report_families') or
+                       _presentation_family(case, suite, spec['report_families'])
                        not in spec['excluded_report_families']}
             routes = {suite+'--'+cid for suite, cid in visible}
             attempts = {suite+'--'+record['attempt_id']
-                        for (suite, _, cid), (_, record, _, _) in selected.items()
-                        if (suite, cid) in visible}
+                        for (suite, provider, cid), (_, record, _, _) in selected.items()
+                        if (suite, cid) in visible and provider in providers}
             revision = {**revision, 'receipt': deepcopy(revision['receipt'])}
             receipt = revision['receipt']
             receipt['historical_scope_path'] = 'score-revision-history.json'
             receipt['changed_cases'] = [cid for cid in receipt['changed_cases'] if cid in routes]
-            receipt['rescored_results'] = sum((suite, cid) in visible for suite, _, cid in revision['records'])
+            receipt['rescored_results'] = sum((suite, cid) in visible and
+                provider not in spec.get('excluded_report_providers', [])
+                for suite, provider, cid in revision['records'])
             for step in receipt['steps']:
                 step['task_verdict_changes'] = [change for change in step['task_verdict_changes']
                                                 if change['attempt_id'] in attempts]
@@ -1227,7 +1342,7 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
                         replace = decisions[key]['selected_new']
                         proof = {'selected_new': replace, 'before_passed': old_pass,
                                  'candidate_passed': new_pass,
-                                 'selection': 'replace_track_if_pass_count_improves',
+                                 'selection': spec['parameter_reruns']['selection'],
                                  'group': decisions[key]}
                         for label, evidence in [('before', old), ('candidate', candidate)]:
                             evidence_root, saved, saved_line, saved_path = evidence
@@ -1351,7 +1466,8 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
                     item['retry_continuation'] = note
                     item['retries'] = 1
                 model_rows.append(item)
-    model = {'title': spec['title'], 'providers': [{'id': x['id'], 'label': x['label']} for x in spec['providers']],
+    model = {'title': spec['title'], 'providers': [{'id': x['id'], 'label': x['label']} for x in spec['providers']
+                         if x['id'] not in spec.get('excluded_report_providers', [])],
              'suites': [{'id': x['id'], 'label': x['label']} for x in spec['suites']],
              'rows': model_rows, 'totals': _totals(model_rows),
              'source_bindings': [{'sha256': digest, 'name': path.name} for path, digest in tracked.items()],
@@ -1364,8 +1480,10 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
     if 'report_families' in spec:
         model['report_families'] = [deepcopy(group) for group in spec['report_families']
                                     if group['id'] not in spec.get('excluded_report_families', [])]
-    if spec.get('excluded_report_families'):
-        model['report_scope'] = {'excluded_families': spec['excluded_report_families'],
+    if spec.get('excluded_report_families') or spec.get('excluded_report_providers'):
+        model['report_scope'] = {'excluded_families': spec.get('excluded_report_families', []),
+                                 **({'excluded_providers': spec['excluded_report_providers']}
+                                    if spec.get('excluded_report_providers') else {}),
                                  'source_positions': len(selected) + len(missing),
                                  'reported_positions': len(model_rows)}
     if spec.get('presentation') == 'final':
@@ -1451,15 +1569,18 @@ def _validate_source_disclosures(output, model, inputs, adoptions, keys):
     """Bind report organization, explanations and revision documents to their sources."""
     spec, revision = inputs['spec'], inputs['revision']
     expected = {'title': spec['title'],
-        'providers': [{'id': p['id'], 'label': p['label']} for p in spec['providers']],
+        'providers': [{'id': p['id'], 'label': p['label']} for p in spec['providers']
+                      if p['id'] not in spec.get('excluded_report_providers', [])],
         'suites': [{'id': p['id'], 'label': p['label']} for p in spec['suites']],
         'limitations': spec.get('limitations', []), 'combined_ranking': spec.get('combined_ranking', True),
         'report_families': ([g for g in spec['report_families']
                             if g['id'] not in spec.get('excluded_report_families', [])]
                            if 'report_families' in spec else None),
-        'report_scope': ({'excluded_families': spec['excluded_report_families'],
+        'report_scope': ({'excluded_families': spec.get('excluded_report_families', []),
+                          **({'excluded_providers': spec['excluded_report_providers']}
+                             if spec.get('excluded_report_providers') else {}),
                           'source_positions': len(inputs['selected'])+len(inputs['missing']),
-                          'reported_positions': len(keys)} if spec.get('excluded_report_families') else None)}
+                          'reported_positions': len(keys)} if spec.get('excluded_report_families') or spec.get('excluded_report_providers') else None)}
     if any(model.get(name) != value for name, value in expected.items()):
         raise ValueError('Saved report configuration differs from validated source')
     notes = {}
@@ -1483,16 +1604,18 @@ def _validate_source_disclosures(output, model, inputs, adoptions, keys):
         receipt = deepcopy(revision['receipt'])
         for name, source in revision['attachments'].items():
             check_attachment('review-assets/'+name+'.json', source)
-        if spec.get('excluded_report_families'):
+        if spec.get('excluded_report_families') or spec.get('excluded_report_providers'):
             check_json('score-revision-history.json', receipt)
             visible = {(suite, cid) for suite, _, cid in keys}
             routes = {suite+'--'+cid for suite, cid in visible}
             attempts = {suite+'--'+record['attempt_id']
-                        for (suite, _, cid), (_, record, _, _) in inputs['selected'].items()
-                        if (suite, cid) in visible}
+                        for (suite, provider, cid), (_, record, _, _) in inputs['selected'].items()
+                        if (suite, provider, cid) in keys}
             receipt['historical_scope_path'] = 'score-revision-history.json'
             receipt['changed_cases'] = [cid for cid in receipt['changed_cases'] if cid in routes]
-            receipt['rescored_results'] = sum((suite, cid) in visible for suite, _, cid in revision['records'])
+            receipt['rescored_results'] = sum((suite, cid) in visible and
+                provider not in spec.get('excluded_report_providers', [])
+                for suite, provider, cid in revision['records'])
             for step in receipt['steps']:
                 step['task_verdict_changes'] = [change for change in step['task_verdict_changes']
                                                 if change['attempt_id'] in attempts]
@@ -1615,7 +1738,7 @@ def _validate_selection_proofs(output, row, inputs, candidates, decisions, adopt
             'selected_new': decisions[key]['selected_new'],
             'before_passed': task_passed(base['ok'], base['metrics'], case.get('task_kind', 'body')),
             'candidate_passed': task_passed(candidate['ok'], candidate['metrics'], case.get('task_kind', 'body')),
-            'selection': 'replace_track_if_pass_count_improves', 'group': decisions[key]}
+            'selection': inputs['spec']['parameter_reruns']['selection'], 'group': decisions[key]}
         for label, record, result_path in [('before', base, inputs['selected'][key][3]),
                                             ('candidate', candidate, candidates[key][3])]:
             relative = prefix+'/parameter-rerun/'+label
@@ -1806,7 +1929,8 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
         excluded = set(spec.get('excluded_report_families', []))
         expected_keys = {(suite, provider, cid) for suite, cases in inputs['cases'].items()
                          for cid, case in cases.items() for provider in inputs['providers']
-                         if not excluded or _presentation_family(case, suite, spec['report_families']) not in excluded}
+                         if provider not in spec.get('excluded_report_providers', [])
+                         and (not excluded or _presentation_family(case, suite, spec['report_families']) not in excluded)}
         if set(keys) != expected_keys:
             raise ValueError('Saved-matrix population differs from validated source')
         if model.get('presentation', 'audit') != spec.get('presentation', 'audit'):

@@ -464,7 +464,7 @@ def test_explicit_user_skip_is_unscored_and_provider_scoped(tmp_path):
 @pytest.mark.parametrize('execution_defect', [None, 'missing_policy', 'missing_native'])
 def test_superseded_evidence_preserved_without_double_counting(tmp_path, monkeypatch, execution_defect):
     if execution_defect != 'missing_native':
-        monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
+        monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: {'request': 'fixture'})
     spec, root, record, raw = fixture(tmp_path)
     old = deepcopy(record)
     old.update(attempt_id='old-001', ok=False, error_type='unsupported_task')
@@ -626,7 +626,7 @@ def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_
     assert check_saved_matrix(entry.parent)['valid']
     assert_provenance_mutation_rejected(entry.parent, continuation['prior_record_path'], tmp_path/'spec.json')
     assert_redirected_answer_rejected(entry.parent, ['retry_continuation', 'prior_answer_path'], tmp_path/'spec.json')
-    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: {'request': 'fixture'})
     for late_scope in (False, True):
         replacement = deepcopy(spec)
         replacement['superseded_sources'] = [prior_source]
@@ -792,9 +792,12 @@ def test_colliding_suite_case_routes_rejected_before_output(tmp_path):
 
 @pytest.mark.parametrize('before,after,selected', [(False, True, True), (True, True, False),
                                                    (False, False, False), (True, False, False)])
-def test_single_case_parameter_group_preserves_both_calls_and_selects_improvement(tmp_path, before, after, selected, monkeypatch):
+@pytest.mark.parametrize('partition', ['track', 'family'])
+def test_single_case_parameter_group_preserves_both_calls_and_selects_improvement(tmp_path, before, after, selected, monkeypatch, partition):
     # Exercise group selection independently of native transport authorization.
-    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: {'request': 'fixture'})
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._native_execution_manifest',
+                        lambda *args: {'parameters': {'timeout': 30, 'max_failure_retries': 0}})
     spec, root, record, _ = fixture(tmp_path)
     record['metrics']['content_pass'] = before
     (root/'results.jsonl').write_text(json.dumps(record)+'\n')
@@ -813,9 +816,13 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
                     'dataset':write(candidate/'dataset.json', json.loads((root/'dataset.json').read_text())),
                     'results':{'path':str(candidate/'results.jsonl'),
                                'sha256':hashlib.sha256((candidate/'results.jsonl').read_bytes()).hexdigest()}}]}
+    if partition == 'family':
+        spec['report_families'] = [{'id': 'web', 'label': 'Static'}]
+        spec['parameter_reruns']['selection'] = 'replace_family_if_pass_count_improves'
     report = build(tmp_path, spec).parent
     model = json.loads((report/'matrix.json').read_text())
     row = model['rows'][0]
+    assert row['parameter_rerun']['selection'] == spec['parameter_reruns']['selection']
     assert_proof_mutations_rejected(report, tmp_path/'spec.json', 'parameter_rerun',
                                     ['remove', 'selected_new', 'group', 'before_passed', 'candidate_passed'])
     assert_saved_receipt_mutation_rejected(report, tmp_path/'spec.json')
@@ -846,7 +853,7 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
 
 
 def test_parameter_rerun_parts_must_cover_the_whole_original_job(tmp_path, monkeypatch):
-    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: {'request': 'fixture'})
     from harness.web_fetch.report_saved_matrix import _parameter_reruns
     spec, root, record, _ = fixture(tmp_path)
     case = json.loads((root/'dataset.json').read_text())['cases'][0]
@@ -926,9 +933,54 @@ def test_presentation_exclusions_preserve_frozen_parameter_population(before, af
     assert decisions[keys[0]]['selected_new'] is expected
 
 
+def test_family_selection_keeps_independent_categories_on_the_same_track():
+    from harness.web_fetch.report_saved_matrix import _parameter_group_decisions
+    keys = [('first', 'method', 'a'), ('second', 'method', 'b')]
+    def saved(passed):
+        return (None, {'ok': True, 'metrics': {'content_pass': passed, 'request_ok': True}}, None, None)
+    inputs = {'revision': None, 'cases': {'first': {'a': {'track': 'web'}},
+                                         'second': {'b': {'track': 'web'}}},
+              'spec': {'report_families': [
+                  {'id': 'articles', 'task_family': 'web', 'source_suites': ['first']},
+                  {'id': 'static', 'task_family': 'web', 'source_suites': ['second']}],
+                  'parameter_reruns': {'selection': 'replace_family_if_pass_count_improves'}},
+              'selected': {keys[0]: saved(True), keys[1]: saved(False)}}
+    inputs['parameter_settings'] = {key: {label: [{'request': 'uniform'}]
+        for label in ('before', 'candidate')} for key in keys}
+    candidates = {keys[0]: saved(False), keys[1]: saved(True)}
+    decisions = _parameter_group_decisions(inputs, candidates)
+    assert decisions[keys[0]]['selected_new'] is False
+    assert decisions[keys[1]]['selected_new'] is True
+    assert decisions[keys[0]]['family'] == 'articles'
+    assert set(_parameter_group_decisions(inputs, {keys[1]: candidates[keys[1]]})) == {keys[1]}
+    inputs['spec']['excluded_report_families'] = ['static']
+    with pytest.raises(ValueError, match='excluded report family'):
+        _parameter_group_decisions(inputs, candidates)
+
+
+def test_family_selection_requires_all_tracks_of_the_displayed_family():
+    from harness.web_fetch.report_saved_matrix import _parameter_group_decisions
+    keys = [('first', 'method', 'image'), ('first', 'method', 'video')]
+    record = {'ok': True, 'metrics': {'content_pass': True, 'request_ok': True}}
+    saved = (None, record, None, None)
+    inputs = {'revision': None, 'cases': {'first': {name: {'track': name, 'task_kind': 'resource'}
+                                                   for name in ('image', 'video')}},
+              'spec': {'report_families': [{'id': 'web_media'}],
+                       'parameter_reruns': {'selection': 'replace_family_if_pass_count_improves'}},
+              'selected': dict.fromkeys(keys, saved)}
+    inputs['parameter_settings'] = {key: {label: [{'request': 'uniform'}]
+        for label in ('before', 'candidate')} for key in keys}
+    with pytest.raises(ValueError, match='complete method/family group'):
+        _parameter_group_decisions(inputs, {keys[0]: saved})
+    assert all(item['count'] == 2 for item in _parameter_group_decisions(inputs, inputs['selected']).values())
+    inputs['spec'].pop('report_families')
+    with pytest.raises(ValueError, match='requires the report family registry'):
+        _parameter_group_decisions(inputs, inputs['selected'])
+
+
 @pytest.mark.parametrize('final_pass', [False, True])
 def test_parameter_candidate_view_retains_a_separately_completed_retry(tmp_path, final_pass, monkeypatch):
-    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: {'request': 'fixture'})
     spec, root, record, _ = fixture(tmp_path/'baseline')
     record['metrics']['content_pass'] = False
     (root/'results.jsonl').write_text(json.dumps(record)+'\n')
@@ -1050,7 +1102,7 @@ def test_source_bound_retry_launch_keeps_its_original_contract(tmp_path, defect)
 
 @pytest.mark.parametrize('defect', [None, 'scope', 'method', 'task', 'missing_execution', 'overlap', 'uncovered'])
 def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, defect, monkeypatch):
-    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: {'request': 'fixture'})
     spec, source, before, before_raw = fixture(tmp_path)
     spec['suites'].append({**deepcopy(spec['suites'][0]), 'id': 'second', 'label': 'Unchanged'})
     spec['sources'].append({**deepcopy(spec['sources'][0]), 'suite': 'second'})
@@ -1096,6 +1148,62 @@ def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, de
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
 
 
+@pytest.mark.parametrize('mode', ['same', 'output', 'wait', 'numeric', 'exception', 'wrong_exception'])
+def test_adoption_checks_observed_settings_across_cohorts(tmp_path, monkeypatch, mode):
+    spec, _, _, _ = fixture(tmp_path/'baseline')
+    nested, source, record, _ = fixture(tmp_path/'candidate')
+    for item in (spec, nested):
+        root = Path(item['sources'][0]['root'])
+        dataset = json.loads((root/'dataset.json').read_text())
+        dataset['cases'].append({**dataset['cases'][0], 'id': 'second'})
+        item['suites'][0]['dataset'] = write(root/'dataset.json', dataset)
+        saved = json.loads((root/'results.jsonl').read_text())
+        rows = [saved, {**saved, 'case_id': 'second', 'attempt_id': 'second-run'}]
+        (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        item['sources'][0]['results']['sha256'] = hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()
+        item['sources'][0]['case_ids'] = ['same', 'second']
+    spec['report_families'] = [{'id': 'web', 'label': 'Static'}]
+    base = {'request': {'output': 'html', 'wait': 'done'}, 'timeout_seconds': 30}
+    different = deepcopy(base)
+    if mode in {'output', 'exception', 'wrong_exception'}:
+        different['request']['output'] = 'markdown'
+    if mode == 'wait':
+        different['request']['wait'] = 'domstable'
+    if mode == 'numeric':
+        different['timeout_seconds'] = 30.0
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution',
+                        lambda root, record, *args: different if record['case_id'] == 'second' else base)
+    authority = {'kind': 'user_selected_complete_report_groups', 'description': 'Complete category.',
+                 'groups': [{'provider': 'method', 'family': 'web'}]}
+    if mode in {'exception', 'wrong_exception'}:
+        authority['configuration_exceptions'] = [{'suite': 'first', 'provider': 'method', 'case_id': 'second',
+            'reason': 'Explicit synthetic exception.', 'expected': different if mode == 'exception' else base,
+            'equivalent_to': base}]
+    contract = write(tmp_path/'contract.json', {'created_at': '2026-10-01T00:00:00Z',
+        'provider_config_sha256': 'a'*64, 'timeout_seconds': 30, 'max_failure_retries': 0})
+    spec['adoptions'] = [{'authority': write(tmp_path/'authority.json', authority),
+        'saved_matrix_spec': write(tmp_path/'candidate/spec.json', nested),
+        'execution_contracts': [{'suite': 'first', 'provider': 'method', 'case_ids': [cid], 'contract': contract}
+                                for cid in ('same', 'second')]}]
+    if mode in {'output', 'wait', 'wrong_exception'}:
+        with pytest.raises(ValueError, match='mixes native settings|exception differs'):
+            build(tmp_path, spec)
+    else:
+        output = build(tmp_path, spec).parent
+        assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+
+
+def test_uniform_settings_include_retries_and_reject_unscoped_exceptions():
+    from harness.web_fetch.report_saved_matrix import _uniform_execution_settings
+    key = ('suite', 'method', 'case')
+    first, second = {'request': {'wait': 'done'}}, {'request': {'wait': 'domstable'}}
+    assert not _uniform_execution_settings({key: [first, second]})
+    assert not _uniform_execution_settings({key: [{'option': True}, {'option': 1}]})
+    with pytest.raises(ValueError, match='lacks execution settings'):
+        _uniform_execution_settings({key: [None]})
+    with pytest.raises(ValueError, match='unscoped'):
+        _uniform_execution_settings({key: [first]}, [{'suite': 'other', 'provider': 'method',
+            'case_id': 'case', 'reason': 'Outside scope.', 'expected': first, 'equivalent_to': first}])
 @pytest.mark.parametrize('reverse', [False, True])
 @pytest.mark.parametrize('early_kind', ['blocked', 'skip'])
 @pytest.mark.parametrize('later_kind', ['uncommitted', 'started', 'event', 'inherited_event', 'diagnostic', 'scoped_diagnostic', 'nested_native', 'nested_event', 'conflicting_diagnostic'])
@@ -1426,3 +1534,43 @@ def test_final_saved_report_rejects_uncalled_positions(tmp_path):
                         'receipt': write(tmp_path / 'skip.json', receipt)}]
     with pytest.raises(ValueError, match='complete judged call evidence'):
         build(tmp_path, spec)
+
+
+@pytest.mark.parametrize('baseline_uniform,candidate_uniform,selected', [
+    (False, True, True), (True, False, False), (True, True, False), (False, False, None)])
+def test_family_selection_requires_uniformity_before_higher_score(baseline_uniform, candidate_uniform, selected):
+    from harness.web_fetch.report_saved_matrix import _parameter_group_decisions
+    keys = [('first', 'method', name) for name in ('a', 'b')]
+    def saved(passed):
+        return (None, {'ok': True, 'metrics': {'content_pass': passed, 'request_ok': True}}, None, None)
+    inputs = {'revision': None, 'cases': {'first': {name: {'track': 'web'} for name in ('a', 'b')}},
+              'spec': {'report_families': [{'id': 'web'}],
+                       'parameter_reruns': {'selection': 'replace_family_if_pass_count_improves'}},
+              'selected': {key: saved(True) for key in keys},
+              'parameter_settings': {key: {
+                  'before': [{'output': 'html' if baseline_uniform or i == 0 else 'markdown'}],
+                  'candidate': [{'output': 'html' if candidate_uniform or i == 0 else 'markdown'}]}
+                  for i, key in enumerate(keys)}}
+    candidates = {key: saved(False) for key in keys}
+    if selected is None:
+        with pytest.raises(ValueError, match='Neither complete report family'):
+            _parameter_group_decisions(inputs, candidates)
+    else:
+        assert all(row['selected_new'] is selected
+                   for row in _parameter_group_decisions(inputs, candidates).values())
+
+
+@pytest.mark.parametrize('amendment', [None, 'replace_family_if_pass_count_improves', 'wrong'])
+def test_frozen_parameter_partition_requires_matching_amendment(tmp_path, amendment):
+    from harness.web_fetch.report_saved_matrix import _parameter_reruns, _SourceBindings
+    config = {'selection': 'replace_family_if_pass_count_improves', 'sources': [],
+              'contract': write(tmp_path/'contract.json', {
+                  'selection': 'replace_track_if_pass_count_improves', 'jobs': []})}
+    if amendment:
+        config['selection_amendment'] = write(tmp_path/'amendment.json', {'selection': amendment})
+    inputs = {'spec': {'parameter_reruns': config}, 'sources': _SourceBindings(tmp_path)}
+    if amendment == config['selection']:
+        assert _parameter_reruns(inputs) == {}
+    else:
+        with pytest.raises(ValueError, match='amendment'):
+            _parameter_reruns(inputs)

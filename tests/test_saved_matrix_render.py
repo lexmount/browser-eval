@@ -437,3 +437,33 @@ def test_excluded_report_families_preserve_sources_and_recompute_population(tmp_
     assert 'Main population' in home.get_text()
     dataset = json.loads((root/'dataset.json').read_text())
     assert [case['id'] for case in dataset['cases']] == ['second--same']
+
+
+@pytest.mark.parametrize('excluded', [['other'], ['unknown'], ['method', 'other'], ['other', 'other'], 'other'])
+def test_excluded_report_providers_preserve_evidence_and_retained_results(tmp_path, excluded):
+    spec, source, record, raw = fixture(tmp_path)
+    other = deepcopy(record)
+    other.update(provider='other', attempt_id='other-run')
+    spec['providers'].append({'id': 'other', 'label': 'Removed method'})
+    path = source/'results.jsonl'
+    original = raw+(json.dumps(other)+'\n').encode()
+    path.write_bytes(original)
+    spec['sources'][0]['results']['sha256'] = hashlib.sha256(original).hexdigest()
+    spec['excluded_report_providers'] = excluded
+    if excluded != ['other']:
+        with pytest.raises(ValueError, match='excluded report providers'):
+            build(tmp_path, spec)
+        return
+    root = build(tmp_path, spec).parent
+    model = json.loads((root/'matrix.json').read_text())
+    assert model['providers'] == [{'id': 'method', 'label': 'Method'}]
+    assert len(model['rows']) == model['totals']['saved'] == 1
+    assert model['report_scope']['excluded_providers'] == ['other']
+    assert model['report_scope']['source_positions'] == 2
+    assert (root/model['rows'][0]['record_path']).read_bytes() == raw
+    assert path.read_bytes() == original
+    assert not (root/'providers/other.html').exists()
+    assert not (root/'evidence/first/other').exists()
+    assert 'Removed method' not in (root/'index.html').read_text()
+    from harness.web_fetch.report_saved_matrix import check_saved_matrix
+    check_saved_matrix(root, spec_path=tmp_path/'spec.json')

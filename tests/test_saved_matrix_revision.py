@@ -12,7 +12,7 @@ from lexbench_webfetch.scoring import score_attempt
 from tests.test_saved_matrix_evidence import fixture, write, assert_proof_mutations_rejected, assert_revision_document_mutation_rejected, assert_saved_receipt_mutation_rejected, assert_scoring_flags_rejected, assert_whitespace_record_rejected
 
 
-def revision_fixture(tmp_path, *, multiple=False, uncalled=False, completion_note=False, answer=b'answer'):
+def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalled=False, completion_note=False, answer=b'answer'):
     spec, source, row, _ = fixture(tmp_path)
     case = json.loads((source/'dataset.json').read_text())['cases'][0]
     case['required_facts'] = [{'id':'shell', 'alternatives':['Subscribe']}]
@@ -29,6 +29,10 @@ def revision_fixture(tmp_path, *, multiple=False, uncalled=False, completion_not
     (source/row['artifact_path']).write_bytes(answer)
     row['metrics'] = score_attempt(case, answer, ok=True)
     (source/'results.jsonl').write_text(json.dumps(row)+'\n')
+    if second_provider:
+        spec['providers'].append({'id': 'other', 'label': 'Other'})
+        with (source/'results.jsonl').open('a') as handle:
+            handle.write(json.dumps({**row, 'provider': 'other', 'attempt_id': 'other-call'})+'\n')
     spec['sources'][0]['results']['sha256'] = hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()
     if multiple:
         spec['suites'].append({**spec['suites'][0], 'id':'second', 'label':'Second'})
@@ -72,7 +76,7 @@ def test_revision_round_trip_preserves_call_with_completion_note(tmp_path):
 @pytest.mark.parametrize('missing_attachment', [False, True])
 @pytest.mark.parametrize('root_revision', [False, True])
 def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_path, missing_attachment, root_revision, monkeypatch):
-    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: {'request': 'fixture'})
     nested, _, revision = revision_fixture(tmp_path/'nested', answer=b'new answer')
     nested['offline_revision']['review_files'] = {
         'decisions': write(tmp_path/'nested/decisions.json', [{'reason': 'independent scope review'}])}
@@ -235,6 +239,7 @@ def test_exclusion_scopes_revision_counts_and_decisions_but_preserves_history(tm
     if with_parameter_candidates:
         # Reuse bound calls to exercise assembly of parameter proof alongside
         # scoped review attachments; transport validation has separate controls.
+        spec['parameter_reruns'] = {'selection': 'replace_track_if_pass_count_improves'}
         monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_reruns',
                             lambda inputs: inputs['selected'])
     decisions = [{'suite': suite, 'case_id': 'same', 'rule_decisions': [],
@@ -277,7 +282,7 @@ def test_revision_rejects_different_frozen_call_even_with_rebound_source(tmp_pat
 @pytest.mark.parametrize('tie', [False, True])
 @pytest.mark.parametrize('authorized', [False, True])
 def test_completion_candidate_baseline_requires_explicit_whole_group_reselection(tmp_path, monkeypatch, tie, authorized):
-    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: {'request': 'fixture'})
     spec, source, before, _ = fixture(tmp_path)
     before['metrics']['content_pass'] = not tie
     spec['sources'][0]['results'] = write(source/'results.jsonl', before)
@@ -318,7 +323,7 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_
     # History controls isolate execution proof; real native authorization has its
     # own positive/negative transport fixtures. The absent-proof case uses production.
     if defect != 'missing_execution':
-        monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: None)
+        monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: {'request': 'fixture'})
     spec, source, revision = revision_fixture(tmp_path, uncalled=True)
     baseline = {'path': str(revision/'matrix.json'), 'sha256': hashlib.sha256((revision/'matrix.json').read_bytes()).hexdigest()}
     record = json.loads((source/'results.jsonl').read_text())
@@ -413,3 +418,20 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_
         assert any('Only this case uses Cloudflare DoH.' in p.read_text() for p in (output/'attempts').glob('*.html'))
     assert json.loads((output/'score-revision.json').read_text())['provider_calls_added'] == 0
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+
+
+def test_provider_exclusion_scopes_revision_without_changing_originals(tmp_path):
+    spec, source, _ = revision_fixture(tmp_path, second_provider=True)
+    original = (source/'results.jsonl').read_bytes()
+    spec['excluded_report_providers'] = ['other']
+    write(tmp_path/'spec.json', spec)
+    output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revised').parent
+    receipt = json.loads((output/'score-revision.json').read_text())
+    history = json.loads((output/receipt['historical_scope_path']).read_text())
+    assert receipt['rescored_results'] == 1 and history['rescored_results'] == 2
+    assert len(receipt['steps'][0]['task_verdict_changes']) == 1
+    assert len(history['steps'][0]['task_verdict_changes']) == 2
+    assert (source/'results.jsonl').read_bytes() == original
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+    for relative in ('score-revision.json', 'score-revision-history.json'):
+        assert_revision_document_mutation_rejected(output, tmp_path/'spec.json', relative)
