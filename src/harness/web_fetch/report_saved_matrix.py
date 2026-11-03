@@ -252,7 +252,7 @@ def _completed_scope(config, sources, selected, continuations=None):
             sources.binding(contract['provider_config'])
             policy['provider_config_sha256'] = contract['provider_config']['sha256']
         continuation = (continuations or {}).get(key)
-        _validate_call_sequence(record, case, policy, continuation)
+        _validate_call_sequence(record, case, policy, continuation, require_saved_settings=True)
         _parameter_execution(root, record, case, policy, sources)
         if continuation and continuation[1] is not None:
             prior_root, prior_record, _ = continuation[1]
@@ -846,7 +846,7 @@ def _parameter_scoring(before, record):
         raise ValueError('Parameter comparison needs an explicit scoring revision')
 
 
-def _validate_call_sequence(record, case, contract, continuation=None):
+def _validate_call_sequence(record, case, contract, continuation=None, *, require_saved_settings=False):
     """Validate the complete authorized physical-call sequence."""
     allowance = contract.get('max_failure_retries')
     if type(allowance) is not int or allowance < 0:
@@ -860,6 +860,8 @@ def _validate_call_sequence(record, case, contract, continuation=None):
     if continuation:
         entry, prior, _ = continuation
         if prior is None:
+            if require_saved_settings:
+                raise ValueError('Configuration selection requires saved native settings for every physical call')
             started = entry.get('_uncommitted_started_at')
             if not started:
                 raise ValueError('Parameter rerun needs timestamped first-call evidence')
@@ -968,7 +970,7 @@ def _parameter_reruns(inputs):
             if _case_identity(cases[cid]) != _case_identity(case) or record['url'] != case['url']:
                 raise ValueError('Parameter rerun changed task rules')
             continuation = inputs.get('parameter_continuations', {}).get(key)
-            _validate_call_sequence(record, case, contract, continuation)
+            _validate_call_sequence(record, case, contract, continuation, require_saved_settings=True)
             verify_record_artifacts(root, record, native_cases=cases)
             for relative, digest in artifact_bindings(record):
                 sources.bind(contained_path(root, relative, reject_symlinks=True), digest)
@@ -985,6 +987,8 @@ def _parameter_reruns(inputs):
                 baseline_settings = []
                 baseline_calls = [inputs['selected'][key][:2]]
                 prior = inputs.get('continuations', {}).get(key)
+                if prior and prior[1] is None:
+                    raise ValueError('Configuration selection requires saved native settings for every physical call')
                 if prior and prior[1] is not None:
                     baseline_calls.append(prior[1][:2])
                 for old_root, old_record in baseline_calls:
@@ -1040,7 +1044,10 @@ def _parameter_group_decisions(inputs, candidates):
         for label, record in [('before_passed', before), ('candidate_passed', candidate)]:
             counts[label] += bool(task_passed(record['ok'], record['metrics'], case.get('task_kind', 'body')))
     for group in groups:
-        expected = {key for key in inputs['selected'] if group_for(key) == group}
+        population = set(inputs['selected']) | set(inputs.get('missing', {}))
+        if by_family:
+            population = {(suite, group[0], cid) for suite, cases in inputs['cases'].items() for cid in cases}
+        expected = {key for key in population if group_for(key) == group}
         if expected != {key for key, value in membership.items() if value == group}:
             raise ValueError('Parameter selection must cover the complete method/' + ('family' if by_family else 'track') + ' group')
     for group, counts in groups.items():
@@ -1170,7 +1177,8 @@ def _adopted_groups(inputs, candidates):
             execution_case = nested['cases'][suite][cid]
             # Retry decisions belong to the frozen acquisition score, not to a
             # later offline revision of that saved answer.
-            _validate_call_sequence(before_score, execution_case, policy, nested['continuations'].get(key))
+            _validate_call_sequence(before_score, execution_case, policy, nested['continuations'].get(key),
+                                    require_saved_settings=True)
             group = provider, _presentation_family(case, suite, spec['report_families'])
             settings = settings_by_group.setdefault(group, {}).setdefault(key, [])
             settings.append(_parameter_execution(root, before_score, execution_case, policy, sources, before))
@@ -2132,7 +2140,8 @@ def _saved_renderer_projection(output, model):
                                         if r['passed'] is None or not r['called']]}
     reruns = [r['parameter_rerun'] for r in model['rows'] if r.get('parameter_rerun')]
     if reruns:
-        scope['parameter_reruns'] = {'evaluated': len(reruns),
+        scope['parameter_reruns'] = {'family_selection': any(r['selection'] == 'replace_family_if_pass_count_improves' for r in reruns),
+                                     'evaluated': len(reruns),
                                      'selected': sum(r['selected_new'] for r in reruns)}
     providers = [p['id'] for p in model['providers']]
     for provider in providers:

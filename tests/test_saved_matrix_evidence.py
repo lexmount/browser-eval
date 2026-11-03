@@ -730,6 +730,8 @@ def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tm
     continuation = loaded['continuations'][('first', 'method', 'same')]
     policy = {'created_at': '2026-10-26T00:00:00Z', 'max_failure_retries': 1}
     _validate_call_sequence(current, {}, policy, continuation)
+    with pytest.raises(ValueError, match='saved native settings for every physical call'):
+        _validate_call_sequence(current, {}, policy, continuation, require_saved_settings=True)
     failed = {**current, 'metrics': {**current['metrics'], 'content_pass': False}}
     _validate_call_sequence(failed, {}, policy, continuation)
     with pytest.raises(ValueError, match='exceeds retry allowance'):
@@ -829,6 +831,15 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
     assert row['parameter_rerun']['selected_new'] is selected
     assert 'data-parameter-reruns' in (report/'index.html').read_text()
     assert 'data-parameter-history' in (report/'changes/index.html').read_text()
+    detail = (report / 'attempts' / ('first--new-run.html' if selected else 'first--run-001.html')).read_text()
+    if partition == 'family':
+        for page in ('index.html', 'changes/index.html'):
+            assert '配置不一致的组不能因通过数更高而入选' in (report / page).read_text()
+        assert '整类配置一致：旧组 是，新组 是' in detail
+        assert '只有一组符合条件时采用该组' in detail
+    else:
+        assert '动态与热门的基础补充任务' in detail
+        assert '整类配置一致：旧组' not in detail
     assert row['passed'] is (before or after)
     actual = json.loads((report/row['record_path']).read_text())
     assert actual['attempt_id'] == ('new-run' if selected else 'run-001')
@@ -973,6 +984,10 @@ def test_family_selection_requires_all_tracks_of_the_displayed_family():
     with pytest.raises(ValueError, match='complete method/family group'):
         _parameter_group_decisions(inputs, {keys[0]: saved})
     assert all(item['count'] == 2 for item in _parameter_group_decisions(inputs, inputs['selected']).values())
+    inputs['selected'].pop(keys[1])
+    inputs['missing'] = {keys[1]: ({'status': 'not_called'}, None)}
+    with pytest.raises(ValueError, match='complete method/family group'):
+        _parameter_group_decisions(inputs, inputs['selected'])
     inputs['spec'].pop('report_families')
     with pytest.raises(ValueError, match='requires the report family registry'):
         _parameter_group_decisions(inputs, inputs['selected'])

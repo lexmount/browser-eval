@@ -2251,7 +2251,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
       +esc(SAVED_MATRIX_ZH['coverage_banner_counts'].format(**counts))+' '
       +esc(SAVED_MATRIX_ZH['coverage_banner_note'])+'</span></div>')
   if saved_scope.get('parameter_reruns'):
-   reliability_banner+='<div class="wrap callout" data-parameter-reruns>'+esc(SAVED_MATRIX_ZH['parameter_rerun_banner'].format(**saved_scope['parameter_reruns']))+'</div>'
+   reliability_banner+='<div class="wrap callout" data-parameter-reruns>'+esc(SAVED_MATRIX_ZH['parameter_family_banner' if saved_scope['parameter_reruns'].get('family_selection') else 'parameter_rerun_banner'].format(**saved_scope['parameter_reruns']))+'</div>'
  elif reliability['complete']:
   reliability_banner=''
  elif (measurement_presentation(dataset).explain_unjudged
@@ -2556,7 +2556,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
     evidence.append(link('../'+proof['candidate_prior_record_path'],SAVED_MATRIX_ZH['continuation_prior'])+' · '+link('../'+proof['candidate_prior_answer_path'],SAVED_MATRIX_ZH['answer_link']))
    outcome=SAVED_MATRIX_ZH['parameter_rerun_selected' if proof['selected_new'] else 'parameter_rerun_retained']
    outcome+=' · '+SAVED_MATRIX_ZH['parameter_rerun_group'].format(**proof['group'])
-   body+=section(SAVED_MATRIX_ZH['parameter_rerun_title'],'<p>'+SAVED_MATRIX_ZH['parameter_rerun_note']+'</p><p>'+outcome+'</p><p>'+'<br>'.join(evidence)+'</p>','parameter-rerun')
+   family_selection=proof['selection']=='replace_family_if_pass_count_improves'
+   if family_selection:
+    outcome+=' · '+SAVED_MATRIX_ZH['parameter_family_eligibility'].format(**{label:SAVED_MATRIX_ZH['parameter_eligible' if proof['group'][label+'_uniform'] else 'parameter_ineligible'] for label in ('before','candidate')})
+   body+=section(SAVED_MATRIX_ZH['parameter_rerun_title'],'<p>'+SAVED_MATRIX_ZH['parameter_family_note' if family_selection else 'parameter_rerun_note']+'</p><p>'+outcome+'</p><p>'+'<br>'.join(evidence)+'</p>','parameter-rerun')
   if r.get('report_retry_continuation'):
    continuation=r['report_retry_continuation']
    cost=ms(continuation['execution_cost_ms']) if continuation['execution_cost_ms'] is not None else SAVED_MATRIX_ZH['continuation_unknown_cost']
@@ -2834,7 +2837,7 @@ def write_saved_changes(out):
   updates+='<article class="review-round" data-adopted-revision-history><div><h3>'+model_text('采用结果的评分修订','Scoring revisions of adopted results')+'</h3><p>'+model_text(f'{count} 份采用结果带有离线评分修订；原成绩和修订依据保留。',f'{count} adopted results have offline scoring revisions; original scores and revision evidence are retained.')+'</p><p>'+link('../review/index.html','修订依据与分数变化')+'</p></div></article>'
  reruns=[row['parameter_rerun'] for row in matrix.get('rows',[]) if row.get('parameter_rerun')]
  if reruns:
-  note=SAVED_MATRIX_ZH['parameter_rerun_banner'].format(evaluated=len(reruns),selected=sum(row['selected_new'] for row in reruns))
+  note=SAVED_MATRIX_ZH['parameter_family_banner' if any(row['selection']=='replace_family_if_pass_count_improves' for row in reruns) else 'parameter_rerun_banner'].format(evaluated=len(reruns),selected=sum(row['selected_new'] for row in reruns))
   updates+='<article class="review-round" data-parameter-history><div class="round-label">'+esc(SAVED_MATRIX_ZH['parameter_rerun_title'])+'</div><div><h3>'+esc(SAVED_MATRIX_ZH['parameter_rerun_title'])+'</h3><p>'+esc(note)+'</p><p>'+link('../analysis/index.html','逐任务结果与证据')+'</p></div></article>'
  revision_path=out/'score-revision.json'
  if revision_path.is_file():
