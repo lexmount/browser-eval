@@ -1,7 +1,8 @@
 # WebArena-Verified verified trajectories
 
-`current-run.json.dataset.path` and its SHA-256 identify the authoritative trajectory
-input for a formal build; currently this is `trajectories-corrected.json`.
+A formal build selects an external run profile with `--profile`; run profiles are not committed
+to Git. The profile's `dataset.path` and SHA-256 identify the authoritative trajectory input. The
+last profile kept in Git bound `trajectories-corrected.json`.
 `trajectories.json` is the retained predecessor used by qualification and correction
 provenance. It is not a second current dataset. Each trajectory is one verified feasible
 BrowserTool path, not the task's only correct path.
@@ -19,7 +20,7 @@ data home defaulting to `~/.browser-eval`). `research/trajectory-replay-content.
 binds every consumed file. The prior Git revision retains migration recovery copies;
 published report versions and physical execution evidence remain unchanged.
 
-`current-run.json` is the run authority for the next formal replay. It freezes the same 90-task
+The external run profile is the authority for the next formal replay. It freezes the same 90-task
 selection used by the current Browser Use evaluation, the registered browser methods, resource
 limits, and the isolation schedule. The private ready-to-run seed manifest must contain exactly one
 canonical candidate for each of those 90 tasks. The current inventory is assembled from 60 clean

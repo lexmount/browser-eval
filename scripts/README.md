@@ -34,8 +34,8 @@ survived this pruning.
 | --- | --- |
 | `run_certified_benchmark.py` | `AGENTS.md`, `docs/provider-contract.md`, `evaluation/risk-control/run-profile.json`; runs reference freezing, postcheck, finalization, `risk-control`, `webmainbench-correction`, `wcxb` and `wcxb-latency` |
 | `run_benchmark.py` | `AGENTS.md`, `docs/provider-contract.md`, bound latency certifiers |
-| `run_headless_benchmark.py` | reproduction text rendered by `harness/web_fetch/report-translations.json` |
-| `headless_worker.py` | executed by `harness/web_fetch/headless_runner.py` and `providers/headless.py` |
+| `run_headless_benchmark.py` | reproduction text rendered by `src/harness/web_fetch/report-translations.json` |
+| `headless_worker.py` | executed by `src/harness/web_fetch/headless_runner.py` and `src/harness/web_fetch/providers/headless.py` |
 | `build_native_dns.py`, `capture_headless_browser_observations.py`, `collect_source_evidence.py`, `finalize_reference_checks.py`, `append_dynamic_content.py`, `merge_dynamic_supplement.py` | `src/harness/web_fetch/README.md` |
 | `assemble_headless.py`, `check_headless_evidence.py`, `package_headless_resources.py` | `src/harness/web_fetch/HEADLESS.md` |
 | `audit_initial_references.py` | `research/initial-reference-audit.json` |
@@ -98,7 +98,7 @@ survived this pruning.
 | `apply_webarena_qualification.py`, `audit_replay_cart_assertion.py`, `audit_replay_comparison_inputs.py`, `audit_replay_readiness.py`, `audit_saved_replay_correction.py`, `audit_webarena_recorded_outcomes.py`, `audit_webarena_traces.py`, `build_revised_webarena_dataset.py`, `build_webarena_codex_repair_suite.py`, `build_webarena_native_scope.py`, `build_webarena_repair_batch.py`, `build_webarena_repair_packet.py`, `build_webarena_repair_probe.py`, `build_webarena_repair_queue.py`, `build_webarena_repair_validation_suite.py`, `build_webarena_suite.py`, `fetch_webarena_traces.py`, `freeze_original36_candidate_cohort.py`, `reevaluate_webarena_evaluator_transition.py`, `rescore_saved_retrieval_attempt.py`, `revise_webarena_method_inputs.py`, `run_remote_mutation_diagnostic.py`, `run_webarena_codex_repairs.py`, `run_webarena_qualification.py`, `smoke_webarena_runtime.py`, `supersede_webarena_task_browser_results.py`, `verify_webarena_evaluator_exclusions.py` | `docs/trajectory-replay-protocol.md` |
 | `propose_webarena_action_repair.py`, `propose_webarena_autowait_repairs.py`, `propose_webarena_capture_target.py`, `propose_webarena_evaluator_fill_repair.py`, `propose_webarena_observed_repair.py`, `propose_webarena_replace_target.py` | `docs/trajectory-replay-protocol.md`, "Public WebArena repair proposals" |
 | `release_webarena_trajectory_report.py` | `make public-webarena-report`, `-audit`, `-release`; it checks and packages the bundle itself |
-| `publish_public_webarena_report.py` | executed by `public_webarena/release.py` |
+| `publish_public_webarena_report.py` | executed by `src/harness/trajectory_replay/public_webarena/release.py` |
 | `lock_webarena_images.py`, `manage_webarena_environment.py`, `manage_webarena_rainbond_pool.py`, `verify_webarena_env_contract.py`, `verify_webarena_map.py` | `deploy/webarena/README.md`, `docs/webarena-fixed-trajectory-reproduction.md`, `examples/trajectory_replay/public_webarena/README.md` |
 
 ## Pending owner decision (#93)
@@ -130,7 +130,7 @@ exclusive tests together.
 | `use_prepared_webarena_cohort_reset.py` | passed as `run_remote_three_method_cohort.py --cohort-reset-hook`; receipts outside Git bind its hash, not its name |
 | `build_browser_use_replay_seeds.py`, `build_webarena_expert_seeds.py`, `run_webarena_trajectory_replay.py`, `promote_webarena_trajectories.py` | seed, replay and promotion stages of the repository-curated dataset; `evaluation/trajectory-replay/webarena-verified/README.md` describes the stages without naming the scripts |
 | `merge_webarena_replay_results.py` | overlays formal correction shards onto the current replay matrix |
-| `build_webarena_authoring_suite.py`, `build_webarena_observation_suite.py`, `build_webarena_evidence_revalidation_suite.py`, `build_webarena_qualification_subset.py`, `build_webarena_requalification_suite.py`, `finalize_webarena_adjudication.py` | queue, revalidation and finalization commands of `public_webarena/qualification.py`; "Qualification decisions and immutable outputs" in `docs/trajectory-replay-protocol.md` describes them without naming the scripts |
+| `build_webarena_authoring_suite.py`, `build_webarena_observation_suite.py`, `build_webarena_evidence_revalidation_suite.py`, `build_webarena_qualification_subset.py`, `build_webarena_requalification_suite.py`, `finalize_webarena_adjudication.py` | queue, revalidation and finalization commands of `src/harness/trajectory_replay/public_webarena/qualification.py`; "Qualification decisions and immutable outputs" in `docs/trajectory-replay-protocol.md` describes them without naming the scripts |
 | `build_webarena_trace_catalog.py` | rebuilds the checked-in 179-task human-trace catalog from official inputs |
 | `run_real_smoke.sh` | runner for the opt-in `tests/test_real_smoke.py` live-provider class; only that test names it |
 

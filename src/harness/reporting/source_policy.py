@@ -11,6 +11,8 @@ from pathlib import Path
 from harness.distribution import source_path
 
 HAN = re.compile(r"[\u3400-\u9fff]")
+# External report instances selected with `--profile`; none may live under `evaluation/`.
+REPORT_INSTANCE_NAMES = frozenset({"current-report.json", "current-run.json", "current-comparison.json"})
 CATALOG_RENDERERS = (
     "harness/web_search/report.py",
     "harness/web_search/pages.py",
@@ -39,12 +41,11 @@ def check_source_languages(root: Path) -> list[str]:
         path = source_path(relative, root=root)
         if path.is_file() and HAN.search(path.read_text(encoding="utf-8")):
             findings.append(f"{relative}: move report messages into the language catalog")
-    instance_names = {"current-report.json", "current-run.json", "current-comparison.json"}
     instance_schemas = {"web-search", "web-search-current", "web-search-publication", "search-legacy-evidence", "search-assessment-authority", "search-publication-plan", "web-search-independent-review"}
     for path in sorted((root / "evaluation").rglob("*.json")):
         document = json.loads(path.read_text(encoding="utf-8"))
         schema = document.get("schema", "") if isinstance(document, dict) else ""
-        if path.name in instance_names or schema.split("/", 1)[0] in instance_schemas:
+        if path.name in REPORT_INSTANCE_NAMES or schema.split("/", 1)[0] in instance_schemas:
             findings.append(f"{path.relative_to(root)}: keep report instances outside Git")
         if schema.split("/", 1)[0] == "lexbench-websearch-dataset":
             findings.append(f"{path.relative_to(root)}: keep Search datasets in lexbench-websearch")

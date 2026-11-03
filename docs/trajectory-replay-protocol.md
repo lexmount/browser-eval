@@ -284,7 +284,7 @@ manifest without modifying prior evidence. A revision that changes action count
 requires an explicit readiness migration when readiness rules are present.
 
 The public WebArena queue, revalidation, finalization and application commands share
-`public_webarena/qualification.py`. Every declared task and decision must occur exactly
+`src/harness/trajectory_replay/public_webarena/qualification.py`. Every declared task and decision must occur exactly
 once. A resumable shard must retain its raw `attempt.json` as well as its summary and HAR.
 A JSONL attempt projection must match that raw record, including scalar types; a passing summary
 cannot promote a failed attempt, and a failing summary cannot discard a passing attempt.

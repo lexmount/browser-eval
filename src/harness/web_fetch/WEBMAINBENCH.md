@@ -23,7 +23,7 @@ The sample correction sections below are for reproducing or repairing that histo
 | --- | --- |
 | Preselected sample | External sample profile and its hash-bound manifest |
 | Complete parent dataset | External full-cohort authority bundle |
-| Independently certified variants in the complete comparison | `evaluation/webmainbench-full/moli-variants.json` and each listed profile |
+| Independently certified variants in the complete comparison | `moli-variants.json` in that bundle's `evaluation/webmainbench-full/` and each listed profile |
 
 Profiles declare the task count, provider IDs, versions, source hash, scorer
 commit, retry policy and execution contract. The registry declares public

@@ -28,4 +28,4 @@ For localization, translate authored prose, formatted rule explanations and acce
 
 Run project tests and report checks appropriate to the changes, including route, link and bilingual consistency checks. Those establish artifact integrity, not editorial quality. Complete the reader review on the final artifact separately.
 
-Publishing uses the target and expected remote version bound by `evaluation/current-report.json`, only when authorized. Verify deployed bytes and the article after publishing. A local writing task does not authorize a new site, provider migration or publication.
+Publishing uses the target and expected remote version bound by the selected external instance profile's publication binding, only when authorized. Verify deployed bytes and the article after publishing. A local writing task does not authorize a new site, provider migration or publication.

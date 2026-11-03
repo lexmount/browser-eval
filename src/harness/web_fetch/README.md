@@ -187,7 +187,7 @@ or required facts. Literal HTML in code examples remains answer text. This
 projection runs inside the shared scorer and leaves provider artifacts unchanged.
 `required_patterns` defaults to `match_scope: "text"`; a rule that checks serialized
 output structure, such as an HTML table tag, must declare `match_scope: "output"`.
-Unknown scopes are rejected. Use paired controls in `evaluation/scoring-regressions.json`
+Unknown scopes are rejected. Use paired controls in `src/harness/benchmarks/scoring-regressions.json`
 to guard equivalent prose, attribute-only answers and structural output.
 
 Reruns of an unchanged compiled stable-contract dataset use
@@ -330,7 +330,7 @@ The three result filters remain pass/fail/all; unmeasured rows appear in all.
 `scripts/rescore_content.py` recomputes
 all applicable records through the shared scorer without supplier calls.
 Known scoring failure modes have compact synthetic positive and negative controls
-in `evaluation/scoring-regressions.json`; CI executes every control through the
+in `src/harness/benchmarks/scoring-regressions.json`; CI executes every control through the
 same `score_attempt` orchestration and task predicate used by live and offline
 scoring. A new decision-changing scoring correction, or a frozen-reference
 correction via `scripts/revise_reference_evidence.py`, must use its revision
@@ -1344,6 +1344,11 @@ identifier to its committed publication receipt. This step binds existing upload
 it does not upload attachments.
 
 ## Report method metadata
+
+`research/provider-adoption.json` holds the public-code adoption statistics. Refresh
+them with `uv run --frozen python -m harness.web_fetch.provider_adoption search`, or
+re-verify the known candidates with its `refresh` command. Both need an authenticated
+`gh`; the search checkpoint stays under the research evidence directory.
 
 `data/report-methods.json` is the shared, packaged catalog for product labels,
 method profiles, adapter contracts, interface examples, access requirements,
