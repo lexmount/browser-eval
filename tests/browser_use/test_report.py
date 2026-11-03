@@ -1865,6 +1865,10 @@ def test_replay_bridge_cardinality_follows_its_own_engines_and_task_count(tmp_pa
             ),
             "cardinality",
         ),
+        (
+            lambda b: b["base_trajectory_provenance"].update(successful_browser_use_execution=4),
+            "cardinality",
+        ),
         (lambda b: b["candidate_failure_review"].update(failed_results=1), "failure review"),
         (lambda b: b["candidate_failure_review"].update(verified_results=1), "failure review"),
         (lambda b: b["effective_results"]["candidate"].update(passes=2), "failure review"),
@@ -1893,6 +1897,7 @@ def test_replay_bridge_cardinality_follows_its_own_engines_and_task_count(tmp_pa
         "provenance-browser-absent",
         "expert-total",
         "provenance-split",
+        "historical-total",
         "review-failed",
         "review-verified",
         "measured-failures",
