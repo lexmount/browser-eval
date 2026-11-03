@@ -451,3 +451,7 @@ def test_mixed_case_gateway_rebinds_and_is_redacted_as_written(monkeypatch) -> N
     public = sanitize_text("http://Gateway.Example:7770/a and gateway.example")
     assert "Gateway.Example" not in public
     assert "gateway.example" not in public
+
+    monkeypatch.setenv("WEBARENA_RECORDING_GATEWAYS", "gateway.example")
+    public = sanitize_text("http://Gateway.Example:7770/a, GATEWAY.EXAMPLE and gateway.example")
+    assert public == "__SHOPPING__/a, __BENCHMARK_HOST__ and __BENCHMARK_HOST__"

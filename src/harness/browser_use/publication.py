@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from harness.environments.webarena.topology import (
+    RECORDING_GATEWAYS,
     RECORDING_GATEWAYS_ENV,
     known_site_secrets,
     public_host_replacements,
@@ -39,6 +40,10 @@ def require_no_private_hosts(text: str, path: Path) -> None:
 
 def sanitize_text(value: str) -> str:
     text = value
+    # Hostnames are case-insensitive, so any spelling of a listed gateway is redacted.
+    for host in RECORDING_GATEWAYS:
+        if host != host.upper():
+            text = re.sub(re.escape(host), host, text, flags=re.I)
     for origin, placeholder in sorted(
         public_origin_replacements().items(), key=lambda item: len(item[0]), reverse=True
     ):
