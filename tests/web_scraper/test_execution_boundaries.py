@@ -611,3 +611,76 @@ def test_nonfinite_native_reply_is_checkpoint_safe(tmp_path, text, route):
     save_json(path, row)
     assert read_json(path)["response"] == {"non_json_response": text}
     assert row["http_status"] == 200 and row["elapsed_seconds"] >= 0
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "earlier-logical",
+        "missing-physical",
+        "journal-omission",
+        "successful-retry",
+        "wrong-attempt",
+        "exceeded-budget",
+        "missing-journal",
+    ],
+)
+def test_aggregation_reconciles_retry_history_and_final_selection(tmp_path, mutation):
+    import json
+    from copy import deepcopy
+
+    from harness.web_scraper.pipeline import digest, read_json
+
+    home = create(tmp_path / "example")
+    run = home / "runs/example-v1"
+    manifest = read_json(run / "manifest.json")
+    contract = read_json(run / "contract.json")
+    contract["access_retry_limit"] = 1
+    save_json(run / "contract.json", contract)
+    manifest["contract_sha256"] = digest((run / "contract.json").read_bytes())
+    entry = manifest["calls"][-1]
+    first = read_json(run / entry["path"])
+    first.update(state="response_received", http_status=402, physical_attempt=1)
+    save_json(run / entry["path"], first)
+    entry["sha256"] = digest((run / entry["path"]).read_bytes())
+    final = {
+        **first,
+        "physical_attempt": 2,
+        "http_status": 200,
+        "elapsed_seconds": 0.2,
+        "retry_execution_seconds": first["elapsed_seconds"],
+        "compatibility": "structured_output",
+        "response": {"json": {"sku": "recovered"}},
+    }
+    path = run / "calls/final.json"
+    save_json(path, final)
+    last = {"path": "calls/final.json", "sha256": digest(path.read_bytes())}
+    manifest["physical_calls"] = deepcopy(manifest["calls"]) + [last]
+    manifest["calls"][-1] = last
+    journal = run / "calls.journal.jsonl"
+    journal.write_text("".join(json.dumps(e) + "\n" for e in manifest["physical_calls"]))
+    save_json(run / "manifest.json", manifest)
+    assert load_run(run)[1][-1]["physical_attempt"] == 2
+    if mutation == "missing-journal":
+        journal.unlink()
+    elif mutation == "exceeded-budget":
+        contract["access_retry_limit"] = 0
+        save_json(run / "contract.json", contract)
+        manifest["contract_sha256"] = digest((run / "contract.json").read_bytes())
+    elif mutation == "earlier-logical":
+        manifest["calls"][-1] = entry
+    elif mutation == "missing-physical":
+        manifest["physical_calls"].remove(entry)
+    elif mutation == "journal-omission":
+        journal.write_text("".join(json.dumps(e) + "\n" for e in manifest["physical_calls"][:-1]))
+    elif mutation == "wrong-attempt":
+        final["physical_attempt"] = 3
+        save_json(path, final)
+        last["sha256"] = digest(path.read_bytes())
+    else:
+        first.update(http_status=200, compatibility="structured_output")
+        save_json(run / entry["path"], first)
+        manifest["physical_calls"][-2]["sha256"] = digest((run / entry["path"]).read_bytes())
+    save_json(run / "manifest.json", manifest)
+    with pytest.raises(ValueError, match="final physical|attempt sequence|journal|retry|Retry"):
+        load_run(run)

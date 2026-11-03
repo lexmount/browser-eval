@@ -122,11 +122,9 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
                 "native_response": row.get("response"),
                 "normalized_fields": normalize(method, row.get("response", {})),
             }
-            if prior is not None:
-                item["execution_identity"] = digest(
-                    json.dumps(row, sort_keys=True, ensure_ascii=False).encode()
-                )
-                item["runtime_error"] = row.get("error")
+            item["execution_identity"] = execution_identity(row)
+            item["runtime_error"] = row.get("error")
+            item["http_status"] = row.get("http_status")
             outputs[row["case_id"]].append(item)
     cases = []
     for cid, ref in sorted(truth.items()):
@@ -222,7 +220,31 @@ def validate(result, packet):
                     raise ValueError("Review requires source-grounded field evidence")
                 if quote not in source and quote not in outline:
                     raise ValueError("Review source quote is not literal")
+    for correction in result.get("citation_format_corrections", []):
+        if correction["rule"] != "literal-fragment-selection":
+            continue
+        item = expected[correction["case_id"]]
+        sources = [Path(item[k]).read_text() for k in ("source_html", "source_outline")]
+        fragments = literal_fragments(correction["original_quote"], sources)
+        if not fragments or correction["literal_quote"] not in fragments:
+            raise ValueError("Review compound citation has unmatched source fragments")
     return result
+
+
+def literal_fragments(quote, sources):
+    """A compound citation is valid only if every substantive fragment is literal."""
+    fragments = [part.strip().strip("“”‘’") for part in re.split(r"[；;…\n]+", quote)]
+    fragments = [part for part in fragments if re.search(r"\w", part)]
+    if len(fragments) < 2:
+        return []
+    literal = []
+    for fragment in fragments:
+        pattern = r"\s*".join(re.escape(c) for c in fragment if not c.isspace())
+        found = {match.group() for source in sources for match in re.finditer(pattern, source)}
+        if len(found) != 1:
+            return []
+        literal.append(next(iter(found)))
+    return literal
 
 
 def reconcile_citations(result, packet):
@@ -254,20 +276,10 @@ def reconcile_citations(result, packet):
                             "rule": "whitespace-only",
                         }
                     )
-                elif len(re.split(r"[；;…\n]+", quote)) > 1:
-                    # A model sometimes concatenates several source excerpts. Keep
-                    # only an actual quoted fragment; never synthesize new wording.
-                    fragments = [s.strip().strip("“”‘’") for s in re.split(r"[；;…\n]+", quote)]
-                    literal = []
-                    for fragment in fragments:
-                        if len(fragment) < 4:
-                            continue
-                        expression = r"\s*".join(re.escape(c) for c in fragment if not c.isspace())
-                        found = {m.group() for s in sources for m in re.finditer(expression, s)}
-                        if len(found) == 1:
-                            literal.append(next(iter(found)))
-                    if literal:
-                        actual = max(literal, key=len)
+                else:
+                    fragments = literal_fragments(quote, sources)
+                    if fragments:
+                        actual = max(fragments, key=len)
                         finding["source_quote"] = actual
                         corrections.append(
                             {
@@ -368,6 +380,24 @@ def completed(work):
     ):
         raise ValueError("Audit coverage differs from its manifest")
     return cases, opinions, receipts
+
+
+def original_execution_bindings(work):
+    manifest = read_json(Path(work) / "manifest.json")
+    identities = {}
+    for name, sha in manifest["bindings"].items():
+        path = Path(name)
+        if path.name != "manifest.json" or not (path.parent / "contract.json").exists():
+            continue
+        if digest(path.read_bytes()) != sha:
+            raise ValueError("Original audit execution manifest changed")
+        _, rows = load_run(path.parent)
+        for row in rows:
+            key = (row["method"], row["case_id"])
+            if key in identities:
+                raise ValueError("Ambiguous original audit execution")
+            identities[key] = execution_identity(row)
+    return identities
 
 
 def assemble(
@@ -491,6 +521,7 @@ def assemble(
         references[cid].pop("OutOfStock", None)
         for stock in references[cid].get("availability", []):
             references[cid][stock] = [stock]
+    original_executions = original_execution_bindings(initial)
     result_reviews = {}
     for row in rows:
         cid, method = row["case_id"], row["method"]
@@ -498,10 +529,19 @@ def assemble(
         item = next(o for o in inputs[cid]["outputs"] if o["method"] == method)
         if item["native_response"] != row.get("response"):
             raise ValueError("Reviewed native response differs from current result")
-        if row.get("repair_run_id") and item["execution_identity"] != digest(
-            json.dumps(row, sort_keys=True, ensure_ascii=False).encode()
-        ):
-            raise ValueError("Supplemental audit call identity differs")
+        if row.get("repair_run_id"):
+            # Existing supplemental packets used the complete serialized logical row.
+            identity = item["execution_identity"]
+            valid = {
+                execution_identity(row),
+                digest(json.dumps(row, sort_keys=True, ensure_ascii=False).encode()),
+            }
+            if identity not in valid:
+                raise ValueError("Supplemental audit call identity differs")
+        elif original_executions.get((method, cid)) != execution_identity(row):
+            raise ValueError("Original audit call identity differs")
+        elif item.get("execution_identity", execution_identity(row)) != execution_identity(row):
+            raise ValueError("Original packet call identity differs")
         current = {**row, "normalized_fields": normalize(method, row.get("response", {}))}
         opinions = changed_opinions if row.get("repair_run_id") else original_opinions
         opinion = next(o for o in opinions[cid]["outputs"] if o["method"] == method)

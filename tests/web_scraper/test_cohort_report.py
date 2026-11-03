@@ -319,7 +319,9 @@ def test_interpretation_compares_every_registered_method_without_changing_scores
     from harness.web_scraper.report import audit_explanation
 
     fields = ("price", "sku", "availability", "OutOfStock")
-    scores = {m: {f: {"f1": (i + 1) / 10} for f in fields} for i, m in enumerate(methods)}
+    scores = {
+        m: {f: {"f1": (i + 1) / 10, "cases": 1} for f in fields} for i, m in enumerate(methods)
+    }
     rows = [
         {
             "method": m,
@@ -520,3 +522,87 @@ def test_usage_handles_absent_native_metadata(data):
     html = usage_table(["native"], [{"method": "native", "response": {"data": data}}], "en")
     cells = [c.get_text() for c in BeautifulSoup(html, "html.parser").select("tbody td")]
     assert cells[1:] == ["1", "0", "—"]
+
+
+@pytest.mark.parametrize("ancestor", [False, True])
+def test_checkpoint_build_already_rejects_symlinked_evidence(tmp_path, ancestor):
+    home = create(tmp_path / "first", mode="full-cohort-progress")
+    source = home / "runs/synthetic-success"
+    if ancestor:
+        target = source / "calls"
+        actual = tmp_path / "retained-calls"
+        target.rename(actual)
+        target.symlink_to(actual, target_is_directory=True)
+    else:
+        target = next((source / "calls").glob("*.json"))
+        actual = tmp_path / "retained-call.json"
+        target.rename(actual)
+        target.symlink_to(actual)
+    with pytest.raises(ValueError, match="Symlink"):
+        build(
+            tmp_path / "rejected", home / "content.json", home=home, profile=home / "profile.json"
+        )
+
+
+def test_package_rejects_unbound_nested_manifest(tmp_path):
+    from harness.web_scraper.report import package
+
+    output = tmp_path / "report"
+    create(output)
+    (output / "private").mkdir()
+    (output / "private/report-manifest.json").write_text('{"unbound":"private bytes"}')
+    save_json(tmp_path / "unused.json", {})
+    with pytest.raises(ValueError, match="file inventory differs"):
+        package(output, tmp_path / "report.zip", visual_receipt=tmp_path / "unused.json")
+    assert not (tmp_path / "report.zip").exists()
+
+
+def test_audited_f1_exposes_each_field_population_and_exclusions():
+    from harness.web_scraper.report import audit_explanation
+
+    fields = ("price", "sku", "availability", "OutOfStock")
+    scores = {
+        "native": {field: {"f1": 1.0, "cases": 2 if field == "sku" else 1} for field in fields}
+    }
+    rows = [
+        {
+            "method": "native",
+            "case_id": cid,
+            "compatibility": "structured_output",
+            "field_results": {field: {"status": "correct"} for field in fields},
+        }
+        for cid in ("one", "two")
+    ]
+    audit = {
+        "case_count": 2,
+        "result_count": 2,
+        "original_results_reviewed": 2,
+        "supplemental_results_reviewed": 0,
+        "reference_changes": [],
+        "reviewer": {"model": "synthetic"},
+        "audited_scores": scores,
+        "excluded_fields": {"one": ["price", "availability"]},
+    }
+    review, _ = audit_explanation(audit, rows, ["native"], {}, "en")
+    soup = BeautifulSoup(review, "html.parser")
+    assert [n.get_text() for n in soup.select("[data-audited-population]")] == [
+        "Scored 1/2; excluded 1",
+        "Scored 2/2; excluded 0",
+        "Scored 1/2; excluded 1",
+        "Scored 1/2; excluded 1",
+    ]
+    assert "original-reference scores retain the complete population" in soup.get_text()
+    from harness.web_scraper.report import check_audited_quality
+
+    check_audited_quality(soup, ["native"], scores, 2, "en")
+    note = soup.select_one("[data-audited-population]")
+    note.decompose()
+    with pytest.raises(ValueError, match="field population"):
+        check_audited_quality(soup, ["native"], scores, 2, "en")
+    scores["native"]["price"]["cases"] = 0
+    review, _ = audit_explanation(audit, rows, ["native"], {}, "en")
+    soup = BeautifulSoup(review, "html.parser")
+    first = soup.select_one("[data-audited-quality] tbody tr td:nth-child(2)")
+    assert list(first.stripped_strings) == ["—", "Scored 0/2; excluded 2"]
+    assert not first.select_one(".comparison-winner")
+    check_audited_quality(soup, ["native"], scores, 2, "en")

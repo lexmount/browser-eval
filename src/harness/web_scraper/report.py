@@ -751,6 +751,37 @@ def result_controls(methods, rows, names, lang):
     )
 
 
+def audited_value(metrics):
+    return metrics["f1"] if metrics["cases"] else None
+
+
+def check_audited_quality(soup, methods, scores, total, lang):
+    rows = soup.select("[data-audited-quality] tbody tr")
+    if len(rows) != len(methods):
+        raise ValueError("Missing audited quality population")
+    for method, row in zip(methods, rows, strict=True):
+        cells = row.select("td")[1:]
+        if len(cells) != 4:
+            raise ValueError("Audited field inventory differs")
+        for field, cell in zip(("price", "sku", "availability", "OutOfStock"), cells, strict=True):
+            metrics = scores[method][field]
+            scored = metrics["cases"]
+            if not isinstance(scored, int) or not 0 <= scored <= total:
+                raise ValueError("Invalid audited population")
+            value = audited_value(metrics)
+            expected = "—" if value is None else f"{value:.3f}"
+            note = cell.select_one("[data-audited-population]")
+            label = message(
+                "audited_population", lang, scored=scored, total=total, excluded=total - scored
+            )
+            if (
+                note is None
+                or note.get("data-audited-population") != str(scored)
+                or list(cell.stripped_strings) != [expected, label]
+            ):
+                raise ValueError("Audited F1 or field population differs")
+
+
 def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
     """Reader-facing review scope and source-qualified correction inventory."""
     zh = lang == "zh"
@@ -790,7 +821,12 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
             [
                 [
                     esc(labels.get(method, method)),
-                    *[f"{audit['audited_scores'][method][field]['f1']:.3f}" for field in fields],
+                    *[
+                        "—"
+                        if audited_value(audit["audited_scores"][method][field]) is None
+                        else f"{audit['audited_scores'][method][field]['f1']:.3f}"
+                        for field in fields
+                    ],
                 ]
                 for method in methods
             ],
@@ -800,20 +836,35 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
     )
     for method, row in zip(methods, comparison.select("tbody tr"), strict=True):
         for field, cell in zip(fields, row.select("td")[1:], strict=True):
-            value = round(audit["audited_scores"][method][field]["f1"], 12)
-            values = [round(audit["audited_scores"][m][field]["f1"], 12) for m in methods]
+            value = audited_value(audit["audited_scores"][method][field])
+            values = [audited_value(audit["audited_scores"][m][field]) for m in methods]
+            values = [round(v, 12) for v in values if v is not None]
+            value = round(value, 12) if value is not None else None
             cell.attrs.update(
                 {
-                    "data-sort": str(value),
+                    "data-sort": "" if value is None else str(value),
                     "data-metric": "audited-" + field,
                     "data-metric-direction": "max",
                 }
             )
-            if value == max(values) and values.count(value) == 1:
+            if value is not None and value == max(values) and values.count(value) == 1:
                 span = comparison.new_tag("span", attrs={"class": "comparison-winner"})
                 span.string = cell.get_text()
                 cell.clear()
                 cell.append(span)
+    for method, row in zip(methods, comparison.select("tbody tr"), strict=True):
+        for field, cell in zip(fields, row.select("td")[1:], strict=True):
+            scored = audit["audited_scores"][method][field]["cases"]
+            note = comparison.new_tag("small", attrs={"data-audited-population": str(scored)})
+            note.string = message(
+                "audited_population",
+                lang,
+                scored=scored,
+                total=audit["case_count"],
+                excluded=audit["case_count"] - scored,
+            )
+            cell.append(comparison.new_tag("br"))
+            cell.append(note)
     review += "<h2>" + (message("diagnostic_f1_after_reference_audit", lang)) + "</h2><p>"
     review += (
         (
@@ -823,6 +874,9 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
                 value0=f"{audit['case_count']}",
             )
         )
+        + "</p>"
+        + "<p>"
+        + message("audited_population_scope", lang)
         + "</p>"
         + str(comparison)
     )
@@ -1680,7 +1734,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                         pending = message("not_executed", lang)
                         search = esc(cid + " " + truth[cid].get("url", ""), quote=True)
                         inventory.append(
-                            f'<tr data-status="pending" data-method="{method}" data-outcome="pending" data-search="{esc(cid + " " + truth[cid].get("url", ""), quote=True)}"><td>{esc(names.get(method, method))}</td><td><code>{cid[:12]}</code></td><td>{pending}</td>'
+                            f'<tr data-status="pending" data-method="{method}" data-outcome="pending" data-search="{search}"><td>{esc(names.get(method, method))}</td><td><code>{cid[:12]}</code></td><td>{pending}</td>'
                             + "<td>—</td>" * 6
                             + "</tr>"
                         )
@@ -1812,7 +1866,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
     actual = {
         p.relative_to(output).as_posix()
         for p in output.rglob("*")
-        if p.is_file() and p.name != "report-manifest.json"
+        if p.is_file() and p != output / "report-manifest.json"
     }
     if actual != set(manifest["files"]):
         raise ValueError("Report file inventory differs")
@@ -1985,13 +2039,9 @@ def check(output: Path, *, release=False, visual_receipt=None):
                     methods
                 ):
                     raise ValueError("Missing complete audit summary or diagnostic quality")
-                for method, row in zip(methods, quality_rows, strict=True):
-                    expected = [
-                        f"{manifest['audited_scores'][method][field]['f1']:.3f}"
-                        for field in ("price", "sku", "availability", "OutOfStock")
-                    ]
-                    if [cell.get_text(strip=True) for cell in row.select("td")[1:]] != expected:
-                        raise ValueError("Audited F1 differs from source-qualified scores")
+                check_audited_quality(
+                    reviewed, methods, manifest["audited_scores"], manifest["case_count"], lang
+                )
                 if {
                     s["data-method-interpretation"]
                     for s in interpretations.select("[data-method-interpretation]")

@@ -1213,19 +1213,75 @@ def verify_execution_snapshot(run, contract):
             raise ValueError("Frozen execution source changed")
 
 
+def verify_retry_history(run, manifest, contract):
+    """Require a complete physical sequence and its final logical selection."""
+    entries = manifest.get("physical_calls", manifest["calls"])
+    groups, latest = {}, {}
+    paths = set()
+    for entry in entries:
+        relative = Path(entry["path"])
+        if relative.is_absolute() or ".." in relative.parts or entry["path"] in paths:
+            raise ValueError("Invalid physical call inventory")
+        paths.add(entry["path"])
+        path = run / relative
+        row = read_json(path)
+        if digest(path.read_bytes()) != entry["sha256"]:
+            raise ValueError("Physical call evidence changed")
+        key = (row["method"], row["case_id"])
+        sequence = groups.setdefault(key, [])
+        if row.get("physical_attempt", 1) != len(sequence) + 1:
+            raise ValueError("Physical call attempt sequence is incomplete")
+        sequence.append(row)
+        latest[key] = entry
+    selected = {}
+    for entry in manifest["calls"]:
+        row = read_json(run / entry["path"])
+        key = (row["method"], row["case_id"])
+        if key in selected:
+            raise ValueError("Duplicate logical call selection")
+        selected[key] = entry
+    if selected != latest:
+        raise ValueError("Logical call must select the final physical attempt")
+    retries = contract.get("access_retry_limit", 0)
+    for sequence in groups.values():
+        dispatched = [
+            row
+            for row in sequence
+            if row.get("state") not in ("credentials_missing", "input_blocked")
+        ]
+        if len(dispatched) > 1 + retries:
+            raise ValueError("Physical retry budget exceeded")
+        for row in sequence[:-1]:
+            if row.get("compatibility") == "structured_output" or not (
+                access_blocker(row) or row.get("state") in ("credentials_missing", "input_blocked")
+            ):
+                raise ValueError("Retry is outside the declared access-repair policy")
+        if len(sequence) > 1:
+            elapsed = sum(row.get("elapsed_seconds") or 0 for row in sequence[:-1])
+            if not math.isclose(
+                sequence[-1].get("retry_execution_seconds", -1), elapsed, rel_tol=1e-9, abs_tol=1e-9
+            ):
+                raise ValueError("Retry execution time does not cover physical attempts")
+    journal = run / "calls.journal.jsonl"
+    if "physical_calls" in manifest and not journal.exists():
+        raise ValueError("Physical call journal is missing")
+    if journal.exists():
+        if journal.is_symlink() or unsafe_parents(journal):
+            raise ValueError("Symlink inputs are prohibited")
+        raw = journal.read_bytes()
+        if not raw.endswith(b"\n"):
+            raise ValueError("Retry journal is incomplete")
+        if [json.loads(line) for line in raw.splitlines()] != entries:
+            raise ValueError("Physical inventory differs from retained journal")
+
+
 def load_run(run: Path):
     manifest = read_json(run / "manifest.json")
     contract = read_json(run / "contract.json")
     verify_execution_snapshot(run, contract)
     if digest((run / "contract.json").read_bytes()) != manifest["contract_sha256"]:
         raise ValueError("Call contract changed")
-    for entry in manifest.get("physical_calls", []):
-        relative = Path(entry["path"])
-        if relative.is_absolute() or ".." in relative.parts:
-            raise ValueError("Unsafe physical evidence path")
-        path = run / relative
-        if path.is_symlink() or digest(path.read_bytes()) != entry["sha256"]:
-            raise ValueError("Physical call evidence changed")
+    verify_retry_history(run, manifest, contract)
     if (
         manifest.get("remote_fixture_after_sha256")
         and digest((run / "remote-fixture-after.json").read_bytes())

@@ -25,6 +25,7 @@ from harness.web_scraper.pipeline import (
     score_rows,
     validate_dataset,
     validate_native_options,
+    verify_retry_history,
 )
 
 
@@ -176,6 +177,7 @@ def collect(home, profile, method, destination):
         "method": method,
         "profile_sha256": digest(profile.read_bytes()),
         "participant": participant,
+        "access_retry_limit": plan.get("access_retries_after_repair", 1),
         "code_sha256": code,
     }
     target = destination / "contract.json"
@@ -385,7 +387,13 @@ def compose(home, source, rows, repair):
 
     def predecessor_identity(row):
         # Aggregation may attach physical call inventories; native logical calls stay identical.
-        value = {k: v for k, v in row.items() if k != "physical_attempts"}
+        derived = {
+            "physical_attempts",
+            "normalized_fields",
+            "collected_normalized_fields",
+            "projection_revision",
+        }
+        value = {k: v for k, v in row.items() if k not in derived}
         if "superseded_result" in value:
             value["superseded_result"] = predecessor_identity(value["superseded_result"])
         return value
@@ -419,8 +427,7 @@ def compose(home, source, rows, repair):
             raw = home / "dataset/html" / (item["case_id"] + ".html")
             if item["sha256"] != digest(raw.read_bytes()):
                 raise ValueError("Repair fixture qualification source changed")
-    for entry in manifest.get("physical_calls", manifest["calls"]):
-        artifact(directory, entry)
+    verify_retry_history(directory, manifest, contract)
     replacements = {}
     for entry in manifest["calls"]:
         row = artifact(directory, entry)

@@ -247,7 +247,9 @@
       "Reason",
       "Source excerpt",
       "Benchmark matcher"
-    ]
+    ],
+    "audited_population": "Scored {scored}/{total}; excluded {excluded}",
+    "audited_population_scope": "Each diagnostic F1 uses the field-specific scored population shown below. Source-ambiguous fields are excluded from these diagnostics; original-reference scores retain the complete population."
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -497,6 +499,8 @@
       "依据",
       "源页面摘录",
       "评测规则判断"
-    ]
+    ],
+    "audited_population": "计分 {scored}/{total}；排除 {excluded}",
+    "audited_population_scope": "核查后的诊断 F1 按表内各字段的分母计算，排除源页面无法确定的字段。原始标注分数仍覆盖全部页面。"
   }
 }

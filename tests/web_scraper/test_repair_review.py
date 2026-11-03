@@ -272,6 +272,30 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
             )
     content.pop("audit")
     save_json(content_path, content)
+    # Even an unchanged native body cannot transfer review to a different run.
+    original_run = home / "runs/example-v1"
+    alternate = home / "runs/alternate"
+    import shutil
+
+    shutil.copytree(original_run, alternate)
+    altered_manifest = read_json(alternate / "manifest.json")
+    failed_entry = next(
+        e
+        for e in altered_manifest["calls"]
+        if read_json(alternate / e["path"])["method"] == "synthetic-blocked"
+    )
+    failed_row = read_json(alternate / failed_entry["path"])
+    failed_row["error"] = "Different unreviewed transport error"
+    save_json(alternate / failed_entry["path"], failed_row)
+    failed_entry["sha256"] = digest((alternate / failed_entry["path"]).read_bytes())
+    save_json(alternate / "manifest.json", altered_manifest)
+    old_content = read_json(content_path)
+    changed_content = deepcopy(old_content)
+    changed_content["evidence_runs"][0]["run"] = "alternate"
+    save_json(content_path, changed_content)
+    with pytest.raises(ValueError, match="Original audit call identity differs"):
+        assemble(*arguments, tmp_path / "unreviewed-execution.json", profile=home / "profile.json")
+    save_json(content_path, old_content)
     opinion_path = work / "reviews/000.json"
     prior_opinion = opinion_path.read_bytes()
     opinions = read_json(opinion_path)
@@ -635,6 +659,20 @@ def test_repair_resumes_access_denial_with_one_new_call_and_keeps_usage(tmp_path
     assert current[-1]["compatibility"] == "structured_output"
     assert len(current[-1]["physical_attempts"]) == 3
     assert current[-1]["physical_attempts"][1]["http_status"] == 402
+    # A self-consistent certificate still cannot select the first failed attempt.
+    manifest = read_json(target / "manifest.json")
+    manifest["calls"][0] = manifest["physical_calls"][0]
+    save_json(target / "manifest.json", manifest)
+    certificate = read_json(target / "certificate.json")
+    certificate["manifest_sha256"] = digest((target / "manifest.json").read_bytes())
+    save_json(target / "certificate.json", certificate)
+    with pytest.raises(ValueError, match="final physical attempt"):
+        compose(
+            home,
+            source,
+            rows,
+            {"path": str(target), "sha256": digest((target / "certificate.json").read_bytes())},
+        )
 
 
 def test_repair_missing_credentials_never_consumes_a_call(tmp_path, monkeypatch):
@@ -852,3 +890,61 @@ def test_repair_clock_can_cross_cooldown_deadline(tmp_path):
     ):
         run(home, profile, "cloudflare-json", tmp_path / "repaired")
     assert provider.call_count == 3 and sleeps
+
+
+def test_compound_citation_cannot_discard_a_fabricated_price(tmp_path):
+    source = tmp_path / "source.html"
+    source.write_text("Product details. Actual price: 13.40")
+    packet = {
+        "cases": [{"case_id": "one", "source_html": str(source), "source_outline": str(source)}]
+    }
+    for quote in ("Product details; Price: 999", "Product details; 999"):
+        raw = {
+            "cases": [
+                {
+                    "case_id": "one",
+                    "source_fields": {"price": {"source_quote": quote}},
+                    "reference": {},
+                    "outputs": [],
+                }
+            ]
+        }
+        result = reconcile_citations(raw, packet)
+        assert result["cases"][0]["source_fields"]["price"]["source_quote"] == quote
+        assert "citation_format_corrections" not in result
+    raw["cases"][0]["source_fields"]["price"]["source_quote"] = (
+        "Product details; Actual price: 13.40"
+    )
+    result = reconcile_citations(raw, packet)
+    assert result["cases"][0]["source_fields"]["price"]["source_quote"] == "Actual price: 13.40"
+
+
+def test_repair_composition_accepts_verified_field_projection(tmp_path):
+    home, source, profile, rows = parent_inputs(tmp_path)
+    destination = tmp_path / "repaired"
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch("harness.web_scraper.repair.score_rows", return_value={}),
+        patch(
+            "harness.web_scraper.repair.provider_call",
+            return_value={
+                "state": "response_received",
+                "http_status": 200,
+                "response": {"result": {"sku": "fixed"}},
+            },
+        ),
+    ):
+        run(home, profile, "cloudflare-json", destination)
+        projected = deepcopy(rows)
+        for row in projected:
+            row["collected_normalized_fields"] = row["normalized_fields"]
+            row["normalized_fields"] = {"sku": "offline projection"}
+            row["projection_revision"] = {"pipeline_sha256": "synthetic"}
+        revision = {
+            "path": str(destination),
+            "sha256": digest((destination / "certificate.json").read_bytes()),
+        }
+        current, _ = compose(home, source, projected, revision)
+    assert current[0]["normalized_fields"] == {"sku": "offline projection"}
+    assert current[-1]["normalized_fields"]["sku"] == "fixed"

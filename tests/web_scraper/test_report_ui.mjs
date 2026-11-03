@@ -1,11 +1,16 @@
 // Synthetic DOM contract tests; no browser or provider calls.
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 
-const source = fs.readFileSync(new URL('../../src/harness/web_scraper/report_ui.py', import.meta.url), 'utf8');
-const catalog = JSON.parse(fs.readFileSync(new URL('../../src/harness/web_scraper/messages.json', import.meta.url), 'utf8'));
-const js = source.match(/JS = r"""([\s\S]*?)"""/)[1].replace('__REPORT_MESSAGES__', JSON.stringify(catalog));
+const rendered = spawnSync('uv', ['run', '--frozen', '--no-sync', 'python', '-c',
+  'import json; from harness.web_scraper.report_ui import JS; print(json.dumps(JS))'],
+  {cwd: fileURLToPath(new URL('../..', import.meta.url)), encoding: 'utf8'});
+assert.equal(rendered.status, 0, rendered.stderr);
+const js = JSON.parse(rendered.stdout);
+const payload = js.match(/const REPORT_MESSAGES = (.*);/)[1];
+const catalog = JSON.parse(payload);
 let focused;
 class Element {
   constructor(tag, text = '') { this.tagName = tag.toUpperCase(); this.text = text; this.children = []; this.dataset = {}; this.listeners = {}; this.attributes = {}; }
@@ -130,6 +135,6 @@ console.log('PASS: stale dialog success and rejection cannot overwrite a newer s
 
 const incomplete = structuredClone(catalog);
 delete incomplete.zh.field_labels_price;
-const incompleteJs = source.match(/JS = r"""([\s\S]*?)"""/)[1].replace('__REPORT_MESSAGES__', JSON.stringify(incomplete));
+const incompleteJs = js.replace(payload, JSON.stringify(incomplete));
 assert.throws(() => vm.runInNewContext(incompleteJs, {...context}), /Missing report translation: zh\/field_labels_price/);
 console.log('PASS: missing client translations fail explicitly');
