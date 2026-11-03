@@ -1304,7 +1304,6 @@
     "按同一任务逐项比较，不用各方法不同的成功样本拼接结论。成功与失败均沿用主榜的程序判定；点击方法可查看标准答案、实际返回和原因。": "Methods are compared task by task; conclusions never splice together different success samples. Pass and fail states use the primary program verdicts. Open a method to inspect its reference, output, and rationale.",
     "记录每轮核验的范围、发现、纠正和未决事项。": "Each review round records its scope, findings, corrections, and unresolved items.",
     "本轮没有绑定独立核验记录。": "No independent review record is bound to this build.",
-    "代码、评测集和复现说明以 browser-eval 仓库为准；本页只列本轮必要配置。": "The browser-eval repository is authoritative for code, dataset, and reproduction instructions. This page lists only the configuration required for this run.",
     "这里列的是完成本报告所需的全部外部准备：账号、官方获取入口和变量名称。变量值、本机路径、登录会话、Cookie 和 Token 均不进入报告。": "This is the complete external setup required for the benchmark: accounts, official sources, and variable names. Values, local paths, login sessions, cookies, and tokens are never included.",
     "报告只公开复现所需的名称和入口，不公开凭据值。": "The report publishes only the names and official entry points needed for reproduction, never credential values.",
     "评测报告 · Web Fetch": "Benchmark report · Web Fetch",
@@ -1978,7 +1977,6 @@
     "独立代理": "Independent agent",
     "在评测仓库中执行；从明确指定的持久化冻结证据构建，不重新调用浏览器。": "Run in the benchmark repository and build from an explicitly selected persistent frozen-evidence directory; browsers are not called again.",
     "browser-eval 仓库": "browser-eval repository",
-    "保存当前评测代码、任务定义和独立参考；本报告另提供本轮冻结结果供复核。": " contains the current benchmark code, task definitions, and independent references. This report separately provides the frozen results for this run.",
     "最终报告纳入": "The final report includes",
     "次调用。任务与参考冻结后执行；每个方法内部串行，不复用个人登录状态。": " calls. Execution begins after tasks and references are frozen; calls are sequential within each method and never reuse personal login state.",
     "“事后核验”只说明留存二进制与官方归档完全一致，不改写成当时已经记录了版本。移动 nightly 无法追到不可得的源修订时，只用 SHA-256 标识精确可执行文件。": "“Post-run verification” means only that the retained binary exactly matches an official archive; it does not rewrite history to claim the version was recorded at call time. When a moving nightly cannot be mapped to an unavailable source revision, SHA-256 alone identifies the exact executable.",
@@ -3312,7 +3310,9 @@
     "最终调用耗时均值 / P50 / P95": "Mean / P50 / P95 final-call latency",
     "三项均采用各方法实际调用且已保存结果的最终一次调用耗时，包含通过与失败；未入库、未调用和适配器提前拒绝不计入，各方法样本数可不同。耗时不参与通过率排名，跨日期、跨批次记录不等同于同窗受控速度比较。": "All three statistics use the final call of each retained result, including passes and failures. Uncommitted, uncalled and adapter-rejected entries are excluded; sample sizes can differ. Latency does not affect pass-rate ordering. Calls from different dates and batches are not a controlled same-window speed comparison.",
     "每个逻辑结果只取最终一次调用耗时，不是包含此前重试和等待的累计耗时。补齐重试的结果在详情页另列已知的两次调用累计耗时；首轮耗时未保存时标为不可用。": "Each logical result uses only its final call latency, not the accumulated cost of prior retries and waits. Continued retries disclose the known combined cost separately in their details; a missing first-call duration remains unavailable.",
-    "分别记录参数重测与离线修订。参数重测包含新调用；离线修订只使用已有返回。": "Parameter reruns and offline revisions are recorded separately. Parameter reruns include new calls; offline revisions use retained responses only."
+    "分别记录参数重测与离线修订。参数重测包含新调用；离线修订只使用已有返回。": "Parameter reruns and offline revisions are recorded separately. Parameter reruns include new calls; offline revisions use retained responses only.",
+    "评测代码在 browser-eval，题目定义和参考数据在 Hugging Face；本页列出本轮配置与复现入口。": "Benchmark code lives in browser-eval; task definitions and reference data live on Hugging Face. This page lists the run configuration and reproduction entry points.",
+    "保存调用、评分和报告工具，通过数据版本锁定文件选择 Hugging Face 上的题目定义和参考数据；本报告提供本轮冻结结果供复核。": " contains invocation, scoring and report tools. Its data lock selects task definitions and reference data on Hugging Face; this report provides the frozen results for this run."
   },
   "PHRASES": {
     "处理路线：": "Retrieval path: ",

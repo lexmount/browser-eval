@@ -35,7 +35,8 @@ def test_final_ranking_reuses_pass_order_and_latency_extrema(tmp_path, tie):
         assert len(row.select('[data-metric-direction="min"] .comparison-winner')) == (
             3 if row is rows[1] and not tie else 0)
     assert page.select_one('#completion') is None
-    assert page.select_one('#saved-limitations') is not None
+    assert page.select_one('#saved-limitations') is None
+    assert 'id="saved-limitations"' in (root/'methodology/index.html').read_text()
 
 
 @pytest.mark.parametrize('tie', [False, True])

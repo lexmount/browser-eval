@@ -1517,7 +1517,8 @@ def test_final_saved_report_preserves_results_without_audit_process_banners(tmp_
     assert 'data-saved-completion' not in html
     assert 'id="completion"' not in html
     assert 'id="saved-missing"' not in html
-    assert 'id="saved-limitations"' in html
+    assert 'id="saved-limitations"' not in html
+    assert 'id="saved-limitations"' in (report/'methodology/index.html').read_text()
     assert 'report_invocation_status' not in html
     assert check_saved_matrix(report, spec_path=tmp_path / 'spec.json')['valid']
 
