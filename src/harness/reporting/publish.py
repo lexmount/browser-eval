@@ -575,6 +575,8 @@ def _publish_bound(track: BoundTrack, release: PublicationSnapshot, *, create: b
     def upload(path: str, *, slug: str | None, expected: str | None, allow_create: bool):
         if (track.staged_key_prefix is not None
                 and release.archive.stat().st_size > STAGED_UPLOAD_THRESHOLD):
+            if slug is None and not allow_create:
+                raise ValueError("no bound site or matching pending creation operation")
             return 200, staged_release_upload(
                 raw_send, release.archive, title=title, slug=slug, expected_version=expected,
                 identity=identity, key_prefix=track.staged_key_prefix,

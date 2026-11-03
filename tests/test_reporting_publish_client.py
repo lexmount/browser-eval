@@ -454,6 +454,16 @@ def test_pending_create_receipt_without_a_verified_field_resumes_when_it_matches
 
 
 @BOUND_TRACKS
+def test_large_archive_on_an_unbound_profile_still_requires_create(tmp_path, monkeypatch, wire, owner, marker):
+    monkeypatch.setattr(publish, 'STAGED_UPLOAD_THRESHOLD', 0)
+    lifecycle_site(monkeypatch, tmp_path, owner, marker)
+    with pytest.raises(ValueError, match='no bound site'):
+        owner.main(create=False)
+    assert not wire
+    assert not owner.RECEIPT.exists()
+
+
+@BOUND_TRACKS
 @pytest.mark.parametrize('mismatch', [{'archive_sha256': 'other'}, {'base_url': 'https://other.example.invalid'}])
 def test_pending_create_receipt_without_a_verified_field_stops_on_a_mismatch(
         tmp_path, monkeypatch, wire, owner, marker, mismatch):
