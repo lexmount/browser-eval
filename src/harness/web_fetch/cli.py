@@ -248,7 +248,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run_owner_command(prog: str, name: str, arguments: Sequence[str]) -> None:
     module, function, _ = OWNER_COMMANDS[name]
-    # Import on selection so a stage loads only what it uses.
+    # Resolve the owner only when selected.
     handler = getattr(importlib.import_module(module), function)
     invoked = sys.argv
     # Owners read sys.argv: several record their own source hash, so their mains stay unchanged.
