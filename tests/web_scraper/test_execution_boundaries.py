@@ -264,6 +264,58 @@ def test_predispatch_storage_failure_does_not_complete_a_provider_attempt(tmp_pa
         assert call.call_count == 3
 
 
+@pytest.mark.parametrize("suffix", [".html", ""])
+def test_canonical_snapshot_paths_are_used_for_qualification_and_extraction(tmp_path, suffix):
+    home = create(tmp_path / "example")
+    target = home / "runs/canonical"
+    urls = []
+
+    def request(url, **kwargs):
+        urls.append(url)
+        cid = url.rsplit("/", 1)[-1].removesuffix(".html")
+        raw = (home / "dataset/html" / (cid + ".html")).read_bytes()
+        return HttpResponse(200, url, {}, raw)
+
+    with (
+        collection_context(),
+        patch("harness.web_scraper.pipeline.request", side_effect=request),
+        patch("harness.web_scraper.pipeline.provider_call", side_effect=accepted) as call,
+    ):
+        probe(
+            home,
+            ["cloudflare-json"],
+            full=True,
+            run_dir=target,
+            fixture_base="https://frozen.example",
+            fixture_suffix=suffix,
+        )
+    assert len(urls) == 6
+    assert (
+        all(url.endswith(suffix) for url in urls)
+        if suffix
+        else all(not url.endswith(".html") for url in urls)
+    )
+    assert [c.args[3] for c in call.call_args_list] == sorted(set(urls))
+
+
+def test_redirecting_snapshot_is_rejected_before_any_provider_call(tmp_path):
+    home = create(tmp_path / "example")
+
+    def redirect(url, **kwargs):
+        cid = url.rsplit("/", 1)[-1].removesuffix(".html")
+        raw = (home / "dataset/html" / (cid + ".html")).read_bytes()
+        return HttpResponse(200, url.removesuffix(".html"), {}, raw)
+
+    with (
+        collection_context(),
+        patch("harness.web_scraper.pipeline.request", side_effect=redirect),
+        patch("harness.web_scraper.pipeline.provider_call") as call,
+    ):
+        with pytest.raises(ValueError, match="canonical frozen fixture"):
+            probe(home, ["cloudflare-json"], full=True, fixture_base="https://frozen.example")
+        call.assert_not_called()
+
+
 def test_resumed_collection_observes_frozen_pacing_before_dispatch(tmp_path):
     home = create(tmp_path / "example")
     target = home / "runs/pacing"

@@ -5,7 +5,7 @@ import importlib.util
 import sys
 from pathlib import Path
 
-from harness.reporting.templates import resolve_template
+from harness.reporting.templates import metric_contract
 from harness.web_scraper.pipeline import (
     PROFILE,
     ROOT,
@@ -55,7 +55,7 @@ def create_plan(home, methods, output):
         "review": "Machine scoring only; independent review requires an explicit request",
         "primary_language": "zh",
         "english": "Generated only on explicit request",
-        "metric_contract": resolve_template("web-scraper")["metric_contract"],
+        "metric_contract": metric_contract(),
         "resource_decision": {
             "cpu": "Remote CPU unavailable; client CPU does not measure the provider.",
             "memory": "Remote memory unavailable; the local baseline is timed separately.",
@@ -162,6 +162,8 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
         if participant.get("post_call_cooldown_seconds")
         else {}
     )
+    if "fixture_suffix" in participant:
+        pacing["fixture_suffix"] = participant["fixture_suffix"]
     source = collector(
         home,
         [method],

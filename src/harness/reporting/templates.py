@@ -30,6 +30,11 @@ METRIC_CONTRACT = {
 }
 
 
+def metric_contract():
+    """Return runtime requirements without requiring checkout-only authoring files."""
+    return deepcopy(METRIC_CONTRACT)
+
+
 def resolve_template(track, *, root=ROOT):
     registry = json.loads((root / "configs/report-templates.json").read_text())
     if registry.get("schema_version") != 1:
@@ -49,7 +54,7 @@ def resolve_template(track, *, root=ROOT):
         raise ValueError("Report template needs a version-pinned example")
     if "metric_contract" in result:
         raise ValueError("A report track cannot replace the shared required metric contract")
-    return {"track": track, **result, "metric_contract": deepcopy(METRIC_CONTRACT)}
+    return {"track": track, **result, "metric_contract": metric_contract()}
 
 
 def template_identity(track):

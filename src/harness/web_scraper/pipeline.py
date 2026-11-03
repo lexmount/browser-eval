@@ -662,6 +662,7 @@ def _probe_unlocked(
     methods: list[str],
     *,
     fixture_base=None,
+    fixture_suffix=".html",
     full=False,
     largest=False,
     min_call_interval=0,
@@ -679,6 +680,8 @@ def _probe_unlocked(
         raise ValueError("Select supported methods explicitly")
     if fixture_base and urlsplit(fixture_base).scheme != "https":
         raise ValueError("Remote frozen fixtures require HTTPS")
+    if fixture_suffix not in (".html", ""):
+        raise ValueError("Frozen fixture suffix must be .html or empty")
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     if full and largest:
         raise ValueError("Full scope and a size probe are mutually exclusive")
@@ -699,10 +702,11 @@ def _probe_unlocked(
 
     def verify_remote():
         def one(case_id):
+            requested_url = f"{fixture_base.rstrip('/')}/{case_id}{fixture_suffix}"
             for attempt in range(3):
                 try:
                     response = request(
-                        f"{fixture_base.rstrip('/')}/{case_id}.html",
+                        requested_url,
                         headers={"Accept-Encoding": "gzip"},
                         timeout=60,
                     )
@@ -719,10 +723,13 @@ def _probe_unlocked(
             )
             if response.status != 200 or digest(body) != expected:
                 raise ValueError("Remote fixture differs from frozen HTML: " + case_id)
+            if response.url != requested_url:
+                raise ValueError("Use the canonical frozen fixture URL without redirects")
             return {
                 "case_id": case_id,
                 "sha256": expected,
                 "http_status": response.status,
+                "url": requested_url,
                 "qualification_fetch_attempts": attempt + 1,
             }
 
@@ -762,6 +769,7 @@ def _probe_unlocked(
         "post_call_cooldown_seconds": post_call_cooldown,
         "method_order": "rotate_by_case_ordinal",
         "fixture_base": fixture_base,
+        "fixture_suffix": fixture_suffix,
         "dataset_manifest_sha256": digest((home / "dataset/manifest.json").read_bytes()),
         "pipeline_sha256": digest(Path(__file__).read_bytes()),
         "pipeline_snapshot": "execution/pipeline.py",
@@ -783,6 +791,7 @@ def _probe_unlocked(
             "minimum_call_interval_seconds",
             "post_call_cooldown_seconds",
             "fixture_base",
+            "fixture_suffix",
             "dataset_manifest_sha256",
             "pipeline_sha256",
             "stagehand_sha256",
@@ -899,7 +908,9 @@ def _probe_unlocked(
                             method,
                             raw.decode("utf-8"),
                             truth[case_id]["url"],
-                            f"{fixture_base.rstrip('/')}/{case_id}.html" if fixture_base else None,
+                            f"{fixture_base.rstrip('/')}/{case_id}{fixture_suffix}"
+                            if fixture_base
+                            else None,
                             **({"home": home} if method == "extruct" else {}),
                         )
                     )

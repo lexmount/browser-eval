@@ -14,7 +14,7 @@ from urllib.parse import unquote, urljoin, urlsplit
 from bs4 import BeautifulSoup
 
 from harness.reporting.presentation import check_presentation
-from harness.reporting.templates import resolve_template
+from harness.reporting.templates import metric_contract
 from harness.web_fetch.publication_privacy import project_evidence_view, publication_risk
 from harness.web_scraper.pipeline import (
     PROFILE,
@@ -957,7 +957,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
         output / "report-manifest.json",
         {
             "template": VERSION,
-            "metric_contract": resolve_template("web-scraper")["metric_contract"],
+            "metric_contract": metric_contract(),
             "mode": state,
             "planned_methods": list(cohort_plan["participants"]) if cohort else None,
             "method_labels": names,
@@ -983,7 +983,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
     manifest = read_json(output / "report-manifest.json")
     if manifest["template"] != VERSION:
         raise ValueError("Wrong template")
-    if manifest.get("metric_contract") != resolve_template("web-scraper")["metric_contract"]:
+    if manifest.get("metric_contract") != metric_contract():
         raise ValueError("Report does not bind the shared required metric contract")
     if manifest["renderer_sha256"] != digest(Path(__file__).read_bytes()):
         raise ValueError("Renderer identity changed; rebuild required")

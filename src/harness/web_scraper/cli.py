@@ -28,6 +28,7 @@ def main(argv=None):
         p = sub.add_parser(command)
         p.add_argument("--methods", nargs="+", required=True)
         p.add_argument("--fixture-base")
+        p.add_argument("--fixture-suffix", choices=[".html", ""], default=".html")
         p.add_argument(
             "--run-dir",
             type=Path,
@@ -78,6 +79,7 @@ def main(argv=None):
                 args.home,
                 args.methods,
                 fixture_base=args.fixture_base,
+                fixture_suffix=args.fixture_suffix,
                 full=args.command == "run",
                 largest=getattr(args, "largest_page", False),
                 min_call_interval=args.min_call_interval,
