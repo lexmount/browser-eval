@@ -634,7 +634,7 @@ def assemble(
     print(f"Assembled {len(rows)} results and {len(calls)} physical calls", flush=True)
 
 
-def sample_main(argv=None, *, root=None):
+def sample_main(argv=None):
     parser = argparse.ArgumentParser(description="Assemble a profile-declared WebMainBench sample")
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -682,7 +682,3 @@ def main() -> None:
         cohorts=cohorts,
         scorer=args.scorer,
     )
-
-
-if __name__ == "__main__":
-    main()

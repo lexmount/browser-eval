@@ -83,7 +83,7 @@ def test_score_command_resolves_qualified_hf_inputs_by_default(edition, tmp_path
     monkeypatch.setattr(data, 'definition_path', lambda track, relative: manifest.parent / relative)
     called = {}
     monkeypatch.setattr(wcxb_scoring, 'score', lambda **args: called.update(args))
-    monkeypatch.setattr(sys, 'argv', ['score_wcxb_results.py', '--evidence-root', str(tmp_path / 'evidence'),
+    monkeypatch.setattr(sys, 'argv', ['wcxb-score', '--evidence-root', str(tmp_path / 'evidence'),
                                     '--profile', str(tmp_path / 'profile.json')])
     wcxb_scoring.main()
     assert called['source'] == source

@@ -310,12 +310,12 @@ For WCXB, select a profile-bound evidence directory and a fresh output with
 requirements. An optional `paired_comparison` names `baseline` and `candidate`
 participants. A declared timing correction still requires complete paired evidence;
 ordinary cohorts do not inherit another report’s timing or optional-feature claims. Run
-`scripts/check_report.py` with that profile and `scripts/check_wcxb_visual.py`
+`scripts/check_report.py` with that profile and `uv run --frozen python -m harness.web_fetch wcxb-visual`
 against the output. The existing publication entry point also supports local
 packaging without credentials or a network upload:
 
 ```sh
-uv run --frozen python scripts/publish_wcxb_artifact_site.py --package-only \
+uv run --frozen python -m harness.web_fetch wcxb-publish --package-only \
   --profile /absolute/instance/profile.json \
   --source /absolute/instance/report --work /absolute/instance/package
 ```

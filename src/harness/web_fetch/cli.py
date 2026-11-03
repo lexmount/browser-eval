@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import importlib
+import sys
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -28,6 +31,59 @@ from harness.web_fetch.runner import rescore_evaluation, run_evaluation
 from harness.data_home import data_home
 
 EXAMPLES = Path(__file__).parent / "data"
+# WCXB and WebMainBench stages whose owning module parses its own arguments, including --help.
+OWNER_COMMANDS = {
+    "wcxb-select": ("harness.web_fetch.wcxb_dataset", "main",
+                    "Freeze a WCXB sample manifest"),
+    "wcxb-latency": ("harness.web_fetch.wcxb_latency", "main",
+                     "Collect or certify (certify) paired WCXB timing"),
+    "wcxb-score": ("harness.web_fetch.wcxb_scoring", "main",
+                   "Score a certified WCXB cohort against its profile"),
+    "wcxb-visual": ("harness.web_fetch.wcxb_report_check", "visual_main",
+                    "Check WCXB report interactions, themes and viewports"),
+    "wcxb-publish": ("harness.web_fetch.wcxb_publication", "main",
+                     "Package or publish a checked WCXB report"),
+    "webmainbench-select": ("harness.web_fetch.public_benchmark_sample", "main",
+                            "Freeze the WebMainBench-545 sample manifest"),
+    "webmainbench-run": ("harness.web_fetch.webmainbench_runner", "main",
+                         "Run one WebMainBench provider shard"),
+    "webmainbench-score": ("harness.web_fetch.webmainbench_scoring", "main",
+                           "Score one WebMainBench shard with the pinned scorer"),
+    "webmainbench-review": ("harness.web_fetch.webmainbench_diagnostics", "sample_review_main",
+                            "Audit a declared sample without the official scorer"),
+    "webmainbench-assemble": ("harness.web_fetch.webmainbench_assembly", "sample_main",
+                              "Assemble a declared sample from reviewed shards"),
+    "webmainbench-check": ("harness.web_fetch.webmainbench_report_check", "sample_main",
+                           "Check a frozen sample report"),
+    "webmainbench-audit": ("harness.web_fetch.webmainbench_diagnostics", "suspicion_main",
+                           "Flag frozen evidence anomalies without changing scores"),
+    "webmainbench-case-correction": ("harness.web_fetch.webmainbench_case_correction", "main",
+                                     "Apply one-case replacement evidence to a new directory"),
+    "webmainbench-case-rescore": ("harness.web_fetch.webmainbench_correction", "case_scoring_main",
+                                  "Rescore a certified case correction offline"),
+    "webmainbench-scoring-correction": ("harness.web_fetch.webmainbench_correction",
+                                        "scoring_revision_main",
+                                        "Apply a decision-authority manifest to the full population"),
+    "webmainbench-teds-correction": ("harness.web_fetch.webmainbench_diagnostics", "correct_teds",
+                                     "Apply an offline TEDS-only revision"),
+    "webmainbench-teds-review": ("harness.web_fetch.webmainbench_diagnostics", "teds_review_main",
+                                 "Verify the scope and unchanged evidence of a TEDS revision"),
+    "webmainbench-latency-correction": ("harness.web_fetch.webmainbench_latency_correction", "main",
+                                        "Apply a certified latency correction"),
+    "webmainbench-latency-tail": ("harness.web_fetch.webmainbench_latency_diagnostic",
+                                  "paired_tail_main",
+                                  "Repeat declared paired Moli latency calls serially"),
+    "webmainbench-content-review": ("harness.web_fetch.review_execution", "content_review_main",
+                                    "Prepare or resume a source-grounded content review"),
+    "webmainbench-full-run": ("harness.web_fetch.webmainbench_certification", "main",
+                              "Run a certified complete cohort"),
+    "webmainbench-full-score": ("harness.web_fetch.webmainbench_certification", "main_score",
+                                "Score a certified complete cohort"),
+    "webmainbench-full-assemble": ("harness.web_fetch.webmainbench_assembly", "main",
+                                   "Verify and package the baseline and variant cohorts"),
+    "webmainbench-full-check": ("harness.web_fetch.webmainbench_report_check", "main",
+                                "Check a complete report"),
+}
 
 
 def default_run_dir() -> Path:
@@ -185,12 +241,31 @@ def build_parser() -> argparse.ArgumentParser:
     )
     accounts.add_argument("--env-file", type=Path)
     accounts.set_defaults(handler=command_accounts)
+    for name, (_, _, summary) in OWNER_COMMANDS.items():
+        sub.add_parser(name, help=summary, add_help=False)
     return parser
 
 
-def main() -> None:
+def run_owner_command(prog: str, name: str, arguments: Sequence[str]) -> None:
+    module, function, _ = OWNER_COMMANDS[name]
+    # Import on selection so a stage loads only what it uses.
+    handler = getattr(importlib.import_module(module), function)
+    invoked = sys.argv
+    # Owners read sys.argv: several record their own source hash, so their mains stay unchanged.
+    sys.argv = [f"{prog} {name}", *arguments]
+    try:
+        handler()
+    finally:
+        sys.argv = invoked
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    arguments = list(sys.argv[1:] if argv is None else argv)
     parser = build_parser()
-    args = parser.parse_args()
+    if arguments[:1] and arguments[0] in OWNER_COMMANDS:
+        run_owner_command(parser.prog, arguments[0], arguments[1:])
+        return
+    args = parser.parse_args(arguments)
     if getattr(args, "output", "sentinel") is None:
         args.output = default_run_dir()
     try:

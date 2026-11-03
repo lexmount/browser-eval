@@ -196,9 +196,9 @@ def publish(*, source: Path, authority_root: Path, work: Path, transport=None, p
             'url': profile['artifact_hub_share_url']}
 
 
-def main(argv=None, *, root: Path | None = None) -> None:
+def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--authority-root', type=Path, default=root or Path.cwd())
+    parser.add_argument('--authority-root', type=Path, default=Path.cwd())
     parser.add_argument('--source', type=Path)
     parser.add_argument('--profile', type=Path, required=True, help='external WCXB instance profile')
     parser.add_argument('--package-only', action='store_true', help='validate and create a local archive without publishing')
@@ -214,7 +214,3 @@ def main(argv=None, *, root: Path | None = None) -> None:
         return
     print(json.dumps(publish(source=args.source or authority / 'reports/wcxb',
                              authority_root=authority, work=args.work, profile_path=args.profile), ensure_ascii=False))
-
-
-if __name__ == '__main__':
-    main()

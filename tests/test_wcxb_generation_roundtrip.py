@@ -17,7 +17,7 @@ def test_generate_then_consume_qualified_edition(tmp_path, monkeypatch, scope, e
         (source.parent / 'tasks.json').write_text(edition_path.read_text())
     monkeypatch.setattr(data, 'definition_path', lambda track, relative: source if relative == 'source' else edition_path)
     output = tmp_path / 'selection.json'
-    arguments = ['select_wcxb_sample.py', '--output', str(output)]
+    arguments = ['wcxb-select', '--output', str(output)]
     if source_option:
         arguments += ['--source', str(source)]
     if scope != 'subset':
@@ -68,7 +68,7 @@ def test_discovered_and_explicit_historical_manifests_select_identical_populatio
 def test_historical_generator_keeps_original_schema_and_qualified_selection(tmp_path, monkeypatch):
     source, _, _ = corpus(tmp_path, 511, historical=True)
     output = tmp_path / 'historical.json'
-    monkeypatch.setattr(sys, 'argv', ['select_wcxb_sample.py', '--source', str(source),
+    monkeypatch.setattr(sys, 'argv', ['wcxb-select', '--source', str(source),
                                      '--qualified-test', '--output', str(output)])
     wcxb_dataset.main()
     manifest = json.loads(output.read_text())
@@ -83,7 +83,7 @@ def test_generated_subset_does_not_weaken_edition_or_selection_checks(tmp_path, 
     source, edition_path, _ = corpus(tmp_path, 504)
     (source.parent / 'tasks.json').write_text(edition_path.read_text())
     output = tmp_path / 'subset.json'
-    monkeypatch.setattr(sys, 'argv', ['select_wcxb_sample.py', '--source', str(source), '--output', str(output)])
+    monkeypatch.setattr(sys, 'argv', ['wcxb-select', '--source', str(source), '--output', str(output)])
     wcxb_dataset.main()
     manifest = json.loads(output.read_text())
     if changed == 'source_count':
@@ -109,7 +109,7 @@ def test_generator_rejects_stale_task_fields_in_selected_qualified_edition(tmp_p
     edition_path.write_text(json.dumps(edition))
     monkeypatch.setattr(data, 'definition_path', lambda track, relative: source if relative == 'source' else edition_path)
     output = tmp_path / 'selection.json'
-    monkeypatch.setattr(sys, 'argv', ['select_wcxb_sample.py', '--qualified-test', '--output', str(output)])
+    monkeypatch.setattr(sys, 'argv', ['wcxb-select', '--qualified-test', '--output', str(output)])
     with pytest.raises(ValueError, match='task fields differ'):
         wcxb_dataset.main()
     assert not output.exists()

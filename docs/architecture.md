@@ -179,7 +179,7 @@ rebuild before publication or an incremental update.
 
 ### Content review
 
-Source-grounded content review uses `scripts/review_webmainbench_content.py` with
+Source-grounded content review uses `uv run --frozen python -m harness.web_fetch webmainbench-content-review` with
 `--evidence`, `--correction`, `--work` and an explicit `--provider`. Its scope is
 the complete frozen dataset, including machine passes; comparisons corroborate
 the source evidence. `--prepare-only` creates private, hash-bound reading packets
@@ -191,7 +191,7 @@ scripts and styles but retain hidden nodes, so they do not prove rendered visibi
 
 ### Saved-evidence diagnostics
 
-`scripts/audit_webmainbench_suspicions.py` scans saved evidence with a source dataset.
+`uv run --frozen python -m harness.web_fetch webmainbench-audit` scans saved evidence with a source dataset.
 It verifies frozen source/reference hashes and every logical output hash before
 returning investigation signals. Missing bindings, duplicate logical results or
 inputs changed during analysis are errors. Large inline input failures use the
@@ -200,8 +200,7 @@ cause or final verdict. An optional output file must be new.
 
 ### Paired timing
 
-Paired Moli timing uses `scripts/diagnose_webmainbench_moli_tail.py` or
-`python -m harness.web_fetch.webmainbench_latency_diagnostic` with the same arguments.
+Paired Moli timing uses `uv run --frozen python -m harness.web_fetch webmainbench-latency-tail`.
 `--older-version` and `--newer-version` declare the expected binary versions;
 `--source-sha256` and `--source-count` bind a different frozen source population.
 `--all-cases` includes the complete declared sample. Tail-only selection is

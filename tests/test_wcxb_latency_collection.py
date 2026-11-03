@@ -303,14 +303,12 @@ def test_certification_rejects_a_receipt_naming_an_unknown_digest(experiment):
     assert not (kwargs['output'] / 'certification.json').exists()
 
 
-@pytest.mark.parametrize('repository_default', [False, True])
-def test_collector_cli_preserves_repository_default_and_supports_caller_default(tmp_path, monkeypatch, repository_default):
+def test_collector_cli_keeps_the_selected_profile(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     captured = []
     monkeypatch.setattr(timing, 'collect', lambda **kw: captured.append(kw) or {})
-    repository = tmp_path / 'repository' if repository_default else None
     timing.main(['--dataset', 'dataset', '--manifest', 'manifest.json',
-                 '--release', 'released', '--candidate', 'candidate', '--output', 'new', '--profile', str(tmp_path/'selected.json')], root=repository)
+                 '--release', 'released', '--candidate', 'candidate', '--output', 'new', '--profile', str(tmp_path/'selected.json')])
     assert captured[0]['profile'] == tmp_path / 'selected.json'
 
 

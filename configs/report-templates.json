@@ -9,7 +9,7 @@
       "check": "make report-check PROFILE=/absolute/instance-profile.json",
       "wcxb_build": "uv run --frozen python scripts/build_report.py --profile /absolute/instance-profile.json --evidence /absolute/path --output reports/wcxb",
       "wcxb_check": "make wcxb-release-check PROFILE=/absolute/instance-profile.json",
-      "wcxb_package": "uv run --frozen python scripts/publish_wcxb_artifact_site.py --package-only --profile /absolute/instance-profile.json --source /absolute/new-report --work /absolute/package",
+      "wcxb_package": "uv run --frozen python -m harness.web_fetch wcxb-publish --package-only --profile /absolute/instance-profile.json --source /absolute/new-report --work /absolute/package",
       "tests": "tests/test_headless_report.py",
       "variants": [
         "certified",

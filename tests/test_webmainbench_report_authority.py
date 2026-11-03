@@ -4,14 +4,11 @@ import hashlib
 import json
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
 from harness.report_languages import write_language_contract
 from harness.web_fetch.webmainbench_report_check import check, check_sample_report
-
-ROOT = Path(__file__).resolve().parents[1]
 
 
 def document(root, name, value):
@@ -22,17 +19,17 @@ def document(root, name, value):
 
 
 @pytest.mark.parametrize(
-    "command", ["check_webmainbench_report.py", "check_webmainbench_full_report.py"]
+    "command", ["webmainbench-check", "webmainbench-full-check"]
 )
 def test_release_commands_expose_authority_and_reject_missing_authority(tmp_path, command):
-    script = ROOT / "scripts" / command
+    entry = [sys.executable, "-m", "harness.web_fetch", command]
     help_result = subprocess.run(
-        [sys.executable, str(script), "--help"], cwd=tmp_path, capture_output=True, text=True
+        [*entry, "--help"], cwd=tmp_path, capture_output=True, text=True
     )
     assert help_result.returncode == 0
     assert "--authority-root" in help_result.stdout
     result = subprocess.run(
-        [sys.executable, str(script), str(tmp_path), "--authority-root", str(tmp_path)],
+        [*entry, str(tmp_path), "--authority-root", str(tmp_path)],
         cwd=tmp_path, capture_output=True, text=True,
     )
     assert result.returncode != 0

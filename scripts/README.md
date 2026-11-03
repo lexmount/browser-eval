@@ -53,24 +53,24 @@ survived this pruning.
 | `build_report.py` | `make report`, `configs/report-templates.json`, `AGENTS.md` |
 | `check_report.py`, `check_report_links.py`, `check_report_revision.py` | `make report-check`, `make wcxb-release-check` |
 | `check_diagnostic_report.py` | `make webfetch-diagnostic-report` |
-| `check_wcxb_visual.py` | `make wcxb-release-check` |
 | `check_publication_bundle.py` | `src/harness/web_fetch/README.md` |
 | `verify_artifact_site.py` | executed by `src/harness/trajectory_replay/public_webarena/release.py` |
 | `restore_report_content.py` | `docs/architecture.md` |
-| `package_artifact_site.py`, `publish_artifact_site.py`, `publish_wcxb_artifact_site.py` | `configs/report-templates.json`, `docs/benchmarks.md` |
+| `package_artifact_site.py`, `publish_artifact_site.py` | `configs/report-templates.json`, `docs/benchmarks.md` |
 
 ## WCXB and WebMainBench
 
+WCXB and WebMainBench stages run through `uv run --frozen python -m harness.web_fetch <command>`,
+beside the `run`, `report`, `rescore`, `validate` and `accounts` commands; `--help` lists
+them. `make wcxb-release-check`, `make public-benchmark-sample` and `make webmainbench-*`
+reach the commands they name; the [Web Fetch guide](../src/harness/web_fetch/README.md),
+[WebMainBench guide](../src/harness/web_fetch/WEBMAINBENCH.md),
+[`docs/architecture.md`](../docs/architecture.md),
+[`docs/benchmarks.md`](../docs/benchmarks.md) and `configs/report-templates.json` show the rest.
+
 | Script | Reached from |
 | --- | --- |
-| `score_wcxb_results.py` | `src/harness/web_fetch/README.md`, WCXB reproduction text in `report.py` |
-| `select_public_benchmark_sample.py` | `make public-benchmark-sample` |
-| `run_webmainbench_benchmark.py`, `score_webmainbench_results.py`, `review_webmainbench_results.py`, `assemble_webmainbench_evidence.py` | `make webmainbench-run`, `-score`, `-review`, `-assemble` |
-| `audit_webmainbench_suspicions.py`, `apply_webmainbench_case_correction.py` | `make webmainbench-audit`, `make webmainbench-apply-case-correction` |
-| `apply_webmainbench_latency_correction.py`, `assemble_webmainbench_full.py`, `correct_webmainbench_scoring.py`, `correct_webmainbench_teds.py`, `rescore_webmainbench_case_correction.py`, `review_webmainbench_teds_correction.py`, `run_certified_webmainbench_full.py`, `score_certified_webmainbench_full.py` | `src/harness/web_fetch/WEBMAINBENCH.md` |
 | `run_certified_webmainbench_latency.py` | `src/harness/web_fetch/data/webmainbench-latency-source.json` |
-| `diagnose_webmainbench_moli_tail.py` | `docs/architecture.md`, bound latency certifiers |
-| `review_webmainbench_content.py` | `docs/architecture.md` |
 
 ## Web Search
 
@@ -117,9 +117,6 @@ exclusive tests together.
 | `assemble_webfetch_refresh.py`, `audit_fixed_native_comparison.py` | sole entries to declared cohort refresh assembly and the two-build native comparison audit |
 | `probe_cowagent_text.py` | writes the `guide/cowagent-text-probe.json` evidence that `report_build.py` publishes; only that output file is named |
 | `prepare_result_review_subset.py`, `merge_internal_review_shards.py`, `rebind_result_review_metadata.py` | sole entries to the shared independent-review contract in `result_review.py`; only `tests/package_smoke.py` runs them |
-| `select_wcxb_sample.py` | regenerates `evaluation/public-wcxb-test-qualified.json`; only tests name the script |
-| `run_wcxb_paired_latency.py` | collects the paired timing cohort that `run_certified_benchmark.py wcxb-latency` certifies |
-| `check_webmainbench_report.py`, `check_webmainbench_full_report.py` | standalone release gates for the WebMainBench sample and complete reports; `report_build.py` imports the full-report check, not the script |
 | `authorize_artifact_site.py` | saves the user-scoped Artifact Site token that `AGENTS.md` describes, without naming the script |
 | `rename_artifact_site.py` | Artifact Site display-title maintenance |
 | `use_prepared_webarena_cohort_reset.py` | passed as `run_remote_three_method_cohort.py --cohort-reset-hook`; receipts outside Git bind its hash, not its name |
