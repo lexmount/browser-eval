@@ -155,9 +155,9 @@ def page(
     if state != "compatibility":
         labels = list(labels)
         labels[7] = (
-            "全量评测进度 · 未完成的方法不计质量分"
+            "冻结商品页字段评测 · 机器评分，调用失败保留在分母中"
             if language == "zh"
-            else "Full-cohort progress · quality unavailable for incomplete methods"
+            else "Frozen product-page extraction · machine scoring, failed calls retained"
         )
         labels[2] = "结果与失败" if language == "zh" else "Results and failures"
     other = "zh" if language == "en" else "en"
