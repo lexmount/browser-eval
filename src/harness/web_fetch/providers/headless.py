@@ -825,10 +825,12 @@ _ADDRESS_IN_USE = re.compile(rb'address\s*(?:is\s*)?(?:already\s*)?in\s*use', re
 
 
 def _connect_native_cdp(playwright, process, port, deadline):
-    """Return a browser only while ``process`` is alive, or ``None`` once it has exited.
+    """Return ``(browser, handshake_error)``, with a browser only while ``process`` is alive.
 
     Another listener can answer on a port this server failed to bind, so an open
-    port alone does not prove that the answer came from this process.
+    port alone does not prove that the answer came from this process. The browser
+    is ``None`` once the server has exited, and the error is the handshake failure
+    that preceded that exit, if any.
     """
     remaining = lambda: max(.001, deadline - time.monotonic())
     while process.poll() is None:
@@ -840,11 +842,11 @@ def _connect_native_cdp(playwright, process, port, deadline):
         except OSError:
             time.sleep(min(.02, remaining()))
     else:
-        return None
+        return None, None
     try:
         browser = playwright.chromium.connect_over_cdp(
             'http://127.0.0.1:' + str(port), timeout=remaining() * 1000)
-    except Exception:
+    except Exception as error:
         # A foreign listener can reject the handshake before this server exits on its failed bind.
         try:
             process.wait(timeout=min(NATIVE_CDP_BIND_EXIT_GRACE_SECONDS, remaining()))
@@ -852,11 +854,11 @@ def _connect_native_cdp(playwright, process, port, deadline):
             pass
         if process.poll() is None:
             raise
-        return None
+        return None, error
     if process.poll() is None:
-        return browser
+        return browser, None
     browser.close()
-    return None
+    return None, None
 
 
 @contextmanager
@@ -909,13 +911,17 @@ def native_cdp_browser(playwright, request, deadline, metadata=None):
                         [request['binary'], 'serve', '--host', '127.0.0.1', '--port', str(port), *command],
                         stdout=log, stderr=log, env=process_environment,
                     )
-                    browser = _connect_native_cdp(playwright, process, port, deadline)
+                    browser, handshake_error = _connect_native_cdp(playwright, process, port, deadline)
                     if browser is not None:
                         break
                     # The child shares this file offset, so read without moving it.
                     output = os.pread(log.fileno(), os.fstat(log.fileno()).st_size - log_start, log_start)
-                    if attempt == NATIVE_CDP_PORT_ATTEMPTS or not _ADDRESS_IN_USE.search(output):
-                        raise RuntimeError(output.decode('utf-8', 'replace')[:4000])
+                    port_lost = _ADDRESS_IN_USE.search(output)
+                    if not port_lost and handshake_error is not None:
+                        raise handshake_error
+                    if attempt == NATIVE_CDP_PORT_ATTEMPTS or not port_lost:
+                        raise RuntimeError(output.decode('utf-8', 'replace')[:4000]
+                                           or f'Native CDP server exited with code {process.returncode} and no output')
                 yield browser
             finally:
                 try:

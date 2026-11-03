@@ -139,6 +139,26 @@ def test_handshake_failure_from_a_running_server_is_raised_without_a_restart(tmp
     assert len(harness.processes) == 1
 
 
+@pytest.mark.parametrize(
+    "output", ["", "print('unrelated', file=sys.stderr)"], ids=["silent", "unrelated-log"]
+)
+def test_handshake_error_survives_a_server_exit_without_a_port_conflict(tmp_path, output):
+    script = SERVER.replace("time.sleep(60)", f"{output}\ntime.sleep(.2)\nsys.exit(0)")
+    harness = Harness(tmp_path, script, held=0, reject_all=True)
+    with patch.object(headless, "NATIVE_CDP_BIND_EXIT_GRACE_SECONDS", 20):
+        with pytest.raises(ConnectionError, match="handshake rejected"):
+            harness.run()
+    assert len(harness.processes) == 1
+    assert harness.processes[0].returncode == 0
+
+
+def test_silent_exit_before_any_handshake_reports_the_exit_code(tmp_path):
+    harness = Harness(tmp_path, "#!{python}\nimport sys\nsys.exit(3)\n", held=0)
+    with pytest.raises(RuntimeError, match="exited with code 3"):
+        harness.run()
+    assert len(harness.processes) == 1
+
+
 def test_foreign_cdp_server_is_not_used_after_this_server_lost_the_port(tmp_path):
     harness = Harness(tmp_path, foreign_is_cdp=True)
     taken = set(harness.taken)
