@@ -108,7 +108,7 @@ rejects failed, cancelled or unexpectedly skipped checks.
 | Check | What it covers |
 | --- | --- |
 | `make lint-check` | Basic Python errors across the repository and configured Ruff rules for the declared tracks |
-| `make package-check` | Base CLI, then source archive → wheel → base/optional installation outside the checkout (`harness/package_gate.py`) |
+| `make package-check` | Base CLI, then source archive → wheel → base/optional installation outside the checkout (`src/harness/package_gate.py`) |
 | `make shell-check` | ShellCheck on `deploy/` scripts |
 | `make browser-check` | Chromium reference capture, report interactions and Web Search visual checks |
 | `make test-reference-inputs` | Strict historical-input checks after importing [approved reference copies](docs/reference-inputs.md) |
