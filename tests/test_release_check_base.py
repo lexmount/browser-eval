@@ -1,4 +1,5 @@
-"""The shared release-check flow is reached by every track gate and fails closed."""
+"""Every track gate opens its report through the shared flow, and the flow fails closed.
+"""
 
 import json
 
@@ -24,6 +25,9 @@ from harness.web_fetch import (
     wcxb_report_check,
     webmainbench_report_check,
 )
+from tests.browser_use.test_report import build_browser_use_fixture
+from tests.browser_use.test_report_check import SELECTION, authority
+from tests.trajectory_replay.test_webarena_report import build_replay_fixture
 
 GATES = {
     "webfetch": lambda root: report_check.check(root, authority_root=root),
@@ -128,3 +132,57 @@ def test_report_identity_still_binds_the_template_and_the_build(tmp_path):
     (tmp_path / FILENAME).write_text(json.dumps({"role": "report_builder"}), encoding="utf-8")
     with pytest.raises(ValueError, match="version binding"):
         check_report_identity(tmp_path, {}, "browser-use")
+
+
+def test_trajectory_gate_accepts_the_bound_profile(tmp_path, monkeypatch):
+    output, _, _, _, _, _, files = build_replay_fixture(tmp_path, monkeypatch)
+    assert trajectory.check(output, profile_path=files["profile.json"])["html_pages"]
+
+
+@pytest.mark.parametrize("defect", ["changed", "unbound", "linked"])
+def test_trajectory_gate_rejects_a_different_profile(tmp_path, monkeypatch, defect):
+    output, _, _, _, _, _, files = build_replay_fixture(tmp_path, monkeypatch)
+    profile = files["profile.json"]
+    if defect == "changed":
+        profile.write_text(profile.read_text(encoding="utf-8") + " ", encoding="utf-8")
+    elif defect == "unbound":
+        path = output / "report-manifest.json"
+        manifest = json.loads(path.read_text(encoding="utf-8"))
+        del manifest["profile_sha256"]
+        path.write_text(json.dumps(manifest), encoding="utf-8")
+    else:
+        target = tmp_path / "profile-target.json"
+        profile.rename(target)
+        profile.symlink_to(target)
+    with pytest.raises(ValueError, match="different instance profile"):
+        trajectory.check(output, profile_path=profile)
+
+
+def _browser_use_report(tmp_path, monkeypatch):
+    import harness.browser_use.report as renderer
+
+    # The current renderer stores the selected registry at module scope.
+    for name in ("ENGINE_LABELS", "MODEL_LABELS", "BASELINE_ENGINE"):
+        monkeypatch.setattr(renderer, name, getattr(renderer, name))
+    report, evidence, _ = build_browser_use_fixture(tmp_path, monkeypatch)
+    profile = authority(tmp_path / "authority", engines=["chromium", "moli"],
+                        baseline_engine="chromium",
+                        engine_labels={"chromium": "Chromium", "moli": "Moli"},
+                        models=["gpt-5.6-sol"], model_labels={"gpt-5.6-sol": "GPT-5.6 Sol"})
+    return report, evidence, profile
+
+
+@pytest.mark.parametrize("bound", [False, True], ids=["legacy-unbound", "other-profile"])
+def test_browser_use_gate_reads_only_an_unbound_legacy_report(tmp_path, monkeypatch, bound):
+    report, evidence, profile = _browser_use_report(tmp_path, monkeypatch)
+    path = report / "report-data.json"
+    audit = json.loads(path.read_text(encoding="utf-8"))
+    audit.pop("profile_sha256", None)
+    if bound:
+        audit["profile_sha256"] = "0" * 64
+    # A stale selection hash fails right after the identity check, so reaching it proves a pass.
+    audit["selection_sha256"] = "stale"
+    path.write_text(json.dumps(audit), encoding="utf-8")
+    expected = "different instance profile" if bound else "current pre-registered selection"
+    with pytest.raises(ValueError, match=expected):
+        browser_use.check(report, evidence, SELECTION, require_complete=False, profile_path=profile)
