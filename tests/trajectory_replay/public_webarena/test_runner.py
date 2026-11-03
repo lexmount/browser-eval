@@ -753,8 +753,11 @@ def test_webarena_run_mode_fails_closed_on_qualification_state(
     docker_call.assert_not_called()
 
 
+@pytest.mark.parametrize("password", ["file-secret", 'back\\slash"quote'])
 @pytest.mark.parametrize("failure", ["environment", "evaluator"])
-def test_failed_attempt_evidence_omits_the_login_password(tmp_path, monkeypatch, failure):
+def test_failed_attempt_evidence_omits_the_login_password(
+    tmp_path, monkeypatch, failure, password
+):
     from harness.trajectory_replay.public_webarena.evaluators import TaskEvaluation
 
     task = {
@@ -799,18 +802,18 @@ def test_failed_attempt_evidence_omits_the_login_password(tmp_path, monkeypatch,
         )
     )
     secrets = tmp_path / "repository.env"
-    secrets.write_text("TEST_USER=user\nTEST_SECRET=file-secret\n", encoding="utf-8")
+    secrets.write_text(f"TEST_USER=user\nTEST_SECRET={password}\n", encoding="utf-8")
     monkeypatch.setattr(env_file, "_repository_credentials_file", secrets)
     monkeypatch.setenv("TEST_SECRET", "exported-secret")
 
     def failed_reset(self, *_args, **_kwargs):
-        raise RuntimeError(f"login form echoed {self._credentials('reddit')['password']}")
+        raise RuntimeError(f"login form echoed {[self._credentials('reddit')['password']]!r}")
 
     page = MagicMock()
     page.context.pages = [page]
     registry = MagicMock()
     registry.evaluate.return_value = TaskEvaluation(
-        "fail", 0.0, (), "test", error="login form echoed file-secret"
+        "fail", 0.0, (), "test", error=f"login form echoed {[password]!r}"
     )
     monkeypatch.setattr(runner, "EvaluatorRegistry", lambda **_: registry)
     monkeypatch.setattr(runner, "ResourceSampler", lambda *a, **kw: MagicMock())
@@ -856,8 +859,9 @@ def test_failed_attempt_evidence_omits_the_login_password(tmp_path, monkeypatch,
     )
 
     attempts = (output / "attempts.jsonl").read_text(encoding="utf-8")
-    assert "login form echoed [REDACTED]" in attempts
-    assert "file-secret" not in attempts
+    assert "login form echoed ['[REDACTED]']" in json.loads(attempts.splitlines()[0])["error"]
+    for spelling in (password, repr(password)[1:-1], json.dumps(password)[1:-1]):
+        assert spelling not in attempts
 
 
 def test_external_websocket_url_rewrites_container_advertised_host():

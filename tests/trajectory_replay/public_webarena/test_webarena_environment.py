@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import json
 import os
 import time
@@ -943,6 +944,33 @@ def test_redaction_follows_a_password_variable_the_runtime_config_names(tmp_path
 
     assert environment.redact_login_passwords("typed fixture-password") == "typed [REDACTED]"
     assert environment._credentials("shopping_admin")["password"] == "fixture-password"
+
+
+@pytest.mark.parametrize(
+    "written",
+    [
+        lambda password: password,
+        lambda password: repr(password),
+        lambda password: repr([password]),
+        lambda password: json.dumps(password),
+        lambda password: json.dumps({"password": password}),
+        lambda password: html.escape(password),
+    ],
+)
+def test_redaction_covers_the_spellings_of_an_escaped_password(tmp_path, monkeypatch, written):
+    password = "back\\slash\"quote'é<"
+    environment, _ = _environment(tmp_path)
+    _named_credentials(environment)
+    _repository_env(
+        tmp_path,
+        monkeypatch,
+        f"TEST_WEBARENA_USERNAME=fixture-user\nTEST_WEBARENA_PASSWORD={password}\n",
+    )
+
+    redacted = environment.redact_login_passwords(f"alert: {written(password)}")
+
+    assert "[REDACTED]" in redacted
+    assert "slash" not in redacted
 
 
 def test_credentials_fail_closed_on_missing_or_inline_sources(tmp_path, monkeypatch):

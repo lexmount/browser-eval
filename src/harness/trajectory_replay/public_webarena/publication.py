@@ -18,7 +18,11 @@ from harness.environments.webarena.topology import configured_site_secrets
 from harness.record_io import file_sha256, read_json
 from harness.reporting.privacy import PRIVATE_IPV4, PUBLIC_WEBARENA
 from harness.reporting.publication import archive_inventory
-from harness.trajectory_replay.public_webarena.config import map_strings, redact_site_passwords
+from harness.trajectory_replay.public_webarena.config import (
+    map_strings,
+    redact_site_passwords,
+    site_password_spellings,
+)
 from harness.trajectory_replay.public_webarena.result_audit import audit_result_set
 from harness.web_fetch.publication_target import publication_document, require_publication_version
 from harness.web_fetch.report_publish import PublishConfig, publish
@@ -193,18 +197,11 @@ def _validate_internal_links(root: Path) -> None:
 
 
 def _contains_site_password(text: str, passwords: tuple[str, ...]) -> bool:
-    """Match a password as written, HTML-escaped, JSON-escaped or JSON-escaped inside HTML."""
+    """Match any spelling of a password, also after decoding the HTML escapes around it."""
     decoded = html.unescape(text)
-    forms = {
-        form
-        for password in passwords
-        for form in (
-            password,
-            json.dumps(password)[1:-1],
-            json.dumps(password, ensure_ascii=False)[1:-1],
-        )
-    }
-    return any(form in text or form in decoded for form in forms)
+    return any(
+        spelling in text or spelling in decoded for spelling in site_password_spellings(passwords)
+    )
 
 
 def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Path) -> dict:

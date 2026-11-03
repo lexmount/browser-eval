@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import html
+import json
 import os
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -30,10 +32,27 @@ def load_runtime_env(path: str | Path | None = None) -> None:
         os.environ.setdefault(key, value)
 
 
+def site_password_spellings(passwords: Iterable[str]) -> list[str]:
+    """Return each set password as written and as text escapes it, longest first."""
+    spellings = {
+        spelling
+        for password in passwords
+        if password.strip()
+        for spelling in (
+            password,
+            html.escape(password),
+            json.dumps(password)[1:-1],
+            json.dumps(password, ensure_ascii=False)[1:-1],
+            repr(password)[1:-1],
+        )
+    }
+    return sorted(spellings, key=len, reverse=True)
+
+
 def redact_site_passwords(text: str, passwords: Iterable[str]) -> str:
-    """Replace each set password in ``text``, longest first so none leaves a remainder."""
-    for password in sorted({item for item in passwords if item.strip()}, key=len, reverse=True):
-        text = text.replace(password, "[REDACTED]")
+    """Replace every spelling of each set password, longest first so none leaves a remainder."""
+    for spelling in site_password_spellings(passwords):
+        text = text.replace(spelling, "[REDACTED]")
     return text
 
 
