@@ -406,3 +406,9 @@ def test_a_missing_env_file_keeps_its_error_and_a_link_to_a_file_still_parses(tm
     link = tmp_path / "link.env"
     link.symlink_to(target)
     assert parse_env_file(link) == {"DEMO_SETTING": "value"}
+
+
+def test_the_null_device_reads_as_an_empty_env_file(monkeypatch) -> None:
+    assert parse_env_file(os.devnull) == {}
+    monkeypatch.setattr(os, "environ", dict(os.environ))
+    web_fetch_config.load_runtime_env(Path(os.devnull))

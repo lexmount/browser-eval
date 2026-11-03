@@ -21,6 +21,8 @@ _REJECTED_NAME = re.compile(r"""\s*(?:export[^\S\r\n]+)?(?:'([^']+)'|([^=#\s]+))
 
 def _read_bindings(path: str | Path) -> dict[str, Binding]:
     selected = Path(path).expanduser()
+    if selected == Path(os.devnull):
+        return {}
     # Reading a FIFO would block forever; stat also keeps the missing-file error.
     if not stat.S_ISREG(selected.stat().st_mode):
         raise ValueError(f"env file must be a regular file: {selected.name}")
@@ -54,7 +56,8 @@ def parse_env_file(path: str | Path) -> dict[str, str]:
     opens a multi-line value is affected; a name on a line it absorbed keeps its
     earlier value. Names that are not shell identifiers and lines that assign
     nothing are ignored. A missing file raises ``FileNotFoundError``, and a FIFO, directory
-    or other non-regular file raises ``ValueError`` without being read.
+    or other non-regular file raises ``ValueError`` without being read. ``os.devnull`` is
+    allowed explicitly and reads as empty.
     """
     return {name: binding.value for name, binding in _read_bindings(path).items()}
 
