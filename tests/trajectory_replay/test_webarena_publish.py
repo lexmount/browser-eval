@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import zipfile
 from pathlib import Path
 
@@ -30,7 +31,7 @@ def test_response_json_keeps_http_failure_details() -> None:
     for status, payload, expected in (
         (413, b'{"error":"too large"}', "HTTP 413"),
         (502, b"", "empty response"),
-        (200, b"", "without valid JSON"),
+        (200, b"", "without a valid JSON response"),
     ):
         try:
             publisher.response_json(status, payload, operation="upload")
@@ -41,9 +42,9 @@ def test_response_json_keeps_http_failure_details() -> None:
 
 
 def test_staged_file_put_has_longer_socket_timeout() -> None:
-    assert publisher.request_timeout("PUT") == 1_200
-    assert publisher.request_timeout("POST") == 240
-    assert publisher.request_timeout(None) == 240
+    assert publisher.CLIENT.timeout_for("PUT") == 1_200
+    assert publisher.CLIENT.timeout_for("POST") == 240
+    assert publisher.CLIENT.timeout_for(None) == 240
 
 
 def test_public_share_must_be_same_origin_and_token_route() -> None:
@@ -180,7 +181,7 @@ def test_receipt_replace_interruption_preserves_previous_receipt(
     def interrupt_replace(_source, _destination) -> None:
         raise OSError("simulated interruption")
 
-    monkeypatch.setattr(publisher.os, "replace", interrupt_replace)
+    monkeypatch.setattr(os, "replace", interrupt_replace)
     with pytest.raises(OSError, match="simulated interruption"):
         publisher.save_receipt({"slug": "site-2"})
 

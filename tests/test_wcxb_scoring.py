@@ -5,7 +5,6 @@ import os
 import py_compile
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -283,11 +282,12 @@ def test_dataset_python_is_never_executed_even_with_stale_bytecode(cohort, tmp_p
 
 
 def test_command_uses_explicit_profile_outside_repository(cohort, tmp_path):
-    script = Path(__file__).resolve().parents[1] / "scripts/score_wcxb_results.py"
     result = subprocess.run(
         [
             sys.executable,
-            str(script),
+            "-m",
+            "harness.web_fetch",
+            "wcxb-score",
             "--source",
             str(cohort["source"]),
             "--sample-manifest",

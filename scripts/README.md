@@ -53,24 +53,28 @@ survived this pruning.
 | `build_report.py` | `make report`, `configs/report-templates.json`, `AGENTS.md` |
 | `check_report.py`, `check_report_links.py`, `check_report_revision.py` | `make report-check`, `make wcxb-release-check` |
 | `check_diagnostic_report.py` | `make webfetch-diagnostic-report` |
-| `check_wcxb_visual.py` | `make wcxb-release-check` |
 | `check_publication_bundle.py` | `src/harness/web_fetch/README.md` |
 | `verify_artifact_site.py` | executed by `src/harness/trajectory_replay/public_webarena/release.py` |
 | `restore_report_content.py` | `docs/architecture.md` |
-| `package_artifact_site.py`, `publish_artifact_site.py`, `publish_wcxb_artifact_site.py` | `configs/report-templates.json`, `docs/benchmarks.md` |
+| `package_artifact_site.py`, `publish_artifact_site.py` | `configs/report-templates.json`, `docs/benchmarks.md` |
 
 ## WCXB and WebMainBench
 
+WCXB and WebMainBench stages run through `uv run --frozen python -m harness.web_fetch <command>`,
+beside the `run`, `report`, `rescore`, `validate` and `accounts` commands; `--help` lists
+them. `make wcxb-release-check`, `make public-benchmark-sample` and `make webmainbench-*`
+reach the commands they name; the [Web Fetch guide](../src/harness/web_fetch/README.md),
+[WebMainBench guide](../src/harness/web_fetch/WEBMAINBENCH.md),
+[`docs/architecture.md`](../docs/architecture.md),
+[`docs/benchmarks.md`](../docs/benchmarks.md) and `configs/report-templates.json` show the rest,
+except the three commands listed under "Pending owner decision (#93)".
+The scripts below stay because frozen latency certifiers name them.
+
 | Script | Reached from |
 | --- | --- |
-| `score_wcxb_results.py` | `src/harness/web_fetch/README.md`, WCXB reproduction text in `report.py` |
-| `select_public_benchmark_sample.py` | `make public-benchmark-sample` |
-| `run_webmainbench_benchmark.py`, `score_webmainbench_results.py`, `review_webmainbench_results.py`, `assemble_webmainbench_evidence.py` | `make webmainbench-run`, `-score`, `-review`, `-assemble` |
-| `audit_webmainbench_suspicions.py`, `apply_webmainbench_case_correction.py` | `make webmainbench-audit`, `make webmainbench-apply-case-correction` |
-| `apply_webmainbench_latency_correction.py`, `assemble_webmainbench_full.py`, `correct_webmainbench_scoring.py`, `correct_webmainbench_teds.py`, `rescore_webmainbench_case_correction.py`, `review_webmainbench_teds_correction.py`, `run_certified_webmainbench_full.py`, `score_certified_webmainbench_full.py` | `src/harness/web_fetch/WEBMAINBENCH.md` |
 | `run_certified_webmainbench_latency.py` | `src/harness/web_fetch/data/webmainbench-latency-source.json` |
 | `diagnose_webmainbench_moli_tail.py` | `docs/architecture.md`, bound latency certifiers |
-| `review_webmainbench_content.py` | `docs/architecture.md` |
+| `run_webmainbench_benchmark.py` | `make webmainbench-run`, bound latency certifiers |
 
 ## Web Search
 
@@ -79,10 +83,10 @@ Report commands run through `uv run --frozen python -m harness.web_search <comma
 
 ## Browser Use
 
-| Script | Reached from |
-| --- | --- |
-| `build_browser_use_report.py`, `check_browser_use_report.py`, `check_browser_use_visual.py`, `review_browser_use_results.py` | `make browser-use-*` |
-| `package_browser_use_artifact_site.py` | `configs/report-templates.json`, `docs/benchmarks.md` |
+Report commands run through `uv run --frozen python -m harness.browser_use <command>`:
+`report`, `check`, `visual`, `review`, `package` and `publish`. `make browser-use-*` runs
+`report`, `review`, `visual` and `check`; [`docs/benchmarks.md`](../docs/benchmarks.md) shows
+`report`, `check` and `package`. `publish` has neither: run it directly after `package`.
 
 ## Browser Trajectory Replay
 
@@ -100,14 +104,14 @@ Report commands run through `uv run --frozen python -m harness.web_search <comma
 ## Pending owner decision (#93)
 
 No Makefile target, CI job, guide, `configs/report-templates.json` entry or
-checked-in profile, certificate or receipt names these scripts. Each one is
+checked-in profile, certificate or receipt names these entries. Each one is
 kept for now because it is the only command entry to a stage that a current
 harness module still implements, so deleting it would remove that stage rather
 than a duplicate. Its owner must either name it in the owning guide (and move
 the row to the table above) or delete the stage, its `main_*` function and its
 exclusive tests together.
 
-| Script | Why it survived |
+| Script or command | Why it survived |
 | --- | --- |
 | `add_provider_results.py` | sole entry to `evidence.add_provider_run`, which adds one complete provider cohort to the persistent current evidence |
 | `certify_headless_cases.py`, `project_headless_provider.py` | sole entries to per-case certification and one-provider projection of a live-reference run; `HEADLESS.md` describes the stage without naming them |
@@ -117,12 +121,10 @@ exclusive tests together.
 | `assemble_webfetch_refresh.py`, `audit_fixed_native_comparison.py` | sole entries to declared cohort refresh assembly and the two-build native comparison audit |
 | `probe_cowagent_text.py` | writes the `guide/cowagent-text-probe.json` evidence that `report_build.py` publishes; only that output file is named |
 | `prepare_result_review_subset.py`, `merge_internal_review_shards.py`, `rebind_result_review_metadata.py` | sole entries to the shared independent-review contract in `result_review.py`; only `tests/package_smoke.py` runs them |
-| `select_wcxb_sample.py` | regenerates `evaluation/public-wcxb-test-qualified.json`; only tests name the script |
-| `run_wcxb_paired_latency.py` | collects the paired timing cohort that `run_certified_benchmark.py wcxb-latency` certifies |
-| `check_webmainbench_report.py`, `check_webmainbench_full_report.py` | standalone release gates for the WebMainBench sample and complete reports; `report_build.py` imports the full-report check, not the script |
+| `harness.web_fetch wcxb-select` | regenerates `evaluation/public-wcxb-test-qualified.json`; only tests name the command |
+| `harness.web_fetch webmainbench-check`, `harness.web_fetch webmainbench-full-check` | standalone release gates for the WebMainBench sample and complete reports; `report_build.py` imports the full-report check, not the command |
 | `authorize_artifact_site.py` | saves the user-scoped Artifact Site token that `AGENTS.md` describes, without naming the script |
 | `rename_artifact_site.py` | Artifact Site display-title maintenance |
-| `publish_browser_use_artifact_site.py` | publishes the packaged Browser Use report to its bound target |
 | `use_prepared_webarena_cohort_reset.py` | passed as `run_remote_three_method_cohort.py --cohort-reset-hook`; receipts outside Git bind its hash, not its name |
 | `build_browser_use_replay_seeds.py`, `build_webarena_expert_seeds.py`, `run_webarena_trajectory_replay.py`, `promote_webarena_trajectories.py` | seed, replay and promotion stages of the repository-curated dataset; `evaluation/trajectory-replay/webarena-verified/README.md` describes the stages without naming the scripts |
 | `merge_webarena_replay_results.py` | overlays formal correction shards onto the current replay matrix |

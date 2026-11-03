@@ -5,7 +5,6 @@ import argparse
 import hashlib
 import json
 import os
-import urllib.request
 from pathlib import Path
 from urllib.parse import quote
 
@@ -14,22 +13,23 @@ from lexbench_webfetch.paths import contained_path
 from harness.record_io import canonical_json_sha256, json_bytes
 from harness.reporting import links as report_links
 from harness.reporting.publication import (
+    PublicationClient,
     PublicationOperation,
     archive_inventory,
     atomic_write,
     package_archive,
     public_share_context,
+    response_json,
     snapshot_publication,
 )
 from harness.web_fetch import wcxb_report_check
-from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.publication import upload_large_archive
 from harness.web_fetch.publication_target import publication_base, require_publication_version
-from harness.web_fetch.report_publish import response_json
 from harness.web_fetch.safety import evidence_tree_identity, reject_evidence_symlinks
 from harness.data_home import data_home
 
 INVENTORY = 'public-files.json'
+CLIENT = PublicationClient('WCXB-Report-Publisher/1.0', authorization_first=False)
 
 
 def profile_digest(profile: dict) -> str:
@@ -134,22 +134,17 @@ def publish(*, source: Path, authority_root: Path, work: Path, transport=None, p
                 raise ValueError('WCXB publication profile changed')
             if not path.startswith('/') or path.startswith('//'):
                 raise ValueError('WCXB request must stay on its configured service')
-            headers = {'User-Agent': 'WCXB-Report-Publisher/1.0'}
-            if auth:
-                # Synthetic transports never load a real account credential.
-                if transport is None:
-                    headers['Authorization'] = 'Bearer ' + load_token(base_url=base)
-            if content_type:
-                headers['Content-Type'] = content_type
+            extra_headers = {}
             if path.startswith('/api/uploads') and method != 'PUT' and data is not None:
                 phase = 'commit' if '/commit?' in path else 'start'
-                headers['Idempotency-Key'] = f'wcxb-{phase}-{operation_hash[:32]}'
+                extra_headers['Idempotency-Key'] = f'wcxb-{phase}-{operation_hash[:32]}'
             if transport is not None:
+                # Synthetic transports never load a real account credential.
+                headers = CLIENT.headers(base, content_type, authenticated=False, extra_headers=extra_headers)
                 status, raw = transport(path, data, content_type, auth=auth, method=method, headers=headers)
             else:
-                req = urllib.request.Request(base + path, data=data, headers=headers, method=method)
-                with urllib.request.urlopen(req, timeout=240) as response:
-                    status, raw = response.status, response.read()
+                status, raw, _ = CLIENT.request(base, path, data, content_type, method=method,
+                                                authenticated=auth, extra_headers=extra_headers)
             release.check()
             if status == 404 and path.startswith('/api/operations/'):
                 return status, raw
@@ -201,9 +196,9 @@ def publish(*, source: Path, authority_root: Path, work: Path, transport=None, p
             'url': profile['artifact_hub_share_url']}
 
 
-def main(argv=None, *, root: Path | None = None) -> None:
+def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--authority-root', type=Path, default=root or Path.cwd())
+    parser.add_argument('--authority-root', type=Path, default=Path.cwd())
     parser.add_argument('--source', type=Path)
     parser.add_argument('--profile', type=Path, required=True, help='external WCXB instance profile')
     parser.add_argument('--package-only', action='store_true', help='validate and create a local archive without publishing')
@@ -219,7 +214,3 @@ def main(argv=None, *, root: Path | None = None) -> None:
         return
     print(json.dumps(publish(source=args.source or authority / 'reports/wcxb',
                              authority_root=authority, work=args.work, profile_path=args.profile), ensure_ascii=False))
-
-
-if __name__ == '__main__':
-    main()

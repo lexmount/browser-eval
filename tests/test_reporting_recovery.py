@@ -79,6 +79,7 @@ def test_retry_recovers_same_site_and_version(tmp_path, monkeypatch, track, fail
         original_write(path, data)
 
     monkeypatch.setattr(owner, "atomic_write", write)
+    monkeypatch.setattr("harness.reporting.publication.atomic_write", write)
 
     def observed_preview():
         nonlocal interrupted, version
@@ -125,6 +126,7 @@ def test_retry_recovers_same_site_and_version(tmp_path, monkeypatch, track, fail
 
     class Response:
         status = 200
+        headers = {}
 
         def __enter__(self):
             return self

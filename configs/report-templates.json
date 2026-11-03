@@ -9,7 +9,7 @@
       "check": "make report-check PROFILE=/absolute/instance-profile.json",
       "wcxb_build": "uv run --frozen python scripts/build_report.py --profile /absolute/instance-profile.json --evidence /absolute/path --output reports/wcxb",
       "wcxb_check": "make wcxb-release-check PROFILE=/absolute/instance-profile.json",
-      "wcxb_package": "uv run --frozen python scripts/publish_wcxb_artifact_site.py --package-only --profile /absolute/instance-profile.json --source /absolute/new-report --work /absolute/package",
+      "wcxb_package": "uv run --frozen python -m harness.web_fetch wcxb-publish --package-only --profile /absolute/instance-profile.json --source /absolute/new-report --work /absolute/package",
       "tests": "tests/test_headless_report.py",
       "variants": [
         "certified",
@@ -42,11 +42,11 @@
     },
     "browser-use": {
       "renderer": "src/harness/browser_use/report.py",
-      "entrypoint": "scripts/build_browser_use_report.py",
-      "build": "uv run --frozen python scripts/build_browser_use_report.py --profile /absolute/instance-profile.json --evidence /absolute/evidence --output /absolute/new-report",
-      "check": "uv run --frozen python scripts/check_browser_use_report.py /absolute/new-report --profile /absolute/instance-profile.json --evidence /absolute/evidence --require-complete",
+      "entrypoint": "src/harness/browser_use/cli.py",
+      "build": "uv run --frozen python -m harness.browser_use report --profile /absolute/instance-profile.json --evidence /absolute/evidence --output /absolute/new-report",
+      "check": "uv run --frozen python -m harness.browser_use check /absolute/new-report --profile /absolute/instance-profile.json --evidence /absolute/evidence --require-complete",
       "tests": "tests/browser_use/test_report.py",
-      "package": "uv run --frozen python scripts/package_browser_use_artifact_site.py --report /absolute/new-report --profile /absolute/instance-profile.json --evidence /absolute/evidence --output /absolute/package.zip --attestation /absolute/attestation.json --visual-receipt /absolute/visual.json",
+      "package": "uv run --frozen python -m harness.browser_use package --report /absolute/new-report --profile /absolute/instance-profile.json --evidence /absolute/evidence --output /absolute/package.zip --attestation /absolute/attestation.json --visual-receipt /absolute/visual.json",
       "example": "https://artifact-hub.app.lexmount.com/s/7l77EeXPRfml?version=ver_ce4dd70fde2e444ab18d24bba3ee0e93"
     },
     "web-search": {

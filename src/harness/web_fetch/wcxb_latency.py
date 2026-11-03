@@ -311,7 +311,7 @@ def certify(argv=None) -> dict:
     print('Certified WCXB paired latency cohort:', args.evidence_root)
     return certificate
 
-def main(argv=None, *, root: Path | None = None) -> None:
+def main(argv=None) -> None:
     """Caller-relative CLI; existing binary flags retain their two-build meaning."""
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv[:1] == ['certify']:
@@ -345,7 +345,3 @@ def main(argv=None, *, root: Path | None = None) -> None:
                      wait_quiet_seconds=args.wait_quiet_seconds,
                      inputs=(args.config.absolute(),) if args.config else ())
     print(json.dumps(result), flush=True)
-
-
-if __name__ == '__main__':
-    main()

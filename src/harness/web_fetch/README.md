@@ -131,7 +131,7 @@ content requirement establishes the source scope.
 Current qualified inputs come from [LexBench-WCXB on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-WCXB), selected by the [data lock](../benchmarks/data-lock.json). Browser Eval owns the runner and scorer. Existing experiment profiles keep their original source manifests and input hashes.
 
 `wcxb_scoring.py` owns certified frozen-HTML scoring. The maintained command is
-`scripts/score_wcxb_results.py`; the required `--profile` argument selects an
+`uv run --frozen python -m harness.web_fetch wcxb-score`; the required `--profile` argument selects an
 external experiment profile. The profile's ordered
 participants must match the cohort certificate exactly. Adding or renaming a
 participant in a separately certified cohort requires data changes rather than
@@ -971,12 +971,12 @@ round before observing results. Failed calls remain in the physical log; an
 incomplete, drifting or invalid cohort receives no valid receipt.
 
 ```bash
-uv run --frozen python -m harness.web_fetch.wcxb_latency \
+uv run --frozen python -m harness.web_fetch wcxb-latency \
   --profile /absolute/path/current-report.json \
   --dataset /absolute/path/wcxb --manifest /absolute/path/qualified.json \
   --release /absolute/path/released-binary --candidate /absolute/path/candidate-binary \
   --output /absolute/path/new-paired-evidence
-uv run --frozen python -m harness.web_fetch.wcxb_latency certify \
+uv run --frozen python -m harness.web_fetch wcxb-latency certify \
   --profile /absolute/path/current-report.json \
   --dataset /absolute/path/wcxb --sample-manifest /absolute/path/qualified.json \
   --evidence-root /absolute/path/new-paired-evidence
@@ -996,7 +996,8 @@ WCXB release and visual checks pass, the publisher can be invoked from an
 installed package with an explicit repository authority:
 
 ```bash
-uv run --frozen python -m harness.web_fetch.wcxb_publication \
+uv run --frozen python -m harness.web_fetch wcxb-publish \
+  --profile /absolute/path/current-report.json \
   --authority-root /absolute/path/browser-eval --source /absolute/path/wcxb-report
 ```
 
@@ -1035,7 +1036,7 @@ and execution limits. The manifest declares the parent population and selected
 tasks; the assembler does not infer a population from the available shard files.
 Sample execution is serial, with one logical result per method and task.
 
-`review_webmainbench_results.py` is an explicit deterministic audit entry. It
+`uv run --frozen --extra webmainbench-eval python -m harness.web_fetch webmainbench-review` is an explicit deterministic audit entry. It
 checks saved evidence without calling a provider or importing the official
 scorer for its independent text, code and formula checks. Its receipt binds the
 profile and every reviewed record, output, summary, execution record and fixture
@@ -1046,7 +1047,7 @@ result review.
 After an explicitly requested audit has produced a passing receipt, assemble it:
 
 ```bash
-uv run --frozen python scripts/assemble_webmainbench_evidence.py \
+uv run --frozen python -m harness.web_fetch webmainbench-assemble \
   --source-root /absolute/path/provider-shards \
   --dataset /absolute/path/WebMainBench_545.jsonl \
   --sample-manifest evaluation/public-webmainbench-200.json \

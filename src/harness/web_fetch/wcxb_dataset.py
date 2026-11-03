@@ -166,7 +166,3 @@ def main() -> None:
     args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
     print(json.dumps({"source_sha256": source_hash, "sample_sha256": hashlib.sha256(args.output.read_bytes()).hexdigest(),
                       "distribution": distribution}, ensure_ascii=False))
-
-
-if __name__ == "__main__":
-    main()

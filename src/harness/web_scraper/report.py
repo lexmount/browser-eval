@@ -7,7 +7,6 @@ import math
 import re
 import statistics
 import struct
-import zipfile
 from html import escape as esc
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
@@ -2133,27 +2132,22 @@ def check(output: Path, *, release=False, visual_receipt=None):
 
 def package(output, archive, *, visual_receipt):
     """Package only the release-checked report inventory, with no private siblings."""
+    from harness.reporting.publication import package_archive
+
     require_external_output(archive)
-    check(output, release=True, visual_receipt=visual_receipt)
     manifest = read_json(output / "report-manifest.json")
     names = [*sorted(manifest["files"]), "report-manifest.json"]
-    archive.parent.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(archive, "x", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as bundle:
-        for name in names:
-            path = output / name
-            bundle.write(
-                path,
-                name,
-                compress_type=(
-                    zipfile.ZIP_STORED
-                    if path.suffix.lower() in (".png", ".jpeg", ".jpg")
-                    else zipfile.ZIP_DEFLATED
-                ),
-            )
-    return {
-        "files": len(names),
-        "archive_bytes": archive.stat().st_size,
-        "expanded_bytes": sum((output / name).stat().st_size for name in names),
-        "archive_sha256": digest(archive.read_bytes()),
-        "report_manifest_sha256": digest((output / "report-manifest.json").read_bytes()),
-    }
+    return package_archive(
+        output,
+        archive,
+        archive.with_suffix(".receipt.json"),
+        inputs=(visual_receipt,),
+        validate=lambda: check(output, release=True, visual_receipt=visual_receipt),
+        attest=lambda path: {
+            "files": len(names),
+            "archive_bytes": path.stat().st_size,
+            "expanded_bytes": sum((output / name).stat().st_size for name in names),
+            "archive_sha256": digest(path.read_bytes()),
+            "report_manifest_sha256": digest((output / "report-manifest.json").read_bytes()),
+        },
+    )

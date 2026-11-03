@@ -7,6 +7,10 @@ from pathlib import Path
 import pytest
 
 from harness.browser_use import report_check as checker
+from tests.browser_use.test_report import build_browser_use_fixture
+
+ROOT = Path(__file__).resolve().parents[2]
+SELECTION = ROOT / "evaluation/browser-use/webarena-verified-pilot.json"
 
 
 def authority(root: Path, **updates) -> Path:
@@ -192,6 +196,47 @@ def test_external_profile_and_bound_review_do_not_use_default_authority(tmp_path
     with pytest.raises(ValueError, match='bound to the failure-cause review'):
         checker.check(tmp_path / 'report', tmp_path / 'evidence', None,
                       require_complete=True, profile_path=external, authority_root=root)
+
+
+BUILT_BEFORE_THE_MOVE = {"track": "browser-use", "renderer": "src/harness/browser_use/report.py",
+                         "entrypoint": "scripts/build_browser_use_report.py"}
+
+
+@pytest.mark.parametrize("template, rejected", [
+    (BUILT_BEFORE_THE_MOVE, False),
+    ({**BUILT_BEFORE_THE_MOVE, "renderer": "src/other/report.py"}, True),
+    ({**BUILT_BEFORE_THE_MOVE, "track": "other"}, True),
+    (None, True),
+], ids=["old-entry-point", "other-renderer", "other-track", "no-template"])
+def test_check_binds_the_renderer_not_the_entry_point(tmp_path, monkeypatch, template, rejected):
+    import harness.browser_use.report as renderer
+
+    # The current renderer stores the selected registry at module scope.
+    for name in ("ENGINE_LABELS", "MODEL_LABELS", "BASELINE_ENGINE"):
+        monkeypatch.setattr(renderer, name, getattr(renderer, name))
+    report, evidence, _ = build_browser_use_fixture(tmp_path, monkeypatch)
+    profile = authority(tmp_path / "authority", engines=["chromium", "moli"],
+                        baseline_engine="chromium",
+                        engine_labels={"chromium": "Chromium", "moli": "Moli"},
+                        models=["gpt-5.6-sol"], model_labels={"gpt-5.6-sol": "GPT-5.6 Sol"})
+    audit = json.loads((report / "report-data.json").read_text(encoding="utf-8"))
+    # The check right after the template gate fails on this hash, so reaching it proves a pass.
+    audit.update(template=template, profile_sha256="from-another-profile")
+    (report / "report-data.json").write_text(json.dumps(audit), encoding="utf-8")
+    expected = "bypasses the maintained" if rejected else "different instance profile"
+    with pytest.raises(ValueError, match=expected):
+        checker.check(report, evidence, SELECTION, require_complete=False, profile_path=profile)
+
+
+def test_template_gate_needs_no_registry_without_a_profile_hash(monkeypatch):
+    # Wheels do not bundle the registry, and an unprofiled report has nothing to bind.
+    def no_registry(_track):
+        raise FileNotFoundError("configs/report-templates.json")
+
+    monkeypatch.setattr(checker, "template_identity", no_registry)
+    checker.check_template_identity({})
+    with pytest.raises(FileNotFoundError):
+        checker.check_template_identity({"profile_sha256": "bound"})
 
 
 @pytest.mark.parametrize("defect", [None, "count", "host", "diagram"])

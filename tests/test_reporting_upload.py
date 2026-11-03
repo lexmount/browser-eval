@@ -174,6 +174,7 @@ def test_browser_publication_verifies_full_export_before_binding(tmp_path, monke
     monkeypatch.setattr(autonomous, 'request', request)
     class Response:
         status = 200
+        headers = {}
         def __enter__(self):
             return self
         def __exit__(self, *args):

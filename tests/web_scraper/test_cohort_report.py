@@ -283,6 +283,7 @@ def test_package_checks_release_and_includes_only_the_frozen_public_tree(tmp_pat
     manifest = read_json(output / "report-manifest.json")
     (tmp_path / "private-secret.txt").write_text("Never package siblings")
     receipt = tmp_path / "visual.json"
+    receipt.write_text("{}")
     with patch("harness.web_scraper.report.check") as release_check:
         result = package(output, tmp_path / "public.zip", visual_receipt=receipt)
     release_check.assert_called_once_with(output, release=True, visual_receipt=receipt)

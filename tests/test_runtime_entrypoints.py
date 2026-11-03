@@ -63,7 +63,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         )[0]
         release = makefile.split("browser-use-release-check:", 1)[1]
 
-        self.assertIn("check_browser_use_report.py", routine)
+        self.assertIn("-m harness.browser_use check", routine)
         self.assertIn("check_report_links.py", routine)
         self.assertNotIn("browser-use-visual-check", routine)
         self.assertIn("browser-use-report-check", release.splitlines()[0])

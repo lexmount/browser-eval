@@ -254,13 +254,13 @@ maintained report's releases or review rounds. Build, check and package use the
 same binding.
 
 ```sh
-uv run --frozen python scripts/build_browser_use_report.py \
+uv run --frozen python -m harness.browser_use report \
   --profile /absolute/instance/profile.json \
   --evidence /absolute/model-evidence --output /absolute/instance/report
-uv run --frozen python scripts/check_browser_use_report.py \
+uv run --frozen python -m harness.browser_use check \
   /absolute/instance/report --profile /absolute/instance/profile.json \
   --evidence /absolute/model-evidence --require-complete
-uv run --frozen python scripts/package_browser_use_artifact_site.py \
+uv run --frozen python -m harness.browser_use package \
   --report /absolute/instance/report --profile /absolute/instance/profile.json \
   --evidence /absolute/model-evidence --output /absolute/instance/report.zip \
   --attestation /absolute/instance/attestation.json \
@@ -310,12 +310,12 @@ For WCXB, select a profile-bound evidence directory and a fresh output with
 requirements. An optional `paired_comparison` names `baseline` and `candidate`
 participants. A declared timing correction still requires complete paired evidence;
 ordinary cohorts do not inherit another report’s timing or optional-feature claims. Run
-`scripts/check_report.py` with that profile and `scripts/check_wcxb_visual.py`
+`scripts/check_report.py` with that profile and `uv run --frozen --extra headless-eval python -m harness.web_fetch wcxb-visual`
 against the output. The existing publication entry point also supports local
 packaging without credentials or a network upload:
 
 ```sh
-uv run --frozen python scripts/publish_wcxb_artifact_site.py --package-only \
+uv run --frozen python -m harness.web_fetch wcxb-publish --package-only \
   --profile /absolute/instance/profile.json \
   --source /absolute/instance/report --work /absolute/instance/package
 ```

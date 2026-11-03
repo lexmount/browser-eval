@@ -4,12 +4,12 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 
 from harness.browser_use.failure_cause_review import review_path
 from harness.browser_use.report_check import check
+from harness.browser_use.report_publish import tree_sha256
 from harness.browser_use.report_visual import check as check_visual
 from harness.browser_use.report_visual import receipt_is_current
 from harness.browser_use.selection import report_selection_path
@@ -21,16 +21,6 @@ from harness.reporting.publication import package_archive
 
 ATTESTATION = Path("publish/browser-use-sites.attestation.json")
 VISUAL_RECEIPT = Path("publish/browser-use-visual-qa.json")
-
-
-def tree_sha256(root: Path) -> str:
-    digest = hashlib.sha256()
-    for path in sorted(item for item in root.rglob("*") if item.is_file()):
-        relative = path.relative_to(root).as_posix().encode()
-        digest.update(len(relative).to_bytes(8, "big"))
-        digest.update(relative)
-        digest.update(bytes.fromhex(file_sha256(path)))
-    return digest.hexdigest()
 
 
 def validate_release(
@@ -107,7 +97,3 @@ def main() -> None:
         profile_path=args.profile,
     )
     print(args.output)
-
-
-if __name__ == "__main__":
-    main()

@@ -3,24 +3,25 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import re
 import urllib.parse
-import urllib.request
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 
 from harness.record_io import json_bytes
 from harness.reporting.publication import (
+    PublicationClient,
     PublicationOperation,
     atomic_write,
+    multipart_archive,
     public_share_context,
+    response_json,
     snapshot_publication,
+    write_receipt,
 )
-from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.publication import updated_receipt, upload_large_archive
 from harness.web_fetch.publication_check import check
 from harness.web_fetch.publication_target import (
@@ -34,6 +35,8 @@ from harness.web_fetch.report_package import part_archives, validate_release
 from harness.web_fetch.safety import reject_evidence_symlinks, unlinked_path
 
 STAGED_UPLOAD_THRESHOLD = 23 * 1024 * 1024
+CLIENT = PublicationClient("WebFetch-Report-Publisher/1.0", put_timeout=90)
+RENAME_CLIENT = PublicationClient(None, timeout=30)
 
 
 @dataclass(frozen=True)
@@ -54,15 +57,6 @@ class PublishConfig:
     snapshot_audit: bool = False
 
 
-def response_json(status, raw, *, operation):
-    if not 200 <= status < 300:
-        raise RuntimeError(f"{operation} failed with HTTP {status}")
-    result = json.loads(raw)
-    if not isinstance(result, dict):
-        raise ValueError(f"{operation} returned a non-object response")
-    return result
-
-
 def activated_version(result):
     version = result.get("versionId") or result.get("version")
     if isinstance(version, dict):
@@ -73,37 +67,19 @@ def activated_version(result):
 
 
 def multipart(archive, title, digest):
-    boundary = "----webfetch" + hashlib.sha256((digest + "|" + title).encode()).hexdigest()[:32]
-    fields = [
-        f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode()
-        for key, value in [("mode", "zip"), ("title", title)]
-    ]
-    fields.append(
-        f'--{boundary}\r\nContent-Disposition: form-data; name="file"; '
-        'filename="webfetch.zip"\r\nContent-Type: application/zip\r\n\r\n'.encode()
-        + archive.read_bytes()
-        + b"\r\n"
+    return multipart_archive(
+        archive,
+        title,
+        boundary_prefix="----webfetch",
+        filename="webfetch.zip",
+        boundary_seed=(digest + "|" + title).encode(),
     )
-    fields.append(f"--{boundary}--\r\n".encode())
-    return b"".join(fields), "multipart/form-data; boundary=" + boundary
 
 
 def _receipt_identity(path):
     if path.is_symlink() or (path.exists() and not path.is_file()):
         raise ValueError("Publication receipt must be a regular file")
     return path.read_bytes() if path.exists() else None
-
-
-def _safe_receipt(value):
-    if isinstance(value, dict):
-        return {
-            key: _safe_receipt(item)
-            for key, item in value.items()
-            if key not in {"editToken", "claimToken", "token"}
-        }
-    if isinstance(value, list):
-        return [_safe_receipt(item) for item in value]
-    return value
 
 
 def publish(config: PublishConfig, *, transport=None, package_check=None, validation_inputs=()):
@@ -174,24 +150,14 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
             raise ValueError("Publication request must stay on the configured service")
         if transport is not None:
             return transport(path, data, content_type, method=method, extra_headers=extra_headers)
-        headers = {
-            "Authorization": "Bearer " + load_token(base_url=base),
-            "User-Agent": "WebFetch-Report-Publisher/1.0",
-        }
-        if content_type:
-            headers["Content-Type"] = content_type
-        headers.update(extra_headers or {})
-        request = urllib.request.Request(base + path, data=data, headers=headers, method=method)
-        with urllib.request.urlopen(request, timeout=90 if method == "PUT" else 240) as response:
-            return response.status, response.read()
+        return CLIENT.request(
+            base, path, data, content_type, method=method, extra_headers=extra_headers
+        )[:2]
 
     def save(value):
         nonlocal previous_receipt
         local_guard()
-        payload = json_bytes(_safe_receipt(value))
-        atomic_write(config.receipt, payload)
-        os.chmod(config.receipt, 0o600)
-        previous_receipt = payload
+        previous_receipt = write_receipt(config.receipt, value)
 
     def finish(value):
         version = activated_version(value)
@@ -397,24 +363,23 @@ def rename_main(argv=None, *, default_root=None) -> None:
         raise ValueError("Publication receipt requires a valid bound site")
     if not args.title.strip():
         raise ValueError("Report title must be nonempty")
-    token = load_token(base_url=base)
-    request = urllib.request.Request(
-        base + "/api/sites/" + receipt["slug"],
-        data=json.dumps({"title": args.title}).encode(),
+    response = RENAME_CLIENT.request(
+        base,
+        "/api/sites/" + receipt["slug"],
+        json.dumps({"title": args.title}).encode(),
+        "application/json",
         method="PATCH",
-        headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"},
     )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        data = json.load(response)
-        if data.get("slug", slug) != slug:
-            raise ValueError("Rename response differs from the bound site")
-        if unlinked_path(path).read_bytes() != before:
-            raise ValueError("Publication receipt changed during rename")
-        receipt["title"] = data.get("title", args.title)
-        atomic_write(path, json_bytes(receipt))
-        print(
-            json.dumps(
-                {"status": response.status, "title": data.get("title")},
-                ensure_ascii=False,
-            )
+    data = json.loads(response.body)
+    if data.get("slug", slug) != slug:
+        raise ValueError("Rename response differs from the bound site")
+    if unlinked_path(path).read_bytes() != before:
+        raise ValueError("Publication receipt changed during rename")
+    receipt["title"] = data.get("title", args.title)
+    atomic_write(path, json_bytes(receipt))
+    print(
+        json.dumps(
+            {"status": response.status, "title": data.get("title")},
+            ensure_ascii=False,
         )
+    )

@@ -176,22 +176,22 @@ wcxb-release-check: runtime-check ## Run the WCXB release gate: PROFILE
 	$(PY) scripts/check_report.py reports/wcxb --profile "$(PROFILE)"
 	$(PY) scripts/check_report_links.py reports/wcxb
 	$(PY) scripts/check_report_revision.py reports/wcxb
-	$(UV) run --frozen --extra headless-eval python scripts/check_wcxb_visual.py reports/wcxb
+	$(UV) run --frozen --extra headless-eval python -m harness.web_fetch wcxb-visual reports/wcxb
 
 browser-use-report: runtime-check ## Build the Browser Use report: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE="/absolute/path [/absolute/path...]" is required' >&2; exit 2)
-	$(PY) scripts/build_browser_use_report.py $(foreach path,$(EVIDENCE),--evidence "$(path)") --output "$(or $(OUTPUT),reports/browser-use)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
+	$(PY) -m harness.browser_use report $(foreach path,$(EVIDENCE),--evidence "$(path)") --output "$(or $(OUTPUT),reports/browser-use)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 browser-use-review: runtime-check ## Review Browser Use results: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/review_browser_use_results.py --evidence "$(EVIDENCE)"
+	$(PY) -m harness.browser_use review --evidence "$(EVIDENCE)"
 
 browser-use-visual-check: runtime-check ## Run the Browser Use visual gate
-	$(PY) scripts/check_browser_use_visual.py "$(or $(OUTPUT),reports/browser-use)" $(if $(VISUAL_RECEIPT),--receipt "$(VISUAL_RECEIPT)",)
+	$(PY) -m harness.browser_use visual "$(or $(OUTPUT),reports/browser-use)" $(if $(VISUAL_RECEIPT),--receipt "$(VISUAL_RECEIPT)",)
 
 browser-use-report-check: runtime-check ## Check the Browser Use report: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE="/absolute/path [/absolute/path...]" is required' >&2; exit 2)
-	$(PY) scripts/check_browser_use_report.py "$(or $(OUTPUT),reports/browser-use)" $(if $(PROFILE),--profile "$(PROFILE)",) $(foreach path,$(EVIDENCE),--evidence "$(path)") --require-complete
+	$(PY) -m harness.browser_use check "$(or $(OUTPUT),reports/browser-use)" $(if $(PROFILE),--profile "$(PROFILE)",) $(foreach path,$(EVIDENCE),--evidence "$(path)") --require-complete
 	$(PY) scripts/check_report_links.py "$(or $(OUTPUT),reports/browser-use)"
 
 browser-use-release-check: browser-use-report-check ## Run the Browser Use release gate: EVIDENCE
@@ -251,16 +251,16 @@ public-benchmark-report: runtime-check ## Build and check the public benchmark r
 
 public-benchmark-sample: runtime-check ## Select the WebMainBench sample: SOURCE
 	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
-	$(PY) scripts/select_public_benchmark_sample.py --source "$(SOURCE)"
+	$(PY) -m harness.web_fetch webmainbench-select --source "$(SOURCE)" --output "$(WEBMAINBENCH_SAMPLE)"
 
 webmainbench-audit: runtime-check ## Audit WebMainBench suspicions: EVIDENCE, SOURCE, OUTPUT
 	@test -n "$(EVIDENCE)" -a -n "$(SOURCE)" -a -n "$(OUTPUT)" || (echo 'EVIDENCE, SOURCE and new OUTPUT paths are required' >&2; exit 2)
-	$(PY) scripts/audit_webmainbench_suspicions.py --evidence "$(EVIDENCE)" --source-dataset "$(SOURCE)" --output "$(OUTPUT)"
+	$(PY) -m harness.web_fetch webmainbench-audit --evidence "$(EVIDENCE)" --source-dataset "$(SOURCE)" --output "$(OUTPUT)"
 
 webmainbench-apply-case-correction: runtime-check ## Apply a case correction: RUN_ROOT, CORRECTION, OUTPUT, CASE_ID, SOURCE
 	$(call require_profile,WEBMAINBENCH_PROFILE)
 	@test -n "$(RUN_ROOT)" -a -n "$(CORRECTION)" -a -n "$(OUTPUT)" -a -n "$(CASE_ID)" -a -n "$(SOURCE)" || (echo 'RUN_ROOT, CORRECTION, OUTPUT, CASE_ID and SOURCE are required' >&2; exit 2)
-	$(PY) scripts/apply_webmainbench_case_correction.py --source-root "$(RUN_ROOT)" --correction "$(CORRECTION)" --output "$(OUTPUT)" --case-id "$(CASE_ID)" $(if $(PROVIDERS),--providers "$(PROVIDERS)",) --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)"
+	$(PY) -m harness.web_fetch webmainbench-case-correction --source-root "$(RUN_ROOT)" --correction "$(CORRECTION)" --output "$(OUTPUT)" --case-id "$(CASE_ID)" $(if $(PROVIDERS),--providers "$(PROVIDERS)",) --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)"
 
 webmainbench-run: runtime-check ## Run one WebMainBench provider shard: PROVIDER, OUTPUT
 	@test -n "$(PROVIDER)" || (echo 'PROVIDER is required' >&2; exit 2)
@@ -269,14 +269,14 @@ webmainbench-run: runtime-check ## Run one WebMainBench provider shard: PROVIDER
 
 webmainbench-score: runtime-check ## Score one WebMainBench shard: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path/to/provider-shard is required' >&2; exit 2)
-	$(UV) run --frozen --extra webmainbench-eval python scripts/score_webmainbench_results.py --evidence "$(EVIDENCE)" $(if $(SOURCE),--dataset "$(SOURCE)",) $(if $(SCORER),--scorer-repo "$(SCORER)",) $(if $(DATASET_SHA256),--expected-dataset-sha256 "$(DATASET_SHA256)",) $(if $(REVISION),--revision "$(REVISION)",)
+	$(UV) run --frozen --extra webmainbench-eval python -m harness.web_fetch webmainbench-score --evidence "$(EVIDENCE)" $(if $(SOURCE),--dataset "$(SOURCE)",) $(if $(SCORER),--scorer-repo "$(SCORER)",) $(if $(DATASET_SHA256),--expected-dataset-sha256 "$(DATASET_SHA256)",) $(if $(REVISION),--revision "$(REVISION)",)
 
 webmainbench-review: runtime-check ## Review WebMainBench results: RUN_ROOT, SOURCE, REVIEW
 	$(call require_profile,WEBMAINBENCH_PROFILE)
 	@test -n "$(RUN_ROOT)" || (echo 'RUN_ROOT=/absolute/path/to/declared-provider-shards is required' >&2; exit 2)
 	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
 	@test -n "$(REVIEW)" || (echo 'REVIEW=/absolute/path/to/new-review.json is required' >&2; exit 2)
-	$(UV) run --frozen --extra webmainbench-eval python scripts/review_webmainbench_results.py --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)" --output "$(REVIEW)"
+	$(UV) run --frozen --extra webmainbench-eval python -m harness.web_fetch webmainbench-review --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)" --output "$(REVIEW)"
 
 webmainbench-assemble: runtime-check ## Assemble WebMainBench evidence: RUN_ROOT, SOURCE, REVIEW, OUTPUT
 	$(call require_profile,WEBMAINBENCH_PROFILE)
@@ -284,7 +284,7 @@ webmainbench-assemble: runtime-check ## Assemble WebMainBench evidence: RUN_ROOT
 	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
 	@test -n "$(REVIEW)" || (echo 'REVIEW=/absolute/path/to/passed-review.json is required' >&2; exit 2)
 	@test -n "$(OUTPUT)" || (echo 'OUTPUT=/absolute/path/to/assembled-evidence is required' >&2; exit 2)
-	$(PY) scripts/assemble_webmainbench_evidence.py --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)" --review "$(REVIEW)" --output "$(OUTPUT)"
+	$(PY) -m harness.web_fetch webmainbench-assemble --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)" --review "$(REVIEW)" --output "$(OUTPUT)"
 
 test-native-adapters: ## Run Node native adapter tests
 	node --test tests/test_public_dns.mjs tests/test_dsh_output.mjs

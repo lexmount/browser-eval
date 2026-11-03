@@ -125,8 +125,7 @@ def test_publication_rejects_forged_derived_counts(tmp_path, monkeypatch, field)
 def test_changed_release_inputs_stop_before_authentication(tmp_path, monkeypatch, relative):
     report, work = publication_files(tmp_path, monkeypatch)
     (work / relative).write_bytes(b"changed")
-    from harness.web_fetch import report_publish
-    monkeypatch.setattr(report_publish, "load_token", lambda **kwargs: pytest.fail("Authenticated before checking the frozen package"))
+    monkeypatch.setattr("harness.reporting.publication.load_token", lambda **kwargs: pytest.fail("Authenticated before checking the frozen package"))
     with pytest.raises((ValueError, json.JSONDecodeError)):
         publication.publish(report, work)
 

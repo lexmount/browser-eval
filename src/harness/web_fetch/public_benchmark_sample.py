@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 from collections import Counter
@@ -146,3 +147,14 @@ def build_manifest(source: Path, output: Path, size: int = 200, seed: str = DEFA
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return manifest
+
+
+def main(argv=None) -> None:
+    parser = argparse.ArgumentParser(description="Freeze the selected WebMainBench-545 public benchmark subset.")
+    parser.add_argument("--source", required=True, type=Path)
+    parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--size", type=int, default=200)
+    parser.add_argument("--seed", default=DEFAULT_SEED)
+    args = parser.parse_args(argv)
+    manifest = build_manifest(args.source, args.output, args.size, args.seed)
+    print(f"{args.output}: {len(manifest['cases'])} cases")

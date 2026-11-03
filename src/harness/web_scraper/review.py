@@ -9,6 +9,7 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
+from harness.review_runner import run_reviewer
 from harness.web_scraper.pipeline import (
     digest,
     load_run,
@@ -639,7 +640,7 @@ Return concise Chinese findings under the supplied schema. No API calls or file 
             prompt,
         ]
         with (logs / (path.stem + ".log")).open("w") as log:
-            result = subprocess.run(
+            result = run_reviewer(
                 command,
                 cwd=work,
                 stdin=subprocess.DEVNULL,
