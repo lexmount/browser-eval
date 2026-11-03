@@ -49,6 +49,7 @@ browser-use-eval = [
   "json-repair>=0.54,<1",
   "pillow>=11,<13",
   "playwright>=1.52,<2",
+  "psutil>=7,<8",
   "pyyaml>=6,<7",
   "regex>=2025.7,<2027",
   "requests>=2.32,<3",

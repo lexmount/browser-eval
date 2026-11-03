@@ -6,8 +6,6 @@ import argparse
 import asyncio
 import http.server
 import json
-import socket
-import subprocess
 import sys
 import threading
 import time
@@ -20,7 +18,7 @@ from harness.environments.webarena.runtime import (
     prepare_browser_viewport,
 )
 from harness.trajectory_replay.public_webarena.executor import execute_steps
-from harness.trajectory_replay.remote_execution import _browser_command, _wait_cdp
+from harness.trajectory_replay.remote_execution import start_local_browser
 from harness.trajectory_replay.webarena_replay import _execute_replay_call
 
 
@@ -1896,21 +1894,10 @@ def test_playwright_backend_executes_portable_and_snapshot_ref_calls(tmp_path: P
         <p id="hidden" hidden>must not be observed</p>""",
         encoding="utf-8",
     )
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        port = sock.getsockname()[1]
-    endpoint = f"http://127.0.0.1:{port}"
-    process = subprocess.Popen(
-        _browser_command(
-            argparse.Namespace(engine="chromium", binary=binary),
-            port,
-            str(tmp_path / "chrome-profile"),
-        ),
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+    process, endpoint = start_local_browser(
+        argparse.Namespace(engine="chromium", binary=binary), str(tmp_path / "chrome-profile")
     )
     try:
-        _wait_cdp(endpoint, process)
         from harness.trajectory_replay.playwright_tool import PlaywrightReplayTool
 
         tool = PlaywrightReplayTool(endpoint)
