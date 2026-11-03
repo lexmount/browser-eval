@@ -207,7 +207,7 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
     if provider_type == 'moli_webfetch':
         from harness.web_fetch.providers.moli import _route_for_case
         projected_case = SimpleNamespace(**case) if isinstance(case, dict) else case
-        raw = _route_for_case(projected_case, native_default=True) in {'raw_file', 'native_document_bytes'}
+        raw = (interface or _route_for_case(projected_case, native_default=True)) in {'raw_file', 'native_document_bytes'}
         return {'schema_version': 2, 'source_format': 'bytes',
                 'content_format': 'empty' if raw else 'utf8',
                 **({'files': {'format': 'raw_bytes'}} if raw else

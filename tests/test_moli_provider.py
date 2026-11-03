@@ -243,6 +243,13 @@ class MoliTests(unittest.TestCase):
             self.assertEqual(result.content.strip(), "native document text")
             self.assertEqual(result.metadata["route"], "ordinary_markdown")
             self.assertEqual(provider.native_route(case).interface, "ordinary_markdown")
+            from harness.web_fetch.native_projection import require_native_answer_projection
+            result.metadata['native_route_receipt'] = {'answer_fields': ['stdout', 'diagnostic.main_document_url']}
+            require_native_answer_projection(result.content, result.metadata,
+                base64.b64decode(result.metadata['_raw_stdout_b64']), request_url=case.url, diagnostic=b'')
+            with self.assertRaises(ValueError):
+                require_native_answer_projection('changed answer', result.metadata,
+                    base64.b64decode(result.metadata['_raw_stdout_b64']), request_url=case.url, diagnostic=b'')
 
     def test_uniform_document_markdown_preserves_native_failure(self):
         provider = self.provider(

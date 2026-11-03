@@ -377,11 +377,11 @@ class MoliWebFetchProvider(Provider):
     def _retain_diagnostic_source(metadata, raw, case):
         pass
 
-    @staticmethod
-    def _retain_native_source(metadata, raw, case):
+    def _retain_native_source(self, metadata, raw, case):
         metadata.update(_raw_stdout_b64=base64.b64encode(raw).decode('ascii'),
             raw_stdout_sha256=hashlib.sha256(raw).hexdigest(),
-            native_answer_projection=native_answer_projection('moli_webfetch', case, {}))
+            native_answer_projection=native_answer_projection('moli_webfetch', case, {},
+                interface=self.native_route(case).interface))
 
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
