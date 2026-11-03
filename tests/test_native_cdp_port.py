@@ -1,4 +1,8 @@
-"""A native CDP server that loses its port is restarted, never impersonated."""
+"""Port recovery with a stand-in server; the fake handshake forces each ordering under test.
+
+The real server binaries are not run. A foreign CDP server that answers before this
+server has exited is not covered, because the connection cannot tell the two apart.
+"""
 
 import base64
 import socket
@@ -55,7 +59,7 @@ class Harness:
         if self.reject_all:
             raise ConnectionError("handshake rejected")
         if int(url.rsplit(":", 1)[1]) in self.taken:
-            # The real handshake outlives a server that exits on its failed bind.
+            # Force the order under test: this server exits before the handshake returns.
             self.processes[-1].wait(20)
             if not self.foreign_is_cdp:
                 raise ConnectionError("not a CDP endpoint")
