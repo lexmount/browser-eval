@@ -38,6 +38,7 @@ def test_public_projection_needs_no_site_logins_to_rebuild_saved_evidence(tmp_pa
         ('secret"value', "secret\\&quot;value"),
         ("sécret", "s\\u00e9cret"),
         ("it's\"both", "it\\'s\"both"),
+        ("ab'\tcd", "ab\\'\\tcd"),
     ],
 )
 def test_public_package_rejects_a_site_password_the_projection_missed(

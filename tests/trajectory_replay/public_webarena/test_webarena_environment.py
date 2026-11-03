@@ -976,10 +976,10 @@ def test_redaction_covers_the_spellings_of_an_escaped_password(tmp_path, monkeyp
     assert "slash" not in redacted
 
 
-def test_redaction_covers_a_password_inside_the_repr_of_a_larger_message():
-    password = "ab'cd"
+@pytest.mark.parametrize("password", ["ab'cd", "ab'\tcd", "ab\\'cd"])
+def test_redaction_covers_a_password_inside_the_repr_of_a_larger_message(password):
     message = repr('value "' + password)
-    assert "ab\\'cd" in message
+    assert "\\'" in message
 
     assert "cd" not in redact_site_passwords(message, [password])
 

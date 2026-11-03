@@ -40,8 +40,8 @@ def site_password_spellings(passwords: Iterable[str]) -> list[str]:
         lambda text: json.dumps(text)[1:-1],
         lambda text: json.dumps(text, ensure_ascii=False)[1:-1],
         lambda text: repr(text)[1:-1],
-        # repr picks its quote from the whole message, so it may escape an apostrophe here too.
-        lambda text: text.replace("\\", "\\\\").replace("'", "\\'"),
+        # repr picks its quote from the whole message, so force the form that escapes apostrophes.
+        lambda text: repr("\"'" + text)[4:-1],
     )
     spellings = {password for password in passwords if password.strip()}
     for _ in range(2):
