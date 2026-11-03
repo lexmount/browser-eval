@@ -418,6 +418,12 @@ class ReportTemplateTests(unittest.TestCase):
             (root/'.env').write_text('DEMO_EXAMPLE_URL=https://example.test/s/demo?version=ver_1\n')
             self.assertEqual(discover_template('demo',root=root)['example'],'https://example.test/s/demo?version=ver_1')
             self.assertNotIn('example',resolve_template('demo',root=root))
+            (root/'real.env').write_text('DEMO_EXAMPLE_URL=https://example.test/s/demo?version=ver_1\n')
+            (root/'.env').unlink();(root/'.env').symlink_to(root/'real.env')
+            self.assertEqual(discover_template('demo',root=root)['example'],'https://example.test/s/demo?version=ver_1')
+            (root/'.env').unlink();os.mkfifo(root/'.env')
+            self.assertIsNone(discover_template('demo',root=root)['example'])
+            (root/'.env').unlink()
             os.environ['DEMO_EXAMPLE_URL']='https://example.test/s/demo?version=ver_2'
             with self.assertRaisesRegex(ValueError,'DEMO_EXAMPLE_URL does not pin'):
                 discover_template('demo',root=root)

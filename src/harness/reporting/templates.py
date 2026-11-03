@@ -29,7 +29,11 @@ def discover_template(track, *, root=ROOT):
     name = template.get("example_env")
     if not name:
         return template
-    example = local_setting(name, root / ".env").strip()
+    # An optional link must not stop discovery, so an unusable file means it is unset.
+    try:
+        example = local_setting(name, root / ".env", follow_links=True).strip()
+    except ValueError:
+        example = ""
     if example and f"version={template['example_version']}" not in example:
         raise ValueError(f"{name} does not pin the registered example version")
     return {**template, "example": example or None}

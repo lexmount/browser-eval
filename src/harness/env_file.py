@@ -78,7 +78,9 @@ def _parsed_settings(path: Path, modified_ns: int, size: int) -> dict[str, str]:
     return parse_env_file(path)
 
 
-def local_setting(name: str, env_file: str | Path | None = None) -> str:
+def local_setting(
+    name: str, env_file: str | Path | None = None, *, follow_links: bool = False
+) -> str:
     """Return one setting unchanged, or an empty string when it is unset.
 
     An exported variable wins, including an empty one. Otherwise the value comes from
@@ -91,7 +93,7 @@ def local_setting(name: str, env_file: str | Path | None = None) -> str:
         return exported
     chosen = env_file if env_file is not None else _selected_env_file
     path = Path(chosen).expanduser() if chosen is not None else repository_root() / ".env"
-    if chosen is not None and path.is_symlink():
+    if chosen is not None and path.is_symlink() and not follow_links:
         raise ValueError("local settings file must be a regular file")
     return _file_setting(path, name)
 
