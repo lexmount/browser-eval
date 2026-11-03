@@ -10717,6 +10717,7 @@
       "repository": "Lexmount/LexBench-WebArena-Replay",
       "revision": "ede6b17c21cef8a496b61e81c365934db5443919",
       "source_revision": "267bf126d54d24495fa3a383e50211ce878a589c",
+      "source_revision_note": "Local build commit of the merged release; it was never published. Use revision for this edition. The release manifest at that revision is immutable and keeps this value.",
       "archive": {
         "path": "definitions.tar.gz",
         "sha256": "5360d2be45aa7ddd1201f01a3a7538bd4b458a897c06382cdf2f3eec52984db0",
