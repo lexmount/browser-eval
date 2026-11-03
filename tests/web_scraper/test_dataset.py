@@ -216,3 +216,53 @@ def test_report_distribution_requires_the_same_frozen_inputs(tmp_path, monkeypat
         result = distribution_identity(home, read_json(profile)["dataset"], selection)
         assert result["url"].endswith("/tree/" + "b" * 40)
         assert result["archive_sha256"] == "f" * 64
+
+
+def test_default_distribution_has_a_real_complete_immutable_binding():
+    from harness.benchmarks.data import binding
+    from harness.web_scraper.pipeline import PROFILE
+
+    profile = read_json(PROFILE)
+    selected = binding(profile["dataset"]["distribution"]["track"])
+    assert len(selected["revision"]) == 40
+    assert selected["repository"] == "Lexmount/LexBench-Web-Scraper"
+    assert selected["datasets"][selected["default_dataset"]]["count"] == 140
+    assert selected["archive"]["size"] > 0
+    assert len(selected["archive"]["sha256"]) == 64
+    assert "definitions/runtime/manifest.json" in selected["files"]
+    for name, expected in profile["dataset"]["files"].items():
+        assert selected["files"]["definitions/upstream/" + name]["sha256"] == expected
+    assert (
+        sum(name.startswith("definitions/upstream/dataset/html/") for name in selected["files"])
+        == 140
+    )
+
+
+@pytest.mark.parametrize("symlink", ["ancestor", "dangling-leaf", "legacy-leaf"])
+def test_historical_cache_symlinks_are_rejected_before_any_write(tmp_path, monkeypatch, symlink):
+    from harness.web_scraper.pipeline import PROFILE, reproduce
+
+    _, profile, _ = distribution(tmp_path, monkeypatch)
+    home = tmp_path / "home"
+    prepare(home, profile)
+    external = tmp_path / "external"
+    external.mkdir()
+    method, prediction = next(iter(read_json(PROFILE)["historical_predictions"].items()))
+    if symlink == "ancestor":
+        (home / "historical-predictions").symlink_to(external, target_is_directory=True)
+    else:
+        link = (
+            home / "dataset" / prediction["path"]
+            if symlink == "legacy-leaf"
+            else home / "historical-predictions" / (method + ".json")
+        )
+        link.parent.mkdir(parents=True, exist_ok=True)
+        link.symlink_to(external / "must-not-be-created.json")
+    with (
+        patch("harness.web_scraper.pipeline.official_scorer", return_value={}),
+        patch("harness.web_scraper.pipeline.request") as network,
+        pytest.raises(ValueError, match="Unsafe historical prediction cache"),
+    ):
+        reproduce(home)
+    network.assert_not_called()
+    assert list(external.iterdir()) == []

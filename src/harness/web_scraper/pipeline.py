@@ -325,8 +325,12 @@ def reproduce(home: Path):
     contract = read_json(PROFILE)
     for method, pin in contract["historical_predictions"].items():
         path = home / "dataset" / pin["path"]
+        if path.is_symlink() or unsafe_parents(path):
+            raise ValueError("Unsafe historical prediction cache")
         if not path.exists():
             path = home / "historical-predictions" / (method + ".json")
+            if path.is_symlink() or unsafe_parents(path):
+                raise ValueError("Unsafe historical prediction cache")
             if not path.exists():
                 source = contract["dataset"]
                 url = f"https://raw.githubusercontent.com/{source['repository']}/{source['commit']}/{pin['path']}"
