@@ -77,6 +77,7 @@ through configuration, registries or explicit parameters.
 | Web Fetch report construction and rendering | `report_build.py`, `report.py` |
 | Common report assets, links, presentation and publication | `src/harness/reporting/` |
 | Generated-language inventory and absent-English notice | `src/harness/report_languages.py` |
+| Independent reviewer subprocess execution | `src/harness/review_runner.py` |
 | Shared WebArena deployment and network capture | `src/harness/environments/webarena/` |
 
 Unqualified Python filenames in the table are under `src/harness/web_fetch/`.
