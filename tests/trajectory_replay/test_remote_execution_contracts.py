@@ -424,3 +424,35 @@ def test_local_browser_that_exits_before_binding_is_reported(tmp_path: Path) -> 
         remote_execution.start_local_browser(
             SimpleNamespace(engine="lightpanda", binary=binary), str(tmp_path / "profile")
         )
+
+
+def test_local_browser_is_stopped_when_startup_is_interrupted(
+    tmp_path: Path, monkeypatch
+) -> None:
+    binary = tmp_path / "server"
+    binary.write_text(_NATIVE_SERVER.format(python=sys.executable))
+    binary.chmod(0o700)
+    started: list[subprocess.Popen] = []
+    real_popen = subprocess.Popen
+
+    def recording_popen(command, **kwargs):
+        started.append(real_popen(command, **kwargs))
+        return started[-1]
+
+    def interrupted(*_args):
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(remote_execution.subprocess, "Popen", recording_popen)
+    monkeypatch.setattr(remote_execution, "_wait_cdp", interrupted)
+
+    with pytest.raises(KeyboardInterrupt):
+        remote_execution.start_local_browser(
+            SimpleNamespace(engine="lightpanda", binary=binary), str(tmp_path / "profile")
+        )
+
+    assert len(started) == 1
+    try:
+        assert started[0].poll() is not None
+    finally:
+        started[0].kill()
+        started[0].wait()

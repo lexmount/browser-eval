@@ -330,7 +330,8 @@ def start_local_browser(
     try:
         endpoint = f"http://127.0.0.1:{_kernel_assigned_port(process)}"
         _wait_cdp(endpoint, process)
-    except Exception:
+    except BaseException:
+        # The browser runs in its own session, so an interrupt would orphan it.
         _stop_browser(process)
         raise
     return process, endpoint
