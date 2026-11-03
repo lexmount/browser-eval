@@ -954,6 +954,9 @@ def run_evaluation(
                         row["duration_ms"] = round(
                             (time.perf_counter() - attempt_started) * 1000, 3
                         )
+                    if webarena_environment is not None:
+                        # Only free text: the trace stays what the frozen trajectory executed.
+                        row["error"] = webarena_environment.redact_login_passwords(row["error"])
                     row["run_id"] = run_id
                     row["qualification_run"] = qualification_run
                     row["qualification_pass_index"] = (

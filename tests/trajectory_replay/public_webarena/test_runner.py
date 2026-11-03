@@ -10,6 +10,7 @@ from urllib.error import URLError
 
 import pytest
 
+from harness import env_file
 from harness.environments.browser import (
     ENGINE_PORTS,
     cleanup_browser_runtime,
@@ -705,6 +706,89 @@ def test_webarena_run_mode_fails_closed_on_qualification_state(
             qualification_required_passes=2 if qualification_run else None,
         )
     docker_call.assert_not_called()
+
+
+def test_environment_failure_evidence_omits_the_login_password(tmp_path, monkeypatch):
+    task = {
+        "id": "webarena-1",
+        "title": "Qualified",
+        "difficulty": "simple",
+        "tags": ["webarena"],
+        "trajectory": {
+            "schema": "lex_browser_trajectory/1",
+            "actions": [{"action": "navigate", "url": "https://example.com", "save_as": "page"}],
+        },
+        "assertions": [],
+        "evaluator": {"kind": "webarena_verified", "task_id": 1, "revision": 1},
+        "environment": {
+            "kind": "webarena_verified",
+            "sites": ["reddit"],
+            "start_urls": ["__REDDIT__"],
+        },
+        "ground_truth": {
+            "expected_actions": ["navigate"],
+            "qualification": {"status": "eligible"},
+        },
+        "source": {"url": "https://example.com/source"},
+    }
+    suite = tmp_path / "suite.json"
+    suite.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}))
+    (tmp_path / "images.json").write_text(
+        json.dumps({"schema": "lex_webarena_environment_images/1", "images": {}})
+    )
+    config = tmp_path / "config.json"
+    config.write_text(
+        json.dumps(
+            {
+                "image_lock": "images.json",
+                "environments": {
+                    "__REDDIT__": {
+                        "urls": ["http://reddit.test"],
+                        "credentials_env": {"username": "TEST_USER", "password": "TEST_SECRET"},
+                    }
+                }
+            }
+        )
+    )
+    secrets = tmp_path / "repository.env"
+    secrets.write_text("TEST_USER=user\nTEST_SECRET=file-secret\n", encoding="utf-8")
+    monkeypatch.setattr(env_file, "_repository_credentials_file", secrets)
+    monkeypatch.setenv("TEST_SECRET", "exported-secret")
+
+    def failed_reset(self, *_args, **_kwargs):
+        raise RuntimeError(f"login form echoed {self._credentials('reddit')['password']}")
+
+    client = MagicMock()
+    client.info.return_value = {"OSType": "linux", "CgroupVersion": "2"}
+    monkeypatch.setattr(runner.docker, "from_env", lambda: client)
+    monkeypatch.setattr(
+        runner, "sync_playwright", lambda: SimpleNamespace(start=lambda: MagicMock())
+    )
+    monkeypatch.setattr(runner, "start_browser_container", lambda *a, **k: MagicMock())
+    monkeypatch.setattr(runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
+    monkeypatch.setattr(runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
+    monkeypatch.setattr(runner, "DockerStatsResources", lambda _: None)
+    monkeypatch.setattr(runner, "_reset_state", lambda *a: None)
+    monkeypatch.setattr(runner, "_prepare_page", lambda page, *a, **k: page)
+    monkeypatch.setattr(runner, "_environment", lambda *a: {})
+    monkeypatch.setattr(runner, "summarize_attempts", lambda *a, **k: {})
+    monkeypatch.setattr(runner.WebArenaEnvironment, "verify_runtime", lambda *a: {})
+    monkeypatch.setattr(runner.WebArenaEnvironment, "reset", failed_reset)
+    output = tmp_path / "output"
+
+    runner.run_evaluation(
+        suite_path=suite,
+        output_dir=output,
+        reports_dir=tmp_path / "reports",
+        webarena_config_path=config,
+        engines=("chromium",),
+        max_retries=0,
+        generate_report=False,
+    )
+
+    attempts = (output / "attempts.jsonl").read_text(encoding="utf-8")
+    assert "login form echoed [REDACTED]" in attempts
+    assert "file-secret" not in attempts
 
 
 def test_external_websocket_url_rewrites_container_advertised_host():

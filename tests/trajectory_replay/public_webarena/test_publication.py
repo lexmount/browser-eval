@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
+from harness import env_file
 from harness.trajectory_replay.public_webarena.publication import (
+    build,
     export_public_report_bundle,
     public_projection,
     stage_report,
@@ -16,6 +20,26 @@ def test_public_projection_scrubs_private_hosts_and_user_paths():
         "url": "http://webarena.local:17770/x",
         "path": "/[local-user]/run/file",
     }
+
+
+def test_public_projection_needs_no_site_logins_to_rebuild_saved_evidence(tmp_path, monkeypatch):
+    monkeypatch.setattr(env_file, "_repository_credentials_file", tmp_path / "absent.env")
+    assert public_projection({"note": "unchanged"}) == {"note": "unchanged"}
+
+
+def test_public_package_rejects_a_site_password_the_projection_missed(tmp_path, monkeypatch):
+    source, authority = write_report_fixture(tmp_path)
+    staged = tmp_path / "staged"
+    stage_report(source, staged)
+    page = staged / "reports/webarena-trajectory-replay-latest.html"
+    page.write_text(page.read_text(encoding="utf-8") + "leaked-secret", encoding="utf-8")
+    secrets = tmp_path / "repository.env"
+    secrets.write_text("WEBARENA_REDDIT_PASSWORD=leaked-secret\n", encoding="utf-8")
+    monkeypatch.setattr(env_file, "_repository_credentials_file", secrets)
+    monkeypatch.setenv("WEBARENA_REDDIT_PASSWORD", "exported-secret")
+
+    with pytest.raises(ValueError, match="site password in public report"):
+        build(staged, tmp_path / "a.zip", tmp_path / "a.json", authority=authority)
 
 
 def test_public_bundle_contains_reports_and_minimal_binding(tmp_path):

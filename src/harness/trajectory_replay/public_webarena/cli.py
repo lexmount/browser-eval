@@ -81,9 +81,10 @@ def main() -> None:
     parser.add_argument(
         "--env-file",
         help=(
-            "dotenv file; defaults to the repository-local .env when present. "
-            "--llm-diagnostics and the Rainbond API token of a slice run ignore it "
-            "and read only the repository .env"
+            "dotenv file for ordinary settings an exported variable has not set; defaults to "
+            "the repository-local .env when present. Site logins named by credentials_env, "
+            "--llm-diagnostics and the Rainbond API token of a slice run ignore it and "
+            "exported values, and read only the repository .env"
         ),
     )
     parser.add_argument(

@@ -212,3 +212,12 @@ def require_site_credentials(sites) -> None:
 def known_site_secrets() -> tuple[str, ...]:
     """Return the resolved site passwords that public evidence must never contain."""
     return tuple(site_credentials(site)["password"] for site in CREDENTIAL_SITES)
+
+
+def configured_site_secrets() -> tuple[str, ...]:
+    """Return the site passwords set in the repository .env, skipping any that are unset."""
+    passwords = (
+        repository_credential(_SITES[site]["credentials_env"]["password"])
+        for site in CREDENTIAL_SITES
+    )
+    return tuple(password for password in passwords if password.strip())

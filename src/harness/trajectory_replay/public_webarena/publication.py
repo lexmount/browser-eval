@@ -14,9 +14,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
+from harness.environments.webarena.topology import configured_site_secrets
 from harness.record_io import file_sha256, read_json
 from harness.reporting.privacy import PRIVATE_IPV4, PUBLIC_WEBARENA
 from harness.reporting.publication import archive_inventory
+from harness.trajectory_replay.public_webarena.config import redact_site_passwords
 from harness.trajectory_replay.public_webarena.result_audit import audit_result_set
 from harness.web_fetch.publication_target import publication_document, require_publication_version
 from harness.web_fetch.report_publish import PublishConfig, publish
@@ -28,15 +30,21 @@ REPORT_STEM = "webarena-trajectory-replay-latest"
 
 
 def public_projection(value: Any) -> Any:
-    """Remove host-specific identities while retaining report semantics and hashes."""
+    """Remove host identities and site passwords while retaining report semantics and hashes."""
+    return _project(value, configured_site_secrets())
+
+
+def _project(value: Any, passwords: tuple[str, ...]) -> Any:
     if isinstance(value, dict):
-        return {key: public_projection(item) for key, item in value.items()}
+        return {key: _project(item, passwords) for key, item in value.items()}
     if isinstance(value, list):
-        return [public_projection(item) for item in value]
+        return [_project(item, passwords) for item in value]
     if isinstance(value, tuple):
-        return tuple(public_projection(item) for item in value)
+        return tuple(_project(item, passwords) for item in value)
     if isinstance(value, str):
-        return PUBLIC_WEBARENA.redact(PRIVATE_IPV4.sub("webarena.local", value))
+        return PUBLIC_WEBARENA.redact(
+            PRIVATE_IPV4.sub("webarena.local", redact_site_passwords(value, passwords))
+        )
     return value
 
 
@@ -219,12 +227,15 @@ def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Pat
             shutil.copy2(source, staging / source.name)
         shutil.copy2(staging / f"{REPORT_STEM}.html", staging / "index.html")
         _validate_internal_links(staging)
+        passwords = configured_site_secrets()
         for path in staging.rglob("*"):
             if not path.is_file():
                 continue
             text = path.read_text(encoding="utf-8", errors="ignore")
             if PRIVATE_IPV4.search(text) or PUBLIC_WEBARENA.found(text):
                 raise ValueError(f"private host or local user path in public report: {path.name}")
+            if any(password in text for password in passwords):
+                raise ValueError(f"site password in public report: {path.name}")
             found = next((term for term in FORBIDDEN_PUBLIC_RESULT_TERMS if term in text), None)
             if found:
                 raise ValueError(

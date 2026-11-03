@@ -976,9 +976,9 @@ def main_qualification(argv=None) -> None:
         "--env-file",
         type=Path,
         help=(
-            "dotenv file passed to every qualification shard; defaults to repository .env. "
-            "The Rainbond API token of a slice run ignores it and comes only from "
-            "the repository .env"
+            "dotenv file for ordinary settings, passed to every qualification shard; "
+            "defaults to repository .env. Site logins and the Rainbond API token of a "
+            "slice run ignore it and come only from the repository .env"
         ),
     )
     parser.add_argument(
