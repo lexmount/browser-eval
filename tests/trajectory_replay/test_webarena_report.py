@@ -6,6 +6,7 @@ import pytest
 from bs4 import BeautifulSoup
 
 from harness.record_io import canonical_json_sha256
+from harness.reporting.mermaid import mermaid_script_attributes
 from harness.reporting.privacy import TRAJECTORY_REPLAY
 from harness.trajectory_replay.report_inputs import bound_dataset_path
 from harness.trajectory_replay.webarena_report import (
@@ -226,6 +227,7 @@ def test_complete_three_method_report_builds_one_unified_matrix(
     for route in ("environment.html", "en/environment.html"):
         environment = (output / route).read_text(encoding="utf-8")
         assert 'data-topology-fallback' in environment and 'class="mermaid"' in environment
+        assert mermaid_script_attributes("loader") in environment
         assert 'Rainbond WebArena' in environment
     assert "方法身份与修复序列" in (output / "environment.html").read_text(encoding="utf-8")
     assert "Method identity and repair sequence" in (output / "en/environment.html").read_text(

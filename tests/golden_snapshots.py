@@ -20,6 +20,8 @@ from pathlib import Path
 
 import pytest
 
+from harness.reporting.mermaid import unpinned_mermaid_urls
+
 GOLDEN_DIR = Path(__file__).parent / "golden"
 BUILD_ROOT_TOKEN = b"<build-root>"
 PATH_INPUT_TOKEN = b"<path-bearing-input-sha256>"
@@ -67,6 +69,11 @@ def check_golden(
     routes = normalized_routes(output, build_root, path_inputs, source_digests)
     if not routes:
         pytest.fail(f"{name}: the build produced no routes")
+    for route, content in routes.items():
+        if route.endswith((".html", ".js")) and (
+            unpinned := unpinned_mermaid_urls(content.decode("utf-8", errors="replace"))
+        ):
+            pytest.fail(f"{name}: {route} loads an unpinned Mermaid runtime: {unpinned}")
     actual = {route: hashlib.sha256(content).hexdigest() for route, content in routes.items()}
     keep = os.environ.get("GOLDEN_KEEP")
     if keep:
