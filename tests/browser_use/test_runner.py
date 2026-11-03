@@ -10,6 +10,7 @@ import pytest
 from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_use.runner import (
+    _engine_order,
     _exhausted_agent_steps,
     _limit_cowagent_transport_retries,
     _load_completed_attempts,
@@ -1496,3 +1497,19 @@ def test_browser_use_run_stops_before_sites_start_without_site_accounts(
 
     with pytest.raises(ValueError, match="WEBARENA_SHOPPING_PASSWORD"):
         runner_module.run(arguments)
+
+
+def test_engine_order_rotates_every_registered_browser(monkeypatch: pytest.MonkeyPatch) -> None:
+    from harness.browser_use import runner as runner_module
+
+    assert _engine_order(0) == ("chromium", "moli")
+    assert _engine_order(1) == ("moli", "chromium")
+    monkeypatch.setattr(runner_module, "ENGINE_IMAGES", {"a": "1", "b": "2", "c": "3"})
+    assert [_engine_order(index) for index in range(4)] == [
+        ("a", "b", "c"),
+        ("b", "c", "a"),
+        ("c", "a", "b"),
+        ("a", "b", "c"),
+    ]
+    monkeypatch.setattr(runner_module, "ENGINE_IMAGES", {"solo": "1"})
+    assert _engine_order(1) == ("solo",)

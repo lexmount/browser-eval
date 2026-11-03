@@ -137,6 +137,12 @@ def translate_text(value: str) -> str:
     if translated is None:
         patterns = (
             (
+                r"一套站点环境，(.+) 串行",
+                lambda m: "One site stack; "
+                + m[1].replace(" 与 ", " and ").replace("、", ", ")
+                + " run serially",
+            ),
+            (
                 r"原始 Mind2Web 使用 cross-task、cross-website、cross-domain 衡量泛化；Online‑Mind2Web 没有统一三档；Mind2Web 2 的 short / medium / long 按动作跨度划分。本报告的简单 (\d+)、中等 (\d+)、困难 (\d+) 是预注册的操作长度层级。",
                 lambda m: f"Original Mind2Web measures cross-task, cross-website and cross-domain generalization. Online-Mind2Web has no standard three-tier split; Mind2Web 2 groups short, medium and long tasks by action span. This report preregisters {m[1]} easy, {m[2]} medium and {m[3]} hard tasks by operation length.",
             ),
@@ -351,7 +357,7 @@ def translate_text(value: str) -> str:
                 lambda m: f"The table compares all four configurations. CPU, memory, and network measurements cover only the browser container, excluding CowAgent and the model service; mean, P50, and P95 are computed across {m.group(1)} logical task results. Because the model changes action counts and time spent on pages, these are whole-configuration comparisons and cannot be attributed to the browser core alone.",
             ),
             (
-                r"(.+?) · (Chromium|Moli 1\.1\.3) 结果",
+                r"(.+?) · (.+?) 结果",
                 lambda m: f"{m.group(1)} · {m.group(2)} result",
             ),
             (

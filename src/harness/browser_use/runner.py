@@ -526,6 +526,14 @@ def _scheduled_tasks(tasks: tuple[PilotTask, ...], max_tasks: int | None) -> tup
     return tasks[:max_tasks]
 
 
+def _engine_order(task_index: int) -> tuple[str, ...]:
+    """Rotate call order by task so every registered browser takes every position."""
+
+    engines = tuple(ENGINE_IMAGES)
+    offset = task_index % len(engines)
+    return engines[offset:] + engines[:offset]
+
+
 def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     repo_root = Path(args.repo_root).resolve()
     repo_env = _load_repo_env(repo_root)
@@ -650,8 +658,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             for task_index, selected in enumerate(
                 _scheduled_tasks(selection.tasks, args.max_tasks)
             ):
-                order = ("chromium", "moli") if task_index % 2 == 0 else ("moli", "chromium")
-                for engine in order:
+                for engine in _engine_order(task_index):
                     _run_engine_attempts(
                         completed=completed,
                         model=args.model,
@@ -727,7 +734,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                 "isolation_unit": "docker-daemon-and-fixed-site-ports",
                 "parallelism_rule": "one active attempt per Docker daemon",
             },
-            "engine_order": "alternating by task",
+            "engine_order": "rotating by task",
             "sites": [site.value for site in SITE_PORTS],
             "official_container_hostname_allowlist": [CONTAINER_HOST_ALIAS],
         },

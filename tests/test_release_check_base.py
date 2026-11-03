@@ -407,11 +407,6 @@ def test_trajectory_gate_rejects_a_different_profile(tmp_path, monkeypatch, defe
 
 
 def _browser_use_report(tmp_path, monkeypatch):
-    import harness.browser_use.report as renderer
-
-    # The current renderer stores the selected registry at module scope.
-    for name in ("ENGINE_LABELS", "MODEL_LABELS", "BASELINE_ENGINE"):
-        monkeypatch.setattr(renderer, name, getattr(renderer, name))
     report, evidence, _ = build_browser_use_fixture(tmp_path, monkeypatch)
     profile = authority(tmp_path / "authority", engines=["chromium", "moli"],
                         baseline_engine="chromium",
