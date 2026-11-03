@@ -21,7 +21,7 @@ The original CDP and driver inputs are versioned in [LexBench-Headless-Browser](
 Headless fixed-action scenarios are replayed by the upstream runner on local
 fixtures to assess browser/driver compatibility. The upstream
 benchmark also contains individual protocol and Web-platform probes.
-`src/harness/lexbench/` builds retained comparison reports from upstream results;
+[`src/harness/lexbench/`](../src/harness/lexbench/README.md) builds retained comparison reports from upstream results;
 it does not add an in-tree compatibility runner. Compatibility is an evaluation
 goal of these workloads, rather than a separate Browser Eval track.
 

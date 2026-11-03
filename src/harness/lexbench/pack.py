@@ -134,7 +134,3 @@ def main(argv=None):
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     print(json.dumps(package(args.source, args.output)))
-
-
-if __name__ == "__main__":
-    main()

@@ -188,8 +188,8 @@ def command(
     return command
 
 
-def main(argv=None, *, default_directory: Path | None = None):
-    directory = default_directory or Path(__file__).parent
+def main(argv=None):
+    directory = Path(__file__).parent
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)

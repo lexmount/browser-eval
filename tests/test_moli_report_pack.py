@@ -149,11 +149,13 @@ class MoliReportPackTests(unittest.TestCase):
         import subprocess
         import sys
 
-        script = Path(__file__).resolve().parents[1] / "scripts/moli_report/pack.py"
+        from tests.test_lexbench_cli import checkout_env
+
         with tempfile.TemporaryDirectory() as directory:
             result = subprocess.run(
-                [sys.executable, str(script), "--help"],
+                [sys.executable, "-m", "harness.lexbench", "package", "--help"],
                 cwd=directory,
+                env=checkout_env(),
                 check=True,
                 capture_output=True,
                 text=True,

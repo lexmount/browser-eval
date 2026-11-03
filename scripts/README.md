@@ -137,6 +137,5 @@ exclusive tests together.
 
 ## Lexbench resource report
 
-`moli_report/` holds the Lexbench resource-report renderer and its collectors;
-`moli_report/BUILD.md` documents them. Resource charts render through
-`uv run --frozen python -m harness.lexbench.charts`.
+Report and resource stages run through `uv run --frozen python -m harness.lexbench <command>`;
+the [Lexbench guide](../src/harness/lexbench/README.md) shows every command.
