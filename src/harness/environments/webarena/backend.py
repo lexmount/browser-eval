@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import socket
 from typing import Any
 
 import docker
@@ -107,9 +106,3 @@ class DockerBackend:
             if bindings:
                 result[int(str(key).split("/", 1)[0])] = int(bindings[0]["HostPort"])
         return result
-
-    def find_free_port(self) -> int:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as value:
-            value.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            value.bind(("", 0))
-            return int(value.getsockname()[1])

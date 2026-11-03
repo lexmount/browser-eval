@@ -7,6 +7,7 @@ import importlib.util
 import json
 import math
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -818,14 +819,64 @@ class HeadlessProvider(Provider):
         return raw, diagnostic, stopped, process.returncode, stdout_bytes, stderr_bytes
 
 
+NATIVE_CDP_PORT_ATTEMPTS = 3
+NATIVE_CDP_BIND_EXIT_GRACE_SECONDS = 1
+_ADDRESS_IN_USE = re.compile(rb'address\s*(?:is\s*)?(?:already\s*)?in\s*use', re.I)
+
+
+def _native_cdp_attempt_output(log, start):
+    """Return what the server wrote since ``start``; the child shares the file offset, so it stays put."""
+    return os.pread(log.fileno(), os.fstat(log.fileno()).st_size - start, start)
+
+
+def _connect_native_cdp(playwright, process, port, deadline):
+    """Return ``(browser, handshake_error)``, with a browser only while ``process`` is alive.
+
+    Another listener can answer on a port this server failed to bind, so an open
+    port alone does not prove that the answer came from this process. The browser
+    is ``None`` once the server has exited, and the error is the handshake failure
+    that preceded that exit, if any.
+    """
+    remaining = lambda: max(.001, deadline - time.monotonic())
+    while process.poll() is None:
+        if time.monotonic() >= deadline:
+            raise TimeoutError('Native CDP server startup exceeded the call deadline')
+        try:
+            with socket.create_connection(('127.0.0.1', port), timeout=min(.1, remaining())):
+                break
+        except OSError:
+            time.sleep(min(.02, remaining()))
+    else:
+        return None, None
+    try:
+        browser = playwright.chromium.connect_over_cdp(
+            'http://127.0.0.1:' + str(port), timeout=remaining() * 1000)
+    except Exception as error:
+        # A foreign listener can reject the handshake before this server exits on its failed bind.
+        try:
+            process.wait(timeout=min(NATIVE_CDP_BIND_EXIT_GRACE_SECONDS, remaining()))
+        except subprocess.TimeoutExpired:
+            pass
+        if process.poll() is None:
+            raise
+        return None, error
+    if process.poll() is None:
+        return browser, None
+    browser.close()
+    return None, None
+
+
 @contextmanager
 def native_cdp_browser(playwright, request, deadline, metadata=None):
-    """Own a fresh native CDP server within the caller's complete deadline."""
-    with socket.socket() as reservation:
-        reservation.bind(('127.0.0.1', 0))
-        port = reservation.getsockname()[1]
+    """Own a fresh native CDP server within the caller's complete deadline.
+
+    The servers only accept a numeric port and bind it themselves, so another
+    process can take the chosen port first. A server that reports this is
+    restarted on a new port. A server that exits after the caller received a
+    browser fails the call, because the result cannot be attributed to it.
+    """
     remaining = lambda: max(.001, deadline - time.monotonic())
-    command = [request['binary'], 'serve', '--host', '127.0.0.1', '--port', str(port)]
+    command = []
     engine = request['engine']
     if engine == 'lightpanda':
         command += ['--http-timeout', str(max(1, math.ceil(remaining() * 1000)))]
@@ -855,37 +906,48 @@ def native_cdp_browser(playwright, request, deadline, metadata=None):
             metadata if metadata is not None else {},
             environment,
         ) as process_environment:
-            process = subprocess.Popen(
-                command, stdout=log, stderr=log, env=process_environment
-            )
+            process = None
             try:
-                while True:
-                    if process.poll() is not None:
-                        log.seek(0)
-                        raise RuntimeError(log.read().decode('utf-8', 'replace')[:4000])
-                    if time.monotonic() >= deadline:
-                        raise TimeoutError('Native CDP server startup exceeded the call deadline')
-                    try:
-                        with socket.create_connection(('127.0.0.1', port), timeout=min(.1, remaining())):
-                            break
-                    except OSError:
-                        time.sleep(min(.02, remaining()))
-                browser = playwright.chromium.connect_over_cdp(
-                    'http://127.0.0.1:' + str(port), timeout=remaining() * 1000)
+                for attempt in range(1, NATIVE_CDP_PORT_ATTEMPTS + 1):
+                    with socket.socket() as candidate:
+                        candidate.bind(('127.0.0.1', 0))
+                        port = candidate.getsockname()[1]
+                    log_start = os.fstat(log.fileno()).st_size
+                    process = subprocess.Popen(
+                        [request['binary'], 'serve', '--host', '127.0.0.1', '--port', str(port), *command],
+                        stdout=log, stderr=log, env=process_environment,
+                    )
+                    browser, handshake_error = _connect_native_cdp(playwright, process, port, deadline)
+                    if browser is not None:
+                        break
+                    output = _native_cdp_attempt_output(log, log_start)
+                    port_lost = _ADDRESS_IN_USE.search(output)
+                    if not port_lost and handshake_error is not None:
+                        raise handshake_error
+                    if attempt == NATIVE_CDP_PORT_ATTEMPTS or not port_lost:
+                        raise RuntimeError(output.decode('utf-8', 'replace')[:4000]
+                                           or f'Native CDP server exited with code {process.returncode} and no output')
                 yield browser
+                # Nothing stops the server while the caller runs, so an exit here means the
+                # connection that served the caller may belong to another process on this port.
+                if process.poll() is not None:
+                    output = _native_cdp_attempt_output(log, log_start).decode('utf-8', 'replace')[:4000]
+                    raise RuntimeError(
+                        f'Native CDP server exited with code {process.returncode} while its browser '
+                        f'was in use, so the result may come from another process: {output or "no output"}')
             finally:
                 try:
                     if browser is not None:
                         browser.close()
                 finally:
-                    if process.poll() is None:
+                    if process is not None and process.poll() is None:
                         process.terminate()
                         try:
                             process.wait(timeout=1)
                         except subprocess.TimeoutExpired:
                             process.kill()
                             process.wait(timeout=1)
-                    if engine == 'moli' and metadata is not None:
+                    if process is not None and engine == 'moli' and metadata is not None:
                         log.seek(0)
                         raw_log = log.read(int(request.get('max_diagnostic_bytes', 100_000_000))+1)
                         metadata.update(_diagnostic_log_b64=base64.b64encode(raw_log).decode('ascii'),

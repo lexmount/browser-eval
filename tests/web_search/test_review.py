@@ -408,6 +408,9 @@ def test_review_command_allows_live_source_checks_but_disables_mutating_tools(tm
         def communicate(self, text, timeout):
             pass
 
+        def poll(self):
+            return self.returncode
+
     with patch("harness.web_search.review.subprocess.Popen", Process):
         assert review.run(root, limit=1) == [("0001", "completed")]
     command = commands[0]
@@ -626,3 +629,57 @@ def test_packet_schema_physical_receipt_cannot_drift(tmp_path, defect):
     assert review._successful(root, entry, contract) is None
     with pytest.raises(ValueError, match="incomplete"):
         review.collect(root, require_complete=True)
+
+
+@pytest.mark.parametrize("error", [KeyError("cases"), TypeError("not a mapping")])
+def test_malformed_opinion_error_records_a_terminal_failed_job(tmp_path, error):
+    _, root, contract = example(tmp_path)
+
+    class Process:
+        pid, returncode = 123456, 0
+
+        def __init__(self, command, **kwargs):
+            Path(command[command.index("--output-last-message") + 1]).write_text("{}", encoding="utf-8")
+
+        def communicate(self, text, timeout):
+            pass
+
+        def poll(self):
+            return self.returncode
+
+    with (patch("harness.web_search.review.subprocess.Popen", Process),
+          patch("harness.web_search.review.validate_result", side_effect=error)):
+        assert review.run(root, workers=1) == [("0001", "failed"), ("0002", "failed")]
+    for entry in contract["packets"]:
+        job = root / "jobs" / entry["id"]
+        state = json.loads((job / "status.json").read_bytes())
+        assert state["status"] == "failed" and state["finished_at"]
+        assert state["error"] == str(error)
+        assert json.loads((job / "attempt-001/status.json").read_bytes()) == state
+
+
+@pytest.mark.parametrize(
+    ("failure", "raised"),
+    [(OSError("disk full"), None), (AttributeError("unexpected"), AttributeError)],
+)
+def test_job_error_before_the_wait_kills_the_reviewer_and_records_it(tmp_path, failure, raised):
+    _, root, contract = example(tmp_path)
+    reviewer = tmp_path / "codex"
+    reviewer.write_text("#!/bin/sh\nexec sleep 60\n", encoding="utf-8")
+    reviewer.chmod(0o755)
+    original_save = review.save
+
+    def save(path, value):
+        if path.name == "status.json" and value.get("status") == "running":
+            raise failure
+        original_save(path, value)
+
+    with patch("harness.web_search.review.save", save):
+        if raised:
+            with pytest.raises(raised):
+                review.run(root, workers=1, executable=str(reviewer))
+        else:
+            assert review.run(root, workers=1, executable=str(reviewer))[0] == ("0001", "failed")
+    state = json.loads((root / "jobs/0001/status.json").read_bytes())
+    assert state["status"] == "failed" and state["returncode"] == -9 and state["finished_at"]
+    assert state["error"] == ("disk full" if not raised else "Reviewer job ended unexpectedly")
