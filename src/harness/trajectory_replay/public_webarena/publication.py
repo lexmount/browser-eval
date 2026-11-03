@@ -192,6 +192,21 @@ def _validate_internal_links(root: Path) -> None:
                 raise ValueError(f"broken local link: {page} -> {value}")
 
 
+def _contains_site_password(text: str, passwords: tuple[str, ...]) -> bool:
+    """Match a password as written, HTML-escaped, JSON-escaped or JSON-escaped inside HTML."""
+    decoded = html.unescape(text)
+    forms = {
+        form
+        for password in passwords
+        for form in (
+            password,
+            json.dumps(password)[1:-1],
+            json.dumps(password, ensure_ascii=False)[1:-1],
+        )
+    }
+    return any(form in text or form in decoded for form in forms)
+
+
 def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Path) -> dict:
     manifest, summary, _audit = _validate_binding(formal_root, authority)
     files = _report_files(formal_root, summary)
@@ -226,7 +241,7 @@ def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Pat
             text = path.read_text(encoding="utf-8", errors="ignore")
             if PRIVATE_IPV4.search(text) or PUBLIC_WEBARENA.found(text):
                 raise ValueError(f"private host or local user path in public report: {path.name}")
-            if any(password in text for password in passwords):
+            if _contains_site_password(text, passwords):
                 raise ValueError(f"site password in public report: {path.name}")
             found = next((term for term in FORBIDDEN_PUBLIC_RESULT_TERMS if term in text), None)
             if found:

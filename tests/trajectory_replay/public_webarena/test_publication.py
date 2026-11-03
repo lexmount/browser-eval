@@ -27,19 +27,47 @@ def test_public_projection_needs_no_site_logins_to_rebuild_saved_evidence(tmp_pa
     assert public_projection({"note": "unchanged"}) == {"note": "unchanged"}
 
 
-def test_public_package_rejects_a_site_password_the_projection_missed(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    ("password", "written"),
+    [
+        ("leaked-secret", "leaked-secret"),
+        ('secret"value', 'secret"value'),
+        ('secret"value', "secret&quot;value"),
+        ('secret"value', "secret&#34;value"),
+        ('secret"value', 'secret\\"value'),
+        ('secret"value', "secret\\&quot;value"),
+        ("sécret", "s\\u00e9cret"),
+    ],
+)
+def test_public_package_rejects_a_site_password_the_projection_missed(
+    tmp_path, monkeypatch, password, written
+):
     source, authority = write_report_fixture(tmp_path)
     staged = tmp_path / "staged"
     stage_report(source, staged)
     page = staged / "reports/webarena-trajectory-replay-latest.html"
-    page.write_text(page.read_text(encoding="utf-8") + "leaked-secret", encoding="utf-8")
+    page.write_text(page.read_text(encoding="utf-8") + written, encoding="utf-8")
     secrets = tmp_path / "repository.env"
-    secrets.write_text("WEBARENA_REDDIT_PASSWORD=leaked-secret\n", encoding="utf-8")
+    secrets.write_text(f"WEBARENA_REDDIT_PASSWORD={password}\n", encoding="utf-8")
     monkeypatch.setattr(env_file, "_repository_credentials_file", secrets)
     monkeypatch.setenv("WEBARENA_REDDIT_PASSWORD", "exported-secret")
 
     with pytest.raises(ValueError, match="site password in public report"):
         build(staged, tmp_path / "a.zip", tmp_path / "a.json", authority=authority)
+    assert not (tmp_path / "a.zip").exists()
+
+
+def test_public_package_accepts_a_report_without_the_site_password(tmp_path, monkeypatch):
+    source, authority = write_report_fixture(tmp_path)
+    staged = tmp_path / "staged"
+    stage_report(source, staged)
+    secrets = tmp_path / "repository.env"
+    secrets.write_text('WEBARENA_REDDIT_PASSWORD=secret"value\n', encoding="utf-8")
+    monkeypatch.setattr(env_file, "_repository_credentials_file", secrets)
+
+    build(staged, tmp_path / "a.zip", tmp_path / "a.json", authority=authority)
+
+    assert (tmp_path / "a.zip").is_file()
 
 
 def test_public_bundle_contains_reports_and_minimal_binding(tmp_path):
