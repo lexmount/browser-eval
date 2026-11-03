@@ -17,7 +17,7 @@ from bs4 import BeautifulSoup
 
 from harness.reporting.presentation import visible_text as _visible_text
 from harness.reporting.privacy import TRAJECTORY_REPLAY
-from harness.reporting.templates import template_identity
+from harness.reporting.templates import check_template_identity
 from harness.reporting.versions import check_build_version
 from harness.trajectory_replay.report_languages import language_roots, report_languages
 from harness.web_fetch.safety import reject_evidence_symlinks
@@ -523,9 +523,7 @@ def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, in
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
     check_build_version(root, manifest)
-    if (manifest.get("profile_sha256")
-            and manifest.get("template") != template_identity("trajectory-replay")):
-        raise ValueError("report bypasses the maintained replay template")
+    check_template_identity(manifest, "trajectory-replay")
     if profile_path is not None:
         if (profile_path.is_symlink() or manifest.get("profile_sha256")
                 != hashlib.sha256(profile_path.read_bytes()).hexdigest()):
@@ -954,7 +952,3 @@ def main() -> None:
     parser.add_argument("--profile", type=Path)
     args = parser.parse_args()
     print(json.dumps(check(args.report_dir, profile_path=args.profile), ensure_ascii=False))
-
-
-if __name__ == "__main__":
-    main()

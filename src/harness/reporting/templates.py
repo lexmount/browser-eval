@@ -43,3 +43,12 @@ def template_identity(track):
     """Record the maintained owner without borrowing an example's report inputs."""
     template = resolve_template(track)
     return {key: template[key] for key in ("track", "renderer", "entrypoint")}
+
+
+def check_template_identity(report, track):
+    """Bind the renderer: a moved entry point leaves reports built before the move valid."""
+    if not report.get("profile_sha256"):
+        return
+    template, maintained = report.get("template") or {}, template_identity(track)
+    if any(template.get(key) != maintained[key] for key in ("track", "renderer")):
+        raise ValueError(f"report bypasses the maintained {track} template")

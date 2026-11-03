@@ -63,9 +63,9 @@ candidate evidence, not additional tasks.
 - More than one trajectory may be retained for a task when paths are materially different and
   independently satisfy the same promotion gate.
 
-Freeze each method's exact 90-task inputs with `scripts/freeze_webarena_three_method_inputs.py`,
+Freeze each method's exact 90-task inputs with `uv run --frozen python -m harness.trajectory_replay cohort-freeze`,
 run each complete method cohort with `scripts/run_remote_three_method_cohort.py`, and bind the
-certified cohorts with `scripts/aggregate_webarena_three_method_cohorts.py`. Each method
+certified cohorts with `uv run --frozen python -m harness.trajectory_replay cohort-aggregate`. Each method
 receives one site reset before its first task. The runner rejects a changed binary, task set,
 action sequence, or reset policy. Diagnostic subsets never enter the formal matrix. Never edit a
 verdict or verification claim by hand.

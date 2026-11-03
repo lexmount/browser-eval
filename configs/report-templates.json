@@ -34,13 +34,13 @@
     },
     "trajectory-replay": {
       "renderer": "src/harness/trajectory_replay/webarena_report.py",
-      "entrypoint": "scripts/build_webarena_replay_report.py",
-      "build": "uv run --frozen python scripts/build_webarena_replay_report.py --profile /absolute/instance-profile.json --results /absolute/results.json --review /absolute/review.json --output /absolute/new-report",
-      "check": "uv run --frozen python scripts/check_webarena_replay_report.py /absolute/new-report --profile /absolute/instance-profile.json",
+      "entrypoint": "src/harness/trajectory_replay/cli.py",
+      "build": "uv run --frozen python -m harness.trajectory_replay report --profile /absolute/instance-profile.json --results /absolute/results.json --review /absolute/review.json --output /absolute/new-report",
+      "check": "uv run --frozen python -m harness.trajectory_replay check /absolute/new-report --profile /absolute/instance-profile.json",
       "tests": "tests/trajectory_replay/test_webarena_report.py",
       "example_env": "TRAJECTORY_REPLAY_REPORT_EXAMPLE_URL",
       "example_version": "ver_c0f0693e9c08401bb4d2b88393234e55",
-      "package": "uv run --frozen python scripts/package_webarena_replay_artifact_site.py --report /absolute/new-report --profile /absolute/instance-profile.json --evidence /absolute/results.json --review /absolute/review.json --output /absolute/package.zip --attestation /absolute/attestation.json --visual-receipt /absolute/visual.json"
+      "package": "uv run --frozen python -m harness.trajectory_replay package --report /absolute/new-report --profile /absolute/instance-profile.json --evidence /absolute/results.json --review /absolute/review.json --output /absolute/package.zip --attestation /absolute/attestation.json --visual-receipt /absolute/visual.json"
     },
     "browser-use": {
       "renderer": "src/harness/browser_use/report.py",

@@ -829,7 +829,3 @@ def main() -> None:
                     process = restart_browser(process)
         finally:
             _stop_browser(process)
-
-
-if __name__ == "__main__":
-    main()

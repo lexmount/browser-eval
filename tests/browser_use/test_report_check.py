@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from harness.browser_use import report_check as checker
+from harness.reporting import templates
 from tests.browser_use.test_report import build_browser_use_fixture
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -234,10 +235,10 @@ def test_template_gate_needs_no_registry_without_a_profile_hash(monkeypatch):
     def no_registry(_track):
         raise FileNotFoundError("configs/report-templates.json")
 
-    monkeypatch.setattr(checker, "template_identity", no_registry)
-    checker.check_template_identity({})
+    monkeypatch.setattr(templates, "template_identity", no_registry)
+    templates.check_template_identity({}, "browser-use")
     with pytest.raises(FileNotFoundError):
-        checker.check_template_identity({"profile_sha256": "bound"})
+        templates.check_template_identity({"profile_sha256": "bound"}, "browser-use")
 
 
 @pytest.mark.parametrize("defect", [None, "count", "host", "diagram"])

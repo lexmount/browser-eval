@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-REPLAY_ARGS=(-m harness.trajectory_replay.cli)
+REPLAY_ARGS=(-m harness.trajectory_replay evaluate)
 for argument in "$@"; do
   case "${argument}" in
     --no-report) REPLAY_ARGS+=(--no-report) ;;

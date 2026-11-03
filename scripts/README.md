@@ -90,16 +90,26 @@ Report commands run through `uv run --frozen python -m harness.browser_use <comm
 
 ## Browser Trajectory Replay
 
+The curated track runs through `uv run --frozen python -m harness.trajectory_replay <command>`;
+`--help` lists every command. `make trajectory-replay-*` runs `report`, `check`, `visual`,
+`package` and `publish`, and `make webarena-catalog-*` runs `catalog-report` and
+`catalog-release-check`. `examples/trajectory_replay/run.sh` runs `evaluate`;
+[`docs/benchmarks.md`](../docs/benchmarks.md),
+[`docs/trajectory-replay-protocol.md`](../docs/trajectory-replay-protocol.md) and
+[`evaluation/trajectory-replay/webarena-verified/README.md`](../evaluation/trajectory-replay/webarena-verified/README.md)
+show the rest, except the commands listed under "Pending owner decision (#93)".
+`check_track_naming.py` rejects any new `*webarena_catalog*` script.
+
+The scripts below stay outside that entry point for the reason in each row.
+
 | Script | Reached from |
 | --- | --- |
-| `build_webarena_replay_report.py`, `check_webarena_replay_report.py`, `check_webarena_replay_visual.py`, `package_webarena_replay_artifact_site.py`, `publish_webarena_replay_artifact_site.py` | `make trajectory-replay-*` |
-| `run_webarena_catalog.py`, `build_webarena_catalog_report.py`, `check_webarena_catalog_release.py`, `audit_webarena_catalog_acceptance.py`, `audit_webarena_catalog_actions.py`, `build_webarena_catalog_comparison_inputs.py`, `consolidate_webarena_catalog.py`, `rebind_webarena_catalog.py` | `make webarena-catalog-*`; the exact set is pinned by `check_track_naming.py` |
-| `aggregate_webarena_three_method_cohorts.py`, `freeze_webarena_three_method_inputs.py`, `run_remote_three_method_cohort.py` | `evaluation/trajectory-replay/webarena-verified/README.md` |
-| `apply_webarena_qualification.py`, `audit_replay_cart_assertion.py`, `audit_replay_comparison_inputs.py`, `audit_replay_readiness.py`, `audit_saved_replay_correction.py`, `audit_webarena_recorded_outcomes.py`, `audit_webarena_traces.py`, `build_revised_webarena_dataset.py`, `build_webarena_codex_repair_suite.py`, `build_webarena_native_scope.py`, `build_webarena_repair_batch.py`, `build_webarena_repair_packet.py`, `build_webarena_repair_probe.py`, `build_webarena_repair_queue.py`, `build_webarena_repair_validation_suite.py`, `build_webarena_suite.py`, `fetch_webarena_traces.py`, `freeze_original36_candidate_cohort.py`, `reevaluate_webarena_evaluator_transition.py`, `rescore_saved_retrieval_attempt.py`, `revise_webarena_method_inputs.py`, `run_remote_mutation_diagnostic.py`, `run_webarena_codex_repairs.py`, `run_webarena_qualification.py`, `smoke_webarena_runtime.py`, `supersede_webarena_task_browser_results.py`, `verify_webarena_evaluator_exclusions.py` | `docs/trajectory-replay-protocol.md` |
-| `propose_webarena_action_repair.py`, `propose_webarena_autowait_repairs.py`, `propose_webarena_capture_target.py`, `propose_webarena_evaluator_fill_repair.py`, `propose_webarena_observed_repair.py`, `propose_webarena_replace_target.py` | `docs/trajectory-replay-protocol.md`, "Public WebArena repair proposals" |
-| `release_webarena_trajectory_report.py` | `make public-webarena-report`, `-audit`, `-release`; it checks and packages the bundle itself |
-| `publish_public_webarena_report.py` | executed by `src/harness/trajectory_replay/public_webarena/release.py` |
-| `lock_webarena_images.py`, `manage_webarena_environment.py`, `manage_webarena_rainbond_pool.py`, `verify_webarena_env_contract.py`, `verify_webarena_map.py` | `deploy/webarena/README.md`, `docs/webarena-fixed-trajectory-reproduction.md`, `examples/trajectory_replay/public_webarena/README.md` |
+| `run_remote_three_method_cohort.py` | `evaluation/trajectory-replay/webarena-verified/README.md`; `remote_execution.cohort_reference_hashes` binds this file's hash as `command_entry` in every cohort certificate |
+| `apply_webarena_qualification.py`, `audit_webarena_recorded_outcomes.py`, `audit_webarena_traces.py`, `build_webarena_codex_repair_suite.py`, `build_webarena_native_scope.py`, `build_webarena_repair_batch.py`, `build_webarena_repair_packet.py`, `build_webarena_repair_probe.py`, `build_webarena_repair_queue.py`, `build_webarena_repair_validation_suite.py`, `build_webarena_suite.py`, `fetch_webarena_traces.py`, `run_webarena_codex_repairs.py`, `run_webarena_qualification.py`, `smoke_webarena_runtime.py`, `supersede_webarena_task_browser_results.py`, `verify_webarena_evaluator_exclusions.py` | Public WebArena replay, isolated from the curated entry point: `docs/trajectory-replay-protocol.md` |
+| `propose_webarena_action_repair.py`, `propose_webarena_autowait_repairs.py`, `propose_webarena_capture_target.py`, `propose_webarena_evaluator_fill_repair.py`, `propose_webarena_observed_repair.py`, `propose_webarena_replace_target.py` | Public WebArena replay: `docs/trajectory-replay-protocol.md`, "Public WebArena repair proposals" |
+| `release_webarena_trajectory_report.py` | Public WebArena replay: `make public-webarena-report`, `-audit`, `-release`; it checks and packages the bundle itself |
+| `publish_public_webarena_report.py` | Public WebArena replay: executed by `src/harness/trajectory_replay/public_webarena/release.py` |
+| `lock_webarena_images.py`, `manage_webarena_environment.py`, `manage_webarena_rainbond_pool.py`, `verify_webarena_env_contract.py`, `verify_webarena_map.py` | WebArena environment, owned by `harness.environments.webarena`: `deploy/webarena/README.md`, `docs/webarena-fixed-trajectory-reproduction.md`, `examples/trajectory_replay/public_webarena/README.md` |
 
 ## Pending owner decision (#93)
 
@@ -126,8 +136,11 @@ exclusive tests together.
 | `authorize_artifact_site.py` | saves the user-scoped Artifact Site token that `AGENTS.md` describes, without naming the script |
 | `rename_artifact_site.py` | Artifact Site display-title maintenance |
 | `use_prepared_webarena_cohort_reset.py` | passed as `run_remote_three_method_cohort.py --cohort-reset-hook`; receipts outside Git bind its hash, not its name |
-| `build_browser_use_replay_seeds.py`, `build_webarena_expert_seeds.py`, `run_webarena_trajectory_replay.py`, `promote_webarena_trajectories.py` | seed, replay and promotion stages of the repository-curated dataset; `evaluation/trajectory-replay/webarena-verified/README.md` describes the stages without naming the scripts |
-| `merge_webarena_replay_results.py` | overlays formal correction shards onto the current replay matrix |
+| `harness.trajectory_replay seeds`, `expert-seeds`, `replay`, `promote` | seed, replay and promotion stages of the repository-curated dataset; `evaluation/trajectory-replay/webarena-verified/README.md` describes the stages without naming the commands |
+| `harness.trajectory_replay merge-results` | overlays formal correction shards onto the current replay matrix |
+| `harness.trajectory_replay catalog-audit-acceptance`, `catalog-audit-actions` | sole entries to the catalog sweep and failed-repair audit and the evaluate-action audit |
+| `harness.trajectory_replay catalog-consolidate`, `catalog-rebind` | sole entries to freezing accepted trajectories into one deployment-bound catalog and binding a frozen catalog to another site deployment |
+| `harness.trajectory_replay catalog-comparison-inputs` | sole entry to compiling catalog replay evidence into shared comparison report inputs |
 | `build_webarena_authoring_suite.py`, `build_webarena_observation_suite.py`, `build_webarena_evidence_revalidation_suite.py`, `build_webarena_qualification_subset.py`, `build_webarena_requalification_suite.py`, `finalize_webarena_adjudication.py` | queue, revalidation and finalization commands of `src/harness/trajectory_replay/public_webarena/qualification.py`; "Qualification decisions and immutable outputs" in `docs/trajectory-replay-protocol.md` describes them without naming the scripts |
 | `build_webarena_trace_catalog.py` | rebuilds the checked-in 179-task human-trace catalog from official inputs |
 | `run_real_smoke.sh` | runner for the opt-in `tests/test_real_smoke.py` live-provider class; only that test names it |

@@ -140,7 +140,8 @@ def test_make_language_override_is_only_explicit(tmp_path, monkeypatch, target, 
     env = {key: value for key, value in os.environ.items() if key not in {"REPORT_LANGUAGE", "MAKEFLAGS"}}
     result = subprocess.run(args, cwd=tmp_path, capture_output=True, text=True, env=env)
     assert result.returncode == 0, result.stderr
-    command = next(shlex.split(line) for line in result.stdout.splitlines() if "scripts/build_" in line or "-m harness.browser_use report" in line)
+    command = next(shlex.split(line) for line in result.stdout.splitlines() if "scripts/build_" in line or "-m harness.browser_use report" in line
+                   or "-m harness.trajectory_replay report" in line)
     if language:
         assert command[command.index("--language") + 1] == language
     else:
@@ -229,7 +230,7 @@ def test_unsupported_language_fails_before_calls_or_output(tmp_path):
 @pytest.mark.parametrize("entry, replay", [
     ([str(ROOT / "scripts/build_report.py")], False),
     (["-m", "harness.browser_use", "report"], False),
-    ([str(ROOT / "scripts/build_webarena_replay_report.py")], True),
+    (["-m", "harness.trajectory_replay", "report"], True),
 ], ids=["web-fetch", "browser-use", "trajectory-replay"])
 def test_report_entrypoints_reject_unknown_language_before_loading_evidence(tmp_path, entry, replay):
     if replay:
