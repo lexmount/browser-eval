@@ -40,7 +40,11 @@ from harness.trajectory_replay.remote_execution import (
     sanitize_remote_text,
     start_local_browser,
 )
-from harness.trajectory_replay.remote_runtime import rebind_remote_calls, remote_benchmark
+from harness.trajectory_replay.remote_runtime import (
+    load_remote_sites,
+    rebind_remote_calls,
+    remote_benchmark,
+)
 from harness.trajectory_replay.webarena_corrections import load_corrections
 from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
 
@@ -569,6 +573,12 @@ def main() -> None:
             raise ValueError("Kitesurf is remote and does not accept --binary")
         remote_endpoint, remote_headers, remote_binding = _kitesurf_cdp_config(
             args.credential_env_file.expanduser()
+        )
+        # The probe opens a hosted browser, so every local preflight runs before it.
+        require_site_credentials(load_remote_sites(args.site_map))
+        validate_environment_preparation(args.site_reset_receipt, args.environment_profile)
+        _load_environment_profile(
+            args.environment_profile, args.engine, args.credential_env_file.expanduser()
         )
         try:
             remote_binding["runtime_metadata"] = _probe_kitesurf_runtime(

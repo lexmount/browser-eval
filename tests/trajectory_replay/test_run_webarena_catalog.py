@@ -1387,3 +1387,63 @@ def test_run_entry_stops_before_a_browser_starts_without_site_accounts(
     with pytest.raises(ValueError, match="WEBARENA_SHOPPING_PASSWORD"):
         catalog_runner.main()
     assert not (tmp_path / "run").exists()
+
+
+def test_kitesurf_probe_runs_after_every_local_preflight(monkeypatch, tmp_path) -> None:
+    from harness import env_file
+
+    monkeypatch.setattr(env_file, "_repository_credentials_file", tmp_path / "absent.env")
+    monkeypatch.setattr(catalog_runner, "verify_webarena_runtime_source", lambda: SimpleNamespace())
+    monkeypatch.setattr(
+        catalog_runner,
+        "_probe_kitesurf_runtime",
+        lambda *args: pytest.fail("the hosted browser was opened"),
+    )
+    local = tmp_path / "local.env"
+    local.write_text(
+        "CLOUDFLARE_ACCOUNT_ID=synthetic-account\nCLOUDFLARE_API_TOKEN=synthetic-token\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "sites.json").write_text(
+        json.dumps(
+            {
+                "schema": "lex_webarena_remote_sites/1",
+                "sites": {
+                    "gitlab": "https://gitlab.remote.test",
+                    "map": "https://map.remote.test",
+                    "reddit": "https://reddit.remote.test",
+                    "shopping": "https://shopping.remote.test",
+                    "shopping_admin": "https://admin.remote.test/admin",
+                    "wikipedia": "https://wikipedia.remote.test",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run",
+            "--catalog",
+            str(tmp_path / "catalog.json"),
+            "--portable-suite",
+            str(tmp_path / "suite.json"),
+            "--site-map",
+            str(tmp_path / "sites.json"),
+            "--site-reset-receipt",
+            str(tmp_path / "receipt.json"),
+            "--environment-profile",
+            str(tmp_path / "environment.json"),
+            "--engine",
+            "kitesurf",
+            "--backend",
+            "playwright",
+            "--credential-env-file",
+            str(local),
+            "--output",
+            str(tmp_path / "run"),
+        ],
+    )
+
+    with pytest.raises(ValueError, match="WEBARENA_[A-Z_]+_PASSWORD"):
+        catalog_runner.main()
