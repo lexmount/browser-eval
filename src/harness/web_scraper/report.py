@@ -972,7 +972,9 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
             "<h2>"
             + ("原标注下的紧凑比较" if zh else "Compact original-reference comparison")
             + "</h2>"
+            + '<div class="table-wrap">'
             + str(compact)
+            + "</div>"
         )
     interpretation += (
         "<h2>" + ("评分看的是字段是否匹配" if zh else "Scoring checks field matches") + "</h2><p>"

@@ -152,7 +152,7 @@ function diagnosisContent(container, row, field) {
     diagnosis.treatment || tr("保留原调用及评分。", "Original call and score retained."),
   );
   if (row.repair_run_id) add(tr("失败补跑", "Failure repair"), row.repair_run_id);
-  if (row.elapsed_seconds !== undefined)
+  if (Number.isFinite(row.elapsed_seconds))
     add(tr("本次耗时", "Current call latency"), row.elapsed_seconds.toFixed(3) + " s");
   container.append(facts);
   const table = document.createElement("table");

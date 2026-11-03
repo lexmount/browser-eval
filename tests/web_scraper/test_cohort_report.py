@@ -338,6 +338,7 @@ def test_interpretation_compares_every_registered_method_without_changing_scores
     _, html = audit_explanation(audit, rows, methods, {}, "en", core_html=core)
     soup = check_presentation(html)
     comparison = soup.select("[data-interpretation-comparison] tbody tr")
+    assert soup.select_one("[data-interpretation-comparison]").parent["class"] == ["table-wrap"]
     assert [r["data-method"] for r in comparison] == methods
     for i, row in enumerate(comparison):
         assert [c.get_text(strip=True) for c in row.select("td")[2:]] == [f"{(i + 1) / 10:.3f}"] * 4
