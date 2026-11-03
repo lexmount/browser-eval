@@ -10,6 +10,35 @@ from tests.test_saved_matrix_evidence import fixture, build, write
 
 
 @pytest.mark.parametrize('tie', [False, True])
+def test_final_ranking_reuses_pass_order_and_latency_extrema(tmp_path, tie):
+    spec, source, record, raw = fixture(tmp_path)
+    spec.update(presentation='final', combined_ranking=True)
+    other = deepcopy(record)
+    other.update(provider='alphabetic-first', attempt_id='other-run', elapsed_ms=12 if tie else 6)
+    other['metrics']['content_pass'] = False
+    spec['providers'].append({'id': 'alphabetic-first', 'label': 'Alphabetic first'})
+    path = source/'results.jsonl'
+    path.write_bytes(raw+(json.dumps(other)+'\n').encode())
+    spec['sources'][0]['results']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+    root = build(tmp_path, spec).parent
+    page = BeautifulSoup((root/'index.html').read_text(), 'html.parser')
+    ranking = page.select_one('#ranking-overall')
+    assert '请求成功率' in ranking.get_text() and '综合任务通过率' in ranking.get_text()
+    rows = ranking.select('tbody tr')
+    assert rows[0].select_one('a')['href'] == 'providers/method.html'
+    assert rows[1].select_one('a')['href'] == 'providers/alphabetic-first.html'
+    assert len(ranking.select('thead button')) >= 6
+    for row in rows:
+        timings = row.select('[data-metric-direction="min"]')
+        assert len(timings) == 3
+        assert all(float(cell['data-sort']) == (12 if row is rows[0] or tie else 6) for cell in timings)
+        assert len(row.select('[data-metric-direction="min"] .comparison-winner')) == (
+            3 if row is rows[1] and not tie else 0)
+    assert page.select_one('#completion') is None
+    assert page.select_one('#saved-limitations') is not None
+
+
+@pytest.mark.parametrize('tie', [False, True])
 def test_saved_suite_pass_rate_highlights_only_a_unique_winner(tmp_path, tie):
     spec, source, record, raw = fixture(tmp_path)
     other = deepcopy(record)

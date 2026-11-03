@@ -1407,6 +1407,9 @@ def test_final_saved_report_preserves_results_without_audit_process_banners(tmp_
     assert '本地审核版' not in html
     assert '本报告未正式发布' not in html
     assert 'data-saved-completion' not in html
+    assert 'id="completion"' not in html
+    assert 'id="saved-missing"' not in html
+    assert 'id="saved-limitations"' in html
     assert 'report_invocation_status' not in html
     assert check_saved_matrix(report, spec_path=tmp_path / 'spec.json')['valid']
 

@@ -2351,7 +2351,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   completeness='<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p>'
  home+=section(f'{track_label} 类任务概览',review_summary(out)+completeness+'<p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
  if dataset.get('saved_matrix_scope'):
-  home+=saved_matrix_scope_section(dataset['saved_matrix_scope'])
+  home+=saved_matrix_scope_section(dataset['saved_matrix_scope'],show_completion=not final_saved)
 
  home+=section('全部方法共同成功任务的耗时',overview_matched_latency(records,cases),'overall-matched-latency')
  if (out/'resource-cohort/resource-comparison.json').is_file():
@@ -4759,7 +4759,10 @@ def generate_saved_matrix(out: Path, model: dict) -> Path:
  return render_saved_with_standard_generator(out, model)
 
 
-def saved_matrix_scope_section(scope):
+def saved_matrix_scope_section(scope,*,show_completion=True):
+ limitations=section(SAVED_MATRIX_ZH['limitations'],'<ul>'+''.join('<li>'+esc(note)+'</li>' for note in scope.get('limitations',[]))+'</ul>','saved-limitations')
+ if not show_completion:
+  return limitations
  rows=[]
  for item in scope['providers']:
   rows.append(('',cell(link('providers/'+item['provider']+'.html',provider_label(item['provider'])))+''.join(cell(str(item[k])) for k in ('planned','called','saved','normal','passed','rejected','uncommitted','not_called'))))
@@ -4769,7 +4772,7 @@ def saved_matrix_scope_section(scope):
   for old in item.get('history', []):
    evidence+='<br>'+link(old['record_path'],SAVED_MATRIX_ZH['history_title'])+' · '+link(old['scope_path'],SAVED_MATRIX_ZH['history_scope'])
   missing.append(('',cell(esc(item['suite']))+cell(esc(item['provider']))+cell(esc(item['case_id']))+cell(SAVED_MATRIX_ZH[item['status']])+cell(esc(item['error']))+cell(evidence)))
- return section(SAVED_MATRIX_ZH['completion_title'],'<p>'+SAVED_MATRIX_ZH['completion_note']+'</p>'+table(SAVED_MATRIX_ZH['completion_headers'],rows,'saved-completion',metrics=[])+table(SAVED_MATRIX_ZH['missing_headers'],missing,'saved-missing',metrics=[]),'completion')+section(SAVED_MATRIX_ZH['limitations'],'<ul>'+''.join('<li>'+esc(note)+'</li>' for note in scope.get('limitations',[]))+'</ul>','saved-limitations')
+ return section(SAVED_MATRIX_ZH['completion_title'],'<p>'+SAVED_MATRIX_ZH['completion_note']+'</p>'+table(SAVED_MATRIX_ZH['completion_headers'],rows,'saved-completion',metrics=[])+(table(SAVED_MATRIX_ZH['missing_headers'],missing,'saved-missing',metrics=[]) if missing else ''),'completion')+limitations
 
 
 def saved_suite_ranking(records,cases,suite,*,base='',id=None):
