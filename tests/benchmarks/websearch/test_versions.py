@@ -114,7 +114,7 @@ def test_catalog_tampering_and_tag_mismatch_are_rejected(tmp_path, monkeypatch):
     original = catalog_release(require_current_scorer=False)
     for change in ({"tag": "benchmark-v1.0.0"}, {"datasets": {}}, {"current": {}}):
         path = tmp_path / "catalog.json"
-        path.write_text(json.dumps({**original, **change}))
+        path.write_text(json.dumps({**original, **change}), encoding="utf-8")
         with pytest.raises(ValueError):
             catalog_release(path, require_current_scorer=False)
     broken = deepcopy(original)
@@ -125,16 +125,16 @@ def test_catalog_tampering_and_tag_mismatch_are_rejected(tmp_path, monkeypatch):
 
     frozen_hash = next(iter(original["datasets"].values()))["scoring_source_sha256"]
     monkeypatch.setattr(versions, "scoring_source_sha256", lambda: frozen_hash)
-    path.write_text(json.dumps(original))
+    path.write_text(json.dumps(original), encoding="utf-8")
     catalog_release(path)
-    path.write_text(json.dumps(broken))
+    path.write_text(json.dumps(broken), encoding="utf-8")
     with pytest.raises(ValueError, match="changed"):
         catalog_release(path)
 
 
 def test_release_cli_writes_once_and_compares_outside_checkout(tmp_path):
     source = tmp_path / "dataset.json"
-    source.write_text(json.dumps(dataset()))
+    source.write_text(json.dumps(dataset()), encoding="utf-8")
     output = tmp_path / "release.json"
     call = lambda *args: subprocess.run(
         [sys.executable, "-m", "lexbench_websearch.cli", *args],

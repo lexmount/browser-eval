@@ -78,7 +78,8 @@ def test_load_suite_rejects_ref_only_and_invalid_selectors(tmp_path, action, sel
         {"action": "get_text", "selector": "h1", "save_as": "heading"},
     ]
     path.write_text(
-        json.dumps({"schema": "lex_browser_use_tasks/3", "tasks": [_task("bad", calls)]})
+        json.dumps({"schema": "lex_browser_use_tasks/3", "tasks": [_task("bad", calls)]}),
+        encoding="utf-8"
     )
     with pytest.raises(ValueError, match="bad: call 1: .*ref is not supported"):
         load_suite(path)

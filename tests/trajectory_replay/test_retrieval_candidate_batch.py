@@ -19,15 +19,15 @@ ROOT = (
     Path(__file__).resolve().parents[2]
     / "evaluation/trajectory-replay/webarena-verified/retrieval-candidates"
 )
-MATRIX = json.loads((ROOT / "qualification-matrix.json").read_text())
-SEEDS = json.loads((ROOT / "recompiled-seed-bindings.json").read_text())
+MATRIX = json.loads((ROOT / "qualification-matrix.json").read_text(encoding="utf-8"))
+SEEDS = json.loads((ROOT / "recompiled-seed-bindings.json").read_text(encoding="utf-8"))
 SEED_BY_TASK = {row["task_id"]: row for row in SEEDS["rows"]}
 
 
 def _candidate(row: dict) -> dict:
     path = Path(__file__).resolve().parents[2] / row["candidate_path"]
     assert hashlib.sha256(path.read_bytes()).hexdigest() == row["candidate_sha256"]
-    return json.loads(path.read_text())
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _assert_current_seed_prefix(row: dict, calls: list[dict]) -> None:

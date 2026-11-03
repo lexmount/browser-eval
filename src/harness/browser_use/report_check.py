@@ -449,7 +449,7 @@ def check(
     )
     chinese_pages = (*pages, *task_pages, *result_pages)
     _, history = bound_json_asset(profile.get("report_history"), root=repository)
-    if json.loads((report_dir / "report-changes.json").read_text()) != history:
+    if json.loads((report_dir / "report-changes.json").read_text(encoding="utf-8")) != history:
         raise ValueError("Report history differs from the selected instance")
     check_language_contract(report_dir)
     english_pages = tuple(
@@ -601,7 +601,9 @@ def check(
         or "逐结果覆盖" in review_index
     ):
         raise ValueError("review page must present review rounds, not a per-result audit table")
-    selected_tasks = json.loads((report_dir / "data/selection.json").read_text())["tasks"]
+    selected_tasks = json.loads((report_dir / "data/selection.json").read_text(encoding="utf-8"))[
+        "tasks"
+    ]
     environment = bundles[0]["manifest"].get("environment") or {}
     for page in (report_dir / "methodology/index.html", report_dir / "en/methodology/index.html"):
         if page in rendered_pages:

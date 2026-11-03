@@ -52,7 +52,7 @@ class HeadlessReviewTests(unittest.TestCase):
     def test_resume_rejects_observations_outside_exact_reference_scope(self):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'observations.json'
-            path.write_text(json.dumps([{'case_id':'exact'},{'case_id':'unavailable'}]))
+            path.write_text(json.dumps([{'case_id':'exact'},{'case_id':'unavailable'}]), encoding='utf-8')
             with self.assertRaises(ValueError):
                 load_resumable_observations(path,{'exact':{}})
 
@@ -66,12 +66,12 @@ class HeadlessReviewTests(unittest.TestCase):
     def test_partial_tail_only(self):
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'results.jsonl'
-            path.write_text('{"case_id":"a"}\n{"case_')
+            path.write_text('{"case_id":"a"}\n{"case_', encoding='utf-8')
             self.assertEqual(read_completed_records(path),[{'case_id':'a'}])
-            path.write_text('{"case_id":"a"}')
+            path.write_text('{"case_id":"a"}', encoding='utf-8')
             self.assertEqual(read_completed_records(path),[{'case_id':'a'}])
             for content in ('bad\n{"case_id":"a"}\n','{"case_id":"a"}\nbad\n'):
-                path.write_text(content)
+                path.write_text(content, encoding='utf-8')
                 with self.assertRaises(json.JSONDecodeError):
                     read_completed_records(path)
 
@@ -84,7 +84,7 @@ class HeadlessReviewTests(unittest.TestCase):
             except FileNotFoundError:
                 self.skipTest('requires externally installed historical reference inputs')
             dataset['cases']=dataset['cases'][:1]
-            (path/'dataset.json').write_text(json.dumps(dataset))
+            (path/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             for flags in ([],['-O']):
                 result=subprocess.run([sys.executable,*flags,str(root/'scripts/check_headless_evidence.py'),str(path)],capture_output=True,text=True)
                 self.assertNotEqual(result.returncode,0)

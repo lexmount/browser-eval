@@ -61,16 +61,17 @@ def reference_fixture(tmp_path):
             source = root / "sources" / identifier
             source.mkdir(parents=True)
             (source / "source.html.txt").write_bytes(content)
-    (evidence / "dataset.json").write_text(json.dumps({"cases": cases}))
+    (evidence / "dataset.json").write_text(json.dumps({"cases": cases}), encoding="utf-8")
     revised = deepcopy(cases)
     for case in revised:
         case["ground_truth_main_content"] = "corrected independent answer reference"
-    (canonical / "dataset.json").write_text(json.dumps({"cases": revised}))
-    (canonical / "sources" / "unrelated.txt").write_text("not selected")
-    (evidence / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in records))
-    (evidence / "summary.json").write_text("{}")
+    (canonical / "dataset.json").write_text(json.dumps({"cases": revised}), encoding="utf-8")
+    (canonical / "sources" / "unrelated.txt").write_text("not selected", encoding="utf-8")
+    (evidence / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in records), encoding="utf-8")
+    (evidence / "summary.json").write_text("{}", encoding="utf-8")
     (evidence / "manifest.json").write_text(
-        json.dumps({"attempt_ids": [r["attempt_id"] for r in records]})
+        json.dumps({"attempt_ids": [r["attempt_id"] for r in records]}),
+        encoding="utf-8"
     )
     return evidence, canonical / "dataset.json"
 
@@ -199,7 +200,7 @@ def test_changed_reference_copy_is_rejected_before_promotion(tmp_path):
     def corrupt_copy(src, dst, *args, **kwargs):
         result = copytree(src, dst, *args, **kwargs)
         if Path(src) == canonical.parent / "sources/one":
-            (Path(dst) / "source.html.txt").write_text("changed during copy")
+            (Path(dst) / "source.html.txt").write_text("changed during copy", encoding="utf-8")
         return result
 
     with (
@@ -227,7 +228,7 @@ def test_attribution_only_field_scope_keeps_sources_and_results_unchanged(tmp_pa
     evidence, canonical = reference_fixture(tmp_path)
     document = json.loads(canonical.read_bytes())
     document["cases"][0]["ground_truth_evidence"] = {"kind": "independent_annotation"}
-    canonical.write_text(json.dumps(document))
+    canonical.write_text(json.dumps(document), encoding="utf-8")
     before = snapshot(evidence)
     receipt = revise(
         evidence, canonical, case_ids={"one"}, fields={"ground_truth_evidence"}, **AUTHORITY

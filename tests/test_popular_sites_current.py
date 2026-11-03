@@ -19,8 +19,8 @@ class PopularSitesCurrentTests(unittest.TestCase):
     def test_current_dataset_registry_and_profile_are_one_complete_matrix(self):
         dataset = json.loads(read_frozen_dataset_bytes(TRACK / "dataset.json"))
         review_path = TRACK / "review.json"
-        review = json.loads(review_path.read_text())
-        profile = json.loads((TRACK / "current-report.json").read_text())
+        review = json.loads(review_path.read_text(encoding="utf-8"))
+        profile = json.loads((TRACK / "current-report.json").read_text(encoding="utf-8"))
 
         cases = dataset["cases"]
         self.assertEqual(len(cases), 100)
@@ -56,7 +56,7 @@ class PopularSitesCurrentTests(unittest.TestCase):
                 self.assertTrue(stable_page.is_file())
                 self.assertTrue(evidence.is_file())
                 self.assertEqual(annotation["anchor_evidence_sha256"], sha256(stable_page))
-                metadata = json.loads(evidence.read_text())
+                metadata = json.loads(evidence.read_text(encoding="utf-8"))
                 self.assertEqual(metadata["case_id"], case["id"])
                 self.assertEqual(metadata["url"], case["url"])
                 self.assertEqual(metadata["stable_page_sha256"], sha256(stable_page))

@@ -15,9 +15,20 @@ def digest(raw):
     return hashlib.sha256(raw).hexdigest()
 
 
+def _strings(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _strings(item)
+
+
 def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False))
+    path.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
 
 
 @pytest.fixture
@@ -107,8 +118,8 @@ def definitions(tmp_path, monkeypatch):
                 )
             }
     rules = [root / name for name in ("first-30-rule-review.md", "remaining-70-rule-review.md")]
-    rules[0].write_text("\n".join(sections[:30]))
-    rules[1].write_text("\n".join(sections[30:]))
+    rules[0].write_text("\n".join(sections[:30]), encoding="utf-8")
+    rules[1].write_text("\n".join(sections[30:]), encoding="utf-8")
     scope = {
         "case_count": 100,
         "site_count": 74,
@@ -171,19 +182,23 @@ def test_complete_independent_definitions_compile_to_an_executable_dataset(defin
     assert "composite_acceptance" not in dataset["cases"][20]
 
 
-def test_local_compilation_works_offline_in_a_fresh_process(definitions, tmp_path):
+@pytest.mark.parametrize('locale_settings', [
+    pytest.param({}, id='host-locale'),
+    pytest.param({'PYTHONUTF8': '0', 'PYTHONCOERCECLOCALE': '0', 'LC_ALL': 'C'}, id='ascii-locale'),
+])
+def test_local_compilation_works_offline_in_a_fresh_process(definitions, tmp_path, locale_settings):
     root, proofs = definitions
     guards = tmp_path / 'guards.json'
     guards.write_text(json.dumps({'rules': compiler.EXPECTED_RULE_HASHES,
                                  'cohort': compiler.EXPECTED_COHORT_HASH,
-                                 'literals': compiler.EXPECTED_STABLE_LITERAL_COUNT}))
+                                 'literals': compiler.EXPECTED_STABLE_LITERAL_COUNT}), encoding="utf-8")
     cache = tmp_path / 'empty-cache'
     output = tmp_path / 'offline-dataset.json'
     program = '''
 import json, sys
 from pathlib import Path
 from lexbench_webfetch import risk_control_dataset as compiler
-guards = json.loads(Path(sys.argv[1]).read_text())
+guards = json.loads(Path(sys.argv[1]).read_text(encoding='utf-8'))
 compiler.EXPECTED_RULE_HASHES = guards['rules']
 compiler.EXPECTED_COHORT_HASH = guards['cohort']
 compiler.EXPECTED_STABLE_LITERAL_COUNT = guards['literals']
@@ -192,11 +207,16 @@ compiler.main(sys.argv[2:])
     result = subprocess.run([sys.executable, '-c', program, str(guards),
                              '--definition-dir', str(root), '--evidence-home', str(proofs.parent),
                              '--output', str(output)], cwd=tmp_path, capture_output=True, text=True,
-                            env={**os.environ, 'BROWSER_EVAL_DATASET_CACHE': str(cache), 'HF_HUB_OFFLINE': '1'})
+                            env={**os.environ, 'BROWSER_EVAL_DATASET_CACHE': str(cache), 'HF_HUB_OFFLINE': '1',
+                                 **locale_settings})
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)['cases'] == 100
-    assert json.loads(output.read_bytes())['case_count'] == 100
+    compiled = json.loads(output.read_bytes().decode('utf-8'))
+    assert compiled['case_count'] == 100
+    assert compiled == json.loads(output.read_text(encoding='utf-8'))
     assert not cache.exists()
+    assert not locale_settings or any(
+        not value.isascii() for value in _strings(compiled)), 'fixture must carry non-ASCII text'
 
 
 def test_pure_acceptance_policy_import_needs_no_installed_definitions(tmp_path):
@@ -216,8 +236,8 @@ assign_content_acceptance_roles([{'acceptance_contract': {
 
 def test_current_scope_owners_declare_only_proven_complete_contracts():
     from lexbench_webfetch.inputs import definition_path
-    bodies = json.loads(definition_path("evaluation/risk-control/body-contracts.json").read_text())["contracts"]
-    lists = json.loads(definition_path("evaluation/risk-control/list-contracts.json").read_text())["contracts"]
+    bodies = json.loads(definition_path("evaluation/risk-control/body-contracts.json").read_text(encoding="utf-8"))["contracts"]
+    lists = json.loads(definition_path("evaluation/risk-control/list-contracts.json").read_text(encoding="utf-8"))["contracts"]
     assert bodies["risk-diverse-042"]["stable_text_role"] == "diagnostic"
     assert bodies["risk-diverse-011"]["stable_text_role"] == "required"
     assert lists["risk-diverse-192"]["stable_text_role"] == "diagnostic"
@@ -246,7 +266,7 @@ def test_current_rules_keep_responsive_page_chrome_out_of_body_acceptance():
 
 def test_changed_independent_proof_cannot_produce_a_dataset(definitions, tmp_path):
     root, proofs = definitions
-    (proofs / "fixture-099.txt").write_text("changed source")
+    (proofs / "fixture-099.txt").write_text("changed source", encoding="utf-8")
     output = tmp_path / "dataset.json"
     with pytest.raises(ValueError, match="Missing or changed reference proof"):
         compiler.build(output, root)

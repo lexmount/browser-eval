@@ -45,7 +45,7 @@ def setup_replacement(tmp_path):
             dataset_meta={'tool': 'web_fetch', 'cases': [added]}, dataset_path=tmp_path/'frozen.json',
             cases=cases, providers=[build_provider(method, {'type': 'fixture'})],
             provider_config_path=tmp_path/'providers.json', runs=1, timeout=45, delay=0, max_failure_retries=0)
-        batch = json.loads((tmp_path/'manifest.json').read_text())
+        batch = json.loads((tmp_path/'manifest.json').read_text(encoding='utf-8'))
         calls.extend(rows)
         batches.append(batch)
     post = capture('post')
@@ -80,14 +80,14 @@ def test_complete_replacement_preserves_distinct_scoring_sources(tmp_path):
 def test_bound_local_runner_accepts_public_doh_and_rejects_drift(tmp_path, defect):
     from harness.web_fetch.local_execution_contract import _require_local_runner_inputs
     _, _, records = setup_replacement(tmp_path)
-    contract = json.loads((tmp_path/'execution-contract.json').read_text())
-    execution = json.loads((tmp_path/'execution.json').read_text())
+    contract = json.loads((tmp_path/'execution-contract.json').read_text(encoding='utf-8'))
+    execution = json.loads((tmp_path/'execution.json').read_text(encoding='utf-8'))
     calls = [row for row in records if row['case_id'] == 'new']
 
     def replace_input(key, value):
         binding = contract['runner_inputs'][key]
         path = tmp_path/binding['path']
-        path.write_text(json.dumps(value))
+        path.write_text(json.dumps(value), encoding='utf-8')
         binding['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
 
     replace_input('providers', {'providers': {
@@ -129,12 +129,12 @@ def test_current_public_diagnostics_keep_private_identity_distinct(tmp_path, def
     public = tmp_path/('logs/'+row['attempt_id']+'.debug.txt')
     public.parent.mkdir(exist_ok=True)
     public.write_bytes(original)
-    (tmp_path/'dataset.json').write_text(json.dumps(dataset))
-    (tmp_path/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
+    (tmp_path/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+    (tmp_path/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows), encoding='utf-8')
     config = tmp_path/'config.json'
     config.write_text(json.dumps({'cases': [], 'rescore_attempt_ids': [],
         'authority': {'description': 'Current shared correction'},
-        'regression_ids': ['ordinary-text-player-control-only', 'ordinary-text-with-player-control']}))
+        'regression_ids': ['ordinary-text-player-control-only', 'ordinary-text-with-player-control']}), encoding='utf-8')
     revise_local_snapshot(tmp_path, config)
     path = next((tmp_path/'local-evidence/offline-revisions').glob('*/receipt.json'))
     binding = {'path': path.relative_to(tmp_path).as_posix(),
@@ -152,7 +152,7 @@ def test_current_public_diagnostics_keep_private_identity_distinct(tmp_path, def
     elif defect == 'cas_attempt':
         manifest['bindings'][0]['attempt_ids'] = ['another-attempt']
     manifest_path = cas/'manifest.json'
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
     if defect in {'cas_bytes', 'cas_attempt'}:
         with pytest.raises(ValueError):
             compact_revision_authority(tmp_path, binding, private_original_manifest=manifest_path)
@@ -162,24 +162,24 @@ def test_current_public_diagnostics_keep_private_identity_distinct(tmp_path, def
     assert str(cas) not in json.dumps(authority)
     if defect == 'transaction_rollback':
         from harness.web_fetch.local_revision import compact_local_snapshot
-        public.write_text('Superseded derived view')
+        public.write_text('Superseded derived view', encoding='utf-8')
         before = {name: (tmp_path/name).read_bytes() for name in
                   ('dataset.json', 'results.jsonl', 'execution.json')}
         with pytest.raises(ValueError):
             compact_local_snapshot(tmp_path, binding, private_original_manifest=manifest_path,
                 reference_authorities=[{'path': 'missing-authority.json', 'sha256': '0'*64}])
-        assert public.read_text() == 'Superseded derived view'
+        assert public.read_text(encoding='utf-8') == 'Superseded derived view'
         assert all((tmp_path/name).read_bytes() == content for name, content in before.items())
         assert not (tmp_path/'local-evidence/offline-revisions/current/receipt.json').exists()
         return
     if defect == 'public_bytes':
-        public.write_text('Changed public log')
+        public.write_text('Changed public log', encoding='utf-8')
     elif defect == 'wrong_attempt':
         authority['diagnostic_projections'][0]['attempt_id'] = rows[1]['attempt_id']
     elif defect == 'wrong_call':
         authority['diagnostic_projections'][0]['call_log'] = rows[1]['provider_metadata']['call_log']
-    current_rows = [json.loads(line) for line in (tmp_path/'results.jsonl').read_text().splitlines()]
-    current_dataset = json.loads((tmp_path/'dataset.json').read_text())
+    current_rows = [json.loads(line) for line in (tmp_path/'results.jsonl').read_text(encoding='utf-8').splitlines()]
+    current_dataset = json.loads((tmp_path/'dataset.json').read_text(encoding='utf-8'))
     if defect:
         with pytest.raises(ValueError):
             require_current_snapshot_authority(tmp_path, authority, current_dataset, current_rows)
@@ -197,8 +197,8 @@ def test_current_replacement_validates_live_qualification_without_before_matrice
     from harness.web_fetch.local_revision import require_current_task_replacement
     binding, dataset, records = setup_replacement(tmp_path)
     require_local_task_replacement(tmp_path, binding, dataset, records)
-    old = json.loads((tmp_path/'receipt.json').read_text())
-    contract = json.loads((tmp_path/'execution-contract.json').read_text())
+    old = json.loads((tmp_path/'receipt.json').read_text(encoding='utf-8'))
+    contract = json.loads((tmp_path/'execution-contract.json').read_text(encoding='utf-8'))
     observations = contract['runner_inputs']['source_observations']['new']
     scope = {'added_case_id': 'new', 'removed_case_id': 'old',
         'current_attempt_ids': sorted(r['attempt_id'] for r in records if r['case_id'] == 'new'),
@@ -215,10 +215,10 @@ def test_current_replacement_validates_live_qualification_without_before_matrice
     if defect == 'source_deleted':
         (tmp_path/'source.html').unlink()
     elif defect == 'source_changed':
-        (tmp_path/'source.html').write_text('Changed source')
+        (tmp_path/'source.html').write_text('Changed source', encoding='utf-8')
     elif defect == 'contract':
         contract['timeout_seconds'] = 44
-        (tmp_path/'execution-contract.json').write_text(json.dumps(contract))
+        (tmp_path/'execution-contract.json').write_text(json.dumps(contract), encoding='utf-8')
         scope['execution_contract']['sha256'] = hashlib.sha256(
             (tmp_path/'execution-contract.json').read_bytes()).hexdigest()
     elif defect == 'call':
@@ -274,25 +274,25 @@ def test_replacement_execution_preserves_history_without_counting_old_task(tmp_p
     'config', 'dns', 'source', 'late_precheck', 'output'])
 def test_replacement_requires_full_physical_execution_evidence(tmp_path, defect):
     binding, dataset, records = setup_replacement(tmp_path)
-    receipt = json.loads((tmp_path/'receipt.json').read_text())
+    receipt = json.loads((tmp_path/'receipt.json').read_text(encoding='utf-8'))
     if defect == 'missing_contract':
         receipt.pop('execution_contract')
     elif defect in {'missing_inputs', 'environment', 'timeout', 'config'}:
-        contract = json.loads((tmp_path/'execution-contract.json').read_text())
+        contract = json.loads((tmp_path/'execution-contract.json').read_text(encoding='utf-8'))
         if defect == 'missing_inputs': contract.pop('runner_inputs')
         elif defect == 'environment': contract['environment']['python'] = 'wrong'
         elif defect == 'timeout': contract['timeout_seconds'] = 44
         else: contract['provider_config_sha256'] = '0'*64
-        (tmp_path/'execution-contract.json').write_text(json.dumps(contract))
+        (tmp_path/'execution-contract.json').write_text(json.dumps(contract), encoding='utf-8')
         receipt['execution_contract']['sha256'] = hashlib.sha256((tmp_path/'execution-contract.json').read_bytes()).hexdigest()
-    elif defect == 'dns': (tmp_path/'network.json').write_text('{}')
-    elif defect == 'source': (tmp_path/'source.html').write_text('wrong page')
+    elif defect == 'dns': (tmp_path/'network.json').write_text('{}', encoding='utf-8')
+    elif defect == 'source': (tmp_path/'source.html').write_text('wrong page', encoding='utf-8')
     elif defect == 'late_precheck':
-        observation = json.loads((tmp_path/'pre.json').read_text())
+        observation = json.loads((tmp_path/'pre.json').read_text(encoding='utf-8'))
         observation['checked_at'] = '2099-01-01T00:00:00+00:00'
-        (tmp_path/'pre.json').write_text(json.dumps(observation))
-    else: (tmp_path/records[-1]['artifact_path']).write_text('changed output')
-    (tmp_path/'receipt.json').write_text(json.dumps(receipt))
+        (tmp_path/'pre.json').write_text(json.dumps(observation), encoding='utf-8')
+    else: (tmp_path/records[-1]['artifact_path']).write_text('changed output', encoding='utf-8')
+    (tmp_path/'receipt.json').write_text(json.dumps(receipt), encoding='utf-8')
     binding['sha256'] = hashlib.sha256((tmp_path/'receipt.json').read_bytes()).hexdigest()
     with pytest.raises(ValueError):
         require_local_task_replacement(tmp_path, binding, dataset, records)

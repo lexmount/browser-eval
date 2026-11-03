@@ -30,21 +30,22 @@ def _site_map(tmp_path):
                     "gitlab": "http://gitlab.example/",
                 },
             }
-        )
+        ),
+        encoding="utf-8"
     )
     return path
 
 
 def test_six_site_remote_map_accepts_read_only_sites_and_rebinds_them(tmp_path):
     site_map = _site_map(tmp_path)
-    payload = json.loads(site_map.read_text())
+    payload = json.loads(site_map.read_text(encoding="utf-8"))
     payload["sites"].update(
         {
             "map": "http://map.example/",
             "wikipedia": "http://wiki.example/",
         }
     )
-    site_map.write_text(json.dumps(payload))
+    site_map.write_text(json.dumps(payload), encoding="utf-8")
     sites = load_remote_sites(site_map)
     assert set(sites) == {
         WebArenaSite.SHOPPING,
@@ -73,9 +74,9 @@ def test_six_site_remote_map_accepts_read_only_sites_and_rebinds_them(tmp_path):
 
 def test_remote_benchmark_matches_same_host_network_event_after_transport_change(tmp_path):
     site_map = _site_map(tmp_path)
-    payload = json.loads(site_map.read_text())
+    payload = json.loads(site_map.read_text(encoding="utf-8"))
     payload["sites"]["shopping_admin"] = "https://admin.example/admin"
-    site_map.write_text(json.dumps(payload))
+    site_map.write_text(json.dumps(payload), encoding="utf-8")
     benchmark = remote_benchmark(load_remote_sites(site_map))
     trace = tmp_path / "shipment.har"
     trace.write_text(
@@ -454,7 +455,7 @@ def test_remote_reset_requires_pod_replacement_and_readiness(tmp_path):
         "app_id": 195,
         "sites": {"shopping_admin": row},
     }
-    receipt_path.write_text(json.dumps(receipt))
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
     assert (
         validate_remote_reset_receipt(
             receipt_path,
@@ -464,7 +465,7 @@ def test_remote_reset_requires_pod_replacement_and_readiness(tmp_path):
         == receipt
     )
     receipt["sites"]["shopping_admin"]["new_pod"] = "old"
-    receipt_path.write_text(json.dumps(receipt))
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
     with pytest.raises(ValueError, match="not proven"):
         validate_remote_reset_receipt(
             receipt_path,
@@ -504,7 +505,7 @@ def test_cohort_reset_requires_all_replaced_pods_and_clean_baseline(tmp_path):
     }
     receipt["sites"]["reddit"]["baseline_check"] = {"row_count": 0}
     receipt["sites"]["gitlab"]["baseline_check"] = {"row_count": 0}
-    receipt_path.write_text(json.dumps(receipt))
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
     kwargs = {
         "site_map_sha256": file_sha256(site_path),
         "app_id": 195,
@@ -512,7 +513,7 @@ def test_cohort_reset_requires_all_replaced_pods_and_clean_baseline(tmp_path):
     }
     assert validate_remote_cohort_reset_receipt(receipt_path, **kwargs) == receipt
     receipt["sites"]["reddit"]["baseline_check"]["row_count"] = 1
-    receipt_path.write_text(json.dumps(receipt))
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
     with pytest.raises(ValueError, match="baseline is not proven"):
         validate_remote_cohort_reset_receipt(receipt_path, **kwargs)
 
@@ -555,7 +556,7 @@ def test_cohort_reset_requires_matching_https_admin_configuration(tmp_path):
         "public_static_resource_scheme": "https",
     }
     receipt["sites"]["shopping_admin"]["https_admin_config"] = config
-    receipt_path.write_text(json.dumps(receipt))
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
     kwargs = {
         "site_map_sha256": file_sha256(site_path),
         "app_id": 195,
@@ -571,7 +572,7 @@ def test_cohort_reset_requires_matching_https_admin_configuration(tmp_path):
     ):
         changed = json.loads(json.dumps(receipt))
         changed["sites"]["shopping_admin"]["https_admin_config"][field] = invalid
-        receipt_path.write_text(json.dumps(changed))
+        receipt_path.write_text(json.dumps(changed), encoding="utf-8")
         with pytest.raises(ValueError, match="HTTPS configuration is not proven"):
             validate_remote_cohort_reset_receipt(receipt_path, **kwargs)
 
@@ -622,7 +623,7 @@ def test_cohort_reset_requires_bound_fast_read_only_site_probes(tmp_path):
     }
     receipt["sites"]["reddit"]["baseline_check"] = {"row_count": 0}
     receipt["sites"]["gitlab"]["baseline_check"] = {"row_count": 0}
-    receipt_path.write_text(json.dumps(receipt))
+    receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
     kwargs = {
         "site_map_sha256": file_sha256(site_path),
         "app_id": 195,
@@ -645,7 +646,7 @@ def test_cohort_reset_requires_bound_fast_read_only_site_probes(tmp_path):
             "recovery_ms": 15_000,
         }
     )
-    receipt_path.write_text(json.dumps(recovered))
+    receipt_path.write_text(json.dumps(recovered), encoding="utf-8")
     assert validate_remote_cohort_reset_receipt(receipt_path, **kwargs) == recovered
     timed_out = json.loads(json.dumps(recovered))
     timed_out["site_readiness"][0].update(
@@ -654,14 +655,14 @@ def test_cohort_reset_requires_bound_fast_read_only_site_probes(tmp_path):
             "cold_error": "timeout",
         }
     )
-    receipt_path.write_text(json.dumps(timed_out))
+    receipt_path.write_text(json.dumps(timed_out), encoding="utf-8")
     assert validate_remote_cohort_reset_receipt(receipt_path, **kwargs) == timed_out
     del timed_out["site_readiness"][0]["cold_error"]
-    receipt_path.write_text(json.dumps(timed_out))
+    receipt_path.write_text(json.dumps(timed_out), encoding="utf-8")
     with pytest.raises(ValueError, match="site readiness"):
         validate_remote_cohort_reset_receipt(receipt_path, **kwargs)
     del recovered["site_readiness"][0]["recovery_http_status"]
-    receipt_path.write_text(json.dumps(recovered))
+    receipt_path.write_text(json.dumps(recovered), encoding="utf-8")
     with pytest.raises(ValueError, match="site readiness"):
         validate_remote_cohort_reset_receipt(receipt_path, **kwargs)
     for changed_field, invalid in (
@@ -672,7 +673,7 @@ def test_cohort_reset_requires_bound_fast_read_only_site_probes(tmp_path):
     ):
         changed = json.loads(json.dumps(receipt))
         changed["site_readiness"][0][changed_field] = invalid
-        receipt_path.write_text(json.dumps(changed))
+        receipt_path.write_text(json.dumps(changed), encoding="utf-8")
         with pytest.raises(ValueError, match="site readiness"):
             validate_remote_cohort_reset_receipt(receipt_path, **kwargs)
 
@@ -698,14 +699,14 @@ def test_prepared_reset_preserves_validated_bytes(tmp_path, monkeypatch, damage)
         receipt["completed_at_unix"] -= 3600
     elif damage == "method":
         receipt["method_id"] = "beta"
-    source.write_text(json.dumps(receipt))
+    source.write_text(json.dumps(receipt), encoding="utf-8")
     monkeypatch.setenv("WEBARENA_PREPARED_COHORT_RESET_RECEIPT", str(source))
     if damage == "changed":
         original = remote_runtime.validate_remote_cohort_reset_receipt
 
         def validate(path, **kwargs):
             value = original(path, **kwargs)
-            path.write_text("{}")
+            path.write_text("{}", encoding="utf-8")
             return value
 
         monkeypatch.setattr(remote_runtime, "validate_remote_cohort_reset_receipt", validate)

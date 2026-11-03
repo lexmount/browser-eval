@@ -83,7 +83,8 @@ def test_build_declared_population_and_preserve_existing_suite(tmp_path, monkeyp
                     "webarena_verified_commit": "synthetic",
                 },
             }
-        )
+        ),
+        encoding="utf-8"
     )
     for row in rows:
         (tmp_path / row["file_name"]).write_bytes(b"synthetic trace")
@@ -117,11 +118,11 @@ def test_catalog_drift_cannot_publish_suite(tmp_path, monkeypatch):
     from harness.trajectory_replay.public_webarena import suite
 
     catalog = tmp_path / "catalog.json"
-    catalog.write_text(json.dumps({"count": 1}))
+    catalog.write_text(json.dumps({"count": 1}), encoding="utf-8")
     output = tmp_path / "suite.json"
 
     def build(document, traces):
-        catalog.write_text("{}")
+        catalog.write_text("{}", encoding="utf-8")
         return {"benchmark": {}}
 
     monkeypatch.setattr(suite, "build_suite", build)

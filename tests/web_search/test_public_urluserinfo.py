@@ -68,14 +68,14 @@ def test_release_accepts_query_at_sign_without_rewriting_evidence(tmp_path):
     example(tmp_path)
     output = tmp_path / "report"
     manifest_path = output / "manifest.json"
-    manifest = json.loads(manifest_path.read_text())
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     binding = next(x for x in manifest["bundle"] if x["path"].startswith("calls/"))
     path = output / binding["path"]
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     payload["related_url"] = "https://example.org?recipient=reader@example.net"
     raw = json.dumps(payload).encode()
     path.write_bytes(raw)
     binding["sha256"] = bytes_sha256(raw)
-    manifest_path.write_text(json.dumps(manifest))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     check(output)
     assert path.read_bytes() == raw

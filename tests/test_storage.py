@@ -22,7 +22,7 @@ class StorageTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
             profile = root / 'profile.json'
-            profile.write_text(json.dumps({'comparison_kind': 'wcxb_frozen_html_to_markdown'}))
+            profile.write_text(json.dumps({'comparison_kind': 'wcxb_frozen_html_to_markdown'}), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'WCXB evidence uses the certified cohort validator'):
                 require_current_report_profile(root, profile)
 
@@ -58,7 +58,8 @@ class StorageTests(unittest.TestCase):
                 (base / "dataset.json").write_text(
                     '{"schema_version":1,"tool":"web_fetch","dynamic_scoring":{},'
                     '"id":"canonical","name":"Canonical","coverage_plan":{},'
-                    '"cases":[{"id":"case","url":"https://example.test"}]}'
+                    '"cases":[{"id":"case","url":"https://example.test"}]}',
+                    encoding='utf-8'
                 )
                 (base / "sources/case/reference.txt").write_bytes(b"reference")
                 (base / "list-references/case.json").write_bytes(b"list")
@@ -67,17 +68,19 @@ class StorageTests(unittest.TestCase):
                 '{"schema_version":1,"tool":"web_fetch","dynamic_scoring":{},'
                 '"id":"cohort","name":"Cohort","coverage_plan":{"web":["p"]},'
                 '"comparison":{"kind":"headless_markdown"},'
-                '"cases":[{"id":"case","url":"https://example.test"}]}'
+                '"cases":[{"id":"case","url":"https://example.test"}]}',
+                encoding='utf-8'
             )
             require_canonical_inputs(evidence, canonical)
             (evidence / "dataset.json").write_text(
                 '{"schema_version":1,"tool":"web_fetch","dynamic_scoring":{},'
                 '"id":"cohort","name":"Cohort","coverage_plan":{},'
-                '"cases":[{"id":"case","url":"https://changed.test"}]}'
+                '"cases":[{"id":"case","url":"https://changed.test"}]}',
+                encoding='utf-8'
             )
             with self.assertRaisesRegex(ValueError, "cases"):
                 require_canonical_inputs(evidence, canonical)
-            (evidence / "dataset.json").write_text((canonical / "dataset.json").read_text())
+            (evidence / "dataset.json").write_text((canonical / "dataset.json").read_text(encoding='utf-8'), encoding='utf-8')
             (evidence / "sources/case/reference.txt").write_bytes(b"changed")
             with self.assertRaisesRegex(ValueError, "sources"):
                 require_canonical_inputs(evidence, canonical)
@@ -85,13 +88,13 @@ class StorageTests(unittest.TestCase):
     def test_rerun_selection_requires_complete_baseline(self):
         with tempfile.TemporaryDirectory() as folder:
             evidence = Path(folder)
-            (evidence / "file-rerun-selection.json").write_text("{}")
+            (evidence / "file-rerun-selection.json").write_text("{}", encoding='utf-8')
             with self.assertRaisesRegex(ValueError, "historical baseline"):
                 require_selection_history(evidence)
             baseline = evidence / "history/file-baseline"
             (baseline / "artifacts").mkdir(parents=True)
-            (baseline / "results.jsonl").write_text("")
-            (baseline / "execution.json").write_text("{}")
+            (baseline / "results.jsonl").write_text("", encoding='utf-8')
+            (baseline / "execution.json").write_text("{}", encoding='utf-8')
             require_selection_history(evidence)
 
     def test_current_report_profile_rejects_another_complete_cohort(self):
@@ -108,7 +111,7 @@ class StorageTests(unittest.TestCase):
                 'publication_state':'verified', 'unverified_reference_cases':[],
                 'require_independent_result_review':True, 'conversion':'native',
             }
-            (root/'profile.json').write_text(json.dumps(profile))
+            (root/'profile.json').write_text(json.dumps(profile), encoding='utf-8')
             dataset = {
                 'id':'current', 'cases':[{'id':'a'}], 'coverage_plan':{'web':['p']},
                 'comparison':{'kind':'headless_markdown','timeout_seconds':45,
@@ -117,12 +120,12 @@ class StorageTests(unittest.TestCase):
                               'publication_state':'verified','unverified_reference_cases':[],
                               'require_independent_result_review':True},
             }
-            (evidence/'dataset.json').write_text(json.dumps(dataset))
+            (evidence/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             record={'attempt_id':'p__a__r001','provider':'p','case_id':'a'}
-            (evidence/'results.jsonl').write_text(json.dumps(record)+'\n')
+            (evidence/'results.jsonl').write_text(json.dumps(record)+'\n', encoding='utf-8')
             require_current_report_profile(evidence, root/'profile.json')
             dataset['comparison']['conversion']='obsolete converter'
-            (evidence/'dataset.json').write_text(json.dumps(dataset))
+            (evidence/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'conversion'):
                 require_current_report_profile(evidence, root/'profile.json')
 
@@ -137,22 +140,22 @@ class StorageTests(unittest.TestCase):
                      'reference_binding_mode':'strict','publication_state':'verified',
                      'unverified_reference_cases':[],
                      'require_independent_result_review':True}
-            (root/'profile.json').write_text(json.dumps(profile))
+            (root/'profile.json').write_text(json.dumps(profile), encoding='utf-8')
             dataset={'id':'current','cases':[{'id':'a'},{'id':'b'}],
                      'coverage_plan':{'web':['p','q']},'comparison':{
                          'kind':'headless_markdown','timeout_seconds':45,'runs_per_case':1,
                          'concurrency':2,'conversion':'native','reference_binding_mode':'strict',
                          'publication_state':'verified','unverified_reference_cases':[],
                          'require_independent_result_review':True}}
-            (evidence/'dataset.json').write_text(json.dumps(dataset))
+            (evidence/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             rows=[{'attempt_id':f'id-{index}','provider':provider,'case_id':case}
                   for index,(provider,case) in enumerate([('p','a'),('p','a'),('q','a'),('q','b')])]
-            (evidence/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+            (evidence/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'provider_case_matrix'):
                 require_current_report_profile(evidence,root/'profile.json')
             rows=[{'attempt_id':'same','provider':provider,'case_id':case}
                   for provider in ('p','q') for case in ('a','b')]
-            (evidence/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+            (evidence/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'attempt_ids'):
                 require_current_report_profile(evidence,root/'profile.json')
 
@@ -179,7 +182,7 @@ class StorageTests(unittest.TestCase):
                 'require_independent_result_review': True,
                 'resource_profile': resource_profile,
             }
-            (root / 'profile.json').write_text(json.dumps(profile))
+            (root / 'profile.json').write_text(json.dumps(profile), encoding='utf-8')
             dataset = {
                 'id': 'current', 'cases': [{'id': 'a'}],
                 'coverage_plan': {'web': ['p']},
@@ -191,9 +194,10 @@ class StorageTests(unittest.TestCase):
                     'require_independent_result_review': True,
                 },
             }
-            (evidence / 'dataset.json').write_text(json.dumps(dataset))
+            (evidence / 'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             (evidence / 'results.jsonl').write_text(
-                json.dumps({'attempt_id': 'p__a__r001', 'provider': 'p', 'case_id': 'a'}) + '\n'
+                json.dumps({'attempt_id': 'p__a__r001', 'provider': 'p', 'case_id': 'a'}) + '\n',
+                encoding='utf-8'
             )
             with self.assertRaisesRegex(ValueError, 'resource_profile_missing'):
                 require_current_report_profile(evidence, root / 'profile.json')
@@ -213,7 +217,7 @@ class StorageTests(unittest.TestCase):
                     'resource_backend': 'docker_cgroup_v2',
                     'resource_cpus': 2.0, 'resource_memory': '2g',
                 },
-            }))
+            }), encoding='utf-8')
             resource_row = {
                 'attempt_id': 'resource__p__a', 'provider': 'p', 'case_id': 'a',
                 'provider_metadata': {
@@ -223,13 +227,13 @@ class StorageTests(unittest.TestCase):
                     'resource_environment': environment,
                 },
             }
-            (resource / 'results.jsonl').write_text(json.dumps(resource_row) + '\n')
+            (resource / 'results.jsonl').write_text(json.dumps(resource_row) + '\n', encoding='utf-8')
             (resource / 'resource-comparison.json').write_text(json.dumps({
                 'providers': ['p'], 'common_pass_cases': ['a'], 'environment': environment,
-            }))
+            }), encoding='utf-8')
             require_current_report_profile(evidence, root / 'profile.json')
             resource_row['provider_metadata']['resource_environment']['backend'] = 'host_process'
-            (resource / 'results.jsonl').write_text(json.dumps(resource_row) + '\n')
+            (resource / 'results.jsonl').write_text(json.dumps(resource_row) + '\n', encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'resource_environment'):
                 require_current_report_profile(evidence, root / 'profile.json')
 
@@ -253,12 +257,12 @@ class FrozenProfileInputsTests(unittest.TestCase):
                     'require_independent_result_review': False,
                 },
             }
-            (root / 'dataset.json').write_text(json.dumps(dataset))
+            (root / 'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             (root / 'results.jsonl').write_text(json.dumps({
                 'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a',
-            }) + '\n')
-            (root / 'execution.json').write_text('{"batches": []}\n')
-            (root / 'scoring-revisions.json').write_text('[]\n')
+            }) + '\n', encoding='utf-8')
+            (root / 'execution.json').write_text('{"batches": []}\n', encoding='utf-8')
+            (root / 'scoring-revisions.json').write_text('[]\n', encoding='utf-8')
             files = {
                 name: hashlib.sha256((root / name).read_bytes()).hexdigest()
                 for name in ('dataset.json', 'results.jsonl', 'execution.json',
@@ -278,18 +282,18 @@ class FrozenProfileInputsTests(unittest.TestCase):
                 },
             }
             path = root / 'profile.json'
-            path.write_text(json.dumps(profile))
+            path.write_text(json.dumps(profile), encoding='utf-8')
             require_current_report_profile(root, path)
             (root / 'results.jsonl').write_text(json.dumps({
                 'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a', 'changed': True,
-            }) + '\n')
+            }) + '\n', encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'results.jsonl'):
                 require_current_report_profile(root, path)
             (root / 'results.jsonl').write_text(json.dumps({
                 'attempt_id': 'p__a', 'provider': 'p', 'case_id': 'a',
-            }) + '\n')
+            }) + '\n', encoding='utf-8')
             profile['evidence_binding']['files'].pop('scoring-revisions.json')
-            path.write_text(json.dumps(profile))
+            path.write_text(json.dumps(profile), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'incomplete evidence binding'):
                 require_current_report_profile(root, path)
 
@@ -299,29 +303,29 @@ class FrozenProfileInputsTests(unittest.TestCase):
             root=Path(temp);source=root/'pre-call.json';profile_path=root/'profile.json'
             original={'cases':[{'id':'a','url':'https://example.com','ground_truth_main_content':'Fixed answer',
                                 'source_verification':{'reference_sha256':hashlib.sha256(b'Earlier capture').hexdigest()}}]}
-            source.write_text(json.dumps(original))
+            source.write_text(json.dumps(original), encoding='utf-8')
             current={**original,'comparison':{'report_interpretation':{'path':'report-assets/article.json'}}}
-            (root/'dataset.json').write_text(json.dumps(current))
+            (root/'dataset.json').write_text(json.dumps(current), encoding='utf-8')
             profile={'source_native_dataset_sha256':hashlib.sha256(source.read_bytes()).hexdigest(),
                      'frozen_inputs':frozen_input_bindings(root)}
-            profile_path.write_text(json.dumps(profile))
+            profile_path.write_text(json.dumps(profile), encoding='utf-8')
             require_frozen_case_source(root,profile_path,source)
-            source.write_text(json.dumps({**original,'cases':[{'id':'a','ground_truth_main_content':'Changed answer'}]}))
+            source.write_text(json.dumps({**original,'cases':[{'id':'a','ground_truth_main_content':'Changed answer'}]}), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'source binding'):
                 require_frozen_case_source(root,profile_path,source)
-            source.write_text(json.dumps(original))
+            source.write_text(json.dumps(original), encoding='utf-8')
             current['cases']=[{**original['cases'][0],'ground_truth_main_content':'Changed answer'}]
-            (root/'dataset.json').write_text(json.dumps(current))
+            (root/'dataset.json').write_text(json.dumps(current), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'frozen input bindings'):
                 require_frozen_case_source(root,profile_path,source)
             # Rebinding a generated report still cannot bless an answer change.
             profile['frozen_inputs']=frozen_input_bindings(root)
-            profile_path.write_text(json.dumps(profile))
+            profile_path.write_text(json.dumps(profile), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'answers differ from pre-call'):
                 require_frozen_case_source(root,profile_path,source)
-            current['cases']=original['cases'];(root/'dataset.json').write_text(json.dumps(current))
+            current['cases']=original['cases'];(root/'dataset.json').write_text(json.dumps(current), encoding='utf-8')
             profile['frozen_inputs']=frozen_input_bindings(root);profile.pop('source_native_dataset_sha256')
-            profile_path.write_text(json.dumps(profile))
+            profile_path.write_text(json.dumps(profile), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'both source and report input bindings'):
                 require_frozen_case_source(root,profile_path,source)
 
@@ -334,20 +338,20 @@ class FrozenProfileInputsTests(unittest.TestCase):
                      'reference_binding_mode':'frozen_inputs','publication_state':'verified',
                      'retry_selection':'transient_transport_or_http_failure_only; final_physical_attempt_is_authoritative',
                      'unverified_reference_cases':[],'require_independent_result_review':False}}
-            (root/'dataset.json').write_text(json.dumps(dataset))
+            (root/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             row={'attempt_id':'moli__a','provider':'moli','case_id':'a',
                  'provider_metadata':{'route':'ordinary_markdown','output':'markdown'}}
-            (root/'results.jsonl').write_text(json.dumps(row)+'\n')
+            (root/'results.jsonl').write_text(json.dumps(row)+'\n', encoding='utf-8')
             profile={'dataset_id':'native','comparison_kind':'headless_markdown','case_count':1,
                      'case_ids_sha256':hashlib.sha256(b'["a"]').hexdigest(),'providers':['moli'],
                      **{k:v for k,v in dataset['comparison'].items() if k!='kind'}}
-            path=root/'profile.json';path.write_text(json.dumps(profile))
+            path=root/'profile.json';path.write_text(json.dumps(profile), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'requires native_task_route_contract'):
                 require_current_report_profile(root,path)
             profile['native_task_route_contract']=4
-            path.write_text(json.dumps(profile));require_current_report_profile(root,path)
+            path.write_text(json.dumps(profile), encoding='utf-8');require_current_report_profile(root,path)
             row['provider_metadata']['document_extractor']='pypdf'
-            (root/'results.jsonl').write_text(json.dumps(row)+'\n')
+            (root/'results.jsonl').write_text(json.dumps(row)+'\n', encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'Native task route contract violated'):
                 require_current_report_profile(root,path)
 
@@ -362,34 +366,34 @@ class FrozenProfileInputsTests(unittest.TestCase):
                          'retry_selection':'transient_transport_or_http_failure_only; final_physical_attempt_is_authoritative',
                          'publication_state':'verified','unverified_reference_cases':[],
                          'require_independent_result_review':False}}
-            (root/'dataset.json').write_text(json.dumps(dataset))
-            (root/'results.jsonl').write_text(json.dumps({'attempt_id':'p__a','provider':'p','case_id':'a','content':'First\u0085middle\u2028last\u2029paragraph'}, ensure_ascii=False)+'\n')
+            (root/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+            (root/'results.jsonl').write_text(json.dumps({'attempt_id':'p__a','provider':'p','case_id':'a','content':'First\u0085middle\u2028last\u2029paragraph'}, ensure_ascii=False)+'\n', encoding='utf-8')
             profile={'dataset_id':'composed','comparison_kind':'headless_markdown','case_count':1,
                      'case_ids_sha256':hashlib.sha256(b'["a"]').hexdigest(),'providers':['p'],
                      **{k:v for k,v in dataset['comparison'].items() if k!='kind'},
                      'frozen_inputs':frozen_input_bindings(root),'case_inventory':{'web':['a']}}
-            path=root/'profile.json';path.write_text(json.dumps(profile))
+            path=root/'profile.json';path.write_text(json.dumps(profile), encoding='utf-8')
             require_current_report_profile(root,path)
             profile['case_inventory']={'web':['wrong-case']}
-            path.write_text(json.dumps(profile))
+            path.write_text(json.dumps(profile), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'case_inventory'):
                 require_current_report_profile(root,path)
             profile['case_inventory']={'web':['a']}
-            path.write_text(json.dumps(profile))
-            (root/'sources').mkdir();(root/'sources/reference.txt').write_text('Changed current input')
+            path.write_text(json.dumps(profile), encoding='utf-8')
+            (root/'sources').mkdir();(root/'sources/reference.txt').write_text('Changed current input', encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'frozen input bindings'):
                 require_current_report_profile(root,path)
             (root/'sources/reference.txt').unlink()
             dataset['cases'][0]['url']='https://different.example/'
-            (root/'dataset.json').write_text(json.dumps(dataset))
+            (root/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'frozen input bindings'):
                 require_current_report_profile(root,path)
 
     def test_input_binding_rejects_symlinked_assets(self):
         from harness.web_fetch.storage import frozen_input_bindings
         with tempfile.TemporaryDirectory() as temp:
-            root=Path(temp);(root/'dataset.json').write_text('{}')
-            (root/'outside.txt').write_text('body');(root/'sources').mkdir()
+            root=Path(temp);(root/'dataset.json').write_text('{}', encoding='utf-8')
+            (root/'outside.txt').write_text('body', encoding='utf-8');(root/'sources').mkdir()
             (root/'sources/link.txt').symlink_to(root/'outside.txt')
             with self.assertRaisesRegex(ValueError,'symlinks'):
                 frozen_input_bindings(root)

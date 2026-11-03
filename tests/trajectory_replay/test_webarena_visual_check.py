@@ -14,9 +14,11 @@ _first_failed_key = _MODULE._first_failed_key
 
 
 def test_private_preview_fixture_denies_assets_without_version(tmp_path):
-    (tmp_path / "index.html").write_text("<html><head></head><body>report</body></html>")
+    (tmp_path / "index.html").write_text(
+        "<html><head></head><body>report</body></html>", encoding="utf-8"
+    )
     (tmp_path / "assets").mkdir()
-    (tmp_path / "assets/report.css").write_text("body { color: black; }")
+    (tmp_path / "assets/report.css").write_text("body { color: black; }", encoding="utf-8")
     def handler(*args, **kwargs):
         return _MODULE._QuietHandler(
             *args, directory=str(tmp_path), **kwargs
@@ -99,12 +101,16 @@ def _write_results(tmp_path, results):
     data = tmp_path / "data"
     data.mkdir()
     (data / "results.json").write_text(json.dumps(results), encoding="utf-8")
-    (tmp_path / "report-manifest.json").write_text(json.dumps({"interpretation": False}))
+    (tmp_path / "report-manifest.json").write_text(
+        json.dumps({"interpretation": False}), encoding="utf-8"
+    )
 
 
 def test_routes_include_integrated_and_offline_article_in_both_languages(tmp_path):
     _write_results(tmp_path, [{"key": "chromium-1", "status": "pass"}])
-    (tmp_path / "report-manifest.json").write_text(json.dumps({"interpretation": True}))
+    (tmp_path / "report-manifest.json").write_text(
+        json.dumps({"interpretation": True}), encoding="utf-8"
+    )
     routes = _routes(tmp_path)
     assert {
         "interpretation.html",
@@ -189,7 +195,7 @@ def test_current_routes_exclude_legacy_diagnostic_overview(tmp_path) -> None:
 
 def test_chinese_visual_matrix_includes_english_notice(tmp_path):
     _write_results(tmp_path, [])
-    (tmp_path / "report-manifest.json").write_text('{"languages":["zh"]}')
+    (tmp_path / "report-manifest.json").write_text('{"languages":["zh"]}', encoding="utf-8")
     assert "en/index.html" in _routes(tmp_path)
 
 
@@ -213,7 +219,7 @@ def test_current_replay_receipt_binds_full_visual_scope(tmp_path, monkeypatch, d
     report = tmp_path / "report"
     report.mkdir()
     _write_results(report, [])
-    (report / "report-manifest.json").write_text('{"languages":["zh"]}')
+    (report / "report-manifest.json").write_text('{"languages":["zh"]}', encoding="utf-8")
     routes = [
         "index.html",
         "dataset.html",
@@ -225,9 +231,9 @@ def test_current_replay_receipt_binds_full_visual_scope(tmp_path, monkeypatch, d
     for route in routes:
         path = report / route
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("<html>fixture</html>")
+        path.write_text("<html>fixture</html>", encoding="utf-8")
     binary = tmp_path / "browser"
-    binary.write_text("synthetic binary")
+    binary.write_text("synthetic binary", encoding="utf-8")
     monkeypatch.setenv("BROWSER_USE_VISUAL_BROWSER", str(binary))
     receipt = tmp_path / "visual.json"
     value = {
@@ -273,6 +279,6 @@ def test_current_replay_receipt_binds_full_visual_scope(tmp_path, monkeypatch, d
     elif damage == "source":
         value["checker_sources"]["visual.py"] = "0" * 64
     elif damage == "browser":
-        binary.write_text("changed binary")
-    receipt.write_text(json.dumps(value))
+        binary.write_text("changed binary", encoding="utf-8")
+    receipt.write_text(json.dumps(value), encoding="utf-8")
     assert _MODULE.receipt_is_current(report, receipt) is (damage == "none")

@@ -19,7 +19,7 @@ from lexbench_websearch.scoring import evaluate
 def test_local_release_and_comparison_work_with_empty_offline_cache(tmp_path, track):
     dataset = tmp_path / 'dataset.json'
     dataset.write_text(json.dumps({'cases': [{'id': 'local', 'url': 'https://example.org',
-                                            'query': 'Find the official manual'}]}))
+                                            'query': 'Find the official manual'}]}), encoding='utf-8')
     output = tmp_path / 'release.json'
     cache = tmp_path / 'empty-cache'
     environment = {**os.environ, 'HF_HUB_OFFLINE': '1', 'BROWSER_EVAL_DATASET_CACHE': str(cache)}
@@ -39,7 +39,7 @@ def test_local_release_and_comparison_work_with_empty_offline_cache(tmp_path, tr
 
 def test_search_local_score_works_with_empty_offline_cache(tmp_path):
     source = tmp_path / 'score.json'
-    source.write_text(json.dumps({'ranking': ['a'], 'grades': {'a': 3}}))
+    source.write_text(json.dumps({'ranking': ['a'], 'grades': {'a': 3}}), encoding='utf-8')
     cache = tmp_path / 'empty-cache'
     result = subprocess.run([sys.executable, '-m', 'lexbench_websearch.cli', 'score', str(source)],
                             cwd=tmp_path, env={**os.environ, 'HF_HUB_OFFLINE': '1',

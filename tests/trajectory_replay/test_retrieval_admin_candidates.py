@@ -18,7 +18,7 @@ TASK_IDS = (41, 50, 77, 94, 110, 117, 127, 183, 184, 188, 193, 198, 231, 288, 32
 
 @pytest.mark.parametrize("task_id", TASK_IDS)
 def test_candidate_binds_current_read_to_exact_browsertool_calls(task_id: int) -> None:
-    candidate = json.loads((ROOT / f"task-{task_id}.json").read_text())
+    candidate = json.loads((ROOT / f"task-{task_id}.json").read_text(encoding="utf-8"))
     calls = candidate["tool_calls"]
     assert candidate["task_id"] == task_id
     assert [call["action"] for call in calls] == ["navigate", "evaluate"]
@@ -45,7 +45,7 @@ def test_candidate_binds_current_read_to_exact_browsertool_calls(task_id: int) -
 
 @pytest.mark.parametrize("task_id", TASK_IDS)
 def test_candidate_rejects_a_modified_observation_action(task_id: int) -> None:
-    candidate = json.loads((ROOT / f"task-{task_id}.json").read_text())
+    candidate = json.loads((ROOT / f"task-{task_id}.json").read_text(encoding="utf-8"))
     candidate["tool_calls"][-1]["script"] += "\n// unbound change"
     with pytest.raises(ValueError, match="canonical actions"):
         validate_contract(candidate["retrieval_contract"], candidate["tool_calls"])
@@ -53,7 +53,9 @@ def test_candidate_rejects_a_modified_observation_action(task_id: int) -> None:
 
 @pytest.mark.parametrize("task_id", (41, 77, 94, 110, 127, 183, 184, 193, 198, 288))
 def test_admin_grid_candidates_require_exhaustive_pages(task_id: int) -> None:
-    script = json.loads((ROOT / f"task-{task_id}.json").read_text())["tool_calls"][-1]["script"]
+    script = json.loads((ROOT / f"task-{task_id}.json").read_text(encoding="utf-8"))["tool_calls"][
+        -1
+    ]["script"]
     if task_id in (41, 77, 127):
         assert "gridId+'-total-count'" in script
         assert "data.total!==total||data.size!==first.size" in script
@@ -68,7 +70,9 @@ def test_admin_grid_candidates_require_exhaustive_pages(task_id: int) -> None:
 
 @pytest.mark.parametrize("task_id", (50, 117, 188, 231, 320, 334))
 def test_storefront_history_candidates_require_exhaustive_pages(task_id: int) -> None:
-    script = json.loads((ROOT / f"task-{task_id}.json").read_text())["tool_calls"][-1]["script"]
+    script = json.loads((ROOT / f"task-{task_id}.json").read_text(encoding="utf-8"))["tool_calls"][
+        -1
+    ]["script"]
     assert ".toolbar-amount" in script
     assert "history pagination bounds inconsistent" in script
     assert "data.total!==total||data.from!==rows.length+1" in script
@@ -79,7 +83,9 @@ def test_storefront_history_candidates_require_exhaustive_pages(task_id: int) ->
 
 
 def test_customer_email_ranking_uses_all_canceled_order_rows() -> None:
-    script = json.loads((ROOT / "task-288.json").read_text())["tool_calls"][-1]["script"]
+    script = json.loads((ROOT / "task-288.json").read_text(encoding="utf-8"))["tool_calls"][-1][
+        "script"
+    ]
     assert "rows.filter(r=>r.status==='canceled')" in script
     assert "row.customer_email" in script
     assert "most cancellations are tied" in script
@@ -89,7 +95,7 @@ def test_customer_email_ranking_uses_all_canceled_order_rows() -> None:
 
 def test_stock_candidates_do_not_select_recorded_product_ids() -> None:
     for task_id in (183, 184):
-        script = json.loads((ROOT / f"task-{task_id}.json").read_text())[
+        script = json.loads((ROOT / f"task-{task_id}.json").read_text(encoding="utf-8"))[
             "tool_calls"
         ][-1]["script"]
         assert "Number(qty)" in script

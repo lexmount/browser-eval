@@ -51,7 +51,7 @@ def test_review_rejects_paths_outside_frozen_bundle(tmp_path, field, relative):
     from tests.web_search.test_review import example
     _, root, contract = example(tmp_path)
     contract[field][0]['path'] = relative
-    (root / 'contract.json').write_text(json.dumps(contract))
+    (root / 'contract.json').write_text(json.dumps(contract), encoding='utf-8')
     with pytest.raises(ValueError, match='inside its bundle'):
         review.load_frozen(root)
 
@@ -76,7 +76,7 @@ def test_new_adapter_envelope_survives_collection_report_and_review(tmp_path, mo
     profile['protocol']['top_k'] = 10
     profile['cases'][0]['reference_answer'] = 'needleanswer'
     profile['methods'][0].update(adapter='custom-envelope', key_env='CUSTOM_TEST_KEY')
-    path.write_text(json.dumps(profile))
+    path.write_text(json.dumps(profile), encoding='utf-8')
     monkeypatch.setitem(adapters.ADAPTERS, 'custom-envelope', adapters.Adapter(
         adapters.lexmount_request, response=lambda payload: {'results': payload['items']}))
     monkeypatch.setattr(runner, 'load_runtime_env', lambda: None)

@@ -176,7 +176,8 @@ def _publish(*, create: bool, release: PublicationSnapshot) -> None:
         return request(*args, base_url=base, **kwargs)
 
     title = str(
-        json.loads(PROFILE.read_text()).get("publication", {}).get("title") or "Browser Use 评测"
+        json.loads(PROFILE.read_text(encoding="utf-8")).get("publication", {}).get("title")
+        or "Browser Use 评测"
     )
     payload, content_type = multipart_archive(archive=release.archive, title=title)
     base, expected_slug, expected_version = publication_target(require_existing=False)

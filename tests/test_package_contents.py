@@ -12,7 +12,7 @@ def test_installed_optional_dependency_preserves_declared_source(tmp_path, monke
 
     expected = 'webarena-verified @ git+https://example.invalid/evaluator.git@' + 'a' * 40
     (tmp_path / 'pyproject.toml').write_text(
-        '[project.optional-dependencies]\nbrowser-use-eval = ["' + expected + '"]\n')
+        '[project.optional-dependencies]\nbrowser-use-eval = ["' + expected + '"]\n', encoding='utf-8')
     requirement = expected if installed == 'correct' else (
         'webarena-verified==1.2.3' if installed == 'registry-version'
         else expected.replace('evaluator.git', 'other.git'))
@@ -31,11 +31,11 @@ def package(tmp_path, request):
     name = request.param
     directory = 'src/' + name
     (source / directory / 'example/data').mkdir(parents=True)
-    (source / directory / 'example/__init__.py').write_text('VALUE = 1\n')
-    (source / directory / 'example/data/tasks.json').write_text('{"task":"synthetic"}\n')
+    (source / directory / 'example/__init__.py').write_text('VALUE = 1\n', encoding='utf-8')
+    (source / directory / 'example/data/tasks.json').write_text('{"task":"synthetic"}\n', encoding='utf-8')
     (source / 'pyproject.toml').write_text(
         '[tool.setuptools.package-dir]\n' + name + ' = "' + directory + '"\n'
-        '[tool.setuptools.package-data]\n"' + name + '.example" = ["data/*.json"]\n')
+        '[tool.setuptools.package-data]\n"' + name + '.example" = ["data/*.json"]\n', encoding='utf-8')
     shutil.copytree(source / directory, installed)
     return source, installed, name
 
@@ -59,13 +59,13 @@ def test_stale_missing_changed_or_linked_package_is_rejected(package, damage, tm
     elif damage == 'missing-asset':
         asset.unlink()
     elif damage == 'changed-module':
-        module.write_text('VALUE = 2\n')
+        module.write_text('VALUE = 2\n', encoding='utf-8')
     elif damage == 'changed-asset':
-        asset.write_text('{"task":"wrong"}\n')
+        asset.write_text('{"task":"wrong"}\n', encoding='utf-8')
     elif damage == 'retired-module':
-        (installed / 'example/retired.py').write_text('VALUE = 0\n')
+        (installed / 'example/retired.py').write_text('VALUE = 0\n', encoding='utf-8')
     elif damage == 'unbound-asset':
-        (installed / 'example/data/private-note.txt').write_text('synthetic private note')
+        (installed / 'example/data/private-note.txt').write_text('synthetic private note', encoding='utf-8')
     elif damage == 'linked-module':
         actual = tmp_path / 'same-module.py'
         actual.write_bytes(module.read_bytes())

@@ -15,7 +15,7 @@ class CapabilityTests(unittest.TestCase):
             out=Path(directory)
             (out/'dataset.json').write_text(json.dumps({'cases':[
                 {'id':'body','url':'https://example.com/','track':'web','task_kind':'body'},
-                {'id':'pdf','url':'https://example.com/a.pdf','track':'document','task_kind':'body'}]}))
+                {'id':'pdf','url':'https://example.com/a.pdf','track':'document','task_kind':'body'}]}), encoding='utf-8')
             names=['moli','lightpanda','obscura','chromium','kitesurf']
             original_sources = dict(SOURCES)
             claims=task_capabilities(out,names,[{'provider_metadata':{'output_contract':'readable_document_text'}}])
@@ -130,7 +130,7 @@ class CapabilityTests(unittest.TestCase):
             self.assertIn('运行与接入', result)
             self.assertNotIn('sortTable(', result)
             self.assertIn('不是实测成绩', result)
-            exported = json.loads((out/'adoption/capabilities.json').read_text())
+            exported = json.loads((out/'adoption/capabilities.json').read_text(encoding='utf-8'))
             self.assertEqual(set(exported['methods']), set(PROFILES))
 
     def test_unknown_provider_is_disclosed_instead_of_silently_omitting(self):
@@ -147,7 +147,7 @@ def test_source_version_mismatch_is_visible_and_exported(tmp_path):
     record = {'provider': 'moli-webfetch', 'provider_metadata': {'reported_version': 'moli 9.9.9'}}
     html = render_capabilities(tmp_path, ['moli-webfetch'], table=table, cell=cell, link=link,
                                records=[record])
-    exported = json.loads((tmp_path/'adoption/capabilities.json').read_text())
+    exported = json.loads((tmp_path/'adoption/capabilities.json').read_text(encoding='utf-8'))
     checks = exported['source_version_checks']['moli-webfetch']
     assert checks
     assert all(row['status'] == 'mismatch' for row in checks)
@@ -175,13 +175,13 @@ def test_source_version_controls_preserve_unknown_and_mixed_versions():
 def test_native_capabilities_retain_version_bound_sources(tmp_path):
     (tmp_path/'adoption').mkdir()
     (tmp_path/'dataset.json').write_text(json.dumps({'cases': [
-        {'id': 'web', 'track': 'web', 'url': 'https://example.test/'}]}))
+        {'id': 'web', 'track': 'web', 'url': 'https://example.test/'}]}), encoding='utf-8')
     records = [{'provider': 'moli', 'case_id': 'web', 'provider_metadata': {
         'reported_version': 'moli 9.9.9', 'output_contract': 'markdown'}}]
     html = render_capabilities(tmp_path, ['moli'], table=table, cell=cell, link=link,
                                records=records)
     assert '核对版本 1.1.5；实测版本 9.9.9' in html
-    evidence = json.loads((tmp_path/'adoption/capabilities.json').read_text())
+    evidence = json.loads((tmp_path/'adoption/capabilities.json').read_text(encoding='utf-8'))
     assert 'headless-moli-1.1.5' in evidence['methods']['moli']['sources']
     assert 'task-native-moli' in evidence['methods']['moli']['sources']
 
@@ -221,7 +221,7 @@ def test_configured_capability_legend_is_fully_localized(tmp_path):
     from harness.web_fetch.report_i18n import localize_html, untranslated_english_narrative
     (tmp_path/'adoption').mkdir()
     (tmp_path/'dataset.json').write_text(json.dumps({'cases': [
-        {'id': 'web', 'track': 'web', 'url': 'https://example.test/'}]}))
+        {'id': 'web', 'track': 'web', 'url': 'https://example.test/'}]}), encoding='utf-8')
     records = [{'provider': 'moli', 'case_id': 'web', 'provider_metadata': {
         'reported_version': 'moli 9.9.9', 'output_contract': 'markdown'}}]
     page = render_capabilities(tmp_path, ['moli'], table=table, cell=cell, link=link, records=records)

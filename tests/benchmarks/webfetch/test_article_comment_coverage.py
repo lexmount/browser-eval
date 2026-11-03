@@ -144,7 +144,7 @@ def test_published_comment_floors_accept_boundary_and_reject_one_fewer(number, e
     from harness.benchmarks.data import definition_path
 
     DEFINITIONS = definition_path("webfetch", "evaluation/articles")
-    rules = json.loads((DEFINITIONS / 'rules.json').read_text())['rules']
+    rules = json.loads((DEFINITIONS / 'rules.json').read_text(encoding='utf-8'))['rules']
     rule = next(row for row in rules if row['id'] == f'article-{number:03}')
     contract = rule['comment_contract']
     assert contract['minimum_comments'] == expected

@@ -98,7 +98,7 @@ def fake_docker(monkeypatch, protocol, *, after=None):
         ]
         write(directory / "run_manifest.json", {"completion_status": "completed"})
         write(directory / "host_summary.json", {"polluted": False})
-        (directory / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+        (directory / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
         calls.append((method, phase))
         if after:
             after(len(calls))
@@ -118,7 +118,7 @@ def test_full_cohort_retains_exact_frozen_sources_and_hash_bound_calls(
     assert calls == [tuple(item) for item in protocol["order"]]
     assert (output / "protocol.json").read_bytes() == frozen
     assert (output / "orchestrator.py").read_bytes() == source.read_bytes()
-    receipt = json.loads((output / "receipt.json").read_text())
+    receipt = json.loads((output / "receipt.json").read_text(encoding="utf-8"))
     assert receipt["protocol_sha256"] == hashlib.sha256(frozen).hexdigest()
     assert receipt["orchestrator_sha256"] == hashlib.sha256(source.read_bytes()).hexdigest()
     assert len(receipt["results"]) == 8
@@ -219,7 +219,7 @@ def test_linked_control_files_cannot_overwrite_external_files(
     path, protocol, _ = experiment
     output = tmp_path / "output"
     external = tmp_path / "external.json"
-    external.write_text("external content")
+    external.write_text("external content", encoding="utf-8")
 
     def inject_link(count):
         if count == 1:
@@ -229,7 +229,7 @@ def test_linked_control_files_cannot_overwrite_external_files(
     with pytest.raises(ValueError, match="[Ss]ymlink"):
         profiles.execute(path, output)
     assert len(calls) == 1
-    assert external.read_text() == "external content"
+    assert external.read_text(encoding="utf-8") == "external content"
     assert not (output / "receipt.json").exists()
 
 

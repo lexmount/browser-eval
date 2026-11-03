@@ -40,8 +40,8 @@ def test_new_method_uses_one_registration_in_all_method_views(tmp_path, custom_c
     from harness.web_fetch.report_methods import render_methods
     from harness.reporting.presentation import esc
     from harness.web_fetch.report import hero, section, table, cell, link
-    (tmp_path / 'answer.txt').write_text('Synthetic answer')
-    (tmp_path / 'dataset.json').write_text('{}')
+    (tmp_path / 'answer.txt').write_text('Synthetic answer', encoding='utf-8')
+    (tmp_path / 'dataset.json').write_text('{}', encoding='utf-8')
     records = [{'provider': 'acme-fetch', 'provider_type': 'acme', 'case_id': 'new-task',
                 'artifact_path': 'answer.txt', 'attempt_id': 'acme-attempt',
                 'provider_metadata': {'reported_version': '7.8.9'}}]
@@ -58,19 +58,19 @@ def test_new_method_uses_one_registration_in_all_method_views(tmp_path, custom_c
     assert 'acme fetch URL' in body
     assert 'Acme Fetch 7.8.9' in body
     assert 'ACME_BINARY' in body
-    saved = json.loads((tmp_path / 'adoption/interfaces/acme-fetch.json').read_text())
+    saved = json.loads((tmp_path / 'adoption/interfaces/acme-fetch.json').read_text(encoding='utf-8'))
     assert saved['interface']['entry'] == 'acme fetch URL'
 
 
 def test_unknown_method_retains_output_and_discloses_missing_registration(tmp_path):
     (tmp_path / 'adoption').mkdir()
-    (tmp_path / 'answer.txt').write_text('Retained unknown output')
+    (tmp_path / 'answer.txt').write_text('Retained unknown output', encoding='utf-8')
     row = {'provider': 'unknown-vendor', 'provider_type': 'unknown', 'case_id': 'unknown-task',
            'artifact_path': 'answer.txt', 'attempt_id': 'unknown-attempt'}
     body = render_interfaces(tmp_path, [row])
     assert 'Not registered' in body
     assert 'Retained unknown output' in body
-    saved = json.loads((tmp_path / 'adoption/interfaces/unknown-vendor.json').read_text())
+    saved = json.loads((tmp_path / 'adoption/interfaces/unknown-vendor.json').read_text(encoding='utf-8'))
     assert saved['interface']['entry'] == '未登记'
     assert method_spec('unknown-vendor', row, language='en')['entry'] == 'Not registered'
     assert method_spec('unknown-vendor', row)['request'] == {}
@@ -86,7 +86,7 @@ def test_recorded_versions_win_over_provenance_and_never_leak_between_reports(
         'engine': engine, 'binary_sha256': 'a' * 64, 'reported_version': version}}
     provenance = {'a' * 64: {'version': 'older'}}
     (tmp_path / 'implementation-provenance.json').write_text(json.dumps({
-        'implementations': [{'binary_sha256': 'a' * 64, 'version': 'older'}]}))
+        'implementations': [{'binary_sha256': 'a' * 64, 'version': 'older'}]}), encoding='utf-8')
     assert method_version(row, provenance) == version
 
     @with_measured_method_labels
@@ -263,11 +263,11 @@ def test_catalog_examples_do_not_assert_prior_run_settings():
         elif isinstance(value, str):
             yield '.'.join(path), value
     root = source_path('harness/web_fetch', root=Path(__file__).resolve().parents[1])
-    catalog = json.loads((root / 'data/report-methods.json').read_text())
+    catalog = json.loads((root / 'data/report-methods.json').read_text(encoding='utf-8'))
     violations = [(path, text) for path, text in strings(catalog)
                   if pattern.search(text) and not any(fnmatchcase(path, rule) for rule in allowed)]
     for name in ['report_interfaces', 'report_capabilities', 'methods', 'report_methods', 'report_explainer', 'report_resources', 'report_components']:
-        for node in ast.walk(ast.parse((root / (name+'.py')).read_text())):
+        for node in ast.walk(ast.parse((root / (name+'.py')).read_text(encoding='utf-8'))):
             if isinstance(node, ast.Constant) and isinstance(node.value, str) and pattern.search(node.value):
                 violations.append((f'{name}:{node.lineno}', node.value))
     assert not violations
@@ -409,7 +409,7 @@ def test_catalog_descriptions_do_not_claim_measured_run_settings():
     import re
     from fnmatch import fnmatchcase
     from pathlib import Path
-    data = json.loads((source_path('harness/web_fetch/data/report-methods.json', root=Path(__file__).resolve().parents[1])).read_text())
+    data = json.loads((source_path('harness/web_fetch/data/report-methods.json', root=Path(__file__).resolve().parents[1])).read_text(encoding='utf-8'))
     def violations(value, path=()):
         if isinstance(value, dict):
             return [item for key, child in value.items()

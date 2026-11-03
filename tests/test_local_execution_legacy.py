@@ -14,7 +14,7 @@ def bind(root, name, value, *, lines=False):
     path = root / name
     path.parent.mkdir(parents=True, exist_ok=True)
     text = ''.join(json.dumps(row) + '\n' for row in value) if lines else json.dumps(value)
-    path.write_text(text)
+    path.write_text(text, encoding='utf-8')
     return {'path': name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
 
 
@@ -85,18 +85,18 @@ def test_segment_assembly_rejects_protocol_or_evidence_changes(execution, change
         batches[0]['segments'][0]['parameters']['timeout'] = 90
     elif change in {'wrong_runtime', 'alter_scheduling'}:
         segment = batches[0]['segments'][-1]
-        manifest = json.loads((root / segment['manifest']['path']).read_text())
+        manifest = json.loads((root / segment['manifest']['path']).read_text(encoding='utf-8'))
         if change == 'wrong_runtime':
             manifest['runtime_source_sha256'] = 'wrong'
         else:
             manifest['scheduling'] = {'max_parallel': 10}
         segment['manifest'] = bind(root, 'changed-manifest.json', manifest)
     else:
-        config = json.loads((root / contract['execution_plans']['resumed']['configuration']['path']).read_text())
+        config = json.loads((root / contract['execution_plans']['resumed']['configuration']['path']).read_text(encoding='utf-8'))
         config['providers']['p']['max_bytes'] = 1
         binding = bind(root, 'changed-config.json', config)
         for key in ['resumed', 'admitted']:
-            plan = json.loads((root / contract['execution_plans'][key]['path']).read_text())
+            plan = json.loads((root / contract['execution_plans'][key]['path']).read_text(encoding='utf-8'))
             plan['provider_config_sha256'] = binding['sha256']
             if key == 'admitted':
                 plan['predecessor_plan_sha256'] = contract['execution_plans']['resumed']['sha256']
@@ -120,7 +120,7 @@ def test_unknown_legacy_plan_is_rejected(execution):
 def test_retained_schema_one_cannot_adopt_a_different_execution_policy(execution, field, value):
     root, contract, batches, records = copy.deepcopy(execution)
     binding = contract['execution_plans']['resumed']
-    plan = json.loads((root/binding['path']).read_text())
+    plan = json.loads((root/binding['path']).read_text(encoding='utf-8'))
     plan['parameters'][field] = value
     rebound = bind(root, 'changed-policy.json', plan)
     rebound['configuration'] = binding['configuration']
@@ -149,7 +149,7 @@ def test_fresh_cohort_validates_without_legacy_plan_decoder(tmp_path, monkeypatc
         cases=cases, providers=[build_provider('fixture', {'type': 'fixture'})],
         provider_config_path=tmp_path / 'providers.json', runs=1, timeout=12.5,
         delay=0, max_failure_retries=0)
-    batch = json.loads((output / 'manifest.json').read_text())
+    batch = json.loads((output / 'manifest.json').read_text(encoding='utf-8'))
     contract = {'schema_version': 1, 'kind': 'uniform_native_local_measurement',
                 'dataset_sources': [dataset_binding], 'providers': ['fixture'],
                 'runs': 1, 'timeout_seconds': 12.5, 'max_failure_retries': 0,

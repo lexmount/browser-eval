@@ -27,7 +27,7 @@ class MoliReportRenderContractTests(unittest.TestCase):
 
 def test_catalog_editions_have_matching_keys_and_parameters():
     root = Path(__file__).resolve().parents[1]
-    catalog = json.loads((root / "scripts/moli_report/messages.json").read_text())
+    catalog = json.loads((root / "scripts/moli_report/messages.json").read_text(encoding="utf-8"))
     english = catalog["en"]["messages"]
     chinese = catalog["zh"]["messages"]
     assert english.keys() == chinese.keys()

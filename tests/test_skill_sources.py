@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1] / ".agents/skills"
 @pytest.mark.parametrize("name", ["humanizer", "humanizer-chinese"])
 def test_vendored_skill_matches_its_pinned_source(name):
     directory = ROOT / name
-    source = json.loads((directory / "SOURCE.json").read_text())
+    source = json.loads((directory / "SOURCE.json").read_text(encoding="utf-8"))
     assert len(source["commit"]) == 40
     assert source["repository"].startswith("https://github.com/")
     assert {"SKILL.md", "LICENSE"} <= source["unmodified_upstream_files"].keys()

@@ -16,7 +16,7 @@ def publication_files(tmp_path, monkeypatch):
     report.mkdir()
     (work / "delivery").mkdir(parents=True)
     manifest = {"profile": {"cases": [{}]}, "rows": [{"attempts": [{}]}]}
-    (report / "manifest.json").write_text(json.dumps(manifest))
+    (report / "manifest.json").write_text(json.dumps(manifest), encoding='utf-8')
     manifest_hash = bytes_sha256((report / "manifest.json").read_bytes())
     files = {
         "report_manifest": (report / "manifest.json").read_bytes(),
@@ -29,25 +29,25 @@ def publication_files(tmp_path, monkeypatch):
         source.write_bytes(raw)
         bindings[name] = {"path": str(source.relative_to(tmp_path)), "sha256": bytes_sha256(raw)}
     manifest.update(relevance_sha256=bindings["relevance"]["sha256"], independent_review_sha256=bindings["independent_review"]["sha256"], content_sha256=bindings["content"]["sha256"])
-    (report / "manifest.json").write_text(json.dumps(manifest))
+    (report / "manifest.json").write_text(json.dumps(manifest), encoding='utf-8')
     manifest_hash = bytes_sha256((report / "manifest.json").read_bytes())
     (work / "report_manifest.json").write_bytes((report / "manifest.json").read_bytes())
     bindings["report_manifest"]["sha256"] = manifest_hash
-    (work / "visual_acceptance.json").write_text(json.dumps({"manifest_sha256": manifest_hash}))
+    (work / "visual_acceptance.json").write_text(json.dumps({"manifest_sha256": manifest_hash}), encoding='utf-8')
     bindings["visual_acceptance"]["sha256"] = bytes_sha256((work / "visual_acceptance.json").read_bytes())
     (work / "delivery/delivery-index.json").write_bytes(b"{}")
     import zipfile
     with zipfile.ZipFile(work / "report.zip", "w") as archive:
         archive.writestr("index.html", "<html>Fixture</html>")
     (work / "inputs").mkdir()
-    (work / "delivery/index.html").write_text("<html>Fixture</html>")
+    (work / "delivery/index.html").write_text("<html>Fixture</html>", encoding='utf-8')
     target = {"bindings": bindings, "cases": 1, "logical_results": 1, "physical_calls": 1, "archive_sha256": bytes_sha256((work / "report.zip").read_bytes())}
     target.update(base_url="https://reports.example", slug="site-one", versionId="ver_old", visibility="private", url="https://reports.example/s/site-one")
-    (tmp_path / "target.json").write_text(json.dumps(target))
+    (tmp_path / "target.json").write_text(json.dumps(target), encoding='utf-8')
     instance = tmp_path / "instance.json"
-    instance.write_text("{}")
+    instance.write_text("{}", encoding='utf-8')
     plan = {"instance": {"path": str(instance), "sha256": bytes_sha256(instance.read_bytes())}, "expected_target": {k: target[k] for k in ("base_url", "slug", "versionId", "visibility")}, "target": target, "archive_sha256": target["archive_sha256"]}
-    (work / "publication-plan.json").write_text(json.dumps(plan))
+    (work / "publication-plan.json").write_text(json.dumps(plan), encoding='utf-8')
     # The identity validation itself is covered by CurrentProfileScenarios.
     monkeypatch.setattr(profiles, "publication_authority", lambda *args, **kwargs: target)
     return report, work
@@ -69,7 +69,7 @@ def test_explicit_instance_never_updates_another_report(tmp_path, monkeypatch, c
     selected = tmp_path / "serp-target.json"
     selected.write_bytes(original)
     selector = tmp_path / "serp-selection.json"
-    selector.write_text(json.dumps({"publication_target": selected.name}))
+    selector.write_text(json.dumps({"publication_target": selected.name}), encoding='utf-8')
     manifest = json.loads((report / "manifest.json").read_bytes())
     manifest["authored"] = {"publication_selection": {"path": selector.name, "sha256": bytes_sha256(selector.read_bytes())}}
     raw = json.dumps(manifest).encode()
@@ -82,12 +82,12 @@ def test_explicit_instance_never_updates_another_report(tmp_path, monkeypatch, c
     plan["instance"] = {"path": str(selector), "sha256": bytes_sha256(selector.read_bytes())}
     plan["target"]["bindings"]["report_manifest"]["sha256"] = bytes_sha256(raw)
     plan["target"]["bindings"]["visual_acceptance"]["sha256"] = bytes_sha256(visual)
-    plan_path.write_text(json.dumps(plan))
+    plan_path.write_text(json.dumps(plan), encoding='utf-8')
     monkeypatch.setattr(publication, "current_selection", lambda path=None, **kwargs: json.loads(path.read_bytes()) if path else {"publication_target": default.name})
     monkeypatch.setattr(publication.subprocess, "check_output", lambda *a, **kw: b"fixture-commit")
     monkeypatch.setattr(report_publish, "STAGED_UPLOAD_THRESHOLD", 0)
     if changed_selection:
-        selector.write_text(json.dumps({"publication_target": default.name}))
+        selector.write_text(json.dumps({"publication_target": default.name}), encoding='utf-8')
         with pytest.raises(ValueError, match="instance changed"):
             publication.publish(report, work, transport=lambda *a, **kw: pytest.fail("Uploaded changed selection"))
     else:
@@ -112,7 +112,7 @@ def test_publication_rejects_forged_derived_counts(tmp_path, monkeypatch, field)
     relevance = {'plan': {'case_ids': [], 'scope': 'synthetic'}, 'labels': {}}
     for name, data, key in [('independent_review', review, 'independent_review_sha256'), ('relevance', relevance, 'relevance_sha256')]:
         path = tmp_path / target['bindings'][name]['path']
-        path.write_text(json.dumps(data))
+        path.write_text(json.dumps(data), encoding='utf-8')
         target['bindings'][name]['sha256'] = manifest[key] = bytes_sha256(path.read_bytes())
     target.update(profiles.publication_metadata(manifest, review, relevance))
     assert profiles.verify_publication_inputs(manifest, target, data_home=tmp_path)
@@ -166,28 +166,28 @@ def test_prepare_freezes_new_counts_and_keeps_correction_provenance(tmp_path, mo
     monkeypatch.setattr(profiles, 'verify_publication_inputs', lambda manifest, target, **kwargs: verify_inputs(manifest, target, root=repo))
     source, report, work = tmp_path / 'source', tmp_path / 'report', tmp_path / 'release'
     source.mkdir(); report.mkdir()
-    (source / 'receipt.json').write_text('{}')
-    (source / 'profile.json').write_text('{}')
+    (source / 'receipt.json').write_text('{}', encoding='utf-8')
+    (source / 'profile.json').write_text('{}', encoding='utf-8')
     (repo / 'evaluation').mkdir()
-    (repo / 'evaluation/profile.json').write_text('{}')
+    (repo / 'evaluation/profile.json').write_text('{}', encoding='utf-8')
     binding = {'path': 'evaluation/profile.json', 'sha256': bytes_sha256(b'{}')}
     selection = {'profile': binding, 'publication_target': 'target.json'}
-    (repo / 'instance.json').write_text(json.dumps(selection))
+    (repo / 'instance.json').write_text(json.dumps(selection), encoding='utf-8')
     monkeypatch.setattr(publication, 'current_selection', lambda *args: selection)
     correction = tmp_path / 'correction.json'
-    correction.write_text('{}')
+    correction.write_text('{}', encoding='utf-8')
     target = {'base_url': 'https://reports.example', 'slug': 'site-one', 'versionId': 'ver_old', 'visibility': 'private',
               'bindings': {'correction': {'path': 'correction.json', 'sha256': bytes_sha256(b'{}')}},
               'correction_history': {'binding_names': ['correction'], 'superseded_physical_calls': 89}}
-    (repo / 'target.json').write_text(json.dumps(target))
+    (repo / 'target.json').write_text(json.dumps(target), encoding='utf-8')
     monkeypatch.setattr(profiles, 'publication_authority', lambda *a, **kw: target)
     authored = {'title': {'zh': '接口评测'}}
-    content = tmp_path / 'content.json'; content.write_text(json.dumps(authored))
+    content = tmp_path / 'content.json'; content.write_text(json.dumps(authored), encoding='utf-8')
     judgments = {'plan': {'case_ids': ['a'], 'scope': 'all_custom'}, 'labels': {'a': {'candidate': 3}}}
     audit = {key: 1 for key in ('case_total','case_reviewed','output_total','output_reviewed','candidate_total','candidate_reviewed')}
     audit.update(accepted_unreviewed_passes=0, adjudications={})
     for name, value in [('relevance-judgments.json', judgments), ('independent-review.json', audit)]:
-        (report / name).write_text(json.dumps(value))
+        (report / name).write_text(json.dumps(value), encoding='utf-8')
     manifest = {'profile': {'title': 'Source profile', 'methods': [{'id': 'method'}], 'cases': [{'id': 'a'}]},
                 'authored': authored, 'rows': [{'attempts': [{}, {}]}],
                 'receipt': {'certified': True, 'profile_sha256': bytes_sha256(b'{}')},
@@ -195,12 +195,12 @@ def test_prepare_freezes_new_counts_and_keeps_correction_provenance(tmp_path, mo
                 'relevance_sha256': bytes_sha256((report/'relevance-judgments.json').read_bytes()),
                 'independent_review_sha256': bytes_sha256((report/'independent-review.json').read_bytes()),
                 'content_sha256': bytes_sha256(content.read_bytes())}
-    (report / 'manifest.json').write_text(json.dumps(manifest))
-    proof = tmp_path / 'visual.json'; proof.write_text(json.dumps({'manifest_sha256': bytes_sha256((report/'manifest.json').read_bytes())}))
+    (report / 'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
+    proof = tmp_path / 'visual.json'; proof.write_text(json.dumps({'manifest_sha256': bytes_sha256((report/'manifest.json').read_bytes())}), encoding='utf-8')
     monkeypatch.setattr(reports, 'check', lambda *a: True)
     monkeypatch.setattr(visual, 'verify', lambda *a: True)
     def export(*args):
-        dest = args[1]; dest.mkdir(); (dest/'index.html').write_text('<html>Verified fixture</html>'); (dest/'delivery-index.json').write_text('{}')
+        dest = args[1]; dest.mkdir(); (dest/'index.html').write_text('<html>Verified fixture</html>', encoding='utf-8'); (dest/'delivery-index.json').write_text('{}', encoding='utf-8')
     monkeypatch.setattr(delivery, 'export', export)
     monkeypatch.setattr(delivery, 'verify', lambda *a: True)
     publication.prepare(report, proof, content, {'primary': source}, work, profile=repo/'instance.json')

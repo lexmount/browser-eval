@@ -35,9 +35,9 @@ def checkout(tmp_path, track, defect=None):
         (prefix / "evaluation").mkdir()
         (prefix / "evaluation/tasks.json").write_bytes(raw)
         registry["suites"][0]["directory"] = "evaluation"
-    (prefix / "registry.json").write_text(json.dumps(registry))
+    (prefix / "registry.json").write_text(json.dumps(registry), encoding="utf-8")
     for name in ["LICENSE", "NOTICE", "THIRD_PARTY.md", "VERSIONING.md"]:
-        (root / name).write_text("Retain this notice.\n")
+        (root / name).write_text("Retain this notice.\n", encoding="utf-8")
     if defect == "symlink":
         (prefix / "linked.json").symlink_to("tasks.json")
     git(root, "init", "-q")
@@ -49,18 +49,18 @@ def checkout(tmp_path, track, defect=None):
 @pytest.mark.parametrize("track", ["webfetch", "websearch"])
 def test_release_preserves_tasks_not_working_tree_or_private_files(tmp_path, track):
     root, revision, cases = checkout(tmp_path, track)
-    (root / ".env").write_text("PRIVATE=not-publishable")
-    (root / "VERSIONING.md").write_text("Uncommitted version policy")
-    (root / f"src/lexbench_{track}/definitions/tasks.json").write_text("modified after commit")
+    (root / ".env").write_text("PRIVATE=not-publishable", encoding="utf-8")
+    (root / "VERSIONING.md").write_text("Uncommitted version policy", encoding="utf-8")
+    (root / f"src/lexbench_{track}/definitions/tasks.json").write_text("modified after commit", encoding="utf-8")
     release = DatasetRelease.from_git(root, track, revision)
     left, right = tmp_path / "left", tmp_path / "right"
     manifest = release.build(left)
     release.build(right)
     assert (left / "definitions.tar.gz").read_bytes() == (right / "definitions.tar.gz").read_bytes()
-    rows = [json.loads(line) for line in (left / "data/sample.jsonl").read_text().splitlines()]
+    rows = [json.loads(line) for line in (left / "data/sample.jsonl").read_text(encoding="utf-8").splitlines()]
     assert [json.loads(row["task"]) for row in rows] == cases
     assert manifest["source_revision"] == revision
-    assert (left / "VERSIONING.md").read_text() == "Retain this notice.\n"
+    assert (left / "VERSIONING.md").read_text(encoding="utf-8") == "Retain this notice.\n"
     assert not (left / ".env").exists()
     with tarfile.open(left / "definitions.tar.gz") as archive:
         for item in archive:
@@ -101,7 +101,7 @@ def test_jsonl_derivative_retains_upstream_identifiers_and_source(tmp_path):
     }}}).encode()
     derived = DatasetRelease("webmainbench", revision, files, "https://github.com/lexmount/WebMainBench")
     result = derived.build(tmp_path / "release")
-    exported = json.loads((tmp_path / "release/data/corrected.jsonl").read_text())
+    exported = json.loads((tmp_path / "release/data/corrected.jsonl").read_text(encoding="utf-8"))
     assert exported["id"] == "upstream-1"
     assert json.loads(exported["task"]) == records[0]
     assert result["source_repository"] == "https://github.com/lexmount/WebMainBench"
@@ -240,7 +240,7 @@ def test_invalid_committed_population_filters_fail_before_build(tmp_path, filter
     (root / 'src/lexbench_websearch/definitions').rename(root / 'definitions')
     (root / 'manifest.json').write_text(json.dumps({
         'schema': 'browser-eval-dataset-release/1', 'track': 'websearch',
-        'viewer_filters': filters}))
+        'viewer_filters': filters}), encoding="utf-8")
     git(root, 'add', '.')
     git(root, 'commit', '-qm', 'Invalid population selection')
     output = tmp_path / 'release'
@@ -256,7 +256,7 @@ def test_runtime_settings_survive_original_source_publication_and_hub_rebuild(tm
     values = json.loads(registry.read_bytes())
     scorer = {'repository': 'https://github.com/lexmount/WebMainBench.git', 'revision': 'b' * 40}
     values.update(default_dataset='sample', scorer=scorer)
-    registry.write_text(json.dumps(values))
+    registry.write_text(json.dumps(values), encoding="utf-8")
     git(root, 'add', '.')
     git(root, 'commit', '-qm', 'Bind runtime choices')
     revision = git(root, 'rev-parse', 'HEAD')
@@ -274,12 +274,12 @@ def test_runtime_settings_survive_original_source_publication_and_hub_rebuild(tm
     dirty = json.loads((output / 'manifest.json').read_bytes())
     dirty['scorer']['revision'] = 'c' * 40
     dirty['viewer_filters'] = {'viewer_exclude_datasets': ['sample']}
-    (output / 'manifest.json').write_text(json.dumps(dirty))
-    (output / 'VERSIONING.md').write_text('Uncommitted policy')
+    (output / 'manifest.json').write_text(json.dumps(dirty), encoding="utf-8")
+    (output / 'VERSIONING.md').write_text('Uncommitted policy', encoding="utf-8")
     rebuilt = DatasetRelease.from_git(output, 'webmainbench', published_revision).build(tmp_path / 'rebuilt')
     assert rebuilt['scorer'] == scorer
     assert rebuilt['viewer_filters'] == manifest['viewer_filters']
-    assert (tmp_path / 'rebuilt/VERSIONING.md').read_text() == 'Retain this notice.\n'
+    assert (tmp_path / 'rebuilt/VERSIONING.md').read_text(encoding="utf-8") == 'Retain this notice.\n'
     assert rebuilt['default_dataset'] == 'sample'
 
 
@@ -353,9 +353,9 @@ def test_webfetch_viewer_configurations_follow_card_subset_order(tmp_path):
     (prefix / "webfetch/tasks.json").write_bytes(raw)
     (prefix / "registry.json").write_text(json.dumps({"suites": [{
         "id": "webfetch", "directory": "webfetch", "case_count": len(cases),
-        "files": {"tasks.json": hashlib.sha256(raw).hexdigest()}}]}))
+        "files": {"tasks.json": hashlib.sha256(raw).hexdigest()}}]}), encoding="utf-8")
     for name in ["LICENSE", "NOTICE", "THIRD_PARTY.md"]:
-        (root / name).write_text("Retain this notice.\n")
+        (root / name).write_text("Retain this notice.\n", encoding="utf-8")
     git(root, "init", "-q")
     git(root, "add", ".")
     git(root, "commit", "-qm", "Fixture")
@@ -363,5 +363,5 @@ def test_webfetch_viewer_configurations_follow_card_subset_order(tmp_path):
     manifest = DatasetRelease.from_git(root, "webfetch", git(root, "rev-parse", "HEAD")).build(tmp_path / "out")
 
     assert [row["config"] for row in manifest["viewer"]["configurations"]] == ["general-web", "embedded-documents"]
-    rows = [json.loads(line) for line in (tmp_path / "out/data/general-web.jsonl").read_text().splitlines()]
+    rows = [json.loads(line) for line in (tmp_path / "out/data/general-web.jsonl").read_text(encoding="utf-8").splitlines()]
     assert [row["benchmark_category"] for row in rows] == ["web"]

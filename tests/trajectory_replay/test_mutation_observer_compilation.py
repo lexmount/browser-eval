@@ -51,7 +51,7 @@ const context = {URL, DOMParser, setTimeout, location: {origin},
 @pytest.mark.parametrize('name', ['Normal item', 'TIMEOUT PATH WITHIN PRODUCT EDIT SIGNOUT',
                                   'Quoted "item" with \\ and 中文'])
 def test_compiled_observer_preserves_literal_values_and_reads_same_origin(tmp_path, name):
-    data = json.loads(CANDIDATES.read_text())
+    data = json.loads(CANDIDATES.read_text(encoding='utf-8'))
     rule = next(row for row in data['rules'] if row['task_id'] == 465)
     observer = rule['observer']
     observer.update({'path': '/WITHIN/PATH', 'within': '.PRODUCT', 'product_name': name,
@@ -59,7 +59,7 @@ def test_compiled_observer_preserves_literal_values_and_reads_same_origin(tmp_pa
                      'require_authenticated_sign_out_path': '/SIGNOUT'})
     rule['observer_timeout_ms'] = 1000
     path = tmp_path / 'candidates.json'
-    path.write_text(json.dumps(data))
+    path.write_text(json.dumps(data), encoding='utf-8')
     _, script = compile_mutation_observer(path, 465, 8)
     result = subprocess.run(['node', '-e', NODE_SPECIMEN],
                             input=json.dumps({'script': script, 'observer': observer}),
@@ -80,11 +80,11 @@ def test_compiled_observer_preserves_literal_values_and_reads_same_origin(tmp_pa
 def test_readiness_preserves_module_and_method_literals(tmp_path, module, method):
     from harness.trajectory_replay.webarena_plan import compile_mutation_readiness
 
-    data = json.loads(CANDIDATES.read_text())
+    data = json.loads(CANDIDATES.read_text(encoding='utf-8'))
     rule = next(row for row in data['rules'] if row['task_id'] == 465)
     rule['pre_action_readiness'].update({'module': module, 'deferred_method': method})
     path = tmp_path / 'candidates.json'
-    path.write_text(json.dumps(data))
+    path.write_text(json.dumps(data), encoding='utf-8')
     _, script = compile_mutation_readiness(path, 465, 8)
     specimen = r'''
 const vm = require('node:vm');
@@ -119,10 +119,10 @@ context.window = context;
 @pytest.mark.parametrize('path_value', ['//other.test/path', '/\\other.test/path',
                                        '/safe\npath', '/safe\tpath', '/safe#fragment'])
 def test_compiler_rejects_paths_that_do_not_preserve_same_origin(tmp_path, path_value):
-    data = json.loads(CANDIDATES.read_text())
+    data = json.loads(CANDIDATES.read_text(encoding='utf-8'))
     rule = next(row for row in data['rules'] if row['task_id'] == 465)
     rule['observer']['path'] = path_value
     path = tmp_path / 'candidates.json'
-    path.write_text(json.dumps(data))
+    path.write_text(json.dumps(data), encoding='utf-8')
     with pytest.raises(ValueError, match='invalid path'):
         compile_mutation_observer(path, 465, 8)

@@ -296,7 +296,8 @@ def certify(argv: list[str] | None = None) -> None:
             process.terminate()
             process.wait(timeout=10)
             (args.output / "environment-interference.json").write_text(
-                json.dumps({"kind": "concurrent_benchmark", "pids": competing}, indent=2) + "\n"
+                json.dumps({"kind": "concurrent_benchmark", "pids": competing}, indent=2) + "\n",
+                encoding="utf-8"
             )
             raise ValueError(
                 f"Concurrent browser benchmark started during Moli timing: {competing}"
@@ -370,7 +371,8 @@ def certify(argv: list[str] | None = None) -> None:
         "host_resources": {"before": before_host, "after": after_host},
     }
     (args.output / "certification.json").write_text(
-        json.dumps(receipt, ensure_ascii=False, indent=2) + "\n"
+        json.dumps(receipt, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8"
     )
     print("Certified WebMainBench Moli latency cohort:", args.output)
 
@@ -417,7 +419,7 @@ def main(argv: list[str] | None = None) -> None:
         "scope": "latency only; preserve original output, scoring and verdict",
     }:
         raise ValueError("Final-round timing authority was not declared before calls")
-    dataset = json.loads((args.base / "dataset.json").read_text())
+    dataset = json.loads((args.base / "dataset.json").read_text(encoding="utf-8"))
     cases = {case["id"]: case for case in dataset["cases"]}
     _, calls = _repeat_calls(
         args.cohort.parent,
@@ -503,7 +505,8 @@ def main(argv: list[str] | None = None) -> None:
         "changes": changes,
     }
     (args.output / "latency-corrections.json").write_text(
-        json.dumps(receipt, ensure_ascii=False, indent=2) + "\n"
+        json.dumps(receipt, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8"
     )
     validate_latency_correction(args.output)
     print(

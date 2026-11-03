@@ -87,7 +87,7 @@ def test_declared_catalog_downloads_all_cached_traces_without_fixed_size(tmp_pat
         for task in (1, 2)
     ]
     catalog = tmp_path / "catalog.json"
-    catalog.write_text(json.dumps({"count": len(rows), "traces": rows}))
+    catalog.write_text(json.dumps({"count": len(rows), "traces": rows}), encoding="utf-8")
     output = tmp_path / "traces"
     output.mkdir()
     for row in rows:
@@ -97,7 +97,7 @@ def test_declared_catalog_downloads_all_cached_traces_without_fixed_size(tmp_pat
         lambda *_: (_ for _ in ()).throw(AssertionError("cached traces must not trigger network")),
     )
     main_fetch_traces(["--catalog", str(catalog), "--output", str(output)])
-    manifest = json.loads((output / "downloads.json").read_text())
+    manifest = json.loads((output / "downloads.json").read_text(encoding="utf-8"))
     assert manifest["complete"] and manifest["count"] == 2
     assert {item["task_id"] for item in manifest["files"]} == {1, 2}
     assert all(item["status"] == "existing" for item in manifest["files"])
@@ -121,7 +121,7 @@ def test_invalid_catalog_rejected_before_creating_output(tmp_path):
         ([dict(row, file_name="1.trace.zip")], 179),
     ]:
         catalog = tmp_path / "catalog.json"
-        catalog.write_text(json.dumps({"count": count, "traces": rows}))
+        catalog.write_text(json.dumps({"count": count, "traces": rows}), encoding="utf-8")
         output = tmp_path / "output"
         with pytest.raises(ValueError):
             main_fetch_traces(["--catalog", str(catalog), "--output", str(output)])
@@ -148,12 +148,13 @@ def test_catalog_drift_cannot_produce_download_manifest(tmp_path, monkeypatch):
                     }
                 ],
             }
-        )
+        ),
+        encoding="utf-8"
     )
     output = tmp_path / "traces"
 
     def download(row, destination):
-        catalog.write_text("{}")
+        catalog.write_text("{}", encoding="utf-8")
         return {"task_id": 1, "status": "downloaded"}
 
     monkeypatch.setattr(webarena, "_download", download)

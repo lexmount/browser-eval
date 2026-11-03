@@ -37,7 +37,7 @@ def corpus(tmp_path, count, *, split='test', historical=False):
                 'cases': cases if not historical else [{key: case[key] for key in ('file_id', 'page_type')} for case in cases]}
     selected = tmp_path / 'external/selected.json'
     selected.parent.mkdir()
-    selected.write_text(json.dumps(manifest))
+    selected.write_text(json.dumps(manifest), encoding='utf-8')
     return source, selected, manifest
 
 
@@ -48,7 +48,7 @@ class ReachedCollection(RuntimeError):
 def preflight(tmp_path, monkeypatch, source, manifest):
     provider = runner.WCXB_PROVIDERS[0]
     profile = tmp_path / 'profile.json'
-    profile.write_text(json.dumps({'providers': [provider], 'expected_versions': {provider: 'fixture'}}))
+    profile.write_text(json.dumps({'providers': [provider], 'expected_versions': {provider: 'fixture'}}), encoding='utf-8')
     called = []
     def stop_before_providers(*args):
         called.append(True)
@@ -63,7 +63,7 @@ def preflight(tmp_path, monkeypatch, source, manifest):
 def test_runner_uses_external_qualified_504_manifest(tmp_path, monkeypatch, adjacent):
     source, selected, manifest = corpus(tmp_path, 504)
     if adjacent:
-        (source.parent / 'tasks.json').write_text('unrelated invalid JSON')
+        (source.parent / 'tasks.json').write_text('unrelated invalid JSON', encoding='utf-8')
     assert runner.selected_wcxb_input(source, selected) == (source, selected)
     args, called = preflight(tmp_path, monkeypatch, source, selected)
     with pytest.raises(ReachedCollection):
@@ -77,8 +77,8 @@ def test_explicit_historical_511_source_ignores_qualified_neighbor(tmp_path, mon
     source, selected, manifest = corpus(tmp_path, 511, historical=True)
     if not versioned:
         manifest.pop('schema_version')
-        selected.write_text(json.dumps(manifest))
-    (source.parent / 'tasks.json').write_text(json.dumps({**manifest, 'schema_version': 2, 'source_count': 504}))
+        selected.write_text(json.dumps(manifest), encoding='utf-8')
+    (source.parent / 'tasks.json').write_text(json.dumps({**manifest, 'schema_version': 2, 'source_count': 504}), encoding='utf-8')
     args, called = preflight(tmp_path, monkeypatch, source, selected)
     with pytest.raises(ReachedCollection):
         runner.run(args)
@@ -100,7 +100,7 @@ def test_external_qualified_manifest_rejects_wrong_population_or_binding(tmp_pat
         manifest['split'] = 'train'
     else:
         manifest['scope'] = 'stratified_sample'
-    selected.write_text(json.dumps(manifest))
+    selected.write_text(json.dumps(manifest), encoding='utf-8')
     args, called = preflight(tmp_path, monkeypatch, source, selected)
     with pytest.raises(ValueError):
         runner.run(args)
@@ -117,7 +117,7 @@ def test_explicit_historical_selection_still_requires_511_test_sources(tmp_path)
 def test_explicit_historical_selection_rejects_changed_source_hash(tmp_path, monkeypatch):
     source, selected, manifest = corpus(tmp_path, 511, historical=True)
     manifest['source_sha256'] = '0' * 64
-    selected.write_text(json.dumps(manifest))
+    selected.write_text(json.dumps(manifest), encoding='utf-8')
     args, called = preflight(tmp_path, monkeypatch, source, selected)
     with pytest.raises(ValueError, match='manifest differs'):
         runner.run(args)
@@ -135,7 +135,7 @@ def test_historical_train_count_remains_1497(tmp_path):
 
 def test_default_adjacent_qualified_edition_still_validates(tmp_path):
     source, selected, manifest = corpus(tmp_path, 504)
-    (source.parent / 'tasks.json').write_text(selected.read_text())
+    (source.parent / 'tasks.json').write_text(selected.read_text(encoding='utf-8'), encoding='utf-8')
     records, digest = runner.load_wcxb_source(source)
     accepted, _ = validate_manifest(records, digest, manifest)
     assert len(accepted) == 504
@@ -146,14 +146,14 @@ def test_scoring_uses_its_explicit_historical_manifest_despite_conflicting_neigh
     from tests.wcxb_fixture import create_cohort
 
     options = create_cohort(tmp_path)
-    (options['source'].parent / 'tasks.json').write_text('unrelated invalid JSON')
+    (options['source'].parent / 'tasks.json').write_text('unrelated invalid JSON', encoding='utf-8')
     summary = score(**options)
     assert all(value['cases'] == 2 for value in summary['providers'].values())
-    assert len((options['evidence_root'] / 'wcxb-scores.jsonl').read_text().splitlines()) == 6
+    assert len((options['evidence_root'] / 'wcxb-scores.jsonl').read_text(encoding='utf-8').splitlines()) == 6
 
 
 def test_explicit_manifest_must_be_a_mapping(tmp_path):
     source, selected, _ = corpus(tmp_path, 504)
-    selected.write_text('null')
+    selected.write_text('null', encoding='utf-8')
     with pytest.raises(ValueError, match='Invalid WCXB source edition'):
         runner.load_wcxb_source(source, manifest=selected)

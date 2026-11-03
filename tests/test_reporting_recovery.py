@@ -35,7 +35,7 @@ def test_retry_recovers_same_site_and_version(tmp_path, monkeypatch, track, fail
     files = {}
     for key in ("PROFILE", "ATTESTATION", "REVIEW"):
         path = tmp_path / (key.lower() + ".json")
-        path.write_text("{}")
+        path.write_text("{}", encoding="utf-8")
         files[key] = path
         if hasattr(owner, key):
             monkeypatch.setattr(owner, key, path)
@@ -46,13 +46,14 @@ def test_retry_recovers_same_site_and_version(tmp_path, monkeypatch, track, fail
             expected_version="ver_old",
             share_url="https://example.invalid/v/token",
         )
-    files["PROFILE"].write_text(json.dumps({"publication": publication}))
+    files["PROFILE"].write_text(json.dumps({"publication": publication}), encoding="utf-8")
     receipt = tmp_path / "receipt.json"
     if failure == "version-response":
         receipt.write_text(
             json.dumps(
                 {"slug": "site-1", "verified": True, "share_url": "https://example.invalid/v/token"}
-            )
+            ),
+            encoding="utf-8"
         )
     monkeypatch.setattr(owner, "ARCHIVE", archive)
     monkeypatch.setattr(owner, "RECEIPT", receipt)
@@ -210,7 +211,7 @@ def test_create_cannot_replace_an_existing_binding(tmp_path, monkeypatch, track)
     owner = autonomous if track == "browser-use" else replay
     for key in ("ARCHIVE", "ATTESTATION", "PROFILE", "REVIEW"):
         path = tmp_path / (key.lower() + ".json")
-        path.write_text("{}")
+        path.write_text("{}", encoding="utf-8")
         if hasattr(owner, key):
             monkeypatch.setattr(owner, key, path)
     owner.PROFILE.write_text(
@@ -222,7 +223,8 @@ def test_create_cannot_replace_an_existing_binding(tmp_path, monkeypatch, track)
                     "expected_version": "ver_old",
                 }
             }
-        )
+        ),
+        encoding="utf-8"
     )
     monkeypatch.setattr(owner, "RECEIPT", tmp_path / "receipt.json")
     monkeypatch.setattr(owner, "BINDING_JOURNAL", tmp_path / "binding.json")

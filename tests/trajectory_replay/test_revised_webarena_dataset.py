@@ -98,7 +98,7 @@ def test_revision_uses_declared_population_instead_of_historical_size(tmp_path: 
     source["trajectories"] = [row for row in source["trajectories"] if row["task_id"] == 225]
     source["counts"] = {"verified_tasks": 1, "verified_trajectories": 1}
     path = tmp_path / "source.json"
-    path.write_text(json.dumps(source))
+    path.write_text(json.dumps(source), encoding="utf-8")
     result = revise(path, CORRECTIONS, [225])
     assert result["counts"] == source["counts"]
     assert [row["task_id"] for row in result["trajectories"]] == [225]
@@ -112,7 +112,7 @@ def test_revision_rejects_inconsistent_declared_population(tmp_path: Path, count
     source["trajectories"] = [row for row in source["trajectories"] if row["task_id"] == 225]
     source["counts"] = {"verified_tasks": count, "verified_trajectories": 1}
     path = tmp_path / "source.json"
-    path.write_text(json.dumps(source))
+    path.write_text(json.dumps(source), encoding="utf-8")
     with pytest.raises(ValueError, match="population"):
         revise(path, CORRECTIONS, [225])
 
@@ -135,7 +135,10 @@ def test_bound_revision_rejects_changed_authority(monkeypatch, field) -> None:
 
 def test_explicit_revision_bindings_do_not_require_historical_replacements(tmp_path: Path) -> None:
     path = tmp_path / "bindings.json"
-    path.write_text(json.dumps({"schema": "webarena_dataset_revision_bindings/1", "revisions": []}))
+    path.write_text(
+        json.dumps({"schema": "webarena_dataset_revision_bindings/1", "revisions": []}),
+        encoding="utf-8",
+    )
     result = revise(BASE, CORRECTIONS, [225], revision_bindings_path=path)
     assert [row["task_id"] for row in result["revision"]["changed_tasks"]] == [225]
 
@@ -153,7 +156,8 @@ def test_revision_bindings_reject_invalid_records(tmp_path: Path, damage) -> Non
         rows[0]["candidate"]["path"] = "../outside.json"
     path = tmp_path / "bindings.json"
     path.write_text(
-        json.dumps({"schema": "webarena_dataset_revision_bindings/1", "revisions": rows})
+        json.dumps({"schema": "webarena_dataset_revision_bindings/1", "revisions": rows}),
+        encoding="utf-8"
     )
     with pytest.raises(ValueError):
         _load_dataset_revision_bindings(path)
@@ -194,7 +198,7 @@ def test_revision_rejects_source_change_during_build(tmp_path: Path, monkeypatch
     def changed_source():
         value = json.loads(source.read_bytes())
         value["unexpected_change"] = True
-        source.write_text(json.dumps(value))
+        source.write_text(json.dumps(value), encoding="utf-8")
         return benchmark
 
     monkeypatch.setattr(runtime, "configure_benchmark", changed_source)
@@ -220,7 +224,7 @@ def test_task243_official_evaluator_accepts_review_nickname_not_old_email(
     from webarena_verified.types.tracing import NetworkTrace
 
     tasks = json.loads(
-        files("webarena_verified").joinpath("assets/dataset/webarena-verified.json").read_text()
+        files("webarena_verified").joinpath("assets/dataset/webarena-verified.json").read_text(encoding="utf-8")
     )
     task = WebArenaVerifiedTask.model_validate(next(row for row in tasks if row["task_id"] == 243))
     context = TaskEvalContext(

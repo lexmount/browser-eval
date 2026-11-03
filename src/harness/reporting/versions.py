@@ -70,7 +70,7 @@ def bind_build_version(root):
         page = root / route
         if not page.is_file():
             continue
-        content = page.read_text()
+        content = page.read_text(encoding="utf-8")
         if "data-english-not-generated" in content:
             continue
         content = re.sub(r'<(p|span) data-report-build-version>.*?</\1>', '', content, flags=re.S)
@@ -81,13 +81,13 @@ def bind_build_version(root):
         benchmark = re.search(r'<a\b[^>]*\bdata-benchmark-release=[^>]*>.*?</a>', content, re.S)
         if benchmark:
             label = '<span data-report-build-version>' + link + ' · </span>'
-            page.write_text(content[:benchmark.start()] + label + content[benchmark.start():])
+            page.write_text(content[:benchmark.start()] + label + content[benchmark.start():], encoding="utf-8")
             continue
         label = '<p data-report-build-version>' + link + '</p>'
         end = '</footer>' if '</footer>' in content else '</body>'
         if end not in content:
             raise ValueError("Report home has no body: " + route)
-        page.write_text(content.replace(end, label + end, 1))
+        page.write_text(content.replace(end, label + end, 1), encoding="utf-8")
     return {"file": FILENAME, "sha256": hashlib.sha256(raw).hexdigest(),
             "version": identity["version"]}
 
@@ -97,7 +97,7 @@ def check_build_version(root, manifest):
 
     binding = manifest.get("browser_eval")
     path = root / FILENAME
-    pages = [(route, BeautifulSoup((root / route).read_text(), "html.parser"))
+    pages = [(route, BeautifulSoup((root / route).read_text(encoding="utf-8"), "html.parser"))
              for route in ("index.html", "en/index.html") if (root / route).is_file()]
     if binding is None:
         if path.exists() or any(page.select_one('[data-browser-eval-release]') for _, page in pages):
@@ -128,6 +128,6 @@ def check_build_version(root, manifest):
 def record_build_version(root):
     """Stamp builders whose report manifest is already complete."""
     path = root / "report-manifest.json"
-    manifest = json.loads(path.read_text()) if path.is_file() else {"schema_version": 1}
+    manifest = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {"schema_version": 1}
     manifest["browser_eval"] = bind_build_version(root)
-    path.write_text(json.dumps(manifest, indent=2) + "\n")
+    path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

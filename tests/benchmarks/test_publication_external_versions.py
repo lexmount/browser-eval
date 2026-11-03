@@ -43,7 +43,7 @@ def test_hub_rebuild_retains_old_provider_after_global_source_advance(tmp_path, 
 def test_legacy_delegated_hub_needs_explicit_version_context(tmp_path, monkeypatch):
     _, old, manifest, path = hub_release(tmp_path, monkeypatch)
     manifest.pop('external_sources')
-    (path / 'manifest.json').write_text(json.dumps(manifest))
+    (path / 'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
     git(path, 'add', '.')
     git(path, 'commit', '-qm', 'Legacy missing dependency version')
     loaded = DatasetRelease.from_git(path, 'websearch', git(path, 'rev-parse', 'HEAD'))

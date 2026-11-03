@@ -21,7 +21,7 @@ def test_transition_binds_files_consumed_by_evaluator(tmp_path: Path, monkeypatc
         ("actual_response.json", {"answer": "saved answer"}),
         ("network.har", {"log": {"entries": []}}),
     ):
-        (tmp_path / name).write_text(json.dumps(value))
+        (tmp_path / name).write_text(json.dumps(value), encoding="utf-8")
     before = {
         name: (tmp_path / name).read_bytes()
         for name in ("evaluation.json", "actual_response.json", "network.har")
@@ -31,7 +31,7 @@ def test_transition_binds_files_consumed_by_evaluator(tmp_path: Path, monkeypatc
         assert kwargs["agent_response"] == {"answer": "saved answer"}
         assert kwargs["network_trace"].read_bytes() == before["network.har"]
         if changed:
-            (tmp_path / changed).write_text(json.dumps({"changed": True}))
+            (tmp_path / changed).write_text(json.dumps({"changed": True}), encoding="utf-8")
         return SimpleNamespace(model_dump=lambda **kw: {"score": 1.0})
 
     benchmark = SimpleNamespace(get_task=lambda task_id: object(), evaluate_task=evaluate_task)
@@ -114,7 +114,7 @@ def test_transition_command_freezes_batch_inputs(tmp_path: Path, monkeypatch, ch
         ("inputs.json", {}),
         ("progress.jsonl", {"task_id": 7, "status": "pass"}),
     ):
-        paths[name].write_text(json.dumps(value) + "\n")
+        paths[name].write_text(json.dumps(value) + "\n", encoding="utf-8")
     source = {"evaluator_checksum": "b" * 64, "data_checksum": "c" * 64}
     old = {
         "webarena_verified_evaluator_checksum": source["evaluator_checksum"],
@@ -125,7 +125,7 @@ def test_transition_command_freezes_batch_inputs(tmp_path: Path, monkeypatch, ch
         ("actual_response.json", {}),
         ("network.har", {}),
     ):
-        (task / name).write_text(json.dumps(value))
+        (task / name).write_text(json.dumps(value), encoding="utf-8")
     before = {path: path.read_bytes() for path in paths.values()}
     monkeypatch.setattr(webarena_runtime_source, "verify_webarena_runtime_source", lambda: None)
     monkeypatch.setattr(remote_runtime, "remote_benchmark", lambda sites: object())
@@ -139,7 +139,7 @@ def test_transition_command_freezes_batch_inputs(tmp_path: Path, monkeypatch, ch
 
     def reevaluate(directory, **kwargs):
         if changed:
-            paths[changed].write_text("changed input")
+            paths[changed].write_text("changed input", encoding="utf-8")
         return {}, {
             "task_id": 7,
             "old_evaluation_sha256": evaluator_transition.file_sha256(task / "evaluation.json"),
@@ -297,7 +297,7 @@ def test_transition_receipt_binds_each_old_evaluation_once(tmp_path):
     transition = _transition()
     receipt = _receipt(transition)
     path = tmp_path / "receipt.json"
-    path.write_text(json.dumps(receipt))
+    path.write_text(json.dumps(receipt), encoding="utf-8")
 
     indexed, excluded = evaluator_transition.load_receipt(path, transition)
 
@@ -316,7 +316,7 @@ def test_transition_receipt_excludes_only_the_bound_old_evaluation(tmp_path):
         }
     ]
     path = tmp_path / "receipt.json"
-    path.write_text(json.dumps(receipt))
+    path.write_text(json.dumps(receipt), encoding="utf-8")
 
     indexed, excluded = evaluator_transition.load_receipt(path, transition)
 
@@ -336,7 +336,7 @@ def test_transition_receipt_distinguishes_identical_evaluations_from_different_r
     receipt["rows"].append(replacement)
     receipt["row_count"] = 2
     path = tmp_path / "receipt.json"
-    path.write_text(json.dumps(receipt))
+    path.write_text(json.dumps(receipt), encoding="utf-8")
 
     indexed, excluded = evaluator_transition.load_receipt(path, transition)
 
@@ -359,7 +359,7 @@ def test_transition_receipt_rejects_unbound_or_duplicate_evidence(tmp_path, chan
     else:
         receipt["row_count"] = 2
     path = tmp_path / "receipt.json"
-    path.write_text(json.dumps(receipt))
+    path.write_text(json.dumps(receipt), encoding="utf-8")
 
     with pytest.raises(ValueError, match="transition receipt"):
         evaluator_transition.load_receipt(path, transition)

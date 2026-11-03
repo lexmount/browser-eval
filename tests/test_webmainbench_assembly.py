@@ -23,7 +23,7 @@ def write_rows(path, rows):
 
 def freeze_cohort(root, profile_path, source, scorer, *, retry=False):
     root.mkdir()
-    profile = json.loads(profile_path.read_text())
+    profile = json.loads(profile_path.read_text(encoding="utf-8"))
     records = read_jsonl(source)
     ids = {row["track_id"] for row in records}
     measured, scored = [], []
@@ -36,7 +36,7 @@ def freeze_cohort(root, profile_path, source, scorer, *, retry=False):
             attempts = 2 if retry and index == 0 else 1
             body = f"{root.name}: {provider} {case}"
             relative = f"artifacts/{provider}/{case}.md"
-            (shard / relative).write_text(body)
+            (shard / relative).write_text(body, encoding="utf-8")
             row = {
                 "provider": provider,
                 "track_id": case,
@@ -52,7 +52,8 @@ def freeze_cohort(root, profile_path, source, scorer, *, retry=False):
             for physical in range(1, attempts + 1):
                 physical_path = f"artifacts/{provider}/{case}-p{physical:02d}.txt"
                 (shard / physical_path).write_text(
-                    body if physical == attempts else "first call failed"
+                    body if physical == attempts else "first call failed",
+                    encoding="utf-8"
                 )
                 calls.append(
                     {
@@ -70,7 +71,7 @@ def freeze_cohort(root, profile_path, source, scorer, *, retry=False):
             {"case_count": len(records), "case_ids": sorted(ids)},
         )
         ca_path = shard / "fixture-ca.pem"
-        ca_path.write_text(root.name + "-ca")
+        ca_path.write_text(root.name + "-ca", encoding="utf-8")
         write_json(
             shard / "execution.json",
             {
@@ -125,9 +126,9 @@ def freeze_cohort(root, profile_path, source, scorer, *, retry=False):
             "scorer_source_sha256": {"metric.py": file_sha256(scorer / "metric.py")},
         },
     )
-    (root / "private-review.json").write_text("never export this unbound file")
+    (root / "private-review.json").write_text("never export this unbound file", encoding="utf-8")
     (root / "worker-queue").mkdir()
-    (root / "worker-queue/log.txt").write_text("internal diagnostics")
+    (root / "worker-queue/log.txt").write_text("internal diagnostics", encoding="utf-8")
 
 
 @pytest.fixture
@@ -148,7 +149,7 @@ def evidence(tmp_path):
     )
     scorer = tmp_path / "scorer"
     scorer.mkdir()
-    (scorer / "metric.py").write_text("# synthetic pinned scorer source\n")
+    (scorer / "metric.py").write_text("# synthetic pinned scorer source\n", encoding="utf-8")
     profile = {
         "dataset_id": "synthetic-full",
         "case_count": 545,
@@ -167,7 +168,7 @@ def evidence(tmp_path):
 
 def variants(evidence, count):
     directory, _, source, scorer, baseline_profile = evidence
-    profile = json.loads(baseline_profile.read_text())
+    profile = json.loads(baseline_profile.read_text(encoding="utf-8"))
     entries, cohorts = [], {}
     for index in range(count):
         provider = f"variant-{index}"
@@ -226,7 +227,7 @@ def test_complete_assembly_follows_registry_and_retains_all_physical_calls(
         assert file_sha256(output / row["physical_artifact_path"]) == row["output_sha256"]
     assert (
         output / "fixture-certificates/engine-a-ca.pem"
-    ).read_text() == "baseline-ca"
+    ).read_text(encoding="utf-8") == "baseline-ca"
     assert not list(output.rglob("private-review.json"))
     assert not list(output.rglob("worker-queue"))
     assert not list(output.glob("six-method*"))
@@ -247,7 +248,7 @@ def test_complete_assembly_follows_registry_and_retains_all_physical_calls(
             assert row["elapsed_ms"] == 20 and row["total_elapsed_ms"] == 30
             assert (
                 output / f"fixture-certificates/{provider}-ca.pem"
-            ).read_text() == provider + "-ca"
+            ).read_text(encoding="utf-8") == provider + "-ca"
 
 
 @pytest.mark.parametrize(
@@ -268,19 +269,19 @@ def test_invalid_evidence_cannot_leave_a_publishable_partial_package(evidence, d
     if damage == "missing_cohort":
         cohorts.clear()
     elif damage == "changed_output":
-        (candidate / "engine-a/artifacts/engine-a/case-0.md").write_text("changed")
+        (candidate / "engine-a/artifacts/engine-a/case-0.md").write_text("changed", encoding="utf-8")
     elif damage == "wrong_profile":
         variant_profile = directory / "variant-0.json"
-        value = json.loads(variant_profile.read_text())
+        value = json.loads(variant_profile.read_text(encoding="utf-8"))
         value["source_commit"] = "different"
         write_json(variant_profile, value)
     elif damage == "missing_call":
         path = candidate / "engine-a/physical-attempts.jsonl"
         write_rows(path, read_jsonl(path)[1:])
     elif damage == "wrong_source":
-        source.write_text(source.read_text() + " ")
+        source.write_text(source.read_text(encoding="utf-8") + " ", encoding="utf-8")
     else:
-        (scorer / "metric.py").write_text("changed scorer")
+        (scorer / "metric.py").write_text("changed scorer", encoding="utf-8")
     output = directory / "package"
     with pytest.raises(ValueError):
         assemble(
@@ -342,7 +343,7 @@ def test_input_changed_after_materialization_cannot_commit_package(
 
     def collect_then_change(*args, **kwargs):
         original(*args, **kwargs)
-        source.write_text(source.read_text() + " ")
+        source.write_text(source.read_text(encoding="utf-8") + " ", encoding="utf-8")
 
     monkeypatch.setattr(assembly, "_assemble_cohort", collect_then_change)
     output = directory / "package"
@@ -370,12 +371,12 @@ def test_new_certified_variant_replaces_only_its_method_and_preserves_previous_p
     frozen = {path: file_sha256(path) for path in previous.rglob("*") if path.is_file()}
     previous_rows = read_jsonl(previous / "results.jsonl")
     replacement_profile = directory / "variant-0-v2.json"
-    value = json.loads((directory / "variant-0.json").read_text())
+    value = json.loads((directory / "variant-0.json").read_text(encoding="utf-8"))
     value.update(binary_sha256="replacement-binary", source_commit="replacement-commit")
     write_json(replacement_profile, value)
     replacement = directory / "replacement"
     freeze_cohort(replacement, replacement_profile, source, scorer, retry=True)
-    plan = json.loads(registry.read_text())
+    plan = json.loads(registry.read_text(encoding="utf-8"))
     plan["variants"][0]["profile"] = replacement_profile.name
     replacement_registry = directory / "replacement-registry.json"
     write_json(replacement_registry, plan)
@@ -408,7 +409,7 @@ def test_correction_fixture_ca_is_bound_and_cannot_change_after_copy(evidence, m
     directory, baseline, source, scorer, profile = evidence
     shard = baseline / 'engine-a'
     ca = shard / 'correction-fixture-ca.pem'
-    ca.write_text('frozen correction CA')
+    ca.write_text('frozen correction CA', encoding="utf-8")
     execution = json.loads((shard / 'execution.json').read_bytes())
     execution['correction_runs'] = [{'fixture_ca_sha256': file_sha256(ca)}]
     write_json(shard / 'execution.json', execution)
@@ -427,7 +428,7 @@ def test_correction_fixture_ca_is_bound_and_cannot_change_after_copy(evidence, m
 
     def collect_then_change(*args, **kwargs):
         original(*args, **kwargs)
-        ca.write_text('changed after copy')
+        ca.write_text('changed after copy', encoding="utf-8")
 
     monkeypatch.setattr(assembly, '_assemble_cohort', collect_then_change)
     refused = directory / 'changed-correction-package'

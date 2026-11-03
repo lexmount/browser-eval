@@ -33,9 +33,9 @@ def test_repository_contract_uses_one_image_lock():
 def test_evaluation_templates_reject_wrong_relative_lock_path(tmp_path, template):
     root = _checkout(tmp_path)
     path = root / f"examples/trajectory_replay/public_webarena/{template}.example.json"
-    data = json.loads(path.read_text())
+    data = json.loads(path.read_text(encoding="utf-8"))
     data["image_lock"] = "../../evaluation/browser-use-public/webarena-environment-images.json"
-    path.write_text(json.dumps(data))
+    path.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(ValueError, match="canonical image lock"):
         verify_deployment_contract(root)
 
@@ -50,9 +50,9 @@ def test_evaluation_templates_reject_wrong_relative_lock_path(tmp_path, template
 def test_delivery_rejects_wrong_binding(tmp_path, field, value, message):
     root = _checkout(tmp_path)
     path = root / "deploy/webarena/site-delivery-contract.json"
-    data = json.loads(path.read_text())
+    data = json.loads(path.read_text(encoding="utf-8"))
     data[field] = value
-    path.write_text(json.dumps(data))
+    path.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(ValueError, match=message):
         verify_deployment_contract(root)
 
@@ -60,9 +60,9 @@ def test_delivery_rejects_wrong_binding(tmp_path, field, value, message):
 def test_deployment_rejects_port_drift(tmp_path):
     root = _checkout(tmp_path)
     path = root / "deploy/webarena/runtime.example.json"
-    data = json.loads(path.read_text())
+    data = json.loads(path.read_text(encoding="utf-8"))
     data["sites"]["reddit"]["port"] += 1
-    path.write_text(json.dumps(data))
+    path.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(ValueError, match="site port differs: reddit"):
         verify_deployment_contract(root)
 
@@ -70,9 +70,9 @@ def test_deployment_rejects_port_drift(tmp_path):
 def test_deployment_rejects_duplicate_image_identity(tmp_path):
     root = _checkout(tmp_path)
     path = root / "deploy/webarena/site-delivery-contract.json"
-    data = json.loads(path.read_text())
+    data = json.loads(path.read_text(encoding="utf-8"))
     data["components"]["reddit"]["image"] = "reddit:latest"
-    path.write_text(json.dumps(data))
+    path.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(ValueError, match="canonical image identity"):
         verify_deployment_contract(root)
 
@@ -80,8 +80,8 @@ def test_deployment_rejects_duplicate_image_identity(tmp_path):
 def test_map_contract_rejects_missing_checksum(tmp_path):
     root = _checkout(tmp_path)
     path = root / "deploy/webarena/site-delivery-contract.json"
-    data = json.loads(path.read_text())
+    data = json.loads(path.read_text(encoding="utf-8"))
     del data["components"]["map"]["data_archive_sha256"]["osrm_routing.tar"]
-    path.write_text(json.dumps(data))
+    path.write_text(json.dumps(data), encoding="utf-8")
     with pytest.raises(ValueError, match="Map archive checksum"):
         verify_deployment_contract(root)

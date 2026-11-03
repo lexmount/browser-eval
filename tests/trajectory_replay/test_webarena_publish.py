@@ -17,7 +17,7 @@ from harness.trajectory_replay import webarena_report_publish as publisher
 def private_publication_files(monkeypatch, tmp_path):
     for key in ("ATTESTATION", "PROFILE", "REVIEW"):
         path = tmp_path / (key.lower() + "-default.json")
-        path.write_text("{}")
+        path.write_text("{}", encoding="utf-8")
         monkeypatch.setattr(publisher, key, path)
     monkeypatch.setattr(publisher, "BINDING_JOURNAL", tmp_path / "binding-pending.json")
 
@@ -89,13 +89,13 @@ def test_bind_publication_updates_profile_and_attestation(monkeypatch, tmp_path:
     monkeypatch.setattr(publisher, "BINDING_JOURNAL", tmp_path / "binding-pending.json")
 
     publisher.bind_publication(
-        json.loads(profile.read_text()),
+        json.loads(profile.read_text(encoding="utf-8")),
         slug="abc",
         share_url="https://app.example/v/token",
         version="ver_new",
     )
 
-    publication = json.loads(profile.read_text())["publication"]
+    publication = json.loads(profile.read_text(encoding="utf-8"))["publication"]
     assert publication == {
         "base_url": "https://app.example",
         "site_slug": "abc",
@@ -103,7 +103,7 @@ def test_bind_publication_updates_profile_and_attestation(monkeypatch, tmp_path:
         "expected_version": "ver_new",
         "state": "verified",
     }
-    assert json.loads(attestation.read_text())["profile_sha256"] == _sha256(profile)
+    assert json.loads(attestation.read_text(encoding="utf-8"))["profile_sha256"] == _sha256(profile)
 
 
 def test_binding_journal_recovers_interrupted_two_file_update(monkeypatch, tmp_path: Path) -> None:
@@ -131,7 +131,7 @@ def test_binding_journal_recovers_interrupted_two_file_update(monkeypatch, tmp_p
     monkeypatch.setattr(publisher, "atomic_write", interrupt_attestation)
     with pytest.raises(OSError, match="simulated interruption"):
         publisher.bind_publication(
-            json.loads(profile.read_text()),
+            json.loads(profile.read_text(encoding="utf-8")),
             slug="abc",
             share_url="https://app.example/v/token",
             version="ver_new",
@@ -142,8 +142,11 @@ def test_binding_journal_recovers_interrupted_two_file_update(monkeypatch, tmp_p
     publisher.recover_publication_binding()
 
     assert not journal.exists()
-    assert json.loads(profile.read_text())["publication"]["expected_version"] == "ver_new"
-    assert json.loads(attestation.read_text())["profile_sha256"] == _sha256(profile)
+    assert (
+        json.loads(profile.read_text(encoding="utf-8"))["publication"]["expected_version"]
+        == "ver_new"
+    )
+    assert json.loads(attestation.read_text(encoding="utf-8"))["profile_sha256"] == _sha256(profile)
 
 
 def test_pending_created_site_is_bound_to_release_package(monkeypatch, tmp_path: Path) -> None:
@@ -235,7 +238,7 @@ def test_upload_recovers_lost_response_with_same_persisted_operation(
             identity,
             allow_create=True,
         )
-    pending = json.loads(operation_journal.read_text())
+    pending = json.loads(operation_journal.read_text(encoding="utf-8"))
     operation_key = pending["key"]
     assert requests[0][1]["extra_headers"] == {"Idempotency-Key": operation_key}
 
@@ -300,7 +303,9 @@ def test_running_operation_does_not_resubmit_upload(monkeypatch, tmp_path: Path)
             allow_create=False,
         )
 
-    assert requests == [f"/api/operations/{json.loads(operation_journal.read_text())['key']}"]
+    assert requests == [
+        f"/api/operations/{json.loads(operation_journal.read_text(encoding='utf-8'))['key']}"
+    ]
 
 
 def test_multipart_archive_is_stable_for_operation_replay(monkeypatch, tmp_path: Path) -> None:
@@ -554,7 +559,10 @@ def test_package_rejects_diagnostic_appendix_and_mixed_dataset(
     dataset = tmp_path / "corrected.json"
     dataset.write_text("{}", encoding="utf-8")
     profile = tmp_path / "profile.json"
-    profile.write_text(json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}))
+    profile.write_text(
+        json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}),
+        encoding="utf-8",
+    )
     review = tmp_path / "review.json"
     review.write_text("{}", encoding="utf-8")
     monkeypatch.setattr(packager, "PROFILE", profile)
@@ -563,12 +571,12 @@ def test_package_rejects_diagnostic_appendix_and_mixed_dataset(
     monkeypatch.setattr(packager, "validate_release", lambda *_args, **_kwargs: {})
     manifest = {"dataset_sha256": _sha256(dataset), "results_sha256": _sha256(evidence),
                 "diagnostic_closure_sha256": "a" * 64}
-    (report / "report-manifest.json").write_text(json.dumps(manifest))
+    (report / "report-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ValueError, match="diagnostic-only"):
         packager.package(report, evidence, tmp_path / "report.zip", tmp_path / "visual.json")
     manifest.pop("diagnostic_closure_sha256")
     manifest["dataset_sha256"] = "0" * 64
-    (report / "report-manifest.json").write_text(json.dumps(manifest))
+    (report / "report-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ValueError, match="different result or dataset"):
         packager.package(report, evidence, tmp_path / "report.zip", tmp_path / "visual.json")
 
@@ -583,7 +591,10 @@ def test_publication_rejects_diagnostic_appendix_and_stale_corrected_dataset(
     dataset = tmp_path / "corrected.json"
     dataset.write_text("{}", encoding="utf-8")
     profile = tmp_path / "profile.json"
-    profile.write_text(json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}))
+    profile.write_text(
+        json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}),
+        encoding="utf-8",
+    )
     review = tmp_path / "review.json"
     review.write_text("{}", encoding="utf-8")
     monkeypatch.setattr(publisher, "PROFILE", profile)
@@ -592,7 +603,7 @@ def test_publication_rejects_diagnostic_appendix_and_stale_corrected_dataset(
     evidence.write_text("{}", encoding="utf-8")
     (report / "report-manifest.json").write_text(json.dumps({
         "dataset_sha256": _sha256(dataset), "results_sha256": _sha256(evidence),
-    }))
+    }), encoding="utf-8")
     attestation = {
         "schema": "lex_webarena_replay_publication_attestation/1",
         "archive_sha256": _sha256(archive),
@@ -618,7 +629,10 @@ def test_publication_rejects_diagnostic_appendix_and_stale_corrected_dataset(
     attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
     with pytest.raises(ValueError, match="registered methods and the declared task set"):
         publisher.validate_package()
-    profile.write_text(json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}))
+    profile.write_text(
+        json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}),
+        encoding="utf-8",
+    )
     attestation["profile_sha256"] = _sha256(profile)
     attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
     attestation["diagnostic_closure_sha256"] = "a" * 64

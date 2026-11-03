@@ -31,7 +31,7 @@ def test_browser_bill_includes_base_allowance_and_half_up_monthly_rounding():
 
 
 def test_catalog_has_sources_dates_and_no_invented_annual_prices():
-    data = json.loads(SOURCE.read_text())
+    data = json.loads(SOURCE.read_text(encoding='utf-8'))
     assert data['checked_at'] == '2026-09-03'
     providers = {p['id']:p for p in data['providers']}
     assert set(providers) == {'firecrawl','tavily','exa','cloudflare-markdown'}
@@ -62,12 +62,12 @@ def test_catalog_has_sources_dates_and_no_invented_annual_prices():
 
 
 def test_render_has_summary_details_download_and_explicit_billing_limits():
-    data = json.loads(SOURCE.read_text())
+    data = json.loads(SOURCE.read_text(encoding='utf-8'))
     names = [p['id'] for p in data['providers']] + [i for p in data['other_methods'] for i in p['ids']]
     with tempfile.TemporaryDirectory() as directory:
         out = Path(directory)
         rendered = render_pricing(out, names, table=table, cell=cell, link=link, esc=esc)
-        assert json.loads((out/'adoption/pricing.json').read_text()) == data
+        assert json.loads((out/'adoption/pricing.json').read_text(encoding='utf-8')) == data
     for name in names[:4]:
         assert f'id="pricing-{name}"' in rendered
         assert f'href="#pricing-{name}"' in rendered
@@ -100,12 +100,12 @@ def test_report_bound_pricing_overrides_legacy_catalog(tmp_path):
     }
     path = tmp_path / "report-assets/provider-pricing.json"
     path.parent.mkdir()
-    path.write_text(json.dumps(bound))
+    path.write_text(json.dumps(bound), encoding='utf-8')
     rendered = render_pricing(
         tmp_path, ["local-browser"], table=table, cell=cell, link=link, esc=esc
     )
     assert "Local browser" in rendered
-    assert json.loads((tmp_path / "adoption/pricing.json").read_text()) == bound
+    assert json.loads((tmp_path / "adoption/pricing.json").read_text(encoding='utf-8')) == bound
 
 
 def test_firecrawl_current_route_and_billing_boundaries_are_localized_one_to_one():
@@ -129,18 +129,18 @@ def test_firecrawl_current_route_and_billing_boundaries_are_localized_one_to_one
 
 
 def test_bound_pricing_supplies_new_bilingual_statement_without_catalog_edits(tmp_path):
-    data = json.loads(SOURCE.read_text())
+    data = json.loads(SOURCE.read_text(encoding='utf-8'))
     provider = next(p for p in data['providers'] if p['id'] == 'exa')
     provider['scope'] = '模拟说明：新的套餐边界。'
     provider['verified_at'] = '2031-02-03'
     data['translations'] = {'模拟说明：新的套餐边界。': 'Synthetic note: revised plan scope.'}
     assets = tmp_path / 'report-assets'
     assets.mkdir()
-    (assets / 'provider-pricing.json').write_text(json.dumps(data))
+    (assets / 'provider-pricing.json').write_text(json.dumps(data), encoding='utf-8')
     rendered = render_pricing(tmp_path, ['exa'], table=table, cell=cell, link=link, esc=esc)
     english = localize_html(rendered, PurePosixPath('adoption/index.html'))
     assert '模拟说明：新的套餐边界。' in rendered
     assert 'Synthetic note: revised plan scope.' in english
     assert '模拟说明' not in english
     assert '2031-02-03' in english
-    assert json.loads((tmp_path / 'adoption/pricing.json').read_text()) == data
+    assert json.loads((tmp_path / 'adoption/pricing.json').read_text(encoding='utf-8')) == data

@@ -41,7 +41,7 @@ class MoliVersionResourceChartTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "linux.svg"
             MODULE.render_chart(combined, output, ("memory", "cpu"))
-            chart = output.read_text()
+            chart = output.read_text(encoding="utf-8")
             self.assertEqual(chart.count("data-point-label="), 8)
             self.assertIn("pp / +10.00%", chart)
             self.assertIn("pp / -20.00%", chart)
@@ -57,12 +57,12 @@ class MoliVersionResourceChartTests(unittest.TestCase):
             for language in ("zh", "en"):
                 for metrics in (("pss",), ("pss", "cpu")):
                     MODULE.render_chart(self.data, output, metrics, language)
-                    rendered = output.read_text()
+                    rendered = output.read_text(encoding="utf-8")
                     self.assertIn(" †:", rendered)
                     self.assertIn("不同构建" if language == "zh" else "different builds", rendered)
             row["resource_binary_sha256"] = row["functional_binary_sha256"]
             MODULE.render_chart(self.data, output)
-            self.assertNotIn("†", output.read_text())
+            self.assertNotIn("†", output.read_text(encoding="utf-8"))
 
     def test_near_identical_methods_keep_both_numbered_markers_visible(self):
         self.data["configurations"][1]["pss_mib"] = self.data["configurations"][0]["pss_mib"]
@@ -102,7 +102,7 @@ class MoliVersionResourceChartTests(unittest.TestCase):
             output = Path(directory) / "all.svg"
             for language in ("zh", "en"):
                 MODULE.render_chart(combined, output, ("memory", "cpu"), language)
-                text = output.read_text()
+                text = output.read_text(encoding="utf-8")
                 self.assertIn("Linux PSS", text)
                 self.assertIn("macOS RSS", text)
                 self.assertIn("360/372", text)
@@ -114,7 +114,7 @@ class MoliVersionResourceChartTests(unittest.TestCase):
                 self.assertEqual(text.count('<path d="M '), 8)
             for metric in ("memory", "cpu"):
                 MODULE.render_chart(combined, output, (metric,), "en")
-                text = output.read_text()
+                text = output.read_text(encoding="utf-8")
                 self.assertIn("360/372", text)
                 self.assertEqual(text.count('<path d="M '), 4)
                 self.assertIn("MiB" if metric == "memory" else "ms", text)
@@ -178,7 +178,7 @@ class MoliVersionResourceChartTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "chart.svg"
             MODULE.render_chart(self.data, output, metrics, language)
-            return output.read_text()
+            return output.read_text(encoding="utf-8")
 
     def test_dual_panel_labels_absolute_values_and_baseline_changes(self):
         svg = self.render()

@@ -136,10 +136,10 @@ class DynamicAppendBatchesTests(unittest.TestCase):
         self.assertEqual(combined[:len(self.baseline_bytes)], self.baseline_bytes)
         self.assertEqual(len(combined.splitlines()), 1800)
         self.assertEqual([json.loads(r) for r in combined.splitlines()[1728:]], self.records)
-        execution = json.loads((self.source / 'execution.json').read_text())
+        execution = json.loads((self.source / 'execution.json').read_text(encoding='utf-8'))
         self.assertEqual(execution, {**self.baseline_execution,
             'batches': self.baseline_execution['batches'] + self.batches})
-        dataset = json.loads((self.source / 'dataset.json').read_text())
+        dataset = json.loads((self.source / 'dataset.json').read_text(encoding='utf-8'))
         self.assertEqual(dataset['cases'][:144], self.baseline_dataset['cases'])
         self.assertEqual(dataset['coverage_plan'], self.baseline_dataset['coverage_plan'])
         self.assertEqual(sum(c['track'] == 'dynamic' for c in dataset['cases']), 10)
@@ -168,7 +168,7 @@ class DynamicAppendBatchesTests(unittest.TestCase):
             self.batches.append(shard)
         self.save()
         self.run_append()
-        self.assertEqual(json.loads((self.source / 'execution.json').read_text())['batches'][1:],
+        self.assertEqual(json.loads((self.source / 'execution.json').read_text(encoding='utf-8'))['batches'][1:],
                          self.batches)
 
     def test_runner_batches_without_batch_ids_are_not_given_synthetic_ids(self):
@@ -176,7 +176,7 @@ class DynamicAppendBatchesTests(unittest.TestCase):
             del batch['batch_id']
         self.save()
         self.run_append()
-        self.assertEqual(json.loads((self.source / 'execution.json').read_text())['batches'][1:],
+        self.assertEqual(json.loads((self.source / 'execution.json').read_text(encoding='utf-8'))['batches'][1:],
                          self.batches)
 
     def test_tampered_duplicate_and_missing_batch_attempts(self):

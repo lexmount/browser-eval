@@ -210,18 +210,20 @@ def test_report_selection_uses_declared_scope_and_rejects_changed_bytes(tmp_path
 
     from harness.browser_use.selection import report_selection_path
 
-    payload = json.loads(Path('evaluation/browser-use/webarena-verified-pilot.json').read_text())
+    payload = json.loads(
+        Path("evaluation/browser-use/webarena-verified-pilot.json").read_text(encoding="utf-8")
+    )
     payload['tasks'] = [next(task for task in payload['tasks'] if task['tier'] == tier)
                         for tier in ('easy', 'hard')]
     payload['metadata']['tier_counts'] = {'easy': 1, 'medium': 0, 'hard': 1}
     path = tmp_path / 'selection.json'
-    path.write_text(json.dumps(payload))
+    path.write_text(json.dumps(payload), encoding="utf-8")
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     profile = {'selection_sha256': digest, 'task_selection': {'path': str(path), 'sha256': digest}}
     assert len(load_pilot(path).tasks) == 2
     assert report_selection_path(profile) == path
     payload['tasks'].pop()
-    path.write_text(json.dumps(payload))
+    path.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match='instance profile'):
         report_selection_path(profile)
     with pytest.raises(ValueError, match='tier counts'):

@@ -27,7 +27,7 @@ def test_converter_preserves_headings_links_table_and_chinese_from_another_direc
 @pytest.mark.parametrize('version', [None, '1.0.0', '2.0.1'])
 def test_converter_rejects_absent_or_wrong_dependency_without_using_another_copy(tmp_path, version):
     if version is not None:
-        (tmp_path / 'package.json').write_text(json.dumps({'version': version}))
+        (tmp_path / 'package.json').write_text(json.dumps({'version': version}), encoding='utf-8')
     with pytest.raises(ValueError, match='node-html-markdown 2.0.0'):
         require_converter(str(tmp_path))
 

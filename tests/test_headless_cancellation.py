@@ -35,14 +35,14 @@ if request['url'].endswith('/slow'):
     time.sleep(10)
 else:
     print(json.dumps({'content': 'on-time answer'}), flush=True)
-''')
+''', encoding='utf-8')
         return worker
 
     def cleanup(self, pid_file):
         for owned in (pid_file, Path(str(pid_file) + '.child')):
             if owned.exists():
                 try:
-                    os.killpg(int(owned.read_text()), signal.SIGKILL)
+                    os.killpg(int(owned.read_text(encoding='utf-8')), signal.SIGKILL)
                 except ProcessLookupError:
                     pass
 
@@ -78,8 +78,8 @@ else:
                 self.assertLess(records[0]['elapsed_ms'], 500)
                 self.assertIn('browser still waiting', records[0]['provider_metadata']['stderr'])
                 self.assertLess(records[0]['provider_metadata']['exit_code'], 0)
-                self.assertEqual((root / 'run' / records[0]['artifact_path']).read_text(), '')
-                self.assertEqual((root / 'run' / records[1]['artifact_path']).read_text(), 'on-time answer')
+                self.assertEqual((root / 'run' / records[0]['artifact_path']).read_text(encoding='utf-8'), '')
+                self.assertEqual((root / 'run' / records[1]['artifact_path']).read_text(encoding='utf-8'), 'on-time answer')
                 time.sleep(2.1)
                 self.assertFalse(marker.exists(), 'timed-out browser child continued physical work')
             finally:
@@ -199,7 +199,7 @@ else:
     def test_unconfirmed_kill_raises_instead_of_waiting_forever(self):
         with tempfile.TemporaryDirectory() as directory:
             worker = Path(directory) / 'worker.py'
-            worker.write_text('import time\ntime.sleep(20)\n')
+            worker.write_text('import time\ntime.sleep(20)\n', encoding='utf-8')
             provider = HeadlessProvider('local', {'type': 'headless_markdown', 'engine': 'lightpanda'})
             real_popen = subprocess.Popen
             children = []
@@ -251,10 +251,10 @@ else:
                     runs=1, timeout=5, delay=0)
             # Neither a retry nor the next case may overlap a live worker.
             self.assertEqual(calls, ['first'])
-            records = [json.loads(line) for line in (root / 'run' / 'results.jsonl').read_text().splitlines()]
+            records = [json.loads(line) for line in (root / 'run' / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
             self.assertEqual([row['case_id'] for row in records], ['first'])
             self.assertIn('ProcessCleanupError', records[0]['error_message'])
-            manifest = json.loads((root / 'run' / 'manifest.json').read_text())
+            manifest = json.loads((root / 'run' / 'manifest.json').read_text(encoding='utf-8'))
             self.assertIn('non_cancellable_call_still_running', manifest['unexecuted'][0]['reason'])
 
     def test_cleanup_grace_requires_an_actively_cancellable_local_route(self):

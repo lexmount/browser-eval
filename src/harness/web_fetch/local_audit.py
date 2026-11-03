@@ -369,7 +369,7 @@ def _require_local_scoring_revision(source, contract, records):
         raise ValueError("Local measurement has a stale scoring implementation")
     if contract.get("scoring_source_sha256") == SCORING_SOURCE_SHA256:
         return
-    receipt = json.loads(contained_path(source, "local-evidence/scoring-correction.json").read_text())
+    receipt = json.loads(contained_path(source, "local-evidence/scoring-correction.json").read_text(encoding="utf-8"))
     if (receipt.get("kind") != "offline_generic_parser_correction"
             or receipt.get("provider_calls") != 0
             or receipt.get("original_scoring_source_sha256") != contract.get("scoring_source_sha256")
@@ -413,8 +413,8 @@ def require_complete_local_inventory(dataset: dict, records: list[dict]) -> dict
 
 def require_local_measurement(source: Path, dataset: dict, records: list[dict]) -> None:
     """Validate a new complete local matrix without claiming independent review."""
-    contract = json.loads(contained_path(source, "local-run-contract.json").read_text())
-    execution = json.loads(contained_path(source, "execution.json").read_text())
+    contract = json.loads(contained_path(source, "local-run-contract.json").read_text(encoding="utf-8"))
+    execution = json.loads(contained_path(source, "execution.json").read_text(encoding="utf-8"))
     if dataset.get("comparison", {}).get("local_run_contract_sha256") != file_sha256(source / "local-run-contract.json"):
         raise ValueError("Local measurement pre-call contract changed")
     _require_local_scoring_revision(source, contract, records)

@@ -29,7 +29,7 @@ def test_full_risk_control_matrix_builds_existing_interactive_report(tmp_path, c
     }
     evidence = tmp_path / "evidence"
     provider_config = tmp_path / "provider.json"
-    provider_config.write_text(json.dumps({"fixture-risk": {"type": "fixture"}}))
+    provider_config.write_text(json.dumps({"fixture-risk": {"type": "fixture"}}), encoding="utf-8")
     records, _ = run_evaluation(
         output_dir=evidence,
         dataset_meta=measured,
@@ -46,15 +46,15 @@ def test_full_risk_control_matrix_builds_existing_interactive_report(tmp_path, c
     capsys.readouterr()
     report = tmp_path / "report"
     index = build_report(evidence, report, include_english=True)
-    detail = (report / "attempts/fixture-risk__risk-diverse-045__r001.html").read_text()
-    case_page = (report / "datasets/risk-diverse-045.html").read_text()
-    style = (report / "assets/style.css").read_text()
-    home = index.read_text()
+    detail = (report / "attempts/fixture-risk__risk-diverse-045__r001.html").read_text(encoding="utf-8")
+    case_page = (report / "datasets/risk-diverse-045.html").read_text(encoding="utf-8")
+    style = (report / "assets/style.css").read_text(encoding="utf-8")
+    home = index.read_text(encoding="utf-8")
 
     assert len(records) == 100
     assert index.is_file()
     assert not (report / 'guide/article.html').exists()
-    guide = (report / 'guide/index.html').read_text()
+    guide = (report / 'guide/index.html').read_text(encoding="utf-8")
     assert '本报告包含 100 个任务' in guide
     assert '静态网站正文：0' not in guide
     assert "风控网页正文" in home
@@ -68,14 +68,14 @@ def test_full_risk_control_matrix_builds_existing_interactive_report(tmp_path, c
     assert "diagnostic-log" in detail
     assert "至少 3 条" in case_page
     assert "/admin_posts/" in case_page
-    archive_detail = (report / "attempts/fixture-risk__risk-diverse-192__r001.html").read_text()
-    archive_case = (report / "datasets/risk-diverse-192.html").read_text()
+    archive_detail = (report / "attempts/fixture-risk__risk-diverse-192__r001.html").read_text(encoding="utf-8")
+    archive_case = (report / "datasets/risk-diverse-192.html").read_text(encoding="utf-8")
     assert "homepage-news" not in archive_detail
     assert "freely" in archive_case
     assert ".table-wrap{overflow:auto" in style
     assert "pre{white-space:pre-wrap;overflow-wrap:anywhere" in style
     assert "max-height:70vh;overflow:auto" in style
 
-    english_guide = (report / "en/guide/index.html").read_text()
+    english_guide = (report / "en/guide/index.html").read_text(encoding="utf-8")
     assert "Task scope and acceptance rules" in english_guide
     assert "This report contains 100 tasks" in english_guide

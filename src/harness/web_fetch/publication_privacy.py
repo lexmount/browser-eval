@@ -736,7 +736,7 @@ def project_host_metadata_files(files, host_prefixes, *, host_names=(), public_e
 
 def require_host_metadata_projection(source, binding):
     """Validate public metadata hashes without certifying unavailable originals."""
-    receipt = json.loads(read_evidence_binding(source, binding).read_text())
+    receipt = json.loads(read_evidence_binding(source, binding).read_text(encoding='utf-8'))
     rows = receipt.get('files', [])
     names = [item['path'] for item in rows]
     if (receipt.get('kind') != 'host_metadata_publication_projection'
@@ -854,7 +854,7 @@ def project_evidence_view(name, data, *, role, host_prefixes=(), host_names=(), 
 
 def require_public_evidence_view(source, binding):
     """Verify a declared public view, without claiming original bytes are public."""
-    receipt = json.loads(read_evidence_binding(source, binding).read_text())
+    receipt = json.loads(read_evidence_binding(source, binding).read_text(encoding='utf-8'))
     name = receipt.get('path', '')
     path = PurePosixPath(name)
     redactions = receipt.get('redactions')
@@ -915,7 +915,7 @@ def bound_public_view(source, binding):
     profile_path = contained_path(source, 'presentation-binding.json', reject_symlinks=True)
     if not profile_path.is_file():
         return None
-    profile = json.loads(profile_path.read_text())
+    profile = json.loads(profile_path.read_text(encoding='utf-8'))
     declared = profile.get('publication_evidence_views')
     if not declared:
         return None
@@ -994,7 +994,7 @@ def require_public_evidence_view_inventory(source, binding, records):
     """Require complete current-answer/native-response view coverage at release."""
     if (source/'private_artifacts').exists():
         raise ValueError('Public evidence snapshot must not contain private artifact trees')
-    index = json.loads(read_evidence_binding(source, binding).read_text())
+    index = json.loads(read_evidence_binding(source, binding).read_text(encoding='utf-8'))
     if (index.get('kind') != 'post_score_public_evidence_view_inventory'
             or index.get('provider_calls_added') != 0):
         raise ValueError('Invalid public evidence view inventory')
@@ -1031,11 +1031,11 @@ def public_render_views(source, records):
     profile_path = source/'presentation-binding.json'
     if not profile_path.is_file():
         return {}
-    profile = json.loads(profile_path.read_text())
+    profile = json.loads(profile_path.read_text(encoding='utf-8'))
     declared = profile.get('publication_evidence_views')
     if not declared:
         return {}
-    index = json.loads(read_evidence_binding(source, declared).read_text())
+    index = json.loads(read_evidence_binding(source, declared).read_text(encoding='utf-8'))
     entries = {(e['original_path'], e['original_sha256']): e for e in index['files']}
     result = {}
     for row in records:
@@ -1048,7 +1048,7 @@ def public_render_views(source, records):
             if identity not in entries:
                 raise ValueError('Public rendering omits a declared evidence view')
             binding = entries[identity]['view_receipt']
-            receipt = json.loads(read_evidence_binding(source, binding).read_text())
+            receipt = json.loads(read_evidence_binding(source, binding).read_text(encoding='utf-8'))
             if receipt['role'] != role or receipt['original_sha256'] != identity[1]:
                 raise ValueError('Public rendering changed its original evidence identity')
             views[role] = {key: receipt[key] for key in ('path', 'original_sha256', 'published_sha256',

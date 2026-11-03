@@ -48,8 +48,8 @@ def render_interpretation(*, source: Path, contract_audit: Path, results_sha256:
                           methods: dict, rows: list[dict], lang: str, image_dir: Path,
                           image_prefix: str, standalone: bool = False,
                           report_url: str = "") -> tuple[str, str]:
-    article = json.loads(source.read_text())
-    audit = json.loads(contract_audit.read_text())
+    article = json.loads(source.read_text(encoding="utf-8"))
+    audit = json.loads(contract_audit.read_text(encoding="utf-8"))
     if (article.get("schema") != "lex_replay_interpretation/1"
             or article["results_sha256"] != results_sha256
             or audit["bindings"]["results_sha256"] != results_sha256):

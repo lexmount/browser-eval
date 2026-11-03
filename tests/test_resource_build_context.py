@@ -16,14 +16,14 @@ class ResourceBuildContextTests(unittest.TestCase):
         required = {'pyproject.toml', 'uv.lock', 'package.json', 'package-lock.json',
                     'harness/provider.py', 'scripts/worker.py',
                     'examples/web_fetch/docker/resource.Dockerfile'}
-        patterns = [line.strip() for line in (ROOT / '.dockerignore').read_text().splitlines()
+        patterns = [line.strip() for line in (ROOT / '.dockerignore').read_text(encoding='utf-8').splitlines()
                     if line.strip() and not line.lstrip().startswith('#')]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             for name in excluded | required:
                 path = root / name
                 path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text('fixture')
+                path.write_text('fixture', encoding='utf-8')
             with tar(str(root), exclude=patterns) as context:
                 with tarfile.open(fileobj=context) as archive:
                     names = {item.name.removeprefix('./') for item in archive.getmembers() if item.isfile()}

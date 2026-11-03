@@ -75,9 +75,9 @@ def test_patched_browser_script_gets_a_new_url(tmp_path):
         "assets": {"application.js": old},
         "files": {old: {"logical_path": "application.js", "digest": "a" * 64,
                         "size": 123, "integrity": "old"}},
-    }))
+    }), encoding="utf-8")
     version_browser_assets(assets, manifest)
-    updated = json.loads(manifest.read_text())
+    updated = json.loads(manifest.read_text(encoding="utf-8"))
     name = updated["assets"]["application.js"]
     assert name != old
     assert name == "application-" + hashlib.sha256(content).hexdigest() + ".js"
@@ -203,7 +203,7 @@ def test_receipt_with_only_empty_directories_does_not_count_as_ready(tmp_path):
     first = next(iter(MAPPINGS))
     (state / (first + ".json")).write_text(json.dumps({
         "sha256": "a" * 64, "bytes": 1, "query_only": False,
-    }))
+    }), encoding="utf-8")
     with pytest.raises(ValueError, match="Receipt exists but dataset is missing"):
         setup(tmp_path, contract, 0)
 
@@ -376,9 +376,9 @@ def test_tile_cache_survives_container_directory_recreation(tmp_path):
     (cache / "default/world.meta").write_bytes(b"rendered world")
     apache = tmp_path / "apache.conf"
     apache.write_text("<VirtualHost *:8080>\n    ModTileMissingRequestTimeout 30\n"
-                      "    ProxyPass / http://localhost:3000/\n</VirtualHost>\n")
+                      "    ProxyPass / http://localhost:3000/\n</VirtualHost>\n", encoding="utf-8")
     renderd = tmp_path / "renderd.conf"
-    renderd.write_text("[renderd]\nnum_threads=4\n")
+    renderd.write_text("[renderd]\nnum_threads=4\n", encoding="utf-8")
     configure_tiles(root, cache, apache, renderd)
     assert cache.is_symlink()
     assert (root / "tiles/default/world.meta").read_bytes() == b"rendered world"
@@ -390,11 +390,13 @@ def test_tile_cache_survives_container_directory_recreation(tmp_path):
     configure_tiles(root, cache, apache, renderd)
     configure_tiles(root, cache, apache, renderd)
     assert (cache / "default/city.meta").read_bytes() == b"new city"
-    assert apache.read_text().count("ModTileMissingRequestTimeout 120") == 1
-    assert apache.read_text().count("ModTileMaxLoadMissing 1000") == 1
-    assert apache.read_text().count("ProxyPassMatch") == 1
-    assert apache.read_text().index("ProxyPassMatch") < apache.read_text().index("ProxyPass /")
-    assert "num_threads=2" in renderd.read_text()
+    assert apache.read_text(encoding="utf-8").count("ModTileMissingRequestTimeout 120") == 1
+    assert apache.read_text(encoding="utf-8").count("ModTileMaxLoadMissing 1000") == 1
+    assert apache.read_text(encoding="utf-8").count("ProxyPassMatch") == 1
+    assert apache.read_text(encoding="utf-8").index("ProxyPassMatch") < apache.read_text(
+        encoding="utf-8"
+    ).index("ProxyPass /")
+    assert "num_threads=2" in renderd.read_text(encoding="utf-8")
 
 
 def test_tile_configuration_rejects_multiple_virtual_hosts(tmp_path):
@@ -407,9 +409,9 @@ def test_tile_configuration_rejects_multiple_virtual_hosts(tmp_path):
     original = ("<VirtualHost *:8080>\n    ModTileMissingRequestTimeout 30\n"
                 "    ProxyPass / http://localhost:3000/\n</VirtualHost>\n"
                 "<VirtualHost *:80>\n</VirtualHost>\n")
-    apache.write_text(original)
+    apache.write_text(original, encoding="utf-8")
     renderd = tmp_path / "renderd.conf"
-    renderd.write_text("[renderd]\nnum_threads=4\n")
+    renderd.write_text("[renderd]\nnum_threads=4\n", encoding="utf-8")
     with pytest.raises(ValueError, match="virtual host"):
         configure_tiles(root, cache, apache, renderd)
-    assert apache.read_text() == original
+    assert apache.read_text(encoding="utf-8") == original

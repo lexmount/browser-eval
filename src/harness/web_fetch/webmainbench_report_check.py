@@ -265,7 +265,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
     records = load_jsonl(root / "results.jsonl")
     correction_binding = repo / 'evaluation/webmainbench-full/case-correction-binding.json'
     if correction_binding.exists():
-        receipt = json.loads((root / 'case-correction.json').read_text())
+        receipt = json.loads((root / 'case-correction.json').read_text(encoding='utf-8'))
         if (receipt['preflight'] != receipt['postflight']
                 or receipt['current_results_sha256'] != hashlib.sha256((root / 'results.jsonl').read_bytes()).hexdigest()
                 or receipt['score_summaries_sha256'] != hashlib.sha256((root / 'score-summaries.json').read_bytes()).hexdigest()):
@@ -277,7 +277,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
             raise ValueError('Case correction missing a declared method')
         original_certificate = {key: receipt[key] for key in ('kind', 'preflight', 'postflight', 'results_sha256', 'physical_sha256')}
         certificate_bytes = (json.dumps(original_certificate, ensure_ascii=False, indent=2) + '\n').encode()
-        if hashlib.sha256(certificate_bytes).hexdigest() != json.loads(correction_binding.read_text())['sha256']:
+        if hashlib.sha256(certificate_bytes).hexdigest() != json.loads(correction_binding.read_text(encoding='utf-8'))['sha256']:
             raise ValueError('Case correction certificate differs from repository binding')
         raw_parent = (teds_receipt['input_results_sha256'] if teds_receipt
                       else scoring_receipt['input_results_sha256'])
@@ -288,7 +288,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
                                     for p in receipt['preflight']['providers']).encode()
         if hashlib.sha256(replacement_bytes).hexdigest() != receipt['results_sha256']:
             raise ValueError('Corrected rows differ from certified calls')
-        case_scoring = json.loads((root / 'case-correction-scoring.json').read_text())
+        case_scoring = json.loads((root / 'case-correction-scoring.json').read_text(encoding='utf-8'))
         if (case_scoring.get('kind') != 'webmainbench_case_correction_scoring_revision'
                 or case_scoring.get('provider_calls') != 0
                 or case_scoring.get('scorer_commit') != scoring_receipt.get('scorer_commit')
@@ -318,7 +318,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
     illustrations = repo / 'evaluation/webmainbench-full/illustrations.json'
     overview_claims = None
     if illustrations.exists():
-        for asset in json.loads(illustrations.read_text())['assets']:
+        for asset in json.loads(illustrations.read_text(encoding='utf-8'))['assets']:
             filename = 'assets/' + asset['name']
             if (hashlib.sha256(contained_path(root, filename).read_bytes()).hexdigest() != asset['sha256']
                     or not guide.select_one('img[src="' + filename + '"]')):
@@ -524,7 +524,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
     dataset = dataset or json.loads((root / "dataset.json").read_text(encoding="utf-8"))
     records = records or read_jsonl(root / "results.jsonl")
     latency_correction = validate_latency_correction(root)
-    current_profile = json.loads(profile_path.read_text())
+    current_profile = json.loads(profile_path.read_text(encoding='utf-8'))
     diagnostic_profile = current_profile.get('latency_diagnostic')
     diagnostic_path = root / 'latency-diagnostic.json'
     if diagnostic_profile and not diagnostic_path.is_file():
@@ -618,7 +618,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
         for prefix in prefixes:
             detail = root / prefix / "attempts" / f'{row["attempt_id"]}.html'
             if detail.is_file():
-                detail_soup=check_presentation(detail.read_text())
+                detail_soup=check_presentation(detail.read_text(encoding='utf-8'))
                 if row.get('error_message'):
                     exact=detail_soup.select_one('#result-logs pre[data-kind="error"]')
                     if exact is None or exact.get_text() != row['error_message']:
@@ -747,7 +747,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
     for prefix, mean_label in timing_variants:
         localized_home = BeautifulSoup((root / prefix / "index.html").read_text(encoding="utf-8"), "html.parser")
         check_presentation(localized_home)
-        check_presentation((root / prefix / "guide/index.html").read_text())
+        check_presentation((root / prefix / "guide/index.html").read_text(encoding='utf-8'))
         if latency_diagnostic:
             guide_page = BeautifulSoup((root / prefix / 'guide/index.html').read_text(encoding='utf-8'), 'html.parser')
             core = localized_home.select_one('#wmb-core-results')
@@ -788,7 +788,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
         if timing_key is None or ("最终成功" if not prefix else "Final successful") not in timing_key.get_text() or "P95" not in timing_key.get_text():
             raise ValueError(prefix + "Home must explain final-success timing separately from scoring populations")
         successes = {name: [row for row in grouped[name]
-                            if row['ok'] and (text := contained_path(root, row['artifact_path']).read_text()).strip()
+                            if row['ok'] and (text := contained_path(root, row['artifact_path']).read_text(encoding='utf-8')).strip()
                             and not ERROR_PAGE.search(text)] for name in SAMPLE_PROVIDERS}
         shared_cases = set.intersection(*(set(row['case_id'] for row in rows) for rows in successes.values()))
         for tr in localized_home.select('#wmb-core-results tbody tr'):

@@ -195,7 +195,7 @@ class NetworkPreflightTests(unittest.TestCase):
                            EvalCase('unresolved','unresolved','https://unresolved.example/','control',[])],
                     providers=[provider],provider_config_path=Path('fixture-providers.json'),
                     runs=1,timeout=45,delay=0,max_failure_retries=0)
-                audit=__import__('json').loads((output/'network-preflight.json').read_text())
+                audit=__import__('json').loads((output/'network-preflight.json').read_text(encoding='utf-8'))
                 self.assertEqual(calls,['resolved','unresolved'])
                 self.assertEqual([row['error_type'] for row in rows],[None,'dns'])
                 self.assertEqual(audit['unresolved_hosts'],['unresolved.example'])

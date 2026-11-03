@@ -33,7 +33,7 @@ def _authority_binding(path):
         tree = path.parts[1]
         relative = Path(*path.parts[2:])
     from harness.web_fetch.reference_inputs import benchmark_input_path
-    manifest = json.loads(benchmark_input_path(owner / "source-inputs.json").read_text())
+    manifest = json.loads(benchmark_input_path(owner / "source-inputs.json").read_text(encoding="utf-8"))
     return owner, tree, relative, manifest["trees"][tree][relative.as_posix()]
 
 
@@ -43,17 +43,17 @@ def _dataset():
 
 def test_current_scorer_successor_keeps_bound_corrections_executable():
     from lexbench_webfetch.scoring_regressions import require_scoring_regressions
-    revision = json.loads(REVISION_PATH.read_text())
+    revision = json.loads(REVISION_PATH.read_text(encoding="utf-8"))
     successor = revision['current_shared_scorer_authority']
     path = ROOT / successor['path']
     assert hashlib.sha256(path.read_bytes()).hexdigest() == successor['sha256']
-    receipt = json.loads(path.read_text())
+    receipt = json.loads(path.read_text(encoding="utf-8"))
     assert receipt['provider_calls'] == 0
-    assembly = json.loads((ROOT / 'evaluation/webfetch-seven-family-430/dataset-assembly.json').read_text())
+    assembly = json.loads((ROOT / 'evaluation/webfetch-seven-family-430/dataset-assembly.json').read_text(encoding="utf-8"))
     binding = assembly['case_corrections']
     path = ROOT / binding['path']
     assert hashlib.sha256(path.read_bytes()).hexdigest() == binding['sha256']
-    corrections = json.loads(path.read_text())
+    corrections = json.loads(path.read_text(encoding="utf-8"))
     identifiers = set(receipt['correction_provenance']['regression_ids'])
     identifiers.update(identifier for row in corrections['cases']
                        for identifier in row.get('evidence', {}).get('regression_ids', []))
@@ -94,7 +94,7 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(pytestconfig, tmp_pa
     assert revision["provider_calls_for_revision"] == 0
     assert revision["dynamic_dataset"]["historical_sha256"] == receipt["bindings"]["dataset_sha256"]
     historical = read_frozen_dataset_bytes(DATASET_PATH).decode("utf-8")
-    pre_call = json.loads(PRE_CALL_PATH.read_text())
+    pre_call = json.loads(PRE_CALL_PATH.read_text(encoding="utf-8"))
     assert pre_call["provider_calls"] == 0
     for binding in ("dataset_manifest", "dataset_catalog", "contract_registry"):
         item = pre_call[binding]
@@ -131,7 +131,7 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(pytestconfig, tmp_pa
     owner, tree, relative, bound = _authority_binding(
         delayed_correction["source_authority"]["path"])
     assert bound == delayed_correction["source_authority"]["sha256"]
-    delayed_audit = json.loads((input_tree(owner / "dataset.json", tree) / relative).read_text())
+    delayed_audit = json.loads((input_tree(owner / "dataset.json", tree) / relative).read_text(encoding="utf-8"))
     assert delayed_audit["completion"]["satisfied"] is True
     assert delayed_audit["completion"]["condition"] == (
         "dynamic-delayed: 10 nonempty target records with populated text fields; no interaction")
@@ -168,7 +168,8 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(pytestconfig, tmp_pa
         "#!/bin/sh\n"
         "if [ \"$1\" = \"--version\" ]; then echo 'lightpanda fixture'; exit 0; fi\n"
         "printf '%s\\n' '{\"content\":\"# Browser-native Markdown\","
-        "\"url\":\"https://example.com/final\",\"http_status\":200}'\n"
+        "\"url\":\"https://example.com/final\",\"http_status\":200}'\n",
+        encoding="utf-8"
     )
     fixture_binary.chmod(0o755)
     provider = HeadlessProvider("lightpanda", {
@@ -303,7 +304,7 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(pytestconfig, tmp_pa
             }
             current = next(c for c in cases if c['id'] == followup['case_id'])
             assert len(current['acceptance_contract']['stable_text_anchors']) == 54
-            source = json.loads((input_tree(owner / 'dataset.json', tree) / relative).read_text())
+            source = json.loads((input_tree(owner / 'dataset.json', tree) / relative).read_text(encoding="utf-8"))
             assert source['independent'] is True
             assert source['observation_method'] == followup['source_basis']['observation_method']
             assert source['checked_at'] == followup['source_basis']['checked_at']
@@ -385,7 +386,7 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(pytestconfig, tmp_pa
     assert scorer_revision["scoring_regressions_sha256"] == hashlib.sha256(
         (snapshot / "evaluation/scoring-regressions.json").read_bytes()).hexdigest()
     controls = {row['id']: row for row in json.loads(
-        (snapshot / 'evaluation/scoring-regressions.json').read_text())['cases']}
+        (snapshot / 'evaluation/scoring-regressions.json').read_text(encoding="utf-8"))['cases']}
     assert set(scorer_revision["regression_ids"]) <= set(controls)
     modes = {}
     for identifier in scorer_revision["regression_ids"]:
@@ -431,7 +432,7 @@ def test_dynamic_100_dataset_matches_the_frozen_local_audit(pytestconfig, tmp_pa
 
 
 def historical_controls_path():
-    revision = json.loads(REVISION_PATH.read_text())
+    revision = json.loads(REVISION_PATH.read_text(encoding="utf-8"))
     scorer = revision['shared_scorer']
     for followup in revision.get('shared_scorer_followups', []):
         scorer = {**scorer, **followup}
@@ -451,13 +452,13 @@ def require_historical_inputs():
 
 def test_dynamic_followup_reference_values_match_bound_external_source():
     require_historical_inputs()
-    revision = json.loads(REVISION_PATH.read_text())
+    revision = json.loads(REVISION_PATH.read_text(encoding="utf-8"))
     for followup in revision.get('dynamic_dataset_followups', []):
         owner, tree, relative, _ = _authority_binding(followup['source_authority']['path'])
         dataset = DATASET_PATH if owner.name == "dynamic-content-100-moli-webfetch" else ROOT / "evaluation/dataset.json"
         authority = input_tree(dataset, tree) / relative
         assert hashlib.sha256(authority.read_bytes()).hexdigest() == followup['source_authority']['sha256']
-        record = json.loads(authority.read_text())
+        record = json.loads(authority.read_text(encoding="utf-8"))
         assert record.get('provider_output_used', False) is False
         if 'value' in followup:
             assert record['expected_final_url'] == followup['value']
@@ -473,7 +474,7 @@ def test_historical_scoring_controls_allow_only_new_tail_entries(tmp_path, monke
     require_historical_inputs()
     dataset = _dataset()
     receipt = json.loads(RECEIPT_PATH.read_text(encoding="utf-8"))
-    registry = json.loads(historical_controls_path().read_text())
+    registry = json.loads(historical_controls_path().read_text(encoding="utf-8"))
     original_file = local_audit._repository_file
     replacement = tmp_path / "scoring-regressions.json"
 
@@ -483,30 +484,30 @@ def test_historical_scoring_controls_allow_only_new_tail_entries(tmp_path, monke
     monkeypatch.setattr(local_audit, "_repository_file", repository_file)
     changed = json.loads(json.dumps(registry))
     changed["cases"][0]["artifact"] += " altered"
-    replacement.write_text(json.dumps(changed))
+    replacement.write_text(json.dumps(changed), encoding="utf-8")
     with pytest.raises(ValueError, match="Scoring control contents changed"):
         local_audit._require_repository_bindings(dataset, receipt)
 
     changed = json.loads(json.dumps(registry))
     changed["cases"].insert(0, dict(changed["cases"][-1], id="interleaved-control"))
-    replacement.write_text(json.dumps(changed))
+    replacement.write_text(json.dumps(changed), encoding="utf-8")
     with pytest.raises(ValueError, match="Scoring control partition"):
         local_audit._require_repository_bindings(dataset, receipt)
 
     # Interleaving existing controls preserves both partition hashes, but
     # violates the historical ordered inventory just as inserting a new ID does.
-    scoring = json.loads((ROOT / receipt['repository_evidence']['scoring_revision_path']).read_text())
+    scoring = json.loads((ROOT / receipt['repository_evidence']['scoring_revision_path']).read_text(encoding="utf-8"))
     first_revision = scoring['revision_controls'][0]['id']
     changed = json.loads(json.dumps(registry))
     index = next(i for i, row in enumerate(changed['cases']) if row['id'] == first_revision)
     changed['cases'].insert(0, changed['cases'].pop(index))
-    replacement.write_text(json.dumps(changed))
+    replacement.write_text(json.dumps(changed), encoding="utf-8")
     with pytest.raises(ValueError, match="Scoring control partition"):
         local_audit._require_repository_bindings(dataset, receipt)
 
 
 def test_dynamic_100_contracts_are_valid_and_do_not_configure_provider_waits():
-    registered = json.loads(definition_path("evaluation/native-retrieval-contracts.json").read_text())["contracts"]
+    registered = json.loads(definition_path("evaluation/native-retrieval-contracts.json").read_text(encoding="utf-8"))["contracts"]
     for case in _dataset()["cases"]:
         validate_acceptance_contract(case["acceptance_contract"])
         serialized = json.dumps(case, ensure_ascii=False).lower()

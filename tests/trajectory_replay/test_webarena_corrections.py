@@ -421,7 +421,9 @@ def test_apply_is_pure_traceable_and_fails_closed(benchmark, catalog) -> None:
 def test_final_event_revision_binds_current_and_historical_catalogs(catalog):
     root = Path(__file__).resolve().parents[2]
     receipt = json.loads(
-        (root / "research/trajectory-replay-task448-final-event-revision.json").read_text()
+        (root / "research/trajectory-replay-task448-final-event-revision.json").read_text(
+            encoding="utf-8"
+        )
     )
     predecessor = load_corrections(
         root / receipt["predecessor_catalog_path"], require_current_upstream=False
@@ -501,7 +503,8 @@ def test_279_complete_catalog_scores_both_directions(tmp_path, benchmark, catalo
                     ],
                 }
             }
-        )
+        ),
+        encoding="utf-8"
     )
     result = evaluate_corrected_contract(
         benchmark, contract, agent_response=response, network_trace=trace

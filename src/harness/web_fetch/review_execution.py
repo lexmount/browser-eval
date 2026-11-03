@@ -498,7 +498,8 @@ def review_main():
         answer_metadata = review_answer_metadata(record, include_resources=include_resources)
         answer_metadata_path = answer_metadata_dir / f"{record['attempt_id']}.json"
         answer_metadata_path.write_text(
-            json.dumps(answer_metadata, ensure_ascii=False, indent=2) + "\n"
+            json.dumps(answer_metadata, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8"
         )
         by_case[record["case_id"]].append(
             {
@@ -521,7 +522,7 @@ def review_main():
         )
     ordered = [case["id"] for case in dataset["cases"] if by_case[case["id"]]]
     schema_path = work / "review-schema.json"
-    schema_path.write_text(json.dumps(SCHEMA, ensure_ascii=False, indent=2) + "\n")
+    schema_path.write_text(json.dumps(SCHEMA, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     def review_batch(job):
         batch_index, case_ids = job
@@ -538,14 +539,14 @@ def review_main():
             "cases": [independent_case(cases[cid]) for cid in case_ids],
             "attempts": [independent_attempt(row) for cid in case_ids for row in by_case[cid]],
         }
-        if packet.is_file() and json.loads(packet.read_text()) != expected_packet:
+        if packet.is_file() and json.loads(packet.read_text(encoding="utf-8")) != expected_packet:
             raise ValueError(
                 f"Batch {batch_index} blinded input packet changed; use a new review directory"
             )
         if output.is_file():
             if not packet.is_file():
                 raise ValueError(f"Batch {batch_index} has output without its blinded input packet")
-            saved_packet = json.loads(packet.read_text())
+            saved_packet = json.loads(packet.read_text(encoding="utf-8"))
             if any(
                 set(row)
                 - {
@@ -560,7 +561,7 @@ def review_main():
                 raise ValueError(
                     f"Batch {batch_index} exposes machine judgments; use a new review directory"
                 )
-            result = json.loads(output.read_text())
+            result = json.loads(output.read_text(encoding="utf-8"))
             ids = [row["attempt_id"] for row in result.get("attempts", [])]
             if len(ids) != len(set(ids)) or set(ids) != expected:
                 raise ValueError(f"Batch {batch_index} does not cover its exact attempt set")
@@ -638,7 +639,7 @@ def review_main():
                         problem = completed.stderr or completed.stdout
                         continue
                     if args.reviewer == "codex":
-                        result = json.loads(raw_output.read_text())
+                        result = json.loads(raw_output.read_text(encoding="utf-8"))
                     else:
                         envelope = json.loads(completed.stdout)
                         result = envelope.get("structured_output") or json.loads(envelope["result"])
@@ -661,7 +662,7 @@ def review_main():
                     problem = f"Batch {batch_index} protocol error: {error}"
             else:
                 raise SystemExit(problem)
-            output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
+            output.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             print(
                 f"batch {batch_index}/{len(jobs)} reviewed ({len(expected)} attempts)", flush=True
             )
@@ -680,7 +681,7 @@ def review_main():
     if {row["attempt_id"] for row in all_rows} != reviewed_ids:
         raise SystemExit("Review batches do not cover the selected results")
     machine = {row["attempt_id"]: row for rows in by_case.values() for row in rows}
-    adjudications = json.loads(args.adjudications.read_text()) if args.adjudications else {}
+    adjudications = json.loads(args.adjudications.read_text(encoding="utf-8")) if args.adjudications else {}
     attempts = []
     for row in all_rows:
         aid = row["attempt_id"]
@@ -715,7 +716,8 @@ def review_main():
             row.pop("anomaly_review", None)
     anomaly_packet = anomaly_investigation_packet(evidence, dataset, records, attempts, detected)
     (work / "anomaly-investigation-input.json").write_text(
-        json.dumps(anomaly_packet, ensure_ascii=False, indent=2) + "\n"
+        json.dumps(anomaly_packet, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8"
     )
     bind_review_workspace(evidence, work, records, bindings, session_options)
     review = {
@@ -943,7 +945,7 @@ def cached_group_resolutions(work: Path, groups: list[dict]) -> tuple[list[dict]
         if any(token in path.name for token in ("-input.json", ".raw.json", ".superseded")):
             continue
         try:
-            payload = json.loads(path.read_text())
+            payload = json.loads(path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, OSError):
             continue
         for row in payload.get("groups", []) if isinstance(payload, dict) else []:
@@ -1025,7 +1027,7 @@ def load_matching_positional_output(output_path: Path, batch: list[dict]):
     if not output_path.is_file():
         return None
     try:
-        return validate_group_batch(batch, json.loads(output_path.read_text()))
+        return validate_group_batch(batch, json.loads(output_path.read_text(encoding="utf-8")))
     except (json.JSONDecodeError, OSError, ValueError):
         candidate = output_path.with_name(output_path.stem + ".superseded.json")
         suffix = 1
@@ -1052,7 +1054,7 @@ def anomaly_main():
     validate_execution_options(parser, args, args.groups_per_batch)
     evidence, work = execution_directories(args.evidence, args.work)
     dataset, records, bindings = execution_inputs(evidence)
-    prior = json.loads((evidence / "result-review.json").read_text())
+    prior = json.loads((evidence / "result-review.json").read_text(encoding="utf-8"))
     require_blind_result_review(evidence, dataset, records, prior)
     session_options = {"phase": "anomaly", "model": args.model, "reviewer": args.reviewer}
     bind_review_workspace(evidence, work, records, bindings, session_options, prior=prior)
@@ -1062,7 +1064,7 @@ def anomaly_main():
     packet = anomaly_investigation_packet(evidence, dataset, records, prior["attempts"], triggers)
     attempts = {row["attempt_id"]: row for row in packet["attempts"]}
     schema_path = work / "anomaly-schema.json"
-    schema_path.write_text(json.dumps(GROUP_SCHEMA, indent=2) + "\n")
+    schema_path.write_text(json.dumps(GROUP_SCHEMA, indent=2) + "\n", encoding="utf-8")
     prior_reused = prior_group_resolutions(prior, groups, triggers)
     disk_reused, _ = cached_group_resolutions(work, groups)
     reused_by_scope = {tuple(row["attempt_ids"]): row for row in disk_reused}
@@ -1083,7 +1085,8 @@ def anomaly_main():
                 ensure_ascii=False,
                 indent=2,
             )
-            + "\n"
+            + "\n",
+            encoding="utf-8"
         )
         jobs.append((input_path, output_path, batch))
     if args.prepare_only:
@@ -1147,8 +1150,8 @@ def anomaly_main():
                 if completed.returncode:
                     problem = completed.stderr or completed.stdout
                     continue
-                result = validate_group_batch(batch, json.loads(raw.read_text()))
-                output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n")
+                result = validate_group_batch(batch, json.loads(raw.read_text(encoding="utf-8")))
+                output_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
                 return result
             except (subprocess.TimeoutExpired, json.JSONDecodeError, ValueError) as error:
                 problem = str(error)
@@ -1358,7 +1361,7 @@ def prepare_content_review(evidence, correction, work, *, provider="moli-fixed")
     reject_evidence_symlinks(evidence)
     reject_evidence_symlinks(correction)
     bindings = content_review_bindings(evidence, correction, provider)
-    dataset = json.loads((evidence / "dataset.json").read_text())
+    dataset = json.loads((evidence / "dataset.json").read_text(encoding="utf-8"))
     case_ids = [safe_identifier(case["id"]) for case in dataset["cases"]]
     if not case_ids or len(case_ids) != len(set(case_ids)):
         raise ValueError("Content review requires a nonempty unique frozen page inventory")
@@ -1382,7 +1385,7 @@ def prepare_content_review(evidence, correction, work, *, provider="moli-fixed")
         by_case.setdefault(row["case_id"], {})[row["provider"]] = {
             "path": str(output),
             "sha256": file_sha256(output),
-            "chars": len(output.read_text()),
+            "chars": len(output.read_text(encoding="utf-8")),
         }
     if set(by_case) != set(case_ids) or any(provider not in by_case[cid] for cid in case_ids):
         raise ValueError("Target provider must cover the exact frozen page inventory")
@@ -1394,12 +1397,12 @@ def prepare_content_review(evidence, correction, work, *, provider="moli-fixed")
         if file_sha256(source) != case["input_html_sha256"] or file_sha256(reference) != case["reference_sha256"]:
             raise ValueError("Changed source/reference " + cid)
         # This derivative is a reading aid, not a rendered visibility oracle.
-        soup = BeautifulSoup(source.read_text(), "html.parser")
+        soup = BeautifulSoup(source.read_text(encoding="utf-8"), "html.parser")
         for tag in soup(["script", "style", "meta", "link"]):
             tag.decompose()
         outline = work / "source-outlines" / (cid + ".html")
         outline.parent.mkdir(parents=True, exist_ok=True)
-        outline.write_text(str(soup))
+        outline.write_text(str(soup), encoding="utf-8")
         if provider not in by_case.get(cid, {}):
             raise ValueError("Target provider is missing for " + cid)
         target = by_case[cid][provider]
@@ -1464,7 +1467,7 @@ def validate_content_review(result, packet):
         if row["verdict"] != "acceptable" and not row["issues"]:
             raise ValueError("Defect requires concrete evidence")
         item = expected[row["case_id"]]
-        output = Path(item["target"]["path"]).read_text()
+        output = Path(item["target"]["path"]).read_text(encoding="utf-8")
         for issue in row["issues"]:
             if not issue["description"] or not issue["source_locator"]:
                 raise ValueError("Issue lacks source locator")
@@ -1477,11 +1480,11 @@ def run_content_packet(item, work, model, codex):
     path = Path(item["path"])
     if file_sha256(path) != item["sha256"]:
         raise ValueError("Review packet changed")
-    packet = json.loads(path.read_text())
+    packet = json.loads(path.read_text(encoding="utf-8"))
     verify_content_packet_inputs(packet)
     dest = work / "reviews" / path.name
     if dest.exists():
-        return validate_content_review(json.loads(dest.read_text()), packet)
+        return validate_content_review(json.loads(dest.read_text(encoding="utf-8")), packet)
     dest.parent.mkdir(exist_ok=True)
     raw = work / "raw" / path.name
     raw.parent.mkdir(exist_ok=True)
@@ -1522,14 +1525,14 @@ failures. Findings require verification against current code before fixes."""
     ]
     logs = work / "logs"
     logs.mkdir(exist_ok=True)
-    with (logs / (path.stem + ".log")).open("w") as log:
+    with (logs / (path.stem + ".log")).open("w", encoding="utf-8") as log:
         process = run_reviewer(
             command, cwd=work, stdout=log, stderr=subprocess.STDOUT, timeout=3600
         )
     if process.returncode:
         raise RuntimeError("Reviewer failed for " + path.name)
     verify_content_packet_inputs(packet)
-    result = validate_content_review(json.loads(raw.read_text()), packet)
+    result = validate_content_review(json.loads(raw.read_text(encoding="utf-8")), packet)
     write_content_document(dest, result)
     print("Reviewed", path.name, len(result["cases"]), flush=True)
     return result
@@ -1575,7 +1578,7 @@ def content_review_main(argv=None):
     args.work.mkdir(parents=True, exist_ok=True)
     manifest_path = args.work / "manifest.json"
     manifest = (
-        json.loads(manifest_path.read_text())
+        json.loads(manifest_path.read_text(encoding="utf-8"))
         if manifest_path.exists()
         else prepare_content_review(
             args.evidence, args.correction, args.work, provider=args.provider

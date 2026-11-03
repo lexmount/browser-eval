@@ -50,19 +50,19 @@ def test_shared_checker_rejects_missing_wrong_and_tied_markers(mutation):
 def test_public_report_check_executes_the_shared_marker_gate(tmp_path):
     example(tmp_path)
     page = tmp_path/'report/index.html'
-    doc = BeautifulSoup(page.read_text(), 'html.parser')
+    doc = BeautifulSoup(page.read_text(encoding='utf-8'), 'html.parser')
     marker = doc.select_one('.comparison-winner')
     assert marker is not None
     marker.unwrap()
-    page.write_text(str(doc))
+    page.write_text(str(doc), encoding='utf-8')
     with pytest.raises(ValueError,match='extremum'):
         check(tmp_path/'report')
 
 
 def test_factual_reciprocal_rank_is_directional_and_highlighted(tmp_path):
     example(tmp_path)
-    profile = json.loads((tmp_path/'fixture/profile.json').read_text())
-    rows = [json.loads(line) for line in (tmp_path/'fixture/results.jsonl').read_text().splitlines()]
+    profile = json.loads((tmp_path/'fixture/profile.json').read_text(encoding='utf-8'))
+    rows = [json.loads(line) for line in (tmp_path/'fixture/results.jsonl').read_text(encoding='utf-8').splitlines()]
     for case in profile['cases']:
         case.update(reference_answer='answer',reference_urls=['https://example.org/reference'])
     for row in rows:
@@ -82,7 +82,7 @@ def test_public_report_check_rejects_broken_detail_contract(tmp_path, damage):
     example(tmp_path)
     output = tmp_path / "report"
     detail = next((output / "details").glob("*.html"))
-    doc = BeautifulSoup(detail.read_text(), "html.parser")
+    doc = BeautifulSoup(detail.read_text(encoding='utf-8'), "html.parser")
     if damage == "summary":
         import copy
         doc.main.append(copy.copy(doc.select_one("[data-result-summary]")))
@@ -90,6 +90,6 @@ def test_public_report_check_rejects_broken_detail_contract(tmp_path, damage):
         doc.select_one("[data-error]").decompose()
     else:
         doc.select_one("[data-evidence]")["data-evidence"] = "missing-response.json"
-    detail.write_text(str(doc))
+    detail.write_text(str(doc), encoding='utf-8')
     with pytest.raises(ValueError):
         check(output)

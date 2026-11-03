@@ -92,7 +92,7 @@
         },
         "risk_control_dataset.py": {
           "before_sha256": "59d2a1877f1a8b8ecf464113fbce70bf713d6d44414b83141880e71cccb7c1d6",
-          "after_sha256": "23aad2528d03a12a721359bc56920fdf5944994c91f7ba03391c7b3c02eb2f23"
+          "after_sha256": "03c23ace70febed46a782289d3242b7643e8ad2d72ab10404331bec2729f5069"
         },
         "scoring.py": {
           "before_sha256": "ea2602b5e2310886dc70c097ce783e2f88be7c88220e9dbf0715a723b3aff567",
@@ -486,6 +486,15 @@
           "modules": [
             "risk_control_dataset.py"
           ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_risk_control_compiler.py"
+          ]
+        },
+        {
+          "modules": [
+            "risk_control_dataset.py"
+          ],
+          "root_cause": "Definition reads and the compiled dataset write used the locale encoding, so a non-UTF-8 locale rejected Chinese rules or wrote bytes that UTF-8 consumers could not read.",
           "tests": [
             "tests/benchmarks/webfetch/test_risk_control_compiler.py"
           ]

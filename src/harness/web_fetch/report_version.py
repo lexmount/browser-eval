@@ -15,11 +15,11 @@ FILENAME = "benchmark-release.json"
 
 def _input_release(root):
     execution = root / "execution.json"
-    binding = (json.loads(execution.read_text()).get("aggregate", {}).get("benchmark_release")
+    binding = (json.loads(execution.read_text(encoding="utf-8")).get("aggregate", {}).get("benchmark_release")
                if execution.is_file() else None)
     manifest = root / "report-manifest.json"
     if manifest.is_file():
-        declared = (json.loads(manifest.read_text()).get("benchmark_release") or {}).get("input_release")
+        declared = (json.loads(manifest.read_text(encoding="utf-8")).get("benchmark_release") or {}).get("input_release")
         if declared is not None and declared != binding:
             raise ValueError("Report lost its original benchmark input release binding")
     if binding is not None:
@@ -32,7 +32,7 @@ def _input_release(root):
 def _profile_binding(profile):
     if profile is None:
         return None
-    return json.loads(Path(profile).read_text()).get("benchmark_release")
+    return json.loads(Path(profile).read_text(encoding="utf-8")).get("benchmark_release")
 
 
 def _verify_scores(release, dataset, records):
@@ -85,11 +85,11 @@ def bind_release(source, output, dataset, records, *, profile=None):
         archived.parent.mkdir(parents=True, exist_ok=True)
         archived.write_bytes(original.read_bytes())
         execution_path = output / "execution.json"
-        execution = json.loads(execution_path.read_text()) if execution_path.exists() else {}
+        execution = json.loads(execution_path.read_text(encoding="utf-8")) if execution_path.exists() else {}
         aggregate = execution.setdefault("aggregate", {})
         if aggregate.get("benchmark_release") != measured:
             aggregate["benchmark_release"] = measured
-            execution_path.write_text(json.dumps(execution, ensure_ascii=False, indent=2) + "\n")
+            execution_path.write_text(json.dumps(execution, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     binding = {
         "path": FILENAME,
         "sha256": digest,
@@ -105,7 +105,7 @@ def check_release(root, dataset, records, *, profile=None):
     """Check the edition, rendered label and scoring identity without rescoring."""
 
     manifest_path = root / "report-manifest.json"
-    manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
     check_build_version(root, manifest)
     binding = manifest.get("benchmark_release")
     expected = _profile_binding(profile)
@@ -131,7 +131,7 @@ def check_release(root, dataset, records, *, profile=None):
         path = root / route
         if not path.is_file():
             continue
-        page = BeautifulSoup(path.read_text(), "html.parser")
+        page = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
         if page.select_one("[data-english-not-generated]"):
             continue
         label = page.select_one("[data-benchmark-release]")

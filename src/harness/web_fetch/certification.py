@@ -253,7 +253,7 @@ def main(argv: list[str] | None = None) -> None:
     args.work_root.mkdir(parents=True)
     dataset.setdefault('comparison', {})['source_reference_policy'] = 'frozen_benchmark_inputs_with_explicit_live_exact_checks'
     args.dataset = args.work_root / "input-dataset.json"
-    args.dataset.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
+    args.dataset.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     selected = ",".join(case_ids)
     pre_captures = args.work_root / "pre-captures"
@@ -267,7 +267,7 @@ def main(argv: list[str] | None = None) -> None:
             "--workers", str(args.capture_workers), "--only", source_ids])
     else:
         pre_captures.mkdir(parents=True)
-        (pre_captures / 'audit.json').write_text('[]\n')
+        (pre_captures / 'audit.json').write_text('[]\n', encoding="utf-8")
     try:
         pre_browser_cases = browser_observation_cases(dataset, pre_captures, case_ids)
     except (KeyError, TypeError, ValueError) as error:
@@ -344,10 +344,10 @@ def main(argv: list[str] | None = None) -> None:
     if release_raw is not None:
         (args.output / 'benchmark-input-release.json').write_bytes(release_raw)
         execution_path = args.output / 'execution.json'
-        execution = json.loads(execution_path.read_text())
+        execution = json.loads(execution_path.read_text(encoding="utf-8"))
         execution['aggregate']['benchmark_release'] = {
             'path': 'benchmark-input-release.json', 'sha256': hashlib.sha256(release_raw).hexdigest()}
-        execution_path.write_text(json.dumps(execution, ensure_ascii=False, indent=2) + '\n')
+        execution_path.write_text(json.dumps(execution, ensure_ascii=False, indent=2) + '\n', encoding="utf-8")
 
     # Re-capture HTTP evidence after every provider call has completed, then
     # choose browser fallbacks from that post-call evidence. Reusing the
@@ -358,7 +358,7 @@ def main(argv: list[str] | None = None) -> None:
             "--workers", str(args.capture_workers), "--only", source_ids])
     else:
         post_captures.mkdir(parents=True)
-        (post_captures / 'audit.json').write_text('[]\n')
+        (post_captures / 'audit.json').write_text('[]\n', encoding="utf-8")
     post_dataset = json.loads((args.output / "dataset.json").read_text(encoding="utf-8"))
     try:
         post_browser_cases = browser_observation_cases(post_dataset, post_captures, case_ids)
@@ -439,8 +439,8 @@ def run_wcxb(argv: list[str]) -> None:
         parser.error("WCXB output root must be new and immutable")
     source_records, before = load_wcxb_source(args.dataset, manifest=args.sample_manifest)
 
-    manifest = json.loads(args.sample_manifest.read_text())
-    profile = json.loads(args.profile.read_text())
+    manifest = json.loads(args.sample_manifest.read_text(encoding="utf-8"))
+    profile = json.loads(args.profile.read_text(encoding="utf-8"))
     from harness.web_fetch.wcxb_scoring import metric_implementation_binding
     metric_hash = metric_implementation_binding(profile)
     if (
@@ -465,7 +465,7 @@ def run_wcxb(argv: list[str]) -> None:
         prior = args.reuse_certified_root.resolve()
         if prior == args.output_root.resolve():
             raise ValueError("WCXB prior and new evidence roots must differ")
-        old_certificate = json.loads((prior / "certification.json").read_text())
+        old_certificate = json.loads((prior / "certification.json").read_text(encoding="utf-8"))
         old_runs = old_certificate.get("providers", [])
         old_names = [item["provider"] for item in old_runs]
         if (
@@ -490,7 +490,7 @@ def run_wcxb(argv: list[str]) -> None:
                 raise ValueError("WCXB prior result identity changed: " + provider)
             if any(path.is_symlink() for path in old_dir.rglob("*")):
                 raise ValueError("WCXB prior evidence contains a symlink: " + provider)
-            execution = json.loads((old_dir / "execution.json").read_text())
+            execution = json.loads((old_dir / "execution.json").read_text(encoding="utf-8"))
             rows = load_jsonl(old_dir / "results.jsonl")
             if (
                 execution["run_id"] != item["run_id"]

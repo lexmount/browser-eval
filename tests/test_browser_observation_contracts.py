@@ -159,7 +159,7 @@ def test_symlinked_checkpoints_rejected(checkpoint_setup, tmp_path, target):
 
 def test_cli_preserves_output_created_during_capture(tmp_path, monkeypatch):
     dataset = tmp_path / "dataset.json"
-    dataset.write_text(json.dumps({"cases": [case_with()]}))
+    dataset.write_text(json.dumps({"cases": [case_with()]}), encoding='utf-8')
     output = tmp_path / "observations.json"
 
     def observe(*args, **kwargs):
@@ -181,7 +181,7 @@ def test_cli_preserves_output_created_during_capture(tmp_path, monkeypatch):
 def test_cli_duplicate_scope_fails_before_capture(tmp_path, monkeypatch, duplicate):
     dataset = tmp_path / "dataset.json"
     cases = [case_with()] * (2 if duplicate == "dataset" else 1)
-    dataset.write_text(json.dumps({"cases": cases}))
+    dataset.write_text(json.dumps({"cases": cases}), encoding='utf-8')
     output = tmp_path / "observations.json"
     selected = "new-task,new-task" if duplicate == "selection" else "new-task"
 
@@ -363,7 +363,7 @@ with sync_playwright() as p:
         try:
             result = capture._capture_in_process(case_with(), 4000, 1, binary)
             assert result['status'] == 'failure'
-            owned = json.loads(pid_file.read_text())
+            owned = json.loads(pid_file.read_text(encoding='utf-8'))
             assert owned
             import time
             deadline = time.monotonic() + 2
@@ -380,7 +380,7 @@ with sync_playwright() as p:
             unrelated.close()
             if pid_file.exists():
                 import signal
-                for pid in json.loads(pid_file.read_text()):
+                for pid in json.loads(pid_file.read_text(encoding='utf-8')):
                     try:
                         os.kill(pid, signal.SIGKILL)
                     except ProcessLookupError:
@@ -538,7 +538,7 @@ else:
     finally:
         if pid_file.exists():
             try:
-                os.kill(int(pid_file.read_text()), signal.SIGKILL)
+                os.kill(int(pid_file.read_text(encoding='utf-8')), signal.SIGKILL)
             except ProcessLookupError:
                 pass
 
@@ -584,7 +584,7 @@ time.sleep(30)
     try:
         result = capture._capture_in_process(case_with(), 20, 1)
         assert result['status'] == 'failure'
-        browser_pid = int(pid_file.read_text())
+        browser_pid = int(pid_file.read_text(encoding='utf-8'))
         assert browser_pid in signals
         assert len(signals) == len(set(signals))
         deadline = time.monotonic() + 2
@@ -598,7 +598,7 @@ time.sleep(30)
     finally:
         if pid_file.exists():
             try:
-                os.kill(int(pid_file.read_text()), signal.SIGKILL)
+                os.kill(int(pid_file.read_text(encoding='utf-8')), signal.SIGKILL)
             except ProcessLookupError:
                 pass
 
@@ -712,7 +712,7 @@ time.sleep(30)
     try:
         result = capture._capture_in_process(case_with(), 20, 1)
         assert result['status'] == 'failure'
-        pid = int(child_pid.read_text())
+        pid = int(child_pid.read_text(encoding='utf-8'))
         deadline = time.monotonic() + 2
         while True:
             state = subprocess.run(['ps', '-o', 'stat=', '-p', str(pid)],
@@ -725,7 +725,7 @@ time.sleep(30)
         for path in (child_pid, browser_pid):
             if path.exists():
                 try:
-                    os.kill(int(path.read_text()), signal.SIGKILL)
+                    os.kill(int(path.read_text(encoding='utf-8')), signal.SIGKILL)
                 except ProcessLookupError:
                     pass
 

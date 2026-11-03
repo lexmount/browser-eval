@@ -30,7 +30,7 @@ def materialize_attempt(s):
     evidence = {}
     for name, payload in payloads.items():
         path = s.root / f"{name}.json"
-        path.write_text(json.dumps(payload))
+        path.write_text(json.dumps(payload), encoding="utf-8")
         evidence[name] = {
             "path": str(path),
             "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
@@ -79,9 +79,9 @@ def test_reverification_rejects_inconsistent_attempts(setup, field, value):
 def test_missing_or_rehashed_modified_evaluation_cannot_promote(setup):
     attempt = materialize_attempt(setup)
     path = setup.root / "evaluation.json"
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding="utf-8"))
     payload["score"] = 0
-    path.write_text(json.dumps(payload))
+    path.write_text(json.dumps(payload), encoding="utf-8")
     attempt["evidence"]["evaluation"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
     with pytest.raises(ValueError, match="cannot be reproduced"):
         verify_attempt(attempt, setup.contract)
@@ -158,7 +158,7 @@ def test_qualification_validates_actual_state_not_just_score(setup, tamper):
         "recorded_response": {"task_type": "MUTATE", "status": "SUCCESS", "retrieved_data": None},
     }
     trace = setup.root / "trace.json"
-    trace.write_text(json.dumps([{"arguments": calls[0], "status": "success", "result": "ok"}]))
+    trace.write_text(json.dumps([{"arguments": calls[0], "status": "success", "result": "ok"}]), encoding="utf-8")
     attempt["evidence"]["trace"] = {
         "path": str(trace),
         "sha256": hashlib.sha256(trace.read_bytes()).hexdigest(),
@@ -175,9 +175,9 @@ def test_qualification_validates_actual_state_not_just_score(setup, tamper):
         del attempt["evidence"]["final_state"]
     elif tamper == "rehash":
         path = setup.root / "final_state.json"
-        value = json.loads(path.read_text())
+        value = json.loads(path.read_text(encoding="utf-8"))
         value["state"]["fields"]["email"]["value"] = "wrong@example.test"
-        path.write_text(json.dumps(value))
+        path.write_text(json.dumps(value), encoding="utf-8")
         attempt["evidence"]["final_state"]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
     arguments = (
         attempt,
@@ -213,7 +213,7 @@ def setup(tmp_path):
         "allow_trailing_slash": True,
     }
     catalog = tmp_path / "forms.json"
-    catalog.write_text(json.dumps({"schema": PROTOCOL, "contracts": [definition]}))
+    catalog.write_text(json.dumps({"schema": PROTOCOL, "contracts": [definition]}), encoding="utf-8")
     binding = {
         "path": catalog.name,
         "sha256": hashlib.sha256(catalog.read_bytes()).hexdigest(),
@@ -275,7 +275,8 @@ def setup(tmp_path):
                     ]
                 }
             }
-        )
+        ),
+        encoding="utf-8"
     )
     return SimpleNamespace(
         benchmark=benchmark,
@@ -417,13 +418,14 @@ def test_actual_submission_still_fails_official_forbidden_network_rule(setup, st
                     ]
                 }
             }
-        )
+        ),
+        encoding="utf-8"
     )
     result = score(setup)
     assert result["score"] == 0
     assert result["evaluators_results"][-1]["score"] == 0
     # Returning to the unsubmitted-looking form cannot erase an earlier submit.
-    network = json.loads(setup.har.read_text())
+    network = json.loads(setup.har.read_text(encoding="utf-8"))
     network["log"]["entries"].append(
         {
             "request": {"url": setup.state["page_url"], "method": "GET", "headers": []},
@@ -434,7 +436,7 @@ def test_actual_submission_still_fails_official_forbidden_network_rule(setup, st
             },
         }
     )
-    setup.har.write_text(json.dumps(network))
+    setup.har.write_text(json.dumps(network), encoding="utf-8")
     assert score(setup)["score"] == 0
 
 

@@ -225,7 +225,7 @@ def _require_supplemental_reviews(source, dataset, records, review):
     current = {row['attempt_id']: row for row in review.get('attempts', [])}
     seen = set()
     for binding in review.get('supplemental_reviews', []):
-        supplement = json.loads(read_evidence_binding(source, binding).read_text())
+        supplement = json.loads(read_evidence_binding(source, binding).read_text(encoding='utf-8'))
         rows = supplement.get('attempts', [])
         identifiers = [row['attempt_id'] for row in rows]
         if (supplement.get('kind') != 'supplemental_saved_output_review'
@@ -240,7 +240,7 @@ def _require_supplemental_reviews(source, dataset, records, review):
         initial = {}
         if supplement.get('review_protocol', {}).get('blind_initial_verdict') is True:
             for output_binding in supplement.get('blind_initial_outputs', []):
-                output = json.loads(read_evidence_binding(source, output_binding).read_text())
+                output = json.loads(read_evidence_binding(source, output_binding).read_text(encoding='utf-8'))
                 if output.get('machine_judgments_withheld') is not True:
                     raise ValueError('Fresh initial review was not blind')
                 for opinion in output.get('attempts', []):
@@ -294,11 +294,11 @@ def require_retained_reviews(source, dataset, records, review):
         if retained:
             raise ValueError('Retained reviews require their original evidence')
         return set()
-    receipt = json.loads(read_evidence_binding(source, binding).read_text())
+    receipt = json.loads(read_evidence_binding(source, binding).read_text(encoding='utf-8'))
     if receipt.get('kind') == 'current_retained_review_dependencies':
         return _require_current_retained_reviews(source, dataset, records, review, receipt)
-    prior = json.loads(read_evidence_binding(source, receipt['prior_review']).read_text())
-    before = json.loads(read_evidence_binding(source, receipt['prior_dataset']).read_text())
+    prior = json.loads(read_evidence_binding(source, receipt['prior_review']).read_text(encoding='utf-8'))
+    before = json.loads(read_evidence_binding(source, receipt['prior_dataset']).read_text(encoding='utf-8'))
     previous = load_jsonl(read_evidence_binding(source, receipt['prior_results']))
     ids = receipt.get('attempt_ids', [])
     if (receipt.get('kind') != 'unchanged_review_dependency_retention'
@@ -354,11 +354,11 @@ def require_retained_reviews(source, dataset, records, review):
 def compact_retained_review_dependencies(source, dataset, records, review):
     """Keep actual reused opinions and decision identities, not old matrices."""
     require_retained_reviews(source, dataset, records, review)
-    receipt = json.loads(read_evidence_binding(source, review['retained_reviews']).read_text())
+    receipt = json.loads(read_evidence_binding(source, review['retained_reviews']).read_text(encoding='utf-8'))
     if receipt.get('kind') == 'current_retained_review_dependencies':
         return receipt
-    prior = json.loads(read_evidence_binding(source, receipt['prior_review']).read_text())
-    before = json.loads(read_evidence_binding(source, receipt['prior_dataset']).read_text())
+    prior = json.loads(read_evidence_binding(source, receipt['prior_review']).read_text(encoding='utf-8'))
+    before = json.loads(read_evidence_binding(source, receipt['prior_dataset']).read_text(encoding='utf-8'))
     previous = {r['attempt_id']: r for r in load_jsonl(read_evidence_binding(source, receipt['prior_results']))}
     old_cases = {c['id']: c for c in before['cases']}
     cases = {c['id']: c for c in dataset['cases']}
@@ -521,7 +521,7 @@ def _require_page_identity_review(source, dataset, records, *, scoring_sources=N
         path = read_evidence_binding(source, binding)
     except ValueError as error:
         raise ValueError("Page identity review receipt changed") from error
-    receipt = json.loads(path.read_text())
+    receipt = json.loads(path.read_text(encoding='utf-8'))
     inputs = PageIdentityReviewInputs.parse(receipt)
     try:
         capture_path = read_evidence_binding(source, {
@@ -529,7 +529,7 @@ def _require_page_identity_review(source, dataset, records, *, scoring_sources=N
         }, allow_public_view=False)
     except ValueError as error:
         raise ValueError("Page review captures changed") from error
-    captures = json.loads(capture_path.read_text())
+    captures = json.loads(capture_path.read_text(encoding='utf-8'))
     inputs.require_captures(captures)
     _require_identity_binding_revision(source, dataset, receipt)
     annotations = receipt["attempts"]
@@ -565,7 +565,7 @@ def _require_local_review(source, dataset, records, *, review_document=None, sco
             path = read_evidence_binding(source, binding, allow_public_view=False)
         except ValueError as error:
             raise ValueError("Local independent review binding changed") from error
-        review = json.loads(path.read_text())
+        review = json.loads(path.read_text(encoding='utf-8'))
     else:
         review = review_document
     rows = review.get("attempts", [])
@@ -613,8 +613,8 @@ def _require_identity_binding_revision(source, dataset, receipt):
     migration = receipt.get('binding_revision')
     if not migration:
         return
-    previous = json.loads(read_evidence_binding(source, migration['prior_receipt']).read_text())
-    old_cases = json.loads(read_evidence_binding(source, migration['prior_cases']).read_text())
+    previous = json.loads(read_evidence_binding(source, migration['prior_receipt']).read_text(encoding='utf-8'))
+    old_cases = json.loads(read_evidence_binding(source, migration['prior_cases']).read_text(encoding='utf-8'))
     cases = {case['id']: case for case in dataset['cases']}
     if (migration.get('kind') != 'diagnostic_field_migration'
             or migration.get('new_independent_review') is not False
@@ -734,7 +734,7 @@ def prepare_reviewed_page_identities(source, before_dataset, dataset, records):
     binding = before_dataset.get('comparison', {}).get('page_identity_review')
     if not binding:
         return None
-    original = json.loads(read_evidence_binding(source, binding).read_text())
+    original = json.loads(read_evidence_binding(source, binding).read_text(encoding='utf-8'))
     inputs = PageIdentityReviewInputs.parse(original)
     try:
         captures_path = read_evidence_binding(source, {
@@ -742,7 +742,7 @@ def prepare_reviewed_page_identities(source, before_dataset, dataset, records):
         }, allow_public_view=False)
     except ValueError as error:
         raise ValueError('Page identity capture changed before rescoring') from error
-    captures = json.loads(captures_path.read_text())
+    captures = json.loads(captures_path.read_text(encoding='utf-8'))
     inputs.require_captures(captures)
     cases = {case['id']: case for case in dataset['cases']}
     indexed = {row['attempt_id']: row for row in records}

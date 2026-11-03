@@ -44,13 +44,13 @@ class WebMainBenchLatencyCorrectionTests(unittest.TestCase):
                        'prior_results_sha256': hashlib.sha256(prior_raw).hexdigest(),
                        'output_results_sha256': hashlib.sha256(current_raw).hexdigest(),
                        'changes': changes}
-            (root / 'latency-corrections.json').write_text(json.dumps(receipt))
+            (root / 'latency-corrections.json').write_text(json.dumps(receipt), encoding='utf-8')
             self.assertEqual(validate_latency_correction(root), receipt)
             new[0]['metrics']['score'] = 1.0
             tampered = ''.join(json.dumps(row) + '\n' for row in new).encode()
             (root / 'results.jsonl').write_bytes(tampered)
             receipt['output_results_sha256'] = hashlib.sha256(tampered).hexdigest()
-            (root / 'latency-corrections.json').write_text(json.dumps(receipt))
+            (root / 'latency-corrections.json').write_text(json.dumps(receipt), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'scored evidence'):
                 validate_latency_correction(root)
 

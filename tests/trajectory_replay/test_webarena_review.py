@@ -128,7 +128,7 @@ def test_append_methods_keeps_old_diagnostics_bound_to_unchanged_results(
     }
     review = _write(tmp_path / "review.json", payload)
     assert set(load_validated_failure_review(results, review)["by_result"]) == {("moli", 1)}
-    changed = json.loads(results.read_text())
+    changed = json.loads(results.read_text(encoding="utf-8"))
     if tamper == "row":
         changed["attempts"][0]["duration_ms"] = 11
     elif tamper == "digest":
@@ -153,7 +153,7 @@ def test_append_methods_keeps_old_diagnostics_bound_to_unchanged_results(
 
 def test_historical_task173_review_supersedes_browser_attribution_with_bound_evidence() -> None:
     review = json.loads(
-        Path("research/trajectory-replay-reviews/20260917-original-36.json").read_text()
+        Path("research/trajectory-replay-reviews/20260917-original-36.json").read_text(encoding="utf-8")
     )
     matches = [
         (group, row)
@@ -225,10 +225,10 @@ def test_review_requires_exact_hash_bound_failure_coverage(tmp_path: Path) -> No
     # An empty identity map used to pass the subset test. A diagnostic must
     # bind every observed method to a measured binary, including negative
     # controls where one browser's identity is absent or changed.
-    result_payload = json.loads(results.read_text())
+    result_payload = json.loads(results.read_text(encoding="utf-8"))
     result_payload["attempts"][1]["binary_sha256"] = "a" * 64
     _write(results, result_payload)
-    payload = json.loads(review.read_text())
+    payload = json.loads(review.read_text(encoding="utf-8"))
     payload["bindings"]["effective_results_sha256"] = hashlib.sha256(
         results.read_bytes()
     ).hexdigest()

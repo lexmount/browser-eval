@@ -127,12 +127,12 @@ class _RevisionTransaction:
         if self.work.is_symlink():
             raise ValueError('Revision journal must not be a symlink')
         marker = self.work / 'owner.json'
-        if not marker.is_file() or json.loads(marker.read_text()) != {
+        if not marker.is_file() or json.loads(marker.read_text(encoding='utf-8')) != {
                 'kind': 'local_revision_transaction', 'source': str(self.source)}:
             raise ValueError('Revision work directory is not owned by this snapshot')
         journal = self.work / 'journal.json'
         if journal.exists():
-            manifest = json.loads(journal.read_text())
+            manifest = json.loads(journal.read_text(encoding='utf-8'))
             for item in reversed(manifest['files']):
                 path = contained_path(self.source, item['path'], reject_symlinks=True)
                 if item['existed']:
@@ -161,7 +161,7 @@ class _RevisionTransaction:
             with tempfile.TemporaryDirectory(prefix='.revision-owner-', dir=self.source.parent) as name:
                 prepared = Path(name)
                 (prepared / 'owner.json').write_text(json.dumps({
-                    'kind': 'local_revision_transaction', 'source': str(self.source)}))
+                    'kind': 'local_revision_transaction', 'source': str(self.source)}), encoding='utf-8')
                 prepared.replace(self.work)
         target = self.work / 'after' / relative
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -191,7 +191,7 @@ class _RevisionTransaction:
             files.append({'path': relative, 'existed': existed})
         journal = self.work / 'journal.json'
         pending = self.work / 'journal.tmp'
-        pending.write_text(json.dumps({'files': files, 'directories': directories}))
+        pending.write_text(json.dumps({'files': files, 'directories': directories}), encoding='utf-8')
         pending.replace(journal)
         try:
             # Evidence and receipts are installed before the two current-state files.
@@ -207,12 +207,12 @@ class _RevisionTransaction:
 
 def require_local_task_replacement(source, binding, dataset, records):
     """Verify complete new task calls while preserving every unrelated saved row."""
-    receipt = json.loads(read_evidence_binding(source, binding).read_text())
+    receipt = json.loads(read_evidence_binding(source, binding).read_text(encoding='utf-8'))
     if receipt.get('kind') != 'local_task_replacement' or not receipt.get('reason'):
         raise ValueError('Task replacement needs a declared reason')
-    before = json.loads(read_evidence_binding(source, receipt['baseline_dataset']).read_text())
+    before = json.loads(read_evidence_binding(source, receipt['baseline_dataset']).read_text(encoding='utf-8'))
     previous = load_jsonl(read_evidence_binding(source, receipt['baseline_results']))
-    cohort = json.loads(read_evidence_binding(source, receipt['cohort_dataset']).read_text())
+    cohort = json.loads(read_evidence_binding(source, receipt['cohort_dataset']).read_text(encoding='utf-8'))
     calls = load_jsonl(read_evidence_binding(source, receipt['cohort_results']))
     removed, added = receipt['removed_case_id'], receipt['added_case_id']
     old_cases = {c['id']: c for c in before['cases']}
@@ -241,8 +241,8 @@ def require_local_task_replacement(source, binding, dataset, records):
         raise ValueError('Replacement task cannot be excluded after seeing its results')
     if not receipt.get('execution_contract') or not receipt.get('cohort_execution'):
         raise ValueError('Task replacement requires its complete execution contract')
-    contract = json.loads(read_evidence_binding(source, receipt['execution_contract']).read_text())
-    execution = json.loads(read_evidence_binding(source, receipt['cohort_execution']).read_text())
+    contract = json.loads(read_evidence_binding(source, receipt['execution_contract']).read_text(encoding='utf-8'))
+    execution = json.loads(read_evidence_binding(source, receipt['cohort_execution']).read_text(encoding='utf-8'))
     if not contract.get('runner_inputs'):
         raise ValueError('Task replacement requires retained runner inputs and source observations')
     require_local_execution_contract(source, cohort, calls, contract, execution)
@@ -253,10 +253,10 @@ def require_local_task_replacement(source, binding, dataset, records):
 def validate_revision_chain(source, binding, dataset=None, records=None):
     """Validate each transition, then expose the earliest replacement inputs."""
     if dataset is None:
-        dataset = json.loads((source / 'dataset.json').read_text())
+        dataset = json.loads((source / 'dataset.json').read_text(encoding='utf-8'))
     if records is None:
         records = load_jsonl(source / 'results.jsonl')
-    receipt = json.loads(read_evidence_binding(source, binding).read_text())
+    receipt = json.loads(read_evidence_binding(source, binding).read_text(encoding='utf-8'))
     if not isinstance(receipt, dict):
         raise ValueError('revision must be an object')
     if receipt.get('kind') == 'current_local_snapshot_authority':
@@ -272,7 +272,7 @@ def validate_revision_chain(source, binding, dataset=None, records=None):
         if identity in seen:
             raise ValueError('Local score revision lineage repeats a receipt')
         seen.add(identity)
-        receipt = json.loads(read_evidence_binding(source, binding).read_text())
+        receipt = json.loads(read_evidence_binding(source, binding).read_text(encoding='utf-8'))
         expected, before, previous = _require_revision_step(source, receipt, dataset, records, outputs)
         if latest_scoring is None:
             latest_scoring = expected
@@ -329,7 +329,7 @@ def _require_diagnostic_projection(source, record, proof):
     path = read_evidence_binding(source, public)
     if path.stat().st_size != public.get('bytes'):
         raise ValueError('Current public diagnostic size changed')
-    payload = json.loads(read_evidence_binding(source, call).read_text())
+    payload = json.loads(read_evidence_binding(source, call).read_text(encoding='utf-8'))
     if any(payload.get('identity', {}).get(key) != record.get(key)
            for key in ('attempt_id', 'provider', 'case_id', 'run')):
         raise ValueError('Current diagnostic call belongs to another result')
@@ -353,7 +353,7 @@ def _compact_diagnostic_projections(source, records, private_manifest, *, public
         manifest_path = Path(private_manifest)
         if manifest_path.is_symlink():
             raise ValueError('Private diagnostic manifest must not be a symlink')
-        document = json.loads(manifest_path.read_text())
+        document = json.loads(manifest_path.read_text(encoding='utf-8'))
         if (document.get('kind') != 'current_private_originals'
                 or document.get('results_sha256') != file_sha256(source/'results.jsonl')):
             raise ValueError('Private originals do not bind current results')
@@ -391,7 +391,7 @@ def _compact_diagnostic_projections(source, records, private_manifest, *, public
             # Only the derived debug view may change. A measured row or public
             # call must not directly identify these old public bytes.
             if (relative in bound_public_logs
-                    or relative in read_evidence_binding(source, record['provider_metadata']['call_log']).read_text()):
+                    or relative in read_evidence_binding(source, record['provider_metadata']['call_log']).read_text(encoding='utf-8')):
                 raise ValueError('Derived diagnostic is bound as measured evidence')
             public_log_updates[path] = projected
             actual = projected
@@ -413,7 +413,7 @@ def _compact_diagnostic_projections(source, records, private_manifest, *, public
 def compact_revision_authority(source, binding, dataset=None, records=None, *,
                                reference_authorities=(), task_replacement=None,
                                private_original_manifest=None):
-    dataset = dataset if dataset is not None else json.loads((source/'dataset.json').read_text())
+    dataset = dataset if dataset is not None else json.loads((source/'dataset.json').read_text(encoding='utf-8'))
     records = records if records is not None else load_jsonl(source/'results.jsonl')
     validated = validate_revision_chain(source, binding, dataset, records)
     return _compact_revision_authority(source, binding, dataset, records, validated,
@@ -431,20 +431,20 @@ def _compact_revision_authority(source, binding, dataset, records, validated, *,
     and contains neither before images nor reverse patches. The caller installs
     and hash-binds this document before removing superseded files.
     """
-    dataset = dataset if dataset is not None else json.loads((source/'dataset.json').read_text())
+    dataset = dataset if dataset is not None else json.loads((source/'dataset.json').read_text(encoding='utf-8'))
     records = records if records is not None else load_jsonl(source/'results.jsonl')
     sources, original_dataset, original_results = validated
     replacement_scope = None
     if task_replacement:
         if original_dataset is None:
-            parent = json.loads(read_evidence_binding(source, binding).read_text())
+            parent = json.loads(read_evidence_binding(source, binding).read_text(encoding='utf-8'))
             require_current_task_replacement(source, parent, dataset, records)
             replacement_scope = parent['task_replacement_current_scope']
         else:
             require_local_task_replacement(source, task_replacement,
-                json.loads(read_evidence_binding(source, original_dataset).read_text()),
+                json.loads(read_evidence_binding(source, original_dataset).read_text(encoding='utf-8')),
                 load_jsonl(read_evidence_binding(source, original_results)))
-            replacement = json.loads(read_evidence_binding(source, task_replacement).read_text())
+            replacement = json.loads(read_evidence_binding(source, task_replacement).read_text(encoding='utf-8'))
             replacement_scope = {'added_case_id': replacement['added_case_id'],
                 'removed_case_id': replacement['removed_case_id'],
                 'current_attempt_ids': sorted(row['attempt_id'] for row in records
@@ -461,7 +461,7 @@ def _compact_revision_authority(source, binding, dataset, records, validated, *,
     cursor = binding
     current_source = None
     while cursor:
-        receipt = json.loads(read_evidence_binding(source, cursor).read_text())
+        receipt = json.loads(read_evidence_binding(source, cursor).read_text(encoding='utf-8'))
         if receipt.get('kind') == 'current_local_snapshot_authority':
             for cause in receipt['correction_authorities']:
                 causes[canonical_json_sha256(cause)] = cause
@@ -530,8 +530,8 @@ def require_current_task_replacement(source, receipt, dataset, records):
             raise ValueError('Current task replacement lacks source qualification')
         for capture in captures:
             read_evidence_binding(source, capture)
-    contract = json.loads(read_evidence_binding(source, scope['execution_contract']).read_text())
-    execution = json.loads(read_evidence_binding(source, scope['execution']).read_text())
+    contract = json.loads(read_evidence_binding(source, scope['execution_contract']).read_text(encoding='utf-8'))
+    execution = json.loads(read_evidence_binding(source, scope['execution']).read_text(encoding='utf-8'))
     frozen = local_measurement_cases(contract, source)
     current = {case['id']: case for case in dataset['cases']}
     if {case['id'] for case in frozen} != {scope['added_case_id']}:
@@ -558,7 +558,7 @@ def require_current_snapshot_authority(source, receipt, dataset, records):
     for name, key in [('dataset.json', 'dataset_sha256'), ('results.jsonl', 'results_sha256')]:
         read_evidence_binding(source, {'path': name, 'sha256': receipt.get(key)},
                               allow_public_view=False)
-    if (json.loads((source/'dataset.json').read_text()) != dataset
+    if (json.loads((source/'dataset.json').read_text(encoding='utf-8')) != dataset
             or load_jsonl(source/'results.jsonl') != records):
         raise ValueError('Current snapshot arguments differ from bound bytes')
     cases = {case['id']: case for case in dataset['cases']}
@@ -576,7 +576,7 @@ def require_current_snapshot_authority(source, receipt, dataset, records):
             raise ValueError('Current correction lacks cause or executable controls')
         _require_revision_regressions(cause['regression_ids'])
     for authority in receipt.get('current_reference_authorities', []):
-        document = json.loads(read_evidence_binding(source, authority).read_text())
+        document = json.loads(read_evidence_binding(source, authority).read_text(encoding='utf-8'))
         def require_material(value):
             if isinstance(value, dict):
                 if 'path' in value and 'sha256' in value:
@@ -603,11 +603,11 @@ def require_current_snapshot_authority(source, receipt, dataset, records):
         execution_binding = receipt.get('current_execution')
         if not execution_binding or read_evidence_binding(source, execution_binding) != execution:
             raise ValueError('Current execution inventory lacks its actual binding')
-        physical = Counter(identifier for batch in json.loads(execution.read_text())['batches']
+        physical = Counter(identifier for batch in json.loads(execution.read_text(encoding='utf-8'))['batches']
                            for identifier in batch['attempt_ids'])
         if physical != Counter(row['attempt_id'] for row in records):
             raise ValueError('Current execution physical/logical inventory differs')
-        verify_native_execution_manifests(source, json.loads(execution.read_text())['batches'],
+        verify_native_execution_manifests(source, json.loads(execution.read_text(encoding='utf-8'))['batches'],
                                          dataset, records)
     review = receipt.get('current_review')
     declared = dataset.get('comparison', {}).get('independent_review')
@@ -615,7 +615,7 @@ def require_current_snapshot_authority(source, receipt, dataset, records):
         raise ValueError('Current review binding differs from current authority')
     if (source/'result-review.json').is_file() and review is None:
         raise ValueError('Current authority omitted the saved review')
-    document = json.loads(read_evidence_binding(source, review).read_text()) if review else None
+    document = json.loads(read_evidence_binding(source, review).read_text(encoding='utf-8')) if review else None
     _require_local_review(source, dataset, records, review_document=document,
         scoring_sources={key: value['scoring_source_sha256'] for key, value in identities.items()})
     return {key: value['scoring_source_sha256'] for key, value in identities.items()}
@@ -633,7 +633,7 @@ def _install_compact_local_snapshot(source, binding, *, reference_authorities=()
     succeeds and the ordinary presentation boundary accepts the returned binding.
     """
     source = Path(source)
-    dataset = json.loads((source/'dataset.json').read_text())
+    dataset = json.loads((source/'dataset.json').read_text(encoding='utf-8'))
     records = load_jsonl(source/'results.jsonl')
     authority = _compact_revision_authority(source, binding, dataset, records, _validated_history,
         reference_authorities=reference_authorities, task_replacement=task_replacement,
@@ -643,7 +643,7 @@ def _install_compact_local_snapshot(source, binding, *, reference_authorities=()
     if review_binding:
         read_evidence_binding(source, review_binding)
         review_path = contained_path(source, review_binding['path'], reject_symlinks=True)
-        review = json.loads(review_path.read_text())
+        review = json.loads(review_path.read_text(encoding='utf-8'))
         if review.get('retained_reviews'):
             retained = compact_retained_review_dependencies(source, dataset, records, review)
             retained_bytes = (json.dumps(retained, ensure_ascii=False, indent=2)+'\n').encode()
@@ -666,7 +666,7 @@ def _install_compact_local_snapshot(source, binding, *, reference_authorities=()
             'unresolved': review['unresolved'], 'provider_calls_added': 0}]
         supplements = []
         for supplement_binding in review.get('supplemental_reviews', []):
-            document = json.loads(read_evidence_binding(source, supplement_binding).read_text())
+            document = json.loads(read_evidence_binding(source, supplement_binding).read_text(encoding='utf-8'))
             kept = {key: document[key] for key in ('kind', 'results_sha256', 'provider_calls_added',
                 'reviewed_attempts', 'reviewer', 'review_protocol', 'attempts')}
             if document.get('blind_initial_outputs'):
@@ -690,7 +690,7 @@ def _install_compact_local_snapshot(source, binding, *, reference_authorities=()
         comparison['task_replacement_current_scope'] = authority['task_replacement_current_scope']
     page_binding = comparison.get('page_identity_review')
     if page_binding:
-        old = json.loads(read_evidence_binding(source, page_binding).read_text())
+        old = json.loads(read_evidence_binding(source, page_binding).read_text(encoding='utf-8'))
         page = {key: old[key] for key in ('kind', 'provider_calls_added', 'captures_path',
                                           'captures_sha256', 'attempts')}
         page_path = 'local-evidence/page-identity-review/current.json'
@@ -728,7 +728,7 @@ def compact_local_snapshot(source, binding, **options):
     source = Path(source)
     if any(key.startswith('_') for key in options):
         raise ValueError('Internal validation state cannot be supplied by a caller')
-    dataset = json.loads((source/'dataset.json').read_text())
+    dataset = json.loads((source/'dataset.json').read_text(encoding='utf-8'))
     records = load_jsonl(source/'results.jsonl')
     validated_history = validate_revision_chain(source, binding, dataset, records)
     execution_path = source/'execution.json'
@@ -743,7 +743,7 @@ def compact_local_snapshot(source, binding, **options):
             replacement = options.get('task_replacement')
             if not replacement:
                 raise ValueError('Current execution has undeclared retired calls')
-            old = json.loads(read_evidence_binding(source, replacement).read_text())
+            old = json.loads(read_evidence_binding(source, replacement).read_text(encoding='utf-8'))
             removed = {row['attempt_id'] for row in load_jsonl(read_evidence_binding(source, old['baseline_results']))
                        if row['case_id'] == old['removed_case_id']}
             if retired != removed or any(physical[key] != 1 for key in retired):
@@ -761,7 +761,7 @@ def compact_local_snapshot(source, binding, **options):
                                          if key != old['removed_case_id']]
             aggregate['batch_count'] = len(execution['batches'])
             execution['inventory_scope'] = 'current_snapshot_attempts'
-            execution_path.write_text(json.dumps(execution, ensure_ascii=False, indent=2)+'\n')
+            execution_path.write_text(json.dumps(execution, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     temporary = tempfile.TemporaryDirectory(prefix='current-diagnostic-projection-')
     backups = {}
     try:
@@ -921,7 +921,7 @@ def _require_native_context_correction(source, original, corrected, proof):
 
 def _read_input_verdicts(source, binding, input_results_sha256, identifiers):
     """Validate frozen input provenance before rescoring or installing history."""
-    proof = json.loads(read_evidence_binding(source, binding).read_text())
+    proof = json.loads(read_evidence_binding(source, binding).read_text(encoding='utf-8'))
     verdicts = proof.get('verdicts', {})
     if (proof.get('input_results_sha256') != input_results_sha256
             or set(verdicts) != set(identifiers)
@@ -937,7 +937,7 @@ def _require_revision_step(source, receipt, dataset, records, outputs):
     parsed = RevisionStep.from_mapping(receipt)
     if receipt.get('kind') != 'local_offline_score_revision' or receipt.get('provider_calls_added') != 0:
         raise ValueError('Local revision must preserve original provider calls')
-    before_dataset = json.loads(read_evidence_binding(source, receipt['input_dataset']).read_text())
+    before_dataset = json.loads(read_evidence_binding(source, receipt['input_dataset']).read_text(encoding='utf-8'))
     previous = load_jsonl(read_evidence_binding(source, receipt['input_results']))
     for name, key in [('dataset.json', 'output_dataset_sha256'), ('results.jsonl', 'output_results_sha256')]:
         if outputs[name] != receipt.get(key):
@@ -1031,7 +1031,7 @@ def revise_local_snapshot(source, configuration):
     source = Path(source).resolve()
     lock_id = hashlib.sha256(str(source).encode()).hexdigest()[:20]
     lock_path = Path(tempfile.gettempdir()) / ('browser-eval-local-revision-' + lock_id + '.lock')
-    with lock_path.open('a+') as lock:
+    with lock_path.open('a+', encoding='utf-8') as lock:
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
         transaction = _RevisionTransaction(source)
         transaction.recover()
@@ -1047,7 +1047,7 @@ def revise_local_snapshot(source, configuration):
 def _revise_local_snapshot(source, configuration, transaction):
     """Apply declared score-only changes in a separate snapshot, retaining predecessors."""
 
-    config = json.loads(configuration.read_text())
+    config = json.loads(configuration.read_text(encoding='utf-8'))
     regressions = config.get('regression_ids', [])
     if not regressions or not config.get('authority', {}).get('description'):
         raise ValueError('Local revision requires authority and regression provenance')

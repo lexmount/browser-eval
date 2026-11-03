@@ -16,7 +16,7 @@ from tests.test_resource_calibration import experiment
 
 def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value))
+    path.write_text(json.dumps(value), encoding="utf-8")
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
@@ -36,10 +36,10 @@ def saved_profiles(tmp_path):
     marker = tmp_path / "executed"
     poison = f'from pathlib import Path\nPath({str(marker)!r}).write_text("executed")\nraise RuntimeError("Evidence source was executed")\n'
     for filename in ("__init__.py", "resources.py"):
-        (runner / "runner" / filename).write_text(poison)
+        (runner / "runner" / filename).write_text(poison, encoding="utf-8")
     directory = tmp_path / "profiles"
     directory.mkdir()
-    (directory / "orchestrator.py").write_text("# frozen synthetic collector\n")
+    (directory / "orchestrator.py").write_text("# frozen synthetic collector\n", encoding="utf-8")
     tasks = [f"task-{i}" for i in range(557)]
     configs = {
         f"build_{i}": {
@@ -116,7 +116,7 @@ def saved_profiles(tmp_path):
                             },
                         )
                     )
-            (run / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+            (run / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
             receipt["results"][f"{method}:{phase}"] = {
                 "run_id": run.name,
                 "rows": len(rows),
@@ -143,7 +143,7 @@ def test_resource_summary_rebuilds_full_scope_without_executing_bound_python_inp
 def test_changed_source_provenance_is_rejected_without_executing_it(tmp_path):
     directory, _, marker = saved_profiles(tmp_path)
     protocol = json.loads((directory / "protocol.json").read_bytes())
-    (Path(protocol["runner_root"]) / "runner/resources.py").write_text("changed")
+    (Path(protocol["runner_root"]) / "runner/resources.py").write_text("changed", encoding="utf-8")
     with pytest.raises(ValueError, match="runner changed"):
         summarize(directory)
     assert not marker.exists()
@@ -218,7 +218,7 @@ def test_report_rejects_certificate_paths_outside_declared_regular_evidence(tmp_
     evidence = tmp_path / "evidence"
     evidence.mkdir()
     outside = tmp_path / "outside.txt"
-    outside.write_text("not report evidence")
+    outside.write_text("not report evidence", encoding="utf-8")
     if path_kind == "parent":
         name = "../outside.txt"
     elif path_kind == "absolute":
@@ -279,7 +279,7 @@ def test_saved_profile_inputs_cannot_escape_runner_provenance_root(tmp_path, pat
     protocol = json.loads(protocol_path.read_bytes())
     root = Path(protocol["runner_root"])
     outside = tmp_path / "outside.txt"
-    outside.write_text("not runner input")
+    outside.write_text("not runner input", encoding="utf-8")
     if path_kind == "parent":
         name = "../outside.txt"
     elif path_kind == "absolute":
@@ -311,7 +311,7 @@ def test_resource_matrix_receipt_cannot_read_files_outside_its_run(tmp_path, pat
     run = runner / "runs/one"
     run.mkdir(parents=True)
     outside = runner / "runs/outside.txt"
-    outside.write_text("not run evidence")
+    outside.write_text("not run evidence", encoding="utf-8")
     if path_kind == "parent":
         name = "../outside.txt"
     elif path_kind == "absolute":

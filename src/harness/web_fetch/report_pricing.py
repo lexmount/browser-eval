@@ -30,7 +30,7 @@ def render_pricing(out, names, *, table, cell, link, esc):
     source = out / 'report-assets/provider-pricing.json'
     if not source.is_file():
         source = SOURCE
-    data = json.loads(source.read_text())
+    data = json.loads(source.read_text(encoding='utf-8'))
     translations = data.get('translations', {})
     if not isinstance(translations, dict) or any(not isinstance(k, str) or not isinstance(v, str) for k, v in translations.items()):
         raise ValueError('Pricing translations must map source text to English text')
@@ -45,7 +45,7 @@ def render_pricing(out, names, *, table, cell, link, esc):
 
     dest = out / 'adoption'
     dest.mkdir(exist_ok=True)
-    (dest / 'pricing.json').write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
+    (dest / 'pricing.json').write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
     def sources(p):
         return ' · '.join(link(s['url'], s['label'] + ' ↗') for s in p['sources'])

@@ -128,8 +128,8 @@ def add_provider_run(canonical: Path, incoming: Path, provider: str, implementat
         reject_evidence_symlinks(root)
     canonical, incoming = canonical.resolve(), incoming.resolve()
     safe_identifier(provider)
-    dataset = json.loads((canonical / "dataset.json").read_text())
-    incoming_dataset = json.loads((incoming / "dataset.json").read_text())
+    dataset = json.loads((canonical / "dataset.json").read_text(encoding="utf-8"))
+    incoming_dataset = json.loads((incoming / "dataset.json").read_text(encoding="utf-8"))
     selected = [c for c in dataset['cases'] if track is None or c.get('track', 'web') == track]
     if not selected:
         raise ValueError('Requested track has no canonical cases')
@@ -168,7 +168,7 @@ def add_provider_run(canonical: Path, incoming: Path, provider: str, implementat
             if Path(r['artifact_path']).parts[0] != 'artifacts':
                 raise ValueError('Output paths must be inside artifacts/')
         require_verified_reference_checks(
-            json.loads((root / 'execution.json').read_text())['batches'],
+            json.loads((root / 'execution.json').read_text(encoding="utf-8"))['batches'],
             cases=dataset if root == canonical else incoming_dataset,
             records=group, source=root)
     if implementation and implementation.get("sha256"):
@@ -176,7 +176,7 @@ def add_provider_run(canonical: Path, incoming: Path, provider: str, implementat
             r["provider_metadata"].get("binary_sha256") != implementation["sha256"] for r in records
         ):
             raise ValueError("Executable fingerprint mismatch")
-    batches = deepcopy(json.loads((incoming / "execution.json").read_text())["batches"])
+    batches = deepcopy(json.loads((incoming / "execution.json").read_text(encoding="utf-8"))["batches"])
     assigned = []
     for batch in batches:
         if not batch.get("completed_at"):
@@ -196,7 +196,7 @@ def add_provider_run(canonical: Path, incoming: Path, provider: str, implementat
             batch["implementation"] = deepcopy(implementation)
     if Counter(assigned) != Counter(r["attempt_id"] for r in records):
         raise ValueError("Each new attempt must belong to exactly one execution batch")
-    execution = json.loads((canonical / "execution.json").read_text())
+    execution = json.loads((canonical / "execution.json").read_text(encoding="utf-8"))
     execution["batches"].extend(batches)
     plan = dataset.get('coverage_plan')
     if track is not None and (not isinstance(plan, dict) or track not in plan):
@@ -218,10 +218,11 @@ def add_provider_run(canonical: Path, incoming: Path, provider: str, implementat
             original + incoming_bytes
         )
         (staging / "execution.json").write_text(
-            json.dumps(execution, ensure_ascii=False, indent=2) + "\n"
+            json.dumps(execution, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8"
         )
         if isinstance(plan, dict):
-            (staging / 'dataset.json').write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + '\n')
+            (staging / 'dataset.json').write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + '\n', encoding="utf-8")
         native_cases = {c['id']: c for c in dataset['cases']}
         for row in existing + records:
             verify_record_artifacts(staging, row, native_cases=native_cases)
@@ -352,7 +353,7 @@ def _project_provider_run(source: Path, output: Path, provider: str, reference_r
     reference_root = (reference_root or source).resolve()
     if output.exists():
         raise ValueError("Projection destination exists: " + str(output))
-    dataset = json.loads((source / "dataset.json").read_text())
+    dataset = json.loads((source / "dataset.json").read_text(encoding="utf-8"))
     all_records = _records(source)
     if retain_completed:
         if case_ids is not None:
@@ -413,16 +414,18 @@ def _project_provider_run(source: Path, output: Path, provider: str, reference_r
         for name in ('sources','list-references')}, cases)
     materialize_reference_checks(output, source, projected_batches)
     materialize_bound_artifacts(output, source, selected)
-    (output / "dataset.json").write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
+    (output / "dataset.json").write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if len(projected_batches) == 1:
         (output / "manifest.json").write_text(
-            json.dumps(projected_batches[0], ensure_ascii=False, indent=2) + "\n"
+            json.dumps(projected_batches[0], ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8"
         )
     (output / "execution.json").write_text(
-        json.dumps({"batches": projected_batches}, ensure_ascii=False, indent=2) + "\n"
+        json.dumps({"batches": projected_batches}, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8"
     )
     (output / "results.jsonl").write_text(
-        "".join(json.dumps(row, ensure_ascii=True) + "\n" for row in selected))
+        "".join(json.dumps(row, ensure_ascii=True) + "\n" for row in selected), encoding="utf-8")
     if certified:
         require_verified_reference_checks(
             projected_batches, cases=dataset, records=selected, source=output,
@@ -483,7 +486,7 @@ def addition_main(argv=None) -> None:
     parser.add_argument('--implementation', type=Path,
                         help='Verified implementation version/source/hash JSON')
     args = parser.parse_args(argv)
-    implementation = json.loads(args.implementation.read_text()) if args.implementation else None
+    implementation = json.loads(args.implementation.read_text(encoding="utf-8")) if args.implementation else None
     count = add_provider_run(current_evidence_dir(), args.run_dir, args.provider,
                              implementation, track=args.track)
     print('Added', count, 'records')
@@ -538,8 +541,8 @@ def certify_case(run, output, case, records, observation):
         staging.mkdir()
         (staging/'source-manifest.json').write_bytes(source_raw)
         for name,payload in [('manifest.json',manifest),('dataset.json',dataset),('observations.json',[observation])]:
-            (staging/name).write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n')
-        (staging/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
+            (staging/name).write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n', encoding="utf-8")
+        (staging/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records), encoding="utf-8")
         result=finalize_reference_checks(staging,staging/'observations.json')
         staging.replace(destination)
     print(cid,result['status'],flush=True)
@@ -554,7 +557,7 @@ def certification_main(argv=None):
     parser.add_argument('--output',type=Path,required=True)
     parser.add_argument('--timeout',type=int,default=2700)
     args=parser.parse_args(argv)
-    dataset=json.loads((args.run_dir/'dataset.json').read_text())
+    dataset=json.loads((args.run_dir/'dataset.json').read_text(encoding="utf-8"))
     if args.timeout < 0:
         parser.error('--timeout must be nonnegative')
     cases=reference_cases(dataset)
@@ -563,7 +566,7 @@ def certification_main(argv=None):
     deadline=time.monotonic()+args.timeout
     while True:
         try:
-            observations=json.loads(args.observations.read_text())
+            observations=json.loads(args.observations.read_text(encoding="utf-8"))
         except (FileNotFoundError,json.JSONDecodeError):
             if time.monotonic()>=deadline:
                 raise TimeoutError('Case certification deadline')

@@ -25,7 +25,7 @@ def _dependency_files(output, contract, pin=LEGACY_PIN, lock_pin=None):
         f'source = {{ git = "{GIT}?rev={lock_pin}#{lock_pin}" }}\n'
     )
     for name, text in (("pyproject.toml", project), ("uv.lock", lock)):
-        (frozen / name).write_text(text)
+        (frozen / name).write_text(text, encoding="utf-8")
         contract["implementation"][name] = bytes_sha256(text.encode())
 
 
@@ -38,7 +38,7 @@ def legacy_run(tmp_path, monkeypatch):
     profile["protocol"].pop("reference_scope", None)
     profile.pop("reference_checks", None)
     source = tmp_path / "profile.json"
-    source.write_text(json.dumps(profile))
+    source.write_text(json.dumps(profile), encoding="utf-8")
     output = tmp_path / "run"
     monkeypatch.setattr(runner, "load_runtime_env", lambda: None)
     for method in profile["methods"]:
@@ -76,13 +76,13 @@ def legacy_run(tmp_path, monkeypatch):
     contract["implementation"].pop("harness/benchmarks/data.py")
     (output / "implementation/harness/benchmarks/data.py").unlink()
     _dependency_files(output, contract)
-    (output / "run-contract.json").write_text(json.dumps(contract))
+    (output / "run-contract.json").write_text(json.dumps(contract), encoding="utf-8")
     revised = copy.deepcopy(profile)
     revised["methods"][1]["endpoint"] = "https://replacement.invalid/search"
     replacement = tmp_path / "revised.json"
-    replacement.write_text(json.dumps(revised))
+    replacement.write_text(json.dumps(revised), encoding="utf-8")
     proof = tmp_path / "proof.txt"
-    proof.write_text("The native request endpoint changed; the task population stays fixed.")
+    proof.write_text("The native request endpoint changed; the task population stays fixed.", encoding="utf-8")
     revision = tmp_path / "revision.json"
     revision.write_text(
         json.dumps(
@@ -94,7 +94,8 @@ def legacy_run(tmp_path, monkeypatch):
                 "profile_sha256": bytes_sha256(replacement.read_bytes()),
                 "evidence": [{"path": proof.name, "sha256": bytes_sha256(proof.read_bytes())}],
             }
-        )
+        ),
+        encoding="utf-8"
     )
     return output, contract, replacement, revision
 
@@ -131,8 +132,8 @@ def test_legacy_repair_rejects_unproven_sources_before_mutations(legacy_run, cha
     elif change == "unbound-source":
         contract["implementation"].pop("dependencies/lexbench_websearch/inputs.py")
     else:
-        (output / "implementation/dependencies/lexbench_websearch/scoring.py").write_text("changed")
-    (output / "run-contract.json").write_text(json.dumps(contract))
+        (output / "implementation/dependencies/lexbench_websearch/scoring.py").write_text("changed", encoding="utf-8")
+    (output / "run-contract.json").write_text(json.dumps(contract), encoding="utf-8")
     before = {p.relative_to(output): p.read_bytes() for p in output.rglob("*") if p.is_file()}
     with pytest.raises(ValueError, match="dataset|dependency|hash mismatch"):
         runner.prepare_execution_revision(profile, output, revision)
@@ -169,7 +170,7 @@ def test_legacy_bindings_compare_runtime_inputs_not_publication_metadata(
             else "definitions/datasets/factual-v1.json"
         )
         lock["datasets"]["simpleqa-verified"]["files"][relative]["sha256"] = "a" * 64
-    (tmp_path / "data-lock.json").write_text(json.dumps(lock))
+    (tmp_path / "data-lock.json").write_text(json.dumps(lock), encoding="utf-8")
     monkeypatch.setattr(data, "__file__", str(tmp_path / "data.py"))
     if change in {"metadata-only", "receipt-only"}:
         assert data.legacy_dependencies("websearch", LEGACY_PIN) == data.dependencies("websearch")
@@ -195,7 +196,7 @@ def test_legacy_source_bytes_cannot_be_overwritten_by_current_composition(
     old["files"]["definitions/" + relative]["sha256"] = "a" * 64
     if relative.startswith("datasets/"):
         old["datasets"]["factual-v1"]["sha256"] = "a" * 64
-    (tmp_path / "data-lock.json").write_text(json.dumps(lock))
+    (tmp_path / "data-lock.json").write_text(json.dumps(lock), encoding="utf-8")
     monkeypatch.setattr(data, "__file__", str(tmp_path / "data.py"))
     with pytest.raises(ValueError, match="dataset"):
         data.legacy_dependencies("websearch", LEGACY_PIN)
@@ -232,9 +233,9 @@ def test_public_legacy_revision_rejects_unproven_bundle_before_reference_calls(
     output, contract, profile, revision = legacy_run
     if change == "unknown-pin":
         _dependency_files(output, contract, pin="f" * 40)
-        (output / "run-contract.json").write_text(json.dumps(contract))
+        (output / "run-contract.json").write_text(json.dumps(contract), encoding="utf-8")
     else:
-        (output / "implementation/dependencies/lexbench_websearch/scoring.py").write_text("changed")
+        (output / "implementation/dependencies/lexbench_websearch/scoring.py").write_text("changed", encoding="utf-8")
     def forbidden(*args, **kwargs):
         raise AssertionError("Unverified repair made a network call")
     monkeypatch.setattr(runner, "http_call", forbidden)

@@ -28,7 +28,7 @@ def test_current_names_and_cards_use_the_canonical_hub_identity(track, name):
     metadata = json.loads(Path(data.__file__).with_name("cards").joinpath("metadata.json").read_bytes())
     assert selected["repository"] == metadata[track]["repo_id"] == "Lexmount/" + name
     assert metadata[track]["pretty_name"] == name
-    assert Path(data.__file__).with_name("cards").joinpath(track + ".md").read_text().splitlines()[0] == "# " + name
+    assert Path(data.__file__).with_name("cards").joinpath(track + ".md").read_text(encoding="utf-8").splitlines()[0] == "# " + name
     for item in selected.get("history", []):
         assert item["repository"] == selected["repository"]
 
@@ -86,7 +86,7 @@ def test_previous_hf_checkout_binding_resolves_only_its_exact_locked_bytes(tmp_p
     authority = checkout / "evaluation/lexbench-webfetch.json"
     authority.write_text(json.dumps({"kind": "huggingface_benchmark_binding",
         "repository": "https://huggingface.co/datasets/Lexmount/lexbench-webfetch",
-        "revision": revision, "definition_files": {relative: expected}}))
+        "revision": revision, "definition_files": {relative: expected}}), encoding="utf-8")
     original = authority.read_bytes()
     installed = tmp_path / "installed/source-inputs.json"
     installed.parent.mkdir()

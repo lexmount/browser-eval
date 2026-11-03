@@ -180,16 +180,16 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
     assert "1 / 1" in (output / "index.html").read_text(encoding="utf-8")
     assert "物理执行：1 次" in (output / "case/000.html").read_text(encoding="utf-8")
     assert '<base href="/">' in (output / "case/000.html").read_text(encoding="utf-8")
-    public = json.loads((output / "evidence/000.json").read_text())
+    public = json.loads((output / "evidence/000.json").read_text(encoding="utf-8"))
     assert public["physical_attempt_count"] == 1
     if hosted:
         assert public["participant"]["remote_browser"] == remote_browser
         assert public["participant"]["runtime_metadata"] == runtime_metadata
         assert public["participant"]["request_bridge"] == request_bridge
-        assert "1 个浏览器运行时身份" in (output / "index.html").read_text()
-        assert "Browser.getVersion" in (output / "method.html").read_text()
-        assert "Playwright request bridge" in (output / "method.html").read_text()
-        manifest = json.loads((output / "manifest.json").read_text())
+        assert "1 个浏览器运行时身份" in (output / "index.html").read_text(encoding="utf-8")
+        assert "Browser.getVersion" in (output / "method.html").read_text(encoding="utf-8")
+        assert "Playwright request bridge" in (output / "method.html").read_text(encoding="utf-8")
+        manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
         assert manifest["participant"]["request_bridge"] == request_bridge
     else:
         assert public["participant"]["binary_sha256"] == "b" * 64

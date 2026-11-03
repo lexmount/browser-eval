@@ -26,7 +26,7 @@ class ResultReviewTests(unittest.TestCase):
                 root = Path(directory)
                 _, _, review = self.fixture(root)
                 review['attempts'][0]['agent_evidence'] = 'Observed synthetic answer'
-                (root / 'result-review.json').write_text(json.dumps(review))
+                (root / 'result-review.json').write_text(json.dumps(review), encoding='utf-8')
                 before = {path.name: path.read_bytes() for path in root.iterdir()}
                 with self.assertRaisesRegex(ValueError, 'must not overwrite its source evidence'):
                     rebase_review(root, root, root / name, None, install=True)
@@ -38,16 +38,16 @@ class ResultReviewTests(unittest.TestCase):
                 root = Path(directory)
                 _, _, review = self.fixture(root)
                 target = root / 'result-review.json'
-                target.write_text('previous review')
+                target.write_text('previous review', encoding='utf-8')
                 dumps = json.dumps
 
                 def serialize(value, **kwargs):
                     if failure == 'write':
                         raise OSError('synthetic serialization failure')
                     if failure == 'input-change':
-                        (root / 'results.jsonl').write_text('{}\n')
+                        (root / 'results.jsonl').write_text('{}\n', encoding='utf-8')
                     if failure == 'output-change':
-                        target.write_text('concurrent review')
+                        target.write_text('concurrent review', encoding='utf-8')
                     return dumps(value, **kwargs)
 
                 if failure == 'replace':
@@ -56,22 +56,22 @@ class ResultReviewTests(unittest.TestCase):
                     context = patch('harness.web_fetch.result_review.json.dumps', side_effect=serialize)
                 with context, self.assertRaises((OSError, ValueError)):
                     install_result_review(root, review)
-                self.assertEqual(target.read_text(),
+                self.assertEqual(target.read_text(encoding='utf-8'),
                                  'concurrent review' if failure == 'output-change' else 'previous review')
                 self.assertEqual(list(root.glob('.result-review-*.tmp')), [])
                 if failure == 'input-change':
-                    self.assertEqual((root / 'results.jsonl').read_text(), '{}\n')
+                    self.assertEqual((root / 'results.jsonl').read_text(encoding='utf-8'), '{}\n')
 
     def test_review_install_rejects_linked_target_without_touching_external_file(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             _, _, review = self.fixture(root)
             outside = root / 'outside.json'
-            outside.write_text('unrelated file')
+            outside.write_text('unrelated file', encoding='utf-8')
             (root / 'result-review.json').symlink_to(outside)
             with self.assertRaisesRegex(ValueError, 'Symlinked evidence'):
                 install_result_review(root, review)
-            self.assertEqual(outside.read_text(), 'unrelated file')
+            self.assertEqual(outside.read_text(encoding='utf-8'), 'unrelated file')
 
     def test_rebase_rejection_preserves_installed_review_and_output(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -82,28 +82,28 @@ class ResultReviewTests(unittest.TestCase):
             dataset, records, prior = self.fixture(reviewed)
             prior['schema_version'] = 999
             prior['attempts'][0]['agent_evidence'] = 'Observed synthetic answer'
-            (reviewed / 'result-review.json').write_text(json.dumps(prior))
+            (reviewed / 'result-review.json').write_text(json.dumps(prior), encoding='utf-8')
             (current / 'dataset.json').write_bytes((reviewed / 'dataset.json').read_bytes())
             (current / 'results.jsonl').write_bytes((reviewed / 'results.jsonl').read_bytes())
             installed = current / 'result-review.json'
-            installed.write_text('previous installed review')
+            installed.write_text('previous installed review', encoding='utf-8')
             output = root / 'output.json'
-            output.write_text('previous staged review')
+            output.write_text('previous staged review', encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'Unsupported result review schema'):
                 rebase_review(current, reviewed, output, None, install=True)
-            self.assertEqual(installed.read_text(), 'previous installed review')
-            self.assertEqual(output.read_text(), 'previous staged review')
+            self.assertEqual(installed.read_text(encoding='utf-8'), 'previous installed review')
+            self.assertEqual(output.read_text(encoding='utf-8'), 'previous staged review')
 
     def test_merge_does_not_follow_a_preexisting_temporary_symlink(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             evidence, prior, supplement, _ = self.multistage_revision_fixture(root)
             outside = root / 'outside.json'
-            outside.write_text('unrelated file')
+            outside.write_text('unrelated file', encoding='utf-8')
             temporary = evidence / '.result-review.json.merge-tmp'
             temporary.symlink_to(outside)
             merge_scoring_reviews(evidence, prior, supplement)
-            self.assertEqual(outside.read_text(), 'unrelated file')
+            self.assertEqual(outside.read_text(encoding='utf-8'), 'unrelated file')
             self.assertTrue(temporary.is_symlink())
             self.assertFalse((evidence / 'result-review.json').is_symlink())
 
@@ -124,8 +124,8 @@ class ResultReviewTests(unittest.TestCase):
                  'cases':[{'id':'a','task_kind':'body'}]}
         records=[{'attempt_id':'p__a__r001','case_id':'a','ok':True,
                   'metrics':{'content_pass':True}}]
-        (root/'dataset.json').write_text(json.dumps(dataset))
-        (root/'results.jsonl').write_text(json.dumps(records[0])+'\n')
+        (root/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+        (root/'results.jsonl').write_text(json.dumps(records[0])+'\n', encoding='utf-8')
         review={'schema_version':1,'bindings':{
             'dataset_sha256':hashlib.sha256((root/'dataset.json').read_bytes()).hexdigest(),
             'results_sha256':hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()},
@@ -137,11 +137,11 @@ class ResultReviewTests(unittest.TestCase):
     def test_requires_exact_bound_attempt_complete_review(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);dataset,records,review=self.fixture(root)
-            (root/'result-review.json').write_text(json.dumps(review))
+            (root/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             result=require_result_review(root,dataset,records)
             self.assertEqual(result['reviewed_attempts'],1)
             review['bindings']['results_sha256']='wrong'
-            (root/'result-review.json').write_text(json.dumps(review))
+            (root/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'different results'):
                 require_result_review(root,dataset,records)
 
@@ -153,18 +153,18 @@ class ResultReviewTests(unittest.TestCase):
             root = Path(directory)
             dataset, records, review = self.fixture(root)
             records[0]['metrics']['forbidden_hits'] = []
-            (root / 'results.jsonl').write_text(json.dumps(records[0]) + '\n')
+            (root / 'results.jsonl').write_text(json.dumps(records[0]) + '\n', encoding='utf-8')
             receipt = {'kind': 'audited_scoring_rule_revision', 'provider_calls': 0,
                        'changed_cases': [], 'task_decision_changes': [],
                        'input_dataset_sha256': 'a' * 64, 'input_results_sha256': 'b' * 64,
                        'output_dataset_sha256': hashlib.sha256((root / 'dataset.json').read_bytes()).hexdigest(),
                        'output_results_sha256': hashlib.sha256((root / 'results.jsonl').read_bytes()).hexdigest()}
-            (root / 'scoring-revisions.json').write_text(json.dumps([receipt]))
+            (root / 'scoring-revisions.json').write_text(json.dumps([receipt]), encoding='utf-8')
             self.assertTrue(valid_scoring_revision(root))
             ordinary_review = json.loads(json.dumps(review))
             ordinary_review['bindings']['results_sha256'] = receipt['output_results_sha256']
             ordinary_review['attempts'][0].update(machine_verdict='fail', final_verdict='fail')
-            (root / 'result-review.json').write_text(json.dumps(ordinary_review))
+            (root / 'result-review.json').write_text(json.dumps(ordinary_review), encoding='utf-8')
             from harness.web_fetch.reference_lifecycle import valid_scoring_revision_chain
             self.assertFalse(valid_scoring_revision_chain(root, review_sha256=hashlib.sha256(
                 (root / 'result-review.json').read_bytes()).hexdigest()))
@@ -172,14 +172,14 @@ class ResultReviewTests(unittest.TestCase):
                 require_blind_result_review(root, dataset, records, ordinary_review)
             (root / 'result-review.json').unlink()
             article = root / 'article.json'
-            article.write_text('{}')
+            article.write_text('{}', encoding='utf-8')
             rebind_report_interpretation(root, {'path': 'article.json',
                 'sha256': hashlib.sha256(article.read_bytes()).hexdigest()})
-            dataset = json.loads((root / 'dataset.json').read_text())
+            dataset = json.loads((root / 'dataset.json').read_text(encoding='utf-8'))
             review['bindings'] = {name + '_sha256': hashlib.sha256(
                 (root / file).read_bytes()).hexdigest()
                 for name, file in [('dataset', 'dataset.json'), ('results', 'results.jsonl')]}
-            (root / 'result-review.json').write_text(json.dumps(review))
+            (root / 'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             assembled = {**receipt, 'kind': 'audited_assembled_scoring_revision',
                 'input_dataset_sha256': receipt['output_dataset_sha256'],
                 'input_results_sha256': receipt['output_results_sha256'],
@@ -187,7 +187,7 @@ class ResultReviewTests(unittest.TestCase):
                 'independent_result_review_sha256': hashlib.sha256((root / 'result-review.json').read_bytes()).hexdigest()}
             assembled['input_dataset_sha256'] = review['bindings']['dataset_sha256']
             assembled['output_dataset_sha256'] = review['bindings']['dataset_sha256']
-            (root / 'scoring-revisions.json').write_text(json.dumps([receipt, assembled]))
+            (root / 'scoring-revisions.json').write_text(json.dumps([receipt, assembled]), encoding='utf-8')
             self.assertTrue(valid_scoring_revision(root))
             self.assertEqual(require_blind_result_review(root, dataset, records)['reviewed_attempts'], 1)
             self.assertEqual(require_result_review(root, dataset, records)['reviewed_attempts'], 1)
@@ -205,14 +205,14 @@ class ResultReviewTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'Historical scoring metrics'):
                 require_blind_result_review(root, dataset, altered_records, review_document=review)
             review['attempts'][0]['final_verdict'] = 'fail'
-            (root / 'result-review.json').write_text(json.dumps(review))
+            (root / 'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             self.assertFalse(valid_scoring_revision(root))
             with self.assertRaises(ValueError):
                 require_result_review(root, dataset, records)
             review['attempts'][0]['final_verdict'] = 'pass'
-            (root / 'result-review.json').write_text(json.dumps(review))
+            (root / 'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             receipt['output_results_sha256'] = '0' * 64
-            (root / 'scoring-revisions.json').write_text(json.dumps([receipt]))
+            (root / 'scoring-revisions.json').write_text(json.dumps([receipt]), encoding='utf-8')
             self.assertFalse(valid_scoring_revision(root))
             with self.assertRaisesRegex(ValueError, 'Historical scoring metrics'):
                 require_blind_result_review(root, dataset, records)
@@ -223,7 +223,7 @@ class ResultReviewTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'required but missing'):
                 require_result_review(root,dataset,records)
             review['attempts'][0]['final_verdict']=None
-            (root/'result-review.json').write_text(json.dumps(review))
+            (root/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'unresolved'):
                 require_result_review(root,dataset,records)
 
@@ -232,12 +232,12 @@ class ResultReviewTests(unittest.TestCase):
             root=Path(directory);dataset,records,review=self.fixture(root)
             dataset['cases'][0]['task_kind']='body'
             records[0].update(ok=True,case_id='a',metrics={'content_pass':True})
-            (root/'dataset.json').write_text(json.dumps(dataset))
-            (root/'results.jsonl').write_text(json.dumps(records[0])+'\n')
+            (root/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+            (root/'results.jsonl').write_text(json.dumps(records[0])+'\n', encoding='utf-8')
             review['bindings']['dataset_sha256']=hashlib.sha256((root/'dataset.json').read_bytes()).hexdigest()
             review['bindings']['results_sha256']=hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()
             review['attempts'][0]['final_verdict']='fail'
-            (root/'result-review.json').write_text(json.dumps(review))
+            (root/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'correct and re-review'):
                 require_result_review(root,dataset,records)
 
@@ -246,7 +246,7 @@ class ResultReviewTests(unittest.TestCase):
             root = Path(directory)
             dataset, records, review = self.fixture(root)
             dataset['comparison']['independent_result_review_scope'] = 'all'
-            (root / 'dataset.json').write_text(json.dumps(dataset))
+            (root / 'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             review['bindings']['dataset_sha256'] = hashlib.sha256(
                 (root / 'dataset.json').read_bytes()).hexdigest()
             review['review_protocol']['scope'] = 'machine-failures'
@@ -261,7 +261,7 @@ class ResultReviewTests(unittest.TestCase):
             self.assertEqual(result['reviewed_attempts'], 1)
             self.assertEqual(result['accepted_unreviewed_passes'], 0)
             dataset['comparison']['independent_result_review_scope'] = 'unsupported'
-            (root / 'dataset.json').write_text(json.dumps(dataset))
+            (root / 'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             review['bindings']['dataset_sha256'] = hashlib.sha256(
                 (root / 'dataset.json').read_bytes()).hexdigest()
             with self.assertRaisesRegex(ValueError, 'Unsupported declared'):
@@ -274,34 +274,34 @@ class ResultReviewTests(unittest.TestCase):
                     'metrics':{'content_pass':False}}
             dataset['cases'].append({'id':'b','task_kind':'body'})
             records.append(failed)
-            (root/'dataset.json').write_text(json.dumps(dataset))
-            (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records))
+            (root/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+            (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records), encoding='utf-8')
             review['bindings']['dataset_sha256']=hashlib.sha256((root/'dataset.json').read_bytes()).hexdigest()
             review['bindings']['results_sha256']=hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()
             review['review_protocol']['scope']='machine-failures'
             review['attempts']=[{'attempt_id':'p__b__r001','machine_verdict':'fail',
                                  'agent_verdict':'fail','final_verdict':'fail'}]
-            (root/'result-review.json').write_text(json.dumps(review))
+            (root/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             result=require_result_review(root,dataset,records)
             self.assertEqual(result['reviewed_attempts'],1)
             self.assertEqual(result['total_attempts'],2)
             self.assertEqual(result['accepted_unreviewed_passes'],1)
 
             review['attempts']=[]
-            (root/'result-review.json').write_text(json.dumps(review))
+            (root/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'every attempt'):
                 require_result_review(root,dataset,records)
 
     def test_anomaly_gate_is_only_mandatory_when_dataset_explicitly_requires_it(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);dataset,records,review=self.fixture(root)
-            (root/'result-review.json').write_text(json.dumps(review))
+            (root/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             self.assertIsNotNone(require_result_review(root,dataset,records))
             dataset['comparison']['require_anomaly_review']=True
-            (root/'dataset.json').write_text(json.dumps(dataset))
+            (root/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             review['bindings']['dataset_sha256']=hashlib.sha256(
                 (root/'dataset.json').read_bytes()).hexdigest()
-            (root/'result-review.json').write_text(json.dumps(review))
+            (root/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'cover every'):
                 require_result_review(root,dataset,records)
 
@@ -321,10 +321,10 @@ class ResultReviewTests(unittest.TestCase):
                 'review_protocol':{'scope':'machine-failures'},
                 'attempts':[{'attempt_id':old['attempt_id'],'machine_verdict':'fail',
                              'agent_verdict':'fail','final_verdict':'fail'}]}
-            path=root/'result-review.json';path.write_text(json.dumps(review))
+            path=root/'result-review.json';path.write_text(json.dumps(review), encoding='utf-8')
             self.assertTrue(rebind_unchanged_result_review(
                 path,dataset,old_bytes,dataset,new_bytes,rebound_at='now'))
-            rebound=json.loads(path.read_text())
+            rebound=json.loads(path.read_text(encoding='utf-8'))
             self.assertEqual(rebound['bindings']['results_sha256'],hashlib.sha256(new_bytes).hexdigest())
 
             changed=json.loads(json.dumps(new));changed['metrics']['content_pass']=True
@@ -343,8 +343,8 @@ class ResultReviewTests(unittest.TestCase):
                  'metrics':{'content_pass':True,'content_sha256':'a'*64}}
             new=json.loads(json.dumps(old));new['metrics']['content_pass']=False
             for evidence,row in ((reviewed,old),(current,new)):
-                (evidence/'dataset.json').write_text(json.dumps(dataset))
-                (evidence/'results.jsonl').write_text(json.dumps(row)+'\n')
+                (evidence/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+                (evidence/'results.jsonl').write_text(json.dumps(row)+'\n', encoding='utf-8')
             review={'schema_version':1,'bindings':{
                 'dataset_sha256':hashlib.sha256((reviewed/'dataset.json').read_bytes()).hexdigest(),
                 'results_sha256':hashlib.sha256((reviewed/'results.jsonl').read_bytes()).hexdigest()},
@@ -353,7 +353,7 @@ class ResultReviewTests(unittest.TestCase):
                              'agent_verdict':'fail','agent_evidence':'Body is too short.',
                              'reviewer_anomalies':['unexpectedly short output'],
                              'final_verdict':None,'adjudication':None}]}
-            (reviewed/'result-review.json').write_text(json.dumps(review))
+            (reviewed/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             output=root/'rebased.json'
             result=rebase_review(current,reviewed,output,None,install=True)
             self.assertEqual(result['attempts'][0]['machine_verdict'],'fail')
@@ -364,7 +364,7 @@ class ResultReviewTests(unittest.TestCase):
             self.assertIsNotNone(require_result_review(current,dataset,[new]))
 
             changed=json.loads(json.dumps(new));changed['metrics']['content_sha256']='b'*64
-            (current/'results.jsonl').write_text(json.dumps(changed)+'\n')
+            (current/'results.jsonl').write_text(json.dumps(changed)+'\n', encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'Reviewer-visible evidence changed'):
                 rebase_review(current,reviewed,output,None)
 
@@ -392,10 +392,10 @@ class ResultReviewTests(unittest.TestCase):
                 'review_protocol':{'scope':'all'},
                 'attempts':[{'attempt_id':row['attempt_id'],'machine_verdict':'pass',
                              'agent_verdict':'pass','final_verdict':'pass'}]}
-            path=root/'result-review.json';path.write_text(json.dumps(review))
+            path=root/'result-review.json';path.write_text(json.dumps(review), encoding='utf-8')
             self.assertTrue(rebind_unchanged_result_review(
                 path,before_bytes,results,after_bytes,results,rebound_at='now'))
-            rebound=json.loads(path.read_text())
+            rebound=json.loads(path.read_text(encoding='utf-8'))
             self.assertEqual(rebound['bindings']['dataset_sha256'],hashlib.sha256(after_bytes).hexdigest())
             self.assertEqual(
                 rebound['review_protocol']['rebound_after_nonjudgmental_metadata_change']['changed_top_level_fields'],
@@ -440,7 +440,7 @@ class ResultReviewTests(unittest.TestCase):
             review['attempts'][0].update(machine_verdict='fail', agent_verdict='fail',
                                          final_verdict='fail')
             path = root / 'result-review.json'
-            path.write_text(json.dumps(review))
+            path.write_text(json.dumps(review), encoding='utf-8')
             self.assertTrue(rebind_unchanged_result_review(
                 path, (root / 'dataset.json').read_bytes(), before,
                 (root / 'dataset.json').read_bytes(), before, rebound_at='now'))
@@ -451,7 +451,7 @@ class ResultReviewTests(unittest.TestCase):
                 else:
                     changed['error_message'] = 'Transport reset B'
                 after = (json.dumps(changed) + '\n').encode()
-                path.write_text(json.dumps(review))
+                path.write_text(json.dumps(review), encoding='utf-8')
                 original = path.read_bytes()
                 with self.subTest(change=change), self.assertRaisesRegex(
                         IndependentReviewRequired, 'Review-visible input changed'):
@@ -463,7 +463,7 @@ class ResultReviewTests(unittest.TestCase):
     def test_superseded_review_is_hash_addressed_and_binding_checked(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);dataset,records,review=self.fixture(root)
-            path=root/'result-review.json';path.write_text(json.dumps(review))
+            path=root/'result-review.json';path.write_text(json.dumps(review), encoding='utf-8')
             archived=archive_superseded_result_review(
                 path, before_dataset=(root/'dataset.json').read_bytes(),
                 before_results=(root/'results.jsonl').read_bytes())
@@ -474,7 +474,7 @@ class ResultReviewTests(unittest.TestCase):
                              hashlib.sha256(archive.read_bytes()).hexdigest())
             self.assertTrue(archived['independent_review_required'])
 
-            path.write_text(json.dumps(review))
+            path.write_text(json.dumps(review), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'not bound'):
                 archive_superseded_result_review(
                     path, before_dataset=b'different',
@@ -492,8 +492,8 @@ class ResultReviewTests(unittest.TestCase):
                          {'attempt_id':'p__b__r001','case_id':'b','ok':True,'metrics':{'content_pass':True}}]
             new_records=json.loads(json.dumps(old_records));new_records[0]['metrics']['content_pass']=True
             old_dataset_bytes=json.dumps(old_dataset).encode();old_results_bytes=(''.join(json.dumps(x)+'\n' for x in old_records)).encode()
-            (evidence/'dataset.json').write_text(json.dumps(new_dataset))
-            (evidence/'results.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in new_records))
+            (evidence/'dataset.json').write_text(json.dumps(new_dataset), encoding='utf-8')
+            (evidence/'results.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in new_records), encoding='utf-8')
             prior={'schema_version':1,'bindings':{
                 'dataset_sha256':hashlib.sha256(old_dataset_bytes).hexdigest(),
                 'results_sha256':hashlib.sha256(old_results_bytes).hexdigest()},
@@ -501,24 +501,24 @@ class ResultReviewTests(unittest.TestCase):
                 'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
                 'attempts':[{'attempt_id':'p__a__r001','machine_verdict':'fail','agent_verdict':'fail','final_verdict':'fail'},
                             {'attempt_id':'p__b__r001','machine_verdict':'pass','agent_verdict':'pass','final_verdict':'pass'}]}
-            prior_path=root/'prior.json';prior_path.write_text(json.dumps(prior))
+            prior_path=root/'prior.json';prior_path.write_text(json.dumps(prior), encoding='utf-8')
             receipt={'input_dataset_sha256':prior['bindings']['dataset_sha256'],
                      'input_results_sha256':prior['bindings']['results_sha256'],
                      'output_dataset_sha256':hashlib.sha256((evidence/'dataset.json').read_bytes()).hexdigest(),
                      'output_results_sha256':hashlib.sha256((evidence/'results.jsonl').read_bytes()).hexdigest(),
                      'changed_cases':[{'case_id':'a','fields':['required_patterns']}]}
-            (evidence/'scoring-revisions.json').write_text(json.dumps([receipt]))
+            (evidence/'scoring-revisions.json').write_text(json.dumps([receipt]), encoding='utf-8')
             subset_dataset={'comparison':{'require_independent_result_review':True},'cases':[new_dataset['cases'][0]]}
-            (supplement/'dataset.json').write_text(json.dumps(subset_dataset))
-            (supplement/'results.jsonl').write_text(json.dumps(new_records[0])+'\n')
+            (supplement/'dataset.json').write_text(json.dumps(subset_dataset), encoding='utf-8')
+            (supplement/'results.jsonl').write_text(json.dumps(new_records[0])+'\n', encoding='utf-8')
             supplemental={'schema_version':1,'bindings':{
                 'dataset_sha256':hashlib.sha256((supplement/'dataset.json').read_bytes()).hexdigest(),
                 'results_sha256':hashlib.sha256((supplement/'results.jsonl').read_bytes()).hexdigest()},
                 'reviewer':{'agent':'Codex'},'review_protocol':{'machine_judgments_withheld':True,'scope':'all'},
                 'attempts':[{'attempt_id':'p__a__r001','machine_verdict':'pass','agent_verdict':'pass','final_verdict':'pass'}]}
-            (supplement/'result-review.json').write_text(json.dumps(supplemental))
+            (supplement/'result-review.json').write_text(json.dumps(supplemental), encoding='utf-8')
             merge_scoring_reviews(evidence,prior_path,supplement)
-            merged=json.loads((evidence/'result-review.json').read_text())
+            merged=json.loads((evidence/'result-review.json').read_text(encoding='utf-8'))
             self.assertEqual(merged['attempts'][0]['machine_verdict'],'pass')
             self.assertEqual(merged['review_protocol']['scoring_rule_revision_review']['reviewed_attempts'],1)
 
@@ -562,7 +562,7 @@ class ResultReviewTests(unittest.TestCase):
                                       'machine_verdict':verdict,
                                       'agent_verdict':verdict,
                                       'final_verdict':verdict})
-        prior_path=root/'prior.json';prior_path.write_text(json.dumps(prior))
+        prior_path=root/'prior.json';prior_path.write_text(json.dumps(prior), encoding='utf-8')
         dataset_hash=hashlib.sha256(dataset_bytes).hexdigest()
         receipts=[
             {'input_dataset_sha256':dataset_hash,
@@ -576,13 +576,13 @@ class ResultReviewTests(unittest.TestCase):
              'output_results_sha256':hashlib.sha256(current_bytes).hexdigest(),
              'changed_cases':[{'case_id':'b','fields':['body_regions']}]},
         ]
-        (evidence/'scoring-revisions.json').write_text(json.dumps(receipts))
+        (evidence/'scoring-revisions.json').write_text(json.dumps(receipts), encoding='utf-8')
         changed_cases=[case for case in dataset['cases'] if case['id'] in {'a','b'}]
         changed_records=[row for row in current_records if row['case_id'] in {'a','b'}]
         (supplement/'dataset.json').write_text(json.dumps({
-            'comparison':dataset['comparison'],'cases':changed_cases}))
+            'comparison':dataset['comparison'],'cases':changed_cases}), encoding='utf-8')
         (supplement/'results.jsonl').write_text(
-            ''.join(json.dumps(row)+'\n' for row in changed_records))
+            ''.join(json.dumps(row)+'\n' for row in changed_records), encoding='utf-8')
         supplemental={'schema_version':1,
                       'bindings':{
                           'dataset_sha256':hashlib.sha256((supplement/'dataset.json').read_bytes()).hexdigest(),
@@ -593,7 +593,7 @@ class ResultReviewTests(unittest.TestCase):
                           'attempt_id':row['attempt_id'],'machine_verdict':'pass',
                           'agent_verdict':'pass','final_verdict':'pass'}
                           for row in changed_records]}
-        (supplement/'result-review.json').write_text(json.dumps(supplemental))
+        (supplement/'result-review.json').write_text(json.dumps(supplemental), encoding='utf-8')
         return evidence,prior_path,supplement,receipts
 
     def test_multistage_revision_reviews_union_of_changed_cases(self):
@@ -601,7 +601,7 @@ class ResultReviewTests(unittest.TestCase):
             root=Path(directory)
             evidence,prior_path,supplement,_=self.multistage_revision_fixture(root)
             merge_scoring_reviews(evidence,prior_path,supplement)
-            merged=json.loads((evidence/'result-review.json').read_text())
+            merged=json.loads((evidence/'result-review.json').read_text(encoding='utf-8'))
             revision=merged['review_protocol']['scoring_rule_revision_review']
             self.assertEqual(revision['changed_cases'],['a','b'])
             self.assertEqual(revision['reviewed_attempts'],4)
@@ -614,7 +614,7 @@ class ResultReviewTests(unittest.TestCase):
             root=Path(directory)
             evidence,prior_path,supplement,receipts=self.multistage_revision_fixture(root)
             receipts[1]['input_results_sha256']='broken'
-            (evidence/'scoring-revisions.json').write_text(json.dumps(receipts))
+            (evidence/'scoring-revisions.json').write_text(json.dumps(receipts), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'chain is broken'):
                 merge_scoring_reviews(evidence,prior_path,supplement)
             self.assertFalse((evidence/'result-review.json').exists())
@@ -623,21 +623,21 @@ class ResultReviewTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)
             evidence,prior_path,supplement,_=self.multistage_revision_fixture(root)
-            subset=json.loads((supplement/'dataset.json').read_text())
+            subset=json.loads((supplement/'dataset.json').read_text(encoding='utf-8'))
             subset['cases']=[case for case in subset['cases'] if case['id']=='a']
             records=[json.loads(line) for line in
-                     (supplement/'results.jsonl').read_text().splitlines()
+                     (supplement/'results.jsonl').read_text(encoding='utf-8').splitlines()
                      if json.loads(line)['case_id']=='a']
-            (supplement/'dataset.json').write_text(json.dumps(subset))
+            (supplement/'dataset.json').write_text(json.dumps(subset), encoding='utf-8')
             (supplement/'results.jsonl').write_text(
-                ''.join(json.dumps(row)+'\n' for row in records))
-            review=json.loads((supplement/'result-review.json').read_text())
+                ''.join(json.dumps(row)+'\n' for row in records), encoding='utf-8')
+            review=json.loads((supplement/'result-review.json').read_text(encoding='utf-8'))
             review['bindings']={
                 'dataset_sha256':hashlib.sha256((supplement/'dataset.json').read_bytes()).hexdigest(),
                 'results_sha256':hashlib.sha256((supplement/'results.jsonl').read_bytes()).hexdigest()}
             review['attempts']=[row for row in review['attempts']
                                 if '__a__' in row['attempt_id']]
-            (supplement/'result-review.json').write_text(json.dumps(review))
+            (supplement/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'every current changed task'):
                 merge_scoring_reviews(evidence,prior_path,supplement)
             self.assertFalse((evidence/'result-review.json').exists())
@@ -647,7 +647,7 @@ class ResultReviewTests(unittest.TestCase):
             root=Path(directory)
             evidence,prior_path,supplement,receipts=self.multistage_revision_fixture(root)
             receipts[-1]['output_results_sha256']='not-current'
-            (evidence/'scoring-revisions.json').write_text(json.dumps(receipts))
+            (evidence/'scoring-revisions.json').write_text(json.dumps(receipts), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'does not end at current evidence'):
                 merge_scoring_reviews(evidence,prior_path,supplement)
             self.assertFalse((evidence/'result-review.json').exists())
@@ -667,35 +667,35 @@ class ResultReviewTests(unittest.TestCase):
                 evidence, prior_path, supplement, receipts = self.multistage_revision_fixture(root)
 
                 if scenario == 'prior-binding-missing':
-                    prior = json.loads(prior_path.read_text())
+                    prior = json.loads(prior_path.read_text(encoding='utf-8'))
                     prior['bindings'].pop('results_sha256')
-                    prior_path.write_text(json.dumps(prior))
+                    prior_path.write_text(json.dumps(prior), encoding='utf-8')
                 elif scenario == 'receipt-output-missing':
                     receipts[0].pop('output_results_sha256')
-                    (evidence/'scoring-revisions.json').write_text(json.dumps(receipts))
+                    (evidence/'scoring-revisions.json').write_text(json.dumps(receipts), encoding='utf-8')
                 elif scenario == 'supplemental-not-blind':
-                    review = json.loads((supplement/'result-review.json').read_text())
+                    review = json.loads((supplement/'result-review.json').read_text(encoding='utf-8'))
                     review['review_protocol']['machine_judgments_withheld'] = False
-                    (supplement/'result-review.json').write_text(json.dumps(review))
+                    (supplement/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
                 elif scenario == 'supplemental-not-all':
-                    review = json.loads((supplement/'result-review.json').read_text())
+                    review = json.loads((supplement/'result-review.json').read_text(encoding='utf-8'))
                     review['review_protocol']['scope'] = 'machine-failures'
                     review['attempts'] = []
-                    (supplement/'result-review.json').write_text(json.dumps(review))
+                    (supplement/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
                 elif scenario == 'supplemental-not-current':
                     records = [json.loads(line) for line in
-                               (supplement/'results.jsonl').read_text().splitlines()]
+                               (supplement/'results.jsonl').read_text(encoding='utf-8').splitlines()]
                     records[0]['provider_metadata'] = {'diagnostic': 'not-current'}
                     (supplement/'results.jsonl').write_text(
-                        ''.join(json.dumps(row)+'\n' for row in records))
-                    review = json.loads((supplement/'result-review.json').read_text())
+                        ''.join(json.dumps(row)+'\n' for row in records), encoding='utf-8')
+                    review = json.loads((supplement/'result-review.json').read_text(encoding='utf-8'))
                     review['bindings']['results_sha256'] = hashlib.sha256(
                         (supplement/'results.jsonl').read_bytes()).hexdigest()
-                    (supplement/'result-review.json').write_text(json.dumps(review))
+                    (supplement/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
                 elif scenario == 'prior-inventory-missing':
-                    prior = json.loads(prior_path.read_text())
+                    prior = json.loads(prior_path.read_text(encoding='utf-8'))
                     prior['attempts'] = prior['attempts'][:-1]
-                    prior_path.write_text(json.dumps(prior))
+                    prior_path.write_text(json.dumps(prior), encoding='utf-8')
 
                 with self.assertRaisesRegex(ValueError, message):
                     merge_scoring_reviews(evidence, prior_path, supplement)
@@ -728,8 +728,8 @@ class ResultReviewTests(unittest.TestCase):
             # the old machine_verdict field itself is stale.
             new_records[2]['metrics']['content_pass']=True
             for path,dataset,records in ((prior_root,old_dataset,old_records),(current_root,new_dataset,new_records)):
-                (path/'dataset.json').write_text(json.dumps(dataset))
-                (path/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records))
+                (path/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+                (path/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records), encoding='utf-8')
             prior_review={'schema_version':1,'bindings':{
                 'dataset_sha256':hashlib.sha256((prior_root/'dataset.json').read_bytes()).hexdigest(),
                 'results_sha256':hashlib.sha256((prior_root/'results.jsonl').read_bytes()).hexdigest()},
@@ -748,14 +748,14 @@ class ResultReviewTests(unittest.TestCase):
                     'agent_verdict':reviewed_verdict,'agent_evidence':'direct artifact evidence',
                     'final_verdict':reviewed_verdict,
                     'adjudication':('confirmed score error' if reviewed_verdict!=verdict else None)})
-            (prior_root/'result-review.json').write_text(json.dumps(prior_review))
+            (prior_root/'result-review.json').write_text(json.dumps(prior_review), encoding='utf-8')
             required_ids={'p__a__r001','p__b__r001','q__b__r001'}
             required_records=[row for row in new_records if row['attempt_id'] in required_ids]
             subset_dataset={'comparison':{'require_independent_result_review':True},
                             'cases':new_dataset['cases']}
-            (supplement/'dataset.json').write_text(json.dumps(subset_dataset))
+            (supplement/'dataset.json').write_text(json.dumps(subset_dataset), encoding='utf-8')
             (supplement/'results.jsonl').write_text(
-                ''.join(json.dumps(row)+'\n' for row in required_records))
+                ''.join(json.dumps(row)+'\n' for row in required_records), encoding='utf-8')
             supplemental={'schema_version':1,'bindings':{
                 'dataset_sha256':hashlib.sha256((supplement/'dataset.json').read_bytes()).hexdigest(),
                 'results_sha256':hashlib.sha256((supplement/'results.jsonl').read_bytes()).hexdigest()},
@@ -766,10 +766,10 @@ class ResultReviewTests(unittest.TestCase):
                 supplemental['attempts'].append({
                     'attempt_id':row['attempt_id'],'machine_verdict':verdict,
                     'agent_verdict':verdict,'final_verdict':verdict})
-            (supplement/'result-review.json').write_text(json.dumps(supplemental))
+            (supplement/'result-review.json').write_text(json.dumps(supplemental), encoding='utf-8')
             merge_refresh_reviews(current_root,prior_root,supplement,
                           prior_review_path=prior_root/'result-review.json')
-            merged=json.loads((current_root/'result-review.json').read_text())
+            merged=json.loads((current_root/'result-review.json').read_text(encoding='utf-8'))
             refresh=merged['review_protocol']['matrix_refresh_review']
             self.assertEqual(refresh['changed_task_cases'],['b'])
             self.assertEqual(refresh['rerun_only_attempts'],['p__a__r001'])
@@ -781,7 +781,7 @@ class ResultReviewTests(unittest.TestCase):
             self.assertEqual(merged['confirmed_scoring_errors'],0)
 
             changed=json.loads(json.dumps(new_records));changed[2]['provider_metadata']={'images':['https://example.test/also-new.png']}
-            (current_root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in changed))
+            (current_root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in changed), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'exactly every non-reusable current attempt'):
                 merge_refresh_reviews(current_root,prior_root,supplement)
 
@@ -792,8 +792,8 @@ class ResultReviewTests(unittest.TestCase):
         def bundle(root, cases, records):
             root.mkdir()
             dataset = {'comparison': {'require_independent_result_review': True}, 'cases': cases}
-            (root / 'dataset.json').write_text(json.dumps(dataset))
-            (root / 'results.jsonl').write_text(''.join(json.dumps(r) + '\n' for r in records))
+            (root / 'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+            (root / 'results.jsonl').write_text(''.join(json.dumps(r) + '\n' for r in records), encoding='utf-8')
             bindings = {name + '_sha256': hashlib.sha256((root / file).read_bytes()).hexdigest()
                         for name, file in [('dataset', 'dataset.json'), ('results', 'results.jsonl')]}
             review = {'schema_version': 1, 'bindings': bindings, 'reviewer': {'agent': 'fixture'},
@@ -801,14 +801,14 @@ class ResultReviewTests(unittest.TestCase):
                       'attempts': [{'attempt_id': r['attempt_id'], 'machine_verdict': 'pass' if r['metrics']['content_pass'] else 'fail',
                                     'agent_verdict': 'pass' if r['metrics']['content_pass'] else 'fail',
                                     'final_verdict': 'pass' if r['metrics']['content_pass'] else 'fail'} for r in records]}
-            (root / 'result-review.json').write_text(json.dumps(review))
+            (root / 'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             receipt = {'kind': 'audited_assembled_scoring_revision', 'provider_calls': 0,
                        'input_dataset_sha256': bindings['dataset_sha256'], 'input_results_sha256': bindings['results_sha256'],
                        'output_dataset_sha256': bindings['dataset_sha256'], 'output_results_sha256': bindings['results_sha256'],
                        'changed_cases': [], 'task_decision_changes': [],
                        'source_scoring_receipts_sha256': scoring_revision_history_sha256([]),
                        'independent_result_review_sha256': hashlib.sha256((root / 'result-review.json').read_bytes()).hexdigest()}
-            (root / 'scoring-revisions.json').write_text(json.dumps([receipt]))
+            (root / 'scoring-revisions.json').write_text(json.dumps([receipt]), encoding='utf-8')
             self.assertTrue(valid_scoring_revision(root))
             return dataset, review
 
@@ -824,19 +824,19 @@ class ResultReviewTests(unittest.TestCase):
                 prior_dataset, prior_review = bundle(prior, cases, rows)
                 if mode == 'presentation':
                     from harness.web_fetch.scoring_revision import rebind_report_interpretation
-                    (prior / 'article.json').write_text('{}')
+                    (prior / 'article.json').write_text('{}', encoding='utf-8')
                     rebind_report_interpretation(prior, {'path': 'article.json',
                         'sha256': hashlib.sha256(b'{}').hexdigest()})
-                    prior_dataset = json.loads((prior / 'dataset.json').read_text())
+                    prior_dataset = json.loads((prior / 'dataset.json').read_text(encoding='utf-8'))
                     prior_review['bindings']['dataset_sha256'] = hashlib.sha256((prior / 'dataset.json').read_bytes()).hexdigest()
-                    (prior / 'result-review.json').write_text(json.dumps(prior_review))
-                    history = json.loads((prior / 'scoring-revisions.json').read_text())
+                    (prior / 'result-review.json').write_text(json.dumps(prior_review), encoding='utf-8')
+                    history = json.loads((prior / 'scoring-revisions.json').read_text(encoding='utf-8'))
                     history.append({**history[-1],
                         'input_dataset_sha256': prior_review['bindings']['dataset_sha256'],
                         'output_dataset_sha256': prior_review['bindings']['dataset_sha256'],
                         'source_scoring_receipts_sha256': scoring_revision_history_sha256(history),
                         'independent_result_review_sha256': hashlib.sha256((prior / 'result-review.json').read_bytes()).hexdigest()})
-                    (prior / 'scoring-revisions.json').write_text(json.dumps(history))
+                    (prior / 'scoring-revisions.json').write_text(json.dumps(history), encoding='utf-8')
                     self.assertTrue(valid_scoring_revision(prior))
                 if mode in {'bad-protocol', 'incomplete', 'unresolved', 'mixed-invalid'}:
                     if mode == 'bad-protocol':
@@ -847,14 +847,14 @@ class ResultReviewTests(unittest.TestCase):
                         prior_review['attempts'][-1].update(machine_verdict='fail', final_verdict='fail')
                     else:
                         prior_review['attempts'][-1]['final_verdict'] = None
-                    (prior / 'result-review.json').write_text(json.dumps(prior_review))
-                    authority = json.loads((prior / 'scoring-revisions.json').read_text())
+                    (prior / 'result-review.json').write_text(json.dumps(prior_review), encoding='utf-8')
+                    authority = json.loads((prior / 'scoring-revisions.json').read_text(encoding='utf-8'))
                     authority[0]['independent_result_review_sha256'] = hashlib.sha256((prior / 'result-review.json').read_bytes()).hexdigest()
-                    (prior / 'scoring-revisions.json').write_text(json.dumps(authority))
+                    (prior / 'scoring-revisions.json').write_text(json.dumps(authority), encoding='utf-8')
                     current.mkdir()
                     document = {'comparison': {'require_independent_result_review': True}, 'cases': cases[:1]}
-                    (current / 'dataset.json').write_text(json.dumps(document))
-                    (current / 'results.jsonl').write_text(json.dumps(rows[0]) + '\n')
+                    (current / 'dataset.json').write_text(json.dumps(document), encoding='utf-8')
+                    (current / 'results.jsonl').write_text(json.dumps(rows[0]) + '\n', encoding='utf-8')
                     proposed = json.loads(json.dumps(prior_review))
                     proposed['review_protocol'] = {'scope': 'all', 'machine_judgments_withheld': True}
                     proposed['attempts'] = [prior_review['attempts'][0]]
@@ -873,16 +873,16 @@ class ResultReviewTests(unittest.TestCase):
                     new_rows[-1] = replacement
                 bundle(supplement, [next(c for c in new_cases if c['id'] == replacement['case_id'])], [replacement])
                 current.mkdir()
-                (current / 'dataset.json').write_text(json.dumps({**prior_dataset, 'cases': new_cases}))
+                (current / 'dataset.json').write_text(json.dumps({**prior_dataset, 'cases': new_cases}), encoding='utf-8')
                 if mode == 'presentation':
                     import shutil
                     shutil.copy2(prior / 'report-binding-revisions.json', current / 'report-binding-revisions.json')
                     shutil.copytree(prior / 'revision-history', current / 'revision-history')
-                (current / 'results.jsonl').write_text(''.join(json.dumps(r) + '\n' for r in new_rows))
-                history = json.loads((prior / 'scoring-revisions.json').read_text())
+                (current / 'results.jsonl').write_text(''.join(json.dumps(r) + '\n' for r in new_rows), encoding='utf-8')
+                history = json.loads((prior / 'scoring-revisions.json').read_text(encoding='utf-8'))
                 if mode == 'broken-history':
                     history[0]['source_scoring_receipts_sha256'] = '0' * 64
-                (current / 'scoring-revisions.json').write_text(json.dumps(history))
+                (current / 'scoring-revisions.json').write_text(json.dumps(history), encoding='utf-8')
                 before = {p.name: p.read_bytes() for p in current.iterdir() if p.is_file()}
                 if mode == 'broken-history':
                     with self.assertRaises(ValueError):
@@ -897,7 +897,7 @@ class ResultReviewTests(unittest.TestCase):
                 with patch.object(Path, 'read_bytes', bounded_read):
                     require_blind_result_review(prior, prior_dataset, rows)
                     merge_refresh_reviews(current, prior, supplement)
-                dataset = json.loads((current / 'dataset.json').read_text())
+                dataset = json.loads((current / 'dataset.json').read_text(encoding='utf-8'))
                 checked = require_result_review(current, dataset, new_rows)
                 self.assertEqual(checked['reviewed_attempts'], len(new_rows))
                 self.assertEqual(checked['review_protocol']['matrix_refresh_review']['retained_attempts'], len(rows) - (mode != 'new'))
@@ -909,7 +909,7 @@ class ResultReviewTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);prior=root/'prior';current=root/'current';supplement=root/'supplement'
             for path in (prior,current,supplement):
-                path.mkdir();(path/'a.txt').write_text('')
+                path.mkdir();(path/'a.txt').write_text('', encoding='utf-8')
             old_dataset={'comparison':{'require_independent_result_review':True},
                          'cases':[{'id':'a','task_kind':'body','track':'web','url':'https://old.example'}]}
             new_dataset=json.loads(json.dumps(old_dataset))
@@ -918,8 +918,8 @@ class ResultReviewTests(unittest.TestCase):
             record={'attempt_id':'p__a__r001','provider':'p','case_id':'a','ok':True,
                     'error_type':None,'artifact_path':'a.txt','metrics':{'content_pass':False}}
             for path,dataset in ((prior,old_dataset),(current,new_dataset),(supplement,new_dataset)):
-                (path/'dataset.json').write_text(json.dumps(dataset))
-                (path/'results.jsonl').write_text(json.dumps(record)+'\n')
+                (path/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+                (path/'results.jsonl').write_text(json.dumps(record)+'\n', encoding='utf-8')
                 review={'schema_version':1,'bindings':{
                     'dataset_sha256':hashlib.sha256((path/'dataset.json').read_bytes()).hexdigest(),
                     'results_sha256':hashlib.sha256((path/'results.jsonl').read_bytes()).hexdigest()},
@@ -932,9 +932,9 @@ class ResultReviewTests(unittest.TestCase):
                                  'agent_verdict':'fail','agent_evidence':'observed empty answer',
                                  'final_verdict':'fail'}]}
                 if path != current:
-                    (path/'result-review.json').write_text(json.dumps(review))
+                    (path/'result-review.json').write_text(json.dumps(review), encoding='utf-8')
             merge_refresh_reviews(current,prior,supplement)
-            merged=json.loads((current/'result-review.json').read_text())
+            merged=json.loads((current/'result-review.json').read_text(encoding='utf-8'))
             require_blind_result_review(current,new_dataset,[record],merged)
             with self.assertRaisesRegex(ValueError,'cover every'):
                 require_result_review(current,new_dataset,[record],merged)

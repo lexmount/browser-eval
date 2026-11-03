@@ -69,7 +69,7 @@ def language_metadata_path(root: Path) -> Path:
 
 def primary_report_language(root: Path, *, default: str | None = None) -> str:
     path = language_metadata_path(root)
-    value = json.loads(path.read_text()) if path.is_file() else {}
+    value = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
     language = value.get("primary_language", "zh") if value else (
         default or configured_report_language()
     )
@@ -102,7 +102,7 @@ def select_report_language(root: Path, language: str) -> Path:
     if not (root / entry).is_file():
         raise ValueError("Selected report homepage is missing")
     if language == "en":
-        if REPORT_PAGE_MARKER not in (root / "index.html").read_text():
+        if REPORT_PAGE_MARKER not in (root / "index.html").read_text(encoding="utf-8"):
             raise ValueError("Report homepage is not a rendered report page")
         # Keep the established bilingual routes; explicit Chinese links bypass
         # the English default at the shared root homepage.
@@ -147,7 +147,7 @@ def select_report_language(root: Path, language: str) -> Path:
                 text = text.replace("</head>", redirect + "</head>", 1)
             page.write_text(text, encoding="utf-8")
     path = language_metadata_path(root)
-    contract = json.loads(path.read_text())
+    contract = json.loads(path.read_text(encoding="utf-8"))
     contract.update(primary_language=language, entrypoint=entry)
     path.write_text(json.dumps(contract) + "\n", encoding="utf-8")
     return root / entry
@@ -202,14 +202,14 @@ def write_language_contract(root: Path, *, include_english: bool) -> None:
 
 def check_primary_report_language(root: Path) -> None:
     path = language_metadata_path(root)
-    contract = json.loads(path.read_text()) if path.is_file() else {}
+    contract = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
     if "primary_language" in contract:
         language = primary_report_language(root)
         entry = "en/index.html" if language == "en" else "index.html"
         if (language not in generated_languages(root)
                 or contract.get("entrypoint") != entry or not (root / entry).is_file()):
             raise ValueError("Primary report language and entrypoint differ from generated output")
-        redirected = 'data-report-language-entry' in (root / "index.html").read_text()
+        redirected = 'data-report-language-entry' in (root / "index.html").read_text(encoding="utf-8")
         if redirected != (language == "en"):
             raise ValueError("Report root does not open the selected language")
 

@@ -95,7 +95,7 @@ def test_finalized_readers_preserve_unicode_and_reject_partial_records(tmp_path,
 
 def test_finalized_reader_streams_records(tmp_path):
     path = tmp_path / 'records.jsonl'
-    path.write_text('{"id":"one"}\n{"id":"two"}\n')
+    path.write_text('{"id":"one"}\n{"id":"two"}\n', encoding='utf-8')
     with patch.object(Path, 'read_bytes', side_effect=AssertionError('whole-file read')):
         assert load_jsonl(path) == [{'id': 'one'}, {'id': 'two'}]
 
@@ -135,7 +135,7 @@ def test_unicode_evidence_survives_execution_assembly_and_report(tmp_path):
         provider_config_path=tmp_path / 'providers.json', runs=1, timeout=1, delay=0)
     # UTF-8 JSONL is also a supported external producer format. The built-in
     # runner currently escapes non-ASCII strings; retain the same logical rows.
-    (source / 'results.jsonl').write_text(''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in rows))
+    (source / 'results.jsonl').write_text(''.join(json.dumps(row, ensure_ascii=False) + '\n' for row in rows), encoding='utf-8')
     snapshot = (source / 'results.jsonl').read_bytes()
     assert '\u2028'.encode() in snapshot
     output = tmp_path / 'assembled'
@@ -153,7 +153,7 @@ def test_browser_use_resume_preserves_unicode_in_attempt_records(tmp_path):
     path = tmp_path / 'attempts.jsonl'
     row = {'model': 'fixture', 'engine': 'fixture', 'task_id': 1, 'attempt': 1,
            'error': '文本\u2028段落\u2029结束'}
-    path.write_text(json.dumps(row, ensure_ascii=False) + '\n')
+    path.write_text(json.dumps(row, ensure_ascii=False) + '\n', encoding='utf-8')
     assert _load_completed_attempts(path, 'fixture') == {('fixture', 'fixture', 1, 1): row}
 
 

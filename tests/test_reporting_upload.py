@@ -22,7 +22,7 @@ def test_private_archive_is_byte_exact_and_removed_on_error(tmp_path):
     archive = tmp_path / 'archive.zip'
     archive.write_bytes(b'frozen content')
     profile = tmp_path / 'profile.json'
-    profile.write_text('{}')
+    profile.write_text('{}', encoding='utf-8')
     with pytest.raises(ValueError, match='inputs changed'):
         with snapshot_publication(archive, inputs=[profile]) as release:
             frozen = release.archive
@@ -40,7 +40,7 @@ def test_lookup_input_change_stops_before_version_upload(tmp_path, monkeypatch, 
     files = {}
     for key in ('ARCHIVE', 'ATTESTATION', 'PROFILE', 'REVIEW', 'RECEIPT'):
         path = tmp_path / (key.lower() + '.json')
-        path.write_text('{}')
+        path.write_text('{}', encoding='utf-8')
         files[key] = path
         if hasattr(owner, key):
             monkeypatch.setattr(owner, key, path)
@@ -48,8 +48,8 @@ def test_lookup_input_change_stops_before_version_upload(tmp_path, monkeypatch, 
         bundle.writestr('index.html', 'Frozen release')
     publication = {'base_url': 'https://example.invalid', 'site_slug': 'site-1',
                    'expected_version': 'ver_old', 'share_url': 'https://example.invalid/v/token'}
-    files['PROFILE'].write_text(json.dumps({'publication': publication}))
-    files['RECEIPT'].write_text('{"slug":"site-1"}')
+    files['PROFILE'].write_text(json.dumps({'publication': publication}), encoding='utf-8')
+    files['RECEIPT'].write_text('{"slug":"site-1"}', encoding='utf-8')
     monkeypatch.setattr(owner, 'validate_package', lambda: {})
     if track == 'replay':
         monkeypatch.setattr(owner, 'BINDING_JOURNAL', tmp_path / 'binding.json')
@@ -59,14 +59,14 @@ def test_lookup_input_change_stops_before_version_upload(tmp_path, monkeypatch, 
         path = args[1] if track == 'replay' else args[0]
         calls.append(path)
         assert path == '/api/sites/site-1'
-        files[damage.upper()].write_text('Changed during site lookup')
+        files[damage.upper()].write_text('Changed during site lookup', encoding='utf-8')
         result = (200, b'{"site":{"currentVersionId":"ver_old"}}')
         return (*result, {}) if track == 'replay' else result
     monkeypatch.setattr(owner, 'request', request)
     with pytest.raises(ValueError, match='inputs changed'):
         owner.main(create=False)
     assert calls == ['/api/sites/site-1']
-    assert json.loads(files['RECEIPT'].read_text()) == {'slug': 'site-1'}
+    assert json.loads(files['RECEIPT'].read_text(encoding='utf-8')) == {'slug': 'site-1'}
 
 
 def test_staged_upload_stops_before_commit_when_original_changes(tmp_path, monkeypatch):
@@ -105,7 +105,7 @@ def test_browser_publication_verifies_full_export_before_binding(tmp_path, monke
 
     report = tmp_path / 'report'
     report.mkdir()
-    (report / 'index.html').write_text(autonomous.PUBLIC_REPORT_MARKER)
+    (report / 'index.html').write_text(autonomous.PUBLIC_REPORT_MARKER, encoding='utf-8')
     archive = tmp_path / 'release.zip'
     with zipfile.ZipFile(archive, 'w') as bundle:
         bundle.write(report / 'index.html', 'index.html')
@@ -116,14 +116,14 @@ def test_browser_publication_verifies_full_export_before_binding(tmp_path, monke
     profile.write_text(json.dumps({'publication': {
         'base_url': 'https://example.invalid', 'site_slug': 'site-1',
         'expected_version': 'ver_old', 'title': 'Registry-driven report',
-    }}))
+    }}), encoding='utf-8')
     receipt = tmp_path / 'receipt.json'
-    receipt.write_text(json.dumps({'slug': 'site-1', 'share_url': share_url}))
+    receipt.write_text(json.dumps({'slug': 'site-1', 'share_url': share_url}), encoding='utf-8')
     evidence = tmp_path / 'evidence'
     evidence.mkdir()
     evidence_files = {}
     for name in ('manifest.json', 'run-config.json', 'attempts.jsonl', 'result-review.json'):
-        (evidence / name).write_text('{}')
+        (evidence / name).write_text('{}', encoding='utf-8')
         evidence_files[name] = file_sha256(evidence / name)
     if outcome == 'missing-field':
         evidence_files.pop('result-review.json')
@@ -135,7 +135,7 @@ def test_browser_publication_verifies_full_export_before_binding(tmp_path, monke
         'archive_sha256': file_sha256(archive), 'profile_sha256': file_sha256(profile),
         'report': str(report), 'report_tree_sha256': autonomous.tree_sha256(report),
         'evidence': [str(evidence)], 'evidence_files': {str(evidence): evidence_files},
-    }))
+    }), encoding='utf-8')
     if outcome.startswith('linked-'):
         path = {'linked-report': report, 'linked-evidence': evidence,
                 'linked-archive': archive}[outcome]
@@ -192,10 +192,10 @@ def test_browser_publication_verifies_full_export_before_binding(tmp_path, monke
     before = (profile.read_bytes(), proof.read_bytes(), receipt.read_bytes())
     if outcome == 'success':
         autonomous.main(create=False)
-        publication = json.loads(profile.read_text())['publication']
+        publication = json.loads(profile.read_text(encoding='utf-8'))['publication']
         assert publication['expected_version'] == 'ver_new'
         assert publication['site_slug'] == 'site-1' and publication['share_url'] == share_url
-        assert json.loads(proof.read_text())['profile_sha256'] == file_sha256(profile)
+        assert json.loads(proof.read_text(encoding='utf-8'))['profile_sha256'] == file_sha256(profile)
     else:
         with pytest.raises((ValueError, RuntimeError)):
             autonomous.main(create=False)

@@ -23,20 +23,21 @@ def report_fixture(root: Path) -> None:
     ):
         route = root / ("index.html" if name == "index" else f"{name}/index.html")
         route.parent.mkdir(parents=True, exist_ok=True)
-        route.write_text("<html><head></head><body>fixture</body></html>")
+        route.write_text("<html><head></head><body>fixture</body></html>", encoding="utf-8")
     (root / "results").mkdir()
-    (root / "results/a-fail.html").write_text('<div id="diagnosis">failure</div>')
-    (root / "results/z-pass.html").write_text("<main>success</main>")
+    (root / "results/a-fail.html").write_text('<div id="diagnosis">failure</div>', encoding="utf-8")
+    (root / "results/z-pass.html").write_text("<main>success</main>", encoding="utf-8")
     for result in ("a-fail", "z-pass"):
         path = root / f"results/{result}.html"
         path.write_text(
-            path.read_text() + '<a href="evidence-viewer.html?src='
-            f'artifacts/{result}/executions/1/execution-evidence.json">Evidence</a>'
+            path.read_text(encoding="utf-8") + '<a href="evidence-viewer.html?src='
+            f'artifacts/{result}/executions/1/execution-evidence.json">Evidence</a>',
+            encoding="utf-8"
         )
-    (root / "evidence-viewer.html").write_text("<html>viewer</html>")
+    (root / "evidence-viewer.html").write_text("<html>viewer</html>", encoding="utf-8")
     (root / "en").mkdir()
-    (root / "en/index.html").write_text("<h1>英文报告未生成</h1>")
-    (root / "report-languages.json").write_text(json.dumps({"languages": ["zh"]}))
+    (root / "en/index.html").write_text("<h1>英文报告未生成</h1>", encoding="utf-8")
+    (root / "report-languages.json").write_text(json.dumps({"languages": ["zh"]}), encoding="utf-8")
 
 
 def test_routes_cover_success_when_failure_sorts_first(tmp_path):
@@ -57,7 +58,8 @@ def test_partial_receipt_cannot_skip_browser_gate(tmp_path, monkeypatch, count):
                 "states_checked": count,
                 "failures": [],
             }
-        )
+        ),
+        encoding="utf-8"
     )
     calls = []
     monkeypatch.setattr(packager, "check", lambda *args, **kwargs: None)
@@ -111,7 +113,7 @@ def complete_receipt(report, receipt, binary):
         ],
         "failures": [],
     }
-    receipt.write_text(json.dumps(value))
+    receipt.write_text(json.dumps(value), encoding="utf-8")
     return value
 
 
@@ -135,12 +137,12 @@ def test_cache_requires_complete_current_rendering(tmp_path, monkeypatch, damage
     report = tmp_path / "report"
     report_fixture(report)
     binary = tmp_path / "browser"
-    binary.write_text("Synthetic browser identity")
+    binary.write_text("Synthetic browser identity", encoding="utf-8")
     monkeypatch.setenv("BROWSER_USE_VISUAL_BROWSER", str(binary))
     receipt = tmp_path / "visual.json"
     value = complete_receipt(report, receipt, binary)
     if damage == "report":
-        (report / "index.html").write_text("Changed content")
+        (report / "index.html").write_text("Changed content", encoding="utf-8")
     elif damage == "missing-state":
         value["states"].pop()
     elif damage == "duplicate-state":
@@ -156,10 +158,10 @@ def test_cache_requires_complete_current_rendering(tmp_path, monkeypatch, damage
     elif damage == "source":
         value["checker_sources"]["visual.py"] = "0" * 64
     elif damage == "browser":
-        binary.write_text("Replaced browser binary")
+        binary.write_text("Replaced browser binary", encoding="utf-8")
     elif damage == "old-schema":
         value["schema"] = "lex_browser_use_visual_qa/1"
-    receipt.write_text(json.dumps(value))
+    receipt.write_text(json.dumps(value), encoding="utf-8")
     calls = []
     monkeypatch.setattr(packager, "check", lambda *args, **kwargs: calls.append("evidence"))
     monkeypatch.setattr(packager, "check_links", lambda *args: calls.append("links"))

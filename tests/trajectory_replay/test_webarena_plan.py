@@ -167,7 +167,7 @@ def test_plan_state_opt_in_requires_exact_legacy_supersession(tmp_path, monkeypa
             records={1: {"correction_id": "old-rule"}}, record_sha256s={1: "old-hash"}
         ),
     )
-    payload = json.loads(profile.read_text())
+    payload = json.loads(profile.read_text(encoding="utf-8"))
     payload["scoring"]["observed_state"] = {"explicit_opt_in": True}
     _write(profile, payload)
     if supersession == "correct":

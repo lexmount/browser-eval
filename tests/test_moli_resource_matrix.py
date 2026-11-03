@@ -90,8 +90,8 @@ def main(argv):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
             (root / "runner").mkdir()
-            (root / "runner/__init__.py").write_text("")
-            (root / "runner/run.py").write_text(source)
+            (root / "runner/__init__.py").write_text("", encoding="utf-8")
+            (root / "runner/run.py").write_text(source, encoding="utf-8")
             binary = root / "binary"
             binary.write_bytes(b"fixed test binary")
             protocol = {
@@ -114,18 +114,18 @@ def main(argv):
                 },
             }
             path = root / "protocol.json"
-            path.write_text(json.dumps(protocol))
+            path.write_text(json.dumps(protocol), encoding="utf-8")
             matrix.execute(path, root / "output")
             calls = [
                 json.loads(line)
-                for line in (root / "output/physical-calls.jsonl").read_text().splitlines()
+                for line in (root / "output/physical-calls.jsonl").read_text(encoding="utf-8").splitlines()
             ]
             verify_calls(protocol, calls)
-            receipt = json.loads((root / "output/receipt.json").read_text())
+            receipt = json.loads((root / "output/receipt.json").read_text(encoding="utf-8"))
             self.assertEqual(receipt["physical_calls"], 18)
             self.assertEqual(set(receipt["results"]), {"a", "b", "c"})
             protocol["input_files"]["runner/run.py"] = "wrong"
-            path.write_text(json.dumps(protocol))
+            path.write_text(json.dumps(protocol), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "frozen input changed"):
                 matrix.execute(path, root / "rejected")
 

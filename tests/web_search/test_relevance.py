@@ -97,11 +97,11 @@ def test_historical_source_packet_requires_its_exact_registered_evidence(tmp_pat
     evidence = {**packet, "provider_rankings": rankings, "labels": labels,
                 "judge": {"kind": "model", "name": "test-model", "prompt": relevance.judge_prompt(), "calls": calls}}
     registry = tmp_path / "legacy.json"
-    registry.write_text('{"model": []}')
+    registry.write_text('{"model": []}', encoding="utf-8")
     with pytest.raises(ValueError, match="hash-pinned"):
         relevance.verify_provenance(profile, rows, evidence, authority=json.loads(registry.read_bytes()))
     identity = hashlib.sha256(json.dumps(evidence, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
-    registry.write_text(json.dumps({"model": [identity]}))
+    registry.write_text(json.dumps({"model": [identity]}), encoding="utf-8")
     relevance.verify_provenance(profile, rows, evidence, authority=json.loads(registry.read_bytes()))
     changed = copy.deepcopy(evidence)
     changed["judge"]["calls"][0]["response"]["model"] = "different-model"
@@ -116,7 +116,7 @@ def test_annotation_export_escapes_source_markup_and_never_prelabels(tmp_path):
     p, rows = all_case_fixture()
     p["cases"][0]["query"] = '</script><img src=x onerror="alert(1)">'
     page = export_annotations(p, rows, tmp_path / "annotation")
-    soup = BeautifulSoup(page.read_text(), "html.parser")
+    soup = BeautifulSoup(page.read_text(encoding="utf-8"), "html.parser")
     assert not soup.find("img")
     payload = json.loads(soup.select_one("#packet").string)
     assert "labels" not in payload

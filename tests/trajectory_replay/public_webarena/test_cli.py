@@ -36,7 +36,7 @@ def test_qualification_lock_allows_proven_disjoint_site_domains(tmp_path):
 
 def test_native_scope_batch_is_bound_to_exact_suite(tmp_path):
     suite = tmp_path / "suite.json"
-    suite.write_text('{"tasks": []}\n')
+    suite.write_text('{"tasks": []}\n', encoding="utf-8")
     scope = tmp_path / "scope.json"
     scope.write_text(
         json.dumps(
@@ -48,18 +48,19 @@ def test_native_scope_batch_is_bound_to_exact_suite(tmp_path):
                     {"id": "shopping", "task_ids": ["a", "b"]}
                 ],
             }
-        )
+        ),
+        encoding="utf-8"
     )
 
     assert task_ids_from_scope(scope, suite, "shopping") == ("a", "b")
-    suite.write_text('{"tasks": [1]}\n')
+    suite.write_text('{"tasks": [1]}\n', encoding="utf-8")
     with pytest.raises(ValueError, match="suite sha256"):
         task_ids_from_scope(scope, suite, "shopping")
 
 
 def test_native_scope_rejects_unknown_and_excluded_batch_tasks(tmp_path):
     suite = tmp_path / "suite.json"
-    suite.write_text("{}")
+    suite.write_text("{}", encoding="utf-8")
     scope = tmp_path / "scope.json"
     payload = {
         "schema": "lex_browser_use_native_scope/1",
@@ -67,7 +68,7 @@ def test_native_scope_rejects_unknown_and_excluded_batch_tasks(tmp_path):
         "included_task_ids": ["a"],
         "qualification_batches": [{"id": "shopping", "task_ids": ["a", "excluded"]}],
     }
-    scope.write_text(json.dumps(payload))
+    scope.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(ValueError, match="unknown or duplicate"):
         task_ids_from_scope(scope, suite, "missing")
@@ -77,7 +78,7 @@ def test_native_scope_rejects_unknown_and_excluded_batch_tasks(tmp_path):
 
 def test_native_scope_batch_shards_form_an_exact_stable_partition(tmp_path):
     suite = tmp_path / "suite.json"
-    suite.write_text("{}")
+    suite.write_text("{}", encoding="utf-8")
     task_ids = [f"task-{index}" for index in range(10)]
     scope = tmp_path / "scope.json"
     scope.write_text(
@@ -90,7 +91,8 @@ def test_native_scope_batch_shards_form_an_exact_stable_partition(tmp_path):
                     {"id": "shopping", "shard_count": 3, "task_ids": task_ids}
                 ],
             }
-        )
+        ),
+        encoding="utf-8"
     )
 
     shards = [

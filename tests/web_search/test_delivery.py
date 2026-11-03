@@ -22,19 +22,19 @@ class DeliveryScenarios(unittest.TestCase):
             root = Path(temp)
             example(root)
             build(root / "report", source=root / "fixture", include_english=True)
-            profile = json.loads((root / "fixture/profile.json").read_text())
-            rows = [json.loads(line) for line in (root / "fixture/results.jsonl").read_text().splitlines()]
+            profile = json.loads((root / "fixture/profile.json").read_text(encoding="utf-8"))
+            rows = [json.loads(line) for line in (root / "fixture/results.jsonl").read_text(encoding="utf-8").splitlines()]
             for prefix, zh in (("", True), ("en/", False)):
                 path = root / "report" / prefix / "results.html"
-                text = path.read_text().replace("</main>", render_comparison(
+                text = path.read_text(encoding="utf-8").replace("</main>", render_comparison(
                     profile, rows, zh,
                     lambda row, prefix=prefix: prefix + "details/" + row["id"] + ".html"
                 ) + "</main>")
-                path.write_text(text)
+                path.write_text(text, encoding="utf-8")
             export(root / "report", root / "delivery")
-            index = json.loads((root / "delivery/delivery-index.json").read_text())
+            index = json.loads((root / "delivery/delivery-index.json").read_text(encoding="utf-8"))
             for prefix in ("", "en/"):
-                doc = BeautifulSoup((root / "delivery" / prefix / "results.html").read_text(), "html.parser")
+                doc = BeautifulSoup((root / "delivery" / prefix / "results.html").read_text(encoding="utf-8"), "html.parser")
                 data = json.loads(doc.select_one("[data-comparison-data]").string)
                 self.assertEqual(len(data["cases"]), len(profile["cases"]))
                 for case in data["cases"]:
@@ -68,12 +68,12 @@ class DeliveryScenarios(unittest.TestCase):
             main(["--output", str(root / "report"), "--export-delivery", str(root / "delivery")])
             self.assertTrue(verify(root / "report", root / "delivery"))
             proof = root / "incomplete-visual.json"
-            proof.write_text(json.dumps({"manifest_sha256": bytes_sha256((root / "report/manifest.json").read_bytes()), "captures": []}))
+            proof.write_text(json.dumps({"manifest_sha256": bytes_sha256((root / "report/manifest.json").read_bytes()), "captures": []}), encoding="utf-8")
             with self.assertRaises(ValueError):
                 main(["--output", str(root / "report"), "--release-check", str(proof), "--export-delivery", str(root / "unreviewed")])
             self.assertFalse((root / "unreviewed").exists())
             evidence = next((root / "report/calls").glob("*.json"))
-            evidence.write_text("{}")
+            evidence.write_text("{}", encoding="utf-8")
             with self.assertRaises(ValueError):
                 main(["--output", str(root / "report"), "--export-delivery", str(root / "invalid")])
             self.assertFalse((root / "invalid").exists())
@@ -85,10 +85,10 @@ class DeliveryScenarios(unittest.TestCase):
             build(root / "report", source=root / "fixture", include_english=True)
             export(root / "report", root / "delivery")
             self.assertTrue(verify(root / "report", root / "delivery"))
-            index = json.loads((root / "delivery/delivery-index.json").read_text())
+            index = json.loads((root / "delivery/delivery-index.json").read_text(encoding="utf-8"))
             self.assertTrue(any(p.startswith("calls/") for p in index["files"]))
             self.assertTrue(any("en/details/" in p for p in index["files"]))
-            self.assertIn("detail.html#", (root / "delivery/results.html").read_text())
+            self.assertIn("detail.html#", (root / "delivery/results.html").read_text(encoding="utf-8"))
             shard = root / "delivery" / next(iter(index["files"].values()))
             values = json.loads(gzip.decompress(shard.read_bytes()))
             values[next(iter(values))]["base64"] = base64.b64encode(b"changed").decode()
@@ -102,13 +102,13 @@ def test_crlf_and_non_utf8_provider_bodies_are_lossless():
         root = Path(temp)
         example(root)
         source = root / "report"
-        manifest = json.loads((source / "manifest.json").read_text())
+        manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
         evidence = source / manifest["rows"][0]["evidence"]["path"]
         for index, raw in enumerate((b'{"message":"busy"}\r\n', b'upstream error: \xff\xfe\r\n')):
             evidence.write_bytes(raw)
             destination = root / ("packed-" + str(index))
             export(source, destination)
-            index = json.loads((destination / "delivery-index.json").read_text())
+            index = json.loads((destination / "delivery-index.json").read_text(encoding="utf-8"))
             virtual = evidence.relative_to(source).as_posix()
             shard = json.loads(gzip.decompress((destination / index["files"][virtual]).read_bytes()))
             assert base64.b64decode(shard[virtual]["base64"]) == raw

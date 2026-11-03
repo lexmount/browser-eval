@@ -15,9 +15,9 @@ def test_explicit_source_without_authority_never_fetches_default_manifest(tmp_pa
 
 def test_explicit_source_uses_profile_bound_manifest_before_conflicting_neighbor(tmp_path, monkeypatch):
     source = tmp_path / 'source'
-    (tmp_path / 'tasks.json').write_text('conflicting edition')
+    (tmp_path / 'tasks.json').write_text('conflicting edition', encoding='utf-8')
     profile = tmp_path / 'profile.json'
-    profile.write_text(json.dumps({'sample_manifest': 'evaluation/historical.json'}))
+    profile.write_text(json.dumps({'sample_manifest': 'evaluation/historical.json'}), encoding='utf-8')
     monkeypatch.setattr(runner, 'ROOT', tmp_path / 'repo')
     monkeypatch.setattr(data, 'definition_path', lambda *args: pytest.fail('Explicit sources must not fetch defaults'))
     assert runner.selected_wcxb_input(source, profile=profile) == (source, tmp_path / 'repo/evaluation/historical.json')
@@ -26,7 +26,7 @@ def test_explicit_source_uses_profile_bound_manifest_before_conflicting_neighbor
 def test_explicit_source_retains_adjacent_authority_without_profile(tmp_path, monkeypatch):
     source = tmp_path / 'source'
     manifest = tmp_path / 'tasks.json'
-    manifest.write_text('{}')
+    manifest.write_text('{}', encoding='utf-8')
     monkeypatch.setattr(data, 'definition_path', lambda *args: pytest.fail('Explicit sources must not fetch defaults'))
     assert runner.selected_wcxb_input(source) == (source, manifest)
 
@@ -34,7 +34,7 @@ def test_explicit_source_retains_adjacent_authority_without_profile(tmp_path, mo
 def test_absolute_profile_manifest_and_explicit_override_are_preserved(tmp_path):
     profile = tmp_path / 'profile.json'
     selected = tmp_path / 'external/old.json'
-    profile.write_text(json.dumps({'sample_manifest': str(selected)}))
+    profile.write_text(json.dumps({'sample_manifest': str(selected)}), encoding='utf-8')
     source = tmp_path / 'source'
     assert runner.selected_wcxb_input(source, profile=profile) == (source, selected)
     override = tmp_path / 'other.json'
@@ -61,7 +61,7 @@ def test_source_only_scoring_cli_resolves_its_historical_profile(tmp_path, monke
     from harness.web_fetch import wcxb_scoring
     source, manifest = tmp_path / 'source', tmp_path / 'old.json'
     profile = tmp_path / 'profile.json'
-    profile.write_text(json.dumps({'sample_manifest': str(manifest)}))
+    profile.write_text(json.dumps({'sample_manifest': str(manifest)}), encoding='utf-8')
     captured = {}
     monkeypatch.setattr(data, 'definition_path', lambda *args: pytest.fail('Historical CLI must not select HF defaults'))
     monkeypatch.setattr(wcxb_scoring, 'score', lambda **options: captured.update(options))
@@ -75,7 +75,7 @@ def test_source_only_certified_cli_resolves_profile_before_any_provider_work(tmp
     from harness.web_fetch import certification
     source, manifest = tmp_path / 'source', tmp_path / 'old.json'
     profile = tmp_path / 'profile.json'
-    profile.write_text(json.dumps({'sample_manifest': str(manifest)}))
+    profile.write_text(json.dumps({'sample_manifest': str(manifest)}), encoding='utf-8')
     def stop_before_execution(dataset, **options):
         assert dataset == source and options['manifest'] == manifest
         raise RuntimeError('historical selection reached')
@@ -90,7 +90,7 @@ def test_source_only_latency_cli_resolves_profile_manifest(tmp_path, monkeypatch
     from harness.web_fetch import wcxb_latency
     source, manifest = tmp_path / 'source', tmp_path / 'old.json'
     profile = tmp_path / 'profile.json'
-    profile.write_text(json.dumps({'sample_manifest': str(manifest)}))
+    profile.write_text(json.dumps({'sample_manifest': str(manifest)}), encoding='utf-8')
     captured = {}
     monkeypatch.setattr(data, 'definition_path', lambda *args: pytest.fail('Historical CLI must not select HF defaults'))
     monkeypatch.setattr(wcxb_latency, 'build_provider', lambda *args: object())

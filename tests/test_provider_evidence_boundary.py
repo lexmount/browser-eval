@@ -44,21 +44,21 @@ def reviewed_corrected_matrix(tmp_path, *, fresh=True):
             'diagnostic_results_sha256': 'a' * 64}
         changes.append({'provider': row['provider'], 'case_id': row['case_id'],
                         'before_ms': before, 'after_ms': row['elapsed_ms']})
-    (source / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    (source / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
     (source / 'latency-corrections.json').write_text(json.dumps({
         'schema_version': 1,
         'selection': 'same four cases for all three Moli versions; final round always selected, never best-of',
         'diagnostic_results_sha256': 'a' * 64,
         'output_results_sha256': hashlib.sha256((source / 'results.jsonl').read_bytes()).hexdigest(),
         'task_decision_changes': 0, 'superseded_logical_results': len(changes),
-        'changes': changes, 'diagnostic_summary': {'old': {'calls': 2}, 'new': {'calls': 2}}}))
+        'changes': changes, 'diagnostic_summary': {'old': {'calls': 2}, 'new': {'calls': 2}}}), encoding='utf-8')
     (source / 'result-review.json').write_text(json.dumps({
         'schema_version': 1,
         'bindings': {name + '_sha256': hashlib.sha256((source / filename).read_bytes()).hexdigest()
                      for name, filename in [('dataset', 'dataset.json'), ('results', 'results.jsonl')]},
         'review_protocol': {'scope': 'all', 'machine_judgments_withheld': True},
         'attempts': [{'attempt_id': row['attempt_id'], 'machine_verdict': 'pass',
-                      'agent_verdict': 'pass', 'final_verdict': 'pass'} for row in rows]}))
+                      'agent_verdict': 'pass', 'final_verdict': 'pass'} for row in rows]}), encoding='utf-8')
     return source, rows
 
 
@@ -67,26 +67,26 @@ def test_assembly_preserves_corrected_timing_chronology_and_review_scope(tmp_pat
     source, rows = reviewed_corrected_matrix(tmp_path)
     before = {path.relative_to(source): path.read_bytes()
               for path in source.rglob('*') if path.is_file()}
-    (source / 'worker-notes.txt').write_text('private synthetic note')
+    (source / 'worker-notes.txt').write_text('private synthetic note', encoding='utf-8')
     output = tmp_path / 'output'
     assemble(source, tmp_path / 'certificates', [], output, exclude_providers=excluded)
     retained = [row for row in rows if row['provider'] not in excluded]
     assert [json.loads(line) for line in (output / 'results.jsonl').read_bytes().splitlines()] == retained
     originals = latency_correction_original_elapsed(output)
     assert set(originals) == {(row['provider'], row['case_id']) for row in retained}
-    batches = json.loads((output / 'execution.json').read_text())['batches']
+    batches = json.loads((output / 'execution.json').read_text(encoding='utf-8'))['batches']
     assert {attempt for batch in batches for attempt in batch['attempt_ids']} == {
         row['attempt_id'] for row in retained}
     require_verified_reference_checks(batches,
-        cases=json.loads((output / 'dataset.json').read_text()), records=retained, source=output)
+        cases=json.loads((output / 'dataset.json').read_text(encoding='utf-8')), records=retained, source=output)
     assert not (output / 'worker-notes.txt').exists()
     for row in retained:
         verify_record_artifacts(output, row)
-    review = json.loads((output / 'result-review.json').read_text())
+    review = json.loads((output / 'result-review.json').read_text(encoding='utf-8'))
     assert {row['attempt_id'] for row in review['attempts']} == {row['attempt_id'] for row in retained}
     for relative, raw in before.items():
         assert (source / relative).read_bytes() == raw
-    receipt = json.loads((output / 'latency-corrections.json').read_text())
+    receipt = json.loads((output / 'latency-corrections.json').read_text(encoding='utf-8'))
     assert set(receipt['diagnostic_summary']) == {row['provider'] for row in retained}
 
 
@@ -94,7 +94,7 @@ def test_assembly_preserves_corrected_timing_chronology_and_review_scope(tmp_pat
                                   'negative', 'infinite', 'boolean'])
 def test_assembly_rejects_tampered_timing_receipt_without_output(tmp_path, damage):
     source, _ = reviewed_corrected_matrix(tmp_path)
-    receipt = json.loads((source / 'latency-corrections.json').read_text())
+    receipt = json.loads((source / 'latency-corrections.json').read_text(encoding='utf-8'))
     if damage == 'wrong-original':
         receipt['changes'][0]['before_ms'] += 1
     elif damage == 'missing-entry':
@@ -107,9 +107,9 @@ def test_assembly_rejects_tampered_timing_receipt_without_output(tmp_path, damag
         receipt['changes'][0]['before_ms'] = invalid
         rows = [json.loads(line) for line in (source / 'results.jsonl').read_bytes().splitlines()]
         rows[0]['provider_metadata']['latency_correction']['original_elapsed_ms'] = invalid
-        (source / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+        (source / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
         receipt['output_results_sha256'] = hashlib.sha256((source / 'results.jsonl').read_bytes()).hexdigest()
-    (source / 'latency-corrections.json').write_text(json.dumps(receipt))
+    (source / 'latency-corrections.json').write_text(json.dumps(receipt), encoding='utf-8')
     if damage == 'missing-receipt':
         (source / 'latency-corrections.json').unlink()
     output = tmp_path / 'output'
@@ -125,7 +125,7 @@ def test_review_projection_rejects_changed_attempt_even_with_same_identity(tmp_p
     output.mkdir()
     (output / 'dataset.json').write_bytes((source / 'dataset.json').read_bytes())
     rows[0]['metrics']['content_pass'] = False
-    (output / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    (output / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
     with pytest.raises(ValueError, match='changed attempt evidence'):
         copy_projected_review(source, output, [])
     assert not (output / 'result-review.json').exists()
@@ -134,8 +134,8 @@ def test_review_projection_rejects_changed_attempt_even_with_same_identity(tmp_p
 @pytest.mark.parametrize('excluded', [[], ['new']])
 def test_speed_copy_preserves_timing_corrections_for_retained_calls(tmp_path, excluded):
     source, rows = reviewed_corrected_matrix(tmp_path, fresh=False)
-    definition = json.loads((source / 'dataset.json').read_text())
-    execution = json.loads((source / 'execution.json').read_text())
+    definition = json.loads((source / 'dataset.json').read_text(encoding='utf-8'))
+    execution = json.loads((source / 'execution.json').read_text(encoding='utf-8'))
     batches = execution['batches']
     # A synthetic common-window cohort, without running real browser methods.
     start = min(batch['started_at'] for batch in batches)
@@ -144,18 +144,18 @@ def test_speed_copy_preserves_timing_corrections_for_retained_calls(tmp_path, ex
         batch.update(started_at=start, completed_at=end)
     aggregate = derive_aggregate(definition, batches)
     execution.update(schema_version=1, aggregate=aggregate)
-    (source / 'execution.json').write_text(json.dumps(execution))
+    (source / 'execution.json').write_text(json.dumps(execution), encoding='utf-8')
     summary = build_summary(definition, rows, batches, aggregate)
     summary['bindings'] = {name + '_sha256': hashlib.sha256((source / filename).read_bytes()).hexdigest()
                            for name, filename in [('dataset', 'dataset.json'), ('results', 'results.jsonl')]}
-    (source / 'speed-comparison.json').write_text(json.dumps(summary))
+    (source / 'speed-comparison.json').write_text(json.dumps(summary), encoding='utf-8')
     output = tmp_path / 'speed'
     _copy_speed_bundle(source, output, definition, rows, batches, excluded_providers=excluded)
     assert set(latency_correction_original_elapsed(output)) == {
         (row['provider'], row['case_id']) for row in rows if row['provider'] not in excluded}
     retained = [json.loads(line) for line in (output / 'results.jsonl').read_bytes().splitlines()]
-    require_verified_reference_checks(json.loads((output / 'execution.json').read_text())['batches'],
-                                       cases=json.loads((output / 'dataset.json').read_text()),
+    require_verified_reference_checks(json.loads((output / 'execution.json').read_text(encoding='utf-8'))['batches'],
+                                       cases=json.loads((output / 'dataset.json').read_text(encoding='utf-8')),
                                        records=retained, source=output)
 
 
@@ -184,7 +184,7 @@ def make_run(root, provider, dataset, *, certify=True):
         providers=[Fixture(provider, {'type': 'fixture'})],
         provider_config_path=root.parent / 'providers.json', runs=1, timeout=1, delay=0,
         max_failure_retries=1)
-    manifest = json.loads((root / 'manifest.json').read_text())
+    manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
     if certify and manifest.get('reference_checks'):
         now = datetime.now(timezone.utc)
         observations = root.parent / (provider + '-observations.json')
@@ -192,10 +192,10 @@ def make_run(root, provider, dataset, *, certify=True):
             'content_text': case.ground_truth_main_content, 'checked_at': now.isoformat(),
             'scope_identity': manifest['reference_checks']['cases'][case.id]['scope_identity'],
             'completion': {'satisfied': True, 'elapsed_ms': 1, 'timeout_ms': 1000}}
-            for case in cases]))
+            for case in cases]), encoding='utf-8')
         finalize_reference_checks(root, observations, now=now + timedelta(seconds=1))
-        manifest = json.loads((root / 'manifest.json').read_text())
-    (root / 'execution.json').write_text(json.dumps({'batches': [manifest]}))
+        manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
+    (root / 'execution.json').write_text(json.dumps({'batches': [manifest]}), encoding='utf-8')
     return records
 
 
@@ -224,14 +224,14 @@ def test_append_retains_every_physical_call_and_can_be_reassembled(tmp_path, fre
     assert (canonical / 'results.jsonl').read_bytes() == old_bytes + new_bytes
     for row in old + new:
         verify_record_artifacts(canonical, row)
-    current = json.loads((canonical / 'dataset.json').read_text())
+    current = json.loads((canonical / 'dataset.json').read_text(encoding='utf-8'))
     assert current['coverage_plan'] == {'web': ['new', 'old']}
     assert current['cases'] == definition['cases']
-    batches = json.loads((canonical / 'execution.json').read_text())['batches']
+    batches = json.loads((canonical / 'execution.json').read_text(encoding='utf-8'))['batches']
     require_verified_reference_checks(batches, cases=current, records=old + new, source=canonical)
     output = tmp_path / 'assembled'
     assemble(canonical, tmp_path / 'certificates', [], output)
-    assert {row['provider'] for row in map(json.loads, (output / 'results.jsonl').read_text().splitlines())} == {'old', 'new'}
+    assert {row['provider'] for row in map(json.loads, (output / 'results.jsonl').read_text(encoding='utf-8').splitlines())} == {'old', 'new'}
 
 
 @pytest.mark.parametrize('damage', ['changed-auxiliary', 'missing-auxiliary', 'linked-root'])
@@ -240,7 +240,7 @@ def test_projection_rejects_invalid_evidence_without_leaving_output(tmp_path, da
     rows = make_run(source, 'old', dataset())
     auxiliary = source / rows[0]['provider_metadata']['rendered_html_path']
     if damage == 'changed-auxiliary':
-        auxiliary.write_text('changed')
+        auxiliary.write_text('changed', encoding='utf-8')
     elif damage == 'missing-auxiliary':
         auxiliary.unlink()
     else:
@@ -260,9 +260,9 @@ def test_projection_keeps_only_selected_task_calls_and_references(tmp_path):
     for identifier in ('one', 'two'):
         folder = source / 'sources' / identifier
         folder.mkdir(parents=True)
-        (folder / 'reference.txt').write_text(identifier)
+        (folder / 'reference.txt').write_text(identifier, encoding='utf-8')
     (source / 'workers').mkdir()
-    (source / 'workers/private-note.txt').write_text('synthetic private note')
+    (source / 'workers/private-note.txt').write_text('synthetic private note', encoding='utf-8')
     before = {path.relative_to(source): path.read_bytes()
               for path in source.rglob('*') if path.is_file()}
     output = tmp_path / 'projected'
@@ -290,7 +290,7 @@ def test_invalid_append_preserves_the_entire_canonical_bundle(tmp_path, damage):
               for path in canonical.rglob('*') if path.is_file()}
     retry = rows[0]['provider_metadata']['retry']['attempts'][0]
     if damage == 'changed-retry':
-        (incoming / retry['artifact_path']).write_text('changed')
+        (incoming / retry['artifact_path']).write_text('changed', encoding='utf-8')
     elif damage == 'missing-retry':
         (incoming / retry['artifact_path']).unlink()
     elif damage == 'linked-root':
@@ -298,7 +298,7 @@ def test_invalid_append_preserves_the_entire_canonical_bundle(tmp_path, damage):
         link.symlink_to(incoming, target_is_directory=True)
         incoming = link
     elif damage == 'missing-observation':
-        batch = json.loads((incoming / 'execution.json').read_text())['batches'][0]
+        batch = json.loads((incoming / 'execution.json').read_text(encoding='utf-8'))['batches'][0]
         (incoming / batch['reference_checks']['postcheck']['evidence_path']).unlink()
     else:
         relative = old[0]['provider_metadata']['raw_stdout_path']
@@ -307,7 +307,7 @@ def test_invalid_append_preserves_the_entire_canonical_bundle(tmp_path, damage):
         collision.write_bytes(b'different auxiliary bytes')
         rows[0]['provider_metadata'].update(raw_stdout_path=relative,
             raw_stdout_sha256=hashlib.sha256(collision.read_bytes()).hexdigest())
-        (incoming / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+        (incoming / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
     with pytest.raises((ValueError, OSError)):
         add_provider_run(canonical, incoming, 'new')
     assert {path.relative_to(canonical): path.read_bytes()
@@ -329,7 +329,7 @@ def test_case_certificates_remain_the_authority_for_an_unfinalized_physical_run(
     definition = dataset(True)
     source = tmp_path / 'source'
     rows = make_run(source, 'old', definition, certify=False)
-    manifest = json.loads((source / 'manifest.json').read_text())
+    manifest = json.loads((source / 'manifest.json').read_text(encoding='utf-8'))
     certificates = tmp_path / 'certificates'
     for case in definition['cases']:
         observation = {'case_id': case['id'], 'independent': True,
@@ -343,8 +343,8 @@ def test_case_certificates_remain_the_authority_for_an_unfinalized_physical_run(
         assemble(source, None, [], tmp_path / 'missing-certificates')
     output = tmp_path / 'assembled'
     assemble(source, certificates, [], output)
-    saved = [json.loads(line) for line in (output / 'results.jsonl').read_text().splitlines()]
+    saved = [json.loads(line) for line in (output / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
     assert saved == rows
-    batches = json.loads((output / 'execution.json').read_text())['batches']
+    batches = json.loads((output / 'execution.json').read_text(encoding='utf-8'))['batches']
     require_verified_reference_checks(batches, cases=definition, records=rows, source=output)
-    assert json.loads((source / 'manifest.json').read_text())['reference_checks']['status'] == 'awaiting_postcheck'
+    assert json.loads((source / 'manifest.json').read_text(encoding='utf-8'))['reference_checks']['status'] == 'awaiting_postcheck'

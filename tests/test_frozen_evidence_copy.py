@@ -7,12 +7,12 @@ from harness.web_fetch.safety import copy_evidence_file
 
 def test_frozen_copy_has_independent_identity_and_writes(tmp_path):
     source, target = tmp_path/'source.txt', tmp_path/'target.txt'
-    source.write_text('saved measurement')
+    source.write_text('saved measurement', encoding='utf-8')
     copy_evidence_file(source, target)
     assert target.read_bytes() == source.read_bytes()
     assert target.stat().st_ino != source.stat().st_ino
-    target.write_text('generated presentation')
-    assert source.read_text() == 'saved measurement'
+    target.write_text('generated presentation', encoding='utf-8')
+    assert source.read_text(encoding='utf-8') == 'saved measurement'
 
 
 def test_unsupported_clone_falls_back_to_an_independent_copy(tmp_path):

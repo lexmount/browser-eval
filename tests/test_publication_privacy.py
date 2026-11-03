@@ -265,7 +265,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             scored_output_hash({'artifact_path': 'artifacts/case.md'})
 
     def test_loader_localizes_async_status_and_accessibility_copy(self):
-        source=(source_path('harness/web_fetch/assets/report-loader.js', root=Path(__file__).resolve().parents[1])).read_text()
+        source=(source_path('harness/web_fetch/assets/report-loader.js', root=Path(__file__).resolve().parents[1])).read_text(encoding='utf-8')
         self.assertIn("function tr(zh,en)",source)
         for english in ('Failed to load the data catalog','Load complete content',
                         'Loading complete content…','Complete actual output',
@@ -402,16 +402,17 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'references').mkdir(parents=True)
             (source / 'artifacts/browser/case').mkdir(parents=True)
             (source / 'call-logs/browser/case').mkdir(parents=True)
-            (source / 'assets/style.css').write_text('body {color:black}')
+            (source / 'assets/style.css').write_text('body {color:black}', encoding='utf-8')
             (source / 'assets/report.js').write_text(
                 "window.addEventListener('report-ready',initReport);\n"
-                "window.addEventListener('DOMContentLoaded',initReport);\n"
+                "window.addEventListener('DOMContentLoaded',initReport);\n",
+                encoding='utf-8'
             )
-            (source / '.generated-report').write_text('local marker')
-            (source / 'dataset.json').write_text('{}')
-            (source / 'reliability.json').write_text('{"complete":true}')
-            (source / 'report-manifest.json').write_text('{}')
-            (source / 'result-review.json').write_text('{"status":"passed","failures":[]}')
+            (source / '.generated-report').write_text('local marker', encoding='utf-8')
+            (source / 'dataset.json').write_text('{}', encoding='utf-8')
+            (source / 'reliability.json').write_text('{"complete":true}', encoding='utf-8')
+            (source / 'report-manifest.json').write_text('{}', encoding='utf-8')
+            (source / 'result-review.json').write_text('{"status":"passed","failures":[]}', encoding='utf-8')
             call_logs=[b'{"event":"failed"}\n',b'{"event":"complete"}\n']
             call_log_paths=['call-logs/browser/case/run-001-physical-001.json',
                             'call-logs/browser/case/run-001-physical-002.json']
@@ -433,15 +434,15 @@ class PublicationPrivacyTests(unittest.TestCase):
                            'output_sha256':hashlib.sha256(b'').hexdigest(),
                            'provider_metadata': {}}
             results = json.dumps(record) + '\n' + json.dumps(file_record) + '\n'
-            (source / 'results.jsonl').write_text(results)
-            (source / 'references/case.txt').write_text('complete reference')
-            (source / 'references/file-case.txt').write_text('file acceptance rule')
-            (source / 'references/md-case.md').write_text('markdown ground truth')
+            (source / 'results.jsonl').write_text(results, encoding='utf-8')
+            (source / 'references/case.txt').write_text('complete reference', encoding='utf-8')
+            (source / 'references/file-case.txt').write_text('file acceptance rule', encoding='utf-8')
+            (source / 'references/md-case.md').write_text('markdown ground truth', encoding='utf-8')
             unusual_case = r'backslash\1'
-            (source / 'references' / f'{unusual_case}.txt').write_text('literal backslash reference')
-            (source / 'artifacts/browser/case/run-001.txt').write_text('actual output')
+            (source / 'references' / f'{unusual_case}.txt').write_text('literal backslash reference', encoding='utf-8')
+            (source / 'artifacts/browser/case/run-001.txt').write_text('actual output', encoding='utf-8')
             (source / 'artifacts/browser/file-case').mkdir(parents=True)
-            (source / 'artifacts/browser/file-case/run-001.txt').write_text('')
+            (source / 'artifacts/browser/file-case/run-001.txt').write_text('', encoding='utf-8')
             (source / 'attempts/browser__case__r001.html').write_text(
                 '<html><body><pre data-kind="reference">complete reference</pre>'
                 '<pre data-kind="output">actual output</pre>'
@@ -450,24 +451,24 @@ class PublicationPrivacyTests(unittest.TestCase):
                 '<dialog><pre data-kind="call-output">actual output</pre>'
                 '<pre data-kind="call-metadata">{}</pre>'
                 '<pre data-kind="call-log">{"event":"failed"}</pre>'
-                '<pre data-kind="call-log">{"event":"complete"}</pre></dialog></body></html>')
+                '<pre data-kind="call-log">{"event":"complete"}</pre></dialog></body></html>', encoding='utf-8')
             (source / 'attempts/browser__file-case__r001.html').write_text(
                 '<html><body><h2>目标文件与实际返回</h2>'
                 '<pre>DEBUG href="/not-a-report-link.css" '
                 '&lt;link href="/another-diagnostic.css"&gt;</pre>'
                 '<pre data-kind="metadata">{"field":"parsed"}</pre>'
                 '<pre data-kind="metadata">{&quot;access_token&quot;:&quot;canary-private-123&quot;}</pre>'
-                '<pre data-kind="metadata">{"field":"response"}</pre></body></html>')
+                '<pre data-kind="metadata">{"field":"response"}</pre></body></html>', encoding='utf-8')
             (source / 'datasets/md-case.html').write_text(
                 '<html><body><h2>Source metadata</h2><pre>{"level":"hard"}</pre>'
-                '<h2>Official human ground truth</h2><pre>markdown ground truth</pre></body></html>')
+                '<h2>Official human ground truth</h2><pre>markdown ground truth</pre></body></html>', encoding='utf-8')
             (source / 'datasets' / f'{unusual_case}.html').write_text(
                 '<html><body><h2>Official human ground truth</h2>'
-                '<pre>literal backslash reference</pre></body></html>')
+                '<pre>literal backslash reference</pre></body></html>', encoding='utf-8')
             (source / 'changes').mkdir()
-            (source / 'changes/index.html').write_text('<html><body>Old history</body></html>')
-            (source / 'index.html').write_text('<!doctype html><html><head><title>Test</title></head><body><pre>DEBUG href="../../missing.css" data-file="missing-log.txt"</pre><a href="sources/case/source.html.txt">HTML</a></body></html>')
-            (source / 'guide/article.html').write_text('<!doctype html><html><body>Article</body></html>')
+            (source / 'changes/index.html').write_text('<html><body>Old history</body></html>', encoding='utf-8')
+            (source / 'index.html').write_text('<!doctype html><html><head><title>Test</title></head><body><pre>DEBUG href="../../missing.css" data-file="missing-log.txt"</pre><a href="sources/case/source.html.txt">HTML</a></body></html>', encoding='utf-8')
+            (source / 'guide/article.html').write_text('<!doctype html><html><body>Article</body></html>', encoding='utf-8')
             key = b'AIzaSy' + b'x' * 33
             raw = b'<script>key="' + key + b'"</script>'
             raw_path = source / 'sources/case/source.html.txt'
@@ -541,14 +542,14 @@ class PublicationPrivacyTests(unittest.TestCase):
             archive_path = root / 'publish/webfetch-sites.zip'
             baseline_digest = hashlib.sha256(archive_path.read_bytes()).hexdigest()
             old_home = (source / 'index.html').read_bytes()
-            (source / 'index.html').write_text('<html><body>45 秒；实际调用示例</body></html>')
+            (source / 'index.html').write_text('<html><body>45 秒；实际调用示例</body></html>', encoding='utf-8')
             (source / 'report-manifest.json').write_text(json.dumps({'presentation_refresh': {
-                'scores_changed': False, 'provider_calls_added': 0, 'changed_routes': ['index.html', 'changes/index.html']}}))
-            (source / 'changes/index.html').write_text('<html><body>New release history</body></html>')
+                'scores_changed': False, 'provider_calls_added': 0, 'changed_routes': ['index.html', 'changes/index.html']}}), encoding='utf-8')
+            (source / 'changes/index.html').write_text('<html><body>New release history</body></html>', encoding='utf-8')
             delta = root / 'delta'
             module.build_incremental(source, archive_path, delta)
             self.assertEqual({path.name for path in delta.iterdir()}, {'loader.js', 'manifest.json', 'update-receipt.json'})
-            patched_manifest = json.loads((delta / 'manifest.json').read_text())
+            patched_manifest = json.loads((delta / 'manifest.json').read_text(encoding='utf-8'))
             self.assertEqual(patched_manifest['blocks'], manifest['blocks'])
             self.assertEqual(patched_manifest['files']['results.jsonl'], manifest['files']['results.jsonl'])
             self.assertIn('inline_base64', patched_manifest['files']['index.html'])
@@ -558,7 +559,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             from unittest.mock import patch
             # An overlay may update explanations, never attempts or packed evidence.
             for label in ('attempt', 'blocks'):
-                poisoned = json.loads((delta / 'manifest.json').read_text())
+                poisoned = json.loads((delta / 'manifest.json').read_text(encoding='utf-8'))
                 if label == 'attempt':
                     key = record['artifact_path']
                     payload = b'changed measured answer'
@@ -568,7 +569,7 @@ class PublicationPrivacyTests(unittest.TestCase):
                     poisoned['blocks'][next(iter(poisoned['blocks']))]['offset'] += 1
                 overlay = root / ('illegal-' + label)
                 overlay.mkdir()
-                (overlay / 'manifest.json').write_text(json.dumps(poisoned))
+                (overlay / 'manifest.json').write_text(json.dumps(poisoned), encoding='utf-8')
                 with self.assertRaisesRegex(ValueError, 'Incremental overlay changed'):
                     check_bundle(archive_path, source, overlay)
             original_build = module._build_incremental
@@ -585,20 +586,20 @@ class PublicationPrivacyTests(unittest.TestCase):
                                            '<img src="missing.png">',
                                            '<img src="results.jsonl">')):
                 with self.subTest(incremental=broken):
-                    (source / 'index.html').write_text('<html><body>' + broken + '</body></html>')
+                    (source / 'index.html').write_text('<html><body>' + broken + '</body></html>', encoding='utf-8')
                     with self.assertRaises((ValueError, AssertionError)):
                         module.build_incremental(source, archive_path, root / f'broken-delta-{index}')
                     # Independently reject a hash-valid overlay that bypassed the packager.
-                    poisoned = json.loads((delta / 'manifest.json').read_text())
+                    poisoned = json.loads((delta / 'manifest.json').read_text(encoding='utf-8'))
                     data = ('<html><body>' + broken + '</body></html>').encode()
                     poisoned['files']['index.html'].update(inline_base64=base64.b64encode(data).decode(),
                         size=len(data), sha256=hashlib.sha256(data).hexdigest())
                     overlay = root / f'poisoned-overlay-{index}'
                     overlay.mkdir()
-                    (overlay / 'manifest.json').write_text(json.dumps(poisoned))
+                    (overlay / 'manifest.json').write_text(json.dumps(poisoned), encoding='utf-8')
                     with self.assertRaisesRegex(ValueError, 'Invalid internal'):
                         check_bundle(archive_path, source, overlay)
-            (source / 'index.html').write_text('<html><body>45 秒；实际调用示例</body></html>')
+            (source / 'index.html').write_text('<html><body>45 秒；实际调用示例</body></html>', encoding='utf-8')
             # Reject a different cohort or an attempt/log rewrite.
             saved_results = (source / 'results.jsonl').read_bytes()
             (source / 'results.jsonl').write_bytes(b'changed results')
@@ -606,7 +607,7 @@ class PublicationPrivacyTests(unittest.TestCase):
                 module.build_incremental(source, archive_path, root / 'wrong-cohort')
             (source / 'results.jsonl').write_bytes(saved_results)
             (source / 'report-manifest.json').write_text(json.dumps({'presentation_refresh': {
-                'scores_changed': False, 'provider_calls_added': 0, 'changed_routes': ['attempts/browser__case__r001.html']}}))
+                'scores_changed': False, 'provider_calls_added': 0, 'changed_routes': ['attempts/browser__case__r001.html']}}), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'Not an explanatory route'):
                 module.build_incremental(source, archive_path, root / 'wrong-route')
             (source / 'index.html').write_bytes(old_home)
@@ -615,14 +616,14 @@ class PublicationPrivacyTests(unittest.TestCase):
                            '<pre data-file="missing.txt"></pre>',
                            '<img src="missing.png">'):
                 with self.subTest(broken=broken):
-                    (source / 'index.html').write_text('<html><body>' + broken + '</body></html>')
+                    (source / 'index.html').write_text('<html><body>' + broken + '</body></html>', encoding='utf-8')
                     rejected = subprocess.run(
                         [sys.executable, str(repository / 'scripts/package_artifact_site.py'), str(source), str(root / 'publish/webfetch-sites.zip')],
                         capture_output=True,
                     )
                     self.assertNotEqual(rejected.returncode, 0)
                     self.assertIn(b'ValueError', rejected.stderr)
-            (source / 'results.jsonl').write_text(results.replace('"route": "markdown"', '"route": "changed"'))
+            (source / 'results.jsonl').write_text(results.replace('"route": "markdown"', '"route": "changed"'), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'source hash differs'):
                 check_bundle(root / 'publish/webfetch-sites.zip', source)
 
@@ -696,10 +697,10 @@ def test_public_metadata_receipt_checks_bytes_and_excludes_scored_payloads(tmp_p
     (tmp_path/'config.json').write_bytes(public['config.json'])
     def bind():
         path=tmp_path/'projection.json'
-        path.write_text(json.dumps(receipt))
+        path.write_text(json.dumps(receipt), encoding='utf-8')
         return {'path':path.name,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}
     require_host_metadata_projection(tmp_path,bind())
-    (tmp_path/'config.json').write_text('{"binary":"changed"}')
+    (tmp_path/'config.json').write_text('{"binary":"changed"}', encoding='utf-8')
     with pytest.raises(ValueError):require_host_metadata_projection(tmp_path,bind())
     (tmp_path/'config.json').write_bytes(public['config.json'])
     receipt['files'][0]['path']='artifacts/answer.json'
@@ -726,7 +727,7 @@ def test_named_host_in_auxiliary_log_is_projected_with_bound_public_hash(tmp_pat
     assert b'fixture.local' not in public[name]
     assert b'response completed' in public[name]
     (tmp_path/'logs').mkdir();(tmp_path/name).write_bytes(public[name])
-    path=tmp_path/'projection.json';path.write_text(json.dumps(receipt))
+    path=tmp_path/'projection.json';path.write_text(json.dumps(receipt), encoding='utf-8')
     require_host_metadata_projection(tmp_path,{'path':path.name,'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
 
 

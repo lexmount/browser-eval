@@ -105,7 +105,7 @@ def parse_sections(rule_files=None) -> list[dict]:
                            for name in EXPECTED_RULE_HASHES)
     sections = []
     for path in rule_files:
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")
         for raw in re.split(r"(?m)^## (?=\d+\. )", text)[1:]:
             lines = raw.strip().splitlines()
             match = re.fullmatch(r"(\d+)\. ([^｜]+)｜(.+)", lines[0])
@@ -159,7 +159,7 @@ def parse_sections(rule_files=None) -> list[dict]:
 def evidence_roots(manifest_path=None, *, evidence_home: Path | None = None) -> dict[str, Path]:
     if manifest_path is None:
         manifest_path = definition_path("evaluation/risk-control/qualification/cohort/input-manifest.json")
-    manifest = json.loads(manifest_path.read_text())
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     return {
         key: contained_path(evidence_home or data_home(), value, reject_symlinks=True)
         for key, value in manifest["evidence_roots"].items()
@@ -169,7 +169,7 @@ def evidence_roots(manifest_path=None, *, evidence_home: Path | None = None) -> 
 def load_cohort(cohort_path=None) -> tuple[dict, list[dict]]:
     if cohort_path is None:
         cohort_path = definition_path("evaluation/risk-control/qualification/cohort/cohort-manifest.json")
-    cohort = json.loads(cohort_path.read_text())
+    cohort = json.loads(cohort_path.read_text(encoding="utf-8"))
     cases = cohort.get("cases")
     if (
         cohort.get("schema_version") != 1
@@ -335,9 +335,9 @@ def build(output: Path, definition_dir: Path | None = None, *, evidence_home: Pa
         )
 
     roots = evidence_roots(manifest_path, evidence_home=evidence_home)
-    list_source = json.loads(list_contracts_path.read_text())
+    list_source = json.loads(list_contracts_path.read_text(encoding="utf-8"))
     contracts = list_source["contracts"]
-    body_source = json.loads(body_contracts_path.read_text())
+    body_source = json.loads(body_contracts_path.read_text(encoding="utf-8"))
     body_contracts = body_source["contracts"]
     expected_body_ids = {
         section["id"]
@@ -480,7 +480,7 @@ def build(output: Path, definition_dir: Path | None = None, *, evidence_home: Pa
         },
         "cases": cases,
     }
-    output.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
+    output.write_text(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return dataset
 
 

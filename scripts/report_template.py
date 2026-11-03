@@ -14,7 +14,7 @@ if __name__ == "__main__":
         "track",
         choices=tuple(
             json.loads(
-                (Path(__file__).resolve().parents[1] / "configs/report-templates.json").read_text()
+                (Path(__file__).resolve().parents[1] / "configs/report-templates.json").read_text(encoding="utf-8")
             )["tracks"]
         ),
     )

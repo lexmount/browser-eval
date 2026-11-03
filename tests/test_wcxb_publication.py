@@ -13,8 +13,8 @@ from tests.wcxb_fixture import write_json
 def report(tmp_path, monkeypatch):
     authority, source = tmp_path / 'authority', tmp_path / 'report'
     source.mkdir()
-    (source / 'index.html').write_text('<!doctype html><h1>Synthetic WCXB</h1>')
-    (source / '.generated-report').write_text('generated\n')
+    (source / 'index.html').write_text('<!doctype html><h1>Synthetic WCXB</h1>', encoding='utf-8')
+    (source / '.generated-report').write_text('generated\n', encoding='utf-8')
     profile = {'comparison_kind': 'wcxb_frozen_html_to_markdown', 'case_count': 2,
                'artifact_hub_base_url': 'https://artifacts.example.invalid',
                'artifact_hub_site': 'wcxb-site', 'artifact_hub_expected_version': 'ver_old',
@@ -97,9 +97,9 @@ def test_bad_public_boundary_stops_before_remote_or_overwrite(report, change, tm
     kwargs, profile_path, _ = report
     source = kwargs['source']
     if change == 'extra-file':
-        (source / 'private-note.txt').write_text('internal note')
+        (source / 'private-note.txt').write_text('internal note', encoding='utf-8')
     elif change == 'changed-file':
-        (source / 'index.html').write_text('changed after build')
+        (source / 'index.html').write_text('changed after build', encoding='utf-8')
     elif change == 'missing-file':
         (source / 'index.html').unlink()
     elif change == 'profile':

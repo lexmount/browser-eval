@@ -23,7 +23,7 @@ def saved_retrieval(tmp_path, monkeypatch):
         "evaluation": "evaluation.json",
     }
     for name in names.values():
-        (task / name).write_text("{}")
+        (task / name).write_text("{}", encoding="utf-8")
     hashes = {
         key: hashlib.sha256((task / name).read_bytes()).hexdigest() for key, name in names.items()
     }
@@ -35,7 +35,7 @@ def saved_retrieval(tmp_path, monkeypatch):
         "score": 1,
         "evidence_sha256": hashes,
     }
-    (task / "result.json").write_text(json.dumps(result))
+    (task / "result.json").write_text(json.dumps(result), encoding="utf-8")
     sites, dataset = tmp_path / "sites.json", tmp_path / "new-dataset.json"
     sites.write_text(
         json.dumps(
@@ -48,14 +48,15 @@ def saved_retrieval(tmp_path, monkeypatch):
                     "shopping_admin": "http://admin.test/admin",
                 },
             }
-        )
+        ),
+        encoding="utf-8"
     )
-    dataset.write_text("[]")
+    dataset.write_text("[]", encoding="utf-8")
     receipt = {
         "site_map_sha256": hashlib.sha256(sites.read_bytes()).hexdigest(),
         "results": [result],
     }
-    (tmp_path / "receipt.json").write_text(json.dumps(receipt))
+    (tmp_path / "receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
     calls = []
 
     class Evaluator:
@@ -126,18 +127,18 @@ def test_invalid_saved_evidence_stops_before_evaluator(saved_retrieval, damage, 
             result["completed_actions"] = 0
         else:
             result["task_id"] = 8
-        result_path.write_text(json.dumps(result))
+        result_path.write_text(json.dumps(result), encoding="utf-8")
         receipt_path = task.parent / "receipt.json"
         receipt = json.loads(receipt_path.read_bytes())
         receipt["results"] = [result]
-        receipt_path.write_text(json.dumps(receipt))
+        receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
     elif damage in {"receipt-disagrees", "typed-receipt-disagrees"}:
         result["score"] = 0 if damage == "receipt-disagrees" else True
-        result_path.write_text(json.dumps(result))
+        result_path.write_text(json.dumps(result), encoding="utf-8")
     elif damage == "sites":
-        inputs["site_map"].write_text("{}")
+        inputs["site_map"].write_text("{}", encoding="utf-8")
     elif damage == "trace":
-        (task / "trace.json").write_text("[]")
+        (task / "trace.json").write_text("[]", encoding="utf-8")
     else:
         alias = tmp_path / "linked"
         alias.symlink_to(task, target_is_directory=True)
@@ -163,7 +164,7 @@ def test_source_change_during_evaluation_cannot_emit_diagnostic(
 
     def mutate(self, **kwargs):
         value = evaluator(self, **kwargs)
-        targets[changed].write_text("changed")
+        targets[changed].write_text("changed", encoding="utf-8")
         return value
 
     monkeypatch.setattr(webarena_verified.api.WebArenaVerified, "evaluate_task", mutate)

@@ -72,7 +72,7 @@ def test_task_execution_writes_redacted_evaluator_network_evidence(tmp_path, mon
     )
     assert result["status"] == "pass", result["error"]
     assert result["network_har"]["entry_count"] == 1
-    raw = (tmp_path / "network.har").read_text()
+    raw = (tmp_path / "network.har").read_text(encoding="utf-8")
     assert "private-token" not in raw
     entry = json.loads(raw)["log"]["entries"][0]
     assert entry["request"]["url"] == "https://site.test/save"
@@ -388,19 +388,25 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
     tmp_path, monkeypatch, unexpected_diagnostic_error, generate_report, with_smoke
 ):
     suite_path = tmp_path / "suite.json"
-    suite_path.write_text("{}")
+    suite_path.write_text("{}", encoding="utf-8")
     import shutil
 
     from harness.trajectory_replay.report_inputs import replay_fixture_root
     shutil.copytree(replay_fixture_root(), suite_path.parent / "fixtures")
-    (suite_path.parent / "fixtures/core.html").write_text("Original historical core")
+    (suite_path.parent / "fixtures/core.html").write_text(
+        "Original historical core", encoding="utf-8"
+    )
     (suite_path.parent / "fixtures/nested").mkdir()
-    (suite_path.parent / "fixtures/nested/custom.js").write_text("window.historical = true;")
+    (suite_path.parent / "fixtures/nested/custom.js").write_text(
+        "window.historical = true;", encoding="utf-8"
+    )
     smoke_path = tmp_path / "selected-smoke.json"
     smoke_raw = b'{"results":[{"status":"fail"}],"executed_at":"2026-09-01"}'
     smoke_path.write_bytes(smoke_raw)
     # A neighboring success must not be selected instead of the explicit evidence.
-    (suite_path.parent / "agent_smoke.json").write_text('{"results":[{"status":"pass"}]}')
+    (suite_path.parent / "agent_smoke.json").write_text(
+        '{"results":[{"status":"pass"}]}', encoding="utf-8"
+    )
     output = tmp_path / "artifacts"
     task = BrowserTask(
         "task", "Task", ({"action": "navigate", "url": "{fixture_origin}/core.html"},),
@@ -451,18 +457,21 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
     monkeypatch.setattr(runner, "summarize_attempts", lambda *a, **k: dict(baseline))
     report_path = tmp_path / "report.html"
     report = MagicMock(
-        side_effect=lambda *a, **k: report_path.write_text("<html>Saved results</html>")
+        side_effect=lambda *a, **k: report_path.write_text(
+            "<html>Saved results</html>", encoding="utf-8"
+        )
     )
     monkeypatch.setattr(runner, "write_latest_report", report)
     monkeypatch.setattr(web_fetch_config, "ROOT", tmp_path)
     (tmp_path / ".env").write_text(
-        "OPENAI_API_KEY=test\nOPENAI_BASE_URL=https://test.invalid\n"
+        "OPENAI_API_KEY=test\nOPENAI_BASE_URL=https://test.invalid\n",
+        encoding="utf-8"
     )
 
     def verify_artifacts():
         attempts = (output / "attempts.jsonl").read_bytes()
         summary_bytes = (output / "summary.json").read_bytes()
-        manifest = json.loads((output / "manifest.json").read_text())
+        manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
         if with_smoke:
             assert manifest["agent_smoke"]["results"] == [{"status": "fail"}]
             assert manifest["agent_smoke"]["provenance"]["source_sha256"] == (
@@ -544,7 +553,7 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
                 'dataset_sha256': hashlib.sha256(suite_path.read_bytes()).hexdigest(),
                 'results': [{'task_id': 'task', 'status': 'pass', 'observed': {}}],
                 'automatic_browser_replay': {'status': 'pass', 'passed': 1},
-            }))
+            }), encoding="utf-8")
             monkeypatch.setattr(sys, 'argv', ['rebuild_report', '--artifacts', str(output),
                 '--suite', str(suite_path), '--reports', str(tmp_path),
                 '--ground-truth-evidence', str(evidence)])
@@ -657,7 +666,7 @@ def test_final_page_evidence_binds_screenshot_and_visible_page_state(tmp_path):
 
     assert result["status"] == "complete"
     assert result["screenshot"]["sha256"] == hashlib.sha256(screenshot).hexdigest()
-    assert json.loads((tmp_path / "final-page.json").read_text()) == {
+    assert json.loads((tmp_path / "final-page.json").read_text(encoding="utf-8")) == {
         "url": "https://example.test/result",
         "title": "Result",
         "visible_text": "Visible result",
@@ -701,7 +710,7 @@ def test_final_page_evidence_retries_navigation_races_and_writes_partial(tmp_pat
     assert result["status"] == "partial"
     assert result["screenshot"] is None
     assert result["page"]["path"] == "final-page.json"
-    payload = json.loads((tmp_path / "final-page.json").read_text())
+    payload = json.loads((tmp_path / "final-page.json").read_text(encoding="utf-8"))
     assert payload["url"] == "https://example.test/loading"
     assert payload["visible_text"] == ""
     assert payload["interactive_elements"] == []
@@ -745,7 +754,9 @@ def test_webarena_run_mode_fails_closed_on_qualification_state(
         "source": {"url": "https://example.com/source"},
     }
     path = tmp_path / "suite.json"
-    path.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}))
+    path.write_text(
+        json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}), encoding="utf-8"
+    )
     docker_call = MagicMock()
     monkeypatch.setattr(runner.docker, "from_env", docker_call)
 
@@ -794,9 +805,13 @@ def test_failed_attempt_evidence_omits_the_login_password(
         "source": {"url": "https://example.com/source"},
     }
     suite = tmp_path / "suite.json"
-    suite.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}))
+    suite.write_text(
+        json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}),
+        encoding="utf-8",
+    )
     (tmp_path / "images.json").write_text(
-        json.dumps({"schema": "lex_webarena_environment_images/1", "images": {}})
+        json.dumps({"schema": "lex_webarena_environment_images/1", "images": {}}),
+        encoding="utf-8",
     )
     config = tmp_path / "config.json"
     config.write_text(
@@ -810,7 +825,8 @@ def test_failed_attempt_evidence_omits_the_login_password(
                     }
                 }
             }
-        )
+        ),
+        encoding="utf-8",
     )
     secrets = tmp_path / "repository.env"
     secrets.write_text(f"TEST_USER=user\nTEST_SECRET={password}\n", encoding="utf-8")

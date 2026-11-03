@@ -10,12 +10,12 @@ def fixture(tmp_path):
     task = tmp_path / "task-448"
     task.mkdir()
     for name in ("network.har", "trace.json"):
-        (task / name).write_text("{}")
+        (task / name).write_text("{}", encoding="utf-8")
     site_map = tmp_path / "sites.json"
-    site_map.write_text("{}")
+    site_map.write_text("{}", encoding="utf-8")
     before, after = tmp_path / "before.json", tmp_path / "after.json"
-    before.write_text("{}")
-    after.write_text("{}")
+    before.write_text("{}", encoding="utf-8")
+    after.write_text("{}", encoding="utf-8")
     digest = hashlib.sha256(b"{}").hexdigest()
     receipt = {
         "method_id": "release",
@@ -31,7 +31,7 @@ def fixture(tmp_path):
             }
         ],
     }
-    (tmp_path / "receipt.json").write_text(json.dumps(receipt))
+    (tmp_path / "receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
     return dict(
         task_dir=task, task_id=448, site_map=site_map, before_catalog=before, after_catalog=after
     )
@@ -53,7 +53,7 @@ def test_audit_does_not_treat_invalid_action_counts_as_completed(tmp_path, count
     receipt = json.loads(path.read_bytes())
     row = receipt["results"][0]
     row["action_count"], row["completed_actions"] = counts
-    path.write_text(json.dumps(receipt))
+    path.write_text(json.dumps(receipt), encoding="utf-8")
     with pytest.raises(ValueError, match="action counts"):
         audit_saved_correction(**inputs)
 
@@ -62,16 +62,16 @@ def test_audit_does_not_treat_invalid_action_counts_as_completed(tmp_path, count
 def test_audit_rejects_changed_or_ambiguous_evidence(tmp_path, change):
     inputs = fixture(tmp_path)
     if change == "trace":
-        (inputs["task_dir"] / "trace.json").write_text("changed")
+        (inputs["task_dir"] / "trace.json").write_text("changed", encoding="utf-8")
     elif change == "sites":
-        inputs["site_map"].write_text("changed")
+        inputs["site_map"].write_text("changed", encoding="utf-8")
     elif change == "missing":
         (inputs["task_dir"] / "trace.json").unlink()
     elif change == "duplicate":
         path = tmp_path / "receipt.json"
-        receipt = json.loads(path.read_text())
+        receipt = json.loads(path.read_text(encoding="utf-8"))
         receipt["results"] *= 2
-        path.write_text(json.dumps(receipt))
+        path.write_text(json.dumps(receipt), encoding="utf-8")
     else:
         linked = tmp_path / "linked.json"
         linked.symlink_to(inputs["before_catalog"])

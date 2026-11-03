@@ -15,7 +15,7 @@ from harness.web_fetch.runner import run_evaluation
 
 SELECTED = ('moli-webfetch', 'firecrawl', 'cloudflare-markdown', 'tavily', 'exa',
             'brightdata', 'browser-use-fetch', 'browserbase', 'deepseek-fetch-api', 'crawl4ai-cloud')
-CONFIG = json.loads(Path('configs/providers.example.json').read_text())['providers']
+CONFIG = json.loads(Path('configs/providers.example.json').read_text(encoding='utf-8'))['providers']
 
 
 def provider(name):
@@ -85,7 +85,7 @@ def test_hosted_native_retry_persists_every_physical_answer(tmp_path, name, answ
             provider_config_path=tmp_path/'providers.json', runs=1, timeout=30, delay=0)
     assert opener.return_value.open.call_count == len(answers)
     row = rows[0]
-    assert (tmp_path/row['artifact_path']).read_text() == answers[-1]
+    assert (tmp_path/row['artifact_path']).read_text(encoding='utf-8') == answers[-1]
     assert row['provider_metadata']['latency_scope'] == 'native_response_received'
     assert (tmp_path/row['provider_metadata']['raw_response_path']).is_file()
     assert (tmp_path/row['provider_metadata']['diagnostic_log_path']).is_file()
@@ -120,7 +120,7 @@ def test_malformed_api_response_is_retained_as_failure(tmp_path, name):
     assert opener.return_value.open.call_count == 2
     row = rows[0]
     assert not row['ok'] and row['error_type'] == 'invalid_response'
-    assert (tmp_path/row['artifact_path']).read_text() == ''
+    assert (tmp_path/row['artifact_path']).read_text(encoding='utf-8') == ''
     assert (tmp_path/row['provider_metadata']['raw_response_path']).read_bytes() == b'not valid JSON'
     verify_saved_native_answer(tmp_path, row, cases_by_id={c.id: asdict(c)})
 
@@ -151,7 +151,7 @@ def test_configured_cohort_and_local_configuration_guards():
 def test_configured_cohort_rejects_invalid_selection(tmp_path, names):
     from harness.web_fetch.config import resolve_provider_selection
     config = tmp_path/'providers.json'
-    config.write_text(json.dumps({'providers':{'fixture':{'type':'fixture'}}, 'default_providers':names}))
+    config.write_text(json.dumps({'providers':{'fixture':{'type':'fixture'}}, 'default_providers':names}), encoding='utf-8')
     with pytest.raises(ValueError):
         resolve_provider_selection('configured', config)
 
@@ -159,7 +159,7 @@ def test_configured_cohort_rejects_invalid_selection(tmp_path, names):
 def test_configured_cli_selection_reaches_runner(tmp_path):
     from harness.web_fetch.cli import command_run
     config = tmp_path/'providers.json'
-    config.write_text(json.dumps({'providers':{'fixture':{'type':'fixture'}}, 'default_providers':['fixture']}))
+    config.write_text(json.dumps({'providers':{'fixture':{'type':'fixture'}}, 'default_providers':['fixture']}), encoding='utf-8')
     args = build_parser().parse_args(['run','--providers','configured','--provider-config',str(config),
                                      '--output',str(tmp_path/'run')])
     with patch('harness.web_fetch.cli.load_runtime_env'), \
@@ -201,7 +201,7 @@ def test_selected_origin_status_policy_controls_acceptance_and_retry(tmp_path, n
         binary.write_text(f'#!{sys.executable}\nimport sys\n'
             'if sys.argv[1:] == ["--version"]:\n print("moli fixture"); sys.exit(0)\n' +
             (f'sys.stdout.buffer.write({file_bytes!r})\n' if route == 'file' else 'print("Expected")\n') +
-            f'print({event!r}, file=sys.stderr)\n')
+            f'print({event!r}, file=sys.stderr)\n', encoding='utf-8')
         binary.chmod(0o700)
         p = build_provider(name, {**p.config, 'binary': str(binary),
             'expected_reported_version': 'moli fixture',
@@ -246,4 +246,4 @@ def test_selected_origin_status_policy_controls_acceptance_and_retry(tmp_path, n
     from harness.web_fetch.artifacts import verify_record_artifacts
     verify_record_artifacts(tmp_path / 'run', row)
     if route in {'body', 'document'}:
-        assert 'Expected' in (tmp_path / 'run' / row['artifact_path']).read_text()
+        assert 'Expected' in (tmp_path / 'run' / row['artifact_path']).read_text(encoding='utf-8')

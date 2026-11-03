@@ -32,7 +32,7 @@ def test_invalid_receipt_returns_false_in_direct_and_history_validation(tmp_path
                input_dataset_sha256='a' * 64, input_results_sha256='b' * 64,
                output_dataset_sha256=hashlib.sha256(raw).hexdigest(),
                output_results_sha256=hashlib.sha256(b'').hexdigest())
-    (tmp_path / 'scoring-revisions.json').write_text(json.dumps([row]))
+    (tmp_path / 'scoring-revisions.json').write_text(json.dumps([row]), encoding='utf-8')
     assert valid_scoring_revision(tmp_path) is False
 
 

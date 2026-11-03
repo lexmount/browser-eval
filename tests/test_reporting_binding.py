@@ -36,7 +36,8 @@ def setup(tmp_path, monkeypatch, track):
     profile.write_text(
         json.dumps(
             {"publication": {"base_url": "https://example.invalid", "expected_version": "ver_old"}}
-        )
+        ),
+        encoding="utf-8"
     )
     proof.write_text(
         json.dumps(
@@ -44,7 +45,8 @@ def setup(tmp_path, monkeypatch, track):
                 "archive_sha256": "frozen-package",
                 "profile_sha256": hashlib.sha256(profile.read_bytes()).hexdigest(),
             }
-        )
+        ),
+        encoding="utf-8"
     )
     for key, path in [("PROFILE", profile), ("ATTESTATION", proof), ("BINDING_JOURNAL", journal)]:
         monkeypatch.setattr(owner, key, path, raising=False)
@@ -56,7 +58,7 @@ def setup(tmp_path, monkeypatch, track):
             )
         else:
             owner.bind_publication(
-                json.loads(profile.read_text()),
+                json.loads(profile.read_text(encoding="utf-8")),
                 slug="site-1",
                 share_url="https://example.invalid/v/token",
                 version="ver_new",
@@ -83,11 +85,11 @@ def test_interrupted_binding_resumes_complete_pair(tmp_path, monkeypatch, track,
     monkeypatch.setattr(owner, "atomic_write", original)
     owner.recover_publication_binding()
     assert not journal.exists()
-    publication = json.loads(profile.read_text())["publication"]
+    publication = json.loads(profile.read_text(encoding="utf-8"))["publication"]
     assert publication["expected_version"] == "ver_new"
     assert publication["site_slug"] == "site-1"
     assert (
-        json.loads(proof.read_text())["profile_sha256"]
+        json.loads(proof.read_text(encoding="utf-8"))["profile_sha256"]
         == hashlib.sha256(profile.read_bytes()).hexdigest()
     )
 
@@ -109,7 +111,7 @@ def test_recovery_refuses_changed_authority_without_overwriting_it(
     with pytest.raises(OSError):
         bind()
     target = profile if changed == "profile" else proof
-    target.write_text('{"newer_authority":true}')
+    target.write_text('{"newer_authority":true}', encoding="utf-8")
     before = (profile.read_bytes(), proof.read_bytes(), journal.read_bytes())
     monkeypatch.setattr(owner, "atomic_write", original)
     with pytest.raises(ValueError, match="changed|differs"):
@@ -184,7 +186,8 @@ def test_legacy_replay_journal_only_finishes_the_already_installed_profile(
                 "profile": updated,
                 "attestation": target_proof,
             }
-        )
+        ),
+        encoding="utf-8"
     )
     if profile_installed:
         profile.write_bytes(payload)

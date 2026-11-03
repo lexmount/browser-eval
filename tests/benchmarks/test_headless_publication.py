@@ -41,11 +41,11 @@ def headless(tmp_path):
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(raw)
-    (root / '.gitattributes').write_text('fixtures/page.html export-subst\ntasks/L2/platform/one.json export-ignore\n')
+    (root / '.gitattributes').write_text('fixtures/page.html export-subst\ntasks/L2/platform/one.json export-ignore\n', encoding='utf-8')
     for name in ('.env', 'runs/results.json', 'reports/index.html', 'private_artifacts/raw.json', 'runner/run.py'):
         path = root / name
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text('excluded measured/private/runtime bytes')
+        path.write_text('excluded measured/private/runtime bytes', encoding='utf-8')
     git(root, 'init', '-q')
     git(root, 'add', '.')
     git(root, 'commit', '-qm', 'Original headless definitions')
@@ -54,7 +54,7 @@ def headless(tmp_path):
 
 def test_headless_git_export_preserves_every_original_byte_and_ignores_outputs(headless, tmp_path):
     root, revision, original = headless
-    (root / 'tasks/L1/raw/one.json').write_text('uncommitted replacement')
+    (root / 'tasks/L1/raw/one.json').write_text('uncommitted replacement', encoding='utf-8')
     release = DatasetRelease.from_git(root, 'headless-browser', revision)
     result = release.build(tmp_path / 'first')
     release.build(tmp_path / 'second')
@@ -79,7 +79,7 @@ def test_headless_git_export_preserves_every_original_byte_and_ignores_outputs(h
             assert archive.extractfile('definitions/' + name).read() == raw
     for name, binding in result['files'].items():
         assert hashlib.sha256((tmp_path / 'first' / name).read_bytes()).hexdigest() == binding['sha256']
-    card = (tmp_path / 'first/README.md').read_text()
+    card = (tmp_path / 'first/README.md').read_text(encoding='utf-8')
     assert 'LexBench-Headless-Browser' in card and revision in card
     assert '{{upstream_' not in card
     assert '## Execute with the original runner' in card
@@ -125,11 +125,11 @@ def test_headless_rejects_incomplete_or_ambiguous_source_populations(headless, t
     elif defect == 'overlap':
         manifest['layers'][1]['subsets'][0]['task_glob'] = 'tasks/L1/raw/*.json'
     elif defect == 'orphan-task':
-        (root / 'tasks/orphan.json').write_text('{"task_id":"unregistered"}')
+        (root / 'tasks/orphan.json').write_text('{"task_id":"unregistered"}', encoding='utf-8')
     else:
         (root / 'fixtures/link.html').symlink_to('page.html')
     # Restore the valid committed task before committing the chosen defect.
-    (root / 'manifest.json').write_text(json.dumps(manifest))
+    (root / 'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
     git(root, 'add', '.')
     git(root, 'commit', '-qm', defect)
     with pytest.raises(ValueError):

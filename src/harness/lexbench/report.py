@@ -74,17 +74,17 @@ def write_presentation(source, output, combined, version, macos=None, *, include
         entries.extend([("en", "", "en.html"), ("en", "../", "en/index.html")])
     else:
         # Retain the published flat entry as a notice for existing external links.
-        (output / "en.html").write_text(english_notice(nested=False))
-    template = (source / "index.html").read_text()
+        (output / "en.html").write_text(english_notice(nested=False), encoding="utf-8")
+    template = (source / "index.html").read_text(encoding="utf-8")
     for language, base, entry in entries:
         target = output / entry
         target.parent.mkdir(exist_ok=True)
-        messages = (source / "messages.json").read_text().replace("<", "\\u003c")
+        messages = (source / "messages.json").read_text(encoding="utf-8").replace("<", "\\u003c")
         shell = template.replace("{{lang}}", language).replace("{{base}}", base).replace("{{messages}}", messages)
         for name in ("style.css", "app.js"):
             digest = hashlib.sha256((source / name).read_bytes()).hexdigest()[:12]
             shell = shell.replace(name, f"{name}?v={digest}")
-        target.write_text(shell)
+        target.write_text(shell, encoding="utf-8")
 
 
 def main(argv=None):
@@ -152,10 +152,10 @@ def main(argv=None):
     OUT = args.output.resolve()
     FUNCTIONAL_CORRECTION = args.functional_correction.absolute()
     cohort = json.loads(
-        contained_path(args.cohort.parent, args.cohort.name, reject_symlinks=True).read_text()
+        contained_path(args.cohort.parent, args.cohort.name, reject_symlinks=True).read_text(encoding="utf-8")
     )
     summary = json.loads(
-        contained_path(args.summary.parent, args.summary.name, reject_symlinks=True).read_text()
+        contained_path(args.summary.parent, args.summary.name, reject_symlinks=True).read_text(encoding="utf-8")
     )
     selected = {
         x["task_id"]: (group, x["sha256"])
@@ -165,9 +165,9 @@ def main(argv=None):
     for task_id in selected:
         safe_identifier(task_id)
     protocol_file = contained_path(RUNS, "protocol.json", reject_symlinks=True)
-    contract = json.loads(protocol_file.read_text())
+    contract = json.loads(protocol_file.read_text(encoding="utf-8"))
     certificate = json.loads(
-        contained_path(RUNS, "certification.json", reject_symlinks=True).read_text()
+        contained_path(RUNS, "certification.json", reject_symlinks=True).read_text(encoding="utf-8")
     )
     if not certificate["protocol_sha256"] == hashlib.sha256(protocol_file.read_bytes()).hexdigest():
         raise ValueError("Protocol hash mismatch")
@@ -228,7 +228,7 @@ def main(argv=None):
             raise ValueError(
                 "Invalid Lexbench report evidence: all((not (p / f).is_symlink() for f in ('run_manifest.json', 'results.jsonl', 'host_summary.json')))"
             )
-        m = json.loads((p / "run_manifest.json").read_text())
+        m = json.loads((p / "run_manifest.json").read_text(encoding="utf-8"))
         rows = load_jsonl(p / "results.jsonl")
         if not m["run_id"] == label[name]:
             raise ValueError("Invalid Lexbench report evidence: m['run_id'] == label[name]")
@@ -364,10 +364,10 @@ def main(argv=None):
             "status_mismatch_count": len(mismatch),
             "status_mismatch_keys": mismatch,
             "baseline_host": json.loads(
-                (runs[mode + "_baseline"][0] / "host_summary.json").read_text()
+                (runs[mode + "_baseline"][0] / "host_summary.json").read_text(encoding="utf-8")
             ),
             "engine_host": json.loads(
-                (runs[mode + "_engine"][0] / "host_summary.json").read_text()
+                (runs[mode + "_engine"][0] / "host_summary.json").read_text(encoding="utf-8")
             ),
             "resource_missing": sum(not r.get("resource") for r in e.values()),
             "resource_quality_flags": dict(
@@ -438,7 +438,7 @@ def main(argv=None):
                     "Invalid Lexbench report evidence: source.is_file() and (not source.is_symlink()) and (source.stat().st_size < 8000000)"
                 )
             source_hash = bytes_sha256(source.read_bytes())
-            raw = source.read_text(errors="replace")
+            raw = source.read_text(errors="replace", encoding="utf-8")
             data = clean(raw).encode()
             target = (
                 OUT
@@ -476,7 +476,7 @@ def main(argv=None):
                     continue
                 if not not path.is_symlink():
                     raise ValueError("Invalid Lexbench report evidence: not path.is_symlink()")
-                raw = path.read_text(errors="replace")
+                raw = path.read_text(errors="replace", encoding="utf-8")
                 payload = None
                 for text in [raw, *reversed(raw.splitlines())]:
                     try:
@@ -580,7 +580,8 @@ def main(argv=None):
             }
         cases.append(item)
         (OUT / "data/cases" / f"{task_id}.json").write_text(
-            json.dumps(item, ensure_ascii=False, separators=(",", ":")) + "\n"
+            json.dumps(item, ensure_ascii=False, separators=(",", ":")) + "\n",
+            encoding="utf-8"
         )
     cases.sort(key=lambda c: (list(cohort["strata"]).index(c["stratum"]), c["id"]))
     network_rx = {}
@@ -598,7 +599,7 @@ def main(argv=None):
         for i in range(1, 6):
             directory = contained_path(RUNS, f"cold_{i:02d}_{mode}", reject_symlinks=True)
             manifest = json.loads(
-                contained_path(directory, "run_manifest.json", reject_symlinks=True).read_text()
+                contained_path(directory, "run_manifest.json", reject_symlinks=True).read_text(encoding="utf-8")
             )
             if not manifest["engines"]["moli"]["sha256"] == cohort["moli_sha256"]:
                 raise ValueError(
@@ -682,7 +683,7 @@ def main(argv=None):
         )
     launch_receipts = {
         name: json.loads(
-            contained_path(RUNS, run_id + "_launch.json", reject_symlinks=True).read_text()
+            contained_path(RUNS, run_id + "_launch.json", reject_symlinks=True).read_text(encoding="utf-8")
         )
         for name, run_id in label.items()
         if (RUNS / (run_id + "_launch.json")).exists()
@@ -754,11 +755,11 @@ def main(argv=None):
         ] += 1
     comparison_file = contained_path(VERSION_RUNS, "resource-comparison.json", reject_symlinks=True)
     version_protocol_file = contained_path(VERSION_RUNS, "protocol.json", reject_symlinks=True)
-    resource_comparison = json.loads(comparison_file.read_text())
+    resource_comparison = json.loads(comparison_file.read_text(encoding="utf-8"))
     resource_certificate = json.loads(
         contained_path(
             VERSION_RUNS, "resource-certification.json", reject_symlinks=True
-        ).read_text()
+        ).read_text(encoding="utf-8")
     )
     if not bytes_sha256(comparison_file.read_bytes()) == resource_certificate["comparison_sha256"]:
         raise ValueError(
@@ -774,7 +775,7 @@ def main(argv=None):
             raise ValueError(
                 "Invalid Lexbench report evidence: path.is_file() and (not path.is_symlink()) and (sha(path.read_bytes()) == digest)"
             )
-    version_protocol = json.loads(version_protocol_file.read_text())
+    version_protocol = json.loads(version_protocol_file.read_text(encoding="utf-8"))
     if not (
         set(version_protocol["functional_tasks"]) == set(selected)
         and len(version_protocol["functional_tasks"]) == len(selected)
@@ -786,7 +787,7 @@ def main(argv=None):
         VERSION_CANDIDATE.parent, VERSION_CANDIDATE.name, reject_symlinks=True
     )
     functional_manifest = json.loads(
-        contained_path(functional_114, "run_manifest.json", reject_symlinks=True).read_text()
+        contained_path(functional_114, "run_manifest.json", reject_symlinks=True).read_text(encoding="utf-8")
     )
     functional_rows = load_jsonl(
         contained_path(functional_114, "results.jsonl", reject_symlinks=True)
@@ -1060,7 +1061,7 @@ def main(argv=None):
                     "Invalid Lexbench report evidence: sha(source_result.read_bytes()) == binding['results_sha256']"
                 )
             source_runs[run_id] = run_root
-            for task in json.loads(manifest_path.read_text())["resolved_tasks"]:
+            for task in json.loads(manifest_path.read_text(encoding="utf-8"))["resolved_tasks"]:
                 if task["task_id"] in source_tasks:
                     if not source_tasks[task["task_id"]]["sha256"] == task["sha256"]:
                         raise ValueError(
@@ -1147,7 +1148,7 @@ def main(argv=None):
     ]:
         if resource_path is None:
             continue
-        resource = json.loads(resource_path.read_text())
+        resource = json.loads(resource_path.read_text(encoding="utf-8"))
         if not resource["schema"] == "lexbench_moli_macos_fixed_resource_summary/1":
             raise ValueError(
                 "Invalid Lexbench report evidence: resource['schema'] == 'lexbench_moli_macos_fixed_resource_summary/1'"
@@ -1244,7 +1245,7 @@ def main(argv=None):
             args.resource_matrix / "orchestrator.py"
         ).read_bytes()
     functional_correction = json.loads(
-        contained_path(FUNCTIONAL_CORRECTION, "receipt.json", reject_symlinks=True).read_text()
+        contained_path(FUNCTIONAL_CORRECTION, "receipt.json", reject_symlinks=True).read_text(encoding="utf-8")
     )
     if not functional_correction["schema"] == "moli_functional_contract_correction/1":
         raise ValueError(
@@ -1454,7 +1455,7 @@ def main(argv=None):
         "functional_contract_correction": functional_correction_public,
         "resource_window_corrections": corrections,
         "environment": json.loads(
-            contained_path(RUNS, "environment.json", reject_symlinks=True).read_text()
+            contained_path(RUNS, "environment.json", reject_symlinks=True).read_text(encoding="utf-8")
         ),
         "title": "Moli 配置对比",
         "task_count": task_count,
@@ -1530,7 +1531,8 @@ def main(argv=None):
         },
     }
     (OUT / "data/model.json").write_text(
-        json.dumps(public, ensure_ascii=False, separators=(",", ":")) + "\n"
+        json.dumps(public, ensure_ascii=False, separators=(",", ":")) + "\n",
+        encoding="utf-8"
     )
     (OUT / "data/corrections").mkdir()
     (OUT / "data/corrections/chromium-contract-retest.json").write_bytes(correction_bytes)
@@ -1538,21 +1540,25 @@ def main(argv=None):
         (OUT / "data/fixed-cases").mkdir()
         for task_id, case in fixed_case_data.items():
             (OUT / "data/fixed-cases" / f"{task_id}.json").write_text(
-                json.dumps(case, ensure_ascii=False, separators=(",", ":")) + "\n"
+                json.dumps(case, ensure_ascii=False, separators=(",", ":")) + "\n",
+                encoding="utf-8"
             )
     for relative, data in public_candidate_files.items():
         target = contained_path(OUT, relative, reject_symlinks=True)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
     (OUT / "data/version-comparison.json").write_text(
-        json.dumps(version_comparison, ensure_ascii=False, indent=2) + "\n"
+        json.dumps(version_comparison, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8"
     )
     (OUT / "data/combined-comparison.json").write_text(
-        json.dumps(combined_comparison, ensure_ascii=False, indent=2) + "\n"
+        json.dumps(combined_comparison, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8"
     )
     if macos_comparison:
         (OUT / "data/macos-comparison.json").write_text(
-            json.dumps(macos_comparison, ensure_ascii=False, indent=2) + "\n"
+            json.dumps(macos_comparison, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8"
         )
     write_presentation(
         SRC, OUT, combined_comparison, version_comparison, macos_comparison,
@@ -1571,13 +1577,13 @@ def main(argv=None):
             )
         shutil.copy2(asset, OUT / name)
     (OUT / "reproduction").mkdir(exist_ok=True)
-    (OUT / "reproduction/cohort.json").write_text(clean(args.cohort.read_text()))
+    (OUT / "reproduction/cohort.json").write_text(clean(args.cohort.read_text(encoding="utf-8")), encoding="utf-8")
     shutil.copy2(pathlib.Path(reproduction.__file__), OUT / "reproduction/run.py")
     shutil.copy2(
         pathlib.Path(charts.__file__),
         OUT / "reproduction/plot_version_summary.py",
     )
-    (OUT / "reproduction/protocol.json").write_text(json.dumps(contract, indent=2) + "\n")
+    (OUT / "reproduction/protocol.json").write_text(json.dumps(contract, indent=2) + "\n", encoding="utf-8")
     print(
         json.dumps(
             {

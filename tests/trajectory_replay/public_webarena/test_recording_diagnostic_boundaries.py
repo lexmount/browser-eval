@@ -32,7 +32,8 @@ def recording(tmp_path, monkeypatch):
         archive.writestr("trace.network", network)
     catalog = tmp_path / "catalog.json"
     catalog.write_text(
-        json.dumps({"count": 1, "traces": [{"task_id": 1, "file_name": "1.trace.zip"}]})
+        json.dumps({"count": 1, "traces": [{"task_id": 1, "file_name": "1.trace.zip"}]}),
+        encoding="utf-8"
     )
     suite = tmp_path / "suite.json"
     suite.write_text(
@@ -49,7 +50,8 @@ def recording(tmp_path, monkeypatch):
                     }
                 ]
             }
-        )
+        ),
+        encoding="utf-8"
     )
     monkeypatch.setattr(
         d,
@@ -108,11 +110,11 @@ def test_bad_recording_bindings_stop_before_evaluator_calls(recording, bad, tmp_
             data["traces"] *= 2
         else:
             data["traces"][0]["file_name"] = "../outside.zip"
-        catalog.write_text(json.dumps(data))
+        catalog.write_text(json.dumps(data), encoding="utf-8")
     elif bad == "suite-duplicate":
         data = json.loads(suite.read_bytes())
         data["tasks"] *= 2
-        suite.write_text(json.dumps(data))
+        suite.write_text(json.dumps(data), encoding="utf-8")
     elif bad == "hash":
         trace.write_bytes(b"Changed trace")
     else:

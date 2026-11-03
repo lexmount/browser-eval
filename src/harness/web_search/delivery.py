@@ -121,7 +121,7 @@ def export(source, destination):
     """Keep one shard per case, including both languages and all physical calls."""
     source, destination = Path(source), Path(destination)
     destination.mkdir(parents=True, exist_ok=False)
-    manifest = json.loads((source / "manifest.json").read_text())
+    manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
     shards, mapping, hashes = {}, {}, {}
     for row in manifest["rows"]:
         shard = shards.setdefault(row["case_id"], {})
@@ -148,7 +148,7 @@ def export(source, destination):
         "source_manifest_sha256": bytes_sha256((source / "manifest.json").read_bytes()),
         "files": mapping, "sha256": hashes,
     })
-    shell = BeautifulSoup((destination / "index.html").read_text(), "html.parser")
+    shell = BeautifulSoup((destination / "index.html").read_text(encoding="utf-8"), "html.parser")
     shell.main.clear()
     pre = shell.new_tag("pre")
     pre["data-delivery-target"] = ""
@@ -161,7 +161,7 @@ def export(source, destination):
     loader.string = LOADER
     shell.body.append(loader)
     for route in ("detail.html", "evidence.html"):
-        (destination / route).write_text(str(shell))
+        (destination / route).write_text(str(shell), encoding="utf-8")
     verify(source, destination)
     return destination
 
@@ -169,7 +169,7 @@ def export(source, destination):
 def verify(source, destination):
     """Every virtual file restores exactly; every ordinary page has one transform."""
     source, destination = Path(source), Path(destination)
-    index = json.loads((destination / "delivery-index.json").read_text())
+    index = json.loads((destination / "delivery-index.json").read_text(encoding="utf-8"))
     if bytes_sha256((source / "manifest.json").read_bytes()) != index["source_manifest_sha256"]:
         raise ValueError("Delivery source manifest changed")
     cache = {}
@@ -180,7 +180,7 @@ def verify(source, destination):
         raw = base64.b64decode(value["base64"], validate=True)
         if bytes_sha256(raw) != index["sha256"][path] or raw != (source / path).read_bytes():
             raise ValueError("Packed evidence changed")
-    manifest = json.loads((source / "manifest.json").read_text())
+    manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
     for path in set(manifest["routes"]) | set(manifest.get("language_notices", [])) | {a["path"] for a in manifest["bundle"]} | {"manifest.json"}:
         if path in index["files"]:
             continue

@@ -23,6 +23,6 @@ def test_unbound_report_uses_its_actual_population(tmp_path, providers, authored
 
 def test_unbound_report_does_not_read_legacy_speed_or_rendering_assets(tmp_path):
     (tmp_path / 'speed-cohort').mkdir()
-    (tmp_path / 'speed-cohort/speed-comparison.json').write_text('not JSON')
+    (tmp_path / 'speed-cohort/speed-comparison.json').write_text('not JSON', encoding='utf-8')
     page = render_explainer(tmp_path, {}, [])
     assert '0/0' in page

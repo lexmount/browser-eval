@@ -10,7 +10,7 @@ def test_sony_catalog_observer_keeps_distinct_skus_and_complete_scope(defect):
     candidate = json.loads(
         Path(
             "evaluation/trajectory-replay/webarena-verified/retrieval-candidates/task-279.json"
-        ).read_text()
+        ).read_text(encoding="utf-8")
     )
     setup = r"""
 global.location={origin:'http://shop.test',pathname:'/catalogsearch/result/',href:'http://shop.test/catalogsearch/result/?q=Sony'};

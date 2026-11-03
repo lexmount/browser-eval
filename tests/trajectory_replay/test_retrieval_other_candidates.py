@@ -21,13 +21,15 @@ ROOT = (
 )
 SEEDS = {
     row["task_id"]: row
-    for row in json.loads((ROOT / "recompiled-seed-bindings.json").read_text())["rows"]
+    for row in json.loads((ROOT / "recompiled-seed-bindings.json").read_text(encoding="utf-8"))[
+        "rows"
+    ]
 }
 
 
 @pytest.mark.parametrize("task_id", [28, 124, 132, 168, 225, 279, 303, 386])
 def test_current_read_observation_binds_exact_canonical_prefix_and_action(task_id: int):
-    candidate = json.loads((ROOT / f"task-{task_id}.json").read_text())
+    candidate = json.loads((ROOT / f"task-{task_id}.json").read_text(encoding="utf-8"))
     calls, contract = candidate["tool_calls"], candidate["retrieval_contract"]
     seed = SEEDS[task_id]
 
@@ -52,7 +54,7 @@ def test_current_read_observation_binds_exact_canonical_prefix_and_action(task_i
 
 @pytest.mark.parametrize("task_id", [28, 124, 132, 168, 225, 279, 280, 282, 303, 386])
 def test_candidate_has_no_frozen_answer_or_mutating_network_call(task_id: int):
-    candidate = json.loads((ROOT / f"task-{task_id}.json").read_text())
+    candidate = json.loads((ROOT / f"task-{task_id}.json").read_text(encoding="utf-8"))
     script = candidate["tool_calls"][-1]["script"]
     assert "fetch(" in script
     assert "redirect:'error'" in script
@@ -69,7 +71,9 @@ def test_candidate_has_no_frozen_answer_or_mutating_network_call(task_id: int):
 
 @pytest.mark.parametrize("task_id", [124, 279, 280, 282, 386])
 def test_shopping_candidates_require_declared_total_and_linked_products(task_id: int):
-    script = json.loads((ROOT / f"task-{task_id}.json").read_text())["tool_calls"][-1]["script"]
+    script = json.loads((ROOT / f"task-{task_id}.json").read_text(encoding="utf-8"))["tool_calls"][
+        -1
+    ]["script"]
     assert "rows.length!==total" in script
     assert "total!==data.total_count" in script
     assert "data.page_info.current_page!==page" in script
@@ -79,7 +83,7 @@ def test_shopping_candidates_require_declared_total_and_linked_products(task_id:
 
 @pytest.mark.parametrize("task_id", [280, 282])
 def test_current_catalog_candidates_bind_both_actions(task_id: int):
-    candidate = json.loads((ROOT / f"task-{task_id}.json").read_text())
+    candidate = json.loads((ROOT / f"task-{task_id}.json").read_text(encoding="utf-8"))
     calls, contract = candidate["tool_calls"], candidate["retrieval_contract"]
     assert [call["action"] for call in calls] == ["navigate", "evaluate"]
     assert contract["canonical_calls_sha256"] == digest(calls)
@@ -93,7 +97,7 @@ def test_current_catalog_candidates_bind_both_actions(task_id: int):
 
 
 def test_task168_absence_requires_complete_authenticated_personal_project_set():
-    candidate = json.loads((ROOT / "task-168.json").read_text())
+    candidate = json.loads((ROOT / "task-168.json").read_text(encoding="utf-8"))
     calls, contract = candidate["tool_calls"], candidate["retrieval_contract"]
     assert contract["schema"].endswith("/3")
     assert contract["absence_coverage"]["kind"] == "exhaustive_records/1"
@@ -166,7 +170,7 @@ def test_task168_absence_requires_complete_authenticated_personal_project_set():
 
 
 def test_task225_absence_requires_complete_sephora_brush_product_reviews():
-    candidate = json.loads((ROOT / "task-225.json").read_text())
+    candidate = json.loads((ROOT / "task-225.json").read_text(encoding="utf-8"))
     calls, contract = candidate["tool_calls"], candidate["retrieval_contract"]
     script = calls[-1]["script"]
     assert "source.total_count" in script
@@ -237,9 +241,11 @@ def test_task225_absence_requires_complete_sephora_brush_product_reviews():
 
 def test_task225_revised_reference_receipt_binds_independent_scope_and_candidate():
     path = ROOT / "task-225.json"
-    candidate = json.loads(path.read_text())
+    candidate = json.loads(path.read_text(encoding="utf-8"))
     receipt = json.loads(
-        (ROOT.parents[3] / "research/trajectory-replay-task225-revised-reference.json").read_text()
+        (ROOT.parents[3] / "research/trajectory-replay-task225-revised-reference.json").read_text(
+            encoding="utf-8"
+        )
     )
     source = receipt["independent_source"]
     products = source["title_matched_items"]

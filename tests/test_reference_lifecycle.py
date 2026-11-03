@@ -98,13 +98,13 @@ class ReferenceLifecycleTests(unittest.TestCase):
         self.write_json(self.run / "manifest.json", manifest)
         artifact = self.run / "artifacts/output.txt"
         artifact.parent.mkdir()
-        artifact.write_text("Provider raw output stays unchanged")
+        artifact.write_text("Provider raw output stays unchanged", encoding="utf-8")
         record = {"attempt_id": "p__body__r001", "case_id": "body", "provider": "p",
             "ok": True, "started_at": self.now.isoformat(), "elapsed_ms": 1000,
             "artifact_path": "artifacts/output.txt", "metrics": {
                 "reference_sha256": sha256(self.case.ground_truth_main_content),
                 "content_sha256": sha256(artifact.read_bytes())}}
-        (self.run / "results.jsonl").write_text(json.dumps(record) + "\n")
+        (self.run / "results.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
         return manifest
 
     def observation(self, manifest, **updates):
@@ -201,7 +201,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         self.assertTrue(binding["target_matches"][0]["satisfied"])
 
         evidence = self.root / "sources/resource/evidence.json"
-        evidence.write_text(evidence.read_text().replace("a.png", "other.png"))
+        evidence.write_text(evidence.read_text(encoding="utf-8").replace("a.png", "other.png"), encoding="utf-8")
         with self.assertRaisesRegex(ReferenceLifecycleError, "SHA-256 mismatch"):
             validate_resource_source_evidence(case, self.dataset_path)
 
@@ -209,7 +209,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         import shutil
         case = self.resource_case()
         self.dataset_path.write_text(json.dumps({'comparison': {
-            'source_reference_policy': 'frozen_benchmark_inputs_with_explicit_live_exact_checks'}}))
+            'source_reference_policy': 'frozen_benchmark_inputs_with_explicit_live_exact_checks'}}), encoding="utf-8")
         shutil.rmtree(self.root / 'sources')
         self.assertIsNone(validate_resource_source_evidence(case, self.dataset_path, execution=True))
         with self.assertRaisesRegex(ReferenceLifecycleError, 'invalid resource source evidence'):
@@ -354,7 +354,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         contents = {"initial.html.txt": "<main>Loading</main>",
                     "rendered.txt": case.ground_truth_main_content, "reference.txt": case.ground_truth_main_content}
         for name, text in contents.items():
-            (folder / name).write_text(text)
+            (folder / name).write_text(text, encoding="utf-8")
         self.write_json(folder / "evidence.json", {"case_id": "body", "url": case.url,
             "completion": "Complete article", "checked_at": self.now.isoformat(),
             "initial_checked_at": self.now.isoformat(), "initial_sha256": sha256(contents["initial.html.txt"]),
@@ -370,7 +370,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         })
         for relative, expected in binding.items():
             self.assertEqual(sha256((self.root / relative).read_bytes()), expected)
-        (self.root / "sources/body/rendered.txt").write_text("Price")
+        (self.root / "sources/body/rendered.txt").write_text("Price", encoding="utf-8")
         with self.assertRaisesRegex(ReferenceLifecycleError, "hash/content"):
             self.checks(case)
 
@@ -427,11 +427,11 @@ class ReferenceLifecycleTests(unittest.TestCase):
             with self.assertRaises(ReferenceLifecycleError):
                 self.mocked_run(runs=2)
         self.assertEqual(self.provider.fetch.call_count, 1)
-        records = [json.loads(line) for line in (self.run / "results.jsonl").read_text().splitlines()]
+        records = [json.loads(line) for line in (self.run / "results.jsonl").read_text(encoding="utf-8").splitlines()]
         self.assertEqual(len(records), 1)
         self.assertTrue(records[0]["ok"])
         self.assertEqual(records[0]["metrics"]["reference_sha256"], sha256(self.case.ground_truth_main_content))
-        self.assertEqual(json.loads((self.run / "manifest.json").read_text())["reference_checks"]["status"],
+        self.assertEqual(json.loads((self.run / "manifest.json").read_text(encoding="utf-8"))["reference_checks"]["status"],
                          "reference_unverified")
 
     def test_formatting_only_accepted_and_evidence_pointer_hash(self):
@@ -444,7 +444,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         evidence = self.run / result["evidence_path"]
         self.assertTrue(evidence.resolve().is_relative_to(self.run.resolve()))
         self.assertEqual(sha256(evidence.read_bytes()), result["evidence_sha256"])
-        current = json.loads((self.run / "manifest.json").read_text())
+        current = json.loads((self.run / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(current["reference_checks"]["cases"], original["reference_checks"]["cases"])
         for key in original.keys() - {"reference_checks"}:
             self.assertEqual(current[key], original[key])
@@ -457,7 +457,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
                          "reference_changed")
         with self.assertRaisesRegex(ReferenceLifecycleError, "immutable"):
             self.finalize([self.observation(original)])
-        self.assertEqual(json.loads((self.run / "manifest.json").read_text())["reference_checks"]["status"],
+        self.assertEqual(json.loads((self.run / "manifest.json").read_text(encoding="utf-8"))["reference_checks"]["status"],
                          "reference_changed")
 
     def test_missing_duplicate_unknown_observations_rejected(self):
@@ -504,9 +504,9 @@ class ReferenceLifecycleTests(unittest.TestCase):
     def test_latest_relevant_call_across_providers(self):
         original = self.prepare_run()
         records_path = self.run / "results.jsonl"
-        record = json.loads(records_path.read_text())
+        record = json.loads(records_path.read_text(encoding="utf-8"))
         second = {**record, "attempt_id": "p2__body__r001", "started_at": (self.now + timedelta(seconds=4)).isoformat()}
-        records_path.write_text(json.dumps(record) + "\n" + json.dumps(second) + "\n")
+        records_path.write_text(json.dumps(record) + "\n" + json.dumps(second) + "\n", encoding="utf-8")
         original.update(attempt_count=2, attempt_ids=[record["attempt_id"], second["attempt_id"]],
                         completed_at=(self.now + timedelta(seconds=6)).isoformat())
         self.write_json(self.run / "manifest.json", original)
@@ -518,8 +518,8 @@ class ReferenceLifecycleTests(unittest.TestCase):
         legacy = {"batch_id": "legacy", "note": "Historical; no freshness claim"}
         self.write_json(self.run / "execution.json", {"batches": [original, legacy], "original": "metadata"})
         self.assertEqual(self.finalize([self.observation(original)])["status"], "verified")
-        execution = json.loads((self.run / "execution.json").read_text())
-        manifest = json.loads((self.run / "manifest.json").read_text())
+        execution = json.loads((self.run / "execution.json").read_text(encoding="utf-8"))
+        manifest = json.loads((self.run / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(execution["batches"], [manifest, legacy])
         self.assertEqual(execution["original"], "metadata")
 
@@ -528,7 +528,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         (self.run / "reference-checks").symlink_to(self.root, target_is_directory=True)
         with self.assertRaises(ValueError):
             self.finalize([self.observation(original)])
-        self.assertEqual(json.loads((self.run / "manifest.json").read_text()), original)
+        self.assertEqual(json.loads((self.run / "manifest.json").read_text(encoding="utf-8")), original)
 
     def test_legacy_cannot_gain_certificate_and_new_run_cannot_reuse_old_one(self):
         original = self.prepare_run()
@@ -539,7 +539,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         self.write_json(self.run / "manifest.json", original)
         with self.assertRaisesRegex(ReferenceLifecycleError, "historical"):
             self.finalize([])
-        self.assertNotIn("reference_checks", json.loads((self.run / "manifest.json").read_text()))
+        self.assertNotIn("reference_checks", json.loads((self.run / "manifest.json").read_text(encoding="utf-8")))
 
     def test_rescore_rejects_changed_reference_or_capture_before_writes(self):
         self.prepare_run()
@@ -562,18 +562,18 @@ class ReferenceLifecycleTests(unittest.TestCase):
             records, _ = rescore_evaluation(run_dir=self.run, dataset_meta=self.dataset(),
                                            dataset_path=self.dataset_path, cases=[self.case])
         self.assertEqual(records[0]["metrics"]["reference_sha256"], sha256(self.case.ground_truth_main_content))
-        self.assertEqual(json.loads((self.run / "manifest.json").read_text())["reference_checks"], original["reference_checks"])
+        self.assertEqual(json.loads((self.run / "manifest.json").read_text(encoding="utf-8"))["reference_checks"], original["reference_checks"])
 
     def test_live_contract_changes_require_new_source_certification(self):
         self.case = replace(self.case, acceptance_contract={
             'version': 1, 'schema': 'body_text', 'minimum_records': 0,
             'stable_text_anchors': [{'id': 'price', 'alternatives': ['Price']}]})
         original = self.prepare_run()
-        record = json.loads((self.run / 'results.jsonl').read_text())
+        record = json.loads((self.run / 'results.jsonl').read_text(encoding="utf-8"))
         record.update(provider_type='fixture', case_name='Body', category='static')
-        (self.run / 'results.jsonl').write_text(json.dumps(record) + '\n')
+        (self.run / 'results.jsonl').write_text(json.dumps(record) + '\n', encoding="utf-8")
         self.finalize([self.observation(original)])
-        manifest = json.loads((self.run / 'manifest.json').read_text())
+        manifest = json.loads((self.run / 'manifest.json').read_text(encoding="utf-8"))
         require_verified_reference_checks([manifest], cases=[self.case], source=self.run)
         rescore_evaluation(run_dir=self.run, dataset_meta=self.dataset(),
                           dataset_path=self.dataset_path, cases=[self.case])
@@ -597,11 +597,11 @@ class ReferenceLifecycleTests(unittest.TestCase):
     def verified_run(self):
         original = self.prepare_run()
         self.finalize([self.observation(original)])
-        return json.loads((self.run / "manifest.json").read_text())
+        return json.loads((self.run / "manifest.json").read_text(encoding="utf-8"))
 
     def test_public_guard_portable_binding_and_source_evidence(self):
         manifest = self.verified_run()
-        records = [json.loads((self.run / "results.jsonl").read_text())]
+        records = [json.loads((self.run / "results.jsonl").read_text(encoding="utf-8"))]
         # Whole-run byte hashes are provenance, not equality gates after merge.
         self.write_json(self.run / "dataset.json", {"cases": [self.case.__dict__], "merged": True})
         require_verified_reference_checks([manifest, {"historical": True}],
@@ -610,7 +610,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
 
     def test_reference_revision_preserves_physical_record_reference_hash(self):
         manifest = self.verified_run()
-        record = json.loads((self.run / "results.jsonl").read_text())
+        record = json.loads((self.run / "results.jsonl").read_text(encoding="utf-8"))
         revised = replace(
             self.case,
             ground_truth_main_content="Corrected independent reference bytes",
@@ -635,7 +635,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
 
     def test_public_guard_requires_exactly_one_certificate_for_each_fresh_record(self):
         manifest = self.verified_run()
-        record = json.loads((self.run / "results.jsonl").read_text())
+        record = json.loads((self.run / "results.jsonl").read_text(encoding="utf-8"))
         without_certificate = deepcopy(manifest)
         without_certificate.pop("reference_checks")
         with self.assertRaisesRegex(ReferenceLifecycleError, "exactly one certificate.*missing="):
@@ -751,7 +751,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
 
     def test_latency_only_correction_preserves_original_certificate_timeline(self):
         manifest = self.verified_run()
-        record = json.loads((self.run / "results.jsonl").read_text())
+        record = json.loads((self.run / "results.jsonl").read_text(encoding="utf-8"))
         original_elapsed = record["elapsed_ms"]
         corrected_elapsed = original_elapsed + 60_000
         record["elapsed_ms"] = corrected_elapsed
@@ -775,7 +775,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         })
         require_verified_reference_checks(manifest, cases=self.dataset(), records=[record], source=self.run)
 
-        receipt = json.loads((self.run / "latency-corrections.json").read_text())
+        receipt = json.loads((self.run / "latency-corrections.json").read_text(encoding="utf-8"))
         receipt["changes"][0]["before_ms"] += 1
         self.write_json(self.run / "latency-corrections.json", receipt)
         with self.assertRaisesRegex(ReferenceLifecycleError, "Invalid latency correction"):
@@ -805,12 +805,12 @@ class ReferenceLifecycleTests(unittest.TestCase):
         manifest = self.verified_run()
         with self.assertRaises(ReferenceLifecycleError):
             require_verified_reference_checks([manifest], cases=[replace(self.case, min_content_chars=0)])
-        records = [json.loads((self.run / "results.jsonl").read_text())]
+        records = [json.loads((self.run / "results.jsonl").read_text(encoding="utf-8"))]
         records[0]["metrics"]["reference_sha256"] = "0" * 64
         with self.assertRaises(ReferenceLifecycleError):
             require_verified_reference_checks([manifest], records=records)
         path = self.run / manifest["reference_checks"]["postcheck"]["evidence_path"]
-        path.write_text("tampered")
+        path.write_text("tampered", encoding="utf-8")
         with self.assertRaisesRegex(ReferenceLifecycleError, "evidence hash"):
             require_verified_reference_checks([manifest], source=self.run)
 
@@ -824,15 +824,15 @@ class ReferenceLifecycleTests(unittest.TestCase):
         manifest = self.prepare_run()
         del manifest["reference_checks"]
         self.write_json(self.run / "manifest.json", manifest)
-        record = json.loads((self.run / "results.jsonl").read_text())
+        record = json.loads((self.run / "results.jsonl").read_text(encoding="utf-8"))
         del record["metrics"]["reference_sha256"]
-        (self.run / "results.jsonl").write_text(json.dumps(record) + "\n")
+        (self.run / "results.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
         changed = replace(self.case, ground_truth_main_content="Updated historical scoring reference")
         with patch("harness.web_fetch.runner.summarize", return_value={}):
             records, _ = rescore_evaluation(run_dir=self.run, dataset_meta=self.dataset(changed),
                                            dataset_path=self.dataset_path, cases=[changed])
         self.assertNotIn("reference_sha256", records[0]["metrics"])
-        self.assertNotIn("reference_checks", json.loads((self.run / "manifest.json").read_text()))
+        self.assertNotIn("reference_checks", json.loads((self.run / "manifest.json").read_text(encoding="utf-8")))
 
 
 if __name__ == "__main__":
@@ -865,17 +865,17 @@ def test_unknown_reference_mode_is_not_hidden_by_a_stable_contract():
 @pytest.mark.parametrize('fixture_name', ['legacy-live-reference.json', 'legacy-contract-reference.json'])
 def test_original_scope_certificate_survives_unchanged_inputs_but_rejects_rule_changes(tmp_path, fixture_name):
     from harness.web_fetch.reference_freeze import load_browser_observations
-    fixture = json.loads((Path(__file__).parent / 'fixtures' / fixture_name).read_text())
+    fixture = json.loads((Path(__file__).parent / 'fixtures' / fixture_name).read_text(encoding="utf-8"))
     for relative, text in fixture['files'].items():
-        target = tmp_path / relative; target.parent.mkdir(parents=True, exist_ok=True); target.write_text(text)
-    dataset = json.loads((tmp_path / 'dataset.json').read_text())
+        target = tmp_path / relative; target.parent.mkdir(parents=True, exist_ok=True); target.write_text(text, encoding="utf-8")
+    dataset = json.loads((tmp_path / 'dataset.json').read_text(encoding="utf-8"))
     case = EvalCase(**dataset['cases'][0])
-    manifest = json.loads((tmp_path / 'manifest.json').read_text())
+    manifest = json.loads((tmp_path / 'manifest.json').read_text(encoding="utf-8"))
     # The runner may serialize its saved dataset differently from the input file.
     manifest['dataset_sha256'] = sha256(json.dumps(dataset, indent=4))
-    (tmp_path / 'manifest.json').write_text(json.dumps(manifest))
+    (tmp_path / 'manifest.json').write_text(json.dumps(manifest), encoding="utf-8")
     observation = tmp_path / 'browser-observation.json'
-    observation.write_text(json.dumps({case.id: fixture['observation']}))
+    observation.write_text(json.dumps({case.id: fixture['observation']}), encoding="utf-8")
     assert load_browser_observations(dataset, path=observation)[case.id] == fixture['observation']
     require_verified_reference_checks([manifest], cases=[case], source=tmp_path)
     require_verified_reference_checks([manifest], cases=[case], source=tmp_path, equivalent_capture_bindings=True)
@@ -902,11 +902,11 @@ def test_original_scope_certificate_survives_unchanged_inputs_but_rejects_rule_c
 
     from harness.web_fetch.artifacts import materialize_reference_checks
     packaged = tmp_path / 'package'; packaged.mkdir()
-    (packaged / 'dataset.json').write_text(json.dumps({**dataset, 'presentation': 'new'}))
+    (packaged / 'dataset.json').write_text(json.dumps({**dataset, 'presentation': 'new'}), encoding="utf-8")
     materialize_reference_checks(packaged, tmp_path, [manifest])
     require_verified_reference_checks([manifest], cases=[case], source=packaged)
     original_input = next(packaged.glob('reference-checks/dataset-*.json'))
-    original_input.write_text(original_input.read_text() + ' ')
+    original_input.write_text(original_input.read_text(encoding="utf-8") + ' ', encoding="utf-8")
     with pytest.raises(ReferenceLifecycleError):
         require_verified_reference_checks([manifest], cases=[case], source=packaged)
 
@@ -920,7 +920,7 @@ def test_original_scope_certificate_survives_unchanged_inputs_but_rejects_rule_c
 @pytest.mark.parametrize('fixture_name', ['legacy-live-reference.json', 'legacy-contract-reference.json'])
 @pytest.mark.parametrize('field', ['acceptance_contract', 'body_requirements', 'composite_acceptance'])
 def test_equivalent_legacy_capture_rejects_conflicting_embedded_rules(fixture_name, field):
-    fixture = json.loads((Path(__file__).parent / 'fixtures' / fixture_name).read_text())
+    fixture = json.loads((Path(__file__).parent / 'fixtures' / fixture_name).read_text(encoding="utf-8"))
     original = EvalCase(**json.loads(fixture['files']['dataset.json'])['cases'][0])
     manifest = json.loads(fixture['files']['manifest.json'])
     binding = manifest['reference_checks']['cases'][original.id]
@@ -939,7 +939,7 @@ def test_equivalent_legacy_capture_rejects_conflicting_embedded_rules(fixture_na
 
 @pytest.mark.parametrize('version', [0, 3])
 def test_equivalent_capture_rejects_unknown_scope_versions(version):
-    fixture = json.loads((Path(__file__).parent / 'fixtures/legacy-live-reference.json').read_text())
+    fixture = json.loads((Path(__file__).parent / 'fixtures/legacy-live-reference.json').read_text(encoding="utf-8"))
     case = EvalCase(**json.loads(fixture['files']['dataset.json'])['cases'][0])
     binding = json.loads(fixture['files']['manifest.json'])['reference_checks']['cases'][case.id]
     binding['scope_identity'] = {**scope_identity(case), 'schema_version': version}

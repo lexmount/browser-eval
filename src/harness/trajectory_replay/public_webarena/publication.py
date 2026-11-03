@@ -275,7 +275,9 @@ def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Pat
         },
     }
     attestation.parent.mkdir(parents=True, exist_ok=True)
-    attestation.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+    attestation.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     return payload
 
 

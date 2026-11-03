@@ -64,7 +64,7 @@ def test_article_compiler_rechecks_the_active_installed_directory(configured_cac
     if corrupt:
         # Still valid authoring JSON; only the locked byte identity changes.
         path = definitions / "evaluation/articles/rules.json"
-        path.write_text('{"schema_version":1,"rules":[{"id":"article","unbound":true}]}')
+        path.write_text('{"schema_version":1,"rules":[{"id":"article","unbound":true}]}', encoding="utf-8")
     directory = definitions / "evaluation/articles" if explicit else None
     if corrupt:
         with pytest.raises(ValueError, match="hash or size"):
@@ -81,7 +81,7 @@ def test_benchmark_and_search_default_reads_follow_the_post_import_cache(configu
     data.snapshot("websearch")
     if corrupt:
         for root in (definitions, search):
-            (root / "registry.json").write_text('{"datasets":{},"schema_version":1,"suites":[]}')
+            (root / "registry.json").write_text('{"datasets":{},"schema_version":1,"suites":[]}', encoding="utf-8")
         for read in (benchmark.registry, search_inputs.registry):
             with pytest.raises(ValueError, match="hash or size"):
                 read()
@@ -111,7 +111,7 @@ def test_relative_installed_paths_are_verified_after_import(configured_cache, tm
     monkeypatch.chdir(tmp_path)
     relative = definitions.relative_to(tmp_path) / "evaluation/articles"
     assert data.resolve_definition_path("webfetch", relative) == definitions / "evaluation/articles"
-    (definitions / "evaluation/articles/rules.json").write_text("changed")
+    (definitions / "evaluation/articles/rules.json").write_text("changed", encoding="utf-8")
     with pytest.raises(ValueError, match="hash or size"):
         data.resolve_definition_path("webfetch", relative)
 
@@ -124,7 +124,7 @@ def test_aliases_into_or_out_of_installed_snapshots_cannot_bypass_verification(
     if internal:
         external = tmp_path / "authoring"
         external.mkdir()
-        (external / "rules.json").write_text("changed")
+        (external / "rules.json").write_text("changed", encoding="utf-8")
         alias = definitions / "alias"
         alias.symlink_to(external, target_is_directory=True)
         path = alias / "rules.json"
@@ -139,7 +139,7 @@ def test_aliases_into_or_out_of_installed_snapshots_cannot_bypass_verification(
 def test_external_authoring_files_remain_explicit_local_inputs(configured_cache, tmp_path):
     path = tmp_path / "authoring/rules.json"
     path.parent.mkdir()
-    path.write_text("caller-owned")
+    path.write_text("caller-owned", encoding="utf-8")
     assert data.resolve_definition_path("webfetch", path) == path
 
 
@@ -150,7 +150,7 @@ def test_risk_compiler_verifies_installed_inputs_before_parsing(configured_cache
     data.snapshot("webfetch")
     root = definitions / "evaluation/risk-control"
     if corrupt:
-        (root / "first-30-rule-review.md").write_text("changed rules")
+        (root / "first-30-rule-review.md").write_text("changed rules", encoding="utf-8")
     class ParsedVerifiedRules(Exception):
         pass
     def parse(paths):
@@ -167,7 +167,7 @@ def test_benchmark_warm_registry_mutation_is_rejected(configured_cache, explicit
     definitions, _ = configured_cache
     read = (lambda: benchmark.read(definitions / 'registry.json')) if explicit else benchmark.registry
     assert read() == {'schema_version': 1, 'suites': []}
-    (definitions / 'registry.json').write_text('{"schema_version":1,"suites":[],"unbound":true}')
+    (definitions / 'registry.json').write_text('{"schema_version":1,"suites":[],"unbound":true}', encoding="utf-8")
     with pytest.raises(ValueError, match='hash or size'):
         read()
 
@@ -180,9 +180,9 @@ def test_single_file_read_and_explicit_directory_have_distinct_integrity_scopes(
     assert benchmark.registry()['schema_version'] == 1
     assert data.resolve_definition_path('webfetch', definitions) == definitions
     if defect == 'changed-member':
-        (definitions / 'evaluation/articles/rules.json').write_text('{"unbound":true}')
+        (definitions / 'evaluation/articles/rules.json').write_text('{"unbound":true}', encoding="utf-8")
     else:
-        (definitions / 'unregistered.json').write_text('{"unbound":true}')
+        (definitions / 'unregistered.json').write_text('{"unbound":true}', encoding="utf-8")
     # Reading one unchanged file must not silently request the entire namespace.
     assert benchmark.registry()['schema_version'] == 1
     assert benchmark.read(definitions / 'registry.json')['schema_version'] == 1
@@ -220,7 +220,7 @@ def test_lazy_namespace_materializes_cold_registry_then_rejects_warm_mutation(
     assert benchmark.registry() == {'schema_version': 1, 'suites': []}
     assert definitions.is_dir()
     assert downloads == [('Lexmount/fixture', 'a' * 40)]
-    (definitions / 'registry.json').write_text('{"schema_version":1,"suites":[],"unbound":true}')
+    (definitions / 'registry.json').write_text('{"schema_version":1,"suites":[],"unbound":true}', encoding="utf-8")
     with pytest.raises(ValueError, match='hash or size'):
         benchmark.registry()
     assert len(downloads) == 1
@@ -232,7 +232,7 @@ def test_explicit_local_definition_override_remains_caller_owned(tmp_path, monke
     path = root / 'registry.json'
     monkeypatch.setattr(benchmark, 'definitions', lambda: root)
     for marker in ['first', 'edited']:
-        path.write_text(json.dumps({'schema_version': 1, 'suites': [], 'marker': marker}))
+        path.write_text(json.dumps({'schema_version': 1, 'suites': [], 'marker': marker}), encoding="utf-8")
         assert benchmark.registry()['marker'] == marker
 
 
@@ -267,8 +267,8 @@ def test_benchmark_annotation_enumeration_rechecks_warm_directory(
     if defect == 'deleted':
         revision.unlink()
     elif defect == 'changed':
-        revision.write_text('{"id":"revision","parents":{},"unbound":true}')
+        revision.write_text('{"id":"revision","parents":{},"unbound":true}', encoding="utf-8")
     else:
-        revision.with_name('unregistered.json').write_text('{"id":"unregistered","parents":{}}')
+        revision.with_name('unregistered.json').write_text('{"id":"unregistered","parents":{}}', encoding="utf-8")
     with pytest.raises((ValueError, FileNotFoundError), match='hash or size|inventory differs|Unknown'):
         benchmark.validate('sample')

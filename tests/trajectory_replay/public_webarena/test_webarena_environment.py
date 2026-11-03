@@ -186,7 +186,7 @@ def test_rainbond_slice_verification_and_reset_replace_the_complete_application(
 
         def validate_receipt(self, path):
             assert path == receipt_path
-            return json.loads(path.read_text())
+            return json.loads(path.read_text(encoding="utf-8"))
 
         def runtime_config(self, receipt):
             return {
@@ -265,7 +265,7 @@ def test_rainbond_slice_verification_and_reset_replace_the_complete_application(
     assert environment.environments["__SHOPPING_ADMIN__"]["urls"] == [
         "https://admin-slice-302.example.test"
     ]
-    persisted = json.loads(config.read_text())
+    persisted = json.loads(config.read_text(encoding="utf-8"))
     assert persisted["environments"]["__SHOPPING_ADMIN__"]["urls"] == [
         "https://admin-slice-302.example.test"
     ]
@@ -893,8 +893,8 @@ def test_credentials_resolve_named_repository_values_without_persisting_them(tmp
         "username": "fixture-user",
         "password": "fixture-password",
     }
-    assert "fixture-user" not in environment.config_path.read_text()
-    assert "fixture-password" not in environment.config_path.read_text()
+    assert "fixture-user" not in environment.config_path.read_text(encoding="utf-8")
+    assert "fixture-password" not in environment.config_path.read_text(encoding="utf-8")
 
 
 def test_exported_and_selected_values_change_neither_the_login_nor_its_redaction(
