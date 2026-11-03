@@ -68,6 +68,11 @@
       "architecture": "amd64",
       "service_port": 8080,
       "control_port": 8877,
+      "local_services": {
+        "rails_port": 3000,
+        "nominatim_port": 8085,
+        "detail_port": 8091
+      },
       "health_path": "/",
       "baseline": "verified_read_only_dataset",
       "init": "official_dataset_setup",

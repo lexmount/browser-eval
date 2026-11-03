@@ -17,6 +17,7 @@ from harness.environments.webarena.map_setup import (
     MAPPINGS,
     configure_browser_assets,
     configure_tiles,
+    detail_service_command,
     extract_archive,
     require_space,
     restore_compressed,
@@ -26,6 +27,8 @@ from harness.environments.webarena.map_setup import (
     verify_archive,
     version_browser_assets,
 )
+
+LOCAL_SERVICES = {"rails_port": 3000, "nominatim_port": 8085, "detail_port": 8091}
 
 
 def archive_at(path, members):
@@ -42,14 +45,14 @@ def test_remote_browsers_receive_same_origin_urls_with_or_without_gzip(tmp_path)
     source.write_bytes(b'const search="/nominatim/", route="/osrm/";')
     packed = tmp_path / "application.js.gz"
     packed.write_bytes(gzip.compress(b'const search="http://localhost:8080/nominatim/";'))
-    configure_browser_assets(tmp_path)
+    configure_browser_assets(8080, tmp_path)
     assert gzip.decompress(packed.read_bytes()) == source.read_bytes()
     previous = packed.read_bytes()
-    configure_browser_assets(tmp_path)
+    configure_browser_assets(8080, tmp_path)
     assert packed.read_bytes() == previous
     source.write_bytes(b'const route="http://localhost:8080/osrm/";')
     with pytest.raises(ValueError, match="localhost"):
-        configure_browser_assets(tmp_path)
+        configure_browser_assets(8080, tmp_path)
 
 
 def test_corrupt_precompressed_script_is_rebuilt_from_valid_script(tmp_path):
@@ -58,7 +61,7 @@ def test_corrupt_precompressed_script_is_rebuilt_from_valid_script(tmp_path):
     packed = tmp_path / "application.js.gz"
     packed.write_bytes(b"damaged gzip data")
 
-    configure_browser_assets(tmp_path)
+    configure_browser_assets(8080, tmp_path)
 
     assert gzip.decompress(packed.read_bytes()) == source.read_bytes()
 
@@ -379,7 +382,7 @@ def test_tile_cache_survives_container_directory_recreation(tmp_path):
                       "    ProxyPass / http://localhost:3000/\n</VirtualHost>\n", encoding="utf-8")
     renderd = tmp_path / "renderd.conf"
     renderd.write_text("[renderd]\nnum_threads=4\n", encoding="utf-8")
-    configure_tiles(root, cache, apache, renderd)
+    configure_tiles(root, LOCAL_SERVICES, cache, apache, renderd)
     assert cache.is_symlink()
     assert (root / "tiles/default/world.meta").read_bytes() == b"rendered world"
     (cache / "default/city.meta").write_bytes(b"new city")
@@ -387,8 +390,8 @@ def test_tile_cache_survives_container_directory_recreation(tmp_path):
     cache.unlink()
     shutil.rmtree(cache.with_name(cache.name + ".image-baseline"))
     cache.mkdir()
-    configure_tiles(root, cache, apache, renderd)
-    configure_tiles(root, cache, apache, renderd)
+    configure_tiles(root, LOCAL_SERVICES, cache, apache, renderd)
+    configure_tiles(root, LOCAL_SERVICES, cache, apache, renderd)
     assert (cache / "default/city.meta").read_bytes() == b"new city"
     assert apache.read_text(encoding="utf-8").count("ModTileMissingRequestTimeout 120") == 1
     assert apache.read_text(encoding="utf-8").count("ModTileMaxLoadMissing 1000") == 1
@@ -397,6 +400,44 @@ def test_tile_cache_survives_container_directory_recreation(tmp_path):
         encoding="utf-8"
     ).index("ProxyPass /")
     assert "num_threads=2" in renderd.read_text(encoding="utf-8")
+
+
+def test_apache_detail_route_is_unchanged_when_ports_come_from_the_contract(tmp_path):
+    root = tmp_path / "volume"
+    tiles = root / "tiles"
+    tiles.mkdir(parents=True)
+    cache = tmp_path / "image-cache"
+    cache.symlink_to(tiles, target_is_directory=True)
+    apache = tmp_path / "apache.conf"
+    original = ("<VirtualHost *:8080>\n    ModTileMissingRequestTimeout 30\n"
+                "    ProxyPass / http://localhost:3000/\n</VirtualHost>\n")
+    apache.write_text(original, encoding="utf-8")
+    renderd = tmp_path / "renderd.conf"
+    renderd.write_text("[renderd]\nnum_threads=4\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="Rails proxy"):
+        configure_tiles(root, {**LOCAL_SERVICES, "rails_port": 3100}, cache, apache, renderd)
+    assert apache.read_text(encoding="utf-8") == original
+    configure_tiles(root, LOCAL_SERVICES, cache, apache, renderd)
+    assert apache.read_text(encoding="utf-8") == (
+        "<VirtualHost *:8080>\n    ModTileMissingRequestTimeout 120\n"
+        '    ProxyPassMatch "^/(node|way|relation)/([1-9][0-9]{0,18})/?$" '
+        '"http://127.0.0.1:8091/$1/$2"\n'
+        "    ProxyPass / http://localhost:3000/\n    ModTileMaxLoadMissing 1000\n</VirtualHost>\n"
+    )
+
+
+def test_browser_asset_check_follows_the_contract_service_port(tmp_path):
+    source = tmp_path / "application.js"
+    source.write_bytes(b'const search="http://localhost:8080/nominatim/";')
+    with pytest.raises(ValueError, match="localhost"):
+        configure_browser_assets(8080, tmp_path)
+    configure_browser_assets(9090, tmp_path)
+
+
+def test_detail_service_command_carries_the_contract_ports():
+    assert detail_service_command(LOCAL_SERVICES) == [
+        "python3", "/opt/map_detail.py", "--port", "8091", "--nominatim-port", "8085",
+    ]
 
 
 def test_tile_configuration_rejects_multiple_virtual_hosts(tmp_path):
@@ -413,5 +454,5 @@ def test_tile_configuration_rejects_multiple_virtual_hosts(tmp_path):
     renderd = tmp_path / "renderd.conf"
     renderd.write_text("[renderd]\nnum_threads=4\n", encoding="utf-8")
     with pytest.raises(ValueError, match="virtual host"):
-        configure_tiles(root, cache, apache, renderd)
+        configure_tiles(root, LOCAL_SERVICES, cache, apache, renderd)
     assert apache.read_text(encoding="utf-8") == original
