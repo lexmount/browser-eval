@@ -251,13 +251,13 @@ browser daemon. This daemon split is a storage and isolation choice, not a bench
 
 ### Candidate replay inputs
 
-Use `python -m harness.trajectory_replay catalog-run` for declared task subsets and candidate action
+Use `uv run --frozen python -m harness.trajectory_replay catalog-run` for declared task subsets and candidate action
 revisions. Its catalog, action overrides, environment inputs and evidence validation
 use the same contracts as complete catalog runs. A diagnostic subset does not establish
 a formal complete-cohort score.
 
 The historical 36-task input protocol remains available through
-`python -m harness.trajectory_replay cohort-freeze-original-failures`. `--reference-root` resolves its relative
+`uv run --frozen python -m harness.trajectory_replay cohort-freeze-original-failures`. `--reference-root` resolves its relative
 candidate paths without depending on the working directory. Overrides are hash-bound;
 when a stabilization names a different qualified parent, `stabilization_reversions`
 declares the one-based action index, current action type and exact parent call for each
@@ -268,7 +268,7 @@ one; it does not execute or score a browser.
 
 ### Qualification decisions and immutable outputs
 
-`python -m harness.trajectory_replay dataset-revision` creates a pending dataset revision
+`uv run --frozen python -m harness.trajectory_replay dataset-revision` creates a pending dataset revision
 from `--base`, `--corrections` and repeated `--task-id` arguments, with an optional
 `--selection`. Declared counts must match the source population. Fork replacements
 use `--revision-bindings` (default: the repository's `dataset-revision-bindings.json`)
@@ -286,7 +286,7 @@ and `--evaluator-exclusions` inputs for a new experiment. The qualification
 shard size is configurable with `--max-tasks-per-shard`; task and browser counts
 are not encoded in the implementation. The command writes only a new output.
 
-`python -m harness.trajectory_replay cohort-revise` freezes a reviewed trajectory revision
+`uv run --frozen python -m harness.trajectory_replay cohort-revise` freezes a reviewed trajectory revision
 from `--prior`, `--revisions` and `--site-map`. Each changed task must identify
 its predecessor action hash, candidate and cause. The compiler checks actual
 predecessor actions, candidate hashes and stable source files, then writes a new
@@ -359,7 +359,7 @@ Two independent qualification passes remain required by the validation protocol.
 
 ### Remote mutation diagnostics
 
-`python -m harness.trajectory_replay evaluator-transition` checks saved passing
+`uv run --frozen python -m harness.trajectory_replay evaluator-transition` checks saved passing
 evidence against the pinned evaluator after an explicitly requested transition.
 It reads declared `--run` directories and writes only a new `--output` receipt.
 Scope, site map, run inputs, progress and consumed evidence must remain unchanged
@@ -367,7 +367,7 @@ throughout the build. Explicit exclusions bind the task, old evaluation hash and
 run-input hash; an exclusion absent from the source passes is rejected. This
 command does not replace historical verdicts or execute browser actions.
 
-`python -m harness.trajectory_replay rescore-saved-retrieval` evaluates a complete saved retrieval
+`uv run --frozen python -m harness.trajectory_replay rescore-saved-retrieval` evaluates a complete saved retrieval
 against an explicitly supplied dataset without browser calls. It reads the current
 task-local result, an agreeing cohort receipt, or the older standalone result
 layout; missing action counts and conflicting records are rejected. The saved
@@ -389,14 +389,14 @@ release gates; this command does not update historical publication bindings.
 
 Offline input and evidence audits use the maintained diagnostic modules:
 
-- `python -m harness.trajectory_replay audit-comparison-inputs` inventories the declared comparison
+- `uv run --frozen python -m harness.trajectory_replay audit-comparison-inputs` inventories the declared comparison
   matrix, contract changes and optional upstream-fork differences.
-- `python -m harness.trajectory_replay audit-readiness` locates adjacent disabled-button snapshots
+- `uv run --frozen python -m harness.trajectory_replay audit-readiness` locates adjacent disabled-button snapshots
   and clicks. It preserves historical verdicts; a snapshot does not establish
   the target's state when the click was dispatched.
-- `python -m harness.trajectory_replay audit-saved-correction` compares correction catalogs on saved
+- `uv run --frozen python -m harness.trajectory_replay audit-saved-correction` compares correction catalogs on saved
   evidence. An incomplete execution is never rescored with an invented response.
-- `python -m harness.trajectory_replay audit-cart-assertion` runs isolated DOM counterexamples with
+- `uv run --frozen python -m harness.trajectory_replay audit-cart-assertion` runs isolated DOM counterexamples with
   an explicit browser binary and blocked page requests. It requires Playwright;
   its results are assertion diagnostics rather than task scores.
 - The isolated public WebArena track uses
@@ -410,7 +410,7 @@ execution. They reject inputs that change during inspection. Keep generated
 diagnostics outside Git. Basic log and input audits do not import Playwright or
 WebArena; those dependencies are loaded only by the operations that need them.
 
-`python -m harness.trajectory_replay mutation-diagnostic` exposes the shared diagnostic pipeline. With
+`uv run --frozen python -m harness.trajectory_replay mutation-diagnostic` exposes the shared diagnostic pipeline. With
 `--emit-proposal` it appends a compiled completion observer to the unchanged canonical actions;
 `--check-proposal` verifies that proposal without opening a browser. Both modes require the frozen
 seed manifest and its matching qualified dataset under an explicit `--source-root`.
