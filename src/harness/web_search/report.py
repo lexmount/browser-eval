@@ -801,7 +801,7 @@ def build(
             overview_case_ids = {r["case_id"] for r in overview_rows}
             target_count = sum(bool(c.get("anchors") or c.get("paper_ids") or c.get("repositories"))
                                for c in profile["cases"] if c["id"] in overview_case_ids)
-            body += '<p class="muted">' + t("Nonempty counts queries with at least one result. Mean, P50 (median) and P95 cover all {overview_case_ids} queries in this table; 95% finish within the P95 time. Known page@{cutoff} checks whether a target URL appears in the first {cutoff} results, across {target_count} predeclared target-page queries.", overview_case_ids=len(overview_case_ids), cutoff=cutoff, target_count=target_count) + '</p>'
+            body += '<p class="muted">' + t("Nonempty counts queries with at least one result. Mean, P50 (median) and P95 cover all {overview_cases} queries in this table; 95% finish within the P95 time. Known page@{cutoff} checks whether a target URL appears in the first {cutoff} results, across {target_count} predeclared target-page queries.", overview_cases=len(overview_case_ids), cutoff=cutoff, target_count=target_count) + '</p>'
             body += table(headers, core, True)
             if profile["protocol"].get("retry"):
                 body += '<p class="lede">' + t("The same {cases} queries went to every provider. Each query has one final result; transport, HTTP or invalid-response failures receive one retry. Latency covers the complete user-visible request, including any retry. Empty valid results are not retried.", cases=len(profile['cases'])) + '</p>'
@@ -1923,7 +1923,7 @@ def cohort_summary(profile, rows, zh):
         "<section data-cohort-summary><h2>"
         + t("Independent benchmarks, with separate collection cohorts")
         + "</h2><p>"
-        + t("{cases} queries and {rows} final logical results, from {value} physical requests including retries, across {groups} complete collection batches. The table preserves each batch separately; the combined count is not a new same-window speed trial.", cases=len(profile['cases']), rows=len(rows), value=sum(len(r.get('attempts') or [r]) for r in rows), groups=len(groups))
+        + t("{cases} queries and {rows} final logical results, from {physical_calls} physical requests including retries, across {groups} complete collection batches. The table preserves each batch separately; the combined count is not a new same-window speed trial.", cases=len(profile['cases']), rows=len(rows), physical_calls=sum(len(r.get('attempts') or [r]) for r in rows), groups=len(groups))
         + "</p>"
         + table(
             [
@@ -3142,7 +3142,7 @@ def reference_retrieval_panel(profile, rows, case_ids, zh):
     rendered = []
     for label, hits, mrr in values:
         rendered.append('<tr><td>' + esc(label) + '</td>' + numeric_cell(f'{int(hits)}/{len(ids)} · {hits/len(ids):.1%}', hits/len(ids), 'reference-hit', 'max', winners.get(0) == hits/len(ids)) + numeric_cell(f'{mrr:.3f}', mrr, 'reference-mrr', 'max', winners.get(1) == mrr) + '</tr>')
-    return '<section data-reference-retrieval><h4>' + report_text("Reference-page retrieval · {ids} queries", zh, ids=len(ids)) + '</h4><p>' + report_text("Only queries with annotated reference pages. Hit@{cutoff} finds any listed URL in the first {cutoff}; MRR@{cutoff} averages reciprocal first-hit rank, with misses scoring zero. These match the factual-set definitions. Listed references are not exhaustive, and unannotated queries are not failures.", zh, cutoff=cutoff) + '</p>' + table([report_text("Method", zh), report_text("Reference Hit@{cutoff}", zh, cutoff=cutoff), report_text("Reference MRR@{cutoff}", zh, cutoff=cutoff)], rendered) + '</section>'
+    return '<section data-reference-retrieval><h4>' + report_text("Reference-page retrieval · {queries} queries", zh, queries=len(ids)) + '</h4><p>' + report_text("Only queries with annotated reference pages. Hit@{cutoff} finds any listed URL in the first {cutoff}; MRR@{cutoff} averages reciprocal first-hit rank, with misses scoring zero. These match the factual-set definitions. Listed references are not exhaustive, and unannotated queries are not failures.", zh, cutoff=cutoff) + '</p>' + table([report_text("Method", zh), report_text("Reference Hit@{cutoff}", zh, cutoff=cutoff), report_text("Reference MRR@{cutoff}", zh, cutoff=cutoff)], rendered) + '</section>'
 
 
 def population_summary(profile, selected, content, zh, *, diagnostics=False, relevance_scores=None):
@@ -3245,7 +3245,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
             body += '<p>' + report_text("nDCG@{cutoff} measures graded ranking quality, displayed ×100. Precision@{cutoff} is the share of {cutoff} slots graded ≥2, with missing slots scoring zero. Success@{cutoff} is the share of queries with a grade-3 result. Every query remains in the denominator.", zh, cutoff=cutoff) + ' <a href="quality.html#relevance-scores">' + report_text("Inspect grades and calculation", zh) + '</a></p>'
         elif kind == 'factual':
             if quality_ids != ids:
-                body += '<p data-quality-exclusions>' + (report_text("Quality uses {quality_ids} qualified queries; latency retains all {ids} collected queries.", zh, quality_ids=len(quality_ids), ids=len(ids)) if prices is not None else report_text("Quality uses {quality_ids} reviewed-reference queries for every method; {ids} defective references are quarantined. Latency and cost retain all {ids_2} queries.", zh, quality_ids=len(quality_ids), ids=len(ids) - len(quality_ids), ids_2=len(ids))) + '</p>'
+                body += '<p data-quality-exclusions>' + (report_text("Quality uses {qualified} qualified queries; latency retains all {total} collected queries.", zh, qualified=len(quality_ids), total=len(ids)) if prices is not None else report_text("Quality uses {qualified} reviewed-reference queries for every method; {defective} defective references are quarantined. Latency and cost retain all {total} queries.", zh, qualified=len(quality_ids), defective=len(ids) - len(quality_ids), total=len(ids))) + '</p>'
             body += '<p class="population-note">' + report_text("Hit@{cutoff} checks for a published supporting URL in the first {cutoff} results. MRR@{cutoff} averages reciprocal first-hit rank, with misses scoring zero. Answer Match@{cutoff} checks delivered text for reference-answer phrases after excluding explicit dataset mirrors; it does not measure semantic accuracy.", zh, cutoff=cutoff) + '</p>'
             headings = [report_text("Reference Hit@{cutoff}", zh, cutoff=cutoff), report_text("Answer Match@{cutoff} (text)", zh, cutoff=cutoff)]
             if content.get('summary_metrics') == 'retrieval':

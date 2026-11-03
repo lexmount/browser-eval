@@ -58,6 +58,11 @@ def test_placeholders_are_supplied_in_both_languages():
             assert not PLACEHOLDER.search(source) and not PLACEHOLDER.search(translation), (name, line, source)
 
 
+def test_placeholder_names_do_not_carry_generated_or_collection_names():
+    fields = {field for key, translation in CATALOG.items() for field in re.findall(r"\{(\w+)", key + translation)}
+    assert fields and not [field for field in fields if re.search(r"(^|_)ids$|_\d+$", field)]
+
+
 def test_catalog_keys_are_english_and_translations_are_catalog_only():
     assert not [key for key in CATALOG if HAN.search(key)]
     assert CATALOG == dict(sorted(CATALOG.items()))
