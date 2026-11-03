@@ -24,10 +24,11 @@ def test_certified_scraper_routes_to_native_track():
     run.assert_called_once_with(["--profile", "external.json"])
 
 
-def test_site_specific_scraper_is_not_an_archived_html_participant():
+@pytest.mark.parametrize("method", ["brightdata-scrapers", "browserbase-stagehand"])
+def test_site_specific_scraper_is_not_an_archived_html_participant(method):
     with tempfile.TemporaryDirectory() as d:
         with pytest.raises(ValueError, match="complete extraction interfaces"):
-            create_plan(Path(d), ["brightdata-scrapers"], Path(d) / "plan.json")
+            create_plan(Path(d), [method], Path(d) / "plan.json")
         assert not (Path(d) / "plan.json").exists()
 
 

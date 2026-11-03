@@ -195,6 +195,11 @@ def prepare(destination: Path, profile=PROFILE):
         return validate_dataset(destination, profile)
     if target.exists():
         raise ValueError("Incomplete dataset exists; retain it and use a new destination")
+    if pin.get("distribution"):
+        from harness.web_scraper.dataset import materialize
+
+        materialize(destination, pin)
+        return validate_dataset(destination, profile)
     url = f"https://codeload.github.com/{pin['repository']}/tar.gz/{pin['commit']}"
     response = request(url, timeout=120, max_bytes=40_000_000)
     if response.status != 200:
@@ -255,7 +260,9 @@ def validate_dataset(home: Path, profile=PROFILE):
         json.dumps(manifest["files"], sort_keys=True, separators=(",", ":")).encode()
     )
     if pin.get("inventory_sha256") and inventory != pin["inventory_sha256"]:
-        raise ValueError("Pinned dataset inventory changed")
+        from harness.web_scraper.dataset import verify_distribution
+
+        verify_distribution(manifest, pin)
     if manifest["commit"] != pin["commit"] or manifest["cases"] != pin["cases"]:
         raise ValueError("Dataset is not the selected pinned cohort")
     for name, item in manifest["files"].items():
@@ -315,8 +322,22 @@ def reproduce(home: Path):
     scorer = official_scorer(home)
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     scores = {}
-    for path in sorted((home / "dataset/dataset/output").glob("*.json")):
-        scores[path.stem] = score_predictions(truth, read_json(path), scorer)
+    contract = read_json(PROFILE)
+    for method, pin in contract["historical_predictions"].items():
+        path = home / "dataset" / pin["path"]
+        if not path.exists():
+            path = home / "historical-predictions" / (method + ".json")
+            if not path.exists():
+                source = contract["dataset"]
+                url = f"https://raw.githubusercontent.com/{source['repository']}/{source['commit']}/{pin['path']}"
+                response = request(url, timeout=60)
+                if response.status != 200 or digest(response.body) != pin["sha256"]:
+                    raise ValueError("Historical upstream prediction download changed")
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(response.body)
+        if path.is_symlink() or unsafe_parents(path) or digest(path.read_bytes()) != pin["sha256"]:
+            raise ValueError("Historical upstream predictions changed")
+        scores[method] = score_predictions(truth, read_json(path), scorer)
     expected = read_json(PROFILE)["historical_f1"]
     for method, fields in expected.items():
         for field, value in fields.items():
@@ -394,13 +415,20 @@ def baseline_extractor(home: Path):
     """Execute the hash-pinned upstream baseline, without its CLI entry point."""
     pin = read_json(PROFILE)["baseline_extractor"]
     source = home / pin["path"]
+    bundled = home / "dataset" / pin["path"]
+    if not source.exists() and bundled.exists():
+        source = bundled
     if not source.exists():
         response = request(pin["url"], timeout=60)
         if response.status != 200 or digest(response.body) != pin["sha256"]:
             raise ValueError("Baseline source does not match the pinned upstream extractor")
         source.parent.mkdir(parents=True, exist_ok=True)
         source.write_bytes(response.body)
-    if source.is_symlink() or digest(source.read_bytes()) != pin["sha256"]:
+    if (
+        source.is_symlink()
+        or unsafe_parents(source)
+        or digest(source.read_bytes()) != pin["sha256"]
+    ):
         raise ValueError("Pinned baseline source changed")
     return runpy.run_path(str(source), run_name="pinned_extruct_baseline")["extract"]
 

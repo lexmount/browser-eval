@@ -2,14 +2,21 @@
 
 Evaluate complete extraction APIs on the 140 archived product pages in
 [Zyte's product extraction benchmark](https://github.com/scrapinghub/product-extraction-benchmark).
-The dataset commit, label hashes, original scorer and extruct baseline are pinned in
+Frozen inputs are distributed through
+[LexBench-Web-Scraper](https://huggingface.co/datasets/Lexmount/LexBench-Web-Scraper).
+The shared [data lock](../../src/harness/benchmarks/data-lock.json) selects its full
+commit and archive/file hashes. The upstream commit, original scorer and extruct baseline are pinned in
 [`zyte-product-extraction.json`](../../src/harness/benchmarks/cards/zyte-product-extraction.json).
-Page bytes, labels and upstream code are downloaded separately with their notices.
+The dataset contains all original compressed HTML and labels, separate source-qualified
+annotations and their correction ledger, and the unchanged upstream evaluator.
+Scores and provider outputs are kept outside the dataset. Preparation uses the
+shared cache, works offline after download, and preserves existing hash-bound inputs.
 
 ## Prepare and reproduce
 
 ```sh
 uv sync --frozen --extra web-scraper-eval --extra test
+uv run --frozen python -m harness.benchmarks.data web-scraper
 uv run --frozen python -m harness.web_scraper.cli prepare
 uv run --frozen python -m harness.web_scraper.cli reproduce
 ```
@@ -19,7 +26,9 @@ The default data directory is `~/.browser-eval/web-scraper/`, configurable throu
 outside Git. Runtime API credentials come from the repository `.env`; variable names
 are documented in `.env.example`. Never include credentials in a profile or report.
 
-Reproduction scores the upstream saved predictions. New provider runs use the same
+Reproduction downloads the three hash-pinned upstream saved predictions separately
+when absent. They are historical comparison evidence, not public dataset inputs.
+New provider runs use the same
 price, SKU and stock labels and original evaluator. Price and SKU require the
 original scorer's exact normalized values. Missing output contributes to recall;
 HTTP success alone does not establish extraction success. Bootstrap dispersion is

@@ -186,7 +186,7 @@ class DatasetRelease:
             name = "definitions/" + original_name[len(prefix):] if original_name.startswith(prefix) else original_name
             allowed = (track == "headless-browser" or Path(name).suffix in {".json", ".jsonl", ".txt", ".md"}
                        or Path(name).name in {"LICENSE", "NOTICE"}
-                       or (track == "wcxb" and name.endswith(".html.gz")))
+                       or any(name.endswith(suffix) for suffix in registered[track].get("definition_suffixes", [])))
             if name.startswith("definitions/") and not allowed:
                 raise ValueError("Unexpected definition file: " + name)
             pointer = re.fullmatch(rb"version https://git-lfs.github.com/spec/v1\noid sha256:([0-9a-f]{64})\nsize ([0-9]+)\n", content)

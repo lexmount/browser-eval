@@ -222,6 +222,9 @@
     "repo_id": "Lexmount/LexBench-WCXB",
     "previous_repo_ids": [
       "Lexmount/lexbench-wcxb"
+    ],
+    "definition_suffixes": [
+      ".html.gz"
     ]
   },
   "trajectory-replay": {
@@ -358,5 +361,40 @@
     "viewer_exclude_datasets": [
       "scenario-specs"
     ]
+  },
+  "web-scraper": {
+    "pretty_name": "LexBench-Web-Scraper",
+    "repo_id": "Lexmount/LexBench-Web-Scraper",
+    "previous_repo_ids": [],
+    "license": [
+      "mit",
+      "apache-2.0"
+    ],
+    "tags": [
+      "benchmark",
+      "evaluation",
+      "browser-eval",
+      "web-scraping",
+      "structured-data-extraction",
+      "product-extraction",
+      "frozen-html"
+    ],
+    "task_categories": [
+      "other"
+    ],
+    "source_datasets": [],
+    "default_language": "und",
+    "input_fields": [
+      "url"
+    ],
+    "family": "structured-product-extraction",
+    "subsets": {
+      "zyte-products-140": "All 140 upstream frozen product pages, original labels and separately identified source-qualified annotations"
+    },
+    "definition_suffixes": [
+      ".html.gz",
+      ".py"
+    ],
+    "language_fields": []
   }
 }
