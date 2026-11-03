@@ -139,7 +139,7 @@ def test_make_language_override_is_only_explicit(tmp_path, monkeypatch, target, 
     env = {key: value for key, value in os.environ.items() if key not in {"REPORT_LANGUAGE", "MAKEFLAGS"}}
     result = subprocess.run(args, cwd=tmp_path, capture_output=True, text=True, env=env)
     assert result.returncode == 0, result.stderr
-    command = next(shlex.split(line) for line in result.stdout.splitlines() if "scripts/build_" in line)
+    command = next(shlex.split(line) for line in result.stdout.splitlines() if "scripts/build_" in line or "-m harness.browser_use report" in line)
     if language:
         assert command[command.index("--language") + 1] == language
     else:
@@ -225,15 +225,21 @@ def test_unsupported_language_fails_before_calls_or_output(tmp_path):
     assert not run.exists()
 
 
-@pytest.mark.parametrize("script", ["build_report.py", "build_browser_use_report.py", "build_webarena_replay_report.py"])
-def test_report_entrypoints_reject_unknown_language_before_loading_evidence(tmp_path, script):
-    if script == "build_webarena_replay_report.py":
+@pytest.mark.parametrize("entry", [
+    [str(ROOT / "scripts/build_report.py")],
+    ["-m", "harness.browser_use", "report"],
+    [str(ROOT / "scripts/build_webarena_replay_report.py")],
+], ids=["web-fetch", "browser-use", "trajectory-replay"])
+def test_report_entrypoints_reject_unknown_language_before_loading_evidence(tmp_path, entry):
+    replay = "replay" in entry[0]
+    if replay:
         pytest.importorskip("webarena_verified")
     output = tmp_path / "report"
     arguments = ["--language", "fr", "--output", str(output)]
-    arguments += (["--results", "missing"] if "replay" in script else ["--evidence", "missing"])
-    result = subprocess.run([sys.executable, str(ROOT / "scripts" / script), *arguments],
-                            cwd=ROOT, capture_output=True, text=True)
+    arguments += (["--results", "missing"] if replay else ["--evidence", "missing"])
+    path = os.pathsep.join(filter(None, [str(ROOT / "src"), os.environ.get("PYTHONPATH")]))
+    result = subprocess.run([sys.executable, *entry, *arguments], cwd=ROOT, capture_output=True,
+                            text=True, env={**os.environ, "PYTHONPATH": path})
     assert result.returncode == 2
     assert "invalid choice" in result.stderr
     assert not output.exists()

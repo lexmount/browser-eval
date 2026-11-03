@@ -194,6 +194,17 @@ def test_external_profile_and_bound_review_do_not_use_default_authority(tmp_path
                       require_complete=True, profile_path=external, authority_root=root)
 
 
+def test_template_gate_binds_the_renderer_not_the_entry_point():
+    renderer = "src/harness/browser_use/report.py"
+    built_before_the_move = {"track": "browser-use", "renderer": renderer,
+                             "entrypoint": "scripts/build_browser_use_report.py"}
+    checker.check_template_identity({"profile_sha256": "bound", "template": built_before_the_move})
+    for template in ({**built_before_the_move, "renderer": "src/other/report.py"},
+                     {**built_before_the_move, "track": "other"}, None):
+        with pytest.raises(ValueError, match="bypasses the maintained"):
+            checker.check_template_identity({"profile_sha256": "bound", "template": template})
+
+
 @pytest.mark.parametrize("defect", [None, "count", "host", "diagram"])
 def test_methodology_uses_selected_evidence_instead_of_historical_deployment(defect):
     content = (

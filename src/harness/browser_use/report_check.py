@@ -343,6 +343,16 @@ def check_methodology_evidence(content: str, tasks: list[dict], environment: dic
         raise ValueError("methodology is missing the evaluation-flow diagram")
 
 
+def check_template_identity(audit: dict) -> None:
+    """Bind the renderer: a moved entry point leaves reports built before the move valid."""
+
+    template, maintained = audit.get("template") or {}, template_identity("browser-use")
+    if audit.get("profile_sha256") and any(
+        template.get(key) != maintained[key] for key in ("track", "renderer")
+    ):
+        raise ValueError("report bypasses the maintained Browser Use template")
+
+
 def check(
     report_dir: Path,
     evidence_dir: Path | list[Path],
@@ -481,8 +491,7 @@ def check(
     selection = load_pilot(selection_path)
     audit = json.loads(audit_path.read_text(encoding="utf-8"))
     check_build_version(report_dir, audit)
-    if audit.get("profile_sha256") and audit.get("template") != template_identity("browser-use"):
-        raise ValueError("report bypasses the maintained Browser Use template")
+    check_template_identity(audit)
     if audit.get("profile_sha256") and audit["profile_sha256"] != file_sha256(profile_path):
         raise ValueError("report was built from a different instance profile")
     if audit.get("selection_sha256") != selection.sha256:
