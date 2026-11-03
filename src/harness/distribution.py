@@ -1,23 +1,30 @@
-"""Locate immutable files declared by the installed distribution."""
+"""Locate root-level definitions from a checkout or from the installed package."""
 
-import importlib.metadata
-from pathlib import Path
+import importlib.resources
+from pathlib import Path, PurePosixPath
+
+_BUNDLED_DATA = "distribution_data"
 
 
-def installed_data_path(relative: str) -> Path:
-    """Locate declared distribution data even when an installer uses an overlay."""
-    requested = Path(relative)
-    if requested.is_absolute() or '..' in requested.parts or not requested.parts:
-        raise ValueError('Installed data requires a relative distribution path')
-    distribution = importlib.metadata.distribution('browser-harness-eval')
-    matches = [entry for entry in distribution.files or ()
-               if entry.parts[-len(requested.parts):] == requested.parts]
-    if len(matches) != 1:
-        raise ValueError('Distribution must declare one data file: ' + relative)
-    path = Path(distribution.locate_file(matches[0]))
-    if path.is_symlink() or not path.is_file():
-        raise ValueError('Installed distribution data is missing or symlinked: ' + relative)
-    return path
+def bundled_data_path(relative: str) -> Path:
+    """Locate a file named by `tool.browser-eval.bundled-data` in pyproject.toml."""
+    requested = PurePosixPath(relative)
+    if requested.is_absolute() or ".." in requested.parts or not requested.parts:
+        raise ValueError("Bundled data requires a relative repository path")
+    root = repository_root()
+    if (root / "src" / "harness").is_dir():
+        return root / relative
+    # `harness` is a namespace package; its traversable accepts one child at a time.
+    resource = importlib.resources.files("harness") / _BUNDLED_DATA
+    for part in requested.parts:
+        resource = resource / part
+    if not isinstance(resource, Path):
+        raise ValueError("Bundled data requires an unpacked harness installation")
+    if resource.is_symlink():
+        raise ValueError("Bundled data must not be symlinked: " + relative)
+    if not resource.is_file():
+        raise FileNotFoundError("Installed package lacks bundled data: " + relative)
+    return resource
 
 
 def repository_root(package: Path | None = None) -> Path:
@@ -35,5 +42,5 @@ def source_path(relative: str | Path, *, root: Path | None = None) -> Path:
             return root / "src" / relative
     candidate = root / relative
     if relative.as_posix() in {"pyproject.toml", "uv.lock"} and not candidate.is_file():
-        return installed_data_path("share/browser-harness-eval/provenance/" + relative.name)
+        return bundled_data_path(relative.name)
     return candidate

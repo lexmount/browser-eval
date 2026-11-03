@@ -19,7 +19,7 @@ from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
-from harness.distribution import installed_data_path
+from harness.distribution import bundled_data_path
 from harness.record_io import load_jsonl
 from harness.web_fetch.safety import stage_evidence_revision
 from harness.web_fetch.webmainbench_case_correction import dimensions
@@ -449,9 +449,7 @@ def certify_case_correction(argv=None):
 
 def regression_registry_path() -> Path:
     """Keep optional revision data lookup out of ordinary library imports."""
-    if ((ROOT / "pyproject.toml")).is_file():
-        return (ROOT / "evaluation/webmainbench-full/scoring-regressions.json")
-    return installed_data_path("share/browser-harness-eval/webmainbench/scoring-regressions.json")
+    return bundled_data_path("evaluation/webmainbench-full/scoring-regressions.json")
 
 
 def text_digest(value):

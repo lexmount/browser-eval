@@ -464,7 +464,7 @@ make setup
 uv run --frozen python -m harness.web_fetch validate --providers fixture
 uv run --frozen python -m harness.web_fetch run --providers fixture
 uv run --frozen python -m harness.web_fetch run --dataset evaluation/dataset.json --provider-config configs/providers.example.json --providers moli-webfetch --case-ids static-simple
-make report EVIDENCE=/absolute/path/to/evidence
+make report PROFILE=/absolute/path/to/profile.json EVIDENCE=/absolute/path/to/evidence
 ```
 
 Credentials and local executable/repository paths belong in the root `.env`

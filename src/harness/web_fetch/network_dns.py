@@ -20,6 +20,8 @@ import urllib.request
 from contextlib import asynccontextmanager, contextmanager
 from pathlib import Path
 
+from harness.platform_capabilities import require_macos
+
 DNS_ENDPOINT = "https://cloudflare-dns.com/dns-query"
 DNS_MODES = {"system", "public_doh"}
 _PATCH_LOCK = threading.Lock()
@@ -302,8 +304,7 @@ def _native_dns_sources():
 
 def validate_native_dns_library(library):
     """Bind native resolver bytes to current source, architecture and platform."""
-    if platform.system() != "Darwin":
-        raise ValueError("native public DNS bridge currently requires Darwin")
+    require_macos("native public DNS bridge")
     if not library:
         raise ValueError("native_dns_library is required for Moli public_doh")
     path = pathlib.Path(library).expanduser().resolve()
@@ -323,8 +324,7 @@ def validate_native_dns_library(library):
 
 def build_native_dns_library(destination):
     """Explicit preparation step; never compile or swap runtimes during a call."""
-    if platform.system() != "Darwin":
-        raise ValueError("native public DNS bridge currently requires Darwin")
+    require_macos("native public DNS bridge", ("cc",))
     path = pathlib.Path(destination).expanduser().resolve()
     path.parent.mkdir(parents=True, exist_ok=True)
     source, = _native_dns_sources()

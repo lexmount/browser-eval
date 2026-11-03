@@ -6,7 +6,7 @@
       "entrypoint": "scripts/build_report.py",
       "example": "https://artifact-site.lexmount.cn/s/p3sFcZrww_nx?version=ver_8ea488f5197c4b57a94c0e7987587e26",
       "build": "uv run --frozen python scripts/build_report.py --profile /absolute/instance-profile.json --evidence /absolute/path --output reports/webfetch",
-      "check": "make report-check",
+      "check": "make report-check PROFILE=/absolute/instance-profile.json",
       "wcxb_build": "uv run --frozen python scripts/build_report.py --profile /absolute/instance-profile.json --evidence /absolute/path --output reports/wcxb",
       "wcxb_check": "make wcxb-release-check PROFILE=/absolute/instance-profile.json",
       "wcxb_package": "uv run --frozen python scripts/publish_wcxb_artifact_site.py --package-only --profile /absolute/instance-profile.json --source /absolute/new-report --work /absolute/package",

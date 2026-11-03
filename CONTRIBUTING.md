@@ -81,7 +81,7 @@ make setup-test
 make ci
 ```
 
-Development checks use Python 3.11 and Node.js 22. The base example does not need Node.js.
+Development checks use the Python version in `.python-version` (3.11) and Node.js 22. The base example does not need Node.js. `make ci` also needs [ShellCheck](https://github.com/koalaman/shellcheck#installing) and downloads Chromium through Playwright. `make help` lists the targets; `make clean` removes build outputs and caches; `make format FILES="path.py ..."` formats selected files only, because Ruff formatting is not applied repository-wide.
 
 Use focused checks while editing:
 
@@ -108,11 +108,13 @@ rejects failed, cancelled or unexpectedly skipped checks.
 | Check | What it covers |
 | --- | --- |
 | `make lint-check` | Basic Python errors across the repository and configured Ruff rules for the declared tracks |
-| `make package-check` | Source archive → wheel → base/optional installation outside the checkout |
+| `make package-check` | Base CLI, then source archive → wheel → base/optional installation outside the checkout (`harness/package_gate.py`) |
+| `make shell-check` | ShellCheck on `deploy/` scripts |
+| `make browser-check` | Chromium reference capture, report interactions and Web Search visual checks |
 | `make test-reference-inputs` | Strict historical-input checks after importing [approved reference copies](docs/reference-inputs.md) |
 | Track release gate | Evidence, report presentation and browser checks before packaging or publishing |
 
-`make ci` includes linting and package checks. It runs without historical pages: only tests requiring absent historical inputs are skipped. Corrupt installed inputs fail; strict reference mode also fails on missing or incomplete sets.
+`make ci` runs what CI runs on a code change: `ci-tests`, `package-check` and `browser-check`. It runs without historical pages: only tests requiring absent historical inputs are skipped. Corrupt installed inputs fail; strict reference mode also fails on missing or incomplete sets.
 
 `tests/test_golden_reports.py` builds each report track's synthetic example and compares every route with the SHA-256 in `tests/golden/`. Any change to rendered output fails it. If the change is intended, regenerate the snapshots and commit them with the change, so reviewers see which routes changed:
 

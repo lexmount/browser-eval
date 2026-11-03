@@ -24,6 +24,7 @@ survived this pruning.
 | `import_benchmark_env.py` | `make import-env`, `SECURITY.md` |
 | `import_reference_inputs.py` | `docs/reference-inputs.md`; error text in `lexbench_webfetch.inputs` |
 | `bootstrap_oss_baselines.sh` | `docs/dependencies.md`, `docs/provider-contract.md` |
+| `check_package.py` | `make package-check` (CI) |
 | `check_track_naming.py` | `make naming-check` (CI) |
 | `report_template.py` | `make report-template`, `AGENTS.md` |
 

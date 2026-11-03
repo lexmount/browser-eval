@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from harness.distribution import repository_root
-
 import hashlib
-import importlib.metadata
 import inspect
 import json
 import re
@@ -14,7 +11,7 @@ from functools import lru_cache, wraps
 from pathlib import Path
 from typing import Any
 
-from harness.distribution import installed_data_path
+from harness.distribution import bundled_data_path
 
 
 def _resolve_catalog_templates(data):
@@ -206,17 +203,10 @@ def method_access(name, records, *, language="zh"):
 @lru_cache(maxsize=1)
 def _execution_browser_method_registry():
     """Use the execution registry for release and source-build participants."""
-    path = repository_root() / "configs/providers.headless.json"
-    if not path.is_file():
-        try:
-            path = installed_data_path("share/browser-harness-eval/providers.headless.json")
-        except importlib.metadata.PackageNotFoundError:
-            return {}
-        except ValueError as error:
-            if str(error).startswith('Distribution must declare one data file:'):
-                return {}
-            raise
-    return json.loads(path.read_text())["providers"]
+    try:
+        return json.loads(bundled_data_path("configs/providers.headless.json").read_text())["providers"]
+    except FileNotFoundError:
+        return {}
 
 
 _REPORT_METHODS = ContextVar("webfetch_report_methods", default={})

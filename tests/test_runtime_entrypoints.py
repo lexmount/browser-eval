@@ -49,7 +49,7 @@ class RuntimeEntrypointTests(unittest.TestCase):
         makefile = (ROOT / "Makefile").read_text()
         self.assertIn("$(UV) run --frozen python", makefile)
         self.assertIn("$(UV) sync --frozen --all-extras", makefile)
-        self.assertIn("sys.version_info[:2] == (3, 11)", makefile)
+        self.assertIn('open(".python-version")', makefile)
 
     def test_common_scoring_dependency_is_in_the_base_environment(self) -> None:
         project = (ROOT / "pyproject.toml").read_text()
