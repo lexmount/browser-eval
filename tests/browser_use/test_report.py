@@ -1998,12 +1998,12 @@ def test_report_follows_a_registry_of_another_size_without_module_state(
     assert "6 列对应模型×浏览器配置" in analysis
     for label in ("Alpha 1.0", "Beta", "Gamma 3.0", "Model A", "model-b"):
         assert label in analysis
-    assert "Alpha、Beta 与 Gamma 串行" in (output / "reproduce/index.html").read_text(
-        encoding="utf-8"
-    )
-    assert "One site stack; Alpha, Beta and Gamma run serially" in (
-        output / "en/reproduce/index.html"
-    ).read_text(encoding="utf-8")
+    reproduce = (output / "reproduce/index.html").read_text(encoding="utf-8")
+    assert "Alpha、Beta 与 Gamma 串行" in reproduce
+    assert "多个浏览器并行" in reproduce and "两个浏览器并行" not in reproduce
+    english_reproduce = (output / "en/reproduce/index.html").read_text(encoding="utf-8")
+    assert "One site stack; Alpha, Beta and Gamma run serially" in english_reproduce
+    assert "One site stack; multiple browsers run in parallel" in english_reproduce
     assert "Chromium" not in analysis and "Moli" not in analysis
     dataset = (output / "en/datasets/44.html").read_text(encoding="utf-8")
     for link in ("Model A · Alpha 1.0", "Model A · Beta", "model-b · Gamma 3.0"):

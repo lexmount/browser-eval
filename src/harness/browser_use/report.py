@@ -3496,7 +3496,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                         "同一 daemon 锁；每次尝试前重置并核对初态",
                     ],
                     [
-                        "一套站点环境，两个浏览器并行",
+                        f"一套站点环境，{'两个' if len(participants.engines) == 2 else '多个'}浏览器并行",
                         "不允许",
                         "账号不同仍会共享对象、索引、缓存和后台任务",
                     ],

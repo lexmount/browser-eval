@@ -859,6 +859,7 @@
     "允许，默认方案": "Allowed; default",
     "同一 daemon 锁；每次尝试前重置并核对初态": "One daemon-scoped lock; reset and verify initial state before every attempt",
     "一套站点环境，两个浏览器并行": "One site stack; two browsers run in parallel",
+    "一套站点环境，多个浏览器并行": "One site stack; multiple browsers run in parallel",
     "不允许": "Not allowed",
     "账号不同仍会共享对象、索引、缓存和后台任务": "Separate accounts still share objects, indexes, caches, and background jobs",
     "多个任务并行": "Multiple tasks in parallel",
