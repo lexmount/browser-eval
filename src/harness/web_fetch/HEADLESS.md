@@ -185,7 +185,7 @@ dataset. An explicitly supplied custom dataset remains a normal JSON file.
 ### Select a cohort and methods
 
 `src/harness/web_fetch/headless_runner.py` owns cohort selection, execution and
-implementation checks. The command in `scripts/` delegates to it.
+implementation checks. `uv run --frozen python -m harness.web_fetch headless-run` runs it.
 `configs/providers.headless.json` declares the method registry and the `main`
 and `resources` cohorts. A new browser release changes this configuration,
 without adding a runner or a browser-name branch. Historical evidence keeps
