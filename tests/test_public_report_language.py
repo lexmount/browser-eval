@@ -225,13 +225,12 @@ def test_unsupported_language_fails_before_calls_or_output(tmp_path):
     assert not run.exists()
 
 
-@pytest.mark.parametrize("entry", [
-    [str(ROOT / "scripts/build_report.py")],
-    ["-m", "harness.browser_use", "report"],
-    [str(ROOT / "scripts/build_webarena_replay_report.py")],
+@pytest.mark.parametrize("entry, replay", [
+    ([str(ROOT / "scripts/build_report.py")], False),
+    (["-m", "harness.browser_use", "report"], False),
+    ([str(ROOT / "scripts/build_webarena_replay_report.py")], True),
 ], ids=["web-fetch", "browser-use", "trajectory-replay"])
-def test_report_entrypoints_reject_unknown_language_before_loading_evidence(tmp_path, entry):
-    replay = "replay" in entry[0]
+def test_report_entrypoints_reject_unknown_language_before_loading_evidence(tmp_path, entry, replay):
     if replay:
         pytest.importorskip("webarena_verified")
     output = tmp_path / "report"
