@@ -39,11 +39,10 @@ class PublishConfig:
     snapshot_audit: bool = False
 
 
-def publish(config: PublishConfig, *, transport=None, package_check=None, validation_inputs=()):
+def publish(config: PublishConfig, *, transport=None, package_check=None):
     """Validate the Web Fetch release, then submit it through the receipt lifecycle."""
     validate_release(config.source, presentation_binding=config.presentation_binding, snapshot_audit=config.snapshot_audit)
-    if config.presentation_binding is not None:
-        validation_inputs = (*validation_inputs, config.presentation_binding)
+    validation_inputs = () if config.presentation_binding is None else (config.presentation_binding,)
     attachments, check_target = {}, None
     if config.parts_manifest is not None:
         attachments = part_archives(config.parts_manifest)
@@ -66,7 +65,7 @@ def publish(config: PublishConfig, *, transport=None, package_check=None, valida
             namespace="webfetch", upload_name="webfetch", client=CLIENT, package_check=package_check or check,
             title=config.title, mode=config.mode, base_url=config.base_url,
             expected_version=config.expected_version, visibility=config.visibility,
-            inputs=tuple(validation_inputs), check_reuse=package_check is not None,
+            inputs=validation_inputs, check_reuse=package_check is not None,
             check_target=check_target,
         ),
         transport=transport,
