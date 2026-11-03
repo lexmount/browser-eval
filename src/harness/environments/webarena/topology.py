@@ -67,21 +67,24 @@ RECORDING_GATEWAYS_ENV: str = _HOSTS["recording_gateways_env"]
 _BARE_HOST = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?")
 
 
+def _configured_gateways() -> tuple[str, ...]:
+    """Return the entries as written, read on use so importing this module reads no file."""
+    hosts = tuple(
+        host.strip() for host in local_setting(RECORDING_GATEWAYS_ENV).split(",") if host.strip()
+    )
+    for host in hosts:
+        if not _BARE_HOST.fullmatch(host):
+            raise ValueError(
+                f"{RECORDING_GATEWAYS_ENV} entries must be bare hostnames or IPv4 addresses"
+            )
+    return hosts
+
+
 class _RecordingGateways(Sequence):
-    """Read the configured hosts on use, so importing this module reads no file."""
+    """Canonical lowercase hosts, the form URL parsing gives for membership checks."""
 
     def _hosts(self) -> tuple[str, ...]:
-        hosts = tuple(
-            host.strip()
-            for host in local_setting(RECORDING_GATEWAYS_ENV).split(",")
-            if host.strip()
-        )
-        for host in hosts:
-            if not _BARE_HOST.fullmatch(host):
-                raise ValueError(
-                    f"{RECORDING_GATEWAYS_ENV} entries must be bare hostnames or IPv4 addresses"
-                )
-        return hosts
+        return tuple(dict.fromkeys(host.lower() for host in _configured_gateways()))
 
     def __getitem__(self, index):
         return self._hosts()[index]
@@ -166,10 +169,15 @@ def require_recorded_gateway(host: str | None) -> None:
         )
 
 
+def _redacted_gateways() -> tuple[str, ...]:
+    """Redaction also covers the spelling an entry was written in."""
+    return tuple(dict.fromkeys((*RECORDING_GATEWAYS, *_configured_gateways())))
+
+
 def public_origin_replacements() -> dict[str, str]:
     """Map every recorded mutable-site origin to its public site token."""
     replacements: dict[str, str] = {}
-    for host in (CONTAINER_HOST_ALIAS, *RECORDING_GATEWAYS):
+    for host in (CONTAINER_HOST_ALIAS, *_redacted_gateways()):
         for site in MUTABLE_SITE_PORTS:
             token = "__" + site.upper() + "__"
             replacements[site_url(site, host)] = token
@@ -179,7 +187,7 @@ def public_origin_replacements() -> dict[str, str]:
 
 def public_host_replacements() -> dict[str, str]:
     """Map container-visible WebArena hosts to the public benchmark-host placeholder."""
-    hosts = (CONTAINER_HOST_ALIAS, *RECORDING_GATEWAYS)
+    hosts = (CONTAINER_HOST_ALIAS, *_redacted_gateways())
     return {host: BENCHMARK_HOST_PLACEHOLDER for host in hosts}
 
 

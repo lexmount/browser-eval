@@ -438,3 +438,16 @@ import harness.trajectory_replay.public_webarena.publication
 assert not [path for path in opened if path.endswith(".env")], "read an env file at import"
 """
     subprocess.run([sys.executable, "-c", code], cwd=tmp_path, env=env, check=True)
+
+
+def test_mixed_case_gateway_rebinds_and_is_redacted_as_written(monkeypatch) -> None:
+    monkeypatch.setenv("WEBARENA_RECORDING_GATEWAYS", "Gateway.Example")
+    assert list(topology.RECORDING_GATEWAYS) == ["gateway.example"]
+
+    calls = [{"action": "navigate", "url": "http://Gateway.Example:7770/cart"}]
+    rebound = rebind_remote_calls(calls, REMOTE_SITES, set(topology.LOCAL_RECORDED_HOSTS))
+    assert rebound[0]["url"] == "https://shopping.remote.test/cart"
+
+    public = sanitize_text("http://Gateway.Example:7770/a and gateway.example")
+    assert "Gateway.Example" not in public
+    assert "gateway.example" not in public
