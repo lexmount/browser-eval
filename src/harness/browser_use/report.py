@@ -1972,6 +1972,15 @@ def _load_trajectory_replay_bridge(
     _validate_replay_contract_definitions(bridge)
     result = bridge.get("effective_results") or {}
     measured = _replay_results(bridge)
+    # The bound profile states which browsers ran; the results are what it checks.
+    registered = {
+        str(method.get("engine") or "")
+        for method in _read_json(trajectory_profile_path).get("methods") or []
+    }
+    if {key for key, value in result.items() if isinstance(value, dict)} != registered or (
+        set(measured) != registered
+    ):
+        raise ValueError("trajectory replay results differ from the browsers in the bound profile")
     if not all(_replay_counts_are_valid(value) for value in measured.values()):
         raise ValueError("trajectory replay bridge has an invalid current control cardinality")
     replay_engine, provenance = _replay_engine_field(bridge, "_trajectory_provenance")

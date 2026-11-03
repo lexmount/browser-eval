@@ -1786,7 +1786,10 @@ def _synthetic_bridge(tmp_path: Path, *, failures: int = 2) -> dict:
             "event_selection_and_expected": [],
             "reference_or_acceptance": [],
         },
-        "trajectory_profile": bound("trajectory-profile.json", {}),
+        "trajectory_profile": bound(
+            "trajectory-profile.json",
+            {"methods": [{"engine": engine} for engine in ("base", "third", "candidate")]},
+        ),
         "effective_results": {
             "sha256": "results",
             "logical_results": 15,
@@ -1865,6 +1868,20 @@ def test_replay_bridge_cardinality_follows_its_own_engines_and_task_count(tmp_pa
         (lambda b: b["candidate_failure_review"].update(verified_results=1), "failure review"),
         (lambda b: b["effective_results"]["candidate"].update(passes=2), "failure review"),
         (lambda b: b.update(second_failure_review={}), "more than one"),
+        (
+            lambda b: (
+                b["effective_results"].pop("third"),
+                b["effective_results"].update(logical_results=10),
+            ),
+            "bound profile",
+        ),
+        (
+            lambda b: (
+                b["effective_results"]["third"].pop("passes"),
+                b["effective_results"].update(logical_results=10),
+            ),
+            "bound profile",
+        ),
         (lambda b: b["effective_results"]["third"].update(passes=True), "cardinality"),
     ],
     ids=[
@@ -1878,6 +1895,8 @@ def test_replay_bridge_cardinality_follows_its_own_engines_and_task_count(tmp_pa
         "review-verified",
         "measured-failures",
         "two-reviews",
+        "browser-removed",
+        "browser-without-passes",
         "non-integer-passes",
     ],
 )
@@ -1897,6 +1916,15 @@ def test_replay_bridge_rejects_more_passes_than_tasks(tmp_path: Path) -> None:
     bridge = _synthetic_bridge(tmp_path)
     bridge["effective_results"]["third"]["passes"] = 6
     with pytest.raises(ValueError, match="cardinality"):
+        _load_bridge(tmp_path, bridge)
+
+
+def test_replay_bridge_rejects_a_browser_the_profile_does_not_declare(tmp_path: Path) -> None:
+    bridge = _synthetic_bridge(tmp_path)
+    profile = Path(bridge["trajectory_profile"]["path"])
+    profile.write_text(json.dumps({"methods": [{"engine": "base"}]}), encoding="utf-8")
+    bridge["trajectory_profile"]["sha256"] = optional_file_sha256(profile)
+    with pytest.raises(ValueError, match="bound profile"):
         _load_bridge(tmp_path, bridge)
 
 
