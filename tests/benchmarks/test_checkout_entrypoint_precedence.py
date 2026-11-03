@@ -86,8 +86,10 @@ def test_complete_cli_help_works_without_editable_install(stale_wheel_install, t
     assert 'usage:' in result.stdout.lower()
 
 
-def test_search_cli_help_uses_checkout_over_noneditable_wheel(stale_wheel_install, tmp_path):
+def test_search_cli_help_runs_from_src_listed_before_installed_wheel(stale_wheel_install, tmp_path):
     import site
+    # `python -m` has no bootstrap of its own: harness resolves from sys.path. Listing src
+    # first stands in for the editable install that `uv run --frozen` provides.
     environment = {**os.environ, 'PYTHONPATH': os.pathsep.join(
         [str(ROOT/'src'), str(stale_wheel_install), *site.getsitepackages()])}
     result = subprocess.run([sys.executable, '-S', '-m', 'harness.web_search', 'report', '--help'],

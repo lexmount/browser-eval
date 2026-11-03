@@ -20,7 +20,7 @@ uv run --frozen python -m harness.web_search report \
 
 Use a new output directory for every collection. The frozen profile declares every query, method, result count, timeout, retry rule and price before calls. New cohorts use `protocol.order="complete provider batches"` (the default when omitted): all cases and rounds for one provider finish before the next provider starts. Explicit rotation remains supported only to continue or reproduce frozen historical cohorts. When the profile enables retries, a transport, HTTP or invalid-response failure receives one retry; a valid empty response does not. The final response is the one logical result, while every physical call is retained. A missing credential fails before calls or output creation.
 
-Report commands share one entry point; `--help` after any command lists its options:
+Report commands share one entry point; `--help` after any command lists its options. Run them through `uv run --frozen`: `python -m` resolves `harness` from the environment's editable install and does not add this checkout's `src/` itself, so an environment holding a noneditable older package would run that older code.
 
 | Command | Purpose |
 | --- | --- |
