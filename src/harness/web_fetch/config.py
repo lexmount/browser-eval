@@ -66,7 +66,7 @@ def _validate_ground_truth_evidence(item: dict[str, Any]) -> None:
 
 
 def _evaluation_credential(name: str) -> bool:
-    return bool(re.fullmatch(r"[A-Z0-9_]+_(?:API_KEY|API_TOKEN|ACCOUNT_ID)", name))
+    return name == "BROWSERBASE_PROJECT_ID" or bool(re.fullmatch(r"[A-Z0-9_]+_(?:API_KEY|API_TOKEN|ACCOUNT_ID)", name))
 
 
 def load_runtime_env(path: Path | None = None) -> None:

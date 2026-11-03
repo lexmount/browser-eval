@@ -50,18 +50,23 @@ def extract(url, schema, *, timeout=120):
     calls = []
     session = None
     phase = "session_setup"
+    deadline = time.monotonic() + timeout
 
     def call(path, body):
         start = time.monotonic()
         receipt = {"phase": phase}
         calls.append(receipt)
         try:
+            remaining = deadline - start
+            if remaining <= 0:
+                raise TimeoutError("Stagehand logical extraction deadline exhausted")
+            remaining = min(remaining, 5) if phase == "session_cleanup" else remaining
             response = request(
                 BASE + path,
                 method="POST",
                 headers=headers,
                 json_body=body,
-                timeout=timeout,
+                timeout=remaining,
                 max_bytes=10_000_000,
             )
             receipt.update(http_status=response.status, raw_response=response.text())
@@ -104,12 +109,13 @@ def extract(url, schema, *, timeout=120):
             )
         if ok:
             phase = "field_extraction"
+            remaining_ms = max(1, int((deadline - time.monotonic()) * 1000))
             payload, status, ok = call(
                 f"/sessions/{session}/extract",
                 {
                     "instruction": INSTRUCTION,
                     "schema": schema,
-                    "options": {"timeout": timeout * 1000},
+                    "options": {"timeout": remaining_ms},
                 },
             )
         return {

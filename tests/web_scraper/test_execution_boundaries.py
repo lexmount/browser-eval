@@ -119,20 +119,62 @@ def test_existing_unbound_execution_cannot_be_certified_after_collection(tmp_pat
     assert not (target / "certification-precall.json").exists()
 
 
+def test_certified_preflight_failure_can_resume_without_replacing_receipt(tmp_path):
+    from harness.web_scraper.certification import create_plan
+    from harness.web_scraper.pipeline import read_json
+
+    home = create(tmp_path / "example")
+    profile, target = tmp_path / "plan.json", home / "runs/preflight"
+    with patch("harness.web_scraper.certification.validate_dataset"):
+        create_plan(home, ["cloudflare-json"], profile)
+    with (
+        collection_context(),
+        patch("harness.web_scraper.certification.validate_dataset"),
+        patch(
+            "harness.web_scraper.certification.probe",
+            side_effect=TimeoutError("Synthetic preflight timeout"),
+        ) as collect,
+    ):
+        with pytest.raises(TimeoutError, match="preflight"):
+            certified_run(home, profile, "cloudflare-json", target)
+        collect.assert_called_once()
+    receipt = (target / "certification-precall.json").read_bytes()
+
+    def score(home, run):
+        value = {"scores": {}}
+        save_json(run / "scores.json", value)
+        return value
+
+    with (
+        collection_context(),
+        patch("harness.web_scraper.certification.validate_dataset"),
+        patch("harness.web_scraper.pipeline.provider_call", side_effect=accepted) as call,
+        patch("harness.web_scraper.certification.score_run", side_effect=score),
+    ):
+        certified_run(home, profile, "cloudflare-json", target)
+        assert call.call_count == 3
+    assert (target / "certification-precall.json").read_bytes() == receipt
+    assert read_json(target / "certificate.json")["case_count"] == 3
+
+
 def test_frozen_resume_uses_its_adapter_snapshot_not_current_adapter(tmp_path):
     source = tmp_path / "execution/pipeline.py"
     source.parent.mkdir()
     source.write_text(
+        "from pathlib import Path\nPROFILE = Path('/obsolete/snapshot/profile.json')\n"
+        "def validate_dataset(home, profile=PROFILE):\n return profile\n"
         "def probe(*args, **kwargs):\n"
         " from harness.web_scraper.stagehand import extract\n"
-        ' return extract("frozen", {})\n'
+        ' return extract("frozen", {}), validate_dataset(None)\n'
     )
     adapter = source.with_name("stagehand.py")
     adapter.write_text('def extract(*args, **kwargs):\n return "frozen adapter"\n')
     save_json(tmp_path / "contract.json", {"stagehand_sha256": digest(adapter.read_bytes())})
     with patch("harness.web_scraper.stagehand.extract", return_value="current adapter"):
         collector = frozen_probe(tmp_path, digest(source.read_bytes()))
-        assert collector() == "frozen adapter"
+        from harness.web_scraper.certification import PROFILE
+
+        assert collector() == ("frozen adapter", PROFILE)
         from harness.web_scraper.stagehand import extract as current
 
         assert current("url", {}) == "current adapter"
@@ -172,6 +214,126 @@ def test_endpoint_permission_denial_pauses_without_quota_wording():
         access_blocker({"http_status": 200, "response": {"error": "Could not download page (403)"}})
         is None
     )
+    assert access_blocker({"http_status": 403, "response": {}}) == "permission"
+    assert (
+        access_blocker(
+            {"http_status": 200, "response": {"success": False, "error": "Insufficient credits"}}
+        )
+        == "quota_or_permission"
+    )
+
+
+def test_repository_project_identifier_overrides_shell(tmp_path):
+    import os
+
+    from harness.web_fetch.config import load_runtime_env
+
+    env = tmp_path / ".env"
+    env.write_text("BROWSERBASE_PROJECT_ID=repository-project\n")
+    with (
+        patch("harness.web_fetch.config.ROOT", tmp_path),
+        patch.dict(os.environ, {"BROWSERBASE_PROJECT_ID": "shell-project"}),
+    ):
+        load_runtime_env()
+        assert os.environ["BROWSERBASE_PROJECT_ID"] == "repository-project"
+
+
+def test_predispatch_storage_failure_does_not_complete_a_provider_attempt(tmp_path):
+    home = create(tmp_path / "example")
+    target = home / "runs/storage-failure"
+
+    def save(path, value, **kwargs):
+        if path.name == "inflight.json":
+            raise OSError("Synthetic disk full before dispatch")
+        return save_json(path, value, **kwargs)
+
+    with (
+        collection_context(),
+        patch("harness.web_scraper.pipeline.save_json", side_effect=save),
+        patch("harness.web_scraper.pipeline.provider_call") as call,
+    ):
+        with pytest.raises(OSError, match="disk full"):
+            probe(home, ["cloudflare-json"], full=True, run_dir=target)
+        call.assert_not_called()
+    assert not (target / "calls.journal.jsonl").exists()
+    with (
+        collection_context(),
+        patch("harness.web_scraper.pipeline.provider_call", side_effect=accepted) as call,
+    ):
+        probe(home, ["cloudflare-json"], full=True, run_dir=target)
+        assert call.call_count == 3
+
+
+def test_resumed_collection_observes_frozen_pacing_before_dispatch(tmp_path):
+    home = create(tmp_path / "example")
+    target = home / "runs/pacing"
+    clock = [0.0]
+    started = []
+
+    def sleep(seconds):
+        clock[0] += seconds
+
+    def save(path, value, **kwargs):
+        if path.name == "inflight.json" and started:
+            raise KeyboardInterrupt
+        return save_json(path, value, **kwargs)
+
+    def call(*args, **kwargs):
+        started.append(clock[0])
+        return accepted()
+
+    with (
+        collection_context(),
+        patch("harness.web_scraper.pipeline.time.monotonic", side_effect=lambda: clock[0]),
+        patch("harness.web_scraper.pipeline.time.sleep", side_effect=sleep),
+        patch("harness.web_scraper.pipeline.provider_call", side_effect=call),
+    ):
+        with (
+            patch("harness.web_scraper.pipeline.save_json", side_effect=save),
+            pytest.raises(KeyboardInterrupt),
+        ):
+            probe(
+                home,
+                ["cloudflare-json"],
+                full=True,
+                run_dir=target,
+                min_call_interval=13,
+                post_call_cooldown=10,
+            )
+        resumed_at = clock[0]
+        probe(
+            home,
+            ["cloudflare-json"],
+            full=True,
+            run_dir=target,
+            min_call_interval=13,
+            post_call_cooldown=10,
+        )
+    assert len(started) == 3
+    assert started[1] - resumed_at >= 13
+
+
+def test_stagehand_phases_share_one_timeout_budget():
+    clock = [0.0]
+    timeouts = []
+
+    def request(url, **kwargs):
+        timeouts.append(kwargs["timeout"])
+        clock[0] += min(50, kwargs["timeout"])
+        body = {"success": True, "data": {"sessionId": "synthetic"}, "result": {"sku": "X"}}
+        return HttpResponse(200, url, {}, json.dumps(body).encode())
+
+    with (
+        patch("harness.web_scraper.stagehand.time.monotonic", side_effect=lambda: clock[0]),
+        patch("harness.web_scraper.stagehand.request", side_effect=request),
+        patch.dict(
+            "os.environ",
+            {"BROWSERBASE_API_KEY": "synthetic", "BROWSERBASE_PROJECT_ID": "synthetic"},
+        ),
+    ):
+        extract("https://frozen.example/1.html", {}, timeout=120)
+    assert timeouts == [120, 70, 20]
+    assert clock[0] == 120
 
 
 def test_stagehand_timeout_retains_setup_failure_phase_and_cleanup():

@@ -14,13 +14,14 @@ from urllib.parse import unquote, urljoin, urlsplit
 from bs4 import BeautifulSoup
 
 from harness.reporting.presentation import check_presentation
+from harness.reporting.templates import resolve_template
+from harness.web_fetch.publication_privacy import project_evidence_view, publication_risk
 from harness.web_scraper.pipeline import (
     PROFILE,
     digest,
     load_run,
     normalize,
     read_json,
-    redact,
     save_json,
     score_run,
     validate_dataset,
@@ -258,7 +259,9 @@ def cohort_source(source, selection, home, truth):
                 "certified": True,
                 "scores": saved["scores"],
                 "certificate_sha256": digest(certificate.read_bytes()),
-                "assessment": assessment,
+                "assessment": {"artifact_id": assessment_path.name, "sha256": assessment["sha256"]}
+                if assessment
+                else None,
             },
         )
     journal = source / "calls.journal.jsonl"
@@ -480,6 +483,46 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None):
     return str(result) + "<p>" + note + "</p>", str(timing)
 
 
+def price_table(methods, prices, lang, labels=None):
+    labels = labels or {}
+    records = []
+    for method in methods:
+        value = prices.get(method, {})
+        sources = value.get("sources", [])
+        if (
+            not value.get("usd_per_1000")
+            or not value.get("terms", {}).get(lang)
+            or not re.fullmatch(r"\d{4}-\d{2}-\d{2}", value.get("verified_at", ""))
+            or not sources
+            or any(urlsplit(u).scheme != "https" for u in sources)
+        ):
+            raise ValueError("Every participant requires sourced cost/pricing terms: " + method)
+        records.append(
+            [
+                esc(labels.get(method, method)),
+                esc(value["usd_per_1000"]),
+                esc(value["terms"][lang]),
+                esc(value["verified_at"]),
+                " · ".join(
+                    f'<a href="{esc(u, quote=True)}">{i}</a>' for i, u in enumerate(sources, 1)
+                ),
+            ]
+        )
+    return table(
+        ["方法", "美元／1,000 次", "计费条件与套餐门槛", "核对日期", "官方来源"]
+        if lang == "zh"
+        else [
+            "Method",
+            "USD / 1,000 requests",
+            "Billing terms and commitment",
+            "Verified",
+            "Official sources",
+        ],
+        records,
+        attrs='data-price-table="true"',
+    )
+
+
 def usage_table(methods, rows, lang, labels=None):
     labels = labels or {}
     records = []
@@ -552,6 +595,15 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
         source = source if source.is_absolute() else home / "runs" / source
         extra = {}
         if cohort:
+            selected_plan = selection["plan_sha256"]
+            for method in read_json(source / "contract.json")["methods"]:
+                authorized_plan = model.get("source_cohorts", {}).get(
+                    method, model["cohort_plan"]["sha256"]
+                )
+                if selected_plan != authorized_plan:
+                    raise ValueError(
+                        "Selected source cohort is not bound by the report composition"
+                    )
             contract, records, extra = cohort_source(source, selection, home, truth)
         else:
             contract, records = load_run(source)
@@ -576,7 +628,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
                 r["request"]["endpoint"] = re.sub(
                     r"/accounts/[^/]+/", "/accounts/[REDACTED]/", r["request"]["endpoint"]
                 )
-            rows.append(redact(r))
+            rows.append(r)
         bindings.append(
             {
                 "run_id": source.name,
@@ -584,6 +636,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
                 if (source / "manifest.json").exists()
                 else None,
                 **extra,
+                "source_plan_sha256": selection.get("plan_sha256"),
                 "methods": selection.get("methods"),
                 "contract": contract,
             }
@@ -618,16 +671,40 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             raise ValueError("Unsafe or changed report asset")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(source.read_bytes())
-    if cohort:
-        for method in cohort_plan["participants"]:
-            save_json(
-                output / "evidence" / (method + ".json"),
-                {r["case_id"]: r for r in rows if r["method"] == method},
-                exclusive=True,
-            )
-    else:
-        for r in rows:
-            save_json(output / "evidence" / f"{r['method']}-{r['case_id']}.json", r, exclusive=True)
+    buckets = (
+        {
+            m: {r["case_id"]: r for r in rows if r["method"] == m}
+            for m in cohort_plan["participants"]
+        }
+        if cohort
+        else {f"{r['method']}-{r['case_id']}": r for r in rows}
+    )
+    public_receipts, public_rows = [], []
+    for key, bucket in buckets.items():
+        name = f"public-evidence/{key}.json"
+        raw = json.dumps(bucket, ensure_ascii=False, indent=2, allow_nan=False).encode()
+        public, receipt = project_evidence_view(
+            name,
+            raw,
+            role="native_response",
+            content_format="json",
+            host_names=("go-connect.connect.svc.cluster.local", "10.255.255.1"),
+        )
+        projected = json.loads(public)
+        before = list(bucket.values()) if cohort else [bucket]
+        after = list(projected.values()) if cohort else [projected]
+        for original, view in zip(before, after, strict=True):
+            method = original["method"]
+            if normalize(method, original.get("response", {})) != normalize(
+                method, view.get("response", {})
+            ):
+                raise ValueError("Public evidence projection changed extracted fields")
+        target = output / name
+        target.parent.mkdir(exist_ok=True)
+        target.write_bytes(public)
+        public_receipts.append(receipt)
+        public_rows.extend(after)
+    rows = public_rows
     for lang in languages:
         lab = LABELS[lang]
         directory = output / lang
@@ -674,6 +751,12 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             bodies["index"] = core + model["pages"].get("index", {}).get("body", {}).get(lang, "")
             bodies["protocol"] += (
                 "<h2>" + ("调用耗时" if lang == "zh" else "Call latency") + "</h2>" + timings
+            )
+            bodies["accounts"] += (
+                "<h2>"
+                + ("各方法价格" if lang == "zh" else "Prices by method")
+                + "</h2>"
+                + price_table(methods, model.get("prices", {}), lang, names)
             )
         if cohort:
             bodies["protocol"] += (
@@ -781,7 +864,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
                     )
             if ok:
                 error = ""
-            evidence = "../evidence/" + (r["method"] if cohort else key) + ".json"
+            evidence = "../public-evidence/" + (r["method"] if cohort else key) + ".json"
             evidence_key = f' data-key="{cid}"' if cohort else ""
             detail = f'<article data-report-detail="{"passed" if ok else "failed"}"><div data-result-summary><h2>{status}</h2><p>{esc(names.get(r["method"], r["method"]))} · {esc(r["state"])} · HTTP {r.get("http_status", "—")}</p><p><code>{cid}</code></p><small>{esc(r["run_id"])}</small></div>'
             if not ok:
@@ -874,9 +957,11 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
         output / "report-manifest.json",
         {
             "template": VERSION,
+            "metric_contract": resolve_template("web-scraper")["metric_contract"],
             "mode": state,
             "planned_methods": list(cohort_plan["participants"]) if cohort else None,
             "method_labels": names,
+            "prices": model.get("prices", {}),
             "renderer_sha256": digest(Path(__file__).read_bytes()),
             "content_sha256": digest(content.read_bytes()),
             "profile_sha256": digest(profile.read_bytes()),
@@ -886,6 +971,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             "case_count": len(truth),
             "observations": len(rows),
             "source_runs": bindings,
+            "public_evidence_views": public_receipts,
             "files": files,
         },
         exclusive=True,
@@ -897,6 +983,8 @@ def check(output: Path, *, release=False, visual_receipt=None):
     manifest = read_json(output / "report-manifest.json")
     if manifest["template"] != VERSION:
         raise ValueError("Wrong template")
+    if manifest.get("metric_contract") != resolve_template("web-scraper")["metric_contract"]:
+        raise ValueError("Report does not bind the shared required metric contract")
     if manifest["renderer_sha256"] != digest(Path(__file__).read_bytes()):
         raise ValueError("Renderer identity changed; rebuild required")
     actual = {
@@ -906,6 +994,13 @@ def check(output: Path, *, release=False, visual_receipt=None):
     }
     if actual != set(manifest["files"]):
         raise ValueError("Report file inventory differs")
+    views = manifest.get("public_evidence_views", [])
+    if {v["path"] for v in views} != {n for n in actual if n.startswith("public-evidence/")}:
+        raise ValueError("Public evidence view receipts are incomplete")
+    for view in views:
+        public = (output / view["path"]).read_bytes()
+        if digest(public) != view["published_sha256"] or publication_risk(public):
+            raise ValueError("Public evidence privacy receipt failed")
     for name, sha in manifest["files"].items():
         path = output / name
         if path.is_symlink() or digest(path.read_bytes()) != sha:
@@ -951,7 +1046,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
     if manifest.get("mode") == "full-cohort-progress":
         methods = manifest["planned_methods"]
         names = manifest.get("method_labels", {})
-        data = {m: read_json(output / "evidence" / (m + ".json")) for m in methods}
+        data = {m: read_json(output / "public-evidence" / (m + ".json")) for m in methods}
         scores = {
             m: b["scores"][m]
             for b in manifest["source_runs"]
@@ -983,6 +1078,15 @@ def check(output: Path, *, release=False, visual_receipt=None):
                     if cell.get_text(strip=True) != ("—" if value is None else f"{value:.3f}"):
                         raise ValueError("Displayed quality differs from certified scores")
             protocol = BeautifulSoup((output / lang / "protocol.html").read_text(), "html.parser")
+            accounts = BeautifulSoup((output / lang / "accounts.html").read_text(), "html.parser")
+            expected_prices = BeautifulSoup(
+                price_table(methods, manifest.get("prices", {}), lang, names), "html.parser"
+            )
+            price_views = accounts.select("[data-price-table]")
+            if len(price_views) != 1 or price_views[0] != expected_prices.select_one(
+                "[data-price-table]"
+            ):
+                raise ValueError("Cost/pricing coverage or terms differ from the bound source")
             rows = [r for method in methods for r in data[method].values()]
             _, expected_time = cohort_metrics(
                 methods, rows, manifest["source_runs"], manifest["case_count"], lang, names

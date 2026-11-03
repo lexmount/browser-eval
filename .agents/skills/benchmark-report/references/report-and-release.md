@@ -72,6 +72,8 @@ A composed cohort can use a compact current-report profile with `frozen_inputs` 
 
 ## Claims and rankings
 
+Every comparison includes latency and cost/pricing for all participants. These are shared template requirements, not optional track features. The discovery command returns the inherited contract for new tracks. Before calls, select the timer boundaries, native usage receipts, pricing sources and normalization unit. CPU and memory are contextual: measure them for local execution or a controlled resource comparison; state the reason when they do not apply. A remote API client's CPU or memory does not measure the provider's infrastructure. Release checks must reject omitted participants or missing dimensions. An unavailable measurement retains its scope, count and reason; it is never rendered as zero.
+
 Pair every ranking with its task family, denominator, acceptance meaning, a typical input-to-output route, and limits. Keep task acceptance separate from continuous quality, latency, cost, and title/body diagnostics. Do not call conditional averages global quality or explain a correlation as a verified mechanism.
 
 Prefer concise tables for exact comparisons and prose for interpretation. Remove repeated caveats after placing each limitation where it changes interpretation. Run a factual pass before a prose/humanization pass; never let editing change numbers or scope.

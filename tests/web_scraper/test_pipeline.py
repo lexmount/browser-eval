@@ -21,6 +21,49 @@ from harness.web_scraper.report import check, image_width
 
 
 class PipelineScenarios(unittest.TestCase):
+    def test_browserbase_native_json_extracts_fields_without_external_model(self):
+        from harness.web_fetch.providers.http_client import HttpResponse
+        from harness.web_scraper.pipeline import SCHEMA, provider_call
+
+        payload = {
+            "statusCode": 200,
+            "content": {"price": 0, "sku": "0007", "availability": "OutOfStock"},
+        }
+        response = HttpResponse(
+            200, "https://api.browserbase.com/v1/fetch", {}, json.dumps(payload).encode()
+        )
+        with (
+            patch.dict(os.environ, {"BROWSERBASE_API_KEY": "synthetic"}),
+            patch("harness.web_scraper.pipeline.request", return_value=response) as call,
+        ):
+            result = provider_call(
+                "browserbase-json",
+                "<html>frozen</html>",
+                "https://original.example/product",
+                "https://snapshot.example/hash.html",
+            )
+        self.assertEqual(
+            call.call_args.kwargs["json_body"],
+            {
+                "url": "https://snapshot.example/hash.html",
+                "format": "json",
+                "schema": SCHEMA,
+                "proxies": False,
+            },
+        )
+        self.assertEqual(normalize("browserbase-json", result["response"])["sku"], "0007")
+        self.assertEqual(normalize("browserbase-json", payload)["price"], "0")
+        for invalid in (
+            {"statusCode": 403, "content": payload["content"]},
+            {"content": payload["content"]},
+            {"statusCode": 200, "content": "raw HTML"},
+        ):
+            self.assertIsNone(normalize("browserbase-json", invalid))
+        self.assertEqual(
+            provider_call("browserbase-json", "HTML", "https://original.example")["state"],
+            "input_blocked",
+        )
+
     def test_access_pause_and_resume_preserve_failed_physical_calls(self):
         from harness.web_scraper.pipeline import probe, save_json
 
@@ -377,7 +420,9 @@ class ReportScenarios(unittest.TestCase):
             detail = BeautifulSoup(
                 next((self.output / lang).glob("result-*.html")).read_text(), "html.parser"
             )
-            self.assertTrue(detail.select_one("[data-src]")["data-src"].startswith("evidence/"))
+            self.assertTrue(
+                detail.select_one("[data-src]")["data-src"].startswith("public-evidence/")
+            )
         self.assertIsNotNone(
             BeautifulSoup((self.output / "index.html").read_text(), "html.parser").head
         )

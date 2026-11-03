@@ -5,6 +5,7 @@ import importlib.util
 import sys
 from pathlib import Path
 
+from harness.reporting.templates import resolve_template
 from harness.web_scraper.pipeline import (
     PROFILE,
     ROOT,
@@ -54,6 +55,11 @@ def create_plan(home, methods, output):
         "review": "Machine scoring only; independent review requires an explicit request",
         "primary_language": "zh",
         "english": "Generated only on explicit request",
+        "metric_contract": resolve_template("web-scraper")["metric_contract"],
+        "resource_decision": {
+            "cpu": "Remote CPU unavailable; client CPU does not measure the provider.",
+            "memory": "Remote memory unavailable; the local baseline is timed separately.",
+        },
     }
     save_json(output, plan, exclusive=True)
     return plan
@@ -66,7 +72,13 @@ def frozen_probe(run_dir, expected_sha):
     spec = importlib.util.spec_from_file_location("harness.web_scraper._frozen_runner", source)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    frozen_profile = module.PROFILE
     module.ROOT, module.PROFILE = ROOT, PROFILE
+    # Function defaults are bound at import, before the snapshot is relocated.
+    for name in ("prepare", "validate_dataset"):
+        function = getattr(module, name, None)
+        if function is not None and function.__defaults__ == (frozen_profile,):
+            function.__defaults__ = (PROFILE,)
     contract = read_json(run_dir / "contract.json")
     adapter_sha = contract.get("stagehand_sha256")
     adapter = None
@@ -134,8 +146,13 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
     collector = probe
     if binding.exists():
         original = read_json(binding)
-        collector = frozen_probe(run_dir, original["pipeline_sha256"])
-        precall["pipeline_sha256"] = original["pipeline_sha256"]
+        if (run_dir / "contract.json").exists():
+            collector = frozen_probe(run_dir, original["pipeline_sha256"])
+            precall["pipeline_sha256"] = original["pipeline_sha256"]
+        elif any(
+            (run_dir / name).exists() for name in ("calls.journal.jsonl", "inflight.json")
+        ) or any((run_dir / "calls").glob("*")):
+            raise ValueError("Cannot recover initialization with unbound dispatch evidence")
         if original != precall:
             raise ValueError("Certified resume inputs changed")
     else:

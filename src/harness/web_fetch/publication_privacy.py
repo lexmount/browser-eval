@@ -204,9 +204,9 @@ SENSITIVE_KEY = (
     rb'(?:(?:[a-z0-9]+[-_])*(?:proxy[-_]?authorization|authorization|(?:set[-_])?cookie|'
     rb'(?:access|refresh|id)[-_]?token|x[-_]?auth[-_]?token|private[-_]?token|token|'
     rb'(?:aws[-_])?secret[-_]?access[-_]?key|client[-_]?secret|secret|credentials?|'
-    rb'x[-_]?api[-_]?key|api[-_]?key|password|passwd))'
+    rb'x[-_]?api[-_]?key|api[-_]?key|signing[-_]?key|password|passwd))'
 )
-EMBEDDED_URL = re.compile(r"(?i)\bhttps?://[^\s<>\"'\\\x00]+")
+EMBEDDED_URL = re.compile(r"(?i)\b(?:https?|wss?)://[^\s<>\"'\\\x00]+")
 QUERY_SENSITIVE_KEY = re.compile(
     r'(?i)(?:' + SENSITIVE_KEY.decode('ascii') +
     r'|(?:[a-z0-9]+[-_])*(?:signature|sig|signed|auth|key)|'

@@ -24,6 +24,22 @@ from harness.web_fetch.publication_privacy import (
 )
 
 
+@pytest.mark.parametrize('scheme', ['https', 'http', 'wss', 'ws'])
+def test_native_session_signing_keys_are_redacted_without_changing_fields(scheme):
+    from harness.web_fetch.publication_privacy import project_evidence_view
+
+    native = {'cdpUrl': scheme + '://connect.example/?signingKey=synthetic-session-secret&region=us',
+              'nested': {'signingKey': 'synthetic-session-secret'},
+              'result': {'price': 12.50, 'sku': '0007', 'availability': 'OutOfStock'}}
+    raw = json.dumps(native).encode()
+    public, receipt = project_evidence_view('public-evidence/native.json', raw, role='native_response')
+    assert b'synthetic-session-secret' not in public
+    assert json.loads(public)['result'] == native['result']
+    assert 'region=us' in json.loads(public)['cdpUrl']
+    assert receipt['original_sha256'] == hashlib.sha256(raw).hexdigest()
+    assert receipt['published_sha256'] == hashlib.sha256(public).hexdigest()
+
+
 @pytest.mark.parametrize('interrupted', [False, True])
 def test_proposed_evidence_reads_are_scoped_and_hash_checked(tmp_path, interrupted):
     from harness.web_fetch.publication_privacy import read_evidence_binding, staged_evidence_reads

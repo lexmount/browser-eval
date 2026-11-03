@@ -129,6 +129,18 @@ def create(output: Path, *, language="zh", mode="compatibility"):
         model["mode"] = mode
         model["cohort_plan"] = {"path": str(plan_path), "sha256": digest(plan_path.read_bytes())}
         model["evidence_runs"] = []
+        model["prices"] = {
+            m: {
+                "usd_per_1000": "$0 external API fee (synthetic)",
+                "terms": {
+                    "zh": "合成数据，不产生实际费用。",
+                    "en": "Synthetic data; no actual charge.",
+                },
+                "verified_at": "2026-01-01",
+                "sources": ["https://example.org/synthetic-pricing"],
+            }
+            for m in methods
+        }
         for method in methods:
             target = home / "runs" / method
             source = b"# explicitly synthetic execution snapshot\n"

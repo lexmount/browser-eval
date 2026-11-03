@@ -37,12 +37,14 @@ Historical predictions are separate from new measurements.
 | `oxylabs-json` | Web API JSON | Frozen HTTPS URL and JSON Schema |
 | `zyte-product` | Product extraction, `userHtml` | Uploaded HTML with original URL as context |
 | `diffbot-product` | Product API POST | Raw uploaded HTML with original URL as context |
+| `browserbase-json` | Native JSON extraction | Frozen HTTPS URL and JSON Schema; built-in extraction |
 | `browserbase-stagehand` | Hosted Stagehand Extract | Frozen HTTPS URL; provider-hosted browser and inference |
 | `extruct` | Upstream local baseline | Archived HTML |
 
 Browser infrastructure requiring a separately connected model is outside this
-comparison. Stagehand uses its native Model Gateway; it does not read an OpenAI
-key. Bright Data's site-specific scraper remains discoverable as a candidate, but
+comparison. Browserbase JSON uses only the Browserbase API key. The separately
+registered Stagehand route uses its native Model Gateway and needs a project ID;
+it does not read an OpenAI key. Bright Data's site-specific scraper remains discoverable as a candidate, but
 is rejected by the full archived-page plan because it cannot parse arbitrary HTML.
 
 URL-only interfaces need a reachable HTTPS address serving the frozen snapshots.
@@ -107,8 +109,11 @@ binds dataset provenance and optional authored content hashes. The `full-cohort-
 per participant. It validates certificates for complete cohorts and immutable
 journal entries for paused cohorts. Quality is shown only for complete certified
 methods; the result inventory includes every planned method and case, with
-unexecuted cases labeled separately. Raw evidence is grouped by method and loaded
-on demand. This progress report does not certify an incomplete comparison.
+unexecuted cases labeled separately. Credential-redacted evidence views are grouped
+by method and loaded on demand, with original/public hashes and unchanged extracted
+fields. Combining independently frozen source plans requires an explicit
+`source_cohorts` method-to-plan-hash binding; each run retains its own timing policy.
+This progress report does not certify an incomplete comparison.
 
 Exercise this mode with the same renderer:
 

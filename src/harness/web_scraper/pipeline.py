@@ -257,6 +257,7 @@ def available_methods():
         "oxylabs-json": {"keys": ["OXYLABS_API_KEY"], "input": "url"},
         "brightdata-scrapers": {"keys": ["BRIGHTDATA_API_TOKEN"], "input": "site_specific"},
         "extruct": {"keys": [], "input": "html"},
+        "browserbase-json": {"keys": ["BROWSERBASE_API_KEY"], "input": "url"},
         "browserbase-stagehand": {
             "keys": ["BROWSERBASE_API_KEY", "BROWSERBASE_PROJECT_ID"],
             "input": "url",
@@ -346,6 +347,12 @@ def provider_call(method, html, source_url, fixture_url=None, *, timeout=120, ho
         url = f"https://api.cloudflare.com/client/v4/accounts/{os.environ['CLOUDFLARE_ACCOUNT_ID']}/browser-rendering/json"
         headers = {"Authorization": "Bearer " + os.environ["CLOUDFLARE_API_TOKEN"]}
         body = {"html": html, "response_format": {"type": "json_schema", "json_schema": SCHEMA}}
+    elif method == "browserbase-json":
+        if not fixture_url:
+            return {"state": "input_blocked", "error": "A frozen HTTPS snapshot URL is required"}
+        url = "https://api.browserbase.com/v1/fetch"
+        headers = {"X-BB-API-Key": os.environ["BROWSERBASE_API_KEY"]}
+        body = {"url": fixture_url, "format": "json", "schema": SCHEMA, "proxies": False}
     elif method in ("firecrawl-json", "oxylabs-json"):
         if not fixture_url:
             return {
@@ -497,6 +504,11 @@ def normalize(method: str, payload: dict):
         )
     if method == "firecrawl-json":
         item = payload.get("data", {}).get("json")
+    elif method == "browserbase-json":
+        status = payload.get("statusCode")
+        if not isinstance(status, int) or not 200 <= status < 300:
+            return None
+        item = payload.get("content")
     elif method in ("cloudflare-json", "browserbase-stagehand"):
         item = payload.get("result")
     elif method == "oxylabs-json":
@@ -608,11 +620,13 @@ def access_blocker(row):
         return "authentication"
     if status == 402:
         return "quota_or_payment"
-    if status == 403 and re.search(
-        r"forbidden|access denied|not authorized|permission", message, re.I
-    ):
+    if status == 403:
         return "permission"
-    if status in (403, 429) or row.get("state") == "provider_error":
+    native = row.get("response", {})
+    native_error = isinstance(native, dict) and (
+        native.get("success") is False or bool(native.get("error"))
+    )
+    if status == 429 or row.get("state") == "provider_error" or native_error:
         if re.search(
             r"quota|credits?|balance|free plan|usage period|upgrade|subscription|payment|"
             r"insufficient|expired",
@@ -821,8 +835,9 @@ def _probe_unlocked(
             )
         inflight.unlink()
     records = []
-    last_call_started = None
-    last_call_finished = None
+    # Conservatively observe the full frozen pause after a cross-process resume.
+    last_call_started = time.monotonic() if prior else None
+    last_call_finished = last_call_started
     for ordinal, case_id in enumerate(case_ids):
         offset = ordinal % len(methods)
         for method in methods[offset:] + methods[:offset]:
@@ -850,34 +865,34 @@ def _probe_unlocked(
                     error="Site-specific scraper cannot be substituted for a generic HTML parser",
                 )
             else:
-                try:
-                    if last_call_started is not None:
+                if last_call_started is not None:
+                    remaining = max(
+                        min_call_interval - (time.monotonic() - last_call_started),
+                        post_call_cooldown - (time.monotonic() - last_call_finished),
+                    )
+                    while remaining > 0:
+                        time.sleep(min(remaining, 30))
                         remaining = max(
                             min_call_interval - (time.monotonic() - last_call_started),
                             post_call_cooldown - (time.monotonic() - last_call_finished),
                         )
-                        while remaining > 0:
-                            time.sleep(min(remaining, 30))
-                            remaining = max(
-                                min_call_interval - (time.monotonic() - last_call_started),
-                                post_call_cooldown - (time.monotonic() - last_call_finished),
-                            )
-                    save_json(
-                        inflight,
-                        {
-                            "method": method,
-                            "case_id": case_id,
-                            "physical_attempt": attempts.get((method, case_id), 0) + 1,
-                            "input_sha256": digest(raw),
-                            "state": "dispatch_pending",
-                        },
-                        exclusive=True,
-                    )
-                    descriptor = os.open(run, os.O_RDONLY)
-                    try:
-                        os.fsync(descriptor)
-                    finally:
-                        os.close(descriptor)
+                save_json(
+                    inflight,
+                    {
+                        "method": method,
+                        "case_id": case_id,
+                        "physical_attempt": attempts.get((method, case_id), 0) + 1,
+                        "input_sha256": digest(raw),
+                        "state": "dispatch_pending",
+                    },
+                    exclusive=True,
+                )
+                descriptor = os.open(run, os.O_RDONLY)
+                try:
+                    os.fsync(descriptor)
+                finally:
+                    os.close(descriptor)
+                try:
                     last_call_started = time.monotonic()
                     row.update(
                         provider_call(

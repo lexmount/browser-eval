@@ -1,5 +1,7 @@
 """Full planned populations, checkpoint evidence and certified quality presentation."""
 
+from pathlib import Path
+
 import pytest
 from bs4 import BeautifulSoup
 
@@ -25,7 +27,7 @@ def test_progress_includes_unexecuted_cases_without_inventing_calls(tmp_path):
     )
     assert check(output)["state"] == "full-cohort-progress"
     # Evidence is grouped by method, loaded on demand, rather than copied per detail.
-    assert len(list((output / "evidence").glob("*.json"))) == 2
+    assert len(list((output / "public-evidence").glob("*.json"))) == 2
     assert "data-key=" in next((output / "zh").glob("result-*.html")).read_text()
 
 
@@ -45,6 +47,53 @@ def test_checkpoint_rejects_modified_calls_and_missing_participants(tmp_path):
     save_json(home / "content.json", content)
     with pytest.raises(ValueError, match="missing a planned method"):
         build(tmp_path / "missing", home / "content.json", home=home, profile=home / "profile.json")
+
+
+def test_public_evidence_requires_complete_projection_receipts(tmp_path):
+    output = tmp_path / "report"
+    create(output, mode="full-cohort-progress")
+    manifest = read_json(output / "report-manifest.json")
+    manifest["public_evidence_views"].pop()
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="receipts are incomplete"):
+        check(output)
+
+
+def test_cost_prices_and_latency_cannot_omit_a_compared_participant(tmp_path):
+    home = create(tmp_path / "first", mode="full-cohort-progress")
+    content = read_json(home / "content.json")
+    content["prices"].pop("synthetic-blocked")
+    save_json(home / "content.json", content)
+    with pytest.raises(ValueError, match="Every participant requires sourced cost"):
+        build(
+            tmp_path / "missing-price",
+            home / "content.json",
+            home=home,
+            profile=home / "profile.json",
+        )
+
+
+def test_multiple_certified_plans_require_explicit_report_composition_binding(tmp_path):
+    home = create(tmp_path / "first", mode="full-cohort-progress")
+    content = read_json(home / "content.json")
+    selection = content["evidence_runs"][0]
+    source = home / "runs" / selection["run"]
+    plan = read_json(Path(selection["plan"]))
+    plan["participants"][selection["run"]]["minimum_call_interval_seconds"] = 13
+    variant = home / "variant-plan.json"
+    save_json(variant, plan)
+    sha = digest(variant.read_bytes())
+    selection.update(plan=str(variant), plan_sha256=sha)
+    precall = read_json(source / "certification-precall.json")
+    precall["profile_sha256"] = sha
+    save_json(source / "certification-precall.json", precall)
+    save_json(home / "content.json", content)
+    with pytest.raises(ValueError, match="not bound by the report composition"):
+        build(tmp_path / "unbound", home / "content.json", home=home, profile=home / "profile.json")
+    content["source_cohorts"] = {selection["run"]: sha}
+    save_json(home / "content.json", content)
+    build(tmp_path / "bound", home / "content.json", home=home, profile=home / "profile.json")
+    assert check(tmp_path / "bound")["observations"] == 4
 
 
 def test_progress_release_check_rejects_changed_counts_even_with_new_file_hash(tmp_path):
