@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import json
 import tomllib
+from collections.abc import Callable
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 from webarena_verified.types.task import WebArenaSite
 
+from harness.env_file import local_setting
 from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
 from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl
 from harness.trajectory_replay.public_webarena.suite import load_suite
@@ -376,12 +378,36 @@ def verify_physical_evidence(directory: Path, row: dict) -> Path | None:
     return evaluation_path if evaluation_path.is_file() else None
 
 
-def validate_environment_preparation(receipt_path: Path, environment_profile_path: Path) -> dict:
+def resolved_deployment(profile: dict, lookup: Callable[[str], str] = local_setting) -> dict:
+    """Replace a profile's named deployment variables with their local integer values."""
+
+    resolved = {}
+    missing = []
+    for key, value in (profile.get("deployment") or {}).items():
+        if not key.endswith("_env"):
+            resolved[key] = value
+            continue
+        configured = str(lookup(value) or "").strip()
+        if not configured.isdecimal():
+            missing.append(value)
+            continue
+        resolved[key.removesuffix("_env")] = int(configured)
+    if missing:
+        raise ValueError(
+            "environment deployment requires integer values for " + ", ".join(sorted(missing))
+        )
+    return resolved
+
+
+def validate_environment_preparation(
+    receipt_path: Path,
+    environment_profile_path: Path,
+) -> dict:
     """Validate the fresh-deployment receipt against the versioned environment profile."""
 
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     profile = json.loads(environment_profile_path.read_text(encoding="utf-8"))
-    deployment = profile.get("deployment") or {}
+    deployment = resolved_deployment(profile)
     images = profile.get("images") or {}
     mutable_sites = ("shopping", "shopping_admin", "reddit", "gitlab")
     if (

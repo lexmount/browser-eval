@@ -3,7 +3,7 @@
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:7780/admin"
+      "url": "http://host.docker.internal:7780/admin"
     },
     {
       "action": "evaluate",
@@ -49,7 +49,7 @@
   "retrieval_contract": {
     "schema": "lex_replay_current_run_retrieval/1",
     "task_id": 196,
-    "canonical_calls_sha256": "a0413e6b6e28d2f540e4db75ea42337f671cdf65a284f95ede14573d579905ff",
+    "canonical_calls_sha256": "6f5dc9d53a04e4c704a6aedb3c4f6df59efe5879ec9ed7f0c16195932b68ca93",
     "sources": [
       {
         "name": "orders",

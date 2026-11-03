@@ -4,7 +4,7 @@
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://webarena-slice-warm-1-195-shopping-admin.dev.lexmount.net/admin"
+      "url": "http://host.docker.internal:7780/admin"
     },
     {
       "action": "click",
@@ -44,7 +44,7 @@
   "retrieval_contract": {
     "schema": "lex_replay_current_run_retrieval/1",
     "task_id": 243,
-    "canonical_calls_sha256": "c7152e71effa2b529e31e173b4e4958bef110315c62dd7f350d92c31b71afc7b",
+    "canonical_calls_sha256": "91aecd7a97c5a282b25b21c0cc2b5306a2e53cf29370707b44986cc594abff97",
     "sources": [
       {
         "name": "observation",

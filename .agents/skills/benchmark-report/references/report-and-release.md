@@ -2,7 +2,7 @@
 
 ## Template discovery and diagnostic models
 
-Run `make report-template TRACK=webfetch` (or `trajectory-replay` / `browser-use`) before authoring. The registry returns the maintained owner, version-pinned example, build and check commands. A reference report supplies presentation conventions, never evidence or the new publication target. Extend the owner instead of copying its HTML into a temporary renderer.
+Run `make report-template TRACK=webfetch` (or `trajectory-replay` / `browser-use`) before authoring. The registry returns the maintained owner, version-pinned example, build and check commands; a private example link comes from the `example_env` variable and is empty while that variable is unset. A reference report supplies presentation conventions, never evidence or the new publication target. Extend the owner instead of copying its HTML into a temporary renderer.
 
 For explicitly requested live WebFetch diagnostics, use `make webfetch-diagnostic-report DIAGNOSTIC_PROFILE=/absolute/instance-profile.json OUTPUT=/absolute/new-output`; `EVIDENCE=/absolute/source` optionally supplies an explicit input. The `webfetch_cohort_diagnostic/1` model contains cohorts, per-case Boolean first-call verdicts, declared summary counts, cause/source labels, review counts and hash-bound reference/output/source/log files. `tests/test_report_templates.py:diagnostic_example` is a runnable two-scenario fixture through the public builder; its test command is registered alongside the variant. The release checker recomputes totals and validates rendered verdicts, complete evidence bindings, dialogs and links. A diagnostic remains diagnostic; this path cannot substitute for a certified build.
 

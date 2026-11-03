@@ -2,12 +2,13 @@
 import copy
 import hashlib
 import json
+import os
 import tempfile
 import unittest
 from unittest.mock import patch
 from pathlib import Path
 
-from harness.reporting.templates import ROOT, resolve_template
+from harness.reporting.templates import ROOT, discover_template, resolve_template
 from harness.web_fetch.report_build import build_diagnostic_cohorts
 from harness.web_fetch.report_diagnostic import check_diagnostic_report
 
@@ -418,7 +419,29 @@ class ReportTemplateTests(unittest.TestCase):
             self.assertIn('/absolute/instance-profile.json',template[key])
         command=shlex.split(template['build'])
         self.assertEqual(command[command.index('--output')+1],'reports/webfetch')
-        self.assertIn('?version=ver_',template['example'])
+        self.assertEqual(template['example_env'],'WEBFETCH_REPORT_EXAMPLE_URL')
+        self.assertTrue(template['example_version'].startswith('ver_'))
+
+    def test_private_example_link_comes_only_from_local_configuration(self):
+        with tempfile.TemporaryDirectory() as temp, patch.dict(os.environ):
+            root=Path(temp);(root/'configs').mkdir();(root/'renderer.py').write_text('')
+            os.environ.pop('DEMO_EXAMPLE_URL',None)
+            (root/'configs/report-templates.json').write_text(json.dumps({'schema_version':1,'tracks':{'demo':{
+                'renderer':'renderer.py','entrypoint':'renderer.py','tests':'renderer.py',
+                'example_env':'DEMO_EXAMPLE_URL','example_version':'ver_1'}}}))
+            self.assertIsNone(discover_template('demo',root=root)['example'])
+            (root/'.env').write_text('DEMO_EXAMPLE_URL=https://example.test/s/demo?version=ver_1\n')
+            self.assertEqual(discover_template('demo',root=root)['example'],'https://example.test/s/demo?version=ver_1')
+            self.assertNotIn('example',resolve_template('demo',root=root))
+            (root/'real.env').write_text('DEMO_EXAMPLE_URL=https://example.test/s/demo?version=ver_1\n')
+            (root/'.env').unlink();(root/'.env').symlink_to(root/'real.env')
+            self.assertEqual(discover_template('demo',root=root)['example'],'https://example.test/s/demo?version=ver_1')
+            (root/'.env').unlink();os.mkfifo(root/'.env')
+            self.assertIsNone(discover_template('demo',root=root)['example'])
+            (root/'.env').unlink()
+            os.environ['DEMO_EXAMPLE_URL']='https://example.test/s/demo?version=ver_2'
+            with self.assertRaisesRegex(ValueError,'DEMO_EXAMPLE_URL does not pin'):
+                discover_template('demo',root=root)
 
     def test_discovery_works_without_measured_instance_files(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -438,8 +461,9 @@ class ReportTemplateTests(unittest.TestCase):
         for track in ('webfetch','trajectory-replay','browser-use','web-search','web-scraper'):
             with self.subTest(track=track):
                 template=resolve_template(track)
-                if template['example'].startswith('https://'):
-                    self.assertIn('?version=ver_',template['example'])
+                if template.get('example_env'):
+                    self.assertTrue(template['example_env'].endswith('_REPORT_EXAMPLE_URL'))
+                    self.assertTrue(template['example_version'].startswith('ver_'))
                 else:
                     self.assertTrue((ROOT/template['example']).is_file())
                     self.assertIsInstance(template['example_version'],int)

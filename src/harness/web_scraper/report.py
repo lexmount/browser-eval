@@ -14,7 +14,7 @@ from urllib.parse import unquote, urljoin, urlsplit
 from bs4 import BeautifulSoup
 
 from harness.distribution import repository_root
-from harness.env_file import parse_env_file
+from harness.env_file import local_setting
 from harness.report_languages import resolve_report_language
 from harness.reporting.presentation import check_presentation
 from harness.reporting.templates import metric_contract
@@ -1092,11 +1092,11 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
 
 
 def publication_host_names():
-    path = repository_root() / ".env"
-    settings = parse_env_file(path) if path.is_file() else {}
     return tuple(
         host.strip()
-        for host in settings.get("WEB_SCRAPER_PUBLICATION_HOSTS", "").split(",")
+        for host in local_setting(
+            "WEB_SCRAPER_PUBLICATION_HOSTS", repository_root() / ".env"
+        ).split(",")
         if host.strip()
     )
 

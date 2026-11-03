@@ -3,7 +3,7 @@
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://webarena-slice-warm-1-195-gitlab.dev.lexmount.net"
+      "url": "http://host.docker.internal:8023"
     },
     {
       "action": "click",

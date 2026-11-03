@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import copy
 import hashlib
+import ipaddress
 import json
 import os
 import re
@@ -23,10 +24,13 @@ from webarena_verified.types.task import WebArenaSite
 
 from harness.distribution import repository_root
 from harness.environments.webarena.runtime import (
-    SITE_CREDENTIALS,
     SITE_PORTS,
 )
-from harness.environments.webarena.topology import LOCAL_RECORDED_HOSTS, READ_ONLY_SITE_PORTS
+from harness.environments.webarena.topology import (
+    LOCAL_RECORDED_HOSTS,
+    READ_ONLY_SITE_PORTS,
+    require_recorded_gateway,
+)
 from harness.record_io import canonical_json_sha256, file_sha256, read_json
 from harness.trajectory_replay.retrieval_acceptance import digest as retrieval_digest
 from harness.trajectory_replay.retrieval_acceptance import validate_contract
@@ -103,13 +107,20 @@ def remote_benchmark(sites: dict[WebArenaSite, str]) -> WebArenaVerified:
                             ]
                         )
                     ),
-                    credentials=SITE_CREDENTIALS.get(site),
                     use_header_login=site == WebArenaSite.SHOPPING_ADMIN,
                 )
                 for site, url in sites.items()
             }
         )
     )
+
+
+def _is_private_ipv4(host: str | None) -> bool:
+    try:
+        address = ipaddress.ip_address(host or "")
+    except ValueError:
+        return False
+    return address.version == 4 and address.is_private
 
 
 def rebind_remote_calls(
@@ -127,6 +138,7 @@ def rebind_remote_calls(
     by_port = {port: site for site, ports in SITE_PORTS.items() for port in ports}
     by_port.update(READ_ONLY_PORTS)
     by_source_origin = {urlsplit(url).netloc: site for site, url in (source_sites or {}).items()}
+    target_origins = {urlsplit(url).netloc for url in sites.values()}
 
     def rebind_url(value: str) -> str:
         parsed = urlsplit(value)
@@ -135,6 +147,13 @@ def rebind_remote_calls(
         site = by_source_origin.get(parsed.netloc)
         if site is None and parsed.hostname in trusted_source_hosts:
             site = by_port.get(parsed.port)
+        if (
+            site is None
+            and parsed.port in by_port
+            and _is_private_ipv4(parsed.hostname)
+            and parsed.netloc not in target_origins
+        ):
+            require_recorded_gateway(parsed.hostname)
         if site is None or site not in sites:
             return value
         target = urlsplit(sites[site])
@@ -575,7 +594,8 @@ def main_freeze(argv=None) -> None:
                       "sha256": checked_file_sha256(args.output)}))
 
 
-UNREBOUND_SOURCE_HOST = re.compile("|".join(map(re.escape, sorted(LOCAL_RECORDED_HOSTS))))
+def _unrebound_source_host() -> re.Pattern[str]:
+    return re.compile("|".join(map(re.escape, sorted(LOCAL_RECORDED_HOSTS))))
 
 
 def _candidate_trace_input(row: dict[str, Any]) -> dict[str, Any]:
@@ -839,13 +859,14 @@ def freeze_original_failure_inputs(
             }
             used_overrides.add(task_id)
         bound_calls = rebind_remote_calls(source_calls, sites, set(LOCAL_RECORDED_HOSTS))
-        if UNREBOUND_SOURCE_HOST.search(json.dumps(bound_calls, ensure_ascii=False)):
+        unrebound_source_host = _unrebound_source_host()
+        if unrebound_source_host.search(json.dumps(bound_calls, ensure_ascii=False)):
             raise ValueError(f"task {task_id} retains a local source host")
         for guard in readiness:
             bound_guard = rebind_remote_calls(
                 [guard["input"]], sites, set(LOCAL_RECORDED_HOSTS),
             )[0]
-            if UNREBOUND_SOURCE_HOST.search(json.dumps(bound_guard, ensure_ascii=False)):
+            if unrebound_source_host.search(json.dumps(bound_guard, ensure_ascii=False)):
                 raise ValueError(f"task {task_id} readiness retains a local source host")
             guard["source_input_sha256"] = guard.pop("input_sha256")
             guard["bound_input_sha256"] = canonical_json_sha256(bound_guard)

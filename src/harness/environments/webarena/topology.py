@@ -12,8 +12,12 @@ WebArena evaluator package; ``runtime`` converts names to ``WebArenaSite``.
 from __future__ import annotations
 
 import json
+import re
+from collections.abc import Sequence, Set
 from pathlib import Path
 from typing import Any
+
+from harness.env_file import local_setting, repository_credential
 
 TOPOLOGY_PATH = Path(__file__).with_name("topology.json")
 TOPOLOGY_SCHEMA = "lex_webarena_topology/1"
@@ -41,14 +45,14 @@ def _load(path: Path) -> dict[str, Any]:
             if len(site_ports) != len(row[field]) or site_ports & seen:
                 raise ValueError(f"WebArena {field} must attribute each port once: {name}")
             seen.update(site_ports)
-        if bool(row["mutable"]) != ("credentials" in row):
+        if bool(row["mutable"]) != ("credentials_env" in row):
             raise ValueError(f"only mutable WebArena sites carry credentials: {name}")
         if row["mutable"] and "container_port" not in row:
             raise ValueError(f"mutable WebArena sites need a container port: {name}")
         if row["mutable"]:
-            password = row["credentials"].get("password")
+            password = row["credentials_env"].get("password")
             if not isinstance(password, str) or not password.strip():
-                raise ValueError(f"mutable WebArena sites need a nonblank password: {name}")
+                raise ValueError(f"mutable WebArena sites need a password variable: {name}")
     return payload
 
 
@@ -59,9 +63,64 @@ _SERVICES = TOPOLOGY["container_services"]
 
 CONTAINER_HOST_ALIAS: str = _HOSTS["container_host_alias"]
 HOST_LOOPBACK: str = _HOSTS["host_loopback"]
-RECORDING_GATEWAYS: tuple[str, ...] = tuple(_HOSTS["recording_gateways"])
-LOCAL_RECORDED_HOSTS = frozenset({HOST_LOOPBACK, CONTAINER_HOST_ALIAS, *RECORDING_GATEWAYS})
-TRUSTED_RECORDED_HOSTS = frozenset(_HOSTS["public_recorded_hosts"]) | LOCAL_RECORDED_HOSTS
+RECORDING_GATEWAYS_ENV: str = _HOSTS["recording_gateways_env"]
+_BARE_HOST = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?")
+
+
+def _configured_gateways() -> tuple[str, ...]:
+    """Return the entries as written, read on use so importing this module reads no file."""
+    hosts = tuple(
+        host.strip() for host in local_setting(RECORDING_GATEWAYS_ENV).split(",") if host.strip()
+    )
+    for host in hosts:
+        if not _BARE_HOST.fullmatch(host):
+            raise ValueError(
+                f"{RECORDING_GATEWAYS_ENV} entries must be bare hostnames or IPv4 addresses"
+            )
+    return hosts
+
+
+class _RecordingGateways(Sequence):
+    """Canonical lowercase hosts, the form URL parsing gives for membership checks."""
+
+    def _hosts(self) -> tuple[str, ...]:
+        return tuple(dict.fromkeys(host.lower() for host in _configured_gateways()))
+
+    def __getitem__(self, index):
+        return self._hosts()[index]
+
+    def __len__(self) -> int:
+        return len(self._hosts())
+
+
+class _RecordedHosts(Set):
+    """Fixed hosts plus the configured gateways at the moment of use."""
+
+    def __init__(self, fixed) -> None:
+        self._fixed = frozenset(fixed)
+
+    @classmethod
+    def _from_iterable(cls, values):
+        return frozenset(values)
+
+    def _hosts(self) -> frozenset[str]:
+        return self._fixed | frozenset(RECORDING_GATEWAYS)
+
+    def __contains__(self, host) -> bool:
+        return host in self._hosts()
+
+    def __iter__(self):
+        return iter(self._hosts())
+
+    def __len__(self) -> int:
+        return len(self._hosts())
+
+
+RECORDING_GATEWAYS = _RecordingGateways()
+LOCAL_RECORDED_HOSTS = _RecordedHosts({HOST_LOOPBACK, CONTAINER_HOST_ALIAS})
+TRUSTED_RECORDED_HOSTS = _RecordedHosts(
+    {*_HOSTS["public_recorded_hosts"], HOST_LOOPBACK, CONTAINER_HOST_ALIAS}
+)
 
 MUTABLE_SITE_PORTS: dict[str, tuple[int, int]] = {
     name: (int(row["port"]), int(row["control_port"]))
@@ -71,9 +130,9 @@ MUTABLE_SITE_PORTS: dict[str, tuple[int, int]] = {
 READ_ONLY_SITE_PORTS: dict[int, str] = {
     int(row["port"]): name for name, row in _SITES.items() if not row["mutable"]
 }
-DEFAULT_SITE_CREDENTIALS: dict[str, dict[str, str]] = {
-    name: dict(row["credentials"]) for name, row in _SITES.items() if row["mutable"]
-}
+CREDENTIAL_SITES: tuple[str, ...] = tuple(
+    name for name, row in _SITES.items() if row["mutable"]
+)
 SITE_URL_SUFFIX: dict[str, str] = {
     name: row["url_suffix"] for name, row in _SITES.items() if row.get("url_suffix")
 }
@@ -102,10 +161,23 @@ def site_url(site: str, host: str) -> str:
     return site_origin(site, host) + SITE_URL_SUFFIX.get(str(site), "")
 
 
+def require_recorded_gateway(host: str | None) -> None:
+    """Stop when a frozen private host would stay in actions instead of being rebound."""
+    if host not in RECORDING_GATEWAYS:
+        raise ValueError(
+            f"a recorded private host on a WebArena port is not listed in {RECORDING_GATEWAYS_ENV}"
+        )
+
+
+def _redacted_gateways() -> tuple[str, ...]:
+    """Redaction also covers the spelling an entry was written in."""
+    return tuple(dict.fromkeys((*RECORDING_GATEWAYS, *_configured_gateways())))
+
+
 def public_origin_replacements() -> dict[str, str]:
     """Map every recorded mutable-site origin to its public site token."""
     replacements: dict[str, str] = {}
-    for host in (CONTAINER_HOST_ALIAS, *RECORDING_GATEWAYS):
+    for host in (CONTAINER_HOST_ALIAS, *_redacted_gateways()):
         for site in MUTABLE_SITE_PORTS:
             token = "__" + site.upper() + "__"
             replacements[site_url(site, host)] = token
@@ -115,10 +187,28 @@ def public_origin_replacements() -> dict[str, str]:
 
 def public_host_replacements() -> dict[str, str]:
     """Map container-visible WebArena hosts to the public benchmark-host placeholder."""
-    hosts = (CONTAINER_HOST_ALIAS, *RECORDING_GATEWAYS)
+    hosts = (CONTAINER_HOST_ALIAS, *_redacted_gateways())
     return {host: BENCHMARK_HOST_PLACEHOLDER for host in hosts}
 
 
+def site_credentials(site: str) -> dict[str, str]:
+    """Resolve one site's login from the repository .env, naming anything unset."""
+    names = _SITES[site]["credentials_env"]
+    values = {field: repository_credential(name) for field, name in names.items()}
+    missing = sorted(names[field] for field, value in values.items() if not value.strip())
+    if missing:
+        raise ValueError(f"WebArena site {site} requires {', '.join(missing)}")
+    return values
+
+
+def require_site_credentials(sites) -> None:
+    """Stop a run before any site or browser starts when a login it needs is unset."""
+    for site in sites:
+        name = getattr(site, "value", site)
+        if name in CREDENTIAL_SITES:
+            site_credentials(name)
+
+
 def known_site_secrets() -> tuple[str, ...]:
-    """Return the WebArena site passwords that public evidence must never contain."""
-    return tuple(credentials["password"] for credentials in DEFAULT_SITE_CREDENTIALS.values())
+    """Return the resolved site passwords that public evidence must never contain."""
+    return tuple(site_credentials(site)["password"] for site in CREDENTIAL_SITES)

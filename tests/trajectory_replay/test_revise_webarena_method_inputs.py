@@ -5,8 +5,11 @@ import json
 import pytest
 from webarena_verified.types.task import WebArenaSite
 
+from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.trajectory_replay.remote_runtime import revise_method_inputs
 from harness.trajectory_replay.retrieval_acceptance import digest
+
+GW = RECORDING_GATEWAYS[0]
 
 
 @pytest.fixture
@@ -108,7 +111,7 @@ def test_revision_command_binds_new_manifest_and_preserves_sources(revision_inpu
 
 
 def test_repair_preserves_predecessor_and_binds_new_calls(tmp_path):
-    old = [{"action": "fill", "text": "http://192.168.5.2:9999/image.jpg"}]
+    old = [{"action": "fill", "text": ("http://" + GW + ":9999/image.jpg")}]
     prior = {
         "task_ids": [2, 1],
         "tasks": [

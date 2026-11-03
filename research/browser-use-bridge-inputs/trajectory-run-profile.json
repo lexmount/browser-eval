@@ -44,7 +44,7 @@
     "reset_before_every_task": true,
     "teardown_between_methods": true,
     "trusted_source_site_hosts": [
-      "192.168.5.2",
+      "recording-gateway",
       "host.docker.internal"
     ],
     "site_stack": "one fixed-port self-hosted WebArena environment"
@@ -58,8 +58,6 @@
     "base_url": "https://artifact-hub.app.lexmount.com",
     "title": "WebArena-Verified 浏览器轨迹重放评测",
     "state": "verified",
-    "site_slug": "7dF7uNK5SKIx",
-    "share_url": "https://artifact-hub.app.lexmount.com/v/hkZt38QFBpNIKtThKnqjpnBQk8At19PM",
     "expected_version": "ver_fcd443ac19fe403f8baa3442262246e1"
   }
 }

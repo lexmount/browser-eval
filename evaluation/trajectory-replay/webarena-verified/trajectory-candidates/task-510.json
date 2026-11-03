@@ -85,7 +85,7 @@
   "repair": {
     "cause": "A single cart row can contain multiple units. The frozen DOM assertion checked row count and product name but not quantity after the totals evaluator was removed.",
     "change": "Preserve the original task-510 trajectory and add a fail-closed quantity=1 check to its pre-checkout cart assertion. This candidate is not a new measured score.",
-    "predecessor_dataset_sha256": "624a0ea83c6e4c3533714e961656d7e4159189a9e4941017b06a5299e4dc31d5",
+    "predecessor_dataset_sha256": "57638dfb55c3eb7893eac14fcc94c5db082f1b210525655c45ffbc73ed6ee777",
     "changed_step": 11,
     "qualification": "Local DOM counterexamples required; full site qualification pending. The frozen cohort is unchanged."
   }

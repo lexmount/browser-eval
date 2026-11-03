@@ -4,6 +4,7 @@ import json
 from copy import deepcopy
 
 from harness.distribution import repository_root
+from harness.env_file import local_setting
 
 ROOT = repository_root()
 
@@ -50,11 +51,27 @@ def resolve_template(track, *, root=ROOT):
         exists = path.is_file() or (key == "tests" and path.is_dir())
         if not exists or not path.resolve().is_relative_to(root.resolve()):
             raise ValueError("Report template has a missing or unsafe " + key)
-    if not result.get("example"):
+    if not (result.get("example_version") if result.get("example_env") else result.get("example")):
         raise ValueError("Report template needs a version-pinned example")
     if "metric_contract" in result:
         raise ValueError("A report track cannot replace the shared required metric contract")
     return {"track": track, **result, "metric_contract": metric_contract()}
+
+
+def discover_template(track, *, root=ROOT):
+    """Add a private example link for a local reader; report manifests never carry it."""
+    template = resolve_template(track, root=root)
+    name = template.get("example_env")
+    if not name:
+        return template
+    # An optional link must not stop discovery, so an unusable file means it is unset.
+    try:
+        example = local_setting(name, root / ".env", follow_links=True).strip()
+    except ValueError:
+        example = ""
+    if example and f"version={template['example_version']}" not in example:
+        raise ValueError(f"{name} does not pin the registered example version")
+    return {**template, "example": example or None}
 
 
 def template_identity(track):

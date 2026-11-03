@@ -276,15 +276,15 @@ def test_public_privacy_rejects_a_password_only_the_registry_knows(
     published = tmp_path / "data.json"
     published.write_text(json.dumps({"note": "clean"}), encoding="utf-8")
     probe = report_check_with_site_password(REGISTRY_PASSWORD_OUTSIDE_OLD_LIST)
-    probe._check_public_privacy(tmp_path)
+    probe.check_public_privacy(tmp_path)
 
     published.write_text(
         json.dumps({"note": f"typed {REGISTRY_PASSWORD_OUTSIDE_OLD_LIST} into login"}),
         encoding="utf-8",
     )
     with pytest.raises(ValueError, match="published report contains sensitive text"):
-        probe._check_public_privacy(tmp_path)
-    checker._check_public_privacy(tmp_path)
+        probe.check_public_privacy(tmp_path)
+    checker.check_public_privacy(tmp_path)
 
 
 def test_public_privacy_without_site_passwords_still_separates_clean_from_sensitive(
@@ -292,15 +292,58 @@ def test_public_privacy_without_site_passwords_still_separates_clean_from_sensit
 ):
     published = tmp_path / "data.json"
     published.write_text(json.dumps({"note": "clean"}), encoding="utf-8")
-    report_check_without_site_passwords._check_public_privacy(tmp_path)
+    report_check_without_site_passwords.check_public_privacy(tmp_path)
 
     published.write_text(json.dumps({"note": "-----BEGIN RSA PRIVATE KEY-----"}), encoding="utf-8")
     with pytest.raises(ValueError, match="published report contains sensitive text"):
-        report_check_without_site_passwords._check_public_privacy(tmp_path)
+        report_check_without_site_passwords.check_public_privacy(tmp_path)
 
 
-@pytest.mark.parametrize("password", ["Password.123", "admin1234", "test1234", "hello1234"])
+@pytest.mark.parametrize(
+    "password",
+    [
+        "synthetic-shopping-secret",
+        "synthetic-shopping_admin-secret",
+        "synthetic-reddit-secret",
+        "synthetic-gitlab-secret",
+    ],
+)
 def test_public_privacy_still_rejects_the_current_site_passwords(tmp_path, password):
     (tmp_path / "data.json").write_text(json.dumps({"note": password}), encoding="utf-8")
     with pytest.raises(ValueError, match="published report contains sensitive text"):
-        checker._check_public_privacy(tmp_path)
+        checker.check_public_privacy(tmp_path)
+
+
+def _private_address() -> str:
+    """Build a control address, so this file passes the public tree guard."""
+    return ".".join(("10", "77", "3", "9"))
+
+
+@pytest.mark.parametrize(
+    "text",
+    [f"http://{_private_address()}:7780/admin", f"gateway {_private_address()}"],
+)
+def test_public_report_fails_closed_on_an_unredacted_recording_host(tmp_path, monkeypatch, text):
+    monkeypatch.setenv("WEBARENA_RECORDING_GATEWAYS", "")
+    (tmp_path / "data.json").write_text(json.dumps({"note": text}), encoding="utf-8")
+    with pytest.raises(ValueError, match="WEBARENA_RECORDING_GATEWAYS"):
+        checker.check_public_privacy(tmp_path)
+
+
+def test_new_evidence_without_a_private_host_needs_no_gateway(tmp_path, monkeypatch):
+    monkeypatch.setenv("WEBARENA_RECORDING_GATEWAYS", "")
+    (tmp_path / "data.json").write_text(
+        json.dumps({"note": "http://host.docker.internal:7780/admin 8.8.8.8"}), encoding="utf-8"
+    )
+    checker.check_public_privacy(tmp_path)
+
+
+def test_listed_recording_host_is_redacted_and_then_passes(tmp_path, monkeypatch):
+    from harness.browser_use.publication import sanitize_text
+
+    host = _private_address()
+    monkeypatch.setenv("WEBARENA_RECORDING_GATEWAYS", host)
+    public = sanitize_text(f"http://{host}:7780/admin and {host}")
+    assert host not in public
+    (tmp_path / "data.json").write_text(json.dumps({"note": public}), encoding="utf-8")
+    checker.check_public_privacy(tmp_path)

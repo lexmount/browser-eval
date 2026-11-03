@@ -26,7 +26,7 @@ def test_request_bridge_host_override_preserves_logical_http_identity() -> None:
     from harness.trajectory_replay.playwright_tool import _HostOverrideAdapter
 
     adapter = _HostOverrideAdapter(
-        (("*.dev.lexmount.net", "10.2.62.142"),)
+        (("*.dev.example.test", "192.0.2.142"),)
     )
     calls = []
 
@@ -39,17 +39,17 @@ def test_request_bridge_host_override_preserves_logical_http_identity() -> None:
     prepared = requests.Session().prepare_request(
         requests.Request(
             "POST",
-            "http://webarena-shopping.dev.lexmount.net:8080/graphql",
+            "http://webarena-shopping.dev.example.test:8080/graphql",
         )
     )
 
     assert adapter.get_connection_with_tls_context(prepared, True) == "pool"
-    assert prepared.url == "http://webarena-shopping.dev.lexmount.net:8080/graphql"
-    assert prepared.headers["Host"] == "webarena-shopping.dev.lexmount.net:8080"
-    assert calls == [{"scheme": "http", "host": "10.2.62.142", "port": 8080}]
+    assert prepared.url == "http://webarena-shopping.dev.example.test:8080/graphql"
+    assert prepared.headers["Host"] == "webarena-shopping.dev.example.test:8080"
+    assert calls == [{"scheme": "http", "host": "192.0.2.142", "port": 8080}]
 
     https = requests.Session().prepare_request(
-        requests.Request("GET", "https://webarena-shopping.dev.lexmount.net/")
+        requests.Request("GET", "https://webarena-shopping.dev.example.test/")
     )
     with pytest.raises(ValueError, match="HTTP origins only"):
         adapter.get_connection_with_tls_context(https, True)
@@ -138,27 +138,27 @@ def test_request_bridge_host_override_prefers_exact_then_specific_wildcard() -> 
     adapter = _HostOverrideAdapter(
         _validated_host_overrides(
             [
-                {"pattern": "*.dev.lexmount.net", "address": "10.0.0.1"},
-                {"pattern": "*.sub.dev.lexmount.net", "address": "10.0.0.2"},
-                {"pattern": "shop.sub.dev.lexmount.net", "address": "10.0.0.3"},
+                {"pattern": "*.dev.example.test", "address": "10.0.0.1"},
+                {"pattern": "*.sub.dev.example.test", "address": "10.0.0.2"},
+                {"pattern": "shop.sub.dev.example.test", "address": "10.0.0.3"},
             ]
         )
     )
 
-    assert adapter._address_for("shop.sub.dev.lexmount.net") == "10.0.0.3"
-    assert adapter._address_for("other.sub.dev.lexmount.net") == "10.0.0.2"
-    assert adapter._address_for("other.dev.lexmount.net") == "10.0.0.1"
+    assert adapter._address_for("shop.sub.dev.example.test") == "10.0.0.3"
+    assert adapter._address_for("other.sub.dev.example.test") == "10.0.0.2"
+    assert adapter._address_for("other.dev.example.test") == "10.0.0.1"
 
 
 @pytest.mark.parametrize(
     "overrides, message",
     [
-        ([{"pattern": "shop.*.test", "address": "10.2.62.142"}], "pattern"),
-        ([{"pattern": "*.dev.lexmount.net", "address": "internal.test"}], "address"),
+        ([{"pattern": "shop.*.test", "address": "192.0.2.142"}], "pattern"),
+        ([{"pattern": "*.dev.example.test", "address": "internal.test"}], "address"),
         (
             [
-                {"pattern": "*.dev.lexmount.net", "address": "10.2.62.142"},
-                {"pattern": "*.dev.lexmount.net", "address": "10.2.62.143"},
+                {"pattern": "*.dev.example.test", "address": "192.0.2.142"},
+                {"pattern": "*.dev.example.test", "address": "192.0.2.143"},
             ],
             "duplicated",
         ),

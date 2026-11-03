@@ -35,7 +35,13 @@ The canonical site map uses reserved example origins. Bind it to your self-hoste
 
 Retrieval contracts retain their observation rules and projections. Their action references are rebound to the exported calls, while the receipt records both the original and public contract hashes. Cookie or response-cookie expectations in evaluator rules retain their meaning; they are benchmark checks, not captured browser sessions.
 
-`definitions/publication-input-bindings.json` records the original catalog, suite, and action hashes and the exported input hashes. The corrected edition retains only the declarative task type from the historical evaluator envelope. Prior response bodies, claimed success states, and retrieved answers are excluded; their original hashes remain in the publication receipt. Official task reference answers and assertions remain benchmark inputs. Raw qualification runs, HAR files, screenshots, browser sessions, measured responses, and generated results remain in separately bound evidence releases. Private deployment origins and local evidence paths are excluded from the public inputs.
+`definitions/publication-input-bindings.json` records the original catalog, suite, and action hashes and the exported input hashes. Source action hashes that named private recording hosts now refer to the corrected inputs in Browser Eval, which differ only in those host values. The corrected edition retains only the declarative task type from the historical evaluator envelope. Prior response bodies, claimed success states, and retrieved answers are excluded; their original hashes remain in the publication receipt. Official task reference answers and assertions remain benchmark inputs. Raw qualification runs, HAR files, screenshots, browser sessions, measured responses, and generated results remain in separately bound evidence releases. Private deployment origins and local evidence paths are excluded from the public inputs.
+
+## Versions
+
+This dataset uses `vMAJOR.MINOR.PATCH` labels for immutable commits; record the full commit with every run. Adding or removing tasks, or changing their requests, is a major change. Correcting references or acceptance rules is a minor change. Correcting documentation or metadata without changing tasks, references or scoring is a patch.
+
+1.0.1 corrects private recording hosts in Browser Eval's source inputs and updates the hashes that bind them. Task questions, exported actions, evaluator inputs and scoring rules are unchanged.
 
 ## Use with Browser Eval
 

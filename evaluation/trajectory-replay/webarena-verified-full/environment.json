@@ -2,18 +2,16 @@
   "schema": "lex_webarena_replay_environment/1",
   "platform": "Rainbond",
   "region": "rainbond",
-  "team": "ye7izl3p",
-  "host_overrides": [
-    {
-      "pattern": "*.dev.lexmount.net",
-      "address": "10.2.62.142"
-    }
-  ],
+  "team_env": "WEBARENA_RAINBOND_TEAM",
+  "host_overrides_env": {
+    "pattern": "WEBARENA_HOST_OVERRIDE_PATTERN",
+    "address": "WEBARENA_HOST_OVERRIDE_ADDRESS"
+  },
   "deployment": {
-    "acceptance_app_id": 202,
-    "source_app_id": 195,
-    "shared_map_app_id": 201,
-    "shared_wikipedia_app_id": 198,
+    "acceptance_app_id_env": "WEBARENA_ACCEPTANCE_APP_ID",
+    "source_app_id_env": "WEBARENA_SOURCE_APP_ID",
+    "shared_map_app_id_env": "WEBARENA_SHARED_MAP_APP_ID",
+    "shared_wikipedia_app_id_env": "WEBARENA_SHARED_WIKIPEDIA_APP_ID",
     "site_reset_between_tasks": false
   },
   "images": {

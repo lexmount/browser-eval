@@ -9,6 +9,7 @@ CowAgent makes the decisions; WebArena-Verified checks task completion. Use this
 | Clean CowAgent checkout | `COWAGENT_REPO` in the repository `.env`; the runner records its commit and refuses uncommitted changes |
 | Model account | `OPENAI_API_KEY`, optional `OPENAI_BASE_URL`, in `.env` |
 | WebArena sites | Shopping, Shopping Admin, Reddit and GitLab |
+| WebArena site accounts | `WEBARENA_<SITE>_USERNAME` and `WEBARENA_<SITE>_PASSWORD` in the repository `.env`. A run stops before any site starts while one is empty. They are the default accounts of the self-hosted images, listed as `ACCOUNTS` in [the upstream configuration](https://github.com/web-arena-x/webarena/blob/dce04686a56253aefba7b18a4fa0937cf1dc987b/browser_env/env_config.py) |
 | Task selection | `evaluation/browser-use/webarena-verified-pilot.json` |
 
 The current pilot has 15 easy, 30 medium and 45 hard tasks. These project-defined tiers use the audited minimum number of visible UI operations; they are different from WebArena's official hard-subset label. Wikipedia and Map are deferred because their local setup needs large external datasets.

@@ -4,6 +4,7 @@ from urllib.parse import urlencode
 import pytest
 from webarena_verified.types.task import WebArenaSite
 
+from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.record_io import file_sha256
 from harness.trajectory_replay.remote_runtime import (
     load_remote_sites,
@@ -12,6 +13,8 @@ from harness.trajectory_replay.remote_runtime import (
     validate_remote_cohort_reset_receipt,
     validate_remote_reset_receipt,
 )
+
+GW = RECORDING_GATEWAYS[0]
 
 
 def _site_map(tmp_path):
@@ -290,15 +293,15 @@ def test_rebinds_site_urls_inside_evaluate_request_bodies(tmp_path):
 
 def test_rebind_url_form_input_without_rewriting_prose_or_external_links(tmp_path):
     calls = [
-        {"action": "fill", "text": "http://192.168.5.2:9999/submission_images/a.jpg?x=1#image"},
-        {"action": "fill", "text": "See http://192.168.5.2:9999/f/books"},
+        {"action": "fill", "text": ("http://" + GW + ":9999/submission_images/a.jpg?x=1#image")},
+        {"action": "fill", "text": ("See http://" + GW + ":9999/f/books")},
         {"action": "fill", "text": "https://external.example/image.jpg"},
         {"action": "fill", "text": "plain-text"},
     ]
-    result = rebind_remote_calls(calls, load_remote_sites(_site_map(tmp_path)), {"192.168.5.2"})
+    result = rebind_remote_calls(calls, load_remote_sites(_site_map(tmp_path)), {GW})
     assert result[0]["text"] == "http://reddit.example/submission_images/a.jpg?x=1#image"
     assert result[1:] == calls[1:]
-    assert calls[0]["text"].startswith("http://192.168.5.2")
+    assert calls[0]["text"].startswith("http://" + GW)
 
 
 def test_rebinds_recorded_url_inside_portable_playwright_target(tmp_path):

@@ -27,7 +27,11 @@ from harness.environments.webarena.runtime import (
     login_context,
     prepare_browser_viewport,
 )
-from harness.environments.webarena.topology import LOCAL_RECORDED_HOSTS, TRUSTED_RECORDED_HOSTS
+from harness.environments.webarena.topology import (
+    LOCAL_RECORDED_HOSTS,
+    TRUSTED_RECORDED_HOSTS,
+    require_site_credentials,
+)
 from harness.record_io import canonical_json_sha256, file_sha256
 from harness.trajectory_replay.catalog_contracts import (
     apply_action_overrides,
@@ -872,6 +876,7 @@ def preflight_cohort(args: argparse.Namespace) -> tuple[dict, dict, object, dict
         or set(dataset_rows) != set(expected_ids)
     ):
         raise ValueError("manifest does not contain the exact ordered selected tasks")
+    require_site_credentials(sites)
     benchmark = remote_benchmark(sites)
     by_id: dict[int, dict] = {}
     for row in rows:
@@ -1410,6 +1415,7 @@ def _execute_mutation_diagnostic(args: argparse.Namespace) -> int:
     if output.is_symlink():
         raise ValueError("diagnostic output is symlinked")
     sites = load_remote_sites(args.site_map)
+    require_site_credentials(sites)
     benchmark = remote_benchmark(sites)
     task = benchmark.get_task(args.task)
     if not task.is_mutate_task:

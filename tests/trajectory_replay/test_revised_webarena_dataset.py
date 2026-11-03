@@ -237,3 +237,33 @@ def test_task243_official_evaluator_accepts_review_nickname_not_old_email(
         config=WebArenaVerifiedConfig(),
     )
     assert AgentResponseEvaluator().evaluate(context=context, config=task.eval[0]).score == score
+
+
+def test_offline_tools_need_no_site_accounts(tmp_path: Path, monkeypatch) -> None:
+    from harness import env_file
+    from harness.environments.webarena.runtime import configure_benchmark
+    from harness.trajectory_replay.remote_runtime import load_remote_sites, remote_benchmark
+
+    saved = revise(BASE, CORRECTIONS, [225])
+    monkeypatch.setattr(env_file, "_repository_credentials_file", tmp_path / "absent.env")
+
+    assert revise(BASE, CORRECTIONS, [225]) == saved
+    assert configure_benchmark().config.environments
+    site_map = tmp_path / "sites.json"
+    site_map.write_text(
+        json.dumps(
+            {
+                "schema": "lex_webarena_remote_sites/1",
+                "sites": {
+                    "gitlab": "https://gitlab.remote.test",
+                    "map": "https://map.remote.test",
+                    "reddit": "https://reddit.remote.test",
+                    "shopping": "https://shopping.remote.test",
+                    "shopping_admin": "https://admin.remote.test/admin",
+                    "wikipedia": "https://wikipedia.remote.test",
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert remote_benchmark(load_remote_sites(site_map)).config.environments
