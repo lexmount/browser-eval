@@ -168,3 +168,28 @@ def test_cache_requires_complete_current_rendering(tmp_path, monkeypatch, damage
     assert calls == (
         ["evidence", "links"] if damage == "none" else ["evidence", "links", "rendered"]
     )
+
+
+@pytest.mark.parametrize(
+    ("note", "rejected"),
+    [
+        (".".join(("http://10", "77", "3", "9:7780/admin")), True),
+        ("http://webarena.example:7780/", False),
+    ],
+)
+def test_package_gate_fails_closed_on_an_unredacted_recording_host(
+    tmp_path, monkeypatch, note, rejected
+):
+    monkeypatch.setenv("WEBARENA_RECORDING_GATEWAYS", "")
+    (tmp_path / "data.json").write_text(json.dumps({"note": note}), encoding="utf-8")
+    calls = []
+    monkeypatch.setattr(packager, "check", lambda *args, **kwargs: calls.append("check"))
+    monkeypatch.setattr(packager, "check_links", lambda *args: None)
+    monkeypatch.setattr(packager, "receipt_is_current", lambda *args: True)
+    if rejected:
+        with pytest.raises(ValueError, match="WEBARENA_RECORDING_GATEWAYS"):
+            packager.validate_release(tmp_path, [], tmp_path / "receipt.json")
+        assert calls == []
+    else:
+        packager.validate_release(tmp_path, [], tmp_path / "receipt.json")
+        assert calls == ["check"]

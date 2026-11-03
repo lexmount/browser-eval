@@ -25,8 +25,8 @@ from harness.browser_use.report import (
 from harness.browser_use.report_check import (
     FORBIDDEN_READER_TERMS,
     _check_execution_artifacts,
-    _check_public_privacy,
     _check_reader_facing_ux,
+    check_public_privacy,
 )
 from harness.browser_use.report_i18n import localize_html
 from harness.browser_use.selection import load_pilot
@@ -1194,10 +1194,10 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     bundles = _load_evidence_bundles(evidence)
     logical = _logical_results(bundles[0]["source_attempts"])
     _check_execution_artifacts(output, logical, public_results, evidence_index)
-    _check_public_privacy(output)
+    check_public_privacy(output)
     legitimate_route = output / "legitimate-route.json"
     legitimate_route.write_text('{"href":"/users/sign_out"}', encoding="utf-8")
-    _check_public_privacy(output)
+    check_public_privacy(output)
     legitimate_route.unlink()
     index_row = next(item for item in evidence_index["results"] if item["result_id"] == result_id)
     assert index_row["execution_count"] == 2
@@ -1220,7 +1220,7 @@ def test_report_publishes_one_final_logical_result_and_aggregates_cost(
     private_trace = output / f"artifacts/{result_id}/executions/1/agent_trace.zip"
     private_trace.write_bytes(b"private trace")
     with pytest.raises(ValueError, match="private HAR or trace"):
-        _check_public_privacy(output)
+        check_public_privacy(output)
     with pytest.raises(ValueError, match="artifact tree differs"):
         _check_execution_artifacts(output, logical, public_results, evidence_index)
     private_trace.unlink()

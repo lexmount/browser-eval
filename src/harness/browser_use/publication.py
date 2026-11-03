@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import ipaddress
 import json
 import re
 from pathlib import Path
 from typing import Any
 
 from harness.environments.webarena.topology import (
+    RECORDING_GATEWAYS_ENV,
     known_site_secrets,
     public_host_replacements,
     public_origin_replacements,
@@ -15,10 +17,36 @@ from harness.environments.webarena.topology import (
 from harness.record_io import optional_file_sha256, read_json
 from harness.reporting.privacy import BROWSER_USE
 
+_IPV4 = re.compile(r"(?<![\d.])\d{1,3}(?:\.\d{1,3}){3}(?!\d|\.\d)")
+_PRIVATE_NETWORKS = tuple(
+    ipaddress.ip_network(value) for value in ("10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16")
+)
 _SENSITIVE_KEY = re.compile(
     r"(?:authorization|cookie|password|passwd|secret|token|storage_state|api[_-]?key)", re.I
 )
 _BEARER = re.compile(r"(?i)bearer\s+[A-Za-z0-9._~+/=-]+")
+
+
+def private_recorded_hosts(text: str) -> set[str]:
+    """Return private IPv4 addresses that redaction left in public text."""
+    found = set()
+    for value in set(_IPV4.findall(text)):
+        try:
+            address = ipaddress.ip_address(value)
+        except ValueError:
+            continue
+        if any(address in network for network in _PRIVATE_NETWORKS):
+            found.add(value)
+    return found
+
+
+def require_no_private_hosts(text: str, path: Path) -> None:
+    """Fail closed before a recording host reaches a public report."""
+    if private_recorded_hosts(text):
+        raise ValueError(
+            f"published report contains a private address: {path}; "
+            f"list the recording host in {RECORDING_GATEWAYS_ENV} and rebuild"
+        )
 
 
 def sanitize_text(value: str) -> str:

@@ -17,7 +17,7 @@ from harness.browser_use.failure_cause_review import (
 from harness.browser_use.failure_cause_review import (
     review_path as failure_review_path,
 )
-from harness.browser_use.publication import evidence_metadata
+from harness.browser_use.publication import evidence_metadata, require_no_private_hosts
 from harness.browser_use.report import (
     PUBLIC_EXECUTION_ARTIFACTS,
     SITE_LABELS,
@@ -296,7 +296,7 @@ def _check_execution_artifacts(
             raise ValueError(f"published execution artifact contains sensitive text: {path}")
 
 
-def _check_public_privacy(report_dir: Path) -> None:
+def check_public_privacy(report_dir: Path) -> None:
     forbidden_text = _forbidden_public_text()
     text_suffixes = {".html", ".json", ".jsonl", ".js", ".css"}
     for path in report_dir.rglob("*"):
@@ -306,10 +306,11 @@ def _check_public_privacy(report_dir: Path) -> None:
             "trace" in path.name.lower() and path.suffix.lower() == ".zip"
         ):
             raise ValueError(f"private HAR or trace was copied into the public report: {path}")
-        if path.suffix.lower() in text_suffixes and forbidden_text.search(
-            path.read_text(encoding="utf-8")
-        ):
-            raise ValueError(f"published report contains sensitive text: {path}")
+        if path.suffix.lower() in text_suffixes:
+            text = path.read_text(encoding="utf-8")
+            if forbidden_text.search(text):
+                raise ValueError(f"published report contains sensitive text: {path}")
+            require_no_private_hosts(text, path)
 
 
 def check_methodology_evidence(content: str, tasks: list[dict], environment: dict) -> None:
@@ -719,7 +720,7 @@ def check(
         (report_dir / "data/evidence-index.json").read_text(encoding="utf-8")
     )
     _check_execution_artifacts(report_dir, logical_rows, public_results, evidence_index)
-    _check_public_privacy(report_dir)
+    check_public_privacy(report_dir)
     forbidden = {
         "agent_response",
         "paths",
