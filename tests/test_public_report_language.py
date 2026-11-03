@@ -34,7 +34,8 @@ def test_media_family_guides_preserve_numbers_and_translate_every_explanation():
 def test_registered_interfaces_and_pricing_have_complete_english(tmp_path):
     from collections import Counter
     from pathlib import PurePosixPath
-    from harness.web_fetch.report import table, cell, link, esc
+    from harness.reporting.presentation import esc
+    from harness.web_fetch.report import table, cell, link
     from harness.web_fetch.report_interfaces import SPECS, render_interfaces
     from harness.web_fetch.report_pricing import render_pricing
     from harness.web_fetch.report_i18n import localize_html

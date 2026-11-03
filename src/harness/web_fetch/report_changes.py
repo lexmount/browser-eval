@@ -7,6 +7,7 @@ import json
 import shutil
 from collections import defaultdict
 
+from harness.reporting.presentation import esc
 from harness.web_fetch.storage import research_evidence_dir
 
 ROOT=repository_root()
@@ -129,7 +130,7 @@ def webmainbench_history(data):
 
 def render_localized_release_history(data, english, evidence_links=(), *, kind='webmainbench_frozen_html_to_markdown'):
     """Render reader-facing release history without embedding release prose in report.py."""
-    from harness.web_fetch.report import cell, esc, hero, link, section, table
+    from harness.web_fetch.report import cell, hero, link, section, table
     releases = localized_release_history(data, kind)
     latest, *older = releases
     def localized(row, key):
@@ -167,7 +168,7 @@ def render_webmainbench_history(data, english, evidence_links=()):
 
 
 def render_changes(out, cases, records, dataset=None):
-    from harness.web_fetch.report import cell, esc, hero, link, section, table, write
+    from harness.web_fetch.report import cell, hero, link, section, table, write
     evidence_root=research_evidence_dir()
     selection=out/'file-rerun-selection.json'
     rerun_sources=[]

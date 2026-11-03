@@ -40,7 +40,7 @@ class SharedRankingPresentationTests(unittest.TestCase):
             check_presentation(rendered.replace('comparison-winner good','good'))
 
     def test_each_track_keeps_its_escaping_of_an_absent_value(self):
-        from harness.web_fetch.report import esc as fetch_esc
+        from harness.reporting.presentation import esc as fetch_esc
         from harness.web_search.report import esc as search_esc
         for esc in (fetch_esc, search_esc):
             self.assertEqual(esc('<a href="x">\'&'), '&lt;a href=&quot;x&quot;&gt;&#x27;&amp;')
