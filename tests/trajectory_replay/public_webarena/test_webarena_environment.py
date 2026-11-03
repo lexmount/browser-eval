@@ -90,6 +90,9 @@ class _Docker:
         return {"Architecture": "arm64"}
 
 
+_FIXTURE_LOGIN = "TEST_WEBARENA_USERNAME=fixture-user\nTEST_WEBARENA_PASSWORD=fixture-password\n"
+
+
 def _repository_env(tmp_path, monkeypatch, text):
     path = tmp_path / "repository.env"
     path.write_text(text, encoding="utf-8")
@@ -124,8 +127,10 @@ def _environment(tmp_path):
     return WebArenaEnvironment(config), pinned
 
 
-def test_runtime_verification_binds_running_container_to_image_lock(tmp_path):
+def test_runtime_verification_binds_running_container_to_image_lock(tmp_path, monkeypatch):
     environment, pinned = _environment(tmp_path)
+    _named_credentials(environment)
+    _repository_env(tmp_path, monkeypatch, _FIXTURE_LOGIN)
 
     result = environment.verify_runtime(_Docker([pinned]), (_task(),))
 
@@ -133,8 +138,10 @@ def test_runtime_verification_binds_running_container_to_image_lock(tmp_path):
     assert len(result["image_lock_sha256"]) == 64
 
 
-def test_runtime_verification_rejects_mutable_or_wrong_image(tmp_path):
+def test_runtime_verification_rejects_mutable_or_wrong_image(tmp_path, monkeypatch):
     environment, _ = _environment(tmp_path)
+    _named_credentials(environment)
+    _repository_env(tmp_path, monkeypatch, _FIXTURE_LOGIN)
 
     with pytest.raises(RuntimeError, match="image mismatch"):
         environment.verify_runtime(_Docker([]), (_task(),))
@@ -232,6 +239,7 @@ def test_rainbond_slice_verification_and_reset_replace_the_complete_application(
     )
     environment = WebArenaEnvironment(config)
     monkeypatch.setattr(environment, "_wait_site_ready", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(environment, "_login_credentials", lambda _site: ("user", "password"))
 
     runtime = environment.verify_runtime(object(), (_task(),))
     reset = environment.reset(_task(), object())
@@ -955,6 +963,35 @@ def test_credentials_fail_closed_on_missing_or_inline_sources(tmp_path, monkeypa
     del config["credentials_env"]
     with pytest.raises(ValueError, match="must not persist credentials"):
         environment._credentials("shopping_admin")
+
+
+def test_preflight_stops_on_a_login_site_without_credentials_env(tmp_path):
+    environment, _ = _environment(tmp_path)
+
+    with pytest.raises(ValueError, match="credentials are missing for site 'shopping_admin'"):
+        environment.verify_runtime(_Docker([]), (_task(),))
+
+
+def test_preflight_lets_a_site_without_a_login_omit_credentials_env(tmp_path):
+    environment, _ = _environment(tmp_path)
+    environment.environments["__WIKIPEDIA__"] = {"urls": ["http://wikipedia.test"]}
+    environment.image_lock["images"]["wikipedia"] = {
+        "pinned": "am1n3e/webarena-verified-wikipedia@sha256:" + "b" * 64
+    }
+    task = BrowserTask(
+        task_id="webarena-5",
+        title="Task",
+        tool_calls=(),
+        assertions=(),
+        tags=(),
+        difficulty="simple",
+        ground_truth={"expected_actions": []},
+        source={"url": "https://example.test"},
+        environment={"kind": "webarena_verified", "sites": ["wikipedia"]},
+    )
+
+    with pytest.raises(RuntimeError, match="image mismatch"):
+        environment.verify_runtime(_Docker([], name="webarena_verified_wikipedia"), (task,))
 
 
 def test_environment_tokens_resolve_exact_urls_and_path_suffixes(tmp_path):

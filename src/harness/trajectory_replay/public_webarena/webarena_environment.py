@@ -135,7 +135,10 @@ class WebArenaEnvironment:
         )
         # An unusable login must stop the run here, not record a failure for every attempt.
         for site in sites:
-            self._credentials(site)
+            if hasattr(self, f"_login_{site}"):
+                self._login_credentials(site)
+            else:
+                self._credentials(site)
         rows: dict[str, Any] = {}
         slice_receipt = (
             self.rainbond_pool.validate_receipt(self.rainbond_receipt_path)
