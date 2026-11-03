@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from harness.trajectory_replay.webarena_corrections import revise_dataset as revise
+from tests.conftest import synthetic_credentials_prelude
 
 ROOT = Path(__file__).resolve().parents[2]
 BASE = ROOT / "evaluation/trajectory-replay/webarena-verified/trajectories.json"
@@ -162,8 +163,15 @@ def test_revision_bindings_reject_invalid_records(tmp_path: Path, damage) -> Non
 def test_revision_command_preserves_sources_and_rejects_existing_output(tmp_path: Path) -> None:
     output = tmp_path / "revision.json"
     before = {path: path.read_bytes() for path in (BASE, CORRECTIONS)}
+    launcher = synthetic_credentials_prelude() + (
+        "import runpy, sys\n"
+        "sys.argv = sys.argv[1:]\n"
+        "runpy.run_path(sys.argv[0], run_name='__main__')\n"
+    )
     command = [
         sys.executable,
+        "-c",
+        launcher,
         str(ROOT / "scripts/build_revised_webarena_dataset.py"),
         "--base",
         str(BASE),

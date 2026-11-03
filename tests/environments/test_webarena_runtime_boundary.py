@@ -2,6 +2,8 @@
 import subprocess
 import sys
 
+from tests.conftest import synthetic_credentials_prelude
+
 
 def test_environment_and_network_evidence_do_not_load_an_agent_or_replay_engine():
     program = '''
@@ -24,5 +26,9 @@ assert browser_session_contract()['viewport'] == {'width': 1280, 'height': 900}
 assert configure_benchmark().config.environments
 assert PHP_FPM_COMPAT_CONFIG.is_file()
 '''
-    result = subprocess.run([sys.executable, "-c", program], capture_output=True, text=True)
+    result = subprocess.run(
+        [sys.executable, "-c", synthetic_credentials_prelude() + program],
+        capture_output=True,
+        text=True,
+    )
     assert result.returncode == 0, result.stderr
