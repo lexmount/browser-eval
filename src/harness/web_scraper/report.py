@@ -535,7 +535,8 @@ def usage_table(methods, rows, lang, labels=None):
             response = r.get("response")
             response = response if isinstance(response, dict) else {}
             data = response.get("data")
-            metadata = data.get("metadata", {}) if isinstance(data, dict) else {}
+            metadata = data.get("metadata") if isinstance(data, dict) else None
+            metadata = metadata if isinstance(metadata, dict) else {}
             receipts = {}
             value = headers.get("x-scrapfly-api-cost", metadata.get("creditsUsed"))
             if value is not None:

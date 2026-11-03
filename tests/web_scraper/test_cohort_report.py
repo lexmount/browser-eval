@@ -511,3 +511,12 @@ def test_configured_private_host_is_projected_from_contract_and_rejected_on_chec
         save_json(output / "report-manifest.json", manifest)
         with pytest.raises(ValueError, match="metadata.*privacy"):
             check(output)
+
+
+@pytest.mark.parametrize("data", [None, {"metadata": None}, {"metadata": []}])
+def test_usage_handles_absent_native_metadata(data):
+    from harness.web_scraper.report import usage_table
+
+    html = usage_table(["native"], [{"method": "native", "response": {"data": data}}], "en")
+    cells = [c.get_text() for c in BeautifulSoup(html, "html.parser").select("tbody td")]
+    assert cells[1:] == ["1", "0", "—"]
