@@ -1389,7 +1389,7 @@ def test_run_entry_stops_before_a_browser_starts_without_site_accounts(
     assert not (tmp_path / "run").exists()
 
 
-def test_kitesurf_probe_runs_after_every_local_preflight(monkeypatch, tmp_path) -> None:
+def test_kitesurf_probe_runs_after_account_and_environment_checks(monkeypatch, tmp_path) -> None:
     from harness import env_file
 
     monkeypatch.setattr(env_file, "_repository_credentials_file", tmp_path / "absent.env")

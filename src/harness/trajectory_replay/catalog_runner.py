@@ -574,7 +574,8 @@ def main() -> None:
         remote_endpoint, remote_headers, remote_binding = _kitesurf_cdp_config(
             args.credential_env_file.expanduser()
         )
-        # The probe opens a hosted browser, so every local preflight runs before it.
+        # The probe opens a hosted browser, so check accounts, the reset receipt and the
+        # environment profile first. Catalog and resume checks still run after it.
         require_site_credentials(load_remote_sites(args.site_map))
         validate_environment_preparation(args.site_reset_receipt, args.environment_profile)
         _load_environment_profile(
