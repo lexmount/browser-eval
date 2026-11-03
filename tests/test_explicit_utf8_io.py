@@ -39,12 +39,11 @@ HASH_BOUND = {
     'src/lexbench_websearch/rubric.py': (2, SEARCH_SCORER),
 }
 TEMPORARY_FILES = {'NamedTemporaryFile', 'TemporaryFile', 'SpooledTemporaryFile'}
+# These are called as `open(path, mode)`, so the mode is the second argument.
+TEXT_BY_DEFAULT_MODULES = {None, 'io', 'builtins'}
+BINARY_BY_DEFAULT_MODULES = {'gzip', 'bz2', 'lzma'}
 # `.open` on these names is not a file-object constructor with an encoding parameter.
-OTHER_OPENERS = {'os', 'tarfile', 'Image', 'zipfile', 'gzip', 'webbrowser', 'opener'}
-
-
-def _is_text_mode(mode):
-    return isinstance(mode, ast.Constant) and isinstance(mode.value, str) and 'b' not in mode.value
+OTHER_OPENERS = {'os', 'tarfile', 'Image', 'zipfile', 'webbrowser', 'opener'}
 
 
 def _mode(call, position):
@@ -52,6 +51,22 @@ def _mode(call, position):
         if keyword.arg == 'mode':
             return keyword.value
     return call.args[position] if len(call.args) > position else None
+
+
+def _may_match(mode, matches):
+    """A mode that is unknown until run time counts as a match, so the guard fails closed."""
+    if isinstance(mode, ast.IfExp):
+        return _may_match(mode.body, matches) or _may_match(mode.orelse, matches)
+    return not (isinstance(mode, ast.Constant) and isinstance(mode.value, str)) or matches(mode.value)
+
+
+def _may_be_text(mode):
+    return _may_match(mode, lambda value: 'b' not in value)
+
+
+def _may_be_compressed_text(mode):
+    """Compressed openers treat a bare "r" as binary and need an explicit "t" for text."""
+    return _may_match(mode, lambda value: 't' in value)
 
 
 def _needs_encoding(call):
@@ -68,13 +83,22 @@ def _needs_encoding(call):
         return not call.args
     if name == 'write_text':
         return len(call.args) < 2
+    if name == 'TextIOWrapper':
+        return len(call.args) < 2
     if name in TEMPORARY_FILES:
-        return _is_text_mode(_mode(call, 0))
-    if name == 'fdopen' or (name == 'open' and receiver is None):
+        mode = _mode(call, 0)
+        return mode is not None and _may_be_text(mode)
+    if name == 'fdopen' or (name == 'open' and receiver in TEXT_BY_DEFAULT_MODULES):
         mode = _mode(call, 1)
-        return mode is None or _is_text_mode(mode)
-    if name == 'open' and receiver.split('.')[-1] not in OTHER_OPENERS and 'build_opener' not in receiver:
-        return not (call.args or call.keywords) or _is_text_mode(_mode(call, 0))
+        return mode is None or _may_be_text(mode)
+    if name != 'open':
+        return False
+    if receiver in BINARY_BY_DEFAULT_MODULES:
+        mode = _mode(call, 1)
+        return mode is not None and _may_be_compressed_text(mode)
+    if receiver.split('.')[-1] not in OTHER_OPENERS and 'build_opener' not in receiver:
+        mode = _mode(call, 0)
+        return mode is None or _may_be_text(mode)
     return False
 
 
@@ -111,6 +135,24 @@ def test_every_text_read_and_write_names_its_encoding():
     'os.fdopen(descriptor, "w")\n',
     'tempfile.NamedTemporaryFile("w")\n',
     'tempfile.NamedTemporaryFile(mode="w+")\n',
+    'tempfile.NamedTemporaryFile(mode)\n',
+    'open(path, mode)\n',
+    'open(path, mode=mode)\n',
+    'path.open(mode)\n',
+    'path.open(newline="")\n',
+    'path.open("r+" if existing else "wb")\n',
+    'io.open(path)\n',
+    'io.open(path, "w")\n',
+    'io.open(path, mode)\n',
+    'builtins.open(path)\n',
+    'builtins.open(path, "a")\n',
+    'gzip.open(path, "rt")\n',
+    'gzip.open(path, mode="wt")\n',
+    'gzip.open(path, mode)\n',
+    'bz2.open(path, "rt")\n',
+    'lzma.open(path, "rt")\n',
+    'io.TextIOWrapper(stream)\n',
+    'TextIOWrapper(stream, newline="")\n',
 ])
 def test_guard_rejects_locale_dependent_text_io(source):
     assert implicit_encoding_lines(source) == [1]
@@ -125,11 +167,23 @@ def test_guard_rejects_locale_dependent_text_io(source):
     'open(path, "rb")\n',
     'open(path, encoding="utf-8")\n',
     'path.open("xb")\n',
+    'path.open("r+b" if existing else "wb")\n',
     'os.fdopen(descriptor, "wb")\n',
     'os.open(path, os.O_RDONLY)\n',
     'tempfile.NamedTemporaryFile(dir=parent)\n',
     'tempfile.TemporaryFile()\n',
     'tarfile.open(fileobj=stream, mode="r:gz")\n',
+    'io.open(path, "rb")\n',
+    'builtins.open(path, "wb")\n',
+    'gzip.open(path)\n',
+    'gzip.open(path, "r")\n',
+    'gzip.open(path, "wb")\n',
+    'gzip.open(path, "rt", encoding="utf-8")\n',
+    'bz2.open(path, "rb")\n',
+    'lzma.open(path, "rb")\n',
+    'lzma.open(path, "wt", encoding="utf-8")\n',
+    'io.TextIOWrapper(stream, encoding="utf-8")\n',
+    'io.TextIOWrapper(stream, "utf-8")\n',
     'Image.open(path)\n',
     'opener.open(request, timeout=5)\n',
     # importlib.metadata.Distribution.read_text takes a file name and has no encoding.

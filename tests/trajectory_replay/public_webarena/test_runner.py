@@ -805,9 +805,13 @@ def test_failed_attempt_evidence_omits_the_login_password(
         "source": {"url": "https://example.com/source"},
     }
     suite = tmp_path / "suite.json"
-    suite.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}))
+    suite.write_text(
+        json.dumps({"schema": "lex_browser_use_tasks/4", "tasks": [task]}),
+        encoding="utf-8",
+    )
     (tmp_path / "images.json").write_text(
-        json.dumps({"schema": "lex_webarena_environment_images/1", "images": {}})
+        json.dumps({"schema": "lex_webarena_environment_images/1", "images": {}}),
+        encoding="utf-8",
     )
     config = tmp_path / "config.json"
     config.write_text(
@@ -821,7 +825,8 @@ def test_failed_attempt_evidence_omits_the_login_password(
                     }
                 }
             }
-        )
+        ),
+        encoding="utf-8",
     )
     secrets = tmp_path / "repository.env"
     secrets.write_text(f"TEST_USER=user\nTEST_SECRET={password}\n", encoding="utf-8")
