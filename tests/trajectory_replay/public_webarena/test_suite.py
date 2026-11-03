@@ -7,10 +7,8 @@ from urllib.parse import urlparse
 
 import pytest
 
-from harness.trajectory_replay.public_webarena.suite import (
-    load_suite,
-    validate_ground_truth_evidence,
-)
+from harness.trajectory_replay.core.suite import validate_ground_truth_evidence
+from harness.trajectory_replay.public_webarena.suite import load_suite
 
 
 def _task(task_id, calls, expected="Example"):

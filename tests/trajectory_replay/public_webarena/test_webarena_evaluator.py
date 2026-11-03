@@ -5,11 +5,11 @@ from urllib.parse import urlencode
 
 import pytest
 
+from harness.trajectory_replay.core.suite import BrowserTask
 from harness.trajectory_replay.public_webarena.evaluators import (
     TaskEvidence,
     WebArenaVerifiedEvaluator,
 )
-from harness.trajectory_replay.public_webarena.suite import BrowserTask
 
 
 def test_official_webarena_verified_evaluator_accepts_programmatic_evidence(tmp_path):

@@ -7,8 +7,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
 
+from harness.trajectory_replay.core.suite import BrowserTask
 from harness.trajectory_replay.public_webarena.executor import judge_outputs
-from harness.trajectory_replay.public_webarena.suite import BrowserTask
 
 
 @dataclass(frozen=True)

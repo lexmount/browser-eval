@@ -20,8 +20,8 @@ from harness.environments.browser import (
     published_endpoint,
 )
 from harness.trajectory_replay import diagnostics, runner
+from harness.trajectory_replay.core.suite import BrowserTask, TaskSuite
 from harness.trajectory_replay.runner import _http_origin, _prepare_page
-from harness.trajectory_replay.suite import BrowserTask, TaskSuite
 from harness.web_fetch import config as web_fetch_config
 
 

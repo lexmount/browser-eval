@@ -37,9 +37,9 @@ from harness.trajectory_replay.catalog_contracts import (
     apply_action_overrides,
     catalog_action_overrides,
 )
+from harness.trajectory_replay.core.suite import BrowserTask
 from harness.trajectory_replay.public_webarena.executor import execute_steps
 from harness.trajectory_replay.public_webarena.response_builder import build_agent_response
-from harness.trajectory_replay.public_webarena.suite import BrowserTask
 from harness.trajectory_replay.remote_runtime import (
     COHORT_RESET_SCOPE,
     checked_file_sha256,

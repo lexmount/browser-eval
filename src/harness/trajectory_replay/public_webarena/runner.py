@@ -38,6 +38,7 @@ from harness.resource_accounting import (
     ResourceSampler,
     delta_counters,
 )
+from harness.trajectory_replay.core.suite import BrowserTask, validate_ground_truth_evidence
 from harness.trajectory_replay.public_webarena.config import map_strings
 from harness.trajectory_replay.public_webarena.diagnostics import diagnose_summary
 from harness.trajectory_replay.public_webarena.evaluators import (
@@ -50,11 +51,7 @@ from harness.trajectory_replay.public_webarena.metrics import summarize_attempts
 from harness.trajectory_replay.public_webarena.qualification import task_contract_sha256
 from harness.trajectory_replay.public_webarena.report import write_latest_report
 from harness.trajectory_replay.public_webarena.response_builder import build_agent_response
-from harness.trajectory_replay.public_webarena.suite import (
-    BrowserTask,
-    load_suite,
-    validate_ground_truth_evidence,
-)
+from harness.trajectory_replay.public_webarena.suite import load_suite
 from harness.trajectory_replay.public_webarena.webarena_environment import (
     WebArenaEnvironment,
     wall_clock_timeout,

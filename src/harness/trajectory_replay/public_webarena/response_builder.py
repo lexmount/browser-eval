@@ -6,7 +6,7 @@ import json
 import re
 from typing import Any
 
-from harness.trajectory_replay.public_webarena.suite import BrowserTask
+from harness.trajectory_replay.core.suite import BrowserTask
 
 
 def _resolve(value: Any, outputs: dict[str, str]) -> Any:
