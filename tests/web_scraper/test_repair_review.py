@@ -226,6 +226,31 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
     result = assemble(*arguments, tmp_path / "complete.json", profile=home / "profile.json")
     assert result["result_count"] == 6
     assert result["accepted_unreviewed_passes"] == result["unresolved"] == 0
+    cid = "1" * 64
+    decision = tmp_path / "retained-reference.json"
+    source = home / "dataset/html" / (cid + ".html")
+    save_json(
+        decision,
+        {
+            "decisions": [
+                {
+                    "case_id": cid,
+                    "field": "price",
+                    "accepted": [],
+                    "reason": "No price is present in this synthetic source",
+                    "source_sha256": digest(source.read_bytes()),
+                    "source_quote": "synthetic product",
+                    "source_locator": "main paragraph",
+                }
+            ]
+        },
+    )
+    retained = assemble(
+        *arguments, tmp_path / "retained.json", profile=home / "profile.json", decisions=decision
+    )
+    assert retained["sources"][cid]["source_fields"]["price"]["status"] == "absent"
+    assert retained["sources"][cid]["reference_review"]["price"]["status"] == "supported"
+    assert retained["reference_changes"] == []
     path = Path(manifest["packets"][0]["path"])
     packet = read_json(path)
     packet["cases"][0]["outputs"][0]["native_response"] = {"substituted": True}

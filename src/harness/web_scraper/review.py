@@ -421,7 +421,13 @@ def assemble(
             if decision:
                 for section in ("source_fields", "reference"):
                     opinion[section][field].update(
-                        status="incorrect",
+                        status=(
+                            ("supported" if decision["accepted"] else "absent")
+                            if section == "source_fields"
+                            else "supported"
+                            if set(decision["accepted"]) == set(truth[cid].get(field, []))
+                            else "incorrect"
+                        ),
                         values=decision["accepted"],
                         source_quote=decision["source_quote"],
                         source_locator=decision["source_locator"],
