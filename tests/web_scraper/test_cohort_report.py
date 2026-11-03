@@ -49,6 +49,18 @@ def test_checkpoint_rejects_modified_calls_and_missing_participants(tmp_path):
         build(tmp_path / "missing", home / "content.json", home=home, profile=home / "profile.json")
 
 
+@pytest.mark.parametrize("methods", [[], ["different-method"]])
+def test_full_cohort_cannot_filter_away_a_declared_participant(tmp_path, methods):
+    home = create(tmp_path / "first", mode="full-cohort-progress")
+    content = read_json(home / "content.json")
+    content["evidence_runs"][0]["methods"] = methods
+    save_json(home / "content.json", content)
+    with pytest.raises(ValueError, match="filters must retain"):
+        build(
+            tmp_path / "filtered", home / "content.json", home=home, profile=home / "profile.json"
+        )
+
+
 def test_public_evidence_requires_complete_projection_receipts(tmp_path):
     output = tmp_path / "report"
     create(output, mode="full-cohort-progress")

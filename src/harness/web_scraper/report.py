@@ -595,6 +595,10 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
         source = source if source.is_absolute() else home / "runs" / source
         extra = {}
         if cohort:
+            if selection.get("methods") is not None and set(selection["methods"]) != set(
+                read_json(source / "contract.json")["methods"]
+            ):
+                raise ValueError("Full-cohort filters must retain the declared method")
             selected_plan = selection["plan_sha256"]
             for method in read_json(source / "contract.json")["methods"]:
                 authorized_plan = model.get("source_cohorts", {}).get(
@@ -621,6 +625,10 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             for r in records
             if selection.get("methods") is None or r["method"] in selection["methods"]
         ]
+        if cohort and extra.get("certified") and (
+            len(records) != len(truth) or {r["case_id"] for r in records} != set(truth)
+        ):
+            raise ValueError("Certified report observations must cover every case")
         for record in records:
             r = json.loads(json.dumps(record))
             r["run_id"] = source.name

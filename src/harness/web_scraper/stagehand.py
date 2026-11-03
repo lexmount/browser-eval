@@ -40,7 +40,12 @@ def decode_response(response):
     raise ValueError("Stagehand stream ended without a completion event")
 
 
-def extract(url, schema, *, timeout=120):
+def extract(url, schema, *, timeout=120, deadline_wrapper=None):
+    if deadline_wrapper is None:
+        from harness.web_scraper.pipeline import total_deadline
+
+        deadline_wrapper = total_deadline
+    bounded_request = deadline_wrapper(request)
     headers = {
         "x-bb-api-key": os.environ["BROWSERBASE_API_KEY"],
         "x-bb-project-id": os.environ["BROWSERBASE_PROJECT_ID"],
@@ -62,7 +67,7 @@ def extract(url, schema, *, timeout=120):
             if remaining <= 0:
                 raise TimeoutError("Stagehand logical extraction deadline exhausted")
             remaining = min(remaining, 5) if phase == "session_cleanup" else remaining
-            response = request(
+            response = bounded_request(
                 BASE + path,
                 method="POST",
                 headers=headers,

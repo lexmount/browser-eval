@@ -15,6 +15,7 @@ from harness.web_scraper.pipeline import (
     load_run,
     probe,
     read_json,
+    require_external_output,
     save_json,
     score_run,
     validate_dataset,
@@ -22,6 +23,7 @@ from harness.web_scraper.pipeline import (
 
 
 def create_plan(home, methods, output):
+    require_external_output(output)
     registry = available_methods()
     if (
         not methods
@@ -110,6 +112,7 @@ def frozen_probe(run_dir, expected_sha):
 
 
 def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None):
+    require_external_output(run_dir)
     plan = read_json(profile)
     participant = plan["participants"][method]
     policy = {"timeout_seconds": 120, "quality_retries": 0, "access_retries_after_repair": 1}

@@ -58,6 +58,34 @@ def test_interrupted_inflight_request_is_not_silently_replayed(tmp_path):
         call.assert_not_called()
 
 
+@pytest.mark.parametrize("entry", ["plan", "run"])
+def test_repository_destination_is_rejected_before_any_receipt_write(tmp_path, entry):
+    from harness.web_scraper.certification import create_plan
+
+    root = tmp_path / "repository"
+    root.mkdir()
+    target = root / "private-evidence"
+    with patch("harness.web_scraper.pipeline.ROOT", root):
+        with pytest.raises(ValueError, match="outside the source repository"):
+            if entry == "plan":
+                create_plan(tmp_path, ["cloudflare-json"], target)
+            else:
+                certified_run(tmp_path, tmp_path / "absent-plan", "cloudflare-json", target)
+    assert not target.exists()
+
+
+@pytest.mark.parametrize("message,kind", [
+    ("Invalid API key", "authentication"),
+    ("Invalid token", "authentication"),
+    ("Permission denied", "permission"),
+])
+def test_native_authentication_envelopes_pause_but_target_errors_do_not(message, kind):
+    native = {"http_status": 200, "response": {"success": False, "error": message}}
+    target = {"http_status": 200, "response": {"statusCode": 403, "content": message}}
+    assert access_blocker(native) == kind
+    assert access_blocker(target) is None
+
+
 def test_interrupted_finalization_resumes_without_repeating_provider_calls(tmp_path):
     home = create(tmp_path / "example")
     target = home / "runs/finalizing"
@@ -490,3 +518,55 @@ def test_stagehand_timeout_retains_setup_failure_phase_and_cleanup():
     assert calls[0]["http_status"] == 200
     assert calls[1]["error"] == "Synthetic navigation timeout"
     assert calls[2]["http_status"] == 200
+
+
+def test_streaming_stagehand_navigation_stops_in_time_to_release_session():
+    import time
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+
+    paths = []
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            paths.append(self.path)
+            self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            if self.path.endswith("/navigate"):
+                self.send_response(200)
+                self.send_header("Content-Length", "1000")
+                self.end_headers()
+                try:
+                    for _ in range(100):
+                        self.wfile.write(b" ")
+                        self.wfile.flush()
+                        time.sleep(0.01)
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+            else:
+                body = json.dumps({"success": True, "data": {"sessionId": "test"}}).encode()
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        with (
+            patch("harness.web_scraper.stagehand.BASE", f"http://127.0.0.1:{server.server_port}"),
+            patch.dict(
+                "os.environ", {"BROWSERBASE_API_KEY": "test", "BROWSERBASE_PROJECT_ID": "test"}
+            ),
+        ):
+            started = time.monotonic()
+            result = extract("https://frozen.example/1", {}, timeout=0.5)
+            assert time.monotonic() - started < 0.8
+        assert result["failure_phase"] == "snapshot_navigation"
+        assert paths == ["/sessions/start", "/sessions/test/navigate", "/sessions/test/end"]
+        assert result["response"]["calls"][-1]["http_status"] == 200
+    finally:
+        server.shutdown()
+        server.server_close()

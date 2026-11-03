@@ -359,7 +359,7 @@ def provider_call(method, html, source_url, fixture_url=None, *, timeout=120, ho
         started = time.monotonic()
         from harness.web_scraper.stagehand import extract
 
-        result = extract(fixture_url, SCHEMA, timeout=timeout)
+        result = extract(fixture_url, SCHEMA, timeout=timeout, deadline_wrapper=total_deadline)
         return {
             **redact(result),
             "elapsed_seconds": time.monotonic() - started,
@@ -655,6 +655,11 @@ def access_blocker(row):
         native.get("success") is False or bool(native.get("error"))
     )
     if status == 429 or row.get("state") == "provider_error" or native_error:
+        if re.search(r"invalid (?:api[ _-]?)?key|unauthorized|unauthenticated|"
+                     r"authentication failed|invalid token", message, re.I):
+            return "authentication"
+        if re.search(r"permission denied|access denied|forbidden|not authorized", message, re.I):
+            return "permission"
         if re.search(
             r"quota|credits?|balance|free plan|usage period|upgrade|subscription|payment|"
             r"insufficient|expired",
@@ -663,6 +668,14 @@ def access_blocker(row):
         ):
             return "quota_or_permission"
     return None
+
+
+def require_external_output(path):
+    path = Path(path)
+    if path.is_symlink() or unsafe_parents(path):
+        raise ValueError("Unsafe output destination")
+    if path.resolve().is_relative_to(ROOT.resolve()):
+        raise ValueError("Provider evidence must stay outside the source repository")
 
 
 def probe(home: Path, methods: list[str], **options):
@@ -675,10 +688,7 @@ def probe(home: Path, methods: list[str], **options):
             / (datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8])
         )
     run = Path(run)
-    if run.is_symlink() or unsafe_parents(run):
-        raise ValueError("Unsafe run directory")
-    if run.resolve().is_relative_to(ROOT):
-        raise ValueError("Provider evidence must stay outside the source repository")
+    require_external_output(run)
     run.mkdir(parents=True, exist_ok=True)
     with (run / "execution.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
