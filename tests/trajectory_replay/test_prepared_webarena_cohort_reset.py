@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
+from harness.record_io import file_sha256
 from harness.trajectory_replay import remote_runtime as prepared
-from harness.trajectory_replay.remote_runtime import file_sha256
 from tests.trajectory_replay.test_aggregate_webarena_three_method_cohorts import _reset_receipt
 
 

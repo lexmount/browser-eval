@@ -7,14 +7,14 @@ from unittest.mock import patch
 import pytest
 from webarena_verified.types import WebArenaSite
 
+from harness.record_io import canonical_json_sha256, file_sha256
 from harness.trajectory_replay.catalog_binding import (
     current_catalog_inputs,
     rebind_catalog,
 )
-from harness.trajectory_replay.catalog_contracts import file_sha256, load_catalog_inputs
+from harness.trajectory_replay.catalog_contracts import load_catalog_inputs
 from harness.trajectory_replay.remote_runtime import load_remote_sites, rebind_remote_calls
 from harness.trajectory_replay.report_inputs import bound_dataset_path, replay_input_path
-from harness.trajectory_replay.webarena_replay import _json_sha256
 
 
 def dump(path, value):
@@ -104,7 +104,7 @@ def inputs(tmp_path):
     ]
     for row in rows:
         row["source_site_urls"] = {k.value: v for k, v in source_sites.items()}
-        row["bound_calls_sha256"] = _json_sha256(
+        row["bound_calls_sha256"] = canonical_json_sha256(
             rebind_remote_calls(calls, sites, set(), source_sites)
         )
     catalog = dump(
@@ -393,7 +393,7 @@ def test_runtime_retrieval_preserves_preparation_but_not_qualified_observation(t
         {
             "task_id": 2,
             "action_index": index,
-            "precondition_action_sha256": _json_sha256(calls[index - 1]),
+            "precondition_action_sha256": canonical_json_sha256(calls[index - 1]),
             "set": {"script": "return 999"} if observed else {"force": True},
         }
     ]
@@ -401,12 +401,12 @@ def test_runtime_retrieval_preserves_preparation_but_not_qualified_observation(t
     source["rows"][1]["action_overrides"] = {
         "schema": ACTION_OVERRIDES_SCHEMA,
         "source_sha256": "a" * 64,
-        "amendments_sha256": _json_sha256(changes),
+        "amendments_sha256": canonical_json_sha256(changes),
         "amendments": changes,
     }
     deployment = load_remote_sites(sites)
     row = _bound_catalog_row(source, source["rows"][1], {}, deployment)
-    row["bound_calls_sha256"] = _json_sha256(row["actions"])
+    row["bound_calls_sha256"] = canonical_json_sha256(row["actions"])
     if observed:
         with pytest.raises(ValueError, match="qualified observation action changed"):
             _read_retrieval_contract(2, row, deployment)

@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
-from harness.web_search.core import digest
+from harness.record_io import bytes_sha256
 from harness.web_search.profiles import load_profile_bytes
 from harness.web_search.runner import run
 from harness.web_search import report
@@ -60,7 +60,7 @@ def test_execution_revision_resolves_composed_profiles_and_current_cohorts(tmp_p
     dataset = definition_path("datasets/scenarios-v1.json")
     profile["cases"] = {
         "field": "cases",
-        "benchmark_datasets": [{"id": "scenarios-v1", "sha256": digest(dataset.read_bytes())}],
+        "benchmark_datasets": [{"id": "scenarios-v1", "sha256": bytes_sha256(dataset.read_bytes())}],
     }
     compact = tmp_path / "compact.json"
     source = compact if selection is None else tmp_path / "current.json"
@@ -68,7 +68,7 @@ def test_execution_revision_resolves_composed_profiles_and_current_cohorts(tmp_p
     def save():
         compact.write_text(json.dumps(profile))
         if selection:
-            binding = {"path": compact.name, "sha256": digest(compact.read_bytes())}
+            binding = {"path": compact.name, "sha256": bytes_sha256(compact.read_bytes())}
             source.write_text(
                 json.dumps(
                     {
@@ -120,9 +120,9 @@ def test_execution_revision_resolves_composed_profiles_and_current_cohorts(tmp_p
                     "schema": "web-search-execution-revision/1",
                     "root_cause": "Changed native endpoint",
                     "superseded_methods": [profile["methods"][0]["id"]],
-                    "previous_profile_sha256": digest(old_bytes),
-                    "profile_sha256": digest(new_bytes),
-                    "evidence": [{"path": proof.name, "sha256": digest(proof.read_bytes())}],
+                    "previous_profile_sha256": bytes_sha256(old_bytes),
+                    "profile_sha256": bytes_sha256(new_bytes),
+                    "evidence": [{"path": proof.name, "sha256": bytes_sha256(proof.read_bytes())}],
                 }
             )
         )
@@ -178,7 +178,7 @@ def test_combined_release_export_keeps_the_explicit_publication_plan(tmp_path, m
     output.mkdir()
     manifest = output / "manifest.json"
     manifest.write_text(json.dumps({"receipt": {"certified": True}}))
-    visual.write_text(json.dumps({"manifest_sha256": digest(manifest.read_bytes())}))
+    visual.write_text(json.dumps({"manifest_sha256": bytes_sha256(manifest.read_bytes())}))
     monkeypatch.setattr(report, "check", lambda _: None)
     with (
         patch("harness.web_search.publication.verify_plan") as verify_plan,
@@ -333,8 +333,8 @@ def test_repeated_factual_collection_builds_and_checks_selected_score_round(tmp_
     rows += [dict(row, id=row['id'].removesuffix('r0') + 'r1', round=1) for row in rows]
     (source / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
     receipt = json.loads((source / 'receipt.json').read_bytes())
-    receipt.update(call_count=len(rows), profile_sha256=digest((source / 'profile.json').read_bytes()),
-                   results_sha256=digest((source / 'results.jsonl').read_bytes()))
+    receipt.update(call_count=len(rows), profile_sha256=bytes_sha256((source / 'profile.json').read_bytes()),
+                   results_sha256=bytes_sha256((source / 'results.jsonl').read_bytes()))
     (source / 'receipt.json').write_text(json.dumps(receipt))
     report.build(tmp_path / 'repeated-report', source=source)
     assert report.check(tmp_path / 'repeated-report')

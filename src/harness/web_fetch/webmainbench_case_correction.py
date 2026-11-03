@@ -9,7 +9,7 @@ from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
-from harness.record_io import load_jsonl
+from harness.record_io import file_sha256, load_jsonl, read_json, write_json
 from harness.web_fetch.safety import evidence_tree_identity, stage_evidence_revision
 from harness.web_fetch.webmainbench_evidence import (
     copy_alias_artifacts,
@@ -29,20 +29,12 @@ SHARD_FILES = ("scored-results.jsonl", "results.jsonl", "physical-attempts.jsonl
                "score-summary.json", "execution.json", "dataset.json")
 
 
-def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
 def read_jsonl(path: Path) -> list[dict]:
     return load_jsonl(path, skip_blank=True)
 
 
 def write_jsonl(path: Path, rows: list[dict]) -> None:
     path.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows), encoding="utf-8")
-
-
-def write_json(path: Path, value: dict) -> None:
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def dimensions(rows: list[dict]) -> dict:
@@ -58,7 +50,7 @@ def dimensions(rows: list[dict]) -> dict:
 
 
 def _read_json(root: Path, name: str) -> dict:
-    value = json.loads(contained_path(root, name, reject_symlinks=True).read_text(encoding="utf-8"))
+    value = read_json(contained_path(root, name, reject_symlinks=True))
     if not isinstance(value, dict):
         raise ValueError("Evidence document must be an object: " + name)
     return value
@@ -102,7 +94,7 @@ def _shard(root: Path, provider: str, cases: dict[str, dict], profile: dict):
     require_unique_attempt_ids(rows, "Logical")
     require_unique_attempt_ids(calls, "Physical")
     for relative, expected in _fixture_bindings(execution):
-        if digest(contained_path(root, relative, reject_symlinks=True)) != expected:
+        if file_sha256(contained_path(root, relative, reject_symlinks=True)) != expected:
             raise ValueError(provider + ": fixture CA binding mismatch")
     grouped = defaultdict(list)
     for call in calls:
@@ -128,7 +120,7 @@ def apply(source_root: Path, correction_roots: dict[str, Path], output: Path, ca
     for path in (dataset, manifest, profile):
         if path.is_symlink():
             raise ValueError("Symlinked correction input is forbidden")
-    frozen = {path: digest(path) for path in (dataset, manifest, profile)}
+    frozen = {path: file_sha256(path) for path in (dataset, manifest, profile)}
     authority = _read_json(profile.parent, profile.name)
     sample = _read_json(manifest.parent, manifest.name)
     declared = authority["providers"]
@@ -173,7 +165,7 @@ def apply(source_root: Path, correction_roots: dict[str, Path], output: Path, ca
                 copy_alias_artifacts(source, target, rows + calls, name, name)
                 _copy_ca(source, target, execution)
                 for filename in SHARD_FILES:
-                    copy_bound(source, target, filename, digest(source / filename))
+                    copy_bound(source, target, filename, file_sha256(source / filename))
                 _shard(target, name, cases, authority)
                 logical_inventory.extend(rows)
                 physical_inventory.extend(calls)
@@ -193,7 +185,7 @@ def apply(source_root: Path, correction_roots: dict[str, Path], output: Path, ca
             # Verify superseded evidence before excluding it from the new shard.
             for row in [old, *old_calls]:
                 for key in ("artifact_path", "physical_artifact_path"):
-                    if key in row and digest(contained_path(source, row[key], reject_symlinks=True)) != row["output_sha256"]:
+                    if key in row and file_sha256(contained_path(source, row[key], reject_symlinks=True)) != row["output_sha256"]:
                         raise ValueError(name + ": superseded artifact binding mismatch")
             kept_rows = [row for row in rows if row["track_id"] != case_id]
             kept_calls = [call for call in calls if call["track_id"] != case_id]
@@ -206,13 +198,13 @@ def apply(source_root: Path, correction_roots: dict[str, Path], output: Path, ca
                            official_aggregate=aggregate(rows), dimensions=dimensions(rows))
             summary["request_success_rate"] = summary["request_successes"] / len(rows)
             summary["correction"] = {"case_id": case_id,
-                                     "prior_scored_results_sha256": digest(source / "scored-results.jsonl"),
-                                     "replacement_scored_result_sha256": digest(replacement / "scored-results.jsonl")}
+                                     "prior_scored_results_sha256": file_sha256(source / "scored-results.jsonl"),
+                                     "replacement_scored_result_sha256": file_sha256(replacement / "scored-results.jsonl")}
             run = {"case_id": case_id, "run_id": new_execution["run_id"],
-                   "execution_sha256": digest(replacement / "execution.json"),
+                   "execution_sha256": file_sha256(replacement / "execution.json"),
                    "runner_sha256": new_execution["runner_sha256"], "old_output_sha256": old["output_sha256"],
                    "new_output_sha256": new["output_sha256"],
-                   "old_scored_result_sha256": digest(source / "scored-results.jsonl"),
+                   "old_scored_result_sha256": file_sha256(source / "scored-results.jsonl"),
                    "correction_calls": len(new_calls)}
             relative = new_execution.get("fixture_ca_artifact")
             if relative:
@@ -234,14 +226,14 @@ def apply(source_root: Path, correction_roots: dict[str, Path], output: Path, ca
             write_jsonl(target / "physical-attempts.jsonl", calls)
             write_json(target / "score-summary.json", summary)
             write_json(target / "execution.json", execution)
-            copy_bound(source, target, "dataset.json", digest(source / "dataset.json"))
+            copy_bound(source, target, "dataset.json", file_sha256(source / "dataset.json"))
             _shard(target, name, cases, authority)
             logical_inventory.extend(rows)
             physical_inventory.extend(calls)
         require_unique_attempt_ids(logical_inventory, "Logical")
         require_unique_attempt_ids(physical_inventory, "Physical")
         write_json(staging / "fixture-correction.json", receipt)
-        if (any(digest(path) != expected for path, expected in frozen.items())
+        if (any(file_sha256(path) != expected for path, expected in frozen.items())
                 or any(evidence_tree_identity(root) != expected for root, expected in correction_trees.items())):
             raise ValueError("Correction inputs changed during revision")
         return receipt

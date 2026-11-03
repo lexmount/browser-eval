@@ -7,9 +7,9 @@ import json
 import subprocess
 from pathlib import Path
 
-from harness.trajectory_replay.catalog_contracts import file_sha256, load_action_overrides
+from harness.record_io import canonical_json_sha256, file_sha256
+from harness.trajectory_replay.catalog_contracts import load_action_overrides
 from harness.trajectory_replay.public_webarena.suite import load_suite
-from harness.trajectory_replay.webarena_replay import _json_sha256
 from harness.web_fetch.safety import unlinked_path, write_new_file
 
 AUDIT_SCHEMA = "lex_webarena_replay_action_override_audit/1"
@@ -78,7 +78,7 @@ def _evaluate_actions(catalog: dict, suite_path: Path) -> list[dict]:
                     "task_id": task_id,
                     "mode": mode,
                     "action_index": action_index,
-                    "precondition_action_sha256": _json_sha256(action),
+                    "precondition_action_sha256": canonical_json_sha256(action),
                     "script_mode": action.get("script_mode"),
                     "script": script,
                 }

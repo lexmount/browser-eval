@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.record_io import file_sha256
 from harness.web_fetch import webmainbench_diagnostics as diagnostics
 from harness.web_fetch.webmainbench_scoring import aggregate
 
@@ -82,8 +83,8 @@ def inputs(tmp_path):
                     "attempt_id": provider + "__" + identifier,
                     "ok": True,
                     "artifact_path": artifact.name,
-                    "output_sha256": diagnostics.digest(artifact),
-                    "reference_sha256": diagnostics.digest(reference),
+                    "output_sha256": file_sha256(artifact),
+                    "reference_sha256": file_sha256(reference),
                     "metrics": metrics,
                     "official_metrics": official,
                 }
@@ -217,7 +218,7 @@ def test_verified_prior_revision_can_be_inherited(inputs, tmp_path, monkeypatch)
         source, output, repo, prior_corrected=prior, scorer_commit=head
     )
     assert receipt["inherited_logical_results"] == 4
-    assert receipt["inherited_correction_receipt_sha256"] == diagnostics.digest(
+    assert receipt["inherited_correction_receipt_sha256"] == file_sha256(
         prior / "teds-correction.json"
     )
     assert (output / "results.jsonl").read_bytes() == (prior / "results.jsonl").read_bytes()

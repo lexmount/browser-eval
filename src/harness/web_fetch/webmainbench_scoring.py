@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import copy
-import hashlib
 import importlib
 import json
 import subprocess
@@ -15,18 +14,14 @@ from threading import RLock
 
 from lexbench_webfetch.paths import contained_path
 
-from harness.record_io import load_jsonl
-from harness.web_fetch.webmainbench_evidence import digest, read_jsonl
+from harness.record_io import file_sha256, load_jsonl
+from harness.web_fetch.webmainbench_evidence import read_jsonl
 from harness.web_fetch.webmainbench_runner import selected_input
 
 SCORER_COMMIT = "9d991bdc00c57b57521499494d96be85c31317ba"
 DATASET_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
 METRIC_SOURCE_MANIFEST_SHA256 = "d1a503f7a475da2e118f008f9a63c49cba6fb2378b08de01fb2c3c4c1b96dc31"
 CORE_METRICS = ("text_edit", "code_edit", "table_edit", "table_TEDS", "formula_edit")
-
-
-def sha256_path(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def prepare_scorer() -> Path:
@@ -68,7 +63,7 @@ def prepare_scorer() -> Path:
 
 
 def load_records(path: Path, expected_sha256: str = DATASET_SHA256) -> dict[str, dict]:
-    if sha256_path(path) != expected_sha256:
+    if file_sha256(path) != expected_sha256:
         raise ValueError("WebMainBench dataset hash mismatch")
     records = {}
     with path.open(encoding="utf-8") as stream:
@@ -279,7 +274,7 @@ def main() -> None:
         for index, row in enumerate(logical, 1):
             reference = source[row["track_id"]]["groundtruth_content"]
             artifact = args.evidence / row["artifact_path"]
-            if sha256_path(artifact) != row["output_sha256"]:
+            if file_sha256(artifact) != row["output_sha256"]:
                 raise ValueError(f"Artifact hash mismatch: {row['track_id']}")
             if row["ok"]:
                 predicted = artifact.read_text(encoding="utf-8")
@@ -325,7 +320,7 @@ def main() -> None:
             "metric_config": {"use_llm": False},
             "aggregation": "official arithmetic mean of five independently aggregated metrics",
             "metric_source_sha256": {
-                str(path.relative_to(args.scorer_repo)): sha256_path(path) for path in scorer_files
+                str(path.relative_to(args.scorer_repo)): file_sha256(path) for path in scorer_files
             },
         },
         "supersedes": ["scored-results.jsonl", "score-summary.json"] if args.revision else [],
@@ -348,10 +343,10 @@ def verify_score(shard: Path, provider: str, case_ids: set[str], scorer: Path, p
             or summary["official_aggregate"] != aggregate(scored)):
         raise ValueError(provider + ": scored evidence is incomplete or differs from measured calls")
     for relative, expected in summary["scorer"]["metric_source_sha256"].items():
-        if digest(contained_path(scorer, relative, reject_symlinks=True)) != expected:
+        if file_sha256(contained_path(scorer, relative, reject_symlinks=True)) != expected:
             raise ValueError(provider + ": scorer source changed: " + relative)
-    return {"provider": provider, "scored_results_sha256": digest(shard / "scored-results.jsonl"),
-            "score_summary_sha256": digest(shard / "score-summary.json"),
+    return {"provider": provider, "scored_results_sha256": file_sha256(shard / "scored-results.jsonl"),
+            "score_summary_sha256": file_sha256(shard / "score-summary.json"),
             "logical_results": len(scored)}
 
 

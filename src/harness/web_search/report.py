@@ -26,7 +26,7 @@ from lexbench_websearch.scoring import (
     in_domain,
 )
 
-from harness.record_io import same_json_record
+from harness.record_io import bytes_sha256, same_json_record
 from harness.report_languages import (
     REPORT_PAGE_MARKER,
     check_language_contract,
@@ -41,7 +41,6 @@ from harness.web_fetch.publication_privacy import SENSITIVE_KEY, project_file
 from harness.web_search.comparison import render_comparison
 from harness.web_search.core import (
     aggregate,
-    digest,
     normalize_response,
     request_body,
     request_cost,
@@ -207,9 +206,9 @@ def public_calls(profile, rows, source, sources):
                     headers.update(json.loads(projected))
                     public = json.dumps(envelope, ensure_ascii=False).encode()
             if public != raw:
-                redactions.append({"path": binding["path"], "original_sha256": digest(raw),
-                                   "public_sha256": digest(public), "rule": "URL userinfo and credential response headers redacted; ranked results and outcome unchanged"})
-                binding["sha256"] = digest(public)
+                redactions.append({"path": binding["path"], "original_sha256": bytes_sha256(raw),
+                                   "public_sha256": bytes_sha256(public), "rule": "URL userinfo and credential response headers redacted; ranked results and outcome unchanged"})
+                binding["sha256"] = bytes_sha256(public)
             files[binding["path"]] = public
             try:
                 payload = json.loads(raw)
@@ -236,10 +235,10 @@ def load_run(source):
     synthetic = receipt.get("synthetic") is True and receipt.get("certified") is False
     if receipt.get("synthetic") is True and not synthetic:
         raise ValueError("Synthetic evidence cannot be certified")
-    if digest((source / "profile.json").read_bytes()) != receipt["profile_sha256"]:
+    if bytes_sha256((source / "profile.json").read_bytes()) != receipt["profile_sha256"]:
         raise ValueError("Profile hash mismatch")
     raw = (source / "results.jsonl").read_bytes()
-    if digest(raw) != receipt["results_sha256"]:
+    if bytes_sha256(raw) != receipt["results_sha256"]:
         raise ValueError("Results hash mismatch")
     rows = [json.loads(line) for line in raw.splitlines()]
     expected = {
@@ -394,9 +393,9 @@ def load_report_runs(source, cohorts, labels, method_ids=None):
         receipts.append(
             {
                 "cohort": name,
-                "profile_sha256": digest((path / "profile.json").read_bytes()),
-                "results_sha256": digest((path / "results.jsonl").read_bytes()),
-                "receipt_sha256": digest((path / "receipt.json").read_bytes()),
+                "profile_sha256": bytes_sha256((path / "profile.json").read_bytes()),
+                "results_sha256": bytes_sha256((path / "results.jsonl").read_bytes()),
+                "receipt_sha256": bytes_sha256((path / "receipt.json").read_bytes()),
                 "collection_receipt": receipt,
             }
         )
@@ -500,13 +499,13 @@ def build(
         scoring_revision = {
             "contract": revision,
             "changes": changes,
-            "sha256": digest(correction.read_bytes()),
+            "sha256": bytes_sha256(correction.read_bytes()),
         }
     assessment_revision = None
     if authored.get("assessment_revision"):
         validate_revision_binding(authored["assessment_revision"], normalizer=normalize_response, authority=authority)
         profile, rows, changes = apply_report_revision(profile, rows, authored["assessment_revision"], artifacts=public_files, normalizer=normalize_response)
-        assessment_revision = {"contract": authored["assessment_revision"], "changes": changes, "implementation_sha256": {name: digest(path.read_bytes()) for name, path in implementation_sources().items()}}
+        assessment_revision = {"contract": authored["assessment_revision"], "changes": changes, "implementation_sha256": {name: bytes_sha256(path.read_bytes()) for name, path in implementation_sources().items()}}
     profile, rows = project_comparison(profile, rows, authored)
     materialized_paths = {e["path"] for r in rows for e in [r["evidence"], *[a["evidence"] for a in r.get("attempts", [])]]}
     redactions = [r for r in redactions if r["path"] in materialized_paths]
@@ -549,22 +548,22 @@ def build(
     bundle = []
     if authority:
         write_json(output / "assessment-authority.json", authority)
-        bundle.append({"path": "assessment-authority.json", "sha256": digest((output / "assessment-authority.json").read_bytes())})
+        bundle.append({"path": "assessment-authority.json", "sha256": bytes_sha256((output / "assessment-authority.json").read_bytes())})
     if review_data:
-        bundle.append({"path": "independent-review.json", "sha256": digest((output / "independent-review.json").read_bytes())})
+        bundle.append({"path": "independent-review.json", "sha256": bytes_sha256((output / "independent-review.json").read_bytes())})
     factual_cases = {c["id"]: c for c in profile["cases"] if "reference_answer" in c}
     if factual_cases:
         sensitivity = {r["id"]: factual_sensitivity(factual_cases[r["case_id"]], r["results"], cutoff=profile["protocol"]["top_k"]) for r in selected if r["case_id"] in factual_cases}
         write_json(output / "factual-sensitivity.json", {"schema": "factual-sensitivity/1", "timing": "post-hoc diagnostic; no recollection or rank compaction", "rule": CONTAMINATION_RULE, "results": sensitivity})
-        bundle.append({"path": "factual-sensitivity.json", "sha256": digest((output / "factual-sensitivity.json").read_bytes())})
+        bundle.append({"path": "factual-sensitivity.json", "sha256": bytes_sha256((output / "factual-sensitivity.json").read_bytes())})
     if relevance_data:
         target = output / "relevance-judgments.json"
         target.write_text(json.dumps(relevance_data, ensure_ascii=False, indent=2), encoding="utf-8")
-        bundle.append({"path": target.name, "sha256": digest(target.read_bytes())})
+        bundle.append({"path": target.name, "sha256": bytes_sha256(target.read_bytes())})
     notice = definition_path("NOTICE.txt")
     notice_target = output / "query-catalog-license.txt"
     notice_target.write_bytes(notice.read_bytes())
-    bundle.append({"path": notice_target.name, "sha256": digest(notice.read_bytes())})
+    bundle.append({"path": notice_target.name, "sha256": bytes_sha256(notice.read_bytes())})
     for asset in authored.get("assets", []):
         verify_bundle(content.parent, [{"path": asset["source"], "sha256": asset["sha256"]}])
         target = output / asset["path"]
@@ -1299,30 +1298,30 @@ def build(
             assessment_revision=assessment_revision,
             evidence_redactions=redactions,
             billing_corrections=billing_corrections,
-            independent_review_sha256=digest((output / "independent-review.json").read_bytes()) if review_data else None,
+            independent_review_sha256=bytes_sha256((output / "independent-review.json").read_bytes()) if review_data else None,
             report_assessment={"relevance": {key: relevance_data["judge"][key] for key in ("kind", "name")} if relevance_data else None,
                                "independent_review_scope": review_data["scope"] if review_data else None,
-                               "collection_protocol_sha256": digest(json.dumps(collection_profile["protocol"], sort_keys=True).encode())},
-            relevance_sha256=digest((output / "relevance-judgments.json").read_bytes()) if relevance_data else None,
+                               "collection_protocol_sha256": bytes_sha256(json.dumps(collection_profile["protocol"], sort_keys=True).encode())},
+            relevance_sha256=bytes_sha256((output / "relevance-judgments.json").read_bytes()) if relevance_data else None,
             result_storage="raw-response",
             rows=[
                 {
                     **{k: v for k, v in r.items() if k != "results"},
                     "result_count": len(r["results"]),
-                    "normalized_results_sha256": digest(
+                    "normalized_results_sha256": bytes_sha256(
                         json.dumps(r["results"], ensure_ascii=False, sort_keys=True).encode()
                     ),
                 }
                 for r in rows
             ],
             receipt=receipt,
-            collection_receipt_sha256=digest((source / "receipt.json").read_bytes()) if source and not cohorts else None,
+            collection_receipt_sha256=bytes_sha256((source / "receipt.json").read_bytes()) if source and not cohorts else None,
             bundle=bundle,
-            content_sha256=digest(content_bytes) if content_bytes is not None else None,
+            content_sha256=bytes_sha256(content_bytes) if content_bytes is not None else None,
             diagnostics=diagnostics,
             authored=authored if content_bytes is not None else None,
             reading_sections=reading_sections,
-            renderer_sha256=digest(Path(__file__).read_bytes()),
+            renderer_sha256=bytes_sha256(Path(__file__).read_bytes()),
         ),
     )
     entry = select_report_language(output, language)
@@ -1358,12 +1357,12 @@ def check(output, *, return_data=False, evidence_only=False):
             if _redact_url_userinfo(raw) != raw:
                 raise ValueError("Public evidence contains URL credentials")
     for item in manifest.get("evidence_redactions", []):
-        if digest((output / item["path"]).read_bytes()) != item["public_sha256"]:
+        if bytes_sha256((output / item["path"]).read_bytes()) != item["public_sha256"]:
             raise ValueError("Public redaction binding changed")
     relevance_data = None
     if manifest.get("relevance_sha256"):
         relevance_path = output / "relevance-judgments.json"
-        if digest(relevance_path.read_bytes()) != manifest["relevance_sha256"]:
+        if bytes_sha256(relevance_path.read_bytes()) != manifest["relevance_sha256"]:
             raise ValueError("Relevance judgments hash mismatch")
         relevance_data = json.loads(relevance_path.read_text())
     review_data = json.loads((output / "independent-review.json").read_text()) if manifest.get("independent_review_sha256") else None
@@ -1371,7 +1370,7 @@ def check(output, *, return_data=False, evidence_only=False):
         expected_assessment = {
             "relevance": {key: relevance_data["judge"][key] for key in ("kind", "name")} if relevance_data else None,
             "independent_review_scope": review_data["scope"] if review_data else None,
-            "collection_protocol_sha256": digest(json.dumps(manifest["collection_profile"]["protocol"], sort_keys=True).encode()),
+            "collection_protocol_sha256": bytes_sha256(json.dumps(manifest["collection_profile"]["protocol"], sort_keys=True).encode()),
         }
         if (manifest["report_assessment"] != expected_assessment
                 or assessment_profile(manifest["profile"], relevance_data, review_data) != manifest["profile"]):
@@ -1390,14 +1389,14 @@ def check(output, *, return_data=False, evidence_only=False):
             )
             if (
                 len(results) != row["result_count"]
-                or digest(json.dumps(results, ensure_ascii=False, sort_keys=True).encode())
+                or bytes_sha256(json.dumps(results, ensure_ascii=False, sort_keys=True).encode())
                 != row["normalized_results_sha256"]
             ):
                 raise ValueError("Result receipt disagrees with raw response")
             row["results"] = results
     if manifest.get("independent_review_sha256"):
         review_path = output / "independent-review.json"
-        if digest(review_path.read_bytes()) != manifest["independent_review_sha256"]:
+        if bytes_sha256(review_path.read_bytes()) != manifest["independent_review_sha256"]:
             raise ValueError("Independent review evidence hash mismatch")
         review_data = json.loads(review_path.read_bytes())
         validate_public_review(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), review_data, authority=authority, relevance=json.loads((output / "relevance-judgments.json").read_bytes()) if manifest.get("relevance_sha256") else None)
@@ -1880,7 +1879,7 @@ def release_check(output, visual_receipt, *, publication_plan=None):
     check(output)
     proof = json.loads(visual_receipt.read_text())
     manifest = output / "manifest.json"
-    if proof["manifest_sha256"] != digest(manifest.read_bytes()):
+    if proof["manifest_sha256"] != bytes_sha256(manifest.read_bytes()):
         raise ValueError("Visual check belongs to a different build")
     report_manifest = json.loads(manifest.read_text())
     if not report_manifest.get("receipt", {}).get("synthetic"):

@@ -28,6 +28,7 @@ from harness.environments.webarena.runtime import (
     prepare_browser_viewport,
 )
 from harness.environments.webarena.topology import LOCAL_RECORDED_HOSTS, TRUSTED_RECORDED_HOSTS
+from harness.record_io import canonical_json_sha256, file_sha256
 from harness.trajectory_replay.catalog_contracts import (
     apply_action_overrides,
     catalog_action_overrides,
@@ -38,7 +39,6 @@ from harness.trajectory_replay.public_webarena.suite import BrowserTask
 from harness.trajectory_replay.remote_runtime import (
     COHORT_RESET_SCOPE,
     checked_file_sha256,
-    file_sha256,
     load_remote_sites,
     rebind_remote_calls,
     remote_benchmark,
@@ -69,7 +69,6 @@ from harness.trajectory_replay.webarena_replay import (
     _clear_browser_state,
     _click_was_dispatched_before_navigation_timeout,
     _execute_replay_call,
-    _json_sha256,
     _replay_step_status,
     select_tasks,
 )
@@ -167,7 +166,7 @@ def finalize_timed_out_task(
         "status": "fail",
         "score": None,
         "action_count": len(row["actions"]),
-        "executed_actions_sha256": _json_sha256(row["actions"]),
+        "executed_actions_sha256": canonical_json_sha256(row["actions"]),
         "omitted_diagnostic_observer_sha256": row.get(
             "omitted_diagnostic_observer_sha256"
         ),
@@ -215,7 +214,7 @@ def _effective_retrieval_calls(task_id: int, row: dict, calls: list[dict]) -> li
         for observation in contract['sources']:
             index = observation['step'] - 1
             if (index >= len(effective)
-                    or _json_sha256(effective[index]) != observation['action_sha256']):
+                    or canonical_json_sha256(effective[index]) != observation['action_sha256']):
                 raise ValueError(f'task {task_id}: qualified observation action changed')
     return effective
 
@@ -367,7 +366,7 @@ def _read_retrieval_contract(
             set(TRUSTED_RECORDED_HOSTS),
             source_sites,
         )
-        if _json_sha256(rebound) != row["bound_calls_sha256"]:
+        if canonical_json_sha256(rebound) != row["bound_calls_sha256"]:
             raise ValueError(f"task {task_id}: retrieval actions differ from frozen bound calls")
         return candidate
     source_revision = row.get("source_revision") or {}
@@ -387,7 +386,7 @@ def _read_retrieval_contract(
         sites,
         set(LOCAL_RECORDED_HOSTS),
     )
-    if _json_sha256(rebound) != row["bound_calls_sha256"]:
+    if canonical_json_sha256(rebound) != row["bound_calls_sha256"]:
         raise ValueError(f"task {task_id}: retrieval actions differ from frozen bound calls")
     return candidate
 
@@ -722,7 +721,7 @@ def _run_task(
         "status": status,
         "score": score,
         "action_count": len(row["actions"]),
-        "executed_actions_sha256": _json_sha256(row["actions"]),
+        "executed_actions_sha256": canonical_json_sha256(row["actions"]),
         "omitted_diagnostic_observer_sha256": row.get("omitted_diagnostic_observer_sha256"),
         "completed_actions": sum(
             record["status"] == ("pass" if portable_task is not None else "success")
@@ -816,10 +815,10 @@ def preflight_cohort(args: argparse.Namespace) -> tuple[dict, dict, object, dict
             or not isinstance(source, list)
             or not source
             or not isinstance(readiness, list)
-            or _json_sha256(actions) != row.get("bound_calls_sha256")
-            or _json_sha256(source) != row.get("source_calls_sha256")
+            or canonical_json_sha256(actions) != row.get("bound_calls_sha256")
+            or canonical_json_sha256(source) != row.get("source_calls_sha256")
             or rebind_remote_calls(source, sites, set(LOCAL_RECORDED_HOSTS)) != actions
-            or _json_sha256(
+            or canonical_json_sha256(
                 {
                     "task": dataset_rows[task_id]["task"],
                     "evaluation_input": dataset_rows[task_id]["evaluation_input"],
@@ -833,7 +832,7 @@ def preflight_cohort(args: argparse.Namespace) -> tuple[dict, dict, object, dict
                 not isinstance(item, dict)
                 or type(item.get("before_action")) is not int
                 or not 1 <= item["before_action"] <= len(actions)
-                or _json_sha256(item.get("input")) != item.get("bound_input_sha256")
+                or canonical_json_sha256(item.get("input")) != item.get("bound_input_sha256")
             ):
                 raise ValueError(f"task {task_id}: readiness call changed")
         contract = row.get("retrieval_contract")
@@ -1394,7 +1393,7 @@ def _execute_mutation_diagnostic(args: argparse.Namespace) -> int:
         "scope": "diagnostic_only",
         "promotable": False,
         **frozen_hashes,
-        "source_calls_sha256": _json_sha256(source_calls),
+        "source_calls_sha256": canonical_json_sha256(source_calls),
         "source_action_count": len(source_calls),
         "executed_action_count": len(calls),
         "pre_action_readiness": readiness,

@@ -61,10 +61,6 @@ def review_raw_artifacts(record):
     return artifacts
 
 
-def _sha256(path):
-    return file_sha256(path)
-
-
 def review_input_identity(record):
     """Return every record field that can select evidence shown to a reviewer."""
     metadata = record.get('provider_metadata', {})
@@ -167,9 +163,9 @@ def _require_result_review(source, dataset, records, review_document=None, *, an
     if required and protocol.get('machine_judgments_withheld') is not True:
         raise ValueError('Independent result review was not blinded to machine judgments')
     bindings = review.get('bindings', {})
-    if bindings.get('dataset_sha256') != _sha256(source/'dataset.json'):
+    if bindings.get('dataset_sha256') != file_sha256(source/'dataset.json'):
         raise ValueError('Result review is bound to a different dataset')
-    if bindings.get('results_sha256') != _sha256(source/'results.jsonl'):
+    if bindings.get('results_sha256') != file_sha256(source/'results.jsonl'):
         raise ValueError('Result review is bound to different results')
     scope = protocol.get('scope', 'all')
     if historical_authority and (scope != 'all' or protocol.get('machine_judgments_withheld') is not True):
@@ -928,7 +924,7 @@ def merge_reviews(evidence: Path, shard_paths: list[Path], output: Path, *,
     prior_independent = False
     if prior_review is not None:
         current_review = installed
-        if _sha256(prior_review) != _sha256(current_review):
+        if file_sha256(prior_review) != file_sha256(current_review):
             raise ValueError("Prior review must be the validated review installed in evidence")
         prior = require_result_review(evidence, dataset, records)
         if prior["review_protocol"].get("scope") != "machine-failures":

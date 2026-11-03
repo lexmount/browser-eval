@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import subprocess
 import sys
@@ -44,6 +43,7 @@ from harness.environments.webarena.runtime import (
     site_container_manager,
     verify_session_viewport,
 )
+from harness.record_io import canonical_json_sha256, file_sha256
 from harness.resource_accounting import DockerStatsResources, ResourceSampler
 from harness.trajectory_replay.retrieval_acceptance import (
     PROTOCOL,
@@ -80,15 +80,6 @@ _STATE_CLEAR_NAVIGATION_GRACE_MS = 300
 _STATE_CLEAR_MAX_ATTEMPTS = 3
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _json_sha256(value: Any) -> str:
-    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(payload.encode()).hexdigest()
-
-
 def _origin(url: str) -> str:
     parsed = urlsplit(url)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
@@ -97,7 +88,7 @@ def _origin(url: str) -> str:
 
 
 def _evidence_file(path: Path) -> dict[str, str] | None:
-    return {"path": str(path), "sha256": _sha256(path)} if path.is_file() else None
+    return {"path": str(path), "sha256": file_sha256(path)} if path.is_file() else None
 
 
 def _click_was_dispatched_before_navigation_timeout(
@@ -349,7 +340,7 @@ def validate_qualification_dataset(plan: dict[str, Any], path: str | Path) -> st
                 plan["retrieval_contracts"][task_id]
             ):
                 raise ValueError("legacy qualification does not prove current-run retrieval")
-    return _sha256(dataset_path)
+    return file_sha256(dataset_path)
 
 
 def _rebind_url(value: str, site_access_host: str, trusted_source_site_hosts: set[str]) -> str:
@@ -776,14 +767,14 @@ def _run_one(  # noqa: PLR0913
         "task_id": task_id,
         "physical_execution": physical_execution,
         "source_candidate_id": candidate["id"],
-        "source_tool_calls_sha256": _json_sha256(candidate["tool_calls"]),
-        "executed_tool_calls_sha256": _json_sha256(calls),
+        "source_tool_calls_sha256": canonical_json_sha256(candidate["tool_calls"]),
+        "executed_tool_calls_sha256": canonical_json_sha256(calls),
         "source_site_hosts": sorted(source_site_hosts),
         "runtime_site_host": site_access_host,
         "replay_calls_binding_sha256": replay_calls_binding_sha256(
             calls, allowed_hosts={site_access_host}
         ),
-        "evaluation_input_sha256": _json_sha256(actual_response)
+        "evaluation_input_sha256": canonical_json_sha256(actual_response)
         if actual_response is not None
         else None,
         "source_model": (candidate.get("method") or {}).get("model"),

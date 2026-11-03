@@ -18,7 +18,7 @@ from bs4 import BeautifulSoup
 from lexbench_webfetch.metrics import percentile
 from lexbench_webfetch.paths import contained_path
 
-from harness.record_io import load_jsonl
+from harness.record_io import file_sha256, load_jsonl
 from harness.report_languages import (
     check_language_contract,
     generated_languages,
@@ -126,10 +126,6 @@ class ReportShape(HTMLParser):
         self.numbers.update(visible_numbers(value))
         if re.search(r'[\u4e00-\u9fff]', value) and value.strip() != '中文':
             self.untranslated.append(value.strip()[:80])
-
-
-def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def require(condition: bool, message: str) -> None:
@@ -343,7 +339,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
     certificate = json.loads((root / 'certification.json').read_text())
     summary = json.loads((root / 'wcxb-score-summary.json').read_text())
     scores = load_jsonl(root / 'wcxb-scores.jsonl', skip_blank=True)
-    sample_hash = digest(sample_file)
+    sample_hash = file_sha256(sample_file)
     require(sample_hash == profile['sample_manifest_sha256'] == summary['sample_sha256'], 'WCXB sample hash differs')
     require(sample_hash == certificate['sample_sha256_before'] == certificate['sample_sha256_after'], 'WCXB sample changed during calls')
     require(certificate['complete'] is True, 'WCXB certificate is incomplete')
@@ -369,7 +365,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
         optional_source = Path(optional_paths[0])
         optional_public = Path('research') / ('wcxb-' + optional_source.parent.name) / optional_source.name
         optional_receipt = contained_path(root, optional_public, reject_symlinks=True)
-        require(optional_receipt.is_file() and digest(optional_receipt) == profile['optional_ui_receipt_sha256'],
+        require(optional_receipt.is_file() and file_sha256(optional_receipt) == profile['optional_ui_receipt_sha256'],
                 'WCXB optional feature evidence differs from current profile')
         optional_root = optional_receipt.parent
         optional = json.loads(optional_receipt.read_text())
@@ -380,7 +376,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
             artifact = optional_root / f'{name}.md'
             require(build['binary_sha256'] == binary_hash and build['returncode'] == 0
                     and artifact.is_file() and not artifact.is_symlink()
-                    and digest(artifact) == build['output_sha256'],
+                    and file_sha256(artifact) == build['output_sha256'],
                     'WCXB optional UI-stripping output is not bound to its binary')
         require(all(isinstance(build.get('description_present'), bool)
                     for build in optional['builds'].values()),
@@ -406,11 +402,11 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
         require(row['quality_eligible'] == (row['case_id'] not in excluded), 'WCXB quality eligibility differs')
         for retry in row.get('retry_failures', []):
             retry_path = contained_path(root, retry['artifact_path'])
-            require(retry_path.is_file() and not retry_path.is_symlink() and digest(retry_path) == retry['output_sha256'], 'WCXB retry evidence differs')
+            require(retry_path.is_file() and not retry_path.is_symlink() and file_sha256(retry_path) == retry['output_sha256'], 'WCXB retry evidence differs')
         require(all(0 <= row[k] <= 1 for k in ('precision', 'recall', 'f1', 'with_rate', 'without_rate')), 'WCXB score is out of range')
     for case in case_ids:
         path = root / 'evidence' / f'{case}.json'
-        require(path.is_file() and not path.is_symlink() and digest(path) == evidence_hashes[case], 'WCXB case evidence differs')
+        require(path.is_file() and not path.is_symlink() and file_sha256(path) == evidence_hashes[case], 'WCXB case evidence differs')
         evidence = json.loads(path.read_text())
         require(evidence['case_id'] == case and set(evidence['outputs']) == set(providers), 'WCXB case evidence participants differ')
         for provider in providers:

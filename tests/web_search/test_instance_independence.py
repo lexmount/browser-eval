@@ -3,10 +3,10 @@ import json
 import pytest
 from bs4 import BeautifulSoup
 
+from harness.record_io import bytes_sha256
 from harness.web_search.comparison import render_comparison
 from harness.web_search.review import row_state
 from harness.web_search.revisions import validate_revision_binding
-from harness.web_search.core import digest
 
 
 def test_unlabelled_custom_report_does_not_claim_public_or_graded_results():
@@ -33,7 +33,7 @@ def test_review_selection_agrees_with_relevance_and_quarantine():
 
 def test_revision_authority_is_explicit_and_binds_cause_and_controls():
     revision = {"root_cause": "A synthetic missing reference", "regression_ids": ["unqualified-reference-rejected"], "provider_calls": 0}
-    identity = digest(json.dumps(revision, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode())
+    identity = bytes_sha256(json.dumps(revision, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode())
     record = dict(revision, sha256=identity)
     authority = {'assessment_revisions': {'schema': 'search-assessment-authority/1', 'approved_sha256': [identity], 'provenance': [record]}}
     validate_revision_binding(revision, authority=authority)

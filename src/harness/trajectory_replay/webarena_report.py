@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import html
 import importlib.resources
 import json
@@ -20,7 +19,7 @@ from urllib.parse import urlencode, urlsplit
 
 from harness.data_home import data_home
 from harness.environments.webarena.topology import RECORDING_GATEWAYS
-from harness.record_io import load_jsonl
+from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl, read_json, write_json
 from harness.report_languages import (
     add_language_argument,
     includes_english,
@@ -35,7 +34,7 @@ from harness.trajectory_replay.catalog_contracts import (
     LEGACY_CATALOG_CONTRACTS_SCHEMA,
     LEGACY_CATALOG_REPORT_SCHEMA,
 )
-from harness.trajectory_replay.evaluator_transition import json_sha256, reevaluate_pass
+from harness.trajectory_replay.evaluator_transition import reevaluate_pass
 from harness.trajectory_replay.failure_matrix import (
     browser_failure_profile,
     failure_category_matrix,
@@ -72,15 +71,6 @@ def _e(value: Any) -> str:
     return html.escape(str(value if value is not None else ""))
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _json_sha256(value: Any) -> str:
-    payload = json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(payload.encode()).hexdigest()
-
-
 def _legacy_retrieval_provenance(
     results: dict[str, Any], dataset: dict[str, Any]
 ) -> dict[str, Any]:
@@ -90,7 +80,7 @@ def _legacy_retrieval_provenance(
             or any(part.is_symlink() for part in (source, *source.parents))
             or not source.is_file()):
         raise ValueError("legacy replay seed manifest must be an absolute file without symlinks")
-    if _sha256(source) != results.get("source_seed_manifest_sha256"):
+    if file_sha256(source) != results.get("source_seed_manifest_sha256"):
         raise ValueError("legacy replay seed manifest hash mismatch")
     seeds = json.loads(source.read_text(encoding="utf-8"))
     by_id = {int(row["task_id"]): row for row in seeds["tasks"]}
@@ -111,7 +101,7 @@ def _legacy_retrieval_provenance(
         ]
         if len(candidates) != 1:
             raise ValueError(f"task {task_id}: canonical replay seed is ambiguous")
-        saved_hash = _json_sha256(candidates[0]["recorded_response"])
+        saved_hash = canonical_json_sha256(candidates[0]["recorded_response"])
         actual_hash = attempt.get("evaluation_input_sha256")
         if actual_hash != saved_hash:
             raise ValueError(f"task {task_id}: retrieval input differs from frozen Agent answer")
@@ -188,17 +178,8 @@ def _clean(value: Any) -> Any:
     return value
 
 
-def _write_json(path: Path, value: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(_clean(value), ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
-
-
-def _planned_actions_digest(actions: list[dict[str, Any]]) -> str:
-    payload = json.dumps(actions, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+def _write_clean_json(path: Path, value: Any) -> None:
+    write_json(path, _clean(value), parents=True)
 
 
 def _validated_planned_actions(attempt: dict[str, Any]) -> list[dict[str, Any]]:
@@ -211,7 +192,7 @@ def _validated_planned_actions(attempt: dict[str, Any]) -> list[dict[str, Any]]:
         or _clean(actions) != actions
         or len(actions) != attempt.get("action_count")
         or not isinstance(digest, str)
-        or digest != _planned_actions_digest(actions)
+        or digest != canonical_json_sha256(actions)
     ):
         raise ValueError(
             f"method-specific planned actions missing or changed for "
@@ -270,8 +251,8 @@ def _measured_validity_identity(
     # The current publication profile is deliberately not an input: changing
     # host/version cannot change the limitations of an already measured run.
     return {
-        "results_sha256": _sha256(results_source),
-        "dataset_sha256": _sha256(dataset_source),
+        "results_sha256": file_sha256(results_source),
+        "dataset_sha256": file_sha256(dataset_source),
         "profile_sha256": results.get("profile_sha256", ""),
     }
 
@@ -313,10 +294,10 @@ def _load_artifact(ref: dict[str, Any] | None) -> Any:
         not path.is_absolute()
         or any(part.is_symlink() for part in (path, *path.parents))
         or not path.is_file()
-        or _sha256(path) != ref.get("sha256")
+        or file_sha256(path) != ref.get("sha256")
     ):
         raise ValueError(f"evidence artifact is missing or changed: {path.name}")
-    return json.loads(path.read_text(encoding="utf-8"))
+    return read_json(path)
 
 
 def _supplemental_diagnostic(review: dict[str, Any] | None, task_id: int) -> Any:
@@ -731,7 +712,7 @@ def _copy_failure_screenshot(attempt: dict[str, Any], output: Path, key: str) ->
         not source.is_absolute()
         or any(part.is_symlink() for part in (source, *source.parents))
         or not source.is_file()
-        or _sha256(source) != ref.get("sha256")
+        or file_sha256(source) != ref.get("sha256")
     ):
         raise ValueError(f"failure screenshot is missing or changed: {key}")
     target = output / "assets/screenshots" / f"{key}.png"
@@ -837,7 +818,7 @@ def _public_evidence(
         "screenshot": screenshot,
     }
     public = _clean(public)
-    _write_json(output / "data/evidence" / f"{key}.json", public)
+    _write_clean_json(output / "data/evidence" / f"{key}.json", public)
     return public
 
 
@@ -1437,7 +1418,7 @@ def build_webarena_replay_report(
     results_source = Path(results_path)
     dataset_source = Path(dataset_path)
     dataset = json.loads(dataset_source.read_text(encoding="utf-8"))
-    if results.get("dataset_sha256") != _sha256(dataset_source):
+    if results.get("dataset_sha256") != file_sha256(dataset_source):
         raise ValueError("aggregate is not bound to the selected corrected dataset")
     validity_identity = _measured_validity_identity(results, results_source, dataset_source)
     legacy_key = (
@@ -1461,7 +1442,7 @@ def build_webarena_replay_report(
     for attempt in attempts:
         task_id = int(attempt["task_id"])
         task = tasks[task_id]
-        contract_sha256 = _json_sha256({
+        contract_sha256 = canonical_json_sha256({
             "task": task["task"], "evaluation_input": task["evaluation_input"],
         })
         if attempt.get("task_contract_sha256") != contract_sha256:
@@ -1479,19 +1460,19 @@ def build_webarena_replay_report(
     output.mkdir(parents=True)
     _assets(output)
     if legacy_provenance is not None:
-        _write_json(output / "data/legacy-retrieval-provenance.json", legacy_provenance)
+        _write_clean_json(output / "data/legacy-retrieval-provenance.json", legacy_provenance)
     corrected_acceptance = _corrected_acceptance_by_task(
         attempts, declared_revisions=profile.get("acceptance_revisions"),
     )
     for task_id, task in tasks.items():
-        _write_json(output / "data/trajectory" / f"{task_id}.json", {
+        _write_clean_json(output / "data/trajectory" / f"{task_id}.json", {
             "task_id": task_id,
             "tool_calls": task.get("tool_calls") or [],
         })
     for attempt in attempts:
         actions = validated_actions[(attempt["participant_id"], int(attempt["task_id"]))]
         key = f'{attempt["participant_id"]}-{attempt["task_id"]}'
-        _write_json(output / "data/trajectory" / f"{key}.json", {
+        _write_clean_json(output / "data/trajectory" / f"{key}.json", {
             "task_id": int(attempt["task_id"]),
             "participant_id": attempt["participant_id"],
             "planned_actions_sha256": attempt["planned_actions_sha256"],
@@ -1621,8 +1602,8 @@ def build_webarena_replay_report(
             matching_attempt = next(item for item in attempts if int(item["task_id"]) == task_id)
             target.write_text(_task_page(lang, task, rows_by_task[task_id], _historical_replay_validity_notice(**validity_identity, lang=lang), matching_attempt["reference_validity"], corrected_acceptance.get(task_id)), encoding="utf-8")
 
-    _write_json(output / "data/results.json", public_rows)
-    _write_json(output / "data/metrics.json", {
+    _write_clean_json(output / "data/results.json", public_rows)
+    _write_clean_json(output / "data/metrics.json", {
         "methods": method_rows,
         "distribution_scope": "all_declared_tasks",
         "successful_scope": "per_method_success",
@@ -2052,7 +2033,7 @@ def build_webarena_replay_report(
         for lang in languages:
             language_root = output if lang == "zh" else output / "en"
             arguments = dict(source=source, contract_audit=Path(interpretation_audit_path) if interpretation_audit_path is not None else source.parent / "trajectory-replay-contract-audit.json",
-                             results_sha256=_sha256(results_source), methods=methods, rows=public_rows,
+                             results_sha256=file_sha256(results_source), methods=methods, rows=public_rows,
                              lang=lang, image_dir=illustrations,
                              image_prefix=("assets/" if lang == "zh" else "../assets/") + "interpretation/")
             title, body = render_interpretation(**arguments)
@@ -2119,10 +2100,10 @@ def build_webarena_replay_report(
                     key: value for key, value in review.items()
                     if not (key.endswith("_en") and key[:-3] + "_zh" in review)
                 }
-            _write_json(evidence_path, document)
+            _write_clean_json(evidence_path, document)
         result_path = output / "data/results.json"
         rows = json.loads(result_path.read_text(encoding="utf-8"))
-        _write_json(result_path, [
+        _write_clean_json(result_path, [
             {key: value for key, value in row.items() if key not in {"cause_en", "reason_en"}}
             for row in rows
         ])
@@ -2153,13 +2134,13 @@ def build_webarena_replay_report(
         )
     manifest = {
         "schema": "lex_webarena_trajectory_replay_report/1",
-        "profile_sha256": _sha256(profile_source),
+        "profile_sha256": file_sha256(profile_source),
         "template": template_identity("trajectory-replay"),
         "languages": list(languages),
         "english_status": "generated" if include_english else "not_generated",
-        "results_sha256": _sha256(Path(results_path)),
-        "dataset_sha256": _sha256(Path(dataset_path)),
-        "review_sha256": _sha256(Path(review_path)),
+        "results_sha256": file_sha256(Path(results_path)),
+        "dataset_sha256": file_sha256(Path(dataset_path)),
+        "review_sha256": file_sha256(Path(review_path)),
         "task_count": len(tasks),
         "participant_count": len(comparison_methods),
         "browser_count": browser_count,
@@ -2182,7 +2163,7 @@ def build_webarena_replay_report(
         if profile.get("measurement_notes") else {},
     }
     manifest['browser_eval'] = bind_build_version(output)
-    _write_json(output / "report-manifest.json", manifest)
+    _write_clean_json(output / "report-manifest.json", manifest)
     if language is not None:
         entry = select_report_language(output, language)
         manifest.update(primary_language=language, entrypoint=entry.relative_to(output).as_posix())
@@ -2211,22 +2192,6 @@ CATALOG_SITE_LABELS = {
     "shopping_admin": "购物后台",
     "wikipedia": "维基百科",
 }
-
-
-def _catalog_file_sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
-
-
-def _catalog_read_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def _catalog_write_json(path: Path, value: Any) -> None:
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _catalog_percentile(values: list[float], proportion: float) -> float:
@@ -2267,7 +2232,7 @@ def _catalog_progress_index(evidence_root: Path) -> tuple[dict[str, Path], dict[
     directories: dict[str, Path] = {}
     rows_by_digest: dict[str, dict[int, dict]] = {}
     for progress in evidence_root.glob("*/progress.jsonl"):
-        digest = _catalog_file_sha256(progress)
+        digest = file_sha256(progress)
         rows = load_jsonl(progress)
         directories[digest] = progress.parent
         rows_by_digest[digest] = {int(row["task_id"]): row for row in rows}
@@ -2289,10 +2254,10 @@ def build_catalog_acceptance_report(
 
     if output.exists() or archive.exists():
         raise FileExistsError("report output already exists")
-    ledger = _catalog_read_json(ledger_path)
-    scope = _catalog_read_json(scope_path)
-    catalog = _catalog_read_json(catalog_path)
-    suite = _catalog_read_json(suite_path)
+    ledger = read_json(ledger_path)
+    scope = read_json(scope_path)
+    catalog = read_json(catalog_path)
+    suite = read_json(suite_path)
     official = _catalog_official_tasks()
     task_ids = catalog.get("task_ids")
     expected_data_checksum = scope.get("official_dataset_sha256")
@@ -2377,12 +2342,12 @@ def build_catalog_acceptance_report(
                 benchmark=benchmark,
                 corrections=corrections,
             )
-            if binding != transition or json_sha256(evaluation) != transition.get(
+            if binding != transition or canonical_json_sha256(evaluation) != transition.get(
                 "current_evaluation_sha256"
             ):
                 raise ValueError(f"task {task_id} transitioned evaluation changed")
         else:
-            evaluation = _catalog_read_json(task_dir / "evaluation.json")
+            evaluation = read_json(task_dir / "evaluation.json")
         evidence = {
             "schema": "lex_webarena_catalog_public_evidence/1",
             "task_id": task_id,
@@ -2421,10 +2386,10 @@ def build_catalog_acceptance_report(
             "attempt_statuses": [item["status"] for item in accepted_row["attempts"]],
             "evaluation": evaluation,
             "evaluator_transition": transition,
-            "actual_response": _catalog_read_json(task_dir / "actual_response.json"),
-            "trace": _catalog_read_json(task_dir / "trace.json"),
+            "actual_response": read_json(task_dir / "actual_response.json"),
+            "trace": read_json(task_dir / "trace.json"),
         }
-        _catalog_write_json(output / "evidence" / f"{task_id:03}.json", evidence)
+        write_json(output / "evidence" / f"{task_id:03}.json", evidence)
         case_body = (
             f"<h1>第 {task_id} 题 · {html.escape(participant)} 通过</h1>"
             f'<p class="lead">{html.escape(intent)}</p>'
@@ -2499,7 +2464,7 @@ def build_catalog_acceptance_report(
         _catalog_shell("方法与边界", method_body, participant), encoding="utf-8"
     )
 
-    _catalog_write_json(
+    write_json(
         output / "dataset-contracts.json",
         {"schema": LEGACY_CATALOG_CONTRACTS_SCHEMA, "tasks": contracts},
     )
@@ -2539,10 +2504,10 @@ def build_catalog_acceptance_report(
                 else {}
             ),
         },
-        "ledger_sha256": _catalog_file_sha256(ledger_path),
-        "scope_sha256": _catalog_file_sha256(scope_path),
-        "catalog_sha256": _catalog_file_sha256(catalog_path),
-        "portable_suite_sha256": _catalog_file_sha256(suite_path),
+        "ledger_sha256": file_sha256(ledger_path),
+        "scope_sha256": file_sha256(scope_path),
+        "catalog_sha256": file_sha256(catalog_path),
+        "portable_suite_sha256": file_sha256(suite_path),
         "task_count": len(official),
         "pass": counts["pass"],
         "initial_physical_attempts": initial_physical,
@@ -2554,7 +2519,7 @@ def build_catalog_acceptance_report(
         "site_counts": site_counts,
         "route_counts": {"case": len(official), "evidence_json": len(official)},
     }
-    _catalog_write_json(output / "manifest.json", manifest)
+    write_json(output / "manifest.json", manifest)
     with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as bundle:
         for path in sorted(output.rglob("*")):
             if path.is_file():
@@ -2563,8 +2528,8 @@ def build_catalog_acceptance_report(
     return {
         "output": str(output),
         "archive": str(archive),
-        "manifest_sha256": _catalog_file_sha256(output / "manifest.json"),
-        "archive_sha256": _catalog_file_sha256(archive),
+        "manifest_sha256": file_sha256(output / "manifest.json"),
+        "archive_sha256": file_sha256(archive),
         "archive_bytes": archive.stat().st_size,
     }
 
@@ -2574,7 +2539,7 @@ def validate_catalog_acceptance_report(
 ) -> dict:
     """Validate the public boundary of a catalog report package."""
 
-    manifest = _catalog_read_json(output / "manifest.json")
+    manifest = read_json(output / "manifest.json")
     task_count = int(manifest.get("task_count") or 0)
     if (
         manifest.get("schema") != LEGACY_CATALOG_REPORT_SCHEMA

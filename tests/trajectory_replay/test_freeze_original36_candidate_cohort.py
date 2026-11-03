@@ -294,7 +294,7 @@ def test_product_save_revision_uses_the_visible_form_control() -> None:
 def _lineage_fixture(tmp_path):
     import copy
 
-    from harness.trajectory_replay.remote_runtime import input_digest
+    from harness.record_io import canonical_json_sha256
 
     index, site_map, roles = _fixture(tmp_path)
     parent = {
@@ -303,13 +303,13 @@ def _lineage_fixture(tmp_path):
             {"action": "press", "key": "Tab"}, {"action": "snapshot"},
         ],
     }
-    parent["canonical_calls_sha256"] = input_digest(parent["tool_calls"])
+    parent["canonical_calls_sha256"] = canonical_json_sha256(parent["tool_calls"])
     parent_sha = hashlib.sha256(
         (json.dumps(parent, ensure_ascii=False, indent=2) + "\n").encode()
     ).hexdigest()
     candidate = copy.deepcopy(parent)
     candidate["tool_calls"][0] = {"action": "evaluate", "script": "document.title"}
-    candidate["canonical_calls_sha256"] = input_digest(candidate["tool_calls"])
+    candidate["canonical_calls_sha256"] = canonical_json_sha256(candidate["tool_calls"])
     path = tmp_path / "candidate.json"
     path.write_text(json.dumps(candidate), encoding="utf-8")
     override = {
@@ -355,11 +355,11 @@ def test_declared_parent_proof_works_for_any_task_and_reference_root(tmp_path, m
 
 
 def test_undeclared_candidate_change_cannot_borrow_parent_qualification(tmp_path):
-    from harness.trajectory_replay.remote_runtime import input_digest
+    from harness.record_io import canonical_json_sha256
 
     index, site_map, roles, candidate = _lineage_fixture(tmp_path)
     candidate["tool_calls"][1] = {"action": "press", "key": "Enter"}
-    candidate["canonical_calls_sha256"] = input_digest(candidate["tool_calls"])
+    candidate["canonical_calls_sha256"] = canonical_json_sha256(candidate["tool_calls"])
     path = tmp_path / "candidate.json"
     path.write_text(json.dumps(candidate), encoding="utf-8")
     roles["candidate_overrides"][0]["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()

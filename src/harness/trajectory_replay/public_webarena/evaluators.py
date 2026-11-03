@@ -145,9 +145,3 @@ class EvaluatorRegistry:
                 self._webarena = WebArenaVerifiedEvaluator(config_path=self._webarena_config_path)
             return self._webarena.evaluate(task, evidence)
         raise ValueError(f"unsupported evaluator kind: {kind!r}")
-
-
-def write_agent_response(path: str | Path, response: Any) -> None:
-    Path(path).write_text(
-        json.dumps(response, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )

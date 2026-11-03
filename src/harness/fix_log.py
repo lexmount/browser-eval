@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 from collections.abc import Callable
@@ -10,6 +9,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from PIL import Image
+from harness.record_io import file_sha256, read_json
 
 from harness.reporting.privacy import FIX_LOG_LOCAL_ROOT
 
@@ -18,14 +18,6 @@ EMPTY_FIX_LOG = {
     "records": [],
     "artifacts": [],
 }
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
-
-
-def _read_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def load_fix_log(
@@ -46,10 +38,10 @@ def load_fix_log(
         source.is_symlink()
         or any(parent.is_symlink() for parent in source.parents)
         or not source.is_file()
-        or _sha256(source) != binding["source_sha256"]
+        or file_sha256(source) != binding["source_sha256"]
     ):
         raise ValueError("fix log is not hash-bound")
-    model = _read_json(source)
+    model = read_json(source)
     if model.get("schema") != EMPTY_FIX_LOG["schema"]:
         raise ValueError("unsupported fix log schema")
     if set(model) != {"schema", "records", "artifacts"}:
@@ -90,7 +82,7 @@ def load_fix_log(
             or path.is_symlink()
             or any(parent.is_symlink() for parent in path.parents)
             or not path.is_file()
-            or _sha256(path) != artifact["sha256"]
+            or file_sha256(path) != artifact["sha256"]
         ):
             raise ValueError("fix artifact is unsafe, missing or not hash-bound")
         kind = artifact.get("kind")
@@ -114,7 +106,7 @@ def load_fix_log(
         elif kind == "receipt":
             if path.stat().st_size > 1_000_000:
                 raise ValueError("fix receipt exceeds compact public evidence limit")
-            receipt = _read_json(path)
+            receipt = read_json(path)
             if receipt.get("schema") not in {
                 "lex_browser_use_fix_test_receipt/1",
                 "lex_browser_use_fix_comparison_receipt/1",
@@ -187,7 +179,7 @@ def load_fix_log(
             raise ValueError("unsupported fix comparison basis")
         if record["scope"] == "formal":
             reference(record.get("certification"), "receipt")
-            certification = _read_json(Path(artifacts[record["certification"]]["path"]))
+            certification = read_json(Path(artifacts[record["certification"]]["path"]))
             certification_key = (
                 "input_sha256" if basis_kind == "identical_inputs" else "task_contract_sha256"
             )
@@ -242,7 +234,7 @@ def load_fix_log(
                 digest(run["source_diff_sha256"])
             localized(run.get("observation"))
             reference(run.get("receipt"), "receipt")
-            receipt = _read_json(Path(artifacts[run["receipt"]]["path"]))
+            receipt = read_json(Path(artifacts[run["receipt"]]["path"]))
             if basis_kind == "identical_inputs":
                 if any(key in run for key in ("input_sha256", "trajectory_sha256", "action_count")):
                     raise ValueError("identical-input comparisons use the shared record input")
@@ -300,7 +292,7 @@ def load_fix_log(
             if not test.get("command") or not test.get("result"):
                 raise ValueError("fix test requires exact command and recorded result")
             reference(test.get("receipt"), "receipt")
-            receipt = _read_json(Path(artifacts[test["receipt"]]["path"]))
+            receipt = read_json(Path(artifacts[test["receipt"]]["path"]))
             if (
                 receipt.get("schema") != "lex_browser_use_fix_test_receipt/1"
                 or receipt.get("command") != test["command"]

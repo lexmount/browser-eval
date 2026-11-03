@@ -16,6 +16,7 @@ from typing import Any
 from lexbench_webfetch.inputs import definition_path
 from lexbench_webfetch.stable_tasks import validate_acceptance_contract
 
+from harness.record_io import canonical_json_sha256
 from harness.web_fetch.reference_inputs import input_tree
 
 # Compare against this immutable declaration; store a fresh dict in each case.
@@ -70,11 +71,7 @@ def _verify_task_definition(identifier: str, expected_sha256: str) -> None:
 
 def task_definition_sha256(case: Mapping[str, Any]) -> str:
     """Hash one task with the same canonical form as the frozen catalog."""
-    return hashlib.sha256(
-        json.dumps(
-            case, ensure_ascii=False, sort_keys=True, separators=(",", ":")
-        ).encode()
-    ).hexdigest()
+    return canonical_json_sha256(case)
 
 
 @lru_cache(maxsize=1)

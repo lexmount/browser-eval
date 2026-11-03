@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.record_io import bytes_sha256
 from harness.benchmarks import data
 from harness.web_search import runner
 from tests.web_search.fixtures import execution_profile
@@ -25,7 +26,7 @@ def _dependency_files(output, contract, pin=LEGACY_PIN, lock_pin=None):
     )
     for name, text in (("pyproject.toml", project), ("uv.lock", lock)):
         (frozen / name).write_text(text)
-        contract["implementation"][name] = runner.digest(text.encode())
+        contract["implementation"][name] = bytes_sha256(text.encode())
 
 
 @pytest.fixture
@@ -89,9 +90,9 @@ def legacy_run(tmp_path, monkeypatch):
                 "schema": "web-search-execution-revision/1",
                 "root_cause": "Native endpoint changed",
                 "superseded_methods": [revised["methods"][1]["id"]],
-                "previous_profile_sha256": runner.digest(source.read_bytes()),
-                "profile_sha256": runner.digest(replacement.read_bytes()),
-                "evidence": [{"path": proof.name, "sha256": runner.digest(proof.read_bytes())}],
+                "previous_profile_sha256": bytes_sha256(source.read_bytes()),
+                "profile_sha256": bytes_sha256(replacement.read_bytes()),
+                "evidence": [{"path": proof.name, "sha256": bytes_sha256(proof.read_bytes())}],
             }
         )
     )

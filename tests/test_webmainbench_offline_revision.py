@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from harness.record_io import bytes_sha256, canonical_json_sha256, file_sha256
 from harness.web_fetch import webmainbench_correction as correction
 
 
@@ -35,7 +36,7 @@ def certified_case(tmp_path, monkeypatch):
                 "case_id": "one",
                 "ok": True,
                 "artifact_path": path.name,
-                "output_sha256": correction.digest(path),
+                "output_sha256": file_sha256(path),
                 "physical_attempt_count": 1,
                 "metrics": {"text_edit": {"success": True, "score": 1, "details": {}}},
             }
@@ -46,7 +47,7 @@ def certified_case(tmp_path, monkeypatch):
                 "track_id": "one",
                 "attempt_id": provider,
                 "physical_artifact_path": path.name,
-                "output_sha256": correction.digest(path),
+                "output_sha256": file_sha256(path),
             }
         )
     write_rows(source / "results.jsonl", rows)
@@ -54,8 +55,8 @@ def certified_case(tmp_path, monkeypatch):
     plan = {
         "case_id": "one",
         "providers": ["first", "second"],
-        "input_html_sha256": correction.text_digest(case["html"]),
-        "reference_sha256": correction.text_digest(case["groundtruth_content"]),
+        "input_html_sha256": bytes_sha256(case["html"].encode()),
+        "reference_sha256": bytes_sha256(case["groundtruth_content"].encode()),
     }
     certificate = {
         "kind": "webmainbench_origin_correction_v1",
@@ -65,8 +66,8 @@ def certified_case(tmp_path, monkeypatch):
 
     def recertify():
         certificate.update(
-            results_sha256=correction.digest(source / "results.jsonl"),
-            physical_sha256=correction.digest(source / "physical-attempts.jsonl"),
+            results_sha256=file_sha256(source / "results.jsonl"),
+            physical_sha256=file_sha256(source / "physical-attempts.jsonl"),
         )
         (source / "certificate.json").write_text(json.dumps(certificate))
 
@@ -108,7 +109,7 @@ def test_case_revision_preserves_source_and_physical_calls(certified_case, tmp_p
     assert revised[0]["pre_scoring_correction_metrics"] == rows[0]["metrics"]
     assert revised[0]["metrics"]["text_edit"]["score"] == 1
     assert receipt["provider_calls"] == 0
-    assert receipt["regression_registry_sha256"] == correction.digest(correction.regression_registry_path())
+    assert receipt["regression_registry_sha256"] == file_sha256(correction.regression_registry_path())
     assert receipt["regression_ids"] == list(correction.CONTROL_IDS)
     for name in ("first.md", "second.md"):
         assert (output / name).read_bytes() == before[Path(name)]
@@ -219,8 +220,8 @@ def test_full_population_revision_is_atomic(certified_case, tmp_path, monkeypatc
                 "id": identifier,
                 "url": record["url"],
                 "meta": {},
-                "input_html_sha256": correction.text_digest(record["html"]),
-                "reference_sha256": correction.text_digest("reference"),
+                "input_html_sha256": bytes_sha256(record["html"].encode()),
+                "reference_sha256": bytes_sha256("reference".encode()),
             }
         )
         (source / "references" / (identifier + ".md")).write_text("reference")
@@ -247,8 +248,8 @@ def test_full_population_revision_is_atomic(certified_case, tmp_path, monkeypatc
     )
     population = {
         "row_count": 545,
-        "rows_sha256": correction.json_digest(corrected),
-        "ordered_track_ids_sha256": correction.json_digest([row["track_id"] for row in corrected]),
+        "rows_sha256": canonical_json_sha256(corrected),
+        "ordered_track_ids_sha256": canonical_json_sha256([row["track_id"] for row in corrected]),
     }
     manifest = tmp_path / "authority.json"
     manifest.write_text(

@@ -18,7 +18,7 @@ from lexbench_webfetch.metrics import percentile
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
 from harness.platform_capabilities import sandbox_exec_command
-from harness.record_io import load_jsonl, parse_jsonl
+from harness.record_io import file_sha256, load_jsonl, parse_jsonl
 from harness.web_fetch import webmainbench_runner
 from harness.web_fetch.providers.headless import LOOPBACK_SANDBOX_PROFILE
 from harness.web_fetch.safety import unlinked_path
@@ -27,10 +27,6 @@ from harness.web_fetch.webmainbench_evidence import retry_chain_matches
 from harness.web_fetch.webmainbench_latency_correction import prior_results_path
 
 RUNS = {'moli-115-control': 'moli', 'moli-117-repeat': 'moli-1.1.7'}
-
-
-def digest(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def verified_bytes(root: Path, filename: str, expected: str) -> bytes:
@@ -146,7 +142,7 @@ def load_diagnostic(source: Path, dataset: dict, official_records: list[dict], m
         raise ValueError('Unrecognized Moli latency diagnostic')
     cases = {case['id']: case for case in dataset['cases']}
     original_manifests = {row['provider']: row for row in manifests}
-    if manifest.get('official_results_sha256') != digest(prior_results_path(source)):
+    if manifest.get('official_results_sha256') != file_sha256(prior_results_path(source)):
         raise ValueError('Latency diagnostic does not bind the preserved original matrix')
     monitor_data = verified_bytes(root, 'system-monitor.log', manifest.get('system_monitor_sha256'))
     all_rows = {}
@@ -412,7 +408,7 @@ def paired_tail_main(argv=None) -> None:
         args.prior_newer,
         *binaries.values(),
     ]
-    bindings = {unlinked_path(path): digest(unlinked_path(path)) for path in bound_paths}
+    bindings = {unlinked_path(path): file_sha256(unlinked_path(path)) for path in bound_paths}
     for version, binary in binaries.items():
         result = subprocess.run(
             [str(binary), "--version"], capture_output=True, text=True, check=True
@@ -467,13 +463,13 @@ def paired_tail_main(argv=None) -> None:
         "slow_case_ids": slow,
         "control_case_ids": controls,
         "rounds": args.rounds,
-        "dataset_sha256": digest(args.dataset),
-        "sample_sha256": digest(args.sample),
+        "dataset_sha256": file_sha256(args.dataset),
+        "sample_sha256": file_sha256(args.sample),
         "prior_sha256": {
-            versions[0]: digest(args.prior_older),
-            versions[1]: digest(args.prior_newer),
+            versions[0]: file_sha256(args.prior_older),
+            versions[1]: file_sha256(args.prior_newer),
         },
-        "binaries": {v: {"path": str(p), "sha256": digest(p)} for v, p in binaries.items()},
+        "binaries": {v: {"path": str(p), "sha256": file_sha256(p)} for v, p in binaries.items()},
         "runner_sha256": hashlib.sha256(frozen_source).hexdigest(),
         "runner_source_path": "runner-source.py",
         "call": "sandbox-exec loopback-only moli fetch --dump markdown --wait-until done "
@@ -542,7 +538,7 @@ def paired_tail_main(argv=None) -> None:
                             "version": version,
                             "elapsed_ms": elapsed_ms,
                             "exit_code": status,
-                            "output_sha256": digest(target),
+                            "output_sha256": file_sha256(target),
                             "output_bytes": len(body),
                             "stderr": error.decode("utf-8", "replace")[-1000:],
                             "input_html_sha256": hashlib.sha256(
@@ -557,7 +553,7 @@ def paired_tail_main(argv=None) -> None:
                 )
 
     if Path(__file__).read_bytes() != frozen_source or any(
-        digest(path) != expected for path, expected in bindings.items()
+        file_sha256(path) != expected for path, expected in bindings.items()
     ):
         raise ValueError("Paired timing inputs or runner changed during calls")
 

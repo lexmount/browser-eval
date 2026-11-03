@@ -8,10 +8,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from harness.record_io import canonical_json_sha256, file_sha256, read_json
 from harness.trajectory_replay.remote_runtime import (
     COHORT_RESET_SCOPE,
     checked_file_sha256,
-    input_digest,
     selected_task_ids,
     validate_remote_cohort_reset_receipt,
 )
@@ -25,11 +25,7 @@ EFFECTIVE_SCHEMA = "lex_webarena_trajectory_replay_effective_suite/1"
 
 def _read(path: str | Path) -> tuple[Path, dict[str, Any]]:
     resolved = Path(path).expanduser().resolve()
-    return resolved, json.loads(resolved.read_text(encoding="utf-8"))
-
-
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return resolved, read_json(resolved)
 
 
 def _attempt_map(receipt: dict[str, Any]) -> dict[tuple[str, int], dict[str, Any]]:
@@ -105,7 +101,7 @@ def build_effective_results(
         {
             "role": "base",
             "path": str(base_path),
-            "sha256": _sha256(base_path),
+            "sha256": file_sha256(base_path),
             "run_id": str(base.get("run_id") or ""),
             "task_ids": list(base.get("task_ids") or []),
         }
@@ -138,7 +134,7 @@ def build_effective_results(
             {
                 "role": "correction",
                 "path": str(path),
-                "sha256": _sha256(path),
+                "sha256": file_sha256(path),
                 "run_id": str(receipt.get("run_id") or ""),
                 "task_ids": list(receipt.get("task_ids") or []),
             }
@@ -237,7 +233,7 @@ EVIDENCE_FILES = {
 
 def _read_cohort_input(path: Path) -> dict[str, Any]:
     checked_file_sha256(path)
-    value = json.loads(path.read_text(encoding="utf-8"))
+    value = read_json(path)
     if not isinstance(value, dict):
         raise ValueError(f"expected JSON object: {path}")
     return value
@@ -379,7 +375,7 @@ def _verified_method_cohort(
         raise ValueError(f"{method_id}: site reset belongs to another method")
     attempts = []
     for task_id, plan, row in zip(task_ids, manifest_rows, result_rows, strict=True):
-        contract_sha256 = input_digest(
+        contract_sha256 = canonical_json_sha256(
             {
                 "task": dataset[task_id]["task"],
                 "evaluation_input": dataset[task_id]["evaluation_input"],
@@ -394,9 +390,9 @@ def _verified_method_cohort(
             or not actions
             or not isinstance(source_actions, list)
             or not source_actions
-            or input_digest(source_actions) != plan.get("source_calls_sha256")
+            or canonical_json_sha256(source_actions) != plan.get("source_calls_sha256")
             or any(not isinstance(a, dict) or not a.get("action") for a in actions)
-            or input_digest(actions) != plan.get("bound_calls_sha256")
+            or canonical_json_sha256(actions) != plan.get("bound_calls_sha256")
             or row.get("executed_actions_sha256") != plan.get("bound_calls_sha256")
             or row.get("action_count") != len(actions)
             or not isinstance(row.get("completed_actions"), int)

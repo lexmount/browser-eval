@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import argparse
 import gzip
-import hashlib
 import importlib
 import io
 import json
@@ -13,15 +12,12 @@ import tarfile
 from fnmatch import fnmatchcase
 from dataclasses import dataclass, replace
 from pathlib import Path
+from harness.record_io import bytes_sha256
 
 CARDS = Path(__file__).with_name("cards")
 HEADLESS_REPOSITORY = "https://github.com/lexmount/Lexbench-Headless-Browser"
 HEADLESS_INPUTS = ("tasks", "fixtures", "config", "manifest.json", "harness_pins.json",
                    "LICENSE", "THIRD_PARTY_NOTICES.md")
-
-
-def digest(raw: bytes) -> str:
-    return hashlib.sha256(raw).hexdigest()
 
 
 def encoded(value: object) -> bytes:
@@ -73,7 +69,7 @@ def _headless_definitions(checkout: Path, revision: str) -> dict[str, bytes]:
         if set(Path(name).parts) & {"runs", "reports", "generated", "private_artifacts"}:
             raise ValueError("Unexpected headless input: " + name)
         files["definitions/" + name] = content
-        source_files[name] = {"sha256": digest(content), "size": len(content)}
+        source_files[name] = {"sha256": bytes_sha256(content), "size": len(content)}
         if name in {"LICENSE", "THIRD_PARTY_NOTICES.md"}:
             files[name] = content
     required = ("manifest.json", "harness_pins.json", "LICENSE", "THIRD_PARTY_NOTICES.md",
@@ -102,7 +98,7 @@ def _headless_definitions(checkout: Path, revision: str) -> dict[str, bytes]:
             path = "viewer/" + identity + ".json"
             payload = encoded({"cases": cases})
             files["definitions/" + path] = payload
-            datasets[identity] = {"path": path, "sha256": digest(payload), "count": len(cases),
+            datasets[identity] = {"path": path, "sha256": bytes_sha256(payload), "count": len(cases),
                                   "id_field": "task_id", "driver": subset["driver"],
                                   "layer": layer["layer_id"], "protocol": subset,
                                   "source_paths": {case["task_id"]: name.removeprefix("definitions/")
@@ -114,7 +110,7 @@ def _headless_definitions(checkout: Path, revision: str) -> dict[str, bytes]:
         raise ValueError("Missing headless scenario specifications")
     path, payload = "viewer/scenario-specs.json", encoded({"cases": cases})
     files["definitions/" + path] = payload
-    datasets["scenario-specs"] = {"path": path, "sha256": digest(payload), "count": len(cases),
+    datasets["scenario-specs"] = {"path": path, "sha256": bytes_sha256(payload), "count": len(cases),
                                  "id_field": "scenario_id", "population": "scenario-specifications",
                                  "source_paths": {case["scenario_id"]: name.removeprefix("definitions/")
                                                   for case, name in zip(cases, scenarios)}}
@@ -199,7 +195,7 @@ class DatasetRelease:
                 if local.is_symlink() or not local.resolve().is_relative_to(checkout.resolve()):
                     raise ValueError("Unsafe local LFS file")
                 content = local.read_bytes()
-                if digest(content) != pointer[1].decode() or len(content) != int(pointer[2]):
+                if bytes_sha256(content) != pointer[1].decode() or len(content) != int(pointer[2]):
                     raise ValueError("Materialize the exact committed LFS object: " + original_name)
             files[name] = content
         repository = "https://huggingface.co/datasets/" + registered[track]["repo_id"] if hub else None
@@ -255,7 +251,7 @@ class DatasetRelease:
                             or not re.fullmatch(r"[0-9a-f]{64}", expected)):
                         raise ValueError("Invalid Web Fetch definition binding")
                     name = "definitions/" + (Path(directory) / relative).as_posix()
-                    if name not in self.files or digest(self.files[name]) != expected:
+                    if name not in self.files or bytes_sha256(self.files[name]) != expected:
                         raise ValueError("Web Fetch definition missing or changed: " + name)
                 datasets[row["id"]] = {
                     "path": (Path(directory) / "tasks.json").as_posix(),
@@ -314,7 +310,7 @@ class DatasetRelease:
                         or not re.fullmatch(r"[0-9a-f]{64}", expected["sha256"])
                         or type(expected.get("size")) is not int or expected["size"] < 0
                         or (relative == datasets[identity]["path"] and expected["sha256"] != datasets[identity]["sha256"])
-                        or (name in self.files and (digest(self.files[name]) != expected["sha256"]
+                        or (name in self.files and (bytes_sha256(self.files[name]) != expected["sha256"]
                             or len(self.files[name]) != expected["size"]))):
                     raise ValueError("External definition differs: " + name)
                 selected["files"][name] = {"sha256": expected["sha256"], "size": expected["size"]}
@@ -366,7 +362,7 @@ class DatasetRelease:
             registry = json.loads(files["definitions/registry.json"])
             for name, binding in registry["source_files"].items():
                 content = files["definitions/" + name]
-                if digest(content) != binding["sha256"] or len(content) != binding["size"]:
+                if bytes_sha256(content) != binding["sha256"] or len(content) != binding["size"]:
                     raise ValueError("Original headless input does not match inventory: " + name)
         configurations = []
         summary = []
@@ -389,7 +385,7 @@ class DatasetRelease:
                 case_id = case[identity_field]
                 annotation = annotations.get(identity, {}).get(case_id)
                 if annotation is not None:
-                    if digest(encoded(case)) != annotation["case_sha256"]:
+                    if bytes_sha256(encoded(case)) != annotation["case_sha256"]:
                         raise ValueError("Language annotation does not match frozen task: " + case_id)
                     language = annotation["language"]
                     used_annotations.setdefault(identity, {})[case_id] = annotation
@@ -444,7 +440,7 @@ class DatasetRelease:
             "source_repository": self.source_repository or f"https://github.com/lexmount/lexbench-{self.track}",
             "source_revision": self.revision, "datasets": self.datasets(),
             "viewer": {"configurations": summary, "language_annotations": used_annotations},
-            "files": {name: {"sha256": digest(raw), "size": len(raw)} for name, raw in sorted(files.items())},
+            "files": {name: {"sha256": bytes_sha256(raw), "size": len(raw)} for name, raw in sorted(files.items())},
         }
         manifest.update(settings)
         manifest['viewer_filters'] = {
@@ -484,7 +480,7 @@ class DatasetRelease:
             if name not in self.files:
                 raise ValueError("Unknown dataset definition: " + identity)
             raw = self.files[name]
-            if digest(raw) != binding["sha256"]:
+            if bytes_sha256(raw) != binding["sha256"]:
                 raise ValueError("Dataset hash mismatch: " + identity)
             if binding.get("format", "json") not in {"json", "jsonl"}:
                 raise ValueError("Unknown dataset format: " + identity)
@@ -525,7 +521,7 @@ class DatasetRelease:
                     archive.addfile(item, io.BytesIO(raw))
         bundle = buffer.getvalue()
         (output / "definitions.tar.gz").write_bytes(bundle)
-        manifest["archive"] = {"path": "definitions.tar.gz", "sha256": digest(bundle), "size": len(bundle)}
+        manifest["archive"] = {"path": "definitions.tar.gz", "sha256": bytes_sha256(bundle), "size": len(bundle)}
         (output / "manifest.json").write_bytes(encoded(manifest))
         header = {key: metadata[key] for key in ("pretty_name", "license", "tags", "task_categories", "source_datasets")}
         header["language"] = sorted(languages - {"und", "zxx", "mul"}) or ["und"]
@@ -548,7 +544,7 @@ class DatasetRelease:
         body = body.replace("{{tooling_checkout}}", checkout)
         card = "---\n" + yaml.safe_dump(header, sort_keys=False, allow_unicode=True) + "---\n\n" + body.strip() + "\n"
         (output / "README.md").write_text(card, encoding="utf-8")
-        return {**manifest, "archive": {"path": "definitions.tar.gz", "sha256": digest(bundle), "size": len(bundle)}}
+        return {**manifest, "archive": {"path": "definitions.tar.gz", "sha256": bytes_sha256(bundle), "size": len(bundle)}}
 
 
 def main() -> None:

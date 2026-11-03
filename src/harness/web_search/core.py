@@ -4,8 +4,6 @@ Anchor hits measure a declared known-page set, never exhaustive web recall.
 Unjudged URLs are not irrelevant documents. Provider scores are not judgments.
 """
 
-import hashlib
-import json
 import re
 import statistics
 from pathlib import Path
@@ -15,12 +13,9 @@ from lexbench_webfetch.metrics import percentile
 from lexbench_websearch.contracts import validate_cases
 from lexbench_websearch.scoring import canonical_url, normalize_results
 
+from harness.record_io import bytes_sha256, json_bytes
 from harness.reporting.publication import atomic_write
 from harness.web_search.adapters import BILLING_POLICIES, Adapter, adapter_for, normalize_envelope
-
-
-def digest(data):
-    return hashlib.sha256(data).hexdigest()
 
 
 def request_cost(method, status, transport_exit, payload):
@@ -157,10 +152,10 @@ def verify_bundle(root, bindings):
         if (
             not path.resolve().is_relative_to(root)
             or not path.is_file()
-            or digest(path.read_bytes()) != entry["sha256"]
+            or bytes_sha256(path.read_bytes()) != entry["sha256"]
         ):
             raise ValueError("Evidence hash mismatch: " + entry["path"])
 
 
 def write_json(path, value):
-    atomic_write(Path(path), (json.dumps(value, ensure_ascii=False, indent=2) + "\n").encode())
+    atomic_write(Path(path), json_bytes(value))

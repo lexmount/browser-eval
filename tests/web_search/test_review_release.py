@@ -5,6 +5,7 @@ import json
 import pytest
 from bs4 import BeautifulSoup
 
+from harness.record_io import bytes_sha256
 from harness.web_search import review
 from harness.web_search.example import example
 from harness.web_search.report import build, check
@@ -22,8 +23,8 @@ def audited_fixture(tmp_path, source_mode="frozen", packet_bound=False, scope="a
                 for number in range(rounds) for row in original]
         (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
         receipt = json.loads((source / "receipt.json").read_bytes())
-        receipt.update(call_count=len(rows), profile_sha256=review.sha((source / "profile.json").read_bytes()),
-                       results_sha256=review.sha((source / "results.jsonl").read_bytes()))
+        receipt.update(call_count=len(rows), profile_sha256=bytes_sha256((source / "profile.json").read_bytes()),
+                       results_sha256=bytes_sha256((source / "results.jsonl").read_bytes()))
         review.save(source / "receipt.json", receipt)
         build(tmp_path / "report", source=source)
     report = tmp_path / "report"
@@ -77,8 +78,8 @@ def audited_fixture(tmp_path, source_mode="frozen", packet_bound=False, scope="a
         if packet_bound:
             schema_path = attempt / "schema.json"
             review.save(schema_path, review._packet_schema(review.SCHEMA, packet, entry["sha256"]))
-            schema_receipt = {"schema_protocol": "packet-identities/1", "schema_sha256": review.sha(schema_path.read_bytes())}
-        review.save(job / "status.json", {"status":"completed","backend":"codex-cli","returncode":0,"attempt":attempt.name,"command":review._review_command("codex", contract["model"], attempt, schema_path.resolve(), (attempt / "result.json").resolve(), source_mode=review._source_mode(contract)),"packet_sha256":entry["sha256"],"contract_sha256":review.sha(review.encoded(contract)),"input_sha256":review.sha(text.encode()),"result_sha256":review.sha(submission.read_bytes()), **schema_receipt})
+            schema_receipt = {"schema_protocol": "packet-identities/1", "schema_sha256": bytes_sha256(schema_path.read_bytes())}
+        review.save(job / "status.json", {"status":"completed","backend":"codex-cli","returncode":0,"attempt":attempt.name,"command":review._review_command("codex", contract["model"], attempt, schema_path.resolve(), (attempt / "result.json").resolve(), source_mode=review._source_mode(contract)),"packet_sha256":entry["sha256"],"contract_sha256":bytes_sha256(review.encoded(contract)),"input_sha256":bytes_sha256(text.encode()),"result_sha256":bytes_sha256(submission.read_bytes()), **schema_receipt})
     evidence = review.collect(root, require_complete=True)
     evidence["adjudications"] = {}
     return report, evidence
@@ -207,9 +208,9 @@ def test_reference_exclusion_cannot_target_a_provider_output(tmp_path):
     # Rebind the fixture opinion exactly as a completed independent submission.
     run = next(r for r in evidence["review_runs"] if case["case_id"] in r["case_ids"])
     original_cases = [{**c, "output_reviews": [{k: v for k, v in o.items() if k not in ("row_id", "method", "raw_sha256")} for o in c["output_reviews"]]} for c in evidence["cases"] if c["case_id"] in run["case_ids"]]
-    run["opinion_sha256"] = review.sha(review.encoded({"packet_sha256": run["packet_sha256"], "cases": original_cases}))
+    run["opinion_sha256"] = bytes_sha256(review.encoded({"packet_sha256": run["packet_sha256"], "cases": original_cases}))
     key = case["case_id"] + ":dataset"
-    evidence["adjudications"][key] = {"opinion_sha256": review.sha(review.encoded(case["dataset_review"])), "resolution": "quarantined", "quality_excluded": True, "reason": "Defect", "evidence": "Source"}
+    evidence["adjudications"][key] = {"opinion_sha256": bytes_sha256(review.encoded(case["dataset_review"])), "resolution": "quarantined", "quality_excluded": True, "reason": "Defect", "evidence": "Source"}
     with pytest.raises(ValueError, match="factual reference defect|receipt differs"):
         review.validate_public_review(profile, rows, evidence)
 
@@ -301,7 +302,7 @@ def test_public_provenance_rejects_altered_execution_and_source_identity(tmp_pat
         evidence["cases"][0]["output_reviews"][0]["raw_sha256"] = "0" * 64
     else:
         proof["contract"]["source_bindings"][0]["path"] = "/Users/private-home/manifest.json"
-        proof["public_contract_sha256"] = review.sha(review.encoded(proof["contract"]))
+        proof["public_contract_sha256"] = bytes_sha256(review.encoded(proof["contract"]))
     with pytest.raises(ValueError):
         review.validate_public_review(profile, rows, evidence)
 
@@ -315,7 +316,7 @@ def test_public_review_keeps_exact_readable_opinion_bytes_without_local_paths(tm
     assert '"command"' not in text and '"output_bytes_hex"' not in text
     for execution in evidence["provenance"]["executions"]:
         raw = execution["output_utf8"].encode("utf-8")
-        assert review.sha(raw) == execution["result_sha256"]
+        assert bytes_sha256(raw) == execution["result_sha256"]
         assert execution["verified_command_policy"]["web_search"] == "disabled"
 
 
@@ -324,7 +325,7 @@ def test_source_modes_bind_complete_execution_and_public_review(tmp_path, source
     report, evidence = audited_fixture(tmp_path, source_mode=source_mode)
     contract = review.load_frozen(tmp_path / "review")
     assert contract["source_mode"] == source_mode
-    assert contract["prompt_sha256"] == review.sha(review.REVIEW_PROMPTS[source_mode].encode())
+    assert contract["prompt_sha256"] == bytes_sha256(review.REVIEW_PROMPTS[source_mode].encode())
     for entry in contract["packets"]:
         assert review._successful(tmp_path / "review", entry, contract)
     assert all(e["verified_command_policy"]["web_search"] == web_search
@@ -347,7 +348,7 @@ def test_known_historical_prompt_hash_selects_mode_without_rewriting_inputs(tmp_
     for entry in contract["packets"]:
         job = root / "jobs" / entry["id"]
         state = json.loads((job / "status.json").read_bytes())
-        state["contract_sha256"] = review.sha(review.encoded(contract))
+        state["contract_sha256"] = bytes_sha256(review.encoded(contract))
         review.save(job / "status.json", state)
         original_inputs[entry["id"]] = (job / state["attempt"] / "input.txt").read_bytes()
     assert review._source_mode(review.load_frozen(root)) == source_mode

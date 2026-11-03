@@ -1,4 +1,4 @@
-"""UTF-8 JSONL framing shared by execution, certification and report readers."""
+"""Hashing and UTF-8 JSON framing shared by execution, certification and report code."""
 import hashlib
 import json
 from pathlib import Path
@@ -19,11 +19,42 @@ def file_sha256(path):
         return hashlib.file_digest(source, 'sha256').hexdigest()
 
 
-def canonical_json_sha256(value):
-    """Hash the shared compact UTF-8 JSON protocol, including legacy NaN bytes."""
-    raw = json.dumps(value, ensure_ascii=False, sort_keys=True,
-                     separators=(',', ':'), allow_nan=True).encode('utf-8')
+def optional_file_sha256(path):
+    """Hash a regular file, or return None when it is absent."""
+    return file_sha256(path) if Path(path).is_file() else None
+
+
+def bytes_sha256(raw):
     return hashlib.sha256(raw).hexdigest()
+
+
+def canonical_json_sha256(value, *, ensure_ascii=False, allow_nan=True):
+    """Hash the shared compact sorted JSON protocol, including legacy NaN bytes.
+
+    The defaults are the current protocol. A caller whose digests are already
+    bound names its frozen ``ensure_ascii`` or strict ``allow_nan`` choice.
+    """
+    raw = json.dumps(value, ensure_ascii=ensure_ascii, sort_keys=True,
+                     separators=(',', ':'), allow_nan=allow_nan).encode('utf-8')
+    return bytes_sha256(raw)
+
+
+def json_bytes(value):
+    """Encode the indented, unsorted document form with a trailing newline."""
+    return (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode()
+
+
+def read_json(path):
+    """Read one strict UTF-8 JSON document; callers own containment and shape checks."""
+    return parse_utf8_json(Path(path).read_bytes())
+
+
+def write_json(path, value, *, parents=False):
+    """Write ``json_bytes`` in place; use an atomic writer where readers may race."""
+    path = Path(path)
+    if parents:
+        path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(json_bytes(value))
 
 
 def same_json_record(left, right):

@@ -12,12 +12,8 @@ import tempfile
 from pathlib import Path
 
 from harness.data_home import data_home
-from harness.reporting.publication import (
-    atomic_write,
-    bind_publication_files,
-    json_bytes,
-    recover_binding,
-)
+from harness.record_io import json_bytes
+from harness.reporting.publication import atomic_write, bind_publication_files, recover_binding
 from harness.trajectory_replay.public_webarena.publication import (
     build,
     check_report_bundle,

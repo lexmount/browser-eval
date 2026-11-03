@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.record_io import file_sha256
 from harness.trajectory_replay import webarena_report_package as packager
 from harness.trajectory_replay import webarena_report_publish as publisher
 
@@ -155,7 +156,7 @@ def test_pending_created_site_is_bound_to_release_package(monkeypatch, tmp_path:
         {
             "base_url": base,
             "slug": "site-1",
-            "archive_sha256": publisher.sha256(archive),
+            "archive_sha256": file_sha256(archive),
             "verified": False,
         }
     )
@@ -376,7 +377,7 @@ def test_pending_receipt_rejects_mismatched_operation_before_remote_write(
         {
             "base_url": "https://app.example",
             "slug": "site-1",
-            "archive_sha256": publisher.sha256(archive),
+            "archive_sha256": file_sha256(archive),
             "verified": False,
         }
     )

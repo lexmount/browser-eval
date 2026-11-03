@@ -14,11 +14,10 @@ import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.record_io import read_completed_records
+from harness.record_io import bytes_sha256, read_completed_records
 from harness.web_fetch.config import ROOT, load_runtime_env
 from harness.web_search.adapters import adapter_for
 from harness.web_search.core import (
-    digest,
     normalize_response,
     request_body,
     request_cost,
@@ -76,7 +75,7 @@ def reserve_attempt(output, relative, payload):
     path.parent.mkdir(exist_ok=True)
     reservation = {
         "response_path": relative,
-        "request_sha256": digest(json.dumps(payload, sort_keys=True).encode()),
+        "request_sha256": bytes_sha256(json.dumps(payload, sort_keys=True).encode()),
         "reserved_at": datetime.now(UTC).isoformat(),
     }
     with path.open("x", encoding="utf-8") as stream:
@@ -123,7 +122,7 @@ def prepare_execution_revision(profile_path, output, revision_path, *, cohort="p
         raise ValueError("Execution revision requires an interrupted collection")
     if not revision.get("root_cause") or not methods or not revision.get("evidence"):
         raise ValueError("Execution revision requires a cause, method scope and evidence")
-    if revision.get("previous_profile_sha256") != digest(old_bytes) or revision.get("profile_sha256") != digest(new_bytes):
+    if revision.get("previous_profile_sha256") != bytes_sha256(old_bytes) or revision.get("profile_sha256") != bytes_sha256(new_bytes):
         raise ValueError("Execution revision profile binding mismatch")
     verify_bundle(revision_path.parent, revision["evidence"])
     old_methods = {m["id"]: m for m in old["methods"]}
@@ -146,7 +145,7 @@ def prepare_execution_revision(profile_path, output, revision_path, *, cohort="p
         raise ValueError("Execution revision cannot change tasks or measurement controls")
     contract_bytes = (output / "run-contract.json").read_bytes()
     contract = json.loads(contract_bytes)
-    if contract["profile_sha256"] != digest(old_bytes):
+    if contract["profile_sha256"] != bytes_sha256(old_bytes):
         raise ValueError("Original execution contract changed")
     verify_bundle(output / "implementation", [
         {"path": name, "sha256": sha} for name, sha in contract["implementation"].items()
@@ -193,10 +192,10 @@ def prepare_execution_revision(profile_path, output, revision_path, *, cohort="p
         target.write_bytes((revision_path.parent / item["path"]).read_bytes())
     shutil.move(output / "implementation", archive / "implementation")
     sources = freeze_implementation(output)
-    write_json(archive / "contract.json", {"schema": "web-search-execution-revision-receipt/1", "previous_profile_sha256": digest(old_bytes), "profile_sha256": digest(new_bytes), "previous_results_sha256": digest(raw), "retained_result_ids": [r["id"] for r in retained], "superseded_result_ids": [r["id"] for r in rows if r["method"] in methods], "artifact_locations": locations, "resumed_at": datetime.now(UTC).isoformat()})
+    write_json(archive / "contract.json", {"schema": "web-search-execution-revision-receipt/1", "previous_profile_sha256": bytes_sha256(old_bytes), "profile_sha256": bytes_sha256(new_bytes), "previous_results_sha256": bytes_sha256(raw), "retained_result_ids": [r["id"] for r in retained], "superseded_result_ids": [r["id"] for r in rows if r["method"] in methods], "artifact_locations": locations, "resumed_at": datetime.now(UTC).isoformat()})
     (output / "profile.json").write_bytes(new_bytes)
     (output / "results.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in retained))
-    write_json(output / "run-contract.json", {**contract, "profile_sha256": digest(new_bytes), "implementation": sources, "installed_benchmark_datasets": selected_datasets, "resume_unit": "logical", "execution_revision": {"path": (archive / "execution-revision.json").relative_to(output).as_posix(), "sha256": digest(revision_bytes)}})
+    write_json(output / "run-contract.json", {**contract, "profile_sha256": bytes_sha256(new_bytes), "implementation": sources, "installed_benchmark_datasets": selected_datasets, "resume_unit": "logical", "execution_revision": {"path": (archive / "execution-revision.json").relative_to(output).as_posix(), "sha256": bytes_sha256(revision_bytes)}})
     return retained
 
 
@@ -278,14 +277,14 @@ def capture_references(profile, output, phase):
         receipt, raw = http_call(
             check.get("url", url), timeout=profile["protocol"].get("reference_timeout_s", 60)
         )
-        relative = f"references/{phase}-{digest(url.encode())[:16]}.bin"
+        relative = f"references/{phase}-{bytes_sha256(url.encode())[:16]}.bin"
         path = output / relative
         path.parent.mkdir(exist_ok=True)
         path.write_bytes(raw)
         refs[url] = {
             **receipt,
             "path": relative,
-            "sha256": digest(raw),
+            "sha256": bytes_sha256(raw),
             "bytes": len(raw),
             "available": reference_available(profile, url, receipt, raw),
             "identity_check": check or None,
@@ -302,7 +301,7 @@ def reference_available(profile, url, receipt, raw):
         and len(raw) > 100
         and (
             url not in profile.get("reference_artifacts", {})
-            or digest(raw) == profile["reference_artifacts"][url]["sha256"]
+            or bytes_sha256(raw) == profile["reference_artifacts"][url]["sha256"]
         )
         and all(
             s.casefold() in raw.decode("utf-8", errors="replace").casefold()
@@ -321,7 +320,7 @@ def collection_implementation():
     )
     sources = {name: implementation_source(name) for name in names}
     sources.update({"lexbench_websearch/" + name: path for name, path in benchmark_inputs.implementation_sources().items()})
-    return {name: digest(source.read_bytes()) for name, source in sources.items()}
+    return {name: bytes_sha256(source.read_bytes()) for name, source in sources.items()}
 
 
 def implementation_source(relative):
@@ -399,7 +398,7 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
     if (output / "receipt.json").exists():
         raise ValueError("A completed collection cannot be resumed")
     contract = json.loads((output / "run-contract.json").read_text())
-    if contract["profile_sha256"] != digest(profile_bytes):
+    if contract["profile_sha256"] != bytes_sha256(profile_bytes):
         raise ValueError("Frozen profile binding changed")
     validate_resume_implementation(output, contract)
     raw = (output / "results.jsonl").read_bytes()
@@ -412,7 +411,7 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
         by_case[row["case_id"]].append(row)
         for attempt in row.get("attempts", [row]):
             item = attempt["evidence"]
-            if digest((output / item["path"]).read_bytes()) != item["sha256"]:
+            if bytes_sha256((output / item["path"]).read_bytes()) != item["sha256"]:
                 raise ValueError("Interrupted call evidence changed")
     completed = {
         cid for cid, group in by_case.items()
@@ -440,10 +439,10 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
         target = archive / "implementation" / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(source.read_bytes())
-        source_hashes[str(relative)] = digest(source.read_bytes())
+        source_hashes[str(relative)] = bytes_sha256(source.read_bytes())
     write_json(archive / "contract.json", {
-        "profile_sha256": digest(profile_bytes),
-        "previous_results_sha256": digest(raw),
+        "profile_sha256": bytes_sha256(profile_bytes),
+        "previous_results_sha256": bytes_sha256(raw),
         "retained_case_ids": sorted(completed),
         "retained_result_ids": [r["id"] for r in retained],
         "recollect_case_ids": sorted(set(by_case) - completed),
@@ -528,7 +527,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
         write_json(
             output / "run-contract.json",
             dict(
-                profile_sha256=digest(profile_bytes),
+                profile_sha256=bytes_sha256(profile_bytes),
                 implementation=sources,
                 installed_benchmark_datasets=dependencies("websearch"),
                 physical_call_accounting="write-ahead-reservations/1",
@@ -597,7 +596,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 error = error or str(exc)
             cost = request_cost(method, receipt["http_status"], receipt["transport_exit"], decoded)
             attempts.append({
-                "evidence": {"path": relative, "sha256": digest(raw)},
+                "evidence": {"path": relative, "sha256": bytes_sha256(raw)},
                 "http_status": receipt["http_status"],
                 "transport_exit": receipt["transport_exit"],
                 "elapsed_ms": receipt["elapsed_ms"],
@@ -628,7 +627,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
             results=results,
             cost=total_cost,
             currency=method["currency"],
-            evidence={"path": relative, "sha256": digest(raw)},
+            evidence={"path": relative, "sha256": bytes_sha256(raw)},
             attempts=attempts,
             metrics=evaluate(case, results),
             server_timing=adapter_for(method["adapter"]).timing(decoded).get("timing"),
@@ -649,7 +648,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 "result_id": identity,
                 "http_status": receipt["http_status"],
                 "completed_logical_results": len(rows),
-                "results_sha256": digest((output / "results.jsonl").read_bytes()),
+                "results_sha256": bytes_sha256((output / "results.jsonl").read_bytes()),
                 "stopped_at": datetime.now(UTC).isoformat(),
             })
             raise ValueError(
@@ -670,10 +669,10 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
             unavailable_references=unavailable,
             changed_references=changed,
             ended_at=datetime.now(UTC).isoformat(),
-            results_sha256=digest((output / "results.jsonl").read_bytes()),
-            profile_sha256=digest(profile_bytes),
+            results_sha256=bytes_sha256((output / "results.jsonl").read_bytes()),
+            profile_sha256=bytes_sha256(profile_bytes),
             bindings=[
-                {"path": p.relative_to(output).as_posix(), "sha256": digest(p.read_bytes())}
+                {"path": p.relative_to(output).as_posix(), "sha256": bytes_sha256(p.read_bytes())}
                 for p in [
                     output / "run-contract.json",
                     output / "references-before.json",

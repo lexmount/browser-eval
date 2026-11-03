@@ -9,13 +9,12 @@ from pathlib import Path
 from webarena_verified.core.utils.checksum import compute_evaluator_checksum
 from webarena_verified.types.task import WebArenaSite
 
-from harness.record_io import load_jsonl
+from harness.record_io import file_sha256, load_jsonl
 from harness.trajectory_replay.catalog_contracts import (
     ACCEPTANCE_SCHEMA,
     EXECUTION_CONTRACT_RUN_SCHEMAS,
     RUN_SCHEMAS,
     SCOPE_SCHEMAS,
-    file_sha256,
     load_action_overrides,
     validate_passing_evaluation,
     verify_physical_evidence,

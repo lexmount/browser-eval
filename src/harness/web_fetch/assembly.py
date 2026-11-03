@@ -125,10 +125,6 @@ def _materialize_canonical_references(output, canonical, canonical_dataset):
                 materialize_task_references(output, trees, [identifier])
 
 
-def _sha256_file(path):
-    return file_sha256(path)
-
-
 _PROVIDER_REPLACEMENT_RECEIPT_FIELDS = {
     'schema_version', 'kind', 'provider_calls', 'baseline_dataset_sha256',
     'baseline_results_sha256', 'source_dataset_sha256', 'source_results_sha256',
@@ -194,7 +190,7 @@ def _provider_replacement_scope_history(root):
         if item['path'] in seen or not path.is_file():
             raise ValueError('Inherited provider replacement scope is missing or duplicated')
         seen.add(item['path'])
-        if item.get('sha256') != _sha256_file(path):
+        if item.get('sha256') != file_sha256(path):
             raise ValueError('Inherited provider replacement scope hash differs')
         try:
             receipt = json.loads(path.read_text())
@@ -219,10 +215,10 @@ def _selected_provider_replacement_rows(run, root, rows, receipt_path):
         raise ValueError('Provider replacement scope receipt is missing')
     receipt = json.loads(receipt_path.read_text())
     if (not _valid_provider_replacement_receipt(receipt)
-            or receipt.get('baseline_dataset_sha256') != _sha256_file(run/'dataset.json')
-            or receipt.get('baseline_results_sha256') != _sha256_file(run/'results.jsonl')
-            or receipt.get('source_dataset_sha256') != _sha256_file(root/'dataset.json')
-            or receipt.get('source_results_sha256') != _sha256_file(root/'results.jsonl')):
+            or receipt.get('baseline_dataset_sha256') != file_sha256(run/'dataset.json')
+            or receipt.get('baseline_results_sha256') != file_sha256(run/'results.jsonl')
+            or receipt.get('source_dataset_sha256') != file_sha256(root/'dataset.json')
+            or receipt.get('source_results_sha256') != file_sha256(root/'results.jsonl')):
         raise ValueError('Provider replacement scope receipt is not bound to its source evidence')
     replacements = receipt.get('replacements')
     source_by_attempt = {row['attempt_id']: row for row in rows}
@@ -1147,7 +1143,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             shutil.copy2(receipt_path, target)
             index.append({
                 'path': str(target.relative_to(output)),
-                'sha256': _sha256_file(target),
+                'sha256': file_sha256(target),
                 'replacements': receipt['replacements'],
             })
         (output/'provider-replacement-scopes.json').write_text(

@@ -16,6 +16,7 @@ from typing import Any
 
 from lexbench_webfetch.paths import contained_path
 
+from harness.record_io import file_sha256
 from harness.web_fetch.artifacts import diagnostic_log_binding
 from harness.web_fetch.config import load_dataset, load_provider_config, load_runtime_env
 from harness.web_fetch.reference_inputs import benchmark_input_path, read_dataset_bytes
@@ -24,7 +25,7 @@ from harness.data_home import data_home
 
 
 def _digest(path: Path) -> str:
-    return hashlib.sha256(benchmark_input_path(path).read_bytes()).hexdigest()
+    return file_sha256(benchmark_input_path(path))
 
 
 def _case_ids_digest(case_ids: list[str]) -> str:

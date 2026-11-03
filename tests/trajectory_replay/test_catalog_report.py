@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.record_io import canonical_json_sha256, file_sha256
 from harness.trajectory_replay import webarena_report
 
 
@@ -43,7 +44,7 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
         "old_evaluation_sha256": "1" * 64,
         "actual_response_sha256": "2" * 64,
         "network_har_sha256": "3" * 64,
-        "current_evaluation_sha256": webarena_report.json_sha256(current_evaluation),
+        "current_evaluation_sha256": canonical_json_sha256(current_evaluation),
     }
     evidence = tmp_path / "evidence"
     run = evidence / "repair"
@@ -175,7 +176,7 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
         archive=archive,
     )
 
-    assert result["archive_sha256"] == webarena_report._catalog_file_sha256(archive)
+    assert result["archive_sha256"] == file_sha256(archive)
     assert "1 / 1" in (output / "index.html").read_text(encoding="utf-8")
     assert "物理执行：1 次" in (output / "case/000.html").read_text(encoding="utf-8")
     assert '<base href="/">' in (output / "case/000.html").read_text(encoding="utf-8")
@@ -198,10 +199,10 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
         "browser": "kitesurf" if hosted else "moli",
         "execution_backend": "playwright",
         **({"request_bridge": request_bridge} if hosted else {}),
-        "acceptance_ledger_sha256": webarena_report._catalog_file_sha256(ledger),
-        "accepted_catalog": {"sha256": webarena_report._catalog_file_sha256(catalog)},
+        "acceptance_ledger_sha256": file_sha256(ledger),
+        "accepted_catalog": {"sha256": file_sha256(catalog)},
         "accepted_portable_suite": {
-            "sha256": webarena_report._catalog_file_sha256(suite)
+            "sha256": file_sha256(suite)
         },
         "accepted_counts": {
             "total": 1,

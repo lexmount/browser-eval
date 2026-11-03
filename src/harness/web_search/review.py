@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import re
@@ -24,15 +23,12 @@ from lexbench_webfetch.paths import contained_path
 from lexbench_websearch.relevance import candidate_packet
 from lexbench_websearch.scoring import candidate_identity, classify
 
+from harness.record_io import bytes_sha256
 from harness.reporting.publication import atomic_write
 from harness.web_search.core import normalize_response
 from harness.web_search.diagnostics import error_evidence
 from harness.web_search.messages import report_text
 from harness.web_search.relevance import legacy_evidence_allowed
-
-
-def sha(data):
-    return hashlib.sha256(data).hexdigest()
 
 
 def encoded(value):
@@ -114,7 +110,7 @@ REVIEW_PROMPTS = {"frozen": FROZEN_PROMPT, "live": LIVE_PROMPT}
 
 
 def _source_mode(contract):
-    known = {sha(prompt.encode()): mode for mode, prompt in REVIEW_PROMPTS.items()}
+    known = {bytes_sha256(prompt.encode()): mode for mode, prompt in REVIEW_PROMPTS.items()}
     mode = known.get(contract.get("prompt_sha256"))
     if mode is None or contract.get("source_mode", mode) != mode:
         raise ValueError("Unknown or inconsistent review source mode/prompt")
@@ -203,7 +199,7 @@ def make_cases(profile, rows, report):
         if path.is_symlink() or not path.is_file():
             raise ValueError("Raw evidence changed")
         raw = path.read_bytes()
-        if sha(raw) != row["evidence"]["sha256"]:
+        if bytes_sha256(raw) != row["evidence"]["sha256"]:
             raise ValueError("Raw evidence changed")
         try:
             payload = json.loads(raw)
@@ -215,9 +211,9 @@ def make_cases(profile, rows, report):
             normalize_response(payload, methods[row["method"]], profile["protocol"], row.get("request"))
             if row["http_status"] == 200 and not row["error"] else []
         )
-        expected = (sha(encoded(row["results"])) if "results" in row
+        expected = (bytes_sha256(encoded(row["results"])) if "results" in row
                     else row.get("normalized_results_sha256"))
-        if expected is None or expected != sha(encoded(full)):
+        if expected is None or expected != bytes_sha256(encoded(full)):
             raise ValueError("Review projection disagrees with scored response: " + row["id"])
         if "result_count" in row and row["result_count"] != len(full):
             raise ValueError("Review projection result count mismatch: " + row["id"])
@@ -237,7 +233,7 @@ def make_cases(profile, rows, report):
         cid = case["id"]
         ordered = sorted(
             profile["methods"],
-            key=lambda method: sha(encoded([cid, method["id"], "independent-review-v1"])),
+            key=lambda method: bytes_sha256(encoded([cid, method["id"], "independent-review-v1"])),
         )
         for index, method in enumerate(ordered):
             row = indexed.get((cid, method["id"]))
@@ -249,7 +245,7 @@ def make_cases(profile, rows, report):
             if (
                 path.is_symlink()
                 or not path.is_file()
-                or sha(path.read_bytes()) != evidence["sha256"]
+                or bytes_sha256(path.read_bytes()) != evidence["sha256"]
             ):
                 raise ValueError("Raw evidence changed")
             outputs.append(
@@ -284,7 +280,7 @@ def report_binding(profile, rows):
     projected = []
     for row in rows:
         normalized_hash = (
-            sha(encoded(row["results"]))
+            bytes_sha256(encoded(row["results"]))
             if "results" in row
             else row.get("normalized_results_sha256")
         )
@@ -301,8 +297,8 @@ def report_binding(profile, rows):
             }
         )
     return {
-        "case_definitions_sha256": sha(encoded(profile["cases"])),
-        "logical_results_sha256": sha(encoded(sorted(projected, key=lambda r: r["id"]))),
+        "case_definitions_sha256": bytes_sha256(encoded(profile["cases"])),
+        "logical_results_sha256": bytes_sha256(encoded(sorted(projected, key=lambda r: r["id"]))),
     }
 
 
@@ -374,7 +370,7 @@ def _freeze(report, destination, *, model=None, budget=180000, scope="failures",
     for case in cases:
         for output in case["outputs"]:
             binding = aliases[output["output_id"]]
-            raw_path = destination / "raw" / (sha(output["output_id"].encode())[:24] + ".json")
+            raw_path = destination / "raw" / (bytes_sha256(output["output_id"].encode())[:24] + ".json")
             raw_path.write_bytes(Path(binding["raw_path"]).read_bytes())
             binding["frozen_raw_path"] = raw_path.relative_to(destination).as_posix()
             binding["original_source_path"] = binding["raw_path"]
@@ -393,7 +389,7 @@ def _freeze(report, destination, *, model=None, budget=180000, scope="failures",
         if path.exists():
             frozen_path = destination / "frozen-inputs" / name
             frozen_path.write_bytes(path.read_bytes())
-            bindings.append({"path": str(frozen_path.relative_to(destination)), "sha256": sha(path.read_bytes())})
+            bindings.append({"path": str(frozen_path.relative_to(destination)), "sha256": bytes_sha256(path.read_bytes())})
     contract = {
         "schema": "web-search-independent-review/1",
         "reviewer": "codex-cli",
@@ -410,7 +406,7 @@ def _freeze(report, destination, *, model=None, budget=180000, scope="failures",
         "report_binding": full_report_binding,
         "source_bindings": bindings,
         "source_mode": source_mode,
-        "prompt_sha256": sha(REVIEW_PROMPTS[source_mode].encode()),
+        "prompt_sha256": bytes_sha256(REVIEW_PROMPTS[source_mode].encode()),
         "rubric": {"grades": [0, 1, 2, 3], "primary_fields": ["url", "title", "snippet"]},
         "packets": [],
     }
@@ -422,14 +418,14 @@ def _freeze(report, destination, *, model=None, budget=180000, scope="failures",
             {
                 "id": f"{index:04d}",
                 "path": str(path.relative_to(destination)),
-                "sha256": sha(path.read_bytes()),
+                "sha256": bytes_sha256(path.read_bytes()),
                 "case_ids": [c["case"]["id"] for c in group],
             }
         )
     save(destination / "alias-map.private.json", aliases)
-    contract["alias_map_sha256"] = sha((destination / "alias-map.private.json").read_bytes())
+    contract["alias_map_sha256"] = bytes_sha256((destination / "alias-map.private.json").read_bytes())
     save(destination / "schema.json", SCHEMA)
-    contract["schema_sha256"] = sha((destination / "schema.json").read_bytes())
+    contract["schema_sha256"] = bytes_sha256((destination / "schema.json").read_bytes())
     save(destination / "contract.json", contract)
     return contract
 
@@ -450,25 +446,25 @@ def load_frozen(root):
     contract = json.loads((root / "contract.json").read_bytes())
     for binding in contract["source_bindings"]:
         path = frozen_path(root, binding["path"])
-        if path.is_symlink() or sha(path.read_bytes()) != binding["sha256"]:
+        if path.is_symlink() or bytes_sha256(path.read_bytes()) != binding["sha256"]:
             raise ValueError("Frozen report input changed")
     for name, expected in [
         ("alias-map.private.json", contract["alias_map_sha256"]),
         ("schema.json", contract["schema_sha256"]),
     ]:
-        if sha((root / name).read_bytes()) != expected:
+        if bytes_sha256((root / name).read_bytes()) != expected:
             raise ValueError("Frozen review input changed")
     _source_mode(contract)
     for packet in contract["packets"]:
         path = frozen_path(root, packet["path"])
-        if path.is_symlink() or sha(path.read_bytes()) != packet["sha256"]:
+        if path.is_symlink() or bytes_sha256(path.read_bytes()) != packet["sha256"]:
             raise ValueError("Frozen packet changed")
     aliases = json.loads((root / "alias-map.private.json").read_bytes())
     for binding in aliases.values():
         path = Path(binding["raw_path"])
         if not path.is_absolute():
             path = root / path
-        if path.is_symlink() or sha(path.read_bytes()) != binding["raw_sha256"]:
+        if path.is_symlink() or bytes_sha256(path.read_bytes()) != binding["raw_sha256"]:
             raise ValueError("Frozen raw output changed")
     cases = [
         c
@@ -493,7 +489,7 @@ def load_frozen(root):
             path = Path(aliases[output["output_id"]]["raw_path"])
             if not path.is_absolute():
                 path = root / path
-            if path.is_symlink() or sha(path.read_bytes()) != output["raw_evidence"]["sha256"]:
+            if path.is_symlink() or bytes_sha256(path.read_bytes()) != output["raw_evidence"]["sha256"]:
                 raise ValueError("Anonymous raw evidence changed")
     return contract
 
@@ -609,10 +605,10 @@ def _execution_schema(state, contract, packet, packet_hash, frozen_schema):
         return None
     if protocol != "packet-identities/1":
         raise ValueError("Unknown review schema protocol")
-    if sha(encoded(frozen_schema)) != contract["schema_sha256"]:
+    if bytes_sha256(encoded(frozen_schema)) != contract["schema_sha256"]:
         raise ValueError("Review frozen schema differs")
     derived = _packet_schema(frozen_schema, packet, packet_hash)
-    if state.get("schema_sha256") != sha(encoded(derived)):
+    if state.get("schema_sha256") != bytes_sha256(encoded(derived)):
         raise ValueError("Review packet schema receipt differs")
     return derived
 
@@ -665,8 +661,8 @@ def _public_execution(root, entry, contract):
                                           "packet_sha256", "contract_sha256", "input_sha256",
                                           "result_sha256", "schema_protocol", "schema_sha256") if key in state},
             "verified_command_policy": policy,
-            "private_command_sha256": sha(encoded(state["command"])),
-            "private_execution_sha256": sha(raw_state),
+            "private_command_sha256": bytes_sha256(encoded(state["command"])),
+            "private_execution_sha256": bytes_sha256(raw_state),
             "output_utf8": (job / "result.json").read_bytes().decode("utf-8")}
 
 
@@ -680,13 +676,13 @@ def _successful(root, entry, contract):
             or state.get("backend", "codex-cli") != "codex-cli"
             or state.get("returncode") != 0
             or state.get("packet_sha256") != entry["sha256"]
-            or state.get("contract_sha256") != sha(encoded(contract))
-            or state.get("result_sha256") != sha(result_path.read_bytes())
+            or state.get("contract_sha256") != bytes_sha256(encoded(contract))
+            or state.get("result_sha256") != bytes_sha256(result_path.read_bytes())
         ):
             return None
         packet = json.loads((root / entry["path"]).read_bytes())
         text = _input_text(contract, packet, entry["sha256"])
-        if state.get("input_sha256") != sha(text.encode()):
+        if state.get("input_sha256") != bytes_sha256(text.encode()):
             return None
         if state.get("backend", "codex-cli") == "codex-cli":
             command = state.get("command")
@@ -705,7 +701,7 @@ def _successful(root, entry, contract):
                                            schema_path.resolve(),
                                            (attempt / "result.json").resolve(), source_mode=_source_mode(contract), json_events="--json" in command)
                     or (attempt / "input.txt").read_bytes() != text.encode()
-                    or sha((attempt / "result.json").read_bytes()) != state["result_sha256"]):
+                    or bytes_sha256((attempt / "result.json").read_bytes()) != state["result_sha256"]):
                 return None
         return validate_result(packet, json.loads(result_path.read_bytes()), entry["sha256"], source_mode=_source_mode(contract))
     except (OSError, ValueError, KeyError, TypeError):
@@ -762,10 +758,10 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
             "status": "running",
             "backend": "codex-cli",
             "packet_sha256": entry["sha256"],
-            "contract_sha256": sha(encoded(contract)),
-            "input_sha256": sha(text.encode()),
+            "contract_sha256": bytes_sha256(encoded(contract)),
+            "input_sha256": bytes_sha256(text.encode()),
             "schema_protocol": "packet-identities/1",
-            "schema_sha256": sha(schema_path.read_bytes()),
+            "schema_sha256": bytes_sha256(schema_path.read_bytes()),
             "started_at": time.time(),
             "attempt": attempt.name,
             "command": command,
@@ -788,7 +784,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
                 process.communicate(text.encode(), timeout=timeout)
                 state["returncode"] = process.returncode
                 session_log = (attempt / "stdout.log").read_bytes()
-                state["session_log_sha256"] = sha(session_log)
+                state["session_log_sha256"] = bytes_sha256(session_log)
                 state["requested_model"] = contract["model"]
                 events = []
                 for line in session_log.decode("utf-8", errors="replace").splitlines():
@@ -803,7 +799,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
                     raise ValueError("Codex exited unsuccessfully")
                 validate_result(packet, json.loads(result_path.read_bytes()), entry["sha256"], source_mode=_source_mode(contract))
                 atomic_write(job / "result.json", result_path.read_bytes())
-                state.update(status="completed", result_sha256=sha(result_path.read_bytes()))
+                state.update(status="completed", result_sha256=bytes_sha256(result_path.read_bytes()))
             except (subprocess.TimeoutExpired, ValueError, OSError) as error:
                 if process.poll() is None:
                     os.killpg(process.pid, signal.SIGKILL)
@@ -886,7 +882,7 @@ def collect(root, *, require_complete=False):
                 {
                     "packet_id": entry["id"],
                     "case_ids": entry["case_ids"],
-                    "opinion_sha256": sha(encoded(result)),
+                    "opinion_sha256": bytes_sha256(encoded(result)),
                     **{
                         k: v
                         for k, v in state.items()
@@ -925,12 +921,12 @@ def collect(root, *, require_complete=False):
         "schema": "web-search-independent-review-evidence/1",
         "reviewer": contract["reviewer"],
         "model": contract["model"],
-        "contract_sha256": sha(encoded(contract)),
+        "contract_sha256": bytes_sha256(encoded(contract)),
         "scope": contract["scope"],
         "provenance": {
             "schema": "web-search-public-review-provenance/1",
-            "private_contract_sha256": sha(encoded(contract)),
-            "public_contract_sha256": sha(encoded(_public_contract(contract))),
+            "private_contract_sha256": bytes_sha256(encoded(contract)),
+            "public_contract_sha256": bytes_sha256(encoded(_public_contract(contract))),
             "contract": _public_contract(contract),
             "packets": [json.loads((root / e["path"]).read_bytes()) for e in contract["packets"]],
             "executions": [_public_execution(root, e, contract) for e in contract["packets"]
@@ -1012,13 +1008,13 @@ def validate_public_review(profile, rows, evidence, *, authority=None, relevance
         # private contract; legacy receipts bind their original contract directly.
         public = proof.get("schema") == "web-search-public-review-provenance/1"
         if public:
-            if (sha(encoded(contract)) != proof.get("public_contract_sha256")
+            if (bytes_sha256(encoded(contract)) != proof.get("public_contract_sha256")
                     or proof.get("private_contract_sha256") != evidence["contract_sha256"]
                     or contract != _public_contract(contract)):
                 raise ValueError("Independent review public contract projection differs")
         elif not legacy_evidence_allowed(evidence, "review", authority):
             raise ValueError("Unprojected review provenance is not registered legacy evidence")
-        elif sha(encoded(contract)) != evidence["contract_sha256"]:
+        elif bytes_sha256(encoded(contract)) != evidence["contract_sha256"]:
             raise ValueError("Independent review frozen contract differs")
         mode = _source_mode(contract)
         if (contract["report_binding"] != report_binding(profile, rows)
@@ -1027,7 +1023,7 @@ def validate_public_review(profile, rows, evidence, *, authority=None, relevance
         if len(proof["packets"]) != len(contract["packets"]) or len(proof["executions"]) != len(contract["packets"]):
             raise ValueError("Independent review execution proof is incomplete")
         for entry, packet, execution in zip(contract["packets"], proof["packets"], proof["executions"], strict=True):
-            if sha(encoded(packet)) != entry["sha256"] or execution.get("status") != "completed" or execution.get("returncode") != 0 or execution.get("backend", "codex-cli") != "codex-cli" or execution.get("contract_sha256") != evidence["contract_sha256"]:
+            if bytes_sha256(encoded(packet)) != entry["sha256"] or execution.get("status") != "completed" or execution.get("returncode") != 0 or execution.get("backend", "codex-cli") != "codex-cli" or execution.get("contract_sha256") != evidence["contract_sha256"]:
                 raise ValueError("Independent review execution is invalid")
             original_cases = [{**case, "output_reviews": [{k: v for k, v in o.items() if k not in ("row_id", "method", "raw_sha256")} for o in case["output_reviews"]]} for case in evidence["cases"] if case["case_id"] in entry["case_ids"]]
             original = {"packet_sha256": entry["sha256"], "cases": original_cases}
@@ -1043,7 +1039,7 @@ def validate_public_review(profile, rows, evidence, *, authority=None, relevance
                 raw_opinion = execution.get("output_utf8", "").encode("utf-8")
             else:
                 raw_opinion = bytes.fromhex(execution.get("output_bytes_hex", ""))
-            if json.loads(raw_opinion) != original or execution.get("packet_sha256") != entry["sha256"] or execution.get("input_sha256") != sha(text.encode()) or execution.get("result_sha256") != sha(raw_opinion):
+            if json.loads(raw_opinion) != original or execution.get("packet_sha256") != entry["sha256"] or execution.get("input_sha256") != bytes_sha256(text.encode()) or execution.get("result_sha256") != bytes_sha256(raw_opinion):
                 raise ValueError("Independent review input or output receipt differs")
     all_rows = {row["id"]: row for row in rows}
     selected_rows = rows if scope == "all" else [r for r in rows if row_state(profile, r, relevance)[0] == "fail"]
@@ -1061,7 +1057,7 @@ def validate_public_review(profile, rows, evidence, *, authority=None, relevance
         for opinion in case["output_reviews"]:
             row = expected_rows[opinion["row_id"]]
             if (
-                opinion["output_id"] != f"{case['case_id']}:output-{1 + next(i for i, method in enumerate(sorted(profile['methods'], key=lambda m: sha(encoded([case['case_id'], m['id'], 'independent-review-v1'])))) if method['id'] == row['method'])}"
+                opinion["output_id"] != f"{case['case_id']}:output-{1 + next(i for i, method in enumerate(sorted(profile['methods'], key=lambda m: bytes_sha256(encoded([case['case_id'], m['id'], 'independent-review-v1'])))) if method['id'] == row['method'])}"
                 or row["case_id"] != case["case_id"]
                 or row["method"] != opinion["method"]
                 or row["evidence"]["sha256"] != opinion["raw_sha256"]
@@ -1120,7 +1116,7 @@ def validate_public_review(profile, rows, evidence, *, authority=None, relevance
                 }
             )
         original = {"packet_sha256": run["packet_sha256"], "cases": original_cases}
-        if sha(encoded(original)) != run["opinion_sha256"] or run.get("backend") not in (
+        if bytes_sha256(encoded(original)) != run["opinion_sha256"] or run.get("backend") not in (
             "codex-app-subagent",
             "codex-cli",
         ):
@@ -1134,7 +1130,7 @@ def validate_public_review(profile, rows, evidence, *, authority=None, relevance
     for key, opinion in issues.items():
         decision = decisions[key]
         if (
-            decision.get("opinion_sha256") != sha(encoded(opinion))
+            decision.get("opinion_sha256") != bytes_sha256(encoded(opinion))
             or decision.get("resolution")
             not in (
                 "fixed",

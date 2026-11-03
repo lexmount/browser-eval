@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path, safe_identifier, validate_http_url
 
-from harness.record_io import load_jsonl
+from harness.record_io import json_bytes, load_jsonl
 from harness.reporting.presentation import check_presentation
 from harness.reporting.versions import check_build_version
 from harness.web_fetch.artifacts import (
@@ -82,7 +82,6 @@ def prepare_diagnostic_evidence(spec_path, output):
     if any(output.iterdir()):
         raise ValueError('Diagnostic preparation requires an empty staging directory')
     model = dict(spec['report']);rows=[];cohorts=[];provenance=[]
-    def encode(value):return (json.dumps(value,ensure_ascii=False,indent=2)+'\n').encode()
     def save(path, raw, scope):
         public, projection = project_file(path, raw)
         target=contained_path(output,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(public)
@@ -146,13 +145,13 @@ def prepare_diagnostic_evidence(spec_path, output):
                 log['process']=call['process'];log['request']=call['request'];log['call_error']=call['error']
                 log['error_message']=call['error']['message']
             log['provider_identity']=dict(reported_version=version,binary_sha256=binary_sha)
-            reference=save('reference/'+cid+'.json',encode(case),'调用前冻结的完整任务和验收契约；不是网页全部内容的逐字标准答案。')
-            source=save('source/'+cid+'.json',encode({k:v for k,v in observation.items() if k!='outer_html'}),
+            reference=save('reference/'+cid+'.json',json_bytes(case),'调用前冻结的完整任务和验收契约；不是网页全部内容的逐字标准答案。')
+            source=save('source/'+cid+'.json',json_bytes({k:v for k,v in observation.items() if k!='outer_html'}),
                 '独立浏览器的可见文字及访问记录；具体范围和补充观察见记录，隐藏 DOM 不作为可见答案。访问失败时保留错误，不算目标正文。')
             row=dict(id=cid,cohort=cohort['id'],url=case['url'],task=case.get('task_prompt') or case.get('name') or cid,
                 run_id=record['run_id'],initial_pass=task_passed(record['ok'],record['metrics']),
                 first_answer=answer,answer=answer,reference=reference,source=source,
-                log=save('logs/'+cid+'.json',encode(log),'本轮调用、评分明细和脱敏后的进程记录。'),
+                log=save('logs/'+cid+'.json',json_bytes(log),'本轮调用、评分明细和脱敏后的进程记录。'),
                 failure=log.get('error_message') or '; '.join(record['metrics'].get('stable_task_errors') or []),
                 cause=audit['cause'],cause_detail=audit['cause_detail'],followup_status=audit['followup_status'],
                 source_checked_at=observation.get('checked_at'),reviewed=True,source_state=audit['source_state'])
@@ -166,7 +165,7 @@ def prepare_diagnostic_evidence(spec_path, output):
     model['metrics']['overall']=[sum(r['initial_pass'] for r in rows),len(rows)]
     audited=[r for r in rows if r.get('success_audit')]
     model['success_audit']=dict(audited_passes=len(audited),source_state_counts=dict(Counter(r['source_state'] for r in audited)))
-    (output/'report.json').write_bytes(encode(model))
+    (output/'report.json').write_bytes(json_bytes(model))
 
 FAILURE_TYPES = {
     'request': '调用未成功交付', 'blocked': '验证或访问限制页面',

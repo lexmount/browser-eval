@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from harness.record_io import file_sha256
 from harness.web_fetch import webmainbench_scoring as scoring
 
 
@@ -28,7 +29,7 @@ def command(tmp_path, monkeypatch):
     artifact = evidence / 'answer.txt'
     artifact.write_text('saved answer')
     (evidence / 'results.jsonl').write_text(json.dumps({'track_id': 'same-case', 'provider': 'fixture',
-        'ok': True, 'artifact_path': artifact.name, 'output_sha256': scoring.sha256_path(artifact), 'meta': {}}) + '\n')
+        'ok': True, 'artifact_path': artifact.name, 'output_sha256': file_sha256(artifact), 'meta': {}}) + '\n')
     def select(path, expected, commit):
         return path or dataset, expected or selected_sha, commit or current_commit
     monkeypatch.setattr(scoring, 'selected_input', select)

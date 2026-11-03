@@ -5,8 +5,9 @@ import tarfile
 
 import pytest
 
+from harness.record_io import bytes_sha256
 from harness.benchmarks import data
-from harness.benchmarks.publication import DatasetRelease, digest, encoded
+from harness.benchmarks.publication import DatasetRelease, encoded
 
 
 def fixture_release(track, populations, *, current=None, schema=None):
@@ -17,7 +18,7 @@ def fixture_release(track, populations, *, current=None, schema=None):
         raw = encoded({'cases': cases})
         path = 'datasets/' + identity + '.json'
         files['definitions/' + path] = raw
-        datasets[identity] = {'path': path, 'sha256': digest(raw), 'count': len(cases)}
+        datasets[identity] = {'path': path, 'sha256': bytes_sha256(raw), 'count': len(cases)}
     registry = {'datasets': datasets}
     if current is not None:
         registry['current'] = current
@@ -35,7 +36,7 @@ def search_release(monkeypatch):
     supplied = release.datasets()['factual-v1']
     provider = {'repository': 'Lexmount/LexBench-SimpleQA-Verified', 'revision': 'b' * 40,
                 'datasets': {'factual-v1': copy.deepcopy(supplied)},
-                'files': {name: {'sha256': digest(raw), 'size': len(raw)} for name, raw in release.files.items()
+                'files': {name: {'sha256': bytes_sha256(raw), 'size': len(raw)} for name, raw in release.files.items()
                           if name in {'definitions/' + supplied['path'], 'definitions/factual-source.json'}}}
     monkeypatch.setattr(data, 'binding', lambda track: provider if track == 'simpleqa-verified' else None)
     return release, provider
@@ -60,7 +61,7 @@ def test_search_current_view_and_archive_delegate_factual_records(tmp_path, monk
     # The historic scenario definition and exact original registry remain reproducible.
     for path in ('definitions/registry.json', 'definitions/datasets/scenarios-v1.json'):
         assert (tmp_path / 'release' / path).read_bytes() == original[path]
-    before = {'files': {name: {'sha256': digest(raw), 'size': len(raw)} for name, raw in original.items()},
+    before = {'files': {name: {'sha256': bytes_sha256(raw), 'size': len(raw)} for name, raw in original.items()},
               'datasets': release.datasets(), 'dataset_sources': {'factual-v1': 'simpleqa-verified'},
               'external_sources': manifest['external_sources']}
     after = {**before, 'files': manifest['files']}

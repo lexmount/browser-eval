@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from harness.record_io import bytes_sha256
 from harness.web_search.report import load_run
 from harness.web_search.runner import run
 
@@ -182,10 +183,10 @@ class CollectionScenarios(unittest.TestCase):
 
     def test_published_label_snapshot_requires_the_frozen_hash(self):
         from harness.web_search.runner import reference_available
-        from harness.web_search.core import digest
+        from harness.record_io import bytes_sha256
         url = "https://example.org/pinned-labels.csv"
         raw = b"query,answer,url\n" * 20
-        profile = {"reference_artifacts": {url: {"sha256": digest(raw)}}}
+        profile = {"reference_artifacts": {url: {"sha256": bytes_sha256(raw)}}}
         receipt = {"http_status": 200, "transport_exit": 0}
         self.assertTrue(reference_available(profile, url, receipt, raw))
         self.assertFalse(reference_available(profile, url, receipt, raw + b"changed"))
@@ -383,13 +384,13 @@ class TransportAndResumeBoundaries(unittest.TestCase):
 
     def test_resume_rejects_live_source_drift_before_archiving_results(self):
         from harness.web_search.runner import prepare_resume
-        from harness.web_search.core import digest
+        from harness.record_io import bytes_sha256
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             profile = b'{"cases":[],"methods":[],"protocol":{"rounds":1}}'
             path = root / 'input.json'; path.write_bytes(profile)
             (root/'profile.json').write_bytes(profile)
-            (root/'run-contract.json').write_text(json.dumps({'profile_sha256':digest(profile),'implementation':{}}))
+            (root/'run-contract.json').write_text(json.dumps({'profile_sha256':bytes_sha256(profile),'implementation':{}}))
             (root/'results.jsonl').write_bytes(b'')
             with self.assertRaisesRegex(ValueError, 'same live'):
                 prepare_resume(path,root)
@@ -574,7 +575,7 @@ def test_collection_receipt_binds_installed_scorer_and_detects_changed_sources(t
     original = runner.collection_implementation()
     assert prefix + 'scoring.py' in original
     for name, path in sources.items():
-        assert original[prefix + name] == runner.digest(path.read_bytes())
+        assert original[prefix + name] == bytes_sha256(path.read_bytes())
     changed = tmp_path / 'scoring.py'
     changed.write_text('changed scorer')
     for name, path in sources.items():

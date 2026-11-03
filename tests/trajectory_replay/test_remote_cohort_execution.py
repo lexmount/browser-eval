@@ -8,8 +8,9 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
+from harness.record_io import file_sha256
 from harness.trajectory_replay import remote_execution as execution
-from harness.trajectory_replay.remote_runtime import file_sha256, selected_task_ids
+from harness.trajectory_replay.remote_runtime import selected_task_ids
 from tests.trajectory_replay.test_remote_three_method_cohort import _fixture
 
 
