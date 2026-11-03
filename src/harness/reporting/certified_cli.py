@@ -4,7 +4,7 @@ import argparse
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(add_help=False)
+    parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
     parser.add_argument("--track", choices=["webfetch", "web-scraper"], default="webfetch")
     args, remaining = parser.parse_known_args(argv)
     if args.track == "web-scraper":

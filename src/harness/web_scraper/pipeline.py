@@ -457,19 +457,32 @@ def redact(value):
     if isinstance(value, list):
         return [redact(x) for x in value]
     if isinstance(value, str):
+        credential_keys = {key for method in available_methods().values() for key in method["keys"]}
         for key, secret in os.environ.items():
-            if (
-                any(
-                    x in key
-                    for x in ("KEY", "TOKEN", "PASSWORD", "SECRET", "ACCOUNT_ID", "CDP_URL")
+            if secret and (
+                key in credential_keys
+                or (
+                    any(
+                        x in key
+                        for x in ("KEY", "TOKEN", "PASSWORD", "SECRET", "ACCOUNT_ID", "CDP_URL")
+                    )
+                    and len(secret) >= 8
                 )
-                and len(secret) >= 8
             ):
                 representations = {secret, quote(secret, safe=""), quote_plus(secret, safe="")}
                 if key == "ZYTE_API_KEY":
                     representations.add(base64.b64encode((secret + ":").encode()).decode())
                 for representation in representations:
-                    value = value.replace(representation, "[REDACTED]")
+                    if len(secret) < 8:
+                        # Short credentials need token boundaries: a one-character key
+                        # must not alter method IDs, hashes or unrelated error words.
+                        value = re.sub(
+                            r"(?<![\w])" + re.escape(representation) + r"(?![\w])",
+                            "[REDACTED]",
+                            value,
+                        )
+                    else:
+                        value = value.replace(representation, "[REDACTED]")
 
     return value
 

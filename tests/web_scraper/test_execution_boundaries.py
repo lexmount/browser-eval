@@ -860,3 +860,27 @@ def test_resume_rejects_symlinked_storage_before_dispatch(tmp_path, artifact):
             probe(home, ["cloudflare-json"], full=True, run_dir=target)
         dispatch.assert_not_called()
     assert list(external.iterdir()) == []
+
+
+@pytest.mark.parametrize("secret", ["abc123", "a/b?", "a"])
+def test_short_active_credentials_are_redacted_without_corrupting_ids(monkeypatch, secret):
+    import base64
+    from urllib.parse import quote, quote_plus
+
+    from harness.web_scraper.pipeline import redact
+
+    monkeypatch.setenv("ZYTE_API_KEY", secret)
+    forms = {
+        secret,
+        quote(secret, safe=""),
+        quote_plus(secret, safe=""),
+        base64.b64encode((secret + ":").encode()).decode(),
+    }
+    for form in forms:
+        assert redact({"error": "Authorization: Basic " + form})["error"].endswith("[REDACTED]")
+        assert redact({"url": "https://example.org/?key=" + form})["url"].endswith("[REDACTED]")
+    assert redact({"method": "zyte-product", "case_id": "1a2b3c", "state": "call_error"}) == {
+        "method": "zyte-product",
+        "case_id": "1a2b3c",
+        "state": "call_error",
+    }

@@ -842,11 +842,12 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
             value = round(value, 12) if value is not None else None
             cell.attrs.update(
                 {
-                    "data-sort": "" if value is None else str(value),
                     "data-metric": "audited-" + field,
                     "data-metric-direction": "max",
                 }
             )
+            if value is not None:
+                cell["data-sort"] = str(value)
             if value is not None and value == max(values) and values.count(value) == 1:
                 span = comparison.new_tag("span", attrs={"class": "comparison-winner"})
                 span.string = cell.get_text()
@@ -1908,16 +1909,8 @@ def check(output: Path, *, release=False, visual_receipt=None):
         path = output / name
         if path.is_symlink() or digest(path.read_bytes()) != sha:
             raise ValueError("Report file changed: " + name)
-        if path.suffix.lower() in {
-            ".html",
-            ".json",
-            ".js",
-            ".css",
-            ".txt",
-            ".md",
-            ".csv",
-        } and public_risk(path.read_bytes()):
-            raise ValueError("Report textual artifact has a publication privacy risk: " + name)
+        if public_risk(path.read_bytes()):
+            raise ValueError("Report artifact has a publication privacy risk: " + name)
         if path.suffix != ".html":
             continue
         soup = check_presentation(path.read_text(encoding="utf-8"))

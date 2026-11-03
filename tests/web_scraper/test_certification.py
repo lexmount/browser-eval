@@ -117,3 +117,9 @@ def test_certification_rejects_missing_url_fixture_before_dispatch(tmp_path, met
             run(tmp_path, plan, method, tmp_path / "run")
     calls.assert_not_called()
     assert not (tmp_path / "run").exists()
+
+
+def test_certified_dispatch_does_not_consume_backend_abbreviations():
+    with patch("harness.web_fetch.certification.main", return_value="legacy") as run:
+        assert main(["--t120"]) == "legacy"
+    run.assert_called_once_with(["--t120"])

@@ -1379,3 +1379,19 @@ def test_repair_resume_validates_partial_history_before_dispatch(tmp_path, mutat
         run(home, profile, "cloudflare-json", target)
     dispatch.assert_not_called()
     assert not (target / "certificate.json").exists()
+
+
+@pytest.mark.parametrize("batch_size", [0, -1, True, 1.5, "2", None])
+@pytest.mark.parametrize("adjudication", [False, True])
+def test_review_batch_size_is_validated_before_any_io(tmp_path, batch_size, adjudication):
+    from harness.web_scraper.review import prepare, prepare_adjudication
+
+    work = tmp_path / "new-work"
+    with pytest.raises(ValueError, match="batch_size must be a positive integer"):
+        if adjudication:
+            prepare_adjudication(
+                tmp_path / "missing", work, tmp_path / "rules", batch_size=batch_size
+            )
+        else:
+            prepare(tmp_path / "missing", tmp_path / "content", work, batch_size=batch_size)
+    assert not work.exists()

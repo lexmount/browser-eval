@@ -78,6 +78,7 @@ SCHEMA = {
 
 def prepare(home, content, work, *, batch_size=4, prior=None):
     """Freeze all source pages and all selected outputs without machine verdicts."""
+    validate_review_options(batch_size=batch_size)
     home, content, work = Path(home).resolve(), Path(content).resolve(), Path(work).resolve()
     require_external_output(work)
     work.mkdir(parents=True, exist_ok=True)
@@ -312,6 +313,7 @@ def reconcile_citations(result, packet):
 
 def prepare_adjudication(prior, work, rules, *, batch_size=4):
     """Recheck disputed references against the original benchmark's exact rules."""
+    validate_review_options(batch_size=batch_size)
     prior, work, rules = Path(prior).resolve(), Path(work).resolve(), Path(rules).resolve()
     require_external_output(work)
     manifest = read_json(prior / "manifest.json")
@@ -681,7 +683,9 @@ def assemble(
     return value
 
 
-def validate_review_options(*, limit=None, workers=4):
+def validate_review_options(*, limit=None, workers=4, batch_size=4):
+    if type(batch_size) is not int or batch_size <= 0:
+        raise ValueError("batch_size must be a positive integer")
     if limit is not None and (type(limit) is not int or limit <= 0):
         raise ValueError("--limit must be a positive integer")
     if type(workers) is not int or workers <= 0:

@@ -274,8 +274,10 @@ for (const table of document.querySelectorAll("table[data-sortable]")) {
           bc = b.row.cells[column];
         const av = ac.dataset.sort,
           bv = bc.dataset.sort;
-        const am = av === "" || ac.textContent === "—",
-          bm = bv === "" || bc.textContent === "—";
+        const am = av === "" || ac.textContent === "—" ||
+          (av === undefined && ac.dataset.metric !== undefined);
+        const bm = bv === "" || bc.textContent === "—" ||
+          (bv === undefined && bc.dataset.metric !== undefined);
         if (am || bm) return am === bm ? a.index - b.index : am ? 1 : -1;
         const delta =
           av !== undefined && bv !== undefined

@@ -381,7 +381,7 @@ def test_secret_only_in_html_is_rejected_even_with_valid_inventory(tmp_path, mod
     manifest = read_json(output / "report-manifest.json")
     manifest["files"]["zh/dataset.html"] = digest(page.read_bytes())
     save_json(output / "report-manifest.json", manifest)
-    with pytest.raises(ValueError, match="textual artifact.*privacy"):
+    with pytest.raises(ValueError, match="artifact.*privacy"):
         check(output)
 
 
@@ -608,6 +608,7 @@ def test_audited_f1_exposes_each_field_population_and_exclusions():
     review, _ = audit_explanation(audit, rows, ["native"], {}, "en")
     soup = BeautifulSoup(review, "html.parser")
     first = soup.select_one("[data-audited-quality] tbody tr td:nth-child(2)")
+    check_presentation(soup)
     assert list(first.stripped_strings) == ["—", "Scored 0/2; excluded 2"]
     assert not first.select_one(".comparison-winner")
     check_audited_quality(soup, ["native"], scores, 2, "en")
@@ -697,3 +698,36 @@ def test_report_dataset_download_link_is_pinned_and_release_checked(tmp_path, mo
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="Pinned dataset download link"):
         check(output)
+
+
+@pytest.mark.parametrize("suffix", [".svg", ".xml", ".jsonl", ".unknown"])
+@pytest.mark.parametrize("sensitive", [False, True])
+def test_all_asset_formats_receive_publication_privacy_checks(tmp_path, suffix, sensitive):
+    home = create(tmp_path / "first")
+    source = home / ("diagram" + suffix)
+    source.write_text(
+        "<svg><text>"
+        + (
+            "Authorization: Bearer secret-token-only-in-asset-123456"
+            if sensitive
+            else "Frozen HTML → native API → fields"
+        )
+        + "</text></svg>",
+        encoding="utf-8",
+    )
+    content = read_json(home / "content.json")
+    content["assets"] = [
+        {
+            "source": source.name,
+            "path": "assets/" + source.name,
+            "sha256": digest(source.read_bytes()),
+        }
+    ]
+    save_json(home / "content.json", content)
+    kwargs = dict(home=home, profile=home / "profile.json")
+    if sensitive:
+        with pytest.raises(ValueError, match="publication privacy risk"):
+            build(tmp_path / "new", home / "content.json", **kwargs)
+    else:
+        build(tmp_path / "new", home / "content.json", **kwargs)
+        check(tmp_path / "new")
