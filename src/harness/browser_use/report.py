@@ -3535,6 +3535,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             _page(title="账号", active="accounts", body=accounts, depth=1), encoding="utf-8"
         )
 
+        configuration_count = len(participants.models) * len(participants.engines)
         claims = {
             "schema": "lex_browser_use_interpretation/1",
             "claims": [
@@ -3571,7 +3572,10 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     },
                 },
                 {
-                    "claim": "四配置最终共同成功任务的性能与资源 P50",
+                    "claim": (
+                        f"{'四' if configuration_count == 4 else f'{configuration_count} 种'}"
+                        "配置最终共同成功任务的性能与资源 P50"
+                    ),
                     "basis": dict(
                         zip(
                             ("task_count", "rows"),

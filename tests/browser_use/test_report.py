@@ -2024,6 +2024,10 @@ def test_report_follows_a_registry_of_another_size_without_module_state(
     assert "One site stack; Alpha, Beta and Gamma run serially" in english_reproduce
     assert "One site stack; multiple browsers run in parallel" in english_reproduce
     assert "Chromium" not in analysis and "Moli" not in analysis
+    claims = json.loads((output / "data/interpretation-evidence.json").read_text(encoding="utf-8"))
+    common_success = next(row for row in claims["claims"] if "最终共同成功任务" in row["claim"])
+    assert common_success["claim"] == "6 种配置最终共同成功任务的性能与资源 P50"
+    assert len(common_success["basis"]["rows"]) == 6
     dataset = (output / "en/datasets/44.html").read_text(encoding="utf-8")
     for link in ("Model A · Alpha 1.0", "Model A · Beta", "model-b · Gamma 3.0"):
         assert f"{link} result" in dataset
@@ -2040,6 +2044,20 @@ def test_report_follows_a_registry_of_another_size_without_module_state(
     assert {model: set(group) for model, group in data["summary"].items()} == {"model-c": {"solo"}}
     assert [path.name for path in (smaller / "results").glob("*.html")] == ["model-c-solo-44.html"]
     assert "Alpha" not in (smaller / "analysis/index.html").read_text(encoding="utf-8")
+
+
+def test_four_configuration_claim_keeps_its_published_text(
+    tmp_path: Path, monkeypatch
+) -> None:
+    current = {
+        "engines": ["chromium", "moli"],
+        "baseline_engine": "chromium",
+        "models": ["model-a", "model-b"],
+    }
+    output = _build_registered_report(tmp_path, monkeypatch, "current", current)
+
+    claims = json.loads((output / "data/interpretation-evidence.json").read_text(encoding="utf-8"))
+    assert "四配置最终共同成功任务的性能与资源 P50" in [row["claim"] for row in claims["claims"]]
 
 
 @pytest.mark.parametrize(
