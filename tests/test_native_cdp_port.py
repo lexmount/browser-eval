@@ -1,7 +1,8 @@
 """Port recovery with a stand-in server; the fake handshake forces each ordering under test.
 
 The real server binaries are not run. A foreign CDP server that answers before this
-server has exited is not covered, because the connection cannot tell the two apart.
+server has exited cannot be told apart at the handshake, so it is only caught when this
+server's exit is seen after the caller finishes.
 """
 
 import base64
@@ -43,12 +44,16 @@ class Browser:
 class Harness:
     """Run a real server binary, with candidate ports forced onto held sockets."""
 
-    def __init__(self, tmp_path, script=SERVER, *, foreign_is_cdp=False, held=1, reject_all=False):
+    def __init__(
+        self, tmp_path, script=SERVER, *, foreign_is_cdp=False, held=1, reject_all=False,
+        server_exits_first=True,
+    ):
         self.binary = tmp_path / "server"
         self.binary.write_text(script.format(python=sys.executable), encoding="utf-8")
         self.binary.chmod(self.binary.stat().st_mode | stat.S_IXUSR)
         self.foreign_is_cdp = foreign_is_cdp
         self.reject_all = reject_all
+        self.server_exits_first = server_exits_first
         self.listeners = [socket.create_server(("127.0.0.1", 0)) for _ in range(held)]
         self.forced = [listener.getsockname()[1] for listener in self.listeners]
         self.taken = set(self.forced)
@@ -59,8 +64,9 @@ class Harness:
         if self.reject_all:
             raise ConnectionError("handshake rejected")
         if int(url.rsplit(":", 1)[1]) in self.taken:
-            # Force the order under test: this server exits before the handshake returns.
-            self.processes[-1].wait(20)
+            if self.server_exits_first:
+                # Force the order under test: this server exits before the handshake returns.
+                self.processes[-1].wait(20)
             if not self.foreign_is_cdp:
                 raise ConnectionError("not a CDP endpoint")
         self.browsers.append(Browser(url))
@@ -77,7 +83,7 @@ class Harness:
 
         return SimpleNamespace(socket=Candidate, create_connection=socket.create_connection)
 
-    def run(self, engine="obscura", metadata=None):
+    def run(self, engine="obscura", metadata=None, during=None):
         popen = subprocess.Popen
 
         def start(*args, **kwargs):
@@ -92,7 +98,10 @@ class Harness:
                     self.playwright, request, time.monotonic() + 30, metadata=metadata
                 ) as browser:
                     assert all(process.poll() is not None for process in self.processes[:-1])
-                    assert self.processes[-1].poll() is None
+                    if during is not None:
+                        during()
+                    else:
+                        assert self.processes[-1].poll() is None
                     return browser
             finally:
                 for listener in self.listeners:
@@ -173,6 +182,40 @@ def test_foreign_cdp_server_is_not_used_after_this_server_lost_the_port(tmp_path
     assert used is browser and int(used.url.rsplit(":", 1)[1]) not in taken
     log = base64.b64decode(metadata["_diagnostic_log_b64"]).decode()
     assert "in use" in log.lower() and metadata["diagnostic_log_process_completed"] is True
+
+
+def wait_for_server_exit(harness):
+    return lambda: harness.processes[-1].wait(20)
+
+
+def test_foreign_cdp_server_that_answers_first_fails_the_call(tmp_path):
+    harness = Harness(tmp_path, foreign_is_cdp=True, server_exits_first=False)
+    metadata = {}
+    with pytest.raises(RuntimeError, match="(?s)exited with code 1 while.*(?i:in use)"):
+        harness.run(engine="moli", metadata=metadata, during=wait_for_server_exit(harness))
+    assert len(harness.processes) == 1
+    assert harness.browsers[0].closed
+    assert metadata["diagnostic_log_process_completed"] is True
+
+
+def test_caller_error_is_kept_when_the_server_also_exited(tmp_path):
+    harness = Harness(tmp_path, foreign_is_cdp=True, server_exits_first=False)
+
+    def fail():
+        harness.processes[-1].wait(20)
+        raise LookupError("caller failure")
+
+    with pytest.raises(LookupError, match="caller failure"):
+        harness.run(during=fail)
+    assert harness.browsers[0].closed
+
+
+def test_silent_exit_while_the_browser_is_in_use_fails_the_call(tmp_path):
+    script = SERVER.replace("time.sleep(60)", "time.sleep(.2)")
+    harness = Harness(tmp_path, script, held=0)
+    with pytest.raises(RuntimeError, match="exited with code 0 while"):
+        harness.run(during=wait_for_server_exit(harness))
+    assert harness.browsers[0].closed
 
 
 def test_restart_attempts_are_bounded_and_report_the_server_log(tmp_path):

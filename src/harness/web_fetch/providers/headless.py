@@ -824,6 +824,11 @@ NATIVE_CDP_BIND_EXIT_GRACE_SECONDS = 1
 _ADDRESS_IN_USE = re.compile(rb'address\s*(?:is\s*)?(?:already\s*)?in\s*use', re.I)
 
 
+def _native_cdp_attempt_output(log, start):
+    """Return what the server wrote since ``start``; the child shares the file offset, so it stays put."""
+    return os.pread(log.fileno(), os.fstat(log.fileno()).st_size - start, start)
+
+
 def _connect_native_cdp(playwright, process, port, deadline):
     """Return ``(browser, handshake_error)``, with a browser only while ``process`` is alive.
 
@@ -867,7 +872,8 @@ def native_cdp_browser(playwright, request, deadline, metadata=None):
 
     The servers only accept a numeric port and bind it themselves, so another
     process can take the chosen port first. A server that reports this is
-    restarted on a new port.
+    restarted on a new port. A server that exits after the caller received a
+    browser fails the call, because the result cannot be attributed to it.
     """
     remaining = lambda: max(.001, deadline - time.monotonic())
     command = []
@@ -914,8 +920,7 @@ def native_cdp_browser(playwright, request, deadline, metadata=None):
                     browser, handshake_error = _connect_native_cdp(playwright, process, port, deadline)
                     if browser is not None:
                         break
-                    # The child shares this file offset, so read without moving it.
-                    output = os.pread(log.fileno(), os.fstat(log.fileno()).st_size - log_start, log_start)
+                    output = _native_cdp_attempt_output(log, log_start)
                     port_lost = _ADDRESS_IN_USE.search(output)
                     if not port_lost and handshake_error is not None:
                         raise handshake_error
@@ -923,6 +928,13 @@ def native_cdp_browser(playwright, request, deadline, metadata=None):
                         raise RuntimeError(output.decode('utf-8', 'replace')[:4000]
                                            or f'Native CDP server exited with code {process.returncode} and no output')
                 yield browser
+                # Nothing stops the server while the caller runs, so an exit here means the
+                # connection that served the caller may belong to another process on this port.
+                if process.poll() is not None:
+                    output = _native_cdp_attempt_output(log, log_start).decode('utf-8', 'replace')[:4000]
+                    raise RuntimeError(
+                        f'Native CDP server exited with code {process.returncode} while its browser '
+                        f'was in use, so the result may come from another process: {output or "no output"}')
             finally:
                 try:
                     if browser is not None:
