@@ -25,15 +25,6 @@ env_file._repository_credentials_file.write_text(
 )
 
 
-def synthetic_credentials_prelude() -> str:
-    """Python source that gives a child process the same synthetic site accounts."""
-    return (
-        "from pathlib import Path\n"
-        "from harness import env_file\n"
-        f"env_file._repository_credentials_file = Path({str(env_file._repository_credentials_file)!r})\n"
-    )
-
-
 def guard_browser_launches(patch):
     """Fail before macOS application registration crashes a restricted browser."""
     if sys.platform != "darwin" or os.environ.get("CODEX_SANDBOX") != "seatbelt":

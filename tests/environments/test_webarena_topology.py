@@ -369,6 +369,9 @@ def test_unset_site_credentials_stop_with_the_variable_names(tmp_path, monkeypat
     with pytest.raises(ValueError, match="WEBARENA_"):
         sanitize_text("public evidence must not pass without redaction")
     assert runtime.SITE_CREDENTIALS.get(WebArenaSite.MAP) is None
+    with pytest.raises(ValueError, match=expected):
+        topology.require_site_credentials([WebArenaSite.REDDIT])
+    topology.require_site_credentials([WebArenaSite.MAP])
 
 
 def test_selected_env_file_cannot_supply_a_site_account(tmp_path, monkeypatch) -> None:

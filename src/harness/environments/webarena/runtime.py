@@ -233,7 +233,6 @@ def configure_benchmark(hostname: str = CONTAINER_HOST_ALIAS) -> WebArenaVerifie
             urls=list(
                 dict.fromkeys([site_url(site, hostname), site_url(site, CONTAINER_HOST_ALIAS)])
             ),
-            credentials=SITE_CREDENTIALS[site],
             use_header_login=site == WebArenaSite.SHOPPING_ADMIN,
         )
         for site in SITE_PORTS

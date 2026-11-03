@@ -24,7 +24,6 @@ from webarena_verified.types.task import WebArenaSite
 
 from harness.distribution import repository_root
 from harness.environments.webarena.runtime import (
-    SITE_CREDENTIALS,
     SITE_PORTS,
 )
 from harness.environments.webarena.topology import (
@@ -108,7 +107,6 @@ def remote_benchmark(sites: dict[WebArenaSite, str]) -> WebArenaVerified:
                             ]
                         )
                     ),
-                    credentials=SITE_CREDENTIALS.get(site),
                     use_header_login=site == WebArenaSite.SHOPPING_ADMIN,
                 )
                 for site, url in sites.items()

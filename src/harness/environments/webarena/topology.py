@@ -193,6 +193,14 @@ def site_credentials(site: str) -> dict[str, str]:
     return values
 
 
+def require_site_credentials(sites) -> None:
+    """Stop a run before any site or browser starts when a login it needs is unset."""
+    for site in sites:
+        name = getattr(site, "value", site)
+        if name in CREDENTIAL_SITES:
+            site_credentials(name)
+
+
 def known_site_secrets() -> tuple[str, ...]:
     """Return the resolved site passwords that public evidence must never contain."""
     return tuple(site_credentials(site)["password"] for site in CREDENTIAL_SITES)

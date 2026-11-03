@@ -17,7 +17,10 @@ from pathlib import Path
 from urllib.parse import quote, urlsplit
 
 from harness.env_file import local_setting, parse_env_file, select_env_file
-from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
+from harness.environments.webarena.topology import (
+    TRUSTED_RECORDED_HOSTS,
+    require_site_credentials,
+)
 from harness.record_io import file_sha256
 from harness.trajectory_replay.catalog_contracts import (
     RUN_SCHEMA,
@@ -611,6 +614,7 @@ def main() -> None:
         environment_profile = _load_environment_profile(
             args.environment_profile, args.engine, credential_env_file
         )
+        require_site_credentials(sites)
         corrections = load_corrections()
         benchmark = remote_benchmark(sites)
         if args.task_selection is not None and args.task_id:

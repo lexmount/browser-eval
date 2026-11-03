@@ -1332,3 +1332,58 @@ def test_run_inputs_have_no_routing_binding_for_an_engine_without_overrides(
 ) -> None:
     inputs = _catalog_run_inputs(monkeypatch, tmp_path, "run", "moli", "192.0.2.142")
     assert "environment_host_overrides_sha256" not in inputs
+
+
+def test_run_entry_stops_before_a_browser_starts_without_site_accounts(
+    monkeypatch, tmp_path
+) -> None:
+    from webarena_verified.types.task import WebArenaSite
+
+    from harness import env_file
+
+    monkeypatch.setattr(env_file, "_repository_credentials_file", tmp_path / "absent.env")
+    sites = {WebArenaSite.SHOPPING: "https://shopping.remote.test"}
+    monkeypatch.setattr(
+        catalog_runner,
+        "load_catalog_inputs",
+        lambda *args, **kwargs: ({"task_ids": [9], "rows": []}, sites, {}),
+    )
+    monkeypatch.setattr(catalog_runner, "verify_webarena_runtime_source", lambda: SimpleNamespace())
+    monkeypatch.setattr(catalog_runner, "validate_environment_preparation", lambda *args: None)
+    monkeypatch.setattr(
+        "harness.trajectory_replay.report_inputs.replay_input_path",
+        lambda path, current: path,
+    )
+    (tmp_path / "environment.json").write_text("{}")
+    (tmp_path / "browser").write_text("")
+    monkeypatch.setattr(
+        catalog_runner.subprocess,
+        "Popen",
+        lambda *args, **kwargs: pytest.fail("a browser started"),
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "run",
+            "--catalog",
+            str(tmp_path / "catalog.json"),
+            "--portable-suite",
+            str(tmp_path / "suite.json"),
+            "--site-map",
+            str(tmp_path / "sites.json"),
+            "--site-reset-receipt",
+            str(tmp_path / "receipt.json"),
+            "--environment-profile",
+            str(tmp_path / "environment.json"),
+            "--binary",
+            str(tmp_path / "browser"),
+            "--backend",
+            "playwright",
+            "--output",
+            str(tmp_path / "run"),
+        ],
+    )
+
+    with pytest.raises(ValueError, match="WEBARENA_SHOPPING_PASSWORD"):
+        catalog_runner.main()
+    assert not (tmp_path / "run").exists()
