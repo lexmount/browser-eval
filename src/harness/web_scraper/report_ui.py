@@ -1,6 +1,7 @@
 """Static report controls for field, method, source and diagnosis drilldown."""
 
 CSS = """
+body{overflow-wrap:anywhere}
 .controls label{display:flex;align-items:center;gap:6px;font-size:14px}
 input[type=search]{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:7px;
 background:var(--panel);color:var(--ink);max-width:100%}
