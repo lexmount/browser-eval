@@ -295,10 +295,6 @@ def main(argv=None):
     print("Completed:", len(records), "calls. Evidence:", args.output)
 
 
-if __name__ == "__main__":
-    main()
-
-
 def _require_evidence(condition, message):
     if not condition:
         raise ValueError(message)

@@ -2,11 +2,9 @@
 
 import gzip
 import json
-import runpy
 import urllib.request
 import zipfile
 from dataclasses import replace
-from pathlib import Path
 
 import pytest
 
@@ -256,21 +254,17 @@ def test_reusing_receipt_does_not_require_archive_or_download_site(tmp_path):
     assert config.receipt.read_bytes() == previous
 
 
-def test_imports_do_not_read_credentials_parse_args_or_create_files(tmp_path, monkeypatch):
-    import sys
+def test_command_help_does_not_read_credentials_or_create_files(tmp_path, monkeypatch):
+    from harness.web_fetch.cli import main as cli_main
 
     monkeypatch.setattr(
         "harness.reporting.publication.load_token", lambda **kwargs: pytest.fail("credential read")
     )
-    monkeypatch.setattr(sys, "argv", ["command", "--unknown"])
     monkeypatch.chdir(tmp_path)
-    root = Path(__file__).resolve().parents[1]
-    for name in (
-        "publish_artifact_site.py",
-        "verify_artifact_site.py",
-        "check_publication_bundle.py",
-    ):
-        runpy.run_path(str(root / "scripts" / name))
+    for name in ("site-publish", "site-verify", "site-bundle-check"):
+        with pytest.raises(SystemExit) as stopped:
+            cli_main([name, "--help"])
+        assert stopped.value.code == 0
     assert not list(tmp_path.iterdir())
 
 

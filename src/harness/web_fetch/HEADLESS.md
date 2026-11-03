@@ -231,6 +231,10 @@ reference check remains failed when the command resumes.
 uv run --frozen python scripts/run_certified_benchmark.py --dataset DATASET --output RUN --work-root WORK --providers METHODS --case-ids IDS --provider-config PROVIDERS --workers 1 --browser-binary /absolute/path/to/chromium
 ```
 
+A cohort outside certification runs through
+`uv run --frozen python -m harness.web_fetch headless-run --output RUN --config PROVIDERS`;
+its output is diagnostic evidence only.
+
 ### Certify a new run
 
 An unchanged compiled acceptance-contract dataset is the execution authority.
@@ -250,7 +254,7 @@ Run it through the same certified wrapper with one worker, then package:
 ```sh
 make resource-image
 uv run --frozen python scripts/run_certified_benchmark.py --dataset RESOURCE/dataset.json --output RESOURCE_RUN --work-root RESOURCE_WORK --providers LOCAL_METHODS --case-ids IDS --provider-config RESOURCE/providers.json --workers 1
-uv run --frozen python scripts/package_headless_resources.py --run RESOURCE_RUN
+uv run --frozen python -m harness.web_fetch headless-resources --run RESOURCE_RUN
 ```
 
 The image recipe accepts version-bound build arguments. Set `MOLI_VERSION`
@@ -321,8 +325,8 @@ same command. Exclusion changes the publication matrix; source calls remain in
 the original evidence directory.
 
 ```sh
-uv run --frozen python scripts/assemble_headless.py --run-dir RUN --certificates CERTIFICATES --output ASSEMBLED
-uv run --frozen python scripts/assemble_headless.py --run-dir RUN --certificates CERTIFICATES --exclude-providers METHOD1 METHOD2 --output SUBSET
+uv run --frozen python -m harness.web_fetch headless-assemble --run-dir RUN --certificates CERTIFICATES --output ASSEMBLED
+uv run --frozen python -m harness.web_fetch headless-assemble --run-dir RUN --certificates CERTIFICATES --exclude-providers METHOD1 METHOD2 --output SUBSET
 ```
 
 Assembly verifies and copies declared call artifacts and reference observations,
@@ -347,7 +351,7 @@ Build from an explicit immutable evidence directory:
 
 ```sh
 make setup
-uv run --frozen python scripts/check_headless_evidence.py EVIDENCE --rescore
+uv run --frozen python -m harness.web_fetch headless-check EVIDENCE --rescore
 make report PROFILE=/absolute/path/to/profile.json EVIDENCE=/absolute/path/to/evidence
 make report-check PROFILE=/absolute/path/to/profile.json
 ```
@@ -366,7 +370,7 @@ Formal commands must not fall back to system `python` / `python3`; an unmet runt
 
 The headless report remains a separately published reference cohort. Its
 evidence bundle fixes the dataset ID, task count, provider set, timeout and
-route description; `scripts/check_headless_evidence.py` rejects a different
+route description; `uv run --frozen python -m harness.web_fetch headless-check` rejects a different
 cohort. The repository's current publication profile now points at the
 10-method Web Fetch report and must not be inferred from this headless cohort.
 Review requirements are bound to the declared evidence scope: unresolved

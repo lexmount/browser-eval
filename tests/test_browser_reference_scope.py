@@ -405,7 +405,7 @@ def test_batch_writes_every_case_before_failing_closed(tmp_path, monkeypatch):
 
     monkeypatch.setattr(browser_capture, '_capture_in_process', fake_capture)
     monkeypatch.setattr('sys.argv', [
-        'capture_headless_browser_observations.py',
+        'headless-observations',
         '--dataset', str(dataset), '--output', str(output),
         '--case-ids', 'unreachable,reachable', '--attempts', '2',
     ])

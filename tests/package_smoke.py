@@ -193,9 +193,9 @@ def verify_review_revisions(root: Path, source_root: Path) -> None:
     assert merged['review_protocol']['matrix_refresh_review']['retained_attempts'] == 1
     assert merged['review_protocol']['matrix_refresh_review']['reviewed_attempts'] == 1
     assert (refreshed / 'results.jsonl').read_bytes() == before
-    for script in ('review_headless_results.py', 'review_result_anomalies.py'):
-        work = root / (script.removesuffix('.py') + '-work')
-        command = [sys.executable, str(source_root / 'scripts' / script),
+    for name in ('review-headless', 'review-anomalies'):
+        work = root / (name + '-work')
+        command = [sys.executable, '-m', 'harness.web_fetch', name,
                    '--evidence', str(current), '--work', str(work), '--model', 'synthetic',
                    '--reviewer', 'internal', '--prepare-only']
         for _ in range(2):
@@ -361,8 +361,8 @@ def verify_dynamic_cohort(root: Path, source_root: Path) -> None:
     from harness.web_fetch.dynamic_cohort import merge
     from lexbench_webfetch.risk_control_dataset import load_cohort, parse_sections
 
-    for script in ('append_dynamic_content.py', 'merge_dynamic_supplement.py'):
-        subprocess.run([sys.executable, str(source_root / 'scripts' / script), '--help'],
+    for name in ('dynamic-append', 'dynamic-merge'):
+        subprocess.run([sys.executable, '-m', 'harness.web_fetch', name, '--help'],
                        cwd=root, check=True, capture_output=True, text=True)
     from lexbench_webfetch.inputs import definition_path
     definitions = definition_path('evaluation/risk-control')
@@ -539,7 +539,7 @@ def verify_environment_preparation(root: Path, source_root: Path) -> None:
     source.write_text(''.join(f'{key}=synthetic-value\n' for key in accounts.HOSTED_KEYS)
                       + 'UNRELATED_SECRET=synthetic-unrelated\n', encoding='utf-8')
     target.write_text(f'{accounts.HOSTED_KEYS[0]}=synthetic-existing\n', encoding='utf-8')
-    command = [sys.executable, str(source_root / 'scripts/import_benchmark_env.py'),
+    command = [sys.executable, '-m', 'harness.web_fetch', 'import-env',
                '--source', str(source), '--target', str(target)]
     result = subprocess.run(command, check=True, cwd=root, capture_output=True, text=True)
     assert 'synthetic-value' not in result.stdout + result.stderr
@@ -993,9 +993,8 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     package_webfetch(webfetch, webfetch_archive)
     from harness.web_fetch.publication_check import check as check_webfetch_package
     check_webfetch_package(webfetch_archive, webfetch)
-    for command in ('publish_artifact_site.py', 'verify_artifact_site.py',
-                    'check_publication_bundle.py'):
-        subprocess.run([sys.executable, str(source_root / 'scripts' / command), '--help'],
+    for command in ('site-publish', 'site-verify', 'site-bundle-check'):
+        subprocess.run([sys.executable, '-m', 'harness.web_fetch', command, '--help'],
                        check=True, cwd=root, stdout=subprocess.DEVNULL)
     from harness.web_fetch.report_publish import PublishConfig
     from harness.web_fetch.report_publish import publish as submit_webfetch
@@ -1076,8 +1075,7 @@ def verify_browser_observation_capture(root, source_root):
     from harness.web_fetch import browser_observations as observations
 
     subprocess.run([
-        sys.executable, str(source_root / 'scripts/capture_headless_browser_observations.py'),
-        '--help',
+        sys.executable, '-m', 'harness.web_fetch', 'headless-observations', '--help',
     ], check=True, cwd=root, capture_output=True, text=True)
     registry = json.loads(observations.CONTRACTS.read_bytes())
     assert registry['schema_version'] == 1
@@ -1273,7 +1271,7 @@ def verify_report_acceptance(root, source_root):
     presentation, authority = fixture['create_revision_report'](root / 'report-presentation')
     assert check_revision(presentation, authority_root=authority).startswith('PASS:')
     subprocess.run([
-        sys.executable, '-O', str(source_root / 'scripts/check_report_revision.py'),
+        sys.executable, '-O', '-m', 'harness.web_fetch', 'report-revision-check',
         str(presentation), '--authority-root', str(authority),
     ], check=True, cwd=root, capture_output=True, text=True)
 
@@ -1762,12 +1760,9 @@ def main():
         from harness.web_fetch.scoring_revision import revise
         assert not default_registry_path().resolve().is_relative_to(args.source_root.resolve())
         assert load_scoring_regressions()
-        for module in ('rescoring', 'scoring_revision', 'reference_revision'):
-            subprocess.run([sys.executable, '-m', 'harness.web_fetch.' + module, '--help'],
-                           check=True, cwd=root, capture_output=True, text=True)
-        for script in ('rescore_content.py', 'revise_body_scoring.py', 'revise_reference_evidence.py',
-                       'merge_result_review_revision.py', 'rebase_blind_result_review.py'):
-            subprocess.run([sys.executable, str(args.source_root / 'scripts' / script), '--help'],
+        for name in ('content-rescore', 'scoring-revision', 'reference-revision',
+                     'review-merge', 'review-rebase'):
+            subprocess.run([sys.executable, '-m', 'harness.web_fetch', name, '--help'],
                            check=True, cwd=root, capture_output=True, text=True)
         rescore(root / 'cohort')
         receipt = revise(

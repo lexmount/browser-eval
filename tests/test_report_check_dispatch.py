@@ -8,9 +8,10 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
+GATES = [[str(ROOT / "scripts/check_report.py")], ["-m", "harness.web_fetch", "report-revision-check"]]
 
 
-@pytest.mark.parametrize("command", ["check_report.py", "check_report_revision.py"])
+@pytest.mark.parametrize("command", GATES, ids=lambda gate: gate[-1].rsplit("/", 1)[-1])
 def test_webmainbench_sample_is_not_routed_to_wcxb(tmp_path, command):
     (tmp_path / "sample-manifest.json").write_text(json.dumps({"cases": []}), encoding="utf-8")
     (tmp_path / "dataset.json").write_text(
@@ -23,7 +24,7 @@ def test_webmainbench_sample_is_not_routed_to_wcxb(tmp_path, command):
     from harness.report_languages import write_language_contract
     write_language_contract(tmp_path, include_english=False)
     result = subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / command), str(tmp_path), "--profile", str(profile)],
+        [sys.executable, *command, str(tmp_path), "--profile", str(profile)],
         capture_output=True,
         text=True,
     )
@@ -32,7 +33,7 @@ def test_webmainbench_sample_is_not_routed_to_wcxb(tmp_path, command):
     assert "source-qualified" not in result.stderr
 
 
-@pytest.mark.parametrize("command", ["check_report.py", "check_report_revision.py"])
+@pytest.mark.parametrize("command", GATES, ids=lambda gate: gate[-1].rsplit("/", 1)[-1])
 def test_wcxb_report_does_not_require_web_fetch_dataset_file(tmp_path, command):
     from harness.web_fetch.wcxb_publication import write_inventory
     (tmp_path / "sample-manifest.json").write_text(json.dumps({"cases": []}), encoding="utf-8")
@@ -43,7 +44,7 @@ def test_wcxb_report_does_not_require_web_fetch_dataset_file(tmp_path, command):
     (tmp_path / "report-content-binding.json").write_text("{}", encoding="utf-8")
     write_inventory(tmp_path, json.loads(profile.read_bytes()))
     result = subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / command), str(tmp_path), "--profile", str(profile)],
+        [sys.executable, *command, str(tmp_path), "--profile", str(profile)],
         capture_output=True,
         text=True,
     )

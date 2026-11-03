@@ -3,7 +3,7 @@
 Every file here is a thin command-line entry point. Parsing, validation,
 execution and publication rules live in the owning `src/harness/` module.
 Run Python entry points with `uv run --frozen python scripts/<name>.py` or the
-matching `make` target.
+matching `make` target. Track stages run as `python -m harness.<track> <command>`.
 
 A script stays in this directory only when the Makefile, CI, a maintained guide,
 `configs/report-templates.json`, or a current profile, certificate or receipt
@@ -21,48 +21,37 @@ survived this pruning.
 
 | Script | Reached from |
 | --- | --- |
-| `import_benchmark_env.py` | `make import-env`, `SECURITY.md` |
-| `import_reference_inputs.py` | `docs/reference-inputs.md`; error text in `lexbench_webfetch.inputs` |
+| `import_reference_inputs.py` | `docs/reference-inputs.md`; error text in `lexbench_webfetch.inputs`, whose hash `src/harness/benchmarks/code-migration.json` binds |
 | `bootstrap_oss_baselines.sh` | `docs/dependencies.md`, `docs/provider-contract.md` |
 | `check_package.py` | `make package-check` (CI) |
 | `check_track_naming.py` | `make naming-check` (CI) |
 | `report_template.py` | `make report-template`, `AGENTS.md` |
 
-## Web Fetch execution and evidence
+## Web Fetch
+
+Web Fetch stages run through `uv run --frozen python -m harness.web_fetch <command>`; `--help`
+lists every command, and `-m harness.web_fetch <command> --help` shows its options. The
+[Web Fetch guide](../src/harness/web_fetch/README.md),
+[headless guide](../src/harness/web_fetch/HEADLESS.md), `docs/benchmarks.md`,
+`configs/report-templates.json` and `SECURITY.md` show them; `make report-check`,
+`make wcxb-release-check`, `make webfetch-diagnostic-report` and `make import-env` run
+`report-revision-check`, `diagnostic-check` and `import-env`.
+
+The scripts below stay because a frozen authority names them, or because they are shared
+with other tracks.
 
 | Script | Reached from |
 | --- | --- |
 | `run_certified_benchmark.py` | `AGENTS.md`, `docs/provider-contract.md`, `evaluation/risk-control/run-profile.json`; runs reference freezing, postcheck, finalization, `risk-control`, `webmainbench-correction`, `wcxb` and `wcxb-latency` |
 | `run_benchmark.py` | `AGENTS.md`, `docs/provider-contract.md`, bound latency certifiers |
-| `run_headless_benchmark.py` | reproduction text rendered by `src/harness/web_fetch/report-translations.json` |
-| `headless_worker.py` | executed by `src/harness/web_fetch/headless_runner.py` and `src/harness/web_fetch/providers/headless.py` |
-| `build_native_dns.py`, `capture_headless_browser_observations.py`, `collect_source_evidence.py`, `finalize_reference_checks.py`, `append_dynamic_content.py`, `merge_dynamic_supplement.py` | `src/harness/web_fetch/README.md` |
-| `assemble_headless.py`, `check_headless_evidence.py`, `package_headless_resources.py` | `src/harness/web_fetch/HEADLESS.md` |
-| `audit_initial_references.py` | `research/initial-reference-audit.json` |
-
-## Web Fetch review, rescoring and revision
-
-| Script | Reached from |
-| --- | --- |
-| `review_headless_results.py`, `review_result_anomalies.py`, `merge_result_review_revision.py`, `rebase_blind_result_review.py`, `rescore_content.py`, `revise_body_scoring.py`, `revise_reference_evidence.py` | `src/harness/web_fetch/README.md` |
-
-## Web Fetch reports and publication
-
-| Script | Reached from |
-| --- | --- |
-| `build_report.py` | `make report`, `configs/report-templates.json`, `AGENTS.md` |
-| `check_report.py`, `check_report_links.py`, `check_report_revision.py` | `make report-check`, `make wcxb-release-check` |
-| `check_diagnostic_report.py` | `make webfetch-diagnostic-report` |
-| `check_publication_bundle.py` | `src/harness/web_fetch/README.md` |
-| `verify_artifact_site.py` | executed by `src/harness/trajectory_replay/public_webarena/release.py` |
-| `restore_report_content.py` | `docs/architecture.md` |
-| `package_artifact_site.py`, `publish_artifact_site.py` | `configs/report-templates.json`, `docs/benchmarks.md` |
+| `build_report.py`, `check_report.py` | `make report`, `make report-check`, `configs/report-templates.json`, `AGENTS.md`, bound latency certifiers |
+| `check_report_links.py` | shared link check owned by `harness.reporting`: `make report-check`, `make browser-use-report-check`, bound latency certifiers |
+| `collect_source_evidence.py`, `audit_initial_references.py` | `research/initial-reference-audit.json` binds their hashes |
+| `restore_report_content.py` | shared content restore owned by `harness.reporting`: `docs/architecture.md` |
 
 ## WCXB and WebMainBench
 
-WCXB and WebMainBench stages run through `uv run --frozen python -m harness.web_fetch <command>`,
-beside the `run`, `report`, `rescore`, `validate` and `accounts` commands; `--help` lists
-them. `make wcxb-release-check`, `make public-benchmark-sample` and `make webmainbench-*`
+WCXB and WebMainBench stages use the same entry point. `make wcxb-release-check`, `make public-benchmark-sample` and `make webmainbench-*`
 reach the commands they name; the [Web Fetch guide](../src/harness/web_fetch/README.md),
 [WebMainBench guide](../src/harness/web_fetch/WEBMAINBENCH.md),
 [`docs/architecture.md`](../docs/architecture.md),
@@ -126,7 +115,7 @@ exclusive tests together.
 | `add_provider_results.py` | sole entry to `evidence.add_provider_run`, which adds one complete provider cohort to the persistent current evidence |
 | `certify_headless_cases.py`, `project_headless_provider.py` | sole entries to per-case certification and one-provider projection of a live-reference run; `HEADLESS.md` describes the stage without naming them |
 | `build_postcheck_observations.py`, `check_resource_links.py` | sole entries to independent post-call observation binding and frozen resource-link checks |
-| `select_headless_speed_cases.py`, `package_headless_speed.py` | sole entries to the provider-blind speed cohort that `assemble_headless.py --speed-cohort` consumes |
+| `select_headless_speed_cases.py`, `package_headless_speed.py` | sole entries to the provider-blind speed cohort that the headless assembly command consumes through `--speed-cohort` |
 | `assemble_webfetch_dataset.py` | compiles `evaluation/webfetch-seven-family-430/dataset-assembly.json`, which does not name the script |
 | `assemble_webfetch_refresh.py`, `audit_fixed_native_comparison.py` | sole entries to declared cohort refresh assembly and the two-build native comparison audit |
 | `probe_cowagent_text.py` | writes the `guide/cowagent-text-probe.json` evidence that `report_build.py` publishes; only that output file is named |

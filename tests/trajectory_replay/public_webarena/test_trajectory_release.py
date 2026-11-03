@@ -105,10 +105,9 @@ def test_verification_command_uses_required_slug_option(tmp_path):
         {"site_slug": "site", "base_url": "https://reports.example"},
         tmp_path / "profile.json",
         tmp_path / "report.zip",
-        tmp_path,
     )
-    assert command[2:4] == ["--slug", "site"]
-    assert command[4:6] == ["--profile", str(tmp_path / "profile.json")]
+    assert command[1:6] == ["-m", "harness.web_fetch", "site-verify", "--slug", "site"]
+    assert command[6:8] == ["--profile", str(tmp_path / "profile.json")]
     assert "--export" in command
     assert command[-2:] == ["--expected-archive", str(tmp_path / "report.zip")]
 
