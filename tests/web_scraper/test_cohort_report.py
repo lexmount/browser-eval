@@ -420,3 +420,39 @@ def test_configured_host_redaction_does_not_depend_on_one_deployment(tmp_path, m
     # No environment file is required for public/synthetic reports.
     monkeypatch.setattr(report, "repository_root", lambda: tmp_path / "absent-settings")
     assert report.publication_host_names() == ()
+
+
+@pytest.mark.parametrize("damage", ["missing-english", "wrong-list-inventory"])
+def test_report_rejects_incomplete_language_catalog(tmp_path, monkeypatch, damage):
+    import copy
+
+    import harness.web_scraper.messages as messages
+
+    home = create(tmp_path / "first")
+    catalog = copy.deepcopy(messages.validate_catalog())
+    if damage == "missing-english":
+        catalog["en"].pop("historical_reproduction")
+    else:
+        catalog["en"]["navigation_labels"].pop()
+    path = tmp_path / "messages.json"
+    save_json(path, catalog)
+    monkeypatch.setattr(messages, "MESSAGES", path)
+    with pytest.raises(ValueError, match="catalog|translation inventory"):
+        build(
+            tmp_path / "invalid-catalog",
+            home / "content.json",
+            home=home,
+            profile=home / "profile.json",
+            language="zh",
+        )
+
+
+def test_report_release_binds_the_message_catalog(tmp_path):
+    home = create(tmp_path / "report")
+    output = tmp_path / "report"
+    manifest = read_json(output / "report-manifest.json")
+    manifest["messages_sha256"] = "0" * 64
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="message catalog changed"):
+        check(output)
+    assert home.exists()

@@ -1,5 +1,9 @@
 """Static report controls for field, method, source and diagnosis drilldown."""
 
+import json
+
+from harness.web_scraper.messages import message
+
 CSS = """
 body{overflow-wrap:anywhere}
 .controls label{display:flex;align-items:center;gap:6px;font-size:14px}
@@ -21,7 +25,16 @@ html.dark .field-unexpected,html.dark .field-wrong{color:#ffa19d}
 """
 
 JS = r"""
-const tr = (zh, en) => (document.documentElement.lang.startsWith("en") ? en : zh);
+const REPORT_MESSAGES = __REPORT_MESSAGES__;
+const tr = (key, values = {}) => {
+  const language = document.documentElement.lang.startsWith("en") ? "en" : "zh";
+  if (!(key in REPORT_MESSAGES[language]))
+    throw Error("Missing report translation: " + language + "/" + key);
+  return REPORT_MESSAGES[language][key].replace(/\{(\w+)\}/g, (_, name) => {
+    if (!(name in values)) throw Error("Missing report value: " + name);
+    return String(values[name]);
+  });
+};
 try {
   document.documentElement.classList.toggle(
     "dark",
@@ -57,25 +70,25 @@ async function evidence(src, key) {
   return key ? value[key] : value;
 }
 const fieldNames = {
-  price: tr("价格", "Price"),
-  sku: "SKU",
-  availability: tr("库存", "Stock"),
-  OutOfStock: tr("缺货", "Out of stock"),
+  price: tr("field_labels_price"),
+  sku: tr("field_labels_sku"),
+  availability: tr("field_labels_availability"),
+  OutOfStock: tr("out_of_stock"),
 };
 const outcomeNames = {
-  correct: tr("符合标注", "Matches reference"),
-  missing: tr("漏提取", "Missing"),
-  unexpected: tr("多提取", "Unexpected"),
-  wrong: tr("值不匹配", "Wrong value"),
+  correct: tr("outcomes_correct"),
+  missing: tr("outcomes_missing"),
+  unexpected: tr("outcomes_unexpected"),
+  wrong: tr("outcomes_wrong"),
 };
 const stageNames = {
-  client_transport: tr("客户端传输", "Client transport"),
-  model_capacity: tr("模型容量", "Model capacity"),
-  navigation: tr("页面加载", "Page navigation"),
-  provider_schema: tr("服务端 Schema 处理", "Provider schema handling"),
-  provider_fetch: tr("服务端附加抓取", "Provider fetching"),
-  provider_response: tr("服务端响应", "Provider response"),
-  fields: tr("字段匹配", "Field matching"),
+  client_transport: tr("client_transport"),
+  model_capacity: tr("stages_model_capacity"),
+  navigation: tr("stages_navigation"),
+  provider_schema: tr("provider_schema_handling"),
+  provider_fetch: tr("stages_provider_fetch"),
+  provider_response: tr("stages_provider_response"),
+  fields: tr("stages_fields"),
 };
 function node(tag, text) {
   const value = document.createElement(tag);
@@ -84,11 +97,11 @@ function node(tag, text) {
 }
 function valueText(value) {
   return value === null || value === undefined
-    ? tr("空值", "null")
+    ? tr("null")
     : Array.isArray(value)
       ? value.length
         ? value.join(" / ")
-        : tr("无可接受值", "No accepted value")
+        : tr("no_accepted_value")
       : String(value);
 }
 let opener = null;
@@ -131,39 +144,33 @@ function diagnosisContent(container, row, field) {
   const add = (label, value) => {
     facts.append(node("dt", label), node("dd", value || "—"));
   };
-  add(tr("失败环节", "Stage"), stageNames[row.failure_stage] || row.failure_stage);
+  add(tr("stage_fb689e6a"), stageNames[row.failure_stage] || row.failure_stage);
   add(
-    tr("准确错误", "Exact error"),
+    tr("exact_error"),
     row.native_error ||
-      tr(
-        "接口已返回结构化字段；查看各字段差异。",
-        "Structured fields returned; inspect field differences.",
-      ),
+      tr("structured_fields_returned_inspect_field_differences"),
   );
   add(
-    tr("核查原因", "Reviewed cause"),
+    tr("reviewed_cause"),
     diagnosis.cause ||
       sourceFinding?.reason ||
-      tr(
-        "字段判断见下方；完整记录可展开。",
-        "See field judgments and complete evidence below.",
-      ),
+      tr("see_field_judgments_and_complete_evidence_below"),
   );
   add(
-    tr("处理结果", "Treatment"),
-    diagnosis.treatment || tr("保留原调用及评分。", "Original call and score retained."),
+    tr("treatment"),
+    diagnosis.treatment || tr("original_call_and_score_retained"),
   );
-  if (row.repair_run_id) add(tr("失败补跑", "Failure repair"), row.repair_run_id);
+  if (row.repair_run_id) add(tr("failure_repair"), row.repair_run_id);
   if (Number.isFinite(row.elapsed_seconds))
-    add(tr("本次耗时", "Current call latency"), row.elapsed_seconds.toFixed(3) + " s");
+    add(tr("current_call_latency"), row.elapsed_seconds.toFixed(3) + " s");
   container.append(facts);
   const table = document.createElement("table");
   const head = document.createElement("tr");
   for (const label of [
-    tr("字段", "Field"),
-    tr("参考值", "Reference"),
-    tr("输出", "Output"),
-    tr("判定", "Outcome"),
+    tr("field"),
+    tr("reference"),
+    tr("output"),
+    tr("outcome_243a87d2"),
   ])
     head.append(node("th", label));
   table.append(head);
@@ -188,7 +195,7 @@ function diagnosisContent(container, row, field) {
   if (row.review) {
     const details = document.createElement("details");
     details.append(
-      node("summary", tr("原文证据与核查后的参考值", "Source evidence and audited reference")),
+      node("summary", tr("source_evidence_and_audited_reference")),
     );
     for (const key of ["price", "sku", "availability"]) {
       const finding = row.review.source_field_review?.[key];
@@ -196,7 +203,7 @@ function diagnosisContent(container, row, field) {
       if (!finding || !assessed) continue;
       details.append(node("h3", fieldNames[key]));
       details.append(
-        node("p", tr("核查参考值：", "Audited reference: ") + valueText(assessed.expected)),
+        node("p", tr("audited_reference") + valueText(assessed.expected)),
       );
       details.append(node("blockquote", finding.source_quote));
       details.append(node("p", finding.reason));
@@ -206,9 +213,9 @@ function diagnosisContent(container, row, field) {
   const links = node("p", "");
   links.className = "case-links";
   for (const [path, label] of [
-    [`${lang}/result-${row.method}-${row.case_id}.html`, tr("完整结果", "Full result")],
-    [`${lang}/case-${row.case_id}.html`, tr("同题比较全部方法", "Compare all methods")],
-    [`${lang}/source-${row.case_id}.html`, tr("页面、标注与来源", "Source and annotations")],
+    [`${lang}/result-${row.method}-${row.case_id}.html`, tr("full_result")],
+    [`${lang}/case-${row.case_id}.html`, tr("compare_all_methods_a24f79dd")],
+    [`${lang}/source-${row.case_id}.html`, tr("source_and_annotations_cf191383")],
   ]) {
     const a = node("a", label);
     a.href = path;
@@ -219,7 +226,7 @@ function diagnosisContent(container, row, field) {
   details.append(
     node(
       "summary",
-      tr("完整请求、响应与补跑历史", "Complete request, response and repair history"),
+      tr("complete_request_response_and_repair_history"),
     ),
   );
   details.append(node("pre", JSON.stringify(row, null, 2)));
@@ -240,7 +247,7 @@ document.addEventListener("click", async (event) => {
   show(dialog, button);
   const container =
     dialog.querySelector("[data-diagnosis-body]") || dialog.querySelector("pre");
-  container.textContent = tr("正在加载完整证据…", "Loading complete evidence…");
+  container.textContent = tr("loading_complete_evidence");
   try {
     const row = await evidence(button.dataset.src, button.dataset.key);
     if (!dialog.open || dialog.dataset.generation !== generation) return;
@@ -250,10 +257,7 @@ document.addEventListener("click", async (event) => {
   } catch (error) {
     if (!dialog.open || dialog.dataset.generation !== generation) return;
     container.textContent =
-      tr(
-        "读取失败，可关闭后重试；原始文件链接仍可使用：",
-        "Load failed; close and retry or use the raw file: ",
-      ) + error.message;
+      tr("load_failed_close_and_retry_or_use_the_raw_file") + error.message;
   }
 });
 for (const table of document.querySelectorAll("table[data-sortable]")) {
@@ -318,7 +322,7 @@ if (form) {
       if (show) shown++;
     }
     const count = document.querySelector("[data-result-count]");
-    if (count) count.textContent = tr(`显示 ${shown} 条`, `Showing ${shown} results`);
+    if (count) count.textContent = tr("showing_results", {shown});
   };
   for (const control of form.querySelectorAll("[data-result-filter]"))
     control.addEventListener(control.tagName === "INPUT" ? "input" : "change", update);
@@ -335,3 +339,56 @@ if (form) {
   }
 }
 """
+
+
+CLIENT_MESSAGE_KEYS = (
+    "showing_results",
+    "audited_reference",
+    "client_transport",
+    "compare_all_methods_a24f79dd",
+    "complete_request_response_and_repair_history",
+    "current_call_latency",
+    "exact_error",
+    "failure_repair",
+    "field",
+    "field_labels_availability",
+    "field_labels_price",
+    "field_labels_sku",
+    "full_result",
+    "load_failed_close_and_retry_or_use_the_raw_file",
+    "loading_complete_evidence",
+    "no_accepted_value",
+    "null",
+    "original_call_and_score_retained",
+    "out_of_stock",
+    "outcome_243a87d2",
+    "outcomes_correct",
+    "outcomes_missing",
+    "outcomes_unexpected",
+    "outcomes_wrong",
+    "output",
+    "provider_schema_handling",
+    "reference",
+    "reviewed_cause",
+    "see_field_judgments_and_complete_evidence_below",
+    "source_and_annotations_cf191383",
+    "source_evidence_and_audited_reference",
+    "stage_fb689e6a",
+    "stages_fields",
+    "stages_model_capacity",
+    "stages_navigation",
+    "stages_provider_fetch",
+    "stages_provider_response",
+    "structured_fields_returned_inspect_field_differences",
+    "treatment",
+)
+JS = JS.replace(
+    "__REPORT_MESSAGES__",
+    json.dumps(
+        {
+            language: {key: message(key, language, shown="{shown}") for key in CLIENT_MESSAGE_KEYS}
+            for language in ("en", "zh")
+        },
+        ensure_ascii=False,
+    ),
+)

@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source = fs.readFileSync(new URL('../../src/harness/web_scraper/report_ui.py', import.meta.url), 'utf8');
-const js = source.match(/JS = r"""([\s\S]*?)"""/)[1];
+const catalog = JSON.parse(fs.readFileSync(new URL('../../src/harness/web_scraper/messages.json', import.meta.url), 'utf8'));
+const js = source.match(/JS = r"""([\s\S]*?)"""/)[1].replace('__REPORT_MESSAGES__', JSON.stringify(catalog));
 let focused;
 class Element {
   constructor(tag, text = '') { this.tagName = tag.toUpperCase(); this.text = text; this.children = []; this.dataset = {}; this.listeners = {}; this.attributes = {}; }
@@ -126,3 +127,9 @@ for (const rejectOld of [false, true]) {
   assert.doesNotMatch(body.textContent, /OBSOLETE A/);
 }
 console.log('PASS: stale dialog success and rejection cannot overwrite a newer selection');
+
+const incomplete = structuredClone(catalog);
+delete incomplete.zh.field_labels_price;
+const incompleteJs = source.match(/JS = r"""([\s\S]*?)"""/)[1].replace('__REPORT_MESSAGES__', JSON.stringify(incomplete));
+assert.throws(() => vm.runInNewContext(incompleteJs, {...context}), /Missing report translation: zh\/field_labels_price/);
+console.log('PASS: missing client translations fail explicitly');

@@ -10,6 +10,7 @@ from pathlib import Path
 from bs4 import BeautifulSoup
 
 from harness.review_runner import run_reviewer, validate_schema
+from harness.web_scraper.messages import message
 from harness.web_scraper.pipeline import (
     digest,
     load_run,
@@ -508,13 +509,15 @@ def assemble(
                 json.dumps(row.get("response"), sort_keys=True, ensure_ascii=False).encode()
             ),
             "projection_changed": item["normalized_fields"] != current["normalized_fields"],
-            "projection_adjudication": (
-                "上游 extruct 仅写出规范库存辅助键，未写回 availability；"
-                "只在该辅助键唯一明确时补回主字段。原生响应和原评分保留。"
-                if method == "extruct"
-                else "评分只读取接口约定的主商品字段；不按参考值挑选型号、备选报价或旁路 metadata。"
-                "InStock / OutOfStock 辅助键属于上游评分接口。"
-            ),
+            "projection_adjudication": {
+                language: message(
+                    "baseline_stock_projection"
+                    if method == "extruct"
+                    else "native_product_fields_projection",
+                    language,
+                )
+                for language in ("zh", "en")
+            },
             "audited_fields": field_results(home, references[cid], current, profile=profile),
         }
     controls = check_reference_controls(home, profile=profile)
