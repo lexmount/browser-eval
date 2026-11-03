@@ -60,7 +60,7 @@ are not archived, so browser rendering can still fetch those resources.
 ```sh
 uv run --frozen python -m harness.web_scraper.cli plan \
   --methods cloudflare-json firecrawl-json scrapegraph-extract scrapfly-product \
-  oxylabs-json zyte-product diffbot-product browserbase-stagehand extruct \
+  oxylabs-json zyte-product diffbot-product browserbase-json extruct \
   --output /absolute/data/full-cohort.json
 uv run --frozen python scripts/run_certified_benchmark.py --track web-scraper \
   --profile /absolute/data/full-cohort.json --method firecrawl-json \
@@ -131,3 +131,8 @@ uv run --frozen python -m harness.web_scraper.cli check /absolute/report \
 ```
 
 Building a local report does not upload it or change access permissions.
+
+The current deployed report and immutable version are bound in
+[`publication-target.json`](../../evaluation/web-scraper/publication-target.json).
+Its profile and report-manifest hashes identify the external release; measured
+responses and report prose remain outside Git.
