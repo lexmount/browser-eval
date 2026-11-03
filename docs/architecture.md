@@ -73,7 +73,7 @@ through configuration, registries or explicit parameters.
 | Bound artifact copying and aggregation | `artifacts.py`, `evidence.py`, `assembly.py` |
 | Reference and scoring corrections | `reference_revision.py`, `scoring_revision.py`, `rescoring.py` |
 | WebMainBench certification, scoring and aggregation | `webmainbench_certification.py`, `webmainbench_scoring.py`, `webmainbench_assembly.py` |
-| WCXB scoring, paired timing and publication | `wcxb_scoring.py`, `wcxb_latency.py`, `wcxb_publication.py` |
+| WCXB scoring, paired timing and publication | `wcxb_metrics.py`, `wcxb_scoring.py`, `wcxb_latency.py`, `wcxb_publication.py` |
 | Web Fetch report construction and rendering | `report_build.py`, `report.py` |
 | Common report assets, links, presentation and publication | `src/harness/reporting/` |
 | Generated-language inventory and absent-English notice | `src/harness/report_languages.py` |

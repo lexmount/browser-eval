@@ -12,33 +12,6 @@ from harness.web_fetch.wcxb_dataset import validate_manifest
 from harness.web_fetch.webmainbench_runner import load_wcxb_source, selected_wcxb_input
 
 
-@pytest.mark.parametrize('answer,reference,expected', [
-    ('Alpha, BETA!', 'alpha beta', (1, 1, 1)),
-    ('alpha alpha beta', 'alpha beta beta beta', (2 / 3, 1 / 2, 4 / 7)),
-    ('a 1 1', 'A 1', (2 / 3, 1, 4 / 5)),
-    ('Straße', 'STRASSE', (0, 0, 0)),
-    ('alpha_beta', 'alpha beta', (0, 0, 0)),
-    ('你好，世界', '你好 世界', (1, 1, 1)),
-    ('', '', (1, 1, 1)),
-    ('!!!', '', (1, 1, 1)),
-    ('extra', '', (0, 0, 0)),
-    ('', 'required', (0, 0, 0)),
-])
-def test_official_multiset_word_metric_semantics(answer, reference, expected):
-    assert wcxb_scoring.word_f1(answer, reference) == pytest.approx(expected)
-
-
-@pytest.mark.parametrize('text,snippets,expected', [
-    ('Cartography', ['art'], 1),
-    ('Alpha Beta', ['ALPHA', 'beta', 'absent'], 2 / 3),
-    ('Straße', ['STRASSE'], 0),
-    ('anything', [], 1),
-    ('', ['required'], 0),
-])
-def test_official_literal_snippet_fraction(text, snippets, expected):
-    assert wcxb_scoring.snippet_check(text, snippets) == expected
-
-
 @pytest.fixture
 def edition(tmp_path):
     definitions = tmp_path / 'definitions'
