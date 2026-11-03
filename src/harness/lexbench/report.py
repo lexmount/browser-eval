@@ -10,6 +10,9 @@ import pathlib
 import re
 import shutil
 import statistics
+from collections.abc import Iterable
+from dataclasses import dataclass
+from typing import Any
 
 from harness.distribution import repository_root
 from harness.lexbench import charts, reproduction
@@ -28,9 +31,82 @@ from lexbench_webfetch.paths import contained_path, safe_identifier
 REPOSITORY_ROOT = repository_root()
 TEMPLATE_DIRECTORY = pathlib.Path(__file__).with_name("template")
 TEMPLATE_FILES = ("index.html", "messages.json", "app.js", "style.css", "README.md")
+DEFAULT_RUN_LABELS = {
+    "off_baseline": "m117_layout_off_baseline_init_0918",
+    "on_baseline": "m117_layout_on_baseline_init_0918",
+    "off_engine": "m117_layout_off_engine_init_0918",
+    "on_engine": "m117_layout_on_engine_init_0918",
+}
+ENDPOINT_RE = re.compile(r"(?:(?:https?|wss?)://)?127\.0\.0\.1:\d+")
+CANDIDATE_114 = "v4_cdp_emulation_setdefaultbackgroundcoloroverride"
+COMMON_PASS_POPULATION = "frozen_historical_common_pass_calls"
+FIXED_CANDIDATE_LABELS = {
+    "119_official_off": ("Moli 1.1.9 · 关闭 layout", "Moli 1.1.9 · layout off", "off"),
+    "119_official_on": ("Moli 1.1.9 · 开启 layout", "Moli 1.1.9 · layout on", "on"),
+    "119_off": ("Moli 1.1.9 修复版 · 关闭 layout", "Moli 1.1.9 patched · layout off", "off"),
+    "119_on": ("Moli 1.1.9 修复版 · 开启 layout", "Moli 1.1.9 patched · layout on", "on"),
+}
+VENDOR_ASSET_SHA256 = {
+    "mermaid.min.js": "07e37dfa97b337ccc85365d57eddf99b9706f09db3b59b260d0333b23b343c4b",
+    "mermaid-LICENSE.txt": "ec9fb67dcb25eccc416ed56e1aab819222c805a2a4bfe4cb19e7556bf2ffde80",
+}
+
+JsonObject = dict[str, Any]
+RunRecord = tuple[pathlib.Path, JsonObject, dict[tuple[str, int], JsonObject]]
+Runs = dict[str, RunRecord]
+SelectedTasks = dict[str, tuple[str, str]]
 
 
-def call_stats(values):
+@dataclass(frozen=True)
+class ReportPaths:
+    """Every retained input and the output of one report build."""
+
+    source: pathlib.Path
+    output: pathlib.Path
+    cohort: pathlib.Path
+    summary: pathlib.Path
+    vendor_dir: pathlib.Path
+    functional_correction: pathlib.Path
+    runs: pathlib.Path
+    bench_root: pathlib.Path
+    version_runs: pathlib.Path
+    version_candidate: pathlib.Path
+    layout_policy_root: pathlib.Path
+
+
+@dataclass(frozen=True)
+class CertifiedCohort:
+    """The hash-verified task population and the rounds that measured it."""
+
+    cohort: JsonObject
+    selected: SelectedTasks
+    contract: JsonObject
+    labels: dict[str, str]
+    task_count: int
+    k_runs: int
+    call_count: int
+
+
+@dataclass(frozen=True)
+class VersionEvidence:
+    """The certified historical version comparison."""
+
+    comparison: JsonObject
+    certificate: JsonObject
+    protocol: JsonObject
+
+
+@dataclass(frozen=True)
+class LinuxResources:
+    """Public values of saved Linux profiles; every field is None without a cohort."""
+
+    profiles: JsonObject | None = None
+    comparison: JsonObject | None = None
+    metrics: JsonObject | None = None
+    metrics_source: JsonObject | None = None
+
+
+def call_stats(values: Iterable[float]) -> JsonObject:
     """Summarize one call population with the shared Web Fetch percentiles."""
     values = list(values)
     return {
@@ -42,7 +118,9 @@ def call_stats(values):
     }
 
 
-def read_comparison_task(roots, relative, *, expected_sha256):
+def read_comparison_task(
+    roots: Iterable[pathlib.Path], relative: str | pathlib.Path, *, expected_sha256: str
+) -> bytes:
     """Read exact measured task bytes from the declared source roots."""
     for root in roots:
         path = contained_path(root, relative, reject_symlinks=True)
@@ -53,7 +131,15 @@ def read_comparison_task(roots, relative, *, expected_sha256):
     raise ValueError("Measured task bytes are missing from declared sources: " + str(relative))
 
 
-def write_presentation(source, output, combined, version, macos=None, *, include_english=False):
+def write_presentation(
+    source: pathlib.Path,
+    output: pathlib.Path,
+    combined: JsonObject,
+    version: JsonObject,
+    macos: JsonObject | None = None,
+    *,
+    include_english: bool = False,
+) -> None:
     """Materialize only requested editions; translation sources remain reusable."""
     write_language_contract(output, include_english=include_english)
     languages = generated_languages(output)
@@ -89,7 +175,13 @@ def write_presentation(source, output, combined, version, macos=None, *, include
         target.write_text(shell, encoding="utf-8")
 
 
-def main(argv=None):
+def clean(s: str) -> str:
+    return LEXBENCH.redact(ENDPOINT_RE.sub("<local fixture>", s))
+
+
+def parse_arguments(
+    argv: list[str] | None,
+) -> tuple[argparse.ArgumentParser, argparse.Namespace]:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--profile",
@@ -120,11 +212,16 @@ def main(argv=None):
     parser.add_argument("--official-resource-summary", type=pathlib.Path)
     parser.add_argument("--resource-matrix", type=pathlib.Path)
     parser.add_argument("--linux-resource-profiles", type=pathlib.Path)
-    args = parser.parse_args(argv)
-    report_profile = json.loads(args.profile.read_bytes())
+    return parser, parser.parse_args(argv)
+
+
+def resolve_paths(
+    parser: argparse.ArgumentParser, args: argparse.Namespace, report_profile: JsonObject
+) -> ReportPaths:
+    """Resolve profile paths and CLI overrides, stopping before any evidence is read."""
     paths = report_profile.get("paths", {})
 
-    def configured_path(name, override=None):
+    def configured_path(name: str, override: str | pathlib.Path | None = None) -> pathlib.Path:
         value = override if override is not None else paths.get(name)
         if not value:
             parser.error(f"Report profile requires paths.{name} or an explicit CLI path")
@@ -144,31 +241,44 @@ def main(argv=None):
             "pass --source with a template directory, or in a checkout drop --source "
             "and paths.source to use the maintained template"
         )
-    BENCH_ROOT = configured_path("runner", os.environ.get("LEXBENCH_REPORT_RUNNER_ROOT"))
-    VERSION_RUNS = configured_path("version_runs")
-    VERSION_CANDIDATE = configured_path("version_candidate")
-    LAYOUT_POLICY_ROOT = configured_path("layout_policy_runner")
-    RUNS = args.cohort.parent
-    if args.summary is None:
-        args.summary = RUNS / "report-runs.json"
-    resource_builds = report_profile.get("resource_builds", {})
-    # The report profile names the experiment; the chart schema names plotted calls.
-    # Convert once at this boundary instead of passing the profile to render_chart.
+    bench_root = configured_path("runner", os.environ.get("LEXBENCH_REPORT_RUNNER_ROOT"))
+    version_runs = configured_path("version_runs")
+    version_candidate = configured_path("version_candidate")
+    layout_policy_root = configured_path("layout_policy_runner")
+    runs = args.cohort.parent
+    return ReportPaths(
+        source=args.source.resolve(),
+        output=args.output.resolve(),
+        cohort=args.cohort,
+        summary=runs / "report-runs.json" if args.summary is None else args.summary,
+        vendor_dir=args.vendor_dir,
+        functional_correction=args.functional_correction.absolute(),
+        runs=runs,
+        bench_root=bench_root,
+        version_runs=version_runs,
+        version_candidate=version_candidate,
+        layout_policy_root=layout_policy_root,
+    )
+
+
+def chart_population_from(report_profile: JsonObject) -> dict[str, int]:
+    """Convert the experiment scope once instead of passing the profile to render_chart."""
     resource_scope = report_profile["resource_population"]
-    chart_population = {
+    return {
         "total_tasks": resource_scope["tasks"],
         "calls_per_task": resource_scope["attempts_per_task"],
         "chart_tasks": resource_scope["chart_tasks"],
         "chart_calls": resource_scope["chart_calls"],
     }
-    SRC = args.source.resolve()
-    OUT = args.output.resolve()
-    FUNCTIONAL_CORRECTION = args.functional_correction.absolute()
+
+
+def load_certified_cohort(paths: ReportPaths, report_profile: JsonObject) -> CertifiedCohort:
+    """Verify the cohort against its protocol, certificate and report profile."""
     cohort = json.loads(
-        contained_path(args.cohort.parent, args.cohort.name, reject_symlinks=True).read_text(encoding="utf-8")
+        contained_path(paths.cohort.parent, paths.cohort.name, reject_symlinks=True).read_text(encoding="utf-8")
     )
     summary = json.loads(
-        contained_path(args.summary.parent, args.summary.name, reject_symlinks=True).read_text(encoding="utf-8")
+        contained_path(paths.summary.parent, paths.summary.name, reject_symlinks=True).read_text(encoding="utf-8")
     )
     selected = {
         x["task_id"]: (group, x["sha256"])
@@ -177,15 +287,15 @@ def main(argv=None):
     }
     for task_id in selected:
         safe_identifier(task_id)
-    protocol_file = contained_path(RUNS, "protocol.json", reject_symlinks=True)
+    protocol_file = contained_path(paths.runs, "protocol.json", reject_symlinks=True)
     contract = json.loads(protocol_file.read_text(encoding="utf-8"))
     certificate = json.loads(
-        contained_path(RUNS, "certification.json", reject_symlinks=True).read_text(encoding="utf-8")
+        contained_path(paths.runs, "certification.json", reject_symlinks=True).read_text(encoding="utf-8")
     )
     if not certificate["protocol_sha256"] == hashlib.sha256(protocol_file.read_bytes()).hexdigest():
         raise ValueError("Protocol hash mismatch")
     for rel, digest in certificate["artifact_sha256"].items():
-        path = contained_path(RUNS, rel, reject_symlinks=True)
+        path = contained_path(paths.runs, rel, reject_symlinks=True)
         if not (
             path.is_file()
             and (not path.is_symlink())
@@ -214,79 +324,84 @@ def main(argv=None):
         raise ValueError("Functional population differs from the report profile")
     if not (task_count > 0 and k_runs > 0):
         raise ValueError("Invalid Lexbench report evidence: task_count > 0 and k_runs > 0")
-    label = summary.get("runs") or {
-        "off_baseline": "m117_layout_off_baseline_init_0918",
-        "on_baseline": "m117_layout_on_baseline_init_0918",
-        "off_engine": "m117_layout_off_engine_init_0918",
-        "on_engine": "m117_layout_on_engine_init_0918",
-    }
-    endpoint_re = re.compile(r"(?:(?:https?|wss?)://)?127\.0\.0\.1:\d+")
+    label = summary.get("runs") or DEFAULT_RUN_LABELS
+    return CertifiedCohort(
+        cohort=cohort,
+        selected=selected,
+        contract=contract,
+        labels=label,
+        task_count=task_count,
+        k_runs=k_runs,
+        call_count=call_count,
+    )
 
-    def clean(s: str) -> str:
-        return LEXBENCH.redact(endpoint_re.sub("<local fixture>", s))
 
-    def read_run(name: str):
-        safe_identifier(name)
-        p = contained_path(RUNS, label[name], reject_symlinks=True)
-        if not (p.is_dir() and (not p.is_symlink())):
-            raise ValueError(
-                "Invalid Lexbench report evidence: p.is_dir() and (not p.is_symlink())"
-            )
-        if not all(
+def read_run(name: str, paths: ReportPaths, certified: CertifiedCohort) -> RunRecord:
+    """Load one measured round and verify it covers the certified population."""
+    label, cohort, selected = certified.labels, certified.cohort, certified.selected
+    k_runs, call_count = certified.k_runs, certified.call_count
+    safe_identifier(name)
+    p = contained_path(paths.runs, label[name], reject_symlinks=True)
+    if not (p.is_dir() and (not p.is_symlink())):
+        raise ValueError(
+            "Invalid Lexbench report evidence: p.is_dir() and (not p.is_symlink())"
+        )
+    if not all(
 
-                not (p / f).is_symlink()
-                for f in ("run_manifest.json", "results.jsonl", "host_summary.json")
+            not (p / f).is_symlink()
+            for f in ("run_manifest.json", "results.jsonl", "host_summary.json")
 
-        ):
-            raise ValueError(
-                "Invalid Lexbench report evidence: all((not (p / f).is_symlink() for f in ('run_manifest.json', 'results.jsonl', 'host_summary.json')))"
-            )
-        m = json.loads((p / "run_manifest.json").read_text(encoding="utf-8"))
-        rows = load_jsonl(p / "results.jsonl")
-        if not m["run_id"] == label[name]:
-            raise ValueError("Invalid Lexbench report evidence: m['run_id'] == label[name]")
-        if not (
-            len(rows) == call_count
-            and m["completion_status"] == "completed"
-            and (m["expected_result_rows"] == call_count)
-        ):
-            raise ValueError(
-                "Invalid Lexbench report evidence: len(rows) == call_count and m['completion_status'] == 'completed' and (m['expected_result_rows'] == call_count)"
-            )
-        if not m["engines"]["moli"]["sha256"] == cohort["moli_sha256"]:
-            raise ValueError(
-                "Invalid Lexbench report evidence: m['engines']['moli']['sha256'] == cohort['moli_sha256']"
-            )
-        if not m["bench_manifest"]["sha256"] == cohort["manifest_sha256"]:
-            raise ValueError(
-                "Invalid Lexbench report evidence: m['bench_manifest']['sha256'] == cohort['manifest_sha256']"
-            )
-        if not {x["task_id"]: x["sha256"] for x in m["resolved_tasks"]} == {
-            t: h for t, (_, h) in selected.items()
-        }:
-            raise ValueError(
-                "Invalid Lexbench report evidence: {x['task_id']: x['sha256'] for x in m['resolved_tasks']} == {t: h for t, (_, h) in selected.items()}"
-            )
-        mode = name.split("_")[0]
-        prof = name.split("_")[1]
-        if not m["resource_profile"]["mode"] == prof:
-            raise ValueError(
-                "Invalid Lexbench report evidence: m['resource_profile']['mode'] == prof"
-            )
-        if not all(r["engine_provenance"]["layout_enabled"] == (mode == "on") for r in rows):
-            raise ValueError(
-                "Invalid Lexbench report evidence: all((r['engine_provenance']['layout_enabled'] == (mode == 'on') for r in rows))"
-            )
-        by = {(r["task_id"], r["attempt"]): r for r in rows}
-        if not set(by) == {
-            (task, attempt) for task in selected for attempt in range(1, k_runs + 1)
-        }:
-            raise ValueError(
-                "Invalid Lexbench report evidence: set(by) == {(task, attempt) for task in selected for attempt in range(1, k_runs + 1)}"
-            )
-        return p, m, by
+    ):
+        raise ValueError(
+            "Invalid Lexbench report evidence: all((not (p / f).is_symlink() for f in ('run_manifest.json', 'results.jsonl', 'host_summary.json')))"
+        )
+    m = json.loads((p / "run_manifest.json").read_text(encoding="utf-8"))
+    rows = load_jsonl(p / "results.jsonl")
+    if not m["run_id"] == label[name]:
+        raise ValueError("Invalid Lexbench report evidence: m['run_id'] == label[name]")
+    if not (
+        len(rows) == call_count
+        and m["completion_status"] == "completed"
+        and (m["expected_result_rows"] == call_count)
+    ):
+        raise ValueError(
+            "Invalid Lexbench report evidence: len(rows) == call_count and m['completion_status'] == 'completed' and (m['expected_result_rows'] == call_count)"
+        )
+    if not m["engines"]["moli"]["sha256"] == cohort["moli_sha256"]:
+        raise ValueError(
+            "Invalid Lexbench report evidence: m['engines']['moli']['sha256'] == cohort['moli_sha256']"
+        )
+    if not m["bench_manifest"]["sha256"] == cohort["manifest_sha256"]:
+        raise ValueError(
+            "Invalid Lexbench report evidence: m['bench_manifest']['sha256'] == cohort['manifest_sha256']"
+        )
+    if not {x["task_id"]: x["sha256"] for x in m["resolved_tasks"]} == {
+        t: h for t, (_, h) in selected.items()
+    }:
+        raise ValueError(
+            "Invalid Lexbench report evidence: {x['task_id']: x['sha256'] for x in m['resolved_tasks']} == {t: h for t, (_, h) in selected.items()}"
+        )
+    mode = name.split("_")[0]
+    prof = name.split("_")[1]
+    if not m["resource_profile"]["mode"] == prof:
+        raise ValueError(
+            "Invalid Lexbench report evidence: m['resource_profile']['mode'] == prof"
+        )
+    if not all(r["engine_provenance"]["layout_enabled"] == (mode == "on") for r in rows):
+        raise ValueError(
+            "Invalid Lexbench report evidence: all((r['engine_provenance']['layout_enabled'] == (mode == 'on') for r in rows))"
+        )
+    by = {(r["task_id"], r["attempt"]): r for r in rows}
+    if not set(by) == {
+        (task, attempt) for task in selected for attempt in range(1, k_runs + 1)
+    }:
+        raise ValueError(
+            "Invalid Lexbench report evidence: set(by) == {(task, attempt) for task in selected for attempt in range(1, k_runs + 1)}"
+        )
+    return p, m, by
 
-    runs = {name: read_run(name) for name in label}
+
+def build_protocol(runs: Runs) -> JsonObject:
     first_manifest = runs["off_baseline"][1]
     protocol = {
         "runner_sha256": first_manifest["runner"]["source"]["tree_sha256"],
@@ -303,6 +418,11 @@ def main(argv=None):
         "historical_version": "0.1.1",
         "historical_failed_cases": 372,
     }
+    return protocol
+
+
+def validate_round_consistency(runs: Runs, protocol: JsonObject) -> None:
+    """Require every round to share one runner, seed, scope and call seeds."""
     for run_path, manifest, _ in runs.values():
         if not not (run_path / "layout_retry_results.jsonl").exists():
             raise ValueError(
@@ -341,61 +461,71 @@ def main(argv=None):
                 "Invalid Lexbench report evidence: all((by[key]['seed'] == row['seed'] for _, _, by in runs.values()))"
             )
 
+
+def summarize_mode_metrics(runs: Runs, mode: str) -> JsonObject:
+    metrics = {}
+    for phase in ("baseline", "engine"):
+        rows = list(runs[mode + "_" + phase][2].values())
+        passes = [r for r in rows if r["status"] == "pass"]
+        data = {
+            "calls": len(rows),
+            "passes": len(passes),
+            "status_counts": dict(collections.Counter(r["status"] for r in rows)),
+            "duration_ms_all": call_stats(r["duration_ms"] for r in rows),
+            "duration_ms_pass": call_stats(r["duration_ms"] for r in passes),
+        }
+        if phase == "engine":
+            for population, items in [("all", rows), ("pass", passes)]:
+                for name, key, scale in [
+                    ("cpu_ms", "cpu_total_ms", 1),
+                    ("pss_peak_mib", "pss_peak_bytes", 1048576),
+                    ("pss_delta_mib", "pss_peak_delta_bytes", 1048576),
+                ]:
+                    data[name + "_" + population] = call_stats(
+                        r["resource"][key] / scale for r in items
+                    )
+                data["fixture_tx_bytes_" + population] = call_stats(
+                    r["resource"]["fixture_traffic"]["fixture_app_tx_body_bytes"] for r in items
+                )
+        metrics["profile" if phase == "engine" else phase] = data
+    return metrics
+
+
+def summarize_mode_quality(runs: Runs, mode: str) -> JsonObject:
+    b = runs[mode + "_baseline"][2]
+    e = runs[mode + "_engine"][2]
+    mismatch = [list(key) for key in b if b[key]["status"] != e[key]["status"]]
+    return {
+        "status_mismatch_count": len(mismatch),
+        "status_mismatch_keys": mismatch,
+        "baseline_host": json.loads(
+            (runs[mode + "_baseline"][0] / "host_summary.json").read_text(encoding="utf-8")
+        ),
+        "engine_host": json.loads(
+            (runs[mode + "_engine"][0] / "host_summary.json").read_text(encoding="utf-8")
+        ),
+        "resource_missing": sum(not r.get("resource") for r in e.values()),
+        "resource_quality_flags": dict(
+            collections.Counter(
+                flag
+                for r in e.values()
+                for flag in r.get("resource", {}).get("quality_flags", [])
+            )
+        ),
+        "resource_unavailable": dict(
+            collections.Counter(
+                key for r in e.values() for key in r.get("resource", {}).get("unavailable", {})
+            )
+        ),
+    }
+
+
+def summarize_rounds(runs: Runs) -> tuple[JsonObject, JsonObject]:
     metrics = {}
     quality = {}
-    paired = {}
     for mode in ("off", "on"):
-        metrics[mode] = {}
-        for phase in ("baseline", "engine"):
-            rows = list(runs[mode + "_" + phase][2].values())
-            passes = [r for r in rows if r["status"] == "pass"]
-            data = {
-                "calls": len(rows),
-                "passes": len(passes),
-                "status_counts": dict(collections.Counter(r["status"] for r in rows)),
-                "duration_ms_all": call_stats(r["duration_ms"] for r in rows),
-                "duration_ms_pass": call_stats(r["duration_ms"] for r in passes),
-            }
-            if phase == "engine":
-                for population, items in [("all", rows), ("pass", passes)]:
-                    for name, key, scale in [
-                        ("cpu_ms", "cpu_total_ms", 1),
-                        ("pss_peak_mib", "pss_peak_bytes", 1048576),
-                        ("pss_delta_mib", "pss_peak_delta_bytes", 1048576),
-                    ]:
-                        data[name + "_" + population] = call_stats(
-                            r["resource"][key] / scale for r in items
-                        )
-                    data["fixture_tx_bytes_" + population] = call_stats(
-                        r["resource"]["fixture_traffic"]["fixture_app_tx_body_bytes"] for r in items
-                    )
-            metrics[mode]["profile" if phase == "engine" else phase] = data
-        b = runs[mode + "_baseline"][2]
-        e = runs[mode + "_engine"][2]
-        mismatch = [list(key) for key in b if b[key]["status"] != e[key]["status"]]
-        quality[mode] = {
-            "status_mismatch_count": len(mismatch),
-            "status_mismatch_keys": mismatch,
-            "baseline_host": json.loads(
-                (runs[mode + "_baseline"][0] / "host_summary.json").read_text(encoding="utf-8")
-            ),
-            "engine_host": json.loads(
-                (runs[mode + "_engine"][0] / "host_summary.json").read_text(encoding="utf-8")
-            ),
-            "resource_missing": sum(not r.get("resource") for r in e.values()),
-            "resource_quality_flags": dict(
-                collections.Counter(
-                    flag
-                    for r in e.values()
-                    for flag in r.get("resource", {}).get("quality_flags", [])
-                )
-            ),
-            "resource_unavailable": dict(
-                collections.Counter(
-                    key for r in e.values() for key in r.get("resource", {}).get("unavailable", {})
-                )
-            ),
-        }
+        metrics[mode] = summarize_mode_metrics(runs, mode)
+        quality[mode] = summarize_mode_quality(runs, mode)
     for mode in ("off", "on"):
         quality[mode]["calibration"] = duration_calibration(
             list(runs[mode + "_engine"][2].values()),
@@ -404,6 +534,11 @@ def main(argv=None):
             profiled_manifest=runs[mode + "_engine"][1],
             baseline_manifest=runs[mode + "_baseline"][1],
         )
+    return metrics, quality
+
+
+def summarize_paired_outcomes(runs: Runs) -> JsonObject:
+    paired = {}
     for phase in ("baseline", "engine"):
         counts = collections.Counter()
         for key, off in runs["off_" + phase][2].items():
@@ -423,219 +558,256 @@ def main(argv=None):
             key: counts[key]
             for key in ("off_fail_on_pass", "off_pass_on_fail", "both_pass", "both_fail")
         }
+    return paired
 
-    if OUT.exists():
+
+def prepare_output(output: pathlib.Path) -> None:
+    if output.exists():
         raise ValueError("Output already exists; choose a new build directory")
-    (OUT / "data/cases").mkdir(parents=True)
-    (OUT / "data/evidence").mkdir(parents=True)
+    (output / "data/cases").mkdir(parents=True)
+    (output / "data/evidence").mkdir(parents=True)
 
-    def evidence_for(run_name: str, row: dict, run_root=None):
-        p = run_root if run_root is not None else runs[run_name][0]
-        folder = contained_path(p, row["artifact_dir"], reject_symlinks=True)
-        result = {}
-        for filename in (
-            "grader.json",
-            "stdout.log",
-            "stderr.log",
-            "cdp.jsonl",
-            "resource.jsonl",
-            "run.json",
+
+def evidence_for(
+    output: pathlib.Path, run_name: str, row: JsonObject, run_root: pathlib.Path
+) -> JsonObject:
+    """Publish the redacted artifacts of one call and return their hash bindings."""
+    folder = contained_path(run_root, row["artifact_dir"], reject_symlinks=True)
+    result = {}
+    for filename in (
+        "grader.json",
+        "stdout.log",
+        "stderr.log",
+        "cdp.jsonl",
+        "resource.jsonl",
+        "run.json",
+    ):
+        source = contained_path(folder, filename, reject_symlinks=True)
+        if not source.exists():
+            continue
+        if not (
+            source.is_file() and (not source.is_symlink()) and (source.stat().st_size < 8000000)
         ):
-            source = contained_path(folder, filename, reject_symlinks=True)
-            if not source.exists():
+            raise ValueError(
+                "Invalid Lexbench report evidence: source.is_file() and (not source.is_symlink()) and (source.stat().st_size < 8000000)"
+            )
+        source_hash = bytes_sha256(source.read_bytes())
+        raw = source.read_text(errors="replace", encoding="utf-8")
+        data = clean(raw).encode()
+        target = (
+            output
+            / "data/evidence"
+            / safe_identifier(run_name)
+            / safe_identifier(row["task_id"])
+            / safe_identifier(str(row["attempt"]))
+            / filename
+        )
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+        result[filename] = {
+            "url": str(target.relative_to(output)),
+            "sha256": bytes_sha256(data),
+            "source_sha256": source_hash,
+            "bytes": len(data),
+        }
+    return result
+
+
+def safe_failure(r: JsonObject, run_root: pathlib.Path) -> JsonObject:
+    """Replace a generic failure message with the failed check the call recorded."""
+    f = r.get("failure") or {}
+    original = str(f.get("detail") or "")
+    detail = original
+    generic = {
+        "script-reported checks failed",
+        "inline assertions failed",
+        "answer did not match server-side expectation",
+    }
+    if original in generic:
+        folder = contained_path(run_root, r["artifact_dir"], reject_symlinks=True)
+        for filename in ("stdout.log", "grader.json"):
+            path = contained_path(folder, filename, reject_symlinks=True)
+            if not path.is_file():
                 continue
-            if not (
-                source.is_file() and (not source.is_symlink()) and (source.stat().st_size < 8000000)
-            ):
-                raise ValueError(
-                    "Invalid Lexbench report evidence: source.is_file() and (not source.is_symlink()) and (source.stat().st_size < 8000000)"
-                )
-            source_hash = bytes_sha256(source.read_bytes())
-            raw = source.read_text(errors="replace", encoding="utf-8")
-            data = clean(raw).encode()
-            target = (
-                OUT
-                / "data/evidence"
-                / safe_identifier(run_name)
-                / safe_identifier(row["task_id"])
-                / safe_identifier(str(row["attempt"]))
-                / filename
-            )
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_bytes(data)
-            result[filename] = {
-                "url": str(target.relative_to(OUT)),
-                "sha256": bytes_sha256(data),
-                "source_sha256": source_hash,
-                "bytes": len(data),
-            }
-        return result
-
-    def safe_failure(run_name, r, run_root=None):
-        f = r.get("failure") or {}
-        original = str(f.get("detail") or "")
-        detail = original
-        generic = {
-            "script-reported checks failed",
-            "inline assertions failed",
-            "answer did not match server-side expectation",
-        }
-        if original in generic:
-            root = run_root if run_root is not None else runs[run_name][0]
-            folder = contained_path(root, r["artifact_dir"], reject_symlinks=True)
-            for filename in ("stdout.log", "grader.json"):
-                path = contained_path(folder, filename, reject_symlinks=True)
-                if not path.is_file():
+            if not not path.is_symlink():
+                raise ValueError("Invalid Lexbench report evidence: not path.is_symlink()")
+            raw = path.read_text(errors="replace", encoding="utf-8")
+            payload = None
+            for text in [raw, *reversed(raw.splitlines())]:
+                try:
+                    payload = json.loads(text)
+                except ValueError:
                     continue
-                if not not path.is_symlink():
-                    raise ValueError("Invalid Lexbench report evidence: not path.is_symlink()")
-                raw = path.read_text(errors="replace", encoding="utf-8")
-                payload = None
-                for text in [raw, *reversed(raw.splitlines())]:
-                    try:
-                        payload = json.loads(text)
-                    except ValueError:
-                        continue
-                    if isinstance(payload, dict):
-                        break
-                if not isinstance(payload, dict):
-                    continue
-                checks = (
-                    (payload.get("observations") or {}).get("checks") or payload.get("checks") or []
-                )
-                failed = next(
-                    (c for c in checks if c.get("status") == "fail" and c.get("evidence")), None
-                )
-                if failed:
-                    detail = str(failed["name"]) + ": " + str(failed["evidence"])
+                if isinstance(payload, dict):
                     break
-        return {
-            "class": str(f.get("class") or ""),
-            "detail": clean(detail),
-            "original_detail": clean(original),
-        }
-
-    def resource_scalar(r):
-        x = r.get("resource") or {}
-        t = x.get("fixture_traffic") or {}
-        return {
-            k: x.get(k)
-            for k in (
-                "cpu_total_ms",
-                "cpu_user_ms",
-                "cpu_system_ms",
-                "pss_baseline_bytes",
-                "pss_end_bytes",
-                "pss_peak_bytes",
-                "pss_peak_delta_bytes",
-                "samples_seen",
-                "quality_flags",
-                "measurement_backend",
-                "unavailable",
+            if not isinstance(payload, dict):
+                continue
+            checks = (
+                (payload.get("observations") or {}).get("checks") or payload.get("checks") or []
             )
-        } | {
-            "fixture_rx_bytes": t.get("fixture_app_rx_body_bytes"),
-            "fixture_tx_bytes": t.get("fixture_app_tx_body_bytes"),
-        }
+            failed = next(
+                (c for c in checks if c.get("status") == "fail" and c.get("evidence")), None
+            )
+            if failed:
+                detail = str(failed["name"]) + ": " + str(failed["evidence"])
+                break
+    return {
+        "class": str(f.get("class") or ""),
+        "detail": clean(detail),
+        "original_detail": clean(original),
+    }
 
-    cases = []
-    for task_id, (stratum, digest) in selected.items():
-        definition_path = contained_path(
-            BENCH_ROOT,
-            next(
-                x["path"]
-                for x in runs["off_baseline"][1]["resolved_tasks"]
-                if x["task_id"] == task_id
-            ),
-            reject_symlinks=True,
+
+def resource_scalar(r: JsonObject) -> JsonObject:
+    x = r.get("resource") or {}
+    t = x.get("fixture_traffic") or {}
+    return {
+        k: x.get(k)
+        for k in (
+            "cpu_total_ms",
+            "cpu_user_ms",
+            "cpu_system_ms",
+            "pss_baseline_bytes",
+            "pss_end_bytes",
+            "pss_peak_bytes",
+            "pss_peak_delta_bytes",
+            "samples_seen",
+            "quality_flags",
+            "measurement_backend",
+            "unavailable",
         )
-        raw = definition_path.read_bytes()
-        if not bytes_sha256(raw) == digest:
-            raise ValueError("Invalid Lexbench report evidence: sha(raw) == digest")
-        definition = json.loads(raw)
-        item = {
-            "id": task_id,
-            "stratum": stratum,
-            "title": definition.get("title", task_id),
-            "description": definition.get("description", ""),
-            "subset": definition["subset_id"],
-            "features": definition.get("features", []),
-            "scene": definition.get("scene", {}),
-            "driver": definition.get("driver", {}),
-            "grader": definition.get("grader", {}),
-            "task_sha256": digest,
-            "modes": {},
-        }
-        for mode in ("off", "on"):
-            attempts = []
-            for attempt in range(1, k_runs + 1):
-                b = runs[mode + "_baseline"][2][(task_id, attempt)]
-                e = runs[mode + "_engine"][2][(task_id, attempt)]
-                attempts.append(
-                    {
-                        "ordinal": attempt,
-                        "status": b["status"],
-                        "duration_ms": b["duration_ms"],
-                        "profile_status": e["status"],
-                        "profile_duration_ms": e["duration_ms"],
-                        "answer": clean(str(b.get("answer") or "")),
-                        "failure": safe_failure(mode + "_baseline", b),
-                        "resource": resource_scalar(e),
-                        "evidence": {
-                            "baseline": evidence_for(mode + "_baseline", b),
-                            "profile": evidence_for(mode + "_engine", e),
-                        },
-                    }
-                )
-            item["modes"][mode] = {
-                "passes": sum(a["status"] == "pass" for a in attempts),
-                "attempts": attempts,
-            }
-        cases.append(item)
-        (OUT / "data/cases" / f"{task_id}.json").write_text(
-            json.dumps(item, ensure_ascii=False, separators=(",", ":")) + "\n",
-            encoding="utf-8"
-        )
-    cases.sort(key=lambda c: (list(cohort["strata"]).index(c["stratum"]), c["id"]))
-    network_rx = {}
-    cold_start = {}
+    } | {
+        "fixture_rx_bytes": t.get("fixture_app_rx_body_bytes"),
+        "fixture_tx_bytes": t.get("fixture_app_tx_body_bytes"),
+    }
+
+
+def build_case(
+    task_id: str,
+    stratum: str,
+    digest: str,
+    paths: ReportPaths,
+    certified: CertifiedCohort,
+    runs: Runs,
+) -> JsonObject:
+    """Build one task's result route with its copied evidence, and write the route."""
+    output = paths.output
+    k_runs = certified.k_runs
+    definition_path = contained_path(
+        paths.bench_root,
+        next(
+            x["path"]
+            for x in runs["off_baseline"][1]["resolved_tasks"]
+            if x["task_id"] == task_id
+        ),
+        reject_symlinks=True,
+    )
+    raw = definition_path.read_bytes()
+    if not bytes_sha256(raw) == digest:
+        raise ValueError("Invalid Lexbench report evidence: sha(raw) == digest")
+    definition = json.loads(raw)
+    item = {
+        "id": task_id,
+        "stratum": stratum,
+        "title": definition.get("title", task_id),
+        "description": definition.get("description", ""),
+        "subset": definition["subset_id"],
+        "features": definition.get("features", []),
+        "scene": definition.get("scene", {}),
+        "driver": definition.get("driver", {}),
+        "grader": definition.get("grader", {}),
+        "task_sha256": digest,
+        "modes": {},
+    }
     for mode in ("off", "on"):
-        rx = [
-            a["resource"]["fixture_rx_bytes"] for c in cases for a in c["modes"][mode]["attempts"]
-        ]
-        network_rx[mode] = {
-            "total_bytes": sum(rx),
-            "p50_bytes": percentile(rx, 0.5),
-            "p95_bytes": percentile(rx, 0.95),
-        }
-        starts = []
-        for i in range(1, 6):
-            directory = contained_path(RUNS, f"cold_{i:02d}_{mode}", reject_symlinks=True)
-            manifest = json.loads(
-                contained_path(directory, "run_manifest.json", reject_symlinks=True).read_text(encoding="utf-8")
+        attempts = []
+        for attempt in range(1, k_runs + 1):
+            b = runs[mode + "_baseline"][2][(task_id, attempt)]
+            e = runs[mode + "_engine"][2][(task_id, attempt)]
+            attempts.append(
+                {
+                    "ordinal": attempt,
+                    "status": b["status"],
+                    "duration_ms": b["duration_ms"],
+                    "profile_status": e["status"],
+                    "profile_duration_ms": e["duration_ms"],
+                    "answer": clean(str(b.get("answer") or "")),
+                    "failure": safe_failure(b, runs[mode + "_baseline"][0]),
+                    "resource": resource_scalar(e),
+                    "evidence": {
+                        "baseline": evidence_for(
+                            output, mode + "_baseline", b, runs[mode + "_baseline"][0]
+                        ),
+                        "profile": evidence_for(
+                            output, mode + "_engine", e, runs[mode + "_engine"][0]
+                        ),
+                    },
+                }
             )
-            if not manifest["engines"]["moli"]["sha256"] == cohort["moli_sha256"]:
-                raise ValueError(
-                    "Invalid Lexbench report evidence: manifest['engines']['moli']['sha256'] == cohort['moli_sha256']"
-                )
-            values = load_jsonl(contained_path(directory, "cold_start.jsonl", reject_symlinks=True))
-            if not (len(values) == 1 and values[0]["status"] == "ready"):
-                raise ValueError(
-                    "Invalid Lexbench report evidence: len(values) == 1 and values[0]['status'] == 'ready'"
-                )
-            starts.extend(values)
-        cold_start[mode] = {
-            "n": 5,
-            "ready_ms": {
-                "p50": percentile([x["ready_ms"] for x in starts], 0.5),
-                "p95": percentile([x["ready_ms"] for x in starts], 0.95),
-            },
-            "launch_cpu_ms": {"p50": percentile([x["launch_cpu_ms"] for x in starts], 0.5)},
-            "launch_pss_bytes": {
-                "p50": percentile([x["launch_peak_pss_bytes"] for x in starts], 0.5)
-            },
+        item["modes"][mode] = {
+            "passes": sum(a["status"] == "pass" for a in attempts),
+            "attempts": attempts,
         }
+    (output / "data/cases" / f"{task_id}.json").write_text(
+        json.dumps(item, ensure_ascii=False, separators=(",", ":")) + "\n",
+        encoding="utf-8"
+    )
+    return item
 
+
+def build_cases(paths: ReportPaths, certified: CertifiedCohort, runs: Runs) -> list[JsonObject]:
+    cohort = certified.cohort
+    cases = [
+        build_case(task_id, stratum, digest, paths, certified, runs)
+        for task_id, (stratum, digest) in certified.selected.items()
+    ]
+    cases.sort(key=lambda c: (list(cohort["strata"]).index(c["stratum"]), c["id"]))
+    return cases
+
+
+def summarize_network(cases: list[JsonObject], mode: str) -> JsonObject:
+    rx = [
+        a["resource"]["fixture_rx_bytes"] for c in cases for a in c["modes"][mode]["attempts"]
+    ]
+    return {
+        "total_bytes": sum(rx),
+        "p50_bytes": percentile(rx, 0.5),
+        "p95_bytes": percentile(rx, 0.95),
+    }
+
+
+def summarize_cold_start(paths: ReportPaths, cohort: JsonObject, mode: str) -> JsonObject:
+    starts = []
+    for i in range(1, 6):
+        directory = contained_path(paths.runs, f"cold_{i:02d}_{mode}", reject_symlinks=True)
+        manifest = json.loads(
+            contained_path(directory, "run_manifest.json", reject_symlinks=True).read_text(encoding="utf-8")
+        )
+        if not manifest["engines"]["moli"]["sha256"] == cohort["moli_sha256"]:
+            raise ValueError(
+                "Invalid Lexbench report evidence: manifest['engines']['moli']['sha256'] == cohort['moli_sha256']"
+            )
+        values = load_jsonl(contained_path(directory, "cold_start.jsonl", reject_symlinks=True))
+        if not (len(values) == 1 and values[0]["status"] == "ready"):
+            raise ValueError(
+                "Invalid Lexbench report evidence: len(values) == 1 and values[0]['status'] == 'ready'"
+            )
+        starts.extend(values)
+    return {
+        "n": 5,
+        "ready_ms": {
+            "p50": percentile([x["ready_ms"] for x in starts], 0.5),
+            "p95": percentile([x["ready_ms"] for x in starts], 0.95),
+        },
+        "launch_cpu_ms": {"p50": percentile([x["launch_cpu_ms"] for x in starts], 0.5)},
+        "launch_pss_bytes": {
+            "p50": percentile([x["launch_peak_pss_bytes"] for x in starts], 0.5)
+        },
+    }
+
+
+def summarize_common_pass(cases: list[JsonObject], k_runs: int, paired: JsonObject) -> JsonObject:
+    """Compare resources over task-attempt pairs that passed every round."""
     shared = [
         (c["modes"]["off"]["attempts"][i], c["modes"]["on"]["attempts"][i])
         for c in cases
@@ -650,7 +822,7 @@ def main(argv=None):
         raise ValueError(
             "Invalid Lexbench report evidence: len(shared) <= paired['baseline']['both_pass']"
         )
-    common_pass = {
+    return {
         "count": len(shared),
         "baseline_count": paired["baseline"]["both_pass"],
         "scope": "Same task-attempt pairs that passed all four baseline and profiled rounds",
@@ -670,6 +842,9 @@ def main(argv=None):
             for m in ("off", "on")
         },
     }
+
+
+def summarize_task_cost(cases: list[JsonObject], metrics: JsonObject) -> list[JsonObject]:
     task_cost = []
     for c in cases:
         off = c["modes"]["off"]["attempts"]
@@ -694,12 +869,17 @@ def main(argv=None):
         raise ValueError(
             "Invalid Lexbench report evidence: sum((x['off_duration_ms'] - x['on_duration_ms'] for x in task_cost)) == metrics['off']['baseline']['duration_ms_all']['sum'] - metrics['on']['baseline']['duration_ms_all']['sum']"
         )
+    return task_cost
+
+
+def build_host_context(paths: ReportPaths, label: dict[str, str], runs: Runs) -> JsonObject:
+    """Summarize what the host was doing during each measured round."""
     launch_receipts = {
         name: json.loads(
-            contained_path(RUNS, run_id + "_launch.json", reject_symlinks=True).read_text(encoding="utf-8")
+            contained_path(paths.runs, run_id + "_launch.json", reject_symlinks=True).read_text(encoding="utf-8")
         )
         for name, run_id in label.items()
-        if (RUNS / (run_id + "_launch.json")).exists()
+        if (paths.runs / (run_id + "_launch.json")).exists()
     }
     host_context = {
         "shared_macos_host": True,
@@ -711,7 +891,7 @@ def main(argv=None):
         "launch_receipts": launch_receipts,
         "scope": "Docker VM telemetry does not establish macOS host isolation.",
     }
-    observation_file = contained_path(RUNS, "macos-observations.jsonl", reject_symlinks=True)
+    observation_file = contained_path(paths.runs, "macos-observations.jsonl", reject_symlinks=True)
     if observation_file.exists():
         observations = load_jsonl(observation_file)
 
@@ -741,7 +921,10 @@ def main(argv=None):
                     row.get("observer_version") == 2 for row in samples
                 ),
             }
-    corrections = []
+    return host_context
+
+
+def summarize_case_outcomes(cases: list[JsonObject], k_runs: int, task_count: int) -> JsonObject:
     case_outcomes = {
         "rule": "all_recorded_attempts_pass",
         "repeats": k_runs,
@@ -766,12 +949,17 @@ def main(argv=None):
             if b
             else "both_fail"
         ] += 1
-    comparison_file = contained_path(VERSION_RUNS, "resource-comparison.json", reject_symlinks=True)
-    version_protocol_file = contained_path(VERSION_RUNS, "protocol.json", reject_symlinks=True)
+    return case_outcomes
+
+
+def load_version_evidence(paths: ReportPaths, selected: SelectedTasks) -> VersionEvidence:
+    """Verify the historical comparison against its certificate and task population."""
+    comparison_file = contained_path(paths.version_runs, "resource-comparison.json", reject_symlinks=True)
+    version_protocol_file = contained_path(paths.version_runs, "protocol.json", reject_symlinks=True)
     resource_comparison = json.loads(comparison_file.read_text(encoding="utf-8"))
     resource_certificate = json.loads(
         contained_path(
-            VERSION_RUNS, "resource-certification.json", reject_symlinks=True
+            paths.version_runs, "resource-certification.json", reject_symlinks=True
         ).read_text(encoding="utf-8")
     )
     if not bytes_sha256(comparison_file.read_bytes()) == resource_certificate["comparison_sha256"]:
@@ -783,7 +971,7 @@ def main(argv=None):
             "Invalid Lexbench report evidence: sha((VERSION_RUNS / 'protocol.json').read_bytes()) == resource_certificate['protocol_sha256']"
         )
     for rel, digest in resource_certificate["artifact_sha256"].items():
-        path = contained_path(VERSION_RUNS, rel, reject_symlinks=True)
+        path = contained_path(paths.version_runs, rel, reject_symlinks=True)
         if not (path.is_file() and (not path.is_symlink()) and (bytes_sha256(path.read_bytes()) == digest)):
             raise ValueError(
                 "Invalid Lexbench report evidence: path.is_file() and (not path.is_symlink()) and (sha(path.read_bytes()) == digest)"
@@ -796,8 +984,18 @@ def main(argv=None):
         raise ValueError(
             "Invalid Lexbench report evidence: set(version_protocol['functional_tasks']) == set(selected) and len(version_protocol['functional_tasks']) == len(selected)"
         )
+    return VersionEvidence(resource_comparison, resource_certificate, version_protocol)
+
+
+def verify_functional_candidate(
+    paths: ReportPaths,
+    version_protocol: JsonObject,
+    case_outcomes: JsonObject,
+    cases: list[JsonObject],
+) -> pathlib.Path:
+    """Check the one 1.1.4 candidate that could differ from the inherited failures."""
     functional_114 = contained_path(
-        VERSION_CANDIDATE.parent, VERSION_CANDIDATE.name, reject_symlinks=True
+        paths.version_candidate.parent, paths.version_candidate.name, reject_symlinks=True
     )
     functional_manifest = json.loads(
         contained_path(functional_114, "run_manifest.json", reject_symlinks=True).read_text(encoding="utf-8")
@@ -805,7 +1003,6 @@ def main(argv=None):
     functional_rows = load_jsonl(
         contained_path(functional_114, "results.jsonl", reject_symlinks=True)
     )
-    candidate_114 = "v4_cdp_emulation_setdefaultbackgroundcoloroverride"
     if not (
         functional_manifest["completion_status"] == "completed"
         and functional_manifest["expected_result_rows"] == 3
@@ -816,7 +1013,7 @@ def main(argv=None):
     if not len(functional_rows) == 3:
         raise ValueError("Invalid Lexbench report evidence: len(functional_rows) == 3")
     if not {(row["task_id"], row["attempt"]) for row in functional_rows} == {
-        (candidate_114, attempt) for attempt in range(1, 4)
+        (CANDIDATE_114, attempt) for attempt in range(1, 4)
     }:
         raise ValueError(
             "Invalid Lexbench report evidence: {(row['task_id'], row['attempt']) for row in functional_rows} == {(candidate_114, attempt) for attempt in range(1, 4)}"
@@ -841,7 +1038,7 @@ def main(argv=None):
         c["id"]
         for c in cases
         if all(row["status"] == "pass" for row in c["modes"]["off"]["attempts"])
-    ] == [candidate_114]:
+    ] == [CANDIDATE_114]:
         raise ValueError(
             "Invalid Lexbench report evidence: [c['id'] for c in cases if all((row['status'] == 'pass' for row in c['modes']['off']['attempts']))] == [candidate_114]"
         )
@@ -849,8 +1046,13 @@ def main(argv=None):
         raise ValueError(
             "Invalid Lexbench report evidence: all((row['status'] != 'pass' for row in functional_rows))"
         )
+    return functional_114
+
+
+def build_version_rows(
+    resource_comparison: JsonObject, case_outcomes: JsonObject
+) -> list[JsonObject]:
     passed_114 = 0
-    population = "frozen_historical_common_pass_calls"
     version_rows = []
     for config, label_text, label_en, short_label, short_label_en, passed in (
         (
@@ -878,7 +1080,7 @@ def main(argv=None):
             case_outcomes["on"],
         ),
     ):
-        resource = resource_comparison["memory"][config][population]
+        resource = resource_comparison["memory"][config][COMMON_PASS_POPULATION]
         version_rows.append(
             {
                 "id": config,
@@ -900,7 +1102,19 @@ def main(argv=None):
         row["success_change_pp"] = row["success_rate_pct"] - baseline["success_rate_pct"]
         row["pss_change_pct"] = (row["pss_mib"] / baseline["pss_mib"] - 1) * 100
         row["cpu_change_pct"] = (row["cpu_ms"] / baseline["cpu_ms"] - 1) * 100
-    version_comparison = {
+    return version_rows
+
+
+def build_version_comparison(
+    version: VersionEvidence,
+    case_outcomes: JsonObject,
+    chart_population: dict[str, int],
+    functional_114: pathlib.Path,
+) -> JsonObject:
+    resource_comparison = version.comparison
+    resource_certificate = version.certificate
+    version_rows = build_version_rows(resource_comparison, case_outcomes)
+    return {
         "baseline": "114_off",
         "configurations": version_rows,
         "functional_population": {
@@ -910,14 +1124,14 @@ def main(argv=None):
             "version_118_direct_cases": 372,
             "version_114_candidate_cases": 1,
             "version_114_inherited_failures": 371,
-            "version_114_candidate": candidate_114,
+            "version_114_candidate": CANDIDATE_114,
             "version_114_method": "differential_candidate_check",
         },
         "resource_population": {
             "experiment_cases": 557,
             "attempts_per_case": 5,
             **chart_population,
-            "selection": population,
+            "selection": COMMON_PASS_POPULATION,
             "sample_interval_ms": 250,
         },
         "bindings": {
@@ -933,6 +1147,11 @@ def main(argv=None):
             "status": resource_comparison["original_image_memory_status"],
         },
     }
+
+
+def build_functional_methods(
+    case_outcomes: JsonObject, version_protocol: JsonObject
+) -> list[JsonObject]:
     functional_methods = [
         {
             "id": "114_off",
@@ -977,270 +1196,357 @@ def main(argv=None):
     for method in functional_methods:
         method["moli_sha256"] = version_protocol["configs"][method["id"]]["sha256"]
         method["physical_calls"] = 3 if method["id"] == "114_off" else 1116
+    return functional_methods
+
+
+def validate_fixed_summary(
+    candidate: JsonObject,
+    layout: str,
+    selected: SelectedTasks,
+    functional_task_ids_sha256: str,
+) -> None:
+    if not candidate["schema"] == "lexbench_moli_fixed_layout_summary/1":
+        raise ValueError(
+            "Invalid Lexbench report evidence: candidate['schema'] == 'lexbench_moli_fixed_layout_summary/1'"
+        )
+    if not candidate["layout"] == layout:
+        raise ValueError("Invalid Lexbench report evidence: candidate['layout'] == layout")
+    if not candidate["population"] == {
+        "cases": 372,
+        "attempts_per_case": 3,
+        "calls": 1116,
+        "task_ids_sha256": functional_task_ids_sha256,
+    }:
+        raise ValueError(
+            "Invalid Lexbench report evidence: candidate['population'] == {'cases': 372, 'attempts_per_case': 3, 'calls': 1116, 'task_ids_sha256': functional_task_ids_sha256}"
+        )
+    if not (
+        {c["task_id"] for c in candidate["cases"]} == set(selected)
+        and len(candidate["cases"]) == 372
+    ):
+        raise ValueError(
+            "Invalid Lexbench report evidence: {c['task_id'] for c in candidate['cases']} == set(selected) and len(candidate['cases']) == 372"
+        )
+    for case in candidate["cases"]:
+        if not (
+            len(case["attempts"]) == 3 and {a["attempt"] for a in case["attempts"]} == {1, 2, 3}
+        ):
+            raise ValueError(
+                "Invalid Lexbench report evidence: len(case['attempts']) == 3 and {a['attempt'] for a in case['attempts']} == {1, 2, 3}"
+            )
+        if not case["passes"] == sum(a["status"] == "pass" for a in case["attempts"]):
+            raise ValueError(
+                "Invalid Lexbench report evidence: case['passes'] == sum((a['status'] == 'pass' for a in case['attempts']))"
+            )
+
+
+def load_candidate_sources(
+    candidate: JsonObject, paths: ReportPaths
+) -> tuple[dict[str, pathlib.Path], dict[str, JsonObject]]:
+    """Verify every run a candidate names against its hash bindings."""
+    source_runs = {}
+    source_tasks = {}
+    for binding in candidate["sources"]:
+        run_id = binding["run_id"]
+        if not re.fullmatch("[A-Za-z0-9_-]+", run_id):
+            raise ValueError(
+                "Invalid Lexbench report evidence: re.fullmatch('[A-Za-z0-9_-]+', run_id)"
+            )
+        run_root = contained_path(
+            paths.layout_policy_root,
+            pathlib.Path("runs") / run_id,
+            reject_symlinks=True,
+        )
+        manifest_path = contained_path(run_root, "run_manifest.json", reject_symlinks=True)
+        if not (
+            not run_root.is_symlink()
+            and bytes_sha256(manifest_path.read_bytes()) == binding["manifest_sha256"]
+        ):
+            raise ValueError(
+                "Invalid Lexbench report evidence: not run_root.is_symlink() and sha((run_root / 'run_manifest.json').read_bytes()) == binding['manifest_sha256']"
+            )
+        source_result = contained_path(run_root, binding["results_file"], reject_symlinks=True)
+        if not (
+            source_result.resolve().parent == run_root.resolve()
+            and (not source_result.is_symlink())
+        ):
+            raise ValueError(
+                "Invalid Lexbench report evidence: source_result.resolve().parent == run_root.resolve() and (not source_result.is_symlink())"
+            )
+        if not bytes_sha256(source_result.read_bytes()) == binding["results_sha256"]:
+            raise ValueError(
+                "Invalid Lexbench report evidence: sha(source_result.read_bytes()) == binding['results_sha256']"
+            )
+        source_runs[run_id] = run_root
+        for task in json.loads(manifest_path.read_text(encoding="utf-8"))["resolved_tasks"]:
+            if task["task_id"] in source_tasks:
+                if not source_tasks[task["task_id"]]["sha256"] == task["sha256"]:
+                    raise ValueError(
+                        "Invalid Lexbench report evidence: source_tasks[task['task_id']]['sha256'] == task['sha256']"
+                    )
+            source_tasks[task["task_id"]] = task
+    return source_runs, source_tasks
+
+
+def collect_candidate_cases(
+    method_id: str,
+    candidate: JsonObject,
+    paths: ReportPaths,
+    fixed_case_data: dict[str, JsonObject],
+) -> None:
+    """Add one candidate's attempts and copied evidence to each same-task record."""
+    output = paths.output
+    source_runs, source_tasks = load_candidate_sources(candidate, paths)
+    for case in candidate["cases"]:
+        task = source_tasks[case["task_id"]]
+        if task["sha256"] != case["task_sha256"]:
+            raise ValueError("Candidate summary differs from its task manifest")
+        task_bytes = read_comparison_task(
+            [paths.bench_root, paths.layout_policy_root], task["path"],
+            expected_sha256=task["sha256"],
+        )
+        case_detail = fixed_case_data[case["task_id"]]
+        if "task_sha256" in case_detail:
+            if not case_detail["task_sha256"] == task["sha256"]:
+                raise ValueError(
+                    "Invalid Lexbench report evidence: case_detail['task_sha256'] == task['sha256']"
+                )
+        case_detail["task_sha256"] = task["sha256"]
+        case_detail["task_definition"] = json.loads(clean(task_bytes.decode()))
+        detail = []
+        for attempt in case["attempts"]:
+            run_root = source_runs[attempt["source_run_id"]]
+            raw = {**attempt, "task_id": case["task_id"]}
+            evidence = evidence_for(output, method_id, raw, run_root)
+            detail.append(
+                {
+                    "ordinal": attempt["attempt"],
+                    "status": attempt["status"],
+                    "answer": clean(str(attempt.get("answer") or "")),
+                    "failure": safe_failure(raw, run_root),
+                    "evidence": evidence,
+                }
+            )
+        fixed_case_data[case["task_id"]]["methods"][method_id] = {
+            "passes": case["passes"],
+            "attempts": detail,
+        }
+
+
+def load_fixed_candidate(
+    method_id: str,
+    summary_path: str,
+    paths: ReportPaths,
+    selected: SelectedTasks,
+    functional_task_ids_sha256: str,
+    fixed_candidates: dict[str, JsonObject],
+    fixed_case_data: dict[str, JsonObject],
+    functional_methods: list[JsonObject],
+    public_candidate_files: dict[str, bytes],
+) -> None:
+    source_bytes = pathlib.Path(summary_path).read_bytes()
+    candidate = json.loads(source_bytes)
+    label_zh, label_en, layout = FIXED_CANDIDATE_LABELS[method_id]
+    validate_fixed_summary(candidate, layout, selected, functional_task_ids_sha256)
+    collect_candidate_cases(method_id, candidate, paths, fixed_case_data)
+    passed = sum(c["passes"] == 3 for c in candidate["cases"])
+    if not (
+        candidate["outcomes"]["passed_cases"] == passed
+        and abs(candidate["outcomes"]["success_rate_pct"] - passed / 372 * 100) < 1e-09
+    ):
+        raise ValueError(
+            "Invalid Lexbench report evidence: candidate['outcomes']['passed_cases'] == passed and abs(candidate['outcomes']['success_rate_pct'] - passed / 372 * 100) < 1e-09"
+        )
+    if not sum(source["calls"] for source in candidate["sources"]) == 1116:
+        raise ValueError(
+            "Invalid Lexbench report evidence: sum((source['calls'] for source in candidate['sources'])) == 1116"
+        )
+    public_bytes = (clean(json.dumps(candidate, ensure_ascii=False, indent=2)) + "\n").encode()
+    url = f"data/candidates/{method_id}-fixed-summary.json"
+    public_candidate_files[url] = public_bytes
+    evidence = {"url": url, "sha256": bytes_sha256(public_bytes), "bytes": len(public_bytes)}
+    fixed_candidates[method_id] = {
+        "population": candidate["population"],
+        "outcomes": candidate["outcomes"],
+        "binary": candidate["binary"],
+        "sources": candidate["sources"],
+        "evidence": evidence,
+        "source_summary_sha256": bytes_sha256(source_bytes),
+    }
+    functional_methods.append(
+        {
+            "id": method_id,
+            "label": label_zh,
+            "label_en": label_en,
+            "policy": f"fixed_{layout}",
+            "direct_cases": 372,
+            "inherited_cases": 0,
+            "final_passed_cases": passed,
+            "physical_calls": 1116,
+            "moli_sha256": candidate["binary"]["moli_sha256"],
+            "evidence": evidence,
+        }
+    )
+
+
+def load_fixed_candidates(
+    fixed_summaries: list[list[str]],
+    paths: ReportPaths,
+    selected: SelectedTasks,
+    cases: list[JsonObject],
+    functional_methods: list[JsonObject],
+    public_candidate_files: dict[str, bytes],
+) -> tuple[dict[str, JsonObject], dict[str, JsonObject]]:
+    """Register each requested candidate after the three direct configurations."""
     fixed_candidates = {}
     fixed_case_data = {c["id"]: {"id": c["id"], "title": c["title"], "methods": {}} for c in cases}
-    public_candidate_files = {}
-    labels = {
-        "119_official_off": ("Moli 1.1.9 · 关闭 layout", "Moli 1.1.9 · layout off", "off"),
-        "119_official_on": ("Moli 1.1.9 · 开启 layout", "Moli 1.1.9 · layout on", "on"),
-        "119_off": ("Moli 1.1.9 修复版 · 关闭 layout", "Moli 1.1.9 patched · layout off", "off"),
-        "119_on": ("Moli 1.1.9 修复版 · 开启 layout", "Moli 1.1.9 patched · layout on", "on"),
-    }
     functional_task_ids_sha256 = bytes_sha256(
         "".join(task_id + "\n" for task_id in sorted(selected)).encode()
     )
-    if not len(dict(args.fixed_summary)) == len(args.fixed_summary):
+    if not len(dict(fixed_summaries)) == len(fixed_summaries):
         raise ValueError(
             "Invalid Lexbench report evidence: len(dict(args.fixed_summary)) == len(args.fixed_summary)"
         )
-    if not set(dict(args.fixed_summary)).issubset(labels):
+    if not set(dict(fixed_summaries)).issubset(FIXED_CANDIDATE_LABELS):
         raise ValueError(
             "Invalid Lexbench report evidence: set(dict(args.fixed_summary)).issubset(labels)"
         )
     for method_id, summary_path in sorted(
-        args.fixed_summary, key=lambda item: list(labels).index(item[0])
+        fixed_summaries, key=lambda item: list(FIXED_CANDIDATE_LABELS).index(item[0])
     ):
-        if not (method_id in labels and method_id not in fixed_candidates):
+        if not (method_id in FIXED_CANDIDATE_LABELS and method_id not in fixed_candidates):
             raise ValueError(
                 "Invalid Lexbench report evidence: method_id in labels and method_id not in fixed_candidates"
             )
-        source_bytes = pathlib.Path(summary_path).read_bytes()
-        candidate = json.loads(source_bytes)
-        if not candidate["schema"] == "lexbench_moli_fixed_layout_summary/1":
-            raise ValueError(
-                "Invalid Lexbench report evidence: candidate['schema'] == 'lexbench_moli_fixed_layout_summary/1'"
-            )
-        label_zh, label_en, layout = labels[method_id]
-        if not candidate["layout"] == layout:
-            raise ValueError("Invalid Lexbench report evidence: candidate['layout'] == layout")
-        if not candidate["population"] == {
-            "cases": 372,
-            "attempts_per_case": 3,
-            "calls": 1116,
-            "task_ids_sha256": functional_task_ids_sha256,
-        }:
-            raise ValueError(
-                "Invalid Lexbench report evidence: candidate['population'] == {'cases': 372, 'attempts_per_case': 3, 'calls': 1116, 'task_ids_sha256': functional_task_ids_sha256}"
-            )
-        if not (
-            {c["task_id"] for c in candidate["cases"]} == set(selected)
-            and len(candidate["cases"]) == 372
-        ):
-            raise ValueError(
-                "Invalid Lexbench report evidence: {c['task_id'] for c in candidate['cases']} == set(selected) and len(candidate['cases']) == 372"
-            )
-        for case in candidate["cases"]:
-            if not (
-                len(case["attempts"]) == 3 and {a["attempt"] for a in case["attempts"]} == {1, 2, 3}
-            ):
-                raise ValueError(
-                    "Invalid Lexbench report evidence: len(case['attempts']) == 3 and {a['attempt'] for a in case['attempts']} == {1, 2, 3}"
-                )
-            if not case["passes"] == sum(a["status"] == "pass" for a in case["attempts"]):
-                raise ValueError(
-                    "Invalid Lexbench report evidence: case['passes'] == sum((a['status'] == 'pass' for a in case['attempts']))"
-                )
-        source_runs = {}
-        source_tasks = {}
-        for binding in candidate["sources"]:
-            run_id = binding["run_id"]
-            if not re.fullmatch("[A-Za-z0-9_-]+", run_id):
-                raise ValueError(
-                    "Invalid Lexbench report evidence: re.fullmatch('[A-Za-z0-9_-]+', run_id)"
-                )
-            run_root = contained_path(
-                LAYOUT_POLICY_ROOT,
-                pathlib.Path("runs") / run_id,
-                reject_symlinks=True,
-            )
-            manifest_path = contained_path(run_root, "run_manifest.json", reject_symlinks=True)
-            if not (
-                not run_root.is_symlink()
-                and bytes_sha256(manifest_path.read_bytes()) == binding["manifest_sha256"]
-            ):
-                raise ValueError(
-                    "Invalid Lexbench report evidence: not run_root.is_symlink() and sha((run_root / 'run_manifest.json').read_bytes()) == binding['manifest_sha256']"
-                )
-            source_result = contained_path(run_root, binding["results_file"], reject_symlinks=True)
-            if not (
-                source_result.resolve().parent == run_root.resolve()
-                and (not source_result.is_symlink())
-            ):
-                raise ValueError(
-                    "Invalid Lexbench report evidence: source_result.resolve().parent == run_root.resolve() and (not source_result.is_symlink())"
-                )
-            if not bytes_sha256(source_result.read_bytes()) == binding["results_sha256"]:
-                raise ValueError(
-                    "Invalid Lexbench report evidence: sha(source_result.read_bytes()) == binding['results_sha256']"
-                )
-            source_runs[run_id] = run_root
-            for task in json.loads(manifest_path.read_text(encoding="utf-8"))["resolved_tasks"]:
-                if task["task_id"] in source_tasks:
-                    if not source_tasks[task["task_id"]]["sha256"] == task["sha256"]:
-                        raise ValueError(
-                            "Invalid Lexbench report evidence: source_tasks[task['task_id']]['sha256'] == task['sha256']"
-                        )
-                source_tasks[task["task_id"]] = task
-        for case in candidate["cases"]:
-            task = source_tasks[case["task_id"]]
-            if task["sha256"] != case["task_sha256"]:
-                raise ValueError("Candidate summary differs from its task manifest")
-            task_bytes = read_comparison_task(
-                [BENCH_ROOT, LAYOUT_POLICY_ROOT], task["path"],
-                expected_sha256=task["sha256"],
-            )
-            case_detail = fixed_case_data[case["task_id"]]
-            if "task_sha256" in case_detail:
-                if not case_detail["task_sha256"] == task["sha256"]:
-                    raise ValueError(
-                        "Invalid Lexbench report evidence: case_detail['task_sha256'] == task['sha256']"
-                    )
-            case_detail["task_sha256"] = task["sha256"]
-            case_detail["task_definition"] = json.loads(clean(task_bytes.decode()))
-            detail = []
-            for attempt in case["attempts"]:
-                run_root = source_runs[attempt["source_run_id"]]
-                raw = {**attempt, "task_id": case["task_id"]}
-                evidence = evidence_for(method_id, raw, run_root)
-                detail.append(
-                    {
-                        "ordinal": attempt["attempt"],
-                        "status": attempt["status"],
-                        "answer": clean(str(attempt.get("answer") or "")),
-                        "failure": safe_failure(method_id, raw, run_root),
-                        "evidence": evidence,
-                    }
-                )
-            fixed_case_data[case["task_id"]]["methods"][method_id] = {
-                "passes": case["passes"],
-                "attempts": detail,
-            }
-        passed = sum(c["passes"] == 3 for c in candidate["cases"])
-        if not (
-            candidate["outcomes"]["passed_cases"] == passed
-            and abs(candidate["outcomes"]["success_rate_pct"] - passed / 372 * 100) < 1e-09
-        ):
-            raise ValueError(
-                "Invalid Lexbench report evidence: candidate['outcomes']['passed_cases'] == passed and abs(candidate['outcomes']['success_rate_pct'] - passed / 372 * 100) < 1e-09"
-            )
-        if not sum(source["calls"] for source in candidate["sources"]) == 1116:
-            raise ValueError(
-                "Invalid Lexbench report evidence: sum((source['calls'] for source in candidate['sources'])) == 1116"
-            )
-        public_bytes = (clean(json.dumps(candidate, ensure_ascii=False, indent=2)) + "\n").encode()
-        url = f"data/candidates/{method_id}-fixed-summary.json"
-        public_candidate_files[url] = public_bytes
-        evidence = {"url": url, "sha256": bytes_sha256(public_bytes), "bytes": len(public_bytes)}
-        fixed_candidates[method_id] = {
-            "population": candidate["population"],
-            "outcomes": candidate["outcomes"],
-            "binary": candidate["binary"],
-            "sources": candidate["sources"],
-            "evidence": evidence,
-            "source_summary_sha256": bytes_sha256(source_bytes),
-        }
-        functional_methods.append(
-            {
-                "id": method_id,
-                "label": label_zh,
-                "label_en": label_en,
-                "policy": f"fixed_{layout}",
-                "direct_cases": 372,
-                "inherited_cases": 0,
-                "final_passed_cases": passed,
-                "physical_calls": 1116,
-                "moli_sha256": candidate["binary"]["moli_sha256"],
-                "evidence": evidence,
-            }
+        load_fixed_candidate(
+            method_id,
+            summary_path,
+            paths,
+            selected,
+            functional_task_ids_sha256,
+            fixed_candidates,
+            fixed_case_data,
+            functional_methods,
+            public_candidate_files,
         )
+    return fixed_candidates, fixed_case_data
+
+
+def load_macos_resource(
+    resource_path: pathlib.Path,
+    is_official: bool,
+    fixed_candidates: dict[str, JsonObject],
+    resource_builds: JsonObject,
+    public_candidate_files: dict[str, bytes],
+) -> JsonObject:
+    resource = json.loads(resource_path.read_text(encoding="utf-8"))
+    if not resource["schema"] == "lexbench_moli_macos_fixed_resource_summary/1":
+        raise ValueError(
+            "Invalid Lexbench report evidence: resource['schema'] == 'lexbench_moli_macos_fixed_resource_summary/1'"
+        )
+    expected_layouts = [
+        f"layout_{layout}"
+        for layout in ("off", "on")
+        if (f"119_official_{layout}" if is_official else f"119_{layout}") in fixed_candidates
+    ]
+    if not (
+        resource["method"]["configurations"] == expected_layouts
+        and resource["method"]["layout_retry"] is False
+    ):
+        raise ValueError(
+            "Invalid Lexbench report evidence: resource['method']['configurations'] == expected_layouts and resource['method']['layout_retry'] is False"
+        )
+    if not resource["method"]["resource_runs"] == len(expected_layouts):
+        raise ValueError(
+            "Invalid Lexbench report evidence: resource['method']['resource_runs'] == len(expected_layouts)"
+        )
+    if not resource["population"] == {
+        "tasks": 557,
+        "attempts_per_task": 5,
+        "calls_per_configuration": 2785,
+        "frozen_comparison_calls": 1045,
+        "frozen_comparison_tasks": 209,
+    }:
+        raise ValueError(
+            "Invalid Lexbench report evidence: resource['population'] == {'tasks': 557, 'attempts_per_task': 5, 'calls_per_configuration': 2785, 'frozen_comparison_calls': 1045, 'frozen_comparison_tasks': 209}"
+        )
+    if not (
+        resource["quality"]["memory_metric"] == "process_tree_rss"
+        and resource["quality"]["pss_available"] is False
+        and (resource["quality"]["publishable"] is True)
+    ):
+        raise ValueError(
+            "Invalid Lexbench report evidence: resource['quality']['memory_metric'] == 'process_tree_rss' and resource['quality']['pss_available'] is False and (resource['quality']['publishable'] is True)"
+        )
+    for layout, config in resource["configurations"].items():
+        method_id = f"119_official_{layout}" if is_official else f"119_{layout}"
+        if not resource["candidate"]["binary_sha256"] == resource_builds[method_id]["sha256"]:
+            raise ValueError(
+                "Invalid Lexbench report evidence: resource['candidate']['binary_sha256'] == resource_builds[method_id]['sha256']"
+            )
+        for population_name, n in [
+            ("all_predeclared_calls", 2785),
+            ("frozen_historical_common_pass_calls", 1045),
+        ]:
+            for metric in ("rss_peak_mib", "cpu_time_ms"):
+                stat = config["metrics"][population_name][metric]
+                if not (
+                    stat["n"] == n
+                    and abs(stat["sum"] - stat["mean"] * n)
+                    < max(1e-06, abs(stat["sum"]) * 1e-10)
+                ):
+                    raise ValueError(
+                        "Invalid Lexbench report evidence: stat['n'] == n and abs(stat['sum'] - stat['mean'] * n) < max(1e-06, abs(stat['sum']) * 1e-10)"
+                    )
+    public_bytes = (clean(json.dumps(resource, ensure_ascii=False, indent=2)) + "\n").encode()
+    url = (
+        "data/candidates/"
+        + ("official" if is_official else "patched")
+        + "-119-macos-resource-summary.json"
+    )
+    public_candidate_files[url] = public_bytes
+    return {
+        "summary": json.loads(public_bytes),
+        "evidence": {"url": url, "sha256": bytes_sha256(public_bytes), "bytes": len(public_bytes)},
+    }
+
+
+def load_macos_resources(
+    macos_path: pathlib.Path | None,
+    official_path: pathlib.Path | None,
+    fixed_candidates: dict[str, JsonObject],
+    resource_builds: JsonObject,
+    public_candidate_files: dict[str, bytes],
+) -> tuple[JsonObject | None, JsonObject | None]:
     macos_resource = None
     official_resource = None
-    for resource_path, is_official in [
-        (args.macos_resource_summary, False),
-        (args.official_resource_summary, True),
-    ]:
+    for resource_path, is_official in [(macos_path, False), (official_path, True)]:
         if resource_path is None:
             continue
-        resource = json.loads(resource_path.read_text(encoding="utf-8"))
-        if not resource["schema"] == "lexbench_moli_macos_fixed_resource_summary/1":
-            raise ValueError(
-                "Invalid Lexbench report evidence: resource['schema'] == 'lexbench_moli_macos_fixed_resource_summary/1'"
-            )
-        expected_layouts = [
-            f"layout_{layout}"
-            for layout in ("off", "on")
-            if (f"119_official_{layout}" if is_official else f"119_{layout}") in fixed_candidates
-        ]
-        if not (
-            resource["method"]["configurations"] == expected_layouts
-            and resource["method"]["layout_retry"] is False
-        ):
-            raise ValueError(
-                "Invalid Lexbench report evidence: resource['method']['configurations'] == expected_layouts and resource['method']['layout_retry'] is False"
-            )
-        if not resource["method"]["resource_runs"] == len(expected_layouts):
-            raise ValueError(
-                "Invalid Lexbench report evidence: resource['method']['resource_runs'] == len(expected_layouts)"
-            )
-        if not resource["population"] == {
-            "tasks": 557,
-            "attempts_per_task": 5,
-            "calls_per_configuration": 2785,
-            "frozen_comparison_calls": 1045,
-            "frozen_comparison_tasks": 209,
-        }:
-            raise ValueError(
-                "Invalid Lexbench report evidence: resource['population'] == {'tasks': 557, 'attempts_per_task': 5, 'calls_per_configuration': 2785, 'frozen_comparison_calls': 1045, 'frozen_comparison_tasks': 209}"
-            )
-        if not (
-            resource["quality"]["memory_metric"] == "process_tree_rss"
-            and resource["quality"]["pss_available"] is False
-            and (resource["quality"]["publishable"] is True)
-        ):
-            raise ValueError(
-                "Invalid Lexbench report evidence: resource['quality']['memory_metric'] == 'process_tree_rss' and resource['quality']['pss_available'] is False and (resource['quality']['publishable'] is True)"
-            )
-        for layout, config in resource["configurations"].items():
-            method_id = f"119_official_{layout}" if is_official else f"119_{layout}"
-            if not resource["candidate"]["binary_sha256"] == resource_builds[method_id]["sha256"]:
-                raise ValueError(
-                    "Invalid Lexbench report evidence: resource['candidate']['binary_sha256'] == resource_builds[method_id]['sha256']"
-                )
-            for population_name, n in [
-                ("all_predeclared_calls", 2785),
-                ("frozen_historical_common_pass_calls", 1045),
-            ]:
-                for metric in ("rss_peak_mib", "cpu_time_ms"):
-                    stat = config["metrics"][population_name][metric]
-                    if not (
-                        stat["n"] == n
-                        and abs(stat["sum"] - stat["mean"] * n)
-                        < max(1e-06, abs(stat["sum"]) * 1e-10)
-                    ):
-                        raise ValueError(
-                            "Invalid Lexbench report evidence: stat['n'] == n and abs(stat['sum'] - stat['mean'] * n) < max(1e-06, abs(stat['sum']) * 1e-10)"
-                        )
-        public_bytes = (clean(json.dumps(resource, ensure_ascii=False, indent=2)) + "\n").encode()
-        url = (
-            "data/candidates/"
-            + ("official" if is_official else "patched")
-            + "-119-macos-resource-summary.json"
+        entry = load_macos_resource(
+            resource_path, is_official, fixed_candidates, resource_builds, public_candidate_files
         )
-        public_candidate_files[url] = public_bytes
-        entry = {
-            "summary": json.loads(public_bytes),
-            "evidence": {"url": url, "sha256": bytes_sha256(public_bytes), "bytes": len(public_bytes)},
-        }
         if is_official:
             official_resource = entry
         else:
             macos_resource = entry
+    return macos_resource, official_resource
+
+
+def load_public_resource_matrix(
+    matrix_path: pathlib.Path | None,
+    macos_resource: JsonObject | None,
+    official_resource: JsonObject | None,
+    resource_builds: JsonObject,
+    public_candidate_files: dict[str, bytes],
+) -> JsonObject | None:
+    """Bind the macOS summaries to the complete serialized matrix they came from."""
     resource_matrix = None
     if macos_resource or official_resource:
-        if not args.resource_matrix is not None:
+        if not matrix_path is not None:
             raise ValueError("a complete matched resource receipt is required")
         bundle = load_matrix(
-            args.resource_matrix,
+            matrix_path,
             resource_builds,
             {
                 "patched": macos_resource["summary"],
@@ -1255,10 +1561,14 @@ def main(argv=None):
             "receipt": bundle["receipt"],
         }
         public_candidate_files["reproduction/run_resource_matrix.py"] = (
-            args.resource_matrix / "orchestrator.py"
+            matrix_path / "orchestrator.py"
         ).read_bytes()
+    return resource_matrix
+
+
+def load_functional_correction(paths: ReportPaths) -> tuple[bytes, JsonObject]:
     functional_correction = json.loads(
-        contained_path(FUNCTIONAL_CORRECTION, "receipt.json", reject_symlinks=True).read_text(encoding="utf-8")
+        contained_path(paths.functional_correction, "receipt.json", reject_symlinks=True).read_text(encoding="utf-8")
     )
     if not functional_correction["schema"] == "moli_functional_contract_correction/1":
         raise ValueError(
@@ -1277,7 +1587,7 @@ def main(argv=None):
             "Invalid Lexbench report evidence: [row['id'] for row in functional_correction['configurations']] == ['114_off', '118_off', '118_on']"
         )
     for item in functional_correction["configurations"]:
-        correction_run = contained_path(FUNCTIONAL_CORRECTION, item["run_id"], reject_symlinks=True)
+        correction_run = contained_path(paths.functional_correction, item["run_id"], reject_symlinks=True)
         if (
             not bytes_sha256(
                 contained_path(correction_run, "results.jsonl", reject_symlinks=True).read_bytes()
@@ -1321,127 +1631,236 @@ def main(argv=None):
             "bytes": len(correction_bytes),
         },
     }
-    macos_comparison = None
-    if macos_resource:
-        mac_rows = []
-        for method_id, resource, layout in [
-            ("119_official_off", official_resource, "off"),
-            ("119_official_on", official_resource, "on"),
-            ("119_off", macos_resource, "off"),
-            ("119_on", macos_resource, "on"),
-        ]:
-            if resource is None or method_id not in fixed_candidates:
-                continue
-            metric = resource["summary"]["configurations"][layout]["metrics"][
-                "frozen_historical_common_pass_calls"
-            ]
-            method = next(row for row in functional_methods if row["id"] == method_id)
-            mac_rows.append(
-                {
-                    "id": method_id,
-                    "label": method["label"],
-                    "label_en": method["label_en"],
-                    "short_label": method["label"].replace("Moli ", ""),
-                    "short_label_en": method["label_en"].replace("Moli ", ""),
-                    "functional_binary_sha256": method["moli_sha256"],
-                    "resource_binary_sha256": resource["summary"]["candidate"]["binary_sha256"],
-                    "passed_cases": method["final_passed_cases"],
-                    "total_cases": 372,
-                    "success_rate_pct": method["final_passed_cases"] / 372 * 100,
-                    "rss_mib": metric["rss_peak_mib"]["p50"],
-                    "cpu_ms": metric["cpu_time_ms"]["mean"],
-                }
-            )
-        mac_baseline = next(
-            (row for row in mac_rows if row["id"] == "119_official_on"), mac_rows[0]
+    return correction_bytes, functional_correction_public
+
+
+def build_macos_comparison(
+    macos_resource: JsonObject | None,
+    official_resource: JsonObject | None,
+    fixed_candidates: dict[str, JsonObject],
+    functional_methods: list[JsonObject],
+    chart_population: dict[str, int],
+) -> JsonObject | None:
+    if not macos_resource:
+        return None
+    mac_rows = []
+    for method_id, resource, layout in [
+        ("119_official_off", official_resource, "off"),
+        ("119_official_on", official_resource, "on"),
+        ("119_off", macos_resource, "off"),
+        ("119_on", macos_resource, "on"),
+    ]:
+        if resource is None or method_id not in fixed_candidates:
+            continue
+        metric = resource["summary"]["configurations"][layout]["metrics"][
+            "frozen_historical_common_pass_calls"
+        ]
+        method = next(row for row in functional_methods if row["id"] == method_id)
+        mac_rows.append(
+            {
+                "id": method_id,
+                "label": method["label"],
+                "label_en": method["label_en"],
+                "short_label": method["label"].replace("Moli ", ""),
+                "short_label_en": method["label_en"].replace("Moli ", ""),
+                "functional_binary_sha256": method["moli_sha256"],
+                "resource_binary_sha256": resource["summary"]["candidate"]["binary_sha256"],
+                "passed_cases": method["final_passed_cases"],
+                "total_cases": 372,
+                "success_rate_pct": method["final_passed_cases"] / 372 * 100,
+                "rss_mib": metric["rss_peak_mib"]["p50"],
+                "cpu_ms": metric["cpu_time_ms"]["mean"],
+            }
         )
-        for row in mac_rows:
-            row["rss_change_pct"] = (row["rss_mib"] / mac_baseline["rss_mib"] - 1) * 100
-            row["cpu_change_pct"] = (row["cpu_ms"] / mac_baseline["cpu_ms"] - 1) * 100
-        macos_comparison = {
-            "baseline": mac_baseline["id"],
-            "configurations": mac_rows,
-            "resource_population": dict(chart_population),
-        }
-    linux_resource_profiles = None
-    linux_comparison = None
-    resource_metrics = None
-    resource_metrics_source = None
-    if args.linux_resource_profiles:
-        if not (not macos_resource and (not official_resource)):
-            raise ValueError("use one current resource cohort")
-        linux_summary = summarize_linux_profiles(args.linux_resource_profiles)
-        validate_linux_summary(linux_summary, resource_builds)
-        public_bytes = (
-            clean(json.dumps(linux_summary, ensure_ascii=False, indent=2)) + "\n"
-        ).encode()
-        url = "data/candidates/linux-resource-profiles.json"
-        public_candidate_files[url] = public_bytes
-        linux_public_summary = json.loads(public_bytes)
-        linux_resource_profiles = {
-            "configurations": linux_public_summary["configurations"],
-            "receipt": linux_public_summary["receipt"],
-            "evidence": {"url": url, "sha256": bytes_sha256(public_bytes), "bytes": len(public_bytes)},
-        }
-        public_candidate_files["reproduction/run_linux_resource_profiles.py"] = (
-            args.linux_resource_profiles / "orchestrator.py"
-        ).read_bytes()
-        original_bytes = (clean(json.dumps(resource_comparison, indent=2)) + "\n").encode()
-        original_url = "data/candidates/version-resource-measurements.json"
-        public_candidate_files[original_url] = original_bytes
-        resource_metrics_source = {
-            "url": original_url,
-            "sha256": bytes_sha256(original_bytes),
-            "bytes": len(original_bytes),
-        }
-        resource_metrics = {}
-        for method in functional_methods:
-            method_id = method["id"]
-            if method_id in linux_summary["configurations"]:
-                resource_metrics[method_id] = linux_summary["configurations"][method_id]["metrics"]
-            else:
-                resource_metrics[method_id] = {
-                    scope: {
-                        metric: {**stat, "p50": stat["median"], "sum": stat["mean"] * stat["n"]}
-                        for metric, stat in resource_comparison["memory"][method_id][scope].items()
-                        if metric in {"pss_peak_mib", "cpu_time_ms"}
-                    }
-                    for scope in ("all_predeclared_calls", "frozen_historical_common_pass_calls")
-                }
-        linux_rows = []
-        for method in functional_methods:
-            method_id = method["id"]
-            if method_id not in linux_summary["configurations"]:
-                continue
-            config = linux_summary["configurations"][method_id]
-            metric = config["metrics"]["frozen_historical_common_pass_calls"]
-            linux_rows.append(
-                {
-                    "id": method_id,
-                    "label": method["label"],
-                    "label_en": method["label_en"],
-                    "short_label": method["label"].removeprefix("Moli "),
-                    "short_label_en": method["label_en"].removeprefix("Moli "),
-                    "functional_binary_sha256": method["moli_sha256"],
-                    "resource_binary_sha256": config["build"]["sha256"],
-                    "passed_cases": method["final_passed_cases"],
-                    "total_cases": 372,
-                    "success_rate_pct": method["final_passed_cases"] / 372 * 100,
-                    "pss_mib": metric["pss_peak_mib"]["p50"],
-                    "cpu_ms": metric["cpu_time_ms"]["mean"],
-                    "platform": "Linux",
-                    "memory_kind": "PSS",
-                }
-            )
-        linux_comparison = {"configurations": linux_rows}
-    combined_comparison = combine_comparisons(
-        functional_methods, version_comparison, linux_comparison or macos_comparison
+    mac_baseline = next(
+        (row for row in mac_rows if row["id"] == "119_official_on"), mac_rows[0]
     )
-    public = {
-        "linux_resource_profiles": linux_resource_profiles,
-        "linux_comparison": linux_comparison,
-        "resource_metrics": resource_metrics,
-        "resource_metrics_source": resource_metrics_source,
+    for row in mac_rows:
+        row["rss_change_pct"] = (row["rss_mib"] / mac_baseline["rss_mib"] - 1) * 100
+        row["cpu_change_pct"] = (row["cpu_ms"] / mac_baseline["cpu_ms"] - 1) * 100
+    return {
+        "baseline": mac_baseline["id"],
+        "configurations": mac_rows,
+        "resource_population": dict(chart_population),
+    }
+
+
+def build_linux_resource_metrics(
+    functional_methods: list[JsonObject], linux_summary: JsonObject, resource_comparison: JsonObject
+) -> JsonObject:
+    resource_metrics = {}
+    for method in functional_methods:
+        method_id = method["id"]
+        if method_id in linux_summary["configurations"]:
+            resource_metrics[method_id] = linux_summary["configurations"][method_id]["metrics"]
+        else:
+            resource_metrics[method_id] = {
+                scope: {
+                    metric: {**stat, "p50": stat["median"], "sum": stat["mean"] * stat["n"]}
+                    for metric, stat in resource_comparison["memory"][method_id][scope].items()
+                    if metric in {"pss_peak_mib", "cpu_time_ms"}
+                }
+                for scope in ("all_predeclared_calls", "frozen_historical_common_pass_calls")
+            }
+    return resource_metrics
+
+
+def build_linux_rows(
+    functional_methods: list[JsonObject], linux_summary: JsonObject
+) -> list[JsonObject]:
+    linux_rows = []
+    for method in functional_methods:
+        method_id = method["id"]
+        if method_id not in linux_summary["configurations"]:
+            continue
+        config = linux_summary["configurations"][method_id]
+        metric = config["metrics"]["frozen_historical_common_pass_calls"]
+        linux_rows.append(
+            {
+                "id": method_id,
+                "label": method["label"],
+                "label_en": method["label_en"],
+                "short_label": method["label"].removeprefix("Moli "),
+                "short_label_en": method["label_en"].removeprefix("Moli "),
+                "functional_binary_sha256": method["moli_sha256"],
+                "resource_binary_sha256": config["build"]["sha256"],
+                "passed_cases": method["final_passed_cases"],
+                "total_cases": 372,
+                "success_rate_pct": method["final_passed_cases"] / 372 * 100,
+                "pss_mib": metric["pss_peak_mib"]["p50"],
+                "cpu_ms": metric["cpu_time_ms"]["mean"],
+                "platform": "Linux",
+                "memory_kind": "PSS",
+            }
+        )
+    return linux_rows
+
+
+def load_linux_resources(
+    profiles_path: pathlib.Path | None,
+    macos_resource: JsonObject | None,
+    official_resource: JsonObject | None,
+    resource_builds: JsonObject,
+    resource_comparison: JsonObject,
+    functional_methods: list[JsonObject],
+    public_candidate_files: dict[str, bytes],
+) -> LinuxResources:
+    """Rebuild the current resource cohort from saved Linux profiles, when supplied."""
+    if not profiles_path:
+        return LinuxResources()
+    if not (not macos_resource and (not official_resource)):
+        raise ValueError("use one current resource cohort")
+    linux_summary = summarize_linux_profiles(profiles_path)
+    validate_linux_summary(linux_summary, resource_builds)
+    public_bytes = (
+        clean(json.dumps(linux_summary, ensure_ascii=False, indent=2)) + "\n"
+    ).encode()
+    url = "data/candidates/linux-resource-profiles.json"
+    public_candidate_files[url] = public_bytes
+    linux_public_summary = json.loads(public_bytes)
+    linux_resource_profiles = {
+        "configurations": linux_public_summary["configurations"],
+        "receipt": linux_public_summary["receipt"],
+        "evidence": {"url": url, "sha256": bytes_sha256(public_bytes), "bytes": len(public_bytes)},
+    }
+    public_candidate_files["reproduction/run_linux_resource_profiles.py"] = (
+        profiles_path / "orchestrator.py"
+    ).read_bytes()
+    original_bytes = (clean(json.dumps(resource_comparison, indent=2)) + "\n").encode()
+    original_url = "data/candidates/version-resource-measurements.json"
+    public_candidate_files[original_url] = original_bytes
+    resource_metrics_source = {
+        "url": original_url,
+        "sha256": bytes_sha256(original_bytes),
+        "bytes": len(original_bytes),
+    }
+    return LinuxResources(
+        profiles=linux_resource_profiles,
+        metrics=build_linux_resource_metrics(functional_methods, linux_summary, resource_comparison),
+        comparison={"configurations": build_linux_rows(functional_methods, linux_summary)},
+        metrics_source=resource_metrics_source,
+    )
+
+
+def build_public_case_rows(cases: list[JsonObject]) -> list[JsonObject]:
+    """Summarize every case for the result inventory."""
+    return [
+        {
+            "id": c["id"],
+            "title": c["title"],
+            "stratum": c["stratum"],
+            "subset": c["subset"],
+            "off_passes": c["modes"]["off"]["passes"],
+            "on_passes": c["modes"]["on"]["passes"],
+            "off_fail_classes": sorted(
+                set(
+                    a["failure"]["class"]
+                    for a in c["modes"]["off"]["attempts"]
+                    if a["status"] != "pass"
+                )
+            ),
+            "on_fail_classes": sorted(
+                set(
+                    a["failure"]["class"]
+                    for a in c["modes"]["on"]["attempts"]
+                    if a["status"] != "pass"
+                )
+            ),
+            "off_fail_details": sorted(
+                set(
+                    a["failure"]["detail"]
+                    for a in c["modes"]["off"]["attempts"]
+                    if a["status"] != "pass"
+                )
+            ),
+            "on_fail_details": sorted(
+                set(
+                    a["failure"]["detail"]
+                    for a in c["modes"]["on"]["attempts"]
+                    if a["status"] != "pass"
+                )
+            ),
+        }
+        for c in cases
+    ]
+
+
+def build_public_model(
+    *,
+    paths: ReportPaths,
+    certified: CertifiedCohort,
+    linux: LinuxResources,
+    combined_comparison: JsonObject,
+    fixed_case_data: dict[str, JsonObject],
+    macos_comparison: JsonObject | None,
+    version_comparison: JsonObject,
+    functional_methods: list[JsonObject],
+    fixed_candidates: dict[str, JsonObject],
+    macos_resource: JsonObject | None,
+    official_resource: JsonObject | None,
+    resource_builds: JsonObject,
+    resource_matrix: JsonObject | None,
+    case_outcomes: JsonObject,
+    functional_correction_public: JsonObject,
+    host_context: JsonObject,
+    protocol: JsonObject,
+    metrics: JsonObject,
+    network_rx: JsonObject,
+    cold_start: JsonObject,
+    common_pass: JsonObject,
+    task_cost: list[JsonObject],
+    paired: JsonObject,
+    quality: JsonObject,
+    cases: list[JsonObject],
+) -> JsonObject:
+    """Assemble data/model.json; key order is part of the published bytes."""
+    cohort, selected, label = certified.cohort, certified.selected, certified.labels
+    task_count, call_count = certified.task_count, certified.call_count
+    return {
+        "linux_resource_profiles": linux.profiles,
+        "linux_comparison": linux.comparison,
+        "resource_metrics": linux.metrics,
+        "resource_metrics_source": linux.metrics_source,
         "combined_comparison": combined_comparison,
         "fixed_case_outcomes": [
             {
@@ -1466,9 +1885,9 @@ def main(argv=None):
         "case_outcomes": case_outcomes,
         "schema": "moli_layout_report/2",
         "functional_contract_correction": functional_correction_public,
-        "resource_window_corrections": corrections,
+        "resource_window_corrections": [],
         "environment": json.loads(
-            contained_path(RUNS, "environment.json", reject_symlinks=True).read_text(encoding="utf-8")
+            contained_path(paths.runs, "environment.json", reject_symlinks=True).read_text(encoding="utf-8")
         ),
         "title": "Moli 配置对比",
         "task_count": task_count,
@@ -1495,116 +1914,217 @@ def main(argv=None):
                 for phase in ("baseline", "profile")
             ),
         },
-        "cases": [
-            {
-                "id": c["id"],
-                "title": c["title"],
-                "stratum": c["stratum"],
-                "subset": c["subset"],
-                "off_passes": c["modes"]["off"]["passes"],
-                "on_passes": c["modes"]["on"]["passes"],
-                "off_fail_classes": sorted(
-                    set(
-                        a["failure"]["class"]
-                        for a in c["modes"]["off"]["attempts"]
-                        if a["status"] != "pass"
-                    )
-                ),
-                "on_fail_classes": sorted(
-                    set(
-                        a["failure"]["class"]
-                        for a in c["modes"]["on"]["attempts"]
-                        if a["status"] != "pass"
-                    )
-                ),
-                "off_fail_details": sorted(
-                    set(
-                        a["failure"]["detail"]
-                        for a in c["modes"]["off"]["attempts"]
-                        if a["status"] != "pass"
-                    )
-                ),
-                "on_fail_details": sorted(
-                    set(
-                        a["failure"]["detail"]
-                        for a in c["modes"]["on"]["attempts"]
-                        if a["status"] != "pass"
-                    )
-                ),
-            }
-            for c in cases
-        ],
+        "cases": build_public_case_rows(cases),
         "runs": {
             name: {
                 "run_id": label[name],
-                "manifest_sha256": bytes_sha256((RUNS / label[name] / "run_manifest.json").read_bytes()),
+                "manifest_sha256": bytes_sha256((paths.runs / label[name] / "run_manifest.json").read_bytes()),
                 "rows": call_count,
             }
             for name in label
         },
     }
-    (OUT / "data/model.json").write_text(
+
+
+def write_public_data(
+    output: pathlib.Path,
+    public: JsonObject,
+    correction_bytes: bytes,
+    fixed_candidates: dict[str, JsonObject],
+    fixed_case_data: dict[str, JsonObject],
+    public_candidate_files: dict[str, bytes],
+    version_comparison: JsonObject,
+    combined_comparison: JsonObject,
+    macos_comparison: JsonObject | None,
+) -> None:
+    (output / "data/model.json").write_text(
         json.dumps(public, ensure_ascii=False, separators=(",", ":")) + "\n",
         encoding="utf-8"
     )
-    (OUT / "data/corrections").mkdir()
-    (OUT / "data/corrections/chromium-contract-retest.json").write_bytes(correction_bytes)
+    (output / "data/corrections").mkdir()
+    (output / "data/corrections/chromium-contract-retest.json").write_bytes(correction_bytes)
     if fixed_candidates:
-        (OUT / "data/fixed-cases").mkdir()
+        (output / "data/fixed-cases").mkdir()
         for task_id, case in fixed_case_data.items():
-            (OUT / "data/fixed-cases" / f"{task_id}.json").write_text(
+            (output / "data/fixed-cases" / f"{task_id}.json").write_text(
                 json.dumps(case, ensure_ascii=False, separators=(",", ":")) + "\n",
                 encoding="utf-8"
             )
     for relative, data in public_candidate_files.items():
-        target = contained_path(OUT, relative, reject_symlinks=True)
+        target = contained_path(output, relative, reject_symlinks=True)
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(data)
-    (OUT / "data/version-comparison.json").write_text(
+    (output / "data/version-comparison.json").write_text(
         json.dumps(version_comparison, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8"
     )
-    (OUT / "data/combined-comparison.json").write_text(
+    (output / "data/combined-comparison.json").write_text(
         json.dumps(combined_comparison, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8"
     )
     if macos_comparison:
-        (OUT / "data/macos-comparison.json").write_text(
+        (output / "data/macos-comparison.json").write_text(
             json.dumps(macos_comparison, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8"
         )
-    write_presentation(
-        SRC, OUT, combined_comparison, version_comparison, macos_comparison,
-        include_english=args.include_english,
-    )
+
+
+def install_static_assets(paths: ReportPaths) -> None:
+    """Copy the template runtime and the digest-pinned vendored Mermaid."""
+    output = paths.output
     for name in ("app.js", "style.css", "README.md"):
-        shutil.copy2(SRC / name, OUT / name)
-    for name, digest in {
-        "mermaid.min.js": "07e37dfa97b337ccc85365d57eddf99b9706f09db3b59b260d0333b23b343c4b",
-        "mermaid-LICENSE.txt": "ec9fb67dcb25eccc416ed56e1aab819222c805a2a4bfe4cb19e7556bf2ffde80",
-    }.items():
-        asset = contained_path(args.vendor_dir, name, reject_symlinks=True)
+        shutil.copy2(paths.source / name, output / name)
+    for name, digest in VENDOR_ASSET_SHA256.items():
+        asset = contained_path(paths.vendor_dir, name, reject_symlinks=True)
         if not (not asset.is_symlink() and bytes_sha256(asset.read_bytes()) == digest):
             raise ValueError(
                 "Invalid Lexbench report evidence: not asset.is_symlink() and sha(asset.read_bytes()) == digest"
             )
-        shutil.copy2(asset, OUT / name)
-    (OUT / "reproduction").mkdir(exist_ok=True)
-    (OUT / "reproduction/cohort.json").write_text(clean(args.cohort.read_text(encoding="utf-8")), encoding="utf-8")
-    shutil.copy2(pathlib.Path(reproduction.__file__), OUT / "reproduction/run.py")
+        shutil.copy2(asset, output / name)
+
+
+def write_reproduction_files(paths: ReportPaths, contract: JsonObject) -> None:
+    output = paths.output
+    (output / "reproduction").mkdir(exist_ok=True)
+    (output / "reproduction/cohort.json").write_text(clean(paths.cohort.read_text(encoding="utf-8")), encoding="utf-8")
+    shutil.copy2(pathlib.Path(reproduction.__file__), output / "reproduction/run.py")
     shutil.copy2(
         pathlib.Path(charts.__file__),
-        OUT / "reproduction/plot_version_summary.py",
+        output / "reproduction/plot_version_summary.py",
     )
-    (OUT / "reproduction/protocol.json").write_text(json.dumps(contract, indent=2) + "\n", encoding="utf-8")
+    (output / "reproduction/protocol.json").write_text(json.dumps(contract, indent=2) + "\n", encoding="utf-8")
+
+
+def print_build_summary(output: pathlib.Path, cases: list[JsonObject]) -> None:
     print(
         json.dumps(
             {
-                "site": str(OUT),
+                "site": str(output),
                 "cases": len(cases),
-                "evidence_files": len(list((OUT / "data/evidence").rglob("*.*"))),
-                "bytes": sum(p.stat().st_size for p in OUT.rglob("*") if p.is_file()),
+                "evidence_files": len(list((output / "data/evidence").rglob("*.*"))),
+                "bytes": sum(p.stat().st_size for p in output.rglob("*") if p.is_file()),
             },
             indent=2,
         )
     )
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser, args = parse_arguments(argv)
+    report_profile = json.loads(args.profile.read_bytes())
+    paths = resolve_paths(parser, args, report_profile)
+    resource_builds = report_profile.get("resource_builds", {})
+    chart_population = chart_population_from(report_profile)
+    output = paths.output
+
+    certified = load_certified_cohort(paths, report_profile)
+    runs = {name: read_run(name, paths, certified) for name in certified.labels}
+    protocol = build_protocol(runs)
+    validate_round_consistency(runs, protocol)
+    metrics, quality = summarize_rounds(runs)
+    paired = summarize_paired_outcomes(runs)
+
+    prepare_output(output)
+    cases = build_cases(paths, certified, runs)
+    network_rx = {}
+    cold_start = {}
+    for mode in ("off", "on"):
+        network_rx[mode] = summarize_network(cases, mode)
+        cold_start[mode] = summarize_cold_start(paths, certified.cohort, mode)
+    common_pass = summarize_common_pass(cases, certified.k_runs, paired)
+    task_cost = summarize_task_cost(cases, metrics)
+    host_context = build_host_context(paths, certified.labels, runs)
+    case_outcomes = summarize_case_outcomes(cases, certified.k_runs, certified.task_count)
+
+    version = load_version_evidence(paths, certified.selected)
+    functional_114 = verify_functional_candidate(paths, version.protocol, case_outcomes, cases)
+    version_comparison = build_version_comparison(
+        version, case_outcomes, chart_population, functional_114
+    )
+    functional_methods = build_functional_methods(case_outcomes, version.protocol)
+
+    public_candidate_files: dict[str, bytes] = {}
+    fixed_candidates, fixed_case_data = load_fixed_candidates(
+        args.fixed_summary,
+        paths,
+        certified.selected,
+        cases,
+        functional_methods,
+        public_candidate_files,
+    )
+    macos_resource, official_resource = load_macos_resources(
+        args.macos_resource_summary,
+        args.official_resource_summary,
+        fixed_candidates,
+        resource_builds,
+        public_candidate_files,
+    )
+    resource_matrix = load_public_resource_matrix(
+        args.resource_matrix,
+        macos_resource,
+        official_resource,
+        resource_builds,
+        public_candidate_files,
+    )
+    correction_bytes, functional_correction_public = load_functional_correction(paths)
+    macos_comparison = build_macos_comparison(
+        macos_resource, official_resource, fixed_candidates, functional_methods, chart_population
+    )
+    linux = load_linux_resources(
+        args.linux_resource_profiles,
+        macos_resource,
+        official_resource,
+        resource_builds,
+        version.comparison,
+        functional_methods,
+        public_candidate_files,
+    )
+    combined_comparison = combine_comparisons(
+        functional_methods, version_comparison, linux.comparison or macos_comparison
+    )
+    public = build_public_model(
+        paths=paths,
+        certified=certified,
+        linux=linux,
+        combined_comparison=combined_comparison,
+        fixed_case_data=fixed_case_data,
+        macos_comparison=macos_comparison,
+        version_comparison=version_comparison,
+        functional_methods=functional_methods,
+        fixed_candidates=fixed_candidates,
+        macos_resource=macos_resource,
+        official_resource=official_resource,
+        resource_builds=resource_builds,
+        resource_matrix=resource_matrix,
+        case_outcomes=case_outcomes,
+        functional_correction_public=functional_correction_public,
+        host_context=host_context,
+        protocol=protocol,
+        metrics=metrics,
+        network_rx=network_rx,
+        cold_start=cold_start,
+        common_pass=common_pass,
+        task_cost=task_cost,
+        paired=paired,
+        quality=quality,
+        cases=cases,
+    )
+
+    write_public_data(
+        output,
+        public,
+        correction_bytes,
+        fixed_candidates,
+        fixed_case_data,
+        public_candidate_files,
+        version_comparison,
+        combined_comparison,
+        macos_comparison,
+    )
+    write_presentation(
+        paths.source, output, combined_comparison, version_comparison, macos_comparison,
+        include_english=args.include_english,
+    )
+    install_static_assets(paths)
+    write_reproduction_files(paths, certified.contract)
+    print_build_summary(output, cases)
