@@ -387,6 +387,8 @@ def _load_saved_matrix(spec_path):
     spec = _json(spec_path)
     if spec.get('schema_version') != 1:
         raise ValueError('Unsupported saved-matrix specification')
+    if spec.get('presentation', 'audit') not in {'audit', 'final'}:
+        raise ValueError('Unknown saved-matrix presentation')
     sources = _SourceBindings(spec_path.parent)
     bind, binding, tracked = sources.bind, sources.binding, sources.tracked
     def registry(items):
@@ -1358,6 +1360,8 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
         model['report_scope'] = {'excluded_families': spec['excluded_report_families'],
                                  'source_positions': len(selected) + len(missing),
                                  'reported_positions': len(model_rows)}
+    if spec.get('presentation') == 'final':
+        model['presentation'] = 'final'
     model['combined_ranking'] = spec.get('combined_ranking', True)
     if revision:
         model['offline_revision'] = revision['receipt']
@@ -1797,6 +1801,8 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
                          if not excluded or _presentation_family(case, suite, spec['report_families']) not in excluded}
         if set(keys) != expected_keys:
             raise ValueError('Saved-matrix population differs from validated source')
+        if model.get('presentation', 'audit') != spec.get('presentation', 'audit'):
+            raise ValueError('Report presentation differs from approved specification')
         _validate_source_disclosures(output, model, inputs, adoptions, keys)
     def record_paths(value):
         if isinstance(value, dict):
@@ -1934,6 +1940,13 @@ def _saved_renderer_projection(output, model):
     Only report route IDs and local evidence paths are projected. Original case
     definitions, record bytes and metrics remain in their evidence files.
     """
+    final = model.get('presentation') == 'final'
+    if model.get('presentation', 'audit') not in {'audit', 'final'}:
+        raise ValueError('Unknown saved-matrix presentation')
+    if final and (not model['rows'] or any(
+            not row['called'] or row['passed'] is None or not row['record_path']
+            for row in model['rows'])):
+        raise ValueError('Final report requires complete judged call evidence')
     cases, records, identities = {}, [], []
     attempt_routes = set()
     groups = model.get('report_families', model['suites'])
@@ -2000,7 +2013,7 @@ def _saved_renderer_projection(output, model):
             not_called=sum(r['status']=='not_called' for r in rs)))
     dataset = {'name': model['title'], 'cases': list(cases.values()),
         'coverage_plan': {c.get('track','web'): providers for c in cases.values()},
-        'comparison': {'publication_state': 'local_audit_only_not_for_release',
+        'comparison': {'publication_state': ('final_saved_results' if final else 'local_audit_only_not_for_release'),
                        'presentation': {'ranking': 'saved_task_pass_rate',
                                         'combined_ranking': model.get('combined_ranking', True)}},
         'saved_matrix_scope': scope}
@@ -2011,6 +2024,9 @@ def _saved_renderer_projection(output, model):
     grouped=[key for s in dataset['report_suites'] for key in s['case_ids']]
     if len(grouped)!=len(set(grouped)) or set(grouped)!=set(cases):
         raise ValueError('Report suites must partition every case exactly once')
+    if final:
+        from harness.web_fetch.reliability import require_reliable
+        require_reliable(dataset, records)
     return dataset, records, identities, scope
 
 

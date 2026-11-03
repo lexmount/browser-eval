@@ -1383,3 +1383,32 @@ def test_saved_matrix_binds_external_policy_registry_and_rejects_substitution(tm
     (report / model['native_policy_registry']['path']).write_text('{}')
     with pytest.raises(ValueError, match='differs from its approved binding'):
         check_saved_matrix(report)
+
+
+def test_final_saved_report_preserves_results_without_audit_process_banners(tmp_path):
+    spec, _, _, raw = fixture(tmp_path)
+    spec['presentation'] = 'final'
+    report = build(tmp_path, spec).parent
+    model = json.loads((report / 'matrix.json').read_text())
+    assert model['totals']['planned'] == model['totals']['passed'] == 1
+    assert (report / model['rows'][0]['record_path']).read_bytes() == raw
+    html = (report / 'index.html').read_text()
+    assert '本地审核版' not in html
+    assert '本报告未正式发布' not in html
+    assert 'data-saved-completion' not in html
+    assert 'report_invocation_status' not in html
+    assert check_saved_matrix(report, spec_path=tmp_path / 'spec.json')['valid']
+
+
+def test_final_saved_report_rejects_uncalled_positions(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    spec['presentation'] = 'final'
+    spec['sources'] = []
+    receipt = {'kind': 'user_requested_case_skip', 'suite': 'first', 'case_id': 'same',
+               'providers': ['method'], 'status': 'not_called', 'score': None,
+               'user_instruction': 'Skip this case.'}
+    spec['missing'] = [{'suite': 'first', 'provider': 'method', 'case_id': 'same',
+                        'status': 'not_called', 'reason': 'User requested skip',
+                        'receipt': write(tmp_path / 'skip.json', receipt)}]
+    with pytest.raises(ValueError, match='complete judged call evidence'):
+        build(tmp_path, spec)

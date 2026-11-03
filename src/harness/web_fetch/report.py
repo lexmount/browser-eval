@@ -2240,7 +2240,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  if local_snapshot and not show_local_status_banners:
   raise ValueError('Uncertified local diagnostic status cannot be hidden')
  reliability=assess_reliability(dataset,records)
- if dataset.get('saved_matrix_scope') and not any(reliability[key] for key in ('extra','duplicates')):
+ final_saved=dataset.get('comparison',{}).get('publication_state')=='final_saved_results'
+ if final_saved and (not dataset.get('saved_matrix_scope') or not reliability['complete']):
+  raise ValueError('Final saved report requires complete judged call evidence')
+ if dataset.get('saved_matrix_scope') and not final_saved and not any(reliability[key] for key in ('extra','duplicates')):
   saved_scope=dataset['saved_matrix_scope']
   counts={key:sum(row[key] for row in saved_scope['providers']) for key in ('planned','saved','uncommitted','not_called','rejected')}
   reliability_banner=('<div class="wrap reliability failure" role="status" data-saved-completion>'
@@ -2342,7 +2345,9 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  if measurement_presentation(dataset).all_call_latency:
   home+=section('同一任务集合的全部调用耗时',overview_all_call_latency(records,cases),'all-call-latency')
  completeness=('<p class="callout"><b>结果入库：</b>'+str(reliability['present_calls'])+'/'+str(reliability['expected_calls'])+' 组已有保存结果；缺失项没有补造分数。</p>')
- if not dataset.get('saved_matrix_scope'):
+ if final_saved:
+  completeness=''
+ elif not dataset.get('saved_matrix_scope'):
   completeness='<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p>'
  home+=section(f'{track_label} 类任务概览',review_summary(out)+completeness+'<p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
  if dataset.get('saved_matrix_scope'):

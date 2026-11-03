@@ -237,6 +237,13 @@ that profile. Put report prose in the evidence tree and bind it through
 Python strings. The normal build and check retain certification and review gates.
 The diagnostic build is a separate evidence state and does not certify results.
 
+Saved-matrix specifications default to `presentation: "audit"`. An explicitly
+selected `presentation: "final"` removes audit-workflow banners only after every
+declared result has complete, judged call evidence. It preserves scores, source
+bindings, limitations and evidence links; it does not confer independent review
+or benchmark certification. The source-aware check also verifies this selection
+against the external specification. Incomplete matrices cannot use final mode.
+
 ```sh
 uv run --frozen python scripts/build_report.py \
   --profile /absolute/instance/profile.json \
