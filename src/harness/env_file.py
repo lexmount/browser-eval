@@ -5,6 +5,7 @@ import io
 import logging
 import os
 import re
+import stat
 from pathlib import Path
 
 from dotenv.main import with_warn_for_invalid_lines
@@ -19,7 +20,11 @@ _REJECTED_NAME = re.compile(r"""\s*(?:export[^\S\r\n]+)?(?:'([^']+)'|([^=#\s]+))
 
 
 def _read_bindings(path: str | Path) -> dict[str, Binding]:
-    text = Path(path).expanduser().read_text(encoding="utf-8")
+    selected = Path(path).expanduser()
+    # Reading a FIFO would block forever; stat also keeps the missing-file error.
+    if not stat.S_ISREG(selected.stat().st_mode):
+        raise ValueError(f"env file must be a regular file: {selected.name}")
+    text = selected.read_text(encoding="utf-8")
     bindings: dict[str, Binding] = {}
     for binding in with_warn_for_invalid_lines(parse_stream(io.StringIO(text))):
         if binding.key is None:
@@ -48,7 +53,8 @@ def parse_env_file(path: str | Path) -> dict[str, str]:
     the name as missing instead of running on a stale value. Only the name that
     opens a multi-line value is affected; a name on a line it absorbed keeps its
     earlier value. Names that are not shell identifiers and lines that assign
-    nothing are ignored. A missing file raises ``FileNotFoundError``.
+    nothing are ignored. A missing file raises ``FileNotFoundError``, and a FIFO, directory
+    or other non-regular file raises ``ValueError`` without being read.
     """
     return {name: binding.value for name, binding in _read_bindings(path).items()}
 
@@ -78,7 +84,7 @@ def local_setting(name: str, env_file: str | Path | None = None) -> str:
     An exported variable wins, including an empty one. Otherwise the value comes from
     ``env_file``, the file chosen with ``select_env_file``, or the repository's ``.env``.
     An absent file means the setting is unset. A link passed or selected explicitly, a
-    directory and an unreadable file stop with an error when a setting is first needed.
+    non-regular file and an unreadable file stop with an error when a setting is first needed.
     """
     exported = os.environ.get(name)
     if exported is not None:

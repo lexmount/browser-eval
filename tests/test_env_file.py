@@ -1,5 +1,6 @@
 import os
 import re
+import signal
 from pathlib import Path
 
 import pytest
@@ -363,5 +364,45 @@ def test_local_setting_stops_on_an_unusable_file(tmp_path, monkeypatch) -> None:
     link.symlink_to(target)
     with pytest.raises(ValueError, match="regular file"):
         local_setting("DEMO_SETTING", link)
-    with pytest.raises(ValueError, match="cannot read local settings file"):
+    with pytest.raises(ValueError, match="regular file"):
         local_setting("DEMO_SETTING", tmp_path)
+
+
+def _fail_instead_of_hanging(signum, frame):
+    raise AssertionError("reading the env file blocked")
+
+
+@pytest.mark.parametrize("kind", ["fifo", "directory"])
+def test_every_env_file_reader_rejects_a_non_regular_file(tmp_path, monkeypatch, kind) -> None:
+    from harness.env_file import local_setting
+
+    path = tmp_path / "settings.env"
+    if kind == "fifo":
+        os.mkfifo(path)
+    else:
+        path.mkdir()
+    monkeypatch.delenv("DEMO_SETTING", raising=False)
+    previous = signal.signal(signal.SIGALRM, _fail_instead_of_hanging)
+    signal.alarm(10)
+    try:
+        for read in (
+            parse_env_file,
+            lambda value: local_setting("DEMO_SETTING", value),
+            web_fetch_config.load_env_file,
+            catalog_runner._load_env_values,
+        ):
+            with pytest.raises(ValueError, match="regular file"):
+                read(path)
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous)
+
+
+def test_a_missing_env_file_keeps_its_error_and_a_link_to_a_file_still_parses(tmp_path) -> None:
+    with pytest.raises(FileNotFoundError):
+        parse_env_file(tmp_path / "absent.env")
+    target = tmp_path / "real.env"
+    target.write_text("DEMO_SETTING=value\n")
+    link = tmp_path / "link.env"
+    link.symlink_to(target)
+    assert parse_env_file(link) == {"DEMO_SETTING": "value"}
