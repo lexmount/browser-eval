@@ -33,18 +33,12 @@ def validate_token(token):
 
 
 def load_token(*, base_url):
-    # Explicit process environment, then the target host. Never .env. Previous
-    # product-name locations remain read-only migration fallbacks.
-    host = urlsplit(base_url).netloc.lower()
+    # Explicit ARTIFACT_SITE_TOKEN, then the target host's file. Never .env. Previous
+    # product-name locations are read-only migration fallbacks, and the host-agnostic
+    # ARTIFACT_HUB_TOKEN comes last so a stale value cannot replace a host-scoped token.
     token = os.environ.get('ARTIFACT_SITE_TOKEN', '').strip()
-    if not token:
-        token = os.environ.get('ARTIFACT_HUB_TOKEN', '').strip()
-    candidates = (
-        token_path(base_url),
-        Path.home() / '.config/artifact-hub' / 'tokens' / host,
-        Path.home() / '.config/artifact-site' / 'token',
-        Path.home() / '.config/artifact-hub' / 'token',
-    )
+    destination = token_path(base_url)
+    candidates = (destination, Path.home() / '.config/artifact-hub/tokens' / destination.name)
     if not token:
         for path in candidates:
             try:
@@ -53,7 +47,7 @@ def load_token(*, base_url):
                 continue
             if token:
                 break
-    return validate_token(token)
+    return validate_token(token or os.environ.get('ARTIFACT_HUB_TOKEN', '').strip())
 
 
 def save_token(token, *, base_url, replace_existing=False):
@@ -107,11 +101,11 @@ def authorize_main(argv=None):
     action.add_argument('--persist-existing', action='store_true')
     parser.add_argument('--timeout', type=int, default=540)
     parser.add_argument('--replace-existing', action='store_true', help='Explicitly back up and replace a different user token')
-    parser.add_argument('--base-url', default=os.environ.get(
-        'ARTIFACT_SITE_BASE_URL',
-        os.environ.get('ARTIFACT_HUB_BASE_URL', 'https://artifact-hub.app.lexmount.com'),
-    ))
+    configured_base = os.environ.get('ARTIFACT_SITE_BASE_URL')
+    parser.add_argument('--base-url', default=configured_base, required=configured_base is None,
+                        help="The publication target's service URL; there is no default host")
     args = parser.parse_args(argv)
+    args.base_url = validate_service_base(args.base_url)
     if args.persist_existing:
         token = (os.environ.get('ARTIFACT_SITE_TOKEN', '').strip()
                  or os.environ.get('ARTIFACT_HUB_TOKEN', '').strip())
@@ -120,7 +114,6 @@ def authorize_main(argv=None):
         print('Existing authorization saved to the user credential file; token not displayed.')
         return
 
-    args.base_url = validate_service_base(args.base_url)
     if args.timeout <= 0:
         raise ValueError("Device authorization timeout must be positive")
     deadline = time.monotonic() + args.timeout

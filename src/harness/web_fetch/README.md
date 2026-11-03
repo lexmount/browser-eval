@@ -468,8 +468,10 @@ make report EVIDENCE=/absolute/path/to/evidence
 ```
 
 Credentials and local executable/repository paths belong in the root `.env`
-(copy `.env.example` and fill only the methods you use). Exported environment
-variables take precedence; `--env-file` overrides which file is read.
+(copy `.env.example` and fill only the methods you use). Evaluation credentials
+come only from the repository `.env`: exported values are ignored and an external
+`--env-file` that sets one is rejected. For non-credential runtime paths, exported
+environment variables take precedence and `--env-file` selects which file is read.
 
 `moli-webfetch` invokes the official local Moli CLI; set `MOLI_BINARY` when it
 is not on PATH. All webpage and document-body tasks use the CLI's native
@@ -1299,7 +1301,7 @@ causes without copying every failure's complete output and logs.
 ### Sharing a frozen diagnostic snapshot
 
 Pass the same `--presentation-binding /path/to/binding.json` to
-`scripts/package_artifact_hub.py` and `scripts/check_publication_bundle.py` when
+`scripts/package_artifact_site.py` and `scripts/check_publication_bundle.py` when
 sharing a previously validated frozen local report. Both commands verify its
 saved matrix, scorer identity, evidence and revision bindings through the existing
 presentation validator. This does not certify the cohort or add result reviews;
@@ -1316,7 +1318,7 @@ compressed catalog when fixed-block storage exceeds the upload budget. Both
 encodings retain complete virtual files, source bindings and file hashes.
 An acceptance contract stays inline when no standalone contract file exists.
 To reuse a completed public content cache, pass `--cached-content <directory>`
-to `scripts/package_artifact_hub.py` with the same source and, when applicable,
+to `scripts/package_artifact_site.py` with the same source and, when applicable,
 `--presentation-binding`. The packer refreshes source-bound result privacy and
 footprint projections when the cache uses an earlier representation; it rejects
 a cache bound to another source. `--refresh-privacy` additionally applies the

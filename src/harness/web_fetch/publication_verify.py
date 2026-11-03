@@ -17,7 +17,11 @@ from urllib.parse import quote
 
 from harness.reporting.publication import archive_inventory
 from harness.web_fetch.artifact_auth import load_token
-from harness.web_fetch.publication_target import publication_base, validate_service_base
+from harness.web_fetch.publication_target import (
+    publication_base,
+    publication_document,
+    validate_service_base,
+)
 
 
 def _validate_metadata(data, slug, *, require_slug=False):
@@ -94,7 +98,7 @@ def verify_public_files(slug, expected_archive, base):
         authenticated_entry = True
 
     def injected_html_matches(name, served):
-        """Accept only an exact submitted document plus a known Hub bootstrap."""
+        """Accept only an exact submitted document plus a known Artifact Site bootstrap."""
         original = expected_html[name]
         quoted_slug = re.escape(quote(slug, safe="").encode())
         # Newer deployments pin the injected base to the immutable served
@@ -194,7 +198,7 @@ def verify_public_files(slug, expected_archive, base):
         "submitted_bytes_verified_by_layer": exact + injected == len(actual),
         "method": (
             "anonymous_file_bytes; injected HTML requires an exact submitted "
-            "document around validated Artifact Hub bootstrap scripts; authenticated "
+            "document around validated Artifact Site bootstrap scripts; authenticated "
             "metadata verifies the original entry"
         ),
     }
@@ -241,7 +245,7 @@ def main(*, root: Path | None = None):
     parser.add_argument("--profile", type=Path, required=True)
     parser.add_argument(
         "--base-url",
-        default=os.environ.get("ARTIFACT_SITE_BASE_URL", os.environ.get("ARTIFACT_HUB_BASE_URL")),
+        default=os.environ.get("ARTIFACT_SITE_BASE_URL"),
     )
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument(
@@ -255,7 +259,8 @@ def main(*, root: Path | None = None):
         help="Diagnostic only: download and verify every served file",
     )
     args = parser.parse_args()
-    base = validate_service_base(args.base_url) if args.base_url else publication_base(args.profile)
+    profile = publication_document(json.loads(args.profile.read_bytes()))
+    base = publication_base(args.profile, args.base_url, document=profile)
     if args.public_files:
         if not args.expected_archive:
             parser.error("--public-files requires --expected-archive")

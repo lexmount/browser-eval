@@ -1,3 +1,4 @@
+import hashlib
 import json
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -1056,6 +1057,39 @@ def build_browser_use_fixture(tmp_path: Path, monkeypatch, language="zh", *, fai
         language=language,
     )
     return output, evidence, report
+
+
+@pytest.mark.parametrize("password", ["Rotated.Secret+42(x", "admin1234"])
+def test_execution_artifact_check_rejects_registry_site_passwords(
+    tmp_path: Path, monkeypatch, report_check_with_site_password, password
+) -> None:
+    output, evidence, _report = build_browser_use_fixture(tmp_path, monkeypatch, None)
+    public_results = [
+        json.loads(line)
+        for line in (output / "data/results.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    evidence_index = json.loads((output / "data/evidence-index.json").read_text(encoding="utf-8"))
+    logical = _logical_results(_load_evidence_bundles(evidence)[0]["source_attempts"])
+    probe = report_check_with_site_password("Rotated.Secret+42(x")
+    probe._check_execution_artifacts(output, logical, public_results, evidence_index)
+
+    result_id = "gpt-5.6-sol-chromium-44"
+    row = next(item for item in evidence_index["results"] if item["result_id"] == result_id)
+    binding = row["executions"][0]["artifacts"]["execution_evidence"]
+    artifact = output / binding["path"]
+    bundle = json.loads(artifact.read_text(encoding="utf-8"))
+    bundle["trajectory"] = [{"typed": password}]
+    artifact.write_text(json.dumps(bundle), encoding="utf-8")
+    rehashed = hashlib.sha256(artifact.read_bytes()).hexdigest()
+    detail = output / f"results/{result_id}.html"
+    detail.write_text(
+        detail.read_text(encoding="utf-8").replace(binding["sha256"], rehashed),
+        encoding="utf-8",
+    )
+    binding["sha256"] = rehashed
+
+    with pytest.raises(ValueError, match="published execution artifact contains sensitive text"):
+        probe._check_execution_artifacts(output, logical, public_results, evidence_index)
 
 
 @pytest.mark.parametrize("language", [None, "en", "zh"])

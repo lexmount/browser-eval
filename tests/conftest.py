@@ -1,6 +1,7 @@
 """Optional historical source-input checks; portable tests do not require downloads."""
 
 import importlib
+import importlib.util
 import os
 import sys
 from pathlib import Path
@@ -33,6 +34,44 @@ def browser_launch_policy():
     with pytest.MonkeyPatch.context() as patch:
         guard_browser_launches(patch)
         yield
+
+
+def _private_report_check():
+    """Execute a private copy of the release checker against the current registry."""
+    from harness.browser_use import report_check
+
+    spec = importlib.util.spec_from_file_location(
+        "report_check_registry_probe", report_check.__file__
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@pytest.fixture
+def report_check_with_site_password(monkeypatch):
+    """Load a private copy of the release checker against a registry holding one more password."""
+
+    def load(password):
+        from harness.environments.webarena import topology
+
+        monkeypatch.setitem(
+            topology.DEFAULT_SITE_CREDENTIALS,
+            "registry-probe",
+            {"username": "probe", "password": password},
+        )
+        return _private_report_check()
+
+    return load
+
+
+@pytest.fixture
+def report_check_without_site_passwords(monkeypatch):
+    """Load a private copy of the release checker against a registry holding no passwords."""
+    from harness.environments.webarena import topology
+
+    monkeypatch.setattr(topology, "DEFAULT_SITE_CREDENTIALS", {})
+    return _private_report_check()
 
 
 def read_frozen_dataset_bytes(path):

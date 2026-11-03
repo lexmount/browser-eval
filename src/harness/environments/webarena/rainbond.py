@@ -6,7 +6,6 @@ import argparse
 import fcntl
 import hashlib
 import json
-import os
 import re
 import threading
 import time
@@ -25,6 +24,7 @@ from harness.environments.webarena.topology import (
     INITIALIZER_READINESS_PORT,
     SITE_CONTAINER_PORTS,
 )
+from harness.web_fetch.config import repository_env
 
 SCHEMA = "lex_webarena_rainbond_pool/1"
 RECEIPT_SCHEMA = "lex_webarena_rainbond_slice/1"
@@ -199,11 +199,9 @@ class RainbondSlicePool:
     ) -> None:
         self.config, self.raw_config, self.config_path = PoolConfig.load(config_path)
         self.config_sha256 = _canonical_sha256(self.raw_config)
-        token = os.environ.get(self.config.token_env, "")
+        token = repository_env().get(self.config.token_env, "")
         if api is None and not token:
-            raise ValueError(
-                f"Rainbond API token environment variable is missing: {self.config.token_env}"
-            )
+            raise ValueError(f"Set a nonempty {self.config.token_env} in the repository .env")
         self.api = api or RainbondAPI(self.config.api_base_url, token)
         self.sleep = sleep
         self.image_lock = json.loads(self.config.image_lock.read_text(encoding="utf-8"))

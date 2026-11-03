@@ -22,6 +22,7 @@ from harness.environments.browser import (
 from harness.trajectory_replay import diagnostics, runner
 from harness.trajectory_replay.runner import _http_origin, _prepare_page
 from harness.trajectory_replay.suite import BrowserTask, TaskSuite
+from harness.web_fetch import config as web_fetch_config
 
 
 def test_browser_engines_publish_their_external_cdp_ports():
@@ -108,8 +109,10 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
         side_effect=lambda *a, **k: report_path.write_text("<html>Saved results</html>")
     )
     monkeypatch.setattr(runner, "write_latest_report", report)
-    monkeypatch.setenv("OPENAI_API_KEY", "test")
-    monkeypatch.setenv("OPENAI_BASE_URL", "https://test.invalid")
+    monkeypatch.setattr(web_fetch_config, "ROOT", tmp_path)
+    (tmp_path / ".env").write_text(
+        "OPENAI_API_KEY=test\nOPENAI_BASE_URL=https://test.invalid\n"
+    )
 
     def verify_artifacts():
         attempts = (output / "attempts.jsonl").read_bytes()

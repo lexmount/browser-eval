@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create or atomically update the browser-use report on Artifact Hub."""
+"""Create or atomically update the browser-use report on Artifact Site."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ from harness.web_fetch.safety import reject_evidence_symlinks
 
 ARCHIVE = Path("publish/browser-use-sites.zip")
 ATTESTATION = Path("publish/browser-use-sites.attestation.json")
-RECEIPT = Path("publish/browser-use-artifact-hub-receipt.json")
+RECEIPT = Path("publish/browser-use-artifact-site-receipt.json")
 PROFILE: Path | None = None
 OPERATION_JOURNAL = Path("publish/browser-use-artifact-site-operation-pending.json")
 BINDING_JOURNAL = Path("publish/browser-use-artifact-site-binding-pending.json")
@@ -126,7 +126,7 @@ def request(
 
 
 def response_json(status: int, raw: bytes, *, operation: str) -> dict:
-    """Decode an Artifact Hub response without hiding its HTTP failure."""
+    """Decode an Artifact Site response without hiding its HTTP failure."""
 
     if not 200 <= status < 300:
         detail = raw.decode("utf-8", errors="replace").strip()[:500] or "empty response"
