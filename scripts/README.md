@@ -80,8 +80,9 @@ Report commands run through `uv run --frozen python -m harness.web_search <comma
 ## Browser Use
 
 Report commands run through `uv run --frozen python -m harness.browser_use <command>`:
-`report`, `check`, `visual`, `review`, `package` and `publish`. `make browser-use-*` and
-[`docs/benchmarks.md`](../docs/benchmarks.md) use them.
+`report`, `check`, `visual`, `review`, `package` and `publish`. `make browser-use-*` runs
+`report`, `review`, `visual` and `check`; [`docs/benchmarks.md`](../docs/benchmarks.md) shows
+`report`, `check` and `package`. `publish` has neither: run it directly after `package`.
 
 ## Browser Trajectory Replay
 

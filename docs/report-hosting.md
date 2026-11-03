@@ -36,7 +36,7 @@ The Web Fetch CLI falls back to English. `BROWSER_EVAL_REPORT_LANGUAGE=zh` chang
 | --- | --- |
 | `browser-harness-eval run`, `report`, `rescore` | `--language en` or `--language zh`; fallback English, environment configurable |
 | `scripts/build_report.py`: standard Web Fetch, local audit, WCXB, WebMainBench sample, research companion | `--language en` or `--language zh`; fallback English, environment configurable |
-| `python -m harness.browser_use report` | `--language en` or `--language zh`; fallback English, environment configurable |
+| `uv run --frozen python -m harness.browser_use report` | `--language en` or `--language zh`; fallback English, environment configurable |
 | `scripts/build_webarena_replay_report.py` | `--language en` or `--language zh`; fallback English, environment configurable |
 | Complete 545-case WebMainBench and diagnostic-cohort reports | Chinese-only content; omitted language keeps the historical Chinese default; explicit `en` is rejected |
 | Curated replay example, public WebArena recording report and catalog | Chinese-only renderers; no language option |
