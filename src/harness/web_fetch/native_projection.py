@@ -36,6 +36,10 @@ def native_projection_regressions():
 # Reviewed schema-2 selector before hosted native file delivery (Browser Eval
 # c533e002d24dd01f7f59b5ea9d8b7a41740495b4). Never execute saved source code.
 HISTORICAL_SELECTION_SOURCES = {
+    # Frozen before explicit native Markdown document routing was introduced.
+    '62d62a4973500ee3d0995ae66afd869cac650cba030df8129714efbe808145e8': 3,
+    # Same route-bound selector used by the first explicit Markdown document cohort.
+    'f9085d696c68356d0c3e64897006c2592ad4bcd8e140c56171f4a3763a7e3815': 3,
     '7a8e133780f75c44c4cc0127d1d69a784f4b00c4cd693a1e35571f22ad95b7bf': 1,
     # Frozen selector used by the two system-DNS Moli cohorts; audited source
     # retained under the hash-named native-answer-policies path in their evidence.
