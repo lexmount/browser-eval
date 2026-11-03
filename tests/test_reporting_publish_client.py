@@ -233,8 +233,17 @@ def serve(handler):
     return respond
 
 
-def lifecycle_site(monkeypatch, tmp_path, owner, marker, base=BASE):
-    """Point a track at a new release and answer every request of its create flow."""
+BOUND_TRACKS = pytest.mark.parametrize(('owner', 'marker'), [
+    (browser_use, browser_use.PUBLIC_REPORT_MARKER),
+    (replay, replay.PUBLIC_REPORT_MARKERS[0]),
+], ids=['browser-use', 'replay'])
+
+
+def lifecycle_site(monkeypatch, tmp_path, owner, marker, base=BASE, *, uploaded=None, active='ver_new'):
+    """Point a track at a new release and answer every request of its publish flow.
+
+    An upload answers with ``uploaded`` and makes ``ver_new`` the active remote version.
+    """
     archive = tmp_path / 'archive.zip'
     with zipfile.ZipFile(archive, 'w') as bundle:
         bundle.writestr('index.html', marker)
@@ -250,9 +259,11 @@ def lifecycle_site(monkeypatch, tmp_path, owner, marker, base=BASE):
     monkeypatch.setattr(owner, 'validate_package', lambda: {})
 
     def respond(request):
+        nonlocal active
         path = request.selector
-        if path == '/api/sites':
-            return b'{"slug":"site-1","versionId":"ver_new"}'
+        if path == '/api/sites' or '/versions?' in path:
+            active = 'ver_new'
+            return json.dumps({'slug': 'site-1', 'versionId': 'ver_new', **(uploaded or {})}).encode()
         if path.endswith('/shares'):
             return json.dumps({'url': base + '/v/token'}).encode()
         if path.endswith('/export'):
@@ -260,8 +271,8 @@ def lifecycle_site(monkeypatch, tmp_path, owner, marker, base=BASE):
         if path.startswith('/api/preview/'):
             return marker.encode()
         if path == '/api/sites/site-1':
-            return b'{"site":{"currentVersionId":"ver_new"}}'
-        assert path == '/v/token'
+            return json.dumps({'site': {'currentVersionId': active}}).encode()
+        assert path.startswith('/v/')
         return b'<!doctype html>'
 
     return archive, respond
@@ -303,10 +314,7 @@ def test_replay_publish_keeps_authenticated_and_public_share_requests_apart(tmp_
     ]
 
 
-@pytest.mark.parametrize(('owner', 'marker'), [
-    (browser_use, browser_use.PUBLIC_REPORT_MARKER),
-    (replay, replay.PUBLIC_REPORT_MARKERS[0]),
-], ids=['browser-use', 'replay'])
+@BOUND_TRACKS
 def test_bound_track_binds_its_own_target_and_only_asks_for_that_hosts_token(
         tmp_path, monkeypatch, wire, owner, marker):
     base = 'https://own-target.example.invalid'
@@ -320,10 +328,7 @@ def test_bound_track_binds_its_own_target_and_only_asks_for_that_hosts_token(
     assert (bound['base_url'], bound['site_slug'], bound['expected_version']) == (base, 'site-1', 'ver_new')
 
 
-@pytest.mark.parametrize(('owner', 'marker'), [
-    (browser_use, browser_use.PUBLIC_REPORT_MARKER),
-    (replay, replay.PUBLIC_REPORT_MARKERS[0]),
-], ids=['browser-use', 'replay'])
+@BOUND_TRACKS
 def test_receipt_of_another_site_stops_a_bound_track_before_any_request(
         tmp_path, monkeypatch, wire, owner, marker):
     lifecycle_site(monkeypatch, tmp_path, owner, marker)
@@ -334,6 +339,46 @@ def test_receipt_of_another_site_stops_a_bound_track_before_any_request(
     with pytest.raises(ValueError, match='differs from the bound'):
         owner.main(create=False)
     assert not wire
+
+
+SERVICE_RESPONSE = {
+    'editToken': 'edit-secret', 'claimToken': 'claim-secret', 'createdAt': 'kept',
+    'metadata': {'editToken': 'edit-secret', 'owner': 'kept'},
+}
+
+
+def assert_no_service_token_and_response_kept(*raw_receipts):
+    for raw in raw_receipts:
+        assert b'secret' not in raw and b'Token' not in raw
+        receipt = json.loads(raw)
+        assert receipt['createdAt'] == 'kept' and receipt['metadata'] == {'owner': 'kept'}
+
+
+@BOUND_TRACKS
+def test_bound_create_keeps_tokens_out_of_the_receipt_in_every_state(tmp_path, monkeypatch, wire, owner, marker):
+    _, site = lifecycle_site(monkeypatch, tmp_path, owner, marker, uploaded=SERVICE_RESPONSE)
+    states = []
+
+    def respond(request):
+        if request.selector.endswith('/shares'):
+            states.append(owner.RECEIPT.read_bytes())
+        return site(request)
+
+    bind = owner.bind_publication_files
+
+    def observed_bind(*args, **kwargs):
+        states.append(owner.RECEIPT.read_bytes())
+        return bind(*args, **kwargs)
+
+    wire.respond = respond
+    monkeypatch.setattr(owner, 'bind_publication_files', observed_bind)
+    owner.main(create=True)
+    states.append(owner.RECEIPT.read_bytes())
+    pending, binding, final = map(json.loads, states)
+    assert pending['verified'] is False and 'phase' not in pending
+    assert binding['verified'] is False and binding['phase'] == 'binding'
+    assert final['verified'] is True and 'phase' not in final
+    assert_no_service_token_and_response_kept(*states)
 
 
 def test_browser_use_requires_its_receipt_and_replay_stages_large_archives(tmp_path, monkeypatch, wire):
