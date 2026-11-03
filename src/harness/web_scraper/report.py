@@ -472,13 +472,21 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None):
                 if lang == "zh"
                 else ("Structured-output calls" if successful else "All executed calls")
             )
+            retry_time = f"{sum(r.get('retry_execution_seconds', 0) for r in selected):.2f}"
+            unknown_retries = sum(r.get("retry_missing_timers", 0) for r in selected)
+            if unknown_retries:
+                retry_time = (
+                    f"≥ {retry_time}（另 {unknown_retries} 次缺计时）"
+                    if lang == "zh"
+                    else f"≥ {retry_time} ({unknown_retries} additional attempts untimed)"
+                )
             latency.append(
                 [
                     esc(labels.get(method, method)),
                     label,
                     str(len(values)),
                     str(len(selected) - len(values)),
-                    f"{sum(r.get('retry_execution_seconds', 0) for r in selected):.2f}",
+                    retry_time,
                     f"{statistics.mean(values):.3f}" if values else "—",
                     f"{statistics.median(values):.3f}" if values else "—",
                     f"{values[max(0, math.ceil(len(values) * 0.95) - 1)]:.3f}" if values else "—",

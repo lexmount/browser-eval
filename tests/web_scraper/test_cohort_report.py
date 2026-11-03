@@ -201,6 +201,22 @@ def test_usage_retains_denied_physical_attempt_without_inventing_a_charge():
     ]
 
 
+def test_missing_historical_retry_timer_is_never_presented_as_zero_cost():
+    rows = [
+        {
+            "method": "a",
+            "elapsed_seconds": 2,
+            "retry_execution_seconds": 0,
+            "retry_missing_timers": 1,
+            "compatibility": "structured_output",
+        }
+    ]
+    _, html = cohort_metrics(["a"], rows, [], 1, "en")
+    soup = BeautifulSoup(html, "html.parser")
+    assert "additional attempts untimed" in soup.select("tbody tr")[0].select("td")[4].get_text()
+    assert soup.select("tbody tr")[0].select("td")[5].get_text() == "2.000"
+
+
 @pytest.mark.parametrize(
     "selector", ["[data-latency-table] td:nth-child(6)", "[data-usage-table] td:nth-child(2)"]
 )
