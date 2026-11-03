@@ -1395,3 +1395,51 @@ def test_review_batch_size_is_validated_before_any_io(tmp_path, batch_size, adju
         else:
             prepare(tmp_path / "missing", tmp_path / "content", work, batch_size=batch_size)
     assert not work.exists()
+
+
+@pytest.mark.parametrize("field", ["price", "sku", "availability"])
+def test_complete_field_exclusion_assembles_and_builds_unavailable_metrics(tmp_path, field):
+    from harness.web_scraper.report import build, check
+    from harness.web_scraper.review import assemble, prepare, prepare_adjudication
+
+    home = create(tmp_path / "example")
+    work = tmp_path / "review"
+    manifest = prepare(home, home / "content.json", work)
+    for entry in manifest["packets"]:
+        payload = review_payload(read_json(Path(entry["path"])))
+        for case in payload["cases"]:
+            case["reference"][field]["status"] = "ambiguous"
+        save_json(work / "reviews" / Path(entry["path"]).name, payload)
+    save_json(work / "reviewer.json", {"model": "synthetic-test"})
+    for name in ("supplemental", "adjudication"):
+        save_json(
+            tmp_path / name / "manifest.json",
+            {"bindings": {}, "packets": [], "case_count": 0, "result_count": 0},
+        )
+    (tmp_path / "adjudication/manifest.json").unlink()
+    adjudication = prepare_adjudication(work, tmp_path / "adjudication", home / "profile.json")
+    for entry in adjudication["packets"]:
+        payload = review_payload(read_json(Path(entry["path"])))
+        for case in payload["cases"]:
+            case["reference"][field]["status"] = "ambiguous"
+        save_json(tmp_path / "adjudication/reviews" / Path(entry["path"]).name, payload)
+    audit_path = tmp_path / "audit.json"
+    audit = assemble(
+        home,
+        home / "content.json",
+        work,
+        tmp_path / "supplemental",
+        tmp_path / "adjudication",
+        audit_path,
+        profile=home / "profile.json",
+    )
+    for scores in audit["audited_scores"].values():
+        for excluded in [field, "OutOfStock"] if field == "availability" else [field]:
+            assert scores[excluded] == {"precision": None, "recall": None, "f1": None, "cases": 0}
+    content = read_json(home / "content.json")
+    content["audit"] = {"path": str(audit_path), "sha256": digest(audit_path.read_bytes())}
+    save_json(home / "content.json", content)
+    build(
+        tmp_path / "audited-report", home / "content.json", home=home, profile=home / "profile.json"
+    )
+    check(tmp_path / "audited-report")

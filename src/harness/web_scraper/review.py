@@ -645,7 +645,11 @@ def assemble(
                 and not (field == "OutOfStock" and "availability" in excluded.get(cid, []))
             ]
             audited_scores[method][field] = {
-                **scorer["metrics_from_tp_fp_fns"]([(v["tp"], v["fp"], v["fn"]) for v in values]),
+                **(
+                    scorer["metrics_from_tp_fp_fns"]([(v["tp"], v["fp"], v["fn"]) for v in values])
+                    if values
+                    else {"precision": None, "recall": None, "f1": None}
+                ),
                 "cases": len(values),
             }
     value = {

@@ -119,7 +119,8 @@ def test_certification_rejects_missing_url_fixture_before_dispatch(tmp_path, met
     assert not (tmp_path / "run").exists()
 
 
-def test_certified_dispatch_does_not_consume_backend_abbreviations():
+@pytest.mark.parametrize("argv", [["--t", "120"], ["--t120"]])
+def test_certified_dispatch_does_not_consume_backend_abbreviations(argv):
     with patch("harness.web_fetch.certification.main", return_value="legacy") as run:
-        assert main(["--t120"]) == "legacy"
-    run.assert_called_once_with(["--t120"])
+        assert main(argv) == "legacy"
+    run.assert_called_once_with(argv)
