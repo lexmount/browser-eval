@@ -38,7 +38,7 @@ def test_bundled_data_exists_and_reaches_the_source_archive():
     assert "data-files" not in project["tool"]["setuptools"]
 
 
-def test_every_report_stylesheet_and_script_is_declared_for_the_wheel():
+def test_every_report_asset_is_declared_for_the_wheel():
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     declared = {path for package, patterns in project["tool"]["setuptools"]["package-data"].items()
                 for pattern in patterns
@@ -48,9 +48,11 @@ def test_every_report_stylesheet_and_script_is_declared_for_the_wheel():
             directory, *patterns = line.split()[1:]
             declared |= {path for pattern in patterns for path in (ROOT / directory).rglob(pattern)}
     tree = ROOT / "src/harness"
-    assets = {path for suffix in ("*.css", "*.js") for path in tree.rglob(suffix)
-              if "assets" in path.parts or "templates" in path.parts}
-    assert assets and assets <= declared, sorted(map(str, assets - declared))
+    assets = {path for path in tree.rglob("*")
+              if path.is_file() and path.suffix not in {".py", ".pyc"} and not path.name.startswith(".")
+              and ("assets" in path.parts or "templates" in path.parts)}
+    assert tree / "browser_use/assets/webarena-autonomous-evaluation-flow.png" in assets
+    assert assets <= declared, sorted(map(str, assets - declared))
 
 
 def test_checkout_reads_bundled_data_from_its_repository_path():

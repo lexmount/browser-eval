@@ -153,6 +153,7 @@ def verify_report_assets(package_root: Path) -> None:
         assert renderer.REPORT_CSS.strip() and renderer.SUITE_FILTER_JS.strip()
     assert (package_root / 'web_fetch/templates/interpretation-headless.css').is_file()
     assert (package_root / 'browser_use/assets/report.js').is_file()
+    assert (package_root / 'browser_use/assets/webarena-autonomous-evaluation-flow.png').is_file()
     assert (package_root / 'trajectory_replay/assets/webarena-report.css').is_file()
 
 
