@@ -639,7 +639,7 @@ def test_malformed_opinion_error_records_a_terminal_failed_job(tmp_path, error):
         pid, returncode = 123456, 0
 
         def __init__(self, command, **kwargs):
-            pass
+            Path(command[command.index("--output-last-message") + 1]).write_text("{}", encoding="utf-8")
 
         def communicate(self, text, timeout):
             pass
@@ -653,7 +653,8 @@ def test_malformed_opinion_error_records_a_terminal_failed_job(tmp_path, error):
     for entry in contract["packets"]:
         job = root / "jobs" / entry["id"]
         state = json.loads((job / "status.json").read_bytes())
-        assert state["status"] == "failed" and state["finished_at"] and state["error"]
+        assert state["status"] == "failed" and state["finished_at"]
+        assert state["error"] == str(error)
         assert json.loads((job / "attempt-001/status.json").read_bytes()) == state
 
 
