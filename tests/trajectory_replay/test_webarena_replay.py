@@ -1165,3 +1165,26 @@ def test_resume_reports_missing_task_id_as_invalid_receipt(
             scope="formal",
             runtime=runtime,
         )
+
+
+def test_replay_suite_stops_before_sites_start_without_site_accounts(tmp_path, monkeypatch):
+    from harness import env_file
+    from harness.trajectory_replay import webarena_replay as replay
+
+    monkeypatch.setattr(env_file, "_repository_credentials_file", tmp_path / "absent.env")
+    monkeypatch.setattr(
+        replay,
+        "load_replay_plan",
+        lambda *_: {"seed_manifest": {}, "task_ids": [1], "engines": ["chromium"]},
+    )
+    monkeypatch.setattr(replay, "select_tasks", lambda seeds, task_ids: [])
+    monkeypatch.setattr(replay, "prepare_sites", lambda *_: pytest.fail("sites started"))
+
+    with pytest.raises(ValueError, match="WEBARENA_[A-Z_]+_PASSWORD"):
+        run_replay_suite(
+            profile_path=tmp_path / "profile.json",
+            seed_manifest_path=tmp_path / "seeds.json",
+            output_dir=tmp_path / "output",
+            cowagent_repo=tmp_path / "cowagent",
+        )
+    assert not (tmp_path / "output").exists()
