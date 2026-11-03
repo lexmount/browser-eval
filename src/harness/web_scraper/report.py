@@ -1068,6 +1068,7 @@ def public_risk(raw):
 
 
 def build(output: Path, content: Path, *, home: Path, run=None, language=None, profile=PROFILE):
+    require_external_output(output)
     validate_catalog()
     language = resolve_report_language(output, language)
     if language not in LABELS:
@@ -1584,7 +1585,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 '<p data-dataset-distribution><a href="'
                 + esc(distribution["url"])
                 + '">'
-                + esc(message("download_pinned_dataset", lang, revision=distribution["revision"][:12]))
+                + esc(
+                    message("download_pinned_dataset", lang, revision=distribution["revision"][:12])
+                )
                 + "</a></p>"
                 + bodies["dataset"]
             )
@@ -1920,10 +1923,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
         soup = check_presentation(path.read_text(encoding="utf-8"))
         if name.endswith("/dataset.html") and manifest.get("dataset_distribution"):
             links = soup.select("[data-dataset-distribution] a")
-            if (
-                len(links) != 1
-                or links[0].get("href") != manifest["dataset_distribution"]["url"]
-            ):
+            if len(links) != 1 or links[0].get("href") != manifest["dataset_distribution"]["url"]:
                 raise ValueError("Pinned dataset download link is missing or changed")
         if soup.head is None:
             raise ValueError("Missing explicit head for hosted preview")

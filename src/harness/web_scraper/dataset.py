@@ -55,6 +55,9 @@ def verify_distribution(manifest, pin):
 
 def materialize(home: Path, pin):
     """Prepare a new input directory without downloading scores or provider outputs."""
+    from harness.web_scraper.pipeline import require_external_output, save_json
+
+    require_external_output(home)
     selection = pin["distribution"]
     selected = binding(selection["track"])
     revision = selected["revision"]
@@ -87,7 +90,5 @@ def materialize(home: Path, pin):
             path = stage / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(raw)
-        from harness.web_scraper.pipeline import save_json
-
         save_json(stage / "manifest.json", {**manifest, "distribution_revision": revision})
         stage.rename(target)

@@ -1340,3 +1340,42 @@ def test_review_rejects_duplicate_executions_before_freezing_packets(tmp_path, d
     dispatch.assert_not_called()
     assert not (work / "manifest.json").exists()
     assert not (work / "packets").exists()
+
+
+@pytest.mark.parametrize("mutation", ["wrong-method", "incomplete-journal"])
+def test_repair_resume_validates_partial_history_before_dispatch(tmp_path, mutation):
+    import json
+
+    home, _, profile, _ = parent_inputs(tmp_path)
+    target = tmp_path / "paused-repair"
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch(
+            "harness.web_scraper.repair.provider_call",
+            return_value={"http_status": 402, "response": {"error": "Insufficient credits"}},
+        ),
+        pytest.raises(PermissionError),
+    ):
+        run(home, profile, "cloudflare-json", target)
+    journal = target / "calls.journal.jsonl"
+    entries = [json.loads(line) for line in journal.read_text(encoding="utf-8").splitlines()]
+    if mutation == "wrong-method":
+        path = target / entries[0]["path"]
+        row = read_json(path)
+        row["method"] = "another-method"
+        save_json(path, row)
+        entries[0]["sha256"] = digest(path.read_bytes())
+    raw = "".join(json.dumps(row) + "\n" for row in entries)
+    journal.write_text(
+        raw.rstrip("\n") if mutation == "incomplete-journal" else raw, encoding="utf-8"
+    )
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch("harness.web_scraper.repair.provider_call") as dispatch,
+        pytest.raises(ValueError, match="scope|journal"),
+    ):
+        run(home, profile, "cloudflare-json", target)
+    dispatch.assert_not_called()
+    assert not (target / "certificate.json").exists()

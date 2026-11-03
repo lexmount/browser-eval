@@ -3,11 +3,12 @@
 import argparse
 from pathlib import Path
 
-from harness.web_scraper.pipeline import digest, read_json, save_json
+from harness.web_scraper.pipeline import digest, read_json, require_external_output, save_json
 from harness.web_scraper.report import PAGES, build
 
 
 def create(output: Path, *, language="zh", mode="compatibility"):
+    require_external_output(output)
     home = output.parent / (output.name + "-synthetic-inputs")
     home.mkdir(parents=True, exist_ok=False)
     truth = {

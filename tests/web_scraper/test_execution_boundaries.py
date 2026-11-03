@@ -742,3 +742,121 @@ def test_zyte_basic_encoding_is_removed_from_checkpointed_transport_errors(tmp_p
             encoding="utf-8"
         )
         assert read_json(path)["error"] == "Basic [REDACTED]"
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "duplicate",
+        "wrong-attempt",
+        "boolean-attempt",
+        "wrong-method",
+        "wrong-case",
+        "incomplete-journal",
+    ],
+)
+def test_invalid_partial_history_stops_before_any_resumed_provider_call(tmp_path, mutation):
+    import json
+
+    from harness.web_scraper.pipeline import digest, read_json
+
+    home = create(tmp_path / "example")
+    target = home / "runs/paused"
+    denied = {
+        "state": "response_received",
+        "http_status": 402,
+        "response": {"error": "Insufficient credits"},
+    }
+    with (
+        collection_context(),
+        patch("harness.web_scraper.pipeline.provider_call", return_value=denied),
+    ):
+        with pytest.raises(PermissionError):
+            probe(home, ["cloudflare-json"], full=True, run_dir=target)
+    journal = target / "calls.journal.jsonl"
+    entries = [json.loads(line) for line in journal.read_text(encoding="utf-8").splitlines()]
+    assert len(entries) == 1 and not (target / "inflight.json").exists()
+    if mutation == "duplicate":
+        entries.append(dict(entries[0]))
+    elif mutation != "incomplete-journal":
+        path = target / entries[0]["path"]
+        row = read_json(path)
+        row[
+            {
+                "wrong-attempt": "physical_attempt",
+                "boolean-attempt": "physical_attempt",
+                "wrong-method": "method",
+                "wrong-case": "case_id",
+            }[mutation]
+        ] = (
+            3
+            if mutation == "wrong-attempt"
+            else True
+            if mutation == "boolean-attempt"
+            else "outside-frozen-scope"
+        )
+        save_json(path, row)
+        entries[0]["sha256"] = digest(path.read_bytes())
+    raw = "".join(json.dumps(row) + "\n" for row in entries)
+    journal.write_text(
+        raw.rstrip("\n") if mutation == "incomplete-journal" else raw, encoding="utf-8"
+    )
+    with (
+        collection_context(),
+        patch("harness.web_scraper.pipeline.provider_call", side_effect=accepted) as dispatch,
+    ):
+        with pytest.raises(ValueError, match="inventory|sequence|scope|journal"):
+            probe(home, ["cloudflare-json"], full=True, run_dir=target)
+        dispatch.assert_not_called()
+    assert not (target / "manifest.json").exists()
+
+
+@pytest.mark.parametrize(
+    "entry", ["prepare", "reproduce", "report", "example", "baseline", "score", "materialize"]
+)
+def test_generated_outputs_are_rejected_inside_source_before_any_write(tmp_path, entry):
+    from harness.web_scraper import example, pipeline, report
+
+    root = tmp_path / "repository"
+    root.mkdir()
+    output = root / "generated"
+    with (
+        patch.object(pipeline, "ROOT", root),
+        patch.object(pipeline, "request") as network,
+        pytest.raises(ValueError, match="outside the source repository"),
+    ):
+        if entry == "prepare":
+            pipeline.prepare(output)
+        elif entry == "reproduce":
+            pipeline.reproduce(output)
+        elif entry == "report":
+            report.build(output, tmp_path / "absent.json", home=tmp_path)
+        elif entry == "example":
+            example.create(output)
+        elif entry == "baseline":
+            pipeline.baseline_extractor(output)
+        elif entry == "materialize":
+            from harness.web_scraper.dataset import materialize
+
+            materialize(output, {})
+        else:
+            pipeline.score_run(tmp_path, output)
+    network.assert_not_called()
+    assert list(root.iterdir()) == []
+
+
+@pytest.mark.parametrize("artifact", ["calls", "calls.journal.jsonl", "execution/pipeline.py"])
+def test_resume_rejects_symlinked_storage_before_dispatch(tmp_path, artifact):
+    home = create(tmp_path / "example")
+    target = home / "runs/unsafe-storage"
+    target.mkdir()
+    external = tmp_path / "external"
+    external.mkdir()
+    link = target / artifact
+    link.parent.mkdir(parents=True, exist_ok=True)
+    link.symlink_to(external if artifact == "calls" else external / "uncreated")
+    with collection_context(), patch("harness.web_scraper.pipeline.provider_call") as dispatch:
+        with pytest.raises(ValueError, match="Unsafe output"):
+            probe(home, ["cloudflare-json"], full=True, run_dir=target)
+        dispatch.assert_not_called()
+    assert list(external.iterdir()) == []

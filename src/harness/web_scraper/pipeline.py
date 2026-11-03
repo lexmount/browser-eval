@@ -84,6 +84,8 @@ def unsafe_parents(path: Path):
 
 
 def save_json(path: Path, data, *, exclusive=False):
+    if path.is_symlink() or unsafe_parents(path):
+        raise ValueError("Unsafe JSON output destination")
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = None
     try:
@@ -188,6 +190,7 @@ def data_home() -> Path:
 
 
 def prepare(destination: Path, profile=PROFILE):
+    require_external_output(destination)
     contract = read_json(profile)
     pin = contract["dataset"]
     target = destination / "dataset"
@@ -319,6 +322,7 @@ def score_predictions(truth: dict, predictions: dict, scorer, *, bootstrap=1000)
 
 
 def reproduce(home: Path):
+    require_external_output(home)
     scorer = official_scorer(home)
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     scores = {}
@@ -423,6 +427,7 @@ def baseline_extractor(home: Path):
     if not source.exists() and bundled.exists():
         source = bundled
     if not source.exists():
+        require_external_output(source)
         response = request(pin["url"], timeout=60)
         if response.status != 200 or digest(response.body) != pin["sha256"]:
             raise ValueError("Baseline source does not match the pinned upstream extractor")
@@ -915,6 +920,17 @@ def probe(home: Path, methods: list[str], **options):
         )
     run = Path(run)
     require_external_output(run)
+    for name in (
+        "execution.lock",
+        "calls",
+        "execution/pipeline.py",
+        "calls.journal.jsonl",
+        "contract.json",
+        "inflight.json",
+        "manifest.json",
+        "remote-fixture-after.json",
+    ):
+        require_external_output(run / name)
     run.mkdir(parents=True, exist_ok=True)
     with (run / "execution.lock").open("a", encoding="utf-8") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -1043,6 +1059,8 @@ def _probe_unlocked(
         snapshot.write_bytes(Path(__file__).read_bytes())
         save_json(run / "contract.json", contract, exclusive=True)
     journal = run / "calls.journal.jsonl"
+    if journal.is_symlink() or unsafe_parents(journal):
+        raise ValueError("Symlink inputs are prohibited")
     prior = {}
     physical = []
     attempts = {}
@@ -1050,7 +1068,10 @@ def _probe_unlocked(
     if journal.exists():
         for line in journal.read_text(encoding="utf-8").splitlines():
             entry = json.loads(line)
-            path = run / entry["path"]
+            relative = Path(entry["path"])
+            if relative.is_absolute() or ".." in relative.parts:
+                raise ValueError("Unsafe checkpoint evidence path")
+            path = run / relative
             if digest(path.read_bytes()) != entry["sha256"]:
                 raise ValueError("Checkpoint call changed")
             record = read_json(path)
@@ -1060,6 +1081,9 @@ def _probe_unlocked(
             attempts[key] = attempts.get(key, 0) + 1
             if record.get("state") not in ("credentials_missing", "input_blocked"):
                 dispatched_attempts[key] = dispatched_attempts.get(key, 0) + 1
+        verify_retry_history(
+            run, {"calls": list(prior.values()), "physical_calls": physical}, contract
+        )
     if {p.relative_to(run).as_posix() for p in (run / "calls").glob("*.json")} - {
         e["path"] for e in physical
     }:
@@ -1252,6 +1276,9 @@ def verify_retry_history(run, manifest, contract):
     """Require a complete physical sequence and its final logical selection."""
     entries = manifest.get("physical_calls", manifest["calls"])
     groups, latest = {}, {}
+    methods = contract["methods"] if "methods" in contract else [contract["method"]]
+    cases = contract["case_ids"] if "case_ids" in contract else contract["participant"]["case_ids"]
+    scope = {(method, case) for method in methods for case in cases}
     paths = set()
     for entry in entries:
         relative = Path(entry["path"])
@@ -1263,8 +1290,11 @@ def verify_retry_history(run, manifest, contract):
         if digest(path.read_bytes()) != entry["sha256"]:
             raise ValueError("Physical call evidence changed")
         key = (row["method"], row["case_id"])
+        if key not in scope:
+            raise ValueError("Physical call is outside the frozen method/case scope")
         sequence = groups.setdefault(key, [])
-        if row.get("physical_attempt", 1) != len(sequence) + 1:
+        attempt = row.get("physical_attempt", 1)
+        if type(attempt) is not int or attempt != len(sequence) + 1:
             raise ValueError("Physical call attempt sequence is incomplete")
         sequence.append(row)
         latest[key] = entry
@@ -1373,6 +1403,7 @@ def check_projection_controls():
 
 def score_run(home: Path, run: Path, *, reproject=False, output=None):
     """Score the declared population; retain empty predictions for failed calls."""
+    require_external_output(Path(output) if output else run / "scores.json")
     if output and (
         Path(output).resolve().is_relative_to(ROOT.resolve())
         or Path(output).resolve().is_relative_to((run / "calls").resolve())

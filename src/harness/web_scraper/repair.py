@@ -126,6 +126,18 @@ def fixture_check(home, base, cases, suffix=""):
 
 def run(home, profile, method, destination):
     require_external_output(destination)
+    for name in (
+        "calls",
+        "calls.journal.jsonl",
+        "contract.json",
+        "inflight.json",
+        "manifest.json",
+        "fixture-before.json",
+        "fixture-after.json",
+        "execution/pipeline.py",
+        "execution/repair.py",
+    ):
+        require_external_output(destination / name)
     destination.mkdir(parents=True, exist_ok=True)
     with (destination / "execution.lock").open("a", encoding="utf-8") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -211,6 +223,8 @@ def collect(home, profile, method, destination):
         else:
             snapshot.write_bytes(Path(__file__).with_name(name).read_bytes())
     journal = destination / "calls.journal.jsonl"
+    if journal.is_symlink():
+        raise ValueError("Symlink inputs are prohibited")
     entries = (
         [json.loads(x) for x in journal.read_text(encoding="utf-8").splitlines()]
         if journal.exists()
@@ -230,6 +244,12 @@ def collect(home, profile, method, destination):
         prior.append(row)
         completed[cid] = row
         logical_entries[cid] = entry
+    if journal.exists():
+        verify_retry_history(
+            destination,
+            {"calls": list(logical_entries.values()), "physical_calls": entries},
+            contract,
+        )
     inflight = destination / "inflight.json"
     if inflight.exists():
         pending = read_json(inflight)
