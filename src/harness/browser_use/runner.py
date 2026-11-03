@@ -526,9 +526,10 @@ def _scheduled_tasks(tasks: tuple[PilotTask, ...], max_tasks: int | None) -> tup
     return tasks[:max_tasks]
 
 
-def _engine_order(engines: tuple[str, ...], task_index: int) -> tuple[str, ...]:
+def _engine_order(task_index: int) -> tuple[str, ...]:
     """Rotate call order by task so every registered browser takes every position."""
 
+    engines = tuple(ENGINE_IMAGES)
     offset = task_index % len(engines)
     return engines[offset:] + engines[:offset]
 
@@ -657,7 +658,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             for task_index, selected in enumerate(
                 _scheduled_tasks(selection.tasks, args.max_tasks)
             ):
-                for engine in _engine_order(tuple(ENGINE_IMAGES), task_index):
+                for engine in _engine_order(task_index):
                     _run_engine_attempts(
                         completed=completed,
                         model=args.model,
