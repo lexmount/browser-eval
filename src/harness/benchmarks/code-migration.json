@@ -6,6 +6,10 @@
       "repository": "https://github.com/lexmount/lexbench-webfetch",
       "revision": "5a5b9367118dcc25f126ee16ef4de2d7c666f190",
       "changes": {
+        "annotation_revisions.py": {
+          "before_sha256": "98792092a82af477cf2b975c62e37378e75c083bf8370d75d65e08fd25f3d843",
+          "after_sha256": "79d49de1020c6465438be004a92c3dbefb45de552f3d37eb35cab53460ebaf0e"
+        },
         "article_comments.py": {
           "before_sha256": "de014a9188d2b587302889cb1a25e1d77eb282bc3e0a69dcacad7a95f0a4431f",
           "after_sha256": "53a0616b0aa0010c93d7d4b361aeb9f360035bccb306d384f8de50ab23deb3db"
@@ -32,7 +36,7 @@
         },
         "benchmark.py": {
           "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
-          "after_sha256": "4290faf4b950c1f6017af3ad279f6575c53d9ff3ec5ce1146f29ecdf751cf50c"
+          "after_sha256": "f1053bb4b80873f5b5a12437fd6f8a99053a7ace8eeb309cbc572095f33132d9"
         },
         "body_coverage.py": {
           "before_sha256": "a349a1db3d5de9d63d33443572c4d8f48afb8a7f88d03090625407fddf7b6137",
@@ -40,7 +44,7 @@
         },
         "cli.py": {
           "before_sha256": "46b7bd246e8b56bc03c7d35309a7ec48419c37f54bb05bc6a144cfd3c527e194",
-          "after_sha256": "d5fed872c6b3cb7a72fcb5d64cf2725c34063331a896f56a7b85f0580986280d"
+          "after_sha256": "f67e2110e524496b0661d40947212a0b6bc8f065494d3ed2c7b6c62ae44a1d1b"
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",

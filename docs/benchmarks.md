@@ -88,6 +88,17 @@ The same command selects the other dataset keys registered in the lock, includin
 
 Author dataset changes in a checkout of the corresponding Hugging Face dataset. Commit the definitions and materialize any Git LFS files, then use `uv run --frozen python -m harness.benchmarks.publication --help` to build the inspected commit. `--create-pr HF_REPOSITORY` opens a Hugging Face pull request for review; it does not update dataset main or create a release tag. Install the optional `dataset-publish` extra and authenticate with `HF_TOKEN` for uploads; readers need no token. Preserve upstream attribution and redistribution terms. Scores, provider responses, model grades and private run directories do not belong in a dataset release.
 
+Web Fetch revisions preserve their original task files. `score_only_annotation_revision`
+cannot change the request. An explicitly selected `task_scope_revision` may also
+replace a nonempty `task_prompt`; it still cannot change task identity, URL,
+retrieval route or output type. Both forms require exact parent hashes, per-task
+field-change hashes, independent source bindings and passing regression controls.
+Select a reviewed revision through the existing Web Fetch `export --revision`
+command and retain its new dataset identity. A scope revision changes the task
+contract; historical results require a disclosed common-rule rescore, not a silent
+score replacement. Neither a revision PR nor an export creates a release tag.
+
+
 After review, merge the HF pull request and validate its merged commit. For a
 formal dataset release, assign a `vMAJOR.MINOR.PATCH` tag in that dataset repository
 and retain its exact target commit. Preserve existing historical tags and never

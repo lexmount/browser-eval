@@ -288,7 +288,7 @@ def _review_annotation(definition, revision_path, identifier, root, changes):
 
 
 def apply_annotation_revision(identifier: str, dataset: dict, revision: str) -> dict:
-    """Apply a reviewed score-only version without changing its frozen parent."""
+    """Apply an explicitly selected reviewed revision without changing its parent."""
     return _apply_annotation_revision(identifier, dataset, revision)[0]
 
 
@@ -303,7 +303,7 @@ def _apply_annotation_revision(identifier: str, dataset: dict, revision: str):
     path = contained_path(definitions(), f'annotation-revisions/{revision}.json', reject_symlinks=True)
     definition = read(path)
     if (definition.get('schema_version') != 1
-            or definition.get('kind') != 'score_only_annotation_revision'
+            or definition.get('kind') not in {'score_only_annotation_revision', 'task_scope_revision'}
             or definition.get('id') != revision):
         raise ValueError('Unsupported annotation revision')
     from .scoring_regressions import load_scoring_regressions
@@ -350,12 +350,13 @@ def _apply_annotation_revision(identifier: str, dataset: dict, revision: str):
                 raise ValueError('Invalid or conflicting shared acceptance reference')
             effective_change = deepcopy(change)
             effective_change.setdefault('set', {})['acceptance_contract'] = shared_contracts[reference]
-        apply_annotation_change(case, effective_change, reference_hashes[case['id']])
+        apply_annotation_change(case, effective_change, reference_hashes[case['id']],
+                                task_scope_revision=definition['kind'] == 'task_scope_revision')
         reviewed_changes.append((change, old, case))
     review = _review_annotation(definition, path, identifier, root, reviewed_changes)
     result['id'] = dataset['id'] + '--' + revision
     result['definition_revision'] = {
-        'id': revision, 'sha256': digest(path), 'parent_dataset_id': dataset['id'],
+        'id': revision, **({'kind': definition['kind']} if definition['kind'] == 'task_scope_revision' else {}), 'sha256': digest(path), 'parent_dataset_id': dataset['id'],
         'parent_tasks_sha256': parent['tasks_sha256'], 'provider_calls_added': 0,
     }
     return result, review
