@@ -236,14 +236,17 @@ def test_acquisition_declares_current_srcset_semantics():
 
 def test_historical_selector_policy_requires_exact_trusted_identity():
     from harness.web_fetch.native_projection import native_projection_policy_version
-    digest = '7a8e133780f75c44c4cc0127d1d69a784f4b00c4cd693a1e35571f22ad95b7bf'
+    digest = hashlib.sha256(b'synthetic historical selector').hexdigest()
     policy = {'kind': 'native-answer-selection', 'version': 1, 'provider_type': 'browserbase_fetch',
               'source_sha256': digest, 'source_path': 'native-answer-policies/'+digest+'.py'}
-    assert native_projection_policy_version(policy, 'browserbase_fetch') == 1
-    for key, value in [('source_sha256', '0'*64), ('version', 2), ('provider_type', 'firecrawl'),
-                       ('source_path', 'other.py'), ('kind', 'other')]:
-        with pytest.raises(ValueError, match='differs from its pre-call freeze'):
-            native_projection_policy_version({**policy, key: value}, 'browserbase_fetch')
+    from harness.web_fetch.native_projection import approved_native_policies
+    with approved_native_policies({'schema_version': 1, 'sources': [
+            {'source_sha256': digest, 'version': 1, 'reason': 'Synthetic reviewed fixture'}]}):
+        assert native_projection_policy_version(policy, 'browserbase_fetch') == 1
+        for key, value in [('source_sha256', '0'*64), ('version', 2), ('provider_type', 'firecrawl'),
+                           ('source_path', 'other.py'), ('kind', 'other')]:
+            with pytest.raises(ValueError, match='differs from its pre-call freeze'):
+                native_projection_policy_version({**policy, key: value}, 'browserbase_fetch')
 
 
 def test_historical_selector_replays_old_file_scope_and_checks_saved_source(tmp_path, monkeypatch):
@@ -251,7 +254,6 @@ def test_historical_selector_replays_old_file_scope_and_checks_saved_source(tmp_
     from harness.web_fetch.native_routes import verify_saved_native_answer
     source = b'# synthetic trusted legacy selector fixture\n'
     digest = hashlib.sha256(source).hexdigest()
-    monkeypatch.setitem(projection.HISTORICAL_SELECTION_SOURCES, digest, 1)
     policy = {'kind': 'native-answer-selection', 'version': 1, 'provider_type': 'browserbase_fetch',
               'source_sha256': digest, 'source_path': 'native-answer-policies/'+digest+'.py'}
     source_path = tmp_path / policy['source_path']
@@ -270,18 +272,20 @@ def test_historical_selector_replays_old_file_scope_and_checks_saved_source(tmp_
     record = {'case_id': 'file', 'provider_type': 'browserbase_fetch', 'url': case['url'], 'ok': False,
               'title': None, 'final_url': None, 'artifact_path': 'answer.txt', 'provider_metadata': metadata,
               'metrics': {'content_sha256': hashlib.sha256(payload['content'].encode()).hexdigest()}}
-    verify_saved_native_answer(tmp_path, record)
-    frozen = deepcopy(record)
-    source_path.write_bytes(source + b'tampered')
-    with pytest.raises(ValueError):
+    with projection.approved_native_policies({'schema_version': 1, 'sources': [
+            {'source_sha256': digest, 'version': 1, 'reason': 'Synthetic reviewed fixture'}]}):
         verify_saved_native_answer(tmp_path, record)
-    source_path.write_bytes(source)
-    metadata['native_answer_projection'] = projection.native_answer_projection('browserbase_fetch', case, payload, 200)
-    assert metadata['native_answer_projection']['files']
-    with pytest.raises(ValueError, match='differs from its pre-call selection policy'):
-        verify_saved_native_answer(tmp_path, record)
-    metadata['native_answer_projection'] = old
-    assert record == frozen
+        frozen = deepcopy(record)
+        source_path.write_bytes(source + b'tampered')
+        with pytest.raises(ValueError):
+            verify_saved_native_answer(tmp_path, record)
+        source_path.write_bytes(source)
+        metadata['native_answer_projection'] = projection.native_answer_projection('browserbase_fetch', case, payload, 200)
+        assert metadata['native_answer_projection']['files']
+        with pytest.raises(ValueError, match='differs from its pre-call selection policy'):
+            verify_saved_native_answer(tmp_path, record)
+        metadata['native_answer_projection'] = old
+        assert record == frozen
 
 
 def test_moli_markdown_route_preserves_historical_document_contract():
@@ -299,3 +303,25 @@ def test_moli_markdown_route_preserves_historical_document_contract():
     direct_file = projection.native_answer_projection('moli_webfetch',
         {**case, 'task_kind': 'file'}, {}, interface='ordinary_markdown')
     assert direct_file['files'] == {'format': 'raw_bytes'}
+
+
+def test_external_policy_approval_is_scoped_and_receipts_cannot_self_authorize():
+    from harness.web_fetch.native_projection import approved_native_policies, native_projection_policy_version
+    digest = hashlib.sha256(b'synthetic separately reviewed implementation').hexdigest()
+    policy = {'kind': 'native-answer-selection', 'version': 2, 'provider_type': 'browserbase_fetch',
+              'source_sha256': digest, 'source_path': 'native-answer-policies/' + digest + '.py'}
+    registry = {'schema_version': 1, 'sources': [
+        {'source_sha256': digest, 'version': 2, 'reason': 'Reviewed independent fixture'}]}
+    with pytest.raises(ValueError, match='differs from its pre-call freeze'):
+        native_projection_policy_version(policy, 'browserbase_fetch')
+    with approved_native_policies(registry):
+        assert native_projection_policy_version(policy, 'browserbase_fetch') == 2
+        with approved_native_policies(None):
+            with pytest.raises(ValueError, match='differs from its pre-call freeze'):
+                native_projection_policy_version(policy, 'browserbase_fetch')
+        assert native_projection_policy_version(policy, 'browserbase_fetch') == 2
+    with pytest.raises(ValueError, match='differs from its pre-call freeze'):
+        native_projection_policy_version(policy, 'browserbase_fetch')
+    with pytest.raises(ValueError, match='duplicate'):
+        with approved_native_policies({**registry, 'sources': registry['sources'] * 2}):
+            pytest.fail('Duplicate approval was accepted')

@@ -11,6 +11,8 @@ import hashlib
 import json
 import re
 from functools import lru_cache
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import parse_qsl, quote, urljoin, urlsplit
@@ -33,20 +35,37 @@ def native_projection_regressions():
     return indexed
 
 
-# Reviewed schema-2 selector before hosted native file delivery (Browser Eval
-# c533e002d24dd01f7f59b5ea9d8b7a41740495b4). Never execute saved source code.
-HISTORICAL_SELECTION_SOURCES = {
-    # Frozen before explicit native Markdown document routing was introduced.
-    '62d62a4973500ee3d0995ae66afd869cac650cba030df8129714efbe808145e8': 3,
-    # Same route-bound selector used by the first explicit Markdown document cohort.
-    'f9085d696c68356d0c3e64897006c2592ad4bcd8e140c56171f4a3763a7e3815': 3,
-    '7a8e133780f75c44c4cc0127d1d69a784f4b00c4cd693a1e35571f22ad95b7bf': 1,
-    # Frozen selector used by the two system-DNS Moli cohorts; audited source
-    # retained under the hash-named native-answer-policies path in their evidence.
-    '7930fb31d7cd5d98e40d76e70b59b51db6e1c62a7bb7cfdd25b4b79df9c213b7': 2,
-    # Same selector semantics before the empty-byte error-response validation fix.
-    '181c1d36678cf08078fe8f4d6d560823f5cafc2637dab05ec7ecd78712550d78': 3,
-}
+# Historical implementations are approved by a caller-selected, hash-bound
+# evidence registry, never by a receipt's self-declared version.
+_HISTORICAL_POLICIES = ContextVar('webfetch_approved_native_policies', default=None)
+
+
+@contextmanager
+def approved_native_policies(registry):
+    """Scope an independently selected registry to one evidence-validation job.
+
+    The caller must verify the registry's immutable path/hash binding first.
+    Saved selector bytes are still verified separately and are never executed.
+    """
+    sources = {}
+    if registry is not None:
+        if (not isinstance(registry, dict) or set(registry) != {'schema_version', 'sources'}
+                or registry['schema_version'] != 1 or not isinstance(registry['sources'], list)):
+            raise ValueError('Invalid approved native policy registry')
+        for row in registry['sources']:
+            if (not isinstance(row, dict) or set(row) != {'source_sha256', 'version', 'reason'}
+                    or not isinstance(row['source_sha256'], str)
+                    or not re.fullmatch('[0-9a-f]{64}', row['source_sha256'])
+                    or type(row['version']) is not int or row['version'] not in {1, 2, 3}
+                    or not isinstance(row['reason'], str) or not row['reason'].strip()
+                    or row['source_sha256'] in sources):
+                raise ValueError('Invalid or duplicate approved native policy source')
+            sources[row['source_sha256']] = row['version']
+    token = _HISTORICAL_POLICIES.set(sources)
+    try:
+        yield
+    finally:
+        _HISTORICAL_POLICIES.reset(token)
 
 
 def native_projection_policy_version(policy, provider_type):
@@ -55,7 +74,7 @@ def native_projection_policy_version(policy, provider_type):
     if not isinstance(policy, dict):
         raise ValueError('Native answer selection policy must be an object')
     digest = policy.get('source_sha256')
-    version = HISTORICAL_SELECTION_SOURCES.get(digest) if isinstance(digest, str) else None
+    version = (_HISTORICAL_POLICIES.get() or {}).get(digest) if isinstance(digest, str) else None
     expected = {'kind': 'native-answer-selection', 'version': version,
                 'provider_type': provider_type, 'source_sha256': digest,
                 'source_path': 'native-answer-policies/'+str(digest)+'.py'}

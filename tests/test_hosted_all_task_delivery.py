@@ -1,5 +1,6 @@
 """Regression coverage for native delivery on every hosted task type."""
 import base64
+import hashlib
 import json
 from unittest.mock import patch
 
@@ -75,16 +76,17 @@ def test_unknown_contract_is_separate_from_explicit_service_error(kind, payload,
     assert result.files == []
 
 
-@pytest.mark.parametrize('version,digest', [
-    (1, '7a8e133780f75c44c4cc0127d1d69a784f4b00c4cd693a1e35571f22ad95b7bf'),
-    (2, '7930fb31d7cd5d98e40d76e70b59b51db6e1c62a7bb7cfdd25b4b79df9c213b7'),
-])
-def test_historical_policies_cannot_acquire_new_brightdata_files(version, digest):
+@pytest.mark.parametrize('version', [1, 2])
+def test_historical_policies_cannot_acquire_new_brightdata_files(version):
+    digest = hashlib.sha256(str(version).encode()).hexdigest()
     policy = {'kind': 'native-answer-selection', 'version': version, 'provider_type': 'brightdata_unlocker',
               'source_sha256': digest, 'source_path': 'native-answer-policies/'+digest+'.py'}
-    assert native_projection_policy_version(policy, 'brightdata_unlocker') == version
-    with pytest.raises(ValueError):
-        native_projection_policy_version({**policy, 'version': 3}, 'brightdata_unlocker')
+    from harness.web_fetch.native_projection import approved_native_policies
+    with approved_native_policies({'schema_version': 1, 'sources': [
+            {'source_sha256': digest, 'version': version, 'reason': 'Synthetic reviewed fixture'}]}):
+        assert native_projection_policy_version(policy, 'brightdata_unlocker') == version
+        with pytest.raises(ValueError):
+            native_projection_policy_version({**policy, 'version': 3}, 'brightdata_unlocker')
     old = native_answer_projection('brightdata_unlocker', file_case(), {}, 200, policy_version=version)
     assert old['content_format'] == 'utf8' and 'files' not in old
     new = native_answer_projection('brightdata_unlocker', file_case(), {}, 200)

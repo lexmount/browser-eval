@@ -1365,3 +1365,21 @@ def test_explicit_zero_retry_contract_accepts_one_failed_call():
               'metrics': {'request_ok': True, 'content_pass': False}}
     _validate_call_sequence(record, {}, {
         'created_at': '2026-10-31T00:00:00Z', 'max_failure_retries': 0})
+
+
+def test_saved_matrix_binds_external_policy_registry_and_rejects_substitution(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    registry = {'schema_version': 1, 'sources': [
+        {'source_sha256': 'a' * 64, 'version': 2, 'reason': 'Synthetic historical approval'}]}
+    spec['native_policy_registry'] = write(tmp_path / 'approved-policies.json', registry)
+    report = build(tmp_path, spec).parent
+    model = json.loads((report / 'matrix.json').read_text())
+    assert model['native_policy_registry']['sha256'] == spec['native_policy_registry']['sha256']
+    assert json.loads((report / model['native_policy_registry']['path']).read_text()) == registry
+    assert check_saved_matrix(report, spec_path=tmp_path / 'spec.json')['valid']
+    (tmp_path / 'approved-policies.json').write_text('{}')
+    with pytest.raises(ValueError, match='differs from its approved binding'):
+        check_saved_matrix(report, spec_path=tmp_path / 'spec.json')
+    (report / model['native_policy_registry']['path']).write_text('{}')
+    with pytest.raises(ValueError, match='differs from its approved binding'):
+        check_saved_matrix(report)

@@ -247,7 +247,10 @@ def _completed_scope(config, sources, selected, continuations=None):
         if not _called(record):
             raise ValueError('Completion requires actual invocation')
         dataset = _json(sources.bind(root / 'dataset.json'))
-        case = next(c for c in dataset['cases'] if c['id'] == key[2])
+        matching = [case for case in dataset['cases'] if case['id'] == key[2]]
+        if len(matching) != 1:
+            raise ValueError('Completion dataset requires exactly one matching task')
+        case = matching[0]
         policy = dict(contract)
         if contract.get('provider_config'):
             sources.binding(contract['provider_config'])
@@ -396,6 +399,8 @@ def _load_saved_matrix(spec_path):
     suites = registry(spec['suites'])
     cases = {}
     bind(spec_path)
+    if spec.get('native_policy_registry'):
+        binding(spec['native_policy_registry'])
     for suite in spec['suites']:
         dataset = _json(binding(suite['dataset']))
         entries = dataset['cases']
@@ -510,8 +515,13 @@ def _load_saved_matrix(spec_path):
             result_path = binding(source['results'])
             result_path.relative_to(root)
             prior_cases = {x['id']: x for x in _json(binding(source['dataset']))['cases']}
-            matches = [(json.loads(line), line) for line in result_path.read_bytes().splitlines(keepends=True)
-                       if line.strip() and (json.loads(line)['provider'], json.loads(line)['case_id']) == key[1:]]
+            matches = []
+            for line in result_path.read_bytes().splitlines(keepends=True):
+                if not line.strip():
+                    continue
+                saved = json.loads(line)
+                if (saved['provider'], saved['case_id']) == key[1:]:
+                    matches.append((saved, line))
             if len(matches) != 1:
                 raise ValueError('Retry continuation prior record is missing or ambiguous')
             old, old_line = matches[0]
@@ -1068,7 +1078,27 @@ def _adopted_groups(inputs, candidates):
     return adopted
 
 
+def _bound_native_registry(base, binding):
+    if binding is None:
+        return None
+    if not isinstance(binding, dict) or set(binding) != {'path', 'sha256'}:
+        raise ValueError('Native policy registry requires an explicit path/hash binding')
+    path = _path(base, binding['path'])
+    if _sha(path) != binding['sha256']:
+        raise ValueError('Native policy registry differs from its approved binding')
+    return _json(path)
+
+
 def build_saved_matrix(spec_path: Path, output: Path) -> Path:
+    """Build with only the historical policies explicitly approved by the caller."""
+    from harness.web_fetch.native_projection import approved_native_policies
+    spec_path = Path(spec_path)
+    registry = _bound_native_registry(spec_path.parent, _json(spec_path).get('native_policy_registry'))
+    with approved_native_policies(registry):
+        return _build_saved_matrix(spec_path, output)
+
+
+def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
     """Verify immutable sources and create a new portable report directory."""
     from harness.web_fetch.report import generate_saved_matrix
 
@@ -1316,6 +1346,11 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
              'rows': model_rows, 'totals': _totals(model_rows),
              'source_bindings': [{'sha256': digest, 'name': path.name} for path, digest in tracked.items()],
              'limitations': spec.get('limitations', [])}
+    if spec.get('native_policy_registry'):
+        approved = binding(spec['native_policy_registry'])
+        relative = 'native-policy-registry.json'
+        copy(approved, relative)
+        model['native_policy_registry'] = {'path': relative, 'sha256': _sha(approved)}
     if 'report_families' in spec:
         model['report_families'] = [deepcopy(group) for group in spec['report_families']
                                     if group['id'] not in spec.get('excluded_report_families', [])]
@@ -1694,6 +1729,24 @@ def _validate_rendered_pages(output, model):
 
 
 def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
+    """Verify the portable registry, and its caller authority when supplied."""
+    from harness.web_fetch.native_projection import approved_native_policies
+    output = Path(output)
+    binding = _json(output / 'matrix.json').get('native_policy_registry')
+    if binding is not None:
+        contained_path(output, binding['path'], reject_symlinks=True)
+    registry = _bound_native_registry(output, binding)
+    if spec_path is not None:
+        spec_path = Path(spec_path)
+        selected = _json(spec_path).get('native_policy_registry')
+        original = _bound_native_registry(spec_path.parent, selected)
+        if original != registry:
+            raise ValueError('Portable native policy registry differs from caller approval')
+    with approved_native_policies(registry):
+        return _check_saved_matrix(output, spec_path=spec_path)
+
+
+def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     """Check the complete portable tree and unchanged sources without rescoring."""
     output = Path(output)
     audit = _json(output / 'saved-matrix-audit.json')
