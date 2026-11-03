@@ -93,6 +93,10 @@ def local_setting(name: str, env_file: str | Path | None = None) -> str:
     path = Path(chosen).expanduser() if chosen is not None else repository_root() / ".env"
     if chosen is not None and path.is_symlink():
         raise ValueError("local settings file must be a regular file")
+    return _file_setting(path, name)
+
+
+def _file_setting(path: Path, name: str) -> str:
     try:
         state = path.stat()
         return _parsed_settings(path, state.st_mtime_ns, state.st_size).get(name, "") or ""
@@ -100,4 +104,17 @@ def local_setting(name: str, env_file: str | Path | None = None) -> str:
         return ""
     except (OSError, UnicodeDecodeError) as error:
         raise ValueError(f"cannot read local settings file {path.name}") from error
+
+
+# Tests set this to a synthetic file; an environment variable would reopen the shell route.
+_repository_credentials_file: Path | None = None
+
+
+def repository_credential(name: str) -> str:
+    """Return one evaluation credential unchanged from the repository ``.env`` only.
+
+    Neither the process environment nor ``select_env_file`` can supply it, so a run and
+    the redaction of its public output always use the same value.
+    """
+    return _file_setting(_repository_credentials_file or repository_root() / ".env", name)
 

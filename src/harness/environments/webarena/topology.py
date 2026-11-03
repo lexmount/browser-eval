@@ -17,7 +17,7 @@ from collections.abc import Sequence, Set
 from pathlib import Path
 from typing import Any
 
-from harness.env_file import local_setting
+from harness.env_file import local_setting, repository_credential
 
 TOPOLOGY_PATH = Path(__file__).with_name("topology.json")
 TOPOLOGY_SCHEMA = "lex_webarena_topology/1"
@@ -184,9 +184,9 @@ def public_host_replacements() -> dict[str, str]:
 
 
 def site_credentials(site: str) -> dict[str, str]:
-    """Resolve one site's login from local configuration, naming anything unset."""
+    """Resolve one site's login from the repository .env, naming anything unset."""
     names = _SITES[site]["credentials_env"]
-    values = {field: local_setting(name) for field, name in names.items()}
+    values = {field: repository_credential(name) for field, name in names.items()}
     missing = sorted(names[field] for field, value in values.items() if not value.strip())
     if missing:
         raise ValueError(f"WebArena site {site} requires {', '.join(missing)}")

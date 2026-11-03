@@ -4,15 +4,25 @@ import importlib
 import importlib.util
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 import pytest
 
+from harness import env_file
+
 # Hermetic values: local credentials must not reach tests, and nothing here is real.
 os.environ["WEBARENA_RECORDING_GATEWAYS"] = "192.0.2.5"
-for _site in ("SHOPPING", "SHOPPING_ADMIN", "REDDIT", "GITLAB"):
-    os.environ[f"WEBARENA_{_site}_USERNAME"] = f"synthetic-{_site.lower()}-user"
-    os.environ[f"WEBARENA_{_site}_PASSWORD"] = f"synthetic-{_site.lower()}-secret"
+_credentials_directory = tempfile.TemporaryDirectory(prefix="browser-eval-test-credentials-")
+env_file._repository_credentials_file = Path(_credentials_directory.name) / ".env"
+env_file._repository_credentials_file.write_text(
+    "".join(
+        f"WEBARENA_{site}_USERNAME=synthetic-{site.lower()}-user\n"
+        f"WEBARENA_{site}_PASSWORD=synthetic-{site.lower()}-secret\n"
+        for site in ("SHOPPING", "SHOPPING_ADMIN", "REDDIT", "GITLAB")
+    ),
+    encoding="utf-8",
+)
 
 
 def guard_browser_launches(patch):

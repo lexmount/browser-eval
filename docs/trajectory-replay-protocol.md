@@ -119,8 +119,8 @@ contract.
 Repository and published artifacts never contain runtime credentials or session values.
 The site registry in `src/harness/environments/webarena/topology.json` names the
 `WEBARENA_<SITE>_USERNAME` and `WEBARENA_<SITE>_PASSWORD` variables, and public redaction is built
-from the resolved passwords. Set them in the repository `.env` or the environment; site login and
-redaction stop with the missing variable names while a value is empty.
+from the same passwords. Set them in the repository `.env`; exported values do not override it.
+Site login and redaction stop with the missing variable names while a value is empty.
 Runtime JSON uses `credentials_env` to name the username and password environment variables; it
 does not contain their values. The runner resolves them only in memory and fails before login when
 a variable is absent or when both inline credentials and environment references are configured.

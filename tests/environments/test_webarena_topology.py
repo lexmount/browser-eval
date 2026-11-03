@@ -10,6 +10,7 @@ from pathlib import Path
 import pytest
 from webarena_verified.types.task import WebArenaSite
 
+from harness import env_file
 from harness.browser_use.publication import sanitize, sanitize_text
 from harness.environments.webarena import runtime, topology
 from harness.environments.webarena.config import SITES, verify_deployment_contract
@@ -324,26 +325,61 @@ assert site_url('shopping_admin', 'h') == 'http://h:7780/admin'
     assert result.returncode == 0, result.stderr
 
 
-def test_site_credentials_and_redaction_use_resolved_values(monkeypatch) -> None:
-    monkeypatch.setenv("WEBARENA_GITLAB_PASSWORD", "another-resolved-secret")
-
-    assert topology.site_credentials("gitlab")["password"] == "another-resolved-secret"
-    monkeypatch.setenv("WEBARENA_GITLAB_PASSWORD", " spaced secret ")
-    assert topology.site_credentials("gitlab")["password"] == " spaced secret "
-    monkeypatch.setenv("WEBARENA_GITLAB_PASSWORD", "another-resolved-secret")
-    assert sanitize_text("value another-resolved-secret") == "value [REDACTED]"
+def _credential_file(tmp_path: Path, monkeypatch, text: str) -> None:
+    path = tmp_path / ".env"
+    path.write_text(text, encoding="utf-8")
+    monkeypatch.setattr(env_file, "_repository_credentials_file", path)
 
 
-def test_unset_site_credentials_stop_with_the_variable_names(monkeypatch) -> None:
-    monkeypatch.setenv("WEBARENA_REDDIT_USERNAME", "")
-    monkeypatch.setenv("WEBARENA_REDDIT_PASSWORD", "   ")
+def test_site_credentials_and_redaction_use_the_repository_value(tmp_path, monkeypatch) -> None:
+    from harness.browser_use.report_check import check_public_privacy
+
+    _credential_file(
+        tmp_path,
+        monkeypatch,
+        "WEBARENA_GITLAB_USERNAME=file-user\nWEBARENA_GITLAB_PASSWORD=' file secret '\n"
+        "WEBARENA_SHOPPING_USERNAME=u\nWEBARENA_SHOPPING_PASSWORD=p-shopping\n"
+        "WEBARENA_SHOPPING_ADMIN_USERNAME=u\nWEBARENA_SHOPPING_ADMIN_PASSWORD=p-admin\n"
+        "WEBARENA_REDDIT_USERNAME=u\nWEBARENA_REDDIT_PASSWORD=p-reddit\n",
+    )
+    monkeypatch.setenv("WEBARENA_GITLAB_PASSWORD", "exported-secret")
+
+    assert topology.site_credentials("gitlab")["password"] == " file secret "
+    assert sanitize_text("value  file secret ") == "value [REDACTED]"
+
+    report = tmp_path / "report"
+    report.mkdir()
+    (report / "data.json").write_text(json.dumps({"note": " file secret "}), encoding="utf-8")
+    with pytest.raises(ValueError, match="sensitive text"):
+        check_public_privacy(report)
+
+
+def test_unset_site_credentials_stop_with_the_variable_names(tmp_path, monkeypatch) -> None:
+    _credential_file(
+        tmp_path,
+        monkeypatch,
+        "WEBARENA_REDDIT_USERNAME=\nWEBARENA_REDDIT_PASSWORD='   '\n",
+    )
+    monkeypatch.setenv("WEBARENA_REDDIT_USERNAME", "exported-user")
+    monkeypatch.setenv("WEBARENA_REDDIT_PASSWORD", "exported-secret")
 
     expected = "WEBARENA_REDDIT_PASSWORD, WEBARENA_REDDIT_USERNAME"
     with pytest.raises(ValueError, match=expected):
         runtime.SITE_CREDENTIALS[WebArenaSite.REDDIT]
-    with pytest.raises(ValueError, match=expected):
+    with pytest.raises(ValueError, match="WEBARENA_"):
         sanitize_text("public evidence must not pass without redaction")
     assert runtime.SITE_CREDENTIALS.get(WebArenaSite.MAP) is None
+
+
+def test_selected_env_file_cannot_supply_a_site_account(tmp_path, monkeypatch) -> None:
+    _credential_file(tmp_path, monkeypatch, "WEBARENA_GITLAB_PASSWORD=repository-secret\n")
+    selected = tmp_path / "selected.env"
+    selected.write_text("WEBARENA_GITLAB_PASSWORD=selected-secret\n", encoding="utf-8")
+    env_file.select_env_file(selected)
+    try:
+        assert env_file.repository_credential("WEBARENA_GITLAB_PASSWORD") == "repository-secret"
+    finally:
+        env_file.select_env_file(None)
 
 
 def test_unset_recording_gateway_stops_rebinding_a_private_recorded_host(monkeypatch) -> None:

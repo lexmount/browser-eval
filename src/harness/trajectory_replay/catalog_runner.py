@@ -519,9 +519,9 @@ def main() -> None:
         type=Path,
         default=repository_root(Path(__file__)) / ".env",
         help=(
-            "file for WebArena site accounts, routing, deployment and gateway variables, read "
-            "after the exported environment; Kitesurf credentials come only from this file and "
-            "are never persisted"
+            "file for WebArena routing, deployment and gateway variables, read after the "
+            "exported environment; Kitesurf credentials come only from this file and are never "
+            "persisted. WebArena site accounts always come from the repository .env"
         ),
     )
     parser.add_argument("--backend", choices=("browsertool", "playwright"), default="browsertool")
