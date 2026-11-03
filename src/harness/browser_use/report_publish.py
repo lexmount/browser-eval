@@ -351,7 +351,3 @@ def cli() -> None:
         args.receipt,
     )
     main(create=args.create)
-
-
-if __name__ == "__main__":
-    cli()

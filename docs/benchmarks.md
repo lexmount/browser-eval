@@ -254,13 +254,13 @@ maintained report's releases or review rounds. Build, check and package use the
 same binding.
 
 ```sh
-uv run --frozen python scripts/build_browser_use_report.py \
+uv run --frozen python -m harness.browser_use report \
   --profile /absolute/instance/profile.json \
   --evidence /absolute/model-evidence --output /absolute/instance/report
-uv run --frozen python scripts/check_browser_use_report.py \
+uv run --frozen python -m harness.browser_use check \
   /absolute/instance/report --profile /absolute/instance/profile.json \
   --evidence /absolute/model-evidence --require-complete
-uv run --frozen python scripts/package_browser_use_artifact_site.py \
+uv run --frozen python -m harness.browser_use package \
   --report /absolute/instance/report --profile /absolute/instance/profile.json \
   --evidence /absolute/model-evidence --output /absolute/instance/report.zip \
   --attestation /absolute/instance/attestation.json \

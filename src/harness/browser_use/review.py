@@ -6,11 +6,13 @@ official WebArena-Verified evaluator score.
 
 from __future__ import annotations
 
+import argparse
 import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from harness.browser_use.selection import load_pilot
 from harness.record_io import file_sha256, load_jsonl
 
 REQUIRED_ARTIFACTS = ("network_har", "agent_trace", "response", "evaluation", "events")
@@ -153,3 +155,16 @@ def write_review(*, evidence: Path, selection_sha256: str) -> Path:
     path = evidence / "result-review.json"
     path.write_text(json.dumps(review, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--evidence", required=True, type=Path)
+    parser.add_argument(
+        "--selection",
+        type=Path,
+        default=Path("evaluation/browser-use/webarena-verified-pilot.json"),
+    )
+    args = parser.parse_args()
+    selection = load_pilot(args.selection)
+    print(write_review(evidence=args.evidence, selection_sha256=selection.sha256))

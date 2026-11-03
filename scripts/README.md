@@ -79,10 +79,10 @@ Report commands run through `uv run --frozen python -m harness.web_search <comma
 
 ## Browser Use
 
-| Script | Reached from |
-| --- | --- |
-| `build_browser_use_report.py`, `check_browser_use_report.py`, `check_browser_use_visual.py`, `review_browser_use_results.py` | `make browser-use-*` |
-| `package_browser_use_artifact_site.py` | `configs/report-templates.json`, `docs/benchmarks.md` |
+Report commands run through `uv run --frozen python -m harness.browser_use <command>`:
+`report`, `check`, `visual`, `review`, `package` and `publish`. `make browser-use-*` runs
+`report`, `review`, `visual` and `check`; [`docs/benchmarks.md`](../docs/benchmarks.md) shows
+`report`, `check` and `package`. `publish` has neither: run it directly after `package`.
 
 ## Browser Trajectory Replay
 
@@ -122,7 +122,6 @@ exclusive tests together.
 | `check_webmainbench_report.py`, `check_webmainbench_full_report.py` | standalone release gates for the WebMainBench sample and complete reports; `report_build.py` imports the full-report check, not the script |
 | `authorize_artifact_site.py` | saves the user-scoped Artifact Site token that `AGENTS.md` describes, without naming the script |
 | `rename_artifact_site.py` | Artifact Site display-title maintenance |
-| `publish_browser_use_artifact_site.py` | publishes the packaged Browser Use report to its bound target |
 | `use_prepared_webarena_cohort_reset.py` | passed as `run_remote_three_method_cohort.py --cohort-reset-hook`; receipts outside Git bind its hash, not its name |
 | `build_browser_use_replay_seeds.py`, `build_webarena_expert_seeds.py`, `run_webarena_trajectory_replay.py`, `promote_webarena_trajectories.py` | seed, replay and promotion stages of the repository-curated dataset; `evaluation/trajectory-replay/webarena-verified/README.md` describes the stages without naming the scripts |
 | `merge_webarena_replay_results.py` | overlays formal correction shards onto the current replay matrix |

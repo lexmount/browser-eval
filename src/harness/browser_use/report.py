@@ -3863,7 +3863,3 @@ def main() -> None:
     configuration = _read_json(args.profile)
     selection_path = report_selection_path(configuration, args.selection)
     print(build_report(evidence=args.evidence, output=args.output, selection_path=selection_path, include_english=args.include_english, language=args.language or primary_report_language(args.output), profile_path=args.profile))
-
-
-if __name__ == "__main__":
-    main()

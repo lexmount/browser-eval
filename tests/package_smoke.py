@@ -937,24 +937,26 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     report.mkdir()
     linked = root / 'linked-report'
     linked.symlink_to(report, target_is_directory=True)
+    browser_use = ['-m', 'harness.browser_use']
     commands = [
-        ('check_webarena_replay_report.py', [str(linked)]),
-        ('check_browser_use_report.py', [str(linked), '--evidence', str(root)]),
-        ('check_browser_use_visual.py', [str(linked)]),
-        ('check_webarena_replay_visual.py', [str(linked)]),
+        ([str(source_root / 'scripts/check_webarena_replay_report.py')], [str(linked)]),
+        ([*browser_use, 'check'], [str(linked), '--evidence', str(root)]),
+        ([*browser_use, 'visual'], [str(linked)]),
+        ([str(source_root / 'scripts/check_webarena_replay_visual.py')], [str(linked)]),
     ]
-    for command, arguments in commands:
-        entry = str(source_root / 'scripts' / command)
-        subprocess.run([sys.executable, entry, '--help'], check=True,
+    for entry, arguments in commands:
+        subprocess.run([sys.executable, *entry, '--help'], check=True,
                        cwd=root, stdout=subprocess.DEVNULL)
-        rejected = subprocess.run([sys.executable, entry, *arguments], cwd=root,
+        rejected = subprocess.run([sys.executable, *entry, *arguments], cwd=root,
                                   capture_output=True, text=True)
         assert rejected.returncode != 0 and 'symlink' in rejected.stderr.lower(), rejected.stderr
-    for command in ('package_browser_use_artifact_site.py',
-                    'package_webarena_replay_artifact_site.py',
-                    'publish_browser_use_artifact_site.py',
-                    'publish_webarena_replay_artifact_site.py'):
-        subprocess.run([sys.executable, str(source_root / 'scripts' / command), '--help'],
+    for entry in ([*browser_use, 'report'],
+                  [*browser_use, 'review'],
+                  [*browser_use, 'package'],
+                  [str(source_root / 'scripts/package_webarena_replay_artifact_site.py')],
+                  [*browser_use, 'publish'],
+                  [str(source_root / 'scripts/publish_webarena_replay_artifact_site.py')]):
+        subprocess.run([sys.executable, *entry, '--help'],
                        check=True, cwd=root, stdout=subprocess.DEVNULL)
     from harness.reporting.publication import (
         PublicationOperation,
@@ -1038,9 +1040,9 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     assert not resumed
     assert operations.pending({'archive_sha256': 'frozen'}, allow_create=False) == (operation, True)
     operations.clear({'archive_sha256': 'frozen'})
-    entry = str(source_root / 'scripts/check_browser_use_report.py')
+    entry = [*browser_use, 'check']
     missing = subprocess.run([
-        sys.executable, entry, str(report), '--evidence', str(report),
+        sys.executable, *entry, str(report), '--evidence', str(report),
         '--authority-root', str(root),
     ], cwd=root, capture_output=True, text=True)
     assert missing.returncode != 0 and '--authority-root' in missing.stderr, missing.stderr
@@ -1054,13 +1056,13 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
         'baseline_engine': 'fixture',
     }))
     implicit = subprocess.run([
-        sys.executable, entry, str(report), '--evidence', str(report),
+        sys.executable, *entry, str(report), '--evidence', str(report),
     ], cwd=authority, capture_output=True, text=True)
     assert implicit.returncode != 0 and '--authority-root' in implicit.stderr, implicit.stderr
     (report / 'manifest.json').write_text(json.dumps({'protocol': {'model': 'fixture'}}))
     (report / 'attempts.jsonl').write_text('')
     configured = subprocess.run([
-        sys.executable, entry, str(report), '--evidence', str(report),
+        sys.executable, *entry, str(report), '--evidence', str(report),
         '--authority-root', str(authority),
     ], cwd=root, capture_output=True, text=True)
     expected_selection = authority / 'evaluation/browser-use/webarena-verified-pilot.json'

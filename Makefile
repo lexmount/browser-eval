@@ -179,18 +179,18 @@ wcxb-release-check: runtime-check ## Run the WCXB release gate: PROFILE
 
 browser-use-report: runtime-check ## Build the Browser Use report: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE="/absolute/path [/absolute/path...]" is required' >&2; exit 2)
-	$(PY) scripts/build_browser_use_report.py $(foreach path,$(EVIDENCE),--evidence "$(path)") --output "$(or $(OUTPUT),reports/browser-use)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
+	$(PY) -m harness.browser_use report $(foreach path,$(EVIDENCE),--evidence "$(path)") --output "$(or $(OUTPUT),reports/browser-use)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 browser-use-review: runtime-check ## Review Browser Use results: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/review_browser_use_results.py --evidence "$(EVIDENCE)"
+	$(PY) -m harness.browser_use review --evidence "$(EVIDENCE)"
 
 browser-use-visual-check: runtime-check ## Run the Browser Use visual gate
-	$(PY) scripts/check_browser_use_visual.py "$(or $(OUTPUT),reports/browser-use)" $(if $(VISUAL_RECEIPT),--receipt "$(VISUAL_RECEIPT)",)
+	$(PY) -m harness.browser_use visual "$(or $(OUTPUT),reports/browser-use)" $(if $(VISUAL_RECEIPT),--receipt "$(VISUAL_RECEIPT)",)
 
 browser-use-report-check: runtime-check ## Check the Browser Use report: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE="/absolute/path [/absolute/path...]" is required' >&2; exit 2)
-	$(PY) scripts/check_browser_use_report.py "$(or $(OUTPUT),reports/browser-use)" $(if $(PROFILE),--profile "$(PROFILE)",) $(foreach path,$(EVIDENCE),--evidence "$(path)") --require-complete
+	$(PY) -m harness.browser_use check "$(or $(OUTPUT),reports/browser-use)" $(if $(PROFILE),--profile "$(PROFILE)",) $(foreach path,$(EVIDENCE),--evidence "$(path)") --require-complete
 	$(PY) scripts/check_report_links.py "$(or $(OUTPUT),reports/browser-use)"
 
 browser-use-release-check: browser-use-report-check ## Run the Browser Use release gate: EVIDENCE

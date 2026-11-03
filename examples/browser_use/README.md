@@ -72,7 +72,7 @@ make browser-use-release-check EVIDENCE="$BROWSER_USE_OUTPUT_DIR"
 To compare completed model runs in one report:
 
 ```bash
-uv run --frozen python scripts/build_browser_use_report.py \
+uv run --frozen python -m harness.browser_use report \
   --evidence "$MODEL_A_EVIDENCE" --evidence "$MODEL_B_EVIDENCE" \
   --output reports/browser-use
 ```
