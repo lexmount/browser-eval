@@ -3,7 +3,8 @@
 Every file here is a thin command-line entry point. Parsing, validation,
 execution and publication rules live in the owning `src/harness/` module.
 Run Python entry points with `uv run --frozen python scripts/<name>.py` or the
-matching `make` target. Track stages run as `python -m harness.<track> <command>`.
+matching `make` target. Track stages run as
+`uv run --frozen python -m harness.<track> <command>`.
 
 A script stays in this directory only when the Makefile, CI, a maintained guide,
 `configs/report-templates.json`, or a current profile, certificate or receipt

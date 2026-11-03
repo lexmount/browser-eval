@@ -221,6 +221,13 @@ def test_every_owner_command_is_shown_by_a_guide_or_listed_as_pending():
     assert pending == set(OWNER_COMMANDS) - shown
 
 
+def test_command_inventory_runs_track_stages_through_the_locked_runtime():
+    inventory = (ROOT / "scripts/README.md").read_text(encoding="utf-8")
+    commands = re.findall(r"(?:uv run --frozen(?: --extra \S+)* )?python -m harness", inventory)
+    assert commands
+    assert [command for command in commands if not command.startswith("uv run --frozen")] == []
+
+
 def test_template_registry_names_the_public_package_command():
     template = resolve_template("webfetch")
     assert template["wcxb_package"].startswith(
