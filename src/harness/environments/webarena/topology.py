@@ -25,14 +25,14 @@ BENCHMARK_HOST_PLACEHOLDER = "__BENCHMARK_HOST__"
 
 
 def configured_value(name: str) -> str:
-    """Read one setting from the environment, then the repository's local .env."""
+    """Read one setting unchanged from the environment, then the repository's local .env."""
     value = os.environ.get(name)
     if value is None:
         try:
             value = parse_env_file(repository_root() / ".env").get(name)
         except FileNotFoundError:
             value = None
-    return (value or "").strip()
+    return value or ""
 
 
 def _load(path: Path) -> dict[str, Any]:
@@ -126,6 +126,14 @@ def require_recording_gateways() -> None:
         raise ValueError(f"inputs recorded through a gateway require {RECORDING_GATEWAYS_ENV}")
 
 
+def require_recorded_gateway(host: str | None) -> None:
+    """Stop when a frozen private host would stay in actions instead of being rebound."""
+    if host not in RECORDING_GATEWAYS:
+        raise ValueError(
+            f"a recorded private host on a WebArena port is not listed in {RECORDING_GATEWAYS_ENV}"
+        )
+
+
 def public_origin_replacements() -> dict[str, str]:
     """Map every recorded mutable-site origin to its public site token."""
     require_recording_gateways()
@@ -149,7 +157,7 @@ def site_credentials(site: str) -> dict[str, str]:
     """Resolve one site's login from local configuration, naming anything unset."""
     names = _SITES[site]["credentials_env"]
     values = {field: configured_value(name) for field, name in names.items()}
-    missing = sorted(names[field] for field, value in values.items() if not value)
+    missing = sorted(names[field] for field, value in values.items() if not value.strip())
     if missing:
         raise ValueError(f"WebArena site {site} requires {', '.join(missing)} in the local .env")
     return values

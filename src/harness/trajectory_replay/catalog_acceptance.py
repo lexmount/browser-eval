@@ -354,6 +354,7 @@ def audit(
                     sort_keys=True,
                     separators=(",", ":"),
                 ),
+                binding.get("environment_host_overrides_sha256"),
             )
             if participant_contract is None:
                 participant_contract = participant

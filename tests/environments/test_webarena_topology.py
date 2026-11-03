@@ -327,12 +327,15 @@ def test_site_credentials_and_redaction_use_resolved_values(monkeypatch) -> None
     monkeypatch.setenv("WEBARENA_GITLAB_PASSWORD", "another-resolved-secret")
 
     assert topology.site_credentials("gitlab")["password"] == "another-resolved-secret"
+    monkeypatch.setenv("WEBARENA_GITLAB_PASSWORD", " spaced secret ")
+    assert topology.site_credentials("gitlab")["password"] == " spaced secret "
+    monkeypatch.setenv("WEBARENA_GITLAB_PASSWORD", "another-resolved-secret")
     assert sanitize_text("value another-resolved-secret") == "value [REDACTED]"
 
 
 def test_unset_site_credentials_stop_with_the_variable_names(monkeypatch) -> None:
     monkeypatch.setenv("WEBARENA_REDDIT_USERNAME", "")
-    monkeypatch.setenv("WEBARENA_REDDIT_PASSWORD", "")
+    monkeypatch.setenv("WEBARENA_REDDIT_PASSWORD", "   ")
 
     expected = "WEBARENA_REDDIT_PASSWORD, WEBARENA_REDDIT_USERNAME"
     with pytest.raises(ValueError, match=expected):
@@ -354,3 +357,16 @@ def test_unset_recording_gateway_stops_instead_of_passing_frozen_urls(monkeypatc
         sanitize_text("public evidence must not pass without redaction")
     public = [{"action": "navigate", "url": "http://webarena.example:7780/admin"}]
     assert remote_runtime.rebind_remote_calls(public, {}, set()) == public
+
+
+def test_private_recorded_host_outside_the_configured_gateways_stops(monkeypatch) -> None:
+    from harness.trajectory_replay import remote_runtime
+
+    monkeypatch.setattr(topology, "RECORDING_GATEWAYS", ("192.168.0.3",))
+    sites = {WebArenaSite.SHOPPING_ADMIN: "http://10.0.0.5:7780"}
+    stale = [{"action": "navigate", "url": "http://192.168.0.2:7780/admin"}]
+    with pytest.raises(ValueError, match="WEBARENA_RECORDING_GATEWAYS"):
+        remote_runtime.rebind_remote_calls(stale, sites, {"192.168.0.3"})
+
+    target = [{"action": "navigate", "url": "http://10.0.0.5:7780/admin"}]
+    assert remote_runtime.rebind_remote_calls(target, sites, {"192.168.0.3"}) == target

@@ -30,7 +30,7 @@ from harness.environments.webarena.runtime import (
 from harness.environments.webarena.topology import (
     LOCAL_RECORDED_HOSTS,
     READ_ONLY_SITE_PORTS,
-    require_recording_gateways,
+    require_recorded_gateway,
 )
 from harness.record_io import canonical_json_sha256, file_sha256, read_json
 from harness.trajectory_replay.retrieval_acceptance import digest as retrieval_digest
@@ -140,6 +140,7 @@ def rebind_remote_calls(
     by_port = {port: site for site, ports in SITE_PORTS.items() for port in ports}
     by_port.update(READ_ONLY_PORTS)
     by_source_origin = {urlsplit(url).netloc: site for site, url in (source_sites or {}).items()}
+    target_origins = {urlsplit(url).netloc for url in sites.values()}
 
     def rebind_url(value: str) -> str:
         parsed = urlsplit(value)
@@ -148,8 +149,13 @@ def rebind_remote_calls(
         site = by_source_origin.get(parsed.netloc)
         if site is None and parsed.hostname in trusted_source_hosts:
             site = by_port.get(parsed.port)
-        if site is None and parsed.port in by_port and _is_private_ipv4(parsed.hostname):
-            require_recording_gateways()
+        if (
+            site is None
+            and parsed.port in by_port
+            and _is_private_ipv4(parsed.hostname)
+            and parsed.netloc not in target_origins
+        ):
+            require_recorded_gateway(parsed.hostname)
         if site is None or site not in sites:
             return value
         target = urlsplit(sites[site])

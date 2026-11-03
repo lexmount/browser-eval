@@ -732,3 +732,21 @@ def test_acceptance_carries_the_resolved_routing_binding(tmp_path, monkeypatch, 
     run = acceptance.audit(scope, [sweep], [])["runs"][0]
 
     assert run.get("environment_host_overrides_sha256") == routing
+
+
+def test_acceptance_rejects_runs_with_different_resolved_routing(tmp_path, monkeypatch):
+    monkeypatch.setattr(acceptance, "_verified_attempt", _fake_verified)
+    scope = _scope(tmp_path)
+    early = _run(tmp_path, "early", list(range(400)), {})
+    late = _run(tmp_path, "late", list(range(400, 812)), {})
+    for directory, routing in ((early, "first-route"), (late, "first-route")):
+        inputs = json.loads((directory / "inputs.json").read_text())
+        inputs["environment_host_overrides_sha256"] = routing
+        (directory / "inputs.json").write_text(json.dumps(inputs))
+    acceptance.audit(scope, [early, late], [])
+
+    inputs = json.loads((late / "inputs.json").read_text())
+    inputs["environment_host_overrides_sha256"] = "second-route"
+    (late / "inputs.json").write_text(json.dumps(inputs))
+    with pytest.raises(ValueError, match="mixed engine, backend, or deployment"):
+        acceptance.audit(scope, [early, late], [])
