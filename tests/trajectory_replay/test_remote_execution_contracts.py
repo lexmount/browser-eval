@@ -11,6 +11,7 @@ import urllib.request
 from pathlib import Path
 from types import SimpleNamespace
 
+import psutil
 import pytest
 from webarena_verified.types.task import WebArenaSite
 
@@ -456,3 +457,44 @@ def test_local_browser_is_stopped_when_startup_is_interrupted(
     finally:
         started[0].kill()
         started[0].wait()
+
+
+def _process_member(*, listening=(), error=None, children=()):
+    def net_connections(kind):
+        assert kind == "tcp"
+        if error:
+            raise error
+        return [
+            SimpleNamespace(
+                status=psutil.CONN_LISTEN, laddr=SimpleNamespace(ip="127.0.0.1", port=port)
+            )
+            for port in listening
+        ]
+
+    return SimpleNamespace(
+        net_connections=net_connections, children=lambda recursive: list(children)
+    )
+
+
+@pytest.mark.parametrize(
+    "error", [psutil.ZombieProcess(2), psutil.NoSuchProcess(2), psutil.AccessDenied(2)]
+)
+def test_uninspectable_child_does_not_hide_the_browser_listener(monkeypatch, error) -> None:
+    owner = _process_member(listening=[9222], children=[_process_member(error=error)])
+    monkeypatch.setattr(remote_execution.psutil, "Process", lambda _pid: owner)
+
+    port = remote_execution._kernel_assigned_port(SimpleNamespace(pid=1, poll=lambda: None))
+
+    assert port == 9222
+
+
+def test_exiting_browser_that_denies_inspection_is_reported_as_exited(monkeypatch) -> None:
+    owner = _process_member(error=psutil.AccessDenied(1))
+    polls = iter([None, 3])
+    monkeypatch.setattr(remote_execution.psutil, "Process", lambda _pid: owner)
+    monkeypatch.setattr(remote_execution.time, "sleep", lambda _seconds: None)
+
+    with pytest.raises(RuntimeError, match="browser exited before CDP was ready: 3"):
+        remote_execution._kernel_assigned_port(
+            SimpleNamespace(pid=1, returncode=3, poll=lambda: next(polls))
+        )

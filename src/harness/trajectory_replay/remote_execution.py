@@ -280,18 +280,24 @@ def _kernel_assigned_port(process: subprocess.Popen) -> int:
     for _ in range(300):
         if process.poll() is not None:
             raise RuntimeError(f"browser exited before CDP was ready: {process.returncode}")
-        ports = set()
         try:
-            for member in (owner, *owner.children(recursive=True)):
-                ports.update(
-                    connection.laddr.port
-                    for connection in member.net_connections(kind="tcp")
-                    if connection.status == psutil.CONN_LISTEN
-                    and connection.laddr.ip == "127.0.0.1"
-                )
+            members = (owner, *owner.children(recursive=True))
         except psutil.NoSuchProcess:
-            # A process left the tree during this scan, so scan it again.
-            ports.clear()
+            members = (owner,)
+        ports = set()
+        for member in members:
+            # An exiting process or a privileged helper cannot be inspected. The
+            # poll above reports the owner's exit, and other members can still answer.
+            try:
+                connections = member.net_connections(kind="tcp")
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                continue
+            ports.update(
+                connection.laddr.port
+                for connection in connections
+                if connection.status == psutil.CONN_LISTEN
+                and connection.laddr.ip == "127.0.0.1"
+            )
         if len(ports) > 1:
             raise RuntimeError(f"browser listens on several loopback ports: {sorted(ports)}")
         if ports:
