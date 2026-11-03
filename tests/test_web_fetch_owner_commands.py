@@ -128,10 +128,12 @@ def test_latency_guard_sees_the_runner_through_each_current_entry(monkeypatch):
         "102 /venv/bin/python -m harness.web_fetch.webmainbench_runner --provider chromium",
         "103 /venv/bin/python -m harness.web_fetch webmainbench-score --evidence shard",
         "104 zsh -c python scripts/run_webmainbench_benchmark.py --provider chromium",
+        "105 /venv/bin/python -m harness.trajectory_replay evaluate --suite fixture.json",
+        "106 /venv/bin/python -m harness.trajectory_replay.public_webarena.cli --suite fixture.json",
     ])
     monkeypatch.setattr(latency.subprocess, "run",
                         lambda *args, **kwargs: SimpleNamespace(stdout=listing))
-    assert latency.competing_benchmark_pids() == [101, 102]
+    assert latency.competing_benchmark_pids() == [101, 102, 105, 106]
 
 
 def frozen_certifier_scripts():
