@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 import pytest
 
+from harness.web_fetch.providers import headless
 from harness.web_fetch.providers.headless import NATIVE_CDP_PORT_ATTEMPTS, native_cdp_browser
 
 SERVER = """#!{python}
@@ -38,11 +39,12 @@ class Browser:
 class Harness:
     """Run a real server binary, with candidate ports forced onto held sockets."""
 
-    def __init__(self, tmp_path, script=SERVER, *, foreign_is_cdp=False, held=1):
+    def __init__(self, tmp_path, script=SERVER, *, foreign_is_cdp=False, held=1, reject_all=False):
         self.binary = tmp_path / "server"
         self.binary.write_text(script.format(python=sys.executable), encoding="utf-8")
         self.binary.chmod(self.binary.stat().st_mode | stat.S_IXUSR)
         self.foreign_is_cdp = foreign_is_cdp
+        self.reject_all = reject_all
         self.listeners = [socket.create_server(("127.0.0.1", 0)) for _ in range(held)]
         self.forced = [listener.getsockname()[1] for listener in self.listeners]
         self.taken = set(self.forced)
@@ -50,6 +52,8 @@ class Harness:
         self.playwright = SimpleNamespace(chromium=SimpleNamespace(connect_over_cdp=self.connect))
 
     def connect(self, url, timeout):
+        if self.reject_all:
+            raise ConnectionError("handshake rejected")
         if int(url.rsplit(":", 1)[1]) in self.taken:
             # The real handshake outlives a server that exits on its failed bind.
             self.processes[-1].wait(20)
@@ -105,6 +109,34 @@ def test_foreign_listener_that_rejects_cdp_causes_a_restart_on_a_new_port(tmp_pa
     browser = harness.run()
     assert len(harness.processes) == 2
     assert int(browser.url.rsplit(":", 1)[1]) not in taken
+
+
+def test_handshake_rejected_before_the_server_exits_still_restarts_on_a_new_port(tmp_path):
+    harness = Harness(tmp_path)
+    taken = set(harness.taken)
+    calls = []
+    connect = harness.connect
+
+    def reject_first(url, timeout):
+        calls.append(url)
+        if len(calls) == 1:
+            raise ConnectionError("not a CDP endpoint")
+        return connect(url, timeout)
+
+    harness.playwright.chromium.connect_over_cdp = reject_first
+    with patch.object(headless, "NATIVE_CDP_BIND_EXIT_GRACE_SECONDS", 20):
+        browser = harness.run()
+    assert len(harness.processes) == 2
+    assert int(calls[0].rsplit(":", 1)[1]) in taken
+    assert browser.url == calls[1] and int(calls[1].rsplit(":", 1)[1]) not in taken
+
+
+def test_handshake_failure_from_a_running_server_is_raised_without_a_restart(tmp_path):
+    harness = Harness(tmp_path, held=0, reject_all=True)
+    with patch.object(headless, "NATIVE_CDP_BIND_EXIT_GRACE_SECONDS", 0.05):
+        with pytest.raises(ConnectionError, match="handshake rejected"):
+            harness.run()
+    assert len(harness.processes) == 1
 
 
 def test_foreign_cdp_server_is_not_used_after_this_server_lost_the_port(tmp_path):

@@ -820,6 +820,7 @@ class HeadlessProvider(Provider):
 
 
 NATIVE_CDP_PORT_ATTEMPTS = 3
+NATIVE_CDP_BIND_EXIT_GRACE_SECONDS = 1
 _ADDRESS_IN_USE = re.compile(rb'address\s*(?:is\s*)?(?:already\s*)?in\s*use', re.I)
 
 
@@ -844,6 +845,11 @@ def _connect_native_cdp(playwright, process, port, deadline):
         browser = playwright.chromium.connect_over_cdp(
             'http://127.0.0.1:' + str(port), timeout=remaining() * 1000)
     except Exception:
+        # A foreign listener can reject the handshake before this server exits on its failed bind.
+        try:
+            process.wait(timeout=min(NATIVE_CDP_BIND_EXIT_GRACE_SECONDS, remaining()))
+        except subprocess.TimeoutExpired:
+            pass
         if process.poll() is None:
             raise
         return None
