@@ -188,9 +188,15 @@ def test_cli_forwards_explicit_smoke_input(tmp_path, monkeypatch, family):
         monkeypatch.setattr(cli, 'load_runtime_env', lambda path: None)
         monkeypatch.setattr(cli, 'configure_browser_docker_host', lambda path: None)
     run = MagicMock()
-    monkeypatch.setattr(cli, 'run_evaluation', run)
+    if family == 'curated':
+        from harness.trajectory_replay import runner
+        monkeypatch.setattr(runner, 'run_evaluation', run)
+        command = ['evaluate']
+    else:
+        monkeypatch.setattr(cli, 'run_evaluation', run)
+        command = []
     smoke = str(tmp_path / 'chosen.json')
-    monkeypatch.setattr(sys, 'argv', ['replay', '--suite', str(tmp_path/'suite.json'),
+    monkeypatch.setattr(sys, 'argv', ['replay', *command, '--suite', str(tmp_path/'suite.json'),
                                      '--ground-truth-evidence', str(tmp_path/'truth.json'),
                                      '--agent-smoke', smoke, '--output', str(tmp_path/'run'),
                                      '--no-report'])

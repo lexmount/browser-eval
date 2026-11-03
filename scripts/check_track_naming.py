@@ -44,16 +44,6 @@ FORBIDDEN = (
     "Browser-" + "agent",
     "Browser-" + "kernel",
 )
-CATALOG_REPLAY_ENTRYPOINTS = {
-    "scripts/audit_webarena_catalog_acceptance.py",
-    "scripts/audit_webarena_catalog_actions.py",
-    "scripts/build_webarena_catalog_comparison_inputs.py",
-    "scripts/build_webarena_catalog_report.py",
-    "scripts/check_webarena_catalog_release.py",
-    "scripts/consolidate_webarena_catalog.py",
-    "scripts/rebind_webarena_catalog.py",
-    "scripts/run_webarena_catalog.py",
-}
 
 
 def repository_contract_findings(root: Path) -> list[str]:
@@ -71,15 +61,14 @@ def repository_contract_findings(root: Path) -> list[str]:
         for term in FORBIDDEN:
             if term in text:
                 findings.append(f"{name}: retired track name {term!r}")
-    catalog_replay_entrypoints = {
+    catalog_replay_scripts = sorted(
         path.relative_to(root).as_posix()
         for path in (root / "scripts").glob("*webarena_catalog*.py")
-    }
-    if catalog_replay_entrypoints != CATALOG_REPLAY_ENTRYPOINTS:
+    )
+    if catalog_replay_scripts:
         findings.append(
-            "WebArena catalog replay entry points changed: "
-            f"unexpected={sorted(catalog_replay_entrypoints - CATALOG_REPLAY_ENTRYPOINTS)}, "
-            f"missing={sorted(CATALOG_REPLAY_ENTRYPOINTS - catalog_replay_entrypoints)}"
+            "WebArena catalog stages are harness.trajectory_replay subcommands, not scripts: "
+            + ", ".join(catalog_replay_scripts)
         )
     specialized_replay_entrypoints = sorted(
         path.relative_to(root).as_posix()

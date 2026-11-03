@@ -518,14 +518,21 @@ def _check_formal_execution_scope(manifest: dict) -> None:
         raise ValueError("formal report requires a complete method-reset task cohort")
 
 
+def check_template_identity(manifest: dict) -> None:
+    """Bind the renderer: a moved entry point leaves reports built before the move valid."""
+    if not manifest.get("profile_sha256"):
+        return
+    template, maintained = manifest.get("template") or {}, template_identity("trajectory-replay")
+    if any(template.get(key) != maintained[key] for key in ("track", "renderer")):
+        raise ValueError("report bypasses the maintained replay template")
+
+
 def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, int]:
     reject_evidence_symlinks(report_dir)
     root = report_dir.resolve()
     manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
     check_build_version(root, manifest)
-    if (manifest.get("profile_sha256")
-            and manifest.get("template") != template_identity("trajectory-replay")):
-        raise ValueError("report bypasses the maintained replay template")
+    check_template_identity(manifest)
     if profile_path is not None:
         if (profile_path.is_symlink() or manifest.get("profile_sha256")
                 != hashlib.sha256(profile_path.read_bytes()).hexdigest()):
@@ -954,7 +961,3 @@ def main() -> None:
     parser.add_argument("--profile", type=Path)
     args = parser.parse_args()
     print(json.dumps(check(args.report_dir, profile_path=args.profile), ensure_ascii=False))
-
-
-if __name__ == "__main__":
-    main()

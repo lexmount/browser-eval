@@ -555,7 +555,3 @@ def cli() -> None:
     BINDING_JOURNAL = args.binding_journal
     OPERATION_JOURNAL = args.operation_journal
     main(create=args.create)
-
-
-if __name__ == "__main__":
-    cli()

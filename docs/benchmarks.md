@@ -298,12 +298,12 @@ distributions and specimen links. An optional authored interpretation uses
 belong to the selected evidence.
 
 ```sh
-uv run --frozen python scripts/build_webarena_replay_report.py \
+uv run --frozen python -m harness.trajectory_replay report \
   --profile /absolute/instance/profile.json --results /absolute/results.json \
   --review /absolute/failure-review.json --output /absolute/instance/report
-uv run --frozen python scripts/check_webarena_replay_report.py \
+uv run --frozen python -m harness.trajectory_replay check \
   /absolute/instance/report --profile /absolute/instance/profile.json
-uv run --frozen python scripts/package_webarena_replay_artifact_site.py \
+uv run --frozen python -m harness.trajectory_replay package \
   --report /absolute/instance/report --profile /absolute/instance/profile.json \
   --evidence /absolute/results.json --review /absolute/failure-review.json \
   --output /absolute/instance/report.zip \

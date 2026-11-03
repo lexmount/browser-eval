@@ -577,11 +577,12 @@ def verify_replay_diagnostics(root: Path, source_root: Path) -> None:
                     'import harness.trajectory_replay.public_webarena.diagnostics; '
                     'assert "webarena_verified" not in sys.modules; '
                     'assert "playwright" not in sys.modules'], check=True, cwd=root)
-    for command in ('audit_replay_readiness.py', 'audit_replay_cart_assertion.py',
-                    'audit_replay_comparison_inputs.py', 'audit_saved_replay_correction.py',
-                    'audit_webarena_recorded_outcomes.py', 'verify_webarena_evaluator_exclusions.py',
-                    'rescore_saved_retrieval_attempt.py', 'supersede_webarena_task_browser_results.py',
-                    'build_revised_webarena_dataset.py'):
+    for command in ('audit-readiness', 'audit-cart-assertion', 'audit-comparison-inputs',
+                    'audit-saved-correction', 'rescore-saved-retrieval', 'dataset-revision'):
+        subprocess.run([sys.executable, '-m', 'harness.trajectory_replay', command, '--help'],
+                       check=True, cwd=root, capture_output=True)
+    for command in ('audit_webarena_recorded_outcomes.py', 'verify_webarena_evaluator_exclusions.py',
+                    'supersede_webarena_task_browser_results.py'):
         subprocess.run([sys.executable, str(source_root / 'scripts' / command), '--help'],
                        check=True, cwd=root, capture_output=True)
     stage = root / 'replay-diagnostics'
@@ -598,7 +599,7 @@ def verify_replay_diagnostics(root: Path, source_root: Path) -> None:
                              'sha256': hashlib.sha256(trace.read_bytes()).hexdigest()}},
     }]}), encoding='utf-8')
     output = stage / 'diagnostic.json'
-    args = [sys.executable, str(source_root / 'scripts/audit_replay_readiness.py'),
+    args = [sys.executable, '-m', 'harness.trajectory_replay', 'audit-readiness',
             '--results', str(results), '--output', str(output)]
     subprocess.run(args, check=True, cwd=stage, capture_output=True)
     report = json.loads(output.read_bytes())
@@ -939,11 +940,12 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     linked = root / 'linked-report'
     linked.symlink_to(report, target_is_directory=True)
     browser_use = ['-m', 'harness.browser_use']
+    replay = ['-m', 'harness.trajectory_replay']
     commands = [
-        ([str(source_root / 'scripts/check_webarena_replay_report.py')], [str(linked)]),
+        ([*replay, 'check'], [str(linked)]),
         ([*browser_use, 'check'], [str(linked), '--evidence', str(root)]),
         ([*browser_use, 'visual'], [str(linked)]),
-        ([str(source_root / 'scripts/check_webarena_replay_visual.py')], [str(linked)]),
+        ([*replay, 'visual'], [str(linked)]),
     ]
     for entry, arguments in commands:
         subprocess.run([sys.executable, *entry, '--help'], check=True,
@@ -954,9 +956,9 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     for entry in ([*browser_use, 'report'],
                   [*browser_use, 'review'],
                   [*browser_use, 'package'],
-                  [str(source_root / 'scripts/package_webarena_replay_artifact_site.py')],
+                  [*replay, 'package'],
                   [*browser_use, 'publish'],
-                  [str(source_root / 'scripts/publish_webarena_replay_artifact_site.py')]):
+                  [*replay, 'publish']):
         subprocess.run([sys.executable, *entry, '--help'],
                        check=True, cwd=root, stdout=subprocess.DEVNULL)
     from harness.reporting.publication import (

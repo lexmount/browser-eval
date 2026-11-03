@@ -78,7 +78,3 @@ def main() -> None:
     )
     comparison = validate_catalog_comparison_release(comparison_release, args.data_home)
     print(comparison["publication"]["share_url"])
-
-
-if __name__ == "__main__":
-    main()
