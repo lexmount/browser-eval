@@ -17,6 +17,8 @@ CATALOG_RENDERERS = (
     "harness/web_search/comparison.py",
     "harness/web_search/assets/comparison.css",
     "harness/web_search/assets/comparison.js",
+    "harness/web_search/assets/delivery-bridge.js",
+    "harness/web_search/assets/delivery-loader.js",
     "harness/web_search/delivery.py",
     "harness/web_search/report.py",
     "harness/web_search/pages.py",
