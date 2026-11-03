@@ -413,15 +413,17 @@ def test_bound_update_settles_one_version_key_from_the_lookup_and_keeps_response
         tmp_path, monkeypatch, wire, owner, marker):
     archive, wire.respond = lifecycle_site(
         monkeypatch, tmp_path, owner, marker, active='ver_old',
-        uploaded={**SERVICE_RESPONSE, 'versionId': 'ver_from_response'},
+        uploaded={**SERVICE_RESPONSE, 'versionId': 'ver_from_response', 'version_id': 'ver_from_response',
+                  'currentVersionId': 'ver_from_response'},
     )
     bound_profile(owner, share_url=BASE + '/v/token')
-    saved_receipt(owner, archive, verified=True, phase='binding', version='ver_stale', versionId='ver_stale')
+    saved_receipt(owner, archive, verified=True, phase='binding', version='ver_stale', versionId='ver_stale',
+                  version_id='ver_stale', currentVersionId='ver_stale')
     owner.main(create=False)
     current, stale = VERSION_FIELDS[owner]
     final = receipt_of(owner)
     assert final[current] == 'ver_new' and bound(owner)['expected_version'] == 'ver_new'
-    assert stale not in final and 'phase' not in final and final['verified'] is True
+    assert not {stale, 'version_id', 'currentVersionId', 'phase'} & set(final) and final['verified'] is True
     assert_no_service_token_and_response_kept(owner.RECEIPT.read_bytes())
     assert requested(wire, 'POST') == [
         '/api/sites/site-1/versions?expected_version=ver_old']

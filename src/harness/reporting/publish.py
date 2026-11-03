@@ -667,7 +667,7 @@ def _publish_bound(track: BoundTrack, release: PublicationSnapshot, *, create: b
     if site_version(response_json(status, raw, operation="final site lookup")) != version:
         raise ValueError("remote version changed before publication binding")
     settled = {key: value for key, value in result.items()
-               if key not in {"phase", "version", "versionId"}}
+               if key not in {"phase", "version", "versionId", "version_id", "currentVersionId"}}
     settled.update({"base_url": base, "slug": slug, "share_url": share_url,
                     track.version_field: version, "archive_sha256": release.sha256})
     write_receipt(track.receipt, {**settled, "verified": False, "phase": "binding"})
