@@ -19,7 +19,7 @@ from lexbench_websearch.rubric import judge_prompt, known_prompt
 from lexbench_websearch.scoring import canonical_url
 
 from harness.web_fetch.config import load_runtime_env, repository_env
-from harness.web_search.messages import report_text
+from harness.web_search.messages import zh_text
 
 
 def verify_protocol(profile, evidence, revision=None, *, authority=None):
@@ -176,7 +176,7 @@ def export_annotations(profile, rows, destination):
     return destination / "index.html"
 
 
-ANNOTATION_HTML = report_text('text_38d7f4992b5eb237')
+ANNOTATION_HTML = zh_text("Relevance annotation page")
 
 
 def judge_input(packet):
@@ -252,7 +252,7 @@ def parse_judgments(packet, response):
         candidate = candidates[item["candidate_id"]]
         item["model_grade"] = item["grade"]
         if candidate.get("source_eligible") is False:
-            item.update(grade=0, reason=report_text('text_639d5ca71205c4cb'), evidence=candidate["url"], grade_source="source-rule")
+            item.update(grade=0, reason=zh_text("The URL does not meet the site or official-source requirement stated in the query."), evidence=candidate["url"], grade_source="source-rule")
         else:
             item["grade_source"] = "model"
     return items

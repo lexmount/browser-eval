@@ -1165,57 +1165,51 @@ def coverage_percent(evidence):
 
 def render_summary(evidence, zh=True):
     counts = Counter(d["resolution"] for d in evidence["adjudications"].values())
-    title = (report_text('text_521deef44b4ce505') if zh else "Result audit") + f" · {coverage_percent(evidence)}%"
+    title = report_text("Result audit", zh) + f" · {coverage_percent(evidence)}%"
     text = (
-        f"{report_text('text_90bb19b8d33a329b')}{evidence['case_reviewed']}/{evidence['case_total']}{report_text('text_268af354b8e63839')}{evidence['output_reviewed']}/{evidence['output_total']}{report_text('text_6192de481d05f674')}{evidence['candidate_reviewed']}/{evidence['candidate_total']}{report_text('text_c2b90d006fe98670')}"
-        if zh
-        else f"Reviewed {evidence['case_reviewed']}/{evidence['case_total']} queries, "
-        f"{evidence['output_reviewed']}/{evidence['output_total']} outputs and "
-        f"{evidence['candidate_reviewed']}/{evidence['candidate_total']} pooled candidates."
+        report_text("Reviewed {case_reviewed}/{case_total} queries, {output_reviewed}/{output_total} outputs and {candidate_reviewed}/{candidate_total} pooled candidates.", zh, case_reviewed=evidence['case_reviewed'], case_total=evidence['case_total'], output_reviewed=evidence['output_reviewed'], output_total=evidence['output_total'], candidate_reviewed=evidence['candidate_reviewed'], candidate_total=evidence['candidate_total'])
     )
     labels = {
-        "fixed": (report_text('text_c2d8b42fdddbd04a'), "Corrected"),
-        "provider-limitation": (report_text('text_14ba277fe38c5ab7'), "Provider limitations"),
-        "reference-limitation": (report_text('text_93084e3165b7d5d9'), "Reference verification limits"),
-        "no-change": (report_text('text_d6033c4c7f89cf08'), "No change"),
-        "quarantined": (report_text('text_900bf523d9865d33'), "Quarantined"),
+        "fixed": report_text("Corrected", zh),
+        "provider-limitation": report_text("Provider limitations", zh),
+        "reference-limitation": report_text("Reference verification limits", zh),
+        "no-change": report_text("No change", zh),
+        "quarantined": report_text("Quarantined", zh),
     }
     if evidence.get("provenance"):
-        text += (report_text('text_f4c1952da4aa046f') if zh else " Inputs, opinions and operator-provided execution records are hash-bound.")
+        text += report_text(" Inputs, opinions and operator-provided execution records are hash-bound.", zh)
     else:
-        text += (report_text('text_6b520df0066f1f26') if zh else " This historical audit retains published opinions and adjudications; execution logs were not retained.")
-    text += (report_text('text_fd24495319bb5085') if zh else " Recorded model: ") + str(evidence.get("model") or (report_text('text_7450cc5b16e2453c') if zh else "not recorded")) + ("。" if zh else ".")
+        text += report_text(" This historical audit retains published opinions and adjudications; execution logs were not retained.", zh)
+    text += report_text(" Recorded model: ", zh) + str(evidence.get("model") or report_text("not recorded", zh)) + report_text(".", zh)
 
-    body = f"<section data-independent-review><h2>{title}</h2><p>{text}</p><p data-review-unresolved>" + (report_text('text_d4ea0ba87bdd97bd') if zh else "All findings adjudicated; unresolved: 0.") + "</p><details><summary>" + (report_text('text_fe166e30477a49cd') if zh else "Finding dispositions (multiple findings per query)") + "</summary><ul>"
+    body = f"<section data-independent-review><h2>{title}</h2><p>{text}</p><p data-review-unresolved>" + report_text("All findings adjudicated; unresolved: 0.", zh) + "</p><details><summary>" + report_text("Finding dispositions (multiple findings per query)", zh) + "</summary><ul>"
     for key, value in sorted(counts.items()):
-        body += f"<li>{labels[key][0 if zh else 1]}：{value}" + (report_text('text_3964b7fccde8777a') if zh else " findings") + "</li>"
+        body += f"<li>{labels[key]}：{value}" + report_text(" findings", zh) + "</li>"
     body += (
         "</ul></details><p>"
         + (
-            (report_text('review_failures') if evidence.get("scope") == "failures" else report_text('text_43598a52b30b24f9'))
-            if zh
-            else ("Review covers failed outputs; passing outputs are outside this review." if evidence.get("scope") == "failures" else "Review covers every output, including empty and failed calls. Reviewed does not mean passed. Every finding retains its decision and evidence.")
+            report_text("Review covers failed outputs; passing outputs are outside this review.", zh) if evidence.get("scope") == "failures" else report_text("Review covers every output, including empty and failed calls. Reviewed does not mean passed. Every finding retains its decision and evidence.", zh)
         )
         + "</p>"
     )
-    body += '<p data-unreviewed-passes>' + (report_text('review_unreviewed') if zh else 'Accepted passing outputs without review: ') + str(evidence.get('accepted_unreviewed_passes', 0)) + '</p>'
+    body += '<p data-unreviewed-passes>' + report_text("Accepted passing outputs without review: ", zh) + str(evidence.get('accepted_unreviewed_passes', 0)) + '</p>'
     reference_cases = [c for c in evidence["cases"] if c["dataset_review"]["status"] == "issue"]
     if reference_cases:
-        body += '<details><summary>' + (report_text('text_84a8421bb5133e4f') if zh else "Per-query reference decisions") + '</summary><div class="scroll inventory"><table><thead><tr>'
-        for label in ((report_text('text_069c995adb7e2886'), report_text('text_e99a6717b6917534'), report_text('text_2e9f011743981bcd')) if zh else ("Query", "Decision", "Basis")):
+        body += '<details><summary>' + report_text("Per-query reference decisions", zh) + '</summary><div class="scroll inventory"><table><thead><tr>'
+        for label in ((report_text("Query", zh, context="question"), report_text("Decision", zh), report_text("Basis", zh))):
             body += '<th>' + label + '</th>'
         body += '</tr></thead><tbody>'
         for case in reference_cases:
             decision = evidence["adjudications"][case["case_id"] + ":dataset"]
             target = "details/" + case["output_reviews"][0]["row_id"] + ".html"
-            label = labels[decision["resolution"]][0 if zh else 1]
+            label = labels[decision["resolution"]]
             if decision.get("quality_excluded"):
-                label = report_text('text_a3ba02fb085ac7f6') if zh else "Excluded from every method’s quality denominator"
+                label = report_text("Excluded from every method’s quality denominator", zh)
             body += '<tr><td><a href="' + escape(target) + '">' + escape(case["case_id"]) + '</a></td><td>' + escape(label) + '</td><td>' + escape(decision["reason"]) + '</td></tr>'
         body += '</tbody></table></div></details>'
     body += (
         '<p><a href="independent-review.json">'
-        + (report_text('text_11b83848d2887126') if zh else "Complete review record")
+        + report_text("Complete review record", zh)
         + "</a></p></section>"
     )
     return body
@@ -1228,21 +1222,20 @@ def render_detail(evidence, row_id, zh=True):
             continue
         body = (
             "<section data-independent-opinion><h2>"
-            + (report_text('text_521deef44b4ce505') if zh else "Result audit")
+            + report_text("Result audit", zh)
             + "</h2>"
         )
         decision = evidence["adjudications"].get(case["case_id"] + ":dataset", {})
         if decision.get("quality_excluded"):
             body += '<p class="notice" data-reference-quarantine>' + (
-                report_text('text_405542b0bdb7e30e')
-                if zh else "This query is quarantined from every method’s quality summary. Original inputs and diagnostics remain below; latency and cost remain included."
+                report_text("This query is quarantined from every method’s quality summary. Original inputs and diagnostics remain below; latency and cost remain included.", zh)
             ) + " " + escape(decision["reason"]) + '</p>'
-        body += '<details><summary>' + (report_text('text_73abe0f2d9af6695') if zh else 'Original review opinion, evidence and decisions') + '</summary><p>' + escape(opinion['reason']) + '</p><p>' + escape(opinion['evidence']) + '</p>'
+        body += '<details><summary>' + report_text("Original review opinion, evidence and decisions", zh) + '</summary><p>' + escape(opinion['reason']) + '</p><p>' + escape(opinion['evidence']) + '</p>'
         if case["dataset_review"]["status"] == "issue":
 
             body += (
                 "<h3>"
-                + (report_text('text_70c3d9dbe9725464') if zh else "Reference review")
+                + report_text("Reference review", zh)
                 + "</h3><p>"
                 + escape(case["dataset_review"]["reason"])
                 + "</p>"
@@ -1289,7 +1282,7 @@ def render_detail(evidence, row_id, zh=True):
         body += "</details></section>"
         return body
     if evidence.get("scope") == "failures":
-        return '<section data-review-not-selected><h2>' + (report_text('text_521deef44b4ce505') if zh else "Result audit") + '</h2><p>' + (report_text('text_ed25f23fdfc1af1e') if zh else "This result is outside the failure-only audit scope.") + "</p></section>"
+        return '<section data-review-not-selected><h2>' + report_text("Result audit", zh) + '</h2><p>' + report_text("This result is outside the failure-only audit scope.", zh) + "</p></section>"
     raise ValueError("Missing independent opinion for result detail")
 
 
