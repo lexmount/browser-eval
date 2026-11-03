@@ -72,6 +72,6 @@ def test_make_historical_sample_forwards_explicit_source(tmp_path):
     result = subprocess.run(['make', '-n', 'webmainbench-run', 'PROVIDER=chromium',
         'OUTPUT=' + str(tmp_path / 'output'), 'SOURCE=' + str(source)],
         check=True, capture_output=True, text=True)
-    invocation = next(line for line in result.stdout.splitlines() if 'harness.web_fetch webmainbench-run' in line)
+    invocation = next(line for line in result.stdout.splitlines() if 'scripts/run_webmainbench_benchmark.py' in line)
     tokens = shlex.split(invocation)
     assert tokens[tokens.index('--dataset') + 1] == str(source)

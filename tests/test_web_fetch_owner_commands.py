@@ -25,7 +25,6 @@ OWNER_OPTIONS = {
     "wcxb-visual": "--browser-binary",
     "wcxb-publish": "--package-only",
     "webmainbench-select": "--seed",
-    "webmainbench-run": "--case-ids-file",
     "webmainbench-score": "--scorer-repo",
     "webmainbench-review": "--single-shard",
     "webmainbench-assemble": "--review",
@@ -37,7 +36,6 @@ OWNER_OPTIONS = {
     "webmainbench-teds-correction": "--prior-corrected",
     "webmainbench-teds-review": "--corrected",
     "webmainbench-latency-correction": "--cohort",
-    "webmainbench-latency-tail": "--older-version",
     "webmainbench-content-review": "--work",
     "webmainbench-full-run": "--binary-source",
     "webmainbench-full-score": "--cohort",
@@ -125,15 +123,38 @@ def test_sample_selection_forwards_arguments_and_requires_an_output(monkeypatch,
 
 def test_latency_guard_sees_the_runner_through_each_current_entry(monkeypatch):
     listing = "\n".join([
-        "101 /venv/bin/python -m harness.web_fetch webmainbench-run --provider chromium",
-        "102 /venv/bin/python /venv/bin/browser-harness-eval webmainbench-run --provider chromium",
-        "103 /venv/bin/python -m harness.web_fetch.webmainbench_runner --provider chromium",
-        "104 /venv/bin/python -m harness.web_fetch webmainbench-score --evidence shard",
-        "105 zsh -c python -m harness.web_fetch webmainbench-run --provider chromium",
+        "101 /venv/bin/python scripts/run_webmainbench_benchmark.py --provider chromium",
+        "102 /venv/bin/python -m harness.web_fetch.webmainbench_runner --provider chromium",
+        "103 /venv/bin/python -m harness.web_fetch webmainbench-score --evidence shard",
+        "104 zsh -c python scripts/run_webmainbench_benchmark.py --provider chromium",
     ])
     monkeypatch.setattr(latency.subprocess, "run",
                         lambda *args, **kwargs: SimpleNamespace(stdout=listing))
-    assert latency.competing_benchmark_pids() == [101, 102, 103]
+    assert latency.competing_benchmark_pids() == [101, 102]
+
+
+def frozen_certifier_scripts():
+    certifiers = (ROOT / "src/harness/web_fetch/data/latency-certifiers").glob("*.py.txt")
+    return sorted({name for path in certifiers
+                   for name in re.findall(r"scripts/\w*(?:wcxb|webmainbench)\w*\.py",
+                                          path.read_text(encoding="utf-8"))})
+
+
+def test_frozen_certifiers_name_the_scripts_this_track_keeps():
+    assert frozen_certifier_scripts() == ["scripts/diagnose_webmainbench_moli_tail.py",
+                                          "scripts/run_webmainbench_benchmark.py"]
+
+
+@pytest.mark.parametrize(("script", "option"), [
+    ("scripts/diagnose_webmainbench_moli_tail.py", "--older-version"),
+    ("scripts/run_webmainbench_benchmark.py", "--case-ids-file"),
+])
+def test_script_named_by_a_frozen_certifier_still_runs(script, option, tmp_path):
+    path = os.pathsep.join(filter(None, [str(ROOT / "src"), os.environ.get("PYTHONPATH")]))
+    result = subprocess.run([sys.executable, str(ROOT / script), "--help"], cwd=tmp_path,
+                            env={**os.environ, "PYTHONPATH": path}, text=True, capture_output=True)
+    assert result.returncode == 0, result.stderr
+    assert option in result.stdout
 
 
 def test_template_registry_names_the_public_package_command():

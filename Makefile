@@ -264,7 +264,7 @@ webmainbench-apply-case-correction: runtime-check ## Apply a case correction: RU
 webmainbench-run: runtime-check ## Run one WebMainBench provider shard: PROVIDER, OUTPUT
 	@test -n "$(PROVIDER)" || (echo 'PROVIDER is required' >&2; exit 2)
 	@test -n "$(OUTPUT)" || (echo 'OUTPUT=/absolute/path/to/provider-shard is required' >&2; exit 2)
-	$(UV) run --frozen --extra headless-eval python -m harness.web_fetch webmainbench-run --provider "$(PROVIDER)" --case-ids-file "$(WEBMAINBENCH_SAMPLE)" --output "$(OUTPUT)" $(if $(SOURCE),--dataset "$(SOURCE)",)
+	$(UV) run --frozen --extra headless-eval python scripts/run_webmainbench_benchmark.py --provider "$(PROVIDER)" --case-ids-file "$(WEBMAINBENCH_SAMPLE)" --output "$(OUTPUT)" $(if $(SOURCE),--dataset "$(SOURCE)",)
 
 webmainbench-score: runtime-check ## Score one WebMainBench shard: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path/to/provider-shard is required' >&2; exit 2)

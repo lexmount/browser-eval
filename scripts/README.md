@@ -67,10 +67,13 @@ reach the commands they name; the [Web Fetch guide](../src/harness/web_fetch/REA
 [WebMainBench guide](../src/harness/web_fetch/WEBMAINBENCH.md),
 [`docs/architecture.md`](../docs/architecture.md),
 [`docs/benchmarks.md`](../docs/benchmarks.md) and `configs/report-templates.json` show the rest.
+The scripts below stay because frozen latency certifiers name them.
 
 | Script | Reached from |
 | --- | --- |
 | `run_certified_webmainbench_latency.py` | `src/harness/web_fetch/data/webmainbench-latency-source.json` |
+| `diagnose_webmainbench_moli_tail.py` | `docs/architecture.md`, bound latency certifiers |
+| `run_webmainbench_benchmark.py` | `make webmainbench-run`, bound latency certifiers |
 
 ## Web Search
 

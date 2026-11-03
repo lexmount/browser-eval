@@ -200,7 +200,8 @@ cause or final verdict. An optional output file must be new.
 
 ### Paired timing
 
-Paired Moli timing uses `uv run --frozen python -m harness.web_fetch webmainbench-latency-tail`.
+Paired Moli timing uses `scripts/diagnose_webmainbench_moli_tail.py` or
+`python -m harness.web_fetch.webmainbench_latency_diagnostic` with the same arguments.
 `--older-version` and `--newer-version` declare the expected binary versions;
 `--source-sha256` and `--source-count` bind a different frozen source population.
 `--all-cases` includes the complete declared sample. Tail-only selection is
