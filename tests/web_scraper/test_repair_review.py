@@ -243,6 +243,49 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
     result = assemble(*arguments, tmp_path / "complete.json", profile=home / "profile.json")
     assert result["result_count"] == 6
     assert result["accepted_unreviewed_passes"] == result["unresolved"] == 0
+    # Preserve adverse reviewer judgments and reject a later failed execution with
+    # an identical response body but different runtime evidence.
+    from harness.web_scraper.pipeline import load_run
+    from harness.web_scraper.report import build
+
+    audit_path = tmp_path / "complete.json"
+    content_path = home / "content.json"
+    content = read_json(content_path)
+    content["audit"] = {"path": str(audit_path), "sha256": digest(audit_path.read_bytes())}
+    save_json(content_path, content)
+    build(tmp_path / "reviewed-report", content_path, home=home, profile=home / "profile.json")
+    finding = next(iter(result["results"].values()))
+    assert finding["reviewer_fields"]["sku"]["status"] == "supported"
+    assert finding["field_reconciliation"]["sku"]["resolution"]
+    source_run = home / "runs/example-v1"
+    _, original_rows = load_run(source_run)
+    substituted = deepcopy(original_rows)
+    failed = next(row for row in substituted if row["method"] == "synthetic-blocked")
+    failed["error"] = "A different runtime failure with the same empty response"
+    with patch(
+        "harness.web_scraper.report.load_run",
+        return_value=(read_json(source_run / "contract.json"), substituted),
+    ):
+        with pytest.raises(ValueError, match="different current execution"):
+            build(
+                tmp_path / "wrong-execution", content_path, home=home, profile=home / "profile.json"
+            )
+    content.pop("audit")
+    save_json(content_path, content)
+    opinion_path = work / "reviews/000.json"
+    prior_opinion = opinion_path.read_bytes()
+    opinions = read_json(opinion_path)
+    opinions["cases"][0]["outputs"][0]["fields"]["sku"]["status"] = "incorrect"
+    opinions["cases"][0]["outputs"][0]["projection_issue"] = "A retained projection concern"
+    save_json(opinion_path, opinions)
+    adverse = assemble(*arguments, tmp_path / "adverse.json", profile=home / "profile.json")
+    selected = adverse["results"][
+        opinions["cases"][0]["outputs"][0]["method"] + ":" + opinions["cases"][0]["case_id"]
+    ]
+    assert selected["reviewer_fields"]["sku"]["status"] == "incorrect"
+    assert selected["reviewer_projection_issue"] == "A retained projection concern"
+    opinion_path.write_bytes(prior_opinion)
+
     cid = "1" * 64
     decision = tmp_path / "retained-reference.json"
     source = home / "dataset/html" / (cid + ".html")
@@ -733,3 +776,79 @@ def test_persisted_review_rejects_invalid_assessment_schema(tmp_path, invalid):
     value["cases"][0]["reference"]["sku"].update(invalid)
     with pytest.raises(ValueError, match="schema"):
         validate(value, packet)
+
+
+def test_audit_interrupt_stops_sessions_before_waiting_for_workers(tmp_path):
+    from harness.web_scraper.review import run as run_audit
+
+    save_json(tmp_path / "manifest.json", {"packets": [{"path": "queued"}], "bindings": {}})
+    save_json(tmp_path / "schema.json", {})
+    events = []
+
+    class Sessions:
+        def stop(self):
+            events.append("stop")
+
+    class Future:
+        def result(self):
+            raise KeyboardInterrupt
+
+        def cancel(self):
+            events.append("cancel")
+
+    class Executor:
+        def __init__(self, **kwargs):
+            pass
+
+        def submit(self, *args):
+            return Future()
+
+        def shutdown(self, **kwargs):
+            assert kwargs == {"wait": True, "cancel_futures": True}
+            events.append("shutdown")
+
+    with (
+        patch("harness.web_scraper.review.ReviewerSessions", Sessions),
+        patch("harness.web_scraper.review.ThreadPoolExecutor", Executor),
+        pytest.raises(KeyboardInterrupt),
+    ):
+        run_audit(tmp_path, model="synthetic")
+    assert events.index("stop") < events.index("cancel") < events.index("shutdown")
+
+
+def test_repair_clock_can_cross_cooldown_deadline(tmp_path):
+    home, _, profile, _ = parent_inputs(tmp_path, success_count=0)
+    clock = [0.0]
+    sleeps = []
+
+    def now():
+        clock[0] += 0.75
+        return clock[0]
+
+    def sleep(seconds):
+        assert seconds >= 0
+        sleeps.append(seconds)
+        clock[0] += seconds
+
+    plan = read_json(profile)
+    participant = plan["participants"]["cloudflare-json"]
+    participant["minimum_call_interval_seconds"] = 1
+    participant["post_call_cooldown_seconds"] = 1
+    save_json(profile, plan)
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch("harness.web_scraper.repair.score_rows", return_value={}),
+        patch("harness.web_scraper.repair.time.monotonic", side_effect=now),
+        patch("harness.web_scraper.repair.time.sleep", side_effect=sleep),
+        patch(
+            "harness.web_scraper.repair.provider_call",
+            return_value={
+                "state": "response_received",
+                "response": {"result": {"sku": "recovered"}},
+                "http_status": 200,
+            },
+        ) as provider,
+    ):
+        run(home, profile, "cloudflare-json", tmp_path / "repaired")
+    assert provider.call_count == 3 and sleeps

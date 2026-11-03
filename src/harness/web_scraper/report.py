@@ -24,6 +24,7 @@ from harness.web_scraper.messages import message, messages_sha256, validate_cata
 from harness.web_scraper.pipeline import (
     PROFILE,
     digest,
+    execution_identity,
     load_run,
     normalize,
     read_json,
@@ -528,21 +529,41 @@ def usage_table(methods, rows, lang, labels=None):
         subset = [r for r in rows if r["method"] == method]
         physical = [a for r in subset for a in r.get("physical_attempts", [r])]
         observed = []
+        totals = {}
         for r in physical:
-            headers = r.get("provider_usage", {})
+            headers = {k.lower(): v for k, v in r.get("provider_usage", {}).items()}
             response = r.get("response")
             response = response if isinstance(response, dict) else {}
             data = response.get("data")
             metadata = data.get("metadata", {}) if isinstance(data, dict) else {}
-            value = headers.get("X-Scrapfly-Api-Cost", metadata.get("creditsUsed"))
+            receipts = {}
+            value = headers.get("x-scrapfly-api-cost", metadata.get("creditsUsed"))
             if value is not None:
-                observed.append(float(value))
+                receipts["credits"] = value
+            for key in ("x-browser-ms-used", "x-browser-time", "x-browser-usage"):
+                if key in headers:
+                    receipts[key] = headers[key]
+            if receipts:
+                observed.append(receipts)
+            for unit, value in receipts.items():
+                totals.setdefault(unit, []).append(value)
+        usages = []
+        for unit, values in totals.items():
+            try:
+                total = sum(float(value) for value in values)
+                if not math.isfinite(total):
+                    raise ValueError("Nonfinite usage")
+            except (TypeError, ValueError):
+                usages.append(unit + ": " + esc(json.dumps(values, ensure_ascii=False)))
+            else:
+                label = "ms (x-browser-ms-used)" if unit == "x-browser-ms-used" else unit
+                usages.append(f"{total:g} {label}")
         records.append(
             [
                 esc(labels.get(method, method)),
                 str(len(physical)),
                 str(len(observed)),
-                f"{sum(observed):g} credits" if observed else "—",
+                "; ".join(usages) if observed else "—",
             ]
         )
     return table(
@@ -985,6 +1006,12 @@ def publication_host_names():
     )
 
 
+def public_risk(raw):
+    return publication_risk(raw) or any(
+        host.lower().encode() in raw.lower() for host in publication_host_names()
+    )
+
+
 def build(output: Path, content: Path, *, home: Path, run=None, language=None, profile=PROFILE):
     validate_catalog()
     language = resolve_report_language(output, language)
@@ -1067,6 +1094,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             r["source_logical_sha256"] = digest(
                 json.dumps(record, sort_keys=True, ensure_ascii=False).encode()
             )
+            r["review_execution_sha256"] = execution_identity(record)
             r["run_id"] = source.name
             if "request" in r:
                 r["request"]["endpoint"] = re.sub(
@@ -1137,6 +1165,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             row["diagnosis"] = diagnoses[key]
         if audit:
             row["review"] = audit["results"][key]
+            if row["review"].get("execution_sha256") != row["review_execution_sha256"]:
+                raise ValueError("Review belongs to a different current execution")
             if row["review"]["native_response_sha256"] != digest(
                 json.dumps(row.get("response"), sort_keys=True, ensure_ascii=False).encode()
             ):
@@ -1312,7 +1342,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                         "data-sort": str(history["scores"][method][field]["f1"]),
                     }
                 )
-        historical_title = message("historical_reproduction", lang, case_count=len(truth)).replace("140", str(len(truth)))
+        historical_title = message("historical_reproduction", lang, case_count=len(truth)).replace(
+            "140", str(len(truth))
+        )
         bodies["research" if cohort else "index"] += (
             "<section><h2>" + historical_title + "</h2>" + str(soup) + "</section>"
         )
@@ -1549,6 +1581,27 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                     )
                     + "</section>"
                 )
+            if r.get("review"):
+                findings = r["review"]
+                review_rows = []
+                for field, assessment in findings["reviewer_fields"].items():
+                    review_rows.append(
+                        [
+                            esc(field),
+                            esc(assessment["status"]),
+                            esc(assessment["reason"]),
+                            esc(assessment["source_quote"]),
+                            esc(findings["field_reconciliation"][field]["matcher_status"]),
+                        ]
+                    )
+                detail += (
+                    "<section data-reviewer-findings><h2>"
+                    + message("reviewer_findings", lang)
+                    + "</h2>"
+                )
+                detail += "<p>" + message("reviewer_reconciliation", lang) + "</p>"
+                detail += table(message("reviewer_findings_columns", lang), review_rows)
+                detail += "<p>" + esc(findings["reviewer_projection_issue"]) + "</p></section>"
             if r.get("diagnosis"):
                 diagnosis = r["diagnosis"]
                 detail += (
@@ -1624,8 +1677,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 for cid in sorted(truth):
                     if (method, cid) not in observed:
                         pending = message("not_executed", lang)
+                        search = esc(cid + " " + truth[cid].get("url", ""), quote=True)
                         inventory.append(
-                            f'<tr data-status="pending" data-method="{method}" data-outcome="pending"><td>{esc(names.get(method, method))}</td><td><code>{cid[:12]}</code></td><td>{pending}</td>'
+                            f'<tr data-status="pending" data-method="{method}" data-outcome="pending" data-search="{esc(cid + " " + truth[cid].get("url", ""), quote=True)}"><td>{esc(names.get(method, method))}</td><td><code>{cid[:12]}</code></td><td>{pending}</td>'
                             + "<td>—</td>" * 6
                             + "</tr>"
                         )
@@ -1675,6 +1729,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         json.dumps(bindings, ensure_ascii=False).encode(),
         role="native_response",
         content_format="json",
+        host_names=publication_host_names(),
     )
     save_json(
         output / "report-manifest.json",
@@ -1724,7 +1779,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
 
 def check(output: Path, *, release=False, visual_receipt=None):
     manifest = read_json(output / "report-manifest.json")
-    if publication_risk((output / "report-manifest.json").read_bytes()):
+    if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
     validate_catalog()
     if manifest.get("messages_sha256") != messages_sha256():
@@ -1765,7 +1820,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
         raise ValueError("Public evidence view receipts are incomplete")
     for view in views:
         public = (output / view["path"]).read_bytes()
-        if digest(public) != view["published_sha256"] or publication_risk(public):
+        if digest(public) != view["published_sha256"] or public_risk(public):
             raise ValueError("Public evidence privacy receipt failed")
     for name, sha in manifest["files"].items():
         path = output / name
@@ -1779,7 +1834,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
             ".txt",
             ".md",
             ".csv",
-        } and publication_risk(path.read_bytes()):
+        } and public_risk(path.read_bytes()):
             raise ValueError("Report textual artifact has a publication privacy risk: " + name)
         if path.suffix != ".html":
             continue

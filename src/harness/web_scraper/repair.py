@@ -249,8 +249,11 @@ def collect(home, profile, method, destination):
                 participant["minimum_call_interval_seconds"],
                 participant["post_call_cooldown_seconds"],
             )
-            while time.monotonic() - finished < pause:
-                time.sleep(min(1, pause - (time.monotonic() - finished)))
+            while True:
+                remaining = pause - (time.monotonic() - finished)
+                if remaining <= 0:
+                    break
+                time.sleep(min(1, remaining))
         raw = (home / "dataset/html" / (cid + ".html")).read_bytes()
         if digest(raw) != frozen_inputs["html/" + cid + ".html"]["sha256"]:
             raise ValueError("Frozen repair HTML changed before dispatch")

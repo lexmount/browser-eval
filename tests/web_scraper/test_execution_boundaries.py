@@ -564,3 +564,50 @@ def test_incomplete_direct_resume_rejects_damaged_snapshot_before_dispatch(tmp_p
         with pytest.raises(ValueError, match="Frozen execution source changed"):
             probe(home, ["cloudflare-json"], full=True, run_dir=target)
     call.assert_not_called()
+
+
+@pytest.mark.parametrize("text", ['{"price":NaN}', '{"nested":[Infinity]}', '{"price":1e400}'])
+@pytest.mark.parametrize("route", ["diffbot-product", "scrapfly-product", "cloudflare-json"])
+def test_nonfinite_native_reply_is_checkpoint_safe(tmp_path, text, route):
+    from harness.web_scraper.pipeline import provider_call, read_json
+
+    class Response:
+        status_code = 200
+        headers = {}
+        raw = SimpleNamespace(read=lambda *args, **kwargs: text.encode())
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+    with (
+        patch.dict(
+            sys.modules,
+            {
+                "requests": SimpleNamespace(
+                    Session=lambda: SimpleNamespace(post=lambda *args, **kwargs: Response())
+                )
+            },
+        ),
+        patch.dict("harness.web_scraper.pipeline._RAW_SESSIONS", {}, clear=True),
+        patch.dict(
+            "os.environ",
+            {
+                "DIFFBOT_API_TOKEN": "synthetic",
+                "SCRAPFLY_API_KEY": "synthetic",
+                "CLOUDFLARE_ACCOUNT_ID": "synthetic",
+                "CLOUDFLARE_API_TOKEN": "synthetic",
+            },
+        ),
+        patch(
+            "harness.web_scraper.pipeline.request",
+            return_value=HttpResponse(200, "https://example.org", {}, text.encode()),
+        ),
+    ):
+        row = provider_call(route, "<html>frozen</html>", "https://example.org")
+    path = tmp_path / "completed-call.json"
+    save_json(path, row)
+    assert read_json(path)["response"] == {"non_json_response": text}
+    assert row["http_status"] == 200 and row["elapsed_seconds"] >= 0

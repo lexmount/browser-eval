@@ -238,7 +238,16 @@
     "baseline_stock_projection": "The upstream extruct baseline emits a canonical stock indicator but can omit availability. Restore the primary field only when that indicator is unambiguous; retain native responses and original scores.",
     "native_product_fields_projection": "Scoring reads the declared main-product fields. Reference answers never select a model number, alternate offer or metadata value. InStock and OutOfStock indicators belong to the upstream scoring interface.",
     "showing_results": "Showing {shown} results",
-    "historical_reproduction": "Historical reproduction · {case_count} pages"
+    "historical_reproduction": "Historical reproduction · {case_count} pages",
+    "reviewer_findings": "Reviewer findings",
+    "reviewer_reconciliation": "The model findings below are retained separately. Diagnostic scores use the source-adjudicated reference and original benchmark matcher; where the judgments differ, this rule-based result governs the score. The official score remains unchanged.",
+    "reviewer_findings_columns": [
+      "Field",
+      "Reviewer assessment",
+      "Reason",
+      "Source excerpt",
+      "Benchmark matcher"
+    ]
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -479,6 +488,15 @@
     "baseline_stock_projection": "上游 extruct 仅写出规范库存辅助键，未写回 availability；只在该辅助键唯一明确时补回主字段。原生响应和原评分保留。",
     "native_product_fields_projection": "评分只读取接口约定的主商品字段；不按参考值挑选型号、备选报价或旁路 metadata。InStock / OutOfStock 辅助键属于上游评分接口。",
     "showing_results": "显示 {shown} 条",
-    "historical_reproduction": "历史结果复现 · {case_count} 页"
+    "historical_reproduction": "历史结果复现 · {case_count} 页",
+    "reviewer_findings": "模型审查意见",
+    "reviewer_reconciliation": "下表保留模型的逐字段意见。诊断分数采用经源页面裁定的标注和原评测匹配规则；意见不一致时，按该规则计算分数。原始官方分数保持不变。",
+    "reviewer_findings_columns": [
+      "字段",
+      "模型判断",
+      "依据",
+      "源页面摘录",
+      "评测规则判断"
+    ]
   }
 }

@@ -20,6 +20,9 @@ def test_progress_includes_unexecuted_cases_without_inventing_calls(tmp_path):
     inventory = BeautifulSoup((output / "zh/results.html").read_text(), "html.parser")
     assert len(inventory.select("tr[data-status]")) == 6
     assert len(inventory.select('tr[data-status="pending"]')) == 2
+    for pending in inventory.select('tr[data-status="pending"]'):
+        assert pending.select_one("code").get_text() in pending["data-search"]
+        assert "https://" in pending["data-search"]
     home = BeautifulSoup((output / "zh/index.html").read_text(), "html.parser")
     assert all(
         c.get_text(strip=True) == "—"
@@ -456,3 +459,55 @@ def test_report_release_binds_the_message_catalog(tmp_path):
     with pytest.raises(ValueError, match="message catalog changed"):
         check(output)
     assert home.exists()
+
+
+def test_usage_preserves_browser_receipts_in_separate_units():
+    from harness.web_scraper.report import usage_table
+
+    rows = [
+        {
+            "method": "native",
+            "provider_usage": {
+                "X-Browser-Ms-Used": "125",
+                "x-browser-time": "2.5",
+                "x-browser-usage": "3",
+            },
+            "response": {"data": {"metadata": {"creditsUsed": 5}}},
+        }
+    ]
+    soup = BeautifulSoup(usage_table(["native"], rows, "en"), "html.parser")
+    cells = [c.get_text() for c in soup.select("tbody td")]
+    assert cells[1:3] == ["1", "1"]
+    assert all(
+        value in cells[3]
+        for value in (
+            "5 credits",
+            "125 ms (x-browser-ms-used)",
+            "2.5 x-browser-time",
+            "3 x-browser-usage",
+        )
+    )
+
+
+def test_configured_private_host_is_projected_from_contract_and_rejected_on_check(tmp_path):
+    from unittest.mock import patch
+
+    home = create(tmp_path / "first", mode="full-cohort-progress")
+    source = home / "runs/synthetic-success"
+    contract = read_json(source / "contract.json")
+    contract["fixture_base"] = "https://configured-fixture.example.test"
+    save_json(source / "contract.json", contract)
+    output = tmp_path / "public"
+    with patch(
+        "harness.web_scraper.report.publication_host_names",
+        return_value=("configured-fixture.example.test",),
+    ):
+        build(output, home / "content.json", home=home, profile=home / "profile.json")
+        assert (
+            "configured-fixture.example.test" not in (output / "report-manifest.json").read_text()
+        )
+        manifest = read_json(output / "report-manifest.json")
+        manifest["source_runs"][0]["contract"]["fixture_base"] = contract["fixture_base"]
+        save_json(output / "report-manifest.json", manifest)
+        with pytest.raises(ValueError, match="metadata.*privacy"):
+            check(output)

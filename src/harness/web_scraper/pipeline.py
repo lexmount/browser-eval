@@ -8,6 +8,7 @@ import fcntl
 import gzip
 import io
 import json
+import math
 import os
 import re
 import runpy
@@ -35,6 +36,39 @@ ROOT = repository_root()
 PROFILE = Path(__file__).resolve().parents[1] / "benchmarks/cards/zyte-product-extraction.json"
 FIELDS = ("price", "sku", "availability", "InStock", "OutOfStock")
 _RAW_SESSIONS = {}
+
+
+def execution_identity(row):
+    """Bind runtime evidence independently of recomputable field projections."""
+    derived = {
+        "normalized_fields",
+        "collected_normalized_fields",
+        "projection_revision",
+        "physical_attempts",
+    }
+    value = {key: item for key, item in row.items() if key not in derived}
+    return digest(json.dumps(value, sort_keys=True, ensure_ascii=False).encode())
+
+
+def decoded_response(text):
+    """Preserve malformed/nonfinite replies as text, so a completed call can checkpoint."""
+    try:
+        value = json.loads(text)
+
+        def finite(item):
+            if isinstance(item, float) and not math.isfinite(item):
+                raise ValueError("Nonfinite response number")
+            if isinstance(item, dict):
+                for child in item.values():
+                    finite(child)
+            elif isinstance(item, list):
+                for child in item:
+                    finite(child)
+
+        finite(value)
+        return value
+    except ValueError:
+        return {"non_json_response": text}
 
 
 def read_json(path: Path):
@@ -600,10 +634,7 @@ def provider_call(
             raw = response.raw.read(10_000_001, decode_content=True)
             if len(raw) > 10_000_000:
                 raise ValueError("Provider response exceeded limit")
-            try:
-                payload = json.loads(raw)
-            except ValueError:
-                payload = {"non_json_response": raw.decode("utf-8", "replace")}
+            payload = decoded_response(raw.decode("utf-8", "replace"))
             return {
                 "state": "response_received",
                 "http_status": response.status_code,
@@ -629,10 +660,7 @@ def provider_call(
         raise ValueError("This method has no generic frozen-HTML route")
     started = time.monotonic()
     response = request(url, method="POST", headers=headers, json_body=body, timeout=timeout)
-    try:
-        payload = response.json()
-    except ValueError:
-        payload = {"non_json_response": response.text()}
+    payload = decoded_response(response.text())
     return {
         "state": "response_received",
         "http_status": response.status,

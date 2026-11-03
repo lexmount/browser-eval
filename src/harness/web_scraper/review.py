@@ -9,10 +9,11 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-from harness.review_runner import run_reviewer, validate_schema
+from harness.review_runner import ReviewerSessions, validate_schema
 from harness.web_scraper.messages import message
 from harness.web_scraper.pipeline import (
     digest,
+    execution_identity,
     load_run,
     normalize,
     read_json,
@@ -502,7 +503,29 @@ def assemble(
         ):
             raise ValueError("Supplemental audit call identity differs")
         current = {**row, "normalized_fields": normalize(method, row.get("response", {}))}
+        opinions = changed_opinions if row.get("repair_run_id") else original_opinions
+        opinion = next(o for o in opinions[cid]["outputs"] if o["method"] == method)
+        matched = field_results(home, references[cid], current, profile=profile)
         result_reviews[method + ":" + cid] = {
+            "execution_sha256": execution_identity(row),
+            "reviewer_fields": opinion["fields"],
+            "reviewer_projection_issue": opinion["projection_issue"],
+            "field_reconciliation": {
+                field: {
+                    "reviewer_status": opinion["fields"][field]["status"],
+                    "matcher_status": matched[field]["status"],
+                    "disagrees": (
+                        opinion["fields"][field]["status"] == "supported"
+                        and matched[field]["status"] != "correct"
+                    )
+                    or (
+                        opinion["fields"][field]["status"] == "incorrect"
+                        and matched[field]["status"] == "correct"
+                    ),
+                    "resolution": "source_qualified_reference_and_original_matcher",
+                }
+                for field in FIELDS
+            },
             "source_field_review": sources[cid]["source_fields"],
             "basis": "supplemental" if row.get("repair_run_id") else "original",
             "native_response_sha256": digest(
@@ -518,7 +541,7 @@ def assemble(
                 )
                 for language in ("zh", "en")
             },
-            "audited_fields": field_results(home, references[cid], current, profile=profile),
+            "audited_fields": matched,
         }
     controls = check_reference_controls(home, profile=profile)
     from harness.web_scraper.pipeline import official_scorer
@@ -590,7 +613,11 @@ def run(work, *, model, workers=4, limit=None):
     if not (work / "reviewer.json").exists():
         save_json(work / "reviewer.json", config, exclusive=True)
 
+    sessions = ReviewerSessions()
+
     def one(item):
+        if sessions.stopping:
+            raise RuntimeError("Review cancelled")
         path = Path(item["path"])
         if digest(path.read_bytes()) != item["sha256"]:
             raise ValueError("Audit packet changed")
@@ -671,15 +698,18 @@ Return concise Chinese findings under the supplied schema. No API calls or file 
             prompt,
         ]
         with (logs / (path.stem + ".log")).open("w") as log:
-            result = run_reviewer(
+            process = sessions.start(
                 command,
                 cwd=work,
                 stdin=subprocess.DEVNULL,
                 stdout=log,
                 stderr=subprocess.STDOUT,
-                timeout=2400,
+                text=True,
             )
-        if result.returncode:
+            if process is None:
+                raise RuntimeError("Review cancelled")
+            sessions.communicate(process, None, timeout=2400)
+        if process.returncode:
             raise RuntimeError("Review process failed: " + path.stem)
         result = validate(reconcile_citations(read_json(raw), packet), packet)
         save_json(target, result, exclusive=True)
@@ -695,8 +725,19 @@ Return concise Chinese findings under the supplied schema. No API calls or file 
             print("Review needs correction", Path(item["path"]).stem, str(error), flush=True)
             return None, {"packet": item["path"], "error": str(error)}
 
-    with ThreadPoolExecutor(max_workers=workers) as executor:
-        outcomes = list(executor.map(guarded, items))
+    executor = ThreadPoolExecutor(max_workers=workers)
+    futures = []
+    try:
+        futures = [executor.submit(guarded, item) for item in items]
+        outcomes = [future.result() for future in futures]
+    except BaseException:
+        sessions.stop()
+        for future in futures:
+            future.cancel()
+        raise
+    finally:
+        sessions.stop()
+        executor.shutdown(wait=True, cancel_futures=True)
     results = [r for r, error in outcomes if error is None]
     return {
         "packets": len(results),
