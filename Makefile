@@ -250,7 +250,7 @@ public-benchmark-report: runtime-check ## Build and check the public benchmark r
 
 public-benchmark-sample: runtime-check ## Select the WebMainBench sample: SOURCE
 	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
-	$(PY) -m harness.web_fetch webmainbench-select --source "$(SOURCE)"
+	$(PY) -m harness.web_fetch webmainbench-select --source "$(SOURCE)" --output "$(WEBMAINBENCH_SAMPLE)"
 
 webmainbench-audit: runtime-check ## Audit WebMainBench suspicions: EVIDENCE, SOURCE, OUTPUT
 	@test -n "$(EVIDENCE)" -a -n "$(SOURCE)" -a -n "$(OUTPUT)" || (echo 'EVIDENCE, SOURCE and new OUTPUT paths are required' >&2; exit 2)

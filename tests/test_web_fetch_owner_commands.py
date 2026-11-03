@@ -103,7 +103,7 @@ def test_nested_certify_stage_reaches_the_wcxb_certifier(tmp_path, monkeypatch, 
     assert "--sample-manifest" in capsys.readouterr().out
 
 
-def test_sample_selection_forwards_arguments_and_keeps_the_committed_default(monkeypatch, capsys):
+def test_sample_selection_forwards_arguments_and_requires_an_output(monkeypatch, capsys, tmp_path):
     calls = []
 
     def build_manifest(*arguments):
@@ -111,10 +111,16 @@ def test_sample_selection_forwards_arguments_and_keeps_the_committed_default(mon
         return {"cases": [{}, {}]}
 
     monkeypatch.setattr("harness.web_fetch.public_benchmark_sample.build_manifest", build_manifest)
-    main(["webmainbench-select", "--source", "parent.jsonl", "--size", "2", "--seed", "fixed"])
-    default = repository_root() / "evaluation/public-webmainbench-200.json"
-    assert calls == [(Path("parent.jsonl"), default, 2, "fixed")]
-    assert f"{default}: 2 cases" in capsys.readouterr().out
+    output = tmp_path / "sample.json"
+    main(["webmainbench-select", "--source", "parent.jsonl", "--output", str(output), "--size", "2", "--seed", "fixed"])
+    assert calls == [(Path("parent.jsonl"), output, 2, "fixed")]
+    assert f"{output}: 2 cases" in capsys.readouterr().out
+
+    with pytest.raises(SystemExit) as stopped:
+        main(["webmainbench-select", "--source", "parent.jsonl"])
+    assert stopped.value.code == 2
+    assert "--output" in capsys.readouterr().err
+    assert len(calls) == 1
 
 
 def test_latency_guard_sees_the_runner_through_each_current_entry(monkeypatch):

@@ -8,7 +8,6 @@ import json
 from collections import Counter
 from pathlib import Path
 
-from harness.distribution import repository_root
 from harness.record_io import parse_jsonl
 
 OFFICIAL_SHA256 = "0efaa4b49a45e320a27fe6e5a0b6aad5b57259fc3321ac3448519cacc74c537e"
@@ -153,7 +152,7 @@ def build_manifest(source: Path, output: Path, size: int = 200, seed: str = DEFA
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description="Freeze the selected WebMainBench-545 public benchmark subset.")
     parser.add_argument("--source", required=True, type=Path)
-    parser.add_argument("--output", type=Path, default=repository_root() / "evaluation/public-webmainbench-200.json")
+    parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--size", type=int, default=200)
     parser.add_argument("--seed", default=DEFAULT_SEED)
     args = parser.parse_args(argv)
