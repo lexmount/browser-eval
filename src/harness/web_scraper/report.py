@@ -1091,6 +1091,13 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         ):
             raise ValueError("Report cohort plan changed")
     validate_dataset(home, profile)
+    distribution = None
+    if model.get("dataset_distribution"):
+        from harness.web_scraper.dataset import distribution_identity
+
+        distribution = distribution_identity(
+            home, read_json(profile)["dataset"], model["dataset_distribution"]
+        )
     binding = read_json(profile).get("research_report", {}).get("content", {}).get("sha256")
     if binding and digest(content.read_bytes()) != binding:
         raise ValueError("Report prose differs from the profile-bound source")
@@ -1572,6 +1579,15 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         bodies["dataset"] += table(
             [lab[14], message("source", lang), "Snapshot", lab[19]], dr, inventory=True
         )
+        if distribution:
+            bodies["dataset"] = (
+                '<p data-dataset-distribution><a href="'
+                + esc(distribution["url"])
+                + '">'
+                + esc(message("download_pinned_dataset", lang, revision=distribution["revision"][:12]))
+                + "</a></p>"
+                + bodies["dataset"]
+            )
         inventory = []
         for r in rows:
             cid = r["case_id"]
@@ -1825,6 +1841,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             "content_sha256": digest(content.read_bytes()),
             "profile_sha256": digest(profile.read_bytes()),
             "dataset_manifest_sha256": history["dataset_manifest_sha256"],
+            "dataset_distribution": distribution,
             "primary_language": language,
             "languages": list(languages),
             "case_count": len(truth),
@@ -1901,6 +1918,13 @@ def check(output: Path, *, release=False, visual_receipt=None):
         if path.suffix != ".html":
             continue
         soup = check_presentation(path.read_text(encoding="utf-8"))
+        if name.endswith("/dataset.html") and manifest.get("dataset_distribution"):
+            links = soup.select("[data-dataset-distribution] a")
+            if (
+                len(links) != 1
+                or links[0].get("href") != manifest["dataset_distribution"]["url"]
+            ):
+                raise ValueError("Pinned dataset download link is missing or changed")
         if soup.head is None:
             raise ValueError("Missing explicit head for hosted preview")
         if name != "index.html" and not soup.select_one('base[href="../"]'):

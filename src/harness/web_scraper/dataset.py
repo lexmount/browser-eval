@@ -10,6 +10,35 @@ from harness.benchmarks.data import binding, definition_path
 from harness.record_io import bytes_sha256, read_json
 
 
+def distribution_identity(home: Path, pin, selection):
+    """Link a published dataset only after matching the report's frozen inputs."""
+    if selection["track"] != "web-scraper" or not selection.get("revision"):
+        raise ValueError("Report dataset distribution requires a pinned Web Scraper edition")
+    selected = binding(selection["track"], selection["revision"])
+    manifest = read_json(
+        definition_path(selection["track"], "runtime/manifest.json", selection["revision"])
+    )
+    if manifest["commit"] != pin["commit"] or manifest["cases"] != pin["cases"]:
+        raise ValueError("Report dataset distribution belongs to different upstream inputs")
+    html = {name for name in manifest["files"] if name.startswith("html/")}
+    if len(html) != pin["cases"]:
+        raise ValueError("Report dataset distribution has an incomplete HTML population")
+    for name in html | set(pin.get("files", {})):
+        expected = manifest["files"].get(name, {}).get("sha256")
+        if expected != bytes_sha256((home / "dataset" / name).read_bytes()):
+            raise ValueError("Report dataset distribution differs from frozen input: " + name)
+    return {
+        "track": selection["track"],
+        "repository": selected["repository"],
+        "revision": selected["revision"],
+        "archive_sha256": selected["archive"]["sha256"],
+        "url": "https://huggingface.co/datasets/"
+        + selected["repository"]
+        + "/tree/"
+        + selected["revision"],
+    }
+
+
 def verify_distribution(manifest, pin):
     """Accept only the exact runtime inventory from a recorded HF edition."""
     selection = pin.get("distribution")

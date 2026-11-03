@@ -153,6 +153,7 @@ def test_shared_publisher_reads_committed_scraper_inputs_and_rejects_unknown_bin
     )
     (definitions / "page.html.gz").write_bytes(gzip.compress(b"frozen page"))
     (definitions / "evaluate.py").write_bytes(b"# original evaluator\n")
+    (definitions / "README.rst").write_bytes(b"Original upstream documentation\n")
     if unsafe:
         (definitions / "unregistered.bin").write_bytes(b"unexpected binary")
     save_json(
@@ -180,3 +181,38 @@ def test_shared_publisher_reads_committed_scraper_inputs_and_rejects_unknown_bin
             == "one"
         )
         assert (out / "definitions.tar.gz").is_file()
+
+
+@pytest.mark.parametrize("damage", [None, "other-html", "other-upstream"])
+def test_report_distribution_requires_the_same_frozen_inputs(tmp_path, monkeypatch, damage):
+    from harness.web_scraper.dataset import distribution_identity
+
+    source, profile, manifest = distribution(tmp_path, monkeypatch)
+    home = tmp_path / "home"
+    prepare(home, profile)
+    save_json(source / "runtime/manifest.json", manifest)
+    if damage == "other-html":
+        manifest["files"]["html/one.html"]["sha256"] = "0" * 64
+    elif damage == "other-upstream":
+        manifest["commit"] = "c" * 40
+    save_json(source / "runtime/manifest.json", manifest)
+    from harness.web_scraper import dataset
+
+    original = dataset.binding
+    monkeypatch.setattr(
+        dataset,
+        "binding",
+        lambda *a: {
+            **original(*a),
+            "repository": "Lexmount/LexBench-Web-Scraper",
+            "archive": {"sha256": "f" * 64},
+        },
+    )
+    selection = {"track": "web-scraper", "revision": "b" * 40}
+    if damage:
+        with pytest.raises(ValueError, match="distribution"):
+            distribution_identity(home, read_json(profile)["dataset"], selection)
+    else:
+        result = distribution_identity(home, read_json(profile)["dataset"], selection)
+        assert result["url"].endswith("/tree/" + "b" * 40)
+        assert result["archive_sha256"] == "f" * 64

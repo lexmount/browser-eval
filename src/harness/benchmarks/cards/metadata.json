@@ -393,7 +393,8 @@
     },
     "definition_suffixes": [
       ".html.gz",
-      ".py"
+      ".py",
+      ".rst"
     ],
     "language_fields": []
   }

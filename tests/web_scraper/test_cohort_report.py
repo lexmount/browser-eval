@@ -657,3 +657,43 @@ def test_chinese_scraper_report_is_byte_identical_under_ascii_locale(tmp_path):
         if p.suffix in (".html", ".js", ".css")
     }
     assert actual == expected
+
+
+@pytest.mark.parametrize("damage", ["missing", "moving-branch"])
+def test_report_dataset_download_link_is_pinned_and_release_checked(tmp_path, monkeypatch, damage):
+    from harness.web_scraper import dataset
+
+    home = create(tmp_path / "example")
+    content = read_json(home / "content.json")
+    content["dataset_distribution"] = {"track": "web-scraper", "revision": "a" * 40}
+    save_json(home / "content.json", content)
+    url = "https://huggingface.co/datasets/Lexmount/LexBench-Web-Scraper/tree/" + "a" * 40
+    monkeypatch.setattr(
+        dataset,
+        "distribution_identity",
+        lambda *a: {
+            "track": "web-scraper",
+            "revision": "a" * 40,
+            "url": url,
+        },
+    )
+    output = tmp_path / "linked"
+    build(output, home / "content.json", home=home, profile=home / "profile.json", language="en")
+    manifest = read_json(output / "report-manifest.json")
+    assert manifest["dataset_distribution"]["revision"] == "a" * 40
+    for language in ("en", "zh"):
+        path = output / language / "dataset.html"
+        text = path.read_text(encoding="utf-8")
+        assert url in text
+    path = output / "zh/dataset.html"
+    text = path.read_text(encoding="utf-8")
+    text = (
+        text.replace("data-dataset-distribution", "removed")
+        if damage == "missing"
+        else text.replace(url, url.rsplit("/", 1)[0] + "/main")
+    )
+    path.write_text(text, encoding="utf-8")
+    manifest["files"]["zh/dataset.html"] = digest(path.read_bytes())
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="Pinned dataset download link"):
+        check(output)
