@@ -246,6 +246,43 @@ class MoliTests(unittest.TestCase):
             self.assertEqual(bool(result.content), media == 'html_page')
         self.assertTrue(all(command == commands[0] for command in commands))
 
+    def test_auto_document_ignores_explicit_markdown_and_preserves_binary(self):
+        provider = self.provider("sys.stdout.buffer.write(b'%PDF-1.7\\xff')\n",
+            uniform_native_parameters=True, native_output='auto', document_output='markdown')
+        case = self.case_with(track='document', task_kind='body',
+                              source_benchmark={'input_media_kind': 'direct_pdf'})
+        result = provider.fetch(case, 5)
+        self.assertTrue(result.ok, result.error_message)
+        self.assertEqual(result.files[0]['data'], b'%PDF-1.7\xff')
+        self.assertEqual(provider.native_route(case).interface, 'native_document_bytes')
+
+    def test_html_direct_document_retains_text_and_failed_call(self):
+        from harness.web_fetch.runner import persist_result_artifacts
+        for failed in (False, True):
+            provider = self.provider("print('<p>document text</p>')\n" if not failed else "raise SystemExit(1)\n",
+                uniform_native_parameters=True, native_output='html')
+            case = self.case_with(track='document', task_kind='body',
+                                  source_benchmark={'input_media_kind': 'direct_pdf'})
+            result = provider.fetch(case, 5)
+            self.assertEqual(result.ok, not failed)
+            result.metadata['native_route_receipt'] = {'answer_fields': ['stdout', 'diagnostic.main_document_url']}
+            artifact = persist_result_artifacts(Path(self.directory.name)/str(failed),
+                Path('artifacts/document.txt'), result, request_url=case.url)
+            self.assertEqual(artifact.read_text(), result.content)
+            self.assertFalse(result.files)
+
+    def test_auto_dynamic_metadata_matches_omitted_layout_flags(self):
+        from harness.web_fetch.retrieval_hints import NATIVE_RETRIEVAL_HINTS
+        provider = self.provider("print('<p>dynamic</p>')\n",
+            uniform_native_parameters=True, native_output='auto')
+        case = self.case_with(track='dynamic', retrieval_hints=NATIVE_RETRIEVAL_HINTS)
+        result = provider.fetch(case, 5)
+        self.assertTrue(result.ok, result.error_message)
+        self.assertFalse(result.metadata['layout'])
+        self.assertNotIn('layout', result.metadata['wait'])
+        self.assertNotIn('subdocuments', result.metadata['wait'])
+        self.assertNotIn('--with-frames', provider.native_cli_command(case))
+
     def test_uniform_html_for_resource_and_body(self):
         provider = self.provider("print('<html><body>native text</body></html>')\n",
             uniform_native_parameters=True, native_output="html", wait_until="domstable")

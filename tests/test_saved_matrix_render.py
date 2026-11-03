@@ -378,6 +378,9 @@ def test_ordinary_english_generation_localizes_all_final_call_timing_text(tmp_pa
     for original in strings:
         assert original not in overview
         assert TEXT[original] in overview
+    changes = BeautifulSoup((source/'en/changes/index.html').read_text(), 'html.parser').get_text()
+    assert SAVED_MATRIX_ZH['changes_scope'] not in changes
+    assert TEXT[SAVED_MATRIX_ZH['changes_scope']] in changes
 
 
 @pytest.mark.parametrize('excluded', [['base-web'], ['unknown'], ['web', 'base-web'], ['base-web', 'base-web']])

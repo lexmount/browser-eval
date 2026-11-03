@@ -3311,7 +3311,8 @@
     "最终调用耗时 P95": "P95 final-call latency",
     "最终调用耗时均值 / P50 / P95": "Mean / P50 / P95 final-call latency",
     "三项均采用各方法实际调用且已保存结果的最终一次调用耗时，包含通过与失败；未入库、未调用和适配器提前拒绝不计入，各方法样本数可不同。耗时不参与通过率排名，跨日期、跨批次记录不等同于同窗受控速度比较。": "All three statistics use the final call of each retained result, including passes and failures. Uncommitted, uncalled and adapter-rejected entries are excluded; sample sizes can differ. Latency does not affect pass-rate ordering. Calls from different dates and batches are not a controlled same-window speed comparison.",
-    "每个逻辑结果只取最终一次调用耗时，不是包含此前重试和等待的累计耗时。补齐重试的结果在详情页另列已知的两次调用累计耗时；首轮耗时未保存时标为不可用。": "Each logical result uses only its final call latency, not the accumulated cost of prior retries and waits. Continued retries disclose the known combined cost separately in their details; a missing first-call duration remains unavailable."
+    "每个逻辑结果只取最终一次调用耗时，不是包含此前重试和等待的累计耗时。补齐重试的结果在详情页另列已知的两次调用累计耗时；首轮耗时未保存时标为不可用。": "Each logical result uses only its final call latency, not the accumulated cost of prior retries and waits. Continued retries disclose the known combined cost separately in their details; a missing first-call duration remains unavailable.",
+    "分别记录参数重测与离线修订。参数重测包含新调用；离线修订只使用已有返回。": "Parameter reruns and offline revisions are recorded separately. Parameter reruns include new calls; offline revisions use retained responses only."
   },
   "PHRASES": {
     "处理路线：": "Retrieval path: ",

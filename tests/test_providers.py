@@ -965,6 +965,16 @@ class ProviderTest(unittest.TestCase):
         provider.config['scrape_selectors'] = []
         self.assertIn('scrape_selectors', provider.validate())
 
+    def test_cloudflare_content_rejects_scrape_selectors(self):
+        from harness.web_fetch.providers.cloudflare import CloudflareContentProvider
+        provider = CloudflareContentProvider('content', {'type': 'cloudflare_content',
+            'api_token': 'x', 'account_id': 'a', 'uniform_native_parameters': True,
+            'scrape_selectors': ['body', 'img']})
+        self.assertIn('scrape_selectors', provider.validate())
+        self.assertEqual(provider.native_http_interface(self.case), '/content')
+        provider.config.pop('scrape_selectors')
+        self.assertEqual(provider.validate(), [])
+
     @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_reads_markdown(self, mock_request) -> None:
         body = b'{"success":true,"result":"# Example","meta":{"status":200}}'

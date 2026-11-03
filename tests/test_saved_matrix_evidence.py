@@ -725,6 +725,17 @@ def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tm
             build(tmp_path, spec)
         return
     entry=build(tmp_path,spec)
+    from harness.web_fetch.report_saved_matrix import _load_saved_matrix, _validate_call_sequence
+    loaded = _load_saved_matrix(tmp_path/'spec.json')
+    continuation = loaded['continuations'][('first', 'method', 'same')]
+    policy = {'created_at': '2026-10-26T00:00:00Z', 'max_failure_retries': 1}
+    _validate_call_sequence(current, {}, policy, continuation)
+    failed = {**current, 'metrics': {**current['metrics'], 'content_pass': False}}
+    _validate_call_sequence(failed, {}, policy, continuation)
+    with pytest.raises(ValueError, match='exceeds retry allowance'):
+        _validate_call_sequence(current, {}, {**policy, 'max_failure_retries': 0}, continuation)
+    with pytest.raises(ValueError, match='predates its contract'):
+        _validate_call_sequence(current, {}, {**policy, 'created_at': '2026-10-27T12:00:00Z'}, continuation)
     row=json.loads((entry.parent/'matrix.json').read_text())['rows'][0]
     assert row['passed'] is True and row['retry_continuation']['execution_cost_ms'] is None
     assert_proof_mutations_rejected(entry.parent, tmp_path/'spec.json', 'retry_continuation',

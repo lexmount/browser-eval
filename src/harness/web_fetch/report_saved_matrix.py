@@ -572,6 +572,8 @@ def _load_saved_matrix(spec_path):
                     raise ValueError('Uncommitted first-call log occurs after continuation launch')
             except (KeyError, TypeError) as exc:
                 raise ValueError('Uncommitted first-call log lacks timestamp evidence') from exc
+            # Derived only from the bound log, never from caller-supplied metadata.
+            entry = {**entry, '_uncommitted_started_at': start['at']}
 
         continuations[key] = (entry, prior, launch_path)
     for launch_path, actual in continuation_groups.items():
@@ -799,14 +801,23 @@ def _validate_call_sequence(record, case, contract, continuation=None):
         raise ValueError('Execution authorization requires an explicit nonnegative retry allowance')
     retry = record.get('provider_metadata', {}).get('retry', {})
     calls = retry.get('attempts') or [record]
+    uncommitted_calls = 0
     if retry and (retry.get('physical_attempts') != len(calls)
                   or retry.get('retries_used') != len(calls) - 1):
         raise ValueError('Parameter rerun has inconsistent physical call counts')
     if continuation:
         entry, prior, _ = continuation
         if prior is None:
-            raise ValueError('Parameter rerun needs timestamped first-call evidence')
-        calls = [prior[1], *calls]
+            started = entry.get('_uncommitted_started_at')
+            if not started:
+                raise ValueError('Parameter rerun needs timestamped first-call evidence')
+            if datetime.fromisoformat(started) < datetime.fromisoformat(contract['created_at']):
+                raise ValueError('Parameter rerun predates its contract')
+            # The loader has verified the single-call log and continuation order.
+            # Count the invocation without inventing its score or elapsed time.
+            uncommitted_calls = 1
+        else:
+            calls = [prior[1], *calls]
     if any(datetime.fromisoformat(call['started_at']) < datetime.fromisoformat(contract['created_at'])
            for call in [record, *calls]):
         raise ValueError('Parameter rerun predates its contract')
@@ -821,7 +832,8 @@ def _validate_call_sequence(record, case, contract, continuation=None):
         if type(passed) is not bool:
             raise ValueError('Physical call requires an explicit boolean verdict')
         passes.append(passed)
-    if any(passes[:-1]) or (not passes[-1] and len(calls) <= contract['max_failure_retries']):
+    physical_count = len(calls) + uncommitted_calls
+    if any(passes[:-1]) or (not passes[-1] and physical_count <= contract['max_failure_retries']):
         raise ValueError('Parameter rerun violates stop-on-pass or requires its failure retry')
     if retry.get('attempts') and (calls[-1].get('content_sha256') != record['metrics']['content_sha256']
             or calls[-1].get('elapsed_ms') != record['elapsed_ms']
@@ -833,7 +845,7 @@ def _validate_call_sequence(record, case, contract, continuation=None):
             first_end = max(first_end, datetime.fromisoformat(first['completed_at']))
         if first_end > datetime.fromisoformat(second['started_at']):
             raise ValueError('Parameter rerun physical calls overlap or are out of order')
-    if len(calls) - 1 > contract['max_failure_retries']:
+    if physical_count - 1 > contract['max_failure_retries']:
         raise ValueError('Parameter rerun exceeds retry allowance')
 
 

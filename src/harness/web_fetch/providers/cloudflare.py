@@ -281,7 +281,7 @@ class CloudflareMarkdownProvider(Provider):
         return NativeRoute('http', self.native_http_interface(case), ('result', 'meta.title', 'meta.finalUrl',))
 
     def native_http_interface(self, case):
-        return ('/scrape' if self.config.get('scrape_selectors') else '/content' if self.type == 'cloudflare_content' else '/scrape'
+        return ('/content' if self.type == 'cloudflare_content' else '/scrape' if self.config.get('scrape_selectors') else '/scrape'
                 if case.task_kind == 'resource' and case.track in {'image', 'video'} else '/markdown')
 
     def native_http_arguments(self, case, timeout):
@@ -757,7 +757,10 @@ class CloudflareContentProvider(CloudflareMarkdownProvider):
     """Rendered HTML diagnostic. It is deliberately excluded from the readable-text leaderboard."""
 
     def validate(self) -> list[str]:
-        return [name for name in ("api_token", "account_id") if not self.config.get(name)]
+        errors = super().validate()
+        if 'scrape_selectors' in self.config and 'scrape_selectors' not in errors:
+            errors.append('scrape_selectors')
+        return errors
 
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)

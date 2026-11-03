@@ -166,7 +166,8 @@ class MoliWebFetchProvider(Provider):
                                document_output=self.config.get("document_output", "native"))
         output = self.config.get("native_output")
         if output == "auto":
-            return _route_for_case(case, native_default=True) if route in {'raw_file', 'native_document_bytes'} else 'ordinary_html'
+            default_route = _route_for_case(case, native_default=True)
+            return default_route if default_route in {'raw_file', 'native_document_bytes'} else 'ordinary_html'
         if output == "html" and case.task_kind != 'file':
             return 'native_resource_html' if case.task_kind == 'resource' else 'ordinary_html'
         return route
@@ -377,7 +378,7 @@ class MoliWebFetchProvider(Provider):
         route = self._selected_native_route(case)
         command = [binary, *self.native_cli_command(case)[1:]]
         dump = None if self.config.get('native_output') == 'auto' or route in {'raw_file', 'native_document_bytes'} else 'html' if self.config.get('native_output') == 'html' or case.task_kind == 'resource' else 'markdown'
-        if not native_dynamic_task:
+        if not native_dynamic_task or self.config.get('native_output') == 'auto':
             layout = include_subdocuments = False
             wait_metadata = {'wait_until': family_wait, 'strategy': 'native_default_completion'}
             if case.track in track_waits:
