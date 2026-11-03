@@ -149,3 +149,16 @@ def test_session_communication_error_kills_the_whole_group_and_propagates(tmp_pa
     assert raised.value is error
     assert process.returncode == -9
     assert wait_until_gone(grandchild)
+
+
+def test_kill_stops_one_session_and_forgets_it(tmp_path):
+    started = tmp_path / "started"
+    sessions = ReviewerSessions()
+    process = sessions.start([*python(PARENT_WITH_CHILD), str(started)],
+                             stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    _, grandchild = read_started(started)
+    sessions.kill(process)
+    assert process.returncode == -9
+    assert wait_until_gone(grandchild)
+    sessions.kill(process)
+    assert not sessions.stopping and sessions.start([sys.executable, "-c", ""]).wait() == 0

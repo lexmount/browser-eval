@@ -54,6 +54,7 @@ from harness.trajectory_replay.webarena_review import (
     programmatic_failure,
     review_evidence_path,
 )
+from lexbench_webfetch.metrics import percentile
 
 # This notice describes one retained historical cohort, not trajectory replay in
 # general.  Keying all three immutable inputs prevents a future requalified run
@@ -2187,15 +2188,6 @@ CATALOG_SITE_LABELS = {
 }
 
 
-def _catalog_percentile(values: list[float], proportion: float) -> float:
-    ordered = sorted(values)
-    position = (len(ordered) - 1) * proportion
-    low, high = math.floor(position), math.ceil(position)
-    if low == high:
-        return ordered[low]
-    return ordered[low] * (high - position) + ordered[high] * (position - low)
-
-
 def _catalog_shell(title: str, body: str, participant: str) -> str:
     nav = (
         '<nav><a href="index.html">结果</a>'
@@ -2429,7 +2421,7 @@ def build_catalog_acceptance_report(
     hosted_runtime = bool(remote_count)
     initial_physical = first_pass + first_fail
     index_body = f"""<h1>WebArena-Verified 全量轨迹重放</h1><p class="lead">{html.escape(participant)}：{task_count} / {task_count} 题至少一次获得官方 evaluator 通过（100%）。通过后不再执行该 case。</p>
-<section class="panel"><h2>核心结果</h2><div class="scroll"><table><thead><tr><th>浏览器引擎 / 执行后端</th><th>题数</th><th>通过</th><th>Mean</th><th>P50</th><th>P95</th></tr></thead><tbody><tr><td>{html.escape(participant)}</td><td>{task_count}</td><td>{counts["pass"]}</td><td>{statistics.mean(durations):.2f} 秒</td><td>{statistics.median(durations):.2f} 秒</td><td>{_catalog_percentile(durations,.95):.2f} 秒</td></tr></tbody></table></div><p class="muted">耗时统计使用每题最终通过调用。接受审计覆盖 {counts["physical_attempts"]:,} 次物理执行；通过后重复执行 {counts["excluded_duplicate_attempts"]} 次。</p></section>
+<section class="panel"><h2>核心结果</h2><div class="scroll"><table><thead><tr><th>浏览器引擎 / 执行后端</th><th>题数</th><th>通过</th><th>Mean</th><th>P50</th><th>P95</th></tr></thead><tbody><tr><td>{html.escape(participant)}</td><td>{task_count}</td><td>{counts["pass"]}</td><td>{statistics.mean(durations):.2f} 秒</td><td>{statistics.median(durations):.2f} 秒</td><td>{percentile(durations, .95):.2f} 秒</td></tr></tbody></table></div><p class="muted">耗时统计使用每题最终通过调用。接受审计覆盖 {counts["physical_attempts"]:,} 次物理执行；通过后重复执行 {counts["excluded_duplicate_attempts"]} 次。</p></section>
 <section class="panel"><h2>执行收敛</h2><p>初始顺序扫描完成 {initial_physical} 次物理执行：{first_pass} 题通过，{first_fail} 题未通过；其余 {setup_failure} 题因执行环境中断记录为准备失败。恢复环境后继续按官方题号处理未通过项，并逐类修复轨迹、执行器、站点状态和已确认的评测问题，直至 {task_count} 题全部通过。</p><p>接受链包含 {len(ledger["runs"])} 个执行段和 {runtime_count} 个浏览器运行时身份。浏览器引擎、执行后端和站点映射保持一致；每次修复只进入尚未通过的 case。</p></section>
 <section class="panel"><h2>网站分布</h2><p>一题可涉及多个网站，计数之和可能大于 {task_count}。</p><div class="scroll"><table><thead><tr><th>网站</th><th>涉及题数</th></tr></thead><tbody>{site_html}</tbody></table></div></section>
 <section class="panel"><h2>逐题结果</h2><label for="find">筛选题号、网站或任务内容</label><p><input id="find" type="search" aria-label="筛选逐题结果"></p><div class="scroll"><table id="results"><thead><tr><th>题号</th><th>网站</th><th>最终判分</th><th>接受链记录数</th><th>最终耗时（秒）</th></tr></thead><tbody>{''.join(result_rows)}</tbody></table></div></section><script>const q=document.getElementById("find");q.addEventListener("input",()=>{{for(const row of document.querySelectorAll("#results tbody tr"))row.hidden=!row.dataset.search.toLowerCase().includes(q.value.toLowerCase())}})</script>"""

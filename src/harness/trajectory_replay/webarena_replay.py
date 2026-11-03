@@ -524,6 +524,7 @@ def _run_one(  # noqa: PLR0913
     error = ""
     started = time.perf_counter()
     sampler_started = False
+    readiness_retries = 0
     viewport_evidence: dict[str, Any] = {}
     try:
         prepare_started = time.perf_counter()
@@ -731,7 +732,6 @@ def _run_one(  # noqa: PLR0913
             service._submit(lambda: service._page.screenshot(path=str(screenshot_path)))
         except Exception:
             pass
-        readiness_retries = locals().get("readiness_retries", 0)
     finally:
         cleanup_errors: list[str] = []
         duration_ms = (time.perf_counter() - started) * 1000

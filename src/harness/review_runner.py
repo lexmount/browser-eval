@@ -74,6 +74,12 @@ class ReviewerSessions:
             with self._lock:
                 self._running.discard(process)
 
+    def kill(self, process):
+        """Kill and reap one reviewer's session if it is still running."""
+        _kill_session(process)
+        with self._lock:
+            self._running.discard(process)
+
     def stop(self):
         """Refuse new reviewers and kill every running session."""
         with self._lock:

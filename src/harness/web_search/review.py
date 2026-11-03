@@ -743,8 +743,9 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
                 save(job / "status.json", state)
                 return entry["id"], "interrupted"
             state["pid"] = process.pid
-            save(job / "status.json", state)
+            failure = "Reviewer job ended unexpectedly"
             try:
+                save(job / "status.json", state)
                 sessions.communicate(process, text.encode(), timeout=timeout)
                 state["returncode"] = process.returncode
                 session_log = (attempt / "stdout.log").read_bytes()
@@ -764,12 +765,16 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
                 validate_result(packet, json.loads(result_path.read_bytes()), entry["sha256"], source_mode=_source_mode(contract))
                 atomic_write(job / "result.json", result_path.read_bytes())
                 state.update(status="completed", result_sha256=bytes_sha256(result_path.read_bytes()))
-            except (subprocess.TimeoutExpired, ValueError, OSError) as error:
-                state.update(status="interrupted" if sessions.stopping else "failed",
-                             returncode=process.returncode, error=str(error))
-            state["finished_at"] = time.time()
-            save(attempt / "status.json", state)
-            save(job / "status.json", state)
+            except (subprocess.TimeoutExpired, ValueError, OSError, KeyError, TypeError) as error:
+                failure = str(error)
+            finally:
+                sessions.kill(process)
+                if state["status"] != "completed":
+                    state.update(status="interrupted" if sessions.stopping else "failed",
+                                 returncode=process.returncode, error=failure)
+                state["finished_at"] = time.time()
+                save(attempt / "status.json", state)
+                save(job / "status.json", state)
         if state["status"] == "failed":
             logs = "\n".join((attempt / name).read_text(errors="replace", encoding="utf-8")
                              for name in ("stdout.log", "stderr.log"))
