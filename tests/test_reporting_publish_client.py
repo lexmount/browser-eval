@@ -488,16 +488,160 @@ def test_verified_receipt_is_not_a_pending_create(tmp_path, monkeypatch, wire, o
     assert bound(owner)['site_slug'] == 'site-1'
 
 
+# An interrupted release resumes from what an earlier run saved, so these literals are the
+# persisted format and stay as the code before the shared owner wrote them.
+OPERATIONS = {
+    browser_use: ('lex_browser_use_artifact_operation/1', 'browser-use-'),
+    replay: ('lex_webarena_replay_artifact_operation/1', 'trajectory-replay-'),
+}
+UPDATE_IDENTITY = {'title': 'Title', 'kind': 'version', 'slug': 'site-1', 'expected_version': 'ver_old'}
+CREATE_IDENTITY = {'title': 'Title', 'kind': 'create', 'slug': '', 'expected_version': ''}
+
+
+def bound_release(monkeypatch, tmp_path, owner, marker):
+    archive, site = lifecycle_site(monkeypatch, tmp_path, owner, marker, active='ver_old')
+    bound_profile(owner, share_url=BASE + '/v/token', title='Title')
+    saved_receipt(owner, archive, verified=True)
+    return archive, site
+
+
+@BOUND_TRACKS
+@pytest.mark.parametrize(('create', 'identity', 'endpoint'), [
+    (False, UPDATE_IDENTITY, '/api/sites/site-1/versions?expected_version=ver_old'),
+    (True, CREATE_IDENTITY, '/api/sites'),
+], ids=['update', 'create'])
+def test_bound_journal_keeps_its_persisted_identity(
+        tmp_path, monkeypatch, wire, owner, marker, create, identity, endpoint):
+    if create:
+        archive, site = lifecycle_site(monkeypatch, tmp_path, owner, marker)
+    else:
+        archive, site = bound_release(monkeypatch, tmp_path, owner, marker)
+    journals = []
+
+    def respond(request):
+        if request.selector == endpoint:
+            journals.append(json.loads(owner.OPERATION_JOURNAL.read_bytes()))
+        return site(request)
+
+    wire.respond = respond
+    owner.main(create=create)
+    schema, prefix = OPERATIONS[owner]
+    upload = next(request for request, _ in wire if request.selector == endpoint)
+    key = upload.get_header('Idempotency-key')
+    assert key.startswith(prefix)
+    assert journals == [{'schema': schema, 'base_url': 'https://artifacts.example.invalid',
+                         'archive_sha256': file_sha256(archive), **identity, 'key': key}]
+    assert not owner.OPERATION_JOURNAL.exists()
+
+
+def saved_update_journal(owner, archive, **fields):
+    schema, prefix = OPERATIONS[owner]
+    key = prefix + '0123456789abcdef'
+    owner.OPERATION_JOURNAL.write_text(json.dumps({
+        'schema': schema, 'base_url': 'https://artifacts.example.invalid',
+        'archive_sha256': file_sha256(archive), 'title': 'Title', 'kind': 'version', 'slug': 'site-1',
+        'expected_version': 'ver_old', 'key': key, **fields,
+    }), encoding='utf-8')
+    return key
+
+
+@BOUND_TRACKS
+def test_saved_update_journal_replays_its_key_when_the_service_has_no_result(
+        tmp_path, monkeypatch, wire, owner, marker):
+    archive, site = bound_release(monkeypatch, tmp_path, owner, marker)
+    key = saved_update_journal(owner, archive)
+
+    def respond(request):
+        if request.selector.startswith('/api/operations/'):
+            raise HTTPError(request.full_url, 404, 'missing', email.message.Message(), io.BytesIO(b'{}'))
+        return site(request)
+
+    wire.respond = respond
+    owner.main(create=False)
+    assert '/api/operations/' + key in requested(wire, 'GET')
+    uploads = [request for request, _ in wire if '/versions?' in request.selector]
+    assert [request.get_header('Idempotency-key') for request in uploads] == [key]
+    assert bound(owner)['expected_version'] == 'ver_new'
+    assert not owner.OPERATION_JOURNAL.exists()
+
+
+@BOUND_TRACKS
+def test_saved_update_journal_recovers_a_completed_operation_without_another_upload(
+        tmp_path, monkeypatch, wire, owner, marker):
+    archive, site = bound_release(monkeypatch, tmp_path, owner, marker)
+    key = saved_update_journal(owner, archive)
+    recovered = False
+
+    def respond(request):
+        nonlocal recovered
+        if request.selector == '/api/operations/' + key:
+            recovered = True
+            return json.dumps({'status': 'completed', 'httpStatus': 200, 'result': {
+                'slug': 'site-1', 'versionId': 'ver_new', 'createdAt': 'recovered'}}).encode()
+        if recovered and request.selector == '/api/sites/site-1':
+            return b'{"site":{"currentVersionId":"ver_new"}}'
+        return site(request)
+
+    wire.respond = respond
+    owner.main(create=False)
+    assert requested(wire, 'POST') == []
+    assert bound(owner)['expected_version'] == 'ver_new'
+    assert receipt_of(owner)['createdAt'] == 'recovered'
+
+
+@BOUND_TRACKS
+@pytest.mark.parametrize('other', [
+    {'expected_version': 'ver_other'}, {'slug': 'another-site'}, {'kind': 'create'},
+], ids=['expected-version', 'slug', 'kind'])
+def test_saved_journal_of_another_update_stops_before_it_uploads(
+        tmp_path, monkeypatch, wire, owner, marker, other):
+    archive, wire.respond = bound_release(monkeypatch, tmp_path, owner, marker)
+    saved_update_journal(owner, archive, **other)
+    before = owner.OPERATION_JOURNAL.read_bytes()
+    with pytest.raises(ValueError, match='differs from this release'):
+        owner.main(create=False)
+    assert requested(wire, 'POST') == []
+    assert owner.OPERATION_JOURNAL.read_bytes() == before
+
+
+def test_replay_staged_update_keys_derive_from_its_persisted_identity(tmp_path, monkeypatch, wire):
+    monkeypatch.setattr(publish, 'STAGED_UPLOAD_THRESHOLD', 0)
+    archive, site = bound_release(monkeypatch, tmp_path, replay, replay.PUBLIC_REPORT_MARKERS[0])
+    committed = False
+
+    def respond(request):
+        nonlocal committed
+        if request.selector.startswith('/api/uploads?'):
+            return b'{"versionId":"stage_one"}'
+        if request.get_method() == 'PUT':
+            return b'{}'
+        if '/commit' in request.selector:
+            committed = True
+            return b'{"slug":"site-1","versionId":"ver_new"}'
+        if committed and request.selector == '/api/sites/site-1':
+            return b'{"site":{"currentVersionId":"ver_new"}}'
+        return site(request)
+
+    wire.respond = respond
+    replay.main(create=False)
+    identity = {'schema': 'lex_webarena_replay_artifact_operation/1', 'base_url': 'https://artifacts.example.invalid',
+                'archive_sha256': file_sha256(archive), **UPDATE_IDENTITY}
+    seed = json.dumps(identity, sort_keys=True, separators=(',', ':')) + '|'
+    paths = ['/api/uploads?expected_version=ver_old', '/api/uploads/stage_one/commit?expected_version=ver_old']
+    assert [(request.selector, request.get_header('Idempotency-key'))
+            for request, _ in wire if request.get_method() == 'POST'] == [
+        (path, 'trajectory-staged-' + hashlib.sha256((seed + path).encode()).hexdigest()) for path in paths
+    ]
+    assert not replay.OPERATION_JOURNAL.exists()
+
+
 @BOUND_TRACKS
 @pytest.mark.parametrize('journal_matches', [True, False], ids=['own-journal', 'other-journal'])
 def test_resumed_create_settles_only_its_own_operation_journal(
         tmp_path, monkeypatch, wire, owner, marker, journal_matches):
     archive, wire.respond = lifecycle_site(monkeypatch, tmp_path, owner, marker)
     saved_receipt(owner, archive, verified=False)
-    schema, prefix = {
-        browser_use: ('lex_browser_use_artifact_operation/1', 'browser-use-'),
-        replay: ('lex_webarena_replay_artifact_operation/1', 'trajectory-replay-'),
-    }[owner]
+    schema, prefix = OPERATIONS[owner]
     publication.PublicationOperation(owner.OPERATION_JOURNAL, prefix).pending(
         publish.operation_identity(schema, base=BASE, archive_sha256=file_sha256(archive),
                                    title='Title' if journal_matches else 'Another release'),
