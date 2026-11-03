@@ -126,6 +126,7 @@ test-ui: ## Run Node report UI tests
 	node tests/test_report_ui.mjs
 	node tests/test_report_loader.mjs
 	node tests/browser_use/test_report_ui.mjs
+	node tests/web_scraper/test_report_ui.mjs
 
 fixture-smoke: runtime-check ## Run the offline fixture CLI
 	$(PY) -m harness.web_fetch validate --providers fixture

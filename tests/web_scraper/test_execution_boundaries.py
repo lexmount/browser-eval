@@ -74,11 +74,14 @@ def test_repository_destination_is_rejected_before_any_receipt_write(tmp_path, e
     assert not target.exists()
 
 
-@pytest.mark.parametrize("message,kind", [
-    ("Invalid API key", "authentication"),
-    ("Invalid token", "authentication"),
-    ("Permission denied", "permission"),
-])
+@pytest.mark.parametrize(
+    "message,kind",
+    [
+        ("Invalid API key", "authentication"),
+        ("Invalid token", "authentication"),
+        ("Permission denied", "permission"),
+    ],
+)
 def test_native_authentication_envelopes_pause_but_target_errors_do_not(message, kind):
     native = {"http_status": 200, "response": {"success": False, "error": message}}
     target = {"http_status": 200, "response": {"statusCode": 403, "content": message}}

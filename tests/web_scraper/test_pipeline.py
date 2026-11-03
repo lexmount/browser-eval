@@ -371,11 +371,12 @@ class ReportScenarios(unittest.TestCase):
     def test_success_failure_evidence_and_language_parity(self):
         result = check(self.output)
         self.assertEqual(result["observations"], 6)
-        self.assertEqual(result["pages_per_language"], 13)
+        self.assertEqual(result["pages_per_language"], 21)
         for lang in ("en", "zh"):
             soup = BeautifulSoup((self.output / lang / "results.html").read_text(), "html.parser")
             self.assertEqual(len(soup.select("tr[data-status]")), 6)
-            self.assertEqual(soup.select_one("#filter option[selected]")["value"], "fail")
+            control = soup.select_one('[data-result-filter="status"] option')
+            self.assertEqual(control["value"], "fail")
             detail = next((self.output / lang).glob("result-synthetic-blocked-*.html")).read_text()
             self.assertIn("Synthetic route rejects archived HTML", detail)
             check_presentation(detail)

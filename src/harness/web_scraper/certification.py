@@ -77,7 +77,7 @@ def frozen_probe(run_dir, expected_sha):
     frozen_profile = module.PROFILE
     module.ROOT, module.PROFILE = ROOT, PROFILE
     # Function defaults are bound at import, before the snapshot is relocated.
-    for name in ("prepare", "validate_dataset"):
+    for name in ("prepare", "validate_dataset", "official_scorer"):
         function = getattr(module, name, None)
         if function is not None and function.__defaults__ == (frozen_profile,):
             function.__defaults__ = (PROFILE,)
@@ -114,6 +114,10 @@ def frozen_probe(run_dir, expected_sha):
 def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None):
     require_external_output(run_dir)
     plan = read_json(profile)
+    if plan.get("schema") == "archived-extraction-repair/1":
+        from harness.web_scraper.repair import run as repair_run
+
+        return repair_run(home, profile, method, run_dir)
     participant = plan["participants"][method]
     policy = {"timeout_seconds": 120, "quality_retries": 0, "access_retries_after_repair": 1}
     if any(plan.get(key) != value for key, value in policy.items()):

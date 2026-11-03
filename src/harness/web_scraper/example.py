@@ -20,6 +20,23 @@ def create(output: Path, *, language="zh", mode="compatibility"):
     }
     root = home / "dataset"
     save_json(root / "dataset/ground-truth.json", truth)
+    (
+        root / "evaluate.py"
+    ).write_text("""# Synthetic matching fixture; not measured benchmark output.
+from decimal import Decimal
+def hard_matching(true, pred):
+    if pred is None:
+        return (0, 0, int(bool(true)))
+    return (1, 0, 0) if pred in true else (0, 1, int(bool(true)))
+def decimal_matching(true, pred):
+    value = Decimal(pred) if pred is not None else None
+    return hard_matching({Decimal(x) for x in true}, value)
+def metrics_from_tp_fp_fns(rows):
+    tp, fp, fn = map(sum, zip(*rows))
+    p = 1.0 if fp == fn == 0 else tp / (tp + fp) if tp + fp else 0.0
+    r = 1.0 if fp == fn == 0 else tp / (tp + fn) if tp + fn else 0.0
+    return {'precision': p, 'recall': r, 'f1': 2*p*r/(p+r) if p+r else 0.0}
+""")
     for cid in truth:
         p = root / "html" / (cid + ".html")
         p.parent.mkdir(exist_ok=True)

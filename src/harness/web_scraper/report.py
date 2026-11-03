@@ -7,6 +7,7 @@ import math
 import re
 import statistics
 import struct
+import zipfile
 from html import escape as esc
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
@@ -16,18 +17,43 @@ from bs4 import BeautifulSoup
 from harness.reporting.presentation import check_presentation
 from harness.reporting.templates import metric_contract
 from harness.web_fetch.publication_privacy import project_evidence_view, publication_risk
+from harness.web_scraper.analysis import failure_stage, field_results, native_error
 from harness.web_scraper.pipeline import (
     PROFILE,
     digest,
     load_run,
     normalize,
     read_json,
+    require_external_output,
     save_json,
     score_run,
     validate_dataset,
 )
+from harness.web_scraper.report_ui import CSS as INTERACTION_CSS
+from harness.web_scraper.report_ui import JS
 
 VERSION = "web-scraper-research/1"
+STAGES = {
+    "client_transport": ("客户端连接", "Client connection"),
+    "model_capacity": ("模型容量", "Model capacity"),
+    "navigation": ("页面加载", "Page navigation"),
+    "provider_schema": ("服务端格式处理", "Provider schema handling"),
+    "provider_fetch": ("服务端附加抓取", "Provider fetching"),
+    "provider_response": ("服务端响应", "Provider response"),
+    "fields": ("字段匹配", "Field matching"),
+}
+OUTCOMES = {
+    "correct": ("符合标注", "Matches reference"),
+    "missing": ("漏提取", "Missing"),
+    "unexpected": ("多提取", "Unexpected"),
+    "wrong": ("值不匹配", "Wrong value"),
+}
+FIELD_LABELS = {
+    "price": ("价格", "Price"),
+    "sku": ("SKU", "SKU"),
+    "availability": ("库存", "Stock"),
+    "OutOfStock": ("缺货识别", "Out of stock"),
+}
 
 
 def image_width(raw: bytes):
@@ -126,10 +152,24 @@ LABELS = {
         "待验证",
     ],
 }
-PAGES = ("index", "dataset", "results", "protocol", "candidates", "research", "accounts")
+PAGES = (
+    "index",
+    "dataset",
+    "results",
+    "protocol",
+    "candidates",
+    "research",
+    "accounts",
+    "review",
+    "interpretation",
+)
+EXTRA_LABELS = {
+    "review": {"zh": "标注与审查", "en": "Annotations and review"},
+    "interpretation": {"zh": "报告解读", "en": "Interpretation"},
+}
 CSS = """*{box-sizing:border-box}html{color-scheme:light;--bg:#f8f9fb;--panel:white;--ink:#17283b;--muted:#516277;--line:#d7dfe8;--accent:#075f79;--soft:#e1f3ed}html.dark{color-scheme:dark;--bg:#101923;--panel:#172431;--ink:#e8f0f7;--muted:#afbfce;--line:#354b60;--accent:#7cdbed;--soft:#174638}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 system-ui,-apple-system,"PingFang SC",sans-serif}header,main,footer{max-width:1190px;margin:auto;padding:24px 32px}header{padding-bottom:0}.eyebrow{font-size:13px;letter-spacing:.06em;color:var(--muted)}h1{font-size:clamp(28px,4vw,44px);line-height:1.25;letter-spacing:-.025em;margin:18px 0}h2{font-size:25px;margin:34px 0 12px}h3{font-size:19px;margin:26px 0 10px}p{max-width:900px}a{color:var(--accent);text-underline-offset:3px}nav{display:flex;flex-wrap:wrap;gap:7px;margin:20px 0}nav a,button,select{font:inherit;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);padding:7px 12px;cursor:pointer;text-decoration:none}nav a[aria-current]{background:var(--ink);color:var(--bg)}.notice{border-left:4px solid var(--accent);padding:10px 16px;background:var(--panel);font-size:14px}.table-wrap{overflow:auto;max-width:100%;border:1px solid var(--line);border-radius:10px;background:var(--panel)}.inventory{max-height:540px}table{border-collapse:collapse;min-width:650px;width:100%;font-size:14px}th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:var(--panel);position:sticky;top:0;z-index:1;color:var(--muted);white-space:nowrap}td{max-width:440px}td code{overflow-wrap:anywhere}.comparison-winner{background:var(--soft);font-weight:700;padding:3px 7px;border-radius:5px}section{margin:24px 0 40px}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;list-style:none;padding:0;counter-reset:stage}.flow li{counter-increment:stage;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}.flow li:before{content:counter(stage,decimal-leading-zero);display:block;color:var(--accent);font-size:24px;font-weight:700}code,pre{font:12px/1.6 ui-monospace,monospace}pre{overflow:auto;padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:8px;max-height:540px;white-space:pre-wrap;overflow-wrap:anywhere}code{overflow-wrap:anywhere}dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;width:min(950px,94vw);max-height:90vh;overflow:auto}dialog::backdrop{background:#0008}dialog pre{max-height:62vh}details{margin:12px 0}summary{cursor:pointer;color:var(--accent)}footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line)}.controls{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}.status{font-weight:600}small{color:var(--muted)}@media(max-width:650px){header,main,footer{padding:20px 16px}.flow{grid-template-columns:1fr 1fr}nav{gap:5px}nav a{font-size:13px;padding:6px 9px}td,th{padding:10px}}"""
 CSS += ".diagram{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px}.diagram img{display:block;width:100%;min-width:850px;height:auto}"
-JS = """document.querySelector('#theme').onclick=()=>{document.documentElement.classList.toggle('dark')};for(const b of document.querySelectorAll('[data-call-log-open]'))b.onclick=async()=>{const d=document.getElementById(b.dataset.callLogOpen);d.showModal();const p=d.querySelector('pre');try{const r=await fetch(b.dataset.src);if(!r.ok)throw Error('HTTP '+r.status);const value=await r.json();p.textContent=JSON.stringify(b.dataset.key?value[b.dataset.key]:value,null,2)}catch(e){p.textContent=String(e)}};for(const b of document.querySelectorAll('[data-call-log-close]'))b.onclick=()=>b.closest('dialog').close();const f=document.querySelector('#filter');if(f){const update=()=>{for(const r of document.querySelectorAll('tr[data-status]'))r.hidden=f.value!=='all'&&r.dataset.status!==f.value};f.onchange=update;update()}"""
+CSS += INTERACTION_CSS
 
 
 def table(headers, rows, *, inventory=False, attrs=""):
@@ -165,7 +205,7 @@ def page(
         f'<a href="{p}.html"'
         + (' aria-current="page"' if route == p else "")
         + ">"
-        + labels[i]
+        + (EXTRA_LABELS[p][language] if p in EXTRA_LABELS else labels[i])
         + "</a>"
         for i, p in enumerate(PAGES)
     )
@@ -252,6 +292,26 @@ def cohort_source(source, selection, home, truth):
                 }
                 for r in rows
             ]
+        repair_binding = []
+        if selection.get("repair"):
+            from harness.web_scraper.repair import compose
+
+            revisions = selection["repair"]
+            revisions = revisions if isinstance(revisions, list) else [revisions]
+            for revision in revisions:
+                rows, repaired_scores = compose(home, source, rows, revision)
+                saved = {**saved, "scores": repaired_scores}
+                directory = Path(revision["path"])
+                receipt = read_json(directory / "certificate.json")
+                repair_binding.append(
+                    {
+                        "artifact_id": directory.name,
+                        "certificate_sha256": revision["sha256"],
+                        "profile_sha256": receipt["profile_sha256"],
+                        "repaired_cases": receipt["case_count"],
+                        "inherited_cases": len(truth) - receipt["case_count"],
+                    }
+                )
         return (
             contract,
             rows,
@@ -259,6 +319,7 @@ def cohort_source(source, selection, home, truth):
                 "certified": True,
                 "scores": saved["scores"],
                 "certificate_sha256": digest(certificate.read_bytes()),
+                "repair": repair_binding,
                 "assessment": {"artifact_id": assessment_path.name, "sha256": assessment["sha256"]}
                 if assessment
                 else None,
@@ -383,6 +444,12 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None):
                 span = result.new_tag("span", attrs={"class": "comparison-winner"})
                 span.string = f"{value:.3f}"
                 cell.append(span)
+            link = result.new_tag(
+                "a", href=f"results.html?method={method}&field={field.lower()}&status=all"
+            )
+            for child in list(cell.contents):
+                link.append(child.extract())
+            cell.append(link)
     note = (
         "F1 取值 0–1，越高越好；只展示已完成全部页面并通过证据校验的方法。返回字段不代表字段正确。机器评分，尚未进行独立人工复核。"
         if lang == "zh"
@@ -412,9 +479,9 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None):
                     str(len(values)),
                     str(len(selected) - len(values)),
                     f"{sum(r.get('retry_execution_seconds', 0) for r in selected):.2f}",
-                    f"{statistics.mean(values):.2f}" if values else "—",
-                    f"{statistics.median(values):.2f}" if values else "—",
-                    f"{values[max(0, math.ceil(len(values) * 0.95) - 1)]:.2f}" if values else "—",
+                    f"{statistics.mean(values):.3f}" if values else "—",
+                    f"{statistics.median(values):.3f}" if values else "—",
+                    f"{values[max(0, math.ceil(len(values) * 0.95) - 1)]:.3f}" if values else "—",
                 ]
             )
     timing = BeautifulSoup(
@@ -556,6 +623,463 @@ def usage_table(methods, rows, lang, labels=None):
     )
 
 
+def operating_metrics(methods, rows, prices, lang, labels):
+    """Home-page latency and price, with the measured population kept explicit."""
+    price_table(methods, prices, lang, labels)
+    records = []
+    for method in methods:
+        selected = [r for r in rows if r["method"] == method]
+        values = sorted(
+            r["elapsed_seconds"] for r in selected if r.get("elapsed_seconds") is not None
+        )
+        stats = (
+            [
+                statistics.mean(values),
+                statistics.median(values),
+                values[max(0, math.ceil(len(values) * 0.95) - 1)],
+            ]
+            if values
+            else [None] * 3
+        )
+        records.append(
+            [
+                esc(labels.get(method, method)),
+                str(len(values)),
+                str(len(selected) - len(values)),
+                *[f"{v:.3f}" if v is not None else "—" for v in stats],
+                esc(prices[method]["usd_per_1000"]),
+                '<a href="accounts.html">'
+                + ("计费条件与来源" if lang == "zh" else "Terms and sources")
+                + "</a>",
+            ]
+        )
+    soup = BeautifulSoup(
+        table(
+            [
+                "方法",
+                "有计时",
+                "缺计时",
+                "平均（秒）",
+                "P50（秒）",
+                "P95（秒）",
+                "报价：美元／1,000 次",
+                "计费说明",
+            ]
+            if lang == "zh"
+            else [
+                "Method",
+                "Timed N",
+                "Untimed N",
+                "Mean (s)",
+                "P50 (s)",
+                "P95 (s)",
+                "Quoted USD / 1,000 calls",
+                "Billing",
+            ],
+            records,
+            attrs='data-operating-metrics="true" data-sortable',
+        ),
+        "html.parser",
+    )
+    for index, metric in enumerate(("mean", "p50", "p95"), 3):
+        observed = []
+        for method, row in zip(methods, soup.select("tbody tr"), strict=True):
+            cell = row.select("td")[index]
+            if cell.get_text() != "—":
+                # Use unrounded values for direction and ties.
+                values = sorted(
+                    r["elapsed_seconds"]
+                    for r in rows
+                    if r["method"] == method and r.get("elapsed_seconds") is not None
+                )
+                value = (
+                    statistics.mean(values)
+                    if metric == "mean"
+                    else statistics.median(values)
+                    if metric == "p50"
+                    else values[max(0, math.ceil(len(values) * 0.95) - 1)]
+                )
+                cell.attrs.update(
+                    {
+                        "data-sort": str(value),
+                        "data-metric": "home-" + metric,
+                        "data-metric-direction": "min",
+                    }
+                )
+                observed.append((value, cell))
+        if observed:
+            low = min(v for v, _ in observed)
+            if sum(v == low for v, _ in observed) == 1:
+                cell = next(c for v, c in observed if v == low)
+                span = soup.new_tag("span", attrs={"class": "comparison-winner"})
+                span.string = cell.get_text()
+                cell.clear()
+                cell.append(span)
+    note = (
+        "耗时统计覆盖每个方法全部已执行页面，包括失败；每题取当前最终调用。重试额外耗时另见评测协议。报价保留套餐与用量条件，不能当作本轮实付金额。"
+        if lang == "zh"
+        else "Latency includes all executed cases, including failures, using the current final call per case. Extra retry time is reported in Protocol. Quotes retain plan and usage conditions and are not actual charges."
+    )
+    return (
+        "<section data-home-operations><h2>"
+        + ("耗时与价格" if lang == "zh" else "Latency and pricing")
+        + "</h2><p>"
+        + note
+        + "</p>"
+        + str(soup)
+        + "</section>"
+    )
+
+
+def field_table(row, lang):
+    labels = {"price": "价格", "sku": "SKU", "availability": "库存", "OutOfStock": "缺货识别"}
+    outcomes = {
+        "correct": "符合标注",
+        "missing": "漏提取",
+        "unexpected": "多提取",
+        "wrong": "值不匹配",
+    }
+    records = []
+    for field, value in row["field_results"].items():
+        records.append(
+            [
+                labels[field] if lang == "zh" else field,
+                esc(json.dumps(value["expected"], ensure_ascii=False)),
+                esc(json.dumps(value["actual"], ensure_ascii=False)),
+                outcomes[value["status"]] if lang == "zh" else value["status"],
+                str(value["tp"]),
+                str(value["fp"]),
+                str(value["fn"]),
+            ]
+        )
+    return table(
+        ["字段", "参考值（可接受其一）", "输出", "判定", "命中 TP", "误报 FP", "漏报 FN"]
+        if lang == "zh"
+        else ["Field", "Accepted reference values", "Output", "Outcome", "TP", "FP", "FN"],
+        records,
+        attrs='data-field-diagnostics="true"',
+    )
+
+
+def result_controls(methods, rows, names, lang):
+    def select(key, title, options):
+        return (
+            "<label>"
+            + title
+            + f'<select data-result-filter="{key}">'
+            + "".join(
+                f'<option value="{esc(value, quote=True)}">{esc(label)}</option>'
+                for value, label in options
+            )
+            + "</select></label>"
+        )
+
+    zh = lang == "zh"
+    return (
+        '<form class="controls" data-result-controls onsubmit="return false">'
+        + select(
+            "status",
+            "结果" if zh else "Outcome",
+            [
+                ("fail", "有字段差异或调用失败" if zh else "Mismatch or call failure"),
+                ("pass", "全部字段符合标注" if zh else "All fields match"),
+                ("all", "全部" if zh else "All"),
+            ],
+        )
+        + select(
+            "method",
+            "方法" if zh else "Method",
+            [("", "全部方法" if zh else "All methods"), *[(m, names.get(m, m)) for m in methods]],
+        )
+        + select(
+            "field",
+            "字段" if zh else "Field",
+            [
+                ("", "任一字段" if zh else "Any field"),
+                ("price", "价格" if zh else "Price"),
+                ("sku", "SKU"),
+                ("availability", "库存" if zh else "Stock"),
+                ("outofstock", "缺货识别" if zh else "Out of stock"),
+            ],
+        )
+        + select(
+            "stage",
+            "环节" if zh else "Stage",
+            [
+                ("", "全部环节" if zh else "All stages"),
+                *[
+                    (s, STAGES[s][0 if zh else 1])
+                    for s in sorted({r["failure_stage"] for r in rows})
+                ],
+            ],
+        )
+        + (
+            "<label>"
+            + ("搜索" if zh else "Search")
+            + '<input type="search" data-result-filter="query"'
+            + (
+                ' aria-label="搜索题号、域名或错误"'
+                if zh
+                else ' aria-label="Search case, domain or error"'
+            )
+            + '></label><output data-result-count aria-live="polite"></output></form>'
+        )
+    )
+
+
+def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
+    """Reader-facing review scope and source-qualified correction inventory."""
+    zh = lang == "zh"
+    count = audit["result_count"]
+    changed = len(audit["reference_changes"])
+    review = (
+        f"<section data-complete-review><h2>{'完整审查范围' if zh else 'Complete audit scope'}</h2>"
+        + (
+            f"<p>{audit['case_count']} 页、{count} 个当前结果全部覆盖；原始 {audit['original_results_reviewed']} 个结果逐字段审查，另审查 {audit['supplemental_results_reviewed']} 个补跑后的响应。未审查放行数为 0。</p>"
+            if zh
+            else f"<p>All {audit['case_count']} pages and {count} current results are covered. The original {audit['original_results_reviewed']} results were reviewed field by field, with {audit['supplemental_results_reviewed']} changed responses audited separately. No unreviewed passes were accepted.</p>"
+        )
+        + "<p>"
+        + (
+            "审查模型为 "
+            + esc(audit["reviewer"]["model"])
+            + "，依据冻结原文、标注和完整原生响应核查，并按原评测规则裁决争议；这不等于双人人工金标。逐题页面保留原文片段与裁决理由。"
+            if zh
+            else "The model audited frozen sources, annotations and complete native responses, followed by original-rule adjudication. This is not dual human annotation. Quotations are checked against frozen bytes; literal excerpts are retained separately from original opinions."
+        )
+        + "</p></section>"
+    )
+    fields = ("price", "sku", "availability", "OutOfStock")
+    comparison = BeautifulSoup(
+        table(
+            [
+                "方法" if zh else "Method",
+                *[FIELD_LABELS[f][0 if zh else 1] + " F1" for f in fields],
+            ],
+            [
+                [
+                    esc(labels.get(method, method)),
+                    *[f"{audit['audited_scores'][method][field]['f1']:.3f}" for field in fields],
+                ]
+                for method in methods
+            ],
+            attrs='data-audited-quality="true" data-sortable',
+        ),
+        "html.parser",
+    )
+    for method, row in zip(methods, comparison.select("tbody tr"), strict=True):
+        for field, cell in zip(fields, row.select("td")[1:], strict=True):
+            value = round(audit["audited_scores"][method][field]["f1"], 12)
+            values = [round(audit["audited_scores"][m][field]["f1"], 12) for m in methods]
+            cell.attrs.update(
+                {
+                    "data-sort": str(value),
+                    "data-metric": "audited-" + field,
+                    "data-metric-direction": "max",
+                }
+            )
+            if value == max(values) and values.count(value) == 1:
+                span = comparison.new_tag("span", attrs={"class": "comparison-winner"})
+                span.string = cell.get_text()
+                cell.clear()
+                cell.append(span)
+    review += (
+        "<h2>"
+        + ("核查参考值后的诊断 F1" if zh else "Diagnostic F1 after reference audit")
+        + "</h2><p>"
+    )
+    review += (
+        (
+            f"各方法仍为 {audit['case_count']} 页，使用相同原生输出和同一个官方评分器，仅替换有源证据的参考值。该表属于事后源证据诊断，不替代首页保留原标注的成绩。"
+            if zh
+            else f"Each method still covers {audit['case_count']} pages. The same native outputs and official scorer use only source-qualified reference amendments. This post-hoc diagnostic does not replace the original-reference scores on the home page."
+        )
+        + "</p>"
+        + str(comparison)
+    )
+    review += (
+        "<h2>"
+        + (f"参考值修正：{changed} 个字段" if zh else f"Reference amendments: {changed} fields")
+        + "</h2><p>"
+    )
+    review += (
+        "保留原始标注与原始评分；下表列出有源证据的修正，逐题详情同时显示两种口径。空标注和库存默认值均按原规则核对，不能把未知库存直接当成标注错误。"
+        if zh
+        else "Original annotations and scores are retained. These source-qualified amendments are shown alongside the original result in each detail. Empty labels and stock defaults follow the original benchmark rules."
+    ) + "</p>"
+    review += table(
+        ["题目", "字段", "原参考值", "核查后参考值", "证据与裁决"]
+        if zh
+        else ["Case", "Field", "Original", "Audited", "Evidence and adjudication"],
+        [
+            [
+                f'<a href="source-{r["case_id"]}.html"><code>{r["case_id"][:12]}</code></a>',
+                FIELD_LABELS[r["field"]][0 if zh else 1],
+                esc(json.dumps(r["original"], ensure_ascii=False)),
+                esc(json.dumps(r["accepted"], ensure_ascii=False)),
+                esc(r["reason"]),
+            ]
+            for r in audit["reference_changes"]
+        ],
+        inventory=True,
+        attrs='data-reference-revisions="true" data-sortable',
+    )
+    excluded = audit.get("excluded_fields", {})
+    if excluded:
+        review += (
+            "<h2>"
+            + ("冻结源内容存在冲突的字段" if zh else "Conflicting source fields")
+            + "</h2><p>"
+        )
+        review += (
+            "这些字段在原始分数中仍保留；核查诊断单独标记源内冲突，不把它归为提取器错误。"
+            if zh
+            else "These fields remain in official scores; audited diagnostics identify source conflicts separately from extractor errors."
+        ) + "</p>"
+        review += table(
+            ["Case", "Field"],
+            [
+                [f'<a href="source-{cid}.html">{cid[:12]}</a>', ", ".join(fields)]
+                for cid, fields in excluded.items()
+            ],
+        )
+    interpretation = (
+        "<section data-interpretation-summary><h2>"
+        + ("如何读这次比较" if zh else "Reading this comparison")
+        + "</h2><p>"
+    )
+    structured = sum(r.get("compatibility") == "structured_output" for r in rows)
+    interpretation += (
+        f"{len(methods)} 个方法各执行 {audit['case_count']} 页，共 {count} 个结果；当前 {structured} 个返回结构化字段。原始失败修复后保留成功结果，不能把设置不同、日期不同的调用当作同环境因果速度实验。首页分别给出字段 F1、端到端耗时和有条件的报价。"
+        if zh
+        else f"{len(methods)} methods each executed {audit['case_count']} pages: {count} results, {structured} structured responses. Failure repairs retain successful originals; settings and dates differ, so latency is observational. Quality, end-to-end latency and conditional quotes are separate."
+    ) + "</p></section>"
+    if core_html:
+        compact = BeautifulSoup(core_html, "html.parser").select_one("table")
+        for row in compact.select("tr"):
+            for index, cell in enumerate(list(row.find_all(["th", "td"], recursive=False))):
+                if index not in (0, 3, 5, 6, 7, 8):
+                    cell.decompose()
+        compact.attrs = {"data-interpretation-comparison": "true"}
+        interpretation += (
+            "<h2>"
+            + ("原标注下的紧凑比较" if zh else "Compact original-reference comparison")
+            + "</h2>"
+            + str(compact)
+        )
+    interpretation += (
+        "<h2>" + ("评分看的是字段是否匹配" if zh else "Scoring checks field matches") + "</h2><p>"
+    )
+    interpretation += (
+        "每个字段允许多个参考值，但每次只接受一个预测值。价格按 Decimal 比较；错误值会同时造成误报与漏报，空值遇到非空参考值则计漏报。库存没有明确缺货证据时，原规则默认有货。原标注的金额分隔符、商品 ID 和库存问题会影响分数，因此源核查与原始成绩同时保留。"
+        if zh
+        else "Each field allows multiple accepted reference values but one prediction. Prices use Decimal equality; wrong values add false positives and false negatives, while missing required values add false negatives. The original contract defaults to InStock without clear out-of-stock evidence. Source-qualified reference corrections are retained alongside official scores."
+    ) + "</p>"
+    if audit["reference_changes"]:
+        example = audit["reference_changes"][0]
+        interpretation += (
+            '<p><a href="source-'
+            + example["case_id"]
+            + '.html">'
+            + (
+                "查看原文、原标注与修正示例"
+                if zh
+                else "Inspect a source, annotation and correction example"
+            )
+            + '</a> · <a href="case-'
+            + example["case_id"]
+            + '.html">'
+            + ("比较该题全部方法" if zh else "Compare every method on that case")
+            + "</a></p>"
+        )
+    for method in methods:
+        selected = [r for r in rows if r["method"] == method]
+        counts = []
+        for field in ("price", "sku", "availability"):
+            missing = sum(r["field_results"][field]["status"] == "missing" for r in selected)
+            wrong = sum(
+                r["field_results"][field]["status"] in ("wrong", "unexpected") for r in selected
+            )
+            counts.append(
+                [
+                    FIELD_LABELS[field][0 if zh else 1],
+                    str(missing),
+                    str(wrong),
+                    f'<a href="results.html?method={method}&field={field}&status=fail">'
+                    + ("查看全部差异" if zh else "Inspect all differences")
+                    + "</a>",
+                ]
+            )
+        failures = [r for r in selected if r.get("compatibility") != "structured_output"]
+        interpretation += (
+            '<section data-method-interpretation="'
+            + method
+            + '"><h2>'
+            + esc(labels.get(method, method))
+            + "</h2><p>"
+        )
+        interpretation += (
+            f"{len(selected)} 页中 {len(selected) - len(failures)} 页返回字段；下面按原标注列出全部字段差异，调用失败也计入漏提。"
+            if zh
+            else f"{len(selected) - len(failures)}/{len(selected)} pages returned structured fields. All original-reference differences are counted below; failed calls also contribute missing fields."
+        ) + "</p>"
+        interpretation += table(
+            ["字段", "漏提取", "值错误或多提", "逐题证据"]
+            if zh
+            else ["Field", "Missing", "Wrong or unexpected", "Cases"],
+            counts,
+        )
+        if method == "extruct":
+            interpretation += (
+                "<p>"
+                + (
+                    "上游基线在缺少库存时写入 InStock 辅助键，却没有写回主 availability 字段；原始库存分数因此与 README 的默认规则不一致。本次从同一原生输出中投影唯一明确的库存辅助键，没有新增本地提取调用；原分数仍保留在历史复现中。它只读取嵌入式结构化数据，和托管 API 的运行位置及能力范围不同。"
+                    if zh
+                    else "The upstream baseline emits an InStock indicator without filling availability when stock is absent. Its original availability score therefore differs from the README default. The current projection uses only an unambiguous native indicator, without new extraction calls; historical scores remain intact. This embedded-data baseline differs from hosted APIs in execution location and scope."
+                )
+                + "</p>"
+            )
+        repaired = [r for r in selected if r.get("diagnosis")]
+        representative = (
+            failures[:1]
+            or repaired[:1]
+            or [
+                r
+                for r in selected
+                if any(f["status"] != "correct" for f in r["field_results"].values())
+            ][:1]
+        )
+        if representative:
+            row = representative[0]
+            diagnosis = row.get("diagnosis", {})
+            interpretation += (
+                "<p>"
+                + esc(
+                    diagnosis.get("cause")
+                    or (
+                        "接口已经返回字段，差异发生在提取内容与参考值的匹配；原文与参考值核查见同题详情。"
+                        if zh
+                        else "Fields were returned; these differences concern extracted content versus references. Inspect source and reference audit in the same-case detail."
+                    )
+                )
+                + "</p><p>"
+            )
+            interpretation += (
+                f'<a href="result-{method}-{row["case_id"]}.html">'
+                + ("代表结果与完整响应" if zh else "Representative result and complete response")
+                + "</a></p>"
+            )
+        interpretation += "</section>"
+    interpretation += (
+        '<p><a href="review.html">'
+        + ("完整审查范围与参考值修正" if zh else "Complete audit scope and reference amendments")
+        + '</a> · <a href="protocol.html">'
+        + ("评分、计时及调用协议" if zh else "Scoring, timing and execution protocol")
+        + "</a></p>"
+    )
+    return review, interpretation
+
+
 def build(output: Path, content: Path, *, home: Path, run=None, language="zh", profile=PROFILE):
     if language not in LABELS:
         raise ValueError("Unsupported language")
@@ -625,12 +1149,17 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             for r in records
             if selection.get("methods") is None or r["method"] in selection["methods"]
         ]
-        if cohort and extra.get("certified") and (
-            len(records) != len(truth) or {r["case_id"] for r in records} != set(truth)
+        if (
+            cohort
+            and extra.get("certified")
+            and (len(records) != len(truth) or {r["case_id"] for r in records} != set(truth))
         ):
             raise ValueError("Certified report observations must cover every case")
         for record in records:
             r = json.loads(json.dumps(record))
+            r["source_logical_sha256"] = digest(
+                json.dumps(record, sort_keys=True, ensure_ascii=False).encode()
+            )
             r["run_id"] = source.name
             if "request" in r:
                 r["request"]["endpoint"] = re.sub(
@@ -664,6 +1193,47 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
         raise ValueError("Select exactly one compatibility observation per method and case")
     if output.exists() and any(output.iterdir()):
         raise ValueError("Use an empty output directory")
+    diagnoses = {}
+    if model.get("diagnoses"):
+        binding = model["diagnoses"]
+        source = content.parent / binding["path"]
+        if digest(source.read_bytes()) != binding["sha256"]:
+            raise ValueError("Failure diagnoses changed")
+        diagnoses = read_json(source)["results"]
+    audit = None
+    if model.get("audit"):
+        binding = model["audit"]
+        source = content.parent / binding["path"]
+        if digest(source.read_bytes()) != binding["sha256"]:
+            raise ValueError("Complete review binding changed")
+        audit = read_json(source)
+        expected = {r["method"] + ":" + r["case_id"] for r in rows}
+        if (
+            audit["review_scope"] != "all"
+            or audit["unresolved"] != 0
+            or audit["accepted_unreviewed_passes"] != 0
+            or set(audit["results"]) != expected
+            or audit["case_count"] != len(truth)
+        ):
+            raise ValueError("Full review is incomplete")
+    if read_json(profile).get("independent_result_review_scope") == "all" and audit is None:
+        raise ValueError("Full-review profile requires its completed audit")
+    for row in rows:
+        row["field_results"] = field_results(home, truth[row["case_id"]], row, profile=profile)
+        row["failure_stage"] = failure_stage(row)
+        row["native_error"] = native_error(row)
+        row["method_label"] = names.get(row["method"], row["method"])
+        key = row["method"] + ":" + row["case_id"]
+        if key in diagnoses:
+            if diagnoses[key]["current_call_sha256"] != row["source_logical_sha256"]:
+                raise ValueError("Failure diagnosis belongs to a different current call")
+            row["diagnosis"] = diagnoses[key]
+        if audit:
+            row["review"] = audit["results"][key]
+            if row["review"]["native_response_sha256"] != digest(
+                json.dumps(row.get("response"), sort_keys=True, ensure_ascii=False).encode()
+            ):
+                raise ValueError("Review belongs to a different native response")
     output.mkdir(parents=True, exist_ok=True)
     (output / "style.css").write_text(CSS)
     (output / "app.js").write_text(JS)
@@ -719,7 +1289,10 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
         directory.mkdir()
         bodies = {p: model["pages"].get(p, {}).get("body", {}).get(lang, "") for p in PAGES}
         titles = {
-            p: model["pages"].get(p, {}).get("title", {}).get(lang, lab[i])
+            p: model["pages"]
+            .get(p, {})
+            .get("title", {})
+            .get(lang, EXTRA_LABELS[p][lang] if p in EXTRA_LABELS else lab[i])
             for i, p in enumerate(PAGES)
         }
         # Scope and observed current interfaces lead; historical scores remain separate.
@@ -756,7 +1329,11 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
         )
         if cohort:
             core, timings = cohort_metrics(methods, rows, bindings, len(truth), lang, names)
-            bodies["index"] = core + model["pages"].get("index", {}).get("body", {}).get(lang, "")
+            bodies["index"] = (
+                core
+                + operating_metrics(methods, rows, model.get("prices", {}), lang, names)
+                + model["pages"].get("index", {}).get("body", {}).get(lang, "")
+            )
             bodies["protocol"] += (
                 "<h2>" + ("调用耗时" if lang == "zh" else "Call latency") + "</h2>" + timings
             )
@@ -765,6 +1342,23 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
                 + ("各方法价格" if lang == "zh" else "Prices by method")
                 + "</h2>"
                 + price_table(methods, model.get("prices", {}), lang, names)
+            )
+        if audit:
+            review_body, interpretation_body = audit_explanation(
+                audit, rows, methods, names, lang, core_html=core if cohort else None
+            )
+            bodies["review"] = review_body
+            bodies["interpretation"] = interpretation_body
+            bodies["index"] += (
+                '<p><a href="interpretation.html">'
+                + ("阅读报告解读" if lang == "zh" else "Read the interpretation")
+                + '</a> · <a href="review.html">'
+                + (
+                    "查看完整审查和参考值修正"
+                    if lang == "zh"
+                    else "Inspect complete audit and reference changes"
+                )
+                + "</a></p>"
             )
         if cohort:
             bodies["protocol"] += (
@@ -825,11 +1419,176 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             ref = {f: gt.get(f, []) for f in fields}
             dr.append(
                 [
-                    f"<code>{cid}</code>",
+                    f'<a href="source-{cid}.html"><code>{cid}</code></a>',
                     f'<a href="{esc(gt["url"], quote=True)}">{esc(urlsplit(gt["url"]).netloc)}</a>',
                     f'<a href="{url}">HTML.gz</a>',
                     f"<details><summary>{lab[19]}</summary><pre>{esc(json.dumps(ref, ensure_ascii=False, indent=2))}</pre></details>",
                 ]
+            )
+            raw_html = (home / "dataset/html" / (cid + ".html")).read_text()
+            source_soup = BeautifulSoup(raw_html, "html.parser")
+            structured = [
+                str(e)
+                for e in source_soup.select('script[type="application/ld+json"],meta[content]')
+            ]
+            outline = source_soup.get_text("\n", strip=True) + "\n\n" + "\n".join(structured)
+            source_body = (
+                f'<article data-source-case="{cid}"><p><code>{cid}</code></p>'
+                f'<p><a href="{esc(gt["url"], quote=True)}">{esc(gt["url"])}</a> · '
+                f'<a href="{url}">HTML.gz</a> · <a href="case-{cid}.html">'
+                + ("同题全部方法" if lang == "zh" else "Compare all methods")
+                + "</a></p>"
+                + (
+                    "<p>以下是原始标注。空数组表示该字段没有给出可接受值，并非整题未标注。库存沿用原评测规则：没有明确缺货证据时按有货处理。</p>"
+                    if lang == "zh"
+                    else "<p>Original annotations follow. An empty array contains no accepted value; it does not mean the whole case is unannotated. The original benchmark assumes InStock unless clearly out of stock.</p>"
+                )
+                + "<pre data-source-reference>"
+                + esc(json.dumps(ref, ensure_ascii=False, indent=2))
+                + "</pre>"
+            )
+            image = model.get("source_screenshots", {}).get(cid)
+            if image:
+                source = content.parent / image["source"]
+                target = output / "source-images" / (cid + ".jpeg")
+                if source.is_symlink() or digest(source.read_bytes()) != image["sha256"]:
+                    raise ValueError("Source screenshot changed")
+                if not target.exists():
+                    target.parent.mkdir(exist_ok=True)
+                    target.write_bytes(source.read_bytes())
+                source_body += (
+                    "<details><summary>"
+                    + (
+                        "原作者截图（早于 HTML 采集）"
+                        if lang == "zh"
+                        else "Author screenshot (captured before HTML)"
+                    )
+                    + "</summary>"
+                )
+                source_body += f'<figure><img class="source-screenshot" loading="lazy" src="../source-images/{cid}.jpeg" alt="'
+                source_body += (
+                    "原数据集作者保存的商品页面截图"
+                    if lang == "zh"
+                    else "Product screenshot saved by the dataset author"
+                ) + '"><figcaption>'
+                source_body += (
+                    "作者截图早于 HTML 快照采集，可能与下方 HTML 内容有差异；字段核查以冻结 HTML 为依据。"
+                    if lang == "zh"
+                    else "The author captured this screenshot before the HTML snapshot. It may differ; field checks use the frozen HTML."
+                ) + "</figcaption></figure></details>"
+            if audit:
+                source_review = audit["sources"][cid]
+                source_body += (
+                    "<section data-source-audit><h2>"
+                    + (
+                        "原文证据与参考值核查"
+                        if lang == "zh"
+                        else "Source evidence and reference audit"
+                    )
+                    + "</h2>"
+                )
+                source_body += table(
+                    ["字段", "核查后参考值", "原文证据", "原标注裁决"]
+                    if lang == "zh"
+                    else ["Field", "Audited values", "Source quote", "Reference adjudication"],
+                    [
+                        [
+                            FIELD_LABELS[field][0 if lang == "zh" else 1],
+                            esc(
+                                json.dumps(
+                                    audit["audited_reference"][cid].get(field, []),
+                                    ensure_ascii=False,
+                                )
+                            ),
+                            "<blockquote>"
+                            + esc(source_review["source_fields"][field]["source_quote"])
+                            + "</blockquote>",
+                            esc(source_review["reference_review"][field]["reason"]),
+                        ]
+                        for field in fields
+                    ],
+                )
+                source_body += "</section>"
+            source_body += (
+                "<h2>冻结 HTML 的文本与结构化数据</h2><p>包含隐藏 DOM 文本，不代表浏览器可见区域；脚本仅展示 JSON-LD，不执行原站代码。</p>"
+                if lang == "zh"
+                else "<h2>Frozen HTML text and structured data</h2><p>Includes hidden DOM text, not a rendered visibility claim. Only JSON-LD scripts are shown; source code is not executed.</p>"
+            )
+            source_body += (
+                '<pre class="source-preview" data-source-outline>'
+                + esc(outline)
+                + "</pre></article>"
+            )
+            (directory / ("source-" + cid + ".html")).write_text(
+                page(
+                    lang,
+                    "dataset",
+                    ("页面与标注 · " if lang == "zh" else "Source and annotations · ") + cid[:12],
+                    source_body,
+                    detail=True,
+                    languages=languages,
+                    state=state,
+                )
+            )
+            compared = []
+            for method in methods:
+                row = next((r for r in rows if r["case_id"] == cid and r["method"] == method), None)
+                if row is None:
+                    continue
+                cells = [
+                    f'<a href="result-{method}-{cid}.html">{esc(names.get(method, method))}</a>'
+                ]
+                for field in fields:
+                    result = row["field_results"][field]
+                    cells.append(
+                        '<span class="field-'
+                        + result["status"]
+                        + '">'
+                        + esc(json.dumps(result["actual"], ensure_ascii=False))
+                        + "</span><br><small>"
+                        + OUTCOMES[result["status"]][0 if lang == "zh" else 1]
+                        + "</small>"
+                    )
+                cells.extend(
+                    [
+                        esc(STAGES[row["failure_stage"]][0 if lang == "zh" else 1]),
+                        f"{row['elapsed_seconds']:.2f}"
+                        if row.get("elapsed_seconds") is not None
+                        else "—",
+                    ]
+                )
+                compared.append(cells)
+            case_body = (
+                f'<article data-same-case="{cid}"><p><a href="source-{cid}.html">'
+                + ("原页面与标注" if lang == "zh" else "Source and annotations")
+                + "</a></p>"
+            )
+            case_body += "<pre>" + esc(json.dumps(ref, ensure_ascii=False, indent=2)) + "</pre>"
+            case_body += (
+                table(
+                    [
+                        lab[15],
+                        "价格" if lang == "zh" else "Price",
+                        "SKU",
+                        "库存" if lang == "zh" else "Stock",
+                        "环节" if lang == "zh" else "Stage",
+                        "秒" if lang == "zh" else "Seconds",
+                    ],
+                    compared,
+                    attrs='data-case-comparison="true" data-sortable',
+                )
+                + "</article>"
+            )
+            (directory / ("case-" + cid + ".html")).write_text(
+                page(
+                    lang,
+                    "results",
+                    ("同题方法比较 · " if lang == "zh" else "Same-case comparison · ") + cid[:12],
+                    case_body,
+                    detail=True,
+                    languages=languages,
+                    state=state,
+                )
             )
         bodies["dataset"] += table(
             [lab[14], "来源" if lang == "zh" else "Source", "Snapshot", lab[19]], dr, inventory=True
@@ -875,6 +1634,49 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             evidence = "../public-evidence/" + (r["method"] if cohort else key) + ".json"
             evidence_key = f' data-key="{cid}"' if cohort else ""
             detail = f'<article data-report-detail="{"passed" if ok else "failed"}"><div data-result-summary><h2>{status}</h2><p>{esc(names.get(r["method"], r["method"]))} · {esc(r["state"])} · HTTP {r.get("http_status", "—")}</p><p><code>{cid}</code></p><small>{esc(r["run_id"])}</small></div>'
+            detail += (
+                f'<p class="case-links"><a href="case-{cid}.html">'
+                + ("同题全部方法" if lang == "zh" else "Compare all methods")
+                + f'</a><a href="source-{cid}.html">'
+                + ("页面、标注与来源" if lang == "zh" else "Source and annotations")
+                + "</a></p>"
+            )
+            detail += field_table(r, lang)
+            if r.get("review"):
+                reviewed = {**r, "field_results": r["review"]["audited_fields"]}
+                detail += (
+                    "<section data-audited-result><h2>"
+                    + (
+                        "核查参考值后的字段诊断"
+                        if lang == "zh"
+                        else "Field diagnosis after reference audit"
+                    )
+                    + "</h2>"
+                )
+                detail += (
+                    "<p>"
+                    + (
+                        "原始评分保留不变；这里使用已裁决的参考值作诊断。来源证据和标注改动见页面与标注。"
+                        if lang == "zh"
+                        else "Original scores remain unchanged. This diagnostic uses adjudicated references; see source and annotations for evidence and changes."
+                    )
+                    + "</p>"
+                    + field_table(reviewed, lang).replace(
+                        'data-field-diagnostics="true"', 'data-audited-fields="true"'
+                    )
+                    + "</section>"
+                )
+            if r.get("diagnosis"):
+                diagnosis = r["diagnosis"]
+                detail += (
+                    "<section data-reviewed-diagnosis><h2>"
+                    + ("原始失败的原因与处理" if lang == "zh" else "Original failure and treatment")
+                    + "</h2><p>"
+                    + esc(diagnosis["cause"])
+                    + "</p><p>"
+                    + esc(diagnosis["treatment"])
+                    + "</p></section>"
+                )
             if not ok:
                 detail += f'<p data-failure-diagnosis>{"未返回可评分字段；程序错误见下方。" if lang == "zh" else "No scoreable fields returned; see the program error below."}</p><details id="result-logs" open><summary>{lab[21]}</summary><pre data-kind="error">{esc(error)}</pre></details>'
             ref = {f: truth[cid].get(f, []) for f in fields}
@@ -904,8 +1706,25 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
                 )
             )
             elapsed = f"{r['elapsed_seconds']:.2f}" if r.get("elapsed_seconds") is not None else "—"
+            field_cells = ""
+            outcomes = {"correct": "符合", "missing": "漏提", "unexpected": "多提", "wrong": "错误"}
+            for field in fields:
+                outcome = r["field_results"][field]["status"]
+                field_cells += (
+                    f'<td><button class="field-button field-{outcome}" data-call-log-open="diagnosis" data-src="{evidence}"{evidence_key} data-field="{field}">'
+                    + (outcomes[outcome] if lang == "zh" else outcome)
+                    + "</button></td>"
+                )
+            data_fields = " ".join(
+                f'data-{field.lower()}="{value["status"]}"'
+                for field, value in r["field_results"].items()
+            )
+            correct = all(v["status"] == "correct" for v in r["field_results"].values())
+            search = cid + " " + truth[cid]["url"] + " " + error
             inventory.append(
-                f'<tr data-status="{"pass" if ok else "fail"}"><td>{esc(names.get(r["method"], r["method"]))}</td><td><a href="{url}"><code>{cid[:12]}</code></a></td><td>{status}</td><td>{r.get("http_status") or "—"}</td><td>{elapsed}</td><td><a href="{url}">{lab[9]}</a></td></tr>'
+                f'<tr data-status="{"pass" if ok else "fail"}" data-method="{r["method"]}" data-stage="{r["failure_stage"]}" data-outcome="{"correct" if correct and ok else "wrong"}" data-search="{esc(search, quote=True)}" {data_fields}><td>{esc(names.get(r["method"], r["method"]))}</td><td><a href="{url}"><code>{cid[:12]}</code></a></td><td>{status}</td>{field_cells}<td>{r.get("http_status") or "—"}</td><td data-sort="{r.get("elapsed_seconds", "")}">{elapsed}</td><td><button data-call-log-open="diagnosis" data-src="{evidence}"{evidence_key}>{lab[9]}</button> · <a href="{url}">'
+                + ("完整结果" if lang == "zh" else "Full result")
+                + "</a></td></tr>"
             )
         if cohort:
             observed = {(r["method"], r["case_id"]) for r in rows}
@@ -914,29 +1733,35 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
                     if (method, cid) not in observed:
                         pending = "待执行" if lang == "zh" else "Not executed"
                         inventory.append(
-                            f'<tr data-status="pending"><td>{esc(names.get(method, method))}</td><td><code>{cid[:12]}</code></td><td>{pending}</td><td>—</td><td>—</td><td>—</td></tr>'
+                            f'<tr data-status="pending" data-method="{method}" data-outcome="pending"><td>{esc(names.get(method, method))}</td><td><code>{cid[:12]}</code></td><td>{pending}</td>'
+                            + "<td>—</td>" * 6
+                            + "</tr>"
                         )
-        initial = (
-            "fail" if any(r.get("compatibility") != "structured_output" for r in rows) else "all"
-        )
-        filt = f'<label>{lab[16]} <select id="filter"><option value="fail" {"selected" if initial == "fail" else ""}>{lab[11]}</option><option value="pass">{lab[12]}</option><option value="all" {"selected" if initial == "all" else ""}>{lab[13]}</option></select></label>'
-        if cohort:
-            filt = filt.replace(
-                "</select>",
-                '<option value="pending">'
-                + ("待执行" if lang == "zh" else "Not executed")
-                + "</option></select>",
-            )
         bodies["results"] += (
-            '<div class="controls">'
-            + filt
-            + '</div><div class="table-wrap inventory"><table><thead><tr>'
+            result_controls(methods, rows, names, lang)
+            + '<div class="table-wrap inventory"><table data-sortable><thead><tr>'
             + "".join(
-                "<th>" + x + "</th>" for x in [lab[15], lab[14], lab[16], lab[17], lab[18], lab[9]]
+                "<th>" + x + "</th>"
+                for x in [
+                    lab[15],
+                    lab[14],
+                    lab[16],
+                    "价格" if lang == "zh" else "Price",
+                    "SKU",
+                    "库存" if lang == "zh" else "Stock",
+                    lab[17],
+                    lab[18],
+                    lab[9],
+                ]
             )
             + "</tr></thead><tbody>"
             + "".join(inventory)
             + "</tbody></table></div>"
+            + '<dialog id="diagnosis" aria-labelledby="diagnosis-title"><h2 id="diagnosis-title">'
+            + ("字段与调用证据" if lang == "zh" else "Field and call evidence")
+            + "</h2><button data-call-log-close>"
+            + lab[10]
+            + "</button><div data-diagnosis-body></div></dialog>"
         )
         for p in PAGES:
             (directory / (p + ".html")).write_text(
@@ -977,6 +1802,24 @@ def build(output: Path, content: Path, *, home: Path, run=None, language="zh", p
             "method_labels": names,
             "prices": model.get("prices", {}),
             "renderer_sha256": digest(Path(__file__).read_bytes()),
+            "interaction_sha256": digest(Path(__file__).with_name("report_ui.py").read_bytes()),
+            "analysis_sha256": digest(Path(__file__).with_name("analysis.py").read_bytes()),
+            "review": {
+                k: audit[k]
+                for k in (
+                    "review_scope",
+                    "result_count",
+                    "case_count",
+                    "original_results_reviewed",
+                    "supplemental_results_reviewed",
+                    "accepted_unreviewed_passes",
+                    "unresolved",
+                )
+            }
+            if audit
+            else None,
+            "required_review_scope": read_json(profile).get("independent_result_review_scope"),
+            "audited_scores": audit.get("audited_scores") if audit else None,
             "content_sha256": digest(content.read_bytes()),
             "profile_sha256": digest(profile.read_bytes()),
             "dataset_manifest_sha256": history["dataset_manifest_sha256"],
@@ -1004,6 +1847,24 @@ def check(output: Path, *, release=False, visual_receipt=None):
         raise ValueError("Report does not bind the shared required metric contract")
     if manifest["renderer_sha256"] != digest(Path(__file__).read_bytes()):
         raise ValueError("Renderer identity changed; rebuild required")
+    if manifest.get("interaction_sha256") != digest(
+        Path(__file__).with_name("report_ui.py").read_bytes()
+    ):
+        raise ValueError("Interaction identity changed; rebuild required")
+    if manifest.get("analysis_sha256") != digest(
+        Path(__file__).with_name("analysis.py").read_bytes()
+    ):
+        raise ValueError("Field analysis identity changed; rebuild required")
+    review = manifest.get("review")
+    if manifest.get("required_review_scope") == "all" and (
+        not review
+        or review["review_scope"] != "all"
+        or review["unresolved"] != 0
+        or review["accepted_unreviewed_passes"] != 0
+        or review["result_count"] != manifest["observations"]
+        or review["original_results_reviewed"] != manifest["observations"]
+    ):
+        raise ValueError("Required full review is incomplete")
     actual = {
         p.relative_to(output).as_posix()
         for p in output.rglob("*")
@@ -1105,6 +1966,14 @@ def check(output: Path, *, release=False, visual_receipt=None):
             ):
                 raise ValueError("Cost/pricing coverage or terms differ from the bound source")
             rows = [r for method in methods for r in data[method].values()]
+            expected_home = BeautifulSoup(
+                operating_metrics(methods, rows, manifest.get("prices", {}), lang, names),
+                "html.parser",
+            ).select_one("[data-operating-metrics]")
+            for anchor in expected_home.select('a[href="accounts.html"]'):
+                anchor["href"] = lang + "/accounts.html"
+            if soup.select_one("[data-operating-metrics]") != expected_home:
+                raise ValueError("Home latency/pricing differs from retained calls")
             _, expected_time = cohort_metrics(
                 methods, rows, manifest["source_runs"], manifest["case_count"], lang, names
             )
@@ -1119,6 +1988,46 @@ def check(output: Path, *, release=False, visual_receipt=None):
                 ] != [c.get_text(strip=True) for c in expected_table.select("td")]:
                     raise ValueError("Timing or usage values differ from retained calls")
             inventory = BeautifulSoup((output / lang / "results.html").read_text(), "html.parser")
+            if manifest.get("review"):
+                reviewed = BeautifulSoup((output / lang / "review.html").read_text(), "html.parser")
+                interpretations = BeautifulSoup(
+                    (output / lang / "interpretation.html").read_text(), "html.parser"
+                )
+                quality_rows = reviewed.select("[data-audited-quality] tbody tr")
+                compact_rows = interpretations.select("[data-interpretation-comparison] tbody tr")
+                if [r.get("data-method") for r in compact_rows] != methods:
+                    raise ValueError("Missing compact interpretation comparison")
+                for method, row in zip(methods, compact_rows, strict=True):
+                    if [c.get_text(strip=True) for c in row.select("td")[2:]] != [
+                        f"{scores[method][field]['f1']:.3f}"
+                        for field in ("price", "sku", "availability", "OutOfStock")
+                    ]:
+                        raise ValueError(
+                            "Interpretation scores differ from original-reference scores"
+                        )
+                if not reviewed.select_one("[data-complete-review]") or len(quality_rows) != len(
+                    methods
+                ):
+                    raise ValueError("Missing complete audit summary or diagnostic quality")
+                for method, row in zip(methods, quality_rows, strict=True):
+                    expected = [
+                        f"{manifest['audited_scores'][method][field]['f1']:.3f}"
+                        for field in ("price", "sku", "availability", "OutOfStock")
+                    ]
+                    if [cell.get_text(strip=True) for cell in row.select("td")[1:]] != expected:
+                        raise ValueError("Audited F1 differs from source-qualified scores")
+                if {
+                    s["data-method-interpretation"]
+                    for s in interpretations.select("[data-method-interpretation]")
+                } != set(methods):
+                    raise ValueError("Incomplete method interpretation coverage")
+            if not inventory.select_one("[data-result-controls]") or not inventory.select_one(
+                "[data-diagnosis-body]"
+            ):
+                raise ValueError("Missing result filters or diagnosis drilldown")
+            for field in ("status", "method", "field", "stage", "query"):
+                if not inventory.select_one(f'[data-result-filter="{field}"]'):
+                    raise ValueError("Incomplete result filters")
             if len(inventory.select("tr[data-status]")) != len(methods) * manifest["case_count"]:
                 raise ValueError("Full planned result inventory is incomplete")
             if (
@@ -1126,6 +2035,44 @@ def check(output: Path, *, release=False, visual_receipt=None):
                 != len(methods) * manifest["case_count"] - manifest["observations"]
             ):
                 raise ValueError("Pending population differs")
+            case_ids = {cid for values in data.values() for cid in values}
+            for cid in case_ids:
+                source = BeautifulSoup(
+                    (output / lang / f"source-{cid}.html").read_text(), "html.parser"
+                )
+                comparison = BeautifulSoup(
+                    (output / lang / f"case-{cid}.html").read_text(), "html.parser"
+                )
+                if not source.select_one("[data-source-reference]") or not source.select_one(
+                    "[data-source-outline]"
+                ):
+                    raise ValueError("Missing inspectable source or annotation")
+                expected_methods = [m for m in methods if cid in data[m]]
+                if len(comparison.select("[data-case-comparison] tbody tr")) != len(
+                    expected_methods
+                ):
+                    raise ValueError("Incomplete same-case method comparison")
+                for method in expected_methods:
+                    row = data[method][cid]
+                    detail = BeautifulSoup(
+                        (output / lang / f"result-{method}-{cid}.html").read_text(), "html.parser"
+                    )
+                    expected_fields = BeautifulSoup(
+                        field_table(row, lang), "html.parser"
+                    ).select_one("[data-field-diagnostics]")
+                    if detail.select_one("[data-field-diagnostics]") != expected_fields:
+                        raise ValueError("Field diagnostics differ from retained result")
+                    if manifest.get("review"):
+                        expected_audited = BeautifulSoup(
+                            field_table(
+                                {**row, "field_results": row["review"]["audited_fields"]}, lang
+                            ),
+                            "html.parser",
+                        ).select_one("[data-field-diagnostics]")
+                        expected_audited.attrs.pop("data-field-diagnostics")
+                        expected_audited["data-audited-fields"] = "true"
+                        if detail.select_one("[data-audited-fields]") != expected_audited:
+                            raise ValueError("Audited result details differ")
     en = {p.relative_to(output / "en").as_posix() for p in (output / "en").glob("*.html")}
     zh = {p.relative_to(output / "zh").as_posix() for p in (output / "zh").glob("*.html")}
     if "en" in manifest["languages"] and en != zh:
@@ -1143,19 +2090,9 @@ def check(output: Path, *, release=False, visual_receipt=None):
             (output / "report-manifest.json").read_bytes()
         ):
             raise ValueError("Visual receipt belongs to a different report")
-        required = {
-            (lang, route, viewport, theme)
-            for lang in manifest["languages"]
-            for route in (*PAGES, "success", "failure")
-            for viewport in ("desktop", "narrow")
-            for theme in ("light", "dark")
-        }
+        required = {(lang, route, "desktop") for lang in manifest["languages"] for route in PAGES}
         if "en" not in manifest["languages"]:
-            required |= {
-                ("en", "english-notice", viewport, theme)
-                for viewport in ("desktop", "narrow")
-                for theme in ("light", "dark")
-            }
+            required.add(("en", "english-notice", "desktop"))
         observed = set()
         for item in visual["observations"]:
             width = item["viewport_width"]
@@ -1174,13 +2111,41 @@ def check(output: Path, *, release=False, visual_receipt=None):
                 raise ValueError("Screenshot width does not match the observed viewport")
             if not item["heading"] or item["document_width"] > item["viewport_width"] + 1:
                 raise ValueError("Missing heading or overflowing report viewport")
-            observed.add((item["language"], item["route_class"], item["viewport"], item["theme"]))
-        if observed != required:
-            raise ValueError("Incomplete language/theme/viewport/route coverage")
+            observed.add((item["language"], item["route_class"], item["viewport"]))
+        if not required.issubset(observed):
+            raise ValueError("Incomplete top-level reader coverage")
     return {
         "pages_per_language": len(zh),
         "observations": manifest["observations"],
         "state": manifest.get("mode", "compatibility"),
         "files": len(actual),
         "release": release,
+    }
+
+
+def package(output, archive, *, visual_receipt):
+    """Package only the release-checked report inventory, with no private siblings."""
+    require_external_output(archive)
+    check(output, release=True, visual_receipt=visual_receipt)
+    manifest = read_json(output / "report-manifest.json")
+    names = [*sorted(manifest["files"]), "report-manifest.json"]
+    archive.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(archive, "x", compression=zipfile.ZIP_DEFLATED, compresslevel=6) as bundle:
+        for name in names:
+            path = output / name
+            bundle.write(
+                path,
+                name,
+                compress_type=(
+                    zipfile.ZIP_STORED
+                    if path.suffix.lower() in (".png", ".jpeg", ".jpg")
+                    else zipfile.ZIP_DEFLATED
+                ),
+            )
+    return {
+        "files": len(names),
+        "archive_bytes": archive.stat().st_size,
+        "expanded_bytes": sum((output / name).stat().st_size for name in names),
+        "archive_sha256": digest(archive.read_bytes()),
+        "report_manifest_sha256": digest((output / "report-manifest.json").read_bytes()),
     }

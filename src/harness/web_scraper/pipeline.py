@@ -151,8 +151,8 @@ def validate_dataset(home: Path, profile=PROFILE):
     return manifest
 
 
-def official_scorer(home: Path):
-    validate_dataset(home)
+def official_scorer(home: Path, profile=PROFILE):
+    validate_dataset(home, profile)
     # tabulate is used only by upstream's command-line presentation. Keep its
     # scoring functions unmodified and avoid adding an unrelated runtime dependency.
     source = (home / "dataset/evaluate.py").read_bytes()
@@ -311,6 +311,7 @@ def redact(value):
 
 def total_deadline(function):
     """Interrupt socket reads as well as connection setup on the serial Unix runner."""
+
     @wraps(function)
     def bounded(*args, timeout=120, **kwargs):
         def expired(signum, frame):
@@ -331,12 +332,49 @@ def total_deadline(function):
                     max(0.000001, old_timer[0] - (time.monotonic() - started)),
                     old_timer[1],
                 )
+
     return bounded
 
 
+def validate_native_options(method, native_options):
+    native_options = native_options or {}
+    allowed = {
+        "cloudflare-json": {
+            "setJavaScriptEnabled",
+            "rejectResourceTypes",
+            "input_route",
+            "rejectRequestPattern",
+        },
+        "diffbot-product": {"discussion", "use_fixture_context", "norender"},
+    }
+    if set(native_options) - allowed.get(method, set()):
+        raise ValueError("Unsupported native extraction option")
+    if native_options.get("input_route", "html") not in ("html", "url"):
+        raise ValueError("Native input route must be html or url")
+    for key in ("setJavaScriptEnabled", "discussion", "use_fixture_context", "norender"):
+        if key in native_options and type(native_options[key]) is not bool:
+            raise ValueError("Native extraction switches must be Boolean")
+    if "rejectResourceTypes" in native_options:
+        types = native_options["rejectResourceTypes"]
+        if not isinstance(types, list) or any(
+            t not in {"script", "stylesheet", "image", "font", "media"} for t in types
+        ):
+            raise ValueError("Unsupported static-fixture resource exclusion")
+    if "rejectRequestPattern" in native_options:
+        patterns = native_options["rejectRequestPattern"]
+        if not isinstance(patterns, list) or any(not isinstance(p, str) for p in patterns):
+            raise ValueError("Native request exclusions must be regex strings")
+        for pattern in patterns:
+            re.compile(pattern)
+    return native_options
+
+
 @total_deadline
-def provider_call(method, html, source_url, fixture_url=None, *, timeout=120, home=None):
+def provider_call(
+    method, html, source_url, fixture_url=None, *, timeout=120, home=None, native_options=None
+):
     """One native route per provider; no hidden fallback or quality retry."""
+    native_options = validate_native_options(method, native_options)
     if method == "extruct":
         extract = baseline_extractor(home or data_home())
         started = time.monotonic()
@@ -375,6 +413,12 @@ def provider_call(method, html, source_url, fixture_url=None, *, timeout=120, ho
         url = f"https://api.cloudflare.com/client/v4/accounts/{os.environ['CLOUDFLARE_ACCOUNT_ID']}/browser-rendering/json"
         headers = {"Authorization": "Bearer " + os.environ["CLOUDFLARE_API_TOKEN"]}
         body = {"html": html, "response_format": {"type": "json_schema", "json_schema": SCHEMA}}
+        body.update({k: v for k, v in native_options.items() if k != "input_route"})
+        if native_options.get("input_route") == "url":
+            if not fixture_url:
+                raise ValueError("Cloudflare URL extraction requires a frozen fixture")
+            del body["html"]
+            body["url"] = fixture_url
     elif method == "browserbase-json":
         if not fixture_url:
             return {"state": "input_blocked", "error": "A frozen HTTPS snapshot URL is required"}
@@ -448,7 +492,10 @@ def provider_call(method, html, source_url, fixture_url=None, *, timeout=120, ho
             else "https://api.scrapfly.io/extraction"
         )
         params = (
-            {"token": os.environ["DIFFBOT_API_TOKEN"], "url": source_url}
+            {
+                "token": os.environ["DIFFBOT_API_TOKEN"],
+                "url": (fixture_url if native_options.get("use_fixture_context") else source_url),
+            }
             if method == "diffbot-product"
             else {
                 "key": os.environ["SCRAPFLY_API_KEY"],
@@ -457,6 +504,13 @@ def provider_call(method, html, source_url, fixture_url=None, *, timeout=120, ho
                 "timeout": timeout,
             }
         )
+        if method == "diffbot-product":
+            if native_options.get("use_fixture_context") and not fixture_url:
+                raise ValueError("Frozen fixture context requires a URL")
+            if "discussion" in native_options:
+                params["discussion"] = str(native_options["discussion"]).lower()
+            if "norender" in native_options:
+                params["norender"] = str(native_options["norender"]).lower()
         url = endpoint + "?" + urlencode(params)
         started = time.monotonic()
         session = _RAW_SESSIONS.get(method)
@@ -492,7 +546,10 @@ def provider_call(method, html, source_url, fixture_url=None, *, timeout=120, ho
                     "input": "html",
                     "html_sha256": digest(html.encode()),
                     "source_url": source_url,
+                    "effective_context_url": params["url"],
+                    "fixture_url": fixture_url,
                     "mode": "product",
+                    "native_options": native_options,
                 },
             }
     else:
@@ -508,13 +565,21 @@ def provider_call(method, html, source_url, fixture_url=None, *, timeout=120, ho
         "http_status": response.status,
         "elapsed_seconds": time.monotonic() - started,
         "response": redact(payload),
+        "provider_usage": {
+            k: v
+            for k, v in response.headers.items()
+            if k.lower() in {"x-browser-ms-used", "x-browser-time", "x-browser-usage"}
+        },
         "request": {
             "endpoint": url,
-            "input": available_methods()[method]["input"],
+            "input": "url"
+            if native_options.get("input_route") == "url"
+            else available_methods()[method]["input"],
             "html_sha256": digest(html.encode()),
             "schema": SCHEMA,
             "fixture_url": fixture_url,
             "source_url": source_url,
+            "native_options": native_options,
         },
     }
 
@@ -525,11 +590,13 @@ def normalize(method: str, payload: dict):
         return None
     if method == "extruct":
         item = payload.get("result")
-        return (
-            {f: str(item[f]) for f in FIELDS if item.get(f) is not None}
-            if isinstance(item, dict)
-            else None
-        )
+        if not isinstance(item, dict):
+            return None
+        result = {f: str(item[f]) for f in FIELDS if item.get(f) is not None}
+        stock = [s for s in ("InStock", "OutOfStock") if item.get(s) == s]
+        if not result.get("availability") and len(stock) == 1:
+            result["availability"] = stock[0]
+        return result
     if method == "firecrawl-json":
         item = payload.get("data", {}).get("json")
     elif method == "browserbase-json":
@@ -655,8 +722,12 @@ def access_blocker(row):
         native.get("success") is False or bool(native.get("error"))
     )
     if status == 429 or row.get("state") == "provider_error" or native_error:
-        if re.search(r"invalid (?:api[ _-]?)?key|unauthorized|unauthenticated|"
-                     r"authentication failed|invalid token", message, re.I):
+        if re.search(
+            r"invalid (?:api[ _-]?)?key|unauthorized|unauthenticated|"
+            r"authentication failed|invalid token",
+            message,
+            re.I,
+        ):
             return "authentication"
         if re.search(r"permission denied|access denied|forbidden|not authorized", message, re.I):
             return "permission"
@@ -1097,6 +1168,9 @@ PROJECTION_REGRESSIONS = (
     "scrapfly-available-is-in-stock",
     "scrapfly-sold-out-is-out-of-stock",
     "scrapfly-unknown-stock-stays-unknown",
+    "extruct-canonical-stock-indicator",
+    "extruct-conflicting-indicators-stay-unknown",
+    "extruct-explicit-stock-takes-precedence",
 )
 
 
@@ -1111,12 +1185,20 @@ def check_projection_controls():
             raise ValueError("Native stock projection regression failed")
         if native == "preorder" and any(f in actual for f in ("InStock", "OutOfStock")):
             raise ValueError("Unknown availability was promoted to known stock")
+    for native, expected in (
+        ({"InStock": "InStock"}, "InStock"),
+        ({"OutOfStock": "OutOfStock"}, "OutOfStock"),
+        ({"InStock": "InStock", "OutOfStock": "OutOfStock"}, None),
+        ({"availability": "OutOfStock", "InStock": "InStock"}, "OutOfStock"),
+        ({"InStock": True}, None),
+        ({}, None),
+    ):
+        if normalize("extruct", {"result": native}).get("availability") != expected:
+            raise ValueError("Native baseline stock indicator regression failed")
 
 
 def score_run(home: Path, run: Path, *, reproject=False, output=None):
     """Score the declared population; retain empty predictions for failed calls."""
-    from decimal import InvalidOperation
-
     if output and (
         Path(output).resolve().is_relative_to(ROOT.resolve())
         or Path(output).resolve().is_relative_to((run / "calls").resolve())
@@ -1140,30 +1222,7 @@ def score_run(home: Path, run: Path, *, reproject=False, output=None):
         rows = [
             {**r, "normalized_fields": normalize(r["method"], r.get("response", {}))} for r in rows
         ]
-    scorer = official_scorer(home)
-    original_decimal = scorer["decimal_matching"]
-
-    def price_match(gold, prediction):
-        try:
-            return original_decimal(gold, prediction)
-        except InvalidOperation:
-            # A non-numeric emitted value is a false positive, not an omitted value.
-            return scorer["hard_matching"](gold, prediction)
-
-    scores = {}
-    for method in contract["methods"]:
-        predictions = {
-            r["case_id"]: (r.get("normalized_fields") or {}) if r.get("http_status") == 200 else {}
-            for r in rows
-            if r["method"] == method
-        }
-        per_field = {}
-        for field in FIELDS:
-            matcher = price_match if field == "price" else scorer["hard_matching"]
-            per_field[field] = scorer["evaluate"](
-                truth, predictions, field, matcher, n_bootstrap=1000, show_errors=False
-            )
-        scores[method] = per_field
+    scores = score_rows(home, truth, rows, contract["methods"])
     result = {
         "kind": contract["kind"],
         "cases": len(truth),
@@ -1174,7 +1233,15 @@ def score_run(home: Path, run: Path, *, reproject=False, output=None):
     if reproject:
         result["projection_revision"] = {
             "schema": "native-field-projection/1",
-            "root_cause": "Native sold_out stock label was not mapped to OutOfStock",
+            "root_cause": {
+                method: (
+                    "The upstream baseline emits a canonical stock indicator but can omit "
+                    "availability; project only an unambiguous indicator"
+                    if method == "extruct"
+                    else "Native sold_out stock label was not mapped to OutOfStock"
+                )
+                for method in contract["methods"]
+            },
             "regression_ids": list(PROJECTION_REGRESSIONS),
             "pipeline_sha256": digest(Path(__file__).read_bytes()),
             "original_scores_sha256": digest((run / "scores.json").read_bytes()),
@@ -1194,3 +1261,37 @@ def score_run(home: Path, run: Path, *, reproject=False, output=None):
     else:
         save_json(target, result, exclusive=True)
     return result
+
+
+def score_rows(home, truth, rows, methods):
+    """Use the same upstream scoring boundary for original and repaired views."""
+    from decimal import InvalidOperation
+
+    scorer = official_scorer(home)
+    original_decimal = scorer["decimal_matching"]
+
+    def price_match(gold, prediction):
+        try:
+            return original_decimal(gold, prediction)
+        except InvalidOperation:
+            return scorer["hard_matching"](gold, prediction)
+
+    scores = {}
+    for method in methods:
+        predictions = {
+            r["case_id"]: (r.get("normalized_fields") or {}) if r.get("http_status") == 200 else {}
+            for r in rows
+            if r["method"] == method
+        }
+        scores[method] = {
+            field: scorer["evaluate"](
+                truth,
+                predictions,
+                field,
+                price_match if field == "price" else scorer["hard_matching"],
+                n_bootstrap=1000,
+                show_errors=False,
+            )
+            for field in FIELDS
+        }
+    return scores

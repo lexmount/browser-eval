@@ -1,6 +1,7 @@
 """Public entry point for the structured extraction track."""
 
 import argparse
+import json
 from pathlib import Path
 
 from harness.web_scraper.pipeline import (
@@ -24,6 +25,12 @@ def main(argv=None):
     p.add_argument("--output", type=Path, required=True)
     p = sub.add_parser("serve")
     p.add_argument("--port", type=int, default=8767)
+    p = sub.add_parser("repair-plan")
+    p.add_argument("--content", type=Path, required=True)
+    p.add_argument("--output", type=Path, required=True)
+    p.add_argument("--options", type=Path, required=True)
+    p.add_argument("--fixture-base", required=True)
+    p.add_argument("--cases", type=Path)
     for command in ("probe", "run"):
         p = sub.add_parser(command)
         p.add_argument("--methods", nargs="+", required=True)
@@ -62,6 +69,28 @@ def main(argv=None):
     p.add_argument("output", type=Path)
     p.add_argument("--release", action="store_true")
     p.add_argument("--visual-receipt", type=Path)
+    p = sub.add_parser("package")
+    p.add_argument("report", type=Path)
+    p.add_argument("--output", type=Path, required=True)
+    p.add_argument("--visual-receipt", type=Path, required=True)
+    p = sub.add_parser("review")
+    p.add_argument("--content", type=Path, required=True)
+    p.add_argument("--work", type=Path, required=True)
+    p.add_argument("--model", required=True)
+    p.add_argument("--workers", type=int, default=4)
+    p.add_argument("--limit", type=int)
+    p.add_argument("--prepare-only", action="store_true")
+    p.add_argument("--prior", type=Path, help="Completed audit whose unchanged outputs are reused")
+    p = sub.add_parser("adjudicate")
+    p.add_argument("--prior", type=Path, required=True)
+    p.add_argument("--work", type=Path, required=True)
+    p.add_argument("--rules", type=Path, required=True)
+    p.add_argument("--model", required=True)
+    p.add_argument("--workers", type=int, default=4)
+    p = sub.add_parser("audit-assemble")
+    for flag in ("content", "initial", "supplemental", "adjudication", "output", "profile"):
+        p.add_argument("--" + flag, type=Path, required=True)
+    p.add_argument("--decisions", type=Path, help="Source-bound final reference decisions")
     args = parser.parse_args(argv)
     if args.command == "prepare":
         print("Verified", prepare(args.home)["cases"], "frozen pages")
@@ -73,6 +102,19 @@ def main(argv=None):
         print(create_plan(args.home, args.methods, args.output))
     elif args.command == "serve":
         serve_fixtures(args.home, port=args.port)
+    elif args.command == "repair-plan":
+        from harness.web_scraper.repair import create_plan
+
+        print(
+            create_plan(
+                args.home,
+                args.content,
+                args.output,
+                json.loads(args.options.read_text()),
+                args.fixture_base,
+                json.loads(args.cases.read_text()) if args.cases else None,
+            )
+        )
     elif args.command in ("probe", "run"):
         print(
             probe(
@@ -103,6 +145,37 @@ def main(argv=None):
         from harness.web_scraper.report import check
 
         print(check(args.output, release=args.release, visual_receipt=args.visual_receipt))
+    elif args.command == "package":
+        from harness.web_scraper.report import package
+
+        print(package(args.report, args.output, visual_receipt=args.visual_receipt))
+    elif args.command == "review":
+        from harness.web_scraper.review import prepare as prepare_review
+        from harness.web_scraper.review import run as run_review
+
+        prepare_review(args.home, args.content, args.work, prior=args.prior)
+        if not args.prepare_only:
+            print(run_review(args.work, model=args.model, workers=args.workers, limit=args.limit))
+    elif args.command == "adjudicate":
+        from harness.web_scraper.review import prepare_adjudication
+        from harness.web_scraper.review import run as run_review
+
+        prepare_adjudication(args.prior, args.work, args.rules)
+        print(run_review(args.work, model=args.model, workers=args.workers))
+    elif args.command == "audit-assemble":
+        from harness.web_scraper.review import assemble
+
+        value = assemble(
+            args.home,
+            args.content,
+            args.initial,
+            args.supplemental,
+            args.adjudication,
+            args.output,
+            profile=args.profile,
+            decisions=args.decisions,
+        )
+        print({k: value[k] for k in ("case_count", "result_count", "unresolved")})
 
 
 if __name__ == "__main__":

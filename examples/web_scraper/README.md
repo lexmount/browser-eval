@@ -122,8 +122,10 @@ uv run --frozen python -m harness.web_scraper.example \
   --output /tmp/scraper-cohort-example --mode full-cohort-progress
 ```
 
-The separate release check requires a receipt from browser checks covering the
-core route classes, generated languages, themes and viewport sizes:
+The separate release check requires a receipt from one desktop reader pass over
+each top-level navigation page in each generated language, plus the English notice
+when applicable. Responsive layout, themes and detail interactions belong to
+renderer/component checks when those owners change, rather than every release:
 
 ```sh
 uv run --frozen python -m harness.web_scraper.cli check /absolute/report \
@@ -132,7 +134,34 @@ uv run --frozen python -m harness.web_scraper.cli check /absolute/report \
 
 Building a local report does not upload it or change access permissions.
 
-The current deployed report and immutable version are bound in
-[`publication-target.json`](../../evaluation/web-scraper/publication-target.json).
-Its profile and report-manifest hashes identify the external release; measured
-responses and report prose remain outside Git.
+Keep the deployed site, expected remote version, profile hash and report-manifest
+hash in an external `publication-target.json` beside the report evidence. Select
+that binding explicitly for publication; never borrow a target from another report.
+
+## Failure repairs and field audit
+
+`repair-plan --content CONTENT --options OPTIONS --fixture-base URL --output PLAN`
+freezes the exact failed method/case scope. Optional `--cases CASES` selects a
+subset of current failures. Run the plan through the certified entry above with
+the affected method and a fresh directory. Each completed call is retained on
+resume. Successful parent calls are never selected. Native request options are
+validated before dispatch; source HTML and URL fixtures retain their hashes.
+
+A report selection's `repair` list binds each repair directory and certificate
+SHA-256 in order. Aggregation preserves all physical calls, the final response,
+retry execution time and missing historical timers. It rejects modified source
+snapshots, receipts, calls or parent certificates. This is a failure-only repair,
+not a fresh uniform-settings cohort; comparisons retain that limitation.
+
+`review --content CONTENT --work WORK --model MODEL` creates resumable source and
+native-response audit packets, with literal source citations and complete field
+coverage. `--prior COMPLETED_AUDIT` reviews changed repair results only while
+reusing unchanged judgments. Model evidence audits are labeled separately from
+human annotations. Reference changes require source-grounded adjudication and
+paired scorer controls, not model agreement alone.
+
+The report home exposes all-call mean/P50/P95 and sourced pricing for every method.
+Quality cells link to method/field filters; result rows open lazy evidence dialogs
+and link to full field diagnostics, same-case comparisons and safe source previews.
+Optional `source_screenshots` binds author-provided images by source path/hash;
+their capture timing is disclosed separately from frozen HTML evidence.

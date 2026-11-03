@@ -41,10 +41,10 @@
     },
     {
       "id": "cloudflare-json", "verified_at": "2026-11-03", "currency": "USD",
-      "billing_unit": "browser hour", "rates_per_1000": {},
-      "conversion": "USD 0.025 * mean billable browser seconds per request, per 1,000 requests, after included hours. Client end-to-end seconds are not billable browser seconds.",
-      "commitment": "Workers Paid includes 10 browser hours/month, then USD 0.09/hour. Quick Actions charge browser time only. This cohort did not retain X-Browser-Ms-Used, so an exact USD/1,000 conversion is unavailable.",
-      "sources": ["https://developers.cloudflare.com/browser-run/pricing/"]
+      "billing_unit": "browser hour plus Workers AI input/output tokens", "rates_per_1000": {},
+      "conversion": "After included usage: USD 0.025 * mean billable browser seconds per request per 1,000 requests, plus USD 0.293/M input tokens and USD 2.253/M output tokens for the default hosted model. Client latency is not billable browser time.",
+      "commitment": "Workers Paid includes 10 browser hours/month, then USD 0.09/hour. The JSON endpoint also consumes Workers AI. A fixed per-request price requires browser-time and model-token usage; an unavailable receipt is not a zero charge.",
+      "sources": ["https://developers.cloudflare.com/browser-run/pricing/", "https://developers.cloudflare.com/browser-run/quick-actions/json-endpoint/", "https://developers.cloudflare.com/workers-ai/models/llama-3.3-70b-instruct-fp8-fast/"]
     },
     {
       "id": "oxylabs-json", "verified_at": "2026-11-03", "currency": "USD",
