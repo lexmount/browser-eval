@@ -12,6 +12,32 @@ from harness.web_scraper.repair import compose, create_plan, run
 from harness.web_scraper.review import prepare, reconcile_citations, validate
 
 
+def review_payload(packet, quote="synthetic product"):
+    finding = {
+        "status": "supported",
+        "values": [],
+        "source_quote": quote,
+        "source_locator": "p",
+        "reason": "Synthetic source context",
+    }
+    fields = {field: deepcopy(finding) for field in ("price", "sku", "availability")}
+    return {
+        "cases": [
+            {
+                "case_id": case["case_id"],
+                "main_product": "Synthetic",
+                "source_fields": fields,
+                "reference": fields,
+                "outputs": [
+                    {"method": output["method"], "fields": fields, "projection_issue": ""}
+                    for output in case.get("outputs", [])
+                ],
+            }
+            for case in packet["cases"]
+        ]
+    }
+
+
 @pytest.fixture(autouse=True)
 def native_test_credentials(monkeypatch):
     from harness.web_scraper.pipeline import available_methods
@@ -155,18 +181,20 @@ def test_citation_reconciliation_changes_whitespace_only_and_keeps_raw_opinion(t
     source.write_text("<p>Price: 13,40\u00a0€</p>", encoding="utf-8")
     outline.write_text("Price: 13,40\u00a0€", encoding="utf-8")
     packet = {
-        "cases": [{"case_id": "one", "source_html": str(source), "source_outline": str(outline)}]
-    }
-    finding = {"source_quote": "13,40 €", "reason": "price"}
-    raw = {
         "cases": [
-            {"case_id": "one", "source_fields": {"price": finding}, "reference": {}, "outputs": []}
+            {
+                "case_id": "one",
+                "source_html": str(source),
+                "source_outline": str(outline),
+                "outputs": [],
+            }
         ]
     }
+    raw = review_payload(packet, "13,40 €")
     corrected = reconcile_citations(raw, packet)
     assert corrected["cases"][0]["source_fields"]["price"]["source_quote"] == "13,40\u00a0€"
     assert raw["cases"][0]["source_fields"]["price"]["source_quote"] == "13,40 €"
-    finding["source_quote"] = "13,41 €"
+    raw = review_payload(packet, "13,41 €")
     unchanged = reconcile_citations(raw, packet)
     assert unchanged["cases"][0]["source_fields"]["price"]["source_quote"] == "13,41 €"
     assert "citation_format_corrections" not in unchanged
@@ -898,25 +926,24 @@ def test_compound_citation_cannot_discard_a_fabricated_price(tmp_path):
     source = tmp_path / "source.html"
     source.write_text("Product details. Actual price: 13.40", encoding="utf-8")
     packet = {
-        "cases": [{"case_id": "one", "source_html": str(source), "source_outline": str(source)}]
+        "cases": [
+            {
+                "case_id": "one",
+                "source_html": str(source),
+                "source_outline": str(source),
+                "outputs": [],
+            }
+        ]
     }
     for quote in ("Product details; Price: 999", "Product details; 999"):
-        raw = {
-            "cases": [
-                {
-                    "case_id": "one",
-                    "source_fields": {"price": {"source_quote": quote}},
-                    "reference": {},
-                    "outputs": [],
-                }
-            ]
-        }
+        raw = review_payload(packet, quote)
+        raw["cases"][0]["source_fields"]["price"]["values"] = ["999"]
         result = reconcile_citations(raw, packet)
         assert result["cases"][0]["source_fields"]["price"]["source_quote"] == quote
         assert "citation_format_corrections" not in result
-    raw["cases"][0]["source_fields"]["price"]["source_quote"] = (
-        "Product details; Actual price: 13.40"
-    )
+        with pytest.raises(ValueError, match="not literal"):
+            validate(result, packet)
+    raw = review_payload(packet, "Product details; Actual price: 13.40")
     result = reconcile_citations(raw, packet)
     assert result["cases"][0]["source_fields"]["price"]["source_quote"] == "Actual price: 13.40"
 
@@ -1076,3 +1103,128 @@ def test_initial_audit_can_start_with_already_repaired_results(tmp_path):
     assert result["result_count"] == 3
     assert result["supplemental_results_reviewed"] == 0
     assert {r["basis"] for r in result["results"].values()} == {"original"}
+    from harness.web_scraper.review import run as run_audit
+
+    unchanged = tmp_path / "unchanged-supplement"
+    with (
+        patch("harness.web_scraper.repair.score_rows", return_value={}),
+        patch("harness.web_scraper.review.ReviewerSessions.start") as dispatch,
+    ):
+        supplemental = prepare(home, content, unchanged, prior=initial)
+        assert supplemental["result_count"] == 0 and supplemental["packets"] == []
+        assert run_audit(unchanged, model="synthetic")["packets"] == 0
+        again = assemble(
+            home,
+            content,
+            initial,
+            unchanged,
+            tmp_path / "adjudication",
+            tmp_path / "again.json",
+            profile=home / "profile.json",
+        )
+        assert again["supplemental_results_reviewed"] == 0
+        dispatch.assert_not_called()
+
+
+@pytest.mark.parametrize("malformed", ["null", "list", "missing-fields"])
+def test_malformed_raw_review_is_quarantined_and_resume_completes(tmp_path, malformed):
+    from types import SimpleNamespace
+
+    from harness.web_scraper.review import run as run_audit
+
+    home = create(tmp_path / "example")
+    work = tmp_path / "review"
+    manifest = prepare(home, home / "content.json", work)
+    packet = read_json(Path(manifest["packets"][0]["path"]))
+    raw = work / "raw/000.json"
+    bad = {
+        "null": None,
+        "list": [],
+        "missing-fields": {"cases": [{"case_id": packet["cases"][0]["case_id"]}]},
+    }[malformed]
+    save_json(raw, bad)
+    original = raw.read_bytes()
+
+    def start(command, **kwargs):
+        save_json(Path(command[command.index("--output-last-message") + 1]), review_payload(packet))
+        return SimpleNamespace(returncode=0)
+
+    with (
+        patch("harness.web_scraper.review.ReviewerSessions.start", side_effect=start) as dispatch,
+        patch("harness.web_scraper.review.ReviewerSessions.communicate"),
+    ):
+        result = run_audit(work, model="synthetic", workers=1)
+        assert result["needs_correction"] == [] and result["cases"] == 3
+        assert dispatch.call_count == 1
+        assert len(list((work / "invalid").glob("*.json"))) == 1
+        assert next((work / "invalid").glob("*.json")).read_bytes() == original
+        assert (work / "reviews/000.json").exists()
+        run_audit(work, model="synthetic", workers=1)
+        assert dispatch.call_count == 1
+
+
+def test_supplemental_review_selects_only_changed_repaired_call(tmp_path):
+    from harness.web_scraper.review import assemble
+
+    home, source, profile, rows = parent_inputs(tmp_path, success_count=1)
+    first = tmp_path / "first-repair"
+    initial = tmp_path / "initial"
+    content = tmp_path / "content-first.json"
+    success = {
+        "state": "response_received",
+        "http_status": 200,
+        "response": {"result": {"sku": "recovered"}},
+    }
+    failure = {
+        "state": "response_received",
+        "http_status": 500,
+        "response": {"message": "Transient failure"},
+    }
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch("harness.web_scraper.repair.score_rows", return_value={}),
+    ):
+        with patch("harness.web_scraper.repair.provider_call", side_effect=[success, failure]):
+            run(home, profile, "cloudflare-json", first)
+        revisions = [
+            {"path": str(first), "sha256": digest((first / "certificate.json").read_bytes())}
+        ]
+        save_json(content, {"evidence_runs": [{"run": str(source), "repair": revisions}]})
+        manifest = prepare(home, content, initial)
+        for entry in manifest["packets"]:
+            packet = read_json(Path(entry["path"]))
+            save_json(initial / "reviews" / Path(entry["path"]).name, review_payload(packet))
+        save_json(initial / "reviewer.json", {"model": "synthetic"})
+        second_profile = tmp_path / "second-plan.json"
+        create_plan(home, content, second_profile, {}, "https://frozen.example")
+        second = tmp_path / "second-repair"
+        with patch("harness.web_scraper.repair.provider_call", return_value=success) as extract:
+            run(home, second_profile, "cloudflare-json", second)
+        assert extract.call_count == 1
+        revisions.append(
+            {"path": str(second), "sha256": digest((second / "certificate.json").read_bytes())}
+        )
+        save_json(content, {"evidence_runs": [{"run": str(source), "repair": revisions}]})
+        supplement = tmp_path / "supplement"
+        supplemental = prepare(home, content, supplement, prior=initial)
+        assert supplemental["case_count"] == supplemental["result_count"] == 1
+        packet = read_json(Path(supplemental["packets"][0]["path"]))
+        assert packet["cases"][0]["case_id"] == rows[-1]["case_id"]
+        save_json(supplement / "reviews/000.json", review_payload(packet))
+        adjudication = tmp_path / "adjudication"
+        save_json(
+            adjudication / "manifest.json",
+            {"bindings": {}, "packets": [], "case_count": 0, "result_count": 0},
+        )
+        result = assemble(
+            home,
+            content,
+            initial,
+            supplement,
+            adjudication,
+            tmp_path / "complete.json",
+            profile=home / "profile.json",
+        )
+    assert result["result_count"] == 3 and result["supplemental_results_reviewed"] == 1
+    assert [r["basis"] for r in result["results"].values()].count("supplemental") == 1

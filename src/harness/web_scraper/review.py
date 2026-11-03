@@ -87,13 +87,10 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
     outputs = {cid: [] for cid in truth}
     methods = []
     bindings = {str(truth_path): digest(truth_path.read_bytes())}
+    prior_identities = {}
     if prior is not None:
-        prior_manifest = read_json(prior / "manifest.json")
-        for entry in prior_manifest["packets"]:
-            packet = Path(entry["path"])
-            if digest(packet.read_bytes()) != entry["sha256"]:
-                raise ValueError("Prior audit packet changed")
-            validate(read_json(prior / "reviews" / packet.name), read_json(packet))
+        prior_inputs, _, _ = completed(prior)
+        prior_identities = review_execution_identities(prior, prior_inputs)
         bindings[str(prior / "manifest.json")] = digest((prior / "manifest.json").read_bytes())
     for selection in model["evidence_runs"]:
         run = Path(selection["run"])
@@ -112,7 +109,7 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
                     bindings[str(path)] = digest(path.read_bytes())
         bindings[str(run / "manifest.json")] = digest((run / "manifest.json").read_bytes())
         for row in rows:
-            if prior is not None and not row.get("repair_run_id"):
+            if prior is not None and not needs_supplemental_review(row, prior_identities):
                 continue
             method = row["method"]
             if method not in methods:
@@ -183,7 +180,9 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
     return manifest
 
 
-def validate(result, packet):
+def validate_structure(result):
+    if not isinstance(result, dict):
+        raise ValueError("Review schema type mismatch")
     validate_schema({k: v for k, v in result.items() if k != "citation_format_corrections"}, SCHEMA)
     if "citation_format_corrections" in result:
         validate_schema(
@@ -199,6 +198,10 @@ def validate(result, packet):
                 },
             },
         )
+
+
+def validate(result, packet):
+    validate_structure(result)
     expected = {r["case_id"]: r for r in packet["cases"]}
     rows = result.get("cases", [])
     if len(rows) != len(expected) or {r["case_id"] for r in rows} != set(expected):
@@ -251,6 +254,7 @@ def literal_fragments(quote, sources):
 
 def reconcile_citations(result, packet):
     """Retain raw opinions and select literal excerpts without changing judgments."""
+    validate_structure(result)
     result = copy.deepcopy(result)
     expected = {r["case_id"]: r for r in packet["cases"]}
     corrections = []
@@ -408,6 +412,34 @@ def original_execution_bindings(work):
     return identities
 
 
+def review_execution_identities(work, inputs):
+    items = {
+        (output["method"], cid): output
+        for cid, case in inputs.items()
+        for output in case["outputs"]
+    }
+    legacy = (
+        original_execution_bindings(work)
+        if any("execution_identity" not in item for item in items.values())
+        else {}
+    )
+    return {key: item.get("execution_identity", legacy.get(key)) for key, item in items.items()}
+
+
+def review_matches_execution(row, identity):
+    # Retain the full-row format used by already completed supplemental packets.
+    return identity in {
+        execution_identity(row),
+        digest(json.dumps(row, sort_keys=True, ensure_ascii=False).encode()),
+    }
+
+
+def needs_supplemental_review(row, identities):
+    return bool(row.get("repair_run_id")) and not review_matches_execution(
+        row, identities.get((row["method"], row["case_id"]))
+    )
+
+
 def assemble(
     home, content, initial, supplemental, adjudication, output, *, profile, decisions=None
 ):
@@ -440,25 +472,11 @@ def assemble(
     changed_keys = {
         (o["method"], cid) for cid, case in changed_inputs.items() for o in case["outputs"]
     }
-    original_items = {
-        (output["method"], cid): output
-        for cid, case in original_inputs.items()
-        for output in case["outputs"]
-    }
-    original_executions = (
-        original_execution_bindings(initial)
-        if any("execution_identity" not in item for item in original_items.values())
-        else {}
-    )
-    initial_identities = {
-        key: item.get("execution_identity", original_executions.get(key))
-        for key, item in original_items.items()
-    }
+    initial_identities = review_execution_identities(initial, original_inputs)
     supplemental_keys = {
         (row["method"], row["case_id"])
         for row in rows
-        if row.get("repair_run_id")
-        and initial_identities.get((row["method"], row["case_id"])) != execution_identity(row)
+        if needs_supplemental_review(row, initial_identities)
     }
     if original_keys != expected or changed_keys != supplemental_keys:
         raise ValueError("Original or supplemental review scope is incomplete")
@@ -557,18 +575,10 @@ def assemble(
         if item["native_response"] != row.get("response"):
             raise ValueError("Reviewed native response differs from current result")
         if supplemental_result:
-            # Existing supplemental packets used the complete serialized logical row.
-            identity = item["execution_identity"]
-            valid = {
-                execution_identity(row),
-                digest(json.dumps(row, sort_keys=True, ensure_ascii=False).encode()),
-            }
-            if identity not in valid:
+            if not review_matches_execution(row, item["execution_identity"]):
                 raise ValueError("Supplemental audit call identity differs")
-        elif initial_identities.get((method, cid)) != execution_identity(row):
+        elif not review_matches_execution(row, initial_identities.get((method, cid))):
             raise ValueError("Original audit call identity differs")
-        elif item.get("execution_identity", execution_identity(row)) != execution_identity(row):
-            raise ValueError("Original packet call identity differs")
         current = {**row, "normalized_fields": normalize(method, row.get("response", {}))}
         opinions = changed_opinions if supplemental_result else original_opinions
         opinion = next(o for o in opinions[cid]["outputs"] if o["method"] == method)
