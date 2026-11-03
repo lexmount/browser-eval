@@ -14,6 +14,8 @@ HAN = re.compile(r"[\u3400-\u9fff]")
 # External report instances selected with `--profile`; none may live under `evaluation/`.
 REPORT_INSTANCE_NAMES = frozenset({"current-report.json", "current-run.json", "current-comparison.json"})
 CATALOG_RENDERERS = (
+    "harness/web_search/comparison.py",
+    "harness/web_search/delivery.py",
     "harness/web_search/report.py",
     "harness/web_search/pages.py",
     "harness/web_search/relevance.py",

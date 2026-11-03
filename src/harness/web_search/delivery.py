@@ -14,6 +14,7 @@ from bs4 import BeautifulSoup
 
 from harness.record_io import bytes_sha256
 from harness.web_search.core import write_json
+from harness.web_search.messages import zh_text
 
 BRIDGE = r"""
 const nativeFetch=window.fetch.bind(window);
@@ -76,7 +77,7 @@ async function loadSavedPage(){
    if(!download){download=document.createElement('a');download.dataset.evidenceDownload='';target.before(download)}
    if(download.href.startsWith('blob:'))URL.revokeObjectURL(download.href);
    download.href=URL.createObjectURL(new Blob([bytes],{type:'application/octet-stream'}));
-   download.download=path.split('/').pop();download.textContent=document.documentElement.lang.startsWith('zh')?'下载原始响应':'Download original response';
+   download.download=path.split('/').pop();download.textContent=document.documentElement.lang.startsWith('zh')?'""" + zh_text("Download original response") + r"""':'Download original response';
   }
  }catch(e){target.textContent='Unable to load saved evidence: '+e.message}
 }
@@ -152,7 +153,7 @@ def export(source, destination):
     shell.main.clear()
     pre = shell.new_tag("pre")
     pre["data-delivery-target"] = ""
-    pre.string = "Loading saved evidence… / 正在加载证据…"
+    pre.string = "Loading saved evidence… / " + zh_text("Loading saved evidence…")
     shell.main.append(pre)
     # Drop the report's listeners until the requested page has been installed.
     for script in shell.select("body script, [data-report-language-entry]"):
