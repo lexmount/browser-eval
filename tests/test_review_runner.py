@@ -117,3 +117,35 @@ def test_stop_kills_running_sessions_and_refuses_late_starts(tmp_path):
     assert sessions.stopping and process.returncode == -9
     assert wait_until_gone(grandchild)
     assert sessions.start(python("raise SystemExit('must not start')")) is None
+
+
+def fail_communicate(monkeypatch, error):
+    def communicate(process, *args, **kwargs):
+        interrupted.append(process)
+        raise error
+
+    interrupted = []
+    monkeypatch.setattr(subprocess.Popen, "communicate", communicate)
+    return interrupted
+
+
+def test_foreground_interrupt_kills_and_reaps_the_reviewer(monkeypatch):
+    interrupted = fail_communicate(monkeypatch, KeyboardInterrupt())
+    with pytest.raises(KeyboardInterrupt):
+        run_reviewer(python("import time; time.sleep(5)"), timeout=30)
+    assert [process.returncode for process in interrupted] == [-9]
+
+
+def test_session_communication_error_kills_the_whole_group_and_propagates(tmp_path, monkeypatch):
+    started = tmp_path / "started"
+    sessions = ReviewerSessions()
+    process = sessions.start([*python(PARENT_WITH_CHILD), str(started)],
+                             stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    _, grandchild = read_started(started)
+    error = OSError("communication failed")
+    fail_communicate(monkeypatch, error)
+    with pytest.raises(OSError) as raised:
+        sessions.communicate(process, None, timeout=30)
+    assert raised.value is error
+    assert process.returncode == -9
+    assert wait_until_gone(grandchild)
