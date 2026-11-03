@@ -5,10 +5,11 @@ import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 
 const rendered = spawnSync('uv', ['run', '--frozen', '--no-sync', 'python', '-c',
-  'import json; from harness.web_scraper.report_ui import JS; print(json.dumps(JS))'],
+  'import json; from harness.web_scraper.report_ui import JS; from tests.web_scraper.sorting_fixture import generated_sorting_tables; print(json.dumps({"js":JS,"tables":generated_sorting_tables()}))'],
   {cwd: fileURLToPath(new URL('../..', import.meta.url)), encoding: 'utf8'});
 assert.equal(rendered.status, 0, rendered.stderr);
-const js = JSON.parse(rendered.stdout);
+const produced = JSON.parse(rendered.stdout);
+const js = produced.js;
 const payload = js.match(/const REPORT_MESSAGES = (.*);/)[1];
 const catalog = JSON.parse(payload);
 let focused;
@@ -43,6 +44,14 @@ const sorted = [9, 0.003, null, 0].map(value => {
 });
 const tbody = {rows: [...sorted], append(row) { this.rows.splice(this.rows.indexOf(row), 1); this.rows.push(row); }};
 const table = {tHead: {rows: [{cells: [head]}]}, tBodies: [tbody]};
+const generatedTables = produced.tables.map(spec => {
+  const heads = spec.rows[0].map((_, i) => new Element('th', String(i)));
+  const generatedRows = spec.rows.map(row => ({cells: row.map(cell => {
+    const e = new Element('td', cell.text); if (cell.sort !== null) e.dataset.sort = cell.sort; return e;
+  })}));
+  const generatedBody = {rows: generatedRows, append(row) {this.rows.splice(this.rows.indexOf(row), 1); this.rows.push(row);}};
+  return {tHead: {rows: [{cells: heads}]}, tBodies: [generatedBody], column: spec.column};
+});
 const dialog = new Element('dialog');
 const body = new Element('div');
 const close = new Element('button', 'Close');
@@ -69,7 +78,7 @@ const context = vm.createContext({URL, URLSearchParams, Map, Error, String, Numb
     addEventListener: (name, action) => { documentListeners[name] = action; },
     getElementById: id => id === 'diagnosis' ? dialog : null,
     querySelector(selector) { return selector === '[data-result-controls]' ? form : selector === '[data-result-count]' ? count : null; },
-    querySelectorAll(selector) { return selector === 'table[data-sortable]' ? [table] : selector === 'tr[data-status]' ? rows : []; },
+    querySelectorAll(selector) { return selector === 'table[data-sortable]' ? [table, ...generatedTables] : selector === 'tr[data-status]' ? rows : []; },
   },
 });
 vm.runInContext(js, context);
@@ -88,6 +97,16 @@ assert.deepEqual(tbody.rows.map(x => x.cells[0].textContent), ['0', '0.003', '9'
 head.children[0].listeners.click();
 assert.deepEqual(tbody.rows.map(x => x.cells[0].textContent), ['9', '0.003', '0', '—Scored 0/2; excluded 2']);
 assert.equal(head.getAttribute('aria-sort'), 'descending');
+for (const [index, generated] of generatedTables.entries()) {
+  const expected = [[2.001, 10.001], [0, 2, 10], [0, 2, 12]][index];
+  const button = generated.tHead.rows[0].cells[generated.column].children[0];
+  button.listeners.click();
+  const values = () => generated.tBodies[0].rows.map(row => Number(row.cells[generated.column].dataset.sort));
+  assert.deepEqual(values(), expected, 'Generated numeric cells must sort numerically');
+  button.listeners.click();
+  assert.deepEqual(values(), [...expected].reverse());
+}
+
 await documentListeners.click({target: button});
 assert.equal(dialog.open, true);
 assert.equal(focused, close);

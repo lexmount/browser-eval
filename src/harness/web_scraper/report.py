@@ -144,7 +144,16 @@ CSS += ".diagram{overflow:auto;background:#fff;border:1px solid var(--line);bord
 CSS += INTERACTION_CSS
 
 
-def table(headers, rows, *, inventory=False, attrs=""):
+def table(headers, rows, *, inventory=False, attrs="", sort_values=None):
+    sort_values = sort_values or {}
+    if any(len(values) != len(rows) for values in sort_values.values()):
+        raise ValueError("Numeric sort population differs from table rows")
+
+    def cell(value, row, column):
+        number = sort_values.get(column, [None] * len(rows))[row]
+        attribute = ' data-sort="' + esc(str(number)) + '"' if number is not None else ""
+        return "<td" + attribute + ">" + str(value) + "</td>"
+
     return (
         '<div class="table-wrap'
         + (" inventory" if inventory else "")
@@ -154,7 +163,8 @@ def table(headers, rows, *, inventory=False, attrs=""):
         + "".join("<th>" + h + "</th>" for h in headers)
         + "</tr></thead><tbody>"
         + "".join(
-            "<tr>" + "".join("<td>" + str(c) + "</td>" for c in row) + "</tr>" for row in rows
+            "<tr>" + "".join(cell(c, i, j) for j, c in enumerate(row)) + "</tr>"
+            for i, row in enumerate(rows)
         )
         + "</tbody></table></div>"
     )
@@ -607,6 +617,7 @@ def operating_metrics(methods, rows, prices, lang, labels):
             message("method_timed_n_untimed_n_mean_s_p50_s_p95_s_quoted_usd_1_000_call", lang),
             records,
             attrs='data-operating-metrics="true" data-sortable',
+            sort_values={column: [int(row[column]) for row in records] for column in (1, 2)},
         ),
         "html.parser",
     )
@@ -1518,10 +1529,12 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 encoding="utf-8",
             )
             compared = []
+            case_rows = []
             for method in methods:
                 row = next((r for r in rows if r["case_id"] == cid and r["method"] == method), None)
                 if row is None:
                     continue
+                case_rows.append(row)
                 cells = [
                     f'<a href="result-{method}-{cid}.html">{esc(names.get(method, method))}</a>'
                 ]
@@ -1563,6 +1576,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                     ],
                     compared,
                     attrs='data-case-comparison="true" data-sortable',
+                    sort_values={5: [row.get("elapsed_seconds") for row in case_rows]},
                 )
                 + "</article>"
             )

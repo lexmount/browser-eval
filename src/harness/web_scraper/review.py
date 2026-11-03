@@ -497,6 +497,17 @@ def assemble(
     }
     if set(adjudicated_inputs) != disputed:
         raise ValueError("Disputed references need complete adjudication")
+    if disputed:
+        prior = read_json(Path(initial) / "manifest.json")
+        bound = read_json(Path(adjudication) / "manifest.json")["bindings"]
+        for entry in prior["packets"]:
+            packet = Path(entry["path"])
+            review = Path(initial).resolve() / "reviews" / packet.name
+            if bound.get(str(packet)) != entry["sha256"] or bound.get(str(review)) != digest(
+                review.read_bytes()
+            ):
+                raise ValueError("Adjudication belongs to a different original audit")
+
     references = copy.deepcopy(truth)
     changes, excluded, sources = [], {}, {}
     final_decisions = {}

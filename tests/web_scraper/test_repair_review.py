@@ -1443,3 +1443,51 @@ def test_complete_field_exclusion_assembles_and_builds_unavailable_metrics(tmp_p
         tmp_path / "audited-report", home / "content.json", home=home, profile=home / "profile.json"
     )
     check(tmp_path / "audited-report")
+
+
+def test_adjudication_cannot_be_mixed_with_another_valid_initial_audit(tmp_path, monkeypatch):
+    from harness.web_scraper.review import assemble, completed, prepare_adjudication
+
+    home = create(tmp_path / "example")
+    audits = []
+    for name in ("audit-a", "audit-b"):
+        work = tmp_path / name
+        manifest = prepare(home, home / "content.json", work)
+        for entry in manifest["packets"]:
+            payload = review_payload(read_json(Path(entry["path"])))
+            for case in payload["cases"]:
+                case["reference"]["sku"].update(status="ambiguous", reason=name)
+            save_json(work / "reviews" / Path(entry["path"]).name, payload)
+        save_json(work / "reviewer.json", {"model": "synthetic-test"})
+        completed(work)
+        audits.append(work)
+    adjudication = tmp_path / "adjudication"
+    manifest = prepare_adjudication(audits[0], adjudication, home / "profile.json")
+    for entry in manifest["packets"]:
+        payload = review_payload(read_json(Path(entry["path"])))
+        save_json(adjudication / "reviews" / Path(entry["path"]).name, payload)
+    completed(adjudication)
+    save_json(
+        tmp_path / "supplemental/manifest.json",
+        {"bindings": {}, "packets": [], "case_count": 0, "result_count": 0},
+    )
+    monkeypatch.chdir(tmp_path)
+    args = (home, home / "content.json")
+    assemble(
+        *args,
+        audits[0].relative_to(tmp_path),
+        tmp_path / "supplemental",
+        adjudication,
+        tmp_path / "valid.json",
+        profile=home / "profile.json",
+    )
+    with pytest.raises(ValueError, match="Adjudication belongs to a different original audit"):
+        assemble(
+            *args,
+            audits[1],
+            tmp_path / "supplemental",
+            adjudication,
+            tmp_path / "mixed.json",
+            profile=home / "profile.json",
+        )
+    assert not (tmp_path / "mixed.json").exists()
