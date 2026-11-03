@@ -295,6 +295,7 @@ dependencies = [
     { name = "beautifulsoup4" },
     { name = "fastcdc" },
     { name = "idna" },
+    { name = "markdown-it-py" },
     { name = "python-dotenv" },
     { name = "soupsieve" },
 ]
@@ -368,6 +369,7 @@ requires-dist = [
     { name = "json-repair", marker = "extra == 'browser-use-eval'", specifier = ">=0.54,<1" },
     { name = "langchain-community", marker = "extra == 'oss-eval'", specifier = "==0.3.30" },
     { name = "markdown", marker = "extra == 'webmainbench-eval'", specifier = ">=3.7,<4" },
+    { name = "markdown-it-py", specifier = "==4.2.0" },
     { name = "openai", marker = "extra == 'webmainbench-eval'", specifier = ">=2.8,<4" },
     { name = "openpyxl", marker = "extra == 'oss-eval'", specifier = "==3.1.5" },
     { name = "pillow", marker = "extra == 'browser-use-eval'", specifier = ">=11,<13" },
