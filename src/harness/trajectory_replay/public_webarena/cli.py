@@ -10,6 +10,8 @@ from collections.abc import Iterator
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
+from harness.environments.browser import DEFAULT_BROWSER_IMAGES
+from harness.trajectory_replay.participants import DEFAULT_DIAGNOSIS_MODEL
 from harness.trajectory_replay.public_webarena.config import (
     configure_browser_docker_host,
     load_runtime_env,
@@ -75,7 +77,7 @@ def main() -> None:
     parser.add_argument("--cpus", type=float, default=2.0)
     parser.add_argument("--memory", default="2g")
     parser.add_argument("--llm-diagnostics", action="store_true")
-    parser.add_argument("--diagnosis-model", default="gpt-5.6-sol")
+    parser.add_argument("--diagnosis-model", default=DEFAULT_DIAGNOSIS_MODEL)
     parser.add_argument("--diagnosis-reasoning-effort", default="low")
     parser.add_argument("--webarena-config")
     parser.add_argument(
@@ -91,7 +93,7 @@ def main() -> None:
         "--browser-docker-host",
         help="absolute unix:// socket for measured browser containers",
     )
-    parser.add_argument("--engines", default="chromium,moli")
+    parser.add_argument("--engines", default=",".join(DEFAULT_BROWSER_IMAGES))
     parser.add_argument("--qualification-run", action="store_true")
     parser.add_argument("--qualification-pass-index", type=int)
     parser.add_argument("--qualification-required-passes", type=int)

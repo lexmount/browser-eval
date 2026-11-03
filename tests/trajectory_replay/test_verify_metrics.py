@@ -45,3 +45,38 @@ def test_independent_audit_detects_tampered_aggregate_and_paired_operands(tmp_pa
     path.write_text(json.dumps(summary), encoding="utf-8")
     with pytest.raises(ValueError, match="required metric set"):
         module.verify(tmp_path)
+
+
+def test_independent_audit_follows_a_larger_participant_set(tmp_path):
+    script = Path(__file__).resolve().parents[2] / "examples/trajectory_replay/verify_metrics.py"
+    spec = importlib.util.spec_from_file_location("verify_metrics", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    engines = ("chromium", "moli", "obscura")
+    rows = [
+        {
+            "engine": engine,
+            "task_id": "a",
+            "attempt": 1,
+            "status": "pass",
+            "duration_ms": duration,
+            "resource": {"memory_peak_bytes": memory},
+        }
+        for engine, duration, memory in zip(engines, (100, 50, 25), (200, 80, 40), strict=True)
+    ]
+    (tmp_path / "attempts.jsonl").write_text("\n".join(map(json.dumps, rows)), encoding="utf-8")
+    summary = summarize_attempts(rows, engines=engines)
+    path = tmp_path / "summary.json"
+    path.write_text(json.dumps(summary), encoding="utf-8")
+    assert module.verify(tmp_path)["status"] == "pass"
+
+    relative = summary["resource_comparison"]["relative_ratios"]["by_engine"]
+    relative["obscura"]["duration_ms"]["values"][0]["numerator"] = 24
+    path.write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(ValueError, match="numerator"):
+        module.verify(tmp_path)
+
+    summary = summarize_attempts(rows[:2], engines=engines[:2])
+    path.write_text(json.dumps(summary), encoding="utf-8")
+    with pytest.raises(ValueError, match="required provider set"):
+        module.verify(tmp_path)

@@ -11,6 +11,9 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from harness.environments.browser import DEFAULT_BROWSER_IMAGES
+from harness.trajectory_replay.participants import engine_label, summary_engines
+
 ASSETS = Path(__file__).with_name("assets")
 REPORT_CSS = (ASSETS / "curated-report.css").read_text(encoding="utf-8")
 SUITE_FILTER_JS = (ASSETS / "suite-filter.js").read_text(encoding="utf-8")
@@ -105,15 +108,49 @@ def _display_number(value: float | int | None, divisor: float = 1.0) -> float | 
     return float(f"{value / divisor:.2f}")
 
 
+def _engines(summary: dict[str, Any]) -> tuple[str, ...]:
+    """Participants in evidence order; a summary with no results keeps the registry's."""
+    return summary_engines(summary) or tuple(DEFAULT_BROWSER_IMAGES)
+
+
+def _names(engines: tuple[str, ...]) -> str:
+    labels = [engine_label(engine) for engine in engines]
+    return " 与 ".join(filter(None, ("、".join(labels[:-1]), labels[-1])))
+
+
+def _all_parties(engines: tuple[str, ...]) -> str:
+    return "双方" if len(engines) == 2 else "所有 Provider "
+
+
+def _provider_count(engines: tuple[str, ...]) -> str:
+    return "两个" if len(engines) == 2 else f" {len(engines)} 个"
+
+
+def _ratio_pairs(
+    summary: dict[str, Any], engines: tuple[str, ...]
+) -> list[tuple[str, str, dict[str, Any]]]:
+    """Return (comparison, baseline, per-task ratio metrics) for every compared participant."""
+    comparison = summary.get("resource_comparison") or {}
+    if len(engines) == 2:
+        paired = comparison.get("paired_ratios") or {}
+        return [(engines[1], engines[0], paired.get("metrics") or {})]
+    by_engine = (comparison.get("relative_ratios") or {}).get("by_engine") or {}
+    return [(engine, engines[0], by_engine.get(engine) or {}) for engine in engines[1:]]
+
+
+def _pair_label(comparison: str, baseline: str) -> str:
+    return f"{engine_label(comparison)} / {engine_label(baseline)}"
+
+
 def _absolute_metric_cell(
     value: float | int | None,
-    other: float | int | None,
+    others: tuple[float | int | None, ...],
     divisor: float,
 ) -> str:
     css_class = ""
-    if (
-        _comparison_class(_display_number(value, divisor), _display_number(other, divisor))
-        == "better"
+    shown = _display_number(value, divisor)
+    if others and all(
+        _comparison_class(shown, _display_number(other, divisor)) == "better" for other in others
     ):
         css_class = ' class="better"'
     return f"<td{css_class}>{_e(_show(value, divisor))}</td>"
@@ -130,35 +167,40 @@ def _grouped_resource_table(
     metrics: tuple[tuple[str, str, float, str], ...],
     caption: str,
 ) -> str:
-    engines = (summary.get("resource_comparison") or {}).get("by_engine") or {}
+    by_engine = (summary.get("resource_comparison") or {}).get("by_engine") or {}
+    engines = _engines(summary)
     body = []
     for key, label, divisor, unit in metrics:
-        chromium = (engines.get("chromium") or {}).get(key) or {}
-        moli = (engines.get("moli") or {}).get(key) or {}
         cells = [f'<td data-label="指标">{_e(f"{label} ({unit})")}</td>']
         for stat in ("p50", "p95", "mean"):
-            c_value = _numeric_stat(chromium, stat)
-            m_value = _numeric_stat(moli, stat)
-            cells.append(_absolute_metric_cell(c_value, m_value, divisor))
-            cells.append(_absolute_metric_cell(m_value, c_value, divisor))
+            values = {
+                engine: _numeric_stat((by_engine.get(engine) or {}).get(key) or {}, stat)
+                for engine in engines
+            }
+            for engine in engines:
+                others = tuple(values[other] for other in engines if other != engine)
+                cells.append(_absolute_metric_cell(values[engine], others, divisor))
         body.append("<tr>" + "".join(cells) + "</tr>")
+    group_headers = "".join(
+        f'<th colspan="{len(engines)}">{label}</th>' for label in ("P50", "P95", "平均值")
+    )
+    engine_headers = "".join(
+        f"<th>{engine_label(engine)}</th>" for _ in range(3) for engine in engines
+    )
     return (
         f'<div class="table-wrap resource-summary"><table><caption>{_e(caption)}</caption>'
-        '<thead><tr><th rowspan="2">指标</th><th colspan="2">P50</th><th colspan="2">P95</th><th colspan="2">平均值</th></tr>'
-        "<tr><th>Chromium</th><th>Moli</th><th>Chromium</th><th>Moli</th>"
-        "<th>Chromium</th><th>Moli</th></tr></thead><tbody>"
+        f'<thead><tr><th rowspan="2">指标</th>{group_headers}</tr>'
+        f"<tr>{engine_headers}</tr></thead><tbody>"
         + "".join(body)
         + "</tbody></table></div>"
     )
 
 
 def _paired_ratio_table(
-    summary: dict[str, Any],
+    values: dict[str, Any],
     metrics: tuple[tuple[str, str, float, str], ...],
     caption: str,
 ) -> str:
-    paired = (summary.get("resource_comparison") or {}).get("paired_ratios") or {}
-    values = paired.get("metrics") or {}
     rows = []
     for key, label, _divisor, _unit in metrics:
         metric = values.get(key) or {}
@@ -182,9 +224,22 @@ def _paired_ratio_table(
 
 
 def _duration_ratio_audit(summary: dict[str, Any]) -> str:
-    paired = (summary.get("resource_comparison") or {}).get("paired_ratios") or {}
-    metric = (paired.get("metrics") or {}).get("duration_ms") or {}
-    values = metric.get("values") or []
+    pairs = _ratio_pairs(summary, _engines(summary))
+    return "".join(
+        _duration_pair_audit(summary, comparison, baseline, metrics, labelled=len(pairs) > 1)
+        for comparison, baseline, metrics in pairs
+    )
+
+
+def _duration_pair_audit(
+    summary: dict[str, Any],
+    comparison: str,
+    baseline: str,
+    metrics: dict[str, Any],
+    *,
+    labelled: bool,
+) -> str:
+    values = (metrics.get("duration_ms") or {}).get("values") or []
     if not values:
         return ""
     p95_rank = max(1, (95 * len(values) + 99) // 100)
@@ -215,16 +270,18 @@ def _duration_ratio_audit(summary: dict[str, Any]) -> str:
                 "P95 取值" if rank == p95_rank else "",
             ]
         )
+    scope = f"{_pair_label(comparison, baseline)} " if labelled else ""
     return (
-        "<details><summary>查看逐任务耗时比值的完整计算审计</summary>"
-        f"<p>脚本先对每个计入成功交集的同任务计算 <code>Moli 耗时 / Chromium 耗时</code>，再排序。"
+        f"<details><summary>查看{scope}逐任务耗时比值的完整计算审计</summary>"
+        "<p>脚本先对每个计入成功交集的同任务计算 "
+        f"<code>{engine_label(comparison)} 耗时 / {engine_label(baseline)} 耗时</code>，再排序。"
         f"本轮 <code>n={len(values)}</code>，nearest-rank P95 的序号为 "
         f"<code>ceil(0.95 × {len(values)}) = {p95_rank}</code>；因此表中的 P95 是排序后第 "
         f"{p95_rank} 个配对比值。</p>"
         + _table(
-            ["排序", "任务", "Chromium", "Moli", "逐任务比值", "统计位置"],
+            ["排序", "任务", engine_label(baseline), engine_label(comparison), "逐任务比值", "统计位置"],
             rows,
-            "耗时配对比值原始序列",
+            f"{scope}耗时配对比值原始序列",
         )
         + "</details>"
     )
@@ -245,10 +302,12 @@ def _shell(
     manifest: dict[str, Any],
     active: str,
     body: str,
+    engines: tuple[str, ...],
     *,
     detail_title: str = "",
     back_anchor: str = "",
 ) -> str:
+    names = _names(engines)
     label = next(p[1] for p in PAGES if p[0] == active)
     index = next(i for i, p in enumerate(PAGES) if p[0] == active)
     prev_link = (
@@ -261,34 +320,17 @@ def _shell(
     )
     header = (
         f'<div class="case-header"><a href="{REPORT_STEM}-analysis.html#{_e(back_anchor)}">← 返回逐任务分析</a>'
-        f'<a href="{REPORT_STEM}.html">Chromium / Moli 评测</a><span class="muted">运行 {_e(manifest.get("run_id", "unknown"))}</span></div>'
+        f'<a href="{REPORT_STEM}.html">{" / ".join(engine_label(engine) for engine in engines)} 评测</a><span class="muted">运行 {_e(manifest.get("run_id", "unknown"))}</span></div>'
         if detail_title
-        else f'<div class="brand"><div class="eyebrow">Lexmount Browser Provider Evaluation</div><h1>Chromium 与 Moli 浏览器工具调用评测</h1><div class="muted">运行编号：{_e(manifest.get("run_id", "unknown"))} · 第 {index + 1}/{len(PAGES)} 页</div></div>{_nav(active)}'
+        else f'<div class="brand"><div class="eyebrow">Lexmount Browser Provider Evaluation</div><h1>{names} 浏览器工具调用评测</h1><div class="muted">运行编号：{_e(manifest.get("run_id", "unknown"))} · 第 {index + 1}/{len(PAGES)} 页</div></div>{_nav(active)}'
     )
     pager = "" if detail_title else f'<div class="pager">{prev_link}{next_link}</div>'
-    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(detail_title) or label}｜Chromium 与 Moli 评测</title><style>{REPORT_CSS}</style></head><body><header><div class="wrap">{header}</div></header><main>{body}{pager}</main><footer>Lexmount Browser Provider Evaluation</footer></body></html>"""
-
-
-def _functional_rows(summary: dict[str, Any]) -> list[list[str]]:
-    rows = []
-    correctness_by_engine = {row[0]: row for row in _correctness_rows(summary)}
-    for engine in ("chromium", "moli"):
-        values = (summary.get("functional") or {}).get(engine) or {}
-        duration = values.get("duration_ms") or {}
-        rows.append(
-            correctness_by_engine[engine]
-            + [
-                _stat(duration, "p50"),
-                _stat(duration, "mean"),
-                _stat(duration, "p95"),
-            ]
-        )
-    return rows
+    return f"""<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(detail_title) or label}｜{names} 评测</title><style>{REPORT_CSS}</style></head><body><header><div class="wrap">{header}</div></header><main>{body}{pager}</main><footer>Lexmount Browser Provider Evaluation</footer></body></html>"""
 
 
 def _correctness_rows(summary: dict[str, Any]) -> list[list[str]]:
     rows: list[list[str]] = []
-    for engine in ("chromium", "moli"):
+    for engine in _engines(summary):
         values = (summary.get("functional") or {}).get(engine) or {}
         tasks = int(values.get("tasks") or 0)
 
@@ -320,22 +362,31 @@ def _correctness_table(summary: dict[str, Any]) -> str:
             int((functional.get(engine) or {}).get("combined_final_passes", 0) or 0),
             int((functional.get(engine) or {}).get("tasks", 0) or 0),
         )
-        for engine in ("chromium", "moli")
+        for engine in _engines(summary)
     }
     rows = []
     for engine, (result, combined, tasks) in scores.items():
         result_rate = result / tasks * 100 if tasks else 0
         combined_rate = combined / tasks * 100 if tasks else 0
-        other = scores["moli" if engine == "chromium" else "chromium"]
+        others = [score for other, score in scores.items() if other != engine]
         result_winner = (
             tasks
-            and other[2]
-            and _comparison_class(result / tasks, other[0] / other[2], higher=True) == "better"
+            and others
+            and all(
+                other[2]
+                and _comparison_class(result / tasks, other[0] / other[2], higher=True) == "better"
+                for other in others
+            )
         )
         combined_winner = (
             tasks
-            and other[2]
-            and _comparison_class(combined / tasks, other[1] / other[2], higher=True) == "better"
+            and others
+            and all(
+                other[2]
+                and _comparison_class(combined / tasks, other[1] / other[2], higher=True)
+                == "better"
+                for other in others
+            )
         )
         rows.append(
             "<tr>"
@@ -352,35 +403,70 @@ def _correctness_table(summary: dict[str, Any]) -> str:
     )
 
 
-def _aggregate_ratio(summary: dict[str, Any], metric_name: str, stat: str) -> float | None:
-    engines = (summary.get("resource_comparison") or {}).get("by_engine") or {}
-    chromium = _numeric_stat(((engines.get("chromium") or {}).get(metric_name) or {}), stat)
-    moli = _numeric_stat(((engines.get("moli") or {}).get(metric_name) or {}), stat)
-    if (
-        not isinstance(chromium, (int, float))
-        or chromium == 0
-        or not isinstance(moli, (int, float))
-    ):
-        return None
-    return float(moli) / float(chromium)
-
-
-def _paired_ratio(summary: dict[str, Any], metric_name: str, stat: str) -> float | None:
-    metric = (
-        ((summary.get("resource_comparison") or {}).get("paired_ratios") or {}).get("metrics") or {}
-    ).get(metric_name) or {}
-    return _numeric_stat(metric, stat)
-
-
 def _detail_filename(task_id: str, engine: str) -> str:
     return f"{REPORT_STEM}-task-{task_id.encode().hex()}-{engine.encode().hex()}.html"
 
 
+MOLI_TIMING_FINDING = """<li><strong>时序边界：</strong>Moli 的 1 Hz 是 CDP screencast 下采样，不等于 JavaScript 或 <code>requestAnimationFrame</code> 只有 1 fps；源码中的 rAF 目标间隔为 16 ms。</li>
+"""
+
+
+def _recommendation(summary: dict[str, Any], engines: tuple[str, ...]) -> str:
+    functional = summary.get("functional") or {}
+    passes = {}
+    for engine in engines:
+        values = functional.get(engine) or {}
+        passes[engine] = int(values.get("result_final_passes", values.get("final_passes", 0)))
+    top = max(passes.values())
+    parties = _all_parties(engines)
+    leaders = tuple(engine for engine in engines if passes[engine] == top)
+    if len(engines) == 1:
+        return (
+            f"本轮只有 {_names(engines)} 一个 Provider，结果正确任务数为 {top}；"
+            "没有可比较的方案，不给出默认建议。"
+        )
+    if len(leaders) > 1:
+        subject = (
+            f"{_provider_count(engines)} Provider" if leaders == engines else f" {_names(leaders)}"
+        )
+        return (
+            f"本轮{subject} 的结果正确任务数相同（均为 {top}）；"
+            f"仅凭正确性无法确定默认方案，应结合{parties}成功任务上的资源指标和失败类型决策。"
+        )
+    leader = leaders[0]
+    others = tuple(engine for engine in engines if engine != leader)
+    lower = "、".join(f"{engine_label(engine)} 的 {passes[engine]}" for engine in others)
+    claim = f"本轮建议默认使用 {engine_label(leader)}：其结果正确任务数为 {top}，高于 {lower}；"
+    if leader == engines[0]:
+        return (
+            f"{claim}{_names(others)} 在{parties}均成功的任务上若表现出更低耗时或资源占用，"
+            "可作为任务已验证兼容时的备选。"
+        )
+    return f"{claim}仍需结合{parties}成功任务上的资源指标和失败类型确认适用边界。"
+
+
+def _ratio_finding(summary: dict[str, Any], engines: tuple[str, ...]) -> str:
+    pairs = _ratio_pairs(summary, engines)
+    if not pairs:
+        return ""
+
+    def mean(metrics: dict[str, Any], name: str) -> str:
+        return _show(_numeric_stat(metrics.get(name) or {}, "mean"), suffix="×")
+
+    clauses = "；".join(
+        f"逐任务 {_pair_label(comparison, baseline)} 比值中，耗时比平均值为 "
+        f'{mean(metrics, "duration_ms")}，时间加权平均内存比平均值为 '
+        f'{mean(metrics, "memory_mean_bytes")}，网络接收量比平均值为 '
+        f'{mean(metrics, "network_rx_bytes")}'
+        for comparison, baseline, metrics in pairs
+    )
+    return f"<li><strong>速度与资源：</strong>{_all_parties(engines)}成功任务的{clauses}。</li>\n"
+
+
 def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     task_count = len(manifest.get("suite") or [])
-    f = summary.get("functional") or {}
-    c = f.get("chromium") or {}
-    m = f.get("moli") or {}
+    engines = _engines(summary)
+    parties = _all_parties(engines)
     paired = (summary.get("resource_comparison") or {}).get("intersection_attempts", 0)
 
     agent_smoke = manifest.get("agent_smoke") or {}
@@ -388,32 +474,13 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     if agent_smoke:
         provenance = agent_smoke.get("provenance") or {}
         smoke_html = f"""<section class="card"><h2>CowAgent 端到端冒烟测试</h2><p>该测试与资源微基准分开，不参与上表统计，也没有在运行编号 <code>{_e(manifest.get("run_id"))}</code> 中重新执行。模型 <code>{_e(agent_smoke.get("model"))}</code>，思考强度 <code>{_e(agent_smoke.get("reasoning_effort"))}</code>；独立执行日期 <code>{_e(agent_smoke.get("executed_at"))}</code>，来源文件内容哈希 <code>{_e(str(provenance.get("source_sha256") or "")[:12])}</code>。同一任务每个浏览器方案只执行 1 次。</p>{_table(["浏览器方案", "结果", "BrowserTool 调用次数", "最终答案"], [[str(item.get("provider")), "通过" if item.get("status") == "pass" else str(item.get("status")), str(item.get("browser_tool_calls")), str(item.get("answer"))] for item in agent_smoke.get("results") or []], "独立端到端接受性测试")}</section>"""
-    c_passes = int(c.get("result_final_passes", c.get("final_passes", 0)))
-    m_passes = int(m.get("result_final_passes", m.get("final_passes", 0)))
-
-    if c_passes > m_passes:
-        recommendation = (
-            f"本轮建议默认使用 Chromium：其结果正确任务数为 {c_passes}，高于 Moli 的 {m_passes}；"
-            "Moli 在双方均成功的任务上若表现出更低耗时或资源占用，可作为任务已验证兼容时的备选。"
-        )
-    elif m_passes > c_passes:
-        recommendation = (
-            f"本轮建议默认使用 Moli：其结果正确任务数为 {m_passes}，高于 Chromium 的 {c_passes}；"
-            "仍需结合双方成功任务上的资源指标和失败类型确认适用边界。"
-        )
-    else:
-        recommendation = (
-            f"本轮两个 Provider 的结果正确任务数相同（均为 {c_passes}）；"
-            "仅凭正确性无法确定默认方案，应结合双方成功任务上的资源指标和失败类型决策。"
-        )
+    recommendation = _recommendation(summary, engines)
     correctness = _correctness_table(summary)
     return f"""<section class="card note"><h2>结论与产品建议</h2><p><strong>{recommendation}</strong></p><p>这是浏览器工具调用层的公网确定性微基准，不是 LLM Agent 排名。评测集包含 {task_count} 个结果唯一的任务。</p></section>
 <section class="card"><h2>任务正确率</h2>{correctness}</section>
 <section class="card" id="technical-findings"><h2>关键技术结论</h2><ul>
-<li><strong>速度与资源：</strong>双方成功任务的逐任务 Moli / Chromium 比值中，耗时比平均值为 {_show(_paired_ratio(summary, "duration_ms", "mean"), suffix="×")}，时间加权平均内存比平均值为 {_show(_paired_ratio(summary, "memory_mean_bytes", "mean"), suffix="×")}，网络接收量比平均值为 {_show(_paired_ratio(summary, "network_rx_bytes", "mean"), suffix="×")}。</li>
-<li><strong>时序边界：</strong>Moli 的 1 Hz 是 CDP screencast 下采样，不等于 JavaScript 或 <code>requestAnimationFrame</code> 只有 1 fps；源码中的 rAF 目标间隔为 16 ms。</li>
-<li><strong>根因边界：</strong>布局与 actionability 证据只能定位现象，尚不能确认 screencast、渲染器或适配层中的具体根因。<a href="trajectory-replay-evaluation-latest-analysis.html">查看逐任务证据与验证方案</a>。</li></ul></section>
-<section class="card" id="performance"><h2>双方成功任务的速度与资源</h2><p>统计范围：双方都成功的 {paired} 个同任务，不含失败与重试样本。绝对值优胜项为绿色粗体；配对比值低于 1 为绿色、高于 1 为红色，显示值相同保持中性。</p>{_metric_tables(summary)}{_duration_ratio_audit(summary)}</section>{smoke_html}"""
+{_ratio_finding(summary, engines)}{MOLI_TIMING_FINDING if "moli" in engines else ""}<li><strong>根因边界：</strong>布局与 actionability 证据只能定位现象，尚不能确认 screencast、渲染器或适配层中的具体根因。<a href="trajectory-replay-evaluation-latest-analysis.html">查看逐任务证据与验证方案</a>。</li></ul></section>
+<section class="card" id="performance"><h2>{parties}成功任务的速度与资源</h2><p>统计范围：{parties}都成功的 {paired} 个同任务，不含失败与重试样本。绝对值优胜项为绿色粗体；配对比值低于 1 为绿色、高于 1 为红色，显示值相同保持中性。</p>{_metric_tables(summary)}{_duration_ratio_audit(summary)}</section>{smoke_html}"""
 
 
 def _difficulty(value: str) -> str:
@@ -610,7 +677,7 @@ def _suite_page(manifest: dict[str, Any]) -> str:
     )
 
 
-def _method_page(manifest: dict[str, Any]) -> str:
+def _method_page(manifest: dict[str, Any], engines: tuple[str, ...]) -> str:
     p = manifest.get("protocol") or {}
     env = manifest.get("environment") or {}
     versions = env.get("browser_versions") or {}
@@ -620,8 +687,7 @@ def _method_page(manifest: dict[str, Any]) -> str:
             "容器",
             f"Docker {env.get('docker_server_version', '未记录')} / {env.get('docker_os', '未记录')}",
         ],
-        ["Chromium", str(versions.get("chromium", "未记录"))],
-        ["Moli", str(versions.get("moli", "未记录"))],
+        *[[engine_label(engine), str(versions.get(engine, "未记录"))] for engine in engines],
         [
             "单浏览器配额",
             f"{p.get('cpus_per_browser', '?')} CPU / {p.get('memory_per_browser', '?')} / 独立网络",
@@ -634,7 +700,7 @@ def _method_page(manifest: dict[str, Any]) -> str:
         ],
         ["采样", f"每 {p.get('sample_interval_ms', '?')} ms 采样内存、PID、CPU、网络计数"],
     ]
-    return f"""<section class="card note"><h2>步骤的严格定义</h2><p><strong>一步 = 一次 CowAgent BrowserTool 等价调用</strong>，例如 navigate、click、get_text、fill、select、scroll、back 或 forward。等待页面就绪和目标值出现属于该工具调用内部，不单列、不计步。每次调用的参数、耗时、输出和状态写入执行轨迹。</p></section><section class="card" id="scoring"><h2>成功判定：两个独立程序指标</h2><ol><li><strong>结果正确（主指标）：</strong>每个标注输出与 <code>expected_outputs</code> 做严格字符串相等；不使用模糊匹配或模型评分；Codex 只参与评测前的标注核对。</li><li><strong>结果与参考过程均正确（辅指标）：</strong>在结果正确之外，本轮被重放的参考动作序列还必须与 <code>expected_actions</code> 一致，且全部 BrowserTool 调用成功。</li></ol><p><strong>边界：</strong><code>expected_actions</code> 是工具层微基准的固定参考路径，不代表任务只有一种解法。若评测自由规划 CowAgent，应把过程判定改成必要里程碑、禁止动作和步数预算，不能要求整条序列逐步相等。</p></section><section class="card"><h2>环境</h2>{_table(["项目", "记录值"], rows, "本轮环境")}</section><section class="card"><h2>执行流程</h2><ol><li>分别启动并预热两个浏览器，浏览器进程和上下文在整轮评测中保持运行。</li><li>任务前清 Cookie、权限、HTTP 缓存、Cache Storage、Service Worker、IndexedDB、来源存储和历史，并创建新页面。</li><li>计时外静置 {p.get("post_reset_settle_ms", "?")} ms，按任务交替两个 Provider 的执行顺序。</li><li>执行完整任务并采样；失败复核归入同一任务详情。</li><li>资源基线只比较双方都成功的同任务，失败与复核样本不混入正常路径。</li></ol></section><section class="card"><h2>统计口径</h2><ul><li>P50 与中位数是同一个统计量；总体跨任务报告 P50、平均值和 nearest-rank P95。</li><li>配对比值的定义和逐项计算过程见<a href="trajectory-replay-evaluation-latest.html#performance">首页性能表与计算审计</a>。</li><li>每个任务仅有一个正式样本，因此逐任务不计算分位数；当前跨任务点不足以证明普遍性能优势。</li><li>内存平均值是时间加权均值；任务内存 P95 来自单次任务时序采样。</li><li>RX = Receive（接收），TX = Transmit（发送）；总量含页面资源与 CDP，速率来自相邻采样点差分。</li></ul></section>"""
+    return f"""<section class="card note"><h2>步骤的严格定义</h2><p><strong>一步 = 一次 CowAgent BrowserTool 等价调用</strong>，例如 navigate、click、get_text、fill、select、scroll、back 或 forward。等待页面就绪和目标值出现属于该工具调用内部，不单列、不计步。每次调用的参数、耗时、输出和状态写入执行轨迹。</p></section><section class="card" id="scoring"><h2>成功判定：两个独立程序指标</h2><ol><li><strong>结果正确（主指标）：</strong>每个标注输出与 <code>expected_outputs</code> 做严格字符串相等；不使用模糊匹配或模型评分；Codex 只参与评测前的标注核对。</li><li><strong>结果与参考过程均正确（辅指标）：</strong>在结果正确之外，本轮被重放的参考动作序列还必须与 <code>expected_actions</code> 一致，且全部 BrowserTool 调用成功。</li></ol><p><strong>边界：</strong><code>expected_actions</code> 是工具层微基准的固定参考路径，不代表任务只有一种解法。若评测自由规划 CowAgent，应把过程判定改成必要里程碑、禁止动作和步数预算，不能要求整条序列逐步相等。</p></section><section class="card"><h2>环境</h2>{_table(["项目", "记录值"], rows, "本轮环境")}</section><section class="card"><h2>执行流程</h2><ol><li>分别启动并预热{_provider_count(engines)}浏览器，浏览器进程和上下文在整轮评测中保持运行。</li><li>任务前清 Cookie、权限、HTTP 缓存、Cache Storage、Service Worker、IndexedDB、来源存储和历史，并创建新页面。</li><li>计时外静置 {p.get("post_reset_settle_ms", "?")} ms，按任务交替{_provider_count(engines)} Provider 的执行顺序。</li><li>执行完整任务并采样；失败复核归入同一任务详情。</li><li>资源基线只比较双方都成功的同任务，失败与复核样本不混入正常路径。</li></ol></section><section class="card"><h2>统计口径</h2><ul><li>P50 与中位数是同一个统计量；总体跨任务报告 P50、平均值和 nearest-rank P95。</li><li>配对比值的定义和逐项计算过程见<a href="trajectory-replay-evaluation-latest.html#performance">首页性能表与计算审计</a>。</li><li>每个任务仅有一个正式样本，因此逐任务不计算分位数；当前跨任务点不足以证明普遍性能优势。</li><li>内存平均值是时间加权均值；任务内存 P95 来自单次任务时序采样。</li><li>RX = Receive（接收），TX = Transmit（发送）；总量含页面资源与 CDP，速率来自相邻采样点差分。</li></ul></section>"""
 
 
 METRICS = (
@@ -675,17 +741,24 @@ def _metric_tables(summary: dict[str, Any]) -> str:
         _grouped_resource_table(summary, metrics, f"{group}绝对值（均为越低越好）")
         for group, metrics in METRICS
     )
+    pairs = _ratio_pairs(summary, _engines(summary))
+    if not pairs:
+        return absolute
     paired = "".join(
         _paired_ratio_table(
-            summary,
+            values,
             metrics,
-            f"{group}逐任务 Moli / Chromium 配对比值（均为越低越好）",
+            f"{group}逐任务 {_pair_label(comparison, baseline)} 配对比值（均为越低越好）",
         )
+        for comparison, baseline, values in pairs
         for group, metrics in METRICS
+    )
+    formulas = "、".join(
+        f"<code>{_pair_label(comparison, baseline)}</code>" for comparison, baseline, _ in pairs
     )
     return (
         absolute
-        + "<h3>逐任务配对比值分布</h3><p>先对每个同任务计算 <code>Moli / Chromium</code>，再汇总这些比值；P50、P95 与平均值都来自同一批逐任务比值，不是两个 Provider 边际分位数相除。</p>"
+        + f"<h3>逐任务配对比值分布</h3><p>先对每个同任务计算 {formulas}，再汇总这些比值；P50、P95 与平均值都来自同一批逐任务比值，不是两个 Provider 边际分位数相除。</p>"
         + paired
     )
 
@@ -992,6 +1065,7 @@ def _execution_details(
                 manifest,
                 "analysis",
                 detail_body,
+                _engines(summary),
                 detail_title=title,
                 back_anchor=anchor,
             )
@@ -1079,9 +1153,11 @@ def _execution_explorer(
         f'<option value="{_e(category)}">{_e(category)}</option>'
         for category in diagnostic_categories
     )
+    engines = _engines(summary)
+    engine_options = "".join(f"<option>{engine}</option>" for engine in engines)
     filters = f"""<div class="filters" id="execution-filters" aria-label="执行样本筛选">
       <label>任务<select id="f-task"><option value="">全部任务</option>{task_options}</select></label>
-      <label>Provider<select id="f-engine"><option value="">全部 Provider</option><option>chromium</option><option>moli</option></select></label>
+      <label>Provider<select id="f-engine"><option value="">全部 Provider</option>{engine_options}</select></label>
       <label>结果<select id="f-status"><option value="">全部结果</option><option value="pass">正确</option><option value="fail" selected>错误</option></select></label>
       <label>结果与过程<select id="f-combined"><option value="">全部</option><option value="pass">均正确</option><option value="fail">未同时正确</option></select></label>
       <label>难度<select id="f-complexity"><option value="">全部难度</option><option value="simple">简单</option><option value="medium">中等</option><option value="complex">复杂</option></select></label>
@@ -1092,7 +1168,8 @@ def _execution_explorer(
       <label>全文搜索<input id="f-query" type="search" placeholder="任务、输出或错误"></label>
       <button type="button" id="f-all">展示全部</button><button type="button" id="f-reset">重置为错误</button><span class="filter-status" id="f-count" aria-live="polite"></span>
     </div>"""
-    script = f"<script>{EXECUTION_FILTER_JS}</script>"
+    provider_list = "[" + ",".join(f"'{engine}'" for engine in engines) + "]"
+    script = f"<script>{EXECUTION_FILTER_JS}</script>".replace("__PROVIDER_LIST__", provider_list)
     grid_head = '<div class="record-grid-head" aria-hidden="true"><span>任务</span><span>Provider</span><span>结果</span><span>过程</span><span>错误类别</span><span>总耗时</span></div>'
     return f"""<section class="card" id="execution-results"><h2>逐任务分析与原始证据</h2><p>{logical_executions} 条任务 × Provider 记录，{physical_attempts} 次执行。点击任务查看完整操作、答案、判定和执行轨迹。</p>{_table(["规则类别", "去重失败组", "实际失败次数"], category_rows, "程序化失败分布")}{filters}<div id="execution-list" class="record-grid">{grid_head}{_execution_details(manifest, summary, detail_pages)}</div><p id="execution-empty" class="empty-state" role="status" hidden></p>{script}</section>"""
 
@@ -1118,7 +1195,7 @@ def _analysis_page(
     return f"""<section class="card"><h2>时序机制研究</h2><div class="hypothesis-grid"><div><strong>研究假设</strong><span>低频 screencast 或其触发的布局快照，可能放大动态 DOM 更新后几何、可见性或命中测试状态的滞后。</span></div><div><strong>对照设计</strong><span>固定页面、选择器和调用，比较立即显现、双 rAF、定时器、DOM 替换、动画与视口进入；延迟覆盖 16 ms 到 1 s。</span></div><div><strong>验证指标</strong><span>记录 DOM/rAF 完成时间与 actionability 恢复时间，检验其差值是否随 screencast 条件系统性变化。</span></div></div></section>{_execution_explorer(manifest, summary, detail_pages)}"""
 
 
-def _appendix_page(manifest: dict[str, Any]) -> str:
+def _appendix_page(manifest: dict[str, Any], engines: tuple[str, ...]) -> str:
     p = manifest.get("protocol") or {}
     provenance = manifest.get("artifact_provenance") or {}
     fields = [
@@ -1131,7 +1208,7 @@ def _appendix_page(manifest: dict[str, Any]) -> str:
         ["attempt", "validation / trace / error", "同一任务的判定与完整执行证据"],
         ["resource", "memory mean/p95/peak/retained/MiB·s", "内存水平、尾部、峰值、保留量和积分"],
         ["resource", "CPU / network total/average/p95/peak", "计算与网络时序压力"],
-        ["summary", "paired intersection / paired ratios", "双方成功任务与逐任务配对比值审计"],
+        ["summary", "paired intersection / paired ratios", f"{_all_parties(engines)}成功任务与逐任务配对比值审计"],
         ["diagnostics", "rule_engine", "程序化失败分类、证据与原始执行记录入口"],
     ]
     provenance_rows = [
@@ -1151,7 +1228,7 @@ def _markdown(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         return _stat(((paired_engines.get(engine) or {}).get("duration_ms") or {}), stat)
 
     lines = [
-        "# Chromium 与 Moli 浏览器工具调用评测",
+        f"# {_names(_engines(summary))} 浏览器工具调用评测",
         "",
         f"运行编号：`{manifest.get('run_id', 'unknown')}`",
         "",
@@ -1222,15 +1299,16 @@ def write_latest_report(
     (root / audit_name).write_text(
         json.dumps(audit, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
+    engines = _engines(summary)
     renderers = {
         "index": lambda: _summary_page(manifest, summary),
         "suite": lambda: _suite_page(manifest),
-        "method": lambda: _method_page(manifest),
+        "method": lambda: _method_page(manifest, engines),
         "analysis": lambda: analysis,
-        "appendix": lambda: _appendix_page(manifest),
+        "appendix": lambda: _appendix_page(manifest, engines),
     }
     for slug, _, filename in PAGES:
-        (root / filename).write_text(_shell(manifest, slug, renderers[slug]()), encoding="utf-8")
+        (root / filename).write_text(_shell(manifest, slug, renderers[slug](), engines), encoding="utf-8")
     for filename, document in detail_pages.items():
         (root / filename).write_text(document, encoding="utf-8")
     return md_path

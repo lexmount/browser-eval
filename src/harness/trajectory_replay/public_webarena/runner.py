@@ -20,6 +20,7 @@ from harness.container_isolation import require_linux_cgroup_v2
 from harness.environments.browser import (
     DEFAULT_BROWSER_IMAGES,
     cleanup_browser_runtime,
+    rotated_engine_order,
     validate_resource_controls,
 )
 from harness.record_io import write_json
@@ -45,6 +46,7 @@ from harness.trajectory_replay.core.docker_runner import (
     write_run_artifacts,
 )
 from harness.trajectory_replay.core.suite import BrowserTask, validate_ground_truth_evidence
+from harness.trajectory_replay.participants import DEFAULT_DIAGNOSIS_MODEL
 from harness.trajectory_replay.public_webarena.config import map_strings
 from harness.trajectory_replay.public_webarena.diagnostics import diagnose_summary
 from harness.trajectory_replay.public_webarena.evaluators import (
@@ -486,10 +488,10 @@ def run_evaluation(
     cpus: float = 2.0,
     memory: str = "2g",
     llm_diagnostics: bool = False,
-    diagnosis_model: str = "gpt-5.6-sol",
+    diagnosis_model: str = DEFAULT_DIAGNOSIS_MODEL,
     diagnosis_reasoning_effort: str = "low",
     webarena_config_path: str | Path | None = None,
-    engines: tuple[str, ...] = ("chromium", "moli"),
+    engines: tuple[str, ...] = tuple(DEFAULT_BROWSER_IMAGES),
     qualification_run: bool = False,
     qualification_pass_index: int | None = None,
     qualification_required_passes: int | None = None,
@@ -651,10 +653,7 @@ def run_evaluation(
             if trajectory_authoring_run:
                 task = _bounded_authoring_task(task)
             base_task = task
-            engine_order = (
-                engines if len(engines) == 1 or task_index % 2 == 0 else tuple(reversed(engines))
-            )
-            for engine in engine_order:
+            for engine in rotated_engine_order(engines, task_index):
                 initialized_sites = initialized_sites_by_engine[engine]
                 for attempt in range(1, max_retries + 2):
                     task = base_task

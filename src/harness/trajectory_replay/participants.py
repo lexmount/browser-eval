@@ -1,9 +1,33 @@
-"""Participant identity is distinct from the browser runtime adapter."""
+"""Trajectory Replay registries: participants, runtime adapters, labels and default model.
+
+Participant identity is distinct from the browser runtime adapter.
+"""
 
 from __future__ import annotations
 
 import re
 from typing import Any
+
+# The model that explains failed traces; LLM output never judges success.
+DEFAULT_DIAGNOSIS_MODEL = "gpt-5.6-sol"
+# Runtime adapters the Playwright tool and the catalog runner can drive.
+BROWSER_ADAPTERS = ("chromium", "moli", "lightpanda", "obscura", "kitesurf")
+ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli"}
+SAFE_ENGINE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]*")
+
+
+def engine_label(engine: str) -> str:
+    return ENGINE_LABELS.get(engine, engine.replace("_", " ").strip().title())
+
+
+def summary_engines(summary: dict[str, Any]) -> tuple[str, ...]:
+    """Read the participant set and its order from one summary's own results."""
+    functional = summary.get("functional") or {}
+    resources = (summary.get("resource_comparison") or {}).get("by_engine") or {}
+    engines = tuple(str(engine) for engine in functional or resources)
+    if not all(SAFE_ENGINE.fullmatch(engine) for engine in engines):
+        raise ValueError("summary engine IDs must be safe stable identifiers")
+    return engines
 
 
 def participant_registry(methods: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:

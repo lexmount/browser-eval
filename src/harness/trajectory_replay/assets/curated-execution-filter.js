@@ -20,7 +20,7 @@ function reveal(){
  const raw=location.hash.slice(1);
  if(raw.startsWith('provider=')){
   const params=new URLSearchParams(raw),provider=params.get('provider');
-  if(!['chromium','moli'].includes(provider))return;
+  if(!__PROVIDER_LIST__.includes(provider))return;
   clear();el.engine.value=provider;el.status.value=params.get('status')==='fail'?'fail':'';apply();
   document.getElementById('execution-filters').scrollIntoView({block:'start'});return;
  }

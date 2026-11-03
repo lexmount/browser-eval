@@ -33,6 +33,7 @@ from harness.trajectory_replay.catalog_contracts import (
     validate_environment_preparation,
     verify_physical_evidence,
 )
+from harness.trajectory_replay.participants import BROWSER_ADAPTERS
 from harness.trajectory_replay.remote_execution import (
     finalize_timed_out_task,
     run_replay_task,
@@ -518,7 +519,7 @@ def main() -> None:
     parser.add_argument("--binary", type=Path)
     parser.add_argument(
         "--engine",
-        choices=("chromium", "moli", "lightpanda", "obscura", "kitesurf"),
+        choices=BROWSER_ADAPTERS,
         default="chromium",
     )
     parser.add_argument(
