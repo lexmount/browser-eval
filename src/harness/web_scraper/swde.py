@@ -292,7 +292,7 @@ def qualify_reference_text(truth, html_pages):
     }
 
 
-def _reference_evidence(tree, evidence):
+def _reference_evidence(tree, evidence, *, source_url):
     """Resolve one complete source text node and its nearby field context."""
     from lxml import html as lxml_html
 
@@ -316,6 +316,18 @@ def _reference_evidence(tree, evidence):
         raise ValueError("Reference decision locator is not source text")
     if not value or value != evidence.get("value") or value != evidence.get("source_quote"):
         raise ValueError("Reference decision does not copy its source text node")
+    if "record_url" in evidence:
+        from urllib.parse import urljoin, urlsplit
+
+        target = evidence["record_url"]
+        if (
+            target != source_url
+            or context_node.tag != "a"
+            or not context_node.get("href")
+            or urlsplit(urljoin(source_url, context_node.get("href")))._replace(fragment="")
+            != urlsplit(target)._replace(fragment="")
+        ):
+            raise ValueError("Reference self-link does not identify the same source record")
     context = canonical_text(evidence.get("field_context", ""))
     ancestors = [context_node, *list(context_node.iterancestors())[:6]]
     if not context or not any(context in canonical_text(n.text_content()) for n in ancestors):
@@ -368,7 +380,7 @@ def load_reference_revision(home, path):
         tree = lxml_html.fromstring(pages[cid].decode("utf-8"))
         evidenced = []
         for evidence in decision.get("evidence", []):
-            evidenced.append(_reference_evidence(tree, evidence))
+            evidenced.append(_reference_evidence(tree, evidence, source_url=truth[cid]["url"]))
         if evidenced != decision["accepted"]:
             raise ValueError("Every accepted reference value requires exact source evidence")
         references[cid]["values"][field] = list(evidenced)
@@ -398,7 +410,9 @@ def load_reference_revision(home, path):
             role = evidence.get("role")
             if role not in evidence_values:
                 raise ValueError("Reference field evidence needs an accepted or excluded role")
-            evidence_values[role].append(_reference_evidence(tree, evidence))
+            evidence_values[role].append(
+                _reference_evidence(tree, evidence, source_url=truth[cid]["url"])
+            )
         removed = set(references[cid]["values"][field]) - set(accepted)
         if (
             evidence_values["accepted"] != accepted

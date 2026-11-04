@@ -363,7 +363,9 @@ def source_field_revision(inputs, tmp_path):
         "book-a-0001": b"<p>Ada</p>",
         "job-b-0002": (
             b'<main><h1 id="title">Engineer</h1><p id="alt">Senior Engineer</p>'
-            b'<p id="placeholder">No data</p><p id="mixed"><b>Other</b> Job</p></main>'
+            b'<p id="placeholder">No data</p><p id="mixed"><b>Other</b> Job</p>'
+            b'<a id="self" href="https://job.example/two">Engineer</a>'
+            b'<a id="other" href="https://job.example/other">Engineer</a></main>'
         ),
     }
     pipeline.save_json(home / "dataset/dataset/ground-truth.json", truth)
@@ -464,6 +466,27 @@ def test_source_field_revision_rejects_unproven_or_nontext_changes(source_field_
     pipeline.save_json(authority, revision)
     with pytest.raises(ValueError, match="Reference|reference"):
         swde.load_reference_revision(home, authority)
+
+
+@pytest.mark.parametrize("target", ["same", "wrong-url", "wrong-link", "not-a-link"])
+def test_source_self_link_must_identify_the_frozen_main_record(source_field_revision, target):
+    home, authority = source_field_revision
+    revision = pipeline.read_json(authority)
+    evidence = revision["field_decisions"][0]["evidence"][0]
+    evidence.update(xpath="//*[@id='self']", record_url="https://job.example/two")
+    if target == "wrong-url":
+        evidence["record_url"] = "https://job.example/other"
+    elif target == "wrong-link":
+        evidence["xpath"] = "//*[@id='other']"
+    elif target == "not-a-link":
+        evidence["xpath"] = "//*[@id='title']"
+    pipeline.save_json(authority, revision)
+    if target == "same":
+        references, _ = swde.load_reference_revision(home, authority)
+        assert references["job-b-0002"]["values"]["title"] == ["Engineer", "Senior Engineer"]
+    else:
+        with pytest.raises(ValueError, match="same source record"):
+            swde.load_reference_revision(home, authority)
 
 
 @pytest.mark.parametrize("source_revision_run", [False, True], indirect=True)
