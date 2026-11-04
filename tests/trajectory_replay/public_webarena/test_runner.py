@@ -71,6 +71,12 @@ def test_task_execution_writes_redacted_evaluator_network_evidence(tmp_path, mon
         "chromium", page, set(), MagicMock(), task, 1, 100, registry, tmp_path,
     )
     assert result["status"] == "pass", result["error"]
+    assert result["process_validation"] == {
+        "expected_actions": ["navigate"],
+        "actual_actions": ["navigate"],
+        "all_calls_passed": True,
+        "passed": True,
+    }
     assert result["network_har"]["entry_count"] == 1
     raw = (tmp_path / "network.har").read_text(encoding="utf-8")
     assert "private-token" not in raw
