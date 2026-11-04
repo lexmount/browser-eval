@@ -3,6 +3,7 @@ import socket
 import ssl
 import tempfile
 import threading
+import time
 import unittest
 import urllib.error
 from pathlib import Path
@@ -14,6 +15,39 @@ from harness.web_fetch.runner import (
     IncompleteEvaluationError, preflight_declared_capacity, run_evaluation,
     classify_exception,
 )
+
+
+def test_retry_retains_cleanup_wait_after_worker_exits(tmp_path, monkeypatch):
+    class Pending:
+        process_cleanup_failed = False
+        alive = True
+
+        def is_alive(self):
+            return self.alive
+
+        def join(self, timeout):
+            assert timeout == 1.0
+            time.sleep(.01)
+            self.alive = False
+
+    worker = Pending()
+    outcomes = iter([
+        (ProviderResult(False, '', error_type='timeout', metadata={'_answer_elapsed_ms': 20}), worker),
+        (ProviderResult(True, 'Expected', metadata={'_answer_elapsed_ms': 5}), None),
+    ])
+    monkeypatch.setattr('harness.web_fetch.runner.fetch_with_deadline', lambda *args, **kwargs: next(outcomes))
+    records, _ = run_evaluation(
+        output_dir=tmp_path, dataset_meta={'id': 'test'}, dataset_path=Path('dataset.json'),
+        cases=[EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])],
+        providers=[BarrierProvider('fixture', threading.Barrier(1))],
+        provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0,
+        max_failure_retries=1)
+    retry = records[0]['provider_metadata']['retry']
+    wait = retry['attempts'][0]['retry_cleanup_wait_ms']
+    assert wait > 0
+    assert retry['execution_cost_ms'] == round(25 + wait, 2)
+    assert records[0]['elapsed_ms'] == 5
+    assert (tmp_path / records[0]['artifact_path']).read_text() == 'Expected'
 
 
 class BarrierProvider(Provider):

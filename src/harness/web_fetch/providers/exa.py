@@ -89,7 +89,7 @@ class ExaContentsProvider(Provider):
         return endpoint, arguments
 
     def validate(self) -> list[str]:
-        errors = [] if self.config.get("api_key") else ["api_key"]
+        errors = super().validate() + ([] if self.config.get("api_key") else ["api_key"])
         if 'livecrawl_timeout_ms' in self.config:
             value = self.config['livecrawl_timeout_ms']
             if type(value) is not int or not 1 <= value <= 90_000:

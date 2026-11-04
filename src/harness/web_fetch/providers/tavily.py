@@ -47,7 +47,7 @@ class TavilyExtractProvider(Provider):
         return endpoint, arguments
 
     def validate(self) -> list[str]:
-        return [] if self.config.get("api_key") else ["api_key"]
+        return super().validate() + ([] if self.config.get("api_key") else ["api_key"])
 
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)

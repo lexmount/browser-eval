@@ -79198,6 +79198,90 @@
       "artifact": "Heading<sup>1</sup>\n\nx<y\n\n<span hidden>Visible sentence.</span>\n\nTail<sub>2</sub>",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "mixed-malformed-hidden-prose",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "CommonMark tag rejection must not turn browser-tolerated hidden or raw-text markup into visible answer text.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<div hidden class=\"a\"id=\"b\">Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-malformed-script-prose",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "CommonMark tag rejection must not turn browser-tolerated hidden or raw-text markup into visible answer text.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<script/x>Visible sentence.</script> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-malformed-visible-prose",
+      "failure_mode": "false-negative",
+      "category": "format-normalization",
+      "root_cause": "CommonMark tag rejection must not turn browser-tolerated hidden or raw-text markup into visible answer text.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<div class=\"a\"id=\"b\">Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": true
     }
   ]
 }

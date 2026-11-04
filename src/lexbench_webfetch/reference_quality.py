@@ -983,13 +983,15 @@ def visible_mixed_html_text(text: str, *, excluded_html_selectors=()) -> str:
     protected = re.sub(
         r'\b(?:the|an?) +<(?P<element>script|style)> +(?:element|tag)\b',
         element_mention, protected, flags=re.I)
-    # Mixed Markdown recognizes HTML tags using Markdown's tag grammar.
-    # A tolerant HTML parser otherwise consumes prose after a comparison such
-    # as x<y until an unrelated later tag supplies its closing angle bracket.
+    # Keep browser-tolerated tags, including malformed hidden/raw-text markup.
+    # Only escape an opener without its own closing bracket: otherwise a
+    # comparison such as x<y can consume prose up to an unrelated later tag.
     pieces, cursor = [], 0
     while (left := protected.find('<', cursor)) >= 0:
         pieces.append(protected[cursor:left])
         tag = _MIXED_HTML_TAG_PATTERN.match(protected, left)
+        if tag is None:
+            tag = re.compile(r'''<(?=[A-Za-z/!?])(?:[^<>"']|"[^"]*"|'[^']*')*>''').match(protected, left)
         if tag:
             pieces.append(tag[0])
             cursor = tag.end()

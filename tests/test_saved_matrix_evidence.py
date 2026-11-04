@@ -156,6 +156,35 @@ def build(tmp_path, spec, name='report'):
     return build_saved_matrix(path, tmp_path / name)
 
 
+@pytest.mark.parametrize('separator', ['\u2028', '\u2029', '\u0085'])
+def test_jsonl_unicode_separators_are_content(tmp_path, separator):
+    spec, root, record, _ = fixture(tmp_path)
+    record.update(title='before' + separator + 'after', error_message='error' + separator + 'detail')
+    raw = (json.dumps(record, ensure_ascii=False) + '\n').encode()
+    (root/'results.jsonl').write_bytes(raw)
+    spec['sources'][0]['results']['sha256'] = hashlib.sha256(raw).hexdigest()
+    report = build(tmp_path, spec).parent
+    assert check_saved_matrix(report, spec_path=tmp_path/'spec.json')['valid']
+    assert (report/'evidence/first/method/same/record.json').read_bytes() == raw
+
+
+@pytest.mark.parametrize('stage', ['render', 'check'])
+def test_failed_build_leaves_no_report_and_can_retry(tmp_path, monkeypatch, stage):
+    import harness.web_fetch.report as renderer
+    import harness.web_fetch.report_saved_matrix as saved
+    spec, _, _, _ = fixture(tmp_path)
+    def fail(*args, **kwargs):
+        raise ValueError('injected build failure')
+    with monkeypatch.context() as patch:
+        patch.setattr(renderer if stage == 'render' else saved,
+                      'generate_saved_matrix' if stage == 'render' else 'check_saved_matrix', fail)
+        with pytest.raises(ValueError, match='injected'):
+            build(tmp_path, spec)
+    assert not (tmp_path/'report').exists()
+    assert not list(tmp_path.glob('.report-build-*'))
+    assert build(tmp_path, spec).is_file()
+
+
 @pytest.mark.parametrize('destination', ['receipt.json', 'record.json', 'case.json'])
 def test_captured_artifact_cannot_overwrite_generated_evidence(tmp_path, destination):
     spec, source, record, _ = fixture(tmp_path)
@@ -795,15 +824,32 @@ def test_colliding_suite_case_routes_rejected_before_output(tmp_path):
 @pytest.mark.parametrize('before,after,selected', [(False, True, True), (True, True, False),
                                                    (False, False, False), (True, False, False)])
 @pytest.mark.parametrize('partition', ['track', 'family'])
-def test_single_case_parameter_group_preserves_both_calls_and_selects_improvement(tmp_path, before, after, selected, monkeypatch, partition):
+@pytest.mark.parametrize('split_baseline', [False, True])
+def test_single_case_parameter_group_preserves_both_calls_and_selects_improvement(tmp_path, before, after, selected, monkeypatch, partition, split_baseline):
     # Exercise group selection independently of native transport authorization.
-    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: {'request': 'fixture'})
+    monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution',
+                        lambda root, record, case, policy, *args: {
+                            'request': 'fixture', 'max_failure_retries': policy.get('max_failure_retries')})
     monkeypatch.setattr('harness.web_fetch.report_saved_matrix._native_execution_manifest',
-                        lambda *args: {'parameters': {'timeout': 30, 'max_failure_retries': 0}})
+                        lambda root, record, *args: {'parameters': {
+                            'timeout': 30, 'max_failure_retries': 1 if record['attempt_id'] == 'prior-call' else 0}})
     spec, root, record, _ = fixture(tmp_path)
     record['metrics']['content_pass'] = before
     (root/'results.jsonl').write_text(json.dumps(record)+'\n')
     spec['sources'][0]['results']['sha256'] = hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()
+    if split_baseline:
+        prior = deepcopy(record)
+        prior.update(attempt_id='prior-call', started_at='2026-10-28T00:00:00Z')
+        prior['metrics']['content_pass'] = False
+        prior_binding = write(root/'prior.jsonl', prior)
+        spec['retry_continuations'] = [{
+            'suite': 'first', 'provider': 'method', 'case_id': 'same',
+            'current_record_sha256': spec['sources'][0]['results']['sha256'],
+            'prior_source': {**deepcopy(spec['sources'][0]), 'results': prior_binding,
+                             'dataset': spec['suites'][0]['dataset']},
+            'launch_contract': write(tmp_path/'launch.json', {
+                'started_at': '2026-10-28T01:00:00Z', 'total_authorized_physical_calls': 2,
+                'first_record': {'record': prior}})}]
     candidate = tmp_path/'candidate'
     import shutil
     shutil.copytree(root, candidate)

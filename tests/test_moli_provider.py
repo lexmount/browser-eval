@@ -244,6 +244,11 @@ class MoliTests(unittest.TestCase):
             self.assertTrue(result.ok)
             self.assertEqual(bool(result.files), media != 'html_page')
             self.assertEqual(bool(result.content), media == 'html_page')
+            route = 'ordinary_html' if media == 'html_page' else 'native_document_bytes'
+            self.assertEqual(result.metadata['native_route_label'], route)
+            self.assertEqual(result.metadata['output_contract'], route)
+            self.assertEqual(result.metadata['output'], 'html' if media == 'html_page' else 'original_bytes')
+            self.assertEqual(provider.native_configured_parameters()['native_output'], 'auto')
         self.assertTrue(all(command == commands[0] for command in commands))
 
     def test_auto_document_ignores_explicit_markdown_and_preserves_binary(self):
@@ -257,19 +262,36 @@ class MoliTests(unittest.TestCase):
         self.assertEqual(provider.native_route(case).interface, 'native_document_bytes')
 
     def test_html_direct_document_retains_text_and_failed_call(self):
+        from harness.web_fetch.native_routes import NativeRouteLedger, verify_saved_native_answer
         from harness.web_fetch.runner import persist_result_artifacts
         for failed in (False, True):
             provider = self.provider("print('<p>document text</p>')\n" if not failed else "raise SystemExit(1)\n",
                 uniform_native_parameters=True, native_output='html')
             case = self.case_with(track='document', task_kind='body',
                                   source_benchmark={'input_media_kind': 'direct_pdf'})
-            result = provider.fetch(case, 5)
+            root = Path(self.directory.name)/str(failed)
+            root.mkdir()
+            ledger = NativeRouteLedger([case], [provider], timeout_seconds=5)
+            ledger.write(root, dataset_sha256='fixture', runtime_source_sha256='fixture')
+            result = provider.fetch(case, 5, native_route_ledger=ledger)
             self.assertEqual(result.ok, not failed)
-            result.metadata['native_route_receipt'] = {'answer_fields': ['stdout', 'diagnostic.main_document_url']}
-            artifact = persist_result_artifacts(Path(self.directory.name)/str(failed),
+            self.assertEqual(result.metadata['output_contract'], 'ordinary_html')
+            self.assertEqual(result.metadata['native_route_label'], 'ordinary_html')
+            self.assertEqual(result.metadata['output'], 'html')
+            result.metadata['native_route_receipt'] = ledger.receipt(provider, case, ok=result.ok)
+            artifact = persist_result_artifacts(root,
                 Path('artifacts/document.txt'), result, request_url=case.url)
             self.assertEqual(artifact.read_text(), result.content)
             self.assertFalse(result.files)
+            record = {'ok': result.ok, 'case_id': case.id, 'provider_type': provider.type,
+                      'url': case.url, 'final_url': result.final_url, 'title': result.title,
+                      'artifact_path': 'artifacts/document.txt', 'provider_metadata': result.metadata,
+                      'metrics': {'content_sha256': hashlib.sha256(artifact.read_bytes()).hexdigest()}}
+            verify_saved_native_answer(root, record, cases_by_id={case.id: vars(case)})
+            # Old retained calls used a format label; their frozen request still
+            # selects the same HTML projection without rewriting their bytes.
+            result.metadata['output_contract'] = 'markdown'
+            verify_saved_native_answer(root, record, cases_by_id={case.id: vars(case)})
 
     def test_auto_dynamic_metadata_matches_omitted_layout_flags(self):
         from harness.web_fetch.retrieval_hints import NATIVE_RETRIEVAL_HINTS
@@ -293,6 +315,10 @@ class MoliTests(unittest.TestCase):
             result = provider.fetch(case, 5)
             self.assertTrue(result.ok)
             self.assertEqual(result.metadata['dump'], 'html')
+            route = 'native_resource_html' if kind == 'resource' else 'ordinary_html'
+            self.assertEqual(result.metadata['output_contract'], route)
+            self.assertEqual(result.metadata['native_route_label'], route)
+            self.assertEqual(result.metadata['output'], 'html')
         self.assertTrue(all(command == commands[0] for command in commands))
 
     def test_uniform_document_markdown_uses_one_command_for_all_input_media(self):
@@ -309,6 +335,8 @@ class MoliTests(unittest.TestCase):
             self.assertEqual(result.content.strip(), "native document text")
             self.assertEqual(result.metadata["route"], "ordinary_markdown")
             self.assertEqual(provider.native_route(case).interface, "ordinary_markdown")
+            self.assertEqual(result.metadata['output_contract'], 'ordinary_markdown')
+            self.assertEqual(provider.native_configured_parameters()['document_output'], 'markdown')
             from harness.web_fetch.native_projection import require_native_answer_projection
             result.metadata['native_route_receipt'] = {'answer_fields': ['stdout', 'diagnostic.main_document_url']}
             require_native_answer_projection(result.content, result.metadata,

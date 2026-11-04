@@ -226,6 +226,7 @@ def _interface_error(*, response_status: int,
 
 
 class CloudflareMarkdownProvider(Provider):
+    native_configuration_fields = (*Provider.native_configuration_fields, 'scrape_selectors')
     def __init__(self, name, config):
         super().__init__(name, config)
         native = bool(config.get('uniform_native_parameters'))
@@ -299,7 +300,7 @@ class CloudflareMarkdownProvider(Provider):
         return endpoint, self.native_http_options(body, {'Authorization': 'Bearer '+str(self.config.get('api_token', ''))}, timeout)
 
     def validate(self) -> list[str]:
-        errors = [name for name in ("api_token", "account_id") if not self.config.get(name)]
+        errors = super().validate() + [name for name in ("api_token", "account_id") if not self.config.get(name)]
         selectors = self.config.get('scrape_selectors')
         if selectors is not None and (not isinstance(selectors, list) or not selectors
                 or any(not isinstance(x, str) or not x.strip() for x in selectors)):

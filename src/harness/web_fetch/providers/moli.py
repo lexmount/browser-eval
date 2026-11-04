@@ -161,6 +161,8 @@ def _family_wait_until(config, track):
 
 
 class MoliWebFetchProvider(Provider):
+    native_configuration_fields = (*Provider.native_configuration_fields, 'native_output', 'document_output')
+
     def _selected_native_route(self, case):
         route = _route_for_case(case, native_default=True,
                                document_output=self.config.get("document_output", "native"))
@@ -609,6 +611,12 @@ class MoliWebFetchProvider(Provider):
         else:
             metadata["output_contract"] = "markdown"
             metadata["extractor"] = "moli_native_markdown"
+        if self._native_mode:
+            metadata['native_route_label'] = route
+            metadata['output_contract'] = route
+            metadata['output'] = ('original_bytes' if raw_task else
+                                  'html' if route in {'ordinary_html', 'native_resource_html'} else 'markdown')
+            metadata['extractor'] = 'moli_native_' + metadata['output']
         try:
             if hasattr(self, "_binary_identity"):
                 stat = Path(binary).stat()

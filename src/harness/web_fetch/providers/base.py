@@ -13,7 +13,7 @@ from lexbench_webfetch.models import EvalCase
 
 from harness.web_fetch.diagnostics import emit
 from harness.web_fetch.models import ProviderResult
-from harness.web_fetch.network_dns import public_dns_context
+from harness.web_fetch.network_dns import public_dns_context, validate_dns_mode
 from harness.web_fetch.native_routes import encode_http_target_url, normalized_http_parameters
 from harness.web_fetch.providers.http_client import HttpResponse, inner_timeout_budget
 from harness.web_fetch.retrieval_hints import NATIVE_RETRIEVAL_HINTS
@@ -176,11 +176,11 @@ class Provider(ABC):
                     ledger.reject(self, case, 'Native adapter arguments differ from its canonical request builder')
                 raise ValueError('Native adapter arguments differ from its canonical request builder')
             endpoint, kwargs = native_endpoint, native_arguments
-        if ledger is not None:
-            self.capture_native_request(case, transport='http', endpoint=endpoint, native_route_ledger=ledger,
-                                        parameters=normalized_http_parameters(case, kwargs))
         mode = self.config.get('dns_mode', 'system')
         with public_dns_context(mode, kwargs.get('timeout', 30)) as traces:
+            if ledger is not None:
+                self.capture_native_request(case, transport='http', endpoint=endpoint, native_route_ledger=ledger,
+                                            parameters=normalized_http_parameters(case, kwargs))
             try:
                 response = callback(endpoint, **kwargs)
             finally:
@@ -218,6 +218,10 @@ class Provider(ABC):
         raise NotImplementedError
 
     def validate(self) -> list[str]:
+        try:
+            validate_dns_mode(self.config.get('dns_mode', 'system'))
+        except ValueError as error:
+            return [str(error)]
         return []
 
     def cancel(self) -> None:

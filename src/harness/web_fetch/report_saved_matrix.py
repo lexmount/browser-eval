@@ -278,7 +278,7 @@ def _saved_revision(spec, sources, cases, selected, completed=()):
     dataset_path = sources.bind(root/'dataset.json')
     results_path = sources.bind(root/'results.jsonl')
     dataset = _json(dataset_path)
-    records = [json.loads(line) for line in results_path.read_text().splitlines() if line.strip()]
+    records = [json.loads(line) for line in results_path.read_bytes().splitlines() if line.strip()]
     _, before_dataset, before_results = validate_revision_chain(root, receipt_binding, dataset, records)
     if before_dataset is None or before_results is None:
         raise ValueError('Saved revision requires its complete predecessor history')
@@ -293,7 +293,7 @@ def _saved_revision(spec, sources, cases, selected, completed=()):
         receipts.append(receipt)
         binding = receipt.get('predecessor_revision')
     original_dataset = _json(revision_file(before_dataset))
-    original_records = [json.loads(line) for line in revision_file(before_results).read_text().splitlines() if line.strip()]
+    original_records = [json.loads(line) for line in revision_file(before_results).read_bytes().splitlines() if line.strip()]
     originals = {r['attempt_id']: r for r in original_records}
     revised = {r['attempt_id']: r for r in records}
     original_cases = {c['id']: c for c in original_dataset['cases']}
@@ -670,7 +670,7 @@ def _load_saved_matrix(spec_path):
             if not replacement.get('execution_log'):
                 raise ValueError('Uncommitted call lacks execution authorization evidence')
             log = sources.binding(replacement['execution_log'])
-            events = [json.loads(line) for line in log.read_text().splitlines() if line.strip()]
+            events = [json.loads(line) for line in log.read_bytes().splitlines() if line.strip()]
             starts = [event for event in events if event.get('event') == 'http_request_started']
             if len(starts) != count:
                 raise ValueError('Uncommitted call log differs from execution authorization count')
@@ -734,6 +734,7 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None):
         native_route_cell, _request_parameters, verify_native_route_contract,
     )
     from harness.web_fetch.providers.base import build_provider
+    from harness.web_fetch.config import expand_env
     metadata = record.get('provider_metadata', {})
     if not metadata.get('native_route_receipt', {}).get('contract_sha256'):
         raise ValueError('Parameter rerun lacks its execution contract')
@@ -742,7 +743,7 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None):
     if not expected_hash or manifest.get('provider_config_sha256') != expected_hash:
         raise ValueError('Parameter rerun configuration differs from authorization')
     config_path = sources.bind(manifest['provider_config_source'], expected_hash)
-    config = _json(config_path)['providers'][record['provider']]
+    config = expand_env(_json(config_path)['providers'][record['provider']])
     if manifest['parameters'].get('timeout') != contract['timeout_seconds']:
         raise ValueError('Parameter rerun timeout differs from authorization')
     for setting, observed in [('expected_binary_sha256', 'binary_sha256'),
@@ -752,7 +753,14 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None):
     failure_without_metadata = ('dns_mode' not in metadata and not record.get('ok')
                                 and metadata.get('native_route_receipt', {}).get('failure_stage')
                                 == 'after_transport')
-    if metadata.get('dns_mode') != config.get('dns_mode', 'system') and not failure_without_metadata:
+    # Older hosted adapters did not duplicate system DNS in result metadata.
+    # The independently bound native configuration below still verifies it.
+    historical_system_dns = ('dns_mode' not in metadata and config.get('dns_mode', 'system') == 'system'
+                             and record['provider_type'] in {
+                                 'cloudflare_markdown', 'cloudflare_content', 'exa_contents',
+                                 'tavily_extract', 'firecrawl'})
+    if (metadata.get('dns_mode') != config.get('dns_mode', 'system')
+            and not failure_without_metadata and not historical_system_dns):
         raise ValueError('Parameter rerun DNS differs from authorization')
     # Failed calls may return before adapter metadata is available. The bound native contract
     # below must still prove the authorized DNS configuration; no DNS trace is invented.
@@ -768,9 +776,17 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None):
     key, expected = native_route_cell(provider, EvalCase(**case), timeout_seconds=contract['timeout_seconds'])
     cells = {tuple((c['method'], c['track'], c['task_kind'], c['input_media_kind'])): c for c in native['cells']}
     actual = cells[key]
-    for field in ('provider_type', 'transport', 'interface', 'configured_parameters', 'endpoint_sha256'):
+    for field in ('provider_type', 'transport', 'interface', 'endpoint_sha256'):
         if actual.get(field) != expected.get(field):
             raise ValueError('Parameter rerun native options differ from authorization')
+    configured = dict(expected['configured_parameters'])
+    # These diagnostics were added after the options themselves. Historical
+    # contracts still prove them through the exact interface/request comparison.
+    for field in ('native_output', 'document_output', 'scrape_selectors'):
+        if field not in actual.get('configured_parameters', {}):
+            configured.pop(field, None)
+    if actual.get('configured_parameters') != configured:
+        raise ValueError('Parameter rerun native options differ from authorization')
     parameters = _request_parameters(provider, EvalCase(**case), expected, contract['timeout_seconds'])
     # Authentication values are resolved only at collection and are never loaded
     # for a report. All non-authentication request arguments must match exactly.
@@ -998,6 +1014,10 @@ def _parameter_reruns(inputs):
                               'max_failure_retries': manifest['parameters'].get('max_failure_retries')}
                     if type(policy['max_failure_retries']) is not int:
                         raise ValueError('Baseline comparison lacks its retry policy')
+                    if prior:
+                        # A split continuation's zero is its remaining budget,
+                        # not the total budget of the retained two-call sequence.
+                        policy['max_failure_retries'] = 1
                     baseline_settings.append(_parameter_execution(old_root, old_record, original_case,
                                                                   policy, sources, old_record))
                 inputs.setdefault('parameter_settings', {})[key] = {
@@ -1222,9 +1242,19 @@ def build_saved_matrix(spec_path: Path, output: Path) -> Path:
     """Build with only the historical policies explicitly approved by the caller."""
     from harness.web_fetch.native_projection import approved_native_policies
     spec_path = Path(spec_path)
+    output = Path(output).absolute()
+    if output.exists() or output.is_symlink():
+        raise ValueError('Saved-matrix output must be a new directory')
     registry = _bound_native_registry(spec_path.parent, _json(spec_path).get('native_policy_registry'))
-    with approved_native_policies(registry):
-        return _build_saved_matrix(spec_path, output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with approved_native_policies(registry), tempfile.TemporaryDirectory(
+            dir=output.parent, prefix='.' + output.name + '-build-') as temporary:
+        staged = Path(temporary) / 'report'
+        entry = _build_saved_matrix(spec_path, staged)
+        if output.exists() or output.is_symlink():
+            raise ValueError('Saved-matrix output must be a new directory')
+        staged.rename(output)
+        return output / entry.relative_to(staged)
 
 
 def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
@@ -2031,7 +2061,7 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
                 raise ValueError('Published provenance record differs from validated source: '+relative)
             _validate_record_artifacts(path)
     projected_dataset, projected_records, projected_identities, projected_scope = _saved_renderer_projection(output, model)
-    saved_records = [json.loads(line) for line in (output/'results.jsonl').read_text().splitlines() if line.strip()]
+    saved_records = [json.loads(line) for line in (output/'results.jsonl').read_bytes().splitlines() if line.strip()]
     execution = _json(output/'execution.json')
     scores_changed = (bool(inputs['revision']) or any(adoptions[key]['revision'] for key in keys if key in adoptions)
                       if inputs is not None else bool(model.get('offline_revision')) or any(row.get('score_revision') for row in model['rows']))

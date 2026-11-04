@@ -949,6 +949,7 @@ class ProviderTest(unittest.TestCase):
         request_mock.return_value = HttpResponse(200, self.case.url, {}, raw)
         provider = CloudflareMarkdownProvider('cf', {'api_token': 'x', 'account_id': 'a',
             'uniform_native_parameters': True, 'scrape_selectors': selectors})
+        self.assertEqual(provider.native_configured_parameters()['scrape_selectors'], selectors)
         bodies = []
         for track, kind in (('image', 'resource'), ('video', 'resource'), ('video', 'body')):
             case = replace(self.case, track=track, task_kind=kind)

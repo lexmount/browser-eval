@@ -309,3 +309,21 @@ class HostedDnsBoundaryTests(unittest.TestCase):
                         provider.native_http_request(case, resolve_transport, endpoint, **kwargs)
                 self.assertEqual(doh.call_count, 1)
                 system.assert_not_called()
+
+    def test_invalid_dns_is_rejected_before_preflight_and_ledger_capture(self):
+        from unittest.mock import Mock
+        for kind in ('firecrawl', 'exa_contents', 'tavily_extract',
+                     'cloudflare_markdown', 'cloudflare_content'):
+            with self.subTest(kind=kind):
+                for mode in ('system', 'public_doh'):
+                    provider, _ = self.provider_and_case(kind, mode)
+                    self.assertEqual(provider.validate(), [])
+                provider, case = self.provider_and_case(kind, 'public-doh')
+                self.assertTrue(any('dns_mode' in error for error in provider.validate()))
+                endpoint, arguments = provider.native_http_arguments(case, 30)
+                transport, ledger = Mock(), Mock()
+                with self.assertRaisesRegex(ValueError, 'dns_mode'):
+                    provider.native_http_request(case, transport, endpoint,
+                                                 native_route_ledger=ledger, **arguments)
+                ledger.observe.assert_not_called()
+                transport.assert_not_called()

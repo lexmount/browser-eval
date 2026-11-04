@@ -847,6 +847,7 @@ def run_evaluation(
                                     pending.join(1.0)
                                 result.metadata['retry_cleanup_wait_ms'] = round(
                                     (time.monotonic() - cleanup_begin) * 1000, 2)
+                                physical_attempts[-1]['retry_cleanup_wait_ms'] = result.metadata['retry_cleanup_wait_ms']
                                 stopped_provider = (isinstance(caught_exception, ProcessCleanupError)
                                                     or worker_unresolved(
                                                         pending, timed_out=result.error_type == 'timeout'))
@@ -871,7 +872,9 @@ def run_evaluation(
                             result.metadata['retry'] = {
                                 'physical_attempts': len(physical_attempts),
                                 'retries_used': len(physical_attempts) - 1,
-                                'execution_cost_ms': round(sum(item['elapsed_ms'] + item['retry_throttle_wait_ms'] for item in physical_attempts), 2),
+                                'execution_cost_ms': round(sum(item['elapsed_ms'] + item['retry_throttle_wait_ms']
+                                                              + item.get('retry_cleanup_wait_ms', 0)
+                                                              for item in physical_attempts), 2),
                                 'trigger': 'previous physical attempt failed the task predicate',
                                 'selection': 'final physical attempt is authoritative; no best-of selection',
                                 'attempts': physical_attempts,

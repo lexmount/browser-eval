@@ -30,11 +30,19 @@ def test_mixed_markdown_comparison_keeps_following_prose(comparison):
     '<script>secret</script>', '<style>secret</style>',
     '<span hidden>secret</span>', '<span style="display:none">secret</span>',
     '<!-- secret -->',
+    '<div hidden class="a"id="b">secret</div>',
+    '<script/x>secret</script>', '<style/x>secret</style>',
+    '<span style="display:none"id="b">secret</span>',
 ])
 def test_comparison_does_not_expose_hidden_html(hidden):
     result = visible_mixed_html_text(f'Prefix<sup>1</sup>\nx<y\n\n{hidden}\nVisible sentence.')
     assert 'secret' not in result
     assert 'Visible sentence.' in result
+
+
+def test_tolerated_visible_tag_keeps_its_text():
+    assert 'Visible sentence.' in visible_mixed_html_text(
+        '<div class="a"id="b">Visible sentence.</div> after')
 
 
 def test_quoted_angle_in_valid_tag_remains_attribute():
