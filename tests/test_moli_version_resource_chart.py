@@ -1,10 +1,14 @@
+import json
 import math
 import re
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
 
 from harness.lexbench import charts as MODULE
+from tests.test_explicit_utf8_io import ascii_locale_environment
 
 
 class MoliVersionResourceChartTests(unittest.TestCase):
@@ -63,6 +67,22 @@ class MoliVersionResourceChartTests(unittest.TestCase):
             row["resource_binary_sha256"] = row["functional_binary_sha256"]
             MODULE.render_chart(self.data, output)
             self.assertNotIn("†", output.read_text(encoding="utf-8"))
+
+    def test_chart_command_reads_and_writes_utf8_under_an_ascii_locale(self):
+        row = self.data["configurations"][1]
+        row.update(functional_binary_sha256="a" * 64, resource_binary_sha256="b" * 64)
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "comparison.json"
+            source.write_text(json.dumps(self.data, ensure_ascii=False), encoding="utf-8")
+            output = Path(directory) / "chart.svg"
+            subprocess.run(
+                [sys.executable, "-m", "harness.lexbench", "chart",
+                 "--input", str(source), "--output", str(output), "--metrics", "pss,cpu"],
+                env=ascii_locale_environment(), check=True, capture_output=True,
+            )
+            rendered = output.read_text(encoding="utf-8")
+            self.assertIn(" †:", rendered)
+            self.assertIn("Moli 1.1.4 · 关闭 layout", rendered)
 
     def test_near_identical_methods_keep_both_numbered_markers_visible(self):
         self.data["configurations"][1]["pss_mib"] = self.data["configurations"][0]["pss_mib"]

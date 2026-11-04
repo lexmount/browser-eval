@@ -13,6 +13,7 @@ from harness.web_search.pages import reader_pages
 PACKAGE = Path(__file__).resolve().parents[2] / "src/harness/web_search"
 CATALOG = json.loads((PACKAGE / "messages.json").read_text(encoding="utf-8"))["zh"]
 HAN = re.compile("[\u3400-\u9fff]")
+CHINESE_SEPARATORS = re.compile("[\u3001\uff1a\uff1b]")
 PLACEHOLDER = re.compile(r"\{\w+(?::\.?\d*[a-z%]?)?\}")
 
 
@@ -64,10 +65,11 @@ def test_placeholder_names_do_not_carry_generated_or_collection_names():
 
 
 def test_catalog_keys_are_english_and_translations_are_catalog_only():
-    assert not [key for key in CATALOG if HAN.search(key)]
+    assert not [key for key in CATALOG if HAN.search(key) or CHINESE_SEPARATORS.search(key)]
     assert CATALOG == dict(sorted(CATALOG.items()))
     for name in ("comparison", "delivery", "pages", "relevance", "report", "review"):
-        assert not HAN.search((PACKAGE / f"{name}.py").read_text(encoding="utf-8")), name
+        source = (PACKAGE / f"{name}.py").read_text(encoding="utf-8")
+        assert not HAN.search(source) and not CHINESE_SEPARATORS.search(source), name
 
 
 def test_lookup_selects_the_edition_and_fills_named_values():

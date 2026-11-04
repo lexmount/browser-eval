@@ -450,7 +450,7 @@ def render_chart(
         )
     parts.append("</svg>")
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text("\n".join(parts) + "\n")
+    output.write_text("\n".join(parts) + "\n", encoding="utf-8")
 
 
 def main(argv=None) -> None:
@@ -460,7 +460,7 @@ def main(argv=None) -> None:
     parser.add_argument("--metrics", default="pss,cpu")
     parser.add_argument("--language", choices=("zh", "en"), default="zh")
     args = parser.parse_args(argv)
-    payload = json.loads(args.input.read_text())
+    payload = json.loads(args.input.read_text(encoding="utf-8"))
     metrics = tuple(item.strip() for item in args.metrics.split(",") if item.strip())
     render_chart(payload, args.output, metrics, args.language)
 

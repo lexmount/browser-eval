@@ -13,6 +13,7 @@ import statistics
 import tempfile
 import zipfile
 from collections import Counter, defaultdict
+from functools import partial
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlencode, urlsplit
@@ -26,6 +27,7 @@ from harness.report_languages import (
     select_report_language,
 )
 from harness.reporting.assets import copy_bound_assets
+from harness.reporting.locales import translate
 from harness.reporting.mermaid import mermaid_script_attributes
 from harness.reporting.privacy import TRAJECTORY_REPLAY
 from harness.reporting.templates import template_identity
@@ -41,6 +43,7 @@ from harness.trajectory_replay.failure_matrix import (
     failure_signature_cards,
 )
 from harness.trajectory_replay.interpretation import render_interpretation, standalone_document
+from harness.trajectory_replay.messages import MESSAGES, report_text
 from harness.trajectory_replay.participants import (
     bind_participant,
     participant_registry,
@@ -272,24 +275,15 @@ def _historical_replay_validity_notice(
     identity = (results_sha256, dataset_sha256, profile_sha256)
     if identity not in LEGACY_REPLAY_VALIDITY_INPUTS:
         return ""
-    if lang == "zh":
-        heading = "历史 90 题成绩保留，但不是当前资格证明"
-        body = (
-            "Chromium 90/90、Moli 54/90 是这批历史固定轨迹的原始验收结果，不做人工改分。"
-            "但旧资格流程曾把返回内容为 [Snapshot error: …] 的 snapshot 动作按工具包装层 success 接受；"
-            "37 道 RETRIEVE 题的 74 条结果均直接使用冻结的 recorded_response 验收，没有绑定本轮页面读数；"
-            "历史运行还存在 Chromium 780×437/493、Moli 1920×1080 的视口差异。"
-            "因此这些分数只能描述旧协议下的固定路径验收，不能证明 90 条轨迹符合当前 fail-closed 资格规则，"
-            "也不能作为统一视口下的浏览器成功率。修正后的正式比较需要重新资格验证并完整重跑。"
-        )
-    else:
-        heading = "The historical 90-task scores remain, but they are not current qualification proof"
-        body = (
-            "Chromium 90/90 and Moli 54/90 remain the original acceptance results for this historical fixed-trajectory cohort; no score is manually changed. "
-            "However, the legacy qualification flow accepted snapshot actions as tool-wrapper successes even when their returned content began [Snapshot error: …]. "
-            "All 74 results for the 37 RETRIEVE tasks used frozen recorded_response values for acceptance without binding answers to data read from the current page, and the historical runs used mismatched viewports: Chromium 780×437/493 and Moli 1920×1080. "
-            "These scores therefore describe fixed-path acceptance under the legacy protocol. They do not prove that all 90 trajectories satisfy the current fail-closed qualification rules or measure browser success at a common viewport. A corrected formal comparison requires renewed qualification and a complete rerun."
-        )
+    t = report_text(lang)
+    heading = t("legacy.heading", "The historical 90-task scores remain, but they are not current qualification proof")
+    body = t(
+        "legacy.body",
+        "Chromium 90/90 and Moli 54/90 remain the original acceptance results for this historical fixed-trajectory cohort; no score is manually changed. "
+        "However, the legacy qualification flow accepted snapshot actions as tool-wrapper successes even when their returned content began [Snapshot error: …]. "
+        "All 74 results for the 37 RETRIEVE tasks used frozen recorded_response values for acceptance without binding answers to data read from the current page, and the historical runs used mismatched viewports: Chromium 780×437/493 and Moli 1920×1080. "
+        "These scores therefore describe fixed-path acceptance under the legacy protocol. They do not prove that all 90 trajectories satisfy the current fail-closed qualification rules or measure browser success at a common viewport. A corrected formal comparison requires renewed qualification and a complete rerun.",
+    )
     return f'<section class="callout historical-validity"><h2>{_e(heading)}</h2><p>{_e(body)}</p></section>'
 
 
@@ -325,7 +319,7 @@ def _supplemental_diagnostic(review: dict[str, Any] | None, task_id: int) -> Any
 def _supplemental_diagnostic_html(diagnostic: dict | None, lang: str) -> str:
     if not diagnostic:
         return ""
-    zh = lang == "zh"
+    t = report_text(lang)
     rows = []
     component_rows = []
     readiness_rows = []
@@ -333,18 +327,18 @@ def _supplemental_diagnostic_html(diagnostic: dict | None, lang: str) -> str:
     header_rows = []
     for method in diagnostic["observations"]:
         label = method.get("label") or method.get("version") or {
-            "release": "正式构建" if zh else "Release build",
-            "pr": "候选构建" if zh else "Candidate build",
+            "release": t("diagnostic.build.release", "Release build"),
+            "pr": t("diagnostic.build.candidate", "Candidate build"),
         }.get(method["method"], method["method"])
         for sample in method["observations"]:
             for request in sample["state"].get("headerRecording", []):
-                cookie_label = ("有" if request["cookie_present"] else "无") if zh else ("Yes" if request["cookie_present"] else "No")
-                missing = "缺失" if zh else "Missing"
+                cookie_label = t("common.yes", "Yes") if request["cookie_present"] else t("common.no", "No")
+                missing = t("diagnostic.header.missing", "Missing")
                 values = (label, request["api"], cookie_label, request["status"],
                           request["wire_referer_path"] or missing, request["har_referer_path"] or missing)
                 header_rows.append("<tr>" + "".join(f"<td>{_e(value)}</td>" for value in values) + "</tr>")
             for request in sample["state"].get("httpReads", []):
-                values = (label, request.get("path") or request.get("url") or ("未记录" if zh else "Not recorded"), request.get("status", "—"),
+                values = (label, request.get("path") or request.get("url") or (t("diagnostic.path.not_recorded", "Not recorded")), request.get("status", "—"),
                           request.get("bytes", "—"), request.get("error", ""))
                 network_rows.append("<tr>" + "".join(f"<td>{_e(value)}</td>" for value in values) + "</tr>")
             readiness = sample["state"].get("readiness")
@@ -366,33 +360,39 @@ def _supplemental_diagnostic_html(diagnostic: dict | None, lang: str) -> str:
                           control["rectCount"] if control.get("rectCount") is not None else "—",
                           "—" if offset_parent is None else "non-null" if offset_parent else "null")
                 rows.append("<tr>" + "".join(f"<td>{_e(value)}</td>" for value in values) + "</tr>")
-    headers = ("方法", "追加等待", "目标文本", "display / visibility", "宽 × 高（px）", "矩形数", "offsetParent") if zh else (
-        "Method", "Additional wait", "Target text", "display / visibility", "Width × height (px)", "Client rects", "offsetParent")
-    title = "补充实测：目标状态对照" if zh else "Supplemental probe: target-state comparison"
+    headers = (t("common.method", "Method"), t("diagnostic.column.additional_wait", "Additional wait"),
+               t("diagnostic.column.target_text", "Target text"), "display / visibility",
+               t("diagnostic.column.width_height", "Width × height (px)"),
+               t("diagnostic.column.client_rects", "Client rects"), "offsetParent")
+    title = t("diagnostic.title.target_state", "Supplemental probe: target-state comparison")
     if header_rows:
-        title = "补充实测：请求发送与记录对照" if zh else "Supplemental probe: sent and recorded headers"
-    scope = ("仅打开界面或搜索，没有提交表单或发送邀请。这里记录的是后续只读诊断；原始失败轨迹与成绩保持不变。" if zh else
-             "The probe only opened the interface or searched; no form or invitation was submitted. These later read-only observations do not replace the original trace or score.")
+        title = t("diagnostic.title.headers", "Supplemental probe: sent and recorded headers")
+    scope = (t("diagnostic.scope.read_only", "The probe only opened the interface or searched; no form or invitation was submitted. These later read-only observations do not replace the original trace or score."))
     if diagnostic.get("scope") == "isolated_local_http_fixture_not_a_replacement_score":
-        scope = ("独立本地 HTTP 实验，没有访问评测站点；使用冻结浏览器和正式 HAR 采集器。此处验证机制，不替换原始轨迹或成绩。" if zh else
-                 "An isolated local HTTP fixture, without accessing benchmark sites, uses the frozen browsers and production HAR recorder. It tests a mechanism and does not replace original trajectories or scores.")
+        scope = (t("diagnostic.scope.local_fixture", "An isolated local HTTP fixture, without accessing benchmark sites, uses the frozen browsers and production HAR recorder. It tests a mechanism and does not replace original trajectories or scores."))
     scope_note = (diagnostic.get("scope_note") or {}).get(lang)
     if scope_note:
         scope += " " + str(scope_note)
     if header_rows:
-        scope += (" 横向滚动可对照服务器收到的头与 HAR 记录。" if zh else
-                  " Scroll horizontally to compare server-observed headers with HAR records.")
+        scope += (t("diagnostic.scope.scroll_hint", " Scroll horizontally to compare server-observed headers with HAR records."))
     components = ""
     if component_rows:
-        component_headers = ("方法", "追加等待", "组件已初始化", "属性选项", "向导匹配", "步骤匹配", "选择匹配", "事件处理器数") if zh else (
-            "Method", "Additional wait", "Component initialized", "Attribute options", "Wizard matches", "Step matches", "Selection matches", "Event handlers")
+        component_headers = (t("common.method", "Method"), t("diagnostic.column.additional_wait", "Additional wait"),
+                             t("diagnostic.column.component_initialized", "Component initialized"),
+                             t("diagnostic.column.attribute_options", "Attribute options"),
+                             t("diagnostic.column.wizard_matches", "Wizard matches"),
+                             t("diagnostic.column.step_matches", "Step matches"),
+                             t("diagnostic.column.selection_matches", "Selection matches"),
+                             t("diagnostic.column.event_handlers", "Event handlers"))
         components = ('<div class="table-scroll"><table data-component-readiness><thead><tr>'
                       + "".join(f"<th>{_e(header)}</th>" for header in component_headers)
                       + '</tr></thead><tbody>' + "".join(component_rows) + '</tbody></table></div>')
     readiness_table = ""
     if readiness_rows:
-        readiness_headers = ("方法", "DOM 就绪后等待", "目标", "仍禁用", "待初始化模块", "表单校验已绑定") if zh else (
-            "Method", "Wait after DOM ready", "Target", "Disabled", "Pending modules", "Form validation bound")
+        readiness_headers = (t("common.method", "Method"), t("diagnostic.column.wait_after_dom_ready", "Wait after DOM ready"),
+                             t("common.target", "Target"), t("diagnostic.column.disabled", "Disabled"),
+                             t("diagnostic.column.pending_modules", "Pending modules"),
+                             t("diagnostic.column.form_validation_bound", "Form validation bound"))
         readiness_table = ('<div class="table-scroll"><table data-readiness-comparison><thead><tr>'
                            + "".join(f"<th>{_e(header)}</th>" for header in readiness_headers)
                            + '</tr></thead><tbody>' + "".join(readiness_rows) + '</tbody></table></div>')
@@ -401,15 +401,19 @@ def _supplemental_diagnostic_html(diagnostic: dict | None, lang: str) -> str:
                        + '</tr></thead><tbody>' + "".join(rows) + '</tbody></table></div>') if rows else "")
     network_table = ""
     if network_rows:
-        network_headers = ("方法", "帖子路径", "HTTP 状态", "正文 UTF-8 字节数", "错误") if zh else (
-            "Method", "Post path", "HTTP status", "Body UTF-8 bytes", "Error")
+        network_headers = (t("common.method", "Method"), t("diagnostic.column.post_path", "Post path"),
+                           t("diagnostic.column.http_status", "HTTP status"),
+                           t("diagnostic.column.body_bytes", "Body UTF-8 bytes"), t("diagnostic.column.error", "Error"))
         network_table = ('<div class="table-scroll"><table data-http-read-comparison><thead><tr>'
                          + "".join(f"<th>{_e(header)}</th>" for header in network_headers)
                          + '</tr></thead><tbody>' + "".join(network_rows) + '</tbody></table></div>')
     header_table = ""
     if header_rows:
-        header_headers = ("方法", "请求接口", "携带 Cookie", "HTTP 状态", "服务器收到的 Referer 路径", "HAR 中的 Referer 路径") if zh else (
-            "Method", "Request API", "Cookie present", "HTTP status", "Referer path received by server", "Referer path in HAR")
+        header_headers = (t("common.method", "Method"), t("diagnostic.column.request_api", "Request API"),
+                          t("diagnostic.column.cookie_present", "Cookie present"),
+                          t("diagnostic.column.http_status", "HTTP status"),
+                          t("diagnostic.column.referer_server", "Referer path received by server"),
+                          t("diagnostic.column.referer_har", "Referer path in HAR"))
         header_table = ('<div class="table-scroll"><table data-header-recording-comparison><thead><tr>'
                         + "".join(f"<th>{_e(header)}</th>" for header in header_headers)
                         + '</tr></thead><tbody>' + "".join(header_rows) + '</tbody></table></div>')
@@ -463,8 +467,19 @@ def _corrected_acceptance_by_task(
     return corrected
 
 
-def _format_ms(value: float | None) -> str:
-    return "—" if value is None else f"{value / 1000:.1f} 秒"
+def _format_ms(value: float | None, lang: str) -> str:
+    if value is None:
+        return "—"
+    return report_text(lang)("unit.seconds", "{seconds:.1f} s", seconds=value / 1000)
+
+
+def _task_type_label(task_type: str, lang: str) -> str:
+    t = report_text(lang)
+    return {
+        "RETRIEVE": t("task_type.retrieve", "RETRIEVE"),
+        "NAVIGATE": t("task_type.navigate", "NAVIGATE"),
+        "MUTATE": t("task_type.mutate", "MUTATE"),
+    }.get(task_type, task_type)
 
 
 def _format_mib(value: float | None) -> str:
@@ -479,9 +494,8 @@ def _metric_lines(
     *,
     lang: str,
 ) -> str:
-    labels = (("mean", "均值"), ("p50", "P50"), ("p95", "P95"))
-    if lang == "en":
-        labels = (("mean", "Mean"), ("p50", "P50"), ("p95", "P95"))
+    t = report_text(lang)
+    labels = (("mean", t("metric.mean", "Mean")), ("p50", "P50"), ("p95", "P95"))
     text = "<br>".join(
         f'<span class="metric-label">{label}</span> '
         + _winner(formatter(metric.get(key)), method_id in winners[key], lang=lang)
@@ -490,7 +504,7 @@ def _metric_lines(
     if "n" in metric:
         coverage = f'n={metric["n"]}'
         if "population" in metric:
-            coverage += f'/{metric["population"]}; ' + ("缺失 " if lang == "zh" else "missing ") + str(metric["missing"])
+            coverage += f'/{metric["population"]}; ' + report_text(lang)("metric.coverage_missing", "missing {count}", count=metric["missing"])
         text += f"<br><small>{coverage}</small>"
     return text
 
@@ -509,7 +523,7 @@ def _unique_winners(
 
 def _add_interpretation_navigation(language_root: Path, lang: str) -> None:
     """Expose the optional article only after its page has been generated."""
-    label = "报告解读" if lang == "zh" else "Interpretation"
+    label = report_text(lang)("nav.interpretation", "Interpretation")
     for page in language_root.rglob("*.html"):
         route = page.relative_to(language_root)
         if route.parts[0] == "en" or page.name == "article.html":
@@ -522,15 +536,19 @@ def _add_interpretation_navigation(language_root: Path, lang: str) -> None:
 
 
 def _nav(lang: str, active: str, *, depth: int, current_route: str = "index.html") -> str:
-    labels = {
-        "zh": (("index", "结论"), ("dataset", "评测集"), ("results", "结果分析"), ("environment", "环境与方法"), ("review", "核验记录")),
-        "en": (("index", "Summary"), ("dataset", "Dataset"), ("results", "Results analysis"), ("environment", "Environment & method"), ("review", "Review history")),
-    }[lang]
+    t = report_text(lang)
+    labels = (
+        ("index", t("nav.summary", "Summary")),
+        ("dataset", t("nav.dataset", "Dataset")),
+        ("results", t("nav.results", "Results analysis")),
+        ("environment", t("nav.environment", "Environment & method")),
+        ("review", t("nav.review", "Review history")),
+    )
     local_prefix = "../" * depth
     switch = ("../../" if lang == "en" and depth else "../" if lang == "en" else "../en/" if depth else "en/") + current_route
-    switch_label = "中文" if lang == "en" else "English"
-    brand = "Trajectory Replay" if lang == "en" else "轨迹重放"
-    theme_label = "Toggle theme" if lang == "en" else "切换主题"
+    switch_label = translate(MESSAGES, "nav.other_edition", lang)
+    brand = t("nav.brand", "Trajectory Replay")
+    theme_label = t("nav.toggle_theme", "Toggle theme")
     links = "".join(
         f'<a href="{local_prefix}{slug}.html"'
         + (' aria-current="page"' if slug == active else "")
@@ -543,11 +561,7 @@ def _nav(lang: str, active: str, *, depth: int, current_route: str = "index.html
 def _shell(lang: str, active: str, title: str, body: str, *, depth: int = 0, current_route: str = "index.html") -> str:
     prefix = "../" * depth
     asset_prefix = prefix if lang == "zh" else "../" + prefix
-    footer = (
-        "WebArena-Verified 1.2.3 · 浏览器轨迹重放"
-        if lang == "zh"
-        else "WebArena-Verified 1.2.3 · Browser Trajectory Replay"
-    )
+    footer = report_text(lang)("footer.track", "WebArena-Verified 1.2.3 · Browser Trajectory Replay")
     preview_bootstrap = r'''<script>(function(){
 const base=document.querySelector('base[href]');
 if(base){
@@ -566,21 +580,25 @@ css.href=css.dataset.src;
 
 
 def _winner(value: str, won: bool, *, lang: str) -> str:
-    badge = "优" if lang == "zh" else "Best"
+    badge = report_text(lang)("metric.best_badge", "Best")
     return f'<strong class="winner">{value}<span>{badge}</span></strong>' if won else value
 
 
 def _verdict_label(status: str, semantic_status: str | None, lang: str) -> str:
+    t = report_text(lang)
     if semantic_status == "unverified":
         if status == "pass":
-            return "官方通过；答案不可核验" if lang == "zh" else "Official pass; answer unverifiable"
-        return "官方失败；答案不可核验" if lang == "zh" else "Official fail; answer unverifiable"
-    return (("通过" if status == "pass" else "失败") if lang == "zh" else status.title())
+            return t("verdict.pass_unverifiable", "Official pass; answer unverifiable")
+        return t("verdict.fail_unverifiable", "Official fail; answer unverifiable")
+    if status == "pass":
+        return t("verdict.pass", "Pass")
+    return t("verdict.not_passed", "{status}", status=status.title())
 
 
 def _metrics_table(
     methods: list[dict[str, Any]], lang: str, *, show_valid_reference: bool = True
 ) -> str:
+    t = report_text(lang)
     pass_winners = _unique_winners(methods, "pass_rate", higher=True)
     valid_winners = _unique_winners(
         [{"id": row["id"], "value": row["valid_reference_passed"]} for row in methods],
@@ -603,26 +621,23 @@ def _metrics_table(
         for metric in metric_keys
     }
     metric_headers = {
-        "duration": ("全部任务端到端耗时", "End-to-end time, all tasks"),
-        "action_latency": ("单次动作耗时", "Per-action latency"),
-        "cpu": ("CPU 时间", "CPU time"),
-        "memory": ("平均内存", "Mean memory"),
+        "duration": t("metric.all_tasks_time", "End-to-end time, all tasks"),
+        "action_latency": t("metric.action_latency", "Per-action latency"),
+        "cpu": t("metric.cpu_time", "CPU time"),
+        "memory": t("metric.mean_memory", "Mean memory"),
     }
     headers = [
-        "方法" if lang == "zh" else "Method",
-        "官方通过" if lang == "zh" else "Official passes",
-        "官方通过率" if lang == "zh" else "Official pass rate",
-        "可核验题通过" if lang == "zh" else "Passes on verifiable tasks",
-        *(metric_headers[key][0 if lang == "zh" else 1] for key in metric_keys),
+        t("common.method", "Method"),
+        t("metrics.official_passes", "Official passes"),
+        t("metrics.official_pass_rate", "Official pass rate"),
+        t("metrics.verifiable_passes", "Passes on verifiable tasks"),
+        *(metric_headers[key] for key in metric_keys),
     ]
     if not show_valid_reference:
         headers = headers[:3] + headers[4:]
     body = []
 
-    def time_value(value: float | None) -> str:
-        if lang == "zh":
-            return _format_ms(value)
-        return "—" if value is None else f"{value / 1000:.1f} s"
+    time_value = partial(_format_ms, lang=lang)
 
     for row in methods:
         key = row["id"]
@@ -663,48 +678,48 @@ def _metrics_table(
 
 
 def _resource_table(methods: list[dict[str, Any]], lang: str) -> str:
-    zh = lang == "zh"
+    t = report_text(lang)
     metrics = (
-        ("memory_peak", "峰值内存", "Peak memory", _format_mib),
-        ("network_rx", "接收数据", "Network received", _format_mib),
-        ("network_tx", "发送数据", "Network sent", _format_mib),
-        ("cpu_utilization", "CPU 平均使用率", "Mean CPU utilization", lambda value: "—" if value is None else f"{value:.1f}%"),
+        ("memory_peak", t("metric.peak_memory", "Peak memory"), _format_mib),
+        ("network_rx", t("metric.network_received", "Network received"), _format_mib),
+        ("network_tx", t("metric.network_sent", "Network sent"), _format_mib),
+        ("cpu_utilization", t("metric.cpu_utilization", "Mean CPU utilization"), lambda value: "—" if value is None else f"{value:.1f}%"),
     )
     rows = []
-    for key, label_zh, label_en, formatter in metrics:
+    for key, label, formatter in metrics:
         if not any(method[key]["n"] for method in methods):
             continue
-        cells = [_e(label_zh if zh else label_en)]
+        cells = [_e(label)]
         for method in methods:
             cells.append(_metric_lines(method[key], formatter, method["id"], {stat: set() for stat in ("mean", "p50", "p95")}, lang=lang))
         rows.append("<tr>" + "".join(f"<td>{cell}</td>" for cell in cells) + "</tr>")
     if not rows:
         return ""
-    headers = ("资源指标" if zh else "Resource metric", *(method["label"] for method in methods))
+    headers = (t("metric.resource_column", "Resource metric"), *(method["label"] for method in methods))
     return f'<div class="table-scroll"><table><thead><tr>{"".join(f"<th>{_e(h)}</th>" for h in headers)}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
 
 
 def _successful_distribution_table(methods: list[dict[str, Any]], lang: str) -> str:
     """Method-specific successful populations are descriptive, never ranked."""
-    zh = lang == "zh"
-    time_value = _format_ms if zh else lambda v: "—" if v is None else f"{v / 1000:.1f} s"
-    metrics = (("duration", "端到端耗时", "End-to-end time", time_value),
-               ("cpu", "CPU 时间", "CPU time", time_value),
-               ("memory", "平均内存", "Mean memory", _format_mib),
-               ("memory_peak", "峰值内存", "Peak memory", _format_mib),
-               ("network_rx", "接收数据", "Network received", _format_mib),
-               ("network_tx", "发送数据", "Network sent", _format_mib),
-               ("cpu_utilization", "CPU 平均使用率", "Mean CPU utilization", lambda v: "—" if v is None else f"{v:.1f}%"))
+    t = report_text(lang)
+    time_value = partial(_format_ms, lang=lang)
+    metrics = (("duration", t("metric.end_to_end_time", "End-to-end time"), time_value),
+               ("cpu", t("metric.cpu_time", "CPU time"), time_value),
+               ("memory", t("metric.mean_memory", "Mean memory"), _format_mib),
+               ("memory_peak", t("metric.peak_memory", "Peak memory"), _format_mib),
+               ("network_rx", t("metric.network_received", "Network received"), _format_mib),
+               ("network_tx", t("metric.network_sent", "Network sent"), _format_mib),
+               ("cpu_utilization", t("metric.cpu_utilization", "Mean CPU utilization"), lambda v: "—" if v is None else f"{v:.1f}%"))
     rows = []
-    for name, label_zh, label_en, formatter in metrics:
+    for name, label, formatter in metrics:
         if name != "duration" and not any(method["successful"][name]["n"] for method in methods):
             continue
-        cells = [_e(label_zh if zh else label_en)] + [
+        cells = [_e(label)] + [
             _metric_lines(method["successful"][name], formatter, method["id"],
                           {stat: set() for stat in ("mean", "p50", "p95")}, lang=lang)
             for method in methods]
         rows.append("<tr>" + "".join(f"<td>{cell}</td>" for cell in cells) + "</tr>")
-    headers = ["指标" if zh else "Metric"] + [
+    headers = [t("metric.column", "Metric")] + [
         f'{method["label"]} · n={method["passed"]}/{method["total"]}' for method in methods]
     return '<div class="table-scroll successful-distributions"><table><thead><tr>' + ''.join(f'<th>{_e(h)}</th>' for h in headers) + '</tr></thead><tbody>' + ''.join(rows) + '</tbody></table></div>'
 
@@ -840,6 +855,7 @@ def _detail_page(
     failed = evidence["programmatic_failure"]
     review = evidence.get("review")
     zh = lang == "zh"
+    t = report_text(lang)
     semantic_status = (
         "unverified" if (attempt.get("reference_validity") or {}).get("status") == "unverifiable" else "valid"
     )
@@ -849,15 +865,15 @@ def _detail_page(
     key = f'{attempt["participant_id"]}-{attempt["task_id"]}'
     report_root = "../" if zh else "../../"
     stage_labels = {
-        "browser_session_setup": ("浏览器会话初始化", "Browser session setup"),
-        "browser_tool_execution": ("浏览器动作执行", "Browser action execution"),
-        "evidence_finalization": ("执行证据收尾", "Evidence finalization"),
-        "official_evaluator_execution": ("官方评测器执行", "Official evaluator execution"),
-        "side_effect_not_observed": ("网络验收条件未满足", "Network acceptance not satisfied"),
-        "official_evaluation": ("官方验收", "Official evaluation"),
-        "pass": ("无", "None"),
+        "browser_session_setup": t("stage.browser_session_setup", "Browser session setup"),
+        "browser_tool_execution": t("stage.browser_action_execution", "Browser action execution"),
+        "evidence_finalization": t("stage.evidence_finalization", "Evidence finalization"),
+        "official_evaluator_execution": t("stage.official_evaluator_execution", "Official evaluator execution"),
+        "side_effect_not_observed": t("stage.side_effect_not_observed", "Network acceptance not satisfied"),
+        "official_evaluation": t("stage.official_evaluation", "Official evaluation"),
+        "pass": t("stage.none", "None"),
     }
-    stage = stage_labels.get(failed["stage"], (failed["stage"], failed["stage"]))[0 if zh else 1]
+    stage = stage_labels.get(failed["stage"], failed["stage"])
     failed_index = failed.get("step")
     trigger_index = failed.get("trigger_step")
     failed_action = next((str((step.get("arguments") or {}).get("action") or "") for step in evidence["trajectory"] if step.get("index") == failed_index), "")
@@ -890,27 +906,27 @@ def _detail_page(
         failed_step = failed_index == number
         actual_status = str((actual or {}).get("status") or "")
         status_text = (
-            ("未执行", "Not executed") if actual is None
-            else ("报错", "Error") if actual_status == "error"
-            else ("完成", "Completed")
-        )[0 if zh else 1]
+            t("result.step.not_executed", "Not executed") if actual is None
+            else t("result.step.error", "Error") if actual_status == "error"
+            else t("result.step.completed", "Completed")
+        )
         status_class = "status-muted" if actual is None else "status-fail" if actual_status == "error" else "status-pass"
         duration = f'{float(actual.get("duration_ms") or 0) / 1000:.2f} s' if actual else "—"
         steps.append(
             f'<article id="step-{number}" class="aligned-step {"failed-step" if failed_step else ""}">'
             f'<div class="aligned-index"><span class="step-number">{number}</span></div>'
-            f'<div class="aligned-standard"><span class="mobile-step-label">{"标准轨迹" if zh else "Fixed input"}</span><strong>{_e(planned.get("action") or "")}</strong>'
+            f'<div class="aligned-standard"><span class="mobile-step-label">{t("result.step.fixed_input", "Fixed input")}</span><strong>{_e(planned.get("action") or "")}</strong>'
             f'<code>{_e(planned_target)}</code><button type="button" data-open-step="{number}">'
-            f'{"查看标准参数" if zh else "Fixed arguments"}</button></div>'
-            f'<div class="aligned-actual"><span class="mobile-step-label">{"实际执行" if zh else "Actual execution"}</span><div class="aligned-actual-head"><strong>{_e(actual_arguments.get("action") or "—")}</strong>'
+            f'{t("result.step.fixed_arguments", "Fixed arguments")}</button></div>'
+            f'<div class="aligned-actual"><span class="mobile-step-label">{t("result.actual_execution", "Actual execution")}</span><div class="aligned-actual-head"><strong>{_e(actual_arguments.get("action") or "—")}</strong>'
             f'<span class="{status_class}">{status_text}</span><span>{_e(duration)}</span></div>'
             f'<code>{_e(actual_target) if actual else "—"}</code>'
-            f'<p>{_e(preview) if preview else ("没有工具返回" if zh else "No tool response")}</p>'
+            f'<p>{_e(preview) if preview else (t("result.step.no_tool_response", "No tool response"))}</p>'
             f'<button type="button" data-open-step="{number}">'
-            f'{"查看实际参数、日志与报错" if zh else "Actual arguments, logs and error"}</button></div></article>'
+            f'{t("result.step.actual_arguments", "Actual arguments, logs and error")}</button></div></article>'
         )
     screenshot = (
-        f'<figure><a href="{report_root}{evidence["screenshot"]}"><img src="{report_root}{evidence["screenshot"]}" alt="{"失败后的最后页面" if zh else "Last page after failure"}"></a><figcaption>{"失败后保存的最后页面；不等同于错误发生瞬间。点击查看原图。" if zh else "Last page saved after failure, not necessarily the error instant. Open the full image."}</figcaption></figure>'
+        f'<figure><a href="{report_root}{evidence["screenshot"]}"><img src="{report_root}{evidence["screenshot"]}" alt="{t("result.screenshot.alt", "Last page after failure")}"></a><figcaption>{t("result.screenshot.caption", "Last page saved after failure, not necessarily the error instant. Open the full image.")}</figcaption></figure>'
         if evidence.get("screenshot")
         else ""
     )
@@ -922,39 +938,40 @@ def _detail_page(
             and int(attempt.get("completed_action_count") or 0)
             < int(attempt.get("action_count") or 0)
         )
-        step_link = f'<a href="#step-{failed_index}">{"跳到失败动作" if zh else "Go to failed action"} #{failed_index}</a>' if failed_index else f'<a href="#step-{trigger_index}">{"查看触发动作" if zh else "Inspect trigger action"} #{trigger_index}</a>' if trigger_index else f'<a href="#trajectory">{"查看已保存轨迹证据" if zh else "View saved trajectory evidence"}</a>'
-        action_locator = f'{failed_action} #{failed_index}' if failed_index else ((f'{("触发动作" if zh else "Trigger action")} #{trigger_index}; {("请求未满足验收条件" if zh else "request does not meet acceptance")}') if trigger_index else (("活动动作未记录" if zh else "Active action not recorded") if unknown_active_action else ("所有动作执行后" if zh else "After all actions")))
-        expected_network = f'<h3>{"要求匹配的网络条件" if zh else "Required network match"}</h3><pre>{_e(json.dumps(failed["expected_network"], ensure_ascii=False, indent=2))}</pre>' if failed.get("expected_network") else ""
-        failure_panel = f'''<section id="diagnosis"><h2>{"失败定位与处理" if zh else "Failure diagnosis and treatment"}</h2><div class="diagnosis-panel"><div class="diagnosis-facts"><div><span>{"失败环节" if zh else "Failure stage"}</span><strong>{_e(stage)}</strong></div><div><span>{"失败位置" if zh else "Failure location"}</span><strong>{_e(action_locator)}</strong></div><div><span>{"复核分类" if zh else "Reviewed category"}</span><strong>{_e(label)}</strong></div></div><h3>{"程序原始判定" if zh else "Exact programmatic finding"}</h3><pre>{_e(failed["message"])}</pre>{expected_network}<h3>{"复核判断与依据" if zh else "Reviewed cause and basis"}</h3><p>{_e(reason)}</p><p>{"处理方" if zh else "Owner"}: {_e(review.get(f"remediation_owner_{lang}", review.get("remediation_owner")) if review else "—")} · {"状态" if zh else "Status"}: {_e(review.get(f"remediation_status_{lang}", review.get("remediation_status")) if review else "—")}</p>{step_link}</div></section>'''
+        step_link = f'<a href="#step-{failed_index}">{t("result.diagnosis.go_to_failed_action", "Go to failed action")} #{failed_index}</a>' if failed_index else f'<a href="#step-{trigger_index}">{t("result.diagnosis.inspect_trigger_action", "Inspect trigger action")} #{trigger_index}</a>' if trigger_index else f'<a href="#trajectory">{t("result.diagnosis.view_trajectory", "View saved trajectory evidence")}</a>'
+        action_locator = f'{failed_action} #{failed_index}' if failed_index else ((f'{(t("result.diagnosis.trigger_action", "Trigger action"))} #{trigger_index}; {(t("result.diagnosis.request_unmet", "request does not meet acceptance"))}') if trigger_index else ((t("result.diagnosis.active_action_unrecorded", "Active action not recorded")) if unknown_active_action else (t("result.diagnosis.after_all_actions", "After all actions"))))
+        expected_network = f'<h3>{t("result.diagnosis.required_network_match", "Required network match")}</h3><pre>{_e(json.dumps(failed["expected_network"], ensure_ascii=False, indent=2))}</pre>' if failed.get("expected_network") else ""
+        failure_panel = f'''<section id="diagnosis"><h2>{t("result.diagnosis.heading", "Failure diagnosis and treatment")}</h2><div class="diagnosis-panel"><div class="diagnosis-facts"><div><span>{t("common.failure_stage", "Failure stage")}</span><strong>{_e(stage)}</strong></div><div><span>{t("result.diagnosis.failure_location", "Failure location")}</span><strong>{_e(action_locator)}</strong></div><div><span>{t("common.reviewed_category", "Reviewed category")}</span><strong>{_e(label)}</strong></div></div><h3>{t("result.diagnosis.programmatic_finding", "Exact programmatic finding")}</h3><pre>{_e(failed["message"])}</pre>{expected_network}<h3>{t("result.diagnosis.reviewed_cause", "Reviewed cause and basis")}</h3><p>{_e(reason)}</p><p>{t("result.diagnosis.owner", "Owner")}: {_e(review.get(f"remediation_owner_{lang}", review.get("remediation_owner")) if review else "—")} · {t("result.diagnosis.status", "Status")}: {_e(review.get(f"remediation_status_{lang}", review.get("remediation_status")) if review else "—")}</p>{step_link}</div></section>'''
     failure_panel += _supplemental_diagnostic_html(evidence.get("supplemental_diagnostic"), lang)
+    # Chinese shows an absent duration or CPU sample as a dash; English shows zero.
+    duration_ms = attempt.get("duration_ms") if zh else attempt.get("duration_ms", 0)
+    cpu_ms = (attempt.get("resource") or {}).get("cpu_ms")
     facts = [
-        (("完成动作", "Actions completed"), f'{attempt["completed_action_count"]}/{attempt["action_count"]}'),
-        (("端到端耗时", "End-to-end time"), _format_ms(attempt.get("duration_ms")) if zh else f'{attempt.get("duration_ms", 0) / 1000:.1f} s'),
-        (("CPU 时间", "CPU time"), _format_ms((attempt.get("resource") or {}).get("cpu_ms")) if zh else f'{((attempt.get("resource") or {}).get("cpu_ms") or 0) / 1000:.1f} s'),
-        (("平均内存", "Mean memory"), _format_mib((attempt.get("resource") or {}).get("memory_mean_bytes"))),
+        (t("result.facts.actions_completed", "Actions completed"), f'{attempt["completed_action_count"]}/{attempt["action_count"]}'),
+        (t("metric.end_to_end_time", "End-to-end time"), _format_ms(duration_ms, lang)),
+        (t("metric.cpu_time", "CPU time"), _format_ms(cpu_ms if zh else cpu_ms or 0, lang)),
+        (t("metric.mean_memory", "Mean memory"), _format_mib((attempt.get("resource") or {}).get("memory_mean_bytes"))),
     ]
-    fact_html = "".join(f'<div><span>{_e(label[0 if zh else 1])}</span><strong>{_e(value)}</strong></div>' for label, value in facts)
+    fact_html = "".join(f'<div><span>{_e(label)}</span><strong>{_e(value)}</strong></div>' for label, value in facts)
     validity = attempt.get("reference_validity") or {}
     validity_reason = validity.get("reason_zh" if zh else "reason_en") or validity.get("reason") or ""
     validity_panel = (
-        f'<section class="callout"><h2>{"答案可核验性" if zh else "Reference answer validity"}</h2>'
-        f'<p>{_e(_clean(validity_reason)) if validity_reason else ("站点证据不能唯一确认参考答案；官方得分不证明题意正确。" if zh else "Site evidence cannot uniquely establish the answer; an official pass does not prove task correctness.")}</p></section>'
+        f'<section class="callout"><h2>{t("result.validity.heading", "Reference answer validity")}</h2>'
+        f'<p>{_e(_clean(validity_reason)) if validity_reason else (t("result.validity.default_reason", "Site evidence cannot uniquely establish the answer; an official pass does not prove task correctness."))}</p></section>'
         if semantic_status == "unverified" else ""
     )
     viewer_file = ("data/evidence/" if zh else "../data/evidence/") + key + ".json"
     body = f'''
-    <section class="detail-hero"><p class="eyebrow">{_e(key)}</p><h1>{_e(method["label"])} · {"任务" if zh else "Task"} #{attempt["task_id"]}</h1><p class="task-intent">{_e(task["task"]["intent"])}</p><div class="detail-links"><a href="../task/{attempt["task_id"]}.html">{"查看任务定义与标准轨迹" if zh else "Task contract and fixed trajectory"}</a><a href="../results.html">{"返回结果筛选" if zh else "Back to results"}</a></div></section>
-    <section class="compact-section"><h2>{"同题方法结果" if zh else "All method results for this task"}</h2><div class="peer-list">{''.join(peer_cells)}</div></section>
-    <section class="compact-section"><div class="verdict-line {attempt["status"]}"><strong>{status}</strong><span>{_e(stage) if attempt["status"] != "pass" else ("固定轨迹及官方验收均通过" if zh else "Fixed trajectory and official evaluation passed")}</span></div><div class="fact-strip">{fact_html}</div></section>
+    <section class="detail-hero"><p class="eyebrow">{_e(key)}</p><h1>{_e(method["label"])} · {t("common.task", "Task")} #{attempt["task_id"]}</h1><p class="task-intent">{_e(task["task"]["intent"])}</p><div class="detail-links"><a href="../task/{attempt["task_id"]}.html">{t("result.link.task_contract", "Task contract and fixed trajectory")}</a><a href="../results.html">{t("result.link.back_to_results", "Back to results")}</a></div></section>
+    <section class="compact-section"><h2>{t("result.peers.heading", "All method results for this task")}</h2><div class="peer-list">{''.join(peer_cells)}</div></section>
+    <section class="compact-section"><div class="verdict-line {attempt["status"]}"><strong>{status}</strong><span>{_e(stage) if attempt["status"] != "pass" else (t("result.verdict.passed_note", "Fixed trajectory and official evaluation passed"))}</span></div><div class="fact-strip">{fact_html}</div></section>
     {validity_panel}
     {failure_panel}
-    <section id="trajectory"><h2>{"本方法轨迹与实际执行" if zh else "This method's trajectory and execution"}</h2><p>{"左侧是本方法的冻结输入，右侧是实际操作。不同方法的合格轨迹可能不同；点击任一步读取完整参数、工具返回、日志和原始报错。" if zh else "The left column is this method's frozen input and the right column its execution. Qualified paths can differ between methods. Open a step for exact arguments, tool response, logs and errors."}</p><div class="trajectory-columns"><span>#</span><strong>{"本方法输入" if zh else "Method input"}</strong><strong>{"实际执行" if zh else "Actual execution"}</strong></div><div class="trace-list">{''.join(steps)}</div></section>
-    <dialog id="step-dialog" data-evidence-url="{report_root}data/evidence/{key}.json" data-standard-url="{report_root}data/trajectory/{key}.json"><div class="dialog-head"><strong data-step-title></strong><button type="button" data-close-step aria-label="{'关闭逐步证据' if zh else 'Close step evidence'}">×</button></div><div class="dialog-body"><p data-step-status></p><div class="step-dialog-grid"><div><h3>{"本方法输入参数" if zh else "Method input arguments"}</h3><pre data-step-planned></pre></div><div><h3>{"实际动作参数" if zh else "Actual action arguments"}</h3><pre data-step-actual></pre></div></div><h3>{"工具返回、日志与报错" if zh else "Tool response, logs and error"}</h3><pre data-step-result></pre><div data-step-finding hidden><h3>{"程序原始失败判定" if zh else "Exact programmatic failure"}</h3><pre data-step-error></pre></div><p data-step-image-wrap hidden><a data-step-image target="_blank" rel="noopener">{"查看最后观测页面（并非该步截图）" if zh else "Open last observed page (not a screenshot of this step)"}</a></p><p><a href="../evidence-viewer.html?file={viewer_file}">{"查看完整执行证据" if zh else "Inspect complete execution evidence"}</a></p></div></dialog>
-    <section id="evidence"><h2>{"验收、资源与页面证据" if zh else "Evaluation, resources, and page evidence"}</h2><div class="evidence-actions"><a href="../evidence-viewer.html?file={viewer_file}">{"网页查看完整证据" if zh else "Inspect complete evidence in the browser"}</a><a href="{report_root}data/evidence/{key}.json">{"下载净化 JSON" if zh else "Download sanitized JSON"}</a></div>{screenshot}</section>'''
+    <section id="trajectory"><h2>{t("result.trajectory.heading", "This method's trajectory and execution")}</h2><p>{t("result.trajectory.lead", "The left column is this method's frozen input and the right column its execution. Qualified paths can differ between methods. Open a step for exact arguments, tool response, logs and errors.")}</p><div class="trajectory-columns"><span>#</span><strong>{t("result.trajectory.method_input", "Method input")}</strong><strong>{t("result.actual_execution", "Actual execution")}</strong></div><div class="trace-list">{''.join(steps)}</div></section>
+    <dialog id="step-dialog" data-evidence-url="{report_root}data/evidence/{key}.json" data-standard-url="{report_root}data/trajectory/{key}.json"><div class="dialog-head"><strong data-step-title></strong><button type="button" data-close-step aria-label="{t('result.dialog.close', 'Close step evidence')}">×</button></div><div class="dialog-body"><p data-step-status></p><div class="step-dialog-grid"><div><h3>{t("result.dialog.method_input_arguments", "Method input arguments")}</h3><pre data-step-planned></pre></div><div><h3>{t("result.dialog.actual_arguments", "Actual action arguments")}</h3><pre data-step-actual></pre></div></div><h3>{t("result.dialog.tool_response", "Tool response, logs and error")}</h3><pre data-step-result></pre><div data-step-finding hidden><h3>{t("result.dialog.programmatic_failure", "Exact programmatic failure")}</h3><pre data-step-error></pre></div><p data-step-image-wrap hidden><a data-step-image target="_blank" rel="noopener">{t("result.dialog.last_observed_page", "Open last observed page (not a screenshot of this step)")}</a></p><p><a href="../evidence-viewer.html?file={viewer_file}">{t("result.dialog.complete_evidence", "Inspect complete execution evidence")}</a></p></div></dialog>
+    <section id="evidence"><h2>{t("result.evidence.heading", "Evaluation, resources, and page evidence")}</h2><div class="evidence-actions"><a href="../evidence-viewer.html?file={viewer_file}">{t("result.evidence.inspect_in_browser", "Inspect complete evidence in the browser")}</a><a href="{report_root}data/evidence/{key}.json">{t("common.download_sanitized_json", "Download sanitized JSON")}</a></div>{screenshot}</section>'''
     title = (
-        f"{method['label']} · 任务 #{attempt['task_id']}"
-        if zh
-        else f"{method['label']} · Task #{attempt['task_id']}"
+        t("result.title", "{method} · Task #{task}", method=method['label'], task=attempt['task_id'])
     )
     return _shell(lang, "results", title, validity_notice + body, depth=1, current_route=f"result/{key}.html")
 
@@ -964,19 +981,19 @@ def _task_page(
     reference_validity: dict[str, Any] | None = None,
     corrected_acceptance: dict[str, Any] | None = None,
 ) -> str:
-    zh = lang == "zh"
+    t = report_text(lang)
     task_id = int(task["task_id"])
     source_kind = str((task.get("source") or {}).get("kind") or "")
     source_label = (
-        ("来自已通过的自主浏览器执行", "From a successful autonomous browser run")
+        t("task.source.autonomous", "From a successful autonomous browser run")
         if source_kind == "authoritative_successful_browser_use_execution"
-        else ("修复后按记录的协议在基准浏览器验证", "Repaired and checked on the reference browser under the recorded protocol")
-    )[0 if zh else 1]
+        else t("task.source.repaired", "Repaired and checked on the reference browser under the recorded protocol")
+    )
     peer_rows = "".join(
         f'<tr><td><a href="../{_e(peer.get("detail_url") or "result/" + peer["participant_id"] + "-" + str(task_id) + ".html")}">{_e(peer["browser"])}</a></td>'
         f'<td class="status-{peer["status"]}">{_verdict_label(peer["status"], peer.get("semantic_status"), lang)}</td>'
         f'<td>{peer["completed_actions"]}/{peer["action_count"]}</td>'
-        f'<td><a href="../{_e(peer.get("detail_url") or "result/" + peer["participant_id"] + "-" + str(task_id) + ".html")}{("#diagnosis" if peer["status"] != "pass" else "#trajectory")}">{"查看诊断与执行轨迹" if zh else "Diagnosis and executed actions"}</a></td></tr>'
+        f'<td><a href="../{_e(peer.get("detail_url") or "result/" + peer["participant_id"] + "-" + str(task_id) + ".html")}{("#diagnosis" if peer["status"] != "pass" else "#trajectory")}">{t("task.peers.evidence_link", "Diagnosis and executed actions")}</a></td></tr>'
         for peer in peers
     )
     planned_rows = []
@@ -985,36 +1002,35 @@ def _task_page(
         target = str(call.get("selector") or call.get("url") or call.get("key") or "")
         planned_rows.append(
             f'<tr><td>{index}</td><td><code>{_e(action)}</code></td><td><code>{_e(target)}</code></td>'
-            f'<td><details><summary>{"查看完整参数" if zh else "Full arguments"}</summary><pre>{_e(json.dumps(_clean(call), ensure_ascii=False, indent=2))}</pre></details></td></tr>'
+            f'<td><details><summary>{t("task.planned.full_arguments", "Full arguments")}</summary><pre>{_e(json.dumps(_clean(call), ensure_ascii=False, indent=2))}</pre></details></td></tr>'
         )
     contract = task.get("evaluation_input") or {}
     correction_panel = ""
     if corrected_acceptance:
         correction_panel = (
             '<section data-corrected-acceptance><h2>'
-            + ("本轮实际验收依据" if zh else "Acceptance used in this comparison")
+            + (t("task.correction.heading", "Acceptance used in this comparison"))
             + '</h2><p>'
-            + ("以下为保存的评分器证据中的修正验收字段，已按评分器规则标准化；下方保留历史数据集输入供对照。"
-               if zh else "These corrected acceptance fields come from the saved evaluator evidence, normalized by the evaluator. The historical dataset input is retained below for comparison.")
+            + (t("task.correction.lead", "These corrected acceptance fields come from the saved evaluator evidence, normalized by the evaluator. The historical dataset input is retained below for comparison."))
             + '</p><pre>'
             + _e(json.dumps(_clean(corrected_acceptance), ensure_ascii=False, indent=2))
             + '</pre></section>'
         )
     contract_type = str(contract.get("task_type") or "")
-    contract_summary = ({"RETRIEVE": "信息提取", "NAVIGATE": "页面导航", "MUTATE": "页面操作"}.get(contract_type, contract_type) if zh else contract_type) or "—"
+    contract_summary = _task_type_label(contract_type, lang) or "—"
     validity_panel = (
-        f'<section class="callout"><h2>{"答案无法独立核验" if zh else "Answer cannot be independently verified"}</h2>'
-        f'<p>{"站点证据无法唯一确认本题参考答案；官方验收得分与题意正确性分开解读。" if zh else "Site evidence does not uniquely establish this task’s reference answer. Official evaluator scores are separate from answer validity."}</p></section>'
+        f'<section class="callout"><h2>{t("task.validity.heading", "Answer cannot be independently verified")}</h2>'
+        f'<p>{t("task.validity.body", "Site evidence does not uniquely establish this task’s reference answer. Official evaluator scores are separate from answer validity.")}</p></section>'
         if (reference_validity or {}).get("status") == "unverifiable" else ""
     )
-    body = f'''<section class="detail-hero"><p class="eyebrow">WebArena-Verified · #{task_id}</p><h1>{"任务定义与标准轨迹" if zh else "Task contract and fixed trajectory"}</h1><p class="task-intent">{_e(task["task"]["intent"])}</p><div class="detail-links"><a href="../dataset.html">{"返回评测集" if zh else "Back to dataset"}</a><a href="../results.html">{"筛选实测结果" if zh else "Explore measured results"}</a></div></section>
+    body = f'''<section class="detail-hero"><p class="eyebrow">WebArena-Verified · #{task_id}</p><h1>{t("task.heading", "Task contract and fixed trajectory")}</h1><p class="task-intent">{_e(task["task"]["intent"])}</p><div class="detail-links"><a href="../dataset.html">{t("task.link.back_to_dataset", "Back to dataset")}</a><a href="../results.html">{t("task.link.measured_results", "Explore measured results")}</a></div></section>
         {validity_panel}
         {correction_panel}
-        <section class="compact-section"><div class="fact-strip"><div><span>{"站点" if zh else "Sites"}</span><strong>{_e(", ".join(task["task"].get("sites") or []))}</strong></div><div><span>{"轨迹来源" if zh else "Trajectory source"}</span><strong>{source_label}</strong></div><div><span>{"计划动作" if zh else "Planned actions"}</span><strong>{len(task.get("tool_calls") or [])}</strong></div><div><span>{"任务类型" if zh else "Task type"}</span><strong>{contract_summary}</strong></div></div></section>
-    <section><h2>{"同题所有方法结果" if zh else "All method outcomes on this task"}</h2><div class="table-scroll"><table class="task-peer-table"><thead><tr><th>{"方法" if zh else "Method"}</th><th>{"结果" if zh else "Verdict"}</th><th>{"完成动作" if zh else "Completed actions"}</th><th>{"证据" if zh else "Evidence"}</th></tr></thead><tbody>{peer_rows}</tbody></table></div></section>
-    <section><h2>{"评测集基准轨迹" if zh else "Dataset reference path"}</h2><p>{"这里保留评测集的基准动作；各方法实际采用的冻结输入及执行结果见对应结果页。" if zh else "This is the dataset reference path. Each method's frozen input and actual execution appear on its result page."}</p><div class="table-scroll"><table class="planned-table"><thead><tr><th>#</th><th>{"动作" if zh else "Action"}</th><th>{"目标" if zh else "Target"}</th><th>{"参数" if zh else "Arguments"}</th></tr></thead><tbody>{''.join(planned_rows)}</tbody></table></div></section>
-    <section><h2>{("历史数据集验收输入" if zh else "Historical dataset evaluation input") if corrected_acceptance else ("验收输入" if zh else "Evaluation input")}</h2><p>{("修正前保留的字段；本轮实际评分采用上方列出的修正依据。" if zh else "Retained fields before correction; this comparison uses the corrected acceptance above.") if corrected_acceptance else ("供官方 evaluator 判分；不是 Agent 提示词，也不是唯一正确路径。" if zh else "Used by the official evaluator, not an Agent prompt or the only correct path.")}</p><details><summary>{"查看答案与验收字段" if zh else "Inspect answer and acceptance fields"}</summary><pre>{_e(json.dumps(_clean(contract), ensure_ascii=False, indent=2))}</pre></details></section>'''
-    title = f"任务 #{task_id} · 评测集" if zh else f"Task #{task_id} · Dataset"
+        <section class="compact-section"><div class="fact-strip"><div><span>{t("task.facts.sites", "Sites")}</span><strong>{_e(", ".join(task["task"].get("sites") or []))}</strong></div><div><span>{t("common.trajectory_source", "Trajectory source")}</span><strong>{source_label}</strong></div><div><span>{t("task.facts.planned_actions", "Planned actions")}</span><strong>{len(task.get("tool_calls") or [])}</strong></div><div><span>{t("common.task_type", "Task type")}</span><strong>{contract_summary}</strong></div></div></section>
+    <section><h2>{t("task.peers.heading", "All method outcomes on this task")}</h2><div class="table-scroll"><table class="task-peer-table"><thead><tr><th>{t("common.method", "Method")}</th><th>{t("common.verdict", "Verdict")}</th><th>{t("task.peers.completed_actions", "Completed actions")}</th><th>{t("common.evidence", "Evidence")}</th></tr></thead><tbody>{peer_rows}</tbody></table></div></section>
+    <section><h2>{t("task.reference.heading", "Dataset reference path")}</h2><p>{t("task.reference.lead", "This is the dataset reference path. Each method's frozen input and actual execution appear on its result page.")}</p><div class="table-scroll"><table class="planned-table"><thead><tr><th>#</th><th>{t("common.action", "Action")}</th><th>{t("common.target", "Target")}</th><th>{t("task.reference.arguments", "Arguments")}</th></tr></thead><tbody>{''.join(planned_rows)}</tbody></table></div></section>
+    <section><h2>{(t("task.evaluation.historical_heading", "Historical dataset evaluation input")) if corrected_acceptance else (t("task.evaluation.heading", "Evaluation input"))}</h2><p>{(t("task.evaluation.historical_lead", "Retained fields before correction; this comparison uses the corrected acceptance above.")) if corrected_acceptance else (t("task.evaluation.lead", "Used by the official evaluator, not an Agent prompt or the only correct path."))}</p><details><summary>{t("task.evaluation.inspect", "Inspect answer and acceptance fields")}</summary><pre>{_e(json.dumps(_clean(contract), ensure_ascii=False, indent=2))}</pre></details></section>'''
+    title = t("task.title", "Task #{task} · Dataset", task=task_id)
     return _shell(lang, "dataset", title, validity_notice + body, depth=1, current_route=f"task/{task_id}.html")
 
 
@@ -1287,9 +1303,11 @@ def build_webarena_replay_report(
 
     for lang in languages:
         zh = lang == "zh"
+        t = report_text(lang)
+        time_value = partial(_format_ms, lang=lang)
         root = output if zh else output / "en"
         root.mkdir(exist_ok=True)
-        action_headers = ["动作" if zh else "Action", *[item["label"] for item in methods.values()]]
+        action_headers = [t("common.action", "Action"), *[item["label"] for item in methods.values()]]
         action_rows = []
         for action in sorted(action_by_name):
             action_metrics = {
@@ -1311,31 +1329,23 @@ def build_webarena_replay_report(
                 metric = action_metrics[engine]
                 text = _metric_lines(
                     metric,
-                    (
-                        lambda value, is_zh=zh: _format_ms(value)
-                        if is_zh
-                        else ("—" if value is None else f"{value / 1000:.1f} s")
-                    ),
+                    time_value,
                     methods[engine]["id"],
                     action_winners,
                     lang=lang,
                 )
-                calls_label = "次调用" if zh else "calls"
+                calls_label = t("results.action_latency.calls", "calls")
                 cells.append(f"<td>{text}<br><small>{metric['n']} {calls_label}</small></td>")
             action_rows.append(f'<tr><td><code>{_e(action)}</code></td>{"".join(cells)}</tr>')
         action_table = f'<div class="table-scroll"><table><thead><tr>{"".join(f"<th>{_e(h)}</th>" for h in action_headers)}</tr></thead><tbody>{"".join(action_rows)}</tbody></table></div>'
         task_count = len(tasks)
         eyebrow = (
-            f"WebArena-Verified · {task_count} 个任务 · 模型调用 0 次"
-            if zh
-            else f"WebArena-Verified · {task_count} tasks · model calls 0"
+            t("home.eyebrow", "WebArena-Verified · {tasks} tasks · model calls 0", tasks=task_count)
         )
         backend_note = (
-            ("所有方法通过同一 Playwright 重放器执行冻结动作；没有 Agent 决策或模型调用。"
-             if zh else "All methods use the same Playwright replay adapter for frozen actions, with no Agent decisions or model calls.")
+            (t("home.backend.playwright", "All methods use the same Playwright replay adapter for frozen actions, with no Agent decisions or model calls."))
             if execution_backend == "playwright" else
-            ("所有方法重放冻结动作，没有 Agent 决策或模型调用。历史配置没有声明执行后端，报告不推定其具体实现。"
-             if zh else "All methods replay frozen actions without Agent decisions or model calls. The historical profile does not declare an execution backend.")
+            (t("home.backend.undeclared", "All methods replay frozen actions without Agent decisions or model calls. The historical profile does not declare an execution backend."))
         )
         failure_participants = tuple(
             engine
@@ -1360,15 +1370,11 @@ def build_webarena_replay_report(
         ) or "—"
         if unverifiable_ids:
             core_metrics_note = (
-                f"所有方法均覆盖同一 {task_count} 题。官方通过按 {task_count} 题计；可核验题通过只计参考答案可由站点证据核验的 {valid_reference_count} 题。不可核验题：{unverifiable_links}。"
-                if zh else
-                f"All methods cover the same {task_count} tasks. Official passes use all {task_count}; verifiable-task passes use the {valid_reference_count} tasks whose answers are supported by site evidence. Unverifiable tasks: {unverifiable_links}. "
+                t("home.core_note.with_unverifiable", "All methods cover the same {tasks} tasks. Official passes use all {tasks}; verifiable-task passes use the {verifiable} tasks whose answers are supported by site evidence. Unverifiable tasks: {links}. ", tasks=task_count, verifiable=valid_reference_count, links=unverifiable_links)
             )
         else:
             core_metrics_note = (
-                f"所有方法均覆盖同一 {task_count} 题。验收规则及已声明修正见任务详情，独立复核范围见复核说明。"
-                if zh else
-                f"All methods cover the same {task_count} tasks. Task details identify acceptance rules and declared corrections; the review page states the independent review scope. "
+                t("home.core_note.all_verifiable", "All methods cover the same {tasks} tasks. Task details identify acceptance rules and declared corrections; the review page states the independent review scope. ", tasks=task_count)
             )
         has_resource_samples = any(
             row[metric]["n"]
@@ -1376,17 +1382,9 @@ def build_webarena_replay_report(
             for metric in ("cpu", "memory", "memory_peak", "network_rx", "network_tx", "cpu_utilization")
         )
         core_metrics_note += (
-            (
-                "提前失败会缩短工作量，因此总耗时和资源不按低者判优；单次动作耗时按实际浏览器动作调用统计。"
-                if has_resource_samples
-                else "提前失败会缩短工作量，因此总耗时不按低者判优；单次动作耗时按实际浏览器动作调用统计。"
-            )
-            if zh
-            else (
-                "Early failures reduce work, so total time and resources are not ranked by lower values; per-action latency uses actual browser action calls."
-                if has_resource_samples
-                else "Early failures reduce work, so total time is not ranked by lower values; per-action latency uses actual browser action calls."
-            )
+            t("home.core_note.ranking_with_resources", "Early failures reduce work, so total time and resources are not ranked by lower values; per-action latency uses actual browser action calls.")
+            if has_resource_samples
+            else t("home.core_note.ranking_without_resources", "Early failures reduce work, so total time is not ranked by lower values; per-action latency uses actual browser action calls.")
         )
         core_metrics_table = _metrics_table(
             method_rows, lang, show_valid_reference=bool(unverifiable_ids)
@@ -1396,56 +1394,56 @@ def build_webarena_replay_report(
             core_metrics_note += " " + _e(measurement_note)
         resource_table = _resource_table(method_rows, lang)
         resource_section = (
-            f'<section><h2>{"资源与网络" if zh else "Resources and network"}</h2><p>{f"下表覆盖全部 {task_count} 题；n 表示有观测值的样本数，缺失不计为零。真实零值保留。网络传输量和 CPU 使用率不直接判优，低数值也可能来自提前失败、缓存或等待。" if zh else f"These per-task samples cover all {task_count} tasks. Each n counts observed values; missing samples are not zero, and measured zeroes are retained. Network bytes and CPU utilization are not ranked: lower values may reflect early failure, caching, or waiting."}</p><details class="matrix-disclosure"><summary>{"展开资源与网络统计" if zh else "Open resource and network statistics"}</summary>{resource_table}</details></section>'
+            f'<section><h2>{t("home.resources.heading", "Resources and network")}</h2><p>{t("home.resources.lead", "These per-task samples cover all {tasks} tasks. Each n counts observed values; missing samples are not zero, and measured zeroes are retained. Network bytes and CPU utilization are not ranked: lower values may reflect early failure, caching, or waiting.", tasks=task_count)}</p><details class="matrix-disclosure"><summary>{t("home.resources.open", "Open resource and network statistics")}</summary>{resource_table}</details></section>'
             if resource_table
-            else f'<section><h2>{"资源数据" if zh else "Resource data"}</h2><p class="callout">{"本轮没有记录进程级 CPU、内存和网络采样，因此这些指标不可用，报告不展示空值表或资源排名。端到端耗时和动作耗时来自现有轨迹记录，无需重新执行任务。" if zh else "This run did not record process-level CPU, memory, or network samples. Those metrics are unavailable, so the report does not show empty tables or resource rankings. End-to-end and action latency come from the retained trajectories and require no rerun."}</p></section>'
+            else f'<section><h2>{t("home.resources.unavailable_heading", "Resource data")}</h2><p class="callout">{t("home.resources.unavailable", "This run did not record process-level CPU, memory, or network samples. Those metrics are unavailable, so the report does not show empty tables or resource rankings. End-to-end and action latency come from the retained trajectories and require no rerun.")}</p></section>'
         )
-        summary_body = f'''<section class="hero"><p class="eyebrow">{eyebrow}</p><h1>{"浏览器轨迹重放评测" if zh else "Browser Trajectory Replay"}</h1><p>{f"{browser_count} 款浏览器组成 {method_count} 种方法配置，分别覆盖同一 {task_count} 题的冻结轨迹重放。{backend_note} 方法版本、轨迹与站点准备见环境说明。" if zh else f"{browser_count} browsers form {method_count} method configurations, each covering the same {task_count} frozen trajectory replays. {backend_note} Environment documents versions, paths and site preparation."}</p><div class="detail-links"><a href="results.html">{"逐题查看结果与报错" if zh else "Explore outcomes and exact errors"}</a><a href="dataset.html">{"查看任务与标准轨迹" if zh else "Task contracts and fixed trajectories"}</a></div></section>
+        summary_body = f'''<section class="hero"><p class="eyebrow">{eyebrow}</p><h1>{t("home.heading", "Browser Trajectory Replay")}</h1><p>{t("home.lead", "{browsers} browsers form {methods} method configurations, each covering the same {tasks} frozen trajectory replays. {backend_note} Environment documents versions, paths and site preparation.", browsers=browser_count, methods=method_count, tasks=task_count, backend_note=backend_note)}</p><div class="detail-links"><a href="results.html">{t("home.link.outcomes", "Explore outcomes and exact errors")}</a><a href="dataset.html">{t("home.link.dataset", "Task contracts and fixed trajectories")}</a></div></section>
         {validity_notice}
-        {f'<p class="evidence-actions"><a href="{"" if zh else "../"}data/legacy-retrieval-provenance.json">{"查看 74 条历史取数验收输入的逐条哈希" if zh else "Inspect hashes for all 74 historical retrieval inputs"}</a></p>' if legacy_provenance is not None else ''}
-        <section><h2>{"核心指标" if zh else "Core metrics"}</h2><p class="callout">{core_metrics_note}</p>{core_metrics_table}</section>
+        {f'<p class="evidence-actions"><a href="{"" if zh else "../"}data/legacy-retrieval-provenance.json">{t("home.link.legacy_provenance", "Inspect hashes for all 74 historical retrieval inputs")}</a></p>' if legacy_provenance is not None else ''}
+        <section><h2>{t("home.core_metrics", "Core metrics")}</h2><p class="callout">{core_metrics_note}</p>{core_metrics_table}</section>
         {resource_section}
         {failure_signatures}'''
-        (root / "index.html").write_text(_shell(lang, "index", "浏览器轨迹重放" if zh else "Browser Trajectory Replay", summary_body, current_route="index.html"), encoding="utf-8")
+        (root / "index.html").write_text(_shell(lang, "index", t("home.title", "Browser Trajectory Replay"), summary_body, current_route="index.html"), encoding="utf-8")
 
-        headers = ["任务" if zh else "Task", "站点" if zh else "Site", "任务目标" if zh else "Task goal", "类型" if zh else "Type", "轨迹来源" if zh else "Trajectory source", "标准动作" if zh else "Fixed actions", "下钻" if zh else "Drill down"]
+        headers = [t("common.task", "Task"), t("common.site", "Site"), t("dataset.column.goal", "Task goal"), t("dataset.column.type", "Type"), t("common.trajectory_source", "Trajectory source"), t("dataset.column.fixed_actions", "Fixed actions"), t("dataset.column.drill_down", "Drill down")]
         matrix_rows = []
         for task_id, task in tasks.items():
             source = str((task.get("source") or {}).get("kind") or "")
             source_code = "autonomous" if source == "authoritative_successful_browser_use_execution" else "repaired"
-            source_text = ("自主执行成功" if zh else "Autonomous success") if source_code == "autonomous" else ("修复后验证" if zh else "Repaired and checked")
+            source_text = (t("dataset.source.autonomous", "Autonomous success")) if source_code == "autonomous" else (t("dataset.source.repaired", "Repaired and checked"))
             task_type = str((task.get("evaluation_input") or {}).get("task_type") or "")
-            type_text = ({"RETRIEVE": "信息提取", "NAVIGATE": "页面导航", "MUTATE": "页面操作"}.get(task_type, task_type) if zh else task_type) or "—"
+            type_text = _task_type_label(task_type, lang) or "—"
             sites = task["task"].get("sites") or []
             intent = str(task["task"].get("intent") or "")
             action_count = len(task.get("tool_calls") or [])
             search = _e(f"{task_id} {', '.join(sites)} {intent} {task_type} {source_text}")
-            matrix_rows.append(f'<tr data-task="{task_id}" data-sites="{_e(" ".join(sites))}" data-type="{_e(task_type)}" data-source="{source_code}" data-search="{search}"><td><a href="task/{task_id}.html">#{task_id}</a></td><td>{_e(", ".join(sites))}</td><td><div class="intent-preview">{_e(intent)}</div></td><td>{_e(type_text)}</td><td>{source_text}</td><td>{action_count}</td><td><div class="dataset-actions"><a href="task/{task_id}.html">{"任务与轨迹" if zh else "Task & trajectory"}</a><a href="results.html?task={task_id}&status=">{"实测结果" if zh else "Measured results"}</a></div></td></tr>')
+            matrix_rows.append(f'<tr data-task="{task_id}" data-sites="{_e(" ".join(sites))}" data-type="{_e(task_type)}" data-source="{source_code}" data-search="{search}"><td><a href="task/{task_id}.html">#{task_id}</a></td><td>{_e(", ".join(sites))}</td><td><div class="intent-preview">{_e(intent)}</div></td><td>{_e(type_text)}</td><td>{source_text}</td><td>{action_count}</td><td><div class="dataset-actions"><a href="task/{task_id}.html">{t("dataset.link.task", "Task & trajectory")}</a><a href="results.html?task={task_id}&status=">{t("dataset.link.results", "Measured results")}</a></div></td></tr>')
         dataset_sites = sorted({site for task in tasks.values() for site in (task["task"].get("sites") or [])})
         dataset_site_options = "".join(f'<option value="{_e(site)}">{_e(site)}</option>' for site in dataset_sites)
-        dataset_type_options = "".join(f'<option value="{code}">{_e(label_zh if zh else label_en)}</option>' for code, label_zh, label_en in (("RETRIEVE", "信息提取", "Retrieve"), ("NAVIGATE", "页面导航", "Navigate"), ("MUTATE", "页面操作", "Mutate")))
-        dataset_body = f'''<section class="hero"><p class="eyebrow">WebArena-Verified · {task_count}</p><h1>{"评测集" if zh else "Dataset"}</h1><p>{f"{task_count} 个任务，每题一条固定轨迹。这里展示任务目标和验收类型；实测成败在结果分析中查看。" if zh else f"{task_count} tasks, each with one fixed trajectory. This page contains goals and acceptance types; measured verdicts appear in Results analysis."}</p></section><section><div class="dataset-browser"><h2>{"任务与标准轨迹" if zh else "Tasks and fixed trajectories"}</h2><p>{f"{browser_use_source_count} 条来自成功的自主执行，{repaired_source_count} 条经修复后按记录的协议在 {reference_label} 验证。点开任务可查看验收输入、完整轨迹和各浏览器实测证据。" if zh else f"{browser_use_source_count} came from successful autonomous runs; {repaired_source_count} were repaired and checked under the recorded protocol on {reference_label}. Open a task for its acceptance input, full trajectory, and evidence from every browser."}</p><div class="dataset-controls"><label>{"搜索任务" if zh else "Search tasks"}<input data-dataset-filter="q" type="search" placeholder="{'编号、站点或任务目标' if zh else 'ID, site, or goal'}"></label><label>{"站点" if zh else "Site"}<select data-dataset-filter="site"><option value="">{"全部" if zh else "All"}</option>{dataset_site_options}</select></label><label>{"任务类型" if zh else "Task type"}<select data-dataset-filter="type"><option value="">{"全部" if zh else "All"}</option>{dataset_type_options}</select></label><label>{"轨迹来源" if zh else "Trajectory source"}<select data-dataset-filter="source"><option value="">{"全部" if zh else "All"}</option><option value="autonomous">{"自主执行成功" if zh else "Autonomous success"}</option><option value="repaired">{"修复后验证" if zh else "Repaired and checked"}</option></select></label></div><p class="dataset-count" data-dataset-count></p><div class="table-scroll dataset-table" data-dataset-table><table><thead><tr>{"".join(f"<th>{_e(h)}</th>" for h in headers)}</tr></thead><tbody>{"".join(matrix_rows)}</tbody></table></div><p class="dataset-empty" data-dataset-empty hidden>{"没有符合条件的任务，请调整筛选。" if zh else "No matching tasks. Change the filters."}</p></div></section>'''
-        dataset_body = dataset_body.replace(
-            f"{task_count} 个任务，每题一条固定轨迹。这里展示任务目标和验收类型；实测成败在结果分析中查看。",
-            f"{task_count} 个任务，共用任务目标和验收规则。这里保留评测集基准轨迹；各方法的冻结输入和实测成败见结果页。",
-        ).replace(
-            f"{task_count} tasks, each with one fixed trajectory. This page contains goals and acceptance types; measured verdicts appear in Results analysis.",
-            f"{task_count} tasks share goals and acceptance rules. This page retains the dataset reference path; method-specific frozen inputs and measured verdicts appear on result pages.",
-        ).replace("任务与标准轨迹", "任务与基准轨迹").replace("Tasks and fixed trajectories", "Tasks and reference paths")
-        (root / "dataset.html").write_text(_shell(lang, "dataset", "评测集" if zh else "Dataset", validity_notice + dataset_body, current_route="dataset.html"), encoding="utf-8")
+        dataset_type_options = "".join(f'<option value="{code}">{_e(label)}</option>' for code, label in (("RETRIEVE", t("dataset.type_filter.retrieve", "Retrieve")), ("NAVIGATE", t("dataset.type_filter.navigate", "Navigate")), ("MUTATE", t("dataset.type_filter.mutate", "Mutate"))))
+        dataset_body = f'''<section class="hero"><p class="eyebrow">WebArena-Verified · {task_count}</p><h1>{t("dataset.title", "Dataset")}</h1><p>{t("dataset.lead", "{tasks} tasks share goals and acceptance rules. This page retains the dataset reference path; method-specific frozen inputs and measured verdicts appear on result pages.", tasks=task_count)}</p></section><section><div class="dataset-browser"><h2>{t("dataset.tasks_heading", "Tasks and reference paths")}</h2><p>{t("dataset.tasks_lead", "{autonomous} came from successful autonomous runs; {repaired} were repaired and checked under the recorded protocol on {reference}. Open a task for its acceptance input, full trajectory, and evidence from every browser.", autonomous=browser_use_source_count, repaired=repaired_source_count, reference=reference_label)}</p><div class="dataset-controls"><label>{t("dataset.filter.search", "Search tasks")}<input data-dataset-filter="q" type="search" placeholder="{t('dataset.filter.placeholder', 'ID, site, or goal')}"></label><label>{t("common.site", "Site")}<select data-dataset-filter="site"><option value="">{t("common.all", "All")}</option>{dataset_site_options}</select></label><label>{t("common.task_type", "Task type")}<select data-dataset-filter="type"><option value="">{t("common.all", "All")}</option>{dataset_type_options}</select></label><label>{t("common.trajectory_source", "Trajectory source")}<select data-dataset-filter="source"><option value="">{t("common.all", "All")}</option><option value="autonomous">{t("dataset.source.autonomous", "Autonomous success")}</option><option value="repaired">{t("dataset.source.repaired", "Repaired and checked")}</option></select></label></div><p class="dataset-count" data-dataset-count></p><div class="table-scroll dataset-table" data-dataset-table><table><thead><tr>{"".join(f"<th>{_e(h)}</th>" for h in headers)}</tr></thead><tbody>{"".join(matrix_rows)}</tbody></table></div><p class="dataset-empty" data-dataset-empty hidden>{t("dataset.empty", "No matching tasks. Change the filters.")}</p></div></section>'''
+        (root / "dataset.html").write_text(_shell(lang, "dataset", t("dataset.title", "Dataset"), validity_notice + dataset_body, current_route="dataset.html"), encoding="utf-8")
 
+        stage_labels = {
+            "browser_session_setup": t("stage.browser_session_setup", "Browser session setup"),
+            "browser_tool_execution": t("stage.browser_action", "Browser action"),
+            "evidence_finalization": t("stage.evidence_finalization", "Evidence finalization"),
+            "official_evaluator_execution": t("stage.official_evaluator_execution", "Official evaluator execution"),
+            "side_effect_not_observed": t("stage.side_effect_not_observed", "Network acceptance not satisfied"),
+            "official_evaluation": t("stage.official_evaluation", "Official evaluation"),
+        }
         result_rows = []
         for row in public_rows:
             cause = row["cause_zh"] if zh else row["cause_en"]
             status = _verdict_label(row["status"], row.get("semantic_status"), lang)
-            stage_label = {"browser_session_setup": "浏览器会话初始化" if zh else "Browser session setup", "browser_tool_execution": "浏览器动作" if zh else "Browser action", "evidence_finalization": "执行证据收尾" if zh else "Evidence finalization", "official_evaluator_execution": "官方评测器执行" if zh else "Official evaluator execution", "side_effect_not_observed": "网络验收条件未满足" if zh else "Network acceptance not satisfied", "official_evaluation": "官方验收" if zh else "Official evaluation", "pass": "—"}.get(row["failure_stage"], row["failure_stage"])
+            stage_label = "—" if row["failure_stage"] == "pass" else stage_labels.get(row["failure_stage"], row["failure_stage"])
             detail_url = row.get("detail_url") or f'result/{row["key"]}.html'
-            result_rows.append(f'<tr data-key="{row["key"]}" data-task="{row["task_id"]}" data-participant="{_e(row["participant_id"])}" data-status="{row["status"]}" data-site="{_e(row["sites"][0] if row["sites"] else "")}" data-stage="{_e(row["failure_stage"])}" data-cause="{_e(row["cause_zh"] or row["cause_en"])}"><td><a href="task/{row["task_id"]}.html">#{row["task_id"]}</a><button type="button" data-open-diagnosis>{"诊断" if zh else "Diagnose"}</button></td><td><a href="{_e(detail_url)}">{_e(row["browser"])}</a></td><td>{_e(row["sites"][0] if row["sites"] else "")}</td><td class="status-{row["status"]}">{status}</td><td>{row["completed_actions"]}/{row["action_count"]}</td><td>{_e(stage_label)}</td><td>{_e(cause) if cause else "—"}</td><td><a href="{_e(detail_url)}">{"证据页" if zh else "Evidence page"}</a></td></tr>')
+            result_rows.append(f'<tr data-key="{row["key"]}" data-task="{row["task_id"]}" data-participant="{_e(row["participant_id"])}" data-status="{row["status"]}" data-site="{_e(row["sites"][0] if row["sites"] else "")}" data-stage="{_e(row["failure_stage"])}" data-cause="{_e(row["cause_zh"] or row["cause_en"])}"><td><a href="task/{row["task_id"]}.html">#{row["task_id"]}</a><button type="button" data-open-diagnosis>{t("results.diagnose", "Diagnose")}</button></td><td><a href="{_e(detail_url)}">{_e(row["browser"])}</a></td><td>{_e(row["sites"][0] if row["sites"] else "")}</td><td class="status-{row["status"]}">{status}</td><td>{row["completed_actions"]}/{row["action_count"]}</td><td>{_e(stage_label)}</td><td>{_e(cause) if cause else "—"}</td><td><a href="{_e(detail_url)}">{t("results.evidence_page", "Evidence page")}</a></td></tr>')
         browser_options = "".join(f'<option value="{_e(key)}">{_e(item["label"])}</option>' for key, item in comparison_methods.items())
         site_options = "".join(f'<option value="{_e(site)}">{_e(site)}</option>' for site in sorted({s for row in public_rows for s in row["sites"]}))
-        stage_labels = {"browser_session_setup": ("浏览器会话初始化", "Browser session setup"), "browser_tool_execution": ("浏览器动作", "Browser action"), "evidence_finalization": ("执行证据收尾", "Evidence finalization"), "official_evaluator_execution": ("官方评测器执行", "Official evaluator execution"), "side_effect_not_observed": ("网络验收条件未满足", "Network acceptance not satisfied"), "official_evaluation": ("官方验收", "Official evaluation")}
         present_stages = {row["failure_stage"] for row in public_rows if row["status"] == "fail"}
-        stage_options = "".join(f'<option value="{code}">{_e(stage_labels[code][0 if zh else 1])}</option>' for code in stage_labels if code in present_stages)
+        stage_options = "".join(f'<option value="{code}">{_e(stage_labels[code])}</option>' for code in stage_labels if code in present_stages)
         causes = {row["cause_zh"]: row["cause_zh"] if zh else row["cause_en"] for row in public_rows if row["cause_zh"]}
         cause_options = "".join(f'<option value="{_e(code)}">{_e(label)}</option>' for code, label in sorted(causes.items()))
         result_matrix_rows = []
@@ -1472,15 +1470,15 @@ def build_webarena_replay_report(
         matrix_sites = "".join(f'<option value="{_e(site)}">{_e(site)}</option>' for site in sorted({(task["task"].get("sites") or [""])[0] for task in tasks.values()}))
         matrix_baselines = "".join(f'<option value="{_e(engine)}">{_e(item["label"])}</option>' for engine, item in comparison_methods.items())
         matrix_checks = "".join(f'<label class="compare-chip"><input type="checkbox" data-matrix-method value="{_e(engine)}" checked>{_e(item["label"])}</label>' for engine, item in comparison_methods.items())
-        result_matrix = f'<section class="method-comparison"><div class="comparison-heading"><div><h2>{"同题方法对比" if zh else "Same-task method comparison"}</h2><p>{"按官方通过和失败分组展示所有方法；点开任一结果查看该方法的轨迹与执行证据。" if zh else "All methods are grouped by official pass and fail. Open any outcome for its method-specific path and execution evidence."}</p></div><span class="comparison-count" data-matrix-count></span></div><div class="comparison-controls"><label>{"基准方法" if zh else "Baseline method"}<select data-matrix-baseline>{matrix_baselines}</select></label><label>{"成败关系" if zh else "Outcome relation"}<select data-matrix-relation><option value="different">{"所选方法有分歧" if zh else "Selected methods disagree"}</option><option value="baseline-pass-others-fail">{"基准通过，其余失败" if zh else "Baseline passes; others fail"}</option><option value="baseline-fail-others-pass">{"基准失败，其余通过" if zh else "Baseline fails; others pass"}</option><option value="all-pass">{"所选全部通过" if zh else "All selected pass"}</option><option value="all-fail">{"所选全部失败" if zh else "All selected fail"}</option><option value="exact-pass">{"仅所选方法通过" if zh else "Only selected methods pass"}</option><option value="">{"全部任务" if zh else "All tasks"}</option></select></label><label>{"站点" if zh else "Site"}<select data-matrix-site><option value="">{"全部" if zh else "All"}</option>{matrix_sites}</select></label></div><fieldset class="comparison-methods"><legend>{"参与比较的方法（至少选一个）" if zh else "Comparison methods (select at least one)"}</legend><div class="method-checks">{matrix_checks}</div></fieldset><div class="table-scroll matrix-table" data-task-matrix><table><thead><tr><th>{"任务" if zh else "Task"}</th><th>{"站点" if zh else "Site"}</th><th>{"官方通过" if zh else "Official pass"}</th><th>{"失败" if zh else "Fail"}</th></tr></thead><tbody>{"".join(result_matrix_rows)}</tbody></table></div></section>'
-        results_body = f'''<section class="hero"><p class="eyebrow">{len(public_rows)} {"条逻辑结果" if zh else "logical outcomes"}</p><h1>{"结果与失败诊断" if zh else "Results and failure diagnosis"}</h1><p>{"同题对比支持选择基准和多个方法；下方筛选表默认只显示失败，点击“诊断”查看原始判定、复核原因与执行证据。" if zh else "Choose a baseline and multiple methods for same-task comparison. The inventory starts with failures; open Diagnose for the exact finding, reviewed cause, and execution evidence."}</p></section><section class="compact-section">{result_matrix}</section><section><div class="filters"><label>{"搜索" if zh else "Search"}<input data-filter="q" placeholder="{"任务编号、站点或错误" if zh else "Task, site, or error"}"></label><label>{"方法" if zh else "Method"}<select data-filter="participant"><option value="">{"全部" if zh else "All"}</option>{browser_options}</select></label><label>{"结果" if zh else "Verdict"}<select data-filter="status"><option value="fail">{"失败" if zh else "Fail"}</option><option value="pass">{"通过" if zh else "Pass"}</option><option value="">{"全部" if zh else "All"}</option></select></label><label>{"站点" if zh else "Site"}<select data-filter="site"><option value="">{"全部" if zh else "All"}</option>{site_options}</select></label><label>{"失败环节" if zh else "Failure stage"}<select data-filter="stage"><option value="">{"全部" if zh else "All"}</option>{stage_options}</select></label><label>{"复核分类" if zh else "Reviewed category"}<select data-filter="cause"><option value="">{"全部" if zh else "All"}</option>{cause_options}</select></label></div><p class="result-count" data-result-count></p><div class="table-scroll inventory" data-results><table><thead><tr><th>{"任务" if zh else "Task"}</th><th>{"方法" if zh else "Method"}</th><th>{"站点" if zh else "Site"}</th><th>{"判定" if zh else "Verdict"}</th><th>{"动作" if zh else "Actions"}</th><th>{"失败环节" if zh else "Failure stage"}</th><th>{"复核分类" if zh else "Reviewed category"}</th><th>{"详情" if zh else "Detail"}</th></tr></thead><tbody>{''.join(result_rows)}</tbody></table></div></section><dialog id="diagnosis-dialog"><div class="dialog-head"><strong data-dialog-title></strong><button type="button" aria-label="{"关闭" if zh else "Close"}">×</button></div><div class="dialog-body"><div class="diagnosis-facts"><div><span>{"失败环节" if zh else "Failure stage"}</span><strong data-dialog-stage></strong></div><div><span>{"动作定位" if zh else "Action locator"}</span><strong data-dialog-step></strong></div><div><span>{"复核分类" if zh else "Reviewed category"}</span><strong data-dialog-category></strong></div></div><h3>{"程序判定与验收规则" if zh else "Programmatic finding and evaluator rule"}</h3><pre data-dialog-error></pre><h3>{"复核原因与处理" if zh else "Reviewed cause and treatment"}</h3><p data-dialog-cause></p><p data-dialog-remediation></p><div class="evidence-actions"><a data-dialog-step-link>{"打开对应动作" if zh else "Open the relevant action"}</a><a data-dialog-link>{"打开完整详情" if zh else "Open full detail"}</a></div></div></dialog>'''
+        result_matrix = f'<section class="method-comparison"><div class="comparison-heading"><div><h2>{t("comparison.heading", "Same-task method comparison")}</h2><p>{t("comparison.lead", "All methods are grouped by official pass and fail. Open any outcome for its method-specific path and execution evidence.")}</p></div><span class="comparison-count" data-matrix-count></span></div><div class="comparison-controls"><label>{t("comparison.baseline", "Baseline method")}<select data-matrix-baseline>{matrix_baselines}</select></label><label>{t("comparison.relation", "Outcome relation")}<select data-matrix-relation><option value="different">{t("comparison.relation.different", "Selected methods disagree")}</option><option value="baseline-pass-others-fail">{t("comparison.relation.baseline_pass", "Baseline passes; others fail")}</option><option value="baseline-fail-others-pass">{t("comparison.relation.baseline_fail", "Baseline fails; others pass")}</option><option value="all-pass">{t("comparison.relation.all_pass", "All selected pass")}</option><option value="all-fail">{t("comparison.relation.all_fail", "All selected fail")}</option><option value="exact-pass">{t("comparison.relation.exact_pass", "Only selected methods pass")}</option><option value="">{t("comparison.relation.all_tasks", "All tasks")}</option></select></label><label>{t("common.site", "Site")}<select data-matrix-site><option value="">{t("common.all", "All")}</option>{matrix_sites}</select></label></div><fieldset class="comparison-methods"><legend>{t("comparison.methods", "Comparison methods (select at least one)")}</legend><div class="method-checks">{matrix_checks}</div></fieldset><div class="table-scroll matrix-table" data-task-matrix><table><thead><tr><th>{t("common.task", "Task")}</th><th>{t("common.site", "Site")}</th><th>{t("comparison.official_pass", "Official pass")}</th><th>{t("verdict.fail", "Fail")}</th></tr></thead><tbody>{"".join(result_matrix_rows)}</tbody></table></div></section>'
+        results_body = f'''<section class="hero"><p class="eyebrow">{len(public_rows)} {t("results.logical_outcomes", "logical outcomes")}</p><h1>{t("results.title", "Results analysis")}</h1><p>{t("results.lead", "Choose a baseline and multiple methods for same-task comparison. The inventory starts with failures; open Diagnose for the exact finding, reviewed cause, and execution evidence.")}</p></section><section class="compact-section">{result_matrix}</section><section><div class="filters"><label>{t("results.filter.search", "Search")}<input data-filter="q" placeholder="{t("results.filter.placeholder", "Task, site, or error")}"></label><label>{t("common.method", "Method")}<select data-filter="participant"><option value="">{t("common.all", "All")}</option>{browser_options}</select></label><label>{t("common.verdict", "Verdict")}<select data-filter="status"><option value="fail">{t("verdict.fail", "Fail")}</option><option value="pass">{t("verdict.pass", "Pass")}</option><option value="">{t("common.all", "All")}</option></select></label><label>{t("common.site", "Site")}<select data-filter="site"><option value="">{t("common.all", "All")}</option>{site_options}</select></label><label>{t("common.failure_stage", "Failure stage")}<select data-filter="stage"><option value="">{t("common.all", "All")}</option>{stage_options}</select></label><label>{t("common.reviewed_category", "Reviewed category")}<select data-filter="cause"><option value="">{t("common.all", "All")}</option>{cause_options}</select></label></div><p class="result-count" data-result-count></p><div class="table-scroll inventory" data-results><table><thead><tr><th>{t("common.task", "Task")}</th><th>{t("common.method", "Method")}</th><th>{t("common.site", "Site")}</th><th>{t("results.column.verdict", "Verdict")}</th><th>{t("results.column.actions", "Actions")}</th><th>{t("common.failure_stage", "Failure stage")}</th><th>{t("common.reviewed_category", "Reviewed category")}</th><th>{t("results.column.detail", "Detail")}</th></tr></thead><tbody>{''.join(result_rows)}</tbody></table></div></section><dialog id="diagnosis-dialog"><div class="dialog-head"><strong data-dialog-title></strong><button type="button" aria-label="{t("results.dialog.close", "Close")}">×</button></div><div class="dialog-body"><div class="diagnosis-facts"><div><span>{t("common.failure_stage", "Failure stage")}</span><strong data-dialog-stage></strong></div><div><span>{t("results.dialog.action_locator", "Action locator")}</span><strong data-dialog-step></strong></div><div><span>{t("common.reviewed_category", "Reviewed category")}</span><strong data-dialog-category></strong></div></div><h3>{t("results.dialog.finding", "Programmatic finding and evaluator rule")}</h3><pre data-dialog-error></pre><h3>{t("results.dialog.cause", "Reviewed cause and treatment")}</h3><p data-dialog-cause></p><p data-dialog-remediation></p><div class="evidence-actions"><a data-dialog-step-link>{t("results.dialog.open_action", "Open the relevant action")}</a><a data-dialog-link>{t("results.dialog.open_detail", "Open full detail")}</a></div></div></dialog>'''
         diagnostic_details = (
             failure_category_matrix(comparison_methods, public_rows, lang)
-            + f'<section><h2>{"浏览器动作耗时" if zh else "Browser action latency"}</h2>'
-            + f'<p>{"均值、P50、P95 按单次浏览器动作调用统计；调用次数只说明工作量。逐题详情保留每个动作的耗时和返回内容。" if zh else "Mean, P50, and P95 are per browser action call; call counts describe workload. Result details retain every action duration and response."}</p>'
-            + f'<details class="matrix-disclosure"><summary>{"展开各类动作耗时" if zh else "Open latency by action type"}</summary>{action_table}</details></section>'
-            + f'<section><h2>{"各方法成功任务的条件分布" if zh else "Conditional distributions on each method’s successful tasks"}</h2>'
-            + f'<p>{"各列仅含该方法成功的任务，任务集合和样本数可能不同。这组数据用于诊断，不参与方法排名。" if zh else "Each column contains only that method’s successful tasks. Task sets and sample counts may differ, so these distributions are diagnostic and not ranked."}</p>'
+            + f'<section><h2>{t("results.action_latency.heading", "Browser action latency")}</h2>'
+            + f'<p>{t("results.action_latency.lead", "Mean, P50, and P95 are per browser action call; call counts describe workload. Result details retain every action duration and response.")}</p>'
+            + f'<details class="matrix-disclosure"><summary>{t("results.action_latency.open", "Open latency by action type")}</summary>{action_table}</details></section>'
+            + f'<section><h2>{t("results.successful.heading", "Conditional distributions on each method’s successful tasks")}</h2>'
+            + f'<p>{t("results.successful.lead", "Each column contains only that method’s successful tasks. Task sets and sample counts may differ, so these distributions are diagnostic and not ranked.")}</p>'
             + _successful_distribution_table(method_rows, lang)
             + "</section>"
         )
@@ -1489,13 +1487,13 @@ def build_webarena_replay_report(
             diagnostic_details + '<section class="compact-section">',
             1,
         ).replace('<div class="filters">', '<div class="filters" id="result-inventory">', 1)
-        results_body = results_body.replace("结果与失败诊断", "结果分析").replace("Results and failure diagnosis", "Results analysis")
-        (root / "results.html").write_text(_shell(lang, "results", "结果分析" if zh else "Results analysis", validity_notice + results_body, current_route="results.html"), encoding="utf-8")
+        (root / "results.html").write_text(_shell(lang, "results", t("results.title", "Results analysis"), validity_notice + results_body, current_route="results.html"), encoding="utf-8")
 
         flow_labels = (
-            ("重放器", "浏览器容器", "本地站点", "每方法前重置", "证据采集", "官方验收", "完全销毁")
-            if zh
-            else ("Replay runner", "Browser container", "Local sites", "Reset per method", "Evidence", "Official evaluator", "Full teardown")
+            t("environment.flow.replay_runner", "Replay runner"), t("environment.flow.browser_container", "Browser container"),
+            t("environment.flow.local_sites_short", "Local sites"), t("environment.flow.reset_per_method", "Reset per method"),
+            t("environment.flow.evidence_short", "Evidence"), t("environment.flow.official_evaluator", "Official evaluator"),
+            t("environment.flow.full_teardown", "Full teardown"),
         )
         fallback = '<div class="flow-fallback" data-topology-fallback>' + "".join(
             f'<div class="flow-node"><strong>{index}</strong>{_e(label)}</div>'
@@ -1503,22 +1501,21 @@ def build_webarena_replay_report(
             for index, label in enumerate(flow_labels, 1)
         ) + "</div>"
         topology = f'''<pre class="mermaid" hidden>flowchart LR
-  R[{"重放器" if zh else "Replay runner"}] -->|{"每次只运行一个浏览器" if zh else "one browser at a time"}| B[{"浏览器容器" if zh else "Browser container"}]
-  B -->|{"Colima 网关" if zh else "Colima gateway"}| S[{"本地 WebArena 站点" if zh else "Local WebArena sites"}]
-  S --> D[{"每方法开始前恢复站点数据" if zh else "Reset site data before each method"}]
-  B --> E[{"轨迹 · 网络记录 · 资源采样" if zh else "Trace · HAR · resource samples"}]
-  E --> V[{"官方验收" if zh else "Official evaluator"}]
-  V --> X[{"绑定证据的结果" if zh else "Evidence-bound result"}]
-  X --> T[{"销毁浏览器与站点" if zh else "Teardown browser and sites"}]
+  R[{t("environment.flow.replay_runner", "Replay runner")}] -->|{t("environment.flow.one_browser", "one browser at a time")}| B[{t("environment.flow.browser_container", "Browser container")}]
+  B -->|{t("environment.flow.colima_gateway", "Colima gateway")}| S[{t("environment.flow.local_sites", "Local WebArena sites")}]
+  S --> D[{t("environment.flow.reset_sites", "Reset site data before each method")}]
+  B --> E[{t("environment.flow.evidence", "Trace · HAR · resource samples")}]
+  E --> V[{t("environment.flow.official_evaluator", "Official evaluator")}]
+  V --> X[{t("environment.flow.evidence_bound", "Evidence-bound result")}]
+  X --> T[{t("environment.flow.teardown", "Teardown browser and sites")}]
   T --> R</pre>'''
-        environment_body = f'''<section class="hero"><h1>{"环境与评测流程" if zh else "Environment and evaluation flow"}</h1><p>{"所用网关是 Colima 虚拟机中的宿主网关：浏览器容器通过它访问运行在同一台 Mac 虚拟化环境里的 WebArena 站点。它不是公网测试网站。" if zh else "The site gateway is the host gateway inside the Colima VM. Browser containers use it to reach the WebArena sites running in the same Mac virtualization environment; it is not a public test website."}</p></section><section><h2>{"执行拓扑" if zh else "Execution topology"}</h2>{fallback}{topology}</section><section><h2>{"隔离规则" if zh else "Isolation rules"}</h2><div class="summary-grid"><article><strong>1</strong><p>{"一套固定端口站点环境，因此只允许一个方法运行。" if zh else "One fixed-port site stack permits only one running method."}</p></article><article><strong>{task_count}</strong><p>{"每种方法覆盖全部任务，方法开始前恢复站点；任务之间不重置。每题只保留一个最终逻辑结果，额外物理执行单独计数，输入未变且已经通过的任务不再执行。" if zh else "Each method covers every task after one site reset, with no reset between tasks. One final logical outcome is retained per task; extra physical calls are counted separately, and an unchanged task is not run again after passing."}</p></article><article><strong>0</strong><p>{_e(backend_note)}</p></article></div></section><script data-topology-script>{{const node=document.querySelector('.mermaid');const loader=document.createElement('script');{mermaid_script_attributes("loader")};loader.onload=async()=>{{try{{mermaid.initialize({{startOnLoad:false,theme:document.documentElement.dataset.theme==='dark'?'dark':'neutral'}});const rendered=await mermaid.render('replay-topology',node.textContent);node.innerHTML=rendered.svg;node.hidden=false;document.querySelector('[data-topology-fallback]').hidden=true}}catch(error){{node.hidden=true}}}};document.head.appendChild(loader)}}</script>'''
-        environment_body = environment_body.replace("环境与评测流程", "环境与方法").replace("Environment and evaluation flow", "Environment and method")
+        environment_body = f'''<section class="hero"><h1>{t("environment.title", "Environment and method")}</h1><p>{t("environment.gateway_note", "The site gateway is the host gateway inside the Colima VM. Browser containers use it to reach the WebArena sites running in the same Mac virtualization environment; it is not a public test website.")}</p></section><section><h2>{t("environment.topology", "Execution topology")}</h2>{fallback}{topology}</section><section><h2>{t("environment.isolation", "Isolation rules")}</h2><div class="summary-grid"><article><strong>1</strong><p>{t("environment.isolation.fixed_port", "One fixed-port site stack permits only one running method.")}</p></article><article><strong>{task_count}</strong><p>{t("environment.isolation.coverage", "Each method covers every task after one site reset, with no reset between tasks. One final logical outcome is retained per task; extra physical calls are counted separately, and an unchanged task is not run again after passing.")}</p></article><article><strong>0</strong><p>{_e(backend_note)}</p></article></div></section><script data-topology-script>{{const node=document.querySelector('.mermaid');const loader=document.createElement('script');{mermaid_script_attributes("loader")};loader.onload=async()=>{{try{{mermaid.initialize({{startOnLoad:false,theme:document.documentElement.dataset.theme==='dark'?'dark':'neutral'}});const rendered=await mermaid.render('replay-topology',node.textContent);node.innerHTML=rendered.svg;node.hidden=false;document.querySelector('[data-topology-fallback]').hidden=true}}catch(error){{node.hidden=true}}}};document.head.appendChild(loader)}}</script>'''
         if "Rainbond" in str((profile.get("execution") or {}).get("site_stack") or ""):
             diagram_script = environment_body[environment_body.index('<script data-topology-script>'):]
             remote_labels = (
-                ("冻结输入", "组前恢复站点", "新建浏览器会话", "顺序重放", "官方验收", "保存证据")
-                if zh else
-                ("Freeze inputs", "Restore sites", "Fresh browser context", "Sequential replay", "Official evaluation", "Retain evidence")
+                t("environment.remote.freeze_inputs", "Freeze inputs"), t("environment.remote.restore_sites", "Restore sites"),
+                t("environment.remote.fresh_context", "Fresh browser context"), t("environment.remote.sequential_replay", "Sequential replay"),
+                t("stage.official_evaluation", "Official evaluation"), t("environment.remote.retain_evidence", "Retain evidence"),
             )
             remote_fallback = '<div class="flow-fallback" data-topology-fallback>' + ''.join(
                 f'<div class="flow-node"><strong>{i}</strong>{_e(label)}</div>'
@@ -1532,7 +1529,7 @@ def build_webarena_replay_report(
   D --> S["Rainbond WebArena"]
   S --> E["{remote_labels[4]}"]
   E --> F["{remote_labels[5]}"]
-  F -->|{"下一题，不重置站点" if zh else "next task, no site reset"}| C
+  F -->|{t("environment.remote.next_task", "next task, no site reset")}| C
 </pre>'''
             reset_rows = []
             for participant, method in methods.items():
@@ -1549,22 +1546,22 @@ def build_webarena_replay_report(
                     reset_rows.append(
                         f'<tr><td>{_e(method["label"])}</td><td>{_e(site)}</td>'
                         f'<td><code>sha256:{_e(identity.get("image_digest") or "—")}</code></td>'
-                        f'<td><a href="{_e(receipt_link)}">{"恢复与就绪证据" if zh else "Reset and readiness evidence"}</a></td></tr>'
+                        f'<td><a href="{_e(receipt_link)}">{t("environment.reset.evidence_link", "Reset and readiness evidence")}</a></td></tr>'
                     )
             reset_table = (
-                f'<section><h2>{"站点镜像与恢复证据" if zh else "Site images and reset evidence"}</h2>'
+                f'<section><h2>{t("environment.reset.heading", "Site images and reset evidence")}</h2>'
                 '<div class="table-scroll"><table><thead><tr>'
                 + ''.join(f'<th>{label}</th>' for label in (
-                    ("方法", "站点", "镜像标识", "证据") if zh else
-                    ("Method", "Site", "Image identity", "Evidence")
+                    t("common.method", "Method"), t("common.site", "Site"),
+                    t("environment.reset.image_identity", "Image identity"), t("common.evidence", "Evidence"),
                 )) + '</tr></thead><tbody>' + ''.join(reset_rows) + '</tbody></table></div></section>'
             ) if reset_rows else ''
             environment_body = (
-                f'<section class="hero"><h1>{"环境与方法" if zh else "Environment and method"}</h1>'
-                f'<p>{"所有浏览器使用同一套站点映射和题序；验收规则版本见下方说明及任务详情。每个方法开始前恢复站点基线，任务之间不重置站点。" if zh else "All browsers use the same site map and task order; acceptance revisions are identified below and on task pages. The site baseline is restored before each method, not between tasks."}</p></section>'
-                f'<section><h2>{"执行流程" if zh else "Execution flow"}</h2>{remote_fallback}{remote_diagram}'
-                f'<p>{"每个方法的基线恢复记录绑定 Pod 更换、镜像摘要和站点就绪；逐题记录轨迹、网络和评分证据。方法串行执行；额外物理调用只覆盖从未通过或冻结输入发生变化的任务。" if zh else "Each method-level baseline receipt binds Pod replacement, image digest and site readiness. Per-task traces, network captures and scores remain separate. Methods run serially; extra physical calls cover only never-passing tasks or tasks whose frozen input changed."}</p></section>'
-                + f'<p>{_e((profile.get("resources") or {}).get("browser_host") or ("浏览器主机未记录" if zh else "Browser host not recorded"))} · Rainbond WebArena. {_e(backend_note)}</p>'
+                f'<section class="hero"><h1>{t("environment.title", "Environment and method")}</h1>'
+                f'<p>{t("environment.remote.lead", "All browsers use the same site map and task order; acceptance revisions are identified below and on task pages. The site baseline is restored before each method, not between tasks.")}</p></section>'
+                f'<section><h2>{t("environment.remote.flow", "Execution flow")}</h2>{remote_fallback}{remote_diagram}'
+                f'<p>{t("environment.remote.note", "Each method-level baseline receipt binds Pod replacement, image digest and site readiness. Per-task traces, network captures and scores remain separate. Methods run serially; extra physical calls cover only never-passing tasks or tasks whose frozen input changed.")}</p></section>'
+                + f'<p>{_e((profile.get("resources") or {}).get("browser_host") or (t("environment.remote.browser_host_unrecorded", "Browser host not recorded")))} · Rainbond WebArena. {_e(backend_note)}</p>'
                 + reset_table + diagram_script
             )
         identity_rows = []
@@ -1590,7 +1587,7 @@ def build_webarena_replay_report(
             )
             distribution = ", ".join(
                 f'<code>{_e(binary_hash[:12])}</code> · {count} '
-                + ("题" if zh else "tasks")
+                + (t("environment.identity.tasks", "tasks"))
                 for binary_hash, count in sorted(hashes.items(), key=lambda item: (-item[1], item[0]))
             ) or "—"
             identity_rows.append(
@@ -1598,59 +1595,56 @@ def build_webarena_replay_report(
                 f'<td>{len(hashes) if hashes else "—"}</td><td>{distribution}</td></tr>'
             )
         identity_section = (
-            f'<section><h2>{"方法身份与修复序列" if zh else "Method identity and repair sequence"}</h2>'
-            f'<p>{"同一方法可能由多次定向修复后的浏览器构建共同收敛；表中列出最终逻辑结果实际绑定的构建及其题数。耗时是这条修复序列留下的逐题样本，不能解释为某一个构建版本的独立性能。" if zh else "A method may converge through several targeted browser builds. The table lists the builds bound to the retained logical results and their task counts. Latency is sampled across that repair sequence and does not establish the standalone performance of one build."}</p>'
+            f'<section><h2>{t("environment.identity.heading", "Method identity and repair sequence")}</h2>'
+            f'<p>{t("environment.identity.lead", "A method may converge through several targeted browser builds. The table lists the builds bound to the retained logical results and their task counts. Latency is sampled across that repair sequence and does not establish the standalone performance of one build.")}</p>'
             '<div class="table-scroll"><table><thead><tr>'
             + ''.join(f'<th>{label}</th>' for label in (
-                ("方法", "版本或修订", "构建数", "最终结果分布") if zh else
-                ("Method", "Version or revision", "Builds", "Retained result distribution")
+                t("common.method", "Method"), t("environment.identity.revision", "Version or revision"),
+                t("environment.identity.builds", "Builds"), t("environment.identity.distribution", "Retained result distribution"),
             ))
             + '</tr></thead><tbody>' + ''.join(identity_rows) + '</tbody></table></div></section>'
         )
         environment_body = environment_body.replace('</section>', '</section>' + identity_section, 1)
         if measurement_note:
             environment_body += f'<p class="callout">{_e(measurement_note)}</p>'
-        (root / "environment.html").write_text(_shell(lang, "environment", "环境与方法" if zh else "Environment and method", environment_body, current_route="environment.html"), encoding="utf-8")
+        (root / "environment.html").write_text(_shell(lang, "environment", t("environment.title", "Environment and method"), environment_body, current_route="environment.html"), encoding="utf-8")
 
+        stage_counts = Counter(row["failure_stage"] for row in public_rows)
         review_rows = (
             (
-                "轨迹资格核验" if zh else "Trajectory qualification",
-                f"{task_count} 题；{browser_use_source_count} 条来自自主执行，{repaired_source_count} 条经修复。" if zh else f"{task_count} tasks: {browser_use_source_count} autonomous successes and {repaired_source_count} repaired trajectories.",
-                f"{repaired_source_count} 条候选轨迹需要修复后才能作为固定输入。" if zh else f"{repaired_source_count} candidate trajectories required repair before use as frozen inputs.",
-                f"记录的逐题验收中，{reference_label} 通过 {reference_row['passed']}/{reference_row['total']} 题；固定轨迹不包含 Agent 或模型决策。" if zh else f"Recorded per-task acceptance yielded {reference_row['passed']}/{reference_row['total']} passes on {reference_label}. Frozen trajectories contain no Agent or model decisions.",
-                "逐方法冻结输入及官方验收证据可在结果页查看。" if zh else "Method-specific frozen inputs and official evaluations are available on each result page.",
+                t("review.trajectory.title", "Trajectory qualification"),
+                t("review.trajectory.scope", "{tasks} tasks: {autonomous} autonomous successes and {repaired} repaired trajectories.", tasks=task_count, autonomous=browser_use_source_count, repaired=repaired_source_count),
+                t("review.trajectory.finding", "{repaired} candidate trajectories required repair before use as frozen inputs.", repaired=repaired_source_count),
+                t("review.trajectory.correction", "Recorded per-task acceptance yielded {passed}/{total} passes on {reference}. Frozen trajectories contain no Agent or model decisions.", reference=reference_label, passed=reference_row['passed'], total=reference_row['total']),
+                t("review.trajectory.open", "Method-specific frozen inputs and official evaluations are available on each result page."),
             ),
             (
-                "失败证据复核" if zh else "Failure evidence review",
-                f"{reviewed_failure_count} 条最终失败结果。" if zh else f"{reviewed_failure_count} final failed outcomes.",
-                f"{sum(row['failure_stage'] == 'browser_session_setup' for row in public_rows)} 条浏览器会话初始化失败；{sum(row['failure_stage'] == 'browser_tool_execution' for row in public_rows)} 条动作执行失败；{sum(row['failure_stage'] == 'evidence_finalization' for row in public_rows)} 条证据收尾失败；{sum(row['failure_stage'] == 'official_evaluator_execution' for row in public_rows)} 条评测器执行失败；{sum(row['failure_stage'] == 'side_effect_not_observed' for row in public_rows)} 条网络验收失败。" if zh else f"{sum(row['failure_stage'] == 'browser_session_setup' for row in public_rows)} browser-session setup failures; {sum(row['failure_stage'] == 'browser_tool_execution' for row in public_rows)} browser-action failures; {sum(row['failure_stage'] == 'evidence_finalization' for row in public_rows)} evidence-finalization failures; {sum(row['failure_stage'] == 'official_evaluator_execution' for row in public_rows)} evaluator-execution failures; {sum(row['failure_stage'] == 'side_effect_not_observed' for row in public_rows)} network-acceptance failures.",
-                f"{reviewed_failure_count}/{reviewed_failure_count} 条绑定当前证据哈希；分别展示程序报错、动作位置、复核原因和处理状态，原始分数未改。" if zh else f"{reviewed_failure_count}/{reviewed_failure_count} reviews are bound to the current evidence hash. Program errors, action locators, reviewed causes and treatment states are separate; official scores did not change.",
-                "失败根因与处理状态见逐题结果详情。" if zh else "Failure causes and treatment status appear on each failed result page.",
+                t("review.failures.title", "Failure evidence review"),
+                t("review.failures.scope", "{failures} final failed outcomes.", failures=reviewed_failure_count),
+                t("review.failures.finding", "{session} browser-session setup failures; {action} browser-action failures; {evidence} evidence-finalization failures; {evaluator} evaluator-execution failures; {network} network-acceptance failures.", session=stage_counts["browser_session_setup"], action=stage_counts["browser_tool_execution"], evidence=stage_counts["evidence_finalization"], evaluator=stage_counts["official_evaluator_execution"], network=stage_counts["side_effect_not_observed"]),
+                t("review.failures.correction", "{failures}/{failures} reviews are bound to the current evidence hash. Program errors, action locators, reviewed causes and treatment states are separate; official scores did not change.", failures=reviewed_failure_count),
+                t("review.failures.open", "Failure causes and treatment status appear on each failed result page."),
             ),
         )
         review_table_rows = "".join(
             "<tr>" + "".join(f"<td>{_e(cell)}</td>" for cell in (title, scope, finding, correction, remaining)) + "</tr>"
             for title, scope, finding, correction, remaining in review_rows
         )
-        review_headers = ("轮次", "范围", "发现", "纠正", "未完成") if zh else ("Round", "Scope", "Finding", "Correction", "Open")
+        review_headers = (t("review.column.round", "Round"), t("review.column.scope", "Scope"), t("review.column.finding", "Finding"), t("review.column.correction", "Correction"), t("review.column.open", "Open"))
         review_status = (
-            f"已收录 {task_count} 个任务、所有方法各一次结果；最终失败 {reviewed_failure_count}/{reviewed_failure_count} 条已完成证据绑定复核。"
-            if zh else
-            f"The report contains {task_count} tasks with one result per each registered method; {reviewed_failure_count}/{reviewed_failure_count} final failures received evidence-bound review."
+            t("review.status", "The report contains {tasks} tasks with one result per each registered method; {failures}/{failures} final failures received evidence-bound review.", tasks=task_count, failures=reviewed_failure_count)
         )
         if unverifiable_ids:
             review_status += (
-                f"不可核验参考答案 {len(unverifiable_ids)} 题，在核心指标中单列分母。"
-                if zh else
-                f" The {len(unverifiable_ids)} tasks with unverifiable references are excluded from the separate verifiable-task denominator."
+                t("review.status_unverifiable", " The {tasks} tasks with unverifiable references are excluded from the separate verifiable-task denominator.", tasks=len(unverifiable_ids))
             )
-        review_body = f'''<section class="hero"><h1>{"核验记录" if zh else "Review history"}</h1><p>{"只记录影响当前评测集和结果解读的核验轮次；每个失败的完整证据与处理状态在逐题结果页。" if zh else "Rounds that affected the current dataset or result interpretation. Full evidence and treatment status for each failure are on result pages."}</p></section><section><h2>{"当前状态" if zh else "Current status"}</h2><p>{review_status}</p></section><section><h2>{"核验轮次" if zh else "Review rounds"}</h2><div class="table-scroll review-table"><table><thead><tr>{''.join(f'<th>{_e(label)}</th>' for label in review_headers)}</tr></thead><tbody>{review_table_rows}</tbody></table></div></section>'''
-        (root / "review.html").write_text(_shell(lang, "review", "核验记录" if zh else "Review history", validity_notice + review_body, current_route="review.html"), encoding="utf-8")
+        review_body = f'''<section class="hero"><h1>{t("review.title", "Review history")}</h1><p>{t("review.lead", "Rounds that affected the current dataset or result interpretation. Full evidence and treatment status for each failure are on result pages.")}</p></section><section><h2>{t("review.current_status", "Current status")}</h2><p>{review_status}</p></section><section><h2>{t("review.rounds", "Review rounds")}</h2><div class="table-scroll review-table"><table><thead><tr>{''.join(f'<th>{_e(label)}</th>' for label in review_headers)}</tr></thead><tbody>{review_table_rows}</tbody></table></div></section>'''
+        (root / "review.html").write_text(_shell(lang, "review", t("review.title", "Review history"), validity_notice + review_body, current_route="review.html"), encoding="utf-8")
 
-        viewer_tabs = (("result", "结果与资源", "Result and resources"), ("site_reset", "站点重置", "Site reset"), ("readiness", "站点就绪", "Site readiness"), ("programmatic_failure", "程序定位", "Programmatic finding"), ("review", "复核原因", "Reviewed cause"), ("trajectory", "动作与日志", "Actions and logs"), ("official_evaluation", "官方验收", "Official evaluation"))
-        tab_buttons = "".join(f'<button type="button" data-evidence-tab="{key}" aria-selected="false">{label_zh if zh else label_en}</button>' for key, label_zh, label_en in viewer_tabs)
-        viewer_body = f'<section class="hero"><h1>{"证据查看器" if zh else "Evidence viewer"}</h1><p>{"按结果、动作、程序判定和复核原因查看完整净化证据；原始 JSON 仍可下载。" if zh else "Inspect full sanitized evidence by outcome, action, programmatic finding, and review. The raw JSON remains downloadable."}</p></section><section class="viewer"><div class="viewer-tabs" role="tablist">{tab_buttons}</div><h2 data-evidence-heading></h2><div class="evidence-actions"><a data-evidence-raw href="#">{"下载净化 JSON" if zh else "Download sanitized JSON"}</a><a data-evidence-image hidden></a></div><pre data-evidence-viewer></pre></section>'
-        (root / "evidence-viewer.html").write_text(_shell(lang, "results", "证据查看器" if zh else "Evidence viewer", validity_notice + viewer_body, current_route="evidence-viewer.html"), encoding="utf-8")
+        viewer_tabs = (("result", t("viewer.tab.result", "Result and resources")), ("site_reset", t("viewer.tab.site_reset", "Site reset")), ("readiness", t("viewer.tab.readiness", "Site readiness")), ("programmatic_failure", t("viewer.tab.programmatic_failure", "Programmatic finding")), ("review", t("viewer.tab.review", "Reviewed cause")), ("trajectory", t("viewer.tab.trajectory", "Actions and logs")), ("official_evaluation", t("stage.official_evaluation", "Official evaluation")))
+        tab_buttons = "".join(f'<button type="button" data-evidence-tab="{key}" aria-selected="false">{label}</button>' for key, label in viewer_tabs)
+        viewer_body = f'<section class="hero"><h1>{t("viewer.title", "Evidence viewer")}</h1><p>{t("viewer.lead", "Inspect full sanitized evidence by outcome, action, programmatic finding, and review. The raw JSON remains downloadable.")}</p></section><section class="viewer"><div class="viewer-tabs" role="tablist">{tab_buttons}</div><h2 data-evidence-heading></h2><div class="evidence-actions"><a data-evidence-raw href="#">{t("common.download_sanitized_json", "Download sanitized JSON")}</a><a data-evidence-image hidden></a></div><pre data-evidence-viewer></pre></section>'
+        (root / "evidence-viewer.html").write_text(_shell(lang, "results", t("viewer.title", "Evidence viewer"), validity_notice + viewer_body, current_route="evidence-viewer.html"), encoding="utf-8")
 
     if interpretation_path is not None:
         source = Path(interpretation_path)
@@ -1671,12 +1665,13 @@ def build_webarena_replay_report(
         css_path.write_text(css, encoding="utf-8")
         for lang in languages:
             language_root = output if lang == "zh" else output / "en"
+            t = report_text(lang)
             arguments = dict(source=source, contract_audit=Path(interpretation_audit_path) if interpretation_audit_path is not None else source.parent / "trajectory-replay-contract-audit.json",
                              results_sha256=file_sha256(results_source), methods=methods, rows=public_rows,
                              lang=lang, image_dir=illustrations,
                              image_prefix=("assets/" if lang == "zh" else "../assets/") + "interpretation/")
             title, body = render_interpretation(**arguments)
-            download = "下载独立阅读版" if lang == "zh" else "Download standalone article"
+            download = t("interpretation.download", "Download standalone article")
             body = f'<p><a href="article.html" download>{download}</a></p>' + body
             (language_root / "interpretation.html").write_text(
                 _shell(lang, "interpretation", title, body, current_route="interpretation.html"), encoding="utf-8")
@@ -1693,35 +1688,33 @@ def build_webarena_replay_report(
             (language_root / "article.html").write_text(
                 standalone_document(title, offline, lang, css), encoding="utf-8")
             home = language_root / "index.html"
-            label = "报告解读：失败机制、修复与评测边界" if lang == "zh" else "Interpretation: failure mechanisms, repairs and evaluation limits"
+            label = t("interpretation.home_link", "Interpretation: failure mechanisms, repairs and evaluation limits")
             home.write_text(home.read_text(encoding="utf-8").replace("<main>", f'<main><p><a href="interpretation.html">{label}</a></p>', 1), encoding="utf-8")
             _add_interpretation_navigation(language_root, lang)
 
     if interpretation_path is None:
         for lang in languages:
             root = output if lang == "zh" else output / "en"
-            zh = lang == "zh"
-            title = "结果解读" if zh else "Result interpretation"
+            t = report_text(lang)
+            title = t("interpretation.title", "Result interpretation")
             failed_participants = [name for name in methods if any(
                 row["participant_id"] == name and row["status"] != "pass" for row in public_rows)]
             failed_count = sum(row["status"] != "pass" for row in public_rows)
-            overview = (f"{len(tasks)} 个任务、{len(methods)} 种方法，共 {len(public_rows)} 个逻辑结果，其中 {failed_count} 个失败。"
-                        if zh else f"{len(tasks)} tasks and {len(methods)} methods produce {len(public_rows)} logical results, including {failed_count} failures.")
-            scoring = ("每种方法重放同一任务的冻结动作，再由绑定的任务验收规则判分。原始成绩与合同修订保留在任务和结果详情中。"
-                       if zh else "Each method replays the frozen actions for the same task, then applies its bound acceptance rules. Task and result details retain original scores and contract revisions.")
+            overview = (t("interpretation.overview", "{tasks} tasks and {methods} methods produce {results} logical results, including {failures} failures.", tasks=len(tasks), methods=len(methods), results=len(public_rows), failures=failed_count))
+            scoring = (t("interpretation.scoring_text", "Each method replays the frozen actions for the same task, then applies its bound acceptance rules. Task and result details retain original scores and contract revisions."))
             task_id = next(iter(tasks))
             body = (f'<article class="interpretation"><h1>{title}</h1>'
-                    f'<section id="overview" class="presentation-slide"><h2>{"完整结果" if zh else "Complete results"}</h2><p>{overview}</p>'
+                    f'<section id="overview" class="presentation-slide"><h2>{t("interpretation.complete_results", "Complete results")}</h2><p>{overview}</p>'
                     + _metrics_table(method_rows, lang, show_valid_reference=bool(unverifiable_ids)) + '</section>'
-                    f'<section id="scoring" class="presentation-slide"><h2>{"如何判分" if zh else "Scoring"}</h2><p>{scoring}</p>'
+                    f'<section id="scoring" class="presentation-slide"><h2>{t("interpretation.scoring", "Scoring")}</h2><p>{scoring}</p>'
                     f'<a href="task/{task_id}.html">Task {task_id}</a></section>'
-                    f'<section id="browser-diagnoses" class="presentation-slide"><h2>{"各方法的失败原因" if zh else "Failures by method"}</h2>'
+                    f'<section id="browser-diagnoses" class="presentation-slide"><h2>{t("interpretation.failures", "Failures by method")}</h2>'
                     + ''.join(browser_failure_profile(methods, public_rows, lang, name) for name in failed_participants)
                     + '</section><section id="scope" class="presentation-slide"><h2>'
-                    + ("测量范围" if zh else "Measurement scope") + '</h2><p>'
+                    + (t("interpretation.scope", "Measurement scope")) + '</h2><p>'
                     + _e((profile.get("measurement_notes") or {}).get(lang) or scoring)
                     + '</p></section></article>')
-            download = "下载独立阅读版" if zh else "Download standalone article"
+            download = t("interpretation.download", "Download standalone article")
             (root / "interpretation.html").write_text(_shell(
                 lang, "interpretation", title, f'<p><a href="article.html" download>{download}</a></p>' + body,
                 current_route="interpretation.html"), encoding="utf-8")

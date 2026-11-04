@@ -4,23 +4,25 @@ from collections import Counter
 from html import escape
 from urllib.parse import urlencode
 
+from harness.trajectory_replay.messages import report_text
+
 # These are diagnostic families, not assertions that the browser owns the fault.
 FAMILIES = (
-    ("geometry", "布局与可见性", "Layout and visibility", (
+    ("geometry", (
         "zero_area_target_geometry", "zero_width_forum_link",
         "zero_width_candidate_changes_visible_ordinal",
         "visible_locator_timeout_without_geometry",
         "suggestion_dom_selection",
         "configuration_wizard_readiness_predicate",
     )),
-    ("interaction", "输入与动作效果", "Input and action effects", (
+    ("interaction", (
         "input_navigation_lifecycle", "disabled_control_readiness_race",
         "implicit_search_submission_absent",
     )),
-    ("network", "网络传输与记录", "Network transport and recording", (
+    ("network", (
         "fetch_transport_timeout", "recorded_referer_mismatch",
     )),
-    ("document", "文档表示", "Document representation", (
+    ("document", (
         "json_document_dom_contract",
     )),
 )
@@ -49,6 +51,7 @@ def failure_signature_cards(
 ) -> str:
     """Render a compact, data-bearing failure signature for summary pages."""
     zh = lang == "zh"
+    t = report_text(lang)
     cards = []
     for participant in participants:
         if participant not in methods:
@@ -75,46 +78,51 @@ def failure_signature_cards(
                 + f'</span><strong>{len(members)}</strong></div>'
                 + f'<div class="failure-mini-track"><i style="width:{share:.2f}%"></i></div>'
                 + f'<a href="results.html?{escape(query, quote=True)}#result-inventory">'
-                + ("查看这些任务" if zh else "Inspect tasks")
+                + t("failure.signature.inspect_tasks", "Inspect tasks")
                 + "</a></li>"
             )
         remainder = len(failures) - sum(len(members) for _, members in dominant)
         if remainder:
             items.append(
                 f'<li class="failure-remainder"><span>'
-                f"{('其余类型' if zh else 'Other subtypes')}</span>"
+                f"{t('failure.signature.other_subtypes', 'Other subtypes')}</span>"
                 f"<strong>{remainder}</strong></li>"
             )
         cards.append(
             f'<article data-method="{escape(participant)}"><header><div><span>'
-            f"{('官方失败' if zh else 'Official failures')}</span>"
+            f"{t('failure.signature.official_failures', 'Official failures')}</span>"
             f'<strong>{len(failures)} / {population}</strong></div><b>'
             f"{escape(methods[participant]['label'])}</b></header>"
             f"<ul>{''.join(items)}</ul></article>"
         )
-    participant_count = len(participants)
+    total = len(participants)
     heading = (
-        f"{participant_count} 款浏览器的主导错误"
-        if zh
-        else f"Dominant failures in {participant_count} "
-        + ("browser" if participant_count == 1 else "browsers")
+        t("failure.signature.heading.one", "Dominant failures in {count} browser", count=total)
+        if total == 1
+        else t(
+            "failure.signature.heading.other",
+            "Dominant failures in {count} browsers",
+            count=total,
+        )
     )
-    note = (
-        "每条失败只进入一个复核子类。这里显示各方法数量最多的三类；完整分类、原因和逐题证据见报告解读。"
-        if zh
-        else 'Each failure belongs to one reviewed subtype. These '
+    note = t(
+        "failure.signature.note",
+        'Each failure belongs to one reviewed subtype. These '
         'are the three largest for each method; Interpretation '
-        'contains every subtype, explanation, and case evidence.'
+        'contains every subtype, explanation, and case evidence.',
     )
     return (
         f'<section class="summary-slide" data-failure-signatures>'
         f'<div class="section-heading"><div><h2>{heading}</h2>'
         f'<p>{note}</p></div><a href="interpretation.html#browser-diagnoses">'
         + (
-            f"查看 {participant_count} 章详解"
-            if zh
-            else f"Read {participant_count} browser "
-            + ("chapter" if participant_count == 1 else "chapters")
+            t("failure.signature.read_chapters.one", "Read {count} browser chapter", count=total)
+            if total == 1
+            else t(
+                "failure.signature.read_chapters.other",
+                "Read {count} browser chapters",
+                count=total,
+            )
         )
         + f'</a></div><div class="failure-signature-grid">{"".join(cards)}</div></section>'
     )
@@ -125,6 +133,7 @@ def browser_failure_profile(methods: dict, rows: list[dict], lang: str, particip
     if participant not in methods:
         raise ValueError(f"failure profile participant is not registered: {participant}")
     zh = lang == "zh"
+    t = report_text(lang)
     selected = [row for row in rows if row["participant_id"] == participant]
     failures = _reviewed_failures(rows, participant)
     groups = _cause_groups(failures)
@@ -148,9 +157,10 @@ def browser_failure_profile(methods: dict, rows: list[dict], lang: str, particip
         detail = f'result/{escape(str(sample["key"]), quote=True)}.html'
         explanations.append(
             f'<article data-cause-detail="{escape(code)}"><header><h3>{escape(str(label))}</h3>'
-            f"<strong>{count} {('题' if zh else 'tasks')}</strong></header><p>"
+            f"<strong>{count} {t('failure.profile.tasks', 'tasks')}</strong></header><p>"
             f'{escape(str(reason))}</p>'
-            f'''<a href="{detail}">{('代表题' if zh else 'Representative task')} #'''
+            f'<a href="{detail}">'
+            f"{t('failure.profile.representative_task', 'Representative task')} #"
             f"{int(sample['task_id'])} →</a></article>"
         )
     passed = sum(row["status"] == "pass" for row in selected)
@@ -161,9 +171,9 @@ def browser_failure_profile(methods: dict, rows: list[dict], lang: str, particip
         f'<div class="browser-profile-overview"><div class="browser-score"><span>'
         f'{escape(label)}</span>'
         f'<strong>{passed}/{len(selected)}</strong><small>'
-        f"{('官方通过' if zh else 'official passes')}</small></div>"
+        f"{t('failure.profile.official_passes', 'official passes')}</small></div>"
         f'<div class="browser-failure-total"><strong>{len(failures)}</strong><span>'
-        f"{('条失败，全部已复核' if zh else 'failures, all reviewed')}</span></div></div>"
+        f"{t('failure.profile.failures_reviewed', 'failures, all reviewed')}</span></div></div>"
         f'<ol class="failure-bars">{"".join(bars)}</ol>'
         f'<div class="failure-explanations">{"".join(explanations)}</div></div>'
     )
@@ -174,6 +184,13 @@ def failure_category_matrix(
 ) -> str:
     """Count each failed method-task once, including unreviewed failures."""
     zh = lang == "zh"
+    t = report_text(lang)
+    family_labels = {
+        "geometry": t("failure.family.geometry", "Layout and visibility"),
+        "interaction": t("failure.family.interaction", "Input and action effects"),
+        "network": t("failure.family.network", "Network transport and recording"),
+        "document": t("failure.family.document", "Document representation"),
+    }
     labels = {}
     counts = Counter()
     totals = Counter()
@@ -191,23 +208,24 @@ def failure_category_matrix(
         if row["status"] == "pass":
             continue
         code = row.get("cause_code") or "unreviewed"
+        # Both editions read the Chinese label: it is the inventory's filter value.
         labels[code] = (
-            row.get("cause_zh") or "未复核",
-            row.get("cause_en") or "Unreviewed",
+            row.get("cause_zh") or report_text("zh")("failure.unreviewed", "Unreviewed"),
+            row.get("cause_en") or report_text("en")("failure.unreviewed", "Unreviewed"),
         )
         counts[method, code] += 1
         totals[method] += 1
 
     families = []
     assigned = set()
-    for family, cn, en, codes in FAMILIES:
+    for family, codes in FAMILIES:
         present = [code for code in codes if code in labels]
         if present:
-            families.append((family, cn if zh else en, present))
+            families.append((family, family_labels[family], present))
             assigned.update(present)
     remaining = sorted(set(labels) - assigned)
     if remaining:
-        families.append(("other", "其他／未复核" if zh else "Other / unreviewed", remaining))
+        families.append(("other", t("failure.family.other", "Other / unreviewed"), remaining))
     columns = [code for _, _, codes in families for code in codes]
     groups = "".join(
         f'<th scope="colgroup" colspan="{len(codes)}" data-family="{family}">{escape(label)}</th>'
@@ -242,14 +260,13 @@ def failure_category_matrix(
             + "".join(cells)
             + "</tr>"
         )
-    title = "失败分布：大类与子类" if zh else "Failures by family and subtype"
-    note = (
-        "每个方法的全部任务为分母；每条失败只计入一个子类。横向滚动查看全部分类，点击计数查看对应题目。分类描述故障位置，责任归属与根因证据见逐题诊断。"
-        if zh
-        else 'The denominator is all tasks for each method. Each '
+    title = t("failure.matrix.title", "Failures by family and subtype")
+    note = t(
+        "failure.matrix.note",
+        'The denominator is all tasks for each method. Each '
         'failure belongs to one subtype. Scroll horizontally '
         'for all categories and select a count to inspect its '
-        'cases; fault ownership and root-cause evidence are in ''each diagnosis.'
+        'cases; fault ownership and root-cause evidence are in each diagnosis.',
     )
     tag = "div" if embedded else "section"
     heading = "" if embedded else f"<h2>{title}</h2>"
@@ -257,7 +274,7 @@ def failure_category_matrix(
         f"<{tag} data-failure-matrix>{heading}<p>{note}</p>"
         f'<div class="table-scroll failure-category-matrix" '
         f'tabindex="0" role="region" aria-label="{title}"><table><thead><tr>'
-        f'<th scope="col" rowspan="2">{"方法" if zh else "Method"}</th>'
-        f'<th scope="col" rowspan="2">{"失败 / 任务" if zh else "Failures / tasks"}</th>'
+        f'<th scope="col" rowspan="2">{t("common.method", "Method")}</th>'
+        f'<th scope="col" rowspan="2">{t("failure.matrix.failures_tasks", "Failures / tasks")}</th>'
         f"{groups}</tr><tr>{headers}</tr></thead><tbody>{''.join(body)}</tbody></table></div></{tag}>"
     )

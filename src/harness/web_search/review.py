@@ -1153,7 +1153,7 @@ def render_summary(evidence, zh=True):
 
     body = f"<section data-independent-review><h2>{title}</h2><p>{text}</p><p data-review-unresolved>" + report_text("All findings adjudicated; unresolved: 0.", zh) + "</p><details><summary>" + report_text("Finding dispositions (multiple findings per query)", zh) + "</summary><ul>"
     for key, value in sorted(counts.items()):
-        body += f"<li>{labels[key]}：{value}" + report_text(" findings", zh) + "</li>"
+        body += "<li>" + report_text("{label}: {count} findings", zh, label=labels[key], count=value) + "</li>"
     body += (
         "</ul></details><p>"
         + (
