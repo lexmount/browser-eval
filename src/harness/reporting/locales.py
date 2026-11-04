@@ -19,3 +19,12 @@ def translate(path: Path, key: str, language: str, **values):
     if isinstance(message, list):
         return [item.format_map(values) for item in message]
     return message.format_map(values)
+
+
+def catalog_text(path: Path, language: str):
+    """Bind `t(id, english, **values)`: English is inline source text, other languages read the catalog."""
+    def t(key: str, source: str, /, **values) -> str:
+        if language == "en":
+            return source.format_map(values)
+        return translate(path, key, language, **values)
+    return t

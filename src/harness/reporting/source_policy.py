@@ -25,6 +25,7 @@ CATALOG_RENDERERS = (
     "harness/web_search/relevance.py",
     "harness/web_search/review.py",
     "harness/lexbench/template/app.js",
+    "harness/trajectory_replay/failure_matrix.py",
     "harness/trajectory_replay/interpretation.py",
     "harness/web_fetch/methods.py",
     "harness/web_fetch/report_interfaces.py",
