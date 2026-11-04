@@ -47,8 +47,9 @@ def attempt_engines(
     """
     seen = tuple(dict.fromkeys(str(row["engine"]) for row in rows))
     protocol = manifest.get("protocol") or {}
-    declared = tuple(str(engine) for engine in protocol.get("engines") or ())
-    if declared:
+    if "engines" in protocol:
+        listed = protocol["engines"]
+        declared = tuple(str(engine) for engine in listed) if isinstance(listed, list) else ()
         if len(set(declared)) != len(declared) or set(declared) != set(seen):
             raise ValueError(
                 f"manifest protocol.engines {list(declared)} "

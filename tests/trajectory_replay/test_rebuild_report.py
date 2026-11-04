@@ -113,8 +113,8 @@ def test_declared_engines_set_the_order_regardless_of_row_order(tmp_path, monkey
 
 @pytest.mark.parametrize(
     "declared",
-    [["chromium"], ["chromium", "moli", "obscura"], ["chromium", "moli", "moli"]],
-    ids=["row-engine-unlisted", "listed-engine-without-rows", "duplicate-engine"],
+    [["chromium"], ["chromium", "moli", "obscura"], ["chromium", "moli", "moli"], [], None],
+    ids=["row-engine-unlisted", "listed-engine-without-rows", "duplicate-engine", "empty", "null"],
 )
 def test_manifest_that_disagrees_with_its_rows_is_rejected(tmp_path, monkeypatch, declared):
     with pytest.raises(SystemExit, match="protocol.engines"):
