@@ -95,7 +95,10 @@ def test_article_translation_cannot_override_other_routes_or_remove_status(tmp_p
     (tmp_path / 'archived-reading.json').write_text(json.dumps({'languages': languages,
         'translations': {'path': translation.name, 'sha256': hashlib.sha256(translation.read_bytes()).hexdigest()}}), encoding='utf-8')
     (tmp_path / 'guide').mkdir()
-    banner = '<div data-evidence-state="local_measurement">本地未认证诊断快照 · 不可用于排名</div>'
+    from harness.web_fetch.report import local_audit_banner
+    banner = local_audit_banner({'comparison': {
+        'kind': 'uniform_native_local_measurement',
+        'publication_state': 'local_audit_only_not_for_release'}})
     article = render_archived_reading(tmp_path)
     (tmp_path / 'guide/index.html').write_text('<html lang="zh-CN"><main>'+banner+article+'</main></html>', encoding='utf-8')
     root = '<html lang="zh-CN"><main><p>核验记录</p></main></html>'
@@ -105,6 +108,8 @@ def test_article_translation_cannot_override_other_routes_or_remove_status(tmp_p
     guide = (tmp_path / 'en/guide/index.html').read_text(encoding='utf-8')
     assert 'data-evidence-state="local_measurement"' in guide
     assert 'Archive-only label' in guide
+    assert 'Local uncertified result rankings' in guide
+    assert 'data-ranking-scope="saved-task-pass-rate"' in guide
 
 
 def test_model_translation_is_scoped_and_escaped():
