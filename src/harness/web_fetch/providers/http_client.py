@@ -23,12 +23,12 @@ class HttpResponse:
     def text(self) -> str:
         content_type = self.headers.get("content-type", "")
         header = Message()
-        header['content-type'] = content_type
-        charset = header.get_content_charset() or 'utf-8'
+        header["content-type"] = content_type
+        charset = header.get_content_charset() or "utf-8"
         try:
             return self.body.decode(charset, errors="replace")
         except (LookupError, ValueError):
-            return self.body.decode('utf-8', errors='replace')
+            return self.body.decode("utf-8", errors="replace")
 
     def json(self) -> Any:
         return json.loads(self.text())
@@ -56,17 +56,29 @@ def request(
     method: str = "GET",
     headers: dict[str, str] | None = None,
     json_body: Any = None,
+    body: bytes | None = None,
     timeout: float = 30,
     max_bytes: int = 10_000_000,
 ) -> HttpResponse:
     validate_http_url(url)
-    data = None
+    if body is not None and json_body is not None:
+        raise ValueError("Specify either body or json_body, not both")
+    if body is not None and not isinstance(body, bytes):
+        raise TypeError("Raw HTTP body must be bytes")
+    data = body
     final_headers = {"User-Agent": "browser-harness-eval/0.1", **(headers or {})}
     if json_body is not None:
         data = json.dumps(json_body).encode("utf-8")
         final_headers.setdefault("Content-Type", "application/json")
     req = urllib.request.Request(url, data=data, headers=final_headers, method=method)
-    emit("http_request_started", url=url, method=method, headers=final_headers, json_body=json_body, timeout=timeout)
+    emit(
+        "http_request_started",
+        url=url,
+        method=method,
+        headers=final_headers,
+        json_body=json_body,
+        timeout=timeout,
+    )
     try:
         response = urllib.request.build_opener(HttpOnlyRedirectHandler()).open(req, timeout=timeout)
     except urllib.error.HTTPError as error:
@@ -75,7 +87,14 @@ def request(
         body = response.read(max_bytes + 1)
         if len(body) > max_bytes:
             raise ValueError(f"response exceeded max_bytes={max_bytes}")
-        emit("http_response_received", status=response.status, url=response.geturl(), headers=dict(response.headers.items()), body_bytes=len(body), body=body.decode("utf-8", "replace"))
+        emit(
+            "http_response_received",
+            status=response.status,
+            url=response.geturl(),
+            headers=dict(response.headers.items()),
+            body_bytes=len(body),
+            body=body.decode("utf-8", "replace"),
+        )
         return HttpResponse(
             status=response.status,
             url=response.geturl(),
