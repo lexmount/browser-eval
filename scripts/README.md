@@ -15,17 +15,19 @@ exclusive tests in the same change once nothing listed below reaches it.
 The "Reached from" column names the authority that keeps each script; that
 authority names the script by basename or module path. Guides are named by
 path; `make` names a Makefile target. Scripts that no such authority names yet
-are listed under "Pending owner decision (#93)" with the reason each one
-survived this pruning.
+are listed under "Kept as is (#151)" with the reason each one survived this
+pruning.
 
 ## Shared setup and policy
 
 | Script | Reached from |
 | --- | --- |
 | `import_reference_inputs.py` | `docs/reference-inputs.md`; error text in `lexbench_webfetch.inputs`, whose hash `src/harness/benchmarks/code-migration.json` binds |
+| `authorize_artifact_site.py` | `docs/report-hosting.md` |
 | `bootstrap_oss_baselines.sh` | `docs/dependencies.md`, `docs/provider-contract.md` |
 | `check_package.py` | `make package-check` (CI) |
 | `check_track_naming.py` | `make naming-check` (CI) |
+| `ci_scope.sh` | `.github/workflows/ci.yml` |
 | `report_template.py` | `make report-template`, `AGENTS.md` |
 
 ## Web Fetch
@@ -57,7 +59,7 @@ reach the commands they name; the [Web Fetch guide](../src/harness/web_fetch/REA
 [WebMainBench guide](../src/harness/web_fetch/WEBMAINBENCH.md),
 [`docs/architecture.md`](../docs/architecture.md),
 [`docs/benchmarks.md`](../docs/benchmarks.md) and `configs/report-templates.json` show the rest,
-except the three commands listed under "Pending owner decision (#93)".
+except the three commands listed under "Kept as is (#151)".
 The scripts below stay because frozen latency certifiers name them.
 
 | Script | Reached from |
@@ -87,10 +89,14 @@ The curated track runs through `uv run --frozen python -m harness.trajectory_rep
 [`docs/benchmarks.md`](../docs/benchmarks.md),
 [`docs/trajectory-replay-protocol.md`](../docs/trajectory-replay-protocol.md) and
 [`evaluation/trajectory-replay/webarena-verified/README.md`](../evaluation/trajectory-replay/webarena-verified/README.md)
-show the rest, except the commands listed under "Pending owner decision (#93)".
+show the rest, except the commands listed under "Kept as is (#151)".
 `check_track_naming.py` rejects any new `*webarena_catalog*` script.
 
 The scripts below stay outside that entry point for the reason in each row.
+The decision recorded for #174 is to leave the public WebArena replay scripts
+and the WebArena environment scripts as scripts, here and under "Kept as is
+(#151)". They get no new module entry, and the public replay stays isolated from
+the curated entry point.
 
 | Script | Reached from |
 | --- | --- |
@@ -101,15 +107,16 @@ The scripts below stay outside that entry point for the reason in each row.
 | `publish_public_webarena_report.py` | Public WebArena replay: executed by `src/harness/trajectory_replay/public_webarena/release.py` |
 | `lock_webarena_images.py`, `manage_webarena_environment.py`, `manage_webarena_rainbond_pool.py`, `verify_webarena_env_contract.py`, `verify_webarena_map.py` | WebArena environment, owned by `harness.environments.webarena`: `deploy/webarena/README.md`, `docs/webarena-fixed-trajectory-reproduction.md`, `examples/trajectory_replay/public_webarena/README.md` |
 
-## Pending owner decision (#93)
+## Kept as is (#151)
 
 No Makefile target, CI job, guide, `configs/report-templates.json` entry or
 checked-in profile, certificate or receipt names these entries. Each one is
 kept for now because it is the only command entry to a stage that a current
 harness module still implements, so deleting it would remove that stage rather
-than a duplicate. Its owner must either name it in the owning guide (and move
-the row to the table above) or delete the stage, its `main_*` function and its
-exclusive tests together.
+than a duplicate. The decision recorded for #151 is to leave them as they are,
+which is that issue's stated default. To change one later, name it in the owning
+guide and move the row to the table above, or delete the stage, its `main_*`
+function and its exclusive tests together.
 
 | Script or command | Why it survived |
 | --- | --- |
@@ -123,7 +130,6 @@ exclusive tests together.
 | `prepare_result_review_subset.py`, `merge_internal_review_shards.py`, `rebind_result_review_metadata.py` | sole entries to the shared independent-review contract in `result_review.py`; only `tests/package_smoke.py` runs them |
 | `harness.web_fetch wcxb-select` | regenerates `evaluation/public-wcxb-test-qualified.json`; only tests name the command |
 | `harness.web_fetch webmainbench-check`, `harness.web_fetch webmainbench-full-check` | standalone release gates for the WebMainBench sample and complete reports; `report_build.py` imports the full-report check, not the command |
-| `authorize_artifact_site.py` | saves the user-scoped Artifact Site token that `AGENTS.md` describes, without naming the script |
 | `rename_artifact_site.py` | Artifact Site display-title maintenance |
 | `use_prepared_webarena_cohort_reset.py` | passed as `run_remote_three_method_cohort.py --cohort-reset-hook`; receipts outside Git bind its hash, not its name |
 | `harness.trajectory_replay seeds`, `expert-seeds`, `replay`, `promote` | seed, replay and promotion stages of the repository-curated dataset; `evaluation/trajectory-replay/webarena-verified/README.md` describes the stages without naming the commands |

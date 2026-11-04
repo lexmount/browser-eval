@@ -106,11 +106,12 @@ Current public benchmark definitions, acceptance contracts and reference binding
 
 External files live under `BROWSER_EVAL_DATA_HOME` (default `~/.browser-eval/`) or a pinned Artifact Site release. Evaluation credentials come from `.env`; publishing uses separate authorization for its host.
 
-Profiles under `evaluation/` bind a track's exact task population, methods,
-versions, evidence and publication target. These are historical experiment
-contracts, not defaults to copy into a new measurement. The complete WebMainBench
-baseline and variants keep their pre-call profiles immutable; the separate
-publication target tracks the live site version.
+External report-instance profiles, selected with `--profile`, bind a track's
+exact task population, methods, versions, evidence and publication target. None
+lives under `evaluation/`. They are historical experiment contracts, not defaults
+to copy into a new measurement. The complete WebMainBench baseline and variants
+keep their pre-call profiles immutable; the separate publication target tracks
+the live site version.
 
 Historical source inputs are external and hash-bound. See
 [reference inputs](reference-inputs.md) for import and strict validation, and
@@ -213,7 +214,7 @@ cause or final verdict. An optional output file must be new.
 ### Paired timing
 
 Paired Moli timing uses `scripts/diagnose_webmainbench_moli_tail.py` or
-`python -m harness.web_fetch.webmainbench_latency_diagnostic` with the same arguments.
+`uv run --frozen python -m harness.web_fetch.webmainbench_latency_diagnostic` with the same arguments.
 `--older-version` and `--newer-version` declare the expected binary versions;
 `--source-sha256` and `--source-count` bind a different frozen source population.
 `--all-cases` includes the complete declared sample. Tail-only selection is
