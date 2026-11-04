@@ -290,9 +290,9 @@ def test_fixture_server_keeps_the_host_alias_origin(tmp_path: Path) -> None:
         assert origin == f"http://host.docker.internal:{server.server_port}"
         assert server.server_address[0] == "0.0.0.0"
         # The server is reachable beyond loopback, so it must serve only the fixture root.
-        direct = build_opener(ProxyHandler({}))
+        opener = build_opener(ProxyHandler({}))
         url = f"http://127.0.0.1:{server.server_port}/fixture-root-marker.txt"
-        with direct.open(url, timeout=5) as response:
+        with opener.open(url, timeout=5) as response:
             assert response.read() == b"fixture-root"
     finally:
         server.shutdown()
