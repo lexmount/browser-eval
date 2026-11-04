@@ -55,6 +55,14 @@ def verify(artifacts: Path) -> dict:
         or {row["engine"] for row in rows} != set(engines)
     ):
         raise ValueError("required provider set mismatch")
+    paired = comparison.get("paired_ratios", {})
+    paired_labels = (paired.get("denominator_engine"), paired.get("numerator_engine"))
+    if paired_labels != (engines if len(engines) == 2 else (None, None)):
+        raise ValueError("paired ratio labels differ from the participant order")
+    if (len(engines) != 2 or "relative_ratios" in comparison) and comparison.get(
+        "relative_ratios", {}
+    ).get("baseline_engine") != engines[0]:
+        raise ValueError("relative ratio baseline differs from the first participant")
     for engine in engines:
         if set(comparison["by_engine"][engine]) != REQUIRED_METRICS:
             raise ValueError(f"{engine}: required metric set mismatch")
