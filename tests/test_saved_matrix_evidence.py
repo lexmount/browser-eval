@@ -575,7 +575,7 @@ def test_superseded_evidence_preserved_without_double_counting(tmp_path, monkeyp
 
 @pytest.mark.parametrize('defect', [None, 'missing_policy', 'late_policy', 'wrong_config', 'budget',
                                      'missing_observations', 'missing_log', 'log_config', 'log_count',
-                                     'log_before_scope', 'receipt_chronology', 'two_calls'])
+                                     'log_before_scope', 'receipt_chronology', 'two_calls', 'receipt_count', 'diagnostic_count'])
 def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, defect):
     spec, root, old, raw = fixture(tmp_path)
     spec['superseded_sources'] = spec.pop('sources')
@@ -611,11 +611,16 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
         log.write_text((json.dumps(event)+'\n')*(2 if defect == 'log_count' else 1), encoding='utf-8')
         value['execution_log'] = {'path': str(log), 'sha256': hashlib.sha256(log.read_bytes()).hexdigest()}
     if defect == 'two_calls':
-        value['physical_attempts'] = 2
+        value['physical_attempts'] = value['physical_calls'] = 2
         later = {**event, 'started_at': '2026-10-29T00:01:00Z', 'completed_at': '2026-10-29T00:02:00Z'}
         log.write_text(json.dumps(event)+'\n'+json.dumps(later)+'\n', encoding='utf-8')
         value['execution_log']['sha256'] = hashlib.sha256(log.read_bytes()).hexdigest()
         spec['missing'][0]['diagnostic_sources'] = []
+    if defect == 'receipt_count':
+        value['physical_calls'] = 100
+    if defect == 'diagnostic_count':
+        spec['missing'][0]['diagnostic_sources'] = [write(tmp_path/'conflicting.json', {
+            'suite': 'first', 'provider': 'method', 'case_id': 'same', 'physical_calls': 100})]
     if defect in {'log_before_scope', 'receipt_chronology'}:
         value['started_at'] = '2026-10-31T00:00:00Z'
     spec['missing'][0]['receipt'] = write(Path(receipt['path']), value)
@@ -625,7 +630,7 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
                      physical_attempts=3 if defect == 'budget' else 1)
         spec['missing'][0]['receipt'] = write(Path(receipt['path']), value)
     if defect and defect != 'two_calls':
-        with pytest.raises(ValueError, match='execution authorization'):
+        with pytest.raises(ValueError, match='execution authorization|count conflicts with validated execution'):
             build(tmp_path, spec)
         return
     entry=build(tmp_path,spec)

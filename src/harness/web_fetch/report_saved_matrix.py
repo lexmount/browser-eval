@@ -1033,7 +1033,9 @@ def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
                     bounds[field].append(value)
                 except (TypeError, ValueError):
                     group['errors'].append('Uncommitted call has an invalid collection timestamp')
-        group['calls'] += max([1, len(starts), *counts])
+        if validated and any(count != validated['physical_calls'] for count in counts):
+            raise ValueError('Uncommitted physical-call count conflicts with validated execution')
+        group['calls'] += validated['physical_calls'] if validated else max([1, len(starts), *counts])
         group['errors'].append('Uncommitted invocation has no verified native settings')
         if not starts and not counts:
             group['errors'].append('Uncommitted physical-call count is a lower bound')
