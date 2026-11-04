@@ -549,6 +549,8 @@ def test_report_renders_every_registered_participant_of_a_larger_set(tmp_path):
 
     method = _route(reports, "-method.html")
     assert "分别启动并预热 3 个浏览器" in method
+    assert "资源基线只比较所有 Provider 都成功的同任务" in method
+    assert "双方" not in method
     assert "按任务交替 3 个 Provider 的执行顺序" in method
     for label, version in (("Obscura", "obscura 1.0"), ("Lightpanda", "lightpanda 1.0")):
         assert label in method and version in method
