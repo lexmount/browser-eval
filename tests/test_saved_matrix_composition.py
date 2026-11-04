@@ -45,7 +45,7 @@ def test_composition_retains_exact_source_records(tmp_path):
         original = json.loads((source / 'matrix.json').read_bytes())['rows'][0]
         assert (output / row['record_path']).read_bytes() == (source / original['record_path']).read_bytes()
         assert row['passed'] == original['passed'] and row['elapsed_ms'] == original['elapsed_ms']
-    (output / model['rows'][0]['answer_path']).write_text('changed')
+    (output / model['rows'][0]['answer_path']).write_text('changed', encoding='utf-8')
     with pytest.raises(ValueError):
         check_saved_matrix(output)
 
