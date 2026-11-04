@@ -105,3 +105,28 @@ def test_composition_rejects_invalid_method_selection(tmp_path, selected):
     write(path, spec)
     with pytest.raises(ValueError, match='Invalid saved report provider selection'):
         build_saved_matrix(path, tmp_path / 'combined')
+
+
+def test_composition_preserves_shared_revision_attachments(tmp_path):
+    from tests.test_saved_matrix_revision import revision_fixture
+    spec, _, _ = revision_fixture(tmp_path, second_provider=True)
+    spec['offline_revision']['review_files'] = {'notes': write(tmp_path / 'notes.json', {'reviewed': True})}
+    path = tmp_path / 'revised-spec.json'
+    write(path, spec)
+    source = build_saved_matrix(path, tmp_path / 'revised').parent
+    audit = source / 'saved-matrix-audit.json'
+    combined = {'schema_version': 1, 'title': 'Shared attachments', 'saved_reports': [{
+        'id': 'source', 'root': str(source),
+        'audit': {'path': str(audit), 'sha256': hashlib.sha256(audit.read_bytes()).hexdigest()}}]}
+    write(tmp_path / 'combined.json', combined)
+    output = build_saved_matrix(tmp_path / 'combined.json', tmp_path / 'combined').parent
+    assert check_saved_matrix(output)['valid']
+    model = json.loads((output / 'matrix.json').read_bytes())
+    assert len(model['rows']) == 2
+    for row in model['rows']:
+        receipt = json.loads((output / row['score_revision']['receipt_path']).read_bytes())
+        attachment = output / receipt['review_files']['notes']
+        assert json.loads(attachment.read_bytes()) == {'reviewed': True}
+    attachment.write_text('{}')
+    with pytest.raises(ValueError):
+        check_saved_matrix(output)
