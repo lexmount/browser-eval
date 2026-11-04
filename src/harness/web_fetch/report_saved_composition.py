@@ -113,11 +113,10 @@ def build_composition(spec_path, output):
         # Revision receipts use report-root review attachment links. Preserve
         # those exact bytes, rejecting ambiguous collisions across sources.
         model = _read(root / 'matrix.json')
-        for row in model['rows']:
-            revision = row.get('score_revision')
-            if not revision:
-                continue
-            receipt = _read(root / revision['receipt_path'])
+        receipt_paths = {row['score_revision']['receipt_path'] for row in model['rows']
+                         if row.get('score_revision')}
+        for receipt_path in sorted(receipt_paths):
+            receipt = _read(root / receipt_path)
             for name in receipt.get('review_files', {}).values():
                 target = output / name
                 if target.exists() and target.read_bytes() != (root / name).read_bytes():
