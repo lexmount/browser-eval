@@ -81,6 +81,9 @@ def main(argv=None):
     p.add_argument(
         "--output", type=Path, help="Separate score revision; never replaces collected evidence"
     )
+    p.add_argument(
+        "--reference-revision", type=Path, help="Source-bound record reference correction"
+    )
     p = sub.add_parser("report")
     p.add_argument("--content", type=Path, required=True)
     p.add_argument("--profile", type=Path, required=True, help="External report-instance profile")
@@ -209,7 +212,15 @@ def main(argv=None):
             )
         )
     elif args.command == "score":
-        print(score_run(args.home, args.run, reproject=args.reproject, output=args.output))
+        print(
+            score_run(
+                args.home,
+                args.run,
+                reproject=args.reproject,
+                output=args.output,
+                reference_revision=args.reference_revision,
+            )
+        )
     elif args.command == "report":
         from harness.web_scraper.report import build
 

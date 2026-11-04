@@ -106,6 +106,7 @@ def test_certified_multi_domain_run_uses_task_schema_and_never_sends_labels(
     assert result["cases"] == 2
     _, rows = pipeline.load_run(run)
     assert len(calls) == 2
+
     if static_controls:
         assert all(
             c["setJavaScriptEnabled"] is False and c["rejectRequestPattern"] == [".*"]
@@ -133,6 +134,278 @@ def test_certified_multi_domain_run_uses_task_schema_and_never_sends_labels(
         pipeline.RECORD_PROJECTION_REGRESSIONS
     )
     assert (run / "scores.json").read_bytes() == original_scores
+    assert len(calls) == 2
+
+
+@pytest.fixture
+def source_revision_run(inputs, tmp_path, monkeypatch, request):
+    home, _ = inputs
+    unannotated = getattr(request, "param", False)
+    root = home / "dataset"
+    truth = pipeline.read_json(root / "dataset/ground-truth.json")
+    truth["book-a-0001"]["values"]["author"] = [] if unannotated else ["Ada"]
+    truth["job-b-0002"]["values"]["title"] = ["Engineer &amp; Co"]
+    pipeline.save_json(root / "dataset/ground-truth.json", truth)
+    pages = {
+        "book-a-0001": (
+            b'<p>Author: <span id="author">Ada Lovelace</span></p><p id="other">Grace Hopper</p>'
+        ),
+        "job-b-0002": b"<h1>Engineer &amp; Co</h1>",
+    }
+    for cid, raw in pages.items():
+        (root / "html" / (cid + ".html")).write_bytes(raw)
+    manifest = pipeline.read_json(root / "manifest.json")
+    for name in manifest["files"]:
+        raw = (root / name).read_bytes()
+        manifest["files"][name] = {"sha256": pipeline.digest(raw), "bytes": len(raw)}
+    pipeline.save_json(root / "manifest.json", manifest)
+    profile = pipeline.read_json(swde.CARD)
+    profile["dataset"]["inventory_sha256"] = pipeline.digest(
+        json.dumps(manifest["files"], sort_keys=True, separators=(",", ":")).encode()
+    )
+    pipeline.save_json(swde.CARD, profile)
+    calls = []
+
+    def request(url, *, json_body, **kwargs):
+        calls.append(json_body)
+        field = json_body["response_format"]["json_schema"]["required"][0]
+        fields = {field: ["Ada Lovelace" if field == "author" else "Engineer & Co"]}
+        return SimpleNamespace(
+            status=200, headers={}, text=lambda: json.dumps({"success": True, "result": fields})
+        )
+
+    monkeypatch.setattr(pipeline, "request", request)
+    plan, run = tmp_path / "original-plan.json", tmp_path / "original-run"
+    certification.create_plan(home, ["cloudflare-json"], plan)
+    certification.run(home, plan, "cloudflare-json", run)
+    qualified = swde.qualify_reference_text(truth, pages)
+    references = qualified["references"]
+    references["book-a-0001"]["values"]["author"] = ["Ada Lovelace"]
+    revision = {
+        "schema": "record-source-reference-candidate/1",
+        "original_reference_sha256": pipeline.digest(
+            (root / "dataset/ground-truth.json").read_bytes()
+        ),
+        "source_hashes": qualified["source_hashes"],
+        "dom_text_changes": qualified["changes"],
+        "references": references,
+        "partial_label_decisions": [
+            {
+                "case_id": "book-a-0001",
+                "field": "author",
+                "original": ["Ada"],
+                "accepted": ["Ada Lovelace"],
+                "reason": "The annotation truncated the author text node",
+                "source_sha256": pipeline.digest(pages["book-a-0001"]),
+                "evidence": [
+                    {
+                        "value": "Ada Lovelace",
+                        "source_quote": "Ada Lovelace",
+                        "xpath": "//*[@id='author']",
+                        "field_context": "Author: Ada Lovelace",
+                    }
+                ],
+            }
+        ],
+        "unavailable_reference_groups": [],
+        "regression_ids": swde.check_reference_controls(),
+        "text_matching": "whitespace",
+        "provider_calls_added": 0,
+    }
+    authority = tmp_path / "reference-revision.json"
+    if unannotated:
+        import io
+        import tarfile
+
+        revision["references"]["book-a-0001"]["values"]["author"] = []
+        revision["partial_label_decisions"] = []
+        revision["unavailable_reference_groups"] = [["book", "a", "author"]]
+        annotations = b"book\ta\tauthor\n2\t0\t0\t0\n0001\t0\t<NULL>\n0002\t0\t<NULL>\n"
+        archive = home / "source/archives/groundtruth.7z"
+        archive.parent.mkdir(parents=True)
+        with tarfile.open(archive, "w") as bundle:
+            entry = tarfile.TarInfo("groundtruth/book/book-a-author.txt")
+            entry.size = len(annotations)
+            bundle.addfile(entry, io.BytesIO(annotations))
+        coverage = {
+            "original_annotation_archive_sha256": pipeline.digest(archive.read_bytes()),
+            "all_empty_selected_groups": [
+                {
+                    "domain": "book",
+                    "site": "a",
+                    "field": "author",
+                    "selected_pages": 1,
+                    "full_site_pages": 2,
+                    "full_site_nonempty": 0,
+                    "original_annotation_sha256": pipeline.digest(annotations),
+                }
+            ],
+        }
+        proof = tmp_path / "coverage.json"
+        pipeline.save_json(proof, coverage)
+        revision["coverage_authority"] = {
+            "path": str(proof),
+            "sha256": pipeline.digest(proof.read_bytes()),
+        }
+
+        def original_annotations(command, **options):
+            assert command == ["bsdtar", "-xOf", str(archive), "groundtruth/book/book-a-author.txt"]
+            return SimpleNamespace(stdout=annotations)
+
+        monkeypatch.setattr(swde.subprocess, "run", original_annotations)
+    pipeline.save_json(authority, revision)
+    return home, run, authority, calls
+
+
+def test_reference_correction_scores_native_answers_without_calls_or_evidence_mutation(
+    source_revision_run, tmp_path
+):
+    from harness.web_scraper.cli import main
+
+    home, run, authority, calls = source_revision_run
+    originals = {p: p.read_bytes() for p in run.rglob("*") if p.is_file()}
+    output = tmp_path / "source-qualified-scores.json"
+    main(
+        [
+            "--home",
+            str(home),
+            "score",
+            str(run),
+            "--reference-revision",
+            str(authority),
+            "--output",
+            str(output),
+        ]
+    )
+    result = pipeline.read_json(output)
+    assert result["scores"]["cloudflare-json"]["value_micro"]["f1"] == 1
+    assert (
+        pipeline.read_json(run / "scores.json")["scores"]["cloudflare-json"]["value_micro"]["f1"]
+        == 0
+    )
+    assert result["reference_revision"]["authority_sha256"] == pipeline.digest(
+        authority.read_bytes()
+    )
+    assert result["reference_revision"]["provider_calls_added"] == 0
+    assert result["reference_revision"]["regression_ids"] == swde.check_reference_controls()
+    assert result["reference_revision"]["root_causes"]
+    assert len(calls) == 2
+    assert all(p.read_bytes() == data for p, data in originals.items())
+    pipeline.score_run(home, run, reference_revision=authority, output=output)
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "missing-output",
+        "overwrite",
+        "source-hash",
+        "original-reference",
+        "missing-regressions",
+        "undeclared-value",
+        "undeclared-metadata",
+        "missing-decision",
+        "wrong-original",
+        "wrong-locator",
+        "missing-context",
+        "different-accepted-value",
+        "broad-prefix",
+        "missing-coverage",
+        "old-score",
+    ],
+)
+def test_invalid_reference_correction_is_rejected_before_writing(
+    source_revision_run, tmp_path, mutation
+):
+    home, run, authority, calls = source_revision_run
+    revision = pipeline.read_json(authority)
+    output = tmp_path / "rejected.json"
+    if mutation == "missing-output":
+        output = None
+    elif mutation == "overwrite":
+        output = run / "scores.json"
+    elif mutation == "source-hash":
+        revision["source_hashes"]["book-a-0001"] = "0" * 64
+    elif mutation == "original-reference":
+        revision["original_reference_sha256"] = "0" * 64
+    elif mutation == "missing-regressions":
+        revision["regression_ids"] = []
+    elif mutation == "undeclared-value":
+        revision["references"]["job-b-0002"]["values"]["title"] = ["Other"]
+    elif mutation == "undeclared-metadata":
+        revision["references"]["job-b-0002"]["url"] = "https://unrelated.example"
+    elif mutation == "missing-decision":
+        revision["partial_label_decisions"] = []
+    elif mutation == "wrong-original":
+        revision["partial_label_decisions"][0]["original"] = ["Different"]
+    elif mutation == "wrong-locator":
+        revision["partial_label_decisions"][0]["evidence"][0]["xpath"] = "//*[@id='other']"
+    elif mutation == "missing-context":
+        revision["partial_label_decisions"][0]["evidence"][0]["field_context"] = "Invented role"
+    elif mutation == "different-accepted-value":
+        revision["partial_label_decisions"][0]["accepted"] = ["Grace Hopper"]
+    elif mutation == "broad-prefix":
+        revision["partial_label_decisions"][0]["evidence"][0]["source_quote"] = "Ada"
+    elif mutation == "missing-coverage":
+        revision["unavailable_reference_groups"] = [["book", "a", "author"]]
+    elif mutation == "old-score":
+        old = pipeline.read_json(run / "scores.json")
+        old["scores"] = {}
+        pipeline.save_json(run / "scores.json", old)
+    pipeline.save_json(authority, revision)
+    before = (run / "scores.json").read_bytes()
+    with pytest.raises(ValueError):
+        pipeline.score_run(home, run, reference_revision=authority, output=output)
+    if mutation not in ("missing-output", "overwrite"):
+        assert not output.exists()
+    assert (run / "scores.json").read_bytes() == before
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize("source_revision_run", [True], indirect=True)
+@pytest.mark.parametrize(
+    "mutation", ["none", "outside-sample", "selected-size", "full-size", "archive", "archive-link"]
+)
+def test_unannotated_scope_requires_complete_original_annotation_evidence(
+    source_revision_run, tmp_path, monkeypatch, mutation
+):
+    home, run, authority, calls = source_revision_run
+    revision = pipeline.read_json(authority)
+    proof = tmp_path / "coverage.json"
+    coverage = pipeline.read_json(proof)
+    group = coverage["all_empty_selected_groups"][0]
+    if mutation == "outside-sample":
+        annotations = b"book\ta\tauthor\n2\t1\t1\t1\n0001\t0\t<NULL>\n0002\t1\tActual author\n"
+        group["original_annotation_sha256"] = pipeline.digest(annotations)
+        monkeypatch.setattr(
+            swde.subprocess, "run", lambda *a, **k: SimpleNamespace(stdout=annotations)
+        )
+    elif mutation == "selected-size":
+        group["selected_pages"] = 0
+    elif mutation == "full-size":
+        group["full_site_pages"] = 1
+    elif mutation == "archive":
+        (home / "source/archives/groundtruth.7z").write_bytes(b"Changed archive")
+    elif mutation == "archive-link":
+        archive = home / "source/archives/groundtruth.7z"
+        preserved = tmp_path / "original-annotations.7z"
+        archive.rename(preserved)
+        archive.symlink_to(preserved)
+    pipeline.save_json(proof, coverage)
+    revision["coverage_authority"]["sha256"] = pipeline.digest(proof.read_bytes())
+    pipeline.save_json(authority, revision)
+    output = tmp_path / "unannotated-correction.json"
+    if mutation == "none":
+        result = pipeline.score_run(home, run, reference_revision=authority, output=output)
+        scores = result["scores"]["cloudflare-json"]
+        assert scores["value_micro"]["f1"] == 1
+        assert scores["reference_coverage"]["unscored_page_fields"] == 1
+        assert scores["page_hit_macro"]["site_field_groups"] == 1
+    else:
+        with pytest.raises(ValueError, match="annotation|archive|Unsafe output"):
+            pipeline.score_run(home, run, reference_revision=authority, output=output)
+        assert not output.exists()
     assert len(calls) == 2
 
 
@@ -308,6 +581,7 @@ def test_wholly_unavailable_reference_returns_no_quality_score():
     [
         ("<p>AT&amp;T</p>", "AT&amp;T", "AT&T", True),
         ("<p>AT&amp;amp;T</p>", "AT&amp;T", "AT&amp;T", False),
+        ("<p>AT&amp;amp;T</p><footer>AT&amp;T</footer>", "AT&amp;T", "AT&amp;T", False),
         ("<p>Bold title</p>", "<b>Bold</b> title", "Bold title", True),
         ("<p>Other</p>", "AT&amp;T", "AT&amp;T", False),
         ("<script>AT&T</script><p>Other</p>", "AT&amp;T", "AT&amp;T", False),

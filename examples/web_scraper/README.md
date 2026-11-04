@@ -207,6 +207,26 @@ precision/recall/F1 and exact field-set rate expose partial lists and extra valu
 Schema validity is separate from field quality. Every completed API call retains
 latency and any native usage receipt; quota denials pause collection.
 
+Source-qualified reference corrections use the same scoring entry point:
+
+```sh
+uv run --frozen python -m harness.web_scraper.cli --home /absolute/data/swde \
+  score /absolute/data/swde/runs/METHOD \
+  --reference-revision /absolute/data/swde/reference-revision.json \
+  --output /absolute/data/swde/source-qualified-scores.json
+```
+
+The revision binds the original reference, every frozen HTML file, executable
+regression controls and each changed answer's source element. Encoded labels are
+decoded only when the source text proves the change; literal entity text stays
+literal. Truncated labels need an explicit field-context decision. Excluding an
+unannotated site-field group requires a bound coverage receipt and a check of its
+complete original annotation file, including pages outside the selected sample.
+Unrelated answer edits, changed sources and populated groups are rejected.
+Scoring retains native answers and original scores, adds no provider calls, and
+records the correction authority, causes and regression IDs separately. It does
+not declare independent review complete.
+
 This adapter currently supports certified collection and scoring. The product
 report and product reference-review interfaces require price/SKU/stock fields
 and are not used for SWDE’s domain-specific fields.

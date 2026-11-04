@@ -265,7 +265,9 @@ def qualify_reference_text(truth, html_pages):
                     )
                 except (etree.ParserError, ValueError):
                     decoded = value
-                selected = decoded if decoded in nodes else canonical_text(value)
+                selected = canonical_text(value)
+                if selected not in nodes and decoded in nodes:
+                    selected = decoded
                 if selected not in nodes:
                     unmatched.append({"case_id": cid, "field": field, "original": value})
                     selected = value
@@ -288,6 +290,129 @@ def qualify_reference_text(truth, html_pages):
         "unmatched": unmatched,
         "source_hashes": source_hashes,
     }
+
+
+def load_reference_revision(home, path):
+    """Verify source-only reference changes before scoring retained native answers."""
+    from lxml import html as lxml_html
+
+    from harness.web_scraper.pipeline import digest, read_json, require_external_output
+
+    require_external_output(path)
+    revision = read_json(path)
+    original = home / "dataset/dataset/ground-truth.json"
+    if (
+        revision.get("schema") != "record-source-reference-candidate/1"
+        or revision.get("original_reference_sha256") != digest(original.read_bytes())
+        or revision.get("regression_ids") != check_reference_controls()
+        or revision.get("text_matching") != "whitespace"
+        or revision.get("provider_calls_added") != 0
+    ):
+        raise ValueError("Reference revision has missing source or regression authority")
+    truth = read_json(original)
+    pages = {cid: (home / "dataset/html" / (cid + ".html")).read_bytes() for cid in truth}
+    qualified = qualify_reference_text(truth, pages)
+    if (
+        revision.get("source_hashes") != qualified["source_hashes"]
+        or revision.get("dom_text_changes") != qualified["changes"]
+    ):
+        raise ValueError("Reference revision differs from frozen source text")
+    references = qualified["references"]
+    seen = set()
+    unmatched = {(r["case_id"], r["field"]) for r in qualified["unmatched"]}
+    for decision in revision.get("partial_label_decisions", []):
+        cid, field = decision["case_id"], decision["field"]
+        key = (cid, field)
+        if (
+            key in seen
+            or key not in unmatched
+            or decision.get("original") != truth[cid]["values"][field]
+            or decision.get("source_sha256") != qualified["source_hashes"][cid]
+            or not decision.get("reason")
+            or not decision.get("accepted")
+            or len(set(decision["accepted"])) != len(decision["accepted"])
+        ):
+            raise ValueError("Reference decision is outside its declared source defect")
+        seen.add(key)
+        tree = lxml_html.fromstring(pages[cid].decode("utf-8"))
+        evidenced = []
+        for evidence in decision.get("evidence", []):
+            nodes = tree.xpath(evidence["xpath"])
+            if len(nodes) != 1 or not isinstance(nodes[0], lxml_html.HtmlElement):
+                raise ValueError("Reference decision locator is not one source element")
+            value = canonical_text(nodes[0].text_content())
+            if value != evidence.get("value") or value != evidence.get("source_quote"):
+                raise ValueError("Reference decision does not copy its source element")
+            context = canonical_text(evidence.get("field_context", ""))
+            ancestors = [nodes[0], *list(nodes[0].iterancestors())[:6]]
+            if not context or not any(
+                context in canonical_text(node.text_content()) for node in ancestors
+            ):
+                raise ValueError("Reference decision field context is absent from its source")
+            evidenced.append(value)
+        if evidenced != decision["accepted"]:
+            raise ValueError("Every accepted reference value requires exact source evidence")
+        references[cid]["values"][field] = list(evidenced)
+    if seen != unmatched:
+        raise ValueError("Every unmatched original reference requires source adjudication")
+    if revision.get("references") != references:
+        raise ValueError("Reference revision contains undeclared answer or metadata changes")
+    groups = revision.get("unavailable_reference_groups", [])
+    if len({tuple(group) for group in groups}) != len(groups):
+        raise ValueError("Duplicate unavailable reference group")
+    if groups:
+        _check_reference_coverage(home, truth, revision, groups)
+    # The production scorer owns validation of known, entirely empty groups.
+    score(
+        references,
+        {cid: {} for cid in references},
+        unavailable_reference_groups=groups,
+        text_matching="whitespace",
+    )
+    return references, {
+        "unavailable_reference_groups": groups,
+        "text_matching": "whitespace",
+    }
+
+
+def _check_reference_coverage(home, truth, revision, groups):
+    from harness.web_scraper.pipeline import digest, read_json, require_external_output
+
+    binding = revision.get("coverage_authority", {})
+    path = Path(binding.get("path", ""))
+    require_external_output(path)
+    if not path.is_file() or digest(path.read_bytes()) != binding.get("sha256"):
+        raise ValueError("Unavailable fields need a hash-bound full-annotation authority")
+    authority = read_json(path)
+    archive = home / "source/archives/groundtruth.7z"
+    require_external_output(archive)
+    if digest(archive.read_bytes()) != authority.get("original_annotation_archive_sha256"):
+        raise ValueError("Original annotation archive changed")
+    entries = {
+        (entry["domain"], entry["site"], entry["field"]): entry
+        for entry in authority["all_empty_selected_groups"]
+    }
+    for domain, site, field in groups:
+        entry = entries.get((domain, site, field))
+        if entry is None:
+            raise ValueError("Unavailable group lacks full-annotation coverage evidence")
+        member = f"groundtruth/{domain}/{domain}-{site}-{field}.txt"
+        raw = subprocess.run(
+            ["bsdtar", "-xOf", str(archive), member], check=True, capture_output=True
+        ).stdout
+        lines = raw.decode("utf-8-sig").splitlines()[2:]
+        selected = [
+            case for case in truth.values() if (case["domain"], case["site"]) == (domain, site)
+        ]
+        if (
+            digest(raw) != entry.get("original_annotation_sha256")
+            or not lines
+            or len(lines) != entry.get("full_site_pages")
+            or len(selected) != entry.get("selected_pages")
+            or entry.get("full_site_nonempty") != 0
+            or any(int(line.split("\t")[1]) != 0 for line in lines)
+        ):
+            raise ValueError("Unavailable field has incomplete or populated original annotations")
 
 
 def score(truth, predictions, *, unavailable_reference_groups=(), text_matching="literal"):
@@ -451,8 +576,12 @@ def check_reference_controls():
         result = score(qualified, {"one": {"title": [prediction]}})
         if bool(result["site_fields"][0]["hit_pages"]) != hit:
             raise ValueError("Encoded annotation does not match source DOM text")
-    if qualify_reference_text(truth, {"one": b"<p>AT&amp;amp;T</p>"})["references"] != truth:
-        raise ValueError("Literal entity text was decoded without source authority")
+    for source in (
+        b"<p>AT&amp;amp;T</p>",
+        b"<p>AT&amp;amp;T</p><footer>AT&amp;T</footer>",
+    ):
+        if qualify_reference_text(truth, {"one": source})["references"] != truth:
+            raise ValueError("Literal entity text was decoded without source authority")
     truth = {"one": {"domain": "book", "site": "a", "values": {"title": ["Démon\u00a0€ 9.99"]}}}
     for prediction, hit in [
         (" Démon € 9.99 ", True),

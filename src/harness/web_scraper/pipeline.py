@@ -1798,7 +1798,7 @@ def check_record_projection_controls():
     return list(RECORD_PROJECTION_REGRESSIONS)
 
 
-def score_run(home: Path, run: Path, *, reproject=False, output=None):
+def score_run(home: Path, run: Path, *, reproject=False, output=None, reference_revision=None):
     """Score the declared population; retain empty predictions for failed calls."""
     require_external_output(Path(output) if output else run / "scores.json")
     if output and (
@@ -1807,8 +1807,8 @@ def score_run(home: Path, run: Path, *, reproject=False, output=None):
         or Path(output).resolve().is_relative_to((run / "execution").resolve())
     ):
         raise ValueError("Score revisions must stay outside Git and preserve physical evidence")
-    if reproject and output is None:
-        raise ValueError("A projection correction requires a separate output file")
+    if (reproject or reference_revision is not None) and output is None:
+        raise ValueError("A projection or reference correction requires a separate output file")
     adapter = benchmark_config(home)["adapter"]
     if reproject:
         check_record_projection_controls() if adapter else check_projection_controls()
@@ -1817,6 +1817,12 @@ def score_run(home: Path, run: Path, *, reproject=False, output=None):
     if contract["dataset_manifest_sha256"] != digest((home / "dataset/manifest.json").read_bytes()):
         raise ValueError("Scoring input does not match call contract")
     all_truth = read_json(home / "dataset/dataset/ground-truth.json")
+    original_truth = all_truth
+    reference_policy = None
+    if reference_revision is not None:
+        if adapter is None:
+            raise ValueError("Source reference revisions require a registered record adapter")
+        all_truth, reference_policy = adapter.load_reference_revision(home, reference_revision)
     truth = {key: all_truth[key] for key in contract["case_ids"]}
     if contract["kind"] == "full_archived_extraction" and set(truth) != set(all_truth):
         raise ValueError("Full-cohort scoring requires all frozen cases")
@@ -1833,7 +1839,21 @@ def score_run(home: Path, run: Path, *, reproject=False, output=None):
             }
             for r in rows
         ]
-    scores = score_rows(home, truth, rows, contract["methods"])
+    if reference_policy is not None:
+        selected_groups = {
+            (case["domain"], case["site"], field)
+            for case in truth.values()
+            for field in case["values"]
+        }
+        reference_policy = {
+            **reference_policy,
+            "unavailable_reference_groups": [
+                group
+                for group in reference_policy["unavailable_reference_groups"]
+                if tuple(group) in selected_groups
+            ],
+        }
+    scores = score_rows(home, truth, rows, contract["methods"], reference_policy=reference_policy)
     result = {
         "kind": contract["kind"],
         "cases": len(truth),
@@ -1868,8 +1888,52 @@ def score_run(home: Path, run: Path, *, reproject=False, output=None):
             ],
             "provider_calls_added": 0,
         }
+    if reference_revision is not None:
+        original = read_json(run / "scores.json")
+        expected = score_rows(
+            home,
+            {cid: original_truth[cid] for cid in contract["case_ids"]},
+            original_rows,
+            contract["methods"],
+        )
+        if original.get("scores") != expected:
+            raise ValueError("Original scores do not reproduce before reference correction")
+        authority = read_json(reference_revision)
+        result["reference_revision"] = {
+            "schema": "source-qualified-record-scoring/1",
+            "authority_sha256": digest(Path(reference_revision).read_bytes()),
+            "original_reference_sha256": digest(
+                (home / "dataset/dataset/ground-truth.json").read_bytes()
+            ),
+            "original_scores_sha256": digest((run / "scores.json").read_bytes()),
+            "adapter_sha256": digest(Path(adapter.__file__).read_bytes()),
+            "regression_ids": adapter.check_reference_controls(),
+            "root_causes": [
+                reason
+                for observed, reason in (
+                    (True, "Whitespace refinement preserves source characters, units and case"),
+                    (
+                        authority.get("dom_text_changes"),
+                        "Encoded original labels differ from their exact frozen DOM text nodes",
+                    ),
+                    (
+                        authority.get("partial_label_decisions"),
+                        "Truncated original labels require full source elements and field context",
+                    ),
+                    (
+                        authority.get("unavailable_reference_groups"),
+                        "Entire original site-field annotations are absent, not quality zero",
+                    ),
+                )
+                if observed
+            ],
+            "policy": reference_policy,
+            "provider_calls_added": 0,
+        }
     target = Path(output) if output else run / "scores.json"
-    if reproject and target.resolve() == (run / "scores.json").resolve():
+    if (reproject or reference_revision is not None) and target.resolve() == (
+        run / "scores.json"
+    ).resolve():
         raise ValueError("A correction must preserve original scores")
     if target.exists():
         if read_json(target) != result:
@@ -1879,7 +1943,7 @@ def score_run(home: Path, run: Path, *, reproject=False, output=None):
     return result
 
 
-def score_rows(home, truth, rows, methods):
+def score_rows(home, truth, rows, methods, *, reference_policy=None):
     """Use the same upstream scoring boundary for original and repaired views."""
     from decimal import InvalidOperation
 
@@ -1896,6 +1960,7 @@ def score_rows(home, truth, rows, methods):
                     for r in rows
                     if r["method"] == method
                 },
+                **(reference_policy or {}),
             )
             for method in methods
         }
