@@ -83,6 +83,23 @@ const context = vm.createContext({URL, URLSearchParams, Map, Error, String, Numb
 });
 vm.runInContext(js, context);
 assert.deepEqual(rows.map(x => x.hidden), [true, false, true]);
+// A delivered API response can still contain wrong fields. Default quality
+// filters must not equate transport success with matching the reference.
+const savedControls = controls.map(item => item.value);
+const deliveredWrong = {dataset: {method: 'a', status: 'pass', outcome: 'wrong',
+  stage: 'fields', price: 'wrong', search: 'delivered but wrong fields'}};
+rows.push(deliveredWrong);
+for (const item of controls) item.value = item.dataset.resultFilter === 'status' ? 'fail' : '';
+control('status').listeners.change();
+assert.equal(deliveredWrong.hidden, false, 'Quality failure view includes successful calls with wrong fields');
+assert.equal(rows[0].hidden, true, 'A matching response stays out of the quality failure view');
+control('status').value = 'pass'; control('status').listeners.change();
+assert.equal(deliveredWrong.hidden, true, 'Quality pass view excludes wrong fields even after successful delivery');
+assert.equal(rows[0].hidden, false, 'Quality pass view retains a matching response');
+assert.equal(rows[1].hidden, true, 'Quality pass view excludes transport failures');
+rows.pop();
+controls.forEach((item, index) => { item.value = savedControls[index]; });
+control('status').listeners.change();
 assert.match(count.textContent, /1/);
 rows[1].dataset.price = 'correct';
 control('status').listeners.change();

@@ -313,7 +313,7 @@ if (form) {
     for (const row of document.querySelectorAll("tr[data-status]")) {
       const field = controls.field || "";
       const applicable = !field || row.dataset[field] !== undefined || row.dataset.status === "pending";
-      const bad = field ? (Boolean(row.dataset.stage) && row.dataset.stage !== "fields") || row.dataset[field] !== "correct" : row.dataset.status === "fail";
+      const bad = field ? (Boolean(row.dataset.stage) && row.dataset.stage !== "fields") || row.dataset[field] !== "correct" : row.dataset.status === "fail" || row.dataset.outcome === "wrong";
       const status = controls.status || "all";
       const show =
         applicable &&
