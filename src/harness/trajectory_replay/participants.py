@@ -46,6 +46,8 @@ def attempt_engines(
     says nothing: registered engines keep their registry order, then the others.
     """
     seen = tuple(dict.fromkeys(str(row["engine"]) for row in rows))
+    if not all(SAFE_ENGINE.fullmatch(engine) for engine in seen):
+        raise ValueError("attempt engine IDs must be safe stable identifiers")
     protocol = manifest.get("protocol") or {}
     if "engines" in protocol:
         listed = protocol["engines"]

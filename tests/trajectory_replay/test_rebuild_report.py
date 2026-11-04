@@ -28,7 +28,7 @@ def _rebuild(tmp_path, monkeypatch, row_engines, protocol):
 
     # Each engine's position sets its scale, so every row keeps its engine's speed
     # however the rows are ordered: chromium is the fastest, moli takes twice as long.
-    scales = {"chromium": 0, "moli": 1, "obscura": 2, "lightpanda": 3}
+    scales = {"chromium": 0, "moli": 1, "obscura": 2, "lightpanda": 3, "my browser": 4}
     rows = [
         _row(task_id, "simple", engine, scales[engine], False)
         for task_id in TASKS
@@ -121,3 +121,19 @@ def test_manifest_that_disagrees_with_its_rows_is_rejected(tmp_path, monkeypatch
         _rebuild(tmp_path, monkeypatch, ("chromium", "moli"), {"engines": declared})
 
     assert not (tmp_path / "artifacts/summary.json").exists()
+
+
+@pytest.mark.parametrize(
+    "protocol",
+    [{}, {"engines": ["chromium", "my browser"]}],
+    ids=["legacy-manifest", "declared-engines"],
+)
+def test_unsafe_row_engine_is_rejected_before_anything_is_written(
+    tmp_path, monkeypatch, protocol
+):
+    with pytest.raises(SystemExit, match="safe stable identifiers"):
+        _rebuild(tmp_path, monkeypatch, ("chromium", "my browser"), protocol)
+
+    assert not (tmp_path / "artifacts/summary.json").exists()
+    manifest = json.loads((tmp_path / "artifacts/manifest.json").read_text(encoding="utf-8"))
+    assert "artifact_provenance" not in manifest
