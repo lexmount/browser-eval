@@ -286,6 +286,7 @@ def test_fixture_server_keeps_the_host_alias_origin(tmp_path: Path) -> None:
     server, thread, origin = start_fixture_server(tmp_path)
     try:
         assert origin == f"http://host.docker.internal:{server.server_port}"
+        assert server.server_address[0] == "0.0.0.0"
     finally:
         server.shutdown()
         server.server_close()

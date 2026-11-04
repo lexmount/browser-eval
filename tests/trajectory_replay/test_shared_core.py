@@ -302,13 +302,15 @@ def test_failed_engine_start_keeps_started_resources_for_cleanup(monkeypatch):
 
 
 def _start_engine(runtime, playwright, reset_state, monkeypatch):
-    monkeypatch.setattr(docker_runner, "start_browser_container", lambda *a, **k: MagicMock())
+    start_container = MagicMock()
+    client = MagicMock()
+    monkeypatch.setattr(docker_runner, "start_browser_container", start_container)
     monkeypatch.setattr(docker_runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
     monkeypatch.setattr(docker_runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
     monkeypatch.setattr(docker_runner, "DockerStatsResources", MagicMock())
     docker_runner.start_engine(
         runtime,
-        MagicMock(),
+        client,
         playwright,
         engine="chromium",
         image="image",
@@ -316,6 +318,29 @@ def _start_engine(runtime, playwright, reset_state, monkeypatch):
         cpus=2.0,
         memory="2g",
         reset_state=reset_state,
+    )
+    return start_container, client
+
+
+def test_engine_container_starts_on_its_own_bridge_with_the_requested_limits(monkeypatch):
+    start_container, client = _start_engine(
+        docker_runner.EngineRuntime(), MagicMock(), lambda *a: None, monkeypatch
+    )
+
+    client.networks.create.assert_called_once_with(
+        "lex-browser-eval-run-chromium",
+        driver="bridge",
+        labels={"lex.browser-eval.run": "run", "lex.browser-eval.engine": "chromium"},
+    )
+    start_container.assert_called_once_with(
+        client,
+        image="image",
+        cdp_port=docker_runner.ENGINE_PORTS["chromium"],
+        engine="chromium",
+        run_id="run",
+        cpus=2.0,
+        memory="2g",
+        network=client.networks.create.return_value.name,
     )
 
 
@@ -477,6 +502,16 @@ def test_attempt_identity_opens_every_attempt_row(attempt, is_retry):
         "attempt": attempt,
         "is_retry": is_retry,
     }
+
+
+def test_output_volume_counts_tokens_and_characters_across_outputs(monkeypatch):
+    monkeypatch.setattr(docker_runner, "_encoding", lambda: SimpleNamespace(encode=str.split))
+
+    assert docker_runner.output_volume({"first": "one two", "second": "三 四 五"}) == {
+        "tool_output_tokens": 5,
+        "output_chars": 12,
+    }
+    assert docker_runner.output_volume({}) == {"tool_output_tokens": 0, "output_chars": 0}
 
 
 def test_manifest_task_records_the_frozen_task_definition():
