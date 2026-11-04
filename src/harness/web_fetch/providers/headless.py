@@ -995,7 +995,7 @@ def _linux_listens_on(pid, port):
             rows = [row.split() for row in table.readlines()[1:]]
         descriptors = os.listdir(f'/proc/{pid}/fd')
     except (FileNotFoundError, ProcessLookupError, PermissionError):
-        # An exited child that has not been reaped keeps its entry, but root owns its fd directory.
+        # A process that is exiting can still show its socket table after root takes over its fd directory.
         return False
     listening = set()
     for row in rows:

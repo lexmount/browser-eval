@@ -346,6 +346,8 @@ def test_missing_binary_reports_no_process_log(tmp_path):
 
 @pytest.mark.skipif(sys.platform != "linux", reason="reads the Linux /proc socket tables")
 def test_exited_unreaped_server_is_not_reported_as_listening():
+    # A fully exited child probably has no socket table left, so this need not reach the
+    # PermissionError branch. The denied-lookup test below covers a process partway through exit.
     process = subprocess.Popen([sys.executable, "-c", "pass"])
     try:
         os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOWAIT)
