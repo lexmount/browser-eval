@@ -6,7 +6,9 @@ from harness.resource_accounting import CounterSnapshot, ResourceSample, Resourc
 from harness.trajectory_replay.core.docker_runner import resource_result
 
 
-@pytest.mark.parametrize("summarize", [resource_summary, resource_result])
+@pytest.mark.parametrize(
+    "summarize", [lambda *window: resource_summary(object(), *window), resource_result]
+)
 def test_resource_window_reports_cpu_memory_and_network_in_consistent_units(summarize):
     sampler = ResourceSampler(object())
     sampler.samples = [
@@ -14,7 +16,7 @@ def test_resource_window_reports_cpu_memory_and_network_in_consistent_units(summ
         ResourceSample(100, 300, 3, 70_000, 1100, 700),
     ]
     result = summarize(
-        object(), sampler, CounterSnapshot(20_000, 100, 200),
+        sampler, CounterSnapshot(20_000, 100, 200),
         CounterSnapshot(70_000, 1100, 700), 100,
     )
     assert result["cpu_ms"] == 50
@@ -45,7 +47,7 @@ def test_replay_resource_result_derives_each_rate_from_its_own_counter(
     sampler.samples = [ResourceSample(0, 100, 1, 20_000, 100, 200)]
 
     result = resource_result(
-        object(), sampler, CounterSnapshot(20_000, 100, 200),
+        sampler, CounterSnapshot(20_000, 100, 200),
         CounterSnapshot(70_000, 1100, 700), duration_ms,
     )
 

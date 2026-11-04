@@ -18,9 +18,9 @@ from harness.environments.browser import (
     published_endpoint,
     start_browser_container,
 )
-from harness.trajectory_replay.core import docker_runner
+from harness.trajectory_replay.core import diagnostics, docker_runner
 from harness.trajectory_replay.core.suite import BrowserTask, TaskSuite
-from harness.trajectory_replay.public_webarena import diagnostics, runner
+from harness.trajectory_replay.public_webarena import runner
 from harness.trajectory_replay.public_webarena.config import redact_site_passwords
 from harness.trajectory_replay.public_webarena.runner import (
     ENGINE_IMAGES,

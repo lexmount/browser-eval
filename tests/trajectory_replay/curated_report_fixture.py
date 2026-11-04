@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from harness.trajectory_replay.diagnostics import diagnose_summary
+from harness.trajectory_replay.core.diagnostics import diagnose_summary
 from harness.trajectory_replay.metrics import summarize_attempts
 from harness.trajectory_replay.report import write_latest_report
 

@@ -19,8 +19,8 @@ from harness.environments.browser import (
     external_websocket_url,
     published_endpoint,
 )
-from harness.trajectory_replay import diagnostics, runner
-from harness.trajectory_replay.core import docker_runner
+from harness.trajectory_replay import runner
+from harness.trajectory_replay.core import diagnostics, docker_runner
 from harness.trajectory_replay.core.suite import BrowserTask, TaskSuite
 from harness.trajectory_replay.runner import _prepare_page
 from harness.web_fetch import config as web_fetch_config

@@ -2143,12 +2143,10 @@ def _automatic_failure_figure(counts: Counter[str]) -> str:
 
 
 def _article_body(
-    paired: dict[str, Any],
     attempts: list[dict[str, Any]],
     tasks: list[dict[str, Any]],
     verified_causes: dict[str, dict[str, Any]],
     review: dict[str, Any],
-    cohort_commits: dict[str, str],
     automatic_failure_counts: Counter[str],
     trajectory_replay_bridge: dict[str, Any] | None,
     participants: Participants,
@@ -2921,20 +2919,9 @@ def _write_stage_assets(stage: Path) -> None:
     )
 
 
-def _cohort_commits(bundles: list[dict[str, Any]]) -> dict[str, str]:
-    return {
-        bundle["model"]: str(
-            (bundle["manifest"].get("protocol") or {}).get("browser_eval_commit")
-            or "未记录"
-        )
-        for bundle in bundles
-    }
-
-
 def _write_home_page(
     stage: Path,
     inputs: ReportInputs,
-    cohort_commits: dict[str, str],
     automatic_failure_counts: Counter[str],
 ) -> None:
     participants = inputs.participants
@@ -2943,14 +2930,11 @@ def _write_home_page(
     attempts = inputs.attempts
     verified_causes = inputs.verified_causes
     tasks = inputs.tasks
-    paired_by_model = inputs.paired_by_model
     article = _article_body(
-        paired_by_model,
         attempts,
         tasks,
         verified_causes,
         review,
-        cohort_commits,
         automatic_failure_counts,
         trajectory_replay_bridge,
         participants,
@@ -4260,9 +4244,8 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
     stage = _open_stage(output)
     try:
         _write_stage_assets(stage)
-        cohort_commits = _cohort_commits(inputs.bundles)
         automatic_failure_counts = _automatic_failure_counts(inputs.attempts)
-        _write_home_page(stage, inputs, cohort_commits, automatic_failure_counts)
+        _write_home_page(stage, inputs, automatic_failure_counts)
         release_data = _write_changes_page(stage, inputs)
         _write_dataset_index(stage, inputs)
         _write_task_pages(stage, inputs)
