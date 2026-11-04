@@ -29,8 +29,10 @@ historical datasets and source captures are installed outside the checkout; see
 [frozen reference inputs](../../../docs/reference-inputs.md). Git ignores provider artifacts,
 results, execution manifests, selection receipts and internal audit notes.
 
-`research/report-changes.json` drives the public, collapsible `changes/index.html`.
-Record each substantive release's issue, change, score effect, evidence and limits.
+`report-assets/report-changes.json`, bound beside the evidence, drives the public,
+collapsible `changes/index.html`; `research/report-changes.json` is a frozen legacy
+fallback. Record each substantive release's issue, change, score effect, evidence and
+limits in the bound asset.
 Keep the measured dataset/results untouched for presentation-only revisions.
 
 Offline local revisions stage only their changed artifacts, receipts and current
