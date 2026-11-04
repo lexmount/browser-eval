@@ -11,14 +11,9 @@ import pytest
 
 from harness.lexbench.resource_evidence import load_matrix
 from harness.lexbench.resource_summary import summarize, validate_summary
+from tests.lexbench_report_fixture import write_json
 from tests.test_resource_calibration import experiment
 from tests.test_lexbench_cli import checkout_env
-
-
-def write_json(path, value):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value), encoding="utf-8")
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def report_profile(root):
@@ -430,7 +425,7 @@ def test_template_source_without_the_template_stops_before_reading_evidence(tmp_
     assert not (tmp_path / 'output').exists()
 
 
-def test_packaged_install_without_the_default_template_names_both_routes(tmp_path, monkeypatch, capsys):
+def test_a_missing_default_template_names_both_routes(tmp_path, monkeypatch, capsys):
     from harness.lexbench import report
     monkeypatch.setattr(report, 'TEMPLATE_DIRECTORY', tmp_path / 'absent-template')
     with pytest.raises(SystemExit) as stopped:

@@ -20,6 +20,7 @@ from harness.environments.browser import (
     rotated_engine_order,
 )
 from harness.resource_accounting import DockerStatsResources, ResourceSampler
+from harness.trajectory_replay.core.diagnostics import diagnose_summary
 from harness.trajectory_replay.core.docker_runner import (
     EngineRuntime,
     attempt_identity,
@@ -42,7 +43,6 @@ from harness.trajectory_replay.core.docker_runner import (
 )
 from harness.trajectory_replay.core.executor import judge_outputs, validate_outputs
 from harness.trajectory_replay.core.suite import BrowserTask, validate_ground_truth_evidence
-from harness.trajectory_replay.diagnostics import diagnose_summary
 from harness.trajectory_replay.executor import execute_steps
 from harness.trajectory_replay.metrics import summarize_attempts
 from harness.trajectory_replay.participants import DEFAULT_DIAGNOSIS_MODEL
@@ -132,7 +132,7 @@ def _run_task(
         "trace": trace,
         "validation": validation,
         "process_validation": process_check,
-        "resource": resource_result(resources, sampler, before, after, duration_ms),
+        "resource": resource_result(sampler, before, after, duration_ms),
     }
 
 

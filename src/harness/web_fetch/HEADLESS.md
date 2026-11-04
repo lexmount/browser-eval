@@ -367,6 +367,36 @@ evidence remains ineligible for this formal evidence check.
 `.python-version`, `uv.lock`, the Makefile and CI pin Python 3.11 and dependency versions.
 Formal commands must not fall back to system `python` / `python3`; an unmet runtime contract must fail before execution.
 
+## Native-worker caller audit
+
+For a local URL-only comparison, verify the product's supported inner timeout and byte/character limits, not only the outer runner deadline or configuration JSON. Record the effective limits. For a fixed-native cohort, the common wall-clock budget belongs to the caller only: omit product timeout overrides and retain native internal timers. Supported capacity and extraction options may be fixed before the run; never patch product globals or supply per-case retrieval hints. A caller-created cap that truncates the fetched HTML before conversion is a measurement defect; retain the old calls and correct the affected complete method scope, rather than changing individual failed cases.
+
+Run `harness.web_fetch.network_preflight.inspect_system_dns` before comparing local guarded fetchers with hosted products. Synthetic addresses in `198.18.0.0/15` make the environment unsuitable for this comparison: stop before product calls and restore a real-public-address DNS environment. Do not weaken product safety guards or replace individual case URLs to work around it. Retain the complete final worker response envelope as private evidence, alongside the normalized answer and public call log. Verify positive controls through the actual product entry point; existing scored outputs alone cannot prove that no response fields were dropped.
+
+
+An explicitly frozen `public_doh` environment is a valid process-scoped DNS
+correction when system DNS returns synthetic addresses. Apply one mode to all
+supported native callers in the cohort, resolve every hostname with the same
+rule, include DNS time in the shared call budget, bind resolver source files,
+and verify both public retrieval and native rejection of private DNS answers.
+Do not silently fall back to another resolver or disable a product guard. Record
+unsupported methods and the local/hosted network asymmetry; do not imply the
+machine's global DNS was changed.
+
+Audit the declared structured output separately from model/UI presentation.
+When a public schema exposes a complete HTML/text body, preserve it as the answer
+rather than keeping only a lossy display projection. Preserve both fields in
+private evidence. Never rescue an empty declared body from a nonempty display
+message. Reproject retained full responses without new product calls when only
+this selection changed; missing historical envelopes require fresh calls across
+the full declared correction scope before claiming revised benchmark scores.
+
+## Native browser routes
+
+For native-content browser comparisons, use task-appropriate official interfaces and score the returned deliverable. A final URL or HTML language tag is diagnostic unless the benchmark explicitly evaluates that metadata. Do not repair missing text using JSON DOM conversion or external PDF/DOCX parsers. The declared Chromium HTML-to-Markdown exception does not authorize document parsers. Bind native script versions, generate the interface matrix from the runner route selector, and require route validation at aggregation and publication. Keep negative controls for wrong content alongside positive controls for correct content with missing metadata.
+
+Keep browser engines distinct from execution configurations. Released and source-build variants use separate method identities in the execution registry and share the engine's native route constraints. Derive interface columns and participant counts from that registry. A strict native-mode marker selects default completion; it supplies no per-case selector or wait and must survive both dataset conversion and runner validation. Resource projection must preserve single URL values and tokenize only srcset candidates, including literal commas inside URLs. Protect these boundaries with runner, report and actual-browser controls.
+
 ## Release checks
 
 The headless report remains a separately published reference cohort. Its

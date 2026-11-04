@@ -128,7 +128,7 @@ def test_registered_revision_changes_only_the_95_fixed_body_versions():
             annotation_revisions._revise_body_ending_order(case, operations[case['id']])
     assert original == snapshot
     changed = 0
-    for old, new in zip(original['cases'], revised['cases']):
+    for old, new in zip(original['cases'], revised['cases'], strict=True):
         expected = deepcopy(old)
         if expected.get('body_requirements'):
             assert expected['body_requirements']['version'] == 4

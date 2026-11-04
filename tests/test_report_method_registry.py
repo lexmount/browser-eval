@@ -285,7 +285,7 @@ def test_mixed_build_labels_have_explicit_english_and_scoped_lifetime(tmp_path):
     assert zh == 'Moli 多构建结果（1 例 9.9.8；2 例 9.9.9）'
     assert en == 'Moli mixed builds (1 case: 9.9.8; 2 cases: 9.9.9)'
     assert browser_method_label('moli-candidate', language='en') == 'Moli candidate build'
-    for row, version in zip(rows, ['9.9.9-a', '9.9.9-b', '9.9.9-b']):
+    for row, version in zip(rows, ['9.9.9-a', '9.9.9-b', '9.9.9-b'], strict=True):
         row['provider_metadata']['reported_version'] = version
     assert render(tmp_path, {}, rows) == ('Moli 9.9.9（候选版）', 'Moli 9.9.9 (candidate build)')
 

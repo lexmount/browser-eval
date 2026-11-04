@@ -125,7 +125,7 @@ def _assemble_cohort(
         (output / "sources" / (case_id + ".html.txt")).write_text(
             record["html"], encoding="utf-8"
         )
-    for expected, scored_receipt in zip(expected_providers, scored_providers):
+    for expected, scored_receipt in zip(expected_providers, scored_providers, strict=True):
         provider = expected["provider"]
         shard = contained_path(root, safe_identifier(provider), reject_symlinks=True)
         if shard.is_symlink() or any(path.is_symlink() for path in shard.rglob("*")):

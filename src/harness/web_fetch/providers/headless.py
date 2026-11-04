@@ -10,6 +10,7 @@ import os
 import re
 import shutil
 import socket
+import struct
 import subprocess
 import sys
 import tempfile
@@ -348,7 +349,7 @@ ENGINES = {
 _UNREGISTERED_ENGINE = HeadlessEngine()
 
 
-def _engine_definition(engine):
+def engine_definition(engine):
     """Unregistered names remain valid report labels but select no capability."""
     return ENGINES.get(engine, _UNREGISTERED_ENGINE) if isinstance(engine, str) else _UNREGISTERED_ENGINE
 
@@ -360,7 +361,7 @@ def _resolve_binary(engine, configured):
     if configured == '':
         return None
     resolved = shutil.which(configured or engine)
-    if (resolved or not _engine_definition(engine).playwright_launched
+    if (resolved or not engine_definition(engine).playwright_launched
             or configured not in (None, '', engine)):
         return resolved
     # Playwright owns the Chromium revision used by this adapter. Requiring a
@@ -375,7 +376,7 @@ def completion_metadata(engine, plan, output_mode):
     """Describe the exact native semantics used for one normalized plan."""
     if not plan:
         return None
-    semantics = _engine_definition(engine).completion_semantics
+    semantics = engine_definition(engine).completion_semantics
     if output_mode in {'document', 'file'}:
         metadata = {
             'strategy': 'raw_response',
@@ -435,7 +436,7 @@ def cli_command(
     detail_links=False,
     include_subdocuments=False,
 ):
-    definition = _engine_definition(engine)
+    definition = engine_definition(engine)
     slots = {
         _URL: [url],
         _TIMEOUT_MS: [str(max(1, math.ceil(timeout * 1000)))],
@@ -501,7 +502,7 @@ def cli_command(
 
 def output_mode_for_case(engine, provider_type, case):
     """Choose one product-native route for each task family."""
-    definition = _engine_definition(engine)
+    definition = engine_definition(engine)
     if engine in ENGINES and case.task_kind == 'file':
         return 'file'
     if definition.document_markdown and case.track == 'document':
@@ -547,14 +548,14 @@ class HeadlessProvider(Provider):
     @property
     def cancellation_cleanup_seconds(self):
         # Remote and resource-container calls retain their own boundaries.
-        local = (not _engine_definition(self.config.get('engine')).hosted
+        local = (not engine_definition(self.config.get('engine')).hosted
                  and self.config.get('resource_sample_interval_ms') is None)
         return 1.0 if local else 0.0
 
     def validate(self):
         errors = []
         engine = self.config.get('engine')
-        definition = _engine_definition(engine)
+        definition = engine_definition(engine)
         requires_credentials = definition.hosted and self.type == 'headless_markdown'
         if definition is _UNREGISTERED_ENGINE:
             errors.append('engine')
@@ -642,7 +643,7 @@ class HeadlessProvider(Provider):
         if not refresh and hasattr(self, '_implementation_identity'):
             return dict(self._implementation_identity)
         engine = self.config['engine']
-        definition = _engine_definition(engine)
+        definition = engine_definition(engine)
         hosted = definition.hosted
         version_args = list(definition.version_args) if definition.version_args else None
         if self.config.get('resource_sample_interval_ms') is not None:
@@ -715,7 +716,7 @@ class HeadlessProvider(Provider):
             return ProviderResult(False, '', error_type='configuration',
                                   error_message=str(error))
         engine = self.config['engine']
-        definition = _engine_definition(engine)
+        definition = engine_definition(engine)
         if definition is _UNREGISTERED_ENGINE:
             raise ValueError('unsupported headless engine: ' + str(engine))
         hosted = definition.hosted
@@ -976,7 +977,9 @@ class HeadlessProvider(Provider):
 
 
 NATIVE_CDP_PORT_ATTEMPTS = 3
-NATIVE_CDP_BIND_EXIT_GRACE_SECONDS = 1
+_NATIVE_CDP_HOST = '127.0.0.1'
+_MACOS_LSOF = '/usr/sbin/lsof'
+_LINUX_TCP_LISTEN = '0A'
 _ADDRESS_IN_USE = re.compile(rb'address\s*(?:is\s*)?(?:already\s*)?in\s*use', re.I)
 
 
@@ -985,41 +988,78 @@ def _native_cdp_attempt_output(log, start):
     return os.pread(log.fileno(), os.fstat(log.fileno()).st_size - start, start)
 
 
-def _connect_native_cdp(playwright, process, port, deadline):
-    """Return ``(browser, handshake_error)``, with a browser only while ``process`` is alive.
+def _linux_listens_on(pid, port):
+    """Join the process's socket descriptors to the listening rows of its network namespace."""
+    try:
+        with open(f'/proc/{pid}/net/tcp', encoding='ascii') as table:
+            rows = [row.split() for row in table.readlines()[1:]]
+        descriptors = os.listdir(f'/proc/{pid}/fd')
+    except (FileNotFoundError, ProcessLookupError, PermissionError):
+        # A process that is exiting can still show its socket table after root takes over its fd directory.
+        return False
+    listening = set()
+    for row in rows:
+        address, row_port = row[1].split(':')
+        if (row[3] == _LINUX_TCP_LISTEN and int(row_port, 16) == port
+                and socket.inet_ntoa(struct.pack('=I', int(address, 16))) == _NATIVE_CDP_HOST):
+            listening.add(f'socket:[{row[9]}]')
+    for descriptor in descriptors:
+        try:
+            if os.readlink(f'/proc/{pid}/fd/{descriptor}') in listening:
+                return True
+        except (FileNotFoundError, ProcessLookupError, PermissionError):
+            continue
+    return False
 
-    Another listener can answer on a port this server failed to bind, so an open
-    port alone does not prove that the answer came from this process. The browser
-    is ``None`` once the server has exited, and the error is the handshake failure
-    that preceded that exit, if any.
+
+def _macos_listens_on(pid, port, timeout):
+    """Ask lsof, because macOS exposes socket owners only through libproc."""
+    try:
+        listing = subprocess.run(
+            [_MACOS_LSOF, '-a', '-nP', '-p', str(pid), f'-iTCP:{port}', '-sTCP:LISTEN', '-Fn'],
+            capture_output=True, text=True, timeout=timeout, check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return False
+    return f'n{_NATIVE_CDP_HOST}:{port}' in listing.stdout.splitlines()
+
+
+def _process_listens_on(pid, port, timeout):
+    """Return whether ``pid`` itself holds the listening socket on the exact CDP address.
+
+    The caller has not reaped ``pid``, so the number cannot pass to another process. A
+    wildcard listener does not count: a more specific foreign socket could still receive
+    the connection on the systems that allow both.
+    """
+    if sys.platform == 'linux':
+        return _linux_listens_on(pid, port)
+    return _macos_listens_on(pid, port, timeout)
+
+
+def _connect_native_cdp(playwright, process, port, deadline):
+    """Return a browser once ``process`` holds the port, or ``None`` if it exits first.
+
+    Nothing connects to the port until the kernel reports this process as its owner, and
+    the kernel delivers every connection on that address to the owner. If the server
+    exits after that report, another process could take the address before the handshake.
+    Being alive when the handshake returns shows it held the address throughout, so only
+    that browser is returned; any other is discarded before a caller can use it.
     """
     remaining = lambda: max(.001, deadline - time.monotonic())
     while process.poll() is None:
         if time.monotonic() >= deadline:
             raise TimeoutError('Native CDP server startup exceeded the call deadline')
-        try:
-            with socket.create_connection(('127.0.0.1', port), timeout=min(.1, remaining())):
-                break
-        except OSError:
-            time.sleep(min(.02, remaining()))
+        if _process_listens_on(process.pid, port, remaining()):
+            break
+        time.sleep(min(.02, remaining()))
     else:
-        return None, None
-    try:
-        browser = playwright.chromium.connect_over_cdp(
-            'http://127.0.0.1:' + str(port), timeout=remaining() * 1000)
-    except Exception as error:
-        # A foreign listener can reject the handshake before this server exits on its failed bind.
-        try:
-            process.wait(timeout=min(NATIVE_CDP_BIND_EXIT_GRACE_SECONDS, remaining()))
-        except subprocess.TimeoutExpired:
-            pass
-        if process.poll() is None:
-            raise
-        return None, error
+        return None
+    browser = playwright.chromium.connect_over_cdp(
+        f'http://{_NATIVE_CDP_HOST}:{port}', timeout=remaining() * 1000)
     if process.poll() is None:
-        return browser, None
+        return browser
     browser.close()
-    return None, None
+    return None
 
 
 @contextmanager
@@ -1028,11 +1068,12 @@ def native_cdp_browser(playwright, request, deadline, metadata=None):
 
     The servers only accept a numeric port and bind it themselves, so another
     process can take the chosen port first. A server that reports this is
-    restarted on a new port. A server that exits after the caller received a
-    browser fails the call, because the result cannot be attributed to it.
+    restarted on a new port, and no connection is made until the server is proven
+    to hold its port. A server that exits after the caller received a browser
+    fails the call, because the browser it was measuring is gone.
     """
     remaining = lambda: max(.001, deadline - time.monotonic())
-    definition = _engine_definition(request['engine'])
+    definition = engine_definition(request['engine'])
     if definition.cdp_server_arguments is None:
         raise ValueError('Unsupported native CDP server engine')
     command = _expand(definition.cdp_server_arguments, {
@@ -1065,31 +1106,27 @@ def native_cdp_browser(playwright, request, deadline, metadata=None):
             try:
                 for attempt in range(1, NATIVE_CDP_PORT_ATTEMPTS + 1):
                     with socket.socket() as candidate:
-                        candidate.bind(('127.0.0.1', 0))
+                        candidate.bind((_NATIVE_CDP_HOST, 0))
                         port = candidate.getsockname()[1]
                     log_start = os.fstat(log.fileno()).st_size
                     process = subprocess.Popen(
-                        [request['binary'], 'serve', '--host', '127.0.0.1', '--port', str(port), *command],
+                        [request['binary'], 'serve', '--host', _NATIVE_CDP_HOST, '--port', str(port), *command],
                         stdout=log, stderr=log, env=process_environment,
                     )
-                    browser, handshake_error = _connect_native_cdp(playwright, process, port, deadline)
+                    browser = _connect_native_cdp(playwright, process, port, deadline)
                     if browser is not None:
                         break
                     output = _native_cdp_attempt_output(log, log_start)
-                    port_lost = _ADDRESS_IN_USE.search(output)
-                    if not port_lost and handshake_error is not None:
-                        raise handshake_error
-                    if attempt == NATIVE_CDP_PORT_ATTEMPTS or not port_lost:
+                    if attempt == NATIVE_CDP_PORT_ATTEMPTS or not _ADDRESS_IN_USE.search(output):
                         raise RuntimeError(output.decode('utf-8', 'replace')[:4000]
                                            or f'Native CDP server exited with code {process.returncode} and no output')
                 yield browser
-                # Nothing stops the server while the caller runs, so an exit here means the
-                # connection that served the caller may belong to another process on this port.
+                # Nothing stops the server while the caller runs, so an exit here is a server failure.
                 if process.poll() is not None:
                     output = _native_cdp_attempt_output(log, log_start).decode('utf-8', 'replace')[:4000]
                     raise RuntimeError(
                         f'Native CDP server exited with code {process.returncode} while its browser '
-                        f'was in use, so the result may come from another process: {output or "no output"}')
+                        f'was in use: {output or "no output"}')
             finally:
                 try:
                     if browser is not None:

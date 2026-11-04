@@ -172,17 +172,6 @@ class ReportChangesTests(unittest.TestCase):
                       *(field for row in current['changes'] for field in row)]:
             self.assertNotRegex(translate_text(value, translations), r'[\u4e00-\u9fff]')
 
-    def test_first_correction_is_identity_bound_not_latest(self):
-        from harness.web_fetch.report_changes import first_correction
-        releases=[{'id':'2026-09-03-fairness-correction','scoring_revision_input_sha256':'first'}]
-        original={'input_results_sha256':'first','records':[]}
-        later={'input_results_sha256':'later','records':[1]}
-        self.assertEqual(first_correction([later,original],releases),original)
-        self.assertEqual(first_correction([original,later],releases),original)
-        with self.assertRaises(ValueError):first_correction([later],releases)
-        with self.assertRaisesRegex(ValueError, 'fairness-correction'):
-            first_correction([original],[])
-
     def test_file_rerun_sources_are_all_preflighted_before_report_writes(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory)

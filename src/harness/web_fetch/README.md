@@ -14,9 +14,73 @@ This page is the technical reference for larger experiments and historical repor
 | Capture an independent reference | [Source capture](#independent-source-capture) · [browser observations](#independent-browser-observations) |
 | Define dynamic-page completion | [Dynamic-content protocol](#dynamic-content-ground-truth-protocol) |
 | Check timeouts, retries or revise scores | [Budgets and measurements](#end-to-end-budget-and-missing-measurements) |
+| Run a publishable cohort or build a report | [Certified cohorts and report builds](#certified-cohorts-and-report-builds) |
 | Build a new report instance | [Report instances](#report-instances) |
 | Score and publish WCXB | [WCXB scoring](#wcxb-scoring) · [timing and publication](#wcxb-paired-timing-and-publication) |
 
+
+## Certified cohorts and report builds
+
+Run every publishable Web Fetch provider cohort through `scripts/run_certified_benchmark.py`, which freezes executable task inputs. Existing compiled reference answers stay frozen; pre/post source checks require an explicit `source_verification.reference_mode: live_exact` task declaration. Missing newer acceptance-contract fields, source metadata and capture dates never imply a live-reference task. For a live-exact task, fail closed: verify and freeze references immediately before calls, verify the same declared scope afterward, and certify the cohort only when both checks pass. Direct `run_benchmark.py` output and incomplete cohorts are diagnostic evidence only; never assemble them into a certified release or ranking. An explicitly requested diagnostic report uses the diagnostic build and check entries and labels every page.
+
+For reruns of unchanged compiled stable-contract datasets, invoke `scripts/run_certified_benchmark.py` normally. Freeze existing task definitions and acceptance rules; do not require historical qualification raw files or repeat admission review. Source qualification belongs to adding tasks or changing references/acceptance rules. Preserve historical receipts without applying their evidence-file requirements to a new execution protocol. Live exact-reference cases retain pre/post reference checks. Reserve `--diagnostic` for explicitly diagnostic runs, whose outputs cannot be upgraded to certified evidence. `--retrieval-mode native` selects ordinary WebFetch completion while preserving scenario categories and every acceptance requirement; it rejects selector-guided retrieval hints instead of dropping them. Independent whole-page auditing, when requested, uses the existing browser capturer with `--observation-scope visible_page --checkpoint-dir ...`; checkpoint identities include capture inputs and observer code so observations from another protocol cannot be reused silently.
+
+Keep one Web Fetch report implementation: `src/harness/web_fetch/report_build.py` constructs a report and `src/harness/web_fetch/report.py` renders it. `scripts/build_report.py` has no default build; select a report instance with `--profile` or name another of its modes. A profile build reads `--evidence`, falling back to persistent measured evidence (`~/.browser-eval/evidence/current/` by default, or `WEB_FETCH_EVIDENCE_DIR`), and writes to `--output` or the profile's `report_output`. A profile whose `comparison_kind` is `wcxb_frozen_html_to_markdown` selects the independently bound WCXB build, which requires `--evidence` and writes `reports/wcxb/` by default; `--wcxb` only checks that the profile is a WCXB one. Do not create versioned report implementations, compatibility renderers or redirect builds.
+
+### Cohort-derived report content
+
+Derive bilingual counts, budgets and method labels from the selected inputs.
+Bind cohort-specific access and interface documentation in the participant registry;
+reuse engine-level adapter contracts instead of adding per-version renderer tables.
+Keep report-specific prose and its translations in explicitly bound content;
+do not choose a historical article from provider names or task-family guesses.
+Without a content binding, render the maintained data-derived explanation.
+Prove reuse through the public build and check entries with a different external
+task/method inventory, not only by searching for old numbers in source code.
+Exercise assembly and packaging with that external profile as well. Participant
+IDs, labels, interfaces and comparison roles come from the instance registry;
+a new cohort must not inherit a historical method's account or timing claims.
+Disclose declared literal, fact, body-region, record, resource and identity checks
+separately. A task instruction is not a full-text reference. Preserve frozen
+verdicts while exposing passes without verified page identity, blocked-page
+markers and unexpected resource URLs as diagnostics.
+
+### Diagnostic reports
+
+For explicitly requested live WebFetch diagnostics, use `make webfetch-diagnostic-report DIAGNOSTIC_PROFILE=/absolute/instance-profile.json OUTPUT=/absolute/new-output`; `EVIDENCE=/absolute/source` optionally supplies an explicit input. The `webfetch_cohort_diagnostic/1` model contains cohorts, per-case Boolean first-call verdicts, declared summary counts, cause/source labels, review counts and hash-bound reference/output/source/log files. `tests/test_report_templates.py:diagnostic_example` is a runnable two-scenario fixture through the public builder; its test command is registered alongside the variant. The release checker recomputes totals and validates rendered verdicts, complete evidence bindings, dialogs and links. A diagnostic remains diagnostic; this path cannot substitute for a certified build.
+
+Diagnostic failure analysis derives unmet requirements and expected/actual values from the saved score-bearing call, separately from independent source observations and supplemental calls. Count each affected task once per failure type, disclose overlaps, and link counts to the matching task inventory. Source access failure and later success are observations, not engine root causes. Release checks recompute the type counts and detail explanations from bound evidence and reject contradictory or missing values.
+
+Fresh diagnostic cohorts can supply a `webfetch_diagnostic_inputs/1` JSON file to the same build entry. It names complete saved run directories, independent whole-page browser observations and per-case reviews bound to dataset/results/observation hashes. The owner validates call and output identities and adapts these inputs to the existing model; no separate renderer is needed. Public copies may redact sensitive fields using the shared publication projector, with original/published hashes and an explicit local scope note; never alter the scored originals or present a redacted view as byte-identical. Review all requested passes as well as failures, retain access restrictions as observed limitations, and use actual requirements and source errors in interpretation specimens rather than storage metadata.
+
+For a diagnostic release, freeze the complete intended population in the track profile's `cohort_plan` (group IDs, case counts and SHA-256 of sorted case IDs joined by newlines with a trailing newline), independently of the report's selected inputs. Bind a uniform implementation when required. Pass that profile with `--profile` to both `scripts/build_report.py --diagnostic-cohorts` and `uv run --frozen python -m harness.web_fetch diagnostic-check` before publishing. A self-consistent subtotal is not evidence that the requested matrix is complete; reject missing groups, substituted cases and mixed implementations. Template examples without a deployment profile remain local examples, not a substitute for this release gate.
+
+A diagnostic instance profile can bind `diagnostic_input.path` relative to the data home and `diagnostic_input.sha256`. The ordinary build entry selects the diagnostic adapter from that profile, without a separate runner or mode flag. Keep cohort paths, prose, specimens and reviewed findings in the external manifest; refresh those inputs and compact profile bindings without editing the renderer or skill. Modify shared code only for a demonstrated defect or new measurement capability, and exercise multiple independent instances through the same public build/check entry.
+
+### Fresh and composed cohorts
+
+For a fresh browser cohort, extend the maintained Web Fetch interpretation mode with `comparison.report_interpretation: {path, sha256}`. Keep its JSON prose outside Git in the evidence bundle. The `webfetch_browser_interpretation/1` schema binds the normalized task/result input hash, a title, introduction, scoring explanation, conclusions, and one explanation plus specimen case ID for every participant. The owner computes aggregate and family results, all-call and successful-call latency, observed versions, complete program-error distributions, and evidence links. A participant with failures must show a failed specimen. Historical prose bindings remain scoped to their original evidence; do not replace their hashes to reuse old conclusions. `scripts/check_report.py` verifies current-cohort numerical cells, populations, unique highlights, chapters and live result targets on both the interpretation and standalone routes, with negative controls in `tests/test_headless_report.py`.
+
+A composed cohort can use a compact current-report profile with `frozen_inputs` from `harness.web_fetch.storage.frozen_input_bindings` and an ordered per-track `case_inventory`. This binds the frozen dataset bytes and existing source/list-reference asset tree without duplicating whole datasets into a new repository folder. Both the build CLI and release checker validate these bindings and the complete provider-by-case matrix. The report package preserves original dataset bytes. These are publication-integrity checks on current inputs, not historical source-qualification requirements.
+
+### Local-audit reports
+
+For a new URL-only local matrix over committed stable contracts, reuse the local-audit renderer with comparison.kind=uniform_native_local_measurement and a pre-call local-run-contract.json. Require complete case-by-method coverage and one hash-bound public call log per result. This mode must state that results are machine judgments without independent review and must never inherit historical review receipts or certification.
+
+The local-audit variant also supports a new uniform native local measurement. Bind the exact committed case file, scorer, providers, one run, 45-second outer timeout and zero retries before calls. Preserve product-default retrieval without per-case wait/extraction hints. Validate completeness and every output/log hash before rendering through the existing report owner. Complete retained debug logs may be exposed through sanitized local report assets; do not publish raw private diagnostics or claim inherited independent review.
+
+### Published-snapshot audit
+
+A published-snapshot score audit uses the maintained Web Fetch profile adapter,
+not a copied renderer. Bind the complete original export, full historical matrix,
+initial and corrected scores, per-input original/public/scored hashes, and every
+changed decision. Preserve collection facts and timing. Evaluate a suspected
+privacy effect with the historical scorer on the same public bytes; a redaction
+receipt by itself does not establish causation. Keep source-backed annotation
+corrections and executable regression provenance together. Reuse the native
+report's routes, interpretation schema, structured history and packer, and run its
+explicit snapshot audit browser gate before packaging. The catalog provides the
+runnable example and commands. Store instance evidence and prose outside Git.
 
 ## Report revisions and file-delivery controls
 
@@ -29,8 +93,16 @@ historical datasets and source captures are installed outside the checkout; see
 [frozen reference inputs](../../../docs/reference-inputs.md). Git ignores provider artifacts,
 results, execution manifests, selection receipts and internal audit notes.
 
-`research/report-changes.json` drives the public, collapsible `changes/index.html`.
-Record each substantive release's issue, change, score effect, evidence and limits.
+`report-assets/report-changes.json`, bound beside the evidence, drives the public,
+collapsible `changes/index.html`; `research/report-changes.json` is a frozen legacy
+fallback. Record each substantive release's issue, change, score effect, evidence and
+limits in the bound asset. Do not add a new report's results, prose, review scope or
+publication URL to the legacy file.
+
+Keep `research/provider-pricing.json` as a reusable product-price catalog: retain
+verification dates, commitments, billing units and unknowns, but do not describe one
+run or report there.
+
 Keep the measured dataset/results untouched for presentation-only revisions.
 
 Offline local revisions stage only their changed artifacts, receipts and current
@@ -288,7 +360,7 @@ validation, not each measured fetch; a changed binary requires revalidation.
 
 ### Retries
 
-A repair run may retain successful results and rerun only failed or affected cases. Keep every physical call and select the final response under the declared retry/correction policy. Recompute scores for the complete selected result population when the scorer changes; rescoring does not require new provider calls. If executable builds differ, disclose their fingerprints and selected result counts as cumulative results. This does not establish the full-suite result or speed of one build.
+A repair run may retain successful results and rerun only cases with a declared cause (changed input, provider route or version, runtime contract, source validity or infrastructure failure), not failures as such; without one, label the results cumulative and diagnostic. A predeclared failure retry is part of the run contract. Keep every physical call and select the final response under the declared retry/correction policy. Recompute scores for the complete selected result population when the scorer changes; rescoring does not require new provider calls. If executable builds differ, disclose their fingerprints and selected result counts as cumulative results. This does not establish the full-suite result or speed of one build.
 
 
 All methods default to one retry after a failed task. Set
@@ -297,9 +369,9 @@ There are at most N+1 calls per task, stopping as soon as the task passes.
 The same rule covers request errors, timeouts, empty output and content-rule
 failures, including methods using native parameters.
 
-Each method and task produces one result. The final call replaces the earlier
-answer, verdict, metrics and primary latency; retries do not add samples or a
-separate result category. Call artifacts remain available for audit, with
+Each method and task produces one current authoritative result. The final call,
+never the best one, replaces the earlier answer, verdict, metrics and profile-defined
+primary latency; retries do not add samples or a separate result category. Call artifacts remain available for audit, with
 accumulated execution cost stored separately from the final-call latency.
 An uncancellable call must stop before another starts; a still-running call
 makes the cohort incomplete. Historical cohorts retain their frozen retry policy.
@@ -413,6 +485,11 @@ Returned-title quality is also auxiliary and never substitutes for body scores.
 
 ### Popular-site references
 
+Popular-site stable text must be independently observed and task-relevant. Do not
+freeze volatile ranks, prices, member counts or current list membership. Title
+diagnostics join returned entities to independent names by detail URL and never
+substitute for body quality, recall, freshness or task acceptance.
+
 Popular-site stable text is backed by `sources/<case>/stable-page.txt` and capture
 metadata, or the original independently saved `reference.txt`. Binding verifies each
 literal against its evidence and stores its SHA-256 before offline rescoring. Nine
@@ -507,6 +584,10 @@ not update the dataset, approve ground truth or certify provider calls. The
 certified runner owns pre-call and post-call capture and reference validation.
 
 ## Dynamic-content ground-truth protocol
+
+Reference capture retains paired initial HTTP bytes and independently rendered
+visible text, and bounds completion and the full declared scope. Distinguish embedded
+state from follow-up fetching; never require JavaScript as the only valid route.
 
 Merge and append measured dynamic supplements through the same shared module.
 Pass private input directories explicitly; merged output must be new.
@@ -940,6 +1021,10 @@ new scores or timings; local fixture validation is not a benchmark rerun.
 
 ## WCXB paired timing and publication
 
+WCXB builds read profile-bound files from `<evidence>/report-assets/` and preserve the same relative paths in the public package; restore missing files from the profile's pinned Artifact Site version, never from an unversioned latest report. Do not silently fall back to a repository copy.
+
+For the current WCXB report, the source-qualified manifest is the entire evaluation population for quality, delivery, and latency. Keep source-invalid cases outside the current manifest, scored evidence, public package, and future provider calls; preserve earlier physical calls only in private historical evidence. The dataset page owns frozen task inputs, source URLs and human reference scope; it must not show measured browser scores. The home page owns aggregate comparisons, the result analysis owns the filterable method-case inventory, and case result pages own full responses. Keep a direct link from each dataset row to a safe frozen-page preview and its human reference. Default result filters must show a nonempty, clearly labeled diagnostic population when one exists, and filtered tables must shrink rather than leave a large blank viewport.
+
 The WCXB command uses the shared English fallback. Set
 `BROWSER_EVAL_REPORT_LANGUAGE=zh` or use `--language zh` for a Chinese-only build; its English entry shows a not-generated
 notice. Bilingual release checks require matching routes and values. English
@@ -1324,7 +1409,9 @@ to `uv run --frozen python -m harness.web_fetch site-package` with the same sour
 footprint projections when the cache uses an earlier representation; it rejects
 a cache bound to another source. `--refresh-privacy` additionally applies the
 current privacy checks to other cached files. Complete publication checks run
-before the archive is installed. Source and input cache remain unchanged.
+before the archive is installed. Source and input cache remain unchanged. A cached
+representation passing a secret scan alone does not prove it matches the current
+export contract, and upload limits never justify dropping evidence or a separate renderer.
 Saved public snapshots may retain original scored hashes while storing separately
 bound public evidence views. Verify both identities through the existing public-view
 helpers; report retained views separately instead of calling them original bytes.
@@ -1337,7 +1424,8 @@ the Python API `harness.web_fetch.report_package.bind_data_parts(archive,
 plan_path, publications)`, and pass `--parts-manifest <directory>/parts.json` when publishing
 the main report. Ordinary publication rejects unresolved or mismatched attachments.
 Keep the main profile's `data_publications` registry aligned with that bound plan;
-main and data artifacts must use the same profile-bound service.
+main and data artifacts must use the same profile-bound service. Keep one report entry
+and include the attachment archives and target registry in the main publication snapshot.
 Invoke that API from a maintenance script with `uv run --frozen python <script.py>`;
 there is no separate bind command. `archive` and `plan_path` are `Path` objects
 for the prepared main archive and parts manifest; `publications` maps each part
@@ -1346,7 +1434,8 @@ it does not upload attachments.
 
 ## Report method metadata
 
-`research/provider-adoption.json` holds the public-code adoption statistics. Refresh
+Certified Web Fetch reports keep each registered provider's interface example and
+adoption data. `research/provider-adoption.json` holds the public-code adoption statistics. Refresh
 them with `uv run --frozen python -m harness.web_fetch.provider_adoption search`, or
 re-verify the known candidates with its `refresh` command. Both need an authenticated
 `gh`; the search checkpoint stays under the research evidence directory.

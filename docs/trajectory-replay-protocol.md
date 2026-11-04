@@ -22,6 +22,7 @@ flowchart LR
 | Repair a candidate | [Repair proposals](#public-webarena-repair-proposals) |
 | Investigate a missing site mutation | [Remote diagnostics](#remote-mutation-diagnostics) |
 | Run the measured comparison | [Formal measurement](#formal-measurement) |
+| Build and check a replay report | [Report rules](#report-rules) |
 | Commands for import, qualification and repair | [Operator sequence](#operator-sequence) |
 
 ## Common layers
@@ -57,6 +58,8 @@ This avoids turning a 5-second application navigation delay into a false traject
 Each task also has a 300-second wall-clock budget. An action receives the smaller of its declared
 timeout and the remaining task budget, so a broken multi-step path cannot accumulate independent
 action timeouts into an unbounded run. The same budget applies to both engines.
+
+Canonical inputs must not contain run-local snapshot refs. Compile each ref to a hash-bound stable selector while preserving the original ref action semantics; do not silently replace a DOM ref click/fill/select with BrowserTool's Playwright selector fallback because that adds different viewport, overlay and navigation-wait behavior.
 
 ## WebArena trajectory qualification
 
@@ -129,7 +132,17 @@ names no variables or a variable that is empty. `--env-file` and exported variab
 exported value winning, and cannot change a login. Saved error text and evaluator output are
 scrubbed of the passwords that the runtime JSON names, and public reports of the passwords that the site registry names.
 Rebuilding a public WebArena report from saved evidence does not need them; a password that is
-unset on the rebuilding host is not checked.
+unset on the rebuilding host is not redacted. Exporting, packaging and publishing that report stop
+with the missing variable names while a registered site login is unset, so every public bundle and
+package is checked for all of those passwords.
+
+Two limits of this redaction are deliberate. The report and package steps do not have the runtime
+config, so a password under a variable name outside the site registry is scrubbed only at run time,
+from the attempt's error text, its `evaluate_result` trace step and its validation. The frozen
+trajectory's trace steps and the HAR are not scrubbed, because they must stay what the trajectory
+executed. Login happens before capture, so only a recording that types a password itself could put
+one there.
+
 The unmodified official evaluator reads the same credential-free JSON for URL rendering.
 
 Before qualification, the optional runtime smoke starts each browser image without a CPU limit,
@@ -456,6 +469,16 @@ the suite or differs from the manifest:
 uv run --frozen python examples/trajectory_replay/public_webarena/verify_metrics.py --artifacts <evidence>/formal/webarena-public-trajectories/run
 uv run --frozen python examples/trajectory_replay/public_webarena/rebuild_report.py --suite "$HUMAN_CANDIDATES" --artifacts <evidence>/formal/webarena-public-trajectories/run --reports <evidence>/formal/webarena-public-trajectories/reports
 ```
+
+## Report rules
+
+Reports keep the dataset separate from measured verdicts. Every task needs a contract-and-qualified-trajectory page; every result needs a same-task all-browser comparison, a reader-facing failure locator, the exact failed-action or evaluator error, reviewed cause, complete expandable tool responses, and on-demand public evidence. The result inventory stays compact, fixed-height, filterable and linked to a diagnosis dialog. The same-task explorer uses a registry-driven baseline, multi-select comparison browsers and explicit outcome relations; group pass/fail links instead of adding one result column per future browser. Keep Chinese and English task/result routes aligned.
+
+A BrowserTool call that returns success does not prove its intended site mutation occurred. When the official evaluator rejects a completed trajectory for an absent required network event, locate the last plausible trigger action and publish the exact missing-event assertion, but do not mark that action as failed or change the official verdict. Repair asynchronous or position-dependent trajectory inputs only through new qualification evidence and a frozen full-scope comparison rerun.
+
+Component tests exercise Sites-style tokenized preview navigation from a nested result back to the report root; plain relative-link validation alone does not prove that behavior.
+
+The replay build binds content only when `--content` or `--content-bindings` is given: it copies the assets named by the bindings file (`--content-bindings`, default: the repository's `research/trajectory-replay-content.json`) from the `--content` directory (default: the data home's `report-assets/trajectory-replay/`). With neither flag it builds without bound content. Restore missing content from the pinned Artifact Site version, not an unversioned latest report. Do not silently fall back to a repository copy.
 
 ## Operator sequence
 

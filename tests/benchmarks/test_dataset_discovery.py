@@ -41,7 +41,7 @@ def test_fetch_viewer_exposes_original_hierarchy_without_changing_execution_inpu
     source = release("webfetch", cases, identity="webfetch")
     manifest = source.build(tmp_path)
     assert {item["config_name"] for item in metadata(tmp_path)["configs"]} == set(names)
-    for track, name, case in zip(tracks, names, cases):
+    for track, name, case in zip(tracks, names, cases, strict=True):
         row, = [row for row in exported_rows(tmp_path, name) if row['track'] == track]
         assert (row["id"], row["source_suite"], row["track"], row["category"]) == (
             case["id"], "webfetch", track, case["category"])
@@ -74,7 +74,7 @@ def test_reviewed_languages_preserve_source_annotations_and_bound_task_bytes(tmp
     labels = [("zh", ["zh"]), ("mul", ["ar", "zh"]), ("zxx", [])]
     annotations = {"sample": {case["id"]: {"case_sha256": hashlib.sha256(encoded(case)).hexdigest(),
                     "language": code, "languages": codes, "basis": "frozen-reference-review"}
-                    for case, (code, codes) in zip(cases, labels)}}
+                    for case, (code, codes) in zip(cases, labels, strict=True)}}
     result = release("webmainbench", cases, annotations=annotations).build(tmp_path)
     rows = exported_rows(tmp_path)
     assert [row["language"] for row in rows] == ["zh", "mul", "zxx"]

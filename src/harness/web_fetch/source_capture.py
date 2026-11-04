@@ -78,7 +78,7 @@ def extract_html(raw: bytes, url: str):
             parts = []
             questions = []
 
-            def visit(value):
+            def visit(value, parts=parts, questions=questions):
                 if isinstance(value, dict):
                     html = value.get("html")
                     if isinstance(html, dict) and html.get("html"):

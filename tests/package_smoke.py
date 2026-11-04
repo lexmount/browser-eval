@@ -145,11 +145,12 @@ def verify_report_assets(package_root: Path) -> None:
     from harness.trajectory_replay import report as replay_report
     from harness.trajectory_replay.public_webarena import report as public_report
     from harness.trajectory_replay.report_compaction import _script
+    from harness.web_fetch.report import EXTRA, JS
     from harness.web_fetch.report_style import STYLE
     from harness.web_search.comparison import SCRIPT, STYLE as COMPARISON_STYLE
     from harness.web_search.delivery import BRIDGE, LOADER
 
-    assert all(text.strip() for text in (STYLE, SCRIPT, COMPARISON_STYLE, BRIDGE, LOADER))
+    assert all(text.strip() for text in (STYLE, EXTRA, JS, SCRIPT, COMPARISON_STYLE, BRIDGE, LOADER))
     assert _script('compact-data-fetch-adapter.js').strip()
     for renderer in (replay_report, public_report):
         assert Path(renderer.__file__).resolve().is_relative_to(package_root)
@@ -316,9 +317,12 @@ def verify_sample_assembly(root: Path, source_root: Path) -> None:
     assert refused.returncode != 0 and (fixture['output'] / 'results.jsonl').read_bytes() == before
 
 
-def verify_lexbench_package(root: Path, renderer: Path) -> None:
+def verify_lexbench_package(root: Path) -> None:
     from harness.lexbench.pack import package
+    from harness.lexbench.report import TEMPLATE_DIRECTORY, TEMPLATE_FILES
 
+    assert all((TEMPLATE_DIRECTORY / name).is_file() for name in TEMPLATE_FILES)
+    renderer = TEMPLATE_DIRECTORY / 'app.js'
     subprocess.run(
         [sys.executable, '-m', 'harness.lexbench', 'report', '--help'],
         cwd=root, check=True, capture_output=True, text=True,
@@ -1351,6 +1355,7 @@ def verify_cowagent_isolation(root):
 
 
 def verify_public_trajectory_publication(root, source_root):
+    from harness import env_file
     from harness.trajectory_replay.public_webarena.publication import (
         build, check_report_bundle, stage_report,
     )
@@ -1360,12 +1365,27 @@ def verify_public_trajectory_publication(root, source_root):
     source, authority = write_fixture(root / 'public-trajectory')
     (source / 'run/private-worker-notes.txt').write_text('private diagnostics', encoding='utf-8')
     staged = root / 'trajectory-staged'
+    # Rebuilding needs no site logins; packaging stops until synthetic ones are set.
+    env_file._repository_credentials_file = root / 'absent-site-logins.env'
     stage_report(source, staged)
     assert {path.name for path in (staged / 'run').iterdir()} == {'manifest.json', 'summary.json'}
     assert check_report_bundle(staged)['pages'] == 6
     private_name = 'webarena-trajectory-replay-latest-private-notes.txt'
     (staged / 'reports' / private_name).write_text('private report notes', encoding='utf-8')
     archive, attestation = root / 'trajectory.zip', root / 'trajectory-attestation.json'
+    try:
+        build(staged, archive, attestation, authority=authority)
+    except ValueError as error:
+        assert 'WEBARENA_' in str(error) and not archive.exists()
+    else:
+        raise AssertionError('Installed publication packaged without site logins')
+    logins = root / 'synthetic-site-logins.env'
+    logins.write_text(''.join(
+        f'WEBARENA_{site}_USERNAME=synthetic-{site.lower()}-user\n'
+        f'WEBARENA_{site}_PASSWORD=synthetic-{site.lower()}-secret\n'
+        for site in ('SHOPPING', 'SHOPPING_ADMIN', 'REDDIT', 'GITLAB')
+    ), encoding='utf-8')
+    env_file._repository_credentials_file = logins
     result = build(staged, archive, attestation, authority=authority)
     assert result['archive_sha256'] == hashlib.sha256(archive.read_bytes()).hexdigest()
     with zipfile.ZipFile(archive) as bundle:
@@ -1380,6 +1400,7 @@ def verify_public_trajectory_publication(root, source_root):
         assert 'suite hash' in str(error)
     else:
         raise AssertionError('Installed publication accepted a different suite')
+    env_file._repository_credentials_file = None
 
 
 def verify_oss_workers(root, source_root, *, with_libraries):
@@ -1687,6 +1708,8 @@ def main():
     if installed.is_relative_to(args.source_root.resolve()):
         raise ValueError('Package smoke must use an installed distribution outside the checkout')
     verify_package_tree(args.source_root, installed)
+    # Fixtures run from the checkout import tests.helpers; harness stays installed (src layout).
+    sys.path.append(str(args.source_root))
     verify_bundled_data(args.source_root, installed)
     verify_report_assets(installed)
     from importlib import import_module
@@ -1726,7 +1749,7 @@ def main():
         verify_browser_report_checks(root, args.source_root)
         verify_release_check_helpers(root, args.source_root)
         verify_teds_revision(root, args.source_root, with_writer=args.webmainbench)
-        verify_lexbench_package(root, args.source_root / 'src/harness/lexbench/template/app.js')
+        verify_lexbench_package(root)
         verify_dynamic_cohort(root, args.source_root)
         verify_review_revisions(root, args.source_root)
         verify_sample_assembly(root, args.source_root)

@@ -14,12 +14,11 @@ from ipaddress import ip_address
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from harness.web_fetch.config import load_runtime_env, repository_env
+from harness.web_search.messages import zh_text
 from lexbench_websearch.relevance import candidate_packet, score, validate_source_rule_regressions
 from lexbench_websearch.rubric import judge_prompt, known_prompt
 from lexbench_websearch.scoring import canonical_url
-
-from harness.web_fetch.config import load_runtime_env, repository_env
-from harness.web_search.messages import zh_text
 
 
 def verify_protocol(profile, evidence, revision=None, *, authority=None):

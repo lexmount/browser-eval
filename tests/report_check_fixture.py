@@ -6,11 +6,7 @@ from pathlib import Path
 
 from harness.report_languages import write_language_contract
 from harness.web_fetch.reliability import assess_reliability
-
-
-def write_json(path, value):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
+from tests.helpers import write_json
 
 
 def create_report(base: Path, *, english=False, headless=False):

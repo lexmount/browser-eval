@@ -9,8 +9,8 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 from PIL import Image
-from harness.record_io import file_sha256, read_json
 
+from harness.record_io import file_sha256, read_json
 from harness.reporting.privacy import FIX_LOG_LOCAL_ROOT
 
 EMPTY_FIX_LOG = {

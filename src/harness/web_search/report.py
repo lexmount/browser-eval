@@ -16,18 +16,6 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from bs4 import BeautifulSoup
-from lexbench_websearch import answer_rules
-from lexbench_websearch.evidence_quality import CONTAMINATION_RULE, factual_sensitivity
-from lexbench_websearch.inputs import definition_path, implementation_sources
-from lexbench_websearch.relevance import score as score_relevance
-from lexbench_websearch.relevance import summary as relevance_summary
-from lexbench_websearch.scoring import (
-    canonical_url,
-    classify,
-    evaluate,
-    factual_evidence,
-    in_domain,
-)
 
 from harness.record_io import bytes_sha256, same_json_record
 from harness.report_languages import (
@@ -78,56 +66,26 @@ from harness.web_search.revisions import (
     validate_revision_binding,
 )
 from harness.web_search.runner import reference_available, reference_changes
+from lexbench_websearch import answer_rules
+from lexbench_websearch.evidence_quality import CONTAMINATION_RULE, factual_sensitivity
+from lexbench_websearch.inputs import definition_path, implementation_sources
+from lexbench_websearch.relevance import score as score_relevance
+from lexbench_websearch.relevance import summary as relevance_summary
+from lexbench_websearch.scoring import (
+    canonical_url,
+    classify,
+    evaluate,
+    factual_evidence,
+    in_domain,
+)
 
 CHINESE_SEPARATORS = re.compile("[\u3001\uff1a\uff1b]")
-STYLE = """
-.dataset-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;align-items:end;margin:20px 0}.dataset-controls label{display:grid;gap:5px}.dataset-controls select,.dataset-controls input{width:100%;min-width:0}
-
-.specimen-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}.specimen-grid>article{min-width:0;height:100%}.specimen-grid h3{font-size:18px}.specimen-grid p{font-size:14px}@media(max-width:800px){.specimen-grid{grid-template-columns:1fr}}
-
-footer{display:flex;gap:24px;border-top:1px solid var(--line,#d8e0e7);padding-top:20px;margin-top:40px;font-size:14px}main>section>p,.chapter>p{max-width:78ch}.method-notes,.technical-details{margin:24px 0}.metric-caption{font-size:14px;color:var(--muted,#526575)}
-
-:root{color-scheme:light dark;--bg:#f7f8fa;--fg:#18252e;--panel:white;--line:#d9e0e5;--muted:#53646d;--win:#08704d}
-@media(prefers-color-scheme:dark){:root{--bg:#11191f;--fg:#e4edf3;--panel:#19252e;--line:#34454f;--muted:#acbec9;--win:#79dbaf}}
-body.dark{--bg:#11191f;--fg:#e4edf3;--panel:#19252e;--line:#34454f;--muted:#acbec9;--win:#79dbaf}
-body.light{--bg:#f7f8fa;--fg:#18252e;--panel:white;--line:#d9e0e5;--muted:#53646d;--win:#08704d}
-*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.65 system-ui,sans-serif}
-main,nav{max-width:1180px;margin:auto;padding:20px}main{overflow-wrap:anywhere}nav{display:flex;gap:22px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
-a{color:inherit;text-underline-offset:3px}h1{font-size:clamp(28px,4vw,36px);line-height:1.2}h2{margin-top:32px;font-size:24px}
-select,input{max-width:100%}
-.notice{border-left:4px solid #b77c1c;padding:14px 20px;background:var(--panel)}.muted{color:var(--muted)}
-.scroll{overflow:auto;border:1px solid var(--line);border-radius:8px;margin:20px 0}.inventory{max-height:520px}.inventory td:last-child{white-space:nowrap;overflow-wrap:normal}
-table{border-collapse:collapse;min-width:720px;width:100%;background:var(--panel)}th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}th{white-space:nowrap;position:sticky;top:0;background:var(--panel)}
-table.compact{min-width:0}table.compact td{min-width:70px}td{min-width:110px;max-width:420px;overflow-wrap:anywhere}.win{color:var(--win);font-weight:700}button,input,select{font:inherit;padding:7px 12px;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:5px}
-[data-row][data-state="pass"] td:nth-child(4){color:var(--win);font-weight:700}
-pre{white-space:pre-wrap;overflow-wrap:anywhere;background:var(--panel);padding:20px;border:1px solid var(--line)}dialog{max-width:min(900px,95vw);max-height:85vh;background:var(--bg);color:var(--fg);border:1px solid var(--line)}
-.specimen{border:1px solid var(--line);padding:20px;border-radius:8px;background:var(--panel)}.flow{display:flex;gap:12px;flex-wrap:wrap}.flow span{padding:15px;background:var(--panel);border:1px solid var(--line)}
-.bar{height:22px;background:#648caf;border-radius:3px;min-width:2px}.timeline{position:relative;height:24px;background:var(--bg);min-width:220px}.timeline i{position:absolute;height:18px;top:3px;background:#648caf;border-radius:3px}.timeline i.good{background:#29976d}.chapter{border-top:1px solid var(--line);margin-top:36px;padding-top:10px}.eyebrow{color:var(--muted)}.lede{font-size:19px;max-width:900px}
-.process{padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px}.process .mermaid{background:white;color:#18252e;overflow:auto}.process svg{max-width:100%;height:auto}.process .flow-fallback{display:flex;gap:10px;flex-wrap:wrap}.process .flow-fallback span{padding:14px;border:1px solid var(--line);flex:1;min-width:150px}.specimen blockquote{margin:10px 0;padding-left:16px;border-left:3px solid var(--line)}.chapter p{max-width:960px}.chapter h3{margin-top:24px}.field-value{white-space:pre-wrap;max-height:250px;overflow:auto}
-.capmap{display:grid;grid-template-columns:minmax(135px,1.2fr) repeat(5,minmax(90px,1fr));gap:6px;margin:18px 0}.capmap>*{padding:12px 8px;border-radius:6px;background:var(--panel);text-align:center}.capmap .yes{background:#d7f0e5;color:#124b36;font-weight:700}.capmap .no{background:#eceff3;color:#52606c}.capmap .name{text-align:left;font-weight:700}.capmap .head{font-size:13px;font-weight:700}@media(max-width:700px){.capmap{grid-template-columns:minmax(110px,1.2fr) repeat(5,minmax(70px,1fr));font-size:12px;overflow:auto}.capmap>*{padding:8px 4px}}
-.metric-bars{display:grid;gap:12px;margin:18px 0;max-width:850px}.metric-bars .item{display:grid;grid-template-columns:150px minmax(120px,1fr) 195px;gap:12px;align-items:center}.metric-bars .track{height:22px;border-radius:4px;background:var(--line);overflow:hidden}.metric-bars .fill{display:block;height:100%;background:#2c8767}.metric-bars small{color:var(--muted)}@media(max-width:700px){.metric-bars .item{grid-template-columns:1fr 1fr}.metric-bars .track{grid-column:1/-1;grid-row:2}.metric-bars small{text-align:right}}
-.chapter-links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:28px 0}.chapter-link{display:grid;gap:8px;padding:22px;border:1px solid var(--line);border-radius:12px;background:var(--panel);text-decoration:none}.chapter-link span{color:var(--muted)}[data-population]{margin:28px 0;padding:20px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}[data-population] h3{margin:0}[data-population] .scroll{margin-bottom:0}.population-note{max-width:850px;color:var(--muted)}[data-population] table{font-size:14px}[data-population] th{white-space:normal;min-width:75px;max-width:150px}[data-population] td{min-width:75px;white-space:nowrap}[data-population] th,[data-population] td{padding:10px}
-@media(max-width:600px){.chapter-links{grid-template-columns:1fr}[data-population]{padding:12px}main,nav{padding:16px}nav{gap:14px}td,th{padding:10px}.flow{flex-direction:column}}
-"""
-EVIDENCE_SCRIPT = """
-function nativeEvidenceResult(value,index){
- if(value&&typeof value.body==='string')value=JSON.parse(value.body);
- else if(value&&value.body&&typeof value.body==='object')value=value.body;
- const items=value&&(value.results||value.organic||(value.data&&value.data.webPages&&value.data.webPages.value));
- if(!Array.isArray(items)||!Number.isInteger(index)||index<0||index>=items.length)throw Error('Result not found in native response');
- return items[index];
-}
-"""
-SCRIPT = EVIDENCE_SCRIPT + """
-
-document.querySelector('[data-theme]').onclick=()=>{document.body.className=document.body.className==='dark'?'light':'dark'};
-document.querySelectorAll('[data-sort-column]').forEach(b=>b.onclick=()=>{let t=b.closest('table'),i=+b.dataset.sortColumn,asc=b.parentElement.getAttribute('aria-sort')!=='ascending';t.querySelectorAll('th').forEach(x=>x.removeAttribute('aria-sort'));b.parentElement.setAttribute('aria-sort',asc?'ascending':'descending');let rows=[...t.tBodies[0].rows];rows.sort((a,b)=>{let x=a.cells[i].dataset.value,y=b.cells[i].dataset.value;if(x==='')return y===''?0:1;if(y==='')return -1;return (Number(x)-Number(y))*(asc?1:-1)});rows.forEach(r=>t.tBodies[0].append(r))});
-let pf=document.querySelector('[data-population-filter]');let f=document.querySelector('[data-filter]'),q=document.querySelector('[data-query]'),g=document.querySelector('[data-cohort-filter]'),o=document.querySelector('[data-origin-filter]'),m=document.querySelector('[data-method-filter]');function filter(){document.querySelectorAll('[data-row]').forEach(r=>{r.hidden=(pf&&pf.value!=='all'&&!JSON.parse(pf.selectedOptions[0].dataset.caseIds||'[]').includes(r.dataset.caseId))||(f&&f.value!=='all'&&r.dataset.state!==f.value)||(g&&g.value!=='all'&&r.dataset.cohort!==g.value)||(o&&o.value!=='all'&&r.dataset.origin!==o.value)||(m&&m.value!=='all'&&r.dataset.method!==m.value)||(q&&!r.textContent.toLowerCase().includes(q.value.toLowerCase()))})}if(pf)pf.onchange=filter;if(f)f.onchange=filter;if(q)q.oninput=filter;if(g)g.onchange=filter;if(o)o.onchange=filter;if(m)m.onchange=filter;filter();
-document.querySelectorAll('[data-evidence]').forEach(b=>b.onclick=async()=>{let d=document.querySelector('dialog');d.querySelector('a').hidden=true;d.querySelector('pre').textContent='…';d.showModal();try{let r=await fetch(b.dataset.evidence);if(!r.ok)throw Error('HTTP '+r.status);let text=await r.text();if(b.dataset.result!==undefined){let v=JSON.parse(text),items; if(v&&typeof v.body==='string')v=JSON.parse(v.body);else if(v&&v.body&&typeof v.body==='object')v=v.body;items=v?.results??v?.organic??v?.data?.webPages?.value;let index=Number(b.dataset.result);if(!/^[0-9]+$/.test(b.dataset.result)||!Number.isSafeInteger(index)||!Array.isArray(items)||index>=items.length)throw Error('Selected result is missing or invalid');let item=items[index];if(!item||typeof item!=='object'||Array.isArray(item)||!Object.keys(item).length)throw Error('Selected result is missing or invalid');text=JSON.stringify(item,null,2)}else{try{text=JSON.stringify(JSON.parse(text),null,2)}catch{}}d.querySelector('pre').textContent=text}catch(e){d.querySelector('pre').textContent=String(e)}});
-document.querySelectorAll('[data-diagnosis]').forEach(b=>b.onclick=()=>{let d=document.querySelector('dialog');d.querySelector('pre').textContent=b.dataset.diagnosis;let a=d.querySelector('a');a.hidden=false;a.href=b.dataset.detail;d.showModal()});
-document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
-if(document.querySelector('.mermaid')&&innerWidth>700){let s=document.createElement('script');""" + mermaid_script_attributes("s") + """;s.onload=async()=>{mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:'neutral'});for(let [i,n] of [...document.querySelectorAll('.mermaid')].entries()){try{let r=await mermaid.render('search-flow-'+i,n.textContent);n.innerHTML=r.svg;n.hidden=false;n.previousElementSibling.hidden=true}catch{}}};document.head.appendChild(s)}
-"""
+ASSETS = Path(__file__).with_name("assets")
+STYLE = ASSETS.joinpath("report.css").read_text(encoding="utf-8")
+EVIDENCE_SCRIPT = ASSETS.joinpath("native-evidence-result.js").read_text(encoding="utf-8")
+SCRIPT = EVIDENCE_SCRIPT + ASSETS.joinpath("report.js").read_text(encoding="utf-8").replace(
+    "/*mermaid-script-attributes*/", mermaid_script_attributes("s")
+)
 
 
 # Search pages keep their established literal rendering of an absent value.
@@ -1584,7 +1542,9 @@ def _write_manifest(
             diagnostics=diagnostics,
             authored=authored if content_bytes is not None else None,
             reading_sections=reading_sections,
-            renderer_sha256=bytes_sha256(Path(__file__).read_bytes()),
+            renderer_sha256=bytes_sha256(b"\0".join(
+                path.read_bytes() for path in (Path(__file__), *sorted(ASSETS.glob("*.*")))
+            )),
         ),
     )
 
@@ -2930,7 +2890,7 @@ def cost_panel(profile, rows, zh, content=None):
             label = '<a href="' + esc(source) + '">' + label + '</a>'
         rule = rules.get(method.get("billing"), method.get("billing", ""))
         row = cells([esc(method["label"]), label, esc(method.get("price_checked", "")), esc(rule), str(logical), str(physical), str(billed) if price is not None else report_text("Unknown", zh)])
-        label = fmt(total) + " " + currency if total is not None else (report_text("Not priced", zh) if price is None else report_text("Partial charges known; some billing remains unknown", zh, value=sum((c for c in [a.get('cost') for r in rows if r['method'] == method['id'] for a in r.get('attempts', [r])] if c is not None)), currency=currency))
+        label = fmt(total) + " " + currency if total is not None else (report_text("Not priced", zh) if price is None else report_text("Partial charges known; some billing remains unknown", zh, value=sum(c for c in [a.get('cost') for r in rows if r['method'] == method['id'] for a in r.get('attempts', [r])] if c is not None), currency=currency))
         rendered.append(row[:-5] + numeric_cell(label, total, "cohort-cost", "min" if comparable else "neutral", 0 in winners and total == winners[0]) + '</tr>')
     return ('<section data-cost-budget><h2>' + report_text("Unit prices, billable calls and estimated charges", zh) + '</h2>'
             + table([report_text("Method", zh), report_text("Price /1,000", zh), report_text("Price checked", zh), report_text("Billing condition", zh), report_text("Search tasks", zh), report_text("Physical calls", zh), report_text("Known billable calls", zh), report_text("Estimated total", zh)], rendered)

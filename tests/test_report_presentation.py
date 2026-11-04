@@ -13,7 +13,7 @@ class ReportRevisionTests(unittest.TestCase):
   providers=['moli','chromium','lightpanda','obscura','kitesurf','moli-1.0.6','moli-1.1.3']
   records=[]
   for provider in providers:
-   for cid,value in zip(cases,[1000,3000,99000]):
+   for cid,value in zip(cases,[1000,3000,99000],strict=True):
     passed=not(provider=='moli-1.0.6' and cid=='c')
     records.append({'provider':provider,'case_id':cid,'ok':passed,
                     'metrics':{'content_pass':passed},'elapsed_ms':value,
@@ -73,8 +73,8 @@ class ReportRevisionTests(unittest.TestCase):
             'metrics':{'content_pass':key=='a' or name=='z-high'}}
            for name in ('a-low','z-high','b-low') for key in cases]
   for diagnostic in (False,True):
-   for render in (lambda:overall_ranking(records,cases,diagnostic=diagnostic),
-                  lambda:ranking(records,cases,'web',diagnostic=diagnostic)):
+   for render in (lambda diagnostic=diagnostic:overall_ranking(records,cases,diagnostic=diagnostic),
+                  lambda diagnostic=diagnostic:ranking(records,cases,'web',diagnostic=diagnostic)):
     with self.subTest(diagnostic=diagnostic,render=render):
      doc=BeautifulSoup(render(),'html.parser');table=doc.select_one('table.ranking')
      column=2 if diagnostic else 3

@@ -68,7 +68,7 @@ def test_release_gate_rejects_missing_or_conflicting_build_identity(tmp_path, de
 @pytest.mark.parametrize('bases', [(None, None), ('./', '../'), ('./?preview=token', '../?preview=token')])
 def test_shared_identity_handles_both_languages_and_repeat_builds(tmp_path, bases):
     (tmp_path / 'en').mkdir()
-    for path, base in zip((tmp_path / 'index.html', tmp_path / 'en/index.html'), bases):
+    for path, base in zip((tmp_path / 'index.html', tmp_path / 'en/index.html'), bases, strict=True):
         path.write_text('<html><head>' + (f'<base href="{base}">' if base else '')
                        + '</head><body><main>Results</main><footer></footer></body></html>', encoding='utf-8')
     versions.bind_build_version(tmp_path)
@@ -107,11 +107,12 @@ def test_installed_package_does_not_borrow_an_unrelated_checkout(tmp_path, monke
     'web_fetch/workers/openclaw_webfetch_worker.mts',
     'web_fetch/workers/native_dns_darwin.c',
     'web_fetch/report-translations.json',
-    'browser_use/report-translations.json',
+    'browser_use/messages.json',
     'trajectory_replay/messages.json',
     'environments/webarena/runtime/php-fpm-qemu.ini',
     'web_fetch/templates/interpretation-headless.css',
     'web_fetch/assets/report-style.css',
+    'web_fetch/assets/report.js',
     'trajectory_replay/assets/webarena-report.js',
     'browser_use/assets/report.css',
     'web_search/assets/comparison.js',

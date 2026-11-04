@@ -236,7 +236,18 @@ repository maintainer explicitly changes the goal.
 
 ## Browser Eval review supplement
 
-Follow the repository review constraints in `AGENTS.md` and `CONTRIBUTING.md`. The following requirements belong to Browser Eval and supplement the shared criteria above and OCR's built-in rules.
+Follow the repository review constraints in `AGENTS.md`, `CONTRIBUTING.md` and the guide that owns the changed area. The following requirements belong to Browser Eval and supplement the shared criteria above and OCR's built-in rules.
+
+| Changed area | Also apply |
+| --- | --- |
+| Any report renderer, release check or report text | `.agents/skills/benchmark-report/references/presentation-quality.md`, `.agents/skills/benchmark-report/references/report-and-release.md` |
+| Report language or publishing | `docs/report-hosting.md` |
+| Benchmark design, build timing, audits, reruns, corrections | `.agents/skills/benchmark-report/references/evaluation-design.md`, `.agents/skills/benchmark-report/references/audit-and-revision.md` |
+| `src/harness/web_fetch/` | `src/harness/web_fetch/README.md`, `src/harness/web_fetch/HEADLESS.md`, `src/harness/web_fetch/WEBMAINBENCH.md` |
+| `src/harness/web_search/` | `src/harness/web_search/README.md` |
+| `src/harness/browser_use/` | `examples/browser_use/README.md` |
+| `src/harness/trajectory_replay/` | `docs/trajectory-replay-protocol.md`, `examples/trajectory_replay/public_webarena/README.md` |
+| `src/harness/lexbench/` | `src/harness/lexbench/README.md` |
 
 ### Repository checks
 

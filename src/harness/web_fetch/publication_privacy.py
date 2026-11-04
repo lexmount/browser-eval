@@ -127,7 +127,7 @@ def project_redundant_result_streams(name: str, data: bytes):
     omitted_bytes = 0
     output = []
     changed = False
-    for raw, row in zip(lines, rows):
+    for raw, row in zip(lines, rows, strict=True):
         row_changed = False
         metadata = row.get('provider_metadata') if isinstance(row, dict) else None
         retry = metadata.get('retry') if isinstance(metadata, dict) else None
@@ -603,7 +603,7 @@ def project_file(name, data):
     projected = GOOGLE_KEY.sub(b'[REDACTED_GOOGLE_API_KEY]',
                                url_projected.encode('utf-8', errors='surrogateescape'))
     for pattern, _, replacement in REDACTIONS:
-        projected = pattern.sub(lambda match: match.group() if _public_cors_policy(
+        projected = pattern.sub(lambda match, replacement=replacement: match.group() if _public_cors_policy(
             match.group()) else match.expand(replacement), projected)
     projected = WEB_FETCH_USER_SEGMENT.redact(projected)
     categories = []
@@ -1097,7 +1097,7 @@ def _project_json(name, data):
         return value
 
     output = []
-    for raw, document in zip(lines, documents):
+    for raw, document in zip(lines, documents, strict=True):
         revised = project(document)
         if revised == document:
             output.append(raw)

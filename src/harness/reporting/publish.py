@@ -19,7 +19,6 @@ from __future__ import annotations
 import hashlib
 import json
 import math
-import socket
 import time
 import urllib.parse
 import zipfile
@@ -107,7 +106,7 @@ def put_file(request, path, data):
                 interval = min(delay, 30)
                 time.sleep(interval)
                 delay -= interval
-        except (TimeoutError, socket.timeout, URLError, RemoteDisconnected):
+        except (TimeoutError, URLError, RemoteDisconnected):
             if attempt == 3:
                 raise
             delay=min(2**attempt,4)

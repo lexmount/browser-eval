@@ -243,7 +243,7 @@ def read_packed_manifest(read):
     if (type(count) is not int or count <= 0 or len(starts) != len(packs)
         or not starts or starts[0] != 0 or starts[-1] >= count
         or any(type(x) is not int for x in starts)
-        or any(a >= b for a,b in zip(starts, starts[1:]))
+        or any(a >= b for a,b in zip(starts, starts[1:], strict=False))
         or len(set(packs)) != len(packs)):
         raise ValueError('Invalid compact pack inventory')
     raw = gzip.decompress(read('catalog.bin.gz'))

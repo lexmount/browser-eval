@@ -8,7 +8,6 @@ import pytest
 
 from harness.trajectory_replay.public_webarena.report import (
     METRICS,
-    _annotate_source_marks,
     _correctness_table,
     _failure_review,
     _method_page,
@@ -110,16 +109,6 @@ def test_comparisons_are_neutral_for_displayed_ties_and_missing_values():
         for engine in ("chromium", "moli")
     }
     assert 'class="better"' not in _correctness_table({"functional": tied})
-
-
-def test_source_permalink_character_is_annotated_not_removed():
-    from html import unescape
-
-    original = "The Python Tutorial¶"
-    rendered = _annotate_source_marks(original)
-    assert unescape(re.sub(r"<[^>]+>", "", rendered)) == original
-    assert 'title="原网页标题锚点字符 U+00B6"' in rendered
-    assert _annotate_source_marks("plain title") == "plain title"
 
 
 def test_each_provider_links_to_its_failure_filter_including_zero_failures():

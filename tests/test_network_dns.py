@@ -88,7 +88,7 @@ class NetworkDnsTests(unittest.TestCase):
             with self.subTest(payload=payload):
                 with self.assertRaises((ValueError, socket.gaierror)):
                     lookup_public_dns('fixture.example', timeout=45,
-                                      opener=lambda *args, **kwargs: io.BytesIO(json.dumps(payload).encode()))
+                                      opener=lambda *args, payload=payload, **kwargs: io.BytesIO(json.dumps(payload).encode()))
         with self.assertRaisesRegex(ValueError, '64 KiB'):
             lookup_public_dns('fixture.example', timeout=45,
                               opener=lambda *args, **kwargs: io.BytesIO(b'x'*65537))

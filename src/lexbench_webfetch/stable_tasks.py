@@ -722,10 +722,32 @@ def _descriptions(text, *, literal=False):
             if following:
                 records.extend(_descriptions(block[end:], literal=literal))
         return records
+    # A whitespace-only line is a blank line for the setext check below.
+    text = re.sub(r'(?m)^[ \t]+$', '', text)
     bullets = [] if literal else list(re.finditer(r"(?m)^\s*(?:[-*+]|\d+[.)])[ \t]+\S.*$", text))
     if bullets:
+        # Fences are consumed so their code lines cannot declare a section. A
+        # setext title needs a blank line before it; otherwise it is a lazy
+        # continuation of the item and the underline is not a heading.
+        sections = [match for match in re.finditer(
+            r'(?ms)^ {0,3}(`{3,}(?=[^`\n]*$)|~{3,}).*?(?:^ {0,3}\1[`~]*[ \t]*$|\Z)'
+            r'|^(?:(?= {0,3}#{1,6}(?:[ \t]+\S|[ \t]*$))'
+            r'|(?<![^\n]\n)(?= {0,3}\S[^\n]*\n {0,3}(?:=+|-+)[ \t]*$))( {0,3})', text)
+            if match[2] is not None]
         for index, bullet in enumerate(bullets):
             end = bullets[index + 1].start() if index + 1 < len(bullets) else len(text)
+            # A heading left of the item's content column may be a later section or
+            # the card's own title. It ends the description when nothing follows it
+            # before the next bullet, or after the last bullet unless it repeats the
+            # bullet's title. A heading indented into the item remains a continuation.
+            column = re.match(r'\s*(?:[-*+]|\d+[.)])[ \t]+', bullet[0].rsplit('\n', 1)[-1].expandtabs(4)).end()
+            section = next((section.start() for section in sections
+                            if bullet.end() <= section.start() < end and len(section[2]) < column), None)
+            if section is not None:
+                heading, _, body = text[section:end].partition('\n')
+                title = _line(heading)
+                if not body.strip() or (index + 1 == len(bullets) and not (title and title in bullet[0])):
+                    end = section
             lines = [_line(line, literal=literal) for line in text[bullet.start():end].splitlines() if line.strip()]
             records.append(_record({"name": _field(lines[0], "name"),
                 "description": " ".join(_field(line, "description") for line in lines[1:])}, "name_description"))
@@ -1923,8 +1945,15 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     membership = contract.get('source_membership', {})
     if membership.get('kind') == 'fixed':
         allowed = set(membership['record_hashes'])
-        owned = [r for r in complete if source_record_hash(
-            r['fields'], membership['fields'], schema) in allowed]
+        owned = []
+        for record in complete:
+            record_hash = source_record_hash(record['fields'], membership['fields'], schema)
+            if record_hash in allowed:
+                owned.append(record)
+            else:
+                source_mismatches.append({
+                    'fields': {name: record['fields'].get(name) for name in membership['fields']},
+                    'record_sha256': record_hash})
         if len(owned) != len(complete):
             errors.append('source_record_mismatch')
         complete = owned
@@ -1996,7 +2025,9 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             "stable_record_count": len(records), "stable_complete_record_count": len(complete),
             "stable_unique_record_count": len(unique), "stable_minimum_records": minimum,
             "stable_record_list_type": count_policy.get("list_type") if count_policy else None,
-            "stable_source_observed_record_count": count_policy.get("source_observed_count") if count_policy else None,
+            "stable_source_observed_record_count": (count_policy.get("source_observed_count") if count_policy
+                                                    else len(membership['record_hashes'])
+                                                    if membership.get('kind') == 'fixed' else None),
             "stable_required_record_ratio": count_policy.get("required_ratio") if count_policy else None,
             "stable_record_coverage": (len(unique) / count_policy["source_observed_count"]
                                        if count_policy else None),
@@ -2005,6 +2036,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             "stable_record_warnings": record_warnings,
             "stable_source_matched_record_count": (len(records)
                                                      if contract.get("source_record_pair_hashes")
+                                                     else len(unique) if membership.get('kind') == 'fixed'
                                                      else None),
             "stable_source_mismatched_record_count": len(source_mismatches),
             "stable_source_mismatched_records": source_mismatches[:20],

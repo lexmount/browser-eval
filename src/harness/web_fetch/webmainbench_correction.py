@@ -27,6 +27,7 @@ from harness.record_io import (
     load_jsonl,
     write_json,
 )
+from harness.web_fetch.providers.headless import engine_definition
 from harness.web_fetch.safety import stage_evidence_revision
 from harness.web_fetch.webmainbench_case_correction import dimensions
 from harness.web_fetch.webmainbench_certification import verify_shard
@@ -340,7 +341,7 @@ def certify_case_correction(argv=None):
             env["MOLI_BINARY"] = str(binaries[name])
         version = selected[name]["provider_metadata"].get("browser_version", "").split()
         version_args = (
-            ["--expected-version", version[-1]] if version and provider != "kitesurf" else []
+            ["--expected-version", version[-1]] if version and not engine_definition(provider).hosted else []
         )
         subprocess.run(
             [
@@ -461,7 +462,7 @@ def load_corrected_cases(path):
         raise ValueError("Corrected dataset must contain unique track IDs")
     for identifier in ids:
         safe_identifier(identifier)
-    return dict(zip(ids, rows))
+    return dict(zip(ids, rows, strict=True))
 
 
 def revise_dataset_scoring(source, corrected_dataset, manifest_path, scorer_repo, scorer_commit, output):

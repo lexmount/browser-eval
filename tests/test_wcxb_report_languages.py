@@ -227,7 +227,8 @@ def test_wcxb_public_build_uses_bound_optional_case_and_profile_participants(tmp
     from harness.web_fetch.report_build import build_wcxb_report
     from harness.web_fetch.wcxb_scoring import score
     from harness.web_fetch.wcxb_report_check import check_bound_interpretation
-    from tests.wcxb_fixture import create_cohort, write_json
+    from tests.wcxb_fixture import create_cohort
+    from tests.helpers import write_json
 
     cohort = create_cohort(tmp_path / 'cohort', paired=True, providers=participants)
     score(**cohort)

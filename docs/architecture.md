@@ -106,11 +106,12 @@ Current public benchmark definitions, acceptance contracts and reference binding
 
 External files live under `BROWSER_EVAL_DATA_HOME` (default `~/.browser-eval/`) or a pinned Artifact Site release. Evaluation credentials come from `.env`; publishing uses separate authorization for its host.
 
-Profiles under `evaluation/` bind a track's exact task population, methods,
-versions, evidence and publication target. These are historical experiment
-contracts, not defaults to copy into a new measurement. The complete WebMainBench
-baseline and variants keep their pre-call profiles immutable; the separate
-publication target tracks the live site version.
+External report-instance profiles, selected with `--profile`, bind a track's
+exact task population, methods, versions, evidence and publication target. None
+lives under `evaluation/`. They are historical experiment contracts, not defaults
+to copy into a new measurement. The complete WebMainBench baseline and variants
+keep their pre-call profiles immutable; the separate publication target tracks
+the live site version.
 
 Historical source inputs are external and hash-bound. See
 [reference inputs](reference-inputs.md) for import and strict validation, and
@@ -165,10 +166,8 @@ receipts retain the binding hash, and upload snapshots protect it from changes.
 ### Optional release checks and publication
 
 Release checks cover evidence, links, semantic presentation and the declared
-languages. A focused reader pass renders each top-level navigation page once at
-the standard desktop width. Deterministic generation checks own routes, detail
-links, filters, pagination, dialogs and evidence loading; shared component tests
-own narrow-width and theme behavior. Packaging copies only declared public files,
+languages; [report and release](../.agents/skills/benchmark-report/references/report-and-release.md#release-gates)
+owns the reader pass and its scope. Packaging copies only declared public files,
 rejects symlinks and checks that source and authority bytes remain unchanged.
 
 For an explicitly requested and authorized publication, use the selected track's publisher after its release gates pass. Each
@@ -213,7 +212,7 @@ cause or final verdict. An optional output file must be new.
 ### Paired timing
 
 Paired Moli timing uses `scripts/diagnose_webmainbench_moli_tail.py` or
-`python -m harness.web_fetch.webmainbench_latency_diagnostic` with the same arguments.
+`uv run --frozen python -m harness.web_fetch.webmainbench_latency_diagnostic` with the same arguments.
 `--older-version` and `--newer-version` declare the expected binary versions;
 `--source-sha256` and `--source-count` bind a different frozen source population.
 `--all-cases` includes the complete declared sample. Tail-only selection is

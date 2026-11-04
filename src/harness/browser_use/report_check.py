@@ -27,6 +27,7 @@ from harness.browser_use.report import (
     _public_attempt,
     _public_execution,
 )
+from harness.browser_use.report_i18n import report_text
 from harness.browser_use.selection import load_pilot, report_selection_path
 from harness.distribution import repository_root
 from harness.environments.webarena.topology import known_site_secrets
@@ -39,11 +40,14 @@ from harness.reporting.release_check import check_report_identity, open_report
 from harness.web_fetch.safety import reject_evidence_symlinks
 from lexbench_webfetch.paths import contained_path
 
+# Report checks read the Chinese edition and compare it with what the renderer wrote.
+_ZH = report_text("zh")
+
 FORBIDDEN_READER_TERMS = (
-    "模型内完整配对",
-    "不等于共同根因",
-    "仅基准通过",
-    "仅对比通过",
+    _ZH("check.complete_within_model_pairs", "complete within-model pairs"),
+    _ZH("check.not_necessarily_the_same_root_cause", "Not necessarily the same root cause"),
+    _ZH("check.baseline_only", "Baseline only"),
+    _ZH("check.comparison_only", "Comparison only"),
 )
 
 def _forbidden_public_text() -> re.Pattern[str]:
@@ -107,7 +111,7 @@ def _check_execution_artifacts(
         public = public_by_id[result_id]
         indexed = indexed_by_id[result_id]
         detail_text = (report_dir / "results" / f"{result_id}.html").read_text(encoding="utf-8")
-        if f"包含 <strong>{len(sources)}</strong> 次物理执行" not in detail_text:
+        if _ZH("check.contains_strong_strong_physical_executions", "contains <strong>{sources_count}</strong> physical executions", sources_count=len(sources)) not in detail_text:
             raise ValueError(f"result page omits physical execution count: {result_id}")
         expected_public = _public_attempt(logical)
         for key in (
@@ -520,16 +524,16 @@ def check(
     cjk = re.compile(r"[\u3400-\u9fff]")
     localized_attribute = re.compile(r'(?:aria-label|placeholder|title)="([^"]*)"', flags=re.I)
     untranslated_interface = (
-        "该逻辑结果包含",
-        "物理执行",
-        "判分权威",
-        "单次调用墙钟时间",
-        "查看该浏览器的全部结果",
-        "完整结果只保留一份",
-        "该执行没有可公开的 trace 页面画面",
-        "个物理执行均记录",
-        "个物理执行均保存",
-        "本轮剔除",
+        _ZH("execution_evidence_html.this_logical_result_contains", "This logical result contains"),
+        _ZH("check.physical_execution", "Physical execution"),
+        _ZH("check.scoring_authority", "Scoring authority"),
+        _ZH("check.wall_time_per_call", "Wall time per call"),
+        _ZH("engine_pages.view_all_results_for_this_browser", "View all results for this browser"),
+        _ZH("check.only_one_complete_result_list_is", "Only one complete result list is kept"),
+        _ZH("check.this_execution_has_no_publishable_trace", "This execution has no publishable trace page frame"),
+        _ZH("check.physical_executions_recorded", " physical executions recorded"),
+        _ZH("check.physical_executions_retain", " physical executions retain"),
+        _ZH("check.excluded_in_this_run", "excluded in this run"),
     )
     for page in english_pages:
         text = rendered_pages[page]
@@ -544,7 +548,7 @@ def check(
         if any("、" in value for value in excluded_lists):
             raise ValueError(f"English excluded-task list uses Chinese punctuation: {page}")
     for relative, allowed in {
-        "index.html": {"中文"},
+        "index.html": {_ZH("check.chinese", "Chinese")},
     }.items():
         page = report_dir / "en" / relative
         if page not in rendered_pages:
@@ -563,23 +567,23 @@ def check(
         if "engine-result-table" in engine_page or f"f_engine={engine}" not in engine_page:
             raise ValueError("browser pages must link to the single filtered result inventory")
     if task_pages and any(
-        "Ground truth · 官方验收合同" not in rendered_pages[page]
-        or "查看本题运行结果" not in rendered_pages[page]
-        or "最终结果对照" in rendered_pages[page]
+        _ZH("task_pages.ground_truth_official_acceptance_contract", "Ground truth · official acceptance contract") not in rendered_pages[page]
+        or _ZH("task_pages.view_measured_results_for_this_task", "View measured results for this task") not in rendered_pages[page]
+        or _ZH("check.final_result_comparison", "Final result comparison") in rendered_pages[page]
         for page in task_pages
     ):
         raise ValueError(
             "task pages must publish frozen contracts without embedding measured comparisons"
         )
     dataset_index = rendered_pages[report_dir / "datasets/index.html"]
-    if "data-result=" in dataset_index or "可完成性证据" in dataset_index:
+    if "data-result=" in dataset_index or _ZH("check.solvability_evidence", "Solvability evidence") in dataset_index:
         raise ValueError("dataset inventory must not mix measured results into task definitions")
     review_index = rendered_pages[report_dir / "review/index.html"]
     if (
-        "核验与修订记录" not in review_index
-        or "核验轮次" not in review_index
+        _ZH("review_page.review_and_revision_history", "Review and revision history") not in review_index
+        or _ZH("review_page.review_rounds", "Review rounds") not in review_index
         or "review-result-table" in review_index
-        or "逐结果覆盖" in review_index
+        or _ZH("check.per_result_coverage", "Per-result coverage") in review_index
     ):
         raise ValueError("review page must present review rounds, not a per-result audit table")
     selected_tasks = read_json(report_dir / "data/selection.json")[
@@ -592,31 +596,31 @@ def check(
     analysis_index = rendered_pages[report_dir / "analysis/index.html"]
     for marker in (
         "comparison-winner",
-        f"完整 {len(selection.tasks)} 题结果入口",
-        "BrowserTool 动作延迟",
+        _ZH("analysis_page.complete_task_results_entry", "Complete {tasks_count}-task results entry", tasks_count=len(selection.tasks)),
+        _ZH("analysis_page.browsertool_action_latency", "BrowserTool action latency"),
         "action-card-grid",
-        "全部配置 · 单次调用墙钟时间",
-        "同题全配置对比",
+        _ZH("action_duration_cards.all_configurations_per_call_wall_time", "All configurations · per-call wall time"),
+        _ZH("check.same_task_comparison_across_all_configurations", "Same-task comparison across all configurations"),
         'id="configuration-matrix"',
-        "查看诊断",
+        _ZH("attempt_table.open_diagnosis", "Open diagnosis"),
         'class="diagnosis-dialog"',
-        "程序报错",
+        _ZH("diagnosis_dialog.program_error", "Program error"),
     ):
         if marker not in analysis_index:
             raise ValueError(f"analysis is missing timing or scalable comparison: {marker}")
 
     guide_index = rendered_pages[report_dir / "index.html"]
     for marker in (
-        f"{len(selection.tasks)} 题核心指标",
-        "Agent 总耗时",
-        "BrowserTool 耗时",
-        "均值",
+        _ZH("check.core_metrics_across_tasks", "Core metrics across {tasks_count} tasks", tasks_count=len(selection.tasks)),
+        _ZH("article_body.agent_total_time", "Agent total time"),
+        _ZH("article_body.browsertool_latency", "BrowserTool latency"),
+        _ZH("summary_comparison_rows.mean", "Mean"),
         "P50",
         "P95",
         "comparison-winner",
-        f"全部 {len(models) * len(engines)} 种配置中比较",
-        "已通过结果没有再做独立语义盲审",
-        "程序判分落点与复核根因",
+        _ZH("check.compare_all_configurations", "compare all {models_count} configurations", models_count=len(models) * len(engines)),
+        _ZH("check.passed_results_have_not_received_an", "Passed results have not received an independent blind semantic review"),
+        _ZH("article_body.programmatic_failure_location_and_reviewed_root", "Programmatic failure location and reviewed root cause"),
         'class="verdict-strip"',
         'class="cause-bars"',
         'id="home-qualified-results"',
@@ -625,12 +629,12 @@ def check(
     ):
         if marker not in guide_index:
             raise ValueError(f"interpretation is missing an evidence-backed reading aid: {marker}")
-    if "首次成功与重试恢复" in guide_index:
+    if _ZH("check.first_attempt_success_and_retry_recovery", "First-attempt success and retry recovery") in guide_index:
         raise ValueError("homepage must present one final logical result, not retry narration")
     for forbidden in (
-        "中位数",
-        "失败结果定位",
-        "是否属于目标变量",
+        _ZH("check.median", "Median"),
+        _ZH("check.failed_result_inventory", "Failed-result inventory"),
+        _ZH("check.target_variable", "Target variable?"),
         'id="failure-table"',
         'id="pair-table"',
         'class="finding-list"',
@@ -638,20 +642,20 @@ def check(
         if forbidden in analysis_index:
             raise ValueError(f"analysis contains a redundant or retired presentation: {forbidden}")
     participant_index = rendered_pages[report_dir / "adoption/index.html"]
-    if "被测浏览器与固定实验条件" not in participant_index or "参评选手" in participant_index:
+    if _ZH("adoption_page.browsers_tested_and_fixed_experimental_controls", "Browsers tested and fixed experimental controls") not in participant_index or _ZH("check.contestant", "Contestant") in participant_index:
         raise ValueError("participant page must use neutral reader-facing terminology")
     if result_pages and any(
         marker not in rendered_pages[page]
         for page in result_pages
         for marker in (
-            "任务要求与验收结果",
-            "查看官方期望与本次观察",
-            "CowAgent 自主执行轨迹",
-            "运行、日志与证据",
+            _ZH("result_page.task_requirements_and_acceptance_result", "Task requirements and acceptance result"),
+            _ZH("verification_html.view_the_official_expectation_and_this", "View the official expectation and this run's observation"),
+            _ZH("result_page.cowagent_autonomous_trajectory", "CowAgent autonomous trajectory"),
+            _ZH("result_evidence_section.runtime_logs_and_evidence", "Runtime, logs, and evidence"),
             "runtime-strip",
-            "任务与验收",
-            "在页面中查看完整执行证据",
-            "下载原始 JSON",
+            _ZH("result_navigation.task_and_acceptance", "Task and acceptance"),
+            _ZH("artifact_links.view_complete_execution_evidence_on_this", "View complete execution evidence on this page"),
+            _ZH("evidence_viewer_page.download_raw_json", "Download raw JSON"),
         )
     ):
         raise ValueError("every result page must expose result, evaluator, trajectory and logs")
@@ -676,24 +680,24 @@ def check(
         marker not in rendered_pages[page]
         for page in failed_pages
         for marker in (
-            "失败诊断",
+            _ZH("diagnosis_dialog.failure_diagnosis", "Failure diagnosis"),
             'class="failure-lead"',
-            "程序报错",
-            "程序判定",
-            "复核根因",
-            "负责范围",
-            "失败执行的最后页面画面",
+            _ZH("diagnosis_dialog.program_error", "Program error"),
+            _ZH("diagnosis_dialog.program_verdict", "Program verdict"),
+            _ZH("diagnosis_dialog.reviewed_root_cause", "Reviewed root cause"),
+            _ZH("diagnosis_dialog.owning_scope", "Owning scope"),
+            _ZH("result_page.final_page_frames_from_the_failed", "Final page frames from the failed execution"),
         )
     ):
         raise ValueError("every failed result must expose a complete diagnosis path")
     if any(
         marker in rendered_pages[page]
         for page in result_pages
-        for marker in ("Ground truth 与实际最终回答", "官方 evaluator 逐规则判定")
+        for marker in (_ZH("check.ground_truth_and_actual_final_answer", "Ground truth and actual final answer"), _ZH("check.official_evaluator_verdicts_by_rule", "Official evaluator verdicts by rule"))
     ):
         raise ValueError("result pages must not duplicate answer and evaluator presentations")
     html = rendered_pages[index]
-    article_heading = "程序判分落点与复核根因"
+    article_heading = _ZH("article_body.programmatic_failure_location_and_reviewed_root", "Programmatic failure location and reviewed root cause")
     if article_heading not in rendered_pages[report_dir / "index.html"]:
         raise ValueError("homepage must contain the authored interpretation")
     public_results = load_jsonl(report_dir / "data/results.jsonl", skip_blank=True)
@@ -710,20 +714,20 @@ def check(
     if any(forbidden & set(item) for item in public_results):
         raise ValueError("public result projection contains private evidence fields")
     forbidden_report_terms = (
-        "诊断重试",
-        "失败重试",
-        "首轮试次",
+        _ZH("check.diagnostic_retry", "Diagnostic retry"),
+        _ZH("check.failure_retries", "Failure retries"),
+        _ZH("check.primary_attempt", "Primary attempt"),
         "assistant reasoning",
-        "用户提示词",
-        "我的思考",
-        "内部工作日志",
-        "另一个覆盖更多站点的 179 题",
-        "后续 179 题",
-        "需要注意：",
-        "代理实测返回 team_model_access_denied",
-        "证据支持的诊断",
-        "共享链路诊断",
-        "失败归因：",
+        _ZH("check.user_prompt", "User prompt"),
+        _ZH("check.my_reasoning", "My reasoning"),
+        _ZH("check.internal_work_log", "Internal work log"),
+        _ZH("check.another_179_task_set_covering_more", "Another 179-task set covering more sites"),
+        _ZH("check.follow_up_179_tasks", "Follow-up 179 tasks"),
+        _ZH("check.note", "Note:"),
+        _ZH("check.the_proxy_returned_team_model_access", "The proxy returned team_model_access_denied in testing"),
+        _ZH("check.evidence_supported_diagnosis", "Evidence-supported diagnosis"),
+        _ZH("check.shared_stack_diagnosis", "Shared-stack diagnosis"),
+        _ZH("check.failure_attribution", "Failure attribution:"),
     )
     for page, text in rendered_pages.items():
         if any(term in text for term in forbidden_report_terms):
@@ -853,7 +857,7 @@ def check(
         }
         if missing_retries:
             raise ValueError(f"missing {len(missing_retries)} permitted failure retries")
-        if "测量尚未完整" in html:
+        if _ZH("check.measurement_is_not_yet_complete", "Measurement is not yet complete") in html:
             raise ValueError("complete publication cannot contain an incomplete-results notice")
         cause_profile = profile.get("failure_cause_review") or {}
         cause_required = bool(cause_profile.get("required_for_publication"))
@@ -894,7 +898,7 @@ def check(
             (
                 item
                 for item in interpretation.get("claims") or []
-                if item.get("claim") == "官方 evaluator 的失败规则组合"
+                if item.get("claim") == _ZH("automatic_failure_figure.failed_rule_combinations_from_the_official", "Failed rule combinations from the official evaluator")
             ),
             None,
         )

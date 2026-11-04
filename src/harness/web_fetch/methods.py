@@ -322,7 +322,7 @@ def with_measured_method_labels(render):
                         r"^(\d+\.\d+\.\d+)", version)) else None for version in counts]
                     base = name if preserve_name else registered.get("label", {}).get(
                         language, metadata.get("engine") or name)
-                    def label(version):
+                    def label(version, registered=registered, base=base):
                         return versioned_method_label(registered, base, version)
                     messages = report_method_catalog(language)["messages"]
                     if len(counts) == 1:

@@ -7,10 +7,10 @@ import hashlib
 import json
 from pathlib import Path
 
-from harness.trajectory_replay.public_webarena.diagnostics import diagnose_summary
+from harness.trajectory_replay.core.diagnostics import diagnose_summary
+from harness.trajectory_replay.core.suite import validate_ground_truth_evidence
 from harness.trajectory_replay.public_webarena.metrics import summarize_attempts
 from harness.trajectory_replay.public_webarena.report import REPORT_STEM, write_latest_report
-from harness.trajectory_replay.core.suite import validate_ground_truth_evidence
 from harness.trajectory_replay.public_webarena.suite import load_suite
 
 

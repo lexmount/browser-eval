@@ -3,11 +3,10 @@
 
 from __future__ import annotations
 
-from harness.distribution import source_path
-
 import re
 from pathlib import Path
 
+from harness.distribution import source_path
 from harness.web_fetch.reference_inputs import check_reference_input_boundary
 
 ROOT = Path(__file__).resolve().parents[1]

@@ -9,6 +9,7 @@ import sys
 import pytest
 
 from lexbench_webfetch import risk_control_dataset as compiler
+from tests.helpers import write_json
 
 
 def digest(raw):
@@ -24,11 +25,6 @@ def _strings(value):
     elif isinstance(value, list):
         for item in value:
             yield from _strings(item)
-
-
-def write_json(path, value):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False), encoding="utf-8")
 
 
 @pytest.fixture

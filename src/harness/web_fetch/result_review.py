@@ -545,7 +545,7 @@ def _unique_by(rows, key, label):
     values = [row.get(key) for row in rows]
     if None in values or len(values) != len(set(values)):
         raise ValueError(f"{label} must have unique non-empty {key} values")
-    return dict(zip(values, rows))
+    return dict(zip(values, rows, strict=True))
 
 
 def merge_refresh_reviews(
@@ -667,7 +667,7 @@ def merge_refresh_reviews(
     # independent judgment forward but bind machine/final verdict fields to
     # the current persisted score. Reviewer-visible inputs were checked above.
     normalized_attempts = []
-    for record, reviewed in zip(current_records, attempts):
+    for record, reviewed in zip(current_records, attempts, strict=True):
         source = prior_evidence if record['attempt_id'] in reusable else supplemental_evidence
         machine = _machine_verdict(
             source, record, current_cases[record['case_id']], reviewed=reviewed, revision_checks=revision_checks)

@@ -31,7 +31,7 @@ class CollectionScenarios(unittest.TestCase):
                 calls = []
                 interrupted = False
 
-                def http(url, body=None, header=None, timeout=20):
+                def http(url, body=None, header=None, timeout=20, calls=calls):
                     nonlocal interrupted
                     receipt = dict(
                         http_status=200, elapsed_ms=1, transport_exit=0, transport_error=""
@@ -149,7 +149,7 @@ class CollectionScenarios(unittest.TestCase):
                 p.write_text(json.dumps(profile), encoding="utf-8")
                 calls = []
 
-                def http(url, body=None, header=None, timeout=20):
+                def http(url, body=None, header=None, timeout=20, calls=calls, status=status):
                     receipt = dict(http_status=200, elapsed_ms=1, transport_exit=0, transport_error="")
                     if body is None:
                         return receipt, b"reference " * 20

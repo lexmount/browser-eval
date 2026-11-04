@@ -48,10 +48,14 @@ uv run --frozen python -m harness.trajectory_replay.public_webarena.cli \
 
 ## Evidence and publication
 
+This human-recording replay is isolated under `src/harness/trajectory_replay/public_webarena/` with its own examples, tests, external report profile and release script. It must not change autonomous `src/harness/browser_use/` or share a report target or denominator with the repository-curated replay suite.
+
 Measured attempts, screenshots, HAR, and reports stay outside Git. The repository keeps
 the suite, qualification reasons, evaluator rules, source bindings, and a sanitized
 publication summary. Use `verify_metrics.py` to audit raw measurements and
 `rebuild_report.py` to render from existing attempts; neither reruns browsers.
+Rendering needs no site logins. Packaging and publishing stop while a registered site
+login is unset in the repository `.env`, so every package is checked for those passwords.
 
 Publishing uses the site and expected version in the external report profile
 selected with `--profile`. The package attestation binds
@@ -191,7 +195,7 @@ WEBARENA_RAINBOND_SMOKE_URLS='{
   "reddit":"http://<reddit-domain>",
   "gitlab":"http://<gitlab-domain>"
 }' uv run --frozen python -m pytest \
-  tests/trajectory_replay/public_webarena/test_rainbond_live_smoke.py \
+  tests/environments/test_rainbond_live_smoke.py \
   -m real_smoke -q -s
 ```
 

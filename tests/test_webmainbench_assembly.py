@@ -11,10 +11,7 @@ from harness.web_fetch.webmainbench_assembly import assemble
 from harness.web_fetch.webmainbench_certification import verify_shard
 from harness.web_fetch.webmainbench_evidence import read_jsonl, read_method_binding
 from harness.web_fetch.webmainbench_scoring import CORE_METRICS, aggregate, verify_score
-
-
-def write_json(path, value):
-    path.write_text(json.dumps(value), encoding="utf-8")
+from tests.helpers import write_json
 
 
 def write_rows(path, rows):
@@ -192,6 +189,7 @@ def variants(evidence, count):
     return registry, cohorts
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("count", [0, 1, 3])
 def test_complete_assembly_follows_registry_and_retains_all_physical_calls(
     evidence, count
@@ -353,6 +351,7 @@ def test_input_changed_after_materialization_cannot_commit_package(
     assert not list(directory.glob(".webmainbench-assemble-*"))
 
 
+@pytest.mark.slow
 def test_new_certified_variant_replaces_only_its_method_and_preserves_previous_package(
     evidence,
 ):

@@ -41,7 +41,7 @@ class ResultReviewTests(unittest.TestCase):
                 target.write_text('previous review', encoding='utf-8')
                 dumps = json.dumps
 
-                def serialize(value, **kwargs):
+                def serialize(value, failure=failure, root=root, target=target, dumps=dumps, **kwargs):
                     if failure == 'write':
                         raise OSError('synthetic serialization failure')
                     if failure == 'input-change':
@@ -890,7 +890,7 @@ class ResultReviewTests(unittest.TestCase):
                     self.assertEqual(before, {p.name: p.read_bytes() for p in current.iterdir()})
                     continue
                 original_read = Path.read_bytes
-                def bounded_read(path):
+                def bounded_read(path, mode=mode, original_read=original_read):
                     if mode == 'streaming' and path.name == 'results.jsonl':
                         raise AssertionError('whole-file JSONL read in historical refresh')
                     return original_read(path)

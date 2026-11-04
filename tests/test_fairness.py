@@ -17,6 +17,7 @@ from harness.web_fetch.report import case_attrs, ranking, result_label
 from lexbench_webfetch.response_input import apply_request_status
 from lexbench_webfetch.scoring import score_attempt
 from lexbench_webfetch.stable_tasks import evaluate_stable_task
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -228,6 +229,7 @@ class FairnessTests(unittest.TestCase):
             self.assertEqual(m['content_chars'], len(raw.decode()))
             self.assertEqual(m['content_sha256'], hashlib.sha256(raw).hexdigest())
 
+    @pytest.mark.slow
     def test_real_full_reference_passes_and_small_prefix_is_rejected(self):
         cases = self.historical_dataset()['cases']
         for c in cases:

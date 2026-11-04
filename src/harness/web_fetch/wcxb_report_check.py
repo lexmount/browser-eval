@@ -622,7 +622,7 @@ def check_visual(root: Path, browser_binary: str) -> None:
                                 page = browser.new_page(viewport={'width': width, 'height': 844})
                                 try:
                                     errors = []
-                                    page.on('pageerror', lambda error: errors.append(str(error)))
+                                    page.on('pageerror', lambda error, errors=errors: errors.append(str(error)))
                                     prefix = 'en/' if lang == 'en' else ''
                                     language_query = '?report-language=zh' if lang == 'zh' and route == 'index.html' else ''
                                     page.goto(f'{origin}/{prefix}{route}{language_query}',

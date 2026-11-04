@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from lexbench_webfetch import benchmark as bench
+import pytest
 
 
 def write(path, value):
@@ -16,6 +17,7 @@ def write(path, value):
 
 
 class PublicDefinitions(unittest.TestCase):
+    @pytest.mark.slow
     def test_all_shipped_suites_are_consistent(self):
         rows = [bench.validate(row['id']) for row in bench.registry()['suites']]
         self.assertEqual(len(rows), 5)
@@ -55,7 +57,7 @@ class PublicDefinitions(unittest.TestCase):
             self.assertEqual(data, before)
             self.assertNotEqual(new['id'], data['id'])
             self.assertEqual(len(new['cases']), len(data['cases']))
-            changed += sum(a != b for a,b in zip(new['cases'],data['cases']))
+            changed += sum(a != b for a,b in zip(new['cases'],data['cases'],strict=True))
         self.assertEqual(changed, len(revision['changes']))
 
     def test_unknown_suite_is_rejected(self):

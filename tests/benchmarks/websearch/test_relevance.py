@@ -41,7 +41,7 @@ def test_relevance_rejects_conflicting_rankings_for_one_method_case(reverse, str
     urls = ['https://example.org/relevant', 'https://example.org/off-topic']
     first = {'case_id': 'q', 'method': 'a', 'results': [{'url': url} for url in urls]}
     second = {**first, 'results': list(reversed(first['results']))}
-    labels = {'q': {candidate_identity('q', url): grade for url, grade in zip(urls, [3, 0])}}
+    labels = {'q': {candidate_identity('q', url): grade for url, grade in zip(urls, [3, 0], strict=True)}}
     plan = {'cutoff': 2, 'case_ids': ['q']}
     assert len(score(profile, iter([first]) if streaming else [first], plan, labels)) == 1
     rows = [second, first] if reverse else [first, second]
