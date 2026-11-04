@@ -1084,7 +1084,20 @@ def test_repair_clock_can_cross_cooldown_deadline(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "quote", ["“Model A”；“Price: 13.40”", "Model A || Price: 13.40", '["Model A", "Price: 13.40"]']
+    "quote",
+    [
+        "“Model A”；“Price: 13.40”",
+        "Model A || Price: 13.40",
+        "Model A | Price: 13.40",
+        "Model A / Price: 13.40",
+        "Model A; Price: 13.40",
+        "Model A\nPrice: 13.40",
+        '["Model A", "Price: 13.40"]',
+        "['Model A', 'Price: 13.40']",
+        '"Model A"; "Price: 13.40"',
+        '"Model A\\nCurrent offer\\nPrice: 13.40"',
+        "'Model A\\nCurrent offer\\nPrice: 13.40'",
+    ],
 )
 def test_separate_literal_citations_retain_all_fragments_and_judgments(tmp_path, quote):
     source = tmp_path / "source.txt"
@@ -1141,8 +1154,61 @@ def test_compound_citation_cannot_discard_a_fabricated_price(tmp_path):
     result = reconcile_citations(raw, packet)
     assert (
         result["cases"][0]["source_fields"]["price"]["source_quote"]
-        == "Product details; Actual price: 13.40"
+        == "Product details. Actual price: 13.40"
     )
+
+
+@pytest.mark.parametrize("nearby_repeat", [False, True])
+def test_citation_uses_one_bounded_source_span_without_dropping_repeated_anchors(
+    tmp_path, nearby_repeat
+):
+    source = tmp_path / "source.html"
+    text = "Model A" + "x" * 5000 + ("Model A\n" if nearby_repeat else "") + "Price: 13.40"
+    source.write_text(text)
+    packet = {
+        "cases": [
+            {
+                "case_id": "one",
+                "source_html": str(source),
+                "source_outline": str(source),
+                "outputs": [],
+            }
+        ]
+    }
+    quote = '["Model A", "Price: 13.40"]'
+    raw = review_payload(packet, quote)
+    raw["cases"][0]["reference"]["price"].update(status="incorrect", values=["Keep opinion"])
+    result = reconcile_citations(raw, packet)
+    if nearby_repeat:
+        validate(result, packet)
+        assert result["cases"][0]["reference"]["price"]["source_quote"] == "Model A\nPrice: 13.40"
+        assert result["cases"][0]["reference"]["price"]["status"] == "incorrect"
+        assert result["cases"][0]["reference"]["price"]["values"] == ["Keep opinion"]
+    else:
+        with pytest.raises(ValueError, match="not literal"):
+            validate(result, packet)
+        assert result == raw
+
+
+def test_citation_list_never_executes_python_expressions(tmp_path):
+    source = tmp_path / "source.txt"
+    source.write_text("Model A Price: 13.40")
+    sentinel = tmp_path / "must-not-exist"
+    packet = {
+        "cases": [
+            {
+                "case_id": "one",
+                "source_html": str(source),
+                "source_outline": str(source),
+                "outputs": [],
+            }
+        ]
+    }
+    quote = f"[__import__('pathlib').Path({str(sentinel)!r}).write_text('untrusted')]"
+    result = reconcile_citations(review_payload(packet, quote), packet)
+    assert not sentinel.exists()
+    with pytest.raises(ValueError, match="not literal"):
+        validate(result, packet)
 
 
 def test_repair_composition_accepts_verified_field_projection(tmp_path):

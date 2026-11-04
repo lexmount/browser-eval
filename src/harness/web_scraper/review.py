@@ -1,10 +1,12 @@
 """Resumable source-grounded audits of every product field and native response."""
 
+import ast
 import copy
 import json
 import os
 import re
 import subprocess
+from collections import Counter, deque
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -321,6 +323,73 @@ def validate(result, packet):
     return result
 
 
+def citation_fragments(quote):
+    """Parse explicit string/list quoting; never interpret prose as source evidence."""
+    try:
+        decoded = json.loads(quote)
+    except (ValueError, TypeError):
+        try:
+            decoded = ast.literal_eval(quote)
+        except (ValueError, SyntaxError):
+            decoded = None
+    if isinstance(decoded, str):
+        return [decoded]
+    if isinstance(decoded, list) and all(isinstance(part, str) for part in decoded):
+        return decoded
+    for pattern in (r'"(?:[^"\\]|\\.)*"', r"“[^”]+”"):
+        matches = list(re.finditer(pattern, quote))
+        remaining = re.sub(pattern, "", quote)
+        if len(matches) >= 2 and not re.search(r"[^\s；;，,|/\[\]]", remaining):
+            return [
+                json.loads(m.group()) if m.group().startswith('"') else m.group()[1:-1]
+                for m in matches
+            ]
+    for separator in (" || ", " | ", " / ", "；", "; ", "\n"):
+        if separator in quote:
+            return [part.strip() for part in quote.split(separator)]
+    return []
+
+
+def literal_citation_span(source, fragments, *, limit=4096):
+    """Select a bounded literal span containing every excerpt, including repeats."""
+    fragments = list(dict.fromkeys(fragments))
+    if not fragments or not all(fragments):
+        return None
+    events = []
+    for index, fragment in enumerate(fragments):
+        matches = list(re.finditer(re.escape(fragment), source))
+        if not matches:
+            pattern = r"\s*".join(re.escape(c) for c in fragment if not c.isspace())
+            if not pattern:
+                return None
+            matches = list(re.finditer(pattern, source))
+        if not matches:
+            return None
+        events.extend((m.start(), m.end(), index) for m in matches)
+    events.sort()
+    counts, ends = Counter(), deque()
+    left, best = 0, None
+    for right, (_, end, index) in enumerate(events):
+        counts[index] += 1
+        while ends and events[ends[-1]][1] <= end:
+            ends.pop()
+        ends.append(right)
+        while len(counts) == len(fragments):
+            start, _, first = events[left]
+            last = events[ends[0]][1]
+            if last - start <= limit:
+                candidate = source[start:last]
+                if best is None or (len(candidate), candidate) < (len(best), best):
+                    best = candidate
+            counts[first] -= 1
+            if not counts[first]:
+                del counts[first]
+            left += 1
+            while ends and ends[0] < left:
+                ends.popleft()
+    return best
+
+
 def reconcile_citations(result, packet):
     """Retain raw opinions and select literal excerpts without changing judgments."""
     validate_structure(result, packet)
@@ -348,32 +417,12 @@ def reconcile_citations(result, packet):
                 # Some reviewers serialize several literal excerpts in one string.
                 # Recover a bounded contiguous source span containing EVERY excerpt;
                 # never replace a fabricated fragment with a plausible source value.
-                fragments = []
-                if " || " in quote:
-                    fragments = [part.strip() for part in quote.split(" || ")]
-                elif quote.startswith("["):
-                    try:
-                        quoted = json.loads(quote)
-                    except json.JSONDecodeError:
-                        quoted = None
-                    if isinstance(quoted, list) and all(isinstance(part, str) for part in quoted):
-                        fragments = quoted
-                elif quote.startswith("“"):
-                    fragments = re.findall("“([^”]+)”", quote)
-                    remaining = re.sub("“[^”]+”", "", quote)
-                    if re.search(r"[^\s；;，,]", remaining):
-                        fragments = []
-                if len(fragments) < 2 or not all(fragments):
-                    continue
-                spans = []
-                for source in sources:
-                    starts = [source.find(part) for part in fragments]
-                    if min(starts) < 0:
-                        continue
-                    start = min(starts)
-                    end = max(pos + len(part) for pos, part in zip(starts, fragments, strict=True))
-                    if end - start <= 4096:
-                        spans.append(source[start:end])
+                fragments = citation_fragments(quote)
+                spans = [
+                    span
+                    for source in sources
+                    if (span := literal_citation_span(source, fragments)) is not None
+                ]
                 if spans:
                     finding["source_quote"] = min(spans, key=lambda span: (len(span), span))
     return result
