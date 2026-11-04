@@ -1559,6 +1559,10 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
     """Verify immutable sources and create a new portable report directory."""
     from harness.web_fetch.report import generate_saved_matrix
 
+    if 'saved_reports' in _json(spec_path):
+        from harness.web_fetch.report_saved_composition import build_composition
+        return build_composition(spec_path, output)
+
     output = Path(output).absolute()
     if output.exists():
         raise ValueError('Saved-matrix output must be a new directory')
@@ -2230,6 +2234,12 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     audit = _json(output / 'saved-matrix-audit.json')
     source_count = 0
     inputs = None
+    if (output / 'saved-composition.json').is_file():
+        from harness.web_fetch.report_saved_composition import check_composition
+        if spec_path is not None and _sha(Path(spec_path)) != audit['spec_sha256']:
+            raise ValueError('Saved composition specification changed')
+        check_composition(output, spec_path)
+        spec_path = None
     if spec_path is not None:
         if _sha(_path(Path(spec_path).parent, Path(spec_path).name)) != audit['spec_sha256']:
             raise ValueError('Original saved-matrix source changed: specification')

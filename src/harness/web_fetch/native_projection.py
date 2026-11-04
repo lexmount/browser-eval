@@ -102,6 +102,18 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
     track, task_kind = get('track', 'web'), get('task_kind', 'body')
     payload = _object(payload)
     successful_http = type(status_code) is int and 200 <= status_code < 300
+    if provider_type in {'lexmount', 'lexmount_cn'}:
+        result = _object(payload.get('result'))
+        return {'schema_version': 2, 'content_pointer': ['result', 'main_text'],
+                'content_format': 'text' if isinstance(result.get('main_text'), str) else 'empty',
+                'optional_content': True,
+                'result_fields': {
+                    'final_url': {'pointer': ['result', 'final_url' if result.get('final_url') else 'url'],
+                                  'format': 'text_or_none'},
+                    'title': {'pointer': ['result', 'title'], 'format': 'text_or_none'}},
+                'answer_fields': {
+                    'links': {'pointer': ['result', 'links'], 'format': 'identity', 'default': []},
+                    'images': {'pointer': ['result', 'images'], 'format': 'identity', 'default': []}}}
     if provider_type == 'brightdata_unlocker':
         if policy_version >= 3 and task_kind == 'file':
             return {'schema_version': 2, 'source_format': 'bytes', 'content_format': 'empty',
