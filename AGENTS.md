@@ -37,7 +37,7 @@ Text the project writes has English as its source; text from outside keeps its o
 
 ## Common report presentation
 
-These requirements apply to **all** report tracks. The next section adds execution, evidence and track-specific rules.
+These requirements apply to **all** report tracks. The next section adds execution, evidence and track-specific rules, and it also holds further presentation rules that apply to every report.
 
 - Reports are optional. Generate and inspect HTML locally; local construction requires no publication account. Upload only when the user requests sharing and authorizes the selected host. Building, checking or rebuilding a report does not authorize publication.
 - Follow the shared presentation contract in `.agents/skills/benchmark-report/references/report-and-release.md`. Metric labels, units, populations, unique directional highlights, one-summary result details, evidence dialogs and repairable error drilldown are common requirements, not Browser Use features.
