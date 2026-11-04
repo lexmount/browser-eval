@@ -129,7 +129,7 @@ def test_template_registry_names_the_entry_point_and_public_commands():
         )
 
 
-def test_every_command_is_named_by_a_guide_or_the_pending_owner_table():
+def test_every_command_is_named_by_a_guide_or_the_kept_table():
     guides = "\n".join((ROOT / path).read_text(encoding="utf-8") for path in (
         "Makefile",
         "docs/benchmarks.md",
@@ -138,10 +138,10 @@ def test_every_command_is_named_by_a_guide_or_the_pending_owner_table():
         "examples/trajectory_replay/run.sh",
     ))
     readme = (ROOT / "scripts/README.md").read_text(encoding="utf-8")
-    pending = readme.split("## Pending owner decision (#93)")[1].split("\n## ")[0]
+    kept = readme.split("## Kept as is (#151)")[1].split("\n## ")[0]
     missing = [name for name in COMMANDS
                if not re.search(rf"-m harness\.trajectory_replay {name}\b", guides)
-               and not re.search(rf"`(harness\.trajectory_replay )?{name}`", pending)]
+               and not re.search(rf"`(harness\.trajectory_replay )?{name}`", kept)]
     assert missing == []
 
 
