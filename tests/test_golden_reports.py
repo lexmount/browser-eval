@@ -21,6 +21,7 @@ from tests.lexbench_report_fixture import (
     build_report_inputs,
     fold_per_call_routes,
     pin_vendor_assets,
+    write_charts_as_utf8,
 )
 from tests.public_webarena_fixture import write_report_fixture
 from tests.test_webmainbench_full_report import render_full_report
@@ -63,6 +64,7 @@ def test_lexbench_report(tmp_path: Path, monkeypatch, scenario: str) -> None:
     monkeypatch.delenv("LEXBENCH_REPORT_RUNNER_ROOT", raising=False)
     monkeypatch.chdir(tmp_path)
     pin_vendor_assets(monkeypatch)
+    write_charts_as_utf8(monkeypatch)
     lexbench_report.main(build_report_inputs(tmp_path, scenario))
     fold_per_call_routes(tmp_path / "report")
     check_golden(f"lexbench-{scenario}", tmp_path / "report", tmp_path)
