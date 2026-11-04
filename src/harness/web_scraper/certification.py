@@ -57,9 +57,9 @@ def create_plan(home, methods, output):
         },
     }
     if selected_profile(home).name == "swde.json":
-        from harness.web_scraper.swde import GENERIC_METHODS
+        from harness.web_scraper.swde import generic_methods
 
-        if any(method not in GENERIC_METHODS for method in methods):
+        if any(method not in generic_methods() for method in methods):
             raise ValueError("SWDE requires a complete arbitrary-schema extraction API")
         plan["schema"] = "archived-extraction-full-cohort/1"
         plan["dataset_profile_sha256"] = digest(selected_profile(home).read_bytes())

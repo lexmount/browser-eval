@@ -172,7 +172,7 @@ def test_empty_gold_false_positive_stays_in_the_frozen_population():
     assert result["page_hit_macro"]["site_field_groups"] == 1
 
 
-@pytest.mark.parametrize("method", swde.GENERIC_METHODS)
+@pytest.mark.parametrize("method", swde.generic_methods())
 def test_custom_schema_projection_retains_fields_and_invalid_types(method):
     value = {"author": ["Ada"], "year": "invalid scalar", "extra": 123}
     payload = {
@@ -181,5 +181,86 @@ def test_custom_schema_projection_retains_fields_and_invalid_types(method):
         "browserbase-json": {"statusCode": 200, "content": value},
         "oxylabs-json": {"results": [{"json": value}]},
         "scrapegraph-extract": {"json": value},
+        "zyte-custom": {"customAttributes": {"values": value}},
     }[method]
     assert pipeline.normalize(method, payload, schema={"type": "object"}) == value
+
+
+def test_zyte_custom_uses_original_html_and_custom_schema_without_fetching(monkeypatch):
+    monkeypatch.setenv("ZYTE_API_KEY", "test-zyte-key-only")
+    schema = {
+        "type": "object",
+        "properties": {"author": {"type": "array", "items": {"type": "string"}}},
+        "required": ["author"],
+        "additionalProperties": False,
+    }
+    metadata = {
+        "inputTokens": 150,
+        "outputTokens": 12,
+        "textInputTokensBeforeTruncation": 140,
+        "textInputTokens": 130,
+        "maxInputTokens": 16384,
+    }
+    requests = []
+
+    def send(url, *, json_body, **kwargs):
+        requests.append(json_body)
+        return SimpleNamespace(
+            status=200,
+            headers={},
+            text=lambda: json.dumps(
+                {"customAttributes": {"values": {"author": ["Ada"]}, "metadata": metadata}}
+            ),
+        )
+
+    monkeypatch.setattr(pipeline, "request", send)
+    row = pipeline.provider_call(
+        "zyte-custom", "<p>Ada</p>", "https://source.example/book", schema=schema
+    )
+    assert requests == [
+        {
+            "url": "https://source.example/book",
+            "pageContent": True,
+            "pageContentOptions": {"extractFrom": "userHtml", "userHtml": "<p>Ada</p>"},
+            "customAttributes": schema["properties"],
+        }
+    ]
+    assert row["request"]["input"] == "html"
+    assert row["request"]["schema"] == schema
+    assert row["provider_usage"]["custom_attributes"] == metadata
+    assert row["elapsed_seconds"] >= 0
+    assert pipeline.normalize("zyte-custom", row["response"], schema=schema) == {"author": ["Ada"]}
+
+
+def test_zyte_custom_native_error_is_not_a_successful_empty_extraction():
+    response = {
+        "customAttributes": {"values": {}, "metadata": {"error": "extraction/schema-size-exceeded"}}
+    }
+    assert pipeline.normalize("zyte-custom", response, schema={"type": "object"}) is None
+
+
+def test_zyte_custom_cannot_run_without_an_explicit_schema(monkeypatch):
+    monkeypatch.setenv("ZYTE_API_KEY", "test-zyte-key-only")
+    request = Mock(side_effect=AssertionError("must not dispatch"))
+    monkeypatch.setattr(pipeline, "request", request)
+    with pytest.raises(ValueError, match="object schema"):
+        pipeline.provider_call("zyte-custom", "<p>Ada</p>", "https://source.example/book")
+    request.assert_not_called()
+
+
+@pytest.mark.parametrize("payload", [[], ["unexpected"], "not an object", None])
+def test_zyte_custom_keeps_malformed_native_envelopes(monkeypatch, payload):
+    monkeypatch.setenv("ZYTE_API_KEY", "test-zyte-key-only")
+    monkeypatch.setattr(
+        pipeline,
+        "request",
+        lambda *a, **kw: SimpleNamespace(status=200, headers={}, text=lambda: json.dumps(payload)),
+    )
+    row = pipeline.provider_call(
+        "zyte-custom",
+        "<p>Ada</p>",
+        "https://source.example/book",
+        schema={"type": "object", "properties": {}},
+    )
+    assert row["response"] == payload
+    assert pipeline.normalize("zyte-custom", payload, schema={"type": "object"}) is None

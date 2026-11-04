@@ -577,7 +577,18 @@ def _url_json_request(
     return url, headers, body
 
 
-def _zyte_request(method, html, source_url, fixture_url, *, timeout, home, native_options):
+def _zyte_request(
+    method,
+    html,
+    source_url,
+    fixture_url,
+    *,
+    timeout,
+    home,
+    native_options,
+    schema=None,
+    prompt=None,
+):
     url = "https://api.zyte.com/v1/extract"
     headers = {
         "Authorization": "Basic "
@@ -588,6 +599,17 @@ def _zyte_request(method, html, source_url, fixture_url, *, timeout, home, nativ
         "product": True,
         "productOptions": {"extractFrom": "userHtml", "userHtml": html},
     }
+    if method == "zyte-custom":
+        if not isinstance(schema, dict) or schema.get("type") != "object":
+            raise ValueError("Zyte custom extraction requires an object schema")
+        body = {
+            "url": source_url,
+            "pageContent": True,
+            "pageContentOptions": {"extractFrom": "userHtml", "userHtml": html},
+            "customAttributes": schema["properties"],
+        }
+        if native_options:
+            body["customAttributesOptions"] = native_options
     return url, headers, body
 
 
@@ -715,6 +737,15 @@ METHODS = {
         },
         "adapter": _cloudflare_request,
     },
+    "zyte-custom": {
+        "keys": ["ZYTE_API_KEY"],
+        "input": "html",
+        "minimum_call_interval_seconds": 0,
+        "post_call_cooldown_seconds": 0,
+        "options": ["maxInputTokens", "maxOutputTokens"],
+        "custom_schema": True,
+        "adapter": _zyte_request,
+    },
     "zyte-product": {
         **{
             "keys": ["ZYTE_API_KEY"],
@@ -825,15 +856,27 @@ def provider_call(
     started = time.monotonic()
     response = request(url, method="POST", headers=headers, json_body=body, timeout=timeout)
     payload = decoded_response(response.text())
+    native_usage = {}
+    if (
+        method == "zyte-custom"
+        and isinstance(payload, dict)
+        and isinstance(payload.get("customAttributes"), dict)
+    ):
+        metadata = payload["customAttributes"].get("metadata")
+        if isinstance(metadata, dict):
+            native_usage["custom_attributes"] = dict(metadata)
     return {
         "state": "response_received",
         "http_status": response.status,
         "elapsed_seconds": time.monotonic() - started,
         "response": redact(payload),
         "provider_usage": {
-            k: v
-            for k, v in response.headers.items()
-            if k.lower() in {"x-browser-ms-used", "x-browser-time", "x-browser-usage"}
+            **{
+                k: v
+                for k, v in response.headers.items()
+                if k.lower() in {"x-browser-ms-used", "x-browser-time", "x-browser-usage"}
+            },
+            **native_usage,
         },
         "request": {
             "endpoint": url,
@@ -908,6 +951,11 @@ def normalize(method: str, payload: dict, *, schema=None):
             }
         else:
             item = None
+    elif method == "zyte-custom":
+        custom = mapping(payload.get("customAttributes"))
+        if mapping(custom.get("metadata")).get("error"):
+            return None
+        item = custom.get("values")
     elif method == "zyte-product":
         p = payload.get("product")
         item = (

@@ -12,15 +12,15 @@ from collections import defaultdict
 from pathlib import Path
 
 DOMAINS = ("auto", "book", "camera", "job", "movie", "nbaplayer", "restaurant", "university")
-GENERIC_METHODS = (
-    "cloudflare-json",
-    "firecrawl-json",
-    "browserbase-json",
-    "oxylabs-json",
-    "scrapegraph-extract",
-)
 CARD = Path(__file__).resolve().parents[1] / "benchmarks/cards/swde.json"
 SEED = "swde-native-api-first-round-20261104"
+
+
+def generic_methods():
+    """Use the shared registry as the capability authority for schema-based tasks."""
+    from harness.web_scraper.pipeline import available_methods
+
+    return tuple(name for name, spec in available_methods().items() if spec.get("custom_schema"))
 
 
 def prepare(home: Path, source: Path):
