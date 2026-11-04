@@ -347,3 +347,34 @@ def test_checker_rejects_symlinked_report_root(tmp_path, monkeypatch, linked_par
     monkeypatch.chdir(tmp_path)
     with pytest.raises(ValueError, match='Symlinked'):
         check_saved_matrix(Path('linked')/output.name if linked_parent else Path('linked'))
+
+
+@pytest.mark.parametrize('identity', ['b'*64, None, '', 'invalid', 1])
+def test_final_rejects_mixed_or_unverifiable_selected_scorers(tmp_path, identity):
+    spec = matrix(tmp_path)
+    source = spec['sources'][1]
+    path = Path(source['results']['path'])
+    record = json.loads(path.read_bytes())
+    if identity is None:
+        record['metrics'].pop('scoring_source_sha256')
+    else:
+        record['metrics']['scoring_source_sha256'] = identity
+    source['results'] = write(path, record)
+    with pytest.raises(ValueError, match='one valid scoring identity'):
+        build(tmp_path, spec, 'final')
+    assert not (tmp_path/'final').exists()
+    spec['presentation'] = 'audit'
+    output = build(tmp_path, spec, 'audit').parent
+    retained = [json.loads(line) for line in (output/'results.jsonl').read_bytes().splitlines()]
+    assert retained[1]['metrics'].get('scoring_source_sha256') == identity
+
+
+def test_final_accepts_uniform_historical_scoring_identity(tmp_path):
+    spec = matrix(tmp_path)
+    for source in spec['sources']:
+        path = Path(source['results']['path'])
+        record = json.loads(path.read_bytes())
+        record['metrics']['scoring_source_sha256'] = 'b'*64
+        source['results'] = write(path, record)
+    output = build(tmp_path, spec).parent
+    assert json.loads((output/'dataset.json').read_bytes())['comparison']['publication_state'] == 'final_saved_results'

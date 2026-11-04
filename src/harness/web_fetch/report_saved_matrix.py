@@ -1040,13 +1040,18 @@ def _continuation_execution_cost(*records):
     return sum(costs) if all(cost is not None for cost in costs) else None
 
 
+def _require_common_scoring(records, message):
+    """Compare saved scorer identities after any validated offline revision."""
+    identities = [row['metrics'].get('scoring_source_sha256') for row in records]
+    if (not identities or any(not isinstance(value, str) or len(value) != 64
+            or any(char not in '0123456789abcdef' for char in value) for value in identities)
+            or len(set(identities)) != 1):
+        raise ValueError(message)
+
+
 def _parameter_scoring(before, record):
     """Require an explicit offline revision before comparing different scorers."""
-    identities = [row['metrics'].get('scoring_source_sha256') for row in (before, record)]
-    if (any(not isinstance(value, str) or len(value) != 64
-            or any(char not in '0123456789abcdef' for char in value) for value in identities)
-            or identities[0] != identities[1]):
-        raise ValueError('Parameter comparison needs an explicit scoring revision')
+    _require_common_scoring([before, record], 'Parameter comparison needs an explicit scoring revision')
 
 
 def _validate_call_sequence(record, case, contract, continuation=None, *, require_saved_settings=False):
@@ -2411,6 +2416,7 @@ def _saved_renderer_projection(output, model):
         from harness.web_fetch.reliability import require_reliable
         _require_comparable_matrix(model.get('execution_settings', []),
             {(record['provider'], cases[record['case_id']]['report_family']) for record in records})
+        _require_common_scoring(records, 'Final report requires one valid scoring identity for all selected results')
         require_reliable(dataset, records)
         admission = _require_source_admission(output, model)
         admission['projection'] = canonical_json_sha256([dataset, records])
