@@ -119,6 +119,23 @@ def test_complete_record_audit_handles_distinct_categories_without_changing_nati
     ].pop("title")
     with pytest.raises(ValueError, match="schema|every field"):
         validate(wrong_fields, packet)
+    from harness.web_scraper.review import prepare_adjudication
+
+    disputed = deepcopy(opinions)
+    field = next(iter(disputed["cases"][0]["reference"]))
+    disputed["cases"][0]["reference"][field]["status"] = "ambiguous"
+    save_json(work / "reviews" / Path(manifest["packets"][0]["path"]).name, disputed)
+    rules = tmp_path / "record-rules.txt"
+    rules.write_text("Resolve field scope against the frozen source.", encoding="utf-8")
+    adjudication = tmp_path / "adjudication"
+    adjudicated = prepare_adjudication(work, adjudication, rules)
+    assert adjudicated["schema"] == "record-reference-adjudication/1"
+    assert adjudicated["case_count"] == 1
+    second_packet = read_packet(Path(adjudicated["packets"][0]["path"]))
+    assert second_packet["cases"][0]["field_schema"] == packet["cases"][0]["field_schema"]
+    finding = deepcopy(disputed["cases"][0])
+    finding["outputs"] = []
+    validate({"cases": [finding]}, second_packet)
 
 
 @pytest.fixture(autouse=True)
