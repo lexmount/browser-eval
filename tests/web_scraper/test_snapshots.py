@@ -46,11 +46,11 @@ def home(tmp_path, monkeypatch):
     (root / "html").mkdir(parents=True)
     html = b'<html><base href="https://original.example/"><p>Price 42</p></html>'
     (root / "html/case-a.html").write_bytes(html)
-    (root / "LICENSE").write_text("Original source license")
+    (root / "LICENSE").write_text("Original source license", encoding="utf-8")
     (root / "dataset").mkdir()
-    (root / "dataset/ground-truth.json").write_text('{"case-a":{"price":"42"}}')
+    (root / "dataset/ground-truth.json").write_text('{"case-a":{"price":"42"}}', encoding="utf-8")
     files = {"html/case-a.html": {"sha256": digest(html)}}
-    (root / "manifest.json").write_text(json.dumps({"cases": 1, "files": files}))
+    (root / "manifest.json").write_text(json.dumps({"cases": 1, "files": files}), encoding="utf-8")
     profile = tmp_path / "profile.json"
     profile.write_text(
         json.dumps(
@@ -64,7 +64,8 @@ def home(tmp_path, monkeypatch):
                     "files": {"evaluate.py": "b" * 64},
                 },
             }
-        )
+        ),
+        encoding="utf-8",
     )
     monkeypatch.setattr(snapshots, "validate_dataset", lambda _: None)
     monkeypatch.setattr(
@@ -86,7 +87,7 @@ def home(tmp_path, monkeypatch):
     monkeypatch.setattr("huggingface_hub.HfApi", lambda: latest)
     monkeypatch.setattr(snapshots, "hf_inventory", lambda *args: {"case-a": digest(html)})
     metadata = tmp_path / "hf-snapshots.json"
-    metadata.write_text("{}")
+    metadata.write_text("{}", encoding="utf-8")
     monkeypatch.setattr("huggingface_hub.hf_hub_download", lambda *a, **k: str(metadata))
     monkeypatch.setattr("harness.web_scraper.certification.validate_dataset", lambda _: None)
     monkeypatch.setattr("harness.web_scraper.certification.selected_profile", lambda _: profile)
@@ -142,8 +143,8 @@ def test_public_package_contains_only_identical_html_and_source_notices(home, tm
         "LICENSE.txt",
         "NOTICE.json",
     }
-    assert "Original benchmark" in (root / item["path"] / "NOTICE.json").read_text()
-    assert "default-src 'none'" in (root / "_headers").read_text()
+    assert "Original benchmark" in (root / item["path"] / "NOTICE.json").read_text(encoding="utf-8")
+    assert "default-src 'none'" in (root / "_headers").read_text(encoding="utf-8")
     assert (root / "404.html").is_file()
     with pytest.raises(ValueError, match="empty directory"):
         build_snapshot({"example": home}, root)
@@ -151,9 +152,11 @@ def test_public_package_contains_only_identical_html_and_source_notices(home, tm
 
 def test_version_is_html_content_identity_not_reference_metadata(home, tmp_path):
     original, _ = snapshots.inventory(home)
-    (home / "dataset/dataset/ground-truth.json").write_text('{"case-a":{"price":"corrected"}}')
+    (home / "dataset/dataset/ground-truth.json").write_text(
+        '{"case-a":{"price":"corrected"}}', encoding="utf-8"
+    )
     assert snapshots.inventory(home)[0] == original
-    (home / "dataset/html/case-a.html").write_text("Changed")
+    (home / "dataset/html/case-a.html").write_text("Changed", encoding="utf-8")
     with pytest.raises(ValueError, match="differs"):
         snapshots.inventory(home)
 
@@ -172,7 +175,7 @@ def test_snapshot_plan_rejects_unsafe_origins(home, tmp_path, origin):
 def test_new_plan_freezes_one_url_for_every_participant(home, tmp_path):
     value = binding(home, tmp_path)
     source = tmp_path / "binding.json"
-    source.write_text(json.dumps(value))
+    source.write_text(json.dumps(value), encoding="utf-8")
     methods = [
         name for name in METHODS if name not in {"extruct", "firecrawl-parse-json", "zyte-custom"}
     ]
@@ -196,7 +199,7 @@ def test_new_plan_freezes_one_url_for_every_participant(home, tmp_path):
 def test_upload_only_interfaces_cannot_enter_url_cohort(home, tmp_path, method):
     value = binding(home, tmp_path)
     source = tmp_path / "binding.json"
-    source.write_text(json.dumps(value))
+    source.write_text(json.dumps(value), encoding="utf-8")
     with patch(
         "harness.web_scraper.certification.benchmark_config", return_value={"adapter": object()}
     ):
@@ -293,7 +296,7 @@ def test_independent_services_share_only_the_navigation_index(home, tmp_path):
     second["immutable_origin"] = second["fixture_base"]
     value["datasets"]["second"] = second
     snapshots.build_index(value, tmp_path / "navigation")
-    page = (tmp_path / "navigation/index.html").read_text()
+    page = (tmp_path / "navigation/index.html").read_text(encoding="utf-8")
     assert "https://another-dataset.example" in page
     assert "https://snapshots.example" in page
     assert not list((tmp_path / "navigation").rglob("case-a.html"))
@@ -426,16 +429,18 @@ def test_hf_cache_symlinks_are_read_but_changed_originals_block_publication(
         ]
     }
     blob = tmp_path / "blob"
-    html = (home / "dataset/html/case-a.html").read_text()
+    html = (home / "dataset/html/case-a.html").read_text(encoding="utf-8")
     blob.write_text(
-        json.dumps({"id": "case-a", "html": html, "html_sha256": digest(html.encode())}) + "\n"
+        json.dumps({"id": "case-a", "html": html, "html_sha256": digest(html.encode())}) + "\n",
+        encoding="utf-8",
     )
     cached = tmp_path / "cached"
     cached.symlink_to(blob)
     readme = tmp_path / "README.md"
     readme.write_text(
         "Original source and license\n## Public HTML snapshots\nOld address\n"
-        "## Citation\nKeep this citation"
+        "## Citation\nKeep this citation",
+        encoding="utf-8",
     )
     monkeypatch.setattr(
         "huggingface_hub.hf_hub_download",
@@ -454,7 +459,8 @@ def test_hf_cache_symlinks_are_read_but_changed_originals_block_publication(
     changed = "Another page"
     blob.write_text(
         json.dumps({"id": "case-a", "html": changed, "html_sha256": digest(changed.encode())})
-        + "\n"
+        + "\n",
+        encoding="utf-8",
     )
     with patch("harness.benchmarks.publication.publish_snapshot_metadata") as publish:
         with pytest.raises(ValueError, match="HF originals differ"):
@@ -489,7 +495,7 @@ def test_changed_cloudflare_snapshot_requires_approval_and_never_writes(
         assert result["state"] == "approval_required"
         create.assert_not_called()
         deploy.assert_not_called()
-    saved = json.loads(proposal.read_text())
+    saved = json.loads(proposal.read_text(encoding="utf-8"))
     assert saved["previous_deployment_id"] == "old"
     assert saved["huggingface"]["revision"] == "a" * 40
     response.json.return_value["result"]["canonical_deployment"]["id"] = "changed-after-proposal"
@@ -520,7 +526,7 @@ def test_hf_bound_immutable_deployment_uses_fast_identity_check(home, tmp_path, 
         "result": {"canonical_deployment": {"id": "existing", "url": "https://snapshots.example"}},
     }
     metadata = tmp_path / "metadata.json"
-    metadata.write_text(json.dumps(item))
+    metadata.write_text(json.dumps(item), encoding="utf-8")
     monkeypatch.setattr("huggingface_hub.hf_hub_download", lambda *a, **k: str(metadata))
     monkeypatch.setattr(
         "harness.web_fetch.config.repository_env",
@@ -538,7 +544,7 @@ def test_hf_bound_immutable_deployment_uses_fast_identity_check(home, tmp_path, 
     full_check.assert_not_called()
     deploy.assert_not_called()
     assert (
-        json.loads((tmp_path / "host.json").read_text())["verification"]["mode"]
+        json.loads((tmp_path / "host.json").read_text(encoding="utf-8"))["verification"]["mode"]
         == "dataset_manifest"
     )
 
@@ -598,7 +604,12 @@ def test_approved_unchanged_proposal_deploys_and_checks_new_pages(home, tmp_path
     assert "UNRELATED_API_KEY" not in deploy.call_args.kwargs["env"]
     assert "--commit-hash" in deploy.call_args.args[0]
     assert "a" * 40 in deploy.call_args.args[0]
-    assert json.loads((tmp_path / "host.json").read_text())["verification"]["case_count"] == 1
+    assert (
+        json.loads((tmp_path / "host.json").read_text(encoding="utf-8"))["verification"][
+            "case_count"
+        ]
+        == 1
+    )
 
 
 def test_stale_prepared_inputs_cannot_override_hf_latest(home, tmp_path, monkeypatch):
@@ -615,7 +626,7 @@ def test_selected_hf_edition_finds_matching_historical_deployment(home, tmp_path
     item = binding(home, tmp_path)["datasets"]["example"]
     item["fixture_base"] = item["immutable_origin"] = "https://older.dataset.pages.dev"
     metadata = tmp_path / "selected-hf-snapshots.json"
-    metadata.write_text(json.dumps(item))
+    metadata.write_text(json.dumps(item), encoding="utf-8")
     monkeypatch.setattr("huggingface_hub.hf_hub_download", lambda *a, **k: str(metadata))
     hf = MagicMock()
     hf.dataset_info.return_value.sha = "a" * 40

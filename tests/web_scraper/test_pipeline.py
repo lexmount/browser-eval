@@ -402,6 +402,38 @@ class ReportScenarios(unittest.TestCase):
             self.assertIn("Synthetic route rejects archived HTML", detail)
             check_presentation(detail)
 
+    def test_default_navigation_groups_resources_on_every_product_route(self):
+        for lang in ("en", "zh"):
+            for path in (self.output / lang).glob("*.html"):
+                soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+                primary = soup.select("nav > a")
+                self.assertEqual(len(primary), 5, path.name)
+                self.assertEqual(
+                    [a["href"] for a in primary],
+                    [
+                        f"{lang}/{route}.html"
+                        for route in ("index", "results", "dataset", "protocol", "interpretation")
+                    ],
+                )
+                resources = soup.select_one("nav details.nav-more")
+                self.assertIsNotNone(resources, path.name)
+                self.assertEqual(len(resources.select("a")), 4)
+                self.assertEqual(len(soup.select(".report-tools #theme")), 1)
+                self.assertEqual(len(soup.select(".report-tools a")), 1)
+
+    def test_release_rejects_flat_navigation_even_with_valid_file_hashes(self):
+        path = self.output / "en/index.html"
+        soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+        for link in list(soup.select("nav details a")):
+            soup.nav.append(link.extract())
+        path.write_text(str(soup), encoding="utf-8")
+        manifest_path = self.output / "report-manifest.json"
+        manifest = read_json(manifest_path)
+        manifest["files"]["en/index.html"] = digest(path.read_bytes())
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, "Report navigation"):
+            check(self.output)
+
     def test_chinese_only_build_keeps_an_actionable_english_notice(self):
         output = self.output.parent / "chinese-only"
         create(output, language="zh")
@@ -433,7 +465,7 @@ class ReportScenarios(unittest.TestCase):
                 self.assertEqual(soup.select_one("script[src]")["src"], "app.js")
                 self.assertIn(f"{lang}/index.html", [a["href"] for a in soup.select("nav a")])
                 self.assertTrue(
-                    any(a["href"].startswith(other + "/") for a in soup.select("nav a"))
+                    any(a["href"].startswith(other + "/") for a in soup.select(".report-tools a"))
                 )
                 for el in soup.select("a[href],link[href],script[src],img[src],[data-src]"):
                     value = el.get("href") or el.get("src") or el.get("data-src")

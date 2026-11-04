@@ -20,6 +20,7 @@ def review_payload(packet, quote="synthetic product"):
         "source_locator": "p",
         "reason": "Synthetic source context",
     }
+
     fields = {field: deepcopy(finding) for field in ("price", "sku", "availability")}
     return {
         "cases": [
@@ -36,6 +37,88 @@ def review_payload(packet, quote="synthetic product"):
             for case in packet["cases"]
         ]
     }
+
+
+def test_complete_record_audit_handles_distinct_categories_without_changing_native_fields(tmp_path):
+    home = create(tmp_path / "records", mode="field-extraction-cohort")
+    truth_path = home / "dataset/dataset/ground-truth.json"
+    truth = read_json(truth_path)
+    last = sorted(truth)[-1]
+    truth[last].update(domain="movie", values={"title": ["Example"], "director": ["A"]})
+    save_json(truth_path, truth)
+    schemas_path = home / "dataset/schemas.json"
+    schemas = read_json(schemas_path)
+    schemas["movie"] = {
+        "type": "object",
+        "properties": {
+            key: {"type": "array", "items": {"type": "string"}} for key in ("title", "director")
+        },
+    }
+    save_json(schemas_path, schemas)
+    selections = []
+    retained = {}
+    for method in ("cloudflare-json", "firecrawl-json"):
+        run_dir = home / "runs" / ("review-" + method)
+        save_json(run_dir / "manifest.json", {"synthetic": True})
+        rows = []
+        for cid, ref in truth.items():
+            native = {key: list(value) for key, value in ref["values"].items()}
+            response = (
+                {"result": native} if method == "cloudflare-json" else {"data": {"json": native}}
+            )
+            rows.append(
+                {"case_id": cid, "method": method, "response": response, "http_status": 200}
+            )
+        retained[str(run_dir)] = (run_dir, rows)
+        selections.append({"run": str(run_dir)})
+    content = home / "audit-content.json"
+    save_json(content, {"evidence_runs": selections})
+    work = tmp_path / "review"
+    with patch(
+        "harness.web_scraper.repair.load_selection",
+        side_effect=lambda _home, selection: retained[selection["run"]],
+    ):
+        manifest = prepare(home, content, work)
+    assert manifest["case_count"] == 3
+    assert manifest["result_count"] == 6
+    packet = read_packet(Path(manifest["packets"][0]["path"]))
+    opinions = {"cases": []}
+    for case in packet["cases"]:
+        fields = {
+            field: {
+                "status": "supported",
+                "values": values,
+                "source_quote": "Example",
+                "source_locator": "p",
+                "reason": "Literal source checked",
+            }
+            for field, values in case["reference"].items()
+        }
+        for output in case["outputs"]:
+            assert output["normalized_fields"] == case["reference"]
+        opinions["cases"].append(
+            {
+                "case_id": case["case_id"],
+                "main_record": "Example",
+                "source_fields": fields,
+                "reference": fields,
+                "outputs": [
+                    {"method": output["method"], "fields": fields, "projection_issue": ""}
+                    for output in case["outputs"]
+                ],
+            }
+        )
+    validate(opinions, packet)
+    missing = deepcopy(opinions)
+    missing["cases"][0]["outputs"].pop()
+    with pytest.raises(ValueError, match="every method"):
+        validate(missing, packet)
+    wrong_fields = deepcopy(opinions)
+    wrong_fields["cases"][0]["source_fields"]["price"] = wrong_fields["cases"][0][
+        "source_fields"
+    ].pop("title")
+    with pytest.raises(ValueError, match="schema|every field"):
+        validate(wrong_fields, packet)
 
 
 @pytest.fixture(autouse=True)
@@ -1666,7 +1749,14 @@ def test_original_access_retry_usage_survives_a_later_repair(tmp_path):
     )
     assert len(selected[0]["physical_attempts"]) == 2
     assert selected[0]["physical_attempts"][0]["response"]["usage"] == 7
-    assert sum(len(row["physical_attempts"]) for row in selected) == 5
+    assert sum(len(row.get("physical_attempts", [row])) for row in selected) == 5
+    # Recording a one-call history must not change the superseded execution.
+    original = next(
+        read_json(source / entry["path"])
+        for entry in manifest["calls"]
+        if read_json(source / entry["path"])["case_id"] == selected[-1]["case_id"]
+    )
+    assert selected[-1]["superseded_result"] == original
 
 
 @pytest.mark.parametrize("changed", ["html", "reference"])

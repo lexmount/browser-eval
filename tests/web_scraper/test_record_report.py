@@ -24,13 +24,17 @@ def test_reader_navigation_order_and_labels_apply_to_home_and_evidence(tmp_path)
     build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
     check(output)
     for route in ["protocol", record_route("c", "three")]:
-        soup = BeautifulSoup((output / "zh" / (route + ".html")).read_text(), "html.parser")
+        soup = BeautifulSoup(
+            (output / "zh" / (route + ".html")).read_text(encoding="utf-8"), "html.parser"
+        )
         links = soup.select("nav a")[: len(PAGES)]
         assert [link["href"] for link in links] == ["zh/" + item + ".html" for item in order]
         assert [link.get_text() for link in links] == ["Read " + item for item in order]
     assert (
         "Read protocol"
-        in BeautifulSoup((output / "zh/protocol.html").read_text(), "html.parser").h1.get_text()
+        in BeautifulSoup(
+            (output / "zh/protocol.html").read_text(encoding="utf-8"), "html.parser"
+        ).h1.get_text()
     )
     rebind(output, "zh/protocol.html", lambda s: s.replace("Read protocol", "Wrong label"))
     with pytest.raises(ValueError, match="navigation differs"):
@@ -135,7 +139,7 @@ def test_native_method_examples_keep_benchmarks_separate_and_reject_changed_outp
     output = tmp_path / "report"
     build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
     check(output)
-    soup = BeautifulSoup((output / "zh/protocol.html").read_text(), "html.parser")
+    soup = BeautifulSoup((output / "zh/protocol.html").read_text(encoding="utf-8"), "html.parser")
     assert '"price": 12' in soup.select_one("#examples-products").get_text()
     assert '"author"' in soup.select_one("#examples-books").get_text()
     assert '"author"' not in soup.select_one("#examples-products").get_text()
@@ -153,9 +157,9 @@ def test_record_report_drills_to_source_output_native_error_and_pending(tmp_path
     assert len(list(output.rglob("*.html"))) == 17
     assert manifest["languages"] == ["zh"]
     assert manifest["complete_methods"] == []
-    assert "data-usage-table" not in (output / "zh/protocol.html").read_text()
-    assert "data-usage-table" in (output / "zh/accounts.html").read_text()
-    soup = BeautifulSoup((output / "zh/results.html").read_text(), "html.parser")
+    assert "data-usage-table" not in (output / "zh/protocol.html").read_text(encoding="utf-8")
+    assert "data-usage-table" in (output / "zh/accounts.html").read_text(encoding="utf-8")
+    soup = BeautifulSoup((output / "zh/results.html").read_text(encoding="utf-8"), "html.parser")
     assert len(soup.select("tr[data-status]")) == 6
     assert len(soup.select('tr[data-status="pending"]')) == 2
     assert {n["data-result-filter"] for n in soup.select("[data-result-filter]")} >= {
@@ -166,14 +170,14 @@ def test_record_report_drills_to_source_output_native_error_and_pending(tmp_path
         "field",
         "query",
     }
-    source = (output / "zh" / (record_route("d", "one") + ".html")).read_text()
+    source = (output / "zh" / (record_route("d", "one") + ".html")).read_text(encoding="utf-8")
     assert 'sandbox=""' in source
     assert (
         BeautifulSoup(source, "html.parser").select_one("iframe")["src"]
         == "https://example.org/frozen/one"
     )
     failed = BeautifulSoup(
-        (output / "zh" / (record_route("c", "three") + ".html")).read_text(),
+        (output / "zh" / (record_route("c", "three") + ".html")).read_text(encoding="utf-8"),
         "html.parser",
     )
     assert len(failed.select("#fixture-a [data-result-summary]")) == 1
@@ -181,14 +185,14 @@ def test_record_report_drills_to_source_output_native_error_and_pending(tmp_path
         "Synthetic navigation timeout"
         in failed.select_one("#fixture-a [data-result-logs]").get_text()
     )
-    assert "data-language-notice" in (output / "en/index.html").read_text()
+    assert "data-language-notice" in (output / "en/index.html").read_text(encoding="utf-8")
     with pytest.raises(ValueError, match="Synthetic record evidence"):
         check(output, release=True)
 
 
 def rebind(output, route, transform):
     path = output / route
-    path.write_text(transform(path.read_text()))
+    path.write_text(transform(path.read_text(encoding="utf-8")), encoding="utf-8")
     manifest = read_json(output / "report-manifest.json")
     manifest["files"][route] = digest(path.read_bytes())
     save_json(output / "report-manifest.json", manifest)
@@ -302,9 +306,9 @@ def test_omission_does_not_remove_observations_or_pending_cases(tmp_path):
     assert manifest["observations"] == 4
     assert (
         len(
-            BeautifulSoup((output / "zh/results.html").read_text(), "html.parser").select(
-                "tr[data-status]"
-            )
+            BeautifulSoup(
+                (output / "zh/results.html").read_text(encoding="utf-8"), "html.parser"
+            ).select("tr[data-status]")
         )
         == 6
     )

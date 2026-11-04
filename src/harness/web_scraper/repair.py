@@ -397,7 +397,13 @@ def load_selection(home, selection):
     for entry in manifest.get("physical_calls", manifest["calls"]):
         row = artifact(source, entry)
         attempts.setdefault((row["method"], row["case_id"]), []).append(row)
-    rows = [{**row, "physical_attempts": attempts[(row["method"], row["case_id"])]} for row in rows]
+    # A single retained call is already the complete history. Enrich only retries,
+    # so adding history does not change the identity of superseded single calls.
+    rows = [
+        {**row, "physical_attempts": history} if len(history) > 1 else row
+        for row in rows
+        for history in [attempts[(row["method"], row["case_id"])]]
+    ]
     chain = []
     for revision in selection.get("repair", []):
         participant, replacements, _, directory = verify_repair(home, source, revision)

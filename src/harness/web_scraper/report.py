@@ -192,12 +192,17 @@ def page(
         )
         labels[2] = message("results_and_failures", language)
     other = "zh" if language == "en" else "en"
+    primary_routes = ("index", "results", "dataset", "protocol", "interpretation")
     entries = (
         navigation
         if navigation is not None
         else [
-            {"route": p, "label": EXTRA_LABELS[p][language] if p in EXTRA_LABELS else labels[i]}
-            for i, p in enumerate(PAGES)
+            {
+                "route": p,
+                "label": EXTRA_LABELS[p][language] if p in EXTRA_LABELS else labels[PAGES.index(p)],
+                "primary": p in primary_routes,
+            }
+            for p in (*primary_routes, *(p for p in PAGES if p not in primary_routes))
         ]
     )
     if (
@@ -2251,6 +2256,19 @@ def check(output: Path, *, release=False, visual_receipt=None):
         if name != "index.html" and not soup.select_one('base[href="../"]'):
             raise ValueError("Missing local site-root base")
         notice = bool(soup.select_one("[data-language-notice]"))
+        if name != "index.html" and not notice:
+            lang = name.split("/")[0]
+            expected_primary = [
+                f"{lang}/{route}.html"
+                for route in ("index", "results", "dataset", "protocol", "interpretation")
+            ]
+            if (
+                [a.get("href") for a in soup.select("nav > a")] != expected_primary
+                or len(soup.select("nav details.nav-more a")) != 4
+                or len(soup.select(".report-tools #theme")) != 1
+                or len(soup.select(".report-tools a")) != 1
+            ):
+                raise ValueError("Report navigation must separate core pages, resources and tools")
         if notice and (name != "en/index.html" or "en" in manifest["languages"]):
             raise ValueError("Unexpected language notice")
         if (
@@ -3360,7 +3378,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             method_examples(output, manifest["method_examples"]), "html.parser"
         )
         actual_examples = BeautifulSoup(
-            (output / "zh/protocol.html").read_text(), "html.parser"
+            (output / "zh/protocol.html").read_text(encoding="utf-8"), "html.parser"
         ).select_one("[data-method-examples]")
         if actual_examples is not None:
             for anchor in actual_examples.select("a"):
@@ -3379,7 +3397,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             ("zh/" + entry["route"] + ".html", entry["label"]) for entry in ordered
         ]
         for path in (output / "zh").glob("*.html"):
-            soup = BeautifulSoup(path.read_text(), "html.parser")
+            soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
             actual_navigation = [(a.get("href"), a.get_text()) for a in soup.select("nav a")]
             if actual_navigation != expected_navigation:
                 raise ValueError("Record navigation differs from its declared reader routes")
@@ -3432,7 +3450,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         ),
         "html.parser",
     )
-    home = BeautifulSoup((output / "zh/index.html").read_text(), "html.parser")
+    home = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
     if [row.get_text(strip=True) for row in home.select("[data-operating-metrics] tbody tr")] != [
         row.get_text(strip=True) for row in expected_operations.select("tbody tr")
     ]:
@@ -3441,7 +3459,9 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         ("index", "[data-core-metrics]"),
         ("interpretation", "[data-interpretation-comparison]"),
     ):
-        soup = BeautifulSoup((output / "zh" / (route + ".html")).read_text(), "html.parser")
+        soup = BeautifulSoup(
+            (output / "zh" / (route + ".html")).read_text(encoding="utf-8"), "html.parser"
+        )
         rendered = soup.select(selector + " tbody tr")
         if len(rendered) != len(metrics):
             raise ValueError("Record core comparison participant count differs")
@@ -3459,7 +3479,9 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             ]
             if [cell.get_text(strip=True) for cell in cells[:6]] != expected:
                 raise ValueError("Record core comparison values differ from measured evidence")
-    inventory = BeautifulSoup((output / "zh/results.html").read_text(), "html.parser")
+    inventory = BeautifulSoup(
+        (output / "zh/results.html").read_text(encoding="utf-8"), "html.parser"
+    )
     rows = inventory.select("tr[data-status]")
     if len(rows) != len(truth) * len(metrics) or len(
         inventory.select('tr[data-status="pending"]')
@@ -3469,7 +3491,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         bucket = read_json(output / "public-evidence" / (method + ".json"))
         for cid, row in bucket.items():
             detail = BeautifulSoup(
-                (output / "zh" / (record_route("c", cid) + ".html")).read_text(),
+                (output / "zh" / (record_route("c", cid) + ".html")).read_text(encoding="utf-8"),
                 "html.parser",
             )
             detail = detail.find("details", id=method)
@@ -3489,7 +3511,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                 ):
                     raise ValueError("Record native failure error is missing or changed")
     for file in sorted((output / "zh").glob("*.html")):
-        soup = check_presentation(file.read_text())
+        soup = check_presentation(file.read_text(encoding="utf-8"))
         for node in soup.select("a[href],script[src],link[href]"):
             value = node.get("href", node.get("src", ""))
             parsed = urlsplit(value)

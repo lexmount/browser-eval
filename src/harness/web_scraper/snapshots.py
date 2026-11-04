@@ -1,6 +1,5 @@
 """Public, byte-preserving HTML snapshots shared by native extraction APIs."""
 
-import hashlib
 import html
 import json
 import re
@@ -8,12 +7,9 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from harness.record_io import bytes_sha256
 from harness.web_scraper.dataset import benchmark_config
 from harness.web_scraper.pipeline import qualify_fixture, read_json, save_json, validate_dataset
-
-
-def sha(data):
-    return hashlib.sha256(data).hexdigest()
 
 
 def inventory(home):
@@ -27,12 +23,12 @@ def inventory(home):
         if not re.fullmatch(r"[A-Za-z0-9_-]+", case) or name != f"html/{case}.html":
             raise ValueError("Unsafe snapshot case path")
         path = home / "dataset" / name
-        if path.is_symlink() or sha(path.read_bytes()) != entry["sha256"]:
+        if path.is_symlink() or bytes_sha256(path.read_bytes()) != entry["sha256"]:
             raise ValueError("Snapshot differs from the frozen input")
         files[case] = entry["sha256"]
     if len(files) != manifest["cases"]:
         raise ValueError("Snapshot population differs")
-    version = sha(json.dumps(files, sort_keys=True, separators=(",", ":")).encode())
+    version = bytes_sha256(json.dumps(files, sort_keys=True, separators=(",", ":")).encode())
     return version, files
 
 
@@ -120,7 +116,7 @@ def build(homes, output, *, huggingface):
         encoding="utf-8",
     )
     registry["files"] = {
-        str(p.relative_to(output)): sha(p.read_bytes())
+        str(p.relative_to(output)): bytes_sha256(p.read_bytes())
         for p in sorted(output.rglob("*"))
         if p.is_file()
     }
@@ -289,7 +285,7 @@ def publish(home, binding, verification, *, revision):
     readme_path = Path(
         hf_hub_download(hf["repository"], "README.md", repo_type="dataset", revision=revision)
     )
-    readme = readme_path.read_text()
+    readme = readme_path.read_text(encoding="utf-8")
     marker = "\n## Public HTML snapshots\n"
     section = marker + (
         "\n[snapshots.json](snapshots.json) binds every page ID to its SHA-256 and an "
@@ -331,7 +327,7 @@ def publish(home, binding, verification, *, revision):
     if (
         existing is not None
         and comparable(existing) == comparable(metadata)
-        and readme == readme_path.read_text()
+        and readme == readme_path.read_text(encoding="utf-8")
     ):
         return {
             "repository": hf["repository"],
@@ -361,8 +357,8 @@ def hf_inventory(hf, revision):
         hf_hub_download(hf["repository"], hf["input_path"], repo_type="dataset", revision=revision)
     )
     if hf["input_format"] == "html-jsonl":
-        rows = [json.loads(line) for line in source.read_text().splitlines()]
-        originals = {row["id"]: sha(row["html"].encode("utf-8")) for row in rows}
+        rows = [json.loads(line) for line in source.read_text(encoding="utf-8").splitlines()]
+        originals = {row["id"]: bytes_sha256(row["html"].encode("utf-8")) for row in rows}
         if len(originals) != len(rows) or any(
             originals[row["id"]] != row["html_sha256"] for row in rows
         ):
@@ -680,7 +676,7 @@ def check_manifest(home, origin, hf_identity):
     return {
         "mode": "dataset_manifest",
         "manifest_url": url,
-        "manifest_sha256": sha(response.content),
+        "manifest_sha256": bytes_sha256(response.content),
         "huggingface": hf_identity,
         "snapshot_huggingface": source,
         "html_inventory_sha256": version,

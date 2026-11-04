@@ -262,7 +262,7 @@ def create_record(output: Path, *, language="zh"):
     for cid in truth:
         path = root / "html" / (cid + ".html")
         path.parent.mkdir(exist_ok=True)
-        path.write_text("<html><p>Example</p><p>A</p><p>B</p></html>")
+        path.write_text("<html><p>Example</p><p>A</p><p>B</p></html>", encoding="utf-8")
     files = {
         p.relative_to(root).as_posix(): {
             "sha256": digest(p.read_bytes()),
@@ -353,7 +353,9 @@ def create_record(output: Path, *, language="zh"):
             entries.append(
                 {"path": dest.relative_to(run).as_posix(), "sha256": digest(dest.read_bytes())}
             )
-        (run / "calls.journal.jsonl").write_text("".join(json.dumps(e) + "\n" for e in entries))
+        (run / "calls.journal.jsonl").write_text(
+            "".join(json.dumps(e) + "\n" for e in entries), encoding="utf-8"
+        )
         model["evidence_runs"].append(
             {"run": str(run), "plan": str(plan_path), "plan_sha256": digest(plan_path.read_bytes())}
         )

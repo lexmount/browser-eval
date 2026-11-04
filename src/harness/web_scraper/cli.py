@@ -135,9 +135,9 @@ def main(argv=None):
         from harness.web_scraper.pipeline import save_json
         from harness.web_scraper.snapshots import publish
 
-        binding = json.loads(args.binding.read_text())
+        binding = json.loads(args.binding.read_text(encoding="utf-8"))
         verification = (
-            json.loads(args.verification.read_text())
+            json.loads(args.verification.read_text(encoding="utf-8"))
             if args.verification
             else binding["verification"]
         )
@@ -147,7 +147,7 @@ def main(argv=None):
     elif args.command == "snapshots-index":
         from harness.web_scraper.snapshots import build_index
 
-        build_index(json.loads(args.binding.read_text()), args.output)
+        build_index(json.loads(args.binding.read_text(encoding="utf-8")), args.output)
     elif args.command in ("snapshots-build", "snapshots-verify"):
         from harness.web_scraper import snapshots
 
@@ -176,7 +176,7 @@ def main(argv=None):
             )
             print({name: len(item["cases"]) for name, item in result["datasets"].items()})
         else:
-            result = snapshots.verify(homes, json.loads(args.binding.read_text()))
+            result = snapshots.verify(homes, json.loads(args.binding.read_text(encoding="utf-8")))
             from harness.web_scraper.pipeline import save_json
 
             save_json(args.output, result, exclusive=True)
