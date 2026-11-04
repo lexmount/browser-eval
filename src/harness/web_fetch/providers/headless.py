@@ -1038,9 +1038,11 @@ def _process_listens_on(pid, port, timeout):
 def _connect_native_cdp(playwright, process, port, deadline):
     """Return a browser once ``process`` holds the port, or ``None`` if it exits first.
 
-    Any other listener on this port is left alone: nothing connects to the port until
-    the kernel reports this process as its owner, and from then on the kernel delivers
-    every connection on that address to this process.
+    Nothing connects to the port until the kernel reports this process as its owner, and
+    the kernel delivers every connection on that address to the owner. If the server
+    exits after that report, another process could take the address before the handshake.
+    Being alive when the handshake returns shows it held the address throughout, so only
+    that browser is returned; any other is discarded before a caller can use it.
     """
     remaining = lambda: max(.001, deadline - time.monotonic())
     while process.poll() is None:

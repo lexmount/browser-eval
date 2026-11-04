@@ -67,7 +67,7 @@ sys.exit(3)
 class ForeignCdpListener:
     """A real second CDP listener that answers any client and counts those requests."""
 
-    def __init__(self):
+    def __init__(self, port=0):
         listener = self
         self.requests = 0
 
@@ -83,7 +83,7 @@ class ForeignCdpListener:
             def log_message(self, *arguments):
                 pass
 
-        self.server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.server = ThreadingHTTPServer(("127.0.0.1", port), Handler)
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
     def getsockname(self):
@@ -254,6 +254,26 @@ def test_server_that_exits_during_the_handshake_is_not_used(tmp_path):
     with pytest.raises(RuntimeError, match="exited with code 0"):
         harness.run()
     assert harness.browsers[0].closed
+    assert len(harness.processes) == 1
+
+
+def test_listener_that_takes_the_port_after_the_proof_is_never_given_to_the_caller(tmp_path):
+    harness = Harness(tmp_path, held=0)
+    connect = harness.connect
+
+    def replace_server_then_connect(url, timeout):
+        exit_server(harness)()
+        harness.listeners.append(ForeignCdpListener(int(url.rsplit(":", 1)[1])))
+        return connect(url, timeout)
+
+    harness.playwright.chromium.connect_over_cdp = replace_server_then_connect
+
+    def caller_must_not_run():
+        pytest.fail("The caller received a browser from another listener")
+
+    with pytest.raises(RuntimeError, match="exited with code 0"):
+        harness.run(during=caller_must_not_run)
+    assert harness.browsers[0].answered_by == "foreign" and harness.browsers[0].closed
     assert len(harness.processes) == 1
 
 
