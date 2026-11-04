@@ -80,3 +80,21 @@ def test_unknown_html_element_cannot_supply_hidden_facts():
             'expected_any': ['secret fact']}
     assert evaluate_response(case, b'<custom>secret fact</custom>')['passed']
     assert not evaluate_response(case, b'x<custom hidden>secret fact</custom>')['passed']
+
+
+@pytest.mark.parametrize('tag', ['script', 'style', 'div hidden', 'span style="display:none"'])
+@pytest.mark.parametrize('value', ['a<b', 'a<1', 'a=b<c'])
+def test_tolerated_unquoted_attribute_does_not_expose_hidden_facts(tag, value):
+    from lexbench_webfetch.evaluation import evaluate_response
+    source = f'<{tag} data-x={value}>secret fact</{tag.split()[0]}> after'
+    assert 'secret' not in visible_mixed_html_text(source)
+    assert 'after' in visible_mixed_html_text(source)
+    case = {'id': 'hidden-attribute', 'name': 'Hidden attribute',
+            'url': 'https://example.com/technical', 'category': 'web',
+            'expected_any': ['secret fact']}
+    assert not evaluate_response(case, source.encode())['passed']
+
+
+@pytest.mark.parametrize('value', ['a<b', 'a<1', 'a=b<c'])
+def test_tolerated_unquoted_attribute_keeps_visible_body(value):
+    assert visible_mixed_html_text(f'<div data-x={value}>visible fact</div>') == 'visible fact'

@@ -991,7 +991,7 @@ def visible_mixed_html_text(text: str, *, excluded_html_selectors=()) -> str:
         pieces.append(protected[cursor:left])
         tag = _MIXED_HTML_TAG_PATTERN.match(protected, left)
         if tag is None:
-            tag = re.compile(r'''<(?=[A-Za-z/!?])(?>"[^"]*"|'[^']*'|[^<>])*>''').match(protected, left)
+            tag = re.compile(r'''<(?=[A-Za-z/!?])(?>"[^"]*"|'[^']*'|=[^\s>"']+|[^<>])*>''').match(protected, left)
         if tag:
             pieces.append(tag[0])
             cursor = tag.end()

@@ -301,13 +301,18 @@ class VisibleLocalScope(HTMLParser):
 
 def check_local_diagnostic_presentation(root: Path, *, ranked=False):
     """Track evidence state and scope any explicitly requested sample ranking."""
+    from harness.report_languages import english_notice
     for path in root.rglob('*.html'):
+        relative = path.relative_to(root)
+        parts = relative.parts[1:] if relative.parts[0] == 'en' else relative.parts
+        if parts[0] in {'evidence', 'artifacts', 'sources', 'references', 'local-evidence'}:
+            continue
         page = path.read_text(encoding='utf-8')
         disclosure = VisibleLocalScope()
         disclosure.feed(page)
-        if not disclosure.is_report:
-            continue  # Original response/source HTML is evidence, not report prose.
-        if 'evidence' not in disclosure.visible:
+        if relative.as_posix() == 'en/index.html' and page == english_notice():
+            continue
+        if not disclosure.is_report or 'evidence' not in disclosure.visible:
             raise ValueError('Local diagnostic disclosure missing: ' + str(path.relative_to(root)))
         if ranked and 'ranking' not in disclosure.visible:
             raise ValueError('Sample ranking scope missing: ' + str(path.relative_to(root)))

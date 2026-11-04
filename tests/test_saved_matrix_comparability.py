@@ -594,3 +594,26 @@ def test_ordinary_uncommitted_counts_must_agree(tmp_path, declared):
         root = build(tmp_path, spec).parent
         settings = json.loads((root/'matrix.json').read_bytes())['execution_settings'][0]
         assert settings['calls'] == 3
+
+
+@pytest.mark.parametrize('declared', [None, 2])
+@pytest.mark.parametrize('conflict', [False, True])
+def test_ordinary_uncommitted_starts_use_invocation_identity(tmp_path, declared, conflict):
+    spec = matrix(tmp_path, same_method=True)
+    spec['presentation'] = 'audit'
+    spec['sources'].pop()
+    receipt = dict(suite='second', provider='method', case_id='case', state='called_but_uncommitted')
+    if declared is not None:
+        receipt['physical_calls'] = declared
+    event = dict(event='http_request_started', call_id='method__case__r001__p001', at='2020-01-01T00:00:00Z')
+    duplicate = {**event, 'at': '2020-01-01T00:01:00Z'} if conflict else event
+    spec['missing'] = [dict(suite='second', provider='method', case_id='case', status='uncommitted',
+        reason='Lost result', receipt=write(tmp_path/'lost.json', receipt),
+        diagnostic_sources=[write(tmp_path/'events.json', [event, duplicate])])]
+    if conflict:
+        with pytest.raises(ValueError, match='Conflicting request starts'):
+            build(tmp_path, spec)
+    else:
+        root = build(tmp_path, spec).parent
+        settings = json.loads((root/'matrix.json').read_bytes())['execution_settings'][0]
+        assert settings['calls'] == 1 + (declared or 1)

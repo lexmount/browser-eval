@@ -1016,7 +1016,7 @@ def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
                 evidence.append([json.loads(line) for line in raw.splitlines() if line.strip()])
         observations = []
         _receipt_covers(evidence, suite, provider, cid, 'uncommitted', observations=observations)
-        starts = set()
+        starts = {}
         bounds = {'collection_start': [], 'collection_end': []}
         counts = []
         for node in observations:
@@ -1025,7 +1025,13 @@ def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
                 counts.append(count)
             start = node.get('started_at') or (node.get('at') if node.get('event') == 'http_request_started' else None)
             if node.get('event') == 'http_request_started':
-                starts.add((node.get('call_id'), start))
+                identity = node.get('call_id')
+                if identity is not None:
+                    if identity in starts and starts[identity] != start:
+                        raise ValueError('Conflicting request starts for one invocation identity')
+                    starts[identity] = start
+                else:
+                    group['errors'].append('Uncommitted request start lacks invocation identity')
             for field, value in [('collection_start', start), ('collection_end', node.get('completed_at'))]:
                 if value is None:
                     continue

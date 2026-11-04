@@ -287,3 +287,31 @@ def test_public_method_option_projection_keeps_private_config_identity(tmp_path,
         with pytest.raises(ValueError): load_frozen_method_options(tmp_path, rows)
     else:
         assert load_frozen_method_options(tmp_path, rows)['providers'] == config['providers']
+
+
+@pytest.mark.parametrize('route', ['index.html', 'providers/method.html', 'attempts/call.html', 'en/providers/method.html'])
+def test_ordinary_report_cannot_remove_marker_and_disclosure(tmp_path, route):
+    from harness.web_fetch.report_check import check_local_diagnostic_presentation
+    page = tmp_path/route
+    page.parent.mkdir(parents=True, exist_ok=True)
+    banner = local_audit_banner({'comparison': {'kind': 'uniform_native_local_measurement',
+        'publication_state': 'local_audit_only_not_for_release'}})
+    page.write_text('<meta name="browser-eval-report" content="1">'+banner, encoding='utf-8')
+    check_local_diagnostic_presentation(tmp_path, ranked=True)
+    page.write_text('<p>Results without disclosure</p>', encoding='utf-8')
+    with pytest.raises(ValueError, match='disclosure missing'):
+        check_local_diagnostic_presentation(tmp_path, ranked=True)
+
+
+def test_ordinary_report_preserves_evidence_and_exact_language_notice(tmp_path):
+    from harness.report_languages import english_notice
+    from harness.web_fetch.report_check import check_local_diagnostic_presentation
+    (tmp_path/'evidence').mkdir()
+    (tmp_path/'evidence/source.html').write_text('<html>Original source</html>', encoding='utf-8')
+    (tmp_path/'en').mkdir()
+    notice = tmp_path/'en/index.html'
+    notice.write_text(english_notice(), encoding='utf-8')
+    check_local_diagnostic_presentation(tmp_path, ranked=True)
+    notice.write_text('<p>Results</p>', encoding='utf-8')
+    with pytest.raises(ValueError, match='disclosure missing'):
+        check_local_diagnostic_presentation(tmp_path, ranked=True)
