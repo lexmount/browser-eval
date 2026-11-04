@@ -1,6 +1,10 @@
 from harness.web_fetch import adjudication_evidence, local_execution_contract
 import hashlib
 import json
+import re
+import subprocess
+import sys
+from pathlib import Path
 
 import pytest
 
@@ -1101,22 +1105,32 @@ def test_diagnostic_viewers_share_unchanged_source_across_languages(tmp_path):
     assert source.read_bytes()==original
 
 
-@pytest.mark.parametrize(('label','note','english_label','english_note'),[
-    ('已保存的诊断日志','仅包含实际观测的日志。','Saved diagnostic logs','Contains only observed logs.'),
-    ('完整原始响应','产品实际返回；公开副本已隐藏凭据与本机路径。','Complete original response','Actual product response; credentials and local paths are hidden in this public copy.'),
-])
-def test_refreshed_log_route_translates_saved_chinese_header_without_a_prior_render(tmp_path,monkeypatch,label,note,english_label,english_note):
+def test_catalog_text_base_could_translate_still_translates_without_a_render(monkeypatch):
+    """Frozen and refresh builds render saved Chinese text, so no `t` call declares its English."""
+    from collections import defaultdict
     from harness.web_fetch import report_i18n
-    from harness.web_fetch.report import diagnostic_view_page
-    from bs4 import BeautifulSoup
     monkeypatch.setattr(report_i18n,'TEXT',dict(report_i18n._TRANSLATIONS['TEXT']))
-    source=tmp_path/'logs/actual.txt';source.parent.mkdir()
-    source.write_text('observed log',encoding='utf-8')
-    relative=diagnostic_view_page(tmp_path,'logs/actual.txt',label,note)
-    report_i18n.write_english_report(tmp_path,source_routes=[relative])
-    soup=BeautifulSoup((tmp_path/'en'/relative).read_text(encoding='utf-8'),'html.parser')
-    assert soup.h1.get_text()==english_label
-    assert soup.find('h2',string='Record source').find_next('p').get_text()==english_note
+    catalog=json.loads(report_i18n.MESSAGES.read_text(encoding='utf-8'))['zh']
+    keys=json.loads((Path(__file__).parent/'fixtures/web-fetch-saved-text-keys.json').read_text(encoding='utf-8'))
+    saved={key:catalog[key].format_map(defaultdict(lambda:7)).strip() for key in keys}
+    untranslated={key:text for key,text in saved.items()
+                  if re.search('[\u4e00-\u9fff]',report_i18n.translate_text(text))}
+    assert untranslated=={}
+
+
+def test_saved_diagnosis_translates_in_a_process_that_never_diagnosed():
+    from harness.web_fetch.failure_diagnosis import diagnose
+    denied=diagnose({'ok':False,'status_code':403,'error_message':'HTTP 403 client error','metrics':{},'provider_metadata':{}},{},'')
+    missing=diagnose({'ok':True,'metrics':{'resource_pass':False},'provider_metadata':{}},{'task_kind':'resource'},'')
+    saved=[denied['category'],denied['stage'],denied['certainty'],missing['evidence']]
+    page='<html lang="zh-CN"><body>'+''.join('<p>'+text+'</p>' for text in saved)+'</body></html>'
+    script=('import sys;from pathlib import PurePosixPath;'
+            'from harness.web_fetch.report_i18n import localize_html;'
+            "sys.stdout.buffer.write(localize_html(sys.stdin.buffer.read().decode(),PurePosixPath('attempts/example.html')).encode())")
+    english=subprocess.run([sys.executable,'-c',script],input=page.encode(),capture_output=True,check=True).stdout.decode()
+    assert not re.search('[\u4e00-\u9fff]',english)
+    for text in ('Origin denied this request','Origin access','Direct-response basis','No registered target resource was found.'):
+        assert '<p>'+text+'</p>' in english
 
 
 def test_long_product_and_caller_logs_use_one_existing_source(tmp_path):

@@ -97,6 +97,7 @@ def _body_region_summary(match):
 
 REGEX = [
     (re.compile(r"^新批次启用自身 DEBUG 并捕获网络库日志；旧 (\d+) 条不计入本报告。$"), r"The new batch enabled native DEBUG output and captured network-library logs; \1 earlier records are excluded from this report."),
+    (re.compile(r"^每次物理调用预算为 ([\d.]+) 秒，重试后的累计耗时可能超过该预算。$"), r"Each physical call has a \1-second budget; accumulated latency after retries can exceed it."),
     (re.compile(r"^本报告包含 (\d+) 个任务、(\d+) 个逻辑结果，任务通过 (\d+)/(\d+)。结论仅适用于已登记的任务和规则。$"), r"This report contains \1 tasks and \2 logical results, with \3/\4 task passes. Conclusions apply only to the registered tasks and rules."),
     (re.compile(r"^的 F1 为 ([\d.]+%)，但没有满足该例任务规则。零通过表示没有一次满足全部任务门槛，不表示输出与参考毫无词语重合。这里的 F1 对照已保存的样本文本，只诊断文字重合，不承担实时事实核验。词频相似度允许部分文字得分，任务规则检查指定的内容或字段结构；二者应保留各自的含义。$"),
      r" has F1 \1 but does not satisfy its task rules. Zero passes means no call met every threshold, not zero textual overlap. This F1 compares saved sample text only and does not verify live facts. Token-frequency similarity can award partial text credit, while task rules check required content or field structure; the two retain distinct meanings."),
@@ -106,6 +107,7 @@ REGEX = [
      r"Missing resources: \1; also returned unexpected resources: \2"),
     (re.compile(r"^已找到目标资源，但答案字段还返回了非目标资源：(.+)$"),
      r"The target resource was found, but answer-bearing fields also returned unexpected resources: \1"),
+    (re.compile(r"^最终报告纳入 ([\d,]+) 次调用。任务与参考冻结后执行；每个方法内部串行，不复用个人登录状态。$"), r"The final report includes \1 calls. Execution began after tasks and references were frozen; calls were sequential within each method and did not reuse personal login state."),
     (re.compile(r"^初始源文档审计进一步缩小了这批样本的解释范围：静态网站正文 (\d+) 例中，(\d+) 例的冻结参考，可以从已保存的初始 HTML 经参考提取与规范化后精确复现。这是对参考文本可恢复性的检查，既不意味着它们都是可见静态正文，也不意味着 CowAgent 使用了同样的提取器。嵌入脚本的载荷仍需要正确解析。高网页通过率因此不能直接外推到初始响应之外才到达的内容。$"), r"The initial-source audit further narrows how this sample can be interpreted: for \1 general-web body tasks, \2 frozen references can be reproduced exactly from the saved initial HTML after reference extraction and normalization. This checks reference-text recoverability; it neither means that all of the text was statically visible nor that CowAgent used the same extractor. Embedded script payloads still require correct parsing. High web pass rates therefore cannot be extrapolated to content that arrives only after the initial response."),
     (re.compile(r"^这组另有 (\d+)/(\d+) 条返回标题能按详情链接对应到独立名称参考，据此计算标题完整度、纯净度和 F1。例如一部电影从第三名移到第十名，只要仍返回同一详情链接，就比较这部电影的名称，不比较名次，也不要求旧榜单里的电影继续出现。只返回电影名称可能取得很高的标题分，却仍不足以完成至少三条结果的任务。因此这三个分数须与任务通过率和参考覆盖量一起读，不能当作整页正文质量。新条目没有独立名称参考时不计文字分；同一条目的标题也可能改写，重合度只是相对已记录名称的诊断，不认证当前内容真假。$"), r"For this group, \1/\2 returned titles can be joined by detail URL to independent name references, enabling title recall, precision, and F1. If a film moves from third to tenth while retaining the same detail URL, its name is compared without comparing rank or requiring old list membership. Returning names alone can score highly on title overlap while still failing the task's minimum of three complete records. Read these three diagnostics together with task pass rate and reference coverage; they are not whole-page body-quality metrics. New entries without independent name references are excluded, and titles may be rewritten, so overlap is only a diagnostic against recorded names, not proof that current content is true."),
     (re.compile(r"^获取原图：(.+)$"), lambda match: "Download original: " + translate_text(match.group(1))),
@@ -116,6 +118,7 @@ REGEX = [
     (re.compile(r"^同窗速度子集：预先声明 (\d+) 题，(\d+) 种方法共同通过 (\d+) 题；所有方法使用完全相同的成功样本。P95 只作本次样本诊断。$"), r"Same-window latency cohort: \1 tasks were declared in advance and all \2 methods jointly passed \3; every method uses exactly the same successful sample. P95 is only a diagnostic for this sample."),
     (re.compile(r"^这份旧版测速汇总只使用 (\d+)/(\d+) 个全部 (\d+) 种方法共同通过的同窗任务；它保留原报告的共同成功样本口径，不能补充解释失败等待，也不能与跨批次主结果直接排名。$"), r"This legacy latency summary uses only the \1/\2 same-window tasks jointly passed by all \3 methods. It preserves the original report's shared-pass denominator, cannot account for time spent on failures, and cannot be ranked directly against cross-batch primary results."),
     (re.compile(r"^全部 (\d+) 种方法共同通过 (\d+)/(\d+) 题；共同通过数只作诊断，不用于筛选测速样本。报告保留预声明的全部 ([\d,]+) 次调用，不按结果重新选题；全调用耗时可在相同分母下阅读，通过调用耗时只描述各方法的条件分布，不能解释为同题速度排名。$"), r"All \1 methods jointly pass \2/\3 tasks; the shared-pass count is diagnostic only and is not used to select the latency sample. The report retains all \4 predeclared calls without reselecting tasks after observing outcomes. All-call latency uses a common denominator; successful-call latency only describes each method's conditional distribution and is not a matched-task speed ranking."),
+    (re.compile(r"^全部 (\d+) 种受测配置共同通过$"), r"All \1 tested configurations pass"),
     (re.compile(r"^(\d+) 个普通网页中，GitHub 与 Python 官方文档占 (\d+) 个，样本偏向技术文档$"), r"Of \1 general-web tasks, \2 are from GitHub or the official Python documentation, so the sample is weighted toward technical documentation"),
     (re.compile(r"^统计按实际调用记录计算，未运行和缺少验收证据的项目不记为失败。静态网站正文、动态网站正文与热门网站正文分别陈述，文档、资源地址和原文件按各自契约验收。(\d+) 个普通网页中，GitHub 与 Python 官方文档占 (\d+) 个，样本偏向技术文档；每个方法与案例组合只有一次观察，不能估计波动或外推为全网成功率。调用日期相邻不构成同时间对照，公开练习站也不能代表生产网站分布。$"), r"Statistics use the calls actually run; items that were not run or lack acceptance evidence are not counted as failures. General-web, dynamic-web, and popular-site body text are reported separately, while documents, resource URLs, and original files follow their own contracts. Of \1 general-web tasks, \2 are from GitHub or the official Python documentation, so the sample is weighted toward technical documentation. Each method–task pair has only one observation, which cannot estimate variation or be extrapolated to a web-wide success rate. Nearby call dates are not a simultaneous control, and public practice sites do not represent the distribution of production websites."),
     (re.compile(r"^静态网页通过数：(.+)。综合榜按 (\d+) 个任务等权计数；(\d+) 类分榜仍分别解释，耗时和文字质量不混入综合通过率。$"), r"General-web passes: \1. The overall ranking counts \2 tasks equally. Each of the \3 family rankings is interpreted separately, and neither latency nor text quality is blended into overall task pass rate."),
@@ -149,9 +152,13 @@ REGEX = [
      lambda match: f"The evaluation does not cover its plan; {match.group(1)} unplanned calls are present"
                    + (f"; {match.group(2)} calls have no pass/fail judgement" if match.group(2) else "")
                    + ". Rankings on this page must not be used for conclusions or publication."),
+    (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · 本地未认证诊断快照。$"), r"\1 tasks · \2 methods · local uncertified diagnostic snapshot."),
+    (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · (\d+)\s*类分榜与一个综合通过率总榜。$"), r"\1 tasks · \2 methods · \3 family rankings and one overall coverage ranking."),
     (re.compile(r"^(\d+)\s*类任务概览$"), r"\1 task families"),
     (re.compile(r"^(\d+)\s*类分榜$"), r"Rankings for \1 task families"),
     (re.compile(r"^(\d+)\s*类通过数$"), r"Passes across \1 task families"),
+    (re.compile(r"^每种方法都执行当前评测集计划的 (\d+) 个任务，每题计一次通过或失败，直接相加；耗时单列展示，不参与通过率排序。总榜适合看整体交付覆盖，具体能力仍应回到 (\d+) 个分榜。$"), r"Every method runs the current dataset's \1 planned tasks. Each task contributes one pass or fail and the results are summed directly; latency is shown separately and does not affect pass-rate ranking. The overall ranking shows delivery coverage, while specific capabilities belong in the \2 family rankings."),
+    (re.compile(r"^每种方法在同一组 (\d+) 个计划任务上的端到端耗时，包含通过与失败；三项不参与通过率排名。主矩阵调用跨日期、跨批次，不等同于同窗受控速度比较。$"), r"End-to-end latency for each method across the same \1 planned tasks, including both passes and failures. These metrics do not affect pass-rate ranking. Primary-matrix calls span dates and batches and are not a same-window controlled speed comparison."),
     (re.compile(r"^供应商明确声明返回内容已截断：(.*)$"), r"The provider explicitly declares that the returned body is truncated: \1"),
     (re.compile(r"^当前报告共 (\d+) 个案例、(\d+) 种方法和 ([\d,]+) 条权威逻辑结果；其中其他 ([\d,]+) 条未被本次文件补测改写。$"), r"The current report contains \1 tasks, \2 methods, and \3 authoritative logical results; the other \4 results were not changed by this file-task rerun."),
     (re.compile(r"^至少 (\d+) 条不同记录$"), r"At least \1 distinct records"),
@@ -182,6 +189,7 @@ REGEX = [
     (re.compile(r"^([\d,]+) 个字符 · ([\d.]+) 秒$"), r"\1 characters · \2 seconds"),
     (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · 六类分榜与一个综合通过率总榜。$"), r"\1 tasks · \2 methods · six family rankings and one overall coverage ranking."),
     (re.compile(r"^(\d+) 个任务$"), r"\1 tasks"),
+    (re.compile(r"^(\d+) 个案例 · (\d+) 种已测方法$"), r"\1 tasks · \2 measured methods"),
     (re.compile(r"^(\d+)/(\d+) · Codex 已核验$"), r"\1/\2 · reviewed by Codex"),
     (re.compile(r"^方法：(.*)$"), r"Method: \1"),
     (re.compile(r"^任务 ID：(.*)$"), r"Task ID: \1"),
@@ -191,7 +199,10 @@ REGEX = [
     (re.compile(r"^找到 (\d+) 个任务$"), r"\1 tasks found"),
     (re.compile(r"^(\d+) 字符$"), r"\1 characters"),
     (re.compile(r"^(\d+) 字符 ·$"), r"\1 characters ·"),
+    (re.compile(r"^(\d+) 条执行记录$"), r"\1 execution records"),
+    (re.compile(r"^(\d+) 个案例，按任务类型查看。$"), r"\1 tasks, grouped by task family."),
     (re.compile(r"^(\d+) 个案例$"), r"\1 tasks"),
+    (re.compile(r"^(\d+)/(\d+) 次均有结果。$"), r"\1/\2 calls have results."),
     (re.compile(r"^独立核验：主结果 ([\d,]+)/([\d,]+)；同窗测速 ([\d,]+)/([\d,]+)；未决 (\d+)$"), r"Independent review: primary results \1/\2; same-window latency \3/\4; \5 unresolved"),
     (re.compile(r"^独立核验：全量 ([\d,]+)/([\d,]+)；未决 (\d+)$"), r"Independent review: full matrix \1/\2; \3 unresolved"),
     (re.compile(r"^独立核验：机器失败 ([\d,]+)/([\d,]+)；未决 (\d+)$"), r"Independent review: machine failures \1/\2; \3 unresolved"),
@@ -200,9 +211,14 @@ REGEX = [
     (re.compile(r"^十二种方法主矩阵的 ([\d,]+) 条机器失败结果；([\d,]+) 条机器通过结果和 ([\d,]+) 条同窗测速结果未逐条独立审查。$"), r"Machine failures in the twelve-method primary matrix: \1. The \2 machine passes and \3 same-window latency results were not independently reviewed item by item."),
     (re.compile(r"^从结构化结果中读取标题与详情链接，共 ([\d,]+) 个标题。$"), r"Read titles and detail URLs from structured results: \1 returned titles."),
     (re.compile(r"^([\d,]+)/([\d,]+) 个标题找到独立名称证据；没有对应证据的不评分。$"), r"\1/\2 titles join to independent name evidence; titles without matching evidence are not scored."),
+    (re.compile(r"^覆盖 (\d+)/(\d+) 个案例；这是标题诊断，不参与任务通过判定。$"), r"Coverage: \1/\2 tasks. This is a title diagnostic and does not determine task acceptance."),
     (re.compile(r"^(\d+)/(\d+) · (\d+)/(\d+) 例（无可评分标题）$"), r"\1/\2 · \3/\4 tasks (no scorable titles)"),
     (re.compile(r"^(\d+) 个任务中满足各自验收规则的数量；每题等权。$"), r"Number of the \1 tasks satisfying their own acceptance contracts; every task has equal weight."),
+    (re.compile(r"^当前参评方法共同通过 (\d+) 个案例；仅在这个相同子集内比较耗时，不代表失败任务的成本或生产 SLA。$"), r"The evaluated methods jointly pass \1 tasks. Latency is compared only on this identical subset; it does not represent the cost of failed tasks or a production SLA."),
     (re.compile(r"^完整参考覆盖 (\d+)/(\d+)；缺少参考只影响全文指标，不影响任务结果。$"), r"Complete-reference coverage: \1/\2. A missing reference affects only full-text metrics, not the task verdict."),
+    (re.compile(r"^文字核对范围：各方法均为 (\d+)/(\d+) 例。$"), r"Required-text coverage: \1/\2 tasks for every method."),
+    (re.compile(r"^(\d+) 例完整参考$"), r"\1 tasks with complete references"),
+    (re.compile(r"^(\d+) 例列表任务$"), r"\1 list tasks"),
     (re.compile(r"^文字 (\d+) 项$"), r"\1 text checks"),
     (re.compile(r"^资源 · (\d+) 项$"), r"\1 required resources"),
     (re.compile(r"^(\d+(?:\.\d+)?%) · (\d+)/(\d+) 组$"), r"\1 · \2/\3 groups"),
@@ -226,6 +242,9 @@ REGEX = [
     (re.compile(r"^至少 (\d+) 条完整且不重复的记录$"), r"At least \1 complete, unique records"),
     (re.compile(r"^实际交付 (\d+) 个文件$"), r"\1 files delivered"),
     (re.compile(r"^实际交付 (\d+) 个文件 ·$"), r"\1 files delivered ·"),
+    (re.compile(r"^实际返回 (\d+) 个带详情链接的标题。$"), r"The output contains \1 titles with detail URLs."),
+    (re.compile(r"^(\d+)/(\d+) 个标题能按详情链接找到参考名称。$"), r"\1/\2 titles have independent name references joined by detail URL."),
+    (re.compile(r"^(\d+)/(\d+) 条；仅衡量已返回且有独立参考的标题$"), r"\1/\2; only returned titles with independent references are measured"),
     (re.compile(r"^未命中资源：(.+)$"), r"Missing resource: \1"),
     (re.compile(r"^展开 (\d+) 个较早版本$"), r"Expand \1 earlier releases"),
     (re.compile(r"^(\d+) 个仓库$"), r"\1 repositories"),
@@ -319,6 +338,10 @@ REGEX.insert(0, (
     r"This case has \1 regions. Every region must reach at least \2%, and at least \3 regions must reach \4%. Check the table first, then expand the side-by-side evidence when needed.",
 ))
 REGEX.insert(0, (
+    re.compile(r"^本段覆盖率为 ([\d.]+)%。每段至少达到 ([\d.]+)%；达到 ([\d.]+)% 时算作主要完整段落。$"),
+    r"This region has \1% coverage. Every region must reach at least \2%; reaching \3% counts as a substantially complete region.",
+))
+REGEX.insert(0, (
     re.compile(r"^共 (\d+) 组稳定文字，全部属于标准答案；当前区域显示约 5 组高度，向下滚动查看全部。$"),
     r"All \1 stable-text groups belong to the reference answer. This area shows about 5 groups at a time; scroll to view all.",
 ))
@@ -346,6 +369,10 @@ REGEX.insert(0, (
 REGEX.insert(0, (
     re.compile(r"^下载物理调用 (\d+)记录$"),
     r"Download physical call \1 record",
+))
+REGEX.insert(0, (
+    re.compile(r"^本题的最终交付物是 (\d+) 个原始文件；文本输出为空不表示没有交付，文件字节在详情页下方单独列出。$"),
+    r"This task delivered \1 original files. Empty text does not mean nothing was delivered; the file bytes are listed separately below.",
 ))
 REGEX.insert(0, (
     re.compile(r"^最终输出确实为空。适配器记录的原因：(.+)$"),
@@ -396,6 +423,18 @@ REGEX.insert(0, (
 REGEX.insert(0, (
     re.compile(r"^主结果 ([\d,]+)/([\d,]+)；同窗测速 ([\d,]+)/([\d,]+)；代理分歧 (\d+)；已裁定 (\d+)；未决 (\d+)。$"),
     r"Primary results \1/\2; same-window latency \3/\4; agent disagreements \5; adjudicated \6; unresolved \7.",
+))
+REGEX.insert(0, (
+    re.compile(r"^全部 (\d+) 种受测配置共同通过$"),
+    r"All \1 tested configurations pass",
+))
+REGEX.insert(0, (
+    re.compile(r"^从结构化结果中读取标题与详情链接，共 (\d+) 个标题。$"),
+    r"Read titles and detail URLs from structured results: \1 returned titles.",
+))
+REGEX.insert(0, (
+    re.compile(r"^(\d+)/(\d+) 个标题找到独立名称证据；没有对应证据的不评分。$"),
+    r"\1/\2 titles join to independent name evidence; titles without matching evidence are not scored.",
 ))
 REGEX.insert(0, (
     re.compile(r"^独立资源 cohort：四种本地配置共同成功的 (\d+)/(\d+) 个普通网页。失败任务不进入资源汇总。$"),
@@ -683,8 +722,10 @@ def localize_html(page: str, source: PurePosixPath, *, translations=None) -> str
 REGEX.insert(0, (re.compile(r"^源码提交：(.+)$"), r"Source commit: \1"))
 
 
+REGEX.insert(0, (re.compile(r"^(\d+) 个计划任务中的通过数 / 可判定数；每题等权，无法判定结果不参与分母。$"), r"Passed / decidable results among \1 planned tasks; each task has equal weight, and undecidable results are excluded from the denominator."))
 REGEX.insert(0, (re.compile('^每种方法均使用同一组 (\\d+) 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。每种方法内部按案例依次执行；方法之间的并发安排和限制见调用链检查。耗时仍受本地与远程环境、网络和产品内部限制影响。$'), 'Each method uses the same \\1 tasks, including passes, failures, errors, and timeouts. Latency runs from input to return and excludes the common cooldown between calls. Cases execute sequentially within each method; inter-method scheduling and limits are documented in the call-chain audit. Local and remote environments, networks, and product limits still affect latency.'))
 REGEX.insert(0, (re.compile(r"^(\d+)/(\d+) · 复核记录$"), r"\1/\2 · review records"))
+REGEX.insert(0, (re.compile(r"^(\d+) 条通过结果的参考词精确率低于 30%。此比例用于定位检查对象，不是统一失败线；通过不保证干净正文，正文参考的范围和时间也会影响该指标。$"), r"\1 passing results have reference word precision below 30%. This locates inspection candidates, not a universal failure threshold. Passing does not establish clean body text; reference scope and time also affect this metric."))
 
 
 def write_english_report(out: Path, *, source_routes=None) -> int:

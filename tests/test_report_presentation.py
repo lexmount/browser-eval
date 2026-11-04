@@ -202,6 +202,9 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertNotIn('2.0.0',moli)
  def test_dynamic_cohort_copy_has_english_translations(self):
   from harness.web_fetch.report_i18n import translate_text
+  self.assertEqual(translate_text('90 个案例 · 12 种方法 · 4类分榜与一个综合通过率总榜。'),
+                   '90 tasks · 12 methods · 4 family rankings and one overall coverage ranking.')
+  self.assertEqual(translate_text('4类任务概览'),'4 task families')
   translated=translate_text('本轮请求正文文本；资源链接仅来自同一 Contents 响应的 extras 字段。 未启用额外的理解模型或付费后备方法。')
   self.assertNotIn('本轮',translated)
   self.assertIn('Contents response',translated)
