@@ -24,7 +24,8 @@ _ENGINES = {
 
 
 class LexmountProvider(Provider):
-    native_configuration_fields = Provider.native_configuration_fields + ('engine',)
+    native_configuration_fields = Provider.native_configuration_fields + (
+        'engine', 'trace_include_steps')
 
     def native_route(self, case):
         return NativeRoute('http', '/v1/extract',
@@ -35,9 +36,13 @@ class LexmountProvider(Provider):
         engine = self.config.get('engine', 'lightmount_domstable')
         if engine not in _ENGINES:
             raise ValueError('Lexmount engine is unsupported')
+        trace = self.config.get('trace_include_steps', True)
+        if type(trace) is not bool:
+            raise ValueError('Lexmount trace_include_steps must be boolean')
         body = {'extract': {'url': encode_http_target_url(case.url),
-                            'options': {'engine_preference': engine}},
-                'trace': {'include_steps': True}}
+                            'options': {'engine_preference': engine}}}
+        if trace:
+            body['trace'] = {'include_steps': True}
         return (str(self.config.get('base_url', 'https://api.lexmount.com')).rstrip('/') + '/v1/extract',
                 self.native_http_options(body, {
                     'X-API-Key': str(self.config.get('api_key', '')),
