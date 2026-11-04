@@ -1,5 +1,7 @@
 import hashlib
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -68,7 +70,18 @@ def test_report_build_requires_hash_bound_corrected_dataset(tmp_path: Path) -> N
         bound_dataset_path({"dataset": {"path": str(link), "sha256": profile["dataset"]["sha256"]}})
 
 
-def build_replay_fixture(tmp_path: Path, monkeypatch, extra_methods=0, *, failed=False):
+# One duration sample per fixture method: a measured zero, a missing key and a null.
+STEP_DURATION_SAMPLES = ({"duration_ms": 0}, {}, {"duration_ms": None})
+
+
+def build_replay_fixture(
+    tmp_path: Path, monkeypatch, extra_methods=0, *, failed=False, step_samples=None
+):
+    """Build the synthetic report.
+
+    ``step_samples`` holds one duration sample per method, in method order. Giving
+    it indexes each trace step so the result page aligns it with its planned action.
+    """
     methods = [
         {"id": "chromium", "engine": "chromium", "label": "Chromium"},
         {"id": "moli-old", "engine": "moli", "label": "Moli 1.1.3"},
@@ -107,11 +120,13 @@ def build_replay_fixture(tmp_path: Path, monkeypatch, extra_methods=0, *, failed
     if failed:
         attempts[1].update(status="fail", process_status="fail", evaluator_status="fail",
                            completed_action_count=0, error="Fixture action failed")
-    for attempt in attempts:
+    for position, attempt in enumerate(attempts):
         trace = tmp_path / (attempt["participant_id"] + "-trace.json")
-        trace.write_text(json.dumps([{"action": "snapshot", "status": attempt["status"],
-                                     "result": {"text": "Fixture snapshot"},
-                                     "error": attempt.get("error")}]), encoding="utf-8")
+        step = {"action": "snapshot", "status": attempt["status"],
+                "result": {"text": "Fixture snapshot"}, "error": attempt.get("error")}
+        if step_samples is not None:
+            step |= {"index": 1, "arguments": {"action": "snapshot"}, **step_samples[position]}
+        trace.write_text(json.dumps([step]), encoding="utf-8")
         attempt["evidence"]["trace"] = {
             "path": str(trace), "sha256": hashlib.sha256(trace.read_bytes()).hexdigest(),
         }
@@ -1129,6 +1144,134 @@ def test_detail_page_shows_absent_timing_as_dash_and_real_zero_as_zero(
     ):
         value = "—" if seconds is None else f"{seconds} {unit}"
         assert f"<div><span>{label}</span><strong>{value}</strong></div>" in detail
+
+
+def _step_duration(detail: str) -> str:
+    """Return the duration shown beside the step's actual execution."""
+    return BeautifulSoup(detail, "html.parser").select_one(
+        "#step-1 .aligned-actual-head span:last-child"
+    ).get_text()
+
+
+@pytest.mark.parametrize("lang", ["en", "zh"])
+@pytest.mark.parametrize(
+    ("trajectory", "rendered"),
+    [
+        ([{"index": 1}], "—"),
+        ([{"index": 1, "duration_ms": None}], "—"),
+        ([{"index": 1, "duration_ms": 0}], "0.00 s"),
+        ([{"index": 1, "duration_ms": 0.0}], "0.00 s"),
+        ([{"index": 1, "duration_ms": 1234}], "1.23 s"),
+        ([], "—"),
+    ],
+    ids=["missing", "null", "measured-zero", "measured-float-zero", "measured", "not-executed"],
+)
+def test_step_shows_absent_duration_as_dash_and_real_zero_as_zero(
+    lang, trajectory, rendered
+) -> None:
+    task = {
+        "task_id": 90,
+        "task": {"intent": "Open the route", "sites": ["map"]},
+        "tool_calls": [{"action": "navigate", "url": "https://example.test"}],
+    }
+    attempt = {
+        "engine": "chromium",
+        "participant_id": "chromium",
+        "task_id": 90,
+        "status": "pass",
+        "completed_action_count": 1,
+        "action_count": 1,
+        "duration_ms": 100,
+        "planned_actions": task["tool_calls"],
+    }
+    evidence = {
+        "programmatic_failure": {"stage": "pass", "step": None, "message": ""},
+        "trajectory": trajectory,
+        "screenshot": None,
+    }
+
+    detail = _detail_page(lang, attempt, task, {"label": "Chromium"}, evidence, [])
+
+    assert _step_duration(detail) == rendered
+
+
+def test_built_result_pages_keep_absent_and_zero_step_durations_apart(
+    tmp_path: Path, monkeypatch
+) -> None:
+    output, *_ = build_replay_fixture(tmp_path, monkeypatch, step_samples=STEP_DURATION_SAMPLES)
+
+    for edition in (output, output / "en"):
+        rendered = {
+            method: _step_duration(
+                (edition / "result" / f"{method}-29.html").read_text(encoding="utf-8")
+            )
+            for method in ("chromium", "moli-old", "moli-fixed")
+        }
+        assert rendered == {"chromium": "0.00 s", "moli-old": "—", "moli-fixed": "—"}
+
+
+# Runs the report's own script against a minimal DOM and opens step 1's dialog.
+STEP_DIALOG_DRIVER = """
+const payload=PAYLOAD;
+const slots={};
+const dialog={
+  dataset:{evidenceUrl:'evidence',standardUrl:'standard'},open:false,
+  querySelector:selector=>slots[selector]??={textContent:'',hidden:false,addEventListener(){}},
+  addEventListener(){},showModal(){this.open=true},
+};
+let openStep;
+const elements={
+  '#step-dialog':dialog,
+  '#trajectory':{addEventListener:(_type,listener)=>{openStep=listener}},
+};
+global.document={
+  documentElement:{lang:payload.lang,dataset:{}},
+  querySelector:selector=>elements[selector]??null,
+  querySelectorAll:()=>[],
+};
+global.localStorage={getItem:()=>null};
+global.fetch=async name=>({ok:true,json:async()=>payload[name]});
+REPORT_SCRIPT
+openStep({target:{closest:()=>({dataset:{openStep:'1'}})}}).then(()=>{
+  console.log(slots['[data-step-status]'].textContent);
+}).catch(error=>{console.error(error);process.exitCode=1});
+"""
+
+
+def _step_dialog_status(output: Path, edition: Path, method: str) -> str:
+    """Open step 1's dialog with the built page's script and evidence; return its status."""
+    node = shutil.which("node")
+    assert node, "Node is required to execute the report's step dialog"
+    page = edition / "result" / f"{method}-29.html"
+    soup = BeautifulSoup(page.read_text(encoding="utf-8"), "html.parser")
+    dialog = soup.select_one("#step-dialog")
+    payload = {
+        "lang": soup.html["lang"],
+        "evidence": json.loads((page.parent / dialog["data-evidence-url"]).read_text("utf-8")),
+        "standard": json.loads((page.parent / dialog["data-standard-url"]).read_text("utf-8")),
+    }
+    script = (output / "assets" / "app.js").read_text(encoding="utf-8")
+    harness = STEP_DIALOG_DRIVER.replace("PAYLOAD", json.dumps(payload)).replace(
+        "REPORT_SCRIPT", script
+    )
+    result = subprocess.run([node, "-e", harness], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stderr
+    return result.stdout.strip()
+
+
+def test_step_dialog_keeps_absent_and_zero_durations_apart(tmp_path: Path, monkeypatch) -> None:
+    output, *_ = build_replay_fixture(tmp_path, monkeypatch, step_samples=STEP_DURATION_SAMPLES)
+
+    for edition, prefix in ((output, "实际状态："), (output / "en", "Actual status: ")):
+        rendered = {
+            method: _step_dialog_status(output, edition, method)
+            for method in ("chromium", "moli-old", "moli-fixed")
+        }
+        assert rendered == {
+            "chromium": f"{prefix}pass · 0.00 s",
+            "moli-old": f"{prefix}pass · —",
+            "moli-fixed": f"{prefix}pass · —",
+        }
 
 
 def test_unexecuted_qualified_step_stays_visible_and_is_not_called_an_action_error() -> None:

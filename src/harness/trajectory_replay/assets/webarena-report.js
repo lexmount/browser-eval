@@ -201,6 +201,10 @@ if(stepDialog){
   let standardPromise;
   const evidence=()=>evidencePromise??=fetchJson(stepDialog.dataset.evidenceUrl);
   const standard=()=>standardPromise??=fetchJson(stepDialog.dataset.standardUrl);
+  const stepDuration=durationMs=>{
+    if(durationMs===null||durationMs===undefined)return '—';
+    return (Number(durationMs)/1000).toFixed(2)+' s';
+  };
   document.querySelector('#trajectory')?.addEventListener('click',async event=>{
     const button=event.target.closest('button[data-open-step]');
     if(!button)return;
@@ -231,7 +235,7 @@ if(stepDialog){
         stepDialog.querySelector('[data-step-result]').textContent+='\n\n'+label+'\n'+JSON.stringify(observation,null,2);
       }
       stepDialog.querySelector('[data-step-status]').textContent=actual
-        ?(zh?'实际状态：':'Actual status: ')+(actual.status||'—')+' · '+((Number(actual.duration_ms)||0)/1000).toFixed(2)+' s'
+        ?(zh?'实际状态：':'Actual status: ')+(actual.status||'—')+' · '+stepDuration(actual.duration_ms)
         :(zh?'实际状态：未执行':'Actual status: not executed');
       const finding=measured.programmatic_failure;
       if(finding&&(finding.step===index||finding.trigger_step===index)){

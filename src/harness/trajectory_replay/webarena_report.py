@@ -911,7 +911,8 @@ def _detail_page(
             else t("result.step.completed", "Completed")
         )
         status_class = "status-muted" if actual is None else "status-fail" if actual_status == "error" else "status-pass"
-        duration = f'{float(actual.get("duration_ms") or 0) / 1000:.2f} s' if actual else "—"
+        duration_ms = (actual or {}).get("duration_ms")
+        duration = "—" if duration_ms is None else f"{float(duration_ms) / 1000:.2f} s"
         steps.append(
             f'<article id="step-{number}" class="aligned-step {"failed-step" if failed_step else ""}">'
             f'<div class="aligned-index"><span class="step-number">{number}</span></div>'

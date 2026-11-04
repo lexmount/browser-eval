@@ -26,7 +26,10 @@ from tests.public_webarena_fixture import write_report_fixture
 from tests.test_webmainbench_full_report import render_full_report
 from tests.test_webmainbench_report import sample_report_inputs
 from tests.trajectory_replay.curated_report_fixture import build_curated_report
-from tests.trajectory_replay.test_webarena_report import build_replay_fixture
+from tests.trajectory_replay.test_webarena_report import (
+    STEP_DURATION_SAMPLES,
+    build_replay_fixture,
+)
 from tests.wcxb_fixture import create_report_inputs
 
 # Reports record the revision and source hash of the builder. Both change with
@@ -56,6 +59,15 @@ def test_trajectory_replay_report(tmp_path: Path, monkeypatch, outcome: str) -> 
     output, *_, files = build_replay_fixture(tmp_path, monkeypatch, failed=outcome == "fail")
     check_golden(
         f"trajectory-replay-{outcome}", output, tmp_path, path_inputs=[files["results.json"]]
+    )
+
+
+def test_trajectory_replay_report_with_indexed_steps(tmp_path: Path, monkeypatch) -> None:
+    output, *_, files = build_replay_fixture(
+        tmp_path, monkeypatch, step_samples=STEP_DURATION_SAMPLES
+    )
+    check_golden(
+        "trajectory-replay-step-durations", output, tmp_path, path_inputs=[files["results.json"]]
     )
 
 
