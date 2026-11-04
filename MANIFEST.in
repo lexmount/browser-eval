@@ -12,3 +12,5 @@ recursive-include src/harness/trajectory_replay/assets *.css *.js
 recursive-include src/harness/web_fetch/assets *.css
 recursive-include src/harness/web_fetch/templates *.css
 recursive-include src/harness/web_search/assets *.css *.js
+
+recursive-include src/harness/web_scraper/assets *.css *.js

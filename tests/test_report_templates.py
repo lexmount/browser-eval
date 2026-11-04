@@ -45,7 +45,7 @@ class ReportTemplateTests(unittest.TestCase):
             for name in ('renderer.py','entry.py','test.py'):(root/name).write_text('# synthetic owner', encoding="utf-8")
             registry={'schema_version':1,'tracks':{'future-type':{'renderer':'renderer.py','entrypoint':'entry.py','tests':'test.py','example':'synthetic example'}}}
             path=root/'configs/report-templates.json';path.write_text(json.dumps(registry), encoding="utf-8")
-            contract=resolve_template('future-type',root=root)['metric_contract']
+            contract=discover_template('future-type',root=root)['metric_contract']
             self.assertEqual(set(contract['required']),{'latency','cost'})
             self.assertEqual(contract['required']['latency']['summaries'],['mean','p50','p95'])
             self.assertEqual(set(contract['contextual']),{'cpu','memory'})

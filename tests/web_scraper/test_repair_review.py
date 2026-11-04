@@ -9,7 +9,7 @@ import pytest
 from harness.web_scraper.example import create
 from harness.web_scraper.pipeline import digest, read_json, save_json
 from harness.web_scraper.repair import compose, create_plan, run
-from harness.web_scraper.review import prepare, reconcile_citations, validate
+from harness.web_scraper.review import prepare, read_packet, reconcile_citations, validate
 
 
 def review_payload(packet, quote="synthetic product"):
@@ -103,7 +103,6 @@ def test_repair_calls_only_original_failures_and_resumes_without_new_calls(tmp_p
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.score_rows", return_value={}),
         patch("harness.web_scraper.repair.provider_call", return_value=response) as provider,
     ):
         run(home, profile, "cloudflare-json", destination)
@@ -114,8 +113,7 @@ def test_repair_calls_only_original_failures_and_resumes_without_new_calls(tmp_p
         "path": str(destination),
         "sha256": digest((destination / "certificate.json").read_bytes()),
     }
-    with patch("harness.web_scraper.repair.score_rows", return_value={}):
-        current, _ = compose(home, source, deepcopy(rows), revision)
+    current = compose(home, source, deepcopy(rows), revision)
     assert current[:2] == rows[:2]
     assert current[2]["normalized_fields"]["sku"] == "new"
     assert current[2]["elapsed_seconds"] >= 0
@@ -238,7 +236,7 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
         "reason": "Synthetic source checked",
     }
     for entry in manifest["packets"]:
-        packet = read_json(Path(entry["path"]))
+        packet = read_packet(Path(entry["path"]))
         result = {"cases": []}
         for case in packet["cases"]:
             fields = {f: deepcopy(finding) for f in ("price", "sku", "availability")}
@@ -391,7 +389,7 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
     source.write_bytes(original_source)
     adjudication_manifest = prepare_adjudication(work, adjudication_work, rules)
     for entry in adjudication_manifest["packets"]:
-        packet = read_json(Path(entry["path"]))
+        packet = read_packet(Path(entry["path"]))
         opinions = []
         for case in packet["cases"]:
             opinion = deepcopy(prior["cases"][0])
@@ -420,7 +418,7 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
     assert supported["reference_changes"] == []
     review_path.write_bytes(prior_bytes)
     path = Path(manifest["packets"][0]["path"])
-    packet = read_json(path)
+    packet = read_packet(path)
     packet["cases"][0]["outputs"][0]["native_response"] = {"substituted": True}
     save_json(path, packet)
     manifest["packets"][0]["sha256"] = digest(path.read_bytes())
@@ -434,7 +432,7 @@ def test_review_freezes_complete_outputs_and_rejects_missing_field_or_method(tmp
     work = tmp_path / "review"
     manifest = prepare(home, home / "content.json", work)
     assert manifest["result_count"] == 6
-    packet = read_json(Path(manifest["packets"][0]["path"]))
+    packet = read_packet(Path(manifest["packets"][0]["path"]))
     finding = {
         "status": "supported",
         "values": ["1"],
@@ -534,7 +532,6 @@ def test_repair_initialization_recovers_before_any_dispatch(tmp_path, boundary):
     with (
         patch.object(repair, "validate_dataset"),
         patch.object(repair, "load_runtime_env"),
-        patch.object(repair, "score_rows", return_value={}),
         patch.object(
             repair,
             "provider_call",
@@ -562,7 +559,6 @@ def test_sibling_repair_cannot_supersede_current_success(tmp_path):
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.score_rows", return_value={}),
         patch("harness.web_scraper.repair.provider_call", return_value=response),
     ):
         siblings = []
@@ -577,7 +573,7 @@ def test_sibling_repair_cannot_supersede_current_success(tmp_path):
             )
         enriched = deepcopy(rows)
         enriched[-1]["physical_attempts"] = [deepcopy(rows[-1])]
-        current, _ = compose(home, source, enriched, siblings[0])
+        current = compose(home, source, enriched, siblings[0])
         with pytest.raises(ValueError, match="predecessor|successful"):
             compose(home, source, current, siblings[1])
 
@@ -597,7 +593,6 @@ def test_repair_url_route_is_qualified_and_snapshot_bound(tmp_path, method):
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.score_rows", return_value={}),
         patch("harness.web_scraper.repair.fixture_check", return_value=fixture) as qualify,
         patch(
             "harness.web_scraper.repair.provider_call",
@@ -606,7 +601,7 @@ def test_repair_url_route_is_qualified_and_snapshot_bound(tmp_path, method):
     ):
         run(home, profile, method, target)
         assert qualify.call_count == 2
-        assert call.call_args.args[3] == "https://frozen.example/" + cid
+        assert call.call_args.args[3] == "https://frozen.example/" + cid + ".html"
         revision = {
             "path": str(target),
             "sha256": digest((target / "certificate.json").read_bytes()),
@@ -627,14 +622,13 @@ def test_repair_retains_preexisting_access_retry_time(tmp_path):
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.score_rows", return_value={}),
         patch(
             "harness.web_scraper.repair.provider_call",
             return_value={"http_status": 200, "response": {"result": {"sku": "ok"}}},
         ),
     ):
         run(home, profile, "cloudflare-json", target)
-        current, _ = compose(
+        current = compose(
             home,
             source,
             rows,
@@ -644,7 +638,7 @@ def test_repair_retains_preexisting_access_retry_time(tmp_path):
     assert current[-1]["retry_missing_timers"] == 1
 
 
-def test_relative_review_work_creates_absolute_packet_and_source_paths(tmp_path, monkeypatch):
+def test_relative_review_work_stores_portable_paths_and_resolves_sources(tmp_path, monkeypatch):
     home = create(tmp_path / "example")
     monkeypatch.chdir(tmp_path)
     manifest = prepare(
@@ -654,7 +648,7 @@ def test_relative_review_work_creates_absolute_packet_and_source_paths(tmp_path,
     )
     assert all(Path(p["path"]).is_absolute() for p in manifest["packets"])
     for p in manifest["packets"]:
-        for case in read_json(Path(p["path"]))["cases"]:
+        for case in read_packet(Path(p["path"]))["cases"]:
             assert Path(case["source_html"]).is_absolute()
             assert Path(case["source_outline"]).is_absolute()
 
@@ -667,10 +661,9 @@ def test_repair_resumes_access_denial_with_one_new_call_and_keeps_usage(tmp_path
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.score_rows", return_value={}),
         patch("harness.web_scraper.repair.provider_call", side_effect=[denial, success]) as call,
     ):
-        with pytest.raises(PermissionError, match="native access denial"):
+        with pytest.raises(PermissionError, match="quota_or_payment"):
             run(home, profile, "cloudflare-json", target)
         assert not (target / "certificate.json").exists()
         run(home, profile, "cloudflare-json", target)
@@ -678,7 +671,7 @@ def test_repair_resumes_access_denial_with_one_new_call_and_keeps_usage(tmp_path
         assert call.call_count == 2
         manifest = read_json(target / "manifest.json")
         assert len(manifest["calls"]) == 1 and len(manifest["physical_calls"]) == 2
-        current, _ = compose(
+        current = compose(
             home,
             source,
             rows,
@@ -729,7 +722,6 @@ def test_repair_keeps_parent_fixture_suffix(tmp_path):
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.score_rows", return_value={}),
         patch("harness.web_scraper.repair.fixture_check", return_value=[]) as qualify,
         patch(
             "harness.web_scraper.repair.provider_call",
@@ -815,7 +807,7 @@ def test_persisted_review_rejects_invalid_assessment_schema(tmp_path, invalid):
     home = create(tmp_path / "example")
     work = tmp_path / "audit"
     manifest = prepare(home, home / "content.json", work)
-    packet = read_json(Path(manifest["packets"][0]["path"]))
+    packet = read_packet(Path(manifest["packets"][0]["path"]))
     finding = {
         "status": "supported",
         "values": [],
@@ -911,9 +903,8 @@ def test_repair_clock_can_cross_cooldown_deadline(tmp_path):
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.score_rows", return_value={}),
-        patch("harness.web_scraper.repair.time.monotonic", side_effect=now),
-        patch("harness.web_scraper.repair.time.sleep", side_effect=sleep),
+        patch("harness.web_scraper.pipeline.time.monotonic", side_effect=now),
+        patch("harness.web_scraper.pipeline.time.sleep", side_effect=sleep),
         patch(
             "harness.web_scraper.repair.provider_call",
             return_value={
@@ -924,7 +915,7 @@ def test_repair_clock_can_cross_cooldown_deadline(tmp_path):
         ) as provider,
     ):
         run(home, profile, "cloudflare-json", tmp_path / "repaired")
-    assert provider.call_count == 3 and sleeps
+    assert provider.call_count == 3
 
 
 def test_compound_citation_cannot_discard_a_fabricated_price(tmp_path):
@@ -950,7 +941,10 @@ def test_compound_citation_cannot_discard_a_fabricated_price(tmp_path):
             validate(result, packet)
     raw = review_payload(packet, "Product details; Actual price: 13.40")
     result = reconcile_citations(raw, packet)
-    assert result["cases"][0]["source_fields"]["price"]["source_quote"] == "Actual price: 13.40"
+    assert (
+        result["cases"][0]["source_fields"]["price"]["source_quote"]
+        == "Product details; Actual price: 13.40"
+    )
 
 
 def test_repair_composition_accepts_verified_field_projection(tmp_path):
@@ -959,7 +953,6 @@ def test_repair_composition_accepts_verified_field_projection(tmp_path):
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.score_rows", return_value={}),
         patch(
             "harness.web_scraper.repair.provider_call",
             return_value={
@@ -979,7 +972,7 @@ def test_repair_composition_accepts_verified_field_projection(tmp_path):
             "path": str(destination),
             "sha256": digest((destination / "certificate.json").read_bytes()),
         }
-        current, _ = compose(home, source, projected, revision)
+        current = compose(home, source, projected, revision)
     assert current[0]["normalized_fields"] == {"sku": "offline projection"}
     assert current[-1]["normalized_fields"]["sku"] == "fixed"
 
@@ -1027,7 +1020,6 @@ def test_initial_audit_can_start_with_already_repaired_results(tmp_path):
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.score_rows", return_value={}),
         patch(
             "harness.web_scraper.repair.provider_call",
             return_value={
@@ -1057,10 +1049,7 @@ def test_initial_audit_can_start_with_already_repaired_results(tmp_path):
         manifest = prepare(home, content, initial)
         for entry in manifest["packets"]:
             path = Path(entry["path"])
-            packet = read_json(path)
-            # A legacy unrepaired item requires fallback extraction-manifest
-            # lookup while its repaired neighbor uses the explicit call identity.
-            packet["cases"][0]["outputs"][0].pop("execution_identity")
+            packet = read_packet(path)
             save_json(path, packet)
             entry["sha256"] = digest(path.read_bytes())
             finding = {
@@ -1112,7 +1101,6 @@ def test_initial_audit_can_start_with_already_repaired_results(tmp_path):
 
     unchanged = tmp_path / "unchanged-supplement"
     with (
-        patch("harness.web_scraper.repair.score_rows", return_value={}),
         patch("harness.web_scraper.review.ReviewerSessions.start") as dispatch,
     ):
         supplemental = prepare(home, content, unchanged, prior=initial)
@@ -1143,7 +1131,7 @@ def test_malformed_raw_review_is_quarantined_and_resume_completes(tmp_path, malf
     home = create(tmp_path / "example")
     work = tmp_path / "review"
     manifest = prepare(home, home / "content.json", work)
-    packet = read_json(Path(manifest["packets"][0]["path"]))
+    packet = read_packet(Path(manifest["packets"][0]["path"]))
     raw = work / "raw/000.json"
     correction = review_payload(packet)
     correction["citation_format_corrections"] = [
@@ -1204,7 +1192,6 @@ def test_supplemental_review_selects_only_changed_repaired_call(tmp_path):
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.score_rows", return_value={}),
     ):
         with patch("harness.web_scraper.repair.provider_call", side_effect=[success, failure]):
             run(home, profile, "cloudflare-json", first)
@@ -1214,7 +1201,7 @@ def test_supplemental_review_selects_only_changed_repaired_call(tmp_path):
         save_json(content, {"evidence_runs": [{"run": str(source), "repair": revisions}]})
         manifest = prepare(home, content, initial)
         for entry in manifest["packets"]:
-            packet = read_json(Path(entry["path"]))
+            packet = read_packet(Path(entry["path"]))
             save_json(initial / "reviews" / Path(entry["path"]).name, review_payload(packet))
         save_json(initial / "reviewer.json", {"model": "synthetic"})
         second_profile = tmp_path / "second-plan.json"
@@ -1230,7 +1217,7 @@ def test_supplemental_review_selects_only_changed_repaired_call(tmp_path):
         supplement = tmp_path / "supplement"
         supplemental = prepare(home, content, supplement, prior=initial)
         assert supplemental["case_count"] == supplemental["result_count"] == 1
-        packet = read_json(Path(supplemental["packets"][0]["path"]))
+        packet = read_packet(Path(supplemental["packets"][0]["path"]))
         assert packet["cases"][0]["case_id"] == rows[-1]["case_id"]
         save_json(supplement / "reviews/000.json", review_payload(packet))
         adjudication = tmp_path / "adjudication"
@@ -1295,7 +1282,7 @@ def test_limited_review_resume_advances_without_repeating_completed_packets(tmp_
 
     def start(command, **kwargs):
         raw = Path(command[command.index("--output-last-message") + 1])
-        packet = read_json(work / "packets" / raw.name)
+        packet = read_packet(work / "packets" / raw.name)
         dispatched.append(raw.name)
         save_json(raw, review_payload(packet))
         return SimpleNamespace(returncode=0)
@@ -1406,7 +1393,7 @@ def test_complete_field_exclusion_assembles_and_builds_unavailable_metrics(tmp_p
     work = tmp_path / "review"
     manifest = prepare(home, home / "content.json", work)
     for entry in manifest["packets"]:
-        payload = review_payload(read_json(Path(entry["path"])))
+        payload = review_payload(read_packet(Path(entry["path"])))
         for case in payload["cases"]:
             case["reference"][field]["status"] = "ambiguous"
         save_json(work / "reviews" / Path(entry["path"]).name, payload)
@@ -1419,7 +1406,7 @@ def test_complete_field_exclusion_assembles_and_builds_unavailable_metrics(tmp_p
     (tmp_path / "adjudication/manifest.json").unlink()
     adjudication = prepare_adjudication(work, tmp_path / "adjudication", home / "profile.json")
     for entry in adjudication["packets"]:
-        payload = review_payload(read_json(Path(entry["path"])))
+        payload = review_payload(read_packet(Path(entry["path"])))
         for case in payload["cases"]:
             case["reference"][field]["status"] = "ambiguous"
         save_json(tmp_path / "adjudication/reviews" / Path(entry["path"]).name, payload)
@@ -1454,7 +1441,7 @@ def test_adjudication_cannot_be_mixed_with_another_valid_initial_audit(tmp_path,
         work = tmp_path / name
         manifest = prepare(home, home / "content.json", work)
         for entry in manifest["packets"]:
-            payload = review_payload(read_json(Path(entry["path"])))
+            payload = review_payload(read_packet(Path(entry["path"])))
             for case in payload["cases"]:
                 case["reference"]["sku"].update(status="ambiguous", reason=name)
             save_json(work / "reviews" / Path(entry["path"]).name, payload)
@@ -1464,7 +1451,7 @@ def test_adjudication_cannot_be_mixed_with_another_valid_initial_audit(tmp_path,
     adjudication = tmp_path / "adjudication"
     manifest = prepare_adjudication(audits[0], adjudication, home / "profile.json")
     for entry in manifest["packets"]:
-        payload = review_payload(read_json(Path(entry["path"])))
+        payload = review_payload(read_packet(Path(entry["path"])))
         save_json(adjudication / "reviews" / Path(entry["path"]).name, payload)
     completed(adjudication)
     save_json(
@@ -1491,3 +1478,72 @@ def test_adjudication_cannot_be_mixed_with_another_valid_initial_audit(tmp_path,
             profile=home / "profile.json",
         )
     assert not (tmp_path / "mixed.json").exists()
+
+
+@pytest.mark.parametrize("boundary", ["root", "sources-directory", "outline", "log"])
+def test_audit_rejects_linked_outputs_without_writing_targets_or_dispatch(tmp_path, boundary):
+    from harness.web_scraper.review import run as run_audit
+
+    home = create(tmp_path / "example")
+    work = tmp_path / "review"
+    target = tmp_path / "untouched-target"
+    if boundary == "root":
+        work.symlink_to(target, target_is_directory=True)
+    elif boundary == "sources-directory":
+        work.mkdir()
+        (work / "sources").symlink_to(target, target_is_directory=True)
+    elif boundary == "outline":
+        (work / "sources").mkdir(parents=True)
+        (work / "sources" / ("1" * 64 + ".txt")).symlink_to(target)
+    else:
+        prepare(home, home / "content.json", work)
+        (work / "logs").mkdir()
+        (work / "logs/000.log").symlink_to(target)
+    with patch("harness.web_scraper.review.ReviewerSessions.start") as dispatch:
+        with pytest.raises(ValueError, match="[Ss]ymlink|Unsafe|outside"):
+            if boundary == "log":
+                run_audit(work, model="synthetic")
+            else:
+                prepare(home, home / "content.json", work)
+    dispatch.assert_not_called()
+    assert not target.exists()
+
+
+def test_repair_rejects_dangling_lock_before_creating_target_or_dispatch(tmp_path):
+    home, _, profile, _ = parent_inputs(tmp_path)
+    destination = tmp_path / "repair"
+    destination.mkdir()
+    target = tmp_path / "lock-target"
+    (destination / "execution.lock").symlink_to(target)
+    with patch("harness.web_scraper.repair.provider_call") as dispatch:
+        with pytest.raises(ValueError, match="[Ss]ymlink|Unsafe"):
+            run(home, profile, "cloudflare-json", destination)
+    dispatch.assert_not_called()
+    assert not target.exists()
+
+
+def test_review_bundle_can_move_without_rewriting_hash_bound_files(tmp_path):
+    import shutil
+
+    from harness.web_scraper.review import completed
+
+    original = tmp_path / "original"
+    original.mkdir()
+    home = create(original / "example")
+    work = original / "review"
+    manifest = prepare(home, home / "content.json", work)
+    stored = read_json(work / "manifest.json")
+    assert all(not Path(name).is_absolute() for name in stored["bindings"])
+    for entry in manifest["packets"]:
+        packet = read_packet(Path(entry["path"]))
+        save_json(work / "reviews" / Path(entry["path"]).name, review_payload(packet))
+    expected = completed(work)[2]
+    before = {
+        p.relative_to(original).as_posix(): digest(p.read_bytes())
+        for p in original.rglob("*")
+        if p.is_file()
+    }
+    restored = tmp_path / "restored"
+    shutil.move(original, restored)
+    assert completed(restored / "review")[2] == expected
+    assert all(digest((restored / name).read_bytes()) == sha for name, sha in before.items())

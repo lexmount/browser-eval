@@ -159,7 +159,7 @@ def test_quality_highlights_raw_unique_extrema_but_leaves_ties_neutral():
     assert soup.select("tbody tr")[-1].select("td")[-1].get_text() == "—"
     bindings[0]["scores"]["b"] = metrics(0.81)
     body, _ = cohort_metrics(["a", "b"], [], bindings, 140, "zh")
-    assert not check_presentation(body).select(".comparison-winner")
+    assert len(check_presentation(body).select(".comparison-winner")) == 8
 
 
 def test_requested_english_requires_matching_authored_translation(tmp_path):
@@ -353,7 +353,7 @@ def test_interpretation_compares_every_registered_method_without_changing_scores
     assert len(soup.select("[data-method-interpretation]")) == len(methods)
 
 
-def test_mathematically_equal_f1_is_neutral_despite_float_arithmetic_noise():
+def test_mathematically_equal_f1_highlights_all_ties_despite_float_noise():
     def metrics(value):
         return {f: {"f1": value} for f in ("price", "sku", "availability", "OutOfStock")}
 
@@ -361,7 +361,7 @@ def test_mathematically_equal_f1_is_neutral_despite_float_arithmetic_noise():
         {"certified": True, "scores": {"a": metrics(2 / 3), "b": metrics(0.6666666666666667)}}
     ]
     html, _ = cohort_metrics(["a", "b"], [], bindings, 140, "en")
-    assert not check_presentation(html).select(".comparison-winner")
+    assert len(check_presentation(html).select(".comparison-winner")) == 8
     bindings[0]["scores"] = {"a": metrics(0.8104), "b": metrics(0.8101)}
     html, _ = cohort_metrics(["a", "b"], [], bindings, 140, "en")
     assert len(check_presentation(html).select(".comparison-winner")) == 4
@@ -731,3 +731,29 @@ def test_all_asset_formats_receive_publication_privacy_checks(tmp_path, suffix, 
     else:
         build(tmp_path / "new", home / "content.json", **kwargs)
         check(tmp_path / "new")
+
+
+def test_published_release_cannot_drop_dataset_distribution_binding(tmp_path):
+    output = tmp_path / "report"
+    create(output, mode="full-cohort-progress")
+    manifest = read_json(output / "report-manifest.json")
+    manifest["dataset_kind"] = "published-upstream"
+    manifest["dataset_distribution"] = None
+    for value in manifest["prices"].values():
+        value["usd_per_1000_range"] = [0, 0]
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="pinned dataset download binding"):
+        check(output, release=True)
+
+
+def test_field_headers_count_both_nonempty_and_absent_references():
+    truth = {
+        "one": {"price": ["3"], "sku": ["x"], "InStock": ["InStock"]},
+        "two": {"price": [], "sku": [], "OutOfStock": ["OutOfStock"]},
+    }
+    html, _ = cohort_metrics(["a"], [], [], 2, "en", truth=truth)
+    soup = BeautifulSoup(html, "html.parser")
+    counts = soup.select("[data-reference-population]")
+    assert len(counts) == 4
+    assert all("Scored: 2 pages" in node.get_text() for node in counts)
+    assert "positive 1, negative 1" in counts[-1].get_text()

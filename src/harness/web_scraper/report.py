@@ -16,8 +16,9 @@ from bs4 import BeautifulSoup
 from harness.distribution import repository_root
 from harness.env_file import local_setting
 from harness.report_languages import resolve_report_language
-from harness.reporting.presentation import check_presentation
-from harness.reporting.templates import metric_contract
+from harness.reporting.release_check import check_report_identity, checked_page, open_report
+from harness.reporting.templates import template_identity
+from harness.reporting.versions import bind_build_version
 from harness.web_fetch.publication_privacy import project_evidence_view, publication_risk
 from harness.web_scraper.analysis import failure_stage, field_results, native_error
 from harness.web_scraper.messages import message, messages_sha256, validate_catalog
@@ -30,10 +31,10 @@ from harness.web_scraper.pipeline import (
     read_json,
     require_external_output,
     save_json,
+    score_rows,
     score_run,
     validate_dataset,
 )
-from harness.web_scraper.report_ui import CSS as INTERACTION_CSS
 from harness.web_scraper.report_ui import JS
 
 VERSION = "web-scraper-research/1"
@@ -139,9 +140,8 @@ EXTRA_LABELS = {
         "en": message("extra_labels_interpretation", "en"),
     },
 }
-CSS = """*{box-sizing:border-box}html{color-scheme:light;--bg:#f8f9fb;--panel:white;--ink:#17283b;--muted:#516277;--line:#d7dfe8;--accent:#075f79;--soft:#e1f3ed}html.dark{color-scheme:dark;--bg:#101923;--panel:#172431;--ink:#e8f0f7;--muted:#afbfce;--line:#354b60;--accent:#7cdbed;--soft:#174638}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.75 system-ui,-apple-system,"PingFang SC",sans-serif}header,main,footer{max-width:1190px;margin:auto;padding:24px 32px}header{padding-bottom:0}.eyebrow{font-size:13px;letter-spacing:.06em;color:var(--muted)}h1{font-size:clamp(28px,4vw,44px);line-height:1.25;letter-spacing:-.025em;margin:18px 0}h2{font-size:25px;margin:34px 0 12px}h3{font-size:19px;margin:26px 0 10px}p{max-width:900px}a{color:var(--accent);text-underline-offset:3px}nav{display:flex;flex-wrap:wrap;gap:7px;margin:20px 0}nav a,button,select{font:inherit;border:1px solid var(--line);border-radius:7px;background:var(--panel);color:var(--ink);padding:7px 12px;cursor:pointer;text-decoration:none}nav a[aria-current]{background:var(--ink);color:var(--bg)}.notice{border-left:4px solid var(--accent);padding:10px 16px;background:var(--panel);font-size:14px}.table-wrap{overflow:auto;max-width:100%;border:1px solid var(--line);border-radius:10px;background:var(--panel)}.inventory{max-height:540px}table{border-collapse:collapse;min-width:650px;width:100%;font-size:14px}th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{background:var(--panel);position:sticky;top:0;z-index:1;color:var(--muted);white-space:nowrap}td{max-width:440px}td code{overflow-wrap:anywhere}.comparison-winner{background:var(--soft);font-weight:700;padding:3px 7px;border-radius:5px}section{margin:24px 0 40px}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;list-style:none;padding:0;counter-reset:stage}.flow li{counter-increment:stage;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}.flow li:before{content:counter(stage,decimal-leading-zero);display:block;color:var(--accent);font-size:24px;font-weight:700}code,pre{font:12px/1.6 ui-monospace,monospace}pre{overflow:auto;padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:8px;max-height:540px;white-space:pre-wrap;overflow-wrap:anywhere}code{overflow-wrap:anywhere}dialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:12px;width:min(950px,94vw);max-height:90vh;overflow:auto}dialog::backdrop{background:#0008}dialog pre{max-height:62vh}details{margin:12px 0}summary{cursor:pointer;color:var(--accent)}footer{font-size:13px;color:var(--muted);border-top:1px solid var(--line)}.controls{display:flex;flex-wrap:wrap;gap:12px;margin:14px 0}.status{font-weight:600}small{color:var(--muted)}@media(max-width:650px){header,main,footer{padding:20px 16px}.flow{grid-template-columns:1fr 1fr}nav{gap:5px}nav a{font-size:13px;padding:6px 9px}td,th{padding:10px}}"""
-CSS += ".diagram{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px}.diagram img{display:block;width:100%;min-width:850px;height:auto}"
-CSS += INTERACTION_CSS
+ASSETS = Path(__file__).with_name("assets")
+CSS = (ASSETS / "report.css").read_text(encoding="utf-8")
 
 
 def table(headers, rows, *, inventory=False, attrs="", sort_values=None):
@@ -159,7 +159,7 @@ def table(headers, rows, *, inventory=False, attrs="", sort_values=None):
         + (" inventory" if inventory else "")
         + '"><table '
         + attrs
-        + "><thead><tr>"
+        + ' data-highlight-ties="all"><thead><tr>'
         + "".join("<th>" + h + "</th>" for h in headers)
         + "</tr></thead><tbody>"
         + "".join(
@@ -287,13 +287,17 @@ def cohort_source(source, selection, home, truth):
             ]
         repair_binding = []
         if selection.get("repair"):
-            from harness.web_scraper.repair import compose
+            from harness.web_scraper.repair import load_selection
 
             revisions = selection["repair"]
-            revisions = revisions if isinstance(revisions, list) else [revisions]
+            _, rows = load_selection(home, selection)
+            if selection.get("assessment"):
+                rows = [
+                    {**r, "normalized_fields": normalize(r["method"], r.get("response", {}))}
+                    for r in rows
+                ]
+            saved = {**saved, "scores": score_rows(home, truth, rows, contract["methods"])}
             for revision in revisions:
-                rows, repaired_scores = compose(home, source, rows, revision)
-                saved = {**saved, "scores": repaired_scores}
                 directory = Path(revision["path"])
                 receipt = read_json(directory / "certificate.json")
                 repair_binding.append(
@@ -362,7 +366,52 @@ def cohort_source(source, selection, home, truth):
     )
 
 
-def cohort_metrics(methods, rows, bindings, count, lang, labels=None):
+def reference_populations(truth):
+    total = len(truth)
+    stock = sum("OutOfStock" in r for r in truth.values())
+    return {
+        **{
+            f: {
+                "total": total,
+                "present": sum(bool(r.get(f)) for r in truth.values()),
+                "missing": sum(not r.get(f) for r in truth.values()),
+                "label": "population_values",
+            }
+            for f in ("price", "sku")
+        },
+        "availability": {
+            "total": total,
+            "present": total - stock,
+            "missing": stock,
+            "label": "population_stock",
+        },
+        "OutOfStock": {
+            "total": total,
+            "present": stock,
+            "missing": total - stock,
+            "label": "population_out",
+        },
+    }
+
+
+def price_quote(value, lang):
+    bounds = value.get("usd_per_1000_range")
+    if bounds is None:
+        return (
+            message("usage_priced", lang) if value.get("pricing_formula") else value["usd_per_1000"]
+        )
+    if (
+        not isinstance(bounds, list)
+        or len(bounds) != 2
+        or any(type(n) not in (int, float) or not math.isfinite(n) or n < 0 for n in bounds)
+        or bounds[0] > bounds[1]
+    ):
+        raise ValueError("Invalid USD per 1,000 calls range")
+    low, high = (f"{n:.3f}".rstrip("0").rstrip(".") for n in bounds)
+    return "$" + low + ("–" + high if bounds[0] != bounds[1] else "")
+
+
+def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=None):
     """One full-population summary, with incomplete quality left unavailable."""
     labels = labels or {}
     scores = {m: b["scores"][m] for b in bindings if b.get("certified") for m in b["scores"]}
@@ -397,6 +446,15 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None):
         ),
         "html.parser",
     )
+    if truth is not None:
+        for field, heading in zip(fields, result.select("thead th")[5:], strict=True):
+            population = reference_populations(truth)[field]
+            heading.append(result.new_tag("br"))
+            small = result.new_tag("small", attrs={"data-reference-population": field})
+            small.string = message(
+                population["label"], lang, **{k: v for k, v in population.items() if k != "label"}
+            )
+            heading.append(small)
     for method, row in zip(methods, result.select("tbody tr"), strict=True):
         row["data-method"] = method
         for field, cell in zip(fields, row.select("td")[5:], strict=True):
@@ -408,7 +466,7 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None):
             cell.attrs.update(
                 {"data-metric": field, "data-metric-direction": "max", "data-sort": str(value)}
             )
-            if value == max(values) and values.count(value) == 1:
+            if value == max(values):
                 cell.string = ""
                 span = result.new_tag("span", attrs={"class": "comparison-winner"})
                 span.string = f"{value:.3f}"
@@ -490,12 +548,13 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None):
             groups.setdefault(name, []).append((value, cell))
     for values in groups.values():
         lowest = min(v for v, _ in values)
-        if sum(v == lowest for v, _ in values) == 1:
-            cell = next(cell for value, cell in values if value == lowest)
-            value = cell.get_text()
+        for value, cell in values:
+            if value != lowest:
+                continue
+            text = cell.get_text()
             cell.clear()
             span = timing.new_tag("span", attrs={"class": "comparison-winner"})
-            span.string = value
+            span.string = text
             cell.append(span)
     return str(result) + "<p>" + note + "</p>", str(timing)
 
@@ -517,7 +576,7 @@ def price_table(methods, prices, lang, labels=None):
         records.append(
             [
                 esc(labels.get(method, method)),
-                esc(value["usd_per_1000"]),
+                esc(price_quote(value, lang)),
                 esc(value["terms"][lang]),
                 esc(value["verified_at"]),
                 " · ".join(
@@ -608,13 +667,21 @@ def operating_metrics(methods, rows, prices, lang, labels):
                 str(len(values)),
                 str(len(selected) - len(values)),
                 *[f"{v:.3f}" if v is not None else "—" for v in stats],
-                esc(prices[method]["usd_per_1000"]),
-                '<a href="accounts.html">' + (message("terms_and_sources", lang)) + "</a>",
+                esc(price_quote(prices[method], lang)),
+                esc(
+                    prices[method]
+                    .get("billing_summary", {})
+                    .get(lang, prices[method]["terms"][lang])
+                )
+                + '<br><a href="accounts.html">'
+                + message("terms_and_sources", lang)
+                + "</a>",
             ]
         )
     soup = BeautifulSoup(
         table(
-            message("method_timed_n_untimed_n_mean_s_p50_s_p95_s_quoted_usd_1_000_call", lang),
+            message("method_timed_n_untimed_n_mean_s_p50_s_p95_s_quoted_usd_1_000_call", lang)[:6]
+            + [message("price_range_heading", lang), message("price_remarks_heading", lang)],
             records,
             attrs='data-operating-metrics="true" data-sortable',
             sort_values={column: [int(row[column]) for row in records] for column in (1, 2)},
@@ -649,13 +716,18 @@ def operating_metrics(methods, rows, prices, lang, labels):
                 observed.append((value, cell))
         if observed:
             low = min(v for v, _ in observed)
-            if sum(v == low for v, _ in observed) == 1:
-                cell = next(c for v, c in observed if v == low)
+            for value, cell in observed:
+                if value != low:
+                    continue
                 span = soup.new_tag("span", attrs={"class": "comparison-winner"})
                 span.string = cell.get_text()
                 cell.clear()
                 cell.append(span)
-    note = message("latency_includes_all_executed_cases_including_failures_using_the", lang)
+    note = (
+        message("latency_includes_all_executed_cases_including_failures_using_the", lang)
+        + " "
+        + message("pricing_scope_note", lang)
+    )
     return (
         "<section data-home-operations><h2>"
         + (message("latency_and_pricing", lang))
@@ -859,7 +931,7 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
             )
             if value is not None:
                 cell["data-sort"] = str(value)
-            if value is not None and value == max(values) and values.count(value) == 1:
+            if value is not None and value == max(values):
                 span = comparison.new_tag("span", attrs={"class": "comparison-winner"})
                 span.string = cell.get_text()
                 cell.clear()
@@ -1345,7 +1417,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             )
             bodies["accounts"] += price_table(methods, model.get("prices", {}), lang, names)
         if cohort:
-            core, timings = cohort_metrics(methods, rows, bindings, len(truth), lang, names)
+            core, timings = cohort_metrics(
+                methods, rows, bindings, len(truth), lang, names, truth=truth
+            )
             bodies["index"] = (
                 core
                 + operating_metrics(methods, rows, model.get("prices", {}), lang, names)
@@ -1389,9 +1463,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             for field in historical_fields:
                 v = scores[field]["f1"]
                 best = max(s[field]["f1"] for s in history["scores"].values())
-                unique = sum(s[field]["f1"] == best for s in history["scores"].values()) == 1
                 text = f"{v:.3f}"
-                if unique and v == best:
+                if v == best:
                     text = '<span class="comparison-winner">' + text + "</span>"
                 cells.append(f'<span data-history="{field}">{text}</span>')
             hr.append(cells)
@@ -1815,6 +1888,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         f'<!doctype html><html lang="{language}"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url={language}/index.html"><title>Web Scraper</title></head><body><a href="{language}/index.html">Web Scraper</a></body></html>',
         encoding="utf-8",
     )
+    build_version = bind_build_version(output)
     files = {
         p.relative_to(output).as_posix(): digest(p.read_bytes())
         for p in sorted(output.rglob("*"))
@@ -1830,8 +1904,15 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
     save_json(
         output / "report-manifest.json",
         {
-            "template": VERSION,
-            "metric_contract": metric_contract(),
+            "template": template_identity("web-scraper"),
+            "template_version": VERSION,
+            "browser_eval": build_version,
+            "asset_sha256": {
+                p.name: digest(p.read_bytes()) for p in ASSETS.iterdir() if p.is_file()
+            },
+            "dataset_kind": "published-upstream"
+            if not read_json(profile).get("local_example", False)
+            else "local-example",
             "mode": state,
             "planned_methods": list(cohort_plan["participants"]) if cohort else None,
             "method_labels": names,
@@ -1862,6 +1943,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             "dataset_distribution": distribution,
             "primary_language": language,
             "languages": list(languages),
+            "reference_populations": reference_populations(truth),
             "case_count": len(truth),
             "observations": len(rows),
             "source_runs": json.loads(public_bindings),
@@ -1875,16 +1957,34 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
 
 
 def check(output: Path, *, release=False, visual_receipt=None):
+    output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
+    check_report_identity(output, manifest, "web-scraper")
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
     validate_catalog()
     if manifest.get("messages_sha256") != messages_sha256():
         raise ValueError("Report message catalog changed; rebuild required")
-    if manifest["template"] != VERSION:
+    if manifest["template_version"] != VERSION:
         raise ValueError("Wrong template")
-    if manifest.get("metric_contract") != metric_contract():
-        raise ValueError("Report does not bind the shared required metric contract")
+    if manifest.get("asset_sha256") != {
+        p.name: digest(p.read_bytes()) for p in ASSETS.iterdir() if p.is_file()
+    }:
+        raise ValueError("Report assets changed; rebuild required")
+    if (
+        release
+        and manifest.get("dataset_kind") == "published-upstream"
+        and not manifest.get("dataset_distribution")
+    ):
+        raise ValueError("Published benchmark releases require a pinned dataset download binding")
+    if release and manifest.get("dataset_kind") == "published-upstream":
+        if manifest.get("mode") != "full-cohort-progress":
+            raise ValueError("Formal releases require a complete certified cohort")
+        for value in manifest["prices"].values():
+            if "usd_per_1000_range" not in value and not value.get("pricing_formula"):
+                raise ValueError(
+                    "Formal releases require normalized price ranges or a billing formula"
+                )
     if manifest["renderer_sha256"] != digest(Path(__file__).read_bytes()):
         raise ValueError("Renderer identity changed; rebuild required")
     if manifest.get("interaction_sha256") != digest(
@@ -1927,7 +2027,23 @@ def check(output: Path, *, release=False, visual_receipt=None):
             raise ValueError("Report artifact has a publication privacy risk: " + name)
         if path.suffix != ".html":
             continue
-        soup = check_presentation(path.read_text(encoding="utf-8"))
+        soup = checked_page(path)
+        if (
+            name.endswith("/index.html")
+            and name.split("/")[0] in manifest["languages"]
+            and manifest.get("mode") == "full-cohort-progress"
+        ):
+            for field, population in manifest["reference_populations"].items():
+                node = soup.select_one(
+                    '[data-core-metrics] [data-reference-population="' + field + '"]'
+                )
+                expected = message(
+                    population["label"],
+                    name.split("/")[0],
+                    **{k: v for k, v in population.items() if k != "label"},
+                )
+                if node is None or node.get_text() != expected:
+                    raise ValueError("Field scoring/reference population is missing or changed")
         if name.endswith("/dataset.html") and manifest.get("dataset_distribution"):
             links = soup.select("[data-dataset-distribution] a")
             if len(links) != 1 or links[0].get("href") != manifest["dataset_distribution"]["url"]:

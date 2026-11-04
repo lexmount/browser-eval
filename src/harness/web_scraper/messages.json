@@ -250,7 +250,14 @@
     ],
     "audited_population": "Scored {scored}/{total}; excluded {excluded}",
     "audited_population_scope": "Each diagnostic F1 uses the field-specific scored population shown below. Source-ambiguous fields are excluded from these diagnostics; original-reference scores retain the complete population.",
-    "download_pinned_dataset": "Download frozen HTML, original labels and reference corrections (revision {revision})"
+    "download_pinned_dataset": "Download frozen HTML, original labels and reference corrections (revision {revision})",
+    "population_values": "Scored: {total} pages; present {present}, absent {missing}",
+    "population_stock": "Scored: {total} pages; in stock {present}, out of stock {missing}",
+    "population_out": "Scored: {total} pages; positive {present}, negative {missing}",
+    "usage_priced": "Usage based",
+    "pricing_scope_note": "USD per 1,000 calls for this extraction route. Ranges span the stated plans; subscriptions assume full included usage and exclude tax. Trial allocations are not paid unit prices. Usage-based services retain their formula.",
+    "price_range_heading": "USD / 1,000 calls",
+    "price_remarks_heading": "Official billing and plans"
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -503,6 +510,13 @@
     ],
     "audited_population": "计分 {scored}/{total}；排除 {excluded}",
     "audited_population_scope": "核查后的诊断 F1 按表内各字段的分母计算，排除源页面无法确定的字段。原始标注分数仍覆盖全部页面。",
-    "download_pinned_dataset": "下载冻结 HTML、原标注与修正依据（版本 {revision}）"
+    "download_pinned_dataset": "下载冻结 HTML、原标注与修正依据（版本 {revision}）",
+    "population_values": "评分 {total} 页；有值 {present}，无值 {missing}",
+    "population_stock": "评分 {total} 页；有货 {present}，缺货 {missing}",
+    "population_out": "评分 {total} 页；缺货 {present}，其它 {missing}",
+    "usage_priced": "按用量计算",
+    "pricing_scope_note": "统一为本轮提取接口每 1,000 次调用的美元报价。区间涵盖备注中的套餐；订阅价格按额度用满折算，未含税。免费试用额度不计入单价，按用量计费的接口保留计算公式。",
+    "price_range_heading": "美元／1,000 次",
+    "price_remarks_heading": "官方计费方式与套餐"
   }
 }

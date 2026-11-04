@@ -38,7 +38,7 @@ def check_presentation(html):
             unique = sum(v == extreme for v, _ in values) == 1
             for value, cell in values:
                 marked = cell.select_one('.comparison-winner') is not None
-                if marked != (unique and value == extreme):
+                if marked != ((unique or table.get("data-highlight-ties") == "all") and value == extreme):
                     raise ValueError('Column extremum highlight missing, incorrect, or tied')
     for detail in soup.select('[data-report-detail]'):
         if len(detail.select('[data-result-summary]')) != 1:

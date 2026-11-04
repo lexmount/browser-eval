@@ -6,20 +6,15 @@ import ast
 import base64
 import fcntl
 import gzip
-import io
 import json
 import math
 import os
 import re
 import runpy
 import signal
-import subprocess
-import sys
-import tarfile
 import tempfile
 import time
 import uuid
-from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from functools import wraps
 from pathlib import Path
@@ -111,36 +106,6 @@ def save_json(path: Path, data, *, exclusive=False):
             temporary.unlink(missing_ok=True)
 
 
-def fixture_request(url, *, timeout=60, max_bytes=10_000_000, headers=None):
-    """Bound fixture reads in worker threads by terminating the isolated HTTP reader."""
-    program = """
-import base64, json, sys
-from harness.web_fetch.providers.http_client import request
-r = request(**json.load(sys.stdin))
-print(json.dumps({'status': r.status, 'url': r.url, 'headers': r.headers,
-                  'body': base64.b64encode(r.body).decode()}))
-"""
-    try:
-        result = subprocess.run(
-            [sys.executable, "-c", program],
-            input=json.dumps(dict(url=url, timeout=timeout, max_bytes=max_bytes, headers=headers)),
-            text=True,
-            capture_output=True,
-            timeout=timeout,
-            check=True,
-        )
-    except subprocess.TimeoutExpired as error:
-        raise TimeoutError("Fixture qualification wall-clock deadline exceeded") from error
-    except subprocess.CalledProcessError as error:
-        raise OSError("Fixture qualification HTTP reader failed") from error
-    from harness.web_fetch.providers.http_client import HttpResponse
-
-    value = json.loads(result.stdout)
-    return HttpResponse(
-        value["status"], value["url"], value["headers"], base64.b64decode(value["body"])
-    )
-
-
 def requires_fixture(method, options=None):
     options = options or {}
     return (
@@ -160,7 +125,9 @@ def qualify_fixture(home, base, case_id, *, suffix="", timeout=60):
     url = fixture_url(base, case_id, suffix)
     for attempt in range(3):
         try:
-            response = fixture_request(url, headers={"Accept-Encoding": "gzip"}, timeout=timeout)
+            response = total_deadline(request)(
+                url, headers={"Accept-Encoding": "gzip"}, timeout=timeout, max_bytes=10_000_000
+            )
             break
         except (TimeoutError, OSError):
             if attempt == 2:
@@ -203,55 +170,7 @@ def prepare(destination: Path, profile=PROFILE):
 
         materialize(destination, pin)
         return validate_dataset(destination, profile)
-    url = f"https://codeload.github.com/{pin['repository']}/tar.gz/{pin['commit']}"
-    response = request(url, timeout=120, max_bytes=40_000_000)
-    if response.status != 200:
-        raise ValueError(f"Dataset download failed: HTTP {response.status}")
-    blobs = {}
-    with tarfile.open(fileobj=io.BytesIO(response.body), mode="r:gz") as archive:
-        for member in archive:
-            parts = Path(member.name).parts[1:]
-            if not parts:
-                continue
-            relative = Path(*parts)
-            if relative.is_absolute() or ".." in relative.parts or member.issym() or member.islnk():
-                raise ValueError("Unsafe upstream archive")
-            if member.isfile() and (
-                str(relative).startswith("dataset/")
-                or str(relative) in {"evaluate.py", "README.rst", "LICENSE"}
-            ):
-                blobs[relative.as_posix()] = archive.extractfile(member).read()
-    for name, expected in pin.get("files", {}).items():
-        if name not in blobs or digest(blobs[name]) != expected:
-            raise ValueError("Pinned upstream bytes changed: " + name)
-    truth = json.loads(blobs["dataset/ground-truth.json"])
-    if len(truth) != pin["cases"]:
-        raise ValueError("Dataset population changed")
-    for case_id in truth:
-        source = "dataset/html/" + case_id + ".html.gz"
-        alternatives = [n for n in blobs if n.startswith("dataset/html/" + case_id + ".")]
-        if source not in blobs:
-            if len(alternatives) != 1:
-                raise ValueError("Missing or ambiguous HTML: " + case_id)
-            source = alternatives[0]
-        blobs["html/" + case_id + ".html"] = gzip.decompress(blobs[source])
-    manifest = {
-        "schema_version": 1,
-        "dataset_id": pin["id"],
-        "commit": pin["commit"],
-        "archive_sha256": digest(response.body),
-        "cases": len(truth),
-        "files": {
-            name: {"sha256": digest(body), "bytes": len(body)}
-            for name, body in sorted(blobs.items())
-        },
-    }
-    for name, body in blobs.items():
-        path = target / name
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(body)
-    save_json(target / "manifest.json", manifest, exclusive=True)
-    return validate_dataset(destination, profile)
+    raise ValueError("Dataset preparation requires a pinned Hugging Face distribution")
 
 
 def validate_dataset(home: Path, profile=PROFILE):
@@ -305,7 +224,7 @@ def official_scorer(home: Path, profile=PROFILE):
     return scope
 
 
-def score_predictions(truth: dict, predictions: dict, scorer, *, bootstrap=1000):
+def evaluate_predictions(truth: dict, predictions: dict, scorer, *, bootstrap=1000):
     if set(truth) != set(predictions):
         raise ValueError("Predictions must cover the exact declared population")
     return {
@@ -345,7 +264,7 @@ def reproduce(home: Path):
                 path.write_bytes(response.body)
         if path.is_symlink() or unsafe_parents(path) or digest(path.read_bytes()) != pin["sha256"]:
             raise ValueError("Historical upstream predictions changed")
-        scores[method] = score_predictions(truth, read_json(path), scorer)
+        scores[method] = evaluate_predictions(truth, read_json(path), scorer)
     expected = read_json(PROFILE)["historical_f1"]
     for method, fields in expected.items():
         for field, value in fields.items():
@@ -403,20 +322,7 @@ SCHEMA = {
 
 
 def available_methods():
-    return {
-        "firecrawl-json": {"keys": ["FIRECRAWL_API_KEY"], "input": "url"},
-        "cloudflare-json": {
-            "keys": ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN"],
-            "input": "html",
-        },
-        "zyte-product": {"keys": ["ZYTE_API_KEY"], "input": "html"},
-        "diffbot-product": {"keys": ["DIFFBOT_API_TOKEN"], "input": "html"},
-        "scrapegraph-extract": {"keys": ["SGAI_API_KEY"], "input": "html"},
-        "scrapfly-product": {"keys": ["SCRAPFLY_API_KEY"], "input": "html"},
-        "oxylabs-json": {"keys": ["OXYLABS_API_KEY"], "input": "url"},
-        "extruct": {"keys": [], "input": "html"},
-        "browserbase-json": {"keys": ["BROWSERBASE_API_KEY"], "input": "url"},
-    }
+    return METHODS
 
 
 def baseline_extractor(home: Path):
@@ -516,16 +422,7 @@ def total_deadline(function):
 
 def validate_native_options(method, native_options):
     native_options = native_options or {}
-    allowed = {
-        "cloudflare-json": {
-            "setJavaScriptEnabled",
-            "rejectResourceTypes",
-            "input_route",
-            "rejectRequestPattern",
-        },
-        "diffbot-product": {"discussion", "use_fixture_context", "norender"},
-    }
-    if set(native_options) - allowed.get(method, set()):
+    if set(native_options) - set(METHODS[method]["options"]):
         raise ValueError("Unsupported native extraction option")
     if native_options.get("input_route", "html") not in ("html", "url"):
         raise ValueError("Native input route must be html or url")
@@ -547,170 +444,297 @@ def validate_native_options(method, native_options):
     return native_options
 
 
+def _extruct_request(method, html, source_url, fixture_url, *, timeout, home, native_options):
+    extract = baseline_extractor(home or data_home())
+    started = time.monotonic()
+    result = extract(html)
+    return {
+        "state": "response_received",
+        "http_status": 200,
+        "elapsed_seconds": time.monotonic() - started,
+        "response": {"result": result},
+        "request": {
+            "input": "html",
+            "endpoint": "local:extruct",
+            "html_sha256": digest(html.encode()),
+            "source_url": source_url,
+        },
+    }
+
+
+def _cloudflare_request(method, html, source_url, fixture_url, *, timeout, home, native_options):
+    url = f"https://api.cloudflare.com/client/v4/accounts/{os.environ['CLOUDFLARE_ACCOUNT_ID']}/browser-rendering/json"
+    headers = {"Authorization": "Bearer " + os.environ["CLOUDFLARE_API_TOKEN"]}
+    body = {"html": html, "response_format": {"type": "json_schema", "json_schema": SCHEMA}}
+    body.update({k: v for k, v in native_options.items() if k != "input_route"})
+    if native_options.get("input_route") == "url":
+        if not fixture_url:
+            raise ValueError("Cloudflare URL extraction requires a frozen fixture")
+        del body["html"]
+        body["url"] = fixture_url
+    return url, headers, body
+
+
+def _browserbase_request(method, html, source_url, fixture_url, *, timeout, home, native_options):
+    if not fixture_url:
+        return {"state": "input_blocked", "error": "A frozen HTTPS snapshot URL is required"}
+    url = "https://api.browserbase.com/v1/fetch"
+    headers = {"X-BB-API-Key": os.environ["BROWSERBASE_API_KEY"]}
+    body = {"url": fixture_url, "format": "json", "schema": SCHEMA, "proxies": False}
+    return url, headers, body
+
+
+def _url_json_request(method, html, source_url, fixture_url, *, timeout, home, native_options):
+    if not fixture_url:
+        return {
+            "state": "input_blocked",
+            "error": (
+                "Native endpoint requires a remotely reachable frozen HTML URL; "
+                "original live URLs are prohibited."
+            ),
+        }
+    url = (
+        "https://api.firecrawl.dev/v2/scrape"
+        if method == "firecrawl-json"
+        else "https://webapi.oxylabs.io/v1/scrape"
+    )
+    headers = {
+        "Authorization": "Bearer "
+        + os.environ["FIRECRAWL_API_KEY" if method == "firecrawl-json" else "OXYLABS_API_KEY"]
+    }
+    body = (
+        {
+            "url": fixture_url,
+            "formats": [{"type": "json", "schema": SCHEMA}],
+            "onlyMainContent": False,
+            "maxAge": 0,
+        }
+        if method == "firecrawl-json"
+        else {
+            "url": fixture_url,
+            "output": ["json"],
+            "json": {"schema": SCHEMA},
+            "run_js": False,
+        }
+    )
+    return url, headers, body
+
+
+def _zyte_request(method, html, source_url, fixture_url, *, timeout, home, native_options):
+    url = "https://api.zyte.com/v1/extract"
+    headers = {
+        "Authorization": "Basic "
+        + base64.b64encode((os.environ["ZYTE_API_KEY"] + ":").encode()).decode()
+    }
+    body = {
+        "url": source_url,
+        "product": True,
+        "productOptions": {"extractFrom": "userHtml", "userHtml": html},
+    }
+    return url, headers, body
+
+
+def _scrapegraph_request(method, html, source_url, fixture_url, *, timeout, home, native_options):
+    url = "https://v2-api.scrapegraphai.com/api/extract"
+    headers = {"SGAI-APIKEY": os.environ["SGAI_API_KEY"]}
+    body = {
+        "html": html,
+        "prompt": (
+            "Extract the main product current price, SKU and stock availability. "
+            "Use null for absent fields."
+        ),
+        "schema": SCHEMA,
+    }
+    return url, headers, body
+
+
+def _raw_html_request(method, html, source_url, fixture_url, *, timeout, home, native_options):
+    from urllib.parse import urlencode
+
+    import requests
+
+    endpoint = (
+        "https://api.diffbot.com/v3/product"
+        if method == "diffbot-product"
+        else "https://api.scrapfly.io/extraction"
+    )
+    params = (
+        {
+            "token": os.environ["DIFFBOT_API_TOKEN"],
+            "url": (fixture_url if native_options.get("use_fixture_context") else source_url),
+        }
+        if method == "diffbot-product"
+        else {
+            "key": os.environ["SCRAPFLY_API_KEY"],
+            "url": source_url,
+            "extraction_model": "product",
+            "timeout": timeout,
+        }
+    )
+    if method == "diffbot-product":
+        if native_options.get("use_fixture_context") and not fixture_url:
+            raise ValueError("Frozen fixture context requires a URL")
+        if "discussion" in native_options:
+            params["discussion"] = str(native_options["discussion"]).lower()
+        if "norender" in native_options:
+            params["norender"] = str(native_options["norender"]).lower()
+    url = endpoint + "?" + urlencode(params)
+    started = time.monotonic()
+    session = _RAW_SESSIONS.get(method)
+    if session is None:
+        session = _RAW_SESSIONS[method] = requests.Session()
+    with session.post(
+        url,
+        data=html.encode(),
+        headers={"Content-Type": "text/html"},
+        timeout=timeout,
+        stream=True,
+        allow_redirects=False,
+    ) as response:
+        raw = response.raw.read(10_000_001, decode_content=True)
+        if len(raw) > 10_000_000:
+            raise ValueError("Provider response exceeded limit")
+        payload = decoded_response(raw.decode("utf-8", "replace"))
+        return {
+            "state": "response_received",
+            "http_status": response.status_code,
+            "elapsed_seconds": time.monotonic() - started,
+            "response": redact(payload),
+            "provider_usage": {
+                k: response.headers.get(k)
+                for k in ("X-Scrapfly-Api-Cost", "X-Scrapfly-Remaining-Api-Credit")
+                if response.headers.get(k) is not None
+            },
+            "request": {
+                "endpoint": endpoint,
+                "input": "html",
+                "html_sha256": digest(html.encode()),
+                "source_url": source_url,
+                "effective_context_url": params["url"],
+                "fixture_url": fixture_url,
+                "mode": "product",
+                "native_options": native_options,
+            },
+        }
+
+
+METHODS = {
+    "firecrawl-json": {
+        **{
+            "keys": ["FIRECRAWL_API_KEY"],
+            "input": "url",
+            "minimum_call_interval_seconds": 0,
+            "post_call_cooldown_seconds": 0,
+            "options": [],
+        },
+        "adapter": _url_json_request,
+    },
+    "cloudflare-json": {
+        **{
+            "keys": ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN"],
+            "input": "html",
+            "minimum_call_interval_seconds": 0,
+            "post_call_cooldown_seconds": 0,
+            "options": [
+                "setJavaScriptEnabled",
+                "rejectResourceTypes",
+                "input_route",
+                "rejectRequestPattern",
+            ],
+        },
+        "adapter": _cloudflare_request,
+    },
+    "zyte-product": {
+        **{
+            "keys": ["ZYTE_API_KEY"],
+            "input": "html",
+            "minimum_call_interval_seconds": 0,
+            "post_call_cooldown_seconds": 0,
+            "options": [],
+        },
+        "adapter": _zyte_request,
+    },
+    "diffbot-product": {
+        **{
+            "keys": ["DIFFBOT_API_TOKEN"],
+            "input": "html",
+            "minimum_call_interval_seconds": 13,
+            "post_call_cooldown_seconds": 10,
+            "options": ["discussion", "use_fixture_context", "norender"],
+        },
+        "adapter": _raw_html_request,
+    },
+    "scrapegraph-extract": {
+        **{
+            "keys": ["SGAI_API_KEY"],
+            "input": "html",
+            "minimum_call_interval_seconds": 0,
+            "post_call_cooldown_seconds": 0,
+            "options": [],
+        },
+        "adapter": _scrapegraph_request,
+    },
+    "scrapfly-product": {
+        **{
+            "keys": ["SCRAPFLY_API_KEY"],
+            "input": "html",
+            "minimum_call_interval_seconds": 0,
+            "post_call_cooldown_seconds": 0,
+            "options": [],
+        },
+        "adapter": _raw_html_request,
+    },
+    "oxylabs-json": {
+        **{
+            "keys": ["OXYLABS_API_KEY"],
+            "input": "url",
+            "minimum_call_interval_seconds": 0,
+            "post_call_cooldown_seconds": 0,
+            "options": [],
+        },
+        "adapter": _url_json_request,
+    },
+    "extruct": {
+        **{
+            "keys": [],
+            "input": "html",
+            "minimum_call_interval_seconds": 0,
+            "post_call_cooldown_seconds": 0,
+            "options": [],
+        },
+        "adapter": _extruct_request,
+    },
+    "browserbase-json": {
+        **{
+            "keys": ["BROWSERBASE_API_KEY"],
+            "input": "url",
+            "minimum_call_interval_seconds": 0,
+            "post_call_cooldown_seconds": 0,
+            "options": [],
+        },
+        "adapter": _browserbase_request,
+    },
+}
+
+
 @total_deadline
 def provider_call(
     method, html, source_url, fixture_url=None, *, timeout=120, home=None, native_options=None
 ):
     """One native route per provider; no hidden fallback or quality retry."""
     native_options = validate_native_options(method, native_options)
-    if method == "extruct":
-        extract = baseline_extractor(home or data_home())
-        started = time.monotonic()
-        result = extract(html)
-        return {
-            "state": "response_received",
-            "http_status": 200,
-            "elapsed_seconds": time.monotonic() - started,
-            "response": {"result": result},
-            "request": {
-                "input": "html",
-                "endpoint": "local:extruct",
-                "html_sha256": digest(html.encode()),
-                "source_url": source_url,
-            },
-        }
-    if method == "cloudflare-json":
-        url = f"https://api.cloudflare.com/client/v4/accounts/{os.environ['CLOUDFLARE_ACCOUNT_ID']}/browser-rendering/json"
-        headers = {"Authorization": "Bearer " + os.environ["CLOUDFLARE_API_TOKEN"]}
-        body = {"html": html, "response_format": {"type": "json_schema", "json_schema": SCHEMA}}
-        body.update({k: v for k, v in native_options.items() if k != "input_route"})
-        if native_options.get("input_route") == "url":
-            if not fixture_url:
-                raise ValueError("Cloudflare URL extraction requires a frozen fixture")
-            del body["html"]
-            body["url"] = fixture_url
-    elif method == "browserbase-json":
-        if not fixture_url:
-            return {"state": "input_blocked", "error": "A frozen HTTPS snapshot URL is required"}
-        url = "https://api.browserbase.com/v1/fetch"
-        headers = {"X-BB-API-Key": os.environ["BROWSERBASE_API_KEY"]}
-        body = {"url": fixture_url, "format": "json", "schema": SCHEMA, "proxies": False}
-    elif method in ("firecrawl-json", "oxylabs-json"):
-        if not fixture_url:
-            return {
-                "state": "input_blocked",
-                "error": (
-                    "Native endpoint requires a remotely reachable frozen HTML URL; "
-                    "original live URLs are prohibited."
-                ),
-            }
-        url = (
-            "https://api.firecrawl.dev/v2/scrape"
-            if method == "firecrawl-json"
-            else "https://webapi.oxylabs.io/v1/scrape"
-        )
-        headers = {
-            "Authorization": "Bearer "
-            + os.environ["FIRECRAWL_API_KEY" if method == "firecrawl-json" else "OXYLABS_API_KEY"]
-        }
-        body = (
-            {
-                "url": fixture_url,
-                "formats": [{"type": "json", "schema": SCHEMA}],
-                "onlyMainContent": False,
-                "maxAge": 0,
-            }
-            if method == "firecrawl-json"
-            else {
-                "url": fixture_url,
-                "output": ["json"],
-                "json": {"schema": SCHEMA},
-                "run_js": False,
-            }
-        )
-    elif method == "zyte-product":
-        url = "https://api.zyte.com/v1/extract"
-        headers = {
-            "Authorization": "Basic "
-            + base64.b64encode((os.environ["ZYTE_API_KEY"] + ":").encode()).decode()
-        }
-        body = {
-            "url": source_url,
-            "product": True,
-            "productOptions": {"extractFrom": "userHtml", "userHtml": html},
-        }
-    elif method == "scrapegraph-extract":
-        url = "https://v2-api.scrapegraphai.com/api/extract"
-        headers = {"SGAI-APIKEY": os.environ["SGAI_API_KEY"]}
-        body = {
-            "html": html,
-            "prompt": (
-                "Extract the main product current price, SKU and stock availability. "
-                "Use null for absent fields."
-            ),
-            "schema": SCHEMA,
-        }
-    elif method in ("diffbot-product", "scrapfly-product"):
-        # These native uploaded-HTML routes use a raw body rather than JSON.
-        from urllib.parse import urlencode
-
-        import requests
-
-        endpoint = (
-            "https://api.diffbot.com/v3/product"
-            if method == "diffbot-product"
-            else "https://api.scrapfly.io/extraction"
-        )
-        params = (
-            {
-                "token": os.environ["DIFFBOT_API_TOKEN"],
-                "url": (fixture_url if native_options.get("use_fixture_context") else source_url),
-            }
-            if method == "diffbot-product"
-            else {
-                "key": os.environ["SCRAPFLY_API_KEY"],
-                "url": source_url,
-                "extraction_model": "product",
-                "timeout": timeout,
-            }
-        )
-        if method == "diffbot-product":
-            if native_options.get("use_fixture_context") and not fixture_url:
-                raise ValueError("Frozen fixture context requires a URL")
-            if "discussion" in native_options:
-                params["discussion"] = str(native_options["discussion"]).lower()
-            if "norender" in native_options:
-                params["norender"] = str(native_options["norender"]).lower()
-        url = endpoint + "?" + urlencode(params)
-        started = time.monotonic()
-        session = _RAW_SESSIONS.get(method)
-        if session is None:
-            session = _RAW_SESSIONS[method] = requests.Session()
-        with session.post(
-            url,
-            data=html.encode(),
-            headers={"Content-Type": "text/html"},
-            timeout=timeout,
-            stream=True,
-            allow_redirects=False,
-        ) as response:
-            raw = response.raw.read(10_000_001, decode_content=True)
-            if len(raw) > 10_000_000:
-                raise ValueError("Provider response exceeded limit")
-            payload = decoded_response(raw.decode("utf-8", "replace"))
-            return {
-                "state": "response_received",
-                "http_status": response.status_code,
-                "elapsed_seconds": time.monotonic() - started,
-                "response": redact(payload),
-                "provider_usage": {
-                    k: response.headers.get(k)
-                    for k in ("X-Scrapfly-Api-Cost", "X-Scrapfly-Remaining-Api-Credit")
-                    if response.headers.get(k) is not None
-                },
-                "request": {
-                    "endpoint": endpoint,
-                    "input": "html",
-                    "html_sha256": digest(html.encode()),
-                    "source_url": source_url,
-                    "effective_context_url": params["url"],
-                    "fixture_url": fixture_url,
-                    "mode": "product",
-                    "native_options": native_options,
-                },
-            }
-    else:
-        raise ValueError("This method has no generic frozen-HTML route")
+    prepared = METHODS[method]["adapter"](
+        method,
+        html,
+        source_url,
+        fixture_url,
+        timeout=timeout,
+        home=home,
+        native_options=native_options,
+    )
+    if isinstance(prepared, dict):
+        return prepared
+    url, headers, body = prepared
     started = time.monotonic()
     response = request(url, method="POST", headers=headers, json_body=body, timeout=timeout)
     payload = decoded_response(response.text())
@@ -892,7 +916,7 @@ def access_blocker(row):
     native_error = isinstance(native, dict) and (
         native.get("success") is False or bool(native.get("error"))
     )
-    if status == 429 or row.get("state") == "provider_error" or native_error:
+    if status == 429 or native_error:
         if re.search(
             r"invalid (?:api[ _-]?)?key|unauthorized|unauthenticated|"
             r"authentication failed|invalid token",
@@ -950,6 +974,219 @@ def probe(home: Path, methods: list[str], **options):
         return _probe_unlocked(home, methods, run_dir=run, **options)
 
 
+def collect_calls(
+    home,
+    methods,
+    case_ids,
+    run,
+    contract,
+    *,
+    fixture_base=None,
+    fixture_suffix=".html",
+    full=True,
+    min_call_interval=0,
+    post_call_cooldown=0,
+    native_options=None,
+    repair=False,
+    dispatch=None,
+):
+    """Own dispatch, pacing, checkpoints and retry accounting for every native run."""
+    journal = run / "calls.journal.jsonl"
+    if journal.is_symlink() or unsafe_parents(journal):
+        raise ValueError("Symlink inputs are prohibited")
+    registry = available_methods()
+    truth = read_json(home / "dataset/dataset/ground-truth.json")
+    frozen_inputs = read_json(home / "dataset/manifest.json")["files"]
+    dispatch = dispatch or provider_call
+    prior = {}
+    physical = []
+    attempts = {}
+    dispatched_attempts = {}
+    if journal.exists():
+        for line in journal.read_text(encoding="utf-8").splitlines():
+            entry = json.loads(line)
+            relative = Path(entry["path"])
+            if relative.is_absolute() or ".." in relative.parts:
+                raise ValueError("Unsafe checkpoint evidence path")
+            path = run / relative
+            if digest(path.read_bytes()) != entry["sha256"]:
+                raise ValueError("Checkpoint call changed")
+            record = read_json(path)
+            key = (record["method"], record["case_id"])
+            prior[key] = entry
+            physical.append(entry)
+            attempts[key] = attempts.get(key, 0) + 1
+            if record.get("state") not in ("credentials_missing", "input_blocked"):
+                dispatched_attempts[key] = dispatched_attempts.get(key, 0) + 1
+        verify_retry_history(
+            run, {"calls": list(prior.values()), "physical_calls": physical}, contract
+        )
+    if {p.relative_to(run).as_posix() for p in (run / "calls").glob("*.json")} - {
+        e["path"] for e in physical
+    }:
+        raise ValueError("Uncheckpointed call exists; preserve and reconcile it before resuming")
+    inflight = run / "inflight.json"
+    if inflight.exists():
+        pending = read_json(inflight)
+        completed = prior.get((pending["method"], pending["case_id"]))
+        if (
+            completed is None
+            or read_json(run / completed["path"]).get("physical_attempt")
+            != pending["physical_attempt"]
+        ):
+            raise ValueError(
+                "Ambiguous repair dispatch requires reconciliation"
+                if repair
+                else "Ambiguous in-flight attempt; reconcile retained evidence before resuming"
+            )
+        inflight.unlink()
+    records = []
+    # Conservatively observe the full frozen pause after a cross-process resume.
+    last_call_started = time.monotonic() if prior else None
+    last_call_finished = last_call_started
+    for ordinal, case_id in enumerate(case_ids):
+        offset = ordinal % len(methods)
+        for method in methods[offset:] + methods[:offset]:
+            if (method, case_id) in prior:
+                entry = prior[(method, case_id)]
+                prior_row = read_json(run / entry["path"])
+                if not (full and access_blocker(prior_row)):
+                    records.append(entry)
+                    continue
+                if dispatched_attempts.get((method, case_id), 0) > contract["access_retry_limit"]:
+                    raise PermissionError("Access remains blocked; declared retry budget exhausted")
+            missing = [key for key in registry[method]["keys"] if not os.getenv(key)]
+            raw = (home / "dataset/html" / (case_id + ".html")).read_bytes()
+            if digest(raw) != frozen_inputs["html/" + case_id + ".html"]["sha256"]:
+                raise ValueError("Frozen extraction HTML changed before dispatch")
+            row = {
+                "method": method,
+                "case_id": case_id,
+                "input_sha256": digest(raw),
+                "kind": "failure_repair"
+                if repair
+                else ("structured_extraction_attempt" if full else "compatibility_probe"),
+                "started_at": datetime.now(UTC).isoformat(),
+            }
+            if missing and full:
+                raise PermissionError("Missing credentials before dispatch: " + ", ".join(missing))
+            if missing:
+                row.update(state="credentials_missing", missing_variables=missing)
+            else:
+                if last_call_started is not None:
+                    remaining = max(
+                        min_call_interval - (time.monotonic() - last_call_started),
+                        post_call_cooldown - (time.monotonic() - last_call_finished),
+                    )
+                    while remaining > 0:
+                        time.sleep(min(remaining, 30))
+                        remaining = max(
+                            min_call_interval - (time.monotonic() - last_call_started),
+                            post_call_cooldown - (time.monotonic() - last_call_finished),
+                        )
+                save_json(
+                    inflight,
+                    {
+                        "method": method,
+                        "case_id": case_id,
+                        "physical_attempt": attempts.get((method, case_id), 0) + 1,
+                        "input_sha256": digest(raw),
+                        "state": "dispatch_pending",
+                    },
+                    exclusive=True,
+                )
+                try:
+                    last_call_started = time.monotonic()
+                    row.update(
+                        dispatch(
+                            method,
+                            raw.decode("utf-8"),
+                            truth[case_id]["url"],
+                            fixture_url(fixture_base, case_id, fixture_suffix)
+                            if fixture_base
+                            else None,
+                            **(
+                                {"home": home, "native_options": native_options, "timeout": 120}
+                                if repair
+                                else ({"home": home} if method == "extruct" else {})
+                            ),
+                        )
+                    )
+                    if "elapsed_seconds" not in row:
+                        row["elapsed_seconds"] = time.monotonic() - last_call_started
+                    normalized = normalize(method, row.get("response", {}))
+                    row["normalized_fields"] = normalized
+                    row["compatibility"] = (
+                        "structured_output"
+                        if normalized is not None and row.get("http_status") == 200
+                        else "no_structured_output"
+                    )
+                except Exception as error:
+                    row.update(
+                        state="call_error",
+                        error=redact(str(error)),
+                        elapsed_seconds=time.monotonic() - last_call_started,
+                        normalized_fields=None,
+                        compatibility="no_structured_output",
+                    )
+                last_call_finished = time.monotonic()
+            row["finished_at"] = datetime.now(UTC).isoformat()
+            row.setdefault("state", "response_received")
+            number = attempts.get((method, case_id), 0) + 1
+            row["physical_attempt"] = number
+            if number > 1:
+                prior_row = read_json(run / prior[(method, case_id)]["path"])
+                row["retry_execution_seconds"] = prior_row.get(
+                    "elapsed_seconds", 0
+                ) + prior_row.get("retry_execution_seconds", 0)
+            suffix = "" if number == 1 else f"-attempt{number}"
+            stem = case_id if repair else f"{method}-{case_id}"
+            path = run / "calls" / f"{stem}{suffix}.json"
+            if repair and number > 1:
+                history = [
+                    read_json(run / e["path"])
+                    for e in physical
+                    if (read_json(run / e["path"])["method"], read_json(run / e["path"])["case_id"])
+                    == (method, case_id)
+                ]
+                row["physical_attempts"] = history + [dict(row)]
+                row["retry_missing_timers"] = sum(r.get("elapsed_seconds") is None for r in history)
+            save_json(path, redact(row), exclusive=True)
+            entry = {"path": path.relative_to(run).as_posix(), "sha256": digest(path.read_bytes())}
+            with journal.open("a", encoding="utf-8") as checkpoint:
+                checkpoint.write(json.dumps(entry) + "\n")
+                checkpoint.flush()
+                os.fsync(checkpoint.fileno())
+            if inflight.exists():
+                inflight.unlink()
+            records.append(entry)
+            physical.append(entry)
+            print(
+                method,
+                case_id[:10],
+                row["state"],
+                row.get("http_status", ""),
+                row.get("compatibility", ""),
+                flush=True,
+            )
+            blocker = access_blocker(row) if full else None
+            if blocker:
+                save_json(
+                    run / "access-blocked.json",
+                    {
+                        "method": method,
+                        "case_id": case_id,
+                        "reason": blocker,
+                        "call": entry,
+                        "remaining_logical_cases": len(case_ids) * len(methods) - len(records),
+                    },
+                )
+                raise PermissionError(
+                    f"{method}: {blocker}; calls retained; repair access then resume the same run"
+                )
+    return records, physical
+
+
 def _probe_unlocked(
     home: Path,
     methods: list[str],
@@ -999,18 +1236,9 @@ def _probe_unlocked(
 
         if not fixture_base:
             return []
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            return list(executor.map(one, case_ids))
+        return [one(case_id) for case_id in case_ids]
 
-    run = (
-        Path(run_dir)
-        if run_dir
-        else (
-            home
-            / "runs"
-            / (datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ") + "-" + uuid.uuid4().hex[:8])
-        )
-    )
+    run = Path(run_dir)
     continuing = (run / "contract.json").exists()
     run.mkdir(parents=True, exist_ok=True)
     remote_before = verify_remote()
@@ -1071,173 +1299,18 @@ def _probe_unlocked(
             raise ValueError("Pre-dispatch pipeline snapshot changed")
         snapshot.write_bytes(Path(__file__).read_bytes())
         save_json(run / "contract.json", contract, exclusive=True)
-    journal = run / "calls.journal.jsonl"
-    if journal.is_symlink() or unsafe_parents(journal):
-        raise ValueError("Symlink inputs are prohibited")
-    prior = {}
-    physical = []
-    attempts = {}
-    dispatched_attempts = {}
-    if journal.exists():
-        for line in journal.read_text(encoding="utf-8").splitlines():
-            entry = json.loads(line)
-            relative = Path(entry["path"])
-            if relative.is_absolute() or ".." in relative.parts:
-                raise ValueError("Unsafe checkpoint evidence path")
-            path = run / relative
-            if digest(path.read_bytes()) != entry["sha256"]:
-                raise ValueError("Checkpoint call changed")
-            record = read_json(path)
-            key = (record["method"], record["case_id"])
-            prior[key] = entry
-            physical.append(entry)
-            attempts[key] = attempts.get(key, 0) + 1
-            if record.get("state") not in ("credentials_missing", "input_blocked"):
-                dispatched_attempts[key] = dispatched_attempts.get(key, 0) + 1
-        verify_retry_history(
-            run, {"calls": list(prior.values()), "physical_calls": physical}, contract
-        )
-    if {p.relative_to(run).as_posix() for p in (run / "calls").glob("*.json")} - {
-        e["path"] for e in physical
-    }:
-        raise ValueError("Uncheckpointed call exists; preserve and reconcile it before resuming")
-    inflight = run / "inflight.json"
-    if inflight.exists():
-        pending = read_json(inflight)
-        completed = prior.get((pending["method"], pending["case_id"]))
-        if (
-            completed is None
-            or read_json(run / completed["path"]).get("physical_attempt")
-            != pending["physical_attempt"]
-        ):
-            raise ValueError(
-                "Ambiguous in-flight attempt; reconcile retained evidence before resuming"
-            )
-        inflight.unlink()
-    records = []
-    # Conservatively observe the full frozen pause after a cross-process resume.
-    last_call_started = time.monotonic() if prior else None
-    last_call_finished = last_call_started
-    for ordinal, case_id in enumerate(case_ids):
-        offset = ordinal % len(methods)
-        for method in methods[offset:] + methods[:offset]:
-            if (method, case_id) in prior:
-                entry = prior[(method, case_id)]
-                prior_row = read_json(run / entry["path"])
-                if not (full and access_blocker(prior_row)):
-                    records.append(entry)
-                    continue
-                if dispatched_attempts.get((method, case_id), 0) > contract["access_retry_limit"]:
-                    raise PermissionError("Access remains blocked; declared retry budget exhausted")
-            missing = [key for key in registry[method]["keys"] if not os.getenv(key)]
-            raw = (home / "dataset/html" / (case_id + ".html")).read_bytes()
-            row = {
-                "method": method,
-                "case_id": case_id,
-                "input_sha256": digest(raw),
-                "kind": "structured_extraction_attempt" if full else "compatibility_probe",
-            }
-            if missing and full:
-                raise PermissionError("Missing credentials before dispatch: " + ", ".join(missing))
-            if missing:
-                row.update(state="credentials_missing", missing_variables=missing)
-            else:
-                if last_call_started is not None:
-                    remaining = max(
-                        min_call_interval - (time.monotonic() - last_call_started),
-                        post_call_cooldown - (time.monotonic() - last_call_finished),
-                    )
-                    while remaining > 0:
-                        time.sleep(min(remaining, 30))
-                        remaining = max(
-                            min_call_interval - (time.monotonic() - last_call_started),
-                            post_call_cooldown - (time.monotonic() - last_call_finished),
-                        )
-                save_json(
-                    inflight,
-                    {
-                        "method": method,
-                        "case_id": case_id,
-                        "physical_attempt": attempts.get((method, case_id), 0) + 1,
-                        "input_sha256": digest(raw),
-                        "state": "dispatch_pending",
-                    },
-                    exclusive=True,
-                )
-                descriptor = os.open(run, os.O_RDONLY)
-                try:
-                    os.fsync(descriptor)
-                finally:
-                    os.close(descriptor)
-                try:
-                    last_call_started = time.monotonic()
-                    row.update(
-                        provider_call(
-                            method,
-                            raw.decode("utf-8"),
-                            truth[case_id]["url"],
-                            fixture_url(fixture_base, case_id, fixture_suffix)
-                            if fixture_base
-                            else None,
-                            **({"home": home} if method == "extruct" else {}),
-                        )
-                    )
-                    normalized = normalize(method, row.get("response", {}))
-                    row["normalized_fields"] = normalized
-                    row["compatibility"] = (
-                        "structured_output"
-                        if normalized is not None and row.get("http_status") == 200
-                        else "no_structured_output"
-                    )
-                except Exception as error:
-                    row.update(
-                        state="call_error",
-                        error=redact(str(error)),
-                        elapsed_seconds=time.monotonic() - last_call_started,
-                    )
-                last_call_finished = time.monotonic()
-            number = attempts.get((method, case_id), 0) + 1
-            row["physical_attempt"] = number
-            if number > 1:
-                prior_row = read_json(run / prior[(method, case_id)]["path"])
-                row["retry_execution_seconds"] = prior_row.get(
-                    "elapsed_seconds", 0
-                ) + prior_row.get("retry_execution_seconds", 0)
-            suffix = "" if number == 1 else f"-attempt{number}"
-            path = run / "calls" / f"{method}-{case_id}{suffix}.json"
-            save_json(path, redact(row), exclusive=True)
-            entry = {"path": path.relative_to(run).as_posix(), "sha256": digest(path.read_bytes())}
-            with journal.open("a", encoding="utf-8") as checkpoint:
-                checkpoint.write(json.dumps(entry) + "\n")
-                checkpoint.flush()
-                os.fsync(checkpoint.fileno())
-            if inflight.exists():
-                inflight.unlink()
-            records.append(entry)
-            physical.append(entry)
-            print(
-                method,
-                case_id[:10],
-                row["state"],
-                row.get("http_status", ""),
-                row.get("compatibility", ""),
-                flush=True,
-            )
-            blocker = access_blocker(row) if full else None
-            if blocker:
-                save_json(
-                    run / "access-blocked.json",
-                    {
-                        "method": method,
-                        "case_id": case_id,
-                        "reason": blocker,
-                        "call": entry,
-                        "remaining_logical_cases": len(case_ids) * len(methods) - len(records),
-                    },
-                )
-                raise PermissionError(
-                    f"{method}: {blocker}; calls retained; repair access then resume the same run"
-                )
+    records, physical = collect_calls(
+        home,
+        methods,
+        case_ids,
+        run,
+        contract,
+        fixture_base=fixture_base,
+        fixture_suffix=fixture_suffix,
+        full=full,
+        min_call_interval=min_call_interval,
+        post_call_cooldown=post_call_cooldown,
+    )
     validate_dataset(home)
     if (
         "extruct" in methods
@@ -1330,9 +1403,7 @@ def verify_retry_history(run, manifest, contract):
         if len(dispatched) > 1 + retries:
             raise ValueError("Physical retry budget exceeded")
         for row in sequence[:-1]:
-            if row.get("compatibility") == "structured_output" or not (
-                access_blocker(row) or row.get("state") in ("credentials_missing", "input_blocked")
-            ):
+            if row.get("compatibility") == "structured_output" or not (access_blocker(row)):
                 raise ValueError("Retry is outside the declared access-repair policy")
         if len(sequence) > 1:
             elapsed = sum(row.get("elapsed_seconds") or 0 for row in sequence[:-1])
@@ -1501,15 +1572,7 @@ def score_rows(home, truth, rows, methods):
             for r in rows
             if r["method"] == method
         }
-        scores[method] = {
-            field: scorer["evaluate"](
-                truth,
-                predictions,
-                field,
-                price_match if field == "price" else scorer["hard_matching"],
-                n_bootstrap=1000,
-                show_errors=False,
-            )
-            for field in FIELDS
-        }
+        scores[method] = evaluate_predictions(
+            truth, predictions, {**scorer, "decimal_matching": price_match}
+        )
     return scores

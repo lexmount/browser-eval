@@ -1,10 +1,14 @@
-# LexBench-Web-Scraper
+# Product extraction benchmark (Zyte)
 
-Structured product-field extraction from all {{total_records}} archived pages in
-[Zyte's product extraction benchmark](https://github.com/scrapinghub/product-extraction-benchmark).
+[Product extraction benchmark](https://github.com/scrapinghub/product-extraction-benchmark)
+was published by Zyte in 2021. This Hub repository distributes its {{total_records}}
+archived product pages and original references. Lexmount maintains the distribution
+and a separately identified annotation supplement; it is not the original dataset author.
+The original source URL and full upstream commit remain part of every release.
+
 Each task asks an extractor to return price, SKU and stock status from the same
-frozen HTML. The source URL records provenance; requesting the live website would
-change the input.
+frozen HTML. The source URL records provenance; requesting the live website changes
+the input.
 
 ## Population and references
 
@@ -44,12 +48,12 @@ from huggingface_hub import snapshot_download
 
 revision = "YOUR_FULL_HF_COMMIT"
 rows = load_dataset(
-    "Lexmount/LexBench-Web-Scraper", "zyte-products-140",
+    "Lexmount/zyte-product-extraction-benchmark", "zyte-products-140",
     split="test", revision=revision,
 )
 task = json.loads(rows[0]["task"])
 snapshot = Path(snapshot_download(
-    "Lexmount/LexBench-Web-Scraper", repo_type="dataset", revision=revision,
+    "Lexmount/zyte-product-extraction-benchmark", repo_type="dataset", revision=revision,
     allow_patterns=["definitions/**", "manifest.json", "LICENSE", "NOTICE", "THIRD_PARTY.md"],
 ))
 html = gzip.decompress((snapshot / "definitions" / task["html_path"]).read_bytes())
@@ -90,13 +94,17 @@ describes native HTML/URL routes and certification.
 
 ## License, attribution and revisions
 
-The upstream code and benchmark repository declare MIT licensing, Copyright
-2021 Zyte. Its original license is retained in
-[definitions/upstream/LICENSE](definitions/upstream/LICENSE). Browser Eval's
-authored packaging and annotations use Apache-2.0; see [LICENSE](LICENSE),
-[NOTICE](NOTICE) and [THIRD_PARTY.md](THIRD_PARTY.md). Captured website content
-retains its source rights; these software licenses do not establish blanket
-rights to reuse every captured page for model training.
+| Component | Publisher and license | Retained notice |
+| --- | --- | --- |
+| Original 140 archived pages, ground truth, evaluator, README and upstream extractor | Zyte, MIT, Copyright (c) 2021 Zyte | [LICENSE](LICENSE) and [original upstream license](definitions/upstream/LICENSE) |
+| Lexmount-authored packaging metadata and source-qualified annotation supplement | Lexmount, Apache-2.0 | [LICENSE-annotations](LICENSE-annotations) and [NOTICE](NOTICE) |
+| Content captured from third-party websites | Original website publishers retain their rights | Source URLs and [THIRD_PARTY.md](THIRD_PARTY.md) |
+
+The two Hub license badges describe different components. They do not offer a
+choice to relicense Zyte's original material or the captured websites. The upstream
+project released its dataset with an MIT notice; this distribution retains that
+notice and does not independently establish training or redistribution rights
+for every website asset. Annotation amendments do not replace the original labels.
 
 Cite the upstream [product-extraction benchmark](https://github.com/scrapinghub/product-extraction-benchmark)
 and identify this dataset's full commit and reference view. For tooling, cite

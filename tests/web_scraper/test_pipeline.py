@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import tempfile
@@ -11,11 +12,11 @@ from harness.reporting.presentation import check_presentation
 from harness.web_scraper.example import create
 from harness.web_scraper.pipeline import (
     digest,
+    evaluate_predictions,
     load_run,
     normalize,
     probe_cases,
     read_json,
-    score_predictions,
 )
 from harness.web_scraper.report import check, image_width
 
@@ -71,7 +72,18 @@ class PipelineScenarios(unittest.TestCase):
             home = Path(d)
             truth = {str(i): {"url": "https://example.org/" + str(i)} for i in range(3)}
             save_json(home / "dataset/dataset/ground-truth.json", truth)
-            save_json(home / "dataset/manifest.json", {"synthetic": True})
+            save_json(
+                home / "dataset/manifest.json",
+                {
+                    "synthetic": True,
+                    "files": {
+                        "html/" + key + ".html": {
+                            "sha256": hashlib.sha256(b"<html>input</html>").hexdigest()
+                        }
+                        for key in truth
+                    },
+                },
+            )
             (home / "dataset/html").mkdir()
             for key in truth:
                 (home / "dataset/html" / (key + ".html")).write_text(
@@ -211,7 +223,7 @@ class PipelineScenarios(unittest.TestCase):
 
     def test_no_population_filtering(self):
         with self.assertRaisesRegex(ValueError, "exact declared population"):
-            score_predictions({"a": {}, "b": {}}, {"a": {}}, {})
+            evaluate_predictions({"a": {}, "b": {}}, {"a": {}}, {})
 
     def test_secret_projection(self):
         from harness.web_scraper.pipeline import redact
@@ -268,7 +280,18 @@ class PipelineScenarios(unittest.TestCase):
             home = Path(d)
             truth = {str(i): {"url": "https://example.org/" + str(i)} for i in range(4)}
             save_json(home / "dataset/dataset/ground-truth.json", truth)
-            save_json(home / "dataset/manifest.json", {"synthetic": True})
+            save_json(
+                home / "dataset/manifest.json",
+                {
+                    "synthetic": True,
+                    "files": {
+                        "html/" + key + ".html": {
+                            "sha256": hashlib.sha256(b"<html>synthetic</html>").hexdigest()
+                        }
+                        for key in truth
+                    },
+                },
+            )
             (home / "dataset/html").mkdir()
             for key in truth:
                 (home / "dataset/html" / (key + ".html")).write_text(
@@ -306,7 +329,18 @@ class PipelineScenarios(unittest.TestCase):
             home = Path(d)
             truth = {str(i): {"url": "https://example.org/" + str(i)} for i in range(3)}
             save_json(home / "dataset/dataset/ground-truth.json", truth)
-            save_json(home / "dataset/manifest.json", {"synthetic": True})
+            save_json(
+                home / "dataset/manifest.json",
+                {
+                    "synthetic": True,
+                    "files": {
+                        "html/" + key + ".html": {
+                            "sha256": hashlib.sha256(b"<html>input</html>").hexdigest()
+                        }
+                        for key in truth
+                    },
+                },
+            )
             (home / "dataset/html").mkdir()
             for key in truth:
                 (home / "dataset/html" / (key + ".html")).write_text(

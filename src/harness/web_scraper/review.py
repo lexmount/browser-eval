@@ -2,6 +2,7 @@
 
 import copy
 import json
+import os
 import re
 import subprocess
 from concurrent.futures import ThreadPoolExecutor
@@ -14,7 +15,6 @@ from harness.web_scraper.messages import message
 from harness.web_scraper.pipeline import (
     digest,
     execution_identity,
-    load_run,
     normalize,
     read_json,
     require_external_output,
@@ -76,11 +76,66 @@ SCHEMA = {
 }
 
 
+def manifest_root(work, manifest):
+    return (Path(work) / manifest.get("root", ".")).resolve()
+
+
+def read_manifest(work):
+    """Resolve the evidence-relative paths without changing retained manifest bytes."""
+    work = Path(work).resolve()
+    value = read_json(work / "manifest.json")
+    root = manifest_root(work, value)
+    return {
+        **value,
+        "bindings": {
+            str((root / name).resolve()): sha for name, sha in value.get("bindings", {}).items()
+        },
+        "packets": [{**e, "path": str(work / e["path"])} for e in value["packets"]],
+    }
+
+
+def save_manifest(work, value, root):
+    stored = {
+        **value,
+        "root": os.path.relpath(root, work),
+        "bindings": {os.path.relpath(name, root): sha for name, sha in value["bindings"].items()},
+        "packets": [{**e, "path": os.path.relpath(e["path"], work)} for e in value["packets"]],
+    }
+    target = Path(work) / "manifest.json"
+    if target.exists() and read_json(target) != stored:
+        raise ValueError("Audit input identity changed")
+    if not target.exists():
+        save_json(target, stored, exclusive=True)
+    return read_manifest(work)
+
+
+def read_packet(path):
+    path = Path(path)
+    value = read_json(path)
+    manifest = read_json(path.parent.parent / "manifest.json")
+    root = manifest_root(path.parent.parent, manifest)
+    for case in value["cases"]:
+        for key in ("source_html", "source_outline"):
+            case[key] = str((root / case[key]).resolve())
+    return value
+
+
+def save_packet(path, value, root):
+    stored = copy.deepcopy(value)
+    for case in stored["cases"]:
+        for key in ("source_html", "source_outline"):
+            case[key] = os.path.relpath(case[key], root)
+    if path.exists() and read_json(path) != stored:
+        raise ValueError("Frozen audit packet changed")
+    if not path.exists():
+        save_json(path, stored, exclusive=True)
+
+
 def prepare(home, content, work, *, batch_size=4, prior=None):
     """Freeze all source pages and all selected outputs without machine verdicts."""
     validate_review_options(batch_size=batch_size)
+    require_external_output(Path(work))
     home, content, work = Path(home).resolve(), Path(content).resolve(), Path(work).resolve()
-    require_external_output(work)
     work.mkdir(parents=True, exist_ok=True)
     model = read_json(content)
     truth_path = home / "dataset/dataset/ground-truth.json"
@@ -95,20 +150,14 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
         prior_identities = review_execution_identities(prior, prior_inputs)
         bindings[str(prior / "manifest.json")] = digest((prior / "manifest.json").read_bytes())
     for selection in model["evidence_runs"]:
-        run = Path(selection["run"])
-        run = run if run.is_absolute() else home / "runs" / run
-        _, rows = load_run(run)
-        revisions = selection.get("repair", [])
-        revisions = revisions if isinstance(revisions, list) else [revisions]
-        if revisions:
-            from harness.web_scraper.repair import compose
+        from harness.web_scraper.repair import load_selection
 
-            for revision in revisions:
-                rows, _ = compose(home, run, rows, revision)
-                directory = Path(revision["path"])
-                for name in ("certificate.json", "manifest.json", "contract.json"):
-                    path = directory / name
-                    bindings[str(path)] = digest(path.read_bytes())
+        run, rows = load_selection(home, selection)
+        for revision in selection.get("repair", []):
+            directory = Path(revision["path"])
+            for name in ("certificate.json", "manifest.json", "contract.json"):
+                path = directory / name
+                bindings[str(path)] = digest(path.read_bytes())
         bindings[str(run / "manifest.json")] = digest((run / "manifest.json").read_bytes())
         for row in rows:
             key = (row["case_id"], row["method"])
@@ -142,6 +191,7 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
         scripts = [str(e) for e in soup.select('script[type="application/ld+json"]')]
         metadata = [str(e) for e in soup.select("meta[content]")]
         outline = work / "sources" / (cid + ".txt")
+        require_external_output(outline)
         outline.parent.mkdir(exist_ok=True)
         text = soup.get_text("\n", strip=True)
         outline_text = text + "\n\nSTRUCTURED DATA AND METADATA\n" + "\n".join(metadata + scripts)
@@ -163,10 +213,7 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
     for i in range(0, len(cases), batch_size):
         packet = work / "packets" / f"{i // batch_size:03d}.json"
         value = {"cases": cases[i : i + batch_size]}
-        if packet.exists() and read_json(packet) != value:
-            raise ValueError("Frozen review packet changed")
-        if not packet.exists():
-            save_json(packet, value, exclusive=True)
+        save_packet(packet, value, home)
         packets.append({"path": str(packet), "sha256": digest(packet.read_bytes())})
     manifest = {
         "schema": "product-field-evidence-audit/1",
@@ -177,11 +224,7 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
         "bindings": bindings,
         "packets": packets,
     }
-    target = work / "manifest.json"
-    if target.exists() and read_json(target) != manifest:
-        raise ValueError("Audit input identity changed")
-    if not target.exists():
-        save_json(target, manifest, exclusive=True)
+    manifest = save_manifest(work, manifest, home)
     save_json(work / "schema.json", SCHEMA)
     return manifest
 
@@ -189,24 +232,7 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
 def validate_structure(result):
     if not isinstance(result, dict):
         raise ValueError("Review schema type mismatch")
-    validate_schema({k: v for k, v in result.items() if k != "citation_format_corrections"}, SCHEMA)
-    if "citation_format_corrections" in result:
-        validate_schema(
-            result["citation_format_corrections"],
-            {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        key: {"type": "string"}
-                        for key in ("case_id", "original_quote", "literal_quote", "rule")
-                    },
-                },
-            },
-        )
-        case_ids = {row["case_id"] for row in result["cases"]}
-        if any(c["case_id"] not in case_ids for c in result["citation_format_corrections"]):
-            raise ValueError("Review citation correction names an out-of-packet case")
+    validate_schema(result, SCHEMA)
 
 
 def validate(result, packet):
@@ -232,33 +258,7 @@ def validate(result, packet):
                     raise ValueError("Review requires source-grounded field evidence")
                 if quote not in source and quote not in outline:
                     raise ValueError("Review source quote is not literal")
-    for correction in result.get("citation_format_corrections", []):
-        if correction["rule"] != "literal-fragment-selection":
-            continue
-        item = expected[correction["case_id"]]
-        sources = [
-            Path(item[k]).read_text(encoding="utf-8") for k in ("source_html", "source_outline")
-        ]
-        fragments = literal_fragments(correction["original_quote"], sources)
-        if not fragments or correction["literal_quote"] not in fragments:
-            raise ValueError("Review compound citation has unmatched source fragments")
     return result
-
-
-def literal_fragments(quote, sources):
-    """A compound citation is valid only if every substantive fragment is literal."""
-    fragments = [part.strip().strip("“”‘’") for part in re.split(r"[；;…\n]+", quote)]
-    fragments = [part for part in fragments if re.search(r"\w", part)]
-    if len(fragments) < 2:
-        return []
-    literal = []
-    for fragment in fragments:
-        pattern = r"\s*".join(re.escape(c) for c in fragment if not c.isspace())
-        found = {match.group() for source in sources for match in re.finditer(pattern, source)}
-        if len(found) != 1:
-            return []
-        literal.append(next(iter(found)))
-    return literal
 
 
 def reconcile_citations(result, packet):
@@ -266,7 +266,6 @@ def reconcile_citations(result, packet):
     validate_structure(result)
     result = copy.deepcopy(result)
     expected = {r["case_id"]: r for r in packet["cases"]}
-    corrections = []
     for row in result.get("cases", []):
         if row.get("case_id") not in expected:
             continue
@@ -285,38 +284,15 @@ def reconcile_citations(result, packet):
                 if len(matches) == 1:
                     actual = next(iter(matches))
                     finding["source_quote"] = actual
-                    corrections.append(
-                        {
-                            "case_id": row["case_id"],
-                            "original_quote": quote,
-                            "literal_quote": actual,
-                            "rule": "whitespace-only",
-                        }
-                    )
-                else:
-                    fragments = literal_fragments(quote, sources)
-                    if fragments:
-                        actual = max(fragments, key=len)
-                        finding["source_quote"] = actual
-                        corrections.append(
-                            {
-                                "case_id": row["case_id"],
-                                "original_quote": quote,
-                                "literal_quote": actual,
-                                "rule": "literal-fragment-selection",
-                            }
-                        )
-    if corrections:
-        result["citation_format_corrections"] = corrections
     return result
 
 
 def prepare_adjudication(prior, work, rules, *, batch_size=4):
     """Recheck disputed references against the original benchmark's exact rules."""
     validate_review_options(batch_size=batch_size)
+    require_external_output(Path(work))
     prior, work, rules = Path(prior).resolve(), Path(work).resolve(), Path(rules).resolve()
-    require_external_output(work)
-    manifest = read_json(prior / "manifest.json")
+    manifest = read_manifest(prior)
     bindings = dict(manifest["bindings"])
     for name, sha in bindings.items():
         if digest(Path(name).read_bytes()) != sha:
@@ -327,7 +303,7 @@ def prepare_adjudication(prior, work, rules, *, batch_size=4):
         source = Path(entry["path"])
         if digest(source.read_bytes()) != entry["sha256"]:
             raise ValueError("Prior audit packet changed")
-        packet = read_json(source)
+        packet = read_packet(source)
         result_path = prior / "reviews" / source.name
         result = validate(read_json(result_path), packet)
         bindings[str(source)] = entry["sha256"]
@@ -345,10 +321,7 @@ def prepare_adjudication(prior, work, rules, *, batch_size=4):
     for i in range(0, len(cases), batch_size):
         path = work / "packets" / f"{i // batch_size:03d}.json"
         value = {"cases": cases[i : i + batch_size]}
-        if path.exists() and read_json(path) != value:
-            raise ValueError("Frozen adjudication packet changed")
-        if not path.exists():
-            save_json(path, value, exclusive=True)
+        save_packet(path, value, manifest_root(prior, manifest))
         packets.append({"path": str(path), "sha256": digest(path.read_bytes())})
     value = {
         "schema": "product-reference-adjudication/1",
@@ -358,18 +331,14 @@ def prepare_adjudication(prior, work, rules, *, batch_size=4):
         "bindings": bindings,
         "packets": packets,
     }
-    target = work / "manifest.json"
-    if target.exists() and read_json(target) != value:
-        raise ValueError("Adjudication inputs changed")
-    if not target.exists():
-        save_json(target, value, exclusive=True)
+    value = save_manifest(work, value, manifest_root(prior, manifest))
     save_json(work / "schema.json", SCHEMA)
     return value
 
 
 def completed(work):
     """Load an exact, source-bound completed audit; incomplete packets fail closed."""
-    manifest = read_json(work / "manifest.json")
+    manifest = read_manifest(work)
     for name, sha in manifest["bindings"].items():
         if digest(Path(name).read_bytes()) != sha:
             raise ValueError("Audit source changed")
@@ -380,7 +349,7 @@ def completed(work):
         path = Path(entry["path"])
         if digest(path.read_bytes()) != entry["sha256"]:
             raise ValueError("Audit packet changed")
-        packet = read_json(path)
+        packet = read_packet(path)
         target = work / "reviews" / path.name
         result = validate(read_json(target), packet)
         receipts.append(
@@ -400,48 +369,16 @@ def completed(work):
     return cases, opinions, receipts
 
 
-def original_execution_bindings(work):
-    manifest = read_json(Path(work) / "manifest.json")
-    identities = {}
-    for name, sha in manifest["bindings"].items():
-        path = Path(name)
-        if path.name != "manifest.json" or not (path.parent / "contract.json").exists():
-            continue
-        if digest(path.read_bytes()) != sha:
-            raise ValueError("Original audit execution manifest changed")
-        contract = read_json(path.parent / "contract.json")
-        if "methods" not in contract or "case_ids" not in contract:
-            # Repairs are validated through compose, never the extraction-run loader.
-            continue
-        _, rows = load_run(path.parent)
-        for row in rows:
-            key = (row["method"], row["case_id"])
-            if key in identities:
-                raise ValueError("Ambiguous original audit execution")
-            identities[key] = execution_identity(row)
-    return identities
-
-
 def review_execution_identities(work, inputs):
-    items = {
-        (output["method"], cid): output
+    return {
+        (output["method"], cid): output["execution_identity"]
         for cid, case in inputs.items()
         for output in case["outputs"]
     }
-    legacy = (
-        original_execution_bindings(work)
-        if any("execution_identity" not in item for item in items.values())
-        else {}
-    )
-    return {key: item.get("execution_identity", legacy.get(key)) for key, item in items.items()}
 
 
 def review_matches_execution(row, identity):
-    # Retain the full-row format used by already completed supplemental packets.
-    return identity in {
-        execution_identity(row),
-        digest(json.dumps(row, sort_keys=True, ensure_ascii=False).encode()),
-    }
+    return execution_identity(row) == identity
 
 
 def needs_supplemental_review(row, identities):
@@ -455,7 +392,7 @@ def assemble(
 ):
     """Bind complete reviews to current calls and retain official references separately."""
     from harness.web_scraper.analysis import check_reference_controls, field_results
-    from harness.web_scraper.repair import compose
+    from harness.web_scraper.repair import load_selection
 
     require_external_output(output)
     original_inputs, original_opinions, original_receipts = completed(initial)
@@ -465,13 +402,9 @@ def assemble(
     model = read_json(content)
     rows, methods = [], []
     for selection in model["evidence_runs"]:
-        source = Path(selection["run"])
-        source = source if source.is_absolute() else home / "runs" / source
-        contract, records = load_run(source)
+        source, records = load_selection(home, selection)
+        contract = read_json(source / "contract.json")
         methods.extend(contract["methods"])
-        revisions = selection.get("repair", [])
-        for revision in revisions if isinstance(revisions, list) else [revisions]:
-            records, _ = compose(home, source, records, revision)
         rows.extend(records)
     expected = {(method, cid) for method in methods for cid in truth}
     if len(rows) != len(expected) or {(r["method"], r["case_id"]) for r in rows} != expected:
@@ -498,8 +431,8 @@ def assemble(
     if set(adjudicated_inputs) != disputed:
         raise ValueError("Disputed references need complete adjudication")
     if disputed:
-        prior = read_json(Path(initial) / "manifest.json")
-        bound = read_json(Path(adjudication) / "manifest.json")["bindings"]
+        prior = read_manifest(initial)
+        bound = read_manifest(adjudication)["bindings"]
         for entry in prior["packets"]:
             packet = Path(entry["path"])
             review = Path(initial).resolve() / "reviews" / packet.name
@@ -710,8 +643,19 @@ def validate_review_options(*, limit=None, workers=4, batch_size=4):
 def run(work, *, model, workers=4, limit=None):
     """Review only missing packets; retain exact reviewer, inputs and raw logs."""
     validate_review_options(limit=limit, workers=workers)
+    require_external_output(Path(work))
     work = Path(work).resolve()
-    manifest = read_json(work / "manifest.json")
+    for name in ("logs", "raw", "reviews", "reviewer.json", "schema.json"):
+        require_external_output(work / name)
+    manifest = read_manifest(work)
+    for item in manifest["packets"]:
+        name = Path(item["path"]).name
+        for target in (
+            work / "logs" / (Path(name).stem + ".log"),
+            work / "raw" / name,
+            work / "reviews" / name,
+        ):
+            require_external_output(target)
     for name, sha in manifest["bindings"].items():
         if digest(Path(name).read_bytes()) != sha:
             raise ValueError("Audit source changed")
@@ -733,8 +677,11 @@ def run(work, *, model, workers=4, limit=None):
         path = Path(item["path"])
         if digest(path.read_bytes()) != item["sha256"]:
             raise ValueError("Audit packet changed")
-        packet = read_json(path)
+        packet = read_packet(path)
         target = work / "reviews" / path.name
+        require_external_output(target)
+        require_external_output(work / "raw" / path.name)
+        require_external_output(work / "logs" / (path.stem + ".log"))
         target.parent.mkdir(exist_ok=True)
         if target.exists():
             return validate(read_json(target), packet)
@@ -745,6 +692,7 @@ def run(work, *, model, workers=4, limit=None):
                 result = validate(reconcile_citations(read_json(raw), packet), packet)
             except ValueError:
                 invalid = work / "invalid"
+                require_external_output(invalid)
                 invalid.mkdir(exist_ok=True)
                 raw.rename(invalid / (path.stem + f"-{digest(raw.read_bytes())[:12]}.json"))
             else:
@@ -812,7 +760,7 @@ Return concise Chinese findings under the supplied schema. No API calls or file 
         with (logs / (path.stem + ".log")).open("w", encoding="utf-8") as log:
             process = sessions.start(
                 command,
-                cwd=work,
+                cwd=manifest_root(work, manifest),
                 stdin=subprocess.DEVNULL,
                 stdout=log,
                 stderr=subprocess.STDOUT,
@@ -837,7 +785,7 @@ Return concise Chinese findings under the supplied schema. No API calls or file 
             raise ValueError("Audit packet changed")
         target = work / "reviews" / path.name
         if target.exists():
-            retained.append(validate(read_json(target), read_json(path)))
+            retained.append(validate(read_json(target), read_packet(path)))
         else:
             pending.append(item)
     items = pending[:limit]

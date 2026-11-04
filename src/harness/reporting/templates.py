@@ -55,12 +55,12 @@ def resolve_template(track, *, root=ROOT):
         raise ValueError("Report template needs a version-pinned example")
     if "metric_contract" in result:
         raise ValueError("A report track cannot replace the shared required metric contract")
-    return {"track": track, **result, "metric_contract": metric_contract()}
+    return {"track": track, **result}
 
 
 def discover_template(track, *, root=ROOT):
     """Add a private example link for a local reader; report manifests never carry it."""
-    template = resolve_template(track, root=root)
+    template = {**resolve_template(track, root=root), "metric_contract": metric_contract()}
     name = template.get("example_env")
     if not name:
         return template

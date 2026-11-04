@@ -85,7 +85,8 @@
       "release_check": "uv run --frozen python -m harness.web_scraper.cli check /absolute/report --release --visual-receipt /absolute/visual-receipt.json",
       "package": "uv run --frozen python -m harness.web_scraper.cli package /absolute/report --output /absolute/report.zip --visual-receipt /absolute/visual-receipt.json",
       "benchmark": "src/harness/benchmarks/cards/zyte-product-extraction.json",
-      "cohort_example_build": "uv run --frozen python -m harness.web_scraper.example --output /tmp/scraper-cohort-example --mode full-cohort-progress"
+      "cohort_example_build": "uv run --frozen python -m harness.web_scraper.example --output /tmp/scraper-cohort-example --mode full-cohort-progress",
+      "publish": "uv run --frozen python -m harness.web_scraper.cli publish --source /absolute/report --target /absolute/publication-target.json --work /absolute/new-publication --visual-receipt /absolute/visual-receipt.json"
     }
   }
 }

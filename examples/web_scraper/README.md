@@ -93,10 +93,10 @@ and binds the reason, regression IDs, projection source hash and changed case ID
 in the separate assessment. No provider calls are made. Report selections must
 bind that assessment's path and hash explicitly.
 
-`probe` checks three stock/field strata; `probe --largest-page` checks the largest
-input. These are compatibility diagnostics, not a substitute for a 140-page run.
-The lower-level `run` command also collects the full population, but formal cohorts
-must go through `scripts/run_certified_benchmark.py`.
+Native input preflights use the internal collector exercised by the fixture tests.
+Only the certified entry point starts a publishable provider cohort. A changed
+implementation cannot resume an unfinished run; finish it on its original commit.
+Completed certificates remain readable without invoking the old runner.
 
 ## Research and compatibility reports
 
@@ -173,3 +173,14 @@ Quality cells link to method/field filters; result rows open lazy evidence dialo
 and link to full field diagnostics, same-case comparisons and safe source previews.
 Optional `source_screenshots` binds author-provided images by source path/hash;
 their capture timing is disclosed separately from frozen HTML evidence.
+
+## Publish an existing report
+
+Keep the report target and version outside Git. The adapter uses the shared staged
+publication owner and retains the target's access policy.
+
+```sh
+uv run --frozen python -m harness.web_scraper.cli publish \
+  --source /absolute/report --target /absolute/publication-target.json \
+  --work /absolute/new-publication --visual-receipt /absolute/visual-receipt.json
+```

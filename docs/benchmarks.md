@@ -34,7 +34,7 @@ Current datasets are published separately:
 
 | Dataset | Purpose |
 | --- | --- |
-| [LexBench-Web-Scraper](https://huggingface.co/datasets/Lexmount/LexBench-Web-Scraper) | 140 frozen product pages, original labels and separately identified source-qualified annotations |
+| [Product extraction benchmark (Zyte)](https://huggingface.co/datasets/Lexmount/zyte-product-extraction-benchmark) | 140 frozen product pages, original labels and separately identified source-qualified annotations |
 | [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) | URL-to-content tasks, acceptance contracts and reference bindings |
 | [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) | Scenario queries and source qualifications; factual QA inputs belong to SimpleQA Verified |
 | [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) | A separate retrieval adaptation of the publisher's factual questions |

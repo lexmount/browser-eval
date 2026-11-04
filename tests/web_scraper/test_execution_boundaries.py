@@ -269,7 +269,7 @@ def test_canonical_snapshot_paths_are_used_for_qualification_and_extraction(tmp_
 
     with (
         collection_context(),
-        patch("harness.web_scraper.pipeline.fixture_request", side_effect=request),
+        patch("harness.web_scraper.pipeline.request", side_effect=request),
         patch("harness.web_scraper.pipeline.provider_call", side_effect=accepted) as call,
     ):
         probe(
@@ -299,7 +299,7 @@ def test_redirecting_snapshot_is_rejected_before_any_provider_call(tmp_path):
 
     with (
         collection_context(),
-        patch("harness.web_scraper.pipeline.fixture_request", side_effect=redirect),
+        patch("harness.web_scraper.pipeline.request", side_effect=redirect),
         patch("harness.web_scraper.pipeline.provider_call") as call,
     ):
         with pytest.raises(ValueError, match="canonical frozen fixture"):
@@ -422,12 +422,7 @@ def test_continuously_streaming_response_has_a_total_deadline(transport):
             with requests.get(url, stream=True, timeout=timeout) as response:
                 response.raw.read()
         elif transport == "fixture":
-            from concurrent.futures import ThreadPoolExecutor
-
-            from harness.web_scraper.pipeline import fixture_request
-
-            with ThreadPoolExecutor(max_workers=1) as pool:
-                pool.submit(fixture_request, url, timeout=timeout).result()
+            total_deadline(request)(url, timeout=timeout)
         else:
             request(url, timeout=timeout)
 

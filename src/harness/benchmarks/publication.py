@@ -179,7 +179,7 @@ class DatasetRelease:
                 raise ValueError("Source requires one committed definitions tree")
             prefix = prefixes[0]
         notices = subprocess.check_output(
-            ["git", "ls-tree", "--name-only", revision, "--", "LICENSE", "NOTICE",
+            ["git", "ls-tree", "--name-only", revision, "--", "LICENSE", "LICENSE-annotations", "NOTICE",
              "THIRD_PARTY.md", "THIRD_PARTY_NOTICES.md", "VERSIONING.md"], cwd=checkout, text=True).splitlines()
         files = {}
         for original_name, content in _git_blobs(checkout, revision, (prefix, *notices)).items():

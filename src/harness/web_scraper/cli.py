@@ -8,7 +8,6 @@ from harness.report_languages import add_language_argument
 from harness.web_scraper.pipeline import (
     data_home,
     prepare,
-    probe,
     reproduce,
     score_run,
     serve_fixtures,
@@ -32,24 +31,6 @@ def main(argv=None):
     p.add_argument("--options", type=Path, required=True)
     p.add_argument("--fixture-base", required=True)
     p.add_argument("--cases", type=Path)
-    for command in ("probe", "run"):
-        p = sub.add_parser(command)
-        p.add_argument("--methods", nargs="+", required=True)
-        p.add_argument("--fixture-base")
-        p.add_argument("--fixture-suffix", choices=[".html", ""], default=".html")
-        p.add_argument(
-            "--run-dir",
-            type=Path,
-            help="Resume the exact frozen scope without repeating completed cases",
-        )
-        p.add_argument(
-            "--min-call-interval",
-            type=float,
-            default=0,
-            help="Minimum seconds between request starts; recorded before calls",
-        )
-        if command == "probe":
-            p.add_argument("--largest-page", action="store_true")
     p = sub.add_parser("score")
     p.add_argument("run", type=Path)
     p.add_argument(
@@ -74,6 +55,9 @@ def main(argv=None):
     p.add_argument("report", type=Path)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--visual-receipt", type=Path, required=True)
+    p = sub.add_parser("publish")
+    for name in ("source", "target", "work", "visual-receipt"):
+        p.add_argument("--" + name, type=Path, required=True)
     p = sub.add_parser("review")
     p.add_argument("--content", type=Path, required=True)
     p.add_argument("--work", type=Path, required=True)
@@ -116,19 +100,6 @@ def main(argv=None):
                 json.loads(args.cases.read_text(encoding="utf-8")) if args.cases else None,
             )
         )
-    elif args.command in ("probe", "run"):
-        print(
-            probe(
-                args.home,
-                args.methods,
-                fixture_base=args.fixture_base,
-                fixture_suffix=args.fixture_suffix,
-                full=args.command == "run",
-                largest=getattr(args, "largest_page", False),
-                min_call_interval=args.min_call_interval,
-                run_dir=args.run_dir,
-            )
-        )
     elif args.command == "score":
         print(score_run(args.home, args.run, reproject=args.reproject, output=args.output))
     elif args.command == "report":
@@ -150,6 +121,10 @@ def main(argv=None):
         from harness.web_scraper.report import package
 
         print(package(args.report, args.output, visual_receipt=args.visual_receipt))
+    elif args.command == "publish":
+        from harness.web_scraper.publication import publish
+
+        print(publish(args.source, args.target, args.work, args.visual_receipt))
     elif args.command == "review":
         from harness.web_scraper.review import prepare as prepare_review
         from harness.web_scraper.review import run as run_review

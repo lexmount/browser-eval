@@ -56,13 +56,14 @@ def metrics_from_tp_fp_fns(rows):
     save_json(
         profile,
         {
+            "local_example": True,
             "dataset": {
                 "id": "synthetic",
                 "repository": "example/synthetic",
                 "commit": "synthetic-v1",
                 "cases": 3,
                 "files": {},
-            }
+            },
         },
     )
     sha = digest((root / "manifest.json").read_bytes())

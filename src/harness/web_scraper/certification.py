@@ -1,13 +1,11 @@
 """Freeze complete archived-page cohorts before calls and certify after collection."""
 
 import argparse
-import importlib.util
 from pathlib import Path
 
 from harness.reporting.templates import metric_contract
 from harness.web_scraper.pipeline import (
     PROFILE,
-    ROOT,
     available_methods,
     data_home,
     digest,
@@ -37,8 +35,8 @@ def create_plan(home, methods, output):
         "matrix_size": len(truth) * len(methods),
         "participants": {
             m: {
-                "minimum_call_interval_seconds": 13 if m == "diffbot-product" else 0,
-                "post_call_cooldown_seconds": 10 if m == "diffbot-product" else 0,
+                "minimum_call_interval_seconds": registry[m]["minimum_call_interval_seconds"],
+                "post_call_cooldown_seconds": registry[m]["post_call_cooldown_seconds"],
                 "input": registry[m]["input"],
             }
             for m in methods
@@ -60,23 +58,6 @@ def create_plan(home, methods, output):
     }
     save_json(output, plan, exclusive=True)
     return plan
-
-
-def frozen_probe(run_dir, expected_sha):
-    source = run_dir / "execution/pipeline.py"
-    if source.is_symlink() or digest(source.read_bytes()) != expected_sha:
-        raise ValueError("Certified resume execution snapshot changed")
-    spec = importlib.util.spec_from_file_location("harness.web_scraper._frozen_runner", source)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    frozen_profile = module.PROFILE
-    module.ROOT, module.PROFILE = ROOT, PROFILE
-    # Function defaults are bound at import, before the snapshot is relocated.
-    for name in ("prepare", "validate_dataset", "official_scorer"):
-        function = getattr(module, name, None)
-        if function is not None and function.__defaults__ == (frozen_profile,):
-            function.__defaults__ = (PROFILE,)
-    return module.probe
 
 
 def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None):
@@ -110,6 +91,24 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
         raise ValueError("Frozen plan scorer differs")
     if len(truth) != plan["case_count"] or case_hash != plan["case_ids_sha256"]:
         raise ValueError("Full cohort population differs from the frozen plan")
+    if (run_dir / "certificate.json").exists():
+        contract, rows = load_run(run_dir)
+        certificate = read_json(run_dir / "certificate.json")
+        for field, path in (
+            ("profile_sha256", profile),
+            ("manifest_sha256", run_dir / "manifest.json"),
+            ("scores_sha256", run_dir / "scores.json"),
+            ("precall_sha256", binding),
+        ):
+            if certificate[field] != digest(path.read_bytes()):
+                raise ValueError("Completed cohort binding changed: " + field)
+        if contract["methods"] != [method] or certificate["method"] != method:
+            raise ValueError("Completed cohort method differs")
+        return {
+            "run": str(run_dir),
+            "cases": len(rows),
+            "scores": read_json(run_dir / "scores.json")["scores"],
+        }
     precall = {
         "schema": "archived-extraction-precall/1",
         "profile_sha256": digest(profile.read_bytes()),
@@ -124,8 +123,10 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
     if binding.exists():
         original = read_json(binding)
         if (run_dir / "contract.json").exists():
-            collector = frozen_probe(run_dir, original["pipeline_sha256"])
-            precall["pipeline_sha256"] = original["pipeline_sha256"]
+            if original["pipeline_sha256"] != precall["pipeline_sha256"]:
+                raise ValueError(
+                    "Resume contract changed: pipeline_sha256; use the original commit"
+                )
         elif any(
             (run_dir / name).exists() for name in ("calls.journal.jsonl", "inflight.json")
         ) or any((run_dir / "calls").glob("*")):
