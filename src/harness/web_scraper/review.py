@@ -913,8 +913,13 @@ def assemble_record(
             resolved[cid] = opinions[cid]
     references = copy.deepcopy(truth)
     policy = {"unavailable_reference_groups": [], "text_matching": "literal"}
+    source_decisions = {}
     if reference_revision is not None:
         references, policy = adapter.load_reference_revision(home, reference_revision)
+        revision = read_json(reference_revision)
+        source_decisions = {
+            (d["case_id"], d["field"]): d for d in revision.get("field_decisions", [])
+        }
     unavailable = {tuple(group) for group in policy["unavailable_reference_groups"]}
     matching = adapter.canonical_text if policy["text_matching"] == "whitespace" else str
     unresolved, final_sources = [], {}
@@ -925,6 +930,11 @@ def assemble_record(
             "source_fields": final["source_fields"],
             "reference_review": final["reference"],
             "adjudicated": cid in resolved,
+            "source_decisions": {
+                field: source_decisions[(cid, field)]
+                for field in truth[cid]["values"]
+                if (cid, field) in source_decisions
+            },
         }
         for field in truth[cid]["values"]:
             disputed = any(
@@ -937,6 +947,9 @@ def assemble_record(
             reason = None
             if disputed and cid not in resolved:
                 reason = "Disputed reference requires source adjudication"
+            elif (cid, field) in source_decisions:
+                # Source-bound final decisions retain, rather than overwrite, model findings.
+                continue
             elif finding["status"] == "ambiguous":
                 reason = "Reference scope remains ambiguous after adjudication"
             elif finding["status"] == "incorrect":

@@ -353,6 +353,119 @@ def reviewed_record_report(record_audit_material, tmp_path):
     return home, content, profile_path, output, audit_path
 
 
+@pytest.fixture
+def source_field_revision(inputs, tmp_path):
+    home, _ = inputs
+    truth = pipeline.read_json(home / "dataset/dataset/ground-truth.json")
+    truth["book-a-0001"]["values"]["author"] = ["Ada"]
+    truth["job-b-0002"]["values"]["title"] = ["Engineer", "No data"]
+    pages = {
+        "book-a-0001": b"<p>Ada</p>",
+        "job-b-0002": (
+            b'<main><h1 id="title">Engineer</h1><p id="alt">Senior Engineer</p>'
+            b'<p id="placeholder">No data</p><p id="mixed"><b>Other</b> Job</p></main>'
+        ),
+    }
+    pipeline.save_json(home / "dataset/dataset/ground-truth.json", truth)
+    for cid, raw in pages.items():
+        (home / "dataset/html" / (cid + ".html")).write_bytes(raw)
+    qualified = swde.qualify_reference_text(truth, pages)
+    references = qualified["references"]
+    references["job-b-0002"]["values"]["title"] = ["Engineer", "Senior Engineer"]
+    decision = {
+        "case_id": "job-b-0002",
+        "field": "title",
+        "original": ["Engineer", "No data"],
+        "accepted": ["Engineer", "Senior Engineer"],
+        "rule": "SWDE section 5(b)",
+        "reason": "Accept complete title nodes and exclude the missing-value placeholder",
+        "source_sha256": pipeline.digest(pages["job-b-0002"]),
+        "evidence": [
+            {
+                "value": value,
+                "source_quote": value,
+                "role": role,
+                "xpath": f"//*[@id='{identity}']/text()",
+                "field_context": value,
+            }
+            for identity, value, role in [
+                ("title", "Engineer", "accepted"),
+                ("alt", "Senior Engineer", "accepted"),
+                ("placeholder", "No data", "excluded"),
+            ]
+        ],
+    }
+    authority = tmp_path / "field-revision.json"
+    revision = {
+        "schema": "record-source-reference-candidate/1",
+        "original_reference_sha256": pipeline.digest(
+            (home / "dataset/dataset/ground-truth.json").read_bytes()
+        ),
+        "source_hashes": qualified["source_hashes"],
+        "dom_text_changes": qualified["changes"],
+        "references": references,
+        "field_decisions": [decision],
+        "regression_ids": swde.check_reference_controls(),
+        "text_matching": "whitespace",
+        "provider_calls_added": 0,
+    }
+    pipeline.save_json(authority, revision)
+    return home, authority
+
+
+def test_source_field_decision_accepts_exact_alternatives_and_removes_only_proven_placeholders(
+    source_field_revision,
+):
+    home, authority = source_field_revision
+    references, policy = swde.load_reference_revision(home, authority)
+    for value, hits in [("Engineer", 1), ("Senior Engineer", 1), ("Other Job", 0), ("No data", 0)]:
+        result = swde.score(
+            references, {"book-a-0001": {}, "job-b-0002": {"title": [value]}}, **policy
+        )
+        assert (
+            next(row for row in result["site_fields"] if row["field"] == "title")["hit_pages"]
+            == hits
+        )
+
+
+@pytest.mark.parametrize(
+    "damage",
+    [
+        "no-excluded-evidence",
+        "concatenated-node",
+        "attribute",
+        "missing-rule",
+        "source-hash",
+        "duplicate",
+    ],
+)
+def test_source_field_revision_rejects_unproven_or_nontext_changes(source_field_revision, damage):
+    home, authority = source_field_revision
+    revision = pipeline.read_json(authority)
+    decision = revision["field_decisions"][0]
+    if damage == "no-excluded-evidence":
+        decision["evidence"].pop()
+    elif damage == "concatenated-node":
+        decision["accepted"][1] = "Other Job"
+        decision["evidence"][1].update(
+            value="Other Job",
+            source_quote="Other Job",
+            field_context="Other Job",
+            xpath="//*[@id='mixed']",
+        )
+    elif damage == "attribute":
+        decision["evidence"][0]["xpath"] = "//*[@id='title']/@id"
+    elif damage == "missing-rule":
+        decision.pop("rule")
+    elif damage == "source-hash":
+        decision["source_sha256"] = "0" * 64
+    else:
+        revision["field_decisions"].append(decision.copy())
+    pipeline.save_json(authority, revision)
+    with pytest.raises(ValueError, match="Reference|reference"):
+        swde.load_reference_revision(home, authority)
+
+
 @pytest.mark.parametrize("source_revision_run", [False, True], indirect=True)
 def test_record_report_reproduces_complete_review_and_preserves_original_evidence(
     reviewed_record_report,
@@ -644,6 +757,56 @@ def test_record_audit_assembly_joins_all_providers_and_source_qualified_referenc
     assert audit["results"]["cloudflare-json:job-b-0002"]["audited_fields"]["title"]["actual"] == [
         "Engineer & Co"
     ]
+
+
+def test_record_audit_retains_model_disagreement_and_source_bound_final_decision(
+    record_audit_material, tmp_path
+):
+    from harness.web_scraper import review
+
+    home, content, works, adjudication, authority = record_audit_material
+    revision = pipeline.read_json(authority)
+    original = pipeline.read_json(home / "dataset/dataset/ground-truth.json")
+    decision = {
+        "case_id": "job-b-0002",
+        "field": "title",
+        "original": original["job-b-0002"]["values"]["title"],
+        "accepted": ["Engineer & Co"],
+        "rule": "SWDE section 5(d)",
+        "reason": "The complete source title is retained with literal entity decoding",
+        "source_sha256": revision["source_hashes"]["job-b-0002"],
+        "evidence": [
+            {
+                "value": "Engineer & Co",
+                "source_quote": "Engineer & Co",
+                "xpath": "//h1/text()",
+                "field_context": "Engineer & Co",
+                "role": "accepted",
+            }
+        ],
+    }
+    revision["field_decisions"] = [decision]
+    pipeline.save_json(authority, revision)
+    path = adjudication / "reviews/000.json"
+    opinion = pipeline.read_json(path)
+    title = next(c for c in opinion["cases"] if c["case_id"] == "job-b-0002")
+    title["reference"]["title"]["status"] = "ambiguous"
+    pipeline.save_json(path, opinion)
+    output = tmp_path / "source-final-audit.json"
+    review.assemble_record(
+        home,
+        content,
+        works,
+        output,
+        profile=swde.CARD,
+        adjudications=[adjudication],
+        reference_revision=authority,
+    )
+    audit = pipeline.read_json(output)
+    assert audit["unresolved"] == 0
+    source = audit["sources"]["job-b-0002"]
+    assert source["reference_review"]["title"]["status"] == "ambiguous"
+    assert source["source_decisions"]["title"] == decision
 
 
 @pytest.mark.parametrize(

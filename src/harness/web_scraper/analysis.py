@@ -349,6 +349,11 @@ def check_record_audit(home, truth, rows, audit, *, reference_revision=None):
         or audit.get("original_results_reviewed") != len(expected)
         or set(audit.get("results", {})) != {method + ":" + cid for method, cid in expected}
         or not audit.get("review_receipts")
+        or any(
+            not isinstance(r.get("reviewer", {}).get("model"), str)
+            or not r["reviewer"]["model"].strip()
+            for r in audit.get("review_receipts", [])
+        )
         or set(audit.get("sources", {})) != set(truth)
         or any(
             set(audit["sources"][cid].get(section, {})) != set(truth[cid]["values"])
@@ -374,15 +379,26 @@ def check_record_audit(home, truth, rows, audit, *, reference_revision=None):
     references = truth
     policy = {"unavailable_reference_groups": [], "text_matching": "literal"}
     authority_sha = None
+    decisions = {}
     if reference_revision is not None:
         authority_sha = digest(Path(reference_revision).read_bytes())
         references, policy = adapter.load_reference_revision(home, reference_revision)
+        revision = json.loads(Path(reference_revision).read_bytes())
+        decisions = {(d["case_id"], d["field"]): d for d in revision.get("field_decisions", [])}
     if (
         audit.get("reference_revision_sha256") != authority_sha
         or audit.get("audited_reference") != references
         or audit.get("reference_policy") != policy
     ):
         raise ValueError("Record audit reference authority differs from current scoring inputs")
+    for cid, source in audit["sources"].items():
+        expected_decisions = {
+            field: decisions[(cid, field)]
+            for field in truth[cid]["values"]
+            if (cid, field) in decisions
+        }
+        if source.get("source_decisions", {}) != expected_decisions:
+            raise ValueError("Record audit final source decisions differ from their authority")
     unavailable = {tuple(group) for group in policy["unavailable_reference_groups"]}
     predictions = {method: {} for method in methods}
     for row in rows:

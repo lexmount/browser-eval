@@ -222,6 +222,11 @@ decoded only when the source text proves the change; literal entity text stays
 literal. Truncated labels need an explicit field-context decision. Excluding an
 unannotated site-field group requires a bound coverage receipt and a check of its
 complete original annotation file, including pages outside the selected sample.
+Additional source alternatives, placeholder removal and confirmations of disputed
+labels use `field_decisions`: each binds the original values, accepted values,
+source hash, benchmark rule and complete text-node evidence with field context.
+Every accepted value and every removed original value needs evidence. Attribute
+values and concatenations of separate text nodes cannot stand in for text nodes.
 Unrelated answer edits, changed sources and populated groups are rejected.
 Scoring retains native answers and original scores, adds no provider calls, and
 records the correction authority, causes and regression IDs separately. It does
@@ -322,6 +327,11 @@ Disputed references remain unresolved until source adjudication and any required
 reference correction agree. Complete result coverage alone does not clear those
 disputes. Assembly adds no provider calls and preserves reviewer findings beside
 the scores produced by the frozen text-node contract.
+An explicit source decision can settle an adjudicator disagreement after source
+adjudication; the original finding remains in the audit alongside that decision.
+Profiles requiring full review reject missing or unresolved audits at report build
+and release. Reports retain original annotations and scores next to the qualified
+comparison, with native outputs and timings unchanged.
 
 The report home exposes all-call mean/P50/P95 and sourced pricing for every method.
 Quality cells link to method/field filters; result rows open lazy evidence dialogs

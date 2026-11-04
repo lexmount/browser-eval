@@ -292,6 +292,37 @@ def qualify_reference_text(truth, html_pages):
     }
 
 
+def _reference_evidence(tree, evidence):
+    """Resolve one complete source text node and its nearby field context."""
+    from lxml import html as lxml_html
+
+    nodes = tree.xpath(evidence["xpath"])
+    if len(nodes) != 1:
+        raise ValueError("Reference decision locator is not one source text node")
+    node = nodes[0]
+    if isinstance(node, lxml_html.HtmlElement):
+        value = canonical_text(node.text_content())
+        if not any(canonical_text(text) == value for text in node.xpath(".//text()")):
+            raise ValueError("Reference decision concatenates distinct source text nodes")
+        context_node = node
+    elif isinstance(node, str) and (
+        getattr(node, "is_text", False) or getattr(node, "is_tail", False)
+    ):
+        value = canonical_text(str(node))
+        context_node = node.getparent()
+        if node.is_tail:
+            context_node = context_node.getparent()
+    else:
+        raise ValueError("Reference decision locator is not source text")
+    if not value or value != evidence.get("value") or value != evidence.get("source_quote"):
+        raise ValueError("Reference decision does not copy its source text node")
+    context = canonical_text(evidence.get("field_context", ""))
+    ancestors = [context_node, *list(context_node.iterancestors())[:6]]
+    if not context or not any(context in canonical_text(n.text_content()) for n in ancestors):
+        raise ValueError("Reference decision field context is absent from its source")
+    return value
+
+
 def load_reference_revision(home, path):
     """Verify source-only reference changes before scoring retained native answers."""
     from lxml import html as lxml_html
@@ -337,24 +368,45 @@ def load_reference_revision(home, path):
         tree = lxml_html.fromstring(pages[cid].decode("utf-8"))
         evidenced = []
         for evidence in decision.get("evidence", []):
-            nodes = tree.xpath(evidence["xpath"])
-            if len(nodes) != 1 or not isinstance(nodes[0], lxml_html.HtmlElement):
-                raise ValueError("Reference decision locator is not one source element")
-            value = canonical_text(nodes[0].text_content())
-            if value != evidence.get("value") or value != evidence.get("source_quote"):
-                raise ValueError("Reference decision does not copy its source element")
-            context = canonical_text(evidence.get("field_context", ""))
-            ancestors = [nodes[0], *list(nodes[0].iterancestors())[:6]]
-            if not context or not any(
-                context in canonical_text(node.text_content()) for node in ancestors
-            ):
-                raise ValueError("Reference decision field context is absent from its source")
-            evidenced.append(value)
+            evidenced.append(_reference_evidence(tree, evidence))
         if evidenced != decision["accepted"]:
             raise ValueError("Every accepted reference value requires exact source evidence")
         references[cid]["values"][field] = list(evidenced)
     if seen != unmatched:
         raise ValueError("Every unmatched original reference requires source adjudication")
+    for decision in revision.get("field_decisions", []):
+        cid, field = decision.get("case_id"), decision.get("field")
+        key = cid, field
+        accepted = decision.get("accepted")
+        if (
+            cid not in truth
+            or field not in truth[cid]["values"]
+            or key in seen
+            or decision.get("original") != truth[cid]["values"][field]
+            or decision.get("source_sha256") != qualified["source_hashes"][cid]
+            or not decision.get("reason")
+            or not decision.get("rule")
+            or not isinstance(accepted, list)
+            or any(not isinstance(v, str) for v in accepted)
+            or len(set(accepted)) != len(accepted)
+        ):
+            raise ValueError("Reference field decision is outside its declared source authority")
+        seen.add(key)
+        tree = lxml_html.fromstring(pages[cid].decode("utf-8"))
+        evidence_values = {"accepted": [], "excluded": []}
+        for evidence in decision.get("evidence", []):
+            role = evidence.get("role")
+            if role not in evidence_values:
+                raise ValueError("Reference field evidence needs an accepted or excluded role")
+            evidence_values[role].append(_reference_evidence(tree, evidence))
+        removed = set(references[cid]["values"][field]) - set(accepted)
+        if (
+            evidence_values["accepted"] != accepted
+            or not removed.issubset(evidence_values["excluded"])
+            or not decision.get("evidence")
+        ):
+            raise ValueError("Every accepted and removed reference value needs source evidence")
+        references[cid]["values"][field] = list(accepted)
     if revision.get("references") != references:
         raise ValueError("Reference revision contains undeclared answer or metadata changes")
     groups = revision.get("unavailable_reference_groups", [])
@@ -602,6 +654,22 @@ def check_reference_controls():
                 raise ValueError(
                     "Reference correction broadened matching to an adjacent wrong value"
                 )
+    truth = {
+        "one": {
+            "domain": "auto",
+            "site": "a",
+            "values": {"engine": ["3.6L V6", "3.6 liters V 6"], "fuel_economy": []},
+        }
+    }
+    for value, hit in [("3.6L V6", True), ("3.6 liters V 6", True), ("3.6L V8", False)]:
+        result = score(truth, {"one": {"engine": [value]}})
+        engine = next(row for row in result["site_fields"] if row["field"] == "engine")
+        if bool(engine["hit_pages"]) != hit:
+            raise ValueError("Source alternatives broadened unrelated field matching")
+    for values, false_positives in [([], 0), (["No data"], 1), (["25 MPG"], 1)]:
+        result = score(truth, {"one": {"engine": ["3.6L V6"], "fuel_economy": values}})
+        if result["value_micro"]["false_positive"] != false_positives:
+            raise ValueError("Placeholder removal discarded covered negative-page errors")
     return [
         "unannotated-group-is-unavailable-not-zero",
         "unannotated-prediction-does-not-select-quality-scope",
@@ -612,4 +680,6 @@ def check_reference_controls():
         "whitespace-equivalence-preserves-accents-and-units",
         "full-director-name-excludes-another-role-with-same-surname",
         "complete-rating-does-not-enable-prefix-matching",
+        "source-alternatives-do-not-broaden-unrelated-value-matching",
+        "placeholder-removal-retains-covered-negative-false-positives",
     ]
