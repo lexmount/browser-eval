@@ -20,8 +20,9 @@ from harness.environments.browser import (
     published_endpoint,
 )
 from harness.trajectory_replay import diagnostics, runner
+from harness.trajectory_replay.core import docker_runner
 from harness.trajectory_replay.core.suite import BrowserTask, TaskSuite
-from harness.trajectory_replay.runner import _http_origin, _prepare_page
+from harness.trajectory_replay.runner import _prepare_page
 from harness.web_fetch import config as web_fetch_config
 
 
@@ -36,7 +37,7 @@ def test_empty_tool_trace_cannot_pass_process_validation(monkeypatch):
     sampler = MagicMock()
     monkeypatch.setattr(runner, "ResourceSampler", lambda *args, **kwargs: sampler)
     monkeypatch.setattr(runner, "execute_steps", lambda *args, **kwargs: None)
-    monkeypatch.setattr(runner, "_resource_result", lambda *args: {})
+    monkeypatch.setattr(runner, "resource_result", lambda *args: {})
 
     result = runner._run_task("chromium", page, set(), resources, task, 1, 100)
 
@@ -75,7 +76,7 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
         "task", "Task", ({"action": "navigate", "url": "{fixture_origin}/core.html"},),
         (), (), "simple", {}, {},
     )
-    monkeypatch.setattr(runner, "_start_fixture_server", lambda root: (
+    monkeypatch.setattr(runner, "start_fixture_server", lambda root: (
         MagicMock(), MagicMock(), "http://fixture.test",
     ))
     task.ground_truth["expected_outputs"] = {}
@@ -86,13 +87,13 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
     monkeypatch.setattr(
         runner, "sync_playwright", lambda: SimpleNamespace(start=lambda: playwright)
     )
-    monkeypatch.setattr(runner, "start_browser_container", lambda *a, **k: MagicMock())
-    monkeypatch.setattr(runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
-    monkeypatch.setattr(runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
-    monkeypatch.setattr(runner, "DockerStatsResources", lambda _: None)
+    monkeypatch.setattr(docker_runner, "start_browser_container", lambda *a, **k: MagicMock())
+    monkeypatch.setattr(docker_runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
+    monkeypatch.setattr(docker_runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
+    monkeypatch.setattr(docker_runner, "DockerStatsResources", lambda _: None)
     monkeypatch.setattr(runner, "_reset_state", lambda *a: None)
     monkeypatch.setattr(runner, "_prepare_page", lambda page, *a, **k: page)
-    monkeypatch.setattr(runner, "_environment", lambda *a: {})
+    monkeypatch.setattr(runner, "docker_environment", lambda *a: {})
     monkeypatch.setattr(
         runner,
         "_run_task",
@@ -232,11 +233,6 @@ def test_external_websocket_url_rewrites_container_advertised_host():
         )
         == "ws://127.0.0.1:32776/devtools/browser/moli-browser"
     )
-
-
-def test_http_origin_keeps_only_scheme_and_authority():
-    assert _http_origin("https://example.com:8443/a?q=1") == "https://example.com:8443"
-    assert _http_origin("about:blank") is None
 
 
 def test_published_endpoint_handles_missing_port_binding():

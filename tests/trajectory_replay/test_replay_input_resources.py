@@ -57,7 +57,7 @@ def test_runner_serves_packaged_pages_when_suite_is_in_an_unrelated_cache(
         assert 'html' in (root / 'core.html').read_text(encoding='utf-8').lower()
         raise LocatedFixture
 
-    monkeypatch.setattr(runner, '_start_fixture_server', start)
+    monkeypatch.setattr(runner, 'start_fixture_server', start)
     with pytest.raises(LocatedFixture):
         runner.run_evaluation(suite_path=suite if resolved else None, output_dir=tmp_path/'run',
                               reports_dir=tmp_path/'reports')
@@ -235,7 +235,7 @@ def test_explicit_suite_uses_its_custom_fixture_tree(tmp_path, monkeypatch, fami
         assert (root/'nested/custom.html').is_file()
         raise CorrectHistoricalFiles
 
-    monkeypatch.setattr(runner, '_start_fixture_server', start)
+    monkeypatch.setattr(runner, 'start_fixture_server', start)
     with pytest.raises(CorrectHistoricalFiles):
         runner.run_evaluation(suite_path=suite, output_dir=tmp_path/'run',
                               reports_dir=tmp_path/'reports')

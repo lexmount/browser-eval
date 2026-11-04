@@ -4,39 +4,45 @@ from __future__ import annotations
 
 import hashlib
 import json
-import platform
 import threading
 import time
 import traceback
-import urllib.parse
-import urllib.request
 import uuid
 from collections.abc import Callable
-from functools import cache, partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
 import docker
-import tiktoken
-from playwright.sync_api import Browser, Page, sync_playwright
+from playwright.sync_api import Page, sync_playwright
 
 from harness.container_isolation import require_linux_cgroup_v2
 from harness.environments.browser import (
     DEFAULT_BROWSER_IMAGES,
-    ENGINE_PORTS,
     cleanup_browser_runtime,
-    published_endpoint,
-    start_browser_container,
     validate_resource_controls,
-    wait_cdp,
 )
-from harness.environments.webarena.topology import container_host_origin
 from harness.record_io import write_json
-from harness.resource_accounting import (
-    DockerStatsResources,
-    ResourceSampler,
-    delta_counters,
+from harness.resource_accounting import DockerStatsResources, ResourceSampler
+from harness.trajectory_replay.core.docker_runner import (
+    EngineRuntime,
+    attempt_identity,
+    docker_environment,
+    ground_truth_validation,
+    http_origin,
+    main_frame_origin_recorder,
+    manifest_task,
+    materialize_task,
+    open_task_page,
+    output_volume,
+    print_attempt_progress,
+    process_validation,
+    reset_browser_state,
+    resource_result,
+    start_engine,
+    start_fixture_server,
+    stop_fixture_server,
+    write_run_artifacts,
 )
 from harness.trajectory_replay.core.suite import BrowserTask, validate_ground_truth_evidence
 from harness.trajectory_replay.public_webarena.config import map_strings
@@ -60,13 +66,6 @@ from harness.trajectory_replay.public_webarena.webarena_environment import (
 ENGINE_IMAGES = dict(DEFAULT_BROWSER_IMAGES)
 
 
-@cache
-def _encoding() -> tiktoken.Encoding:
-    # Loaded on first use: get_encoding may download the BPE file, which must
-    # not happen merely by importing the runner (for example for CLI --help).
-    return tiktoken.get_encoding("o200k_base")
-
-
 def _remaining_task_budget_ms(deadline: float, *, phase: str) -> int:
     remaining_ms = int((deadline - time.perf_counter()) * 1000)
     if remaining_ms < 1:
@@ -74,81 +73,13 @@ def _remaining_task_budget_ms(deadline: float, *, phase: str) -> int:
     return remaining_ms
 
 
-def _http_origin(url: str) -> str | None:
-    parts = urllib.parse.urlsplit(url)
-    if parts.scheme not in {"http", "https"} or not parts.netloc:
-        return None
-    return f"{parts.scheme}://{parts.netloc}"
-
-
 def _reset_state(page: Page, visited_origins: set[str]) -> None:
-    context = page.context
     origins = set(visited_origins)
-    for existing in list(getattr(context, "pages", [page])):
-        current_origin = _http_origin(existing.url)
+    for existing in list(getattr(page.context, "pages", [page])):
+        current_origin = http_origin(existing.url)
         if current_origin:
             origins.add(current_origin)
-    try:
-        page.evaluate(
-            """async () => {
-              try { localStorage.clear(); } catch (_) {}
-              try { sessionStorage.clear(); } catch (_) {}
-              try { for (const key of await caches.keys()) await caches.delete(key); } catch (_) {}
-              try {
-                for (const item of await navigator.serviceWorker.getRegistrations())
-                  await item.unregister();
-              } catch (_) {}
-              try {
-                for (const item of await indexedDB.databases())
-                  indexedDB.deleteDatabase(item.name);
-              } catch (_) {}
-            }"""
-        )
-    except Exception:
-        pass
-    context.clear_cookies()
-    context.clear_permissions()
-    try:
-        cdp = context.new_cdp_session(page)
-        cdp.send("Network.enable")
-        cdp.send("Network.clearBrowserCache")
-        cdp.send("Network.clearBrowserCookies")
-        for origin in sorted(origins):
-            try:
-                cdp.send(
-                    "Storage.clearDataForOrigin",
-                    {"origin": origin, "storageTypes": "all"},
-                )
-            except Exception:
-                pass
-        page.goto("about:blank", wait_until="load", timeout=10_000)
-        try:
-            cdp.send("Page.resetNavigationHistory")
-            try:
-                cdp.send("HeapProfiler.enable")
-                cdp.send("HeapProfiler.collectGarbage")
-                cdp.send("HeapProfiler.disable")
-            except Exception:
-                pass
-        finally:
-            cdp.detach()
-    except Exception:
-        page.goto("about:blank", wait_until="load", timeout=10_000)
-
-
-def _resource_result(
-    source: DockerStatsResources,
-    sampler: ResourceSampler,
-    before: Any,
-    after: Any,
-    duration_ms: float,
-) -> dict[str, int | float]:
-    result = {**delta_counters(before, after), **sampler.summary()}
-    if duration_ms > 0:
-        result["cpu_average_utilization_pct"] = result["cpu_ms"] / duration_ms * 100
-        result["network_rx_bytes_per_second"] = result["network_rx_bytes"] / duration_ms * 1000
-        result["network_tx_bytes_per_second"] = result["network_tx_bytes"] / duration_ms * 1000
-    return result
+    reset_browser_state(page, origins)
 
 
 def _capture_final_page_evidence(page: Page, artifact_dir: Path) -> dict[str, Any]:
@@ -281,14 +212,7 @@ def _prepare_page(
     visited_origins.clear()
     for existing in list(getattr(context, "pages", [page])):
         existing.close(run_before_unload=False)
-    replacement = context.new_page()
-    expected_viewport = viewport or {"width": 1280, "height": 900}
-    replacement.set_viewport_size(expected_viewport)
-    viewport = replacement.evaluate("() => ({width: innerWidth, height: innerHeight})")
-    if viewport != expected_viewport:
-        raise RuntimeError(f"browser viewport mismatch: {viewport}")
-    replacement.wait_for_timeout(max(0, settle_ms))
-    return replacement
+    return open_task_page(context, viewport or {"width": 1280, "height": 900}, settle_ms=settle_ms)
 
 
 def _task_viewport(task: BrowserTask) -> dict[str, int]:
@@ -324,13 +248,7 @@ def _run_task(
     task_timeout_ms: int = 300_000,
     redact_text: Callable[[str], str] = str,
 ) -> dict[str, Any]:
-    def record_origin(frame: Any) -> None:
-        if frame != page.main_frame:
-            return
-        origin = _http_origin(str(frame.url))
-        if origin:
-            visited_origins.add(origin)
-
+    record_origin = main_frame_origin_recorder(page, visited_origins)
     page.on("framenavigated", record_origin)
     before = resources.counters()
     sampler = ResourceSampler(resources, interval_ms=sample_interval_ms)
@@ -364,12 +282,8 @@ def _run_task(
         sampler.stop()
         page.remove_listener("framenavigated", record_origin)
     after = resources.counters()
-    expected_actions = list(task.ground_truth.get("expected_actions") or [])
-    tool_trace = [item for item in trace if item.get("action") != "validate_assertions"]
-    actual_actions = [str(item.get("action") or "") for item in tool_trace]
-    process_passed = bool(tool_trace) and actual_actions == expected_actions and all(
-        item.get("status") == "pass" for item in tool_trace
-    )
+    process_check = process_validation(task, trace)
+    process_passed = process_check["passed"]
     artifact_dir.mkdir(parents=True, exist_ok=True)
     har_path = artifact_dir / "network.har"
     try:
@@ -438,14 +352,7 @@ def _run_task(
         }
     )
     return {
-        "engine": engine,
-        "task_id": task.task_id,
-        "title": task.title,
-        "complexity": task.complexity,
-        "tags": list(task.tags),
-        "step_count": task.step_count,
-        "attempt": attempt,
-        "is_retry": is_retry,
+        **attempt_identity(engine, task, attempt, is_retry=is_retry),
         "status": status,
         "result_status": "pass" if result_passed else "fail",
         "process_status": "pass" if process_passed else "fail",
@@ -453,8 +360,7 @@ def _run_task(
             "pass" if result_passed and process_passed and evidence_passed else "fail"
         ),
         "duration_ms": round(duration_ms, 3),
-        "tool_output_tokens": sum(len(_encoding().encode(value)) for value in outputs.values()),
-        "output_chars": sum(len(value) for value in outputs.values()),
+        **output_volume(outputs),
         "error": error,
         "trace": trace,
         "validation": validation,
@@ -464,14 +370,8 @@ def _run_task(
         "final_page_evidence": final_page_evidence,
         "evidence_status": "pass" if evidence_passed else "fail",
         "evidence_directory": str(artifact_dir),
-        "process_validation": {
-            "expected_actions": expected_actions,
-            "actual_actions": actual_actions,
-            "all_calls_passed": bool(tool_trace)
-            and all(item.get("status") == "pass" for item in tool_trace),
-            "passed": process_passed,
-        },
-        "resource": _resource_result(resources, sampler, before, after, duration_ms),
+        "process_validation": process_check,
+        "resource": resource_result(resources, sampler, before, after, duration_ms),
     }
 
 
@@ -499,14 +399,7 @@ def _environment_failure_row(
         }
     ]
     return {
-        "engine": engine,
-        "task_id": task.task_id,
-        "title": task.title,
-        "complexity": task.complexity,
-        "tags": list(task.tags),
-        "step_count": task.step_count,
-        "attempt": attempt,
-        "is_retry": is_retry,
+        **attempt_identity(engine, task, attempt, is_retry=is_retry),
         "status": "fail",
         "result_status": "fail",
         "process_status": "fail",
@@ -535,49 +428,6 @@ def _environment_failure_row(
         "resource": {},
         "termination_reason": "environment_prepare_failed",
     }
-
-
-class _QuietFixtureHandler(SimpleHTTPRequestHandler):
-    def log_message(self, format: str, *args: Any) -> None:
-        return
-
-
-def _start_fixture_server(root: Path) -> tuple[ThreadingHTTPServer, threading.Thread, str]:
-    handler = partial(_QuietFixtureHandler, directory=str(root))
-    # Linux containers reach the host through the Docker bridge, so binding
-    # loopback would make this suite-scoped, ephemeral fixture server unreachable.
-    server = ThreadingHTTPServer(("0.0.0.0", 0), handler)
-    thread = threading.Thread(
-        target=server.serve_forever,
-        name="browser-eval-fixtures",
-        daemon=True,
-    )
-    thread.start()
-    origin = container_host_origin(server.server_port)
-    return server, thread, origin
-
-
-def _materialize_task(task: BrowserTask, fixture_origin: str) -> BrowserTask:
-    calls = []
-    for call in task.tool_calls:
-        item = dict(call)
-        for key, value in tuple(item.items()):
-            if isinstance(value, str):
-                item[key] = value.replace("{fixture_origin}", fixture_origin)
-        calls.append(item)
-    return BrowserTask(
-        task_id=task.task_id,
-        title=task.title,
-        tool_calls=tuple(calls),
-        assertions=task.assertions,
-        tags=task.tags,
-        difficulty=task.difficulty,
-        ground_truth=task.ground_truth,
-        source=task.source,
-        evaluator=task.evaluator,
-        environment=task.environment,
-        trajectory=task.trajectory,
-    )
 
 
 def _bounded_authoring_task(task: BrowserTask, timeout_ms: int = 5_000) -> BrowserTask:
@@ -610,59 +460,16 @@ def _bounded_authoring_task(task: BrowserTask, timeout_ms: int = 5_000) -> Brows
 
 
 def _environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
-    info = client.info()
-    version_commands = {"chromium": ["chromium", "--version"], "moli": ["moli", "--version"]}
-    browser_versions: dict[str, str] = {}
+    environment = docker_environment(client, containers)
     for engine, container in containers.items():
-        try:
-            result = container.exec_run(version_commands[engine])
-            output = result.output.decode("utf-8", errors="replace").strip()
-            browser_versions[engine] = output or f"exit {result.exit_code}, no output"
-        except Exception as exc:
-            browser_versions[engine] = f"unavailable: {type(exc).__name__}"
-    return {
-        "runner_platform": platform.platform(),
-        "docker_server_version": client.version().get("Version"),
-        "docker_os": info.get("OperatingSystem"),
-        "docker_architecture": info.get("Architecture"),
-        "docker_cpus": info.get("NCPU"),
-        "docker_memory_bytes": info.get("MemTotal"),
-        "cgroup_version": info.get("CgroupVersion"),
-        "browser_versions": browser_versions,
-        "images": {
-            engine: {
-                "id": container.image.id,
-                "tags": container.image.tags,
-                "build_source": {
-                    key: value
-                    for key, value in (
-                        (container.image.attrs.get("Config") or {}).get("Labels") or {}
-                    ).items()
-                    if key.startswith("lex.browser-eval.")
-                },
-            }
-            for engine, container in containers.items()
-        },
-    }
-
-
-def _write_run_artifacts(
-    output: Path, rows: list[dict[str, Any]], summary: dict[str, Any], manifest: dict[str, Any]
-) -> None:
-    attempts_bytes = "".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows).encode(
-        "utf-8"
-    )
-    summary_bytes = (json.dumps(summary, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
-    (output / "attempts.jsonl").write_bytes(attempts_bytes)
-    (output / "summary.json").write_bytes(summary_bytes)
-    manifest["artifact_provenance"] = {
-        "artifact_directory": str(output),
-        "attempts_sha256": hashlib.sha256(attempts_bytes).hexdigest(),
-        "summary_sha256": hashlib.sha256(summary_bytes).hexdigest(),
-    }
-    (output / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
+        environment["images"][engine]["build_source"] = {
+            key: value
+            for key, value in (
+                (container.image.attrs.get("Config") or {}).get("Labels") or {}
+            ).items()
+            if key.startswith("lex.browser-eval.")
+        }
+    return environment
 
 
 def run_evaluation(
@@ -806,12 +613,7 @@ def run_evaluation(
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
     run_id = uuid.uuid4().hex[:12]
-    containers: dict[str, Any] = {}
-    networks: dict[str, Any] = {}
-    browsers: dict[str, Browser] = {}
-    pages: dict[str, Page] = {}
-    visited_origins: dict[str, set[str]] = {}
-    resources: dict[str, DockerStatsResources] = {}
+    runtime = EngineRuntime()
     rows: list[dict[str, Any]] = []
     evaluator_registry = EvaluatorRegistry(webarena_config_path=webarena_config_path)
     site_client = client
@@ -826,45 +628,26 @@ def run_evaluation(
     playwright = sync_playwright().start()
     fixture_runtime: tuple[ThreadingHTTPServer, threading.Thread, str] | None = None
     if uses_local_fixtures:
-        fixture_runtime = _start_fixture_server(fixture_root)
+        fixture_runtime = start_fixture_server(fixture_root)
     fixture_origin = fixture_runtime[2] if fixture_runtime else ""
     authoring_initialized_sites: set[str] = set()
     initialized_sites_by_engine = _engine_site_state(engines)
     try:
         for engine in engines:
-            network = client.networks.create(
-                f"lex-browser-eval-{run_id}-{engine}",
-                driver="bridge",
-                labels={
-                    "lex.browser-eval.run": run_id,
-                    "lex.browser-eval.engine": engine,
-                },
-            )
-            networks[engine] = network
-            container = start_browser_container(
+            start_engine(
+                runtime,
                 client,
-                image=ENGINE_IMAGES[engine], cdp_port=ENGINE_PORTS[engine],
+                playwright,
                 engine=engine,
+                image=ENGINE_IMAGES[engine],
                 run_id=run_id,
                 cpus=cpus,
                 memory=memory,
-                network=network.name,
+                reset_state=_reset_state,
             )
-            containers[engine] = container
-            container.reload()
-            cdp_port = ENGINE_PORTS[engine]
-            endpoint = published_endpoint(container, engine=engine, cdp_port=cdp_port)
-            websocket_url = wait_cdp(endpoint, container=container)
-            browsers[engine] = playwright.chromium.connect_over_cdp(websocket_url)
-            resources[engine] = DockerStatsResources(container)
-            page = browsers[engine].contexts[0].pages[0]
-            page.goto("https://example.com/", wait_until="domcontentloaded", timeout=30_000)
-            _reset_state(page, {"https://example.com"})
-            pages[engine] = page
-            visited_origins[engine] = set()
 
         for task_index, declared_task in enumerate(runnable_tasks):
-            task = _materialize_task(declared_task, fixture_origin)
+            task = materialize_task(declared_task, fixture_origin)
             if trajectory_authoring_run:
                 task = _bounded_authoring_task(task)
             base_task = task
@@ -882,9 +665,9 @@ def run_evaluation(
                     attempt_started = time.perf_counter()
                     attempt_deadline = attempt_started + task_timeout_ms / 1000
                     try:
-                        pages[engine] = _prepare_page(
-                            pages[engine],
-                            visited_origins[engine],
+                        runtime.pages[engine] = _prepare_page(
+                            runtime.pages[engine],
+                            runtime.visited_origins[engine],
                             settle_ms=settle_ms,
                             viewport=_task_viewport(task),
                         )
@@ -925,9 +708,9 @@ def run_evaluation(
                             prepare_budget_ms = _remaining_task_budget_ms(
                                 attempt_deadline, phase="environment prepare"
                             )
-                            pages[engine] = webarena_environment.prepare(
+                            runtime.pages[engine] = webarena_environment.prepare(
                                 task,
-                                pages[engine],
+                                runtime.pages[engine],
                                 timeout_seconds=prepare_budget_ms / 1000,
                             )
                         execution_budget_ms = _remaining_task_budget_ms(
@@ -946,9 +729,9 @@ def run_evaluation(
                     else:
                         row = _run_task(
                             engine,
-                            pages[engine],
-                            visited_origins[engine],
-                            resources[engine],
+                            runtime.pages[engine],
+                            runtime.visited_origins[engine],
+                            runtime.resources[engine],
                             task,
                             attempt,
                             sample_interval_ms,
@@ -989,27 +772,7 @@ def run_evaluation(
                         json.dumps(row, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
                     )
                     rows.append(row)
-                    print(
-                        json.dumps(
-                            {
-                                "engine": row["engine"],
-                                "task_id": row["task_id"],
-                                "attempt": row["attempt"],
-                                "status": row["status"],
-                                "duration_ms": row["duration_ms"],
-                                "error": next(
-                                    (
-                                        line
-                                        for line in reversed(row["error"].splitlines())
-                                        if line.strip()
-                                    ),
-                                    "",
-                                ),
-                            },
-                            ensure_ascii=False,
-                        ),
-                        flush=True,
-                    )
+                    print_attempt_progress(row)
                     if row["status"] == "pass":
                         break
         summary = summarize_attempts(rows, engines=engines)
@@ -1025,40 +788,14 @@ def run_evaluation(
             ),
             "suite": [
                 {
-                    "task_id": task.task_id,
-                    "title": task.title,
-                    "step_count": task.step_count,
-                    "complexity": task.complexity,
-                    "tags": list(task.tags),
-                    "tool_calls": list(task.tool_calls),
-                    "assertions": list(task.assertions),
-                    "ground_truth": task.ground_truth,
-                    "source": task.source,
+                    **manifest_task(task),
                     "trajectory": task.trajectory,
                     "evaluator": task.evaluator,
                     "environment": task.environment,
                 }
                 for task in runnable_tasks
             ],
-            "ground_truth_validation": (
-                {
-                    key: ground_truth_evidence.get(key)
-                    for key in (
-                        "schema",
-                        "dataset",
-                        "dataset_sha256",
-                        "source_commit",
-                        "validator",
-                        "method",
-                        "started_at",
-                        "finished_at",
-                        "automatic_browser_replay",
-                        "human_review",
-                    )
-                }
-                if ground_truth_evidence is not None
-                else None
-            ),
+            "ground_truth_validation": ground_truth_validation(ground_truth_evidence),
             "protocol": {
                 "browser_reuse": True,
                 "viewport": {
@@ -1132,29 +869,28 @@ def run_evaluation(
                 ],
                 "missing_required_evidence": "attempt fails closed",
             },
-            "environment": _environment(client, containers),
+            "environment": _environment(client, runtime.containers),
             "webarena_runtime": webarena_runtime,
         }
         if smoke is not None:
             manifest["agent_smoke"] = smoke
         # Persist core evidence before optional remote diagnostics can fail or stall.
-        _write_run_artifacts(output, rows, summary, manifest)
+        write_run_artifacts(output, rows, summary, manifest)
         diagnose_summary(
             summary,
             use_llm=llm_diagnostics,
             model=diagnosis_model,
             reasoning_effort=diagnosis_reasoning_effort,
         )
-        _write_run_artifacts(output, rows, summary, manifest)
+        write_run_artifacts(output, rows, summary, manifest)
         if generate_report and not qualification_run and not trajectory_authoring_run:
             write_latest_report(reports_dir, manifest=manifest, summary=summary)
         return summary
     finally:
         if fixture_runtime:
-            fixture_server, fixture_thread, _ = fixture_runtime
-            fixture_server.shutdown()
-            fixture_server.server_close()
-            fixture_thread.join(timeout=2)
-        cleanup_browser_runtime(browsers, playwright, containers, networks)
+            stop_fixture_server(fixture_runtime)
+        cleanup_browser_runtime(
+            runtime.browsers, playwright, runtime.containers, runtime.networks
+        )
         if close_site_client:
             site_client.close()

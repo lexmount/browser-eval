@@ -413,7 +413,7 @@ def test_local_browser_endpoint_cannot_be_taken_by_another_process(
         with urllib.request.urlopen(endpoint + "/json/version", timeout=5) as response:
             assert json.load(response) == {"owner": process.pid}
     finally:
-        remote_execution._stop_browser(process)
+        remote_execution.stop_browser(process)
         for server in foreign:
             server.shutdown()
             server.server_close()
