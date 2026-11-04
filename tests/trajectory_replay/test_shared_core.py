@@ -285,6 +285,201 @@ def test_failed_engine_start_keeps_started_resources_for_cleanup(monkeypatch):
     assert runtime.browsers == {}
 
 
+def _start_engine(runtime, playwright, reset_state, monkeypatch):
+    monkeypatch.setattr(docker_runner, "start_browser_container", lambda *a, **k: MagicMock())
+    monkeypatch.setattr(docker_runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
+    monkeypatch.setattr(docker_runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
+    monkeypatch.setattr(docker_runner, "DockerStatsResources", MagicMock())
+    docker_runner.start_engine(
+        runtime,
+        MagicMock(),
+        playwright,
+        engine="chromium",
+        image="image",
+        run_id="run",
+        cpus=2.0,
+        memory="2g",
+        reset_state=reset_state,
+    )
+
+
+def test_engine_page_is_published_only_after_the_warm_up_is_reset(monkeypatch):
+    playwright = MagicMock()
+    page = playwright.chromium.connect_over_cdp.return_value.contexts[0].pages[0]
+    runtime = docker_runner.EngineRuntime()
+    resets = []
+
+    def reset_state(reset_page, origins):
+        resets.append((reset_page, origins, dict(runtime.pages)))
+
+    _start_engine(runtime, playwright, reset_state, monkeypatch)
+
+    page.goto.assert_called_once()
+    assert page.goto.call_args.args == ("https://example.com/",)
+    assert resets == [(page, {"https://example.com"}, {})]
+    assert runtime.pages == {"chromium": page}
+    assert runtime.visited_origins == {"chromium": set()}
+
+
+def test_failed_warm_up_reset_does_not_publish_the_engine_page(monkeypatch):
+    runtime = docker_runner.EngineRuntime()
+
+    def reset_state(page, origins):
+        raise RuntimeError("reset failed")
+
+    with pytest.raises(RuntimeError, match="reset failed"):
+        _start_engine(runtime, MagicMock(), reset_state, monkeypatch)
+
+    assert runtime.pages == {}
+
+
+def _reset_page(*failing_methods: str, session_error: Exception | None = None) -> MagicMock:
+    page = MagicMock()
+    cdp = page.context.new_cdp_session.return_value
+    if session_error is not None:
+        page.context.new_cdp_session.side_effect = session_error
+
+    def send(method, params=None):
+        if method in failing_methods:
+            raise RuntimeError(f"{method} failed")
+
+    cdp.send.side_effect = send
+    return page
+
+
+def _sent(page: MagicMock) -> list[str]:
+    cdp = page.context.new_cdp_session.return_value
+    return [item.args[0] for item in cdp.send.call_args_list]
+
+
+def _cleared_origins(page: MagicMock) -> list[str]:
+    cdp = page.context.new_cdp_session.return_value
+    return [
+        item.args[1]["origin"]
+        for item in cdp.send.call_args_list
+        if item.args[0] == "Storage.clearDataForOrigin"
+    ]
+
+
+def _assert_cookies_cleared_and_page_blank(page: MagicMock) -> None:
+    page.context.clear_cookies.assert_called_once_with()
+    page.context.clear_permissions.assert_called_once_with()
+    page.goto.assert_called_with("about:blank", wait_until="load", timeout=10_000)
+
+
+def test_reset_clears_every_origin_once_in_sorted_order_and_leaves_a_blank_page():
+    page = _reset_page()
+
+    docker_runner.reset_browser_state(page, {"https://b.test", "https://a.test"})
+
+    cdp = page.context.new_cdp_session.return_value
+    cdp.send.assert_any_call(
+        "Storage.clearDataForOrigin", {"origin": "https://a.test", "storageTypes": "all"}
+    )
+    cdp.send.assert_any_call(
+        "Storage.clearDataForOrigin", {"origin": "https://b.test", "storageTypes": "all"}
+    )
+    assert _cleared_origins(page) == ["https://a.test", "https://b.test"]
+    sent = _sent(page)
+    assert sent.count("Network.clearBrowserCache") == 1
+    assert sent.count("Network.clearBrowserCookies") == 1
+    assert sent.count("Page.resetNavigationHistory") == 1
+    page.evaluate.assert_called_once()
+    page.goto.assert_called_once()
+    _assert_cookies_cleared_and_page_blank(page)
+    cdp.detach.assert_called_once_with()
+
+
+def test_reset_continues_with_later_origins_when_clearing_one_fails():
+    page = _reset_page()
+    cdp = page.context.new_cdp_session.return_value
+
+    def send(method, params=None):
+        if method == "Storage.clearDataForOrigin" and params["origin"] == "https://a.test":
+            raise RuntimeError("origin failed")
+
+    cdp.send.side_effect = send
+
+    docker_runner.reset_browser_state(page, {"https://b.test", "https://a.test"})
+
+    assert _cleared_origins(page) == ["https://a.test", "https://b.test"]
+    _assert_cookies_cleared_and_page_blank(page)
+    cdp.detach.assert_called_once_with()
+
+
+def test_reset_still_clears_context_state_when_page_storage_cannot_be_reached():
+    page = _reset_page()
+    page.evaluate.side_effect = RuntimeError("page crashed")
+
+    docker_runner.reset_browser_state(page, {"https://a.test"})
+
+    assert _cleared_origins(page) == ["https://a.test"]
+    _assert_cookies_cleared_and_page_blank(page)
+
+
+@pytest.mark.parametrize(
+    "failing_method",
+    ["Network.enable", "Network.clearBrowserCache", "Network.clearBrowserCookies"],
+)
+def test_reset_leaves_a_blank_page_when_a_cdp_clear_fails(failing_method):
+    page = _reset_page(failing_method)
+
+    docker_runner.reset_browser_state(page, {"https://a.test"})
+
+    _assert_cookies_cleared_and_page_blank(page)
+
+
+def test_reset_detaches_and_leaves_a_blank_page_when_history_reset_fails():
+    page = _reset_page("Page.resetNavigationHistory")
+
+    docker_runner.reset_browser_state(page, {"https://a.test"})
+
+    assert _cleared_origins(page) == ["https://a.test"]
+    _assert_cookies_cleared_and_page_blank(page)
+    page.context.new_cdp_session.return_value.detach.assert_called_once_with()
+
+
+def test_reset_leaves_a_blank_page_without_a_cdp_session():
+    page = _reset_page(session_error=RuntimeError("no CDP session"))
+
+    docker_runner.reset_browser_state(page, {"https://a.test"})
+
+    _assert_cookies_cleared_and_page_blank(page)
+
+
+@pytest.mark.parametrize(("attempt", "is_retry"), [(1, False), (2, True)])
+def test_attempt_identity_opens_every_attempt_row(attempt, is_retry):
+    task = _browser_task(tags=("retrieve", "form"))
+
+    assert docker_runner.attempt_identity("moli", task, attempt, is_retry=is_retry) == {
+        "engine": "moli",
+        "task_id": "task",
+        "title": "Task",
+        "complexity": "simple",
+        "tags": ["retrieve", "form"],
+        "step_count": 1,
+        "attempt": attempt,
+        "is_retry": is_retry,
+    }
+
+
+def test_manifest_task_records_the_frozen_task_definition():
+    assertions = ({"output": "answer", "equals": "unique-73"},)
+    task = _browser_task(assertions=assertions)
+
+    assert docker_runner.manifest_task(task) == {
+        "task_id": "task",
+        "title": "Task",
+        "step_count": 1,
+        "complexity": "simple",
+        "tags": ["retrieve"],
+        "tool_calls": list(task.tool_calls),
+        "assertions": list(assertions),
+        "ground_truth": {"expected_actions": ["navigate"]},
+        "source": {"kind": "test"},
+    }
+
+
 def test_only_the_public_environment_records_the_image_build_source():
     container = MagicMock()
     container.exec_run.return_value = SimpleNamespace(output=b"version", exit_code=0)
