@@ -10,7 +10,7 @@ def result(method, case, elapsed, passed=True, **extra):
             'ok': passed, 'metrics': {'content_pass': passed}, **extra}
 
 
-def test_fast_failure_cannot_win_latency_and_retry_cost_is_visible():
+def test_fast_failure_cannot_win_latency_and_retry_cost_stays_out_of_ranking():
     cases = {key: {'id': key, 'track': 'web', 'task_kind': 'body'} for key in ('a', 'b')}
     rows = [result('fails-fast', key, 1, False) for key in cases]
     rows += [result('passes', 'a', 10, provider_metadata={'retry': {'execution_cost_ms': 30010}}),
@@ -18,10 +18,11 @@ def test_fast_failure_cannot_win_latency_and_retry_cost_is_visible():
     doc = BeautifulSoup(overall_ranking(rows, cases), 'html.parser')
     main = doc.select_one('#ranking-overall')
     passed = next(row for row in main.select('tbody tr') if 'passes' in row.get_text())
-    assert '15,015 ms' in passed.select('td')[-1].get_text()
-    assert '2/2' in passed.select('td')[-1].get_text()
+    assert '15 ms' in passed.select('td')[-3].get_text()
+    assert '15,015 ms' not in main.get_text()
+    assert '累计执行耗时' not in main.get_text()
     assert all(not cell.select('.comparison-winner') for row in main.select('tbody tr')
-               for cell in row.select('td')[-4:])
+               for cell in row.select('td')[-3:])
     conditional = doc.select_one('#successful-final-call-latency')
     failed = next(row for row in conditional.select('tbody tr') if 'fails-fast' in row.get_text())
     assert '0/2' in failed.get_text()
@@ -51,9 +52,9 @@ def test_missing_prior_cost_is_unavailable_not_a_fast_partial_mean():
     cases = {'a': {'id': 'a', 'track': 'web', 'task_kind': 'body'}}
     rows = [result('method', 'a', 10, report_retry_continuation={'execution_cost_ms': None})]
     doc = BeautifulSoup(overall_ranking(rows, cases), 'html.parser')
-    cost = doc.select_one('#ranking-overall tbody tr').select('td')[-1]
-    assert cost.get_text(' ', strip=True) == '— 0/1'
-    assert not cost.select('.comparison-winner')
+    timing = doc.select_one('#ranking-overall tbody tr').select('td')[-3:]
+    assert [cell.get_text(' ', strip=True) for cell in timing] == ['10 ms'] * 3
+    assert logical_execution_cost_ms(rows[0]) is None
 
 
 def test_methodology_settings_disclose_mixed_groups_and_escape_request_data():
@@ -89,7 +90,7 @@ def test_new_metric_labels_and_scope_notes_have_english_views():
     cases = {'a': {'id': 'a', 'track': 'web', 'task_kind': 'body'}}
     rendered = overall_ranking([result('method', 'a', 10)], cases)
     english = localize_html(rendered, PurePosixPath('index.html'))
-    assert 'Mean total execution cost (known / called)' in english
+    assert 'Mean total execution cost' not in english
     assert 'Final-call latency of task-passing results' in english
     assert 'failures cannot win latency highlights' in english
     assert '累计执行耗时均值' not in english

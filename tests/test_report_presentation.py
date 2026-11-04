@@ -55,8 +55,8 @@ class ReportRevisionTests(unittest.TestCase):
   rendered=overall_ranking(records,cases,call_budget_seconds=45)
   from bs4 import BeautifulSoup
   headers=[cell.get_text(' ',strip=True) for cell in BeautifulSoup(rendered,'html.parser').select('#ranking-overall thead th')]
-  self.assertEqual(headers[-4:-1],['最终调用耗时均值 ↕','最终调用耗时 P50 ↕','最终调用耗时 P95 ↕'])
-  self.assertEqual(headers[-1],'累计执行耗时均值（已知 / 调用） ↕')
+  self.assertEqual(headers[-3:],['最终调用耗时均值 ↕','最终调用耗时 P50 ↕','最终调用耗时 P95 ↕'])
+  self.assertNotIn('累计执行耗时均值', ' '.join(headers))
   self.assertNotIn('全调用', ' '.join(headers))
   self.assertIn('最终调用耗时均值 / P50 / P95',rendered)
   self.assertIn('不是包含此前重试和等待的累计耗时',rendered)
@@ -66,7 +66,7 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertIn('包含通过与失败',rendered)
   self.assertLess(rendered.index('slow-high-pass'),rendered.index('fast-low-pass'))
   self.assertIn('150 ms',rendered)
- def test_comparison_defaults_to_pass_rate_except_diagnostics(self):
+ def test_comparison_ranks_saved_pass_rates_including_diagnostics(self):
   from bs4 import BeautifulSoup
   from harness.web_fetch.report import ranking
   cases={key:{'id':key,'track':'web','task_kind':'body'} for key in ('a','b')}
@@ -78,19 +78,16 @@ class ReportRevisionTests(unittest.TestCase):
                   lambda:ranking(records,cases,'web',diagnostic=diagnostic)):
     with self.subTest(diagnostic=diagnostic,render=render):
      doc=BeautifulSoup(render(),'html.parser');table=doc.select_one('table.ranking')
-     column=2 if diagnostic else 3
-     self.assertEqual(table.get('data-col'),'0' if diagnostic else '3')
-     self.assertEqual(table.get('data-dir'),'asc' if diagnostic else 'desc')
+     column=3
+     self.assertEqual(table.get('data-col'),'3')
+     self.assertEqual(table.get('data-dir'),'desc')
      rows=table.select('tbody tr')
-     self.assertIn('a-low' if diagnostic else 'z-high',rows[0].get_text())
-     expected=['50.0%','50.0%','100.0%'] if diagnostic else ['100.0%','50.0%','50.0%']
+     self.assertIn('z-high',rows[0].get_text())
+     expected=['100.0%','50.0%','50.0%']
      self.assertEqual([row.select('td')[column].get_text() for row in rows],expected)
-     if diagnostic:
-      self.assertFalse(table.select('.comparison-winner'))
-      self.assertEqual(table['data-row-index'],'false')
-     else:
-      self.assertIsNotNone(rows[0].select('td')[column].select_one('.comparison-winner'))
-      self.assertFalse(any(row.select('td')[column].select_one('.comparison-winner') for row in rows[1:]))
+     self.assertNotEqual(table.get('data-row-index'),'false')
+     self.assertIsNotNone(rows[0].select('td')[column].select_one('.comparison-winner'))
+     self.assertFalse(any(row.select('td')[column].select_one('.comparison-winner') for row in rows[1:]))
   # A shared maximum has no winner; unavailable metrics remain neutral.
   for row in records:row['metrics']['content_pass']=True
   doc=BeautifulSoup(overall_ranking(records,cases,diagnostic=True),'html.parser')

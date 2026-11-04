@@ -1841,7 +1841,7 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagn
   n=sum(measured(r,cases[r['case_id']]) for r in rs)
   return (-sum(succeeded(r,cases[r['case_id']]) for r in rs)/n if n else 1,name)
  rows=[];text_scopes={}
- for name,rs in sorted(groups.items(),key=(lambda item:item[0]) if diagnostic else sort_key):
+ for name,rs in sorted(groups.items(),key=sort_key):
   n=sum(measured(r,cases[r['case_id']]) for r in rs);ok=sum(bool(r['ok']) for r in rs);passed=sum(succeeded(r,cases[r['case_id']]) for r in rs)
   body=[r for r in rs if cases[r['case_id']].get('task_kind','body')=='body'];bodypass=sum(succeeded(r,cases[r['case_id']]) for r in body)
   full=[r for r in rs if comparable_body_reference(cases[r['case_id']]) and r['metrics'].get('word_f1') is not None]
@@ -1901,8 +1901,8 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagn
   if missing:note+=' 未测方法（不计为失败）：'+esc('、'.join(missing))+'。'
  directions={i:('quality_'+str(i),'max') for i in range(1,len(heads)) if heads[i] not in {'均值','P50','P95','判分完整性','审查结果'}}
  directions.update({i:('latency_'+str(i),'min') for i,h in enumerate(heads) if h in {'均值','P50','P95'}})
- if not diagnostic:rows=comparative_rows(rows,directions)
- result=table(heads,rows,id or 'ranking-'+track,True,'ranking',metrics=[] if compact else None,include_index=not diagnostic,default_sort=(0,'asc') if diagnostic else (3,'desc'))
+ rows=comparative_rows(rows,directions)
+ result=table(heads,rows,id or 'ranking-'+track,True,'ranking',metrics=[] if compact else None,include_index=True,default_sort=(3,'desc'))
  if text_scopes and len(set(text_scopes.values()))>1:
   result='<details><summary>文字核对覆盖范围</summary><ul>'+''.join('<li>'+esc(name)+f'：{len(scope)}/{len(selected)} 例；'+esc('、'.join(selected[k]['name'] for k in sorted(scope)) or '无文字核对记录')+'</li>' for name,scope in sorted(text_scopes.items()))+'</ul></details>'+result
  if compact:
@@ -2081,7 +2081,7 @@ def successful_final_call_latency(records,cases):
   table([model_text('方法','Method'),model_text('通过 / 已保存','Passed / saved'),model_text('均值','Mean'),'P50','P95'],rows,'successful-final-call-latency',metrics=[]))
 
 
-def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seconds=None,combined=True,called_counts=None):
+def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seconds=None,combined=True):
  excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
  records=[r for r in records if not r['metrics'].get('evaluation_excluded')]
  cases={k:c for k,c in cases.items() if k not in excluded}
@@ -2110,15 +2110,11 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
   values+=cell(ms(mean_time),mean_time)
   values+=cell(ms(percentile(times,.5)),percentile(times,.5))
   values+=cell(ms(percentile(times,.95)),percentile(times,.95))
-  costs=[value for r in called if (value:=logical_execution_cost_ms(r)) is not None]
-  mean_cost=statistics.mean(costs) if costs else None
-  cost_population=(called_counts or {}).get(name,len(called))
-  values+=cell(ms(mean_cost)+f'<br><small>{len(costs)}/{cost_population}</small>',mean_cost)
   if audit:values+=review_cell(audit,rs)
   rows.append((passed/n if n else -1,name,('',values)))
- rows=[row for _,_,row in sorted(rows,key=lambda x:(-x[0],x[1]) if combined and not diagnostic else (x[1],))]
+ rows=[row for _,_,row in sorted(rows,key=lambda x:(-x[0],x[1]) if combined else (x[1],))]
  tracks=active_tracks(cases)
- timing_heads=SAVED_MATRIX_ZH['final_call_timing_headers']+[model_text('累计执行耗时均值（已知 / 调用）','Mean total execution cost (known / called)')]
+ timing_heads=SAVED_MATRIX_ZH['final_call_timing_headers']
  heads=['方法','请求成功率']+(['综合任务通过率'] if combined else [])+(['无法判定（含未调用）' if has_not_called else '无法判定'] if has_unknown else [])+[label for _,label in tracks]+timing_heads
  if audit:heads+=['审查结果']
  case_count=len(cases);track_count=len(tracks);track_label=track_count_label(track_count)
@@ -2141,13 +2137,13 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
  offset=2+int(combined)
  directions={i:('acceptance_'+str(i),'max') for i in range(1,offset+len(tracks)+int(has_unknown))}
  if has_unknown:directions.pop(offset,None)
- if not diagnostic:rows=comparative_rows(rows,directions)
+ rows=comparative_rows(rows,directions)
  timing_note='<p>'+SAVED_MATRIX_ZH['final_call_timing_note']
  if call_budget_seconds is not None:
   timing_note+=model_text(f'每次物理调用预算为 {call_budget_seconds:g} 秒。',f'Each physical call has a {call_budget_seconds:g}-second budget.')
  timing_note+='</p>'
  if diagnostic:
-  intro='<p class="decision-lead">本地未认证诊断结果，仅展示保存的任务判定与耗时，不用于产品排名。通过不代表返回内容干净；请同时查看全文指标和挑战提示。</p>'
+  intro='<p class="decision-lead">'+model_text('按所列最终结果的任务通过率排名；未完成认证，配置选择和规则修订见评测方法。通过不代表返回内容干净。','Ranked by task pass rate on the listed final results; uncertified. See methodology for configuration selection and rule revisions. Passing does not imply clean content.')+'</p>'
   help=help.replace('总榜指标说明','诊断指标说明')
   if _RENDER_CONTEXT.get().score_audit:
    intro=''
@@ -2155,10 +2151,8 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
  if not combined:
   intro='<p class="decision-lead">'+model_text('按各自冻结的任务组比较，不将不同组直接合成通过率总榜。跨组同网址案例保留原始身份；记录数量不等于独立网站数量。','Compare each frozen task group separately, without a combined pass-rate ranking. Cross-group cases retain their original identities; record counts are not unique-site counts.')+'</p>'
   help=''
- rendered=table(heads,rows,'ranking-overall',True,'ranking',metrics=[],include_index=not diagnostic and combined,default_sort=(3,'desc') if combined and not diagnostic else (0,'asc'))
- cost_note='<p>'+model_text('累计执行耗时包含记录中的重试及等待；已知 / 调用表示成本证据覆盖数。缺失首轮耗时的结果不作部分估算。上表包含失败，不标记耗时优胜者；只有下方任务通过项的耗时标记列最小值。',
-  'Total execution cost includes recorded retries and waits; known / called shows cost-evidence coverage. Missing first-call timing is not estimated from a partial sequence. The table above includes failures and has no latency winners; only task-passing latency below highlights column minima.')+'</p>'
- return intro+timing_note+help+rendered+cost_note+successful_final_call_latency(records,cases)
+ rendered=table(heads,rows,'ranking-overall',True,'ranking',metrics=[],include_index=combined,default_sort=(3,'desc') if combined else (0,'asc'))
+ return intro+timing_note+help+rendered+successful_final_call_latency(records,cases)
 
 def filter_controls(options,all_first=()):
  controls=''
@@ -2244,7 +2238,7 @@ def local_audit_banner(dataset):
  if dataset.get('comparison',{}).get('publication_state')!='local_audit_only_not_for_release':
   return ''
  if dataset.get('saved_matrix_scope'):
-  return '<div class="wrap callout" data-evidence-state="saved_diagnostic"><strong>'+model_text('保存结果诊断 · 不提供名次','Saved-result diagnostics · no ranks')+'</strong><p>'+model_text('未建立同条件的主要比较。看过结果后的参数择优、结果替换或任务规则变更，仅作为敏感性分析证据；保存的通过率不能据此证明产品优劣。','A controlled primary comparison has not been established. Post-outcome parameter selection, result adoption or task changes are sensitivity evidence only; saved pass rates do not establish product superiority.')+'</p></div>'
+  return '<div class="wrap callout" data-evidence-state="saved_diagnostic"><strong>'+model_text('保存结果排名 · 未认证','Saved-result rankings · uncertified')+'</strong><p>'+model_text('名次按最终选用的结果和当前验收规则计算。分类配置选择、规则修订及运行条件见评测方法；本榜不代表未经调参的同条件比较。','Ranks use the selected final results and current acceptance rules. See methodology for category configuration selection, rule revisions and execution conditions; this is not an untuned controlled comparison.')+'</p></div>'
  if measurement_presentation(dataset).local_matrix:
   if local_pass_rate_ranking(dataset):
    return '<p class="wrap source-note" data-evidence-state="local_measurement" data-ranking-scope="saved-task-pass-rate">'+model_text('按本次所列任务的通过率排序；未完成仓库认证流程。测试日期和核验范围见详情。','Ordered by pass rate on the listed tasks; repository certification is incomplete. See details for test dates and verification scope.')+'</p>'
@@ -2376,8 +2370,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  combined=dataset.get('comparison',{}).get('presentation',{}).get('combined_ranking',True)
  if score_audit or not combined:overall_title='任务通过情况'
  budgets={m['timeout_seconds'] for m in manifests if m.get('timeout_seconds') is not None}
- called_counts={item['provider']:item['called'] for item in dataset.get('saved_matrix_scope',{}).get('providers',[])}
- home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None,combined=combined,called_counts=called_counts),'overall-ranking')
+ home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None,combined=combined),'overall-ranking')
  home+=input_suite_comparison(dataset,cases,records)
  if diagnostic and not score_audit:
   home+=result_ledger_section(out,records)
@@ -4862,6 +4855,6 @@ def saved_suite_ranking(records,cases,suite,*,base='',id=None,diagnostic=False):
   ratio=passed/len(judged) if judged else -1
   values+=cell(f'{passed}/{len(judged)} · '+rate(passed,len(judged)),ratio)
   rows.append((-ratio,provider,('',values)))
- rows=[row for _,_,row in sorted(rows,key=lambda item:item[1] if diagnostic else item[:2])]
- if not diagnostic:rows=comparative_rows(rows,{6:('task_pass_rate','max')})
- return '<p>'+SAVED_MATRIX_ZH['suite_denominator_note']+'</p>'+table(SAVED_MATRIX_ZH['suite_result_headers'],rows,id or 'ranking-'+suite,sortable=True,metrics=[],include_index=not diagnostic,default_sort=(0,'asc') if diagnostic else (7,'desc'))
+ rows=[row for _,_,row in sorted(rows,key=lambda item:item[:2])]
+ rows=comparative_rows(rows,{6:('task_pass_rate','max')})
+ return '<p>'+SAVED_MATRIX_ZH['suite_denominator_note']+'</p>'+table(SAVED_MATRIX_ZH['suite_result_headers'],rows,id or 'ranking-'+suite,sortable=True,metrics=[],include_index=True,default_sort=(7,'desc'))

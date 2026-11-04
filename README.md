@@ -262,7 +262,10 @@ the final view. The methodology table exposes settings and collection dates;
 equal settings do not establish a shared measurement window. Post-outcome
 parameter selection and changed task or acceptance requirements belong in separate audit reports,
 not the primary original-contract ranking. Saved records are never rewritten to
-make historical cohorts comparable.
+make historical cohorts comparable. Audit reports retain overall and family ranks
+on the selected final results, with configuration-selection and rule-revision
+limits disclosed. These descriptive ranks do not upgrade certification. Ranking
+tables use final-call latency; accumulated retry cost stays in the evidence.
 
 - The hash-bound specification declares datasets, providers, selected results and evidenced missing outcomes. Suite-qualified identities preserve original cases and scores. No provider calls, rescoring or certification are added.
 - This mode uses the existing Web Fetch renderer, including datasets, method pages and result/reference comparisons. Missing outcomes have a separate inventory. Keep the HTML pages and evidence directories together.

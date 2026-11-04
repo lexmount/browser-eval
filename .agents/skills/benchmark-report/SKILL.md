@@ -29,7 +29,7 @@ separately. A task instruction is not a full-text reference. Preserve frozen
 verdicts while exposing passes without verified page identity, blocked-page
 markers and unexpected resource URLs as diagnostics.
 
-An explicitly requested diagnostic report may be delivered separately from a certified benchmark release. Use the diagnostic build/check entry, label its evidence state and certification gaps on every page, preserve saved scores and outputs, and do not publish rankings or upgrade certification. It does not waive any certified-release reference or review gate. Presentation fixes add no provider calls. Update only the owning code, relevant instructions and demonstrated regression scenarios; do not mechanically modify every skill or copy report-specific conclusions into instructions.
+An explicitly requested diagnostic report may be delivered separately from a certified benchmark release. Use the diagnostic build/check entry, label its evidence state and certification gaps on every page, preserve saved scores and outputs, and do not upgrade certification. When the user requests ranks, show descriptive ranks of the selected saved results with the acceptance rules and configuration-selection limits; do not imply an untuned controlled comparison. It does not waive any certified-release reference or review gate. Presentation fixes add no provider calls. Update only the owning code, relevant instructions and demonstrated regression scenarios; do not mechanically modify every skill or copy report-specific conclusions into instructions.
 
 ## Working contract
 

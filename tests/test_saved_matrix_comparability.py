@@ -296,7 +296,7 @@ def test_public_renderer_cannot_promote_post_outcome_audit(tmp_path, provenance)
         generate_saved_matrix(report, model)
 
 
-def test_audit_exposes_settings_and_counts_uncommitted_cost_evidence(tmp_path):
+def test_audit_exposes_settings_without_cost_column(tmp_path):
     from bs4 import BeautifulSoup
     spec = matrix(tmp_path, same_method=True)
     spec['presentation'] = 'audit'
@@ -307,8 +307,9 @@ def test_audit_exposes_settings_and_counts_uncommitted_cost_evidence(tmp_path):
         status='uncommitted', reason='Interrupted after dispatch', receipt=receipt)]
     report = build(tmp_path, spec).parent
     page = BeautifulSoup((report/'index.html').read_text(encoding='utf-8'), 'html.parser')
-    cost = page.select_one('#ranking-overall tbody tr').select('td')[-1]
-    assert '1/2' in cost.get_text()
+    table = page.select_one('#ranking-overall')
+    assert '累计执行耗时' not in table.get_text()
+    assert '12 ms' in table.get_text()
     methodology = BeautifulSoup((report/'methodology/index.html').read_text(encoding='utf-8'), 'html.parser')
     assert methodology.select_one('#saved-execution-settings') is not None
 
@@ -350,7 +351,7 @@ def test_final_checker_requires_original_sources(tmp_path):
 
 
 @pytest.mark.parametrize('presentation', ['audit', 'final'])
-def test_saved_presentation_does_not_rank_diagnostic_evidence(tmp_path, presentation):
+def test_saved_ranks_preserve_diagnostic_evidence_disclosure(tmp_path, presentation):
     from bs4 import BeautifulSoup
     spec = matrix(tmp_path)
     spec['presentation'] = presentation
@@ -361,14 +362,12 @@ def test_saved_presentation_does_not_rank_diagnostic_evidence(tmp_path, presenta
     assert dataset['comparison']['presentation']['ranking'] == ('diagnostic' if diagnostic else 'saved_task_pass_rate')
     for selector in ['#ranking-overall', '#ranking-web']:
         table = page.select_one(selector)
-        assert (table.get('data-row-index') == 'false') is diagnostic
-        if diagnostic:
-            assert table['data-col'] == '0'
+        assert table.get('data-row-index') is None
+        assert table['data-dir'] == 'desc'
     assert bool(page.select_one('[data-evidence-state="saved_diagnostic"]')) is diagnostic
     if diagnostic:
-        assert '敏感性分析证据' in page.get_text()
-        assert '本类最高' not in page.get_text()
-        assert '本轮任务通过率排名' not in page.get_text()
+        assert '名次按最终选用的结果和当前验收规则计算' in page.get_text()
+        assert '未认证' in page.get_text()
 
 
 @pytest.mark.parametrize('presentation,source_check', [('audit', False), ('audit', True), ('final', True)])

@@ -26,14 +26,14 @@ def test_saved_ranking_keeps_failed_call_latency_neutral(tmp_path, tie):
     assert '请求成功率' in ranking.get_text() and '综合任务通过率' in ranking.get_text()
     rows = ranking.select('tbody tr')
     assert [row.select_one('a')['href'] for row in rows] == [
-        'providers/alphabetic-first.html', 'providers/method.html']
-    assert ranking['data-row-index'] == 'false'
-    assert (ranking['data-col'], ranking['data-dir']) == ('0', 'asc')
-    assert not ranking.select('.comparison-winner')
+        'providers/method.html', 'providers/alphabetic-first.html']
+    assert ranking.get('data-row-index') != 'false'
+    assert (ranking['data-col'], ranking['data-dir']) == ('3', 'desc')
+    assert ranking.select('.comparison-winner')
     assert len(ranking.select('thead button')) >= 6
     for row in rows:
         assert not row.select('[data-metric-direction="min"]')
-        values = row.select('td')[-4:-1]
+        values = row.select('td')[-3:]
         elapsed = 12 if row.select_one('a')['href'] == 'providers/method.html' or tie else 6
         assert all(float(cell['data-sort']) == elapsed for cell in values)
         assert not any(cell.select('.comparison-winner') for cell in values)
@@ -47,7 +47,7 @@ def test_saved_ranking_keeps_failed_call_latency_neutral(tmp_path, tie):
 
 
 @pytest.mark.parametrize('tie', [False, True])
-def test_saved_audit_suite_does_not_highlight_pass_rate(tmp_path, tie):
+def test_saved_audit_suite_ranks_pass_rate_with_ties_neutral(tmp_path, tie):
     spec, source, record, raw = fixture(tmp_path)
     other = deepcopy(record)
     other['provider'] = 'other'
@@ -62,9 +62,9 @@ def test_saved_audit_suite_does_not_highlight_pass_rate(tmp_path, tie):
     table = home.select_one('#ranking-first')
     assert table is not None
     winners = table.select('[data-metric="task_pass_rate"] .comparison-winner')
-    assert not winners
-    assert table['data-row-index'] == 'false'
-    assert (table['data-col'], table['data-dir']) == ('0', 'asc')
+    assert len(winners) == (0 if tie else 1)
+    assert table.get('data-row-index') is None
+    assert (table['data-col'], table['data-dir']) == ('7', 'desc')
 
 
 def test_task_families_combine_suites_without_combining_case_identities(tmp_path):
@@ -253,7 +253,7 @@ def test_precall_rejection_preserves_score_but_excludes_product_failure(tmp_path
     assert '1/2' in home.select_one('#ranking-overall').get_text()
     assert '1/2' in home.select_one('#ranking-first').get_text()
     suite_cells = home.select('#ranking-first tbody tr td')
-    assert [c.get_text() for c in suite_cells[1:4]] == ['3', '3', '1']
+    assert [c.get_text() for c in suite_cells[2:5]] == ['3', '3', '1']
     overall = home.select_one('#ranking-overall')
     assert '无法判定（含未调用）' in overall.get_text()
     timing_cells = overall.select('tbody tr td')[-3:]
@@ -279,7 +279,7 @@ def test_only_precall_rejections_have_no_latency_samples():
               'elapsed_ms': 9000, 'metrics': {'content_pass': False},
               'report_invocation_status': 'adapter_rejected'}
     soup = BeautifulSoup(overall_ranking([record], {'case': {'id': 'case'}}), 'html.parser')
-    assert [c.get_text() for c in soup.select('#ranking-overall tbody td')[-4:-1]] == ['—', '—', '—']
+    assert [c.get_text() for c in soup.select('#ranking-overall tbody td')[-3:]] == ['—', '—', '—']
 
 
 def test_instance_method_labels_reach_full_renderer_and_reset(tmp_path):
@@ -329,15 +329,15 @@ def test_saved_matrix_timing_labels_match_final_call_values(tmp_path):
     root=build(tmp_path,spec).parent
     page=BeautifulSoup((root/'index.html').read_text(encoding='utf-8'),'html.parser')
     heads=[x.get_text().removesuffix(' ↕') for x in page.select('#ranking-overall th')]
-    assert heads[-4:-1]==['最终调用耗时均值','最终调用耗时 P50','最终调用耗时 P95']
-    values=[x.get_text() for x in page.select('#ranking-overall tbody tr td')][-4:-1]
+    assert heads[-3:]==['最终调用耗时均值','最终调用耗时 P50','最终调用耗时 P95']
+    values=[x.get_text() for x in page.select('#ranking-overall tbody tr td')][-3:]
     assert values==['12 ms','12 ms','12 ms']
     assert '每个逻辑结果只取最终一次调用耗时' in page.get_text()
     assert '总耗时按每题所有物理调用累计' not in page.get_text()
     legacy=BeautifulSoup(overall_ranking([record],{'same':{'id':'same'}}),'html.parser')
-    assert [x.get_text().removesuffix(' ↕') for x in legacy.select('#ranking-overall th')][-4:-1]==['最终调用耗时均值','最终调用耗时 P50','最终调用耗时 P95']
+    assert [x.get_text().removesuffix(' ↕') for x in legacy.select('#ranking-overall th')][-3:]==['最终调用耗时均值','最终调用耗时 P50','最终调用耗时 P95']
     assert '总耗时按每题所有物理调用累计' not in legacy.get_text()
-    assert [x.get_text() for x in legacy.select('#ranking-overall tbody tr td')][-4:-1]==values
+    assert [x.get_text() for x in legacy.select('#ranking-overall tbody tr td')][-3:]==values
 
 
 def test_entirely_missing_method_stays_in_both_rankings(tmp_path):
@@ -373,7 +373,7 @@ def test_nested_suite_names_partition_by_identity(tmp_path):
 
 @pytest.mark.parametrize('diagnostic', [False, True])
 @pytest.mark.parametrize('tie', [False, True])
-def test_suite_ranking_preserves_final_order_but_diagnostics_stay_neutral(diagnostic, tie):
+def test_suite_ranking_orders_final_and_diagnostic_results(diagnostic, tie):
     from harness.web_fetch.report import ranking, _REPORT_SUITES
     cases = {'a': {'id': 'a', 'report_family': 'suite'},
              'b': {'id': 'b', 'report_family': 'suite'}}
@@ -389,15 +389,15 @@ def test_suite_ranking_preserves_final_order_but_diagnostics_stay_neutral(diagno
         _REPORT_SUITES.reset(token)
     table = soup.select_one('#ranking-suite')
     rows = soup.select('tbody tr')
-    assert ('alphabetic-first' if diagnostic or tie else 'z-winner') in rows[0].get_text()
-    expected = ['1.0','1.0'] if tie else ['0.5','1.0'] if diagnostic else ['1.0','0.5']
+    assert ('alphabetic-first' if tie else 'z-winner') in rows[0].get_text()
+    expected = ['1.0','1.0'] if tie else ['1.0','0.5']
     assert [r.select('td')[-1]['data-sort'] for r in rows] == expected
     assert len(soup.select('thead button')) == 7
-    assert len(table.select('.comparison-winner')) == (0 if diagnostic or tie else 1)
-    assert table.get('data-row-index') == ('false' if diagnostic else None)
-    assert (table['data-col'], table['data-dir']) == (('0','asc') if diagnostic else ('7','desc'))
+    assert len(table.select('.comparison-winner')) == (0 if tie else 1)
+    assert table.get('data-row-index') is None
+    assert (table['data-col'], table['data-dir']) == ('7','desc')
     for row in rows:
-        offset = 1 if diagnostic else 2
+        offset = 2
         assert all(cell['data-sort'] == cell.get_text() for cell in row.select('td')[offset:offset+5])
 
 
