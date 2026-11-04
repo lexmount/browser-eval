@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
-from harness.environments.webarena.topology import configured_site_secrets
+from harness.environments.webarena.topology import configured_site_secrets, known_site_secrets
 from harness.record_io import file_sha256, read_json
 from harness.reporting.privacy import PRIVATE_IPV4, PUBLIC_WEBARENA
 from harness.reporting.publication import PublicationClient, archive_inventory
@@ -208,6 +208,8 @@ def _contains_site_password(text: str, passwords: tuple[str, ...]) -> bool:
 
 
 def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Path) -> dict:
+    # Rendering tolerates an unset password; a package cannot be checked for one it cannot name.
+    passwords = known_site_secrets()
     manifest, summary, _audit = _validate_binding(formal_root, authority)
     files = _report_files(formal_root, summary)
     inputs = {
@@ -234,7 +236,6 @@ def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Pat
             shutil.copy2(source, staging / source.name)
         shutil.copy2(staging / f"{REPORT_STEM}.html", staging / "index.html")
         _validate_internal_links(staging)
-        passwords = configured_site_secrets()
         for path in staging.rglob("*"):
             if not path.is_file():
                 continue

@@ -52,6 +52,8 @@ Measured attempts, screenshots, HAR, and reports stay outside Git. The repositor
 the suite, qualification reasons, evaluator rules, source bindings, and a sanitized
 publication summary. Use `verify_metrics.py` to audit raw measurements and
 `rebuild_report.py` to render from existing attempts; neither reruns browsers.
+Rendering needs no site logins. Packaging and publishing stop while a registered site
+login is unset in the repository `.env`, so every package is checked for those passwords.
 
 Publishing uses the site and expected version in the external report profile
 selected with `--profile`. The package attestation binds

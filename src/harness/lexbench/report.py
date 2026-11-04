@@ -238,8 +238,8 @@ def resolve_paths(
     if missing:
         parser.error(
             f"Report template {args.source} lacks {', '.join(missing)}; "
-            "pass --source with a template directory, or in a checkout drop --source "
-            "and paths.source to use the maintained template"
+            "pass --source with a template directory, or drop --source "
+            "and paths.source to use the installed template"
         )
     bench_root = configured_path("runner", os.environ.get("LEXBENCH_REPORT_RUNNER_ROOT"))
     version_runs = configured_path("version_runs")
