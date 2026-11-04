@@ -120,7 +120,7 @@ def project_body_reference(case, projection, expected_source_sha256):
 
     regions = [materialize(row, True) for row in projection['regions']]
     if (len({r['id'] for r in regions}) != len(regions)
-            or any(a['end'] > b['start'] for a, b in zip(projection['regions'], projection['regions'][1:], strict=False))):
+            or any(a['end'] > b['start'] for a, b in zip(projection['regions'], projection['regions'][1:]))):
         raise ValueError('Body projection regions must be unique, ordered and nonoverlapping')
     ending = None
     if version in (4, 5):
