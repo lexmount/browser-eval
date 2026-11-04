@@ -10,6 +10,7 @@ import shutil
 import statistics
 import subprocess
 import tempfile
+from typing import Any, NoReturn
 
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
@@ -23,18 +24,19 @@ from harness.reporting.privacy import LEXBENCH_CHECK_SOURCE
 from harness.web_fetch.safety import reject_evidence_symlinks
 
 
-def near(a, b):
+Json = dict[str, Any]
+ModeCall = tuple[str, Json]
+
+
+def near(a: Any, b: Any) -> bool:
     return math.isclose(float(a), float(b), rel_tol=1e-8, abs_tol=1e-6)
 
 
-def fail(message):
+def fail(message: str) -> NoReturn:
     raise ValueError(message)
 
 
-def validate(model, site, check_files=True):
-    reject_evidence_symlinks(site)
-    check_language_contract(site)
-    languages = generated_languages(site)
+def _check_english_notice(site: pathlib.Path, languages: tuple[str, ...]) -> None:
     if "en" not in languages:
         if list((site / "assets").glob("*-en.svg")):
             fail("Chinese-only report contains stale English charts")
@@ -45,6 +47,9 @@ def validate(model, site, check_files=True):
             or 'href="index.html"' not in notice.read_text(encoding="utf-8")
         ):
             fail("English flat-entry not-generated notice is missing")
+
+
+def _check_schema_and_resource_summaries(model: Json) -> None:
     if model.get("schema") != "moli_layout_report/2":
         fail("schema")
     if any(
@@ -58,11 +63,14 @@ def validate(model, site, check_files=True):
                 model[key].get("summary"), dict
             ):
                 fail(f"{key} summary missing")
-    count = model.get("task_count")
-    calls_per_mode = model.get("attempts_per_mode")
+
+
+def _check_denominator(count: Any, calls_per_mode: Any) -> None:
     if not isinstance(count, int) or count != 372 or calls_per_mode != count * 3:
         fail("denominator")
-    protocol = model.get("protocol") or {}
+
+
+def _check_protocol(protocol: Json) -> None:
     if (
         protocol.get("k_runs") != 3
         or protocol.get("jobs") != 1
@@ -75,13 +83,20 @@ def validate(model, site, check_files=True):
         for k in ("runner_sha256", "fixtures_sha256")
     ):
         fail("source identity")
-    inv = model.get("cases") or []
+
+
+def _check_case_inventory(model: Json, inv: list[Json], count: int) -> None:
     if len(inv) != count or len({c["id"] for c in inv}) != count:
         fail("inventory")
     for item in inv:
         safe_identifier(item["id"])
     if len(model.get("strata") or []) != 15:
         fail("strata")
+
+
+def _check_case_outcomes(
+    model: Json, site: pathlib.Path, inv: list[Json], count: int, protocol: Json
+) -> None:
     outcome = model.get("case_outcomes") or {}
     expected_pair = dict.fromkeys(
         ("both_pass", "both_fail", "off_fail_on_pass", "off_pass_on_fail"), 0
@@ -114,8 +129,9 @@ def validate(model, site, check_files=True):
         "paired": expected_pair,
     }:
         fail("case outcome aggregation")
-    comparison = model.get("version_comparison") or {}
-    version_rows = comparison.get("configurations") or []
+
+
+def _check_version_comparison(comparison: Json, version_rows: list[Json]) -> None:
     expected_version_ids = ["114_off", "118_off", "118_on"]
     if (
         comparison.get("baseline") != "114_off"
@@ -160,7 +176,15 @@ def validate(model, site, check_files=True):
             fail("version PSS change")
         if not near(row["cpu_change_pct"], (row["cpu_ms"] / baseline["cpu_ms"] - 1) * 100):
             fail("version CPU change")
-    functional_methods = model.get("functional_methods") or []
+
+
+def _check_combined_chart(
+    model: Json,
+    site: pathlib.Path,
+    comparison: Json,
+    functional_methods: list[Json],
+    languages: tuple[str, ...],
+) -> None:
     combined = model.get("combined_comparison")
     if combined != combine_comparisons(
         functional_methods,
@@ -177,7 +201,9 @@ def validate(model, site, check_files=True):
             actual = site / f"assets/comparison-all-success-resources-{language}.svg"
             if not actual.is_file() or actual.read_bytes() != expected.read_bytes():
                 fail("combined chart does not match measured registry")
-    candidates = model.get("fixed_candidates") or {}
+
+
+def _check_functional_methods(functional_methods: list[Json], candidates: Json) -> None:
     expected_ids = ["114_off", "118_off", "118_on"] + list(candidates)
     if [row.get("id") for row in functional_methods] != expected_ids:
         fail("functional method registry")
@@ -186,345 +212,403 @@ def validate(model, site, check_files=True):
         for row in functional_methods[:3]
     ] != [(0, 1, 371), (1, 372, 0), (255, 372, 0)]:
         fail("fixed functional methods")
-    for method_id, candidate in candidates.items():
-        if method_id not in {"119_off", "119_on", "119_official_off", "119_official_on"}:
-            fail("unknown fixed method")
-        info = candidate.get("evidence") or {}
-        path = contained_path(site, info.get("url", ""), reject_symlinks=True)
-        if not path.resolve().is_relative_to(site.resolve()):
-            fail("unsafe fixed summary target")
-        if (
-            not path.is_file()
-            or path.is_symlink()
-            or file_sha256(path) != info.get("sha256")
-            or path.stat().st_size != info.get("bytes")
-        ):
-            fail("fixed summary integrity")
-        summary = json.loads(path.read_text(encoding="utf-8"))
-        if summary.get("schema") != "lexbench_moli_fixed_layout_summary/1":
-            fail("fixed summary schema")
-        layout = "off" if method_id.endswith("_off") else "on"
-        if summary.get("layout") != layout:
-            fail("fixed layout identity")
-        for field in ("population", "outcomes", "binary", "sources"):
-            if summary.get(field) != candidate.get(field):
-                fail("fixed summary binding")
-        population = summary.get("population") or {}
-        if (
-            population.get("cases") != 372
-            or population.get("attempts_per_case") != 3
-            or population.get("calls") != 1116
-        ):
-            fail("fixed summary population")
-        cases = summary.get("cases") or []
-        if len(cases) != 372 or {c["task_id"] for c in cases} != {c["id"] for c in inv}:
-            fail("fixed summary cases")
-        passed = 0
-        for case in cases:
-            attempts = case.get("attempts") or []
-            if len(attempts) != 3 or {a["attempt"] for a in attempts} != {1, 2, 3}:
-                fail("fixed summary attempts")
-            passes = sum(a["status"] == "pass" for a in attempts)
-            if case.get("passes") != passes:
-                fail("fixed summary case verdict")
-            passed += passes == 3
-        if summary["outcomes"].get("passed_cases") != passed or not near(
-            summary["outcomes"]["success_rate_pct"], passed / 372 * 100
-        ):
-            fail("fixed summary result")
-        row = next(x for x in functional_methods if x["id"] == method_id)
-        if (
-            row.get("final_passed_cases") != passed
-            or row.get("physical_calls") != 1116
-            or row.get("policy") != f"fixed_{layout}"
-        ):
-            fail("fixed method row")
-        if row.get("moli_sha256") != summary["binary"]["moli_sha256"]:
-            fail("fixed method binary")
-    if candidates:
-        compact = model.get("fixed_case_outcomes") or []
-        if len(compact) != 372 or {c["id"] for c in compact} != {c["id"] for c in inv}:
-            fail("fixed outcome inventory")
-        for item in compact:
-            path = site / "data/fixed-cases" / f"{item['id']}.json"
-            if not path.is_file() or path.is_symlink():
-                fail("fixed case evidence target")
-            detail = json.loads(path.read_text(encoding="utf-8"))
-            if set(detail["methods"]) != set(candidates) or set(item["passes"]) != set(candidates):
-                fail("fixed case registry")
-            for method_id, result in detail["methods"].items():
-                if result["passes"] != item["passes"][method_id] or result["passes"] != sum(
-                    a["status"] == "pass" for a in result["attempts"]
-                ):
-                    fail("fixed case count")
-                if len(result["attempts"]) != 3:
-                    fail("fixed detail attempts")
-                for attempt in result["attempts"]:
-                    if attempt["status"] != "pass" and not attempt.get("failure", {}).get("detail"):
-                        fail("fixed failure locator")
-                    if not attempt.get("evidence"):
-                        fail("fixed attempt lacks evidence")
-                    for evidence in attempt["evidence"].values():
-                        target = contained_path(site, evidence["url"], reject_symlinks=True)
-                        if (
-                            not target.resolve().is_relative_to(site.resolve())
-                            or not target.is_file()
-                            or target.is_symlink()
-                        ):
-                            fail("fixed log target")
-                        if check_files and (
-                            file_sha256(target) != evidence["sha256"]
-                            or target.stat().st_size != evidence["bytes"]
-                        ):
-                            fail("fixed log integrity")
+
+
+def _check_fixed_method(
+    site: pathlib.Path,
+    method_id: str,
+    candidate: Json,
+    inv: list[Json],
+    functional_methods: list[Json],
+) -> None:
+    if method_id not in {"119_off", "119_on", "119_official_off", "119_official_on"}:
+        fail("unknown fixed method")
+    info = candidate.get("evidence") or {}
+    path = contained_path(site, info.get("url", ""), reject_symlinks=True)
+    if not path.resolve().is_relative_to(site.resolve()):
+        fail("unsafe fixed summary target")
+    if (
+        not path.is_file()
+        or path.is_symlink()
+        or file_sha256(path) != info.get("sha256")
+        or path.stat().st_size != info.get("bytes")
+    ):
+        fail("fixed summary integrity")
+    summary = json.loads(path.read_text(encoding="utf-8"))
+    if summary.get("schema") != "lexbench_moli_fixed_layout_summary/1":
+        fail("fixed summary schema")
+    layout = "off" if method_id.endswith("_off") else "on"
+    if summary.get("layout") != layout:
+        fail("fixed layout identity")
+    for field in ("population", "outcomes", "binary", "sources"):
+        if summary.get(field) != candidate.get(field):
+            fail("fixed summary binding")
+    population = summary.get("population") or {}
+    if (
+        population.get("cases") != 372
+        or population.get("attempts_per_case") != 3
+        or population.get("calls") != 1116
+    ):
+        fail("fixed summary population")
+    cases = summary.get("cases") or []
+    if len(cases) != 372 or {c["task_id"] for c in cases} != {c["id"] for c in inv}:
+        fail("fixed summary cases")
+    passed = 0
+    for case in cases:
+        attempts = case.get("attempts") or []
+        if len(attempts) != 3 or {a["attempt"] for a in attempts} != {1, 2, 3}:
+            fail("fixed summary attempts")
+        passes = sum(a["status"] == "pass" for a in attempts)
+        if case.get("passes") != passes:
+            fail("fixed summary case verdict")
+        passed += passes == 3
+    if summary["outcomes"].get("passed_cases") != passed or not near(
+        summary["outcomes"]["success_rate_pct"], passed / 372 * 100
+    ):
+        fail("fixed summary result")
+    row = next(x for x in functional_methods if x["id"] == method_id)
+    if (
+        row.get("final_passed_cases") != passed
+        or row.get("physical_calls") != 1116
+        or row.get("policy") != f"fixed_{layout}"
+    ):
+        fail("fixed method row")
+    if row.get("moli_sha256") != summary["binary"]["moli_sha256"]:
+        fail("fixed method binary")
+
+
+def _check_fixed_case_outcomes(
+    model: Json, site: pathlib.Path, inv: list[Json], candidates: Json, check_files: bool
+) -> None:
+    compact = model.get("fixed_case_outcomes") or []
+    if len(compact) != 372 or {c["id"] for c in compact} != {c["id"] for c in inv}:
+        fail("fixed outcome inventory")
+    for item in compact:
+        path = site / "data/fixed-cases" / f"{item['id']}.json"
+        if not path.is_file() or path.is_symlink():
+            fail("fixed case evidence target")
+        detail = json.loads(path.read_text(encoding="utf-8"))
+        if set(detail["methods"]) != set(candidates) or set(item["passes"]) != set(candidates):
+            fail("fixed case registry")
+        for method_id, result in detail["methods"].items():
+            if result["passes"] != item["passes"][method_id] or result["passes"] != sum(
+                a["status"] == "pass" for a in result["attempts"]
+            ):
+                fail("fixed case count")
+            if len(result["attempts"]) != 3:
+                fail("fixed detail attempts")
+            for attempt in result["attempts"]:
+                if attempt["status"] != "pass" and not attempt.get("failure", {}).get("detail"):
+                    fail("fixed failure locator")
+                if not attempt.get("evidence"):
+                    fail("fixed attempt lacks evidence")
+                for evidence in attempt["evidence"].values():
+                    target = contained_path(site, evidence["url"], reject_symlinks=True)
+                    if (
+                        not target.resolve().is_relative_to(site.resolve())
+                        or not target.is_file()
+                        or target.is_symlink()
+                    ):
+                        fail("fixed log target")
+                    if check_files and (
+                        file_sha256(target) != evidence["sha256"]
+                        or target.stat().st_size != evidence["bytes"]
+                    ):
+                        fail("fixed log integrity")
+
+
+def _check_linux_evidence_present(model: Json) -> None:
     if model.get("linux_comparison") and not model.get("linux_resource_profiles"):
         fail("Linux resource evidence is required")
-    if model.get("linux_resource_profiles"):
-        profiles = model["linux_resource_profiles"]
 
-        def resource_document(info):
-            path = contained_path(site, info["url"], reject_symlinks=True)
-            if (
-                not path.resolve().is_relative_to(site.resolve())
-                or path.is_symlink()
-                or not path.is_file()
-                or file_sha256(path) != info["sha256"]
-                or path.stat().st_size != info["bytes"]
-            ):
-                fail("Linux resource evidence integrity")
-            return read_json(path)
 
-        summary = resource_document(profiles["evidence"])
-        validate_summary(summary, model["resource_builds"])
+def _resource_document(site: pathlib.Path, info: Json) -> Any:
+    path = contained_path(site, info["url"], reject_symlinks=True)
+    if (
+        not path.resolve().is_relative_to(site.resolve())
+        or path.is_symlink()
+        or not path.is_file()
+        or file_sha256(path) != info["sha256"]
+        or path.stat().st_size != info["bytes"]
+    ):
+        fail("Linux resource evidence integrity")
+    return read_json(path)
+
+
+def _check_linux_summary(model: Json, site: pathlib.Path, comparison: Json, profiles: Json) -> Json:
+    summary = _resource_document(site, profiles["evidence"])
+    validate_summary(summary, model["resource_builds"])
+    if (
+        summary["protocol"]["reference_protocol_sha256"]
+        != comparison["bindings"]["resource_protocol_sha256"]
+        or summary["protocol"]["task_ids"] != summary["population"]["task_ids"]
+        or summary["protocol"]["chart_keys"] != summary["population"]["chart_keys"]
+        or summary["protocol"]["orchestrator_sha256"] != profiles["receipt"]["orchestrator_sha256"]
+    ):
+        fail("Linux resource protocol or comparison population binding")
+    if (
+        profiles["configurations"] != summary["configurations"]
+        or profiles["receipt"] != summary["receipt"]
+    ):
+        fail("Linux resource summary binding")
+    script = site / "reproduction/run_linux_resource_profiles.py"
+    if script.is_symlink() or file_sha256(script) != profiles["receipt"]["orchestrator_sha256"]:
+        fail("Linux resource script binding")
+    return summary
+
+
+def _check_unified_resource_metrics(
+    model: Json, site: pathlib.Path, summary: Json, functional_methods: list[Json]
+) -> None:
+    original = _resource_document(site, model["resource_metrics_source"])
+    metrics = model["resource_metrics"]
+    if list(metrics) != [m["id"] for m in functional_methods]:
+        fail("unified resource method registry")
+    for method, scopes in metrics.items():
+        if set(scopes) != {"all_predeclared_calls", "frozen_historical_common_pass_calls"}:
+            fail("unified resource population coverage")
+        for scope, values in scopes.items():
+            expected = (
+                summary["configurations"][method]["metrics"][scope]
+                if method in summary["configurations"]
+                else original["memory"][method][scope]
+            )
+            for metric in ("pss_peak_mib", "cpu_time_ms"):
+                for stat in ("n", "mean", "p50", "p95"):
+                    key = "median" if stat == "p50" and "median" in expected[metric] else stat
+                    if not near(values[metric][stat], expected[metric][key]):
+                        fail("unified resource table differs from measurements")
+
+
+def _check_linux_chart(model: Json, summary: Json, candidates: Json) -> None:
+    rows = model["linux_comparison"]["configurations"]
+    if [r["id"] for r in rows] != list(model["resource_builds"]):
+        fail("Linux resource chart registry")
+    for row in rows:
+        candidate = candidates[row["id"]]
+        measured = summary["configurations"][row["id"]]
+        values = measured["metrics"]["frozen_historical_common_pass_calls"]
         if (
-            summary["protocol"]["reference_protocol_sha256"]
-            != comparison["bindings"]["resource_protocol_sha256"]
-            or summary["protocol"]["task_ids"] != summary["population"]["task_ids"]
-            or summary["protocol"]["chart_keys"] != summary["population"]["chart_keys"]
-            or summary["protocol"]["orchestrator_sha256"]
-            != profiles["receipt"]["orchestrator_sha256"]
+            row["platform"] != "Linux"
+            or row["memory_kind"] != "PSS"
+            or row["passed_cases"] != candidate["outcomes"]["passed_cases"]
+            or row["functional_binary_sha256"] != candidate["binary"]["moli_sha256"]
+            or row["resource_binary_sha256"] != measured["build"]["sha256"]
+            or not near(row["pss_mib"], values["pss_peak_mib"]["p50"])
+            or not near(row["cpu_ms"], values["cpu_time_ms"]["mean"])
         ):
-            fail("Linux resource protocol or comparison population binding")
-        if (
-            profiles["configurations"] != summary["configurations"]
-            or profiles["receipt"] != summary["receipt"]
-        ):
-            fail("Linux resource summary binding")
-        script = site / "reproduction/run_linux_resource_profiles.py"
-        if script.is_symlink() or file_sha256(script) != profiles["receipt"]["orchestrator_sha256"]:
-            fail("Linux resource script binding")
-        original = resource_document(model["resource_metrics_source"])
-        metrics = model["resource_metrics"]
-        if list(metrics) != [m["id"] for m in functional_methods]:
-            fail("unified resource method registry")
-        for method, scopes in metrics.items():
-            if set(scopes) != {"all_predeclared_calls", "frozen_historical_common_pass_calls"}:
-                fail("unified resource population coverage")
-            for scope, values in scopes.items():
-                expected = (
-                    summary["configurations"][method]["metrics"][scope]
-                    if method in summary["configurations"]
-                    else original["memory"][method][scope]
-                )
-                for metric in ("pss_peak_mib", "cpu_time_ms"):
-                    for stat in ("n", "mean", "p50", "p95"):
-                        key = "median" if stat == "p50" and "median" in expected[metric] else stat
-                        if not near(values[metric][stat], expected[metric][key]):
-                            fail("unified resource table differs from measurements")
-        rows = model["linux_comparison"]["configurations"]
-        if [r["id"] for r in rows] != list(model["resource_builds"]):
-            fail("Linux resource chart registry")
-        for row in rows:
-            candidate = candidates[row["id"]]
-            measured = summary["configurations"][row["id"]]
-            values = measured["metrics"]["frozen_historical_common_pass_calls"]
-            if (
-                row["platform"] != "Linux"
-                or row["memory_kind"] != "PSS"
-                or row["passed_cases"] != candidate["outcomes"]["passed_cases"]
-                or row["functional_binary_sha256"] != candidate["binary"]["moli_sha256"]
-                or row["resource_binary_sha256"] != measured["build"]["sha256"]
-                or not near(row["pss_mib"], values["pss_peak_mib"]["p50"])
-                or not near(row["cpu_ms"], values["cpu_time_ms"]["mean"])
+            fail("Linux resource chart values or build identity")
+
+
+def _load_platform_summary(site: pathlib.Path, resource: Json, check_files: bool) -> Json:
+    info = resource.get("evidence") or {}
+    path = contained_path(site, info.get("url", ""), reject_symlinks=True)
+    if not path.resolve().is_relative_to(site.resolve()):
+        fail("unsafe resource target")
+    if check_files and (
+        not path.is_file()
+        or path.is_symlink()
+        or file_sha256(path) != info.get("sha256")
+        or path.stat().st_size != info.get("bytes")
+    ):
+        fail("resource integrity")
+    summary = (
+        json.loads(path.read_text(encoding="utf-8")) if check_files else resource.get("summary")
+    )
+    if (
+        summary != resource.get("summary")
+        or summary.get("schema") != "lexbench_moli_macos_fixed_resource_summary/1"
+    ):
+        fail("resource identity")
+    return summary
+
+
+def _check_platform_contract(summary: Json, candidates: Json, official: bool) -> list[str]:
+    population = summary.get("population") or {}
+    if population != {
+        "tasks": 557,
+        "attempts_per_task": 5,
+        "calls_per_configuration": 2785,
+        "frozen_comparison_calls": 1045,
+        "frozen_comparison_tasks": 209,
+    }:
+        fail("resource population")
+    quality = summary.get("quality") or {}
+    if (
+        quality.get("memory_metric") != "process_tree_rss"
+        or quality.get("pss_available") is not False
+        or quality.get("publishable") is not True
+    ):
+        fail("resource quality")
+    layouts = [
+        layout
+        for layout in ("off", "on")
+        if (f"119_official_{layout}" if official else f"119_{layout}") in candidates
+    ]
+    method = summary.get("method") or {}
+    if (
+        method.get("configurations") != [f"layout_{x}" for x in layouts]
+        or method.get("resource_runs") != len(layouts)
+        or method.get("layout_retry") is not False
+        or method.get("attempts_per_case") != 5
+        or method.get("resource_sample_interval_ms") != 250
+    ):
+        fail("resource method")
+    return layouts
+
+
+def _check_platform_configuration(
+    model: Json, summary: Json, official: bool, layout: str, config: Json
+) -> None:
+    method_id = f"119_official_{layout}" if official else f"119_{layout}"
+    if summary["candidate"]["binary_sha256"] != model.get("resource_builds", {}).get(
+        method_id, {}
+    ).get("sha256"):
+        fail("resource binary")
+    if config.get("layout") != layout or config.get("quality", {}).get("publishable") is not True:
+        fail("configuration quality")
+    for name, n in (
+        ("all_predeclared_calls", 2785),
+        ("frozen_historical_common_pass_calls", 1045),
+    ):
+        for metric in ("rss_peak_mib", "cpu_time_ms"):
+            stats = config.get("metrics", {}).get(name, {}).get(metric, {})
+            if stats.get("n") != n:
+                fail("metric denominator")
+            if any(
+                not isinstance(stats.get(key), (float, int)) or not math.isfinite(stats[key])
+                for key in ("mean", "p50", "p95", "sum")
             ):
-                fail("Linux resource chart values or build identity")
+                fail("metric finite values")
+            if not near(stats["sum"], stats["mean"] * n):
+                fail("metric mean/sum agreement")
+
+
+def _check_platform_layout_change(summary: Json, configs: Json) -> None:
+    for name in ("all_predeclared_calls", "frozen_historical_common_pass_calls"):
+        change_values = summary["comparisons"][name]
+        for metric, stat, key in [
+            ("rss_peak_mib", "p50", "layout_on_vs_off_rss_p50_change_pct"),
+            ("cpu_time_ms", "mean", "layout_on_vs_off_cpu_mean_change_pct"),
+        ]:
+            expected = (
+                configs["on"]["metrics"][name][metric][stat]
+                / configs["off"]["metrics"][name][metric][stat]
+                - 1
+            ) * 100
+            if not near(change_values[key], expected):
+                fail("resource percentage change")
+
+
+def _check_platform_resources(
+    model: Json, site: pathlib.Path, candidates: Json, check_files: bool
+) -> None:
     for resource_key in ("macos_resource", "official_resource"):
         resource = model.get(resource_key)
         if not resource:
             continue
         official = resource_key == "official_resource"
-        info = resource.get("evidence") or {}
-        path = contained_path(site, info.get("url", ""), reject_symlinks=True)
-        if not path.resolve().is_relative_to(site.resolve()):
-            fail("unsafe resource target")
-        if check_files and (
-            not path.is_file()
-            or path.is_symlink()
-            or file_sha256(path) != info.get("sha256")
-            or path.stat().st_size != info.get("bytes")
-        ):
-            fail("resource integrity")
-        summary = json.loads(path.read_text(encoding="utf-8")) if check_files else resource.get("summary")
-        if (
-            summary != resource.get("summary")
-            or summary.get("schema") != "lexbench_moli_macos_fixed_resource_summary/1"
-        ):
-            fail("resource identity")
-        population = summary.get("population") or {}
-        if population != {
-            "tasks": 557,
-            "attempts_per_task": 5,
-            "calls_per_configuration": 2785,
-            "frozen_comparison_calls": 1045,
-            "frozen_comparison_tasks": 209,
-        }:
-            fail("resource population")
-        quality = summary.get("quality") or {}
-        if (
-            quality.get("memory_metric") != "process_tree_rss"
-            or quality.get("pss_available") is not False
-            or quality.get("publishable") is not True
-        ):
-            fail("resource quality")
-        layouts = [
-            layout
-            for layout in ("off", "on")
-            if (f"119_official_{layout}" if official else f"119_{layout}") in candidates
-        ]
-        method = summary.get("method") or {}
-        if (
-            method.get("configurations") != [f"layout_{x}" for x in layouts]
-            or method.get("resource_runs") != len(layouts)
-            or method.get("layout_retry") is not False
-            or method.get("attempts_per_case") != 5
-            or method.get("resource_sample_interval_ms") != 250
-        ):
-            fail("resource method")
+        summary = _load_platform_summary(site, resource, check_files)
+        layouts = _check_platform_contract(summary, candidates, official)
         configs = summary.get("configurations") or {}
         if set(configs) != set(layouts):
             fail("resource configurations")
         for layout, config in configs.items():
-            method_id = f"119_official_{layout}" if official else f"119_{layout}"
-            if summary["candidate"]["binary_sha256"] != model.get("resource_builds", {}).get(
-                method_id, {}
-            ).get("sha256"):
-                fail("resource binary")
-            if (
-                config.get("layout") != layout
-                or config.get("quality", {}).get("publishable") is not True
-            ):
-                fail("configuration quality")
-            for name, n in (
-                ("all_predeclared_calls", 2785),
-                ("frozen_historical_common_pass_calls", 1045),
-            ):
-                for metric in ("rss_peak_mib", "cpu_time_ms"):
-                    stats = config.get("metrics", {}).get(name, {}).get(metric, {})
-                    if stats.get("n") != n:
-                        fail("metric denominator")
-                    if any(
-                        not isinstance(stats.get(key), (float, int))
-                        or not math.isfinite(stats[key])
-                        for key in ("mean", "p50", "p95", "sum")
-                    ):
-                        fail("metric finite values")
-                    if not near(stats["sum"], stats["mean"] * n):
-                        fail("metric mean/sum agreement")
+            _check_platform_configuration(model, summary, official, layout, config)
         if set(configs) == {"off", "on"}:
-            for name in ("all_predeclared_calls", "frozen_historical_common_pass_calls"):
-                change_values = summary["comparisons"][name]
-                for metric, stat, key in [
-                    ("rss_peak_mib", "p50", "layout_on_vs_off_rss_p50_change_pct"),
-                    ("cpu_time_ms", "mean", "layout_on_vs_off_cpu_mean_change_pct"),
-                ]:
-                    expected = (
-                        configs["on"]["metrics"][name][metric][stat]
-                        / configs["off"]["metrics"][name][metric][stat]
-                        - 1
-                    ) * 100
-                    if not near(change_values[key], expected):
-                        fail("resource percentage change")
-    if model.get("macos_resource") or model.get("official_resource"):
-        matrix = model.get("resource_matrix") or {}
-        info = matrix.get("evidence") or {}
-        relative = pathlib.PurePosixPath(info.get("url", ""))
-        if (
-            relative.is_absolute()
-            or ".." in relative.parts
-            or not str(relative).startswith("data/candidates/")
-        ):
-            fail("unsafe resource matrix evidence")
-        path = contained_path(site, relative, reject_symlinks=True)
-        if (
-            path.is_symlink()
-            or not path.is_file()
-            or file_sha256(path) != info.get("sha256")
-            or path.stat().st_size != info.get("bytes")
-        ):
-            fail("resource matrix evidence integrity")
-        bundle = json.loads(path.read_text(encoding="utf-8"))
-        if bundle["receipt"] != matrix.get("receipt"):
-            fail("resource matrix receipt identity")
-        source = site / "reproduction/run_resource_matrix.py"
-        if (
-            source.is_symlink()
-            or not source.is_file()
-            or file_sha256(source) != bundle["receipt"]["orchestrator_sha256"]
-        ):
-            fail("resource orchestrator source identity")
-        validate_matrix(
-            bundle,
-            model["resource_builds"],
-            {
-                "official": model["official_resource"]["summary"],
-                "patched": model["macos_resource"]["summary"],
-            },
+            _check_platform_layout_change(summary, configs)
+
+
+def _check_resource_matrix(model: Json, site: pathlib.Path) -> None:
+    matrix = model.get("resource_matrix") or {}
+    info = matrix.get("evidence") or {}
+    relative = pathlib.PurePosixPath(info.get("url", ""))
+    if (
+        relative.is_absolute()
+        or ".." in relative.parts
+        or not str(relative).startswith("data/candidates/")
+    ):
+        fail("unsafe resource matrix evidence")
+    path = contained_path(site, relative, reject_symlinks=True)
+    if (
+        path.is_symlink()
+        or not path.is_file()
+        or file_sha256(path) != info.get("sha256")
+        or path.stat().st_size != info.get("bytes")
+    ):
+        fail("resource matrix evidence integrity")
+    bundle = json.loads(path.read_text(encoding="utf-8"))
+    if bundle["receipt"] != matrix.get("receipt"):
+        fail("resource matrix receipt identity")
+    source = site / "reproduction/run_resource_matrix.py"
+    if (
+        source.is_symlink()
+        or not source.is_file()
+        or file_sha256(source) != bundle["receipt"]["orchestrator_sha256"]
+    ):
+        fail("resource orchestrator source identity")
+    validate_matrix(
+        bundle,
+        model["resource_builds"],
+        {
+            "official": model["official_resource"]["summary"],
+            "patched": model["macos_resource"]["summary"],
+        },
+    )
+
+
+def _check_macos_chart(
+    model: Json,
+    site: pathlib.Path,
+    chart: Json | None,
+    candidates: Json,
+    languages: tuple[str, ...],
+) -> None:
+    if not chart or {r["id"] for r in chart["configurations"]} != set(candidates):
+        fail("macOS chart registry")
+    if chart.get("baseline") not in {r["id"] for r in chart["configurations"]}:
+        fail("macOS chart baseline not in configurations")
+    baseline = next(r for r in chart["configurations"] if r["id"] == chart["baseline"])
+    for row in chart["configurations"]:
+        resource = (
+            model["official_resource"]
+            if row["id"].startswith("119_official_")
+            else model["macos_resource"]
         )
-    chart = model.get("macos_comparison")
-    if model.get("macos_resource"):
-        if not chart or {r["id"] for r in chart["configurations"]} != set(candidates):
-            fail("macOS chart registry")
-        if chart.get("baseline") not in {r["id"] for r in chart["configurations"]}:
-            fail("macOS chart baseline not in configurations")
-        baseline = next(r for r in chart["configurations"] if r["id"] == chart["baseline"])
-        for row in chart["configurations"]:
-            resource = (
-                model["official_resource"]
-                if row["id"].startswith("119_official_")
-                else model["macos_resource"]
-            )
-            layout = "off" if row["id"].endswith("_off") else "on"
-            if (
-                row.get("functional_binary_sha256")
-                != candidates[row["id"]]["binary"]["moli_sha256"]
-                or row.get("resource_binary_sha256")
-                != resource["summary"]["candidate"]["binary_sha256"]
+        layout = "off" if row["id"].endswith("_off") else "on"
+        if (
+            row.get("functional_binary_sha256") != candidates[row["id"]]["binary"]["moli_sha256"]
+            or row.get("resource_binary_sha256")
+            != resource["summary"]["candidate"]["binary_sha256"]
+        ):
+            fail("chart functional/resource build identity")
+        metrics = resource["summary"]["configurations"][layout]["metrics"][
+            "frozen_historical_common_pass_calls"
+        ]
+        if row["passed_cases"] != candidates[row["id"]]["outcomes"]["passed_cases"] or not near(
+            row["success_rate_pct"], row["passed_cases"] / 372 * 100
+        ):
+            fail("macOS chart success")
+        for value, change, expected in [
+            ("rss_mib", "rss_change_pct", metrics["rss_peak_mib"]["p50"]),
+            ("cpu_ms", "cpu_change_pct", metrics["cpu_time_ms"]["mean"]),
+        ]:
+            if not near(row[value], expected) or not near(
+                row[change], (row[value] / baseline[value] - 1) * 100
             ):
-                fail("chart functional/resource build identity")
-            metrics = resource["summary"]["configurations"][layout]["metrics"][
-                "frozen_historical_common_pass_calls"
-            ]
-            if row["passed_cases"] != candidates[row["id"]]["outcomes"]["passed_cases"] or not near(
-                row["success_rate_pct"], row["passed_cases"] / 372 * 100
-            ):
-                fail("macOS chart success")
-            for value, change, expected in [
-                ("rss_mib", "rss_change_pct", metrics["rss_peak_mib"]["p50"]),
-                ("cpu_ms", "cpu_change_pct", metrics["cpu_time_ms"]["mean"]),
-            ]:
-                if not near(row[value], expected) or not near(
-                    row[change], (row[value] / baseline[value] - 1) * 100
-                ):
-                    fail("macOS chart metric or change")
-        for lang in languages:
-            path = site / f"assets/comparison-macos-success-resources-{lang}.svg"
-            if (
-                not path.is_file()
-                or "RSS" not in path.read_text(encoding="utf-8")
-                or "CPU" not in path.read_text(encoding="utf-8")
-                or "PSS" in path.read_text(encoding="utf-8")
-            ):
-                fail("macOS chart axes")
+                fail("macOS chart metric or change")
+    for lang in languages:
+        path = site / f"assets/comparison-macos-success-resources-{lang}.svg"
+        if (
+            not path.is_file()
+            or "RSS" not in path.read_text(encoding="utf-8")
+            or "CPU" not in path.read_text(encoding="utf-8")
+            or "PSS" in path.read_text(encoding="utf-8")
+        ):
+            fail("macOS chart axes")
+
+
+def _check_functional_correction(model: Json, site: pathlib.Path, check_files: bool) -> None:
     correction = model.get("functional_contract_correction") or {}
     if (
         correction.get("task_count") != 2
@@ -563,12 +647,53 @@ def validate(model, site, check_files=True):
             for status in task["attempts"]
         ):
             fail("functional correction outcomes")
-    costs = model.get("task_cost") or []
+
+
+def _check_task_costs(costs: list[Json], inv: list[Json], count: int) -> dict[str, Json]:
     if len(costs) != count or {x["id"] for x in costs} != {x["id"] for x in inv}:
         fail("task cost coverage")
     cost_by_id = {x["id"]: x for x in costs}
     if len(cost_by_id) != count:
         fail("duplicate task cost")
+    return cost_by_id
+
+
+def _check_attempt(site: pathlib.Path, a: Json, check_files: bool) -> None:
+    if a["status"] != "pass" and not (
+        a["failure"]["detail"] or a["failure"]["class"] == "unavailable"
+    ):
+        fail("failure without exact error or unavailable state")
+    if not isinstance(a["resource"].get("cpu_total_ms"), (int, float)):
+        fail("missing CPU")
+    if not isinstance(a["resource"].get("pss_end_bytes"), (int, float)):
+        fail("missing PSS")
+    if a["resource"].get("fixture_tx_bytes") is None:
+        fail("missing fixture traffic")
+    if not a.get("evidence", {}).get("baseline", {}).get("grader.json"):
+        fail("missing grader target")
+    if a["status"] != "pass" and not (
+        a["evidence"]["baseline"].get("stderr.log") or a["evidence"]["baseline"].get("cdp.jsonl")
+    ):
+        fail("failure without log target")
+    for files in a["evidence"].values():
+        for _name, info in files.items():
+            if not info.get("url") or not info.get("sha256"):
+                fail("broken evidence reference")
+            target = contained_path(site, info["url"], reject_symlinks=True)
+            if not target.resolve().is_relative_to(site.resolve()):
+                fail("unsafe evidence target")
+            if check_files and (
+                not target.is_file()
+                or target.is_symlink()
+                or file_sha256(target) != info["sha256"]
+                or target.stat().st_size != info["bytes"]
+            ):
+                fail("bad evidence hash or target")
+
+
+def _check_case_results(
+    site: pathlib.Path, inv: list[Json], cost_by_id: dict[str, Json], check_files: bool
+) -> list[ModeCall]:
     full = []
     for item in inv:
         p = site / "data/cases" / f"{item['id']}.json"
@@ -599,38 +724,12 @@ def validate(model, site, check_files=True):
             if details != item.get(mode + "_fail_details"):
                 fail("failure summary")
             for a in attempts:
-                if a["status"] != "pass" and not (
-                    a["failure"]["detail"] or a["failure"]["class"] == "unavailable"
-                ):
-                    fail("failure without exact error or unavailable state")
-                if not isinstance(a["resource"].get("cpu_total_ms"), (int, float)):
-                    fail("missing CPU")
-                if not isinstance(a["resource"].get("pss_end_bytes"), (int, float)):
-                    fail("missing PSS")
-                if a["resource"].get("fixture_tx_bytes") is None:
-                    fail("missing fixture traffic")
-                if not a.get("evidence", {}).get("baseline", {}).get("grader.json"):
-                    fail("missing grader target")
-                if a["status"] != "pass" and not (
-                    a["evidence"]["baseline"].get("stderr.log")
-                    or a["evidence"]["baseline"].get("cdp.jsonl")
-                ):
-                    fail("failure without log target")
-                for files in a["evidence"].values():
-                    for _name, info in files.items():
-                        if not info.get("url") or not info.get("sha256"):
-                            fail("broken evidence reference")
-                        target = contained_path(site, info["url"], reject_symlinks=True)
-                        if not target.resolve().is_relative_to(site.resolve()):
-                            fail("unsafe evidence target")
-                        if check_files and (
-                            not target.is_file()
-                            or target.is_symlink()
-                            or file_sha256(target) != info["sha256"]
-                            or target.stat().st_size != info["bytes"]
-                        ):
-                            fail("bad evidence hash or target")
+                _check_attempt(site, a, check_files)
             full.extend((mode, a) for a in attempts)
+    return full
+
+
+def _check_headline_metrics(model: Json, full: list[ModeCall], calls_per_mode: int) -> None:
     for mode in ("off", "on"):
         calls = [a for m, a in full if m == mode]
         if len(calls) != calls_per_mode:
@@ -647,6 +746,9 @@ def validate(model, site, check_files=True):
             a["resource"]["fixture_tx_bytes"] for a in calls
         ):
             fail("headline traffic")
+
+
+def _check_paired_relations(model: Json, site: pathlib.Path, inv: list[Json]) -> None:
     counts = {key: 0 for key in ("both_pass", "both_fail", "off_fail_on_pass", "off_pass_on_fail")}
     for item in inv:
         c = json.loads((site / "data/cases" / f"{item['id']}.json").read_text(encoding="utf-8"))
@@ -666,16 +768,25 @@ def validate(model, site, check_files=True):
             ] += 1
     if model["paired"]["baseline"] != counts:
         fail("paired relation counts")
+
+
+def _check_task_cost_total(model: Json, costs: list[Json]) -> None:
     if not near(
         sum(x["off_duration_ms"] - x["on_duration_ms"] for x in costs),
         model["metrics"]["off"]["baseline"]["duration_ms_all"]["sum"]
         - model["metrics"]["on"]["baseline"]["duration_ms_all"]["sum"],
     ):
         fail("task cost total")
+
+
+def _check_common_pass_population(
+    model: Json, site: pathlib.Path, inv: list[Json]
+) -> list[tuple[Json, Json]]:
     common = [
         (c["modes"]["off"]["attempts"][i], c["modes"]["on"]["attempts"][i])
         for c in (
-            json.loads((site / "data/cases" / f"{item['id']}.json").read_text(encoding="utf-8")) for item in inv
+            json.loads((site / "data/cases" / f"{item['id']}.json").read_text(encoding="utf-8"))
+            for item in inv
         )
         for i in range(3)
         if all(
@@ -689,44 +800,57 @@ def validate(model, site, check_files=True):
         or len(common) > model["paired"]["baseline"]["both_pass"]
     ):
         fail("common pass denominator")
-    for mode, index in [("off", 0), ("on", 1)]:
-        c = model["common_pass"]
-        if not near(
-            c["cpu_total_ms"][mode], sum(x[index]["resource"]["cpu_total_ms"] for x in common)
-        ):
-            fail("common pass CPU")
-        if not near(
-            c["pss_end_mean_bytes"][mode],
-            statistics.mean(x[index]["resource"]["pss_end_bytes"] for x in common),
-        ):
-            fail("common pass PSS")
-        if not near(
-            c["fixture_tx_total_bytes"][mode],
-            sum(x[index]["resource"]["fixture_tx_bytes"] for x in common),
-        ):
-            fail("common pass traffic")
-        q = model["quality"][mode]
-        if q["resource_missing"]:
-            fail("missing resource evidence")
-        calibration = q.get("calibration", {})
-        if not calibration.get("acceptable"):
-            fail("resource timing calibration failed")
-        if (
-            calibration.get("matched_attempts") != calls_per_mode
-            or not calibration.get("complete_pairing")
-            or calibration.get("provenance_mismatches")
-        ):
-            fail("invalid calibration pairing")
-        if (
-            model["protocol"].get("timing_primary") != "unprofiled_driver_and_grade"
-            or model["protocol"].get("resource_scope") != "observed_profiled_process_tree"
-        ):
-            fail("measurement scope conflated")
-        mismatch = sum(a["status"] != a["profile_status"] for m, a in full if m == mode)
-        if q["status_mismatch_count"] != mismatch:
-            fail("profile mismatch disclosure")
-        if not isinstance(model.get("host_context", {}).get("shared_macos_host"), bool):
-            fail("missing host scope")
+    return common
+
+
+def _check_common_pass_resources(
+    model: Json, common: list[tuple[Json, Json]], mode: str, index: int
+) -> None:
+    c = model["common_pass"]
+    if not near(c["cpu_total_ms"][mode], sum(x[index]["resource"]["cpu_total_ms"] for x in common)):
+        fail("common pass CPU")
+    if not near(
+        c["pss_end_mean_bytes"][mode],
+        statistics.mean(x[index]["resource"]["pss_end_bytes"] for x in common),
+    ):
+        fail("common pass PSS")
+    if not near(
+        c["fixture_tx_total_bytes"][mode],
+        sum(x[index]["resource"]["fixture_tx_bytes"] for x in common),
+    ):
+        fail("common pass traffic")
+
+
+def _check_measurement_quality(
+    model: Json, mode: str, full: list[ModeCall], calls_per_mode: int
+) -> None:
+    q = model["quality"][mode]
+    if q["resource_missing"]:
+        fail("missing resource evidence")
+    calibration = q.get("calibration", {})
+    if not calibration.get("acceptable"):
+        fail("resource timing calibration failed")
+    if (
+        calibration.get("matched_attempts") != calls_per_mode
+        or not calibration.get("complete_pairing")
+        or calibration.get("provenance_mismatches")
+    ):
+        fail("invalid calibration pairing")
+    if (
+        model["protocol"].get("timing_primary") != "unprofiled_driver_and_grade"
+        or model["protocol"].get("resource_scope") != "observed_profiled_process_tree"
+    ):
+        fail("measurement scope conflated")
+    mismatch = sum(a["status"] != a["profile_status"] for m, a in full if m == mode)
+    if q["status_mismatch_count"] != mismatch:
+        fail("profile mismatch disclosure")
+    if not isinstance(model.get("host_context", {}).get("shared_macos_host"), bool):
+        fail("missing host scope")
+
+
+def _check_resource_window_corrections(
+    model: Json, site: pathlib.Path, calls_per_mode: int
+) -> None:
     for correction in model.get("resource_window_corrections", []):
         info = correction["evidence"]
         path = contained_path(site, info["url"], reject_symlinks=True)
@@ -741,6 +865,9 @@ def validate(model, site, check_files=True):
             fail("correction scope")
         if not near(sum(x["cpu_total_ms"] for x in rows), correction["old_cpu_ms"]):
             fail("correction CPU")
+
+
+def _check_site_shell(site: pathlib.Path, languages: tuple[str, ...], comparison: Json) -> None:
     for path, language in [(site / "index.html", "zh-CN")] + (
         [(site / "en/index.html", "en")] if "en" in languages else []
     ):
@@ -753,11 +880,20 @@ def validate(model, site, check_files=True):
         fail("missing offline bundle instructions")
     if (
         not (site / "data/version-comparison.json").is_file()
-        or json.loads((site / "data/version-comparison.json").read_text(encoding="utf-8")) != comparison
+        or json.loads((site / "data/version-comparison.json").read_text(encoding="utf-8"))
+        != comparison
     ):
         fail("version comparison data target")
+
+
+def _check_version_charts(
+    site: pathlib.Path, languages: tuple[str, ...], version_rows: list[Json]
+) -> None:
     charts = {
-        "zh": (site / "assets/comparison-version-success-resources-zh.svg", "372 题成功率与资源消耗"),
+        "zh": (
+            site / "assets/comparison-version-success-resources-zh.svg",
+            "372 题成功率与资源消耗",
+        ),
         "en": (
             site / "assets/comparison-version-success-resources-en.svg",
             "Success on 372 cases vs. resource use",
@@ -786,6 +922,9 @@ def validate(model, site, check_files=True):
                     )
     if not (site / "reproduction/plot_version_summary.py").is_file():
         fail("missing chart reproduction script")
+
+
+def _check_interaction_contract(site: pathlib.Path) -> None:
     js = (site / "app.js").read_text(encoding="utf-8")
     css = (site / "style.css").read_text(encoding="utf-8")
     if (
@@ -797,17 +936,74 @@ def validate(model, site, check_files=True):
         fail("evidence interaction contract")
     if "data-metric-direction" not in js or "winner" not in css:
         fail("highlight contract")
+
+
+def _check_no_private_leaks(site: pathlib.Path) -> None:
+    bad = re.compile(LEXBENCH_CHECK_SOURCE + r"|127\.0\.0\.1:\d+|ARTIFACT_SITE_TOKEN")
+    for p in site.rglob("*"):
+        if (
+            p.is_file()
+            and p.suffix in (".json", ".jsonl", ".log", ".html", ".js", ".css")
+            and bad.search(p.read_text(errors="replace", encoding="utf-8"))
+        ):
+            fail("private path or endpoint leaked")
+
+
+def validate(model: Json, site: pathlib.Path, check_files: bool = True) -> bool:
+    """Run every report check in a fixed order; the first failure names the rejection."""
+    reject_evidence_symlinks(site)
+    check_language_contract(site)
+    languages = generated_languages(site)
+    _check_english_notice(site, languages)
+    _check_schema_and_resource_summaries(model)
+    count = model.get("task_count")
+    calls_per_mode = model.get("attempts_per_mode")
+    _check_denominator(count, calls_per_mode)
+    protocol = model.get("protocol") or {}
+    _check_protocol(protocol)
+    inv = model.get("cases") or []
+    _check_case_inventory(model, inv, count)
+    _check_case_outcomes(model, site, inv, count, protocol)
+    comparison = model.get("version_comparison") or {}
+    version_rows = comparison.get("configurations") or []
+    _check_version_comparison(comparison, version_rows)
+    functional_methods = model.get("functional_methods") or []
+    _check_combined_chart(model, site, comparison, functional_methods, languages)
+    candidates = model.get("fixed_candidates") or {}
+    _check_functional_methods(functional_methods, candidates)
+    for method_id, candidate in candidates.items():
+        _check_fixed_method(site, method_id, candidate, inv, functional_methods)
+    if candidates:
+        _check_fixed_case_outcomes(model, site, inv, candidates, check_files)
+    _check_linux_evidence_present(model)
+    if model.get("linux_resource_profiles"):
+        profiles = model["linux_resource_profiles"]
+        summary = _check_linux_summary(model, site, comparison, profiles)
+        _check_unified_resource_metrics(model, site, summary, functional_methods)
+        _check_linux_chart(model, summary, candidates)
+    _check_platform_resources(model, site, candidates, check_files)
+    if model.get("macos_resource") or model.get("official_resource"):
+        _check_resource_matrix(model, site)
+    chart = model.get("macos_comparison")
+    if model.get("macos_resource"):
+        _check_macos_chart(model, site, chart, candidates, languages)
+    _check_functional_correction(model, site, check_files)
+    costs = model.get("task_cost") or []
+    cost_by_id = _check_task_costs(costs, inv, count)
+    full = _check_case_results(site, inv, cost_by_id, check_files)
+    _check_headline_metrics(model, full, calls_per_mode)
+    _check_paired_relations(model, site, inv)
+    _check_task_cost_total(model, costs)
+    common = _check_common_pass_population(model, site, inv)
+    for mode, index in [("off", 0), ("on", 1)]:
+        _check_common_pass_resources(model, common, mode, index)
+        _check_measurement_quality(model, mode, full, calls_per_mode)
+    _check_resource_window_corrections(model, site, calls_per_mode)
+    _check_site_shell(site, languages, comparison)
+    _check_version_charts(site, languages, version_rows)
+    _check_interaction_contract(site)
     if check_files:
-        bad = re.compile(
-            LEXBENCH_CHECK_SOURCE + r"|127\.0\.0\.1:\d+|ARTIFACT_SITE_TOKEN"
-        )
-        for p in site.rglob("*"):
-            if (
-                p.is_file()
-                and p.suffix in (".json", ".jsonl", ".log", ".html", ".js", ".css")
-                and bad.search(p.read_text(errors="replace", encoding="utf-8"))
-            ):
-                fail("private path or endpoint leaked")
+        _check_no_private_leaks(site)
     return True
 
 

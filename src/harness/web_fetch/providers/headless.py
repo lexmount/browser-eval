@@ -994,7 +994,8 @@ def _linux_listens_on(pid, port):
         with open(f'/proc/{pid}/net/tcp', encoding='ascii') as table:
             rows = [row.split() for row in table.readlines()[1:]]
         descriptors = os.listdir(f'/proc/{pid}/fd')
-    except (FileNotFoundError, ProcessLookupError):
+    except (FileNotFoundError, ProcessLookupError, PermissionError):
+        # A process that is exiting can still show its socket table after root takes over its fd directory.
         return False
     listening = set()
     for row in rows:
@@ -1006,7 +1007,7 @@ def _linux_listens_on(pid, port):
         try:
             if os.readlink(f'/proc/{pid}/fd/{descriptor}') in listening:
                 return True
-        except (FileNotFoundError, ProcessLookupError):
+        except (FileNotFoundError, ProcessLookupError, PermissionError):
             continue
     return False
 
