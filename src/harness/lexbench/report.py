@@ -895,7 +895,7 @@ def build_host_context(paths: ReportPaths, label: dict[str, str], runs: Runs) ->
     if observation_file.exists():
         observations = load_jsonl(observation_file)
 
-        def timestamp(value):
+        def timestamp(value: str) -> float:
             return datetime.datetime.fromisoformat(value).timestamp()
 
         host_context["observation_sha256"] = bytes_sha256(observation_file.read_bytes())
