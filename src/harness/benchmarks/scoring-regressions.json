@@ -77493,40 +77493,6 @@
       "expected_task_pass": true
     },
     {
-      "id": "bullet-description-escaped-hash-continuation",
-      "category": "structured-extraction",
-      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/list",
-        "expected_any": [],
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "name_description",
-          "minimum_records": 1,
-          "stable_text_anchors": []
-        }
-      },
-      "artifact": "- Widget\n\\# This is the widget description.",
-      "ok": true,
-      "metadata": {
-        "answer_format": "markdown"
-      },
-      "expected_task_pass": true,
-      "expected_metrics": {
-        "stable_records": [
-          {
-            "fields": {
-              "name": "Widget",
-              "description": "# This is the widget description."
-            },
-            "valid": true,
-            "errors": []
-          }
-        ]
-      }
-    },
-    {
       "id": "bullet-description-one-space-section-heading",
       "category": "structured-extraction",
       "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
@@ -77796,50 +77762,6 @@
       "ok": true,
       "metadata": {
         "answer_format": "html"
-      },
-      "expected_task_pass": true
-    },
-    {
-      "id": "bullet-description-escaped-hash-in-run",
-      "category": "structured-extraction",
-      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/list",
-        "expected_any": [],
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "name_description",
-          "minimum_records": 1,
-          "stable_text_anchors": []
-        }
-      },
-      "artifact": "- Widget\n#\\# This is the widget description.",
-      "ok": true,
-      "metadata": {
-        "answer_format": "markdown"
-      },
-      "expected_task_pass": true
-    },
-    {
-      "id": "bullet-description-reference-hash-in-run",
-      "category": "structured-extraction",
-      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/list",
-        "expected_any": [],
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "name_description",
-          "minimum_records": 1,
-          "stable_text_anchors": []
-        }
-      },
-      "artifact": "- Widget\n#&#35; This is the widget description.",
-      "ok": true,
-      "metadata": {
-        "answer_format": "markdown"
       },
       "expected_task_pass": true
     },
@@ -78179,308 +78101,6 @@
       "expected_task_pass": false
     },
     {
-      "id": "bullet-description-bold-hash-continuation",
-      "category": "structured-extraction",
-      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/list",
-        "expected_any": [],
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "name_description",
-          "minimum_records": 1,
-          "stable_text_anchors": []
-        }
-      },
-      "artifact": "- Widget\n**# Genuine description here**",
-      "ok": true,
-      "metadata": {
-        "answer_format": "markdown"
-      },
-      "expected_task_pass": true
-    },
-    {
-      "id": "bullet-description-strong-underscore-hash-continuation",
-      "category": "structured-extraction",
-      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/list",
-        "expected_any": [],
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "name_description",
-          "minimum_records": 1,
-          "stable_text_anchors": []
-        }
-      },
-      "artifact": "- Widget\n__# Genuine description here__",
-      "ok": true,
-      "metadata": {
-        "answer_format": "markdown"
-      },
-      "expected_task_pass": true
-    },
-    {
-      "id": "bullet-description-emphasis-hash-continuation",
-      "category": "structured-extraction",
-      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/list",
-        "expected_any": [],
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "name_description",
-          "minimum_records": 1,
-          "stable_text_anchors": []
-        }
-      },
-      "artifact": "- Widget\n*# Genuine description here*",
-      "ok": true,
-      "metadata": {
-        "answer_format": "markdown"
-      },
-      "expected_task_pass": true
-    },
-    {
-      "id": "bullet-description-underscore-hash-continuation",
-      "category": "structured-extraction",
-      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/list",
-        "expected_any": [],
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "name_description",
-          "minimum_records": 1,
-          "stable_text_anchors": []
-        }
-      },
-      "artifact": "- Widget\n_# Genuine description here_",
-      "ok": true,
-      "metadata": {
-        "answer_format": "markdown"
-      },
-      "expected_task_pass": true
-    },
-    {
-      "id": "bullet-description-link-hash-continuation",
-      "category": "structured-extraction",
-      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/list",
-        "expected_any": [],
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "name_description",
-          "minimum_records": 1,
-          "stable_text_anchors": []
-        }
-      },
-      "artifact": "- Widget\n[# Genuine description here](/x)",
-      "ok": true,
-      "metadata": {
-        "answer_format": "markdown"
-      },
-      "expected_task_pass": true
-    },
-    {
-      "id": "bullet-description-bold-hash-before-section",
-      "category": "structured-extraction",
-      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
-      "failure_mode": "false-positive",
-      "case": {
-        "url": "https://example.test/list",
-        "expected_any": [],
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "name_description",
-          "minimum_records": 1,
-          "stable_text_anchors": []
-        }
-      },
-      "artifact": "- Widget\n\n# Genuine section heading\n**# Unrelated section prose**",
-      "ok": true,
-      "metadata": {
-        "answer_format": "markdown"
-      },
-      "expected_task_pass": false
-    },
-    {
-      "id": "card-bold-hash-is-not-a-heading",
-      "category": "structured-extraction",
-      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
-      "failure_mode": "false-positive",
-      "case": {
-        "url": "https://example.test/list",
-        "expected_any": [],
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "name_description",
-          "minimum_records": 1,
-          "stable_text_anchors": []
-        }
-      },
-      "artifact": "**# Widget**\n\nA description of widget here.",
-      "ok": true,
-      "metadata": {
-        "answer_format": "markdown"
-      },
-      "expected_task_pass": false
-    },
-    {
-      "id": "pipe-description-escaped-hash-fixed-membership",
-      "category": "structured-extraction",
-      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/list",
-        "expected_any": [],
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "name_description",
-          "minimum_records": 1,
-          "stable_text_anchors": [],
-          "source_membership": {
-            "kind": "fixed",
-            "fields": [
-              "description",
-              "name"
-            ],
-            "record_hashes": [
-              "66d19d31841567cd3bc30c8e71edaf05c01a2996b2dd34a4f5191e2ae8182313"
-            ]
-          }
-        }
-      },
-      "artifact": "| Name | Description |\n| --- | --- |\n| Widget | Issue \\#12 desc here. |",
-      "ok": true,
-      "metadata": {
-        "answer_format": "markdown"
-      },
-      "expected_task_pass": true,
-      "expected_metrics": {
-        "stable_source_observed_record_count": 1,
-        "stable_source_matched_record_count": 1,
-        "stable_source_mismatched_record_count": 0
-      }
-    },
-    {
-      "id": "pipe-description-reference-hash-fixed-membership",
-      "category": "structured-extraction",
-      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/list",
-        "expected_any": [],
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "name_description",
-          "minimum_records": 1,
-          "stable_text_anchors": [],
-          "source_membership": {
-            "kind": "fixed",
-            "fields": [
-              "description",
-              "name"
-            ],
-            "record_hashes": [
-              "66d19d31841567cd3bc30c8e71edaf05c01a2996b2dd34a4f5191e2ae8182313"
-            ]
-          }
-        }
-      },
-      "artifact": "| Name | Description |\n| --- | --- |\n| Widget | Issue &#35;12 desc here. |",
-      "ok": true,
-      "metadata": {
-        "answer_format": "markdown"
-      },
-      "expected_task_pass": true,
-      "expected_metrics": {
-        "stable_source_observed_record_count": 1,
-        "stable_source_matched_record_count": 1,
-        "stable_source_mismatched_record_count": 0
-      }
-    },
-    {
-      "id": "pipe-description-escaped-backslash-keeps-backslash",
-      "category": "structured-extraction",
-      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
-      "failure_mode": "false-negative",
-      "case": {
-        "url": "https://example.test/list",
-        "expected_any": [],
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "name_description",
-          "minimum_records": 1,
-          "stable_text_anchors": [],
-          "source_membership": {
-            "kind": "fixed",
-            "fields": [
-              "description",
-              "name"
-            ],
-            "record_hashes": [
-              "27237214a6c394c8a811292afb2b966c7a09f906fc1225a256cf6ee8927a6104"
-            ]
-          }
-        }
-      },
-      "artifact": "| Name | Description |\n| --- | --- |\n| Widget | Issue \\\\#12 desc here. |",
-      "ok": true,
-      "metadata": {
-        "answer_format": "markdown"
-      },
-      "expected_task_pass": true,
-      "expected_metrics": {
-        "stable_source_observed_record_count": 1,
-        "stable_source_matched_record_count": 1,
-        "stable_source_mismatched_record_count": 0
-      }
-    },
-    {
-      "id": "pipe-description-other-record-fixed-membership",
-      "category": "structured-extraction",
-      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
-      "failure_mode": "false-positive",
-      "case": {
-        "url": "https://example.test/list",
-        "expected_any": [],
-        "acceptance_contract": {
-          "version": 1,
-          "schema": "name_description",
-          "minimum_records": 1,
-          "stable_text_anchors": [],
-          "source_membership": {
-            "kind": "fixed",
-            "fields": [
-              "description",
-              "name"
-            ],
-            "record_hashes": [
-              "66d19d31841567cd3bc30c8e71edaf05c01a2996b2dd34a4f5191e2ae8182313"
-            ]
-          }
-        }
-      },
-      "artifact": "| Name | Description |\n| --- | --- |\n| Widget | Issue \\#13 desc here. |",
-      "ok": true,
-      "metadata": {
-        "answer_format": "markdown"
-      },
-      "expected_task_pass": false,
-      "expected_metrics": {
-        "stable_source_observed_record_count": 1,
-        "stable_source_matched_record_count": 0,
-        "stable_source_mismatched_record_count": 1
-      }
-    },
-    {
       "id": "html-fallback-encoded-markdown-permalink",
       "category": "format-normalization",
       "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
@@ -78681,6 +78301,138 @@
         "answer_format": "markdown"
       },
       "expected_task_pass": true
+    },
+    {
+      "id": "bullet-card-title-after-image-bullet",
+      "category": "structured-extraction",
+      "root_cause": "A heading left of a bullet's content column ended the description even when it was the card's own title, while a later section must still not supply one.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "        1. [![Alpha](/a.jpg)](/a)\n\n### Alpha\n\n£51.77\nIn stock\n\n        2. [![Beta](/b.jpg)](/b)\n\n### Beta\n\n£12.00\nIn stock\n",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-card-title-after-link-bullet",
+      "category": "structured-extraction",
+      "root_cause": "A heading left of a bullet's content column ended the description even when it was the card's own title, while a later section must still not supply one.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- [Alpha](/a)\n\n### Alpha\n\nAlpha is a great item.\n\n- [Beta](/b)\n\n### Beta\n\nBeta is a great item.\n",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-heading-cards-with-feature-bullets",
+      "category": "structured-extraction",
+      "root_cause": "A heading left of a bullet's content column ended the description even when it was the card's own title, while a later section must still not supply one.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "## Alpha\nAlpha is great for teams.\n- Fast\n- Cheap\n\n## Beta\nBeta is great for solo work.\n- Slow\n- Costly\n\n## Gamma\nGamma is great for all of us.\n- Big\n- Bold\n",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-navigation-only-sections",
+      "category": "structured-extraction",
+      "root_cause": "A heading left of a bullet's content column ended the description even when it was the card's own title, while a later section must still not supply one.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "### Tools\n- Log in\n- Sign up\n\n### Views\n...",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-own-title-without-body",
+      "category": "structured-extraction",
+      "root_cause": "A heading left of a bullet's content column ended the description even when it was the card's own title, while a later section must still not supply one.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Alpha\n\n### Alpha\n",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-empty-section-before-next-bullet",
+      "category": "structured-extraction",
+      "root_cause": "A heading left of a bullet's content column ended the description even when it was the card's own title, while a later section must still not supply one.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n\n## Related\n\n- Gadget\n  Gadget description text here.\n",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
     }
   ]
 }

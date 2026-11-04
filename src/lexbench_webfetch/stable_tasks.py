@@ -269,9 +269,6 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
         token = marker + str(len(literals)) + '\ue027'
         literals[token] = payload
         text = text[:start] + token + text[end:]
-    if schema == 'name_description':
-        # A hash inside an emphasis or link wrapper is prose once the wrapper is removed.
-        text = re.sub(r'(?m)^([ \t]*(?:[*_]+|\[)[ \t]*)#', r'\1\\#', text)
     from .reference_quality import _markdown_unescape
     def rendered_literal(match):
         raw = match[0]
@@ -288,9 +285,7 @@ def _visible(text, schema=None, *, normalized_html=False, representation=None):
             return raw
         token = marker + str(len(literals)) + '\ue027'
         # Keep emitted delimiters opaque until an owned record scalar is read.
-        # An escaped hash is prose, never a description boundary.
-        opaque = not body_view and value in {'`', '\\'} or (schema == 'name_description' and value == '#')
-        literals[token] = '\\' + value if opaque else value
+        literals[token] = '\\' + value if not body_view and value in {'`', '\\'} else value
         return token
     text = re.sub(r'\\([!"#$%&\'()*+,\-./:;<=>?@\[\]\\^_`{|}~])'
                   r'|&(?:#[xX][0-9a-fA-F]+|#\d+|[A-Za-z][A-Za-z0-9]*);',
@@ -346,7 +341,7 @@ def _render_inline_scalar(text, *, pipe_cell=False):
 
     text, restore_code = mask_markdown_inline_code(text)
     text = re.sub(r"</?(?:strong|b|em|i)>", "", text, flags=re.I)
-    text = re.sub(r'\\(`)' if pipe_cell else r'\\([`\\#])', r'\1', text)
+    text = re.sub(r'\\(`)' if pipe_cell else r'\\([`\\])', r'\1', text)
     return restore_code(text).strip()
 
 
@@ -482,10 +477,7 @@ def _table_records(lines, schema):
     from .structured_tables import _pipe_cells, _table_header_at
     from .article_text import mask_markdown_inline_code
 
-    # An opaque hash from _visible is rendered here because _pipe_cells would
-    # merge an escaped backslash into it.
-    masked = [(re.sub(r'(\\\\)|\\#', lambda match: match[1] or '#', text), restore)
-              for text, restore in map(mask_markdown_inline_code, lines)]
+    masked = [mask_markdown_inline_code(line) for line in lines]
     records, occupied = [], set()
     required = set(SCHEMA_FIELDS[schema])
     for i in range(len(lines) - 1):
@@ -744,11 +736,18 @@ def _descriptions(text, *, literal=False):
             if match[2] is not None]
         for index, bullet in enumerate(bullets):
             end = bullets[index + 1].start() if index + 1 < len(bullets) else len(text)
-            # A section heading left of the item's content column ends its
-            # ownership; a heading indented into the item remains a continuation.
+            # A heading left of the item's content column may be a later section or
+            # the card's own title. It ends the description when nothing follows it
+            # before the next bullet, or after the last bullet unless it repeats the
+            # bullet's title. A heading indented into the item remains a continuation.
             column = re.match(r'\s*(?:[-*+]|\d+[.)])[ \t]+', bullet[0].rsplit('\n', 1)[-1].expandtabs(4)).end()
-            end = next((section.start() for section in sections
-                        if bullet.end() <= section.start() < end and len(section[2]) < column), end)
+            section = next((section.start() for section in sections
+                            if bullet.end() <= section.start() < end and len(section[2]) < column), None)
+            if section is not None:
+                heading, _, body = text[section:end].partition('\n')
+                title = _line(heading)
+                if not body.strip() or (index + 1 == len(bullets) and not (title and title in bullet[0])):
+                    end = section
             lines = [_line(line, literal=literal) for line in text[bullet.start():end].splitlines() if line.strip()]
             records.append(_record({"name": _field(lines[0], "name"),
                 "description": " ".join(_field(line, "description") for line in lines[1:])}, "name_description"))
