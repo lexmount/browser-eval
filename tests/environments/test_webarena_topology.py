@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from urllib.request import ProxyHandler, build_opener
 
 import pytest
 from webarena_verified.types.task import WebArenaSite
@@ -283,10 +284,16 @@ def test_deployment_contract_rejects_map_local_ports_that_leave_the_registry(
 
 
 def test_fixture_server_keeps_the_host_alias_origin(tmp_path: Path) -> None:
+    (tmp_path / "fixture-root-marker.txt").write_text("fixture-root", encoding="utf-8")
     server, thread, origin = start_fixture_server(tmp_path)
     try:
         assert origin == f"http://host.docker.internal:{server.server_port}"
         assert server.server_address[0] == "0.0.0.0"
+        # The server is reachable beyond loopback, so it must serve only the fixture root.
+        direct = build_opener(ProxyHandler({}))
+        url = f"http://127.0.0.1:{server.server_port}/fixture-root-marker.txt"
+        with direct.open(url, timeout=5) as response:
+            assert response.read() == b"fixture-root"
     finally:
         server.shutdown()
         server.server_close()
