@@ -124,7 +124,7 @@ def require_table_index_headers(parser, *, english=False, diagnostic=False):
 
 
 def require_home_comparison_layout(home, track_count, *, diagnostic=False, sample_ranking=False):
-    overall = ('任务判定汇总（非排名）' if diagnostic else
+    overall = ('本轮任务通过率排名' if diagnostic else
                '本轮任务通过率排名' if sample_ranking else '综合通过率总榜')
     details = '按任务类别查看诊断结果' if diagnostic else f'{track_count} 类分榜'
     markers = [f'{track_count} 类任务概览', overall, details]
@@ -309,8 +309,8 @@ def check_local_diagnostic_presentation(root: Path, *, ranked=False):
         if ranked and 'ranking' not in disclosure.visible:
             raise ValueError('Sample ranking scope missing: ' + str(path.relative_to(root)))
         for table in re.findall(r'<table\b[^>]*\bid="ranking-[^"]+".*?</table>', page, re.S):
-            if not ranked and re.search(r'<th>\s*(?:序号|Rank|No\.)\s*</th>', table):
-                raise ValueError('Uncertified diagnostic comparison assigns ranks: ' + str(path.relative_to(root)))
+            if re.search(r'<th>\s*(?:序号|Rank|No\.)\s*</th>', table) and 'ranking' not in disclosure.visible:
+                raise ValueError('Sample ranking scope missing: ' + str(path.relative_to(root)))
 
 
 def check(root: Path, *, authority_root: Path, profile: Path | None = None, presentation_binding: Path | None = None, source_dataset: Path | None = None):

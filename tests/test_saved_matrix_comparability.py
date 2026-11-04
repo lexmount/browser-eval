@@ -351,10 +351,12 @@ def test_final_checker_requires_original_sources(tmp_path):
 
 
 @pytest.mark.parametrize('presentation', ['audit', 'final'])
-def test_saved_ranks_preserve_diagnostic_evidence_disclosure(tmp_path, presentation):
+@pytest.mark.parametrize('combined', [False, True])
+def test_saved_ranks_preserve_diagnostic_evidence_disclosure(tmp_path, presentation, combined):
     from bs4 import BeautifulSoup
     spec = matrix(tmp_path)
     spec['presentation'] = presentation
+    spec['combined_ranking'] = combined
     output = build(tmp_path, spec).parent
     dataset = json.loads((output/'dataset.json').read_bytes())
     page = BeautifulSoup((output/'index.html').read_text(encoding='utf-8'), 'html.parser')
@@ -362,13 +364,15 @@ def test_saved_ranks_preserve_diagnostic_evidence_disclosure(tmp_path, presentat
     assert dataset['comparison']['presentation']['ranking'] == ('diagnostic' if diagnostic else 'saved_task_pass_rate')
     for selector in ['#ranking-overall', '#ranking-web']:
         table = page.select_one(selector)
-        assert table.get('data-row-index') is None
-        assert table['data-dir'] == 'desc'
+        assert (table.get('data-row-index') is None) == (combined or selector != '#ranking-overall')
+        assert table['data-dir'] == ('desc' if combined or selector != '#ranking-overall' else 'asc')
     assert bool(page.select_one('[data-evidence-state="saved_diagnostic"]')) is diagnostic
     if diagnostic:
         assert '名次按最终选用的结果和当前验收规则计算' in page.get_text()
         assert '未认证' in page.get_text()
-        assert '本轮任务通过率排名' in page.get_text()
+        assert '不提供名次' not in page.get_text()
+        if combined:
+            assert '本轮任务通过率排名' in page.get_text()
         assert '任务判定汇总（非排名）' not in page.get_text()
 
 

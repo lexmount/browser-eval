@@ -381,7 +381,7 @@ def test_measurement_display_policy_does_not_grant_certification():
  assert policy.local_matrix
  assert policy.native_outputs and policy.all_call_latency and policy.explain_unjudged
  assert 'data-evidence-state="local_measurement"' in local_audit_banner(local)
- assert '不可用于排名' in local_audit_banner(local)
+ assert '本地未认证结果排名' in local_audit_banner(local)
  local['comparison']['presentation']={'ranking':'saved_task_pass_rate'}
  assert 'data-ranking-scope="saved-task-pass-rate"' in local_audit_banner(local)
 
