@@ -76,6 +76,7 @@ from harness.web_search.revisions import (
 )
 from harness.web_search.runner import reference_available, reference_changes
 
+CHINESE_SEPARATORS = re.compile("[\u3001\uff1a\uff1b]")
 STYLE = """
 .dataset-controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;align-items:end;margin:20px 0}.dataset-controls label{display:grid;gap:5px}.dataset-controls select,.dataset-controls input{width:100%;min-width:0}
 
@@ -995,7 +996,7 @@ def build(
             if c.get('anchors'):
                 detail += '<h2>' + t("Webpage discovery references") + '</h2><ul>' + ''.join('<li><a href="' + esc(url) + '">' + esc(url) + '</a></li>' for url in c['anchors']) + '</ul>'
             elif c.get('domains'):
-                detail += '<h2>' + t("Requested sites") + '</h2><p>' + esc('、'.join(c['domains'])) + '</p>'
+                detail += '<h2>' + t("Requested sites") + '</h2><p>' + esc(t(", ").join(c['domains'])) + '</p>'
             if c.get("reference_annotation"):
                 detail += annotation_detail(c["reference_annotation"], zh)
             elif c.get("anchors"):
@@ -1267,6 +1268,25 @@ def build(
     return entry
 
 
+def _check_english_separators(output, manifest):
+    """Report-authored separators stay English; measured queries and responses keep their own text."""
+    for route in manifest["routes"]:
+        if not route.startswith("en/") or not route.endswith(".html"):
+            continue
+        html = (output / route).read_text(encoding="utf-8")
+        if not CHINESE_SEPARATORS.search(html):
+            continue
+        soup = BeautifulSoup(html, "html.parser")
+        authored = soup.select("[data-independent-review] details > ul > li, [data-populations] > .population-note")
+        authored += [
+            heading.find_next_sibling("p")
+            for heading in soup.find_all("h2")
+            if heading.get_text() == "Requested sites"
+        ]
+        if any(CHINESE_SEPARATORS.search(element.get_text()) for element in authored if element):
+            raise ValueError(f"English page renders Chinese punctuation in report-authored text: {route}")
+
+
 def check(output, *, return_data=False, evidence_only=False):
     authority = report_authority(output)
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
@@ -1275,6 +1295,8 @@ def check(output, *, return_data=False, evidence_only=False):
     if manifest.get("assessment_revision"):
         validate_revision_binding(manifest["assessment_revision"]["contract"], normalizer=normalize_response, authority=authority)
     _check_report_languages(output, manifest)
+    if not evidence_only:
+        _check_english_separators(output, manifest)
     top_routes = reader_pages((manifest.get("authored") or {}).get("presentation"), reviewed=bool(manifest.get("independent_review_sha256")))
     for lang in manifest["languages"]:
         prefix = "" if lang == "zh" else lang + "/"
@@ -3152,7 +3174,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
     prices = catalog_prices(profile, content)
     roots = [p for p in metric_populations(profile, content) if p.get("benchmark_root")] if independent else []
     heading = report_text("Core results by benchmark", zh)
-    scope = "；".join(p["label"][lang] + " " + str(len(set(p["case_ids"]) - set(profile.get("factual_quality_exclusions", [])))) + report_text(" queries", zh) for p in roots)
+    scope = report_text("; ", zh).join(p["label"][lang] + " " + str(len(set(p["case_ids"]) - set(profile.get("factual_quality_exclusions", [])))) + report_text(" queries", zh) for p in roots)
     note = ((scope + report_text(". Benchmarks are reported separately. ", zh)) if scope else "") + (
         report_text("Mean, P50 and P95 cover all requests and retry waits; fees estimate the calls in each population.", zh))
     if prices is not None:
