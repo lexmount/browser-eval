@@ -140,3 +140,42 @@ def test_late_first_call_is_discarded_then_retried_without_overlap(run_task):
     assert len(attempts) == 2
     assert attempts[0]['error_type'] == 'timeout' and not attempts[0]['task_pass']
     assert not attempts[1]['task_pass']
+
+
+def test_cleanup_events_and_native_logs_are_retained_before_retry(run_task, tmp_path):
+    import hashlib
+    import time
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    class CleanupLogging(Responses):
+        def fetch(self, case, timeout, **kwargs):
+            self.calls += 1
+            if self.calls == 1:
+                time.sleep(timeout + .1)
+                sink = self._call_diagnostics
+                sink.emit('native_library', 'cleanup_observation')
+                Path(str(sink.path)+'.moli.stderr').write_text('native cleanup bytes', encoding='utf-8')
+                self.finished = datetime.now(timezone.utc)
+                return ProviderResult(True, 'Late answer must be discarded')
+            assert self.finished is not None
+            return ProviderResult(True, 'Expected')
+
+    provider = CleanupLogging([])
+    provider.config['log_level'] = 'debug'
+    provider.finished = None
+    row = run_task(provider)
+    first, second = row['provider_metadata']['retry']['attempts']
+    assert first['error_type'] == 'timeout' and not first['task_pass']
+    assert second['task_pass'] and row['elapsed_ms'] == second['elapsed_ms']
+    assert (tmp_path/first['artifact_path']).read_bytes() == b''
+    assert len(first['private_artifacts']) == 1
+    diagnostic = first['private_artifacts'][0]
+    raw = (tmp_path/diagnostic['path']).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == diagnostic['sha256']
+    assert b'cleanup_observation' in raw and b'native cleanup bytes' in raw
+    assert raw.index(b'cleanup_observation') < raw.index(b'collection_completed')
+    assert datetime.fromisoformat(first['completed_at']) >= provider.finished
+    assert first['elapsed_ms'] < (provider.finished - datetime.fromisoformat(first['started_at'])).total_seconds() * 1000
+    call = json.loads((tmp_path/first['call_log']['path']).read_bytes())
+    assert call['timing']['completed_at'] == first['completed_at']

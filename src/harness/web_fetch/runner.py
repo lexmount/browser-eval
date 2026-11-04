@@ -748,6 +748,32 @@ def run_evaluation(
                                     metadata=allowed_diagnostic,
                                 )
                             wall_elapsed_ms = round((time.perf_counter() - physical_begin) * 1000, 2)
+                            stopped_provider = (isinstance(caught_exception, ProcessCleanupError)
+                                                or worker_unresolved(
+                                                    pending, timed_out=result.error_type == 'timeout'))
+                            if stopped_provider and physical_attempt <= max_failure_retries:
+                                # Discard the late answer, but allow bounded cleanup
+                                # before the single retry. Never overlap live calls.
+                                cleanup_begin = time.monotonic()
+                                if pending is not None:
+                                    pending.join(1.0)
+                                result.metadata['retry_cleanup_wait_ms'] = round(
+                                    (time.monotonic() - cleanup_begin) * 1000, 2)
+                                stopped_provider = (isinstance(caught_exception, ProcessCleanupError)
+                                                    or worker_unresolved(
+                                                        pending, timed_out=result.error_type == 'timeout'))
+                                if stopped_provider:
+                                    result.metadata['retry_pending'] = {
+                                        'remaining_physical_calls': 1,
+                                        'reason': 'previous_call_still_running',
+                                        'first_attempt_id': attempt_id,
+                                    }
+                                    with result_lock:
+                                        manifest['unexecuted'].append({
+                                            'provider': provider.name,
+                                            'after_attempt_id': attempt_id,
+                                            'reason': 'failure_retry_pending_previous_call_still_running',
+                                        })
                             if diagnostics is not None:
                                 diagnostics.finish(result)
                             # Cancellable adapters may need a bounded post-deadline
@@ -824,6 +850,8 @@ def run_evaluation(
                                 'completed_at': physical_completed,
                                 'elapsed_ms': physical_elapsed_ms,
                                 'retry_throttle_wait_ms': retry_throttle_wait_ms,
+                                **({'retry_cleanup_wait_ms': result.metadata['retry_cleanup_wait_ms']}
+                                   if 'retry_cleanup_wait_ms' in result.metadata else {}),
                                 'ok': result.ok,
                                 'status_code': result.status_code,
                                 'error_type': result.error_type,
@@ -836,38 +864,6 @@ def run_evaluation(
                                 'call_log': call_log,
                                 **({'private_artifacts': private_artifacts} if private_artifacts else {}),
                             })
-                            stopped_provider = (isinstance(caught_exception, ProcessCleanupError)
-                                                or worker_unresolved(
-                                                    pending, timed_out=result.error_type == 'timeout'))
-                            if stopped_provider and physical_attempt <= max_failure_retries:
-                                # Discard the late answer, but allow bounded cleanup
-                                # before the single retry. Never overlap live calls.
-                                cleanup_begin = time.monotonic()
-                                if pending is not None:
-                                    pending.join(1.0)
-                                result.metadata['retry_cleanup_wait_ms'] = round(
-                                    (time.monotonic() - cleanup_begin) * 1000, 2)
-                                physical_attempts[-1]['retry_cleanup_wait_ms'] = result.metadata['retry_cleanup_wait_ms']
-                                stopped_provider = (isinstance(caught_exception, ProcessCleanupError)
-                                                    or worker_unresolved(
-                                                        pending, timed_out=result.error_type == 'timeout'))
-                                if not stopped_provider:
-                                    # Cooldown starts when the timed-out worker is
-                                    # known to have finished, not at its deadline.
-                                    previous_request_completed = time.monotonic()
-                                    completed_by_provider[provider.name] = previous_request_completed
-                                if stopped_provider:
-                                    result.metadata['retry_pending'] = {
-                                        'remaining_physical_calls': 1,
-                                        'reason': 'previous_call_still_running',
-                                        'first_attempt_id': attempt_id,
-                                    }
-                                    with result_lock:
-                                        manifest['unexecuted'].append({
-                                            'provider': provider.name,
-                                            'after_attempt_id': attempt_id,
-                                            'reason': 'failure_retry_pending_previous_call_still_running',
-                                        })
                             if physical_passed or stopped_provider or physical_attempt > max_failure_retries:
                                 break
                         result.metadata['call_sequence_elapsed_ms'] = round((time.monotonic() - sequence_begin) * 1000, 2)
