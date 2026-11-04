@@ -6,9 +6,8 @@ from urllib.error import URLError
 
 import pytest
 
-from harness.trajectory_replay import diagnostics
-from harness.trajectory_replay.diagnostics import build_failure_groups, classify_failure
-from harness.trajectory_replay.public_webarena import diagnostics as public_diagnostics
+from harness.trajectory_replay.core import diagnostics
+from harness.trajectory_replay.core.diagnostics import build_failure_groups, classify_failure
 from harness.web_fetch import config as web_fetch_config
 
 
@@ -45,18 +44,17 @@ def test_missing_llm_credentials_are_nonfatal(monkeypatch, tmp_path):
     assert summary["failure_diagnostics"]["llm"]["error_type"] == "RuntimeError"
 
 
-@pytest.mark.parametrize("module", [diagnostics, public_diagnostics])
-def test_llm_credentials_come_only_from_repository_env(module, monkeypatch, tmp_path):
+def test_llm_credentials_come_only_from_repository_env(monkeypatch, tmp_path):
     monkeypatch.setenv("OPENAI_API_KEY", "shell-key")
     monkeypatch.setenv("OPENAI_BASE_URL", "https://shell.invalid")
     monkeypatch.setenv("BROWSERBASE_API_KEY", "unrelated-shell-key")
     monkeypatch.setattr(web_fetch_config, "ROOT", tmp_path)
     calls = []
     monkeypatch.setattr(
-        module, "add_llm_diagnoses", lambda groups, **kwargs: calls.append(kwargs) or {}
+        diagnostics, "add_llm_diagnoses", lambda groups, **kwargs: calls.append(kwargs) or {}
     )
 
-    summary = module.diagnose_summary({}, use_llm=True)
+    summary = diagnostics.diagnose_summary({}, use_llm=True)
     assert calls == []
     assert summary["failure_diagnostics"]["llm"]["error_type"] == "RuntimeError"
 
@@ -64,7 +62,7 @@ def test_llm_credentials_come_only_from_repository_env(module, monkeypatch, tmp_
         "OPENAI_API_KEY=repository-key\nOPENAI_BASE_URL=https://models.invalid\n",
         encoding="utf-8"
     )
-    module.diagnose_summary({}, use_llm=True)
+    diagnostics.diagnose_summary({}, use_llm=True)
     assert calls[0]["api_key"] == "repository-key"
     assert calls[0]["api_base"] == "https://models.invalid"
     assert os.environ["OPENAI_API_KEY"] == "shell-key"
@@ -74,7 +72,7 @@ def test_llm_credentials_come_only_from_repository_env(module, monkeypatch, tmp_
         "OPENAI_API_KEY=repository-key\nOPENAI_BASE_URL=${OPENAI_BASE_URL}\n",
         encoding="utf-8"
     )
-    module.diagnose_summary({}, use_llm=True)
+    diagnostics.diagnose_summary({}, use_llm=True)
     assert calls[1]["api_base"] == "${OPENAI_BASE_URL}"
 
 

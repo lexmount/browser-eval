@@ -131,7 +131,6 @@ def open_task_page(context: Any, viewport: dict[str, int], *, settle_ms: int) ->
 
 
 def resource_result(
-    source: DockerStatsResources,
     sampler: ResourceSampler,
     before: Any,
     after: Any,
