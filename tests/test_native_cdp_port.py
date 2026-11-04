@@ -7,7 +7,9 @@ because that is the window in which another listener could be reached.
 """
 
 import base64
+import io
 import json
+import os
 import socket
 import stat
 import subprocess
@@ -21,6 +23,7 @@ from urllib.request import urlopen
 
 import pytest
 
+from harness.web_fetch.providers import headless
 from harness.web_fetch.providers.headless import NATIVE_CDP_PORT_ATTEMPTS, native_cdp_browser
 
 SERVER = """#!{python}
@@ -339,3 +342,29 @@ def test_missing_binary_reports_no_process_log(tmp_path):
     with pytest.raises(FileNotFoundError):
         harness.run(engine="moli", metadata=metadata)
     assert "_diagnostic_log_b64" not in metadata
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="reads the Linux /proc socket tables")
+def test_exited_unreaped_server_is_not_reported_as_listening():
+    process = subprocess.Popen([sys.executable, "-c", "pass"])
+    try:
+        os.waitid(os.P_PID, process.pid, os.WEXITED | os.WNOWAIT)
+        assert headless._linux_listens_on(process.pid, 1) is False
+    finally:
+        process.wait()
+
+
+@pytest.mark.parametrize("denied", ["listdir", "readlink"])
+def test_denied_descriptor_lookup_does_not_prove_a_listener(monkeypatch, denied):
+    table = (
+        "sl local_address rem_address st tx rx tr retrnsmt uid timeout inode\n"
+        "0: 0100007F:0050 00000000:0000 0A 0 0 0 0 0 0 4242\n"
+    )
+
+    def deny(*arguments):
+        raise PermissionError(13, "Permission denied")
+
+    monkeypatch.setattr(headless, "open", lambda *a, **k: io.StringIO(table), raising=False)
+    monkeypatch.setattr(headless.os, "listdir", lambda path: ["3"])
+    monkeypatch.setattr(headless.os, denied, deny)
+    assert headless._linux_listens_on(1, 80) is False
