@@ -7,11 +7,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from harness.trajectory_replay.public_webarena.executor import (
-    execute_steps,
-    judge_outputs,
-    validate_outputs,
-)
+from harness.trajectory_replay.public_webarena.executor import execute_steps
 
 
 class FakePage:
@@ -1128,14 +1124,6 @@ def test_table_column_can_wait_for_async_filtered_value(monkeypatch):
     )
 
     assert outputs["phones"] == '["8015551212"]'
-
-
-def test_exact_ground_truth_judge_reports_expected_and_actual():
-    assertions = [{"output": "answer", "equals": "unique-73"}]
-
-    assert validate_outputs({"answer": "unique-73"}, assertions) == []
-    assert "exact mismatch" in validate_outputs({"answer": "near-73"}, assertions)[0]
-    assert judge_outputs({"answer": "unique-73"}, assertions)[0]["passed"] is True
 
 
 def test_failed_click_records_actionability_probe_without_adding_a_step():

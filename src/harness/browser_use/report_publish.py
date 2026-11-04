@@ -5,25 +5,18 @@ from __future__ import annotations
 
 import argparse
 import json
-import urllib.parse
 from pathlib import Path
 
 from harness.record_io import file_sha256
 from harness.reporting.publication import (
     PublicationClient,
-    PublicationOperation,
     PublicationSnapshot,
-    archive_inventory,
     atomic_write,
     bind_publication_files,
-    binding_receipt_matches,
-    public_share_context,
     recover_binding,
-    response_json,
-    snapshot_publication,
-    write_receipt,
 )
 from harness.reporting.publication import multipart_archive as build_multipart_archive
+from harness.reporting.publish import BoundTrack, publish_bound_release
 from harness.reporting.visual import tree_sha256 as _tree_sha256
 from harness.web_fetch.safety import reject_evidence_symlinks
 
@@ -77,31 +70,17 @@ def validate_package() -> None:
         )
 
 
-def publication_target(*, require_existing: bool = True) -> tuple[str, str, str]:
-    profile = json.loads(PROFILE.read_text(encoding="utf-8"))
-    publication = profile.get("publication") or {}
-    base = str(publication.get("base_url") or "").rstrip("/")
-    slug = str(publication.get("site_slug") or "")
-    version = str(publication.get("expected_version") or "")
-    if not base.startswith("https://"):
-        raise ValueError("current Browser Use report has no valid publication base")
-    if require_existing and (not slug or not version.startswith("ver_")):
-        raise ValueError("current Browser Use report has no valid publication target")
-    return base, slug, version
-
-
 def request(
     path: str,
     data: bytes | None = None,
     content_type: str | None = None,
     *,
     method: str | None = None,
-    base_url: str | None = None,
+    base_url: str,
     extra_headers: dict | None = None,
 ):
-    base = base_url or publication_target(require_existing=False)[0]
     return CLIENT.request(
-        base, path, data, content_type, method=method, extra_headers=extra_headers
+        base_url, path, data, content_type, method=method, extra_headers=extra_headers
     )[:2]
 
 
@@ -121,10 +100,6 @@ def multipart_archive(
     return build_multipart_archive(
         archive, title, boundary_prefix="----browseruse", filename="browser-use.zip"
     )
-
-
-def save_receipt(result: dict) -> None:
-    write_receipt(RECEIPT, result)
 
 
 def recover_publication_binding() -> None:
@@ -163,168 +138,33 @@ def bind_published_version(
 
 
 def main(*, create: bool = False) -> None:
-    recover_publication_binding()
-    with snapshot_publication(ARCHIVE, inputs=[ATTESTATION, PROFILE]) as release:
-        validate_package()
-        release.check()
-        _publish(create=create, release=release)
-
-
-def _publish(*, create: bool, release: PublicationSnapshot) -> None:
-    def send(*args, **kwargs):
-        release.check()
-        return request(*args, base_url=base, **kwargs)
-
-    title = str(
-        json.loads(PROFILE.read_text(encoding="utf-8")).get("publication", {}).get("title")
-        or "Browser Use 评测"
-    )
-    payload, content_type = multipart_archive(archive=release.archive, title=title)
-    base, expected_slug, expected_version = publication_target(require_existing=False)
-    operations = PublicationOperation(OPERATION_JOURNAL, "browser-use-")
-    identity = {
-        "schema": "lex_browser_use_artifact_operation/1",
-        "base_url": base,
-        "archive_sha256": release.sha256,
-        "title": title,
-        "kind": "version" if expected_slug or expected_version else "create",
-        "slug": expected_slug,
-        "expected_version": expected_version,
-    }
-    resume_binding = binding_receipt_matches(
-        RECEIPT, base=base, archive_sha256=release.sha256,
-        slug=expected_slug, version=expected_version, version_field="versionId",
-    )
-    if expected_slug or expected_version:
-        if create and not resume_binding:
-            raise ValueError("Browser Use report is already bound; update it without --create")
-        if not expected_slug or not expected_version.startswith("ver_"):
-            raise ValueError("current Browser Use profile has no complete publication binding")
-        if not RECEIPT.exists():
-            raise ValueError("bound Browser Use site receipt is missing")
-        result = json.loads(RECEIPT.read_bytes())
-        if result.get("slug") != expected_slug:
-            raise ValueError("site receipt differs from the bound Browser Use site")
-        status, raw = send(f"/api/sites/{expected_slug}")
-        current = response_json(status, raw, operation="site lookup")
-        remote_version = str((current.get("site") or current).get("currentVersionId") or "")
-        if not remote_version.startswith("ver_"):
-            raise RuntimeError("could not resolve the current Artifact Site version")
-        if remote_version != expected_version or resume_binding:
-            status, exported = send(f"/api/sites/{expected_slug}/export")
-            if status != 200:
-                response_json(status, exported, operation="site export")
-            if archive_inventory(exported) != archive_inventory(release.archive):
-                raise ValueError("remote version differs from the bound release package")
-            result["versionId"] = remote_version
-        else:
-            query = urllib.parse.urlencode({"expected_version": expected_version})
-            status, raw = operations.upload(
-                f"/api/sites/{expected_slug}/versions?{query}",
-                payload,
-                content_type,
-                identity,
-                allow_create=True,
-                request=send,
-                decode=response_json,
-                guard=release.check,
-            )
-            result.update(response_json(status, raw, operation="site version upload"))
-    else:
-        result = json.loads(RECEIPT.read_bytes()) if RECEIPT.exists() else {}
-        pending_site = result.get("slug") if result.get("verified") is False else None
-        if pending_site:
-            if result.get("base_url") != base or result.get("archive_sha256") != release.sha256:
-                raise ValueError("pending site receipt differs from the current release package")
-            if OPERATION_JOURNAL.exists():
-                operations.pending(identity, allow_create=False)
-            status, exported = send(f"/api/sites/{pending_site}/export")
-            if status != 200:
-                response_json(status, exported, operation="site export")
-            if archive_inventory(exported) != archive_inventory(release.archive):
-                raise ValueError("pending site differs from the bound release package")
-        else:
-            status, raw = operations.upload(
-                "/api/sites",
-                payload,
-                content_type,
-                identity,
-                allow_create=create,
-                request=send,
-                decode=response_json,
-                guard=release.check,
-            )
-            result = response_json(status, raw, operation="site creation")
-            if not result.get("slug"):
-                raise RuntimeError("site creation response omitted slug")
-            result.update({"base_url": base, "archive_sha256": release.sha256, "verified": False})
-            save_receipt(result)
-        status, raw = send(f"/api/sites/{result['slug']}")
-        current = response_json(status, raw, operation="created site lookup")
-        version = str((current.get("site") or current).get("currentVersionId") or "")
-        if not version.startswith("ver_"):
-            raise RuntimeError("created site metadata omitted current version")
-        result["versionId"] = version
-    title_status, title_raw = send(
-        f"/api/sites/{result['slug']}",
-        json.dumps({"title": title}).encode(),
-        "application/json",
-        method="PATCH",
-    )
-    if not 200 <= title_status < 300:
-        response_json(title_status, title_raw, operation="site title update")
-    result["title"] = title
-    if not result.get("share_url"):
-        status, raw = send(
-            f"/api/sites/{result['slug']}/shares",
-            json.dumps({"policy": "public"}).encode(),
-            "application/json",
-        )
-        share = response_json(status, raw, operation="public share creation")
-        result["share_url"] = share["url"]
-    version_id = str(
-        result.get("versionId") or result.get("version_id") or result.get("currentVersionId") or ""
-    )
-    status, exported = send(f"/api/sites/{result['slug']}/export")
-    if status != 200:
-        response_json(status, exported, operation="site export")
-    if archive_inventory(exported) != archive_inventory(release.archive):
-        raise RuntimeError("deployed Artifact Site file tree differs from package")
-    share_path, share_token = public_share_context(base, result["share_url"])
-    public = PUBLIC_CLIENT.request(base, share_path, authenticated=False)
-    if public.status != 200:
-        raise RuntimeError(f"public report returned {public.status}")
-    preview = PUBLIC_CLIENT.request(
-        base,
-        f"/api/preview/{result['slug']}",
-        authenticated=False,
-        extra_headers={"X-Artifact-Share": share_token},
-    )
-    validate_public_preview(preview.status, preview.body.decode("utf-8", errors="replace"))
-    release.check()
-    validate_package()
-    release.check()
-    status, raw = send(f"/api/sites/{result['slug']}")
-    current = response_json(status, raw, operation="final site lookup")
-    if str((current.get("site") or current).get("currentVersionId") or "") != version_id:
-        raise ValueError("remote version changed before publication binding")
-    save_receipt({**result, "base_url": base, "archive_sha256": release.sha256,
-                  "versionId": version_id, "verified": False, "phase": "binding"})
-    operations.clear(identity)
-    bind_published_version(
-        version_id, slug=result["slug"], share_url=result["share_url"], release=release
-    )
-    result.update({"verified": True, "base_url": base, "archive_sha256": release.sha256})
-    save_receipt(result)
-    print(
-        json.dumps(
-            {
-                "slug": result["slug"],
-                "url": result["share_url"],
-                "version": version_id,
-            },
-            ensure_ascii=False,
-        )
+    publish_bound_release(
+        BoundTrack(
+            label="Browser Use",
+            default_title="Browser Use 评测",
+            archive=ARCHIVE,
+            profile=PROFILE,
+            receipt=RECEIPT,
+            operation_journal=OPERATION_JOURNAL,
+            inputs=(ATTESTATION, PROFILE),
+            operation_prefix="browser-use-",
+            operation_schema="lex_browser_use_artifact_operation/1",
+            version_field="versionId",
+            request=lambda base, *args, **kwargs: request(*args, base_url=base, **kwargs),
+            public_request=lambda base, path, **kwargs: PUBLIC_CLIENT.request(
+                base, path, authenticated=False, **kwargs
+            ),
+            multipart=lambda title, archive: multipart_archive(archive=archive, title=title),
+            validate_package=validate_package,
+            check_preview=lambda status, body: validate_public_preview(
+                status, body.decode("utf-8", errors="replace")
+            ),
+            recover_binding=recover_publication_binding,
+            bind=lambda _profile, *, version, **kwargs: bind_published_version(version, **kwargs),
+            receipt_required=True,
+            update_title=True,
+        ),
+        create=create,
     )
 
 

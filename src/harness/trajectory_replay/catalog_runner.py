@@ -33,12 +33,13 @@ from harness.trajectory_replay.catalog_contracts import (
     validate_environment_preparation,
     verify_physical_evidence,
 )
+from harness.trajectory_replay.participants import BROWSER_ADAPTERS
 from harness.trajectory_replay.remote_execution import (
-    _run_task,
-    _stop_browser,
     finalize_timed_out_task,
+    run_replay_task,
     sanitize_remote_text,
     start_local_browser,
+    stop_browser,
 )
 from harness.trajectory_replay.remote_runtime import (
     load_remote_sites,
@@ -285,7 +286,7 @@ def _run_with_setup_recovery(
 ) -> tuple[dict, subprocess.Popen]:
     """Run one task, restarting only before physical evidence exists.
 
-    ``_run_task`` creates ``task_dir`` immediately before browser-session work and
+    ``run_replay_task`` creates ``task_dir`` immediately before browser-session work and
     catches all later execution failures into a committed result. An exception
     with no task directory is therefore a setup failure that is safe to retry;
     once the directory exists, retrying could duplicate a physical execution.
@@ -302,7 +303,7 @@ def _run_with_setup_recovery(
                 if state["finished"]:
                     return
                 state["timed_out"] = True
-            _stop_browser(current)
+            stop_browser(current)
 
         started = time.monotonic()
         timer = threading.Timer(task_timeout_ms / 1_000, expire)
@@ -518,7 +519,7 @@ def main() -> None:
     parser.add_argument("--binary", type=Path)
     parser.add_argument(
         "--engine",
-        choices=("chromium", "moli", "lightpanda", "obscura", "kitesurf"),
+        choices=BROWSER_ADAPTERS,
         default="chromium",
     )
     parser.add_argument(
@@ -721,7 +722,7 @@ def main() -> None:
     ) -> dict:
         task_id = frozen["task_id"]
         task_origins = _task_origins(benchmark, task_id, sites)
-        return _run_task(
+        return run_replay_task(
             task_id=task_id,
             row=row,
             benchmark=benchmark,
@@ -798,7 +799,7 @@ def main() -> None:
             return started
 
         def restart_browser(current: subprocess.Popen) -> subprocess.Popen:
-            _stop_browser(current)
+            stop_browser(current)
             return start_browser()
 
         endpoint = ""
@@ -828,8 +829,4 @@ def main() -> None:
                 ) and pending_index + 1 < len(pending):
                     process = restart_browser(process)
         finally:
-            _stop_browser(process)
-
-
-if __name__ == "__main__":
-    main()
+            stop_browser(process)

@@ -11,7 +11,7 @@ import uuid
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from harness.web_fetch.publication_target import validate_service_base
+from harness.reporting.publication_target import validate_service_base
 
 
 def token_path(base_url):

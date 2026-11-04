@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import json
 import re
+from pathlib import Path
 
+import pytest
+
+from harness.environments.browser import rotated_engine_order
+from harness.trajectory_replay.participants import DEFAULT_DIAGNOSIS_MODEL, summary_engines
 from harness.trajectory_replay.report import (
     METRICS,
     _absolute_metric_cell,
@@ -14,10 +19,11 @@ from harness.trajectory_replay.report import (
     write_latest_report,
 )
 from harness.trajectory_replay.report_inputs import replay_input_path
+from tests.trajectory_replay.curated_report_fixture import build_curated_report
 
 
 def test_comparisons_are_neutral_for_displayed_ties_and_missing_values():
-    assert "class=" not in _absolute_metric_cell(1.001, 1.002, 1)
+    assert "class=" not in _absolute_metric_cell(1.001, (1.002,), 1)
     assert "class=" not in _ratio_metric_cell(1.004)
     assert "class=" not in _ratio_metric_cell(None)
     assert 'class="better"' in _ratio_metric_cell(0.8)
@@ -502,3 +508,125 @@ def test_all_published_suite_tasks_link_to_public_web_targets(tmp_path):
     for link in links:
         assert "localhost" not in link
         assert "127.0.0.1" not in link
+
+
+def _route(reports, suffix=""):
+    return (reports / f"trajectory-replay-evaluation-latest{suffix}").read_text(encoding="utf-8")
+
+
+def test_report_renders_every_registered_participant_of_a_larger_set(tmp_path):
+    reports = tmp_path / "reports"
+    engines = ("chromium", "obscura", "lightpanda")
+    build_curated_report(
+        reports,
+        engines,
+        {"chromium": ("modal-form",), "lightpanda": ("dynamic-list", "modal-form")},
+    )
+    home = _route(reports, ".html")
+
+    assert "Chromium、Obscura 与 Lightpanda 浏览器工具调用评测" in home
+    assert "Moli" not in home and "1 Hz" not in home
+    assert "screencast" not in home and "验证方案" not in home
+    assert "尚不能确认渲染器或适配层中的具体根因" in home
+    assert ">查看逐任务证据</a>" in home
+    # The only leader is named, every other participant is compared, none is hard-coded.
+    assert "默认使用 Obscura：其结果正确任务数为 3，高于 Chromium 的 2、Lightpanda 的 1" in home
+    assert '<th colspan="3">P50</th>' in home
+    assert home.count("<th>Lightpanda</th>") >= 3
+    for pair in ("Obscura / Chromium", "Lightpanda / Chromium"):
+        assert f"<code>{pair}</code>" in home
+        assert f"逐任务 {pair} 比值中" in home
+        assert f"时间与计算逐任务 {pair} 配对比值" in home
+    # A winning cell must beat every participant, not one pairing.
+    cpu_label = '<td data-label="指标">CPU 时间'
+    cpu_row = next(row for row in home.split("<tr>") if row.startswith(cpu_label))
+    assert cpu_row.count('class="better"') == 3
+    assert '<td class="better">100.00</td>' in cpu_row
+
+    analysis = _route(reports, "-analysis.html")
+    for engine in engines:
+        assert f"<option>{engine}</option>" in analysis
+    assert "['chromium','obscura','lightpanda'].includes(provider)" in analysis
+    assert "__PROVIDER_LIST__" not in analysis
+    assert "<option>moli</option>" not in analysis
+    assert "时序机制研究" not in analysis and "screencast" not in analysis
+
+    method = _route(reports, "-method.html")
+    assert "分别启动并预热 3 个浏览器" in method
+    assert "资源基线只比较所有 Provider 都成功的同任务" in method
+    assert "按任务交替 3 个 Provider 的执行顺序" in method
+    assert "双方" not in method
+    assert "按任务交替 3 个 Provider 的执行顺序" in method
+    for label, version in (("Obscura", "obscura 1.0"), ("Lightpanda", "lightpanda 1.0")):
+        assert label in method and version in method
+
+    assert "所有 Provider 成功任务与逐任务配对比值审计" in _route(reports, "-appendix.html")
+    assert _route(reports, ".md").startswith("# Chromium、Obscura 与 Lightpanda 浏览器工具调用评测")
+    assert len(list(reports.glob("*-task-*.html"))) == 3 * len(engines)
+
+
+def test_report_labels_each_duration_audit_when_several_pairs_exist(tmp_path):
+    reports = tmp_path / "reports"
+    build_curated_report(reports, ("chromium", "obscura", "lightpanda"), {})
+    home = _route(reports, ".html")
+    for pair in ("Obscura / Chromium", "Lightpanda / Chromium"):
+        assert f"查看{pair} 逐任务耗时比值的完整计算审计" in home
+        assert f"{pair} 耗时配对比值原始序列" in home
+
+
+def test_report_states_a_partial_tie_among_more_than_two_participants(tmp_path):
+    reports = tmp_path / "reports"
+    build_curated_report(reports, ("chromium", "moli", "obscura"), {"obscura": ("modal-form",)})
+    home = _route(reports, ".html")
+    assert "本轮 Chromium 与 Moli 的结果正确任务数相同（均为 3）" in home
+    # The screencast study follows Moli's participation, not the participant count.
+    assert "尚不能确认 screencast、渲染器或适配层中的具体根因" in home
+    assert ">查看逐任务证据与验证方案</a>" in home
+    assert "时序机制研究" in _route(reports, "-analysis.html")
+
+
+def test_report_renders_a_single_participant_without_comparisons(tmp_path):
+    reports = tmp_path / "reports"
+    build_curated_report(reports, ("chromium",), {})
+    home = _route(reports, ".html")
+
+    assert "<h1>Chromium 浏览器工具调用评测</h1>" in home
+    assert "本轮只有 Chromium 一个 Provider" in home
+    assert "逐任务配对比值分布" not in home
+    assert 'class="better"' not in home
+    method = _route(reports, "-method.html")
+    assert "计时外静置" in method
+    assert "交替" not in method
+    appendix = _route(reports, "-appendix.html")
+    assert "所有 Provider 成功任务" in appendix
+    assert "所有分位数和均值均由仓库脚本计算" in appendix
+    for page in (home, method, appendix):
+        assert "比值" not in page
+        assert "优胜项" not in page
+
+
+def test_report_rejects_an_unsafe_participant_id():
+    with pytest.raises(ValueError, match="safe stable identifiers"):
+        summary_engines({"functional": {"<script>": {}}})
+
+
+def test_replay_engine_order_rotates_through_every_registered_position():
+    assert rotated_engine_order(("a",), 7) == ("a",)
+    assert rotated_engine_order(("chromium", "moli"), 0) == ("chromium", "moli")
+    assert rotated_engine_order(("chromium", "moli"), 1) == ("moli", "chromium")
+    engines = ("a", "b", "c")
+    assert [rotated_engine_order(engines, index)[0] for index in range(3)] == list(engines)
+
+
+def test_default_diagnosis_model_has_one_definition():
+    root = Path(__file__).resolve().parents[2]
+    track = root / "src/harness/trajectory_replay"
+    owners = [
+        path.relative_to(track).as_posix()
+        for path in track.rglob("*.py")
+        if DEFAULT_DIAGNOSIS_MODEL in path.read_text(encoding="utf-8")
+    ]
+    assert owners == ["participants.py"]
+    assert DEFAULT_DIAGNOSIS_MODEL not in (root / "examples/trajectory_replay/run.sh").read_text(
+        encoding="utf-8"
+    )

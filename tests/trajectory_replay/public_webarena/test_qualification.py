@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from harness.trajectory_replay.core.suite import BrowserTask, TaskSuite
 from harness.trajectory_replay.public_webarena.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from harness.trajectory_replay.public_webarena.qualification import (
     QUALIFICATION_SCHEMA,
@@ -19,7 +20,7 @@ from harness.trajectory_replay.public_webarena.qualification import (
     trajectory_semantic_conflicts,
     validated_attempt_sha256s,
 )
-from harness.trajectory_replay.public_webarena.suite import BrowserTask, TaskSuite, load_suite
+from harness.trajectory_replay.public_webarena.suite import load_suite
 
 
 def _task(task_id, *, response_builder=None, empty=False):

@@ -11,12 +11,12 @@ import pytest
 from harness import env_file
 from harness.environments.webarena.backend import DockerBackend
 from harness.environments.webarena.rainbond import RainbondSlicePool
+from harness.trajectory_replay.core.suite import BrowserTask
 from harness.trajectory_replay.public_webarena.config import (
     load_runtime_env,
     redact_site_passwords,
 )
 from harness.trajectory_replay.public_webarena.publication import public_projection
-from harness.trajectory_replay.public_webarena.suite import BrowserTask
 from harness.trajectory_replay.public_webarena.webarena_environment import (
     WebArenaEnvironment,
     wall_clock_timeout,

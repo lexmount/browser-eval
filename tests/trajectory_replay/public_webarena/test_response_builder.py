@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
+from harness.trajectory_replay.core.suite import BrowserTask
 from harness.trajectory_replay.public_webarena.response_builder import build_agent_response
-from harness.trajectory_replay.public_webarena.suite import BrowserTask
 
 
 def _task(builder):

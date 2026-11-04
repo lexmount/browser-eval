@@ -15,13 +15,15 @@ Browser Eval owns scoring, execution, evidence handling and local report generat
 
 Public WebArena human-recording replay is isolated under
 `src/harness/trajectory_replay/public_webarena/` with its [own examples and release
-contract](../examples/trajectory_replay/public_webarena/README.md).
+contract](../examples/trajectory_replay/public_webarena/README.md). That isolation covers
+report targets and denominators: both replay tracks build their metrics, suite loading, executor
+helpers and Docker runner helpers on `src/harness/trajectory_replay/core/`.
 The curated replay tasks also record [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) as a scenario design source.
 The original CDP and driver inputs are versioned in [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser), with execution supplied by that upstream runtime.
 Headless fixed-action scenarios are replayed by the upstream runner on local
 fixtures to assess browser/driver compatibility. The upstream
 benchmark also contains individual protocol and Web-platform probes.
-`src/harness/lexbench/` builds retained comparison reports from upstream results;
+[`src/harness/lexbench/`](../src/harness/lexbench/README.md) builds retained comparison reports from upstream results;
 it does not add an in-tree compatibility runner. Compatibility is an evaluation
 goal of these workloads, rather than a separate Browser Eval track.
 
@@ -75,7 +77,7 @@ through configuration, registries or explicit parameters.
 | WebMainBench certification, scoring and aggregation | `webmainbench_certification.py`, `webmainbench_scoring.py`, `webmainbench_assembly.py` |
 | WCXB scoring, paired timing and publication | `wcxb_metrics.py`, `wcxb_scoring.py`, `wcxb_latency.py`, `wcxb_publication.py` |
 | Web Fetch report construction and rendering | `report_build.py`, `report.py` |
-| Common report assets, links, presentation and publication | `src/harness/reporting/` |
+| Common report assets, links, presentation and publication lifecycles (`publish.py`, with each track as an adapter) | `src/harness/reporting/` |
 | Generated-language inventory and absent-English notice | `src/harness/report_languages.py` |
 | Independent reviewer subprocess execution | `src/harness/review_runner.py` |
 | Shared WebArena deployment and network capture | `src/harness/environments/webarena/` |
@@ -169,7 +171,8 @@ links, filters, pagination, dialogs and evidence loading; shared component tests
 own narrow-width and theme behavior. Packaging copies only declared public files,
 rejects symlinks and checks that source and authority bytes remain unchanged.
 
-For an explicitly requested and authorized publication, use the selected track's publisher after its release gates pass. Publishers
+For an explicitly requested and authorized publication, use the selected track's publisher after its release gates pass. Each
+publisher is an adapter that names its own target over the lifecycles in `src/harness/reporting/publish.py`. Publishers
 freeze the archive and authority, check the expected remote version, retain
 private operation journals for interrupted requests, and verify deployed bytes
 before updating local bindings. Keep journals and receipts until recovery

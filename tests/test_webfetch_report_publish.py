@@ -2,13 +2,15 @@
 
 import gzip
 import json
-import runpy
+import urllib.request
 import zipfile
 from dataclasses import replace
-from pathlib import Path
 
 import pytest
 
+from harness.record_io import file_sha256
+from harness.reporting import publication
+from harness.reporting import publish as shared
 from harness.web_fetch import publication_check, report_package, report_publish
 from harness.web_fetch.report_publish import PublishConfig
 
@@ -97,6 +99,57 @@ class Service:
         return 200, json.dumps(value).encode()
 
 
+DATA_TARGET = {"base_url": "https://reports.example", "site_slug": "data-one", "version_id": "ver_data"}
+
+
+def with_data_attachment(config, root, *, planned, bound):
+    """Plan one data attachment against ``planned`` while the profile binds ``bound``."""
+    part = root / "part.zip"
+    part.write_bytes(b"part bytes")
+    manifest = root / "parts.json"
+    manifest.write_text(
+        json.dumps({"parts": {"data": {"archive": part.name, "sha256": file_sha256(part)}}, "publications": planned}),
+        encoding="utf-8",
+    )
+    profile = json.loads(config.profile.read_bytes())
+    if bound is not None:
+        profile["data_publications"] = bound
+    config.profile.write_text(json.dumps(profile), encoding="utf-8")
+    return replace(config, parts_manifest=manifest)
+
+
+@pytest.mark.parametrize(
+    ("planned", "bound", "message"),
+    [
+        ({"data": DATA_TARGET}, {"data": {**DATA_TARGET, "version_id": "ver_other"}}, "differ from the publication authority"),
+        ({"data": DATA_TARGET}, {"data": {**DATA_TARGET, "site_slug": "data-two"}}, "differ from the publication authority"),
+        ({"data": DATA_TARGET}, None, "differ from the publication authority"),
+        (
+            {"data": {**DATA_TARGET, "base_url": "https://other.example"}},
+            {"data": {**DATA_TARGET, "base_url": "https://other.example"}},
+            "must use the profile-bound publication service",
+        ),
+    ],
+    ids=["other-version", "other-site", "unbound", "other-service"],
+)
+def test_data_attachment_target_mismatch_stops_before_any_request(tmp_path, planned, bound, message):
+    config = with_data_attachment(fixture(tmp_path), tmp_path, planned=planned, bound=bound)
+    receipt = config.receipt.read_bytes()
+    service = Service()
+    with pytest.raises(ValueError, match=message):
+        report_publish.publish(config, transport=service)
+    assert service.requests == []
+    assert config.receipt.read_bytes() == receipt
+    assert not config.journal.exists()
+
+
+def test_data_attachment_bound_to_the_report_target_publishes(tmp_path):
+    config = with_data_attachment(fixture(tmp_path), tmp_path, planned={"data": DATA_TARGET}, bound={"data": DATA_TARGET})
+    service = Service()
+    assert report_publish.publish(config, transport=service, package_check=lambda *args: None)["versionId"] == "ver_new"
+    assert len(service.uploads) == 1
+
+
 SCENARIOS = [
     (mode, staged, failure)
     for mode in ("create", "update")
@@ -109,10 +162,10 @@ SCENARIOS = [
 @pytest.mark.parametrize("mode,staged,failure", SCENARIOS)
 def test_interruption_resumes_one_activation(tmp_path, monkeypatch, mode, staged, failure):
     config = fixture(tmp_path, mode)
-    monkeypatch.setattr(report_publish, "STAGED_UPLOAD_THRESHOLD", 0 if staged else 10**9)
+    monkeypatch.setattr(shared, "STAGED_UPLOAD_THRESHOLD", 0 if staged else 10**9)
     service = Service(failure)
-    write = report_publish.atomic_write
-    clear = report_publish.PublicationOperation.clear
+    write = publication.atomic_write
+    clear = publication.PublicationOperation.clear
 
     def fail_receipt(path, payload):
         if path == config.receipt and json.loads(payload).get("publication_pending") is False:
@@ -124,7 +177,7 @@ def test_interruption_resumes_one_activation(tmp_path, monkeypatch, mode, staged
         clear(operation, identity)
 
     monkeypatch.setattr("harness.reporting.publication.atomic_write", fail_receipt)
-    monkeypatch.setattr(report_publish.PublicationOperation, "clear", fail_clear)
+    monkeypatch.setattr(publication.PublicationOperation, "clear", fail_clear)
     with pytest.raises(OSError, match="simulated"):
         report_publish.publish(config, transport=service)
     summary = report_publish.publish(config, transport=service)
@@ -201,21 +254,17 @@ def test_reusing_receipt_does_not_require_archive_or_download_site(tmp_path):
     assert config.receipt.read_bytes() == previous
 
 
-def test_imports_do_not_read_credentials_parse_args_or_create_files(tmp_path, monkeypatch):
-    import sys
+def test_command_help_does_not_read_credentials_or_create_files(tmp_path, monkeypatch):
+    from harness.web_fetch.cli import main as cli_main
 
     monkeypatch.setattr(
         "harness.reporting.publication.load_token", lambda **kwargs: pytest.fail("credential read")
     )
-    monkeypatch.setattr(sys, "argv", ["command", "--unknown"])
     monkeypatch.chdir(tmp_path)
-    root = Path(__file__).resolve().parents[1]
-    for name in (
-        "publish_artifact_site.py",
-        "verify_artifact_site.py",
-        "check_publication_bundle.py",
-    ):
-        runpy.run_path(str(root / "scripts" / name))
+    for name in ("site-publish", "site-verify", "site-bundle-check"):
+        with pytest.raises(SystemExit) as stopped:
+            cli_main([name, "--help"])
+        assert stopped.value.code == 0
     assert not list(tmp_path.iterdir())
 
 
@@ -351,7 +400,7 @@ def test_report_rename_keeps_bound_target_and_receipt(tmp_path, monkeypatch, dam
             path.write_bytes(b'concurrent receipt')
         return Response(json.dumps({'slug': 'site-one', 'title': 'after'}).encode())
 
-    monkeypatch.setattr(report_publish.urllib.request, 'urlopen', request)
+    monkeypatch.setattr(urllib.request, 'urlopen', request)
     args = [str(path), '--title', 'after']
     if damage:
         with pytest.raises(ValueError):

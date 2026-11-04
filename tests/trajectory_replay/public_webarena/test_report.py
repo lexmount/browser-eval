@@ -13,6 +13,7 @@ from harness.trajectory_replay.public_webarena.report import (
     _failure_review,
     _method_page,
     _metric_tables,
+    _research_page,
     _results_page,
     _suite_page,
     _summary_page,
@@ -841,6 +842,20 @@ def test_detail_renders_webarena_evaluators_as_readable_rules():
     assert "完整预期" in body
     assert "完整实际值" in body
     assert "逐条断言" in body
+
+
+@pytest.mark.parametrize(
+    ("engines", "compared"),
+    [
+        (("chromium", "moli"), "Chromium 和 Moli"),
+        (("chromium", "obscura", "lightpanda"), "Chromium、Obscura 和 Lightpanda"),
+        (("obscura",), "Obscura"),
+    ],
+)
+def test_research_page_names_the_participants_it_compares(engines, compared):
+    page = _research_page({}, {"functional": {engine: {} for engine in engines}})
+
+    assert f"不能真正比较 {compared}。</li>" in page
 
 
 def test_webarena_report_uses_self_hosted_trajectory_scope_language():

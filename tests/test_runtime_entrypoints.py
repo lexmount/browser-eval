@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 
 from harness.web_fetch.headless_runner import require_expected_provider_versions
-from harness.web_fetch.publication_target import (
+from harness.reporting.publication_target import (
     require_publication_site,
     require_publication_version,
 )
@@ -259,9 +259,9 @@ class RuntimeEntrypointTests(unittest.TestCase):
                 ):
                     require_publication_version(profile)
 
-    def test_publication_scripts_do_not_load_repository_eval_credentials(self) -> None:
-        for relative in ('scripts/publish_artifact_site.py',
-                         'scripts/verify_artifact_site.py',
+    def test_publication_owners_do_not_load_repository_eval_credentials(self) -> None:
+        for relative in ('src/harness/web_fetch/report_publish.py',
+                         'src/harness/web_fetch/publication_verify.py',
                          'scripts/rename_artifact_site.py'):
             self.assertNotIn('load_runtime_env', (ROOT/relative).read_text(encoding='utf-8'), relative)
 

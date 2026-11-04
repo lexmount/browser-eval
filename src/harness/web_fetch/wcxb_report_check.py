@@ -18,7 +18,7 @@ from bs4 import BeautifulSoup
 from lexbench_webfetch.metrics import percentile
 from lexbench_webfetch.paths import contained_path
 
-from harness.record_io import file_sha256, load_jsonl
+from harness.record_io import file_sha256, load_jsonl, read_json
 from harness.report_languages import (
     check_language_contract,
     generated_languages,
@@ -27,6 +27,7 @@ from harness.report_languages import (
 )
 from harness.reporting.assets import authored_main
 from harness.reporting.presentation import check_presentation
+from harness.reporting.release_check import language_editions, open_report, read_page
 from harness.reporting.visual import local_report_server
 from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.data_home import data_home
@@ -302,8 +303,8 @@ def require_case_summary(html: str | BeautifulSoup, lang: str) -> BeautifulSoup:
 
 
 def check_bound_interpretation(root: Path, binding: dict) -> None:
-    for language in generated_languages(root):
-        route = ('en/' if language == 'en' else '') + 'guide/index.html'
+    for language, prefix in language_editions(root):
+        route = prefix + 'guide/index.html'
         page = contained_path(root, route, reject_symlinks=True)
         body = authored_main(page.read_bytes())
         expected = binding.get('rendered_sha256', {}).get('guide', {}).get(language)
@@ -312,7 +313,7 @@ def check_bound_interpretation(root: Path, binding: dict) -> None:
 
 
 def check(root: Path, *, authority_root: Path | None = None, profile_path: Path | None = None) -> None:
-    root = root.resolve()
+    root = open_report(root)
     repository = (authority_root or ROOT).resolve()
     if profile_path is None:
         if authority_root is None:
@@ -321,7 +322,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
     if not profile_path.is_file():
         raise ValueError("WCXB release authority is missing; pass --authority-root pointing to the selected instance bundle")
     reject_evidence_symlinks(profile_path)
-    profile = json.loads(profile_path.read_text(encoding='utf-8'))
+    profile = read_json(profile_path)
     comparison = profile.get('paired_comparison') or {}
     from harness.web_fetch.wcxb_publication import inventory
     inventory(root, profile)
@@ -334,10 +335,10 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
                      if (root / prefix / 'guide/index.html').is_file()}
 
     sample_file = root / 'sample-manifest.json'
-    sample = json.loads(sample_file.read_text(encoding='utf-8'))
+    sample = read_json(sample_file)
     require(sample.get('scope') == 'qualified_test', 'WCXB current selection is not source-qualified')
-    certificate = json.loads((root / 'certification.json').read_text(encoding='utf-8'))
-    summary = json.loads((root / 'wcxb-score-summary.json').read_text(encoding='utf-8'))
+    certificate = read_json(root / 'certification.json')
+    summary = read_json(root / 'wcxb-score-summary.json')
     scores = load_jsonl(root / 'wcxb-scores.jsonl', skip_blank=True)
     sample_hash = file_sha256(sample_file)
     require(sample_hash == profile['sample_manifest_sha256'] == summary['sample_sha256'], 'WCXB sample hash differs')
@@ -368,7 +369,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
         require(optional_receipt.is_file() and file_sha256(optional_receipt) == profile['optional_ui_receipt_sha256'],
                 'WCXB optional feature evidence differs from current profile')
         optional_root = optional_receipt.parent
-        optional = json.loads(optional_receipt.read_text(encoding='utf-8'))
+        optional = read_json(optional_receipt)
         require(optional.get('case_id') in case_ids, 'Optional feature case is outside the current population')
         for name, binary_hash in (('release', profile['release_binary_sha256']),
                                   ('candidate', profile['candidate_binary_sha256'])):
@@ -394,7 +395,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
                     and abs(measured['p95_latency_ms'] - p95) < .01,
                     'WCXB Paired timing summary differs from certified full paired evidence')
 
-    evidence_hashes = json.loads((root / 'evidence-manifest.json').read_text(encoding='utf-8'))
+    evidence_hashes = read_json(root / 'evidence-manifest.json')
     require(set(evidence_hashes) == case_ids, 'WCXB evidence inventory differs')
     by_case = {}
     for row in scores:
@@ -407,7 +408,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
     for case in case_ids:
         path = root / 'evidence' / f'{case}.json'
         require(path.is_file() and not path.is_symlink() and file_sha256(path) == evidence_hashes[case], 'WCXB case evidence differs')
-        evidence = json.loads(path.read_text(encoding='utf-8'))
+        evidence = read_json(path)
         require(evidence['case_id'] == case and set(evidence['outputs']) == set(providers), 'WCXB case evidence participants differ')
         for provider in providers:
             require(hashlib.sha256(evidence['source_html'].encode()).hexdigest() == by_case[case][provider]['input_html_sha256'], 'WCXB source evidence hash differs')
@@ -423,8 +424,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
                 *(f'providers/{provider}.html' for provider in providers),
                 *(f'cases/{case}.html' for case in qualified)}
     localized_routes = localized_report_routes(root, expected)
-    language_pairs = tuple((language, '' if language == 'zh' else 'en/')
-                           for language in localized_routes)
+    language_pairs = language_editions(root)
     shapes = {language: {} for language in localized_routes}
     for lang, prefix in language_pairs:
         for route in expected:
@@ -543,7 +543,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
             else:
                 raise AssertionError('An altered bound interpretation was accepted: ' + selector)
     if profile.get('latency_correction_receipt_sha256'):
-        home = BeautifulSoup((root / 'index.html').read_text(encoding='utf-8'), 'html.parser')
+        home = read_page(root / 'index.html')
         home.select_one('#paired-latency-context').decompose()
         try:
             require_home_interpretation(home, summary, paired_latency, 'zh', paired_methods)
@@ -565,7 +565,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
             else:
                 raise AssertionError('An incomplete paired latency cohort was accepted')
             (invalid / 'calls.jsonl').write_bytes(calls)
-            receipt = json.loads((invalid / 'receipt.json').read_text(encoding='utf-8'))
+            receipt = read_json(invalid / 'receipt.json')
             receipt['binary_sha256']['pr'] = '0' * 64
             (invalid / 'receipt.json').write_text(json.dumps(receipt), encoding='utf-8')
             try:
@@ -636,7 +636,7 @@ def check_visual(root: Path, browser_binary: str) -> None:
                                     if errors:
                                         raise ValueError(f'Browser error: {lang} {route}: {errors}')
                                     if route == 'guide/index.html':
-                                        expected = BeautifulSoup((root / prefix / route).read_text(encoding='utf-8'), 'html.parser')
+                                        expected = read_page(root / prefix / route)
                                         images = page.locator('main img')
                                         if images.count() != len(expected.select('main img')):
                                             raise ValueError('Guide lost a bound illustration')

@@ -14,6 +14,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from harness.reporting.visual import browser_executable, local_report_server
 
+ASSETS = Path(__file__).with_name("assets")
 SHARD_COUNT = 16
 
 
@@ -50,30 +51,20 @@ def _rewrite_links(text: str, *, detail_kind: str | None = None,
         '>下载净化 JSON<', '>查看净化 JSON<').replace('>Download sanitized JSON<', '>Inspect sanitized JSON<')
 
 
-def _javascript_source(source: str) -> str:
-    doubled = chr(92) * 2
-    while doubled in source:
-        source = source.replace(doubled, chr(92))
+def _script(name: str, **values: object) -> str:
+    source = (ASSETS / name).read_text(encoding="utf-8").replace("__SHARD_COUNT__", str(SHARD_COUNT))
+    for placeholder, value in values.items():
+        source = source.replace(f"__{placeholder}__", str(value))
     return source
 
 
 def _loader(kind: str, lang: str = "zh") -> str:
-    parameter = "id" if kind == "task" else "key"
     loading = "Loading detail…" if lang == "en" else "正在读取详情…"
     error = "Unable to read detail: " if lang == "en" else "详情读取失败："
-    return _javascript_source(f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{"Replay detail" if lang == "en" else "轨迹重放详情"}</title></head><body><main><p>{loading}</p></main><script>
-(async()=>{{
-  const value=new URLSearchParams(location.search).get('{parameter}')||'';
-  const match=value.match(/(?:^|-)(\\d+)$/);
-  if(!match)throw Error('invalid {kind} route');
-  const shard=String(Number(match[1])%{SHARD_COUNT}).padStart(2,'0');
-  const response=await fetch(`pages/{kind}-${{shard}}.json`);
-  if(!response.ok)throw Error(`HTTP ${{response.status}}`);
-  const page=(await response.json())[value];
-  if(!page)throw Error('{kind} route not found');
-  document.open();document.write(page);document.close();
-}})().catch(error=>document.querySelector('main').textContent='{error}'+error.message);
-</script></body></html>''')
+    script = _script("compact-detail-loader.js", ROUTE_PARAMETER="id" if kind == "task" else "key",
+                     ROUTE_KIND=kind, ERROR_PREFIX=error)
+    return f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{"Replay detail" if lang == "en" else "轨迹重放详情"}</title></head><body><main><p>{loading}</p></main><script>
+{script}</script></body></html>'''
 
 
 def _raw_evidence_loader(lang: str = "zh") -> str:
@@ -81,48 +72,9 @@ def _raw_evidence_loader(lang: str = "zh") -> str:
     back = "Back to result" if lang == "en" else "返回结果"
     loading = "Loading…" if lang == "en" else "正在读取…"
     error = "Unable to read evidence: " if lang == "en" else "证据读取失败："
-    return _javascript_source(f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title><style>body{{margin:0;background:#071722;color:#e6edf3;font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}}main{{max-width:1180px;margin:auto;padding:24px}}a{{color:#86b7ff}}pre{{white-space:pre-wrap;overflow-wrap:anywhere}}</style></head><body><main><p><a href="javascript:history.back()">{back}</a></p><h1>{title}</h1><pre>{loading}</pre></main><script>
-(async()=>{{
-  const key=new URLSearchParams(location.search).get('key')||'';
-  const match=key.match(/(?:^|-)(\\d+)$/);
-  if(!match)throw Error('invalid evidence route');
-  const shard=String(Number(match[1])%{SHARD_COUNT}).padStart(2,'0');
-  const response=await fetch(`{"../" if lang == "en" else ""}data/evidence-${{shard}}.json`);
-  if(!response.ok)throw Error(`HTTP ${{response.status}}`);
-  const value=(await response.json())[key];
-  if(value===undefined)throw Error('evidence route not found');
-  document.querySelector('pre').textContent=JSON.stringify(value,null,2);
-}})().catch(error=>document.querySelector('pre').textContent='{error}'+error.message);
-</script></body></html>''')
-
-
-def _data_fetch_adapter() -> str:
-    return _javascript_source(rf'''(()=>{{
-const originalFetch=window.fetch.bind(window);const compactCache=new Map();
-const compactBase=new URL("../",document.currentScript.src);
-const compactRoute=raw=>{{
-  const url=new URL(raw,location.href);const match=url.pathname.match(/data\/(trajectory|evidence)\/([A-Za-z0-9_.-]+)\.json$/);
-  if(!match)return null;
-  const kind=match[1];const key=match[2];const id=(key.match(/(?:^|-)(\\d+)$/)||[])[1];
-  if(id===undefined)return null;
-  return {{kind,key,shard:String(Number(id)%{SHARD_COUNT}).padStart(2,'0')}};
-}};
-window.fetch=async(input,init)=>{{
-  const route=compactRoute(typeof input==='string'?input:input.url);
-  if(!route)return originalFetch(input,init);
-  const cacheKey=route.kind+'-'+route.shard;
-  if(!compactCache.has(cacheKey))compactCache.set(cacheKey,originalFetch(new URL('data/'+route.kind+'-'+route.shard+'.json',compactBase)).then(response=>{{if(!response.ok)throw Error(`HTTP ${{response.status}}`);return response.json()}}));
-  const value=(await compactCache.get(cacheKey))[route.key];
-  return value===undefined?new Response('',{{status:404}}):new Response(JSON.stringify(value),{{status:200,headers:{{'content-type':'application/json'}}}});
-}};
-document.addEventListener('click',event=>{{
-  const anchor=event.target.closest?.('a[href]');if(!anchor)return;
-  const route=compactRoute(anchor.href);if(route?.kind!=='evidence')return;
-  event.preventDefault();
-  location.href='evidence-raw.html?key='+encodeURIComponent(route.key);
-}},true);
-}})();
-''')
+    script = _script("compact-evidence-loader.js", DATA_PREFIX="../" if lang == "en" else "", ERROR_PREFIX=error)
+    return f'''<!doctype html><html lang="{lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title><style>body{{margin:0;background:#071722;color:#e6edf3;font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}}main{{max-width:1180px;margin:auto;padding:24px}}a{{color:#86b7ff}}pre{{white-space:pre-wrap;overflow-wrap:anywhere}}</style></head><body><main><p><a href="javascript:history.back()">{back}</a></p><h1>{title}</h1><pre>{loading}</pre></main><script>
+{script}</script></body></html>'''
 
 
 def compact_report(source: Path, destination: Path) -> dict[str, int]:
@@ -170,7 +122,7 @@ def compact_report(source: Path, destination: Path) -> dict[str, int]:
         for index, rows in enumerate(shards):
             (destination / f'data/{kind}-{index:02d}.json').write_text(json.dumps(rows, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
     app = destination / 'assets/app.js'
-    app.write_text(_data_fetch_adapter() + app.read_text(encoding='utf-8'), encoding='utf-8')
+    app.write_text(_script('compact-data-fetch-adapter.js') + app.read_text(encoding='utf-8'), encoding='utf-8')
     return {'files': sum(path.is_file() for path in destination.rglob('*')),
             'task_routes': len(list((source / 'task').glob('*.html'))),
             'result_routes': len(list((source / 'result').glob('*.html')))}

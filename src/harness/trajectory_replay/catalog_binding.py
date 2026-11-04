@@ -196,7 +196,3 @@ def main() -> None:
         action_overrides_path=args.action_overrides,
     )
     print(json.dumps({"tasks": len(result["rows"]), "catalog_sha256": file_sha256(args.output)}))
-
-
-if __name__ == "__main__":
-    main()

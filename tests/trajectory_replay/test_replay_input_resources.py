@@ -57,7 +57,7 @@ def test_runner_serves_packaged_pages_when_suite_is_in_an_unrelated_cache(
         assert 'html' in (root / 'core.html').read_text(encoding='utf-8').lower()
         raise LocatedFixture
 
-    monkeypatch.setattr(runner, '_start_fixture_server', start)
+    monkeypatch.setattr(runner, 'start_fixture_server', start)
     with pytest.raises(LocatedFixture):
         runner.run_evaluation(suite_path=suite if resolved else None, output_dir=tmp_path/'run',
                               reports_dir=tmp_path/'reports')
@@ -171,6 +171,15 @@ def test_report_preserves_recorded_edition_when_a_newer_release_has_identical_su
         'revision': old['revision'],
     }}
     rendered = html.unescape(report._appendix_page(manifest))
+    assert '--engines chromium,moli ' in rendered
+    assert '--engines moli ' in html.unescape(
+        report._appendix_page({**manifest, 'protocol': {'engines': ['moli']}})
+    )
+    hostile = report._appendix_page(
+        {**manifest, 'protocol': {'engines': ['<img src=x onerror=alert(1)>']}}
+    )
+    assert '<img src=x' not in hostile
+    assert '--engines &lt;img src=x onerror=alert(1)&gt; ' in hostile
     assert old['revision'] in rendered
     assert current['revision'] not in rendered
     manifest['suite_dataset']['definition'] = 'inventories/human-candidates-v1.json'
@@ -188,9 +197,15 @@ def test_cli_forwards_explicit_smoke_input(tmp_path, monkeypatch, family):
         monkeypatch.setattr(cli, 'load_runtime_env', lambda path: None)
         monkeypatch.setattr(cli, 'configure_browser_docker_host', lambda path: None)
     run = MagicMock()
-    monkeypatch.setattr(cli, 'run_evaluation', run)
+    if family == 'curated':
+        from harness.trajectory_replay import runner
+        monkeypatch.setattr(runner, 'run_evaluation', run)
+        command = ['evaluate']
+    else:
+        monkeypatch.setattr(cli, 'run_evaluation', run)
+        command = []
     smoke = str(tmp_path / 'chosen.json')
-    monkeypatch.setattr(sys, 'argv', ['replay', '--suite', str(tmp_path/'suite.json'),
+    monkeypatch.setattr(sys, 'argv', ['replay', *command, '--suite', str(tmp_path/'suite.json'),
                                      '--ground-truth-evidence', str(tmp_path/'truth.json'),
                                      '--agent-smoke', smoke, '--output', str(tmp_path/'run'),
                                      '--no-report'])
@@ -229,7 +244,7 @@ def test_explicit_suite_uses_its_custom_fixture_tree(tmp_path, monkeypatch, fami
         assert (root/'nested/custom.html').is_file()
         raise CorrectHistoricalFiles
 
-    monkeypatch.setattr(runner, '_start_fixture_server', start)
+    monkeypatch.setattr(runner, 'start_fixture_server', start)
     with pytest.raises(CorrectHistoricalFiles):
         runner.run_evaluation(suite_path=suite, output_dir=tmp_path/'run',
                               reports_dir=tmp_path/'reports')

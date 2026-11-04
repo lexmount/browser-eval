@@ -9,8 +9,10 @@ from pathlib import Path
 
 from harness.trajectory_replay.diagnostics import diagnose_summary
 from harness.trajectory_replay.metrics import summarize_attempts
+from harness.trajectory_replay.participants import attempt_engines
 from harness.trajectory_replay.report import write_latest_report
-from harness.trajectory_replay.suite import load_suite, validate_ground_truth_evidence
+from harness.trajectory_replay.core.suite import validate_ground_truth_evidence
+from harness.trajectory_replay.suite import load_suite
 
 
 def main() -> None:
@@ -48,10 +50,11 @@ def main() -> None:
         raise SystemExit("artifact task set does not match the requested suite")
     try:
         evidence = validate_ground_truth_evidence(suite_path, suite, args.ground_truth_evidence)
+        engines = attempt_engines(manifest, rows)
     except ValueError as exc:
         raise SystemExit(str(exc)) from exc
 
-    summary = summarize_attempts(rows, engines=("chromium", "moli"))
+    summary = summarize_attempts(rows, engines=engines)
     diagnose_summary(summary, use_llm=False)
     manifest["ground_truth_validation"] = {
         key: evidence.get(key)

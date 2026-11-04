@@ -1098,7 +1098,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                 gate=subprocess.run([sys.executable,'scripts/check_report.py',str(cli_report),
                                      '--profile',str(profile_path)],cwd=repository,capture_output=True,text=True)
                 self.assertEqual(gate.returncode,0,gate.stderr+gate.stdout)
-                revision_gate=subprocess.run([sys.executable,'scripts/check_report_revision.py',str(cli_report)],
+                revision_gate=subprocess.run([sys.executable,'-m','harness.web_fetch','report-revision-check',str(cli_report)],
                                              cwd=repository,capture_output=True,text=True)
                 self.assertEqual(revision_gate.returncode,0,revision_gate.stderr+revision_gate.stdout)
                 self.assertIn(measured['comparison']['reproduction_profile'],(cli_report/'reproduce/index.html').read_text(encoding='utf-8'))

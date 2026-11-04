@@ -18,6 +18,8 @@ from harness.environments.browser import (
     published_endpoint,
     start_browser_container,
 )
+from harness.trajectory_replay.core import docker_runner
+from harness.trajectory_replay.core.suite import BrowserTask, TaskSuite
 from harness.trajectory_replay.public_webarena import diagnostics, runner
 from harness.trajectory_replay.public_webarena.config import redact_site_passwords
 from harness.trajectory_replay.public_webarena.runner import (
@@ -25,10 +27,8 @@ from harness.trajectory_replay.public_webarena.runner import (
     _capture_final_page_evidence,
     _environment,
     _environment_failure_row,
-    _http_origin,
     _prepare_page,
 )
-from harness.trajectory_replay.public_webarena.suite import BrowserTask, TaskSuite
 from harness.web_fetch import config as web_fetch_config
 
 
@@ -42,7 +42,7 @@ def test_task_execution_writes_redacted_evaluator_network_evidence(tmp_path, mon
     session.on.side_effect = lambda event, callback: handlers.update({event: callback})
     session.send.return_value = {"body": "saved", "base64Encoded": False}
     monkeypatch.setattr(runner, "ResourceSampler", lambda *a, **kw: MagicMock())
-    monkeypatch.setattr(runner, "_resource_result", lambda *a: {})
+    monkeypatch.setattr(runner, "resource_result", lambda *a: {})
     monkeypatch.setattr(runner, "_capture_final_page_evidence", lambda *a: {"status": "complete"})
     monkeypatch.setattr(runner, "build_agent_response", lambda *a: None)
 
@@ -71,6 +71,12 @@ def test_task_execution_writes_redacted_evaluator_network_evidence(tmp_path, mon
         "chromium", page, set(), MagicMock(), task, 1, 100, registry, tmp_path,
     )
     assert result["status"] == "pass", result["error"]
+    assert result["process_validation"] == {
+        "expected_actions": ["navigate"],
+        "actual_actions": ["navigate"],
+        "all_calls_passed": True,
+        "passed": True,
+    }
     assert result["network_har"]["entry_count"] == 1
     raw = (tmp_path / "network.har").read_text(encoding="utf-8")
     assert "private-token" not in raw
@@ -97,7 +103,7 @@ def test_failed_task_row_omits_the_login_password(
     page = MagicMock()
     page.context.pages = [page]
     monkeypatch.setattr(runner, "ResourceSampler", lambda *a, **kw: MagicMock())
-    monkeypatch.setattr(runner, "_resource_result", lambda *a: {})
+    monkeypatch.setattr(runner, "resource_result", lambda *a: {})
     monkeypatch.setattr(runner, "_capture_final_page_evidence", lambda *a: {"status": "complete"})
     monkeypatch.setattr(runner, "build_agent_response", lambda *a: None)
 
@@ -412,7 +418,7 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
         "task", "Task", ({"action": "navigate", "url": "{fixture_origin}/core.html"},),
         (), (), "simple", {}, {},
     )
-    monkeypatch.setattr(runner, "_start_fixture_server", lambda root: (
+    monkeypatch.setattr(runner, "start_fixture_server", lambda root: (
         MagicMock(), MagicMock(), "http://fixture.test",
     ))
     task.ground_truth["expected_outputs"] = {}
@@ -424,10 +430,10 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
     monkeypatch.setattr(
         runner, "sync_playwright", lambda: SimpleNamespace(start=lambda: playwright)
     )
-    monkeypatch.setattr(runner, "start_browser_container", lambda *a, **k: MagicMock())
-    monkeypatch.setattr(runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
-    monkeypatch.setattr(runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
-    monkeypatch.setattr(runner, "DockerStatsResources", lambda _: None)
+    monkeypatch.setattr(docker_runner, "start_browser_container", lambda *a, **k: MagicMock())
+    monkeypatch.setattr(docker_runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
+    monkeypatch.setattr(docker_runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
+    monkeypatch.setattr(docker_runner, "DockerStatsResources", lambda _: None)
     monkeypatch.setattr(runner, "_reset_state", lambda *a: None)
     monkeypatch.setattr(runner, "_prepare_page", lambda page, *a, **k: page)
     monkeypatch.setattr(runner, "_environment", lambda *a: {})
@@ -844,7 +850,7 @@ def test_failed_attempt_evidence_omits_the_login_password(
     )
     monkeypatch.setattr(runner, "EvaluatorRegistry", lambda **_: registry)
     monkeypatch.setattr(runner, "ResourceSampler", lambda *a, **kw: MagicMock())
-    monkeypatch.setattr(runner, "_resource_result", lambda *a: {})
+    monkeypatch.setattr(runner, "resource_result", lambda *a: {})
     monkeypatch.setattr(runner, "_capture_final_page_evidence", lambda *a: {"status": "complete"})
     monkeypatch.setattr(runner, "build_agent_response", lambda *a: None)
     monkeypatch.setattr(
@@ -858,10 +864,10 @@ def test_failed_attempt_evidence_omits_the_login_password(
     monkeypatch.setattr(
         runner, "sync_playwright", lambda: SimpleNamespace(start=lambda: MagicMock())
     )
-    monkeypatch.setattr(runner, "start_browser_container", lambda *a, **k: MagicMock())
-    monkeypatch.setattr(runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
-    monkeypatch.setattr(runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
-    monkeypatch.setattr(runner, "DockerStatsResources", lambda _: MagicMock())
+    monkeypatch.setattr(docker_runner, "start_browser_container", lambda *a, **k: MagicMock())
+    monkeypatch.setattr(docker_runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
+    monkeypatch.setattr(docker_runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
+    monkeypatch.setattr(docker_runner, "DockerStatsResources", lambda _: MagicMock())
     monkeypatch.setattr(runner, "_reset_state", lambda *a: None)
     monkeypatch.setattr(runner, "_prepare_page", lambda page, *a, **k: page)
     monkeypatch.setattr(runner, "_environment", lambda *a: {})
@@ -899,11 +905,6 @@ def test_external_websocket_url_rewrites_container_advertised_host():
         )
         == "ws://127.0.0.1:32776/devtools/browser/moli-browser"
     )
-
-
-def test_http_origin_keeps_only_scheme_and_authority():
-    assert _http_origin("https://example.com:8443/a?q=1") == "https://example.com:8443"
-    assert _http_origin("about:blank") is None
 
 
 def test_published_endpoint_handles_missing_port_binding():

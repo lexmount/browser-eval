@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -168,7 +169,9 @@ def test_revision_command_preserves_sources_and_rejects_existing_output(tmp_path
     before = {path: path.read_bytes() for path in (BASE, CORRECTIONS)}
     command = [
         sys.executable,
-        str(ROOT / "scripts/build_revised_webarena_dataset.py"),
+        "-m",
+        "harness.trajectory_replay",
+        "dataset-revision",
         "--base",
         str(BASE),
         "--corrections",
@@ -178,13 +181,17 @@ def test_revision_command_preserves_sources_and_rejects_existing_output(tmp_path
         "--output",
         str(output),
     ]
-    subprocess.run(command, check=True, capture_output=True, cwd=tmp_path)
+    path = os.pathsep.join(filter(None, [str(ROOT / "src"), os.environ.get("PYTHONPATH")]))
+    env = {**os.environ, "PYTHONPATH": path}
+    subprocess.run(command, check=True, capture_output=True, cwd=tmp_path, env=env)
     assert json.loads(output.read_bytes()) == revise(BASE, CORRECTIONS, [225])
     saved = output.read_bytes()
-    assert subprocess.run(command, capture_output=True, cwd=tmp_path).returncode != 0
+    assert subprocess.run(command, capture_output=True, cwd=tmp_path, env=env).returncode != 0
     assert output.read_bytes() == saved
     assert all(path.read_bytes() == raw for path, raw in before.items())
-    subprocess.run(command + ["--replace-generated"], check=True, capture_output=True, cwd=tmp_path)
+    subprocess.run(
+        command + ["--replace-generated"], check=True, capture_output=True, cwd=tmp_path, env=env
+    )
     assert output.read_bytes() == saved
 
 

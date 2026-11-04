@@ -6,14 +6,13 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from bs4 import BeautifulSoup
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path
 from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 
-from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl
+from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl, read_json
 from harness.report_languages import generated_languages
-from harness.reporting.presentation import check_presentation
+from harness.reporting.release_check import checked_page, open_report, read_page
 from harness.reporting.templates import resolve_template
 from harness.reporting.visual import browser_executable, local_report_server, settle_theme
 from harness.web_fetch.report import generate
@@ -246,15 +245,15 @@ def build_snapshot_audit(source, output, *, profile):
 
 def check_snapshot_audit(root):
     """Deterministic checks for matrix values, disclosure and reviewed evidence."""
-    root = Path(root)
-    manifest=json.loads((root/'report-manifest.json').read_text(encoding='utf-8'))
+    root = open_report(root)
+    manifest=read_json(root/'report-manifest.json')
     if manifest.get('evidence_state')!='published_snapshot_score_audit' or manifest.get('certified') is not False:
         raise ValueError('Snapshot audit lost its diagnostic identity')
     for name in ['dataset','results']:
         relative='dataset.json' if name=='dataset' else 'results.jsonl'
         if manifest.get(name+'_sha256')!=file_sha256(root/relative):
             raise ValueError('Snapshot audit input changed: '+name)
-    dataset = json.loads((root/'dataset.json').read_text(encoding='utf-8'))
+    dataset = read_json(root/'dataset.json')
     rows = load_jsonl(root/'results.jsonl')
     check_release(root, dataset, rows)
     if dataset.get('definition_revision'):
@@ -262,24 +261,24 @@ def check_snapshot_audit(root):
         historical=root/'audit/history/dataset.json'
         if dataset['definition_revision'].get('parent_dataset_sha256') != file_sha256(historical):
             raise ValueError('Annotation revision has a different report parent')
-        _check_annotation_version(dataset,json.loads(historical.read_text(encoding='utf-8')),json.loads(revision_path.read_text(encoding='utf-8')),file_sha256(revision_path))
+        _check_annotation_version(dataset,read_json(historical),read_json(revision_path),file_sha256(revision_path))
     binding = dataset['comparison']['score_audit']
-    audit = json.loads(_bound(root, binding).read_text(encoding='utf-8'))
+    audit = read_json(_bound(root, binding))
     if binding.get('historical_privacy'):_bound(root,binding['historical_privacy'])
     check_saved_result_summary(root, dataset, rows)
     for relative in ['index.html','guide/index.html','audit/index.html','analysis/index.html']:
-        soup = BeautifulSoup((root/relative).read_text(encoding='utf-8'), 'html.parser')
+        soup = read_page(root/relative)
         if not soup.select_one('[data-evidence-state="published_snapshot_score_audit"]'):
             raise ValueError('Snapshot report lost its evidence disclosure: '+relative)
-    methodology = BeautifulSoup((root/'methodology/index.html').read_text(encoding='utf-8'), 'html.parser')
+    methodology = read_page(root/'methodology/index.html')
     scope = methodology.select_one('[data-scoring-input-scope]')
     expected_scope = [binding[key] for key in ['total_attempts','projected_scoring_inputs','recovered_originals','reviewed_attempts']]
     if scope is None or any(str(value) not in scope.get_text() for value in expected_scope):
         raise ValueError('Snapshot report lost its scoring input scope')
-    audit_html = BeautifulSoup((root/'audit/index.html').read_text(encoding='utf-8'), 'html.parser')
+    audit_html = read_page(root/'audit/index.html')
     check_current_browser_article(root,{case['id']:case for case in dataset['cases']},rows,dataset['comparison']['report_interpretation'])
     for route in ['index.html','guide/index.html','analysis/index.html','audit/index.html']:
-        check_presentation((root/route).read_text(encoding='utf-8'))
+        checked_page(root/route)
     for item in audit['providers']:
         element = audit_html.select_one('[data-audit-summary-provider="'+item['provider']+'"]')
         fields=['published_passes','historical_passes','initial_rescore_passes']+(['original_definition_passes'] if 'original_definition_passes' in item else [])+['corrected_passes','total']
@@ -298,7 +297,7 @@ def check_snapshot_audit(root):
         for evidence in item.get('evidence',[]):
             archived={**evidence,'path':'audit/history/'+evidence['path']} if evidence.get('historical') else evidence
             _bound(root,archived)
-        detail=BeautifulSoup((root/'attempts'/f'{identifier}.html').read_text(encoding='utf-8'),'html.parser')
+        detail=read_page(root/'attempts'/f'{identifier}.html')
         if not detail.select_one('[data-score-audit]'):
             raise ValueError('Snapshot result lost its audit explanation: '+identifier)
     return f'PASS: {len(cases)} tasks, {len(rows)} saved calls, {len(audit["changes"])} reviewed changes; zero new calls'

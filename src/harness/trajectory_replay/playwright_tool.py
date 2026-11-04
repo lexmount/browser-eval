@@ -22,6 +22,7 @@ from requests.adapters import HTTPAdapter
 from harness.environments.webarena.runtime import (
     BENCHMARK_VIEWPORT,
 )
+from harness.trajectory_replay.participants import BROWSER_ADAPTERS
 from harness.trajectory_replay.public_webarena.executor import execute_steps
 
 SNAPSHOT_NAVIGATION_SETTLE_TIMEOUT_MS = 1_500
@@ -368,7 +369,7 @@ class PlaywrightReplayTool:
         request_bridge_origins: set[str] | None = None,
         request_bridge_host_overrides: list[dict[str, str]] | None = None,
     ):
-        if engine not in {"chromium", "moli", "lightpanda", "obscura", "kitesurf"}:
+        if engine not in BROWSER_ADAPTERS:
             raise ValueError(f"unknown Playwright replay engine: {engine}")
         self._engine = engine
         self._supports_multiple_pages = engine not in {"lightpanda", "obscura", "kitesurf"}

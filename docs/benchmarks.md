@@ -299,12 +299,12 @@ distributions and specimen links. An optional authored interpretation uses
 belong to the selected evidence.
 
 ```sh
-uv run --frozen python scripts/build_webarena_replay_report.py \
+uv run --frozen python -m harness.trajectory_replay report \
   --profile /absolute/instance/profile.json --results /absolute/results.json \
   --review /absolute/failure-review.json --output /absolute/instance/report
-uv run --frozen python scripts/check_webarena_replay_report.py \
+uv run --frozen python -m harness.trajectory_replay check \
   /absolute/instance/report --profile /absolute/instance/profile.json
-uv run --frozen python scripts/package_webarena_replay_artifact_site.py \
+uv run --frozen python -m harness.trajectory_replay package \
   --report /absolute/instance/report --profile /absolute/instance/profile.json \
   --evidence /absolute/results.json --review /absolute/failure-review.json \
   --output /absolute/instance/report.zip \
@@ -358,13 +358,13 @@ Build with `scripts/build_report.py --profile <profile> --evidence <snapshot>
 --output <new-report> --language zh`. This historical format supports Chinese and
 provides an English not-generated notice. Check with `scripts/check_report.py
 <new-report> --profile <profile> --visual-receipt <private-receipt>`, then package
-through `scripts/package_artifact_site.py <new-report> <package.zip> --snapshot-audit`.
+through `uv run --frozen python -m harness.web_fetch site-package <new-report> <package.zip> --snapshot-audit`.
 Run these Python entries through `uv run --frozen python`. The mode retains the
 original routes and metric populations and labels the new report as a saved-input
 audit; it does not certify new calls or replace the original release. The ordinary
 packaging path rejects this evidence state without the explicit audit flag.
 
-When publication is requested and authorized, publish through `scripts/publish_artifact_site.py --snapshot-audit` with a separate
+When publication is requested and authorized, publish through `uv run --frozen python -m harness.web_fetch site-publish --snapshot-audit` with a separate
 publication target, receipt and operation journal. Use `--create` for a new report
 and set visibility explicitly. A later update uses that report's own site and
 expected version. Keep the original report's target unchanged.

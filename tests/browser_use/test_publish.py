@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from harness.browser_use import report_publish as publisher
+from harness.reporting.publication import response_json
 
 
 @pytest.fixture(autouse=True)
@@ -20,14 +21,14 @@ def _sha256(path: Path) -> str:
 
 
 def test_response_json_preserves_http_failure_context() -> None:
-    assert publisher.response_json(200, b'{"ok": true}', operation="upload") == {"ok": True}
+    assert response_json(200, b'{"ok": true}', operation="upload") == {"ok": True}
     for status, payload, expected in (
         (502, b"", "HTTP 502: empty response"),
         (413, b"too large", "HTTP 413: too large"),
         (200, b"", "HTTP 200 without a valid JSON response"),
     ):
         try:
-            publisher.response_json(status, payload, operation="upload")
+            response_json(status, payload, operation="upload")
         except RuntimeError as error:
             assert expected in str(error)
         else:

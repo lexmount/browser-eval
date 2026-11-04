@@ -98,7 +98,7 @@ def environment(tmp_path, monkeypatch, *, subset=None, reset_drift=False, call_d
             'status': 'fail', 'score': 0.0, 'error': '', 'evidence_sha256': hashes,
         }
 
-    monkeypatch.setattr(execution, '_run_task', task)
+    monkeypatch.setattr(execution, 'run_replay_task', task)
     return args, activity
 
 

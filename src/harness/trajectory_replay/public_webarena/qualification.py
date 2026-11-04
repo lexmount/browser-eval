@@ -22,10 +22,10 @@ from urllib.parse import urlparse
 
 from harness.environments.webarena.topology import RECORDED_PORT_SITES
 from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl, same_json_record
+from harness.trajectory_replay.core.suite import TaskSuite
 from harness.trajectory_replay.public_webarena.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from harness.trajectory_replay.public_webarena.suite import (
     TRAJECTORY_SCHEMA,
-    TaskSuite,
     load_suite,
     validate_selector,
 )

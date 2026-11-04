@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.trajectory_replay import cli, runner
-from harness.trajectory_replay.suite import TaskSuite
+from harness.trajectory_replay.core.suite import TaskSuite
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -197,21 +197,17 @@ def test_runner_rechecks_destination_after_loading_inputs(tmp_path, monkeypatch,
 
 
 def test_direct_cli_requires_explicit_inputs_and_keeps_report_with_run(monkeypatch, tmp_path):
-    import sys
-
     calls = []
-    monkeypatch.setattr(cli, "run_evaluation", lambda **kwargs: calls.append(kwargs))
-    monkeypatch.setattr(sys, "argv", ["replay"])
+    monkeypatch.setattr(runner, "run_evaluation", lambda **kwargs: calls.append(kwargs))
     with pytest.raises(SystemExit) as error:
-        cli.main()
+        cli.main(["evaluate"])
     assert error.value.code == 2
     assert calls == []
     output = tmp_path / "run"
-    monkeypatch.setattr(sys, "argv", [
-        "replay", "--suite", "suite.json", "--ground-truth-evidence", "qualification.json",
+    cli.main([
+        "evaluate", "--suite", "suite.json", "--ground-truth-evidence", "qualification.json",
         "--output", str(output),
     ])
-    cli.main()
     assert calls[0]["reports_dir"] == output / "report"
     assert calls[0]["suite_path"] == "suite.json"
     assert calls[0]["ground_truth_evidence_path"] == "qualification.json"

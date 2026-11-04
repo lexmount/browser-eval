@@ -405,7 +405,6 @@ class PublicationPrivacyTests(unittest.TestCase):
         self.assertEqual(project_file('call-logs/x.json', placeholder), (placeholder, None))
 
     def test_packaged_downloads_and_disclosure(self):
-        repository = Path(__file__).resolve().parents[1]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'publish').mkdir()
@@ -489,7 +488,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             raw = b'<script>key="' + key + b'"</script>'
             raw_path = source / 'sources/case/source.html.txt'
             raw_path.write_bytes(raw)
-            packaged = subprocess.run([sys.executable, str(repository / 'scripts/package_artifact_site.py'),
+            packaged = subprocess.run([sys.executable, '-m', 'harness.web_fetch', 'site-package',
                             str(source), str(root / 'publish/webfetch-sites.zip')],
                            capture_output=True)
             self.assertEqual(packaged.returncode, 0, packaged.stderr.decode())
@@ -634,7 +633,7 @@ class PublicationPrivacyTests(unittest.TestCase):
                 with self.subTest(broken=broken):
                     (source / 'index.html').write_text('<html><body>' + broken + '</body></html>', encoding='utf-8')
                     rejected = subprocess.run(
-                        [sys.executable, str(repository / 'scripts/package_artifact_site.py'), str(source), str(root / 'publish/webfetch-sites.zip')],
+                        [sys.executable, '-m', 'harness.web_fetch', 'site-package', str(source), str(root / 'publish/webfetch-sites.zip')],
                         capture_output=True,
                     )
                     self.assertNotEqual(rejected.returncode, 0)

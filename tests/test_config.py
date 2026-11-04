@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from harness.web_fetch.config import expand_env, load_env_file, load_runtime_env
 from harness.web_fetch.accounts import HOSTED_KEYS, import_credentials, main_import_credentials
+from harness.web_fetch.cli import main as web_fetch_main
 
 
 class ConfigTest(unittest.TestCase):
@@ -26,7 +27,7 @@ class ConfigTest(unittest.TestCase):
                 if explicit:
                     args += ["--target", str(target)]
                 output = io.StringIO()
-                with patch("harness.web_fetch.accounts.Path.cwd", return_value=root), redirect_stdout(output):
+                with patch("harness.web_fetch.config.ROOT", root), redirect_stdout(output):
                     main_import_credentials(args)
                 self.assertNotIn(secret, output.getvalue())
                 self.assertNotIn("existing-synthetic-value", output.getvalue())
@@ -34,6 +35,27 @@ class ConfigTest(unittest.TestCase):
                 self.assertEqual(target.stat().st_mode & 0o777, 0o600)
                 self.assertFalse(list(root.glob(".env-import-*")))
             self.assertIn(secret, source.read_text(encoding="utf-8"))
+
+    def test_default_import_target_is_the_env_file_evaluation_loads_from_any_directory(self):
+        key = HOSTED_KEYS[0]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "checkout"
+            elsewhere = Path(directory) / "elsewhere"
+            root.mkdir()
+            elsewhere.mkdir()
+            source = Path(directory) / "source.env"
+            source.write_text("".join(f"{name}=synthetic-value\n" for name in HOSTED_KEYS), encoding="utf-8")
+            previous = Path.cwd()
+            os.chdir(elsewhere)
+            try:
+                with patch("harness.web_fetch.config.ROOT", root), patch.dict(os.environ), redirect_stdout(io.StringIO()):
+                    web_fetch_main(["import-env", "--source", str(source)])
+                    load_runtime_env()
+                    self.assertEqual(os.environ[key], "synthetic-value")
+            finally:
+                os.chdir(previous)
+            self.assertEqual((root / ".env").stat().st_mode & 0o777, 0o600)
+            self.assertEqual(list(elsewhere.iterdir()), [])
 
     def test_env_file_is_data_not_shell(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

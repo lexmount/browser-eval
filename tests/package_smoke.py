@@ -95,6 +95,15 @@ def verify_package_tree(source_root: Path, package_root: Path, *, package_name='
             for path in directory.glob(pattern):
                 if path.is_file():
                     expected[path.relative_to(source).as_posix()] = path
+    # setuptools also ships package files named by MANIFEST.in, where report assets are declared.
+    manifest = source_root / 'MANIFEST.in'
+    for line in manifest.read_text(encoding='utf-8').splitlines() if manifest.is_file() else ():
+        if line.startswith('recursive-include '):
+            directory, *patterns = line.split()[1:]
+            if (source_root / directory).is_relative_to(source):
+                for pattern in patterns:
+                    for path in (source_root / directory).rglob(pattern):
+                        expected[path.relative_to(source).as_posix()] = path
     if package_name == 'harness':
         for relative in project['tool'].get('browser-eval', {}).get('bundled-data', ()):
             expected['distribution_data/' + relative] = source_root / relative
@@ -129,6 +138,26 @@ def verify_bundled_data(source_root: Path, package_root: Path) -> None:
             raise ValueError('Bundled data resolved outside the installed package: ' + relative)
         if path.read_bytes() != (source_root / relative).read_bytes():
             raise ValueError('Bundled data differs from source: ' + relative)
+
+
+def verify_report_assets(package_root: Path) -> None:
+    """Installed renderers must load their stylesheets and scripts from the package."""
+    from harness.trajectory_replay import report as replay_report
+    from harness.trajectory_replay.public_webarena import report as public_report
+    from harness.trajectory_replay.report_compaction import _script
+    from harness.web_fetch.report_style import STYLE
+    from harness.web_search.comparison import SCRIPT, STYLE as COMPARISON_STYLE
+    from harness.web_search.delivery import BRIDGE, LOADER
+
+    assert all(text.strip() for text in (STYLE, SCRIPT, COMPARISON_STYLE, BRIDGE, LOADER))
+    assert _script('compact-data-fetch-adapter.js').strip()
+    for renderer in (replay_report, public_report):
+        assert Path(renderer.__file__).resolve().is_relative_to(package_root)
+        assert renderer.REPORT_CSS.strip() and renderer.SUITE_FILTER_JS.strip()
+    assert (package_root / 'web_fetch/templates/interpretation-headless.css').is_file()
+    assert (package_root / 'browser_use/assets/report.js').is_file()
+    assert (package_root / 'browser_use/assets/webarena-autonomous-evaluation-flow.png').is_file()
+    assert (package_root / 'trajectory_replay/assets/webarena-report.css').is_file()
 
 
 def verify_review_revisions(root: Path, source_root: Path) -> None:
@@ -193,9 +222,9 @@ def verify_review_revisions(root: Path, source_root: Path) -> None:
     assert merged['review_protocol']['matrix_refresh_review']['retained_attempts'] == 1
     assert merged['review_protocol']['matrix_refresh_review']['reviewed_attempts'] == 1
     assert (refreshed / 'results.jsonl').read_bytes() == before
-    for script in ('review_headless_results.py', 'review_result_anomalies.py'):
-        work = root / (script.removesuffix('.py') + '-work')
-        command = [sys.executable, str(source_root / 'scripts' / script),
+    for name in ('review-headless', 'review-anomalies'):
+        work = root / (name + '-work')
+        command = [sys.executable, '-m', 'harness.web_fetch', name,
                    '--evidence', str(current), '--work', str(work), '--model', 'synthetic',
                    '--reviewer', 'internal', '--prepare-only']
         for _ in range(2):
@@ -291,7 +320,7 @@ def verify_lexbench_package(root: Path, renderer: Path) -> None:
     from harness.lexbench.pack import package
 
     subprocess.run(
-        [sys.executable, '-m', 'harness.lexbench.report', '--help'],
+        [sys.executable, '-m', 'harness.lexbench', 'report', '--help'],
         cwd=root, check=True, capture_output=True, text=True,
     )
 
@@ -336,9 +365,9 @@ def verify_lexbench_package(root: Path, renderer: Path) -> None:
         assert 'data-english-not-generated' in (chinese_package / name).read_text(encoding='utf-8')
         assert 'bundle-loader.js' not in (chinese_package / name).read_text(encoding='utf-8')
     from harness.lexbench import reproduction, resource_profiles, verification
-    subprocess.run([sys.executable, "-m", "harness.lexbench.reproduction", "--help"],
+    subprocess.run([sys.executable, "-m", "harness.lexbench", "reproduce", "--help"],
                    check=True, cwd=root, capture_output=True, text=True)
-    subprocess.run([sys.executable, "-m", "harness.lexbench.resource_profiles", "--help"],
+    subprocess.run([sys.executable, "-m", "harness.lexbench", "resource-profiles", "--help"],
                    check=True, cwd=root, capture_output=True, text=True)
     public_collector = root / "collector.py"
     public_collector.write_bytes(Path(resource_profiles.__file__).read_bytes())
@@ -351,9 +380,9 @@ def verify_lexbench_package(root: Path, renderer: Path) -> None:
     contract = Path(verification.__file__).with_name('assets') / 'render_contract.cjs'
     subprocess.run(['node', str(contract), '--app', str(source / 'app.js')],
                    check=True, cwd=root, capture_output=True, text=True)
-    subprocess.run([sys.executable, '-m', 'harness.lexbench.verification', '--help'],
+    subprocess.run([sys.executable, '-m', 'harness.lexbench', 'check', '--help'],
                    check=True, cwd=root, capture_output=True, text=True)
-    subprocess.run([sys.executable, '-m', 'harness.lexbench.pack', '--help'],
+    subprocess.run([sys.executable, '-m', 'harness.lexbench', 'package', '--help'],
                    check=True, cwd=root, capture_output=True, text=True)
 
 
@@ -361,8 +390,8 @@ def verify_dynamic_cohort(root: Path, source_root: Path) -> None:
     from harness.web_fetch.dynamic_cohort import merge
     from lexbench_webfetch.risk_control_dataset import load_cohort, parse_sections
 
-    for script in ('append_dynamic_content.py', 'merge_dynamic_supplement.py'):
-        subprocess.run([sys.executable, str(source_root / 'scripts' / script), '--help'],
+    for name in ('dynamic-append', 'dynamic-merge'):
+        subprocess.run([sys.executable, '-m', 'harness.web_fetch', name, '--help'],
                        cwd=root, check=True, capture_output=True, text=True)
     from lexbench_webfetch.inputs import definition_path
     definitions = definition_path('evaluation/risk-control')
@@ -539,7 +568,7 @@ def verify_environment_preparation(root: Path, source_root: Path) -> None:
     source.write_text(''.join(f'{key}=synthetic-value\n' for key in accounts.HOSTED_KEYS)
                       + 'UNRELATED_SECRET=synthetic-unrelated\n', encoding='utf-8')
     target.write_text(f'{accounts.HOSTED_KEYS[0]}=synthetic-existing\n', encoding='utf-8')
-    command = [sys.executable, str(source_root / 'scripts/import_benchmark_env.py'),
+    command = [sys.executable, '-m', 'harness.web_fetch', 'import-env',
                '--source', str(source), '--target', str(target)]
     result = subprocess.run(command, check=True, cwd=root, capture_output=True, text=True)
     assert 'synthetic-value' not in result.stdout + result.stderr
@@ -577,11 +606,12 @@ def verify_replay_diagnostics(root: Path, source_root: Path) -> None:
                     'import harness.trajectory_replay.public_webarena.diagnostics; '
                     'assert "webarena_verified" not in sys.modules; '
                     'assert "playwright" not in sys.modules'], check=True, cwd=root)
-    for command in ('audit_replay_readiness.py', 'audit_replay_cart_assertion.py',
-                    'audit_replay_comparison_inputs.py', 'audit_saved_replay_correction.py',
-                    'audit_webarena_recorded_outcomes.py', 'verify_webarena_evaluator_exclusions.py',
-                    'rescore_saved_retrieval_attempt.py', 'supersede_webarena_task_browser_results.py',
-                    'build_revised_webarena_dataset.py'):
+    for command in ('audit-readiness', 'audit-cart-assertion', 'audit-comparison-inputs',
+                    'audit-saved-correction', 'rescore-saved-retrieval', 'dataset-revision'):
+        subprocess.run([sys.executable, '-m', 'harness.trajectory_replay', command, '--help'],
+                       check=True, cwd=root, capture_output=True)
+    for command in ('audit_webarena_recorded_outcomes.py', 'verify_webarena_evaluator_exclusions.py',
+                    'supersede_webarena_task_browser_results.py'):
         subprocess.run([sys.executable, str(source_root / 'scripts' / command), '--help'],
                        check=True, cwd=root, capture_output=True)
     stage = root / 'replay-diagnostics'
@@ -598,7 +628,7 @@ def verify_replay_diagnostics(root: Path, source_root: Path) -> None:
                              'sha256': hashlib.sha256(trace.read_bytes()).hexdigest()}},
     }]}), encoding='utf-8')
     output = stage / 'diagnostic.json'
-    args = [sys.executable, str(source_root / 'scripts/audit_replay_readiness.py'),
+    args = [sys.executable, '-m', 'harness.trajectory_replay', 'audit-readiness',
             '--results', str(results), '--output', str(output)]
     subprocess.run(args, check=True, cwd=stage, capture_output=True)
     report = json.loads(output.read_bytes())
@@ -939,11 +969,12 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     linked = root / 'linked-report'
     linked.symlink_to(report, target_is_directory=True)
     browser_use = ['-m', 'harness.browser_use']
+    replay = ['-m', 'harness.trajectory_replay']
     commands = [
-        ([str(source_root / 'scripts/check_webarena_replay_report.py')], [str(linked)]),
+        ([*replay, 'check'], [str(linked)]),
         ([*browser_use, 'check'], [str(linked), '--evidence', str(root)]),
         ([*browser_use, 'visual'], [str(linked)]),
-        ([str(source_root / 'scripts/check_webarena_replay_visual.py')], [str(linked)]),
+        ([*replay, 'visual'], [str(linked)]),
     ]
     for entry, arguments in commands:
         subprocess.run([sys.executable, *entry, '--help'], check=True,
@@ -954,9 +985,9 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     for entry in ([*browser_use, 'report'],
                   [*browser_use, 'review'],
                   [*browser_use, 'package'],
-                  [str(source_root / 'scripts/package_webarena_replay_artifact_site.py')],
+                  [*replay, 'package'],
                   [*browser_use, 'publish'],
-                  [str(source_root / 'scripts/publish_webarena_replay_artifact_site.py')]):
+                  [*replay, 'publish']):
         subprocess.run([sys.executable, *entry, '--help'],
                        check=True, cwd=root, stdout=subprocess.DEVNULL)
     from harness.reporting.publication import (
@@ -991,9 +1022,8 @@ def verify_browser_report_checks(root: Path, source_root: Path) -> None:
     package_webfetch(webfetch, webfetch_archive)
     from harness.web_fetch.publication_check import check as check_webfetch_package
     check_webfetch_package(webfetch_archive, webfetch)
-    for command in ('publish_artifact_site.py', 'verify_artifact_site.py',
-                    'check_publication_bundle.py'):
-        subprocess.run([sys.executable, str(source_root / 'scripts' / command), '--help'],
+    for command in ('site-publish', 'site-verify', 'site-bundle-check'):
+        subprocess.run([sys.executable, '-m', 'harness.web_fetch', command, '--help'],
                        check=True, cwd=root, stdout=subprocess.DEVNULL)
     from harness.web_fetch.report_publish import PublishConfig
     from harness.web_fetch.report_publish import publish as submit_webfetch
@@ -1074,8 +1104,7 @@ def verify_browser_observation_capture(root, source_root):
     from harness.web_fetch import browser_observations as observations
 
     subprocess.run([
-        sys.executable, str(source_root / 'scripts/capture_headless_browser_observations.py'),
-        '--help',
+        sys.executable, '-m', 'harness.web_fetch', 'headless-observations', '--help',
     ], check=True, cwd=root, capture_output=True, text=True)
     registry = json.loads(observations.CONTRACTS.read_bytes())
     assert registry['schema_version'] == 1
@@ -1271,7 +1300,7 @@ def verify_report_acceptance(root, source_root):
     presentation, authority = fixture['create_revision_report'](root / 'report-presentation')
     assert check_revision(presentation, authority_root=authority).startswith('PASS:')
     subprocess.run([
-        sys.executable, '-O', str(source_root / 'scripts/check_report_revision.py'),
+        sys.executable, '-O', '-m', 'harness.web_fetch', 'report-revision-check',
         str(presentation), '--authority-root', str(authority),
     ], check=True, cwd=root, capture_output=True, text=True)
 
@@ -1659,6 +1688,7 @@ def main():
         raise ValueError('Package smoke must use an installed distribution outside the checkout')
     verify_package_tree(args.source_root, installed)
     verify_bundled_data(args.source_root, installed)
+    verify_report_assets(installed)
     from importlib import import_module
     for package_name in ('lexbench_webfetch', 'lexbench_websearch'):
         package_root = Path(import_module(package_name).__file__).resolve().parent
@@ -1696,7 +1726,7 @@ def main():
         verify_browser_report_checks(root, args.source_root)
         verify_release_check_helpers(root, args.source_root)
         verify_teds_revision(root, args.source_root, with_writer=args.webmainbench)
-        verify_lexbench_package(root, args.source_root / 'scripts/moli_report/app.js')
+        verify_lexbench_package(root, args.source_root / 'src/harness/lexbench/template/app.js')
         verify_dynamic_cohort(root, args.source_root)
         verify_review_revisions(root, args.source_root)
         verify_sample_assembly(root, args.source_root)
@@ -1760,12 +1790,9 @@ def main():
         from harness.web_fetch.scoring_revision import revise
         assert not default_registry_path().resolve().is_relative_to(args.source_root.resolve())
         assert load_scoring_regressions()
-        for module in ('rescoring', 'scoring_revision', 'reference_revision'):
-            subprocess.run([sys.executable, '-m', 'harness.web_fetch.' + module, '--help'],
-                           check=True, cwd=root, capture_output=True, text=True)
-        for script in ('rescore_content.py', 'revise_body_scoring.py', 'revise_reference_evidence.py',
-                       'merge_result_review_revision.py', 'rebase_blind_result_review.py'):
-            subprocess.run([sys.executable, str(args.source_root / 'scripts' / script), '--help'],
+        for name in ('content-rescore', 'scoring-revision', 'reference-revision',
+                     'review-merge', 'review-rebase'):
+            subprocess.run([sys.executable, '-m', 'harness.web_fetch', name, '--help'],
                            check=True, cwd=root, capture_output=True, text=True)
         rescore(root / 'cohort')
         receipt = revise(

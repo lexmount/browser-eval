@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 from harness.record_io import bytes_sha256
 from harness.web_search.delivery import export, verify, transform_page
 from harness.web_search.example import example
+from harness.web_search.messages import zh_text
 from harness.web_search.report import build, main
 from harness.web_search.comparison import render_comparison
 
@@ -89,6 +90,10 @@ class DeliveryScenarios(unittest.TestCase):
             self.assertTrue(any(p.startswith("calls/") for p in index["files"]))
             self.assertTrue(any("en/details/" in p for p in index["files"]))
             self.assertIn("detail.html#", (root / "delivery/results.html").read_text(encoding="utf-8"))
+            self.assertIn("const nativeFetch=", (root / "delivery/results.html").read_text(encoding="utf-8"))
+            detail = (root / "delivery/detail.html").read_text(encoding="utf-8")
+            self.assertIn(zh_text("Download original response"), detail)
+            self.assertNotIn("__DOWNLOAD_LABEL_ZH__", detail)
             shard = root / "delivery" / next(iter(index["files"].values()))
             values = json.loads(gzip.decompress(shard.read_bytes()))
             values[next(iter(values))]["base64"] = base64.b64encode(b"changed").decode()

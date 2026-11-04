@@ -11,7 +11,7 @@ Evaluation credentials come from the local repository configuration; publication
 To import evaluation credentials from an existing file, use:
 
 ```sh
-uv run --frozen python scripts/import_benchmark_env.py \
+uv run --frozen python -m harness.web_fetch import-env \
   --source /absolute/path/source.env --target /absolute/path/repository/.env
 ```
 

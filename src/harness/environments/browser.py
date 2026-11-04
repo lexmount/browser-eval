@@ -24,6 +24,12 @@ def configured_browser_images() -> dict[str, str]:
     return images
 
 
+def rotated_engine_order(engines: tuple[str, ...], task_index: int) -> tuple[str, ...]:
+    """Rotate call order by task so every registered browser takes every position."""
+    offset = task_index % len(engines)
+    return engines[offset:] + engines[:offset]
+
+
 def external_websocket_url(endpoint: str, advertised: str) -> str:
     endpoint_parts = urllib.parse.urlsplit(endpoint)
     websocket_parts = urllib.parse.urlsplit(advertised)

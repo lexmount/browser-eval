@@ -239,7 +239,9 @@ def test_presentation_checks_remain_active_for_chinese_only_reports(tmp_path, op
         [
             sys.executable,
             *(["-O"] if optimized else []),
-            str(SCRIPT.with_name("check_report_revision.py")),
+            "-m",
+            "harness.web_fetch",
+            "report-revision-check",
             str(root),
             "--authority-root",
             str(authority),

@@ -216,11 +216,15 @@ def test_replay_cli_report_option(public, no_report, tmp_path):
     import sys
 
     from harness.trajectory_replay import cli as curated_cli
+    from harness.trajectory_replay import runner as curated_runner
     from harness.trajectory_replay.public_webarena import cli as human_cli
 
     cli = human_cli if public else curated_cli
+    # The curated router imports its runner on selection; the public entry binds it at import.
+    run_owner = human_cli if public else curated_runner
     argv = [
         "replay",
+        *([] if public else ["evaluate"]),
         "--suite",
         str(tmp_path / "explicit.json"),
         "--output",
@@ -230,7 +234,7 @@ def test_replay_cli_report_option(public, no_report, tmp_path):
     ]
     if no_report:
         argv.append("--no-report")
-    with patch.object(sys, "argv", argv), patch.object(cli, "run_evaluation") as run:
+    with patch.object(sys, "argv", argv), patch.object(run_owner, "run_evaluation") as run:
         if public:
             with (
                 patch.object(cli, "load_runtime_env"),

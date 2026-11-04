@@ -34,12 +34,12 @@ def _run_json(command: list[str], project_root: Path) -> dict:
     return json.loads(lines[-1])
 
 
-def _verification_command(
-    publication: dict, profile: Path, archive: Path, project_root: Path
-) -> list[str]:
+def _verification_command(publication: dict, profile: Path, archive: Path) -> list[str]:
     return [
         sys.executable,
-        str(project_root / "scripts/verify_artifact_site.py"),
+        "-m",
+        "harness.web_fetch",
+        "site-verify",
         "--slug",
         str(publication["site_slug"]),
         "--profile",
@@ -135,7 +135,7 @@ def main(project_root: Path) -> None:
             if published.get("slug") != publication["site_slug"]:
                 raise ValueError("publisher returned a different site")
             submitted_receipt = RECEIPT.read_bytes()
-            verified = _run_json(_verification_command(publication, CURRENT, ARCHIVE, ROOT), ROOT)
+            verified = _run_json(_verification_command(publication, CURRENT, ARCHIVE), ROOT)
             if verified.get("version") != published.get("version"):
                 raise ValueError("published and exported Artifact Site versions differ")
             if verified.get("files") != attestation["files"]:

@@ -38,25 +38,42 @@ def verify(artifacts: Path) -> dict:
                 raise ValueError(f"duplicate primary sample: {key}")
             primary[key] = row
     tasks = sorted({r["task_id"] for r in rows})
+    engines = tuple(summary.get("functional", {}))
     paired_tasks = [
         task
         for task in tasks
         if all(
             (row := primary.get((task, engine))) is not None
             and row.get("result_status", row["status"]) == "pass"
-            for engine in ("chromium", "moli")
+            for engine in engines
         )
     ]
     comparison = summary["resource_comparison"]
-    if set(comparison.get("by_engine", {})) != {"chromium", "moli"} or set(
-        summary.get("functional", {})
-    ) != {"chromium", "moli"}:
+    if (
+        not engines
+        or set(comparison.get("by_engine", {})) != set(engines)
+        or {row["engine"] for row in rows} != set(engines)
+    ):
         raise ValueError("required provider set mismatch")
-    for engine in ("chromium", "moli"):
+    paired = comparison.get("paired_ratios", {})
+    paired_labels = (paired.get("denominator_engine"), paired.get("numerator_engine"))
+    if paired_labels != (engines if len(engines) == 2 else (None, None)):
+        raise ValueError("paired ratio labels differ from the participant order")
+    if (len(engines) != 2 or "relative_ratios" in comparison) and comparison.get(
+        "relative_ratios", {}
+    ).get("baseline_engine") != engines[0]:
+        raise ValueError("relative ratio baseline differs from the first participant")
+    for engine in engines:
         if set(comparison["by_engine"][engine]) != REQUIRED_METRICS:
             raise ValueError(f"{engine}: required metric set mismatch")
-    if set(comparison.get("paired_ratios", {}).get("metrics", {})) != REQUIRED_METRICS:
-        raise ValueError("paired: required metric set mismatch")
+    if len(engines) == 2:
+        ratio_sets = [(engines[1], comparison.get("paired_ratios", {}).get("metrics", {}))]
+    else:
+        relative = comparison.get("relative_ratios", {}).get("by_engine", {})
+        ratio_sets = [(engine, relative.get(engine, {})) for engine in engines[1:]]
+    for _, ratio_metrics in ratio_sets:
+        if set(ratio_metrics) != REQUIRED_METRICS:
+            raise ValueError("paired: required metric set mismatch")
     if len(paired_tasks) != comparison["intersection_attempts"]:
         raise ValueError("successful task intersection mismatch")
 
@@ -97,23 +114,25 @@ def verify(artifacts: Path) -> dict:
             ]
             check(values, published, f"{engine}.{metric}")
             checked += 1
-    for metric, published in comparison["paired_ratios"]["metrics"].items():
-        ratios = []
-        for task in paired_tasks:
-            c, m = value(task, "chromium", metric), value(task, "moli", metric)
-            if isinstance(c, (int, float)) and c > 0 and isinstance(m, (int, float)):
-                ratios.append((m / c, task, c, m))
-        check([r[0] for r in ratios], published, "paired." + metric)
-        records = published.get("values", [])
-        if len(records) != len(ratios):
-            raise ValueError(f"paired.{metric}: sample count mismatch")
-        for expected, actual in zip(sorted(ratios), records, strict=True):
-            ratio, task, c, m = expected
-            if actual["task_id"] != task:
-                raise ValueError(f"paired.{metric}: task identity mismatch")
-            for key, number in (("ratio", ratio), ("denominator", c), ("numerator", m)):
-                equal(actual[key], number, f"paired.{metric}.{task}.{key}")
-        checked += 1
+    for comparison_engine, ratio_metrics in ratio_sets:
+        for metric, published in ratio_metrics.items():
+            ratios = []
+            for task in paired_tasks:
+                c = value(task, engines[0], metric)
+                m = value(task, comparison_engine, metric)
+                if isinstance(c, (int, float)) and c > 0 and isinstance(m, (int, float)):
+                    ratios.append((m / c, task, c, m))
+            check([r[0] for r in ratios], published, "paired." + metric)
+            records = published.get("values", [])
+            if len(records) != len(ratios):
+                raise ValueError(f"paired.{metric}: sample count mismatch")
+            for expected, actual in zip(sorted(ratios), records, strict=True):
+                ratio, task, c, m = expected
+                if actual["task_id"] != task:
+                    raise ValueError(f"paired.{metric}: task identity mismatch")
+                for key, number in (("ratio", ratio), ("denominator", c), ("numerator", m)):
+                    equal(actual[key], number, f"paired.{metric}.{task}.{key}")
+            checked += 1
     for engine, published in summary["functional"].items():
         equal(published["tasks"], len(tasks), engine + ".tasks")
         for dimension in ("result", "combined"):

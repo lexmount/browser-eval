@@ -37,9 +37,9 @@ from harness.trajectory_replay.catalog_contracts import (
     apply_action_overrides,
     catalog_action_overrides,
 )
+from harness.trajectory_replay.core.suite import BrowserTask
 from harness.trajectory_replay.public_webarena.executor import execute_steps
 from harness.trajectory_replay.public_webarena.response_builder import build_agent_response
-from harness.trajectory_replay.public_webarena.suite import BrowserTask
 from harness.trajectory_replay.remote_runtime import (
     COHORT_RESET_SCOPE,
     checked_file_sha256,
@@ -310,7 +310,7 @@ def _kernel_assigned_port(process: subprocess.Popen) -> int:
     raise TimeoutError("browser did not open a CDP port")
 
 
-def _stop_browser(process: subprocess.Popen) -> None:
+def stop_browser(process: subprocess.Popen) -> None:
     if process.poll() is not None:
         return
     process.terminate()
@@ -342,7 +342,7 @@ def start_local_browser(
         _wait_cdp(endpoint, process)
     except BaseException:
         # The browser runs in its own session, so an interrupt would orphan it.
-        _stop_browser(process)
+        stop_browser(process)
         raise
     return process, endpoint
 
@@ -489,7 +489,7 @@ def _evaluate_assertions(service: object, contract: object) -> list[dict]:
     )
 
 
-def _run_task(
+def run_replay_task(
     *,
     task_id: int,
     row: dict,
@@ -1171,7 +1171,7 @@ def _execute_cohort(args: argparse.Namespace) -> int:
             )
             _write(args.output / "browser-readiness.json", readiness)
             for task_id in execution_manifest["task_ids"]:
-                result = _run_task(
+                result = run_replay_task(
                     task_id=task_id,
                     row=tasks[task_id],
                     benchmark=benchmark,
@@ -1197,7 +1197,7 @@ def _execute_cohort(args: argparse.Namespace) -> int:
                     flush=True,
                 )
         finally:
-            _stop_browser(process)
+            stop_browser(process)
     after = cohort_reference_hashes(args)
     verify_cohort_evidence(args.output, results, tasks)
     certified = certify_cohort(

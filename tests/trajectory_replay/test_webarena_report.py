@@ -6,6 +6,7 @@ import pytest
 from bs4 import BeautifulSoup
 
 from harness.record_io import canonical_json_sha256
+from harness.reporting.mermaid import mermaid_script_attributes
 from harness.reporting.privacy import TRAJECTORY_REPLAY
 from harness.trajectory_replay.report_inputs import bound_dataset_path
 from harness.trajectory_replay.webarena_report import (
@@ -157,6 +158,25 @@ def build_replay_fixture(tmp_path: Path, monkeypatch, extra_methods=0, *, failed
     return output, manifest, methods, profile, data, attempts, files
 
 
+@pytest.mark.parametrize(("change", "rejected"), [
+    ({"entrypoint": "scripts/build_webarena_replay_report.py"}, False),
+    ({"renderer": "src/other/report.py"}, True),
+    ({"track": "other"}, True),
+], ids=["entry-point-before-the-move", "other-renderer", "other-track"])
+def test_check_binds_the_renderer_not_the_entry_point(tmp_path, monkeypatch, change, rejected):
+    output, *_ = build_replay_fixture(tmp_path, monkeypatch)
+    path = output / "report-manifest.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    assert manifest["profile_sha256"]
+    manifest["template"].update(change)
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    if rejected:
+        with pytest.raises(ValueError, match="bypasses the maintained trajectory-replay template"):
+            check_report(output)
+    else:
+        assert check_report(output)["html_pages"]
+
+
 @pytest.mark.parametrize("extra_methods", [0, 2])
 def test_complete_three_method_report_builds_one_unified_matrix(
     tmp_path: Path, monkeypatch, extra_methods
@@ -226,6 +246,7 @@ def test_complete_three_method_report_builds_one_unified_matrix(
     for route in ("environment.html", "en/environment.html"):
         environment = (output / route).read_text(encoding="utf-8")
         assert 'data-topology-fallback' in environment and 'class="mermaid"' in environment
+        assert mermaid_script_attributes("loader") in environment
         assert 'Rainbond WebArena' in environment
     assert "方法身份与修复序列" in (output / "environment.html").read_text(encoding="utf-8")
     assert "Method identity and repair sequence" in (output / "en/environment.html").read_text(

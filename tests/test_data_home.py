@@ -55,7 +55,7 @@ def test_lexbench_report_reads_the_home_when_it_runs_not_when_it_is_imported(tmp
     profile.write_text(json.dumps({
         "paths": {
             name: f"runs/{name}"
-            for name in ("cohort", "source", "output", "vendor_dir", "functional_correction",
+            for name in ("cohort", "output", "vendor_dir", "functional_correction",
                          "runner", "version_runs", "version_candidate", "layout_policy_runner")
         },
         "resource_population": dict.fromkeys(

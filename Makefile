@@ -89,7 +89,7 @@ clean: ## Remove build outputs and tool caches; keeps reports and environments
 	find src tests scripts -type d -name __pycache__ -prune -exec rm -rf {} +
 
 import-env: ## Import benchmark credentials into the repository .env
-	$(PY) scripts/import_benchmark_env.py
+	$(PY) -m harness.web_fetch import-env
 
 runtime-check: ## Require the Python version in .python-version
 	@$(PY) -c 'import sys; pinned = open(".python-version").read().strip(); current = "%d.%d" % sys.version_info[:2]; sys.exit(0 if current == pinned else "Python " + pinned + " is required by .python-version; this is Python " + current)'
@@ -101,7 +101,7 @@ webfetch-diagnostic-report: runtime-check ## Build and check a diagnostic report
 	$(call require_profile,DIAGNOSTIC_PROFILE)
 	@test -n "$(OUTPUT)"
 	$(PY) scripts/build_report.py --profile "$(DIAGNOSTIC_PROFILE)" $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(EVIDENCE),--evidence "$(EVIDENCE)") --output "$(OUTPUT)"
-	$(PY) scripts/check_diagnostic_report.py "$(OUTPUT)" --profile "$(DIAGNOSTIC_PROFILE)"
+	$(PY) -m harness.web_fetch diagnostic-check "$(OUTPUT)" --profile "$(DIAGNOSTIC_PROFILE)"
 
 track-naming-check: runtime-check ## Check retired track names
 	$(PY) scripts/check_track_naming.py
@@ -159,7 +159,7 @@ report-check: runtime-check ## Check the Web Fetch report: PROFILE
 	$(call require_profile)
 	$(PY) scripts/check_report.py reports/webfetch --profile "$(PROFILE)"
 	$(PY) scripts/check_report_links.py reports/webfetch
-	$(PY) scripts/check_report_revision.py reports/webfetch
+	$(PY) -m harness.web_fetch report-revision-check reports/webfetch
 
 popular-sites-report: runtime-check ## Build the popular-sites report: PROFILE, EVIDENCE
 	$(call require_profile)
@@ -175,7 +175,7 @@ wcxb-release-check: runtime-check ## Run the WCXB release gate: PROFILE
 	$(call require_profile)
 	$(PY) scripts/check_report.py reports/wcxb --profile "$(PROFILE)"
 	$(PY) scripts/check_report_links.py reports/wcxb
-	$(PY) scripts/check_report_revision.py reports/wcxb
+	$(PY) -m harness.web_fetch report-revision-check reports/wcxb
 	$(UV) run --frozen --extra headless-eval python -m harness.web_fetch wcxb-visual reports/wcxb
 
 browser-use-report: runtime-check ## Build the Browser Use report: EVIDENCE
@@ -199,32 +199,32 @@ browser-use-release-check: browser-use-report-check ## Run the Browser Use relea
 
 trajectory-replay-report: runtime-check ## Build the Trajectory Replay report: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/build_webarena_replay_report.py --results "$(EVIDENCE)" --output "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(REVIEW),--review "$(REVIEW)",) $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
+	$(PY) -m harness.trajectory_replay report --results "$(EVIDENCE)" --output "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(REVIEW),--review "$(REVIEW)",) $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 trajectory-replay-report-check: runtime-check ## Check the Trajectory Replay report
-	$(PY) scripts/check_webarena_replay_report.py "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(PROFILE),--profile "$(PROFILE)",)
+	$(PY) -m harness.trajectory_replay check "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(PROFILE),--profile "$(PROFILE)",)
 
 trajectory-replay-visual-check: runtime-check ## Run the Trajectory Replay visual gate
-	$(PY) scripts/check_webarena_replay_visual.py "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(VISUAL_RECEIPT),--receipt "$(VISUAL_RECEIPT)",)
+	$(PY) -m harness.trajectory_replay visual "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(VISUAL_RECEIPT),--receipt "$(VISUAL_RECEIPT)",)
 
 trajectory-replay-release-check: trajectory-replay-report-check ## Run the Trajectory Replay release gate
 	$(MAKE) trajectory-replay-visual-check
 
 trajectory-replay-package: runtime-check ## Package the Trajectory Replay report: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path/effective-results.json is required' >&2; exit 2)
-	$(PY) scripts/package_webarena_replay_artifact_site.py --evidence "$(EVIDENCE)" --report "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(REVIEW),--review "$(REVIEW)",) $(if $(ARCHIVE),--output "$(ARCHIVE)",) $(if $(ATTESTATION),--attestation "$(ATTESTATION)",) $(if $(VISUAL_RECEIPT),--visual-receipt "$(VISUAL_RECEIPT)",)
+	$(PY) -m harness.trajectory_replay package --evidence "$(EVIDENCE)" --report "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(REVIEW),--review "$(REVIEW)",) $(if $(ARCHIVE),--output "$(ARCHIVE)",) $(if $(ATTESTATION),--attestation "$(ATTESTATION)",) $(if $(VISUAL_RECEIPT),--visual-receipt "$(VISUAL_RECEIPT)",)
 
 trajectory-replay-publish: runtime-check ## Publish the Trajectory Replay report: PROFILE
 	$(call require_profile)
-	$(PY) scripts/publish_webarena_replay_artifact_site.py --profile "$(PROFILE)"
+	$(PY) -m harness.trajectory_replay publish --profile "$(PROFILE)"
 
 webarena-catalog-report: runtime-check ## Build the WebArena catalog report
 	@test -n "$(EVIDENCE_ROOT)" -a -n "$(LEDGER)" -a -n "$(SCOPE)" -a -n "$(CATALOG)" -a -n "$(SUITE)" -a -n "$(SITE_MAP)" -a -n "$(OUTPUT)" -a -n "$(ARCHIVE)" || (echo 'EVIDENCE_ROOT, LEDGER, SCOPE, CATALOG, SUITE, SITE_MAP, OUTPUT and ARCHIVE are required' >&2; exit 2)
-	$(PY) scripts/build_webarena_catalog_report.py --evidence-root "$(EVIDENCE_ROOT)" --ledger "$(LEDGER)" --scope "$(SCOPE)" --catalog "$(CATALOG)" --portable-suite "$(SUITE)" --site-map "$(SITE_MAP)" --output "$(OUTPUT)" --archive "$(ARCHIVE)"
+	$(PY) -m harness.trajectory_replay catalog-report --evidence-root "$(EVIDENCE_ROOT)" --ledger "$(LEDGER)" --scope "$(SCOPE)" --catalog "$(CATALOG)" --portable-suite "$(SUITE)" --site-map "$(SITE_MAP)" --output "$(OUTPUT)" --archive "$(ARCHIVE)"
 
 webarena-catalog-release-check: runtime-check ## Run the WebArena catalog release gate: PROFILE, COMPARISON_RELEASE
 	$(call require_profile)
-	$(PY) scripts/check_webarena_catalog_release.py --profile "$(PROFILE)" --comparison-release "$(COMPARISON_RELEASE)" $(if $(DATA_HOME),--data-home "$(DATA_HOME)",)
+	$(PY) -m harness.trajectory_replay catalog-release-check --profile "$(PROFILE)" --comparison-release "$(COMPARISON_RELEASE)" $(if $(DATA_HOME),--data-home "$(DATA_HOME)",)
 
 public-webarena-report: runtime-check ## Build the public WebArena report: PROFILE
 	$(call require_profile)
