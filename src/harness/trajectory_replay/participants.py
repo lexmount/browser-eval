@@ -8,6 +8,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from harness.environments.browser import DEFAULT_BROWSER_IMAGES
+
 # The model that explains failed traces; LLM output never judges success.
 DEFAULT_DIAGNOSIS_MODEL = "gpt-5.6-sol"
 # Runtime adapters the Playwright tool and the catalog runner can drive.
@@ -28,6 +30,28 @@ def summary_engines(summary: dict[str, Any]) -> tuple[str, ...]:
     if not all(SAFE_ENGINE.fullmatch(engine) for engine in engines):
         raise ValueError("summary engine IDs must be safe stable identifiers")
     return engines
+
+
+def attempt_engines(
+    manifest: dict[str, Any], rows: list[dict[str, Any]]
+) -> tuple[str, ...]:
+    """Return one saved run's participants; the first is the ratio baseline.
+
+    A manifest without ``protocol.engines`` predates the field, so its row order
+    says nothing: registered engines keep their registry order, then the others.
+    """
+    seen = tuple(dict.fromkeys(str(row["engine"]) for row in rows))
+    protocol = manifest.get("protocol") or {}
+    declared = tuple(str(engine) for engine in protocol.get("engines") or ())
+    if declared:
+        if len(set(declared)) != len(declared) or set(declared) != set(seen):
+            raise ValueError(
+                f"manifest protocol.engines {list(declared)} "
+                f"differ from attempt engines {sorted(seen)}"
+            )
+        return declared
+    registered = tuple(engine for engine in DEFAULT_BROWSER_IMAGES if engine in seen)
+    return registered + tuple(engine for engine in seen if engine not in registered)
 
 
 def participant_registry(methods: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
