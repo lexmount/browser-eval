@@ -587,9 +587,9 @@ def assemble(
 
     require_external_output(output)
     if benchmark_config(home)["adapter"] is not None:
-        if supplemental is not None or decisions is not None:
+        if decisions is not None:
             raise ValueError(
-                "Record audits use complete review scopes and source reference revisions"
+                "Record reference corrections require source reference revisions"
             )
         return assemble_record(
             home,
@@ -599,6 +599,7 @@ def assemble(
             adjudications=[work for work in [adjudication, *additional_adjudications] if work],
             reference_revision=reference_revision,
             profile=profile,
+            supplemental=supplemental,
         )
     require_product_reference(home)
     if supplemental is None or adjudication is None:
@@ -842,7 +843,15 @@ def assemble(
 
 
 def assemble_record(
-    home, content, works, output, *, profile, adjudications=(), reference_revision=None
+    home,
+    content,
+    works,
+    output,
+    *,
+    profile,
+    adjudications=(),
+    reference_revision=None,
+    supplemental=None,
 ):
     """Join disjoint complete reviews and source adjudications for a record matrix."""
     from harness.web_scraper.analysis import record_field_results
@@ -904,6 +913,27 @@ def assemble_record(
                 inputs[key], reviewed[key] = native, by_method[native["method"]]
     if set(inputs) != expected:
         raise ValueError("Record review must cover the complete current method-case matrix")
+    initial_identities = {key: item["execution_identity"] for key, item in inputs.items()}
+    changed = {
+        (row["method"], row["case_id"])
+        for row in rows
+        if needs_supplemental_review(row, initial_identities)
+    }
+    supplemental_keys = set()
+    if supplemental is not None:
+        cases, opinions = retain(supplemental, "record-field-evidence-audit/1")
+        for cid, case in cases.items():
+            source_case(cid, case)
+            sources[cid].append(opinions[cid])
+            by_method = {o["method"]: o for o in opinions[cid]["outputs"]}
+            for native in case["outputs"]:
+                key = native["method"], cid
+                if key not in changed or key in supplemental_keys:
+                    raise ValueError("Record supplemental review exceeds the changed repair scope")
+                supplemental_keys.add(key)
+                inputs[key], reviewed[key] = native, by_method[native["method"]]
+    if supplemental_keys != changed:
+        raise ValueError("Record changed repairs require their complete supplemental review")
     for work in adjudications:
         cases, opinions = retain(work, "record-reference-adjudication/1")
         for cid, case in cases.items():
@@ -1022,6 +1052,7 @@ def assemble_record(
         "case_count": len(truth),
         "result_count": len(results),
         "original_results_reviewed": len(results),
+        "supplemental_results_reviewed": len(supplemental_keys),
         "accepted_unreviewed_passes": 0,
         "unresolved": len(unresolved),
         "unresolved_fields": unresolved,

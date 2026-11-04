@@ -832,6 +832,69 @@ def test_record_audit_retains_model_disagreement_and_source_bound_final_decision
     assert source["source_decisions"]["title"] == decision
 
 
+@pytest.mark.parametrize("scope", ["current", "missing", "unchanged-extra", "stale-identity"])
+def test_record_audit_supplemental_review_covers_only_changed_repair_identities(
+    record_audit_material, tmp_path, monkeypatch, scope
+):
+
+    from harness.web_scraper import repair, review
+
+    home, content, works, adjudication, authority = record_audit_material
+    original_loader = repair.load_selection
+
+    def corrected_loader(home, selection):
+        source, rows = original_loader(home, selection)
+        return source, [
+            {**row, "repair_run_id": "retained-repair", "retry_missing_timers": 1}
+            if (row["method"], row["case_id"]) == ("cloudflare-json", "book-a-0001")
+            else row
+            for row in rows
+        ]
+
+    monkeypatch.setattr(repair, "load_selection", corrected_loader)
+    work = tmp_path / "supplemental-current-identity"
+    review.prepare(home, content, work, prior=works[0])
+    packet = review.read_packet(work / "packets/000.json")
+    assert len(packet["cases"]) == len(packet["cases"][0]["outputs"]) == 1
+    opinion = pipeline.read_json(works[0] / "reviews/000.json")
+    opinion["cases"] = [c for c in opinion["cases"] if c["case_id"] == "book-a-0001"]
+    pipeline.save_json(work / "reviews/000.json", opinion)
+    pipeline.save_json(work / "reviewer.json", {"model": "synthetic-current-execution-review"})
+    if scope == "unchanged-extra":
+        # A second complete review is not a valid supplement for one changed identity.
+        work = works[1]
+    elif scope == "stale-identity":
+        original_packet = review.read_packet(works[0] / "packets/000.json")
+        packet["cases"][0]["outputs"][0]["execution_identity"] = next(
+            c["outputs"][0]["execution_identity"]
+            for c in original_packet["cases"]
+            if c["case_id"] == "book-a-0001"
+        )
+        # Rebind the packet so rejection must come from current execution verification.
+        manifest = review.read_manifest(work)
+        pipeline.save_json(work / "packets/000.json", packet)
+        manifest["packets"][0]["sha256"] = pipeline.digest((work / "packets/000.json").read_bytes())
+        stored = pipeline.read_json(work / "manifest.json")
+        stored["packets"][0]["sha256"] = manifest["packets"][0]["sha256"]
+        pipeline.save_json(work / "manifest.json", stored)
+    output = tmp_path / "supplemental-audit.json"
+    kwargs = dict(
+        profile=swde.CARD,
+        adjudications=[adjudication],
+        reference_revision=authority,
+        supplemental=None if scope == "missing" else work,
+    )
+    if scope != "current":
+        with pytest.raises(ValueError, match="supplemental|current native execution"):
+            review.assemble_record(home, content, works, output, **kwargs)
+    else:
+        review.assemble_record(home, content, works, output, **kwargs)
+        audit = pipeline.read_json(output)
+        assert audit["result_count"] == audit["original_results_reviewed"] == 4
+        assert audit["supplemental_results_reviewed"] == 1
+        assert audit["unresolved"] == audit["provider_calls_added"] == 0
+
+
 @pytest.mark.parametrize(
     "mutation",
     [

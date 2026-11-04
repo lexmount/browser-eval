@@ -323,6 +323,11 @@ uv run --frozen python -m harness.web_scraper.cli --home /absolute/data/swde \
 Repeat `--additional-review` and `--additional-adjudication` for non-overlapping
 scopes. Assembly checks every native execution, source, field schema and reference;
 it rejects missing or duplicate results and projections changed after review.
+When a retained repair's execution identity changes, use `review --prior` and
+`audit-assemble --supplemental` for exactly that changed scope. The original review
+remains bound, and assembly verifies the supplement against the current native
+response, runtime error and execution identity. Unchanged results cannot enter the
+supplement and are not reviewed again.
 Disputed references remain unresolved until source adjudication and any required
 reference correction agree. Complete result coverage alone does not clear those
 disputes. Assembly adds no provider calls and preserves reviewer findings beside
