@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
-from pathlib import Path
 import hashlib
 import shlex
 import sys
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(frozen=True)

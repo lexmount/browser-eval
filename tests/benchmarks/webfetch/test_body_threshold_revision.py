@@ -93,7 +93,7 @@ def test_published_revision_covers_all_legacy_bodies_and_keeps_bindings():
         assert data == before
         assert revised['id'] == data['id'] + '--' + revision
         count = 0
-        for old, new in zip(data['cases'], revised['cases']):
+        for old, new in zip(data['cases'], revised['cases'], strict=True):
             if not old.get('body_requirements'):
                 assert old == new
                 continue

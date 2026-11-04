@@ -205,14 +205,16 @@ def duration_calibration(
         provenance_mismatches.append("run_manifest")
         provenance_checks["run_manifest"] = False
     else:
-        task_signature = lambda manifest: sorted(
-            (
-                str(task.get("task_id")),
-                str(task.get("sha256")),
+        def task_signature(manifest):
+            return sorted(
+                (
+                    str(task.get("task_id")),
+                    str(task.get("sha256")),
+                )
+                for task in (manifest.get("resolved_tasks") or [])
+                if isinstance(task, dict)
             )
-            for task in (manifest.get("resolved_tasks") or [])
-            if isinstance(task, dict)
-        )
+
         checks = {
             "corpus": task_signature(profiled_manifest) == task_signature(baseline_manifest),
             "seed": profiled_manifest.get("seed") == baseline_manifest.get("seed"),

@@ -9,9 +9,10 @@ import json
 import re
 import subprocess
 import tarfile
-from fnmatch import fnmatchcase
 from dataclasses import dataclass, replace
+from fnmatch import fnmatchcase
 from pathlib import Path
+
 from harness.record_io import bytes_sha256
 
 CARDS = Path(__file__).with_name("cards")
@@ -90,7 +91,7 @@ def _headless_definitions(checkout: Path, revision: str) -> dict[str, bytes]:
             names = sorted(name for name in files if name.startswith("definitions/tasks/")
                            and len(Path(name).parts[1:]) == len(Path(pattern).parts)
                            and all(fnmatchcase(value, glob) for value, glob in
-                                   zip(Path(name).parts[1:], Path(pattern).parts)))
+                                   zip(Path(name).parts[1:], Path(pattern).parts, strict=True)))
             if not names or used.intersection(names):
                 raise ValueError("Missing or overlapping headless task population: " + identity)
             used.update(names)
@@ -102,7 +103,7 @@ def _headless_definitions(checkout: Path, revision: str) -> dict[str, bytes]:
                                   "id_field": "task_id", "driver": subset["driver"],
                                   "layer": layer["layer_id"], "protocol": subset,
                                   "source_paths": {case["task_id"]: name.removeprefix("definitions/")
-                                                   for case, name in zip(cases, names)}}
+                                                   for case, name in zip(cases, names, strict=True)}}
     scenarios = sorted(name for name in files if name.startswith("definitions/tasks/scenarios/")
                        and name.endswith(".json"))
     cases = [json.loads(files[name]) for name in scenarios]
@@ -113,7 +114,7 @@ def _headless_definitions(checkout: Path, revision: str) -> dict[str, bytes]:
     datasets["scenario-specs"] = {"path": path, "sha256": bytes_sha256(payload), "count": len(cases),
                                  "id_field": "scenario_id", "population": "scenario-specifications",
                                  "source_paths": {case["scenario_id"]: name.removeprefix("definitions/")
-                                                  for case, name in zip(cases, scenarios)}}
+                                                  for case, name in zip(cases, scenarios, strict=True)}}
     task_files = {name for name in files if name.startswith("definitions/tasks/") and name.endswith(".json")}
     if task_files != used | set(scenarios):
         raise ValueError("Unregistered headless task definitions")

@@ -584,7 +584,7 @@ def _render_current_browser_article(out, cases, records, binding):
                 raise ValueError('Interface route populations differ between languages')
             cells.append('<div data-browser-interface="'+escape(name)+'" data-track="'+escape(row['track'])+'">'
                          + '<br><br>'.join('<span data-route-mode="'+escape(part['mode'])+'" data-case-count="'+str(part['count'])+'" data-report-en="'+escape(str(part['count'])+' tasks: '+english_part['description'],quote=True)+'">'
-                           +str(part['count'])+' 题：'+escape(part['description'])+'</span>' for part,english_part in zip(parts,english_parts))+'</div>')
+                           +str(part['count'])+' 题：'+escape(part['description'])+'</span>' for part,english_part in zip(parts,english_parts,strict=True))+'</div>')
         route_rows.append((escape(BROWSER_FAMILY_NAMES[row['track']])+f" · {row['count']} 题", *cells))
     matrix = _table(['任务类型',*((browser_method_label(name),browser_method_label(name,language='en')) for name in names)], route_rows, '每格为实际请求的接口路线与目标交付物；调用失败或能力不足仍保留原路线，不代表已经成功交付。')
     network_rows = _browser_network_rows(records, names)
@@ -770,7 +770,7 @@ def _render_current_browser_article(out, cases, records, binding):
             heading=reading.new_tag('h3');heading.string=case.get('name',case['id']);node.insert(0,heading)
             input_line=BeautifulSoup('<div class="case-input">输入：<a href="'+escape(case['url'],quote=True)+'">'+escape(case['url'])+'</a></div>','html.parser').div;node.insert(2,input_line)
             compare=node.select_one('.evidence-compare');compare['class']='case-compare';compare.attrs.pop('style',None)
-            for pane,klass in zip(compare.find_all('article',recursive=False),('case-reference','case-actual')):
+            for pane,klass in zip(compare.find_all('article',recursive=False),('case-reference','case-actual'),strict=True):
                 pane.name='div';pane['class']=klass
                 pre=pane.find('pre');pre['class']='case-excerpt';pre.attrs.pop('style',None)
                 if klass=='case-reference':
@@ -1039,7 +1039,7 @@ def check_current_browser_article(out, cases, records, binding):
         timing=document.find(id='timing-boundary')
         if timing is None or len(timing.select('tbody tr'))!=len(model['providers']):
             raise ValueError('Browser retry timing boundary is missing')
-        for node,name in zip(timing.select('tbody tr'),model['providers']):
+        for node,name in zip(timing.select('tbody tr'),model['providers'],strict=True):
             values=[cell.get_text() for cell in node.find_all('td')]
             stat=model['stats'][name]
             if values[-3:]!=[str(stat['physical_calls']),f"{stat['final_call_mean_ms']:,.0f}",f"{stat['prior_call_mean_ms']:,.0f}"]:

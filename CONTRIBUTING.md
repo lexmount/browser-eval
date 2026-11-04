@@ -114,7 +114,7 @@ rejects failed, cancelled or unexpectedly skipped checks.
 
 | Check | What it covers |
 | --- | --- |
-| `make lint-check` | Basic Python errors across the repository and configured Ruff rules for the declared tracks |
+| `make lint-check` | Basic Python errors, loop-variable closures and unchecked `zip` across the repository, and the configured Ruff rules for the packages in `[tool.ruff] include` |
 | `make package-check` | Base CLI, then source archive → wheel → base/optional installation outside the checkout (`src/harness/package_gate.py`) |
 | `make shell-check` | ShellCheck on `deploy/` scripts |
 | `make browser-check` | Chromium reference capture, report interactions and Web Search visual checks |

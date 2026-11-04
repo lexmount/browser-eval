@@ -247,7 +247,7 @@ def test_qualified_answer_derivations_are_scoped_and_preserve_calls():
     profile = {"cases": cases}
     rows = [{"id": c["id"], "case_id": c["id"], "results": [{"url": "https://source.test/", "snippet": text}],
              "metrics": evaluate(c, [{"url": "https://source.test/", "snippet": text}]),
-             "elapsed_ms": 17, "cost": 1} for c, text in zip(cases, ("42", "v[1]"))]
+             "elapsed_ms": 17, "cost": 1} for c, text in zip(cases, ("42", "v[1]"), strict=True)]
     original = deepcopy((profile, rows))
     item = {"case_id": "footnote", "query": "How many?", "reference": "42[7]", "derived_answer": "42",
             "kind": "terminal-citation-metadata", "qualification": "Independent source confirms 42 without footnote",
@@ -260,7 +260,7 @@ def test_qualified_answer_derivations_are_scoped_and_preserve_calls():
     revised, updated, _ = apply_report_revision(profile, rows, revision)
     assert task_acceptance(revised["cases"][0], updated[0], "answer") is True
     assert task_acceptance(revised["cases"][1], updated[1], "answer") is False
-    for before, after in zip(rows, updated):
+    for before, after in zip(rows, updated, strict=True):
         assert all(before[k] == after[k] for k in ("results", "elapsed_ms", "cost"))
     assert (profile, rows) == original
     for change in ({"query": "Other question"}, {"reference": "43[7]"}, {"sources": []}):

@@ -12,7 +12,7 @@ def test_unmatched_inline_run_cannot_borrow_a_fence_opener(prefix):
     marker = '````' if '````' in prefix else '```'
     text = prefix + marker + 'text\npayload\n' + marker + '\n'
     spans = markdown_literal_spans(text)
-    assert all(left[1] <= right[0] for left, right in zip(spans, spans[1:]))
+    assert all(left[1] <= right[0] for left, right in zip(spans, spans[1:], strict=False))
     assert spans == [(len(prefix), len(text))]
     projected = visible_mixed_html_text(text)
     assert projected.count(marker + 'text') == 1

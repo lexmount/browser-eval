@@ -1013,7 +1013,7 @@ class ScoringPipelineTests(unittest.TestCase):
             json.loads((self.run / "summary.json").read_text(encoding="utf-8")),
             summary,
         )
-        for before, after in zip(original, current):
+        for before, after in zip(original, current, strict=True):
             self.assertEqual(before["metrics"], after["metrics"])
             for key in before:
                 self.assertEqual(before[key], after[key], key)

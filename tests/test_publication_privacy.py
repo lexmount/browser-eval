@@ -416,7 +416,7 @@ class PublicationPrivacyTests(unittest.TestCase):
             call_log_paths=['call-logs/browser/case/run-001-physical-001.json',
                             'call-logs/browser/case/run-001-physical-002.json']
             call_log_bindings=[]
-            for log_path,call_log in zip(call_log_paths,call_logs):
+            for log_path,call_log in zip(call_log_paths,call_logs,strict=True):
                 (source/log_path).write_bytes(call_log)
                 call_log_bindings.append({'path':log_path,'sha256':hashlib.sha256(call_log).hexdigest(),
                                           'bytes':len(call_log)})

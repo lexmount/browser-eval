@@ -875,7 +875,7 @@ class ReportBodyScopeTests(unittest.TestCase):
             with patch('harness.web_fetch.report_explainer.render_explainer',return_value='article'), \
                     patch('harness.web_fetch.report.write_support'):
                 generate(out,{'cases':cases},records,[],include_english=True)
-            for (identifier, matched, recall, precision, extra, _, zh_detail, en_reason),r in zip(scenarios,records):
+            for (identifier, matched, recall, precision, extra, _, zh_detail, en_reason),r in zip(scenarios,records,strict=True):
                 zh=(out/'attempts'/f'{r["attempt_id"]}.html').read_text(encoding='utf-8')
                 en=(out/'en/attempts'/f'{r["attempt_id"]}.html').read_text(encoding='utf-8')
                 expected_values=f'{recall*100:.1f}% / {precision*100:.1f}%'

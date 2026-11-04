@@ -45,7 +45,7 @@ def derive_aggregate(dataset,batches):
         raise ValueError('Legacy speed execution has no batches to upgrade')
     starts=[_timestamp(batch.get('started_at')) for batch in batches]
     finishes=[_timestamp(batch.get('completed_at')) for batch in batches]
-    if any(end < start for start,end in zip(starts,finishes)):
+    if any(end < start for start,end in zip(starts,finishes,strict=True)):
         raise ValueError('Legacy speed execution contains an invalid batch interval')
     return {
         'started_at':min(starts).isoformat(),
@@ -84,7 +84,7 @@ def build_summary(dataset, records, batches, aggregate):
         batch_by_provider[provider]=batch
     starts=[_timestamp(batch['started_at']) for batch in batches]
     finishes=[_timestamp(batch['completed_at']) for batch in batches]
-    if any(end < start for start,end in zip(starts,finishes)) or max(starts)>min(finishes):
+    if any(end < start for start,end in zip(starts,finishes,strict=True)) or max(starts)>min(finishes):
         raise ValueError('Speed provider batches have no common execution window')
     if (not isinstance(aggregate,dict) or aggregate.get('providers')!=providers
             or aggregate.get('case_ids')!=list(cases)

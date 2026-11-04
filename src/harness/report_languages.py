@@ -1,8 +1,5 @@
 """Explicit language output contract shared by report tracks."""
 
-from harness.distribution import repository_root
-from harness.env_file import parse_env_file
-
 import html
 import json
 import os
@@ -10,6 +7,8 @@ import re
 from pathlib import Path
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
+from harness.distribution import repository_root
+from harness.env_file import parse_env_file
 
 
 class ReportLanguageError(ValueError):
@@ -116,7 +115,7 @@ def select_report_language(root: Path, language: str) -> Path:
             base = re.search(r'<base\b[^>]*?href="([^"]*)"', text)
             route_base = page.parent / html.unescape(base[1]) if base else page.parent
 
-            def chinese_home(match):
+            def chinese_home(match, route_base=route_base, base=base, page=page):
                 parts = urlsplit(html.unescape(match[2]))
                 if parts.scheme or parts.netloc or match[2].startswith("#"):
                     return match[0]

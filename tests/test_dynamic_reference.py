@@ -28,7 +28,7 @@ def _entry_facts(case_id, entries):
             if len(values)>2 and values[2].startswith('or '):entry_fields.append('financing')
             if values[-1]=='Free shipping':entry_fields.append('shipping')
         if len(values)!=len(entry_fields):raise ValueError(f'Incomplete or unexpected fields: {case_id} entry {i}')
-        for field,value in zip(entry_fields,values):
+        for field,value in zip(entry_fields,values,strict=True):
             if field=='author':value=value.removeprefix('by ')
             if field=='tags':value=value.removeprefix('Tags: ')
             alternatives=[value]
@@ -46,7 +46,7 @@ class DynamicReferenceTests(unittest.TestCase):
         for c in captures:
             facts=_entry_facts(c['id'],c['entries'])
             ref=c['rendered_text']
-            score=lambda text:evaluate_content(text,[],required_facts=facts,min_content_chars=1)
+            score=lambda text,facts=facts:evaluate_content(text,[],required_facts=facts,min_content_chars=1)
             self.assertTrue(score(ref)['content_pass'],c['id'])
             # Delete each occurrence: duplicated fields cannot mask missing field coverage.
             for fact in facts:

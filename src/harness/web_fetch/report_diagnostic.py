@@ -476,7 +476,7 @@ def check_diagnostic_report(output, profile=None):
     expected_summaries = diagnostic_cohort_summary(model, files)
     if len(summaries) != len(expected_summaries):
         raise ValueError('Missing cohort summary')
-    for expected, rendered in zip(expected_summaries, summaries):
+    for expected, rendered in zip(expected_summaries, summaries, strict=True):
         values = [c.get('data-sort') for c in rendered.select('td')][3:]
         expected_values = [expected[k] for k in ('total','delivered','accepted','mean_ms','p50_ms','p95_ms')]
         if (rendered.get('data-summary-group') != expected['id']
@@ -485,7 +485,7 @@ def check_diagnostic_report(output, profile=None):
     bars = home.select('#cohort-results .editorial-bar-row')
     if len(bars) != len(model['cohorts']):
         raise ValueError('Missing cohort result chart')
-    for bar, group in zip(bars, model['cohorts']):
+    for bar, group in zip(bars, model['cohorts'], strict=True):
         passed, total = model['metrics'][group['id']]
         label, count, fill = bar.select_one('span'), bar.select_one('b'), bar.select_one('i')
         if (not label or label.get_text() != group['label'] or not count
@@ -517,7 +517,7 @@ def check_diagnostic_report(output, profile=None):
     cause_rows = guide.select('#guide-reviewed-causes tbody tr')
     if len(cause_rows) != len(causes):
         raise ValueError('Interpretation lacks reviewed failure distribution')
-    for rendered, (cause, count) in zip(cause_rows, causes.most_common()):
+    for rendered, (cause, count) in zip(cause_rows, causes.most_common(), strict=True):
         cells = rendered.select('td')
         expected_case=next(r for r in model['rows'] if not r['initial_pass'] and r['cause']==cause)
         if (cells[1].get_text() != model['cause_labels'][cause]
@@ -532,7 +532,7 @@ def check_diagnostic_report(output, profile=None):
     specimens = guide.select('[data-interpretation-case]')
     if [s['data-interpretation-case'] for s in specimens] != examples or not specimens:
         raise ValueError('Interpretation specimen inventory differs from model')
-    for cid, specimen in zip(examples, specimens):
+    for cid, specimen in zip(examples, specimens, strict=True):
         row = next(r for r in model['rows'] if r['id'] == cid)
         if not specimen.select_one('a[href="attempts/'+cid+'.html"]'):
             raise ValueError('Interpretation specimen lacks full evidence')
@@ -558,7 +558,7 @@ def check_diagnostic_report(output, profile=None):
         rendered_findings = soup.select('#failed-requirements [data-finding-kind]')
         if len(expected_findings) != len(rendered_findings):
             raise ValueError('Missing or duplicate failed requirement explanations')
-        for expected, rendered in zip(expected_findings, rendered_findings):
+        for expected, rendered in zip(expected_findings, rendered_findings, strict=True):
             values = [cell.get_text() for cell in rendered.select('td')][1:]
             if (rendered.get('data-finding-kind') != expected['kind']
                     or values != [expected['label'], expected['expected'], expected['actual']]):

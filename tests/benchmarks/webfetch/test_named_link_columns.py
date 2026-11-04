@@ -57,7 +57,7 @@ def test_named_columns_cannot_borrow_navigation_or_neighbour_records(layout, fir
         assert counts == [2 if first else 0, 2 if second else 0]
     else:
         assert all(count <= 2 for count in counts)
-        assert all(present or count == 0 for present, count in zip((first, second), counts))
+        assert all(present or count == 0 for present, count in zip((first, second), counts, strict=True))
 
 
 @pytest.mark.parametrize('layout', ['standard', 'caption_before', 'tsv', 'html'])

@@ -1,6 +1,5 @@
 """Select immutable Hugging Face editions without rewriting historical evidence."""
 from __future__ import annotations
-from harness.distribution import repository_root, source_path
 
 import argparse
 import copy
@@ -11,8 +10,16 @@ import re
 import shutil
 import tempfile
 from pathlib import Path
-from harness.benchmarks.data import canonical_repository, fetch_archive, main_history, read_hf_file, unpack
+
+from harness.benchmarks.data import (
+    canonical_repository,
+    fetch_archive,
+    main_history,
+    read_hf_file,
+    unpack,
+)
 from harness.benchmarks.publication import CARDS, DatasetRelease
+from harness.distribution import repository_root, source_path
 
 
 def validate_binding(root: Path, name: str = "lexbench-webfetch") -> str:

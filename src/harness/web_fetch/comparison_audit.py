@@ -336,7 +336,7 @@ def audit_fixed_native_comparison(
         ]
     if [(row["provider"], row["case_id"]) for row in chronological] != expected_order:
         raise ValueError("Recorded calls do not follow the predeclared comparison order")
-    for before, after in zip(chronological, chronological[1:]):
+    for before, after in zip(chronological, chronological[1:], strict=False):
         if _timestamp(before["completed_at"]) > _timestamp(after["started_at"]):
             raise ValueError("Comparison calls overlap; serial execution is unproven")
 

@@ -96,7 +96,7 @@ class DefinitionStructureTests(unittest.TestCase):
         for names in [('foo_bar()', 'foobar()'), ('foo(x=1)', 'foo(x=-1)')]:
             with self.subTest(names=names):
                 contract = copy.deepcopy(self.contract)
-                for heading, name in zip(contract['headings'], names):
+                for heading, name in zip(contract['headings'], names, strict=True):
                     heading['text'] = name
                 text = '\n'.join(name + '\nA substantial local description.' for name in names)
                 self.assertTrue(evaluate_document_structure(text, contract)['document_structure_pass'])

@@ -20,11 +20,10 @@ from pathlib import Path
 from typing import NamedTuple
 from urllib.error import HTTPError
 
-from lexbench_webfetch.paths import contained_path
-
 from harness.record_io import file_sha256, json_bytes
 from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.safety import evidence_tree_identity, reject_evidence_symlinks
+from lexbench_webfetch.paths import contained_path
 
 
 @dataclass(frozen=True)

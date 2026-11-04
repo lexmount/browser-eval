@@ -113,7 +113,7 @@ docs-check: track-naming-check ## Run the documentation-only CI checks
 	$(UV) run --frozen --extra test python -m pytest tests/test_readme_navigation.py tests/test_source_language_policy.py tests/test_release_metadata.py::test_project_citations_do_not_claim_a_specific_release -q
 
 lint-check: runtime-check ## Run Ruff
-	$(TEST_PY) -m ruff check --config 'include=["*.py"]' --select F,TID252 .
+	$(TEST_PY) -m ruff check --config 'include=["*.py"]' --select F,TID252,B023,B905 .
 	$(TEST_PY) -m ruff check
 
 test-python: runtime-check ## Run Python tests: TEST_PATHS, PYTEST_ARGS

@@ -219,7 +219,7 @@ def render_interfaces(out,records):
  def pre(value):return '<pre>'+escape(value if isinstance(value,str) else json.dumps(value,ensure_ascii=False,indent=2))+'</pre>'
  def fields(rows,english):
   if len(rows)!=len(english):raise ValueError('Interface field language mismatch')
-  return '<dl class="interface-fields">'+''.join('<div><dt><code>'+bilingual_text(k,ek)+'</code> <small>'+bilingual_text(t,et)+'</small></dt><dd>'+bilingual_text(d,ed)+'</dd></div>' for (k,t,d),(ek,et,ed) in zip(rows,english))+'</dl>'
+  return '<dl class="interface-fields">'+''.join('<div><dt><code>'+bilingual_text(k,ek)+'</code> <small>'+bilingual_text(t,et)+'</small></dt><dd>'+bilingual_text(d,ed)+'</dd></div>' for (k,t,d),(ek,et,ed) in zip(rows,english,strict=True))+'</dl>'
 
  measured={r['provider'] for r in records}
  names=sorted(set(SPECS)|measured,key=lambda name:(name not in measured,name))

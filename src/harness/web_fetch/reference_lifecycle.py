@@ -318,7 +318,7 @@ def _resource_observation_scope(case, root, evidence):
                 != {k: v for k, v in current.items() if k != 'expected_resources'}
                 or len(old_targets) != len(new_targets)):
             raise ReferenceLifecycleError('Resource equivalence revision changed source scope')
-        for old, new in zip(old_targets, new_targets):
+        for old, new in zip(old_targets, new_targets, strict=True):
             if ({k: v for k, v in old.items() if k not in {'aliases', 'url_patterns'}}
                     != {k: v for k, v in new.items() if k not in {'aliases', 'url_patterns'}}
                     or any(not set(old.get(key, [])) <= set(new.get(key, []))
@@ -821,7 +821,7 @@ def check_case_scoring_revision_binding(case, binding: dict) -> None:
             and prior.get("kind") == current_target.get("kind")
             and prior.get("url_patterns", []) == current_target.get("url_patterns", [])
             and set(prior.get("urls", [])) <= set(current_target.get("urls", []))
-            for prior, current_target in zip(before_targets, after_targets)
+            for prior, current_target in zip(before_targets, after_targets, strict=True)
         )
     )
     prompt_policy_correction = (
@@ -1125,7 +1125,7 @@ def _valid_scoring_revision(source, *, validate_reviews, review_sha256=None) -> 
                         or set(asset_fields) - {'report_interpretation', 'implementation_provenance'}):
                     return False
                 snapshots = []
-                for side, binding in zip(('input', 'output'), edge):
+                for side, binding in zip(('input', 'output'), edge, strict=True):
                     raw = contained_path(root, receipt[f'{side}_dataset_path']).read_bytes()
                     if sha256(raw) != binding[0]:
                         return False
@@ -1499,7 +1499,7 @@ def check_case_reference_and_scoring_revision_binding(
             and prior.get("kind") == revised.get("kind")
             and prior.get("url_patterns", []) == revised.get("url_patterns", [])
             and set(prior.get("urls", [])) <= set(revised.get("urls", []))
-            for prior, revised in zip(before_targets, after_targets)
+            for prior, revised in zip(before_targets, after_targets, strict=True)
         )
     )
     before_policy = before_contract.get("resource_output_contract", {})

@@ -2,6 +2,5 @@
 
 from harness.environments.webarena.config import main_image_lock
 
-
 if __name__ == "__main__":
     main_image_lock()

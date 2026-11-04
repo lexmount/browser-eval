@@ -19,7 +19,7 @@ def test_environment_exclusion_is_symmetric_and_preserves_calls(tmp_path):
                for provider in ('local', 'hosted') for case in ('a', 'b')]
     before = copy.deepcopy(records)
     apply_cohort_exclusions(tmp_path, dataset, records)
-    for old, new in zip(before, records):
+    for old, new in zip(before, records, strict=True):
         assert {k: v for k, v in old.items() if k != 'metrics'} == {k: v for k, v in new.items() if k != 'metrics'}
         if new['case_id'] == 'a':
             assert not task_measured(new['metrics'])

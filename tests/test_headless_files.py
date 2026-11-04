@@ -299,7 +299,7 @@ class NativeAttachmentResolverTests(unittest.TestCase):
             with self.subTest(original=original):
                 class Page:
                     def on(self, event, callback): self.callback = callback
-                    def goto(self, url, **kwargs):
+                    def goto(self, url, target=target, **kwargs):
                         self.callback(SimpleNamespace(url=target))
                 @contextmanager
                 def resolver(mode, library, deadline, metadata):
