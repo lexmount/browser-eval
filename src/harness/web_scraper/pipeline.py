@@ -577,6 +577,46 @@ def _url_json_request(
     return url, headers, body
 
 
+def _firecrawl_parse_request(
+    method,
+    html,
+    source_url,
+    fixture_url,
+    *,
+    timeout,
+    home,
+    native_options,
+    schema=None,
+    prompt=None,
+):
+    """Upload the original HTML to Firecrawl's native file-to-JSON endpoint."""
+    from urllib3.filepost import encode_multipart_formdata
+
+    if not isinstance(schema, dict):
+        raise ValueError("Firecrawl JSON parsing requires an explicit schema")
+    options = {
+        "formats": [{"type": "json", "schema": schema}],
+        "onlyMainContent": False,
+        "timeout": int(timeout * 1000),
+    }
+    if prompt:
+        options["formats"][0]["prompt"] = prompt
+    body, content_type = encode_multipart_formdata(
+        [
+            ("file", ("snapshot.html", html.encode("utf-8"), "text/html")),
+            ("options", (None, json.dumps(options), "application/json")),
+        ]
+    )
+    return (
+        "https://api.firecrawl.dev/v2/parse",
+        {
+            "Authorization": "Bearer " + os.environ["FIRECRAWL_API_KEY"],
+            "Content-Type": content_type,
+        },
+        body,
+    )
+
+
 def _zyte_request(
     method,
     html,
@@ -710,6 +750,15 @@ def _raw_html_request(method, html, source_url, fixture_url, *, timeout, home, n
 
 
 METHODS = {
+    "firecrawl-parse-json": {
+        "keys": ["FIRECRAWL_API_KEY"],
+        "input": "html",
+        "minimum_call_interval_seconds": 0,
+        "post_call_cooldown_seconds": 0,
+        "options": [],
+        "custom_schema": True,
+        "adapter": _firecrawl_parse_request,
+    },
     "firecrawl-json": {
         "custom_schema": True,
         **{
@@ -854,9 +903,19 @@ def provider_call(
         return prepared
     url, headers, body = prepared
     started = time.monotonic()
-    response = request(url, method="POST", headers=headers, json_body=body, timeout=timeout)
+    response = request(
+        url,
+        method="POST",
+        headers=headers,
+        timeout=timeout,
+        **({"body": body} if isinstance(body, bytes) else {"json_body": body}),
+    )
     payload = decoded_response(response.text())
     native_usage = {}
+    if method == "firecrawl-parse-json" and isinstance(payload, dict):
+        data = payload.get("data")
+        if isinstance(data, dict) and isinstance(data.get("metadata"), dict):
+            native_usage["parse_metadata"] = dict(data["metadata"])
     if (
         method == "zyte-custom"
         and isinstance(payload, dict)
@@ -909,7 +968,7 @@ def normalize(method: str, payload: dict, *, schema=None):
     def mapping(value):
         return value if isinstance(value, dict) else {}
 
-    if method == "firecrawl-json":
+    if method in ("firecrawl-json", "firecrawl-parse-json"):
         item = mapping(payload.get("data")).get("json")
     elif method == "browserbase-json":
         status = payload.get("statusCode")

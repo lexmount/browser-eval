@@ -178,6 +178,7 @@ def test_custom_schema_projection_retains_fields_and_invalid_types(method):
     payload = {
         "cloudflare-json": {"result": value},
         "firecrawl-json": {"data": {"json": value}},
+        "firecrawl-parse-json": {"data": {"json": value}},
         "browserbase-json": {"statusCode": 200, "content": value},
         "oxylabs-json": {"results": [{"json": value}]},
         "scrapegraph-extract": {"json": value},
@@ -264,3 +265,56 @@ def test_zyte_custom_keeps_malformed_native_envelopes(monkeypatch, payload):
     )
     assert row["response"] == payload
     assert pipeline.normalize("zyte-custom", payload, schema={"type": "object"}) is None
+
+
+def test_firecrawl_parse_upload_preserves_html_and_requests_native_json(monkeypatch):
+    from email.parser import BytesParser
+    from email.policy import default
+
+    monkeypatch.setenv("FIRECRAWL_API_KEY", "test-firecrawl-key-only")
+    html = "<html><p>作者：Ada</p></html>"
+    schema = {
+        "type": "object",
+        "properties": {"author": {"type": "array", "items": {"type": "string"}}},
+        "required": ["author"],
+    }
+    captured = []
+
+    def request(url, *, body, headers, **kwargs):
+        assert "json_body" not in kwargs
+        assert url == "https://api.firecrawl.dev/v2/parse"
+        message = BytesParser(policy=default).parsebytes(
+            ("Content-Type: " + headers["Content-Type"] + "\r\nMIME-Version: 1.0\r\n\r\n").encode()
+            + body
+        )
+        parts = {p.get_param("name", header="content-disposition"): p for p in message.iter_parts()}
+        assert parts["file"].get_filename() == "snapshot.html"
+        assert parts["file"].get_payload(decode=True) == html.encode("utf-8")
+        captured.append(json.loads(parts["options"].get_payload(decode=True)))
+        return SimpleNamespace(
+            status=200,
+            headers={},
+            text=lambda: json.dumps(
+                {
+                    "success": True,
+                    "data": {"json": {"author": ["Ada"]}, "metadata": {"creditsUsed": 5}},
+                }
+            ),
+        )
+
+    monkeypatch.setattr(pipeline, "request", request)
+    row = pipeline.provider_call(
+        "firecrawl-parse-json", html, "https://source.example/book", schema=schema
+    )
+    assert captured == [
+        {
+            "formats": [{"type": "json", "schema": schema}],
+            "onlyMainContent": False,
+            "timeout": 120000,
+        }
+    ]
+    assert row["request"]["input"] == "html"
+    assert row["provider_usage"]["parse_metadata"]["creditsUsed"] == 5
+    assert pipeline.normalize("firecrawl-parse-json", row["response"], schema=schema) == {
+        "author": ["Ada"]
+    }
