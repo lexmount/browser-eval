@@ -2254,6 +2254,8 @@ def local_audit_banner(dataset):
 @with_measured_method_labels
 @_scoped_render
 def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english:bool=False,authored_interpretation:bool=True,presentation_only:bool=False,show_local_status_banners:bool=True,detail_attempt_ids:set[str]|None=None,dataset_case_ids:set[str]|None=None,frozen_scores:bool=False,english_routes=None,diagnostic_view_paths=()):
+ from harness.web_fetch.report_saved_matrix import _require_final_projection
+ _require_final_projection(out,dataset,records)
  _public_views=public_render_views(out,records)
  if english_routes is not None and not presentation_only:
   raise ValueError('Scoped English refresh requires presentation_only=True')

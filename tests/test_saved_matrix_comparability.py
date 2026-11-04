@@ -37,6 +37,106 @@ def matrix(tmp_path, *, other_dns='system', same_method=False):
     return spec
 
 
+def split_matrix(tmp_path):
+    """Retain two real native executions with a frozen remaining-retry launch."""
+    spec = matrix(tmp_path)
+    source = spec['sources'][0]
+    current_root = Path(source['root'])
+    current = json.loads((current_root/'results.jsonl').read_bytes())
+    current['started_at'] = '2030-01-01T00:00:02+00:00'
+    source['results'] = write(current_root/'results.jsonl', current)
+    manifest = json.loads((current_root/'manifest.json').read_bytes())
+    manifest['parameters']['max_failure_retries'] = 0
+    write(current_root/'manifest.json', manifest)
+    prior_root = tmp_path/'prior'
+    prior, case, _ = execution(prior_root, dict(type='tavily_extract',
+        uniform_native_parameters=True, api_key='fixture', dns_mode='system'), dns='system')
+    saved_answer(prior_root, prior, case)
+    prior.update(attempt_id='prior-run', elapsed_ms=12, started_at='2030-01-01T00:00:00+00:00')
+    prior['metrics']['content_pass'] = False
+    dataset = write(prior_root/'dataset.json', {'cases': [case]})
+    prior_results = write(prior_root/'results.jsonl', prior)
+    launch = write(tmp_path/'continuation.json', {
+        'started_at': '2030-01-01T00:00:01+00:00', 'continuation_kind': 'remaining_one_retry',
+        'case_ids': [case['id']], 'max_failure_retries': 0,
+        'prior_physical_calls': {case['id']: 1}, 'prior_sources': {case['id']: str(prior_root)}})
+    spec['retry_continuations'] = [{
+        'suite': 'first', 'provider': 'method', 'case_id': case['id'],
+        'current_record_sha256': source['results']['sha256'], 'launch_contract': launch,
+        'prior_source': {'root': str(prior_root), 'results': prior_results, 'dataset': dataset}}]
+    return spec, {'prior': prior_root, 'current': current_root}
+
+
+def test_split_retry_uses_proved_remaining_and_original_budgets(tmp_path):
+    from harness.web_fetch.report_saved_matrix import check_saved_matrix
+    spec, _ = split_matrix(tmp_path)
+    report = build(tmp_path, spec).parent
+    group = next(item for item in json.loads((report/'matrix.json').read_bytes())['execution_settings']
+                 if item['provider'] == 'method')
+    assert group['uniform'] and group['calls'] == group['verified_calls'] == 2
+    assert {setting['max_failure_retries'] for setting in group['settings']} == {1}
+    assert check_saved_matrix(report, spec_path=tmp_path/'spec.json')['valid']
+
+
+@pytest.mark.parametrize('role', ['prior', 'current'])
+@pytest.mark.parametrize('budget', ['missing', -1, 'conflicting', True])
+def test_split_retry_cannot_replace_unproved_manifest_budgets(tmp_path, role, budget):
+    spec, roots = split_matrix(tmp_path)
+    manifest_path = roots[role]/'manifest.json'
+    manifest = json.loads(manifest_path.read_bytes())
+    if budget == 'missing':
+        del manifest['parameters']['max_failure_retries']
+    else:
+        manifest['parameters']['max_failure_retries'] = (
+            0 if role == 'prior' else 1) if budget == 'conflicting' else budget
+    write(manifest_path, manifest)
+    with pytest.raises(ValueError, match='uniform settings'):
+        build(tmp_path, spec)
+    spec['presentation'] = 'audit'
+    report = build(tmp_path, spec).parent
+    group = next(item for item in json.loads((report/'matrix.json').read_bytes())['execution_settings']
+                 if item['provider'] == 'method')
+    assert not group['uniform'] and group['errors']
+
+
+@pytest.mark.parametrize('conflicting_role', [None, 'prior', 'current'])
+def test_parameter_selection_verifies_split_baseline_budgets(tmp_path, conflicting_role):
+    from harness.web_fetch.report_saved_matrix import _load_saved_matrix, _parameter_reruns
+    spec, roots = split_matrix(tmp_path)
+    spec['presentation'] = 'audit'
+    root = tmp_path/'candidate'
+    record, case, policy = execution(root, dict(type='tavily_extract',
+        uniform_native_parameters=True, api_key='fixture', dns_mode='system'), dns='system')
+    saved_answer(root, record, case)
+    record.update(attempt_id='candidate-run', elapsed_ms=12, started_at='2030-01-01T00:00:04+00:00')
+    manifest = json.loads((root/'manifest.json').read_bytes())
+    manifest['parameters']['max_failure_retries'] = 0
+    write(root/'manifest.json', manifest)
+    policy.update(max_failure_retries=0, created_at='2030-01-01T00:00:03+00:00',
+        jobs=[{'id': 'job', 'suite': 'first', 'provider': 'method', 'case_ids': ['case']}])
+    spec['parameter_reruns'] = {
+        'selection': 'replace_family_if_pass_count_improves',
+        'contract': write(tmp_path/'rerun-contract.json', policy),
+        'sources': [{'job_id': 'job', 'root': str(root),
+            'dataset': write(root/'dataset.json', {'cases': [case]}),
+            'results': write(root/'results.jsonl', record)}]}
+    if conflicting_role:
+        path = roots[conflicting_role]/'manifest.json'
+        manifest = json.loads(path.read_bytes())
+        manifest['parameters']['max_failure_retries'] = 2
+        write(path, manifest)
+    write(tmp_path/'spec.json', spec)
+    inputs = _load_saved_matrix(tmp_path/'spec.json')
+    if conflicting_role:
+        with pytest.raises(ValueError, match='retry budget'):
+            _parameter_reruns(inputs)
+    else:
+        assert len(_parameter_reruns(inputs)) == 1
+        settings = inputs['parameter_settings'][('first', 'method', 'case')]
+        assert {value['max_failure_retries'] for value in settings['before']} == {1}
+        assert {value['max_failure_retries'] for value in settings['candidate']} == {0}
+
+
 def test_unchanged_groups_get_verified_and_public_settings(tmp_path):
     report = build(tmp_path, matrix(tmp_path)).parent
     model = json.loads((report/'matrix.json').read_text(encoding='utf-8'))
@@ -164,3 +264,39 @@ def test_audit_exposes_settings_and_counts_uncommitted_cost_evidence(tmp_path):
     assert '1/2' in cost.get_text()
     methodology = BeautifulSoup((report/'methodology/index.html').read_text(encoding='utf-8'), 'html.parser')
     assert methodology.select_one('#saved-execution-settings') is not None
+
+
+@pytest.mark.parametrize('missing_manifest', [False, True])
+def test_uniform_summaries_cannot_promote_unverified_native_evidence(tmp_path, missing_manifest):
+    from copy import deepcopy
+    from harness.web_fetch.report import generate_saved_matrix
+    spec = matrix(tmp_path, other_dns='public_doh')
+    spec['presentation'] = 'audit'
+    if missing_manifest:
+        (Path(spec['sources'][1]['root'])/'manifest.json').unlink()
+    output = build(tmp_path, spec).parent
+    model = json.loads((output/'matrix.json').read_bytes())
+    model['presentation'] = 'final'
+    # Forge the summary only; retain the actual missing/mixed native evidence.
+    for summary in model['execution_settings']:
+        summary.update(verified_calls=summary['calls'], errors=[], uniform=True,
+                       settings=deepcopy(model['execution_settings'][0]['settings']))
+    with pytest.raises(ValueError, match='source-backed admission'):
+        generate_saved_matrix(output, model)
+
+
+def test_generic_renderer_cannot_self_authorize_final_results(tmp_path):
+    from harness.web_fetch.report import generate
+    output = build(tmp_path, matrix(tmp_path)).parent
+    dataset = json.loads((output/'dataset.json').read_bytes())
+    records = [json.loads(line) for line in (output/'results.jsonl').read_bytes().splitlines()]
+    with pytest.raises(ValueError, match='source-backed admission'):
+        generate(output, dataset, records, [])
+
+
+def test_final_checker_requires_original_sources(tmp_path):
+    from harness.web_fetch.report_saved_matrix import check_saved_matrix
+    output = build(tmp_path, matrix(tmp_path)).parent
+    with pytest.raises(ValueError, match='original final source specification'):
+        check_saved_matrix(output)
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']

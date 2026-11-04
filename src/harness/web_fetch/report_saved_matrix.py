@@ -6,6 +6,8 @@ and debug files are verified but are not copied into the portable public views.
 """
 from __future__ import annotations
 
+from contextlib import contextmanager
+from contextvars import ContextVar
 from copy import deepcopy
 from datetime import datetime, timedelta
 import hashlib
@@ -30,6 +32,42 @@ from harness.web_fetch.artifacts import (
 )
 from harness.web_fetch.models import report_family
 from harness.record_io import file_sha256 as _sha, json_bytes
+
+
+# Only source validation can establish final-render admission. Serialized summaries
+# remain useful diagnostics but cannot authorize their own publication state.
+_FINAL_ADMISSION = ContextVar('saved_matrix_final_admission', default=None)
+
+
+def _fingerprint(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+@contextmanager
+def _source_validated_render(output, model):
+    token = _FINAL_ADMISSION.set({'output': Path(output).resolve(),
+                                  'model': _fingerprint(model)})
+    try:
+        yield
+    finally:
+        _FINAL_ADMISSION.reset(token)
+
+
+def _require_source_admission(output, model):
+    admission = _FINAL_ADMISSION.get()
+    if (admission is None or admission['output'] != Path(output).resolve()
+            or admission['model'] != _fingerprint(model)):
+        raise ValueError('A portable final report requires source-backed admission; use the saved-matrix builder')
+    return admission
+
+
+def _require_final_projection(output, dataset, records):
+    if dataset.get('comparison', {}).get('publication_state') != 'final_saved_results':
+        return
+    admission = _FINAL_ADMISSION.get()
+    if (admission is None or admission['output'] != Path(output).resolve()
+            or admission.get('projection') != _fingerprint([dataset, records])):
+        raise ValueError('Final saved results require source-backed admission')
 
 
 def _json(path):
@@ -254,10 +292,10 @@ def _completed_scope(config, sources, selected, continuations=None):
             policy['provider_config_sha256'] = contract['provider_config']['sha256']
         continuation = (continuations or {}).get(key)
         _validate_call_sequence(record, case, policy, continuation, require_saved_settings=True)
-        _parameter_execution(root, record, case, policy, sources)
+        _parameter_execution(root, record, case, policy, sources, None, 'current' if continuation else None)
         if continuation and continuation[1] is not None:
             prior_root, prior_record, _ = continuation[1]
-            _parameter_execution(prior_root, prior_record, case, policy, sources)
+            _parameter_execution(prior_root, prior_record, case, policy, sources, None, 'prior')
         attempts = record.get('provider_metadata', {}).get('retry', {}).get('attempts', [])
         if any(datetime.fromisoformat(call['started_at']) < started
                for call in [record, *attempts]):
@@ -691,11 +729,12 @@ def _load_saved_matrix(spec_path):
             root, record, _, _ = selected[key]
             case = cases[key[0]][key[2]]
             _validate_call_sequence(record, case, policy, continuations.get(key))
-            _parameter_execution(root, record, case, policy, sources)
+            _parameter_execution(root, record, case, policy, sources, None,
+                                 'current' if continuations.get(key) else None)
             continuation = continuations.get(key)
             if continuation and continuation[1]:
                 prior_root, prior_record, _ = continuation[1]
-                _parameter_execution(prior_root, prior_record, case, policy, sources)
+                _parameter_execution(prior_root, prior_record, case, policy, sources, None, 'prior')
     completed = _completed_missing(spec, sources, selected, continuations)
     for config in ([spec['completion']] if spec.get('completion') else []) + spec.get('completions', []):
         baseline = _json(sources.binding(config['baseline_matrix']))
@@ -729,7 +768,21 @@ def _native_execution_manifest(root, record, sources):
     return manifest
 
 
-def _parameter_execution(root, record, case, contract, sources, baseline=None):
+def _saved_retry_budget(manifest, split_role=None):
+    """Normalize only a proved split budget; never replace missing evidence."""
+    parameters = manifest.get('parameters')
+    budget = parameters.get('max_failure_retries') if isinstance(parameters, dict) else None
+    if type(budget) is not int or budget < 0:
+        raise ValueError('Saved execution requires an explicit nonnegative retry budget')
+    if split_role is not None:
+        expected = {'prior': 1, 'current': 0}
+        if split_role not in expected or budget != expected[split_role]:
+            raise ValueError('Saved split retry budget differs from its continuation role')
+        return 1
+    return budget
+
+
+def _parameter_execution(root, record, case, contract, sources, baseline=None, split_role=None):
     """Check actual native requests against the authorized configuration, not just themselves."""
     from harness.web_fetch.native_routes import (
         native_route_cell, _request_parameters, verify_native_route_contract,
@@ -740,6 +793,10 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None):
     if not metadata.get('native_route_receipt', {}).get('contract_sha256'):
         raise ValueError('Parameter rerun lacks its execution contract')
     manifest = _native_execution_manifest(root, record, sources)
+    allowance = contract.get('max_failure_retries')
+    if (type(allowance) is not int or allowance < 0
+            or _saved_retry_budget(manifest, split_role) != allowance):
+        raise ValueError('Saved retry budget differs from execution authorization')
     expected_hash = contract.get('provider_config_sha256')
     if not expected_hash or manifest.get('provider_config_sha256') != expected_hash:
         raise ValueError('Parameter rerun configuration differs from authorization')
@@ -875,7 +932,7 @@ def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
                 group['errors'].append('A physical call has no saved native settings')
             else:
                 calls.append(continuation[1][:2])
-        for call_root, call in calls:
+        for index, (call_root, call) in enumerate(calls):
             physical = call.get('provider_metadata', {}).get('retry', {}).get('attempts') or [call]
             group['calls'] += len(physical)
             for attempt in physical:
@@ -894,15 +951,15 @@ def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
                                                       key=datetime.fromisoformat)
             try:
                 manifest = _native_execution_manifest(call_root, call, sources)
+                split_role = ('current' if index == 0 else 'prior') if continuation else None
                 policy = {'provider_config_sha256': manifest.get('provider_config_sha256'),
                           'created_at': manifest.get('created_at', manifest.get('started_at')),
                           'timeout_seconds': manifest['parameters']['timeout'],
-                          'max_failure_retries': (1 if continuation else
-                              manifest['parameters'].get('max_failure_retries'))}
+                          'max_failure_retries': _saved_retry_budget(manifest, split_role)}
                 if (type(policy['max_failure_retries']) is not int or
                         policy['max_failure_retries'] < 0 or not policy['created_at']):
                     raise ValueError('Missing retry budget')
-                settings = _parameter_execution(call_root, call, case, policy, sources, call)
+                settings = _parameter_execution(call_root, call, case, policy, sources, call, split_role)
                 policies.append(policy)
                 settings['input_class'] = call['provider_metadata']['native_route_receipt']['cell'][1:]
                 group['verified_calls'] += len(physical)
@@ -1129,10 +1186,11 @@ def _parameter_reruns(inputs):
             _, before, _, _ = inputs['selected'][key]
             if revision:
                 before = revision['records'].get(key, before)
-            candidate_settings = [_parameter_execution(root, record, cases[cid], contract, sources, before)]
+            candidate_settings = [_parameter_execution(root, record, cases[cid], contract, sources, before,
+                                                       'current' if continuation else None)]
             if continuation and continuation[1] is not None:
                 prior_root, prior_record, _ = continuation[1]
-                candidate_settings.append(_parameter_execution(prior_root, prior_record, cases[cid], contract, sources, before))
+                candidate_settings.append(_parameter_execution(prior_root, prior_record, cases[cid], contract, sources, before, 'prior'))
             if config['selection'] == 'replace_family_if_pass_count_improves':
                 baseline_settings = []
                 baseline_calls = [inputs['selected'][key][:2]]
@@ -1141,19 +1199,14 @@ def _parameter_reruns(inputs):
                     raise ValueError('Configuration selection requires saved native settings for every physical call')
                 if prior and prior[1] is not None:
                     baseline_calls.append(prior[1][:2])
-                for old_root, old_record in baseline_calls:
+                for index, (old_root, old_record) in enumerate(baseline_calls):
                     manifest = _native_execution_manifest(old_root, old_record, sources)
+                    split_role = ('current' if index == 0 else 'prior') if prior else None
                     policy = {'provider_config_sha256': manifest.get('provider_config_sha256'),
                               'timeout_seconds': manifest['parameters']['timeout'],
-                              'max_failure_retries': manifest['parameters'].get('max_failure_retries')}
-                    if type(policy['max_failure_retries']) is not int:
-                        raise ValueError('Baseline comparison lacks its retry policy')
-                    if prior:
-                        # A split continuation's zero is its remaining budget,
-                        # not the total budget of the retained two-call sequence.
-                        policy['max_failure_retries'] = 1
+                              'max_failure_retries': _saved_retry_budget(manifest, split_role)}
                     baseline_settings.append(_parameter_execution(old_root, old_record, original_case,
-                                                                  policy, sources, old_record))
+                                                                  policy, sources, old_record, split_role))
                 inputs.setdefault('parameter_settings', {})[key] = {
                     'before': baseline_settings, 'candidate': candidate_settings}
             _parameter_scoring(before, record)
@@ -1335,11 +1388,12 @@ def _adopted_groups(inputs, candidates):
                                     require_saved_settings=True)
             group = provider, _presentation_family(case, suite, spec['report_families'])
             settings = settings_by_group.setdefault(group, {}).setdefault(key, [])
-            settings.append(_parameter_execution(root, before_score, execution_case, policy, sources, before))
             continuation = nested['continuations'].get(key)
+            settings.append(_parameter_execution(root, before_score, execution_case, policy, sources, before,
+                                                  'current' if continuation else None))
             if continuation and continuation[1]:
                 prior_root, prior_record, _ = continuation[1]
-                settings.append(_parameter_execution(prior_root, prior_record, execution_case, policy, sources, before))
+                settings.append(_parameter_execution(prior_root, prior_record, execution_case, policy, sources, before, 'prior'))
             adopted[key] = {'selected': (root, record, raw, results), 'original': original,
                             'authority_path': authority_path, 'index': index,
                             'note': authority['description'],
@@ -1666,7 +1720,8 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
         model['offline_revision'] = revision['receipt']
     model['scores_changed'] = bool(revision) or any(row.get('score_revision') for row in model_rows)
     _write(output / 'matrix.json', model)
-    entry = generate_saved_matrix(output, model)
+    with _source_validated_render(output, model):
+        entry = generate_saved_matrix(output, model)
     # Bind every portable byte after generation; source files remain immutable.
     for path in output.rglob('*'):
         if path.is_file():
@@ -1679,7 +1734,7 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
         'sources': [{'name': path.name, 'sha256': digest} for path, digest in tracked.items()],
         'files': copies, 'totals': model['totals'], 'provider_calls_added': 0, 'scores_changed': model['scores_changed'],
         'private_debug_policy': 'Private raw responses and debug files verified at source, not copied.'})
-    check_saved_matrix(output)
+    check_saved_matrix(output, spec_path=spec_path if model.get('presentation') == 'final' else None)
     return entry
 
 
@@ -2016,7 +2071,8 @@ def _validate_rendered_pages(output, model):
             if source.is_file():
                 shutil.copy2(source, expected/name)
         _write(expected/'matrix.json', model)
-        render_saved_with_standard_generator(expected, model)
+        with _source_validated_render(expected, model):
+            render_saved_with_standard_generator(expected, model)
         pages = {path.relative_to(expected) for path in expected.rglob('*.html')
                  if path.relative_to(expected).parts[0] != 'evidence'}
         actual = {path.relative_to(output) for path in output.rglob('*.html')
@@ -2092,6 +2148,8 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
         if _sha(contained_path(output, relative, reject_symlinks=True)) != digest:
             raise ValueError('Portable saved-matrix file changed')
     model = _json(output / 'matrix.json')
+    if model.get('presentation') == 'final' and (inputs is None or inputs['spec'].get('presentation') != 'final'):
+        raise ValueError('Final saved results require the original final source specification')
     if inputs is not None and model.get('execution_settings') != execution_settings:
         raise ValueError('Saved execution settings differ from validated sources')
     keys = [(r['suite'], r['provider'], r['case_id']) for r in model['rows']]
@@ -2201,7 +2259,8 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             if not path.is_file() or path.read_bytes() != expected_record:
                 raise ValueError('Published provenance record differs from validated source: '+relative)
             _validate_record_artifacts(path)
-    projected_dataset, projected_records, projected_identities, projected_scope = _saved_renderer_projection(output, model)
+    with _source_validated_render(output, model):
+        projected_dataset, projected_records, projected_identities, projected_scope = _saved_renderer_projection(output, model)
     saved_records = [json.loads(line) for line in (output/'results.jsonl').read_bytes().splitlines() if line.strip()]
     execution = _json(output/'execution.json')
     scores_changed = (bool(inputs['revision']) or any(adoptions[key]['revision'] for key in keys if key in adoptions)
@@ -2357,6 +2416,8 @@ def _saved_renderer_projection(output, model):
         _require_comparable_matrix(model.get('execution_settings', []),
             {(record['provider'], cases[record['case_id']]['report_family']) for record in records})
         require_reliable(dataset, records)
+        admission = _require_source_admission(output, model)
+        admission['projection'] = _fingerprint([dataset, records])
     return dataset, records, identities, scope
 
 
