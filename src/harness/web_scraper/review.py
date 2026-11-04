@@ -344,6 +344,31 @@ def reconcile_citations(result, packet):
                 if len(matches) == 1:
                     actual = next(iter(matches))
                     finding["source_quote"] = actual
+                    continue
+                # Some reviewers serialize several literal excerpts in one string.
+                # Recover a bounded contiguous source span containing EVERY excerpt;
+                # never replace a fabricated fragment with a plausible source value.
+                fragments = []
+                if " || " in quote:
+                    fragments = [part.strip() for part in quote.split(" || ")]
+                elif quote.startswith("“"):
+                    fragments = re.findall("“([^”]+)”", quote)
+                    remaining = re.sub("“[^”]+”", "", quote)
+                    if re.search(r"[^\s；;，,]", remaining):
+                        fragments = []
+                if len(fragments) < 2 or not all(fragments):
+                    continue
+                spans = []
+                for source in sources:
+                    starts = [source.find(part) for part in fragments]
+                    if min(starts) < 0:
+                        continue
+                    start = min(starts)
+                    end = max(pos + len(part) for pos, part in zip(starts, fragments, strict=True))
+                    if end - start <= 4096:
+                        spans.append(source[start:end])
+                if spans:
+                    finding["source_quote"] = min(spans, key=lambda span: (len(span), span))
     return result
 
 

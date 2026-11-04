@@ -1007,6 +1007,37 @@ def test_repair_clock_can_cross_cooldown_deadline(tmp_path):
     assert provider.call_count == 3
 
 
+@pytest.mark.parametrize("quote", ["“Model A”；“Price: 13.40”", "Model A || Price: 13.40"])
+def test_separate_literal_citations_retain_all_fragments_and_judgments(tmp_path, quote):
+    source = tmp_path / "source.txt"
+    text = "Model A\nCurrent offer\nPrice: 13.40"
+    source.write_text(text, encoding="utf-8")
+    packet = {
+        "cases": [
+            {
+                "case_id": "one",
+                "source_html": str(source),
+                "source_outline": str(source),
+                "outputs": [],
+            }
+        ]
+    }
+    raw = review_payload(packet, quote)
+    fixed = reconcile_citations(raw, packet)
+    validate(fixed, packet)
+    for section in ("source_fields", "reference"):
+        for field, finding in fixed["cases"][0][section].items():
+            assert finding["source_quote"] == text
+            assert {k: v for k, v in finding.items() if k != "source_quote"} == {
+                k: v for k, v in raw["cases"][0][section][field].items() if k != "source_quote"
+            }
+    assert raw["cases"][0]["source_fields"]["price"]["source_quote"] == quote
+    invented = quote.replace("13.40", "999")
+    rejected = reconcile_citations(review_payload(packet, invented), packet)
+    with pytest.raises(ValueError, match="not literal"):
+        validate(rejected, packet)
+
+
 def test_compound_citation_cannot_discard_a_fabricated_price(tmp_path):
     source = tmp_path / "source.html"
     source.write_text("Product details. Actual price: 13.40", encoding="utf-8")
