@@ -99,15 +99,19 @@ def test_split_retry_cannot_replace_unproved_manifest_budgets(tmp_path, role, bu
     assert not group['uniform'] and group['errors']
 
 
-@pytest.mark.parametrize('conflicting_role', [None, 'prior', 'current'])
-def test_parameter_selection_verifies_split_baseline_budgets(tmp_path, conflicting_role):
-    from harness.web_fetch.report_saved_matrix import _load_saved_matrix, _parameter_reruns
+@pytest.mark.parametrize(('baseline_history', 'conflicting_role'), [
+    ('valid', None), ('valid', 'prior'), ('valid', 'current'),
+    ('unexhausted', None), ('retry_after_pass', None), ('exhausted', None),
+    ('scorer_change', None), ('missing_created', None), ('late_created', None)])
+def test_parameter_selection_verifies_split_baseline_budgets(tmp_path, conflicting_role, baseline_history):
+    from harness.web_fetch.report_saved_matrix import _load_saved_matrix, _parameter_reruns, _parameter_group_decisions
     spec, roots = split_matrix(tmp_path)
     spec['presentation'] = 'audit'
     root = tmp_path/'candidate'
     record, case, policy = execution(root, dict(type='tavily_extract',
         uniform_native_parameters=True, api_key='fixture', dns_mode='system'), dns='system')
     saved_answer(root, record, case)
+    record['metrics']['content_pass'] = False
     record.update(attempt_id='candidate-run', elapsed_ms=12, started_at='2030-01-01T00:00:04+00:00')
     manifest = json.loads((root/'manifest.json').read_bytes())
     manifest['parameters']['max_failure_retries'] = 0
@@ -120,6 +124,39 @@ def test_parameter_selection_verifies_split_baseline_budgets(tmp_path, conflicti
         'sources': [{'job_id': 'job', 'root': str(root),
             'dataset': write(root/'dataset.json', {'cases': [case]}),
             'results': write(root/'results.jsonl', record)}]}
+    if baseline_history in {'unexhausted', 'retry_after_pass', 'exhausted', 'scorer_change'}:
+        from copy import deepcopy
+        spec.pop('retry_continuations')
+        source = spec['sources'][0]
+        baseline = json.loads((roots['current']/'results.jsonl').read_bytes())
+        baseline['metrics']['content_pass'] = baseline_history in {'retry_after_pass', 'scorer_change'}
+        if baseline_history in {'retry_after_pass', 'exhausted'}:
+            attempts = []
+            for ordinal in (1, 2):
+                receipt = deepcopy(baseline['provider_metadata']['native_route_receipt'])
+                receipt['physical_attempt'] = ordinal
+                attempts.append({'ok': True, 'task_pass': baseline_history == 'retry_after_pass',
+                    'started_at': f'2030-01-01T00:00:0{ordinal}+00:00',
+                    'elapsed_ms': baseline['elapsed_ms'],
+                    'artifact_path': baseline['artifact_path'],
+                    'content_sha256': baseline['metrics']['content_sha256'],
+                    'native_route_receipt': receipt})
+            baseline['provider_metadata']['native_route_receipt'] = attempts[-1]['native_route_receipt']
+            baseline['provider_metadata']['retry'] = {
+                'attempts': attempts, 'physical_attempts': 2, 'retries_used': 1}
+        source['results'] = write(roots['current']/'results.jsonl', baseline)
+        manifest = json.loads((roots['current']/'manifest.json').read_bytes())
+        manifest['parameters']['max_failure_retries'] = 1
+        write(roots['current']/'manifest.json', manifest)
+    elif baseline_history in {'missing_created', 'late_created'}:
+        path = roots['prior']/'manifest.json'
+        manifest = json.loads(path.read_bytes())
+        if baseline_history == 'missing_created':
+            manifest.pop('created_at', None)
+            manifest.pop('started_at', None)
+        else:
+            manifest['created_at'] = '2030-01-01T00:00:01+00:00'
+        write(path, manifest)
     if conflicting_role:
         path = roots[conflicting_role]/'manifest.json'
         manifest = json.loads(path.read_bytes())
@@ -127,14 +164,24 @@ def test_parameter_selection_verifies_split_baseline_budgets(tmp_path, conflicti
         write(path, manifest)
     write(tmp_path/'spec.json', spec)
     inputs = _load_saved_matrix(tmp_path/'spec.json')
+    if baseline_history == 'scorer_change':
+        revised = deepcopy(inputs['selected'][('first', 'method', 'case')][1])
+        revised['metrics']['content_pass'] = False
+        inputs['revision'] = {'cases': {}, 'records': {('first', 'method', 'case'): revised}}
     if conflicting_role:
         with pytest.raises(ValueError, match='retry budget'):
             _parameter_reruns(inputs)
     else:
-        assert len(_parameter_reruns(inputs)) == 1
+        candidates = _parameter_reruns(inputs)
+        assert len(candidates) == 1
         settings = inputs['parameter_settings'][('first', 'method', 'case')]
         assert {value['max_failure_retries'] for value in settings['before']} == {1}
         assert {value['max_failure_retries'] for value in settings['candidate']} == {0}
+        eligible = baseline_history in {'valid', 'exhausted', 'scorer_change'}
+        assert settings['before_retry_policy_valid'] is eligible
+        decision = _parameter_group_decisions(inputs, candidates)[('first', 'method', 'case')]
+        assert decision['before_uniform'] is True
+        assert decision['selected_new'] is not eligible
 
 
 def test_unchanged_groups_get_verified_and_public_settings(tmp_path):

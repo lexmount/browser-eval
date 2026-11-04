@@ -934,6 +934,14 @@ def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
                 calls.append(continuation[1][:2])
         for index, (call_root, call) in enumerate(calls):
             physical = call.get('provider_metadata', {}).get('retry', {}).get('attempts') or [call]
+            started_physical = [attempt for attempt in physical
+                if (attempt.get('native_route_receipt') or
+                    attempt.get('provider_metadata', {}).get('native_route_receipt', {})).get('transport_state') == 'started']
+            if len(started_physical) != len(physical):
+                error = 'Saved attempts include pre-transport rejections or unverified transport'
+                if error not in group['errors']:
+                    group['errors'].append(error)
+            physical = started_physical
             group['calls'] += len(physical)
             for attempt in physical:
                 started = attempt.get('started_at')
@@ -1206,6 +1214,7 @@ def _parameter_reruns(inputs):
                 candidate_settings.append(_parameter_execution(prior_root, prior_record, cases[cid], contract, sources, before, 'prior'))
             if config['selection'] == 'replace_family_if_pass_count_improves':
                 baseline_settings = []
+                baseline_policies = []
                 baseline_calls = [inputs['selected'][key][:2]]
                 prior = inputs.get('continuations', {}).get(key)
                 if prior and prior[1] is None:
@@ -1216,12 +1225,29 @@ def _parameter_reruns(inputs):
                     manifest = _native_execution_manifest(old_root, old_record, sources)
                     split_role = ('current' if index == 0 else 'prior') if prior else None
                     policy = {'provider_config_sha256': manifest.get('provider_config_sha256'),
+                              'created_at': manifest.get('created_at', manifest.get('started_at')),
                               'timeout_seconds': manifest['parameters']['timeout'],
                               'max_failure_retries': _saved_retry_budget(manifest, split_role)}
+                    baseline_policies.append(policy)
                     baseline_settings.append(_parameter_execution(old_root, old_record, original_case,
                                                                   policy, sources, old_record, split_role))
+                try:
+                    for (_, old_record), policy in zip(baseline_calls, baseline_policies, strict=True):
+                        created = datetime.fromisoformat(policy['created_at'])
+                        attempts = old_record.get('provider_metadata', {}).get('retry', {}).get('attempts') or [old_record]
+                        if any(datetime.fromisoformat(attempt['started_at']) < created for attempt in [old_record, *attempts]):
+                            raise ValueError('Baseline call predates its saved policy')
+                    sequence_policy = {**baseline_policies[0],
+                        'created_at': min((policy['created_at'] for policy in baseline_policies),
+                                          key=datetime.fromisoformat)}
+                    _validate_call_sequence(baseline_calls[0][1], original_case, sequence_policy, prior,
+                                            require_saved_settings=True)
+                    baseline_retry_policy_valid = True
+                except (ValueError, KeyError, TypeError):
+                    baseline_retry_policy_valid = False
                 inputs.setdefault('parameter_settings', {})[key] = {
-                    'before': baseline_settings, 'candidate': candidate_settings}
+                    'before': baseline_settings, 'candidate': candidate_settings,
+                    'before_retry_policy_valid': baseline_retry_policy_valid}
             _parameter_scoring(before, record)
             candidates[key] = root, record, line, path
         if seen != set(source_ids):
@@ -1274,13 +1300,17 @@ def _parameter_group_decisions(inputs, candidates):
         counts['selected_new'] = counts['candidate_passed'] > counts['before_passed']
         if by_family:
             keys = [key for key, value in membership.items() if value == group]
-            eligible = {label: _uniform_execution_settings({
+            uniform = {label: _uniform_execution_settings({
                 key: inputs.get('parameter_settings', {}).get(key, {}).get(label, []) for key in keys})
                 for label in ('before', 'candidate')}
+            baseline_retry_valid = all(inputs.get('parameter_settings', {}).get(key, {}).get('before_retry_policy_valid') is True
+                                       for key in keys)
+            eligible = {**uniform, 'before': uniform['before'] and baseline_retry_valid}
             if not any(eligible.values()):
-                raise ValueError('Neither complete report family has uniform native settings')
-            counts['before_uniform'] = eligible['before']
-            counts['candidate_uniform'] = eligible['candidate']
+                raise ValueError('Neither complete report family has eligible native settings and retry history')
+            counts['before_uniform'] = uniform['before']
+            counts['candidate_uniform'] = uniform['candidate']
+            counts['before_retry_policy_valid'] = baseline_retry_valid
             counts['selected_new'] = eligible['candidate'] and (
                 not eligible['before'] or counts['selected_new'])
     return {key: groups[group] for key, group in membership.items()}

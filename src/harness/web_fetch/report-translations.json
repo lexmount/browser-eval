@@ -1,5 +1,6 @@
 {
   "TEXT": {
+    "先检查整类配置是否一致，再比较符合条件的完整组通过数；只有一组符合条件时采用该组，即使其通过数更低。两组还须遵守各自冻结的失败重试规则。两组都符合条件时，通过数相同或降低则保留旧组。": "Check configuration uniformity across each family before comparing eligible complete groups by pass count. If only one group qualifies, select it even if its pass count is lower. Both groups must also follow their frozen failure-retry policies. If both groups qualify, retain the baseline when the candidate pass count is equal or lower.",
     "本页汇总已保存结果；证据与文件核验不等于基准认证。最终展示模式不补足历史调用的认证条件，也不代表新一轮独立盲审。": "This page summarizes saved results; evidence and file verification are not benchmark certification. Final presentation does not complete historical certification requirements or constitute a new independent blind review.",
     "评分变化分步记录": "Stepwise verdict changes",
     "修订类型": "Revision type",

@@ -58,6 +58,12 @@ TEXT = dict(_TRANSLATIONS['TEXT'])
 # are deliberately narrow report phrases; they never include task names,
 # reference answers, or provider output.
 PHRASES = dict(_TRANSLATIONS['PHRASES'])
+PHRASES.update({
+    '旧组遵守冻结的失败重试规则：是。': 'The baseline follows its frozen failure-retry policy: yes.',
+    '旧组遵守冻结的失败重试规则：否（不参与择优）。': 'The baseline follows its frozen failure-retry policy: no (ineligible).',
+    '旧组遵守冻结的失败重试规则：未核验。': 'The baseline follows its frozen failure-retry policy: unverified.',
+    '两组还须遵守各自冻结的失败重试规则。': 'Both groups must also follow their frozen failure-retry policies.',
+})
 
 
 # The adoption page carries a large, evidence-bound capability and pricing
@@ -77,6 +83,8 @@ def _body_region_summary(match):
 
 
 REGEX = [
+    (re.compile(r"^参数重测 (\d+) 项，已整组采用 (\d+) 项新结果。先检查整类配置是否一致，再比较符合条件的完整组通过数；不逐题拼接。两组还须遵守各自冻结的失败重试规则。配置不一致的组不能因通过数更高而入选。本轮不能证明参数导致速度提升。$"),
+     r"Parameter reruns evaluated \1 cases; \2 new results were selected as complete groups. Check configuration uniformity across each family before comparing eligible complete groups by pass count; do not combine individual cases. Both groups must also follow their frozen failure-retry policies. A group with inconsistent settings cannot qualify through a higher pass count. These runs do not establish that parameter changes improved speed."),
     (re.compile(r"^新批次启用自身 DEBUG 并捕获网络库日志；旧 (\d+) 条不计入本报告。$"), r"The new batch enabled native DEBUG output and captured network-library logs; \1 earlier records are excluded from this report."),
     (re.compile(r"^每次物理调用预算为 ([\d.]+) 秒，重试后的累计耗时可能超过该预算。$"), r"Each physical call has a \1-second budget; accumulated latency after retries can exceed it."),
     (re.compile(r"^本报告包含 (\d+) 个任务、(\d+) 个逻辑结果，任务通过 (\d+)/(\d+)。结论仅适用于已登记的任务和规则。$"), r"This report contains \1 tasks and \2 logical results, with \3/\4 task passes. Conclusions apply only to the registered tasks and rules."),
@@ -774,11 +782,13 @@ SAVED_MATRIX_ZH = {'parameter_rerun_title': '参数重测与结果选择',
  'offline_review_scope': '此处记录对已知机器结果的规则复核，使用已有返回离线评分，不称为独立盲审。参数重测的新调用与结果选择另见变更记录。',
  'parameter_rerun_banner': '参数重测 {evaluated} 项，按方法与类别整体比较通过数，已整组采用 {selected} 项新结果。采用新组时也包含退步案例，不逐题拼接新旧结果；通过数相同或降低则保留旧组。本轮不能证明参数导致速度提升。',
  'parameter_rerun_note': '类别与参数在调用前确定；首次失败最多重试一次，以最后一次为本轮结果。按方法与类别比较整体通过数，改善时整组采用新结果，包括其中的退步案例；通过数相同或降低时整组保留旧结果。动态与热门的基础补充任务分别和同类专项一起选择，不拆开择优。',
- 'parameter_family_banner': '参数重测 {evaluated} 项，已整组采用 {selected} 项新结果。先检查整类配置是否一致，再比较符合条件的完整组通过数；不逐题拼接。配置不一致的组不能因通过数更高而入选。本轮不能证明参数导致速度提升。',
- 'parameter_family_note': '先检查整类配置是否一致，再比较符合条件的完整组通过数；只有一组符合条件时采用该组，即使其通过数更低。两组都符合条件时，通过数相同或降低则保留旧组。',
+ 'parameter_family_banner': '参数重测 {evaluated} 项，已整组采用 {selected} 项新结果。先检查整类配置是否一致，再比较符合条件的完整组通过数；不逐题拼接。两组还须遵守各自冻结的失败重试规则。配置不一致的组不能因通过数更高而入选。本轮不能证明参数导致速度提升。',
+ 'parameter_family_note': '先检查整类配置是否一致，再比较符合条件的完整组通过数；只有一组符合条件时采用该组，即使其通过数更低。两组还须遵守各自冻结的失败重试规则。两组都符合条件时，通过数相同或降低则保留旧组。',
  'parameter_family_eligibility': '整类配置一致：旧组 {before}，新组 {candidate}。',
+ 'parameter_baseline_retry_eligibility': '旧组遵守冻结的失败重试规则：{valid}。',
  'parameter_eligible': '是',
  'parameter_ineligible': '否（不参与择优）',
+ 'parameter_unverified': '未核验',
  'parameter_rerun_selected': '已采用重测结果',
  'parameter_rerun_retained': '保留原结果',
  'parameter_rerun_group': '本类别共 {count} 项：旧结果通过 {before_passed} 项，新结果通过 {candidate_passed} 项。',

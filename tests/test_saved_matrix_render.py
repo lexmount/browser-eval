@@ -223,6 +223,7 @@ def test_precall_rejection_preserves_score_but_excludes_product_failure(tmp_path
         dataset['cases'].append({**dataset['cases'][0], 'id': case_id})
         record = deepcopy(original)
         record.update(case_id=case_id, attempt_id=case_id, ok=False,
+                      started_at='2020-01-01T00:00:00Z' if state == 'not_started' else original['started_at'],
                       elapsed_ms=9000 if state == 'not_started' else 24,
                       error_type='unsupported_task' if state == 'not_started' else 'network',
                       error='Synthetic failure')
@@ -240,6 +241,11 @@ def test_precall_rejection_preserves_score_but_excludes_product_failure(tmp_path
     assert matrix['totals']['failed'] == 1
     assert matrix['totals']['adapter_rejected'] == 1
     assert matrix['totals']['saved'] == 3
+    settings = matrix['execution_settings'][0]
+    assert settings['calls'] == 2
+    assert settings['collection_start'] == original['started_at']
+    assert settings['collection_end'] == '2026-10-29T00:00:00.024000+00:00'
+    assert settings['errors'] and settings['uniform'] is False
     projected = [json.loads(r) for r in (root/'results.jsonl').read_text(encoding='utf-8').splitlines()]
     assert [r['metrics'] for r in projected] == [r['metrics'] for r in records]
     assert (source/'results.jsonl').read_bytes() == raw

@@ -865,7 +865,7 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
                         lambda root, record, case, policy, *args: {
                             'request': 'fixture', 'max_failure_retries': policy.get('max_failure_retries')})
     monkeypatch.setattr('harness.web_fetch.report_saved_matrix._native_execution_manifest',
-                        lambda root, record, *args: {'parameters': {
+                        lambda root, record, *args: {'created_at': '2026-10-01T00:00:00Z', 'parameters': {
                             'timeout': 30, 'max_failure_retries': 1 if record['attempt_id'] == 'prior-call' else 0}})
     spec, root, record, _ = fixture(tmp_path)
     record['metrics']['content_pass'] = before
@@ -916,6 +916,7 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
         for page in ('index.html', 'changes/index.html'):
             assert '配置不一致的组不能因通过数更高而入选' in (report / page).read_text(encoding='utf-8')
         assert '整类配置一致：旧组 是，新组 是' in detail
+        assert '旧组遵守冻结的失败重试规则：是。' in detail
         assert '只有一组符合条件时采用该组' in detail
     else:
         assert '动态与热门的基础补充任务' in detail
@@ -1036,8 +1037,8 @@ def test_family_selection_keeps_independent_categories_on_the_same_track():
                   {'id': 'static', 'task_family': 'web', 'source_suites': ['second']}],
                   'parameter_reruns': {'selection': 'replace_family_if_pass_count_improves'}},
               'selected': {keys[0]: saved(True), keys[1]: saved(False)}}
-    inputs['parameter_settings'] = {key: {label: [{'request': 'uniform'}]
-        for label in ('before', 'candidate')} for key in keys}
+    inputs['parameter_settings'] = {key: {'before_retry_policy_valid': True, **{label: [{'request': 'uniform'}]
+        for label in ('before', 'candidate')}} for key in keys}
     candidates = {keys[0]: saved(False), keys[1]: saved(True)}
     decisions = _parameter_group_decisions(inputs, candidates)
     assert decisions[keys[0]]['selected_new'] is False
@@ -1059,8 +1060,8 @@ def test_family_selection_requires_all_tracks_of_the_displayed_family():
               'spec': {'report_families': [{'id': 'web_media'}],
                        'parameter_reruns': {'selection': 'replace_family_if_pass_count_improves'}},
               'selected': dict.fromkeys(keys, saved)}
-    inputs['parameter_settings'] = {key: {label: [{'request': 'uniform'}]
-        for label in ('before', 'candidate')} for key in keys}
+    inputs['parameter_settings'] = {key: {'before_retry_policy_valid': True, **{label: [{'request': 'uniform'}]
+        for label in ('before', 'candidate')}} for key in keys}
     with pytest.raises(ValueError, match='complete method/family group'):
         _parameter_group_decisions(inputs, {keys[0]: saved})
     assert all(item['count'] == 2 for item in _parameter_group_decisions(inputs, inputs['selected']).values())
@@ -1653,6 +1654,7 @@ def test_family_selection_requires_uniformity_before_higher_score(baseline_unifo
                        'parameter_reruns': {'selection': 'replace_family_if_pass_count_improves'}},
               'selected': {key: saved(True) for key in keys},
               'parameter_settings': {key: {
+                  'before_retry_policy_valid': True,
                   'before': [{'output': 'html' if baseline_uniform or i == 0 else 'markdown'}],
                   'candidate': [{'output': 'html' if candidate_uniform or i == 0 else 'markdown'}]}
                   for i, key in enumerate(keys)}}
@@ -1663,6 +1665,28 @@ def test_family_selection_requires_uniformity_before_higher_score(baseline_unifo
     else:
         assert all(row['selected_new'] is selected
                    for row in _parameter_group_decisions(inputs, candidates).values())
+
+
+@pytest.mark.parametrize('state', ['parameter_eligible', 'parameter_ineligible', 'parameter_unverified'])
+def test_baseline_retry_eligibility_has_english_disclosure(state):
+    from harness.web_fetch.report_i18n import SAVED_MATRIX_ZH, translate_text
+    text = SAVED_MATRIX_ZH['parameter_baseline_retry_eligibility'].format(valid=SAVED_MATRIX_ZH[state])
+    assert translate_text(text).startswith('The baseline follows its frozen failure-retry policy:')
+
+
+@pytest.mark.parametrize(('evaluated', 'selected'), [(17, 3), (1000, 0)])
+def test_family_selection_prose_is_fully_localized(evaluated, selected):
+    import re
+    from pathlib import PurePosixPath
+    from harness.web_fetch.report_i18n import SAVED_MATRIX_ZH, localize_html
+    banner = SAVED_MATRIX_ZH['parameter_family_banner'].format(evaluated=evaluated, selected=selected)
+    note = SAVED_MATRIX_ZH['parameter_family_note']
+    page = localize_html(f'<html lang="zh-CN"><body><p>{banner}</p><p>{note}</p></body></html>',
+                         PurePosixPath('index.html'))
+    assert not re.search(r'[\u3400-\u9fff]', page)
+    assert f'evaluated {evaluated} cases; {selected} new results' in page
+    assert 'Both groups must also follow their frozen failure-retry policies.' in page
+    assert 'even if its pass count is lower' in page
 
 
 @pytest.mark.parametrize('amendment', [None, 'replace_family_if_pass_count_improves', 'wrong'])

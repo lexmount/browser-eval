@@ -2600,6 +2600,9 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    family_selection=proof['selection']=='replace_family_if_pass_count_improves'
    if family_selection:
     outcome+=' · '+SAVED_MATRIX_ZH['parameter_family_eligibility'].format(**{label:SAVED_MATRIX_ZH['parameter_eligible' if proof['group'][label+'_uniform'] else 'parameter_ineligible'] for label in ('before','candidate')})
+    retry_valid=proof['group'].get('before_retry_policy_valid')
+    retry_label='parameter_eligible' if retry_valid is True else 'parameter_ineligible' if retry_valid is False else 'parameter_unverified'
+    outcome+=' · '+SAVED_MATRIX_ZH['parameter_baseline_retry_eligibility'].format(valid=SAVED_MATRIX_ZH[retry_label])
    body+=section(SAVED_MATRIX_ZH['parameter_rerun_title'],'<p>'+SAVED_MATRIX_ZH['parameter_family_note' if family_selection else 'parameter_rerun_note']+'</p><p>'+outcome+'</p><p>'+'<br>'.join(evidence)+'</p>','parameter-rerun')
   if r.get('report_retry_continuation'):
    continuation=r['report_retry_continuation']
