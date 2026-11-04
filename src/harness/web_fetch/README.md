@@ -35,6 +35,9 @@ reuse engine-level adapter contracts instead of adding per-version renderer tabl
 Keep report-specific prose and its translations in explicitly bound content;
 do not choose a historical article from provider names or task-family guesses.
 Without a content binding, render the maintained data-derived explanation.
+Report text the project writes has English as its source: `t(id, english)` in
+the renderer, with Chinese in `messages.json`. `t` declares that English for
+the post-render English pass, so write one text node per call.
 Prove reuse through the public build and check entries with a different external
 task/method inventory, not only by searching for old numbers in source code.
 Exercise assembly and packaging with that external profile as well. Participant

@@ -54,9 +54,9 @@ def test_archived_html_cannot_import_active_content_or_global_styles():
 
 def test_english_chrome_preserves_raw_evidence_and_filter_keys():
     from pathlib import PurePosixPath
-    from harness.web_fetch.report_i18n import localize_html
+    from harness.web_fetch.report_i18n import localize_html, t
     raw = '<pre data-original="true">验证码 &amp; 原始返回 26/26</pre>'
-    source = '<html lang="zh-CN"><body><input aria-label="搜索" placeholder="搜索案例、方法或原因"><p data-failure-category="规则不满足">任务规则未满足</p>' + raw + '</body></html>'
+    source = '<html lang="zh-CN"><body><input aria-label="搜索" placeholder="搜索案例、方法或原因"><p data-failure-category="规则不满足">' + t('task_requirements_not_met', 'Task requirements not met') + '</p>' + raw + '</body></html>'
     english = localize_html(source, PurePosixPath('analysis/index.html'))
     assert raw in english
     assert 'data-failure-category="规则不满足"' in english

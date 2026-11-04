@@ -21,6 +21,7 @@ from harness.web_fetch.artifacts import (
 )
 from harness.web_fetch.publication_privacy import project_file, publication_risk
 from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
+from harness.web_fetch.report_i18n import t
 
 
 def require_diagnostic_scope(model, profile):
@@ -87,8 +88,8 @@ def prepare_diagnostic_evidence(spec_path, output):
         binding=dict(path=path,sha256=hashlib.sha256(public).hexdigest(),scope=scope)
         if projection:
             binding['publication_projection']=projection
-            binding['scope']=binding['scope'].replace('未改写、','')
-            binding['scope'] += ' 此下载件为脱敏公开副本；原始字节及评分保持不变，原始 SHA-256：'+projection['original_sha256']+'。'
+            binding['scope']=binding['scope'].replace(t('unmodified', 'unmodified,'),'')
+            binding['scope'] += (' ' + t('this_download_is_a_redacted_public_copy', 'This download is a redacted public copy; original bytes and scores are unchanged. Original SHA-256:') + f"{projection['original_sha256']}。")
         return binding
     for cohort in spec['cohorts']:
         run=contained_path(spec_path.parent,cohort['run'])
@@ -136,7 +137,7 @@ def prepare_diagnostic_evidence(spec_path, output):
             raw=contained_path(run,record['artifact_path']).read_bytes()
             if hashlib.sha256(raw).hexdigest()!=record['metrics']['content_sha256']:
                 raise ValueError('Primary answer changed: '+cid)
-            answer=save('answers/'+cid+'.txt',raw,'本轮唯一调用的完整输出，未改写、未以补抓替换。')
+            answer=save('answers/'+cid+'.txt',raw,t('complete_output_of_this_run_s_only', "Complete output of this run's only call, unmodified and not replaced by a later fetch."))
             log={k:v for k,v in record.items() if k not in ('provider_metadata','artifact_path')}
             metadata=record['provider_metadata'];public_call=metadata.get('call_log')
             if public_call:
@@ -144,13 +145,13 @@ def prepare_diagnostic_evidence(spec_path, output):
                 log['process']=call['process'];log['request']=call['request'];log['call_error']=call['error']
                 log['error_message']=call['error']['message']
             log['provider_identity']=dict(reported_version=version,binary_sha256=binary_sha)
-            reference=save('reference/'+cid+'.json',json_bytes(case),'调用前冻结的完整任务和验收契约；不是网页全部内容的逐字标准答案。')
+            reference=save('reference/'+cid+'.json',json_bytes(case),t('complete_task_and_acceptance_contract_frozen_before', 'Complete task and acceptance contract frozen before the call; not a word-for-word reference of the whole page.'))
             source=save('source/'+cid+'.json',json_bytes({k:v for k,v in observation.items() if k!='outer_html'}),
-                '独立浏览器的可见文字及访问记录；具体范围和补充观察见记录，隐藏 DOM 不作为可见答案。访问失败时保留错误，不算目标正文。')
+                t('visible_text_and_access_records_from_an', 'Visible text and access records from an independent browser; see the record for scope and further observations. Hidden DOM is not a visible answer. Access failures keep their errors and do not count as target body text.'))
             row=dict(id=cid,cohort=cohort['id'],url=case['url'],task=case.get('task_prompt') or case.get('name') or cid,
                 run_id=record['run_id'],initial_pass=task_passed(record['ok'],record['metrics']),
                 first_answer=answer,answer=answer,reference=reference,source=source,
-                log=save('logs/'+cid+'.json',json_bytes(log),'本轮调用、评分明细和脱敏后的进程记录。'),
+                log=save('logs/'+cid+'.json',json_bytes(log),t('this_run_s_call_scoring_detail_and', "This run's call, scoring detail and redacted process records.")),
                 failure=log.get('error_message') or '; '.join(record['metrics'].get('stable_task_errors') or []),
                 cause=audit['cause'],cause_detail=audit['cause_detail'],followup_status=audit['followup_status'],
                 source_checked_at=observation.get('checked_at'),reviewed=True,source_state=audit['source_state'])
@@ -167,12 +168,12 @@ def prepare_diagnostic_evidence(spec_path, output):
     (output/'report.json').write_bytes(json_bytes(model))
 
 FAILURE_TYPES = {
-    'request': '调用未成功交付', 'blocked': '验证或访问限制页面',
-    'identity': '网址或页面语言不符', 'text': '缺少必需文字或事实',
-    'body': '正文覆盖不足', 'records': '列表或表格不完整',
-    'encoding': '文字编码损坏', 'truncated': '输出被截断',
-    'shell': '仅有脚本或页面框架', 'length': '返回内容过少',
-    'pattern': '内容结构不符', 'other': '其它未通过检查',
+    'request': t('the_call_did_not_deliver_successfully', 'The call did not deliver successfully'), 'blocked': t('verification_or_access_restriction_page', 'Verification or access-restriction page'),
+    'identity': t('url_or_page_language_mismatch', 'URL or page language mismatch'), 'text': t('required_text_or_facts_missing', 'Required text or facts missing'),
+    'body': t('insufficient_body_coverage', 'Insufficient body coverage'), 'records': t('incomplete_list_or_table', 'Incomplete list or table'),
+    'encoding': t('text_encoding_damaged', 'Text encoding damaged'), 'truncated': t('output_truncated', 'Output truncated'),
+    'shell': t('only_script_or_page_framework', 'Only script or page framework'), 'length': t('too_little_content_returned', 'Too little content returned'),
+    'pattern': t('content_structure_mismatch', 'Content structure mismatch'), 'other': t('other_failed_checks', 'Other failed checks'),
 }
 
 
@@ -183,20 +184,20 @@ def diagnostic_reference_excerpt(row, files):
     except ValueError:return raw
     if not isinstance(case,dict):return raw
     contract=case.get('acceptance_contract') or {};parts=[]
-    schemas={'named_link':'名称与详情链接','table_row':'表格行','body_text':'网页文字','page_identity':'网址与语言'}
+    schemas={'named_link':t('name_and_detail_link', 'Name and detail link'),'table_row':'表格行','body_text':t('page_text', 'Page text'),'page_identity':t('url_and_language', 'URL and language')}
     if contract.get('schema'):
         parts.append('验收内容：'+schemas.get(contract['schema'],contract['schema']))
     if contract.get('minimum_records'):
-        parts.append('至少 '+str(contract['minimum_records'])+' 条完整、唯一的记录')
+        parts.append((f"至少 {str(contract['minimum_records'])} " + t('complete_unique_records_2', 'complete, unique records')))
     if contract.get('table_columns'):
-        parts.append('每行必需字段：'+'；'.join(c['label'] for c in contract['table_columns']))
+        parts.append((t('required_fields_per_row', 'Required fields per row:') + f"{'；'.join((c['label'] for c in contract['table_columns']))}"))
     anchors=contract.get('stable_text_anchors',[])+case.get('required_facts',[])
-    if anchors:parts.append('必需文字：'+'；'.join(' / '.join(a.get('alternatives') or [a.get('id','')]) for a in anchors))
-    if case.get('min_content_chars'):parts.append('内容长度至少 '+str(case['min_content_chars'])+' 个字符')
+    if anchors:parts.append((t('required_text', 'Required text:') + f"{'；'.join((' / '.join(a.get('alternatives') or [a.get('id', '')]) for a in anchors))}"))
+    if case.get('min_content_chars'):parts.append((t('content_length_at_least', 'Content length at least') + f" {str(case['min_content_chars'])} " + t('characters_2', 'characters')))
     body=case.get('body_requirements') or {}
-    if body.get('regions'):parts.append('正文 '+str(len(body['regions']))+' 个分区；覆盖率及分区原文见完整验收契约')
+    if body.get('regions'):parts.append((t('body_text', 'Body text') + f" {str(len(body['regions']))} 个分区；覆盖率及分区原文见完整验收契约"))
     patterns=contract.get('page_patterns') or []
-    if patterns:parts.append('要求的结构模式：'+'；'.join(patterns))
+    if patterns:parts.append((t('required_structure_patterns', 'Required structure patterns:') + f"{'；'.join(patterns)}"))
     return '\n'.join(parts) or case.get('task_prompt') or raw
 
 
@@ -204,7 +205,7 @@ def diagnostic_source_excerpt(row, files):
     """Explain an unavailable source with its observed error, not raw JSON."""
     binding = row.get('source')
     if not binding:
-        return row.get('source_error') or '未取得目标正文。'
+        return row.get('source_error') or t('target_body_text_was_not_obtained', 'Target body text was not obtained.')
     raw = files[binding['path']].decode('utf-8')
     try:
         observation = json.loads(raw)
@@ -215,7 +216,9 @@ def diagnostic_source_excerpt(row, files):
     if observation.get('content_text'):
         return observation['content_text']
     errors = [e.get('message') or e.get('type', '') for e in observation.get('attempt_errors', [])]
-    return '未取得可见目标正文。'+('\n'+'\n'.join(errors) if errors else '')
+    return (t('visible_target_body_text_was_not_obtained', 'Visible target body text was not obtained.') + f'''{("""
+""" + """
+""".join(errors) if errors else '')}''')
 
 
 def diagnostic_specimen_excerpt(row, field, files, model):
@@ -255,25 +258,25 @@ def diagnostic_findings(row, files):
         stderr = process['stderr']
         error = stderr[stderr.rfind('\nError:') + 1:] if '\nError:' in stderr else stderr
     if log.get('ok') is False or metrics.get('request_ok') is False:
-        add('request', '调用未成功交付', '调用成功并返回约定的输出', error or row.get('failure') or '保存记录中的请求状态为失败')
+        add('request', t('the_call_did_not_deliver_successfully', 'The call did not deliver successfully'), t('call_succeeds_and_returns_the_agreed_output', 'Call succeeds and returns the agreed output'), error or row.get('failure') or t('the_saved_record_shows_a_failed_request', 'The saved record shows a failed request status'))
     if metrics.get('blocked_page') or metrics.get('stable_blocked_page'):
-        add('blocked', '返回验证或访问限制页面', '目标网页内容，而非验证页面',
-            '；'.join(metrics.get('blocked_page_hits') or []) or '保存评分识别到访问限制页面')
+        add('blocked', t('returned_a_verification_or_access_restriction_page', 'Returned a verification or access-restriction page'), t('target_page_content_rather_than_a_verification', 'Target page content rather than a verification page'),
+            '；'.join(metrics.get('blocked_page_hits') or []) or t('saved_scoring_detected_an_access_restriction_page', 'Saved scoring detected an access-restriction page'))
     if metrics.get('text_encoding_corruption'):
-        add('encoding', '输出文字损坏', '可读、无编码损坏的文字', '保存评分识别到编码损坏')
+        add('encoding', t('output_text_damaged', 'Output text damaged'), t('readable_text_without_encoding_damage', 'Readable text without encoding damage'), t('saved_scoring_detected_encoding_damage', 'Saved scoring detected encoding damage'))
     if metrics.get('declared_truncation_hits'):
-        add('truncated', '输出声明被截断', '完整的任务内容', '；'.join(metrics['declared_truncation_hits']))
+        add('truncated', t('output_declares_truncation', 'Output declares truncation'), t('complete_task_content', 'Complete task content'), '；'.join(metrics['declared_truncation_hits']))
     if metrics.get('script_payload_shell'):
-        add('shell', '只有脚本或页面框架', '目标正文', '保存评分识别到脚本或空框架')
+        add('shell', t('only_script_or_page_framework_2', 'Only script or page framework'), '目标正文', t('saved_scoring_detected_script_or_an_empty', 'Saved scoring detected script or an empty framework'))
     if metrics.get('page_identity_status') == 'mismatch':
-        add('identity', '页面身份诊断（不参与通过判定）', '仅供核对访问路径，无通过要求',
-            '最终网址：' + str(log.get('final_url') or '记录未提供') + '；页面语言：' + str(metrics.get('observed_document_language') or log.get('document_language') or '记录未提供'))
+        add('identity', t('page_identity_diagnostic_does_not_decide_the', 'Page identity diagnostic (does not decide the result)'), t('for_checking_the_access_path_only_no', 'For checking the access path only; no pass requirement'),
+            t('final_url_page_language', 'Final URL: {value}; page language: {value2}', value=str(log.get('final_url') or t('not_provided_by_the_record', 'Not provided by the record')), value2=str(metrics.get('observed_document_language') or log.get('document_language') or t('not_provided_by_the_record', 'Not provided by the record'))))
     for check in metrics.get('stable_anchor_results') or []:
         if check.get('pass') is False:
-            add('text', '缺少必需文字', ' / '.join(check.get('alternatives') or [check.get('id', '未提供')]), '首轮输出未匹配到该文字')
+            add('text', t('required_text_missing', 'Required text missing'), ' / '.join(check.get('alternatives') or [check.get('id', t('not_provided', 'Not provided'))]), t('the_first_round_output_did_not_match', 'The first-round output did not match this text'))
     for check in metrics.get('fact_results') or []:
         if check.get('pass') is False:
-            add('text', '缺少必需事实', ' / '.join(check.get('alternatives') or [check.get('id', '未提供')]), '首轮输出未匹配到该事实')
+            add('text', t('required_fact_missing', 'Required fact missing'), ' / '.join(check.get('alternatives') or [check.get('id', t('not_provided', 'Not provided'))]), t('the_first_round_output_did_not_match_2', 'The first-round output did not match this fact'))
     if metrics.get('body_coverage_pass') is False:
         try:
             reference = json.loads(files[row['reference']['path']])
@@ -287,37 +290,37 @@ def diagnostic_findings(row, files):
             # readable quotations. Display frozen source text, never reconstruct
             # a supposed sentence from the score's unmatched character spans.
             sample = re.sub(r'\s+', ' ', reference_regions.get(region.get('id'), '')).strip()[:300]
-            add('body', '正文分区未达覆盖要求',
-                str(region.get('id', '正文分区')) + '：覆盖率至少 ' + str(round(100 * region.get('minimum', 0), 1)) + '%；参考内容：' + (sample or '见标准答案'),
-                '实际覆盖率 ' + str(round(100 * region.get('coverage', 0), 1)) + '%')
+            add('body', t('body_region_below_required_coverage', 'Body region below required coverage'),
+                t('coverage_at_least_reference_content', '{get}: coverage at least {round}%; reference content: {value}', get=str(region.get('id', t('body_region', 'Body region'))), round=str(round(100 * region.get('minimum', 0), 1)), value=sample or t('see_the_reference_answer', 'See the reference answer')),
+                (t('actual_coverage', 'Actual coverage') + f" {str(round(100 * region.get('coverage', 0), 1))}%"))
         if not regions:
-            add('body', '正文覆盖不足', '满足声明的正文分区要求', '正文覆盖检查不通过；原记录未提供分区明细')
+            add('body', t('insufficient_body_coverage', 'Insufficient body coverage'), t('meets_the_declared_body_region_requirements', 'Meets the declared body-region requirements'), t('body_coverage_check_failed_the_original_record', 'Body coverage check failed; the original record has no region detail'))
     if metrics.get('stable_structure_pass') is False:
-        add('records', '列表或表格不完整',
-            '至少 ' + str(metrics.get('stable_minimum_records', '记录未提供')) + ' 条完整且唯一的记录',
-            str(metrics.get('stable_unique_record_count', '记录未提供')) + ' 条完整且唯一的记录')
+        add('records', t('incomplete_list_or_table', 'Incomplete list or table'),
+            t('at_least_complete_and_unique_records', 'At least {get} complete and unique records', get=str(metrics.get('stable_minimum_records', t('not_provided_by_the_record', 'Not provided by the record')))),
+            t('complete_and_unique_records', '{get} complete and unique records', get=str(metrics.get('stable_unique_record_count', t('not_provided_by_the_record', 'Not provided by the record')))))
     for check in metrics.get('stable_field_results') or []:
         if check.get('pass') is False:
-            add('records', '记录缺少必需字段',
-                str(check.get('field', '未提供字段'))+'：至少 '+str(check.get('minimum', '记录未提供'))+' 条记录提供该字段',
-                str(check.get('count', '记录未提供'))+' 条记录提供该字段')
+            add('records', t('records_missing_required_fields', 'Records missing required fields'),
+                t('at_least_records_provide_this_field', '{get}: at least {get2} records provide this field', get=str(check.get('field', t('unnamed_field', 'Unnamed field'))), get2=str(check.get('minimum', t('not_provided_by_the_record', 'Not provided by the record')))),
+                t('records_provide_this_field', '{get} records provide this field', get=str(check.get('count', t('not_provided_by_the_record', 'Not provided by the record')))))
     for group in metrics.get('composite_group_results') or []:
         if group.get('pass') is False:
-            add('records', '记录组不完整', str(group.get('id', '记录组')) + '：至少 ' + str(group.get('minimum', '记录未提供')) + ' 条合格记录',
-                str(group.get('count', '记录未提供')) + ' 条合格记录')
+            add('records', t('incomplete_record_group', 'Incomplete record group'), t('at_least_qualifying_records', '{get}: at least {get2} qualifying records', get=str(group.get('id', t('record_group', 'Record group'))), get2=str(group.get('minimum', t('not_provided_by_the_record', 'Not provided by the record')))),
+                t('qualifying_records', '{get} qualifying records', get=str(group.get('count', t('not_provided_by_the_record', 'Not provided by the record')))))
     if metrics.get('composite_acceptance_pass') is False or any(k in str(row.get('failure', '')) for k in ('composite', 'incomplete_records', 'too_few_complete_records')):
         if not any(f['kind'] == 'records' for f in findings):
-            add('records', '列表或表格不完整', '满足任务的记录数量、字段、链接和唯一性要求', row.get('failure') or '保存评分中的组合记录检查不通过')
+            add('records', t('incomplete_list_or_table', 'Incomplete list or table'), t('meets_the_task_s_record_count_field', "Meets the task's record count, field, link and uniqueness requirements"), row.get('failure') or t('the_combined_record_check_failed_in_saved', 'The combined-record check failed in saved scoring'))
     if metrics.get('length_pass') is False:
-        add('length', '返回内容过少', '至少 ' + str(metrics.get('minimum_content_chars', '记录未提供')) + ' 个字符',
-            str(metrics.get('content_chars', '记录未提供')) + ' 个字符')
+        add('length', t('too_little_content_returned', 'Too little content returned'), t('at_least_characters_3', 'At least {get} characters', get=str(metrics.get('minimum_content_chars', t('not_provided_by_the_record', 'Not provided by the record')))),
+            t('characters_3', '{get} characters', get=str(metrics.get('content_chars', t('not_provided_by_the_record', 'Not provided by the record')))))
     for check in (metrics.get('pattern_results') or []) + (metrics.get('stable_page_pattern_results') or []):
         if check.get('pass') is False:
-            add('pattern', '缺少要求的内容结构', check.get('pattern') or check.get('id', '声明的结构要求'),
-                '未匹配到该结构模式' if 'pattern' in check else
-                str(check.get('count', '记录未提供')) + ' 项；至少要求 ' + str(check.get('minimum', '记录未提供')) + ' 项')
+            add('pattern', t('required_content_structure_missing', 'Required content structure missing'), check.get('pattern') or check.get('id', t('declared_structure_requirement', 'Declared structure requirement')),
+                t('this_structure_pattern_did_not_match', 'This structure pattern did not match') if 'pattern' in check else
+                t('items_at_least_required', '{get} items; at least {get2} required', get=str(check.get('count', t('not_provided_by_the_record', 'Not provided by the record'))), get2=str(check.get('minimum', t('not_provided_by_the_record', 'Not provided by the record')))))
     if not findings:
-        add('other', '其它未通过检查', '满足完整任务要求', row.get('failure') or '保存记录没有提供具体失败项')
+        add('other', t('other_failed_checks', 'Other failed checks'), t('meets_the_complete_task_requirements', 'Meets the complete task requirements'), row.get('failure') or t('the_saved_record_lists_no_specific_failed', 'The saved record lists no specific failed item'))
     return findings
 
 
@@ -415,7 +418,7 @@ def load_diagnostic(source):
                     or not re.fullmatch(r'[0-9a-f]{64}', str(projection.get('original_sha256', '')))
                     or type(projection.get('replacements')) is not int
                     or projection['replacements'] < 1
-                    or '脱敏' not in binding.get('scope', '')):
+                    or t('redacted', 'Redacted') not in binding.get('scope', '')):
                 raise ValueError('Invalid publication projection binding')
             if relative in files and files[relative] != raw:
                 raise ValueError("Conflicting evidence binding")
