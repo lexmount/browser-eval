@@ -107,7 +107,7 @@ def test_installed_package_does_not_borrow_an_unrelated_checkout(tmp_path, monke
     'web_fetch/workers/openclaw_webfetch_worker.mts',
     'web_fetch/workers/native_dns_darwin.c',
     'web_fetch/report-translations.json',
-    'browser_use/report-translations.json',
+    'browser_use/messages.json',
     'trajectory_replay/messages.json',
     'environments/webarena/runtime/php-fpm-qemu.ini',
     'web_fetch/templates/interpretation-headless.css',

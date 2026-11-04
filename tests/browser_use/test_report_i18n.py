@@ -1,27 +1,64 @@
+"""The Browser Use report keeps English inline and reads Chinese from its catalog by stable ID."""
+
+import ast
 import json
 import re
-from html.parser import HTMLParser
-from pathlib import Path, PurePosixPath
+import string
+from pathlib import Path
 
-from harness.browser_use.report_i18n import localize_html, translate_text
+from harness.browser_use import report as report_module
+from harness.browser_use.report_i18n import MESSAGES
+from harness.reporting.source_policy import HAN
+from tests.browser_use.test_report import build_browser_use_fixture
+
+RENDERERS = ("report.py", "report_check.py")
+LOOKUPS = {"t", "_ZH", "_EN", "_translated"}
+CATALOG = json.loads(MESSAGES.read_text(encoding="utf-8"))
+SEMANTIC_ID = re.compile(r"[a-z][a-z0-9_]*(\.[a-z0-9_]+)+")
 
 
-class _VisibleText(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__()
-        self.stack: list[str] = []
-        self.values: list[str] = []
+def _lookups():
+    for name in RENDERERS:
+        tree = ast.parse((MESSAGES.parent / name).read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            # `_translated` forwards its own `key` and `source` parameters.
+            if (
+                isinstance(node, ast.Call)
+                and getattr(node.func, "id", "") in LOOKUPS
+                and getattr(node.args[0], "id", "") != "key"
+            ):
+                yield f"{name}:{node.lineno}", node
 
-    def handle_starttag(self, tag: str, attrs) -> None:
-        self.stack.append(tag)
 
-    def handle_endtag(self, tag: str) -> None:
-        if tag in self.stack:
-            self.stack = self.stack[: len(self.stack) - 1 - self.stack[::-1].index(tag)]
+def _fields(template: str) -> set[str]:
+    return {field for _, field, _, _ in string.Formatter().parse(template) if field}
 
-    def handle_data(self, data: str) -> None:
-        if not any(tag in self.stack for tag in ("pre", "code", "script", "style")):
-            self.values.append(data)
+
+def test_every_lookup_has_a_semantic_id_and_literal_english_source() -> None:
+    sources: dict[str, str] = {}
+    for where, node in _lookups():
+        key, source = node.args
+        assert isinstance(key, ast.Constant) and SEMANTIC_ID.fullmatch(key.value), where
+        assert isinstance(source, ast.Constant) and isinstance(source.value, str), where
+        assert not HAN.search(source.value), where
+        assert sources.setdefault(key.value, source.value) == source.value, where
+    assert sources
+
+
+def test_catalog_entries_are_exactly_the_used_ids() -> None:
+    assert set(CATALOG["zh"]) == {node.args[0].value for _, node in _lookups()}
+
+
+def test_placeholders_are_supplied_in_both_languages() -> None:
+    for where, node in _lookups():
+        values = {item.arg for item in node.keywords}
+        assert _fields(node.args[1].value) <= values, where
+        assert _fields(CATALOG["zh"][node.args[0].value]) <= values, where
+
+
+def test_renderers_hold_no_chinese_text() -> None:
+    for name in RENDERERS:
+        assert not HAN.search((MESSAGES.parent / name).read_text(encoding="utf-8")), name
 
 
 def test_browser_use_change_records_have_complete_structured_english() -> None:
@@ -39,7 +76,7 @@ def test_browser_use_change_records_have_complete_structured_english() -> None:
                 "remaining",
             ):
                 assert english[field]
-                assert not re.search(r"[\u4e00-\u9fff]", english[field])
+                assert not re.search(r"[一-鿿]", english[field])
             if collection.endswith("releases"):
                 assert len(english["changes"]) == len(record.get("changes") or [])
                 assert all(
@@ -49,80 +86,28 @@ def test_browser_use_change_records_have_complete_structured_english() -> None:
                     )
                 )
                 assert not re.search(
-                    r"[\u4e00-\u9fff]",
+                    r"[一-鿿]",
                     json.dumps(english["changes"], ensure_ascii=False),
                 )
 
 
-def test_english_ui_is_localized_but_measured_text_is_preserved() -> None:
-    source = (
-        '<html lang="zh-CN"><body><h1>Browser Use 联合多模型能力实测</h1>'
-        '<h2>查看本题运行结果</h2><p>评测集页面保持为冻结输入；实测输出、判分和轨迹在结果页查看。</p>'
-        '<div><b>程序自动定位：</b><b>核验根因子类：</b><b>核验原因：</b></div>'
-        '<pre>{"raw": "原始测量证据"}</pre><p>创建一个命名明确的空仓库</p></body></html>'
-    )
-    localized = localize_html(source, PurePosixPath("results/example.html"))
-    parser = _VisibleText()
-    parser.feed(localized)
-    visible = " ".join(parser.values)
-    for leaked in (
-        "联合多模型能力实测",
-        "查看本题运行结果",
-        "评测集页面保持",
-        "程序自动定位",
-        "核验根因子类",
-        "核验原因",
-    ):
-        assert leaked not in visible
-    assert "原始测量证据" in localized
-    assert "创建一个命名明确的空仓库" in visible
-
-
-def test_release_translation_comes_from_structured_record() -> None:
+def test_release_fields_read_the_edition_being_rendered(monkeypatch) -> None:
     data = json.loads(Path("research/report-changes.json").read_text(encoding="utf-8"))
     release = data["browser_use_releases"][0]
-    assert translate_text(release["title"]) == release["i18n"]["en"]["title"]
+    assert report_module._record_text(release, "title") == release["title"]
+    monkeypatch.setattr(report_module, "t", report_module._EN)
+    assert report_module._record_text(release, "title") == release["i18n"]["en"]["title"]
 
 
-def test_failure_summary_and_scope_labels_are_fully_localized() -> None:
-    assert translate_text("Agent / 模型行为") == "Agent / model behavior"
-    assert translate_text("浏览器证据接口") == "Browser evidence interface"
-    assert translate_text("保留并修复") == "Retain and fix"
-    assert translate_text(
-        "75 个失败结果已经逐条核验。与任务合同、站点、共享环境或参考状态有关的任务"
-        "不会进入诊断子集，修复后需完整重跑。"
-    ) == (
-        "All 75 failed results have been reviewed individually. Tasks affected by task-contract, "
-        "site, shared-environment, or reference-state issues are excluded from the diagnostic "
-        "subset and require a complete rerun after correction."
-    )
+def test_english_edition_is_rendered_directly_and_keeps_dataset_text(
+    tmp_path: Path, monkeypatch
+) -> None:
+    output, _, _ = build_browser_use_fixture(tmp_path, monkeypatch, "en")
 
-
-def test_excluded_task_ids_use_english_punctuation() -> None:
-    source = '<html lang="zh-CN"><body><p>本轮剔除 3 题：#1、#2、#3。</p></body></html>'
-    localized = localize_html(source, PurePosixPath("analysis/index.html"))
-
-    assert "3 tasks excluded in this run: #1, #2, #3." in localized
-    assert "、" not in localized
-
-
-def test_all_release_and_review_copy_localizes_without_chinese() -> None:
-    data = json.loads(Path("research/report-changes.json").read_text(encoding="utf-8"))
-    values = [data["history_scope"]]
-    for record in data["browser_use_reviews"]:
-        values.extend(
-            record[field]
-            for field in ("title", "status", "scope", "findings", "corrections", "remaining")
-        )
-    for record in data["browser_use_releases"]:
-        values.extend((record["title"], record["summary"]))
-        values.extend(cell for row in record.get("changes") or [] for cell in row)
-
-    source = '<html lang="zh-CN"><body>' + "".join(
-        f"<p>{value}</p>" for value in values
-    ) + "</body></html>"
-    localized = localize_html(source, PurePosixPath("changes/index.html"))
-    parser = _VisibleText()
-    parser.feed(localized)
-
-    assert not re.search(r"[\u4e00-\u9fff]", " ".join(parser.values))
+    home = (output / "en/index.html").read_text(encoding="utf-8")
+    assert '<html lang="en">' in home
+    assert "Core metrics across" in home and "切换主题" not in home
+    # The selection rationale of this task has no English and stays as written.
+    task_page = (output / "en/datasets/475.html").read_text(encoding="utf-8")
+    assert "创建一个命名明确的空仓库" in task_page
+    assert report_module.t is report_module._ZH
