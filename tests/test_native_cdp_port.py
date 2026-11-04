@@ -3,6 +3,9 @@
 The real server binaries are not run. A foreign CDP server that answers before this
 server has exited cannot be told apart at the handshake, so it is only caught when this
 server's exit is seen after the caller finishes.
+
+A stand-in that has to outlive a step blocks on stdin until the harness releases it, and one
+that has to be gone before any handshake never listens, so no ordering depends on timing.
 """
 
 import base64
@@ -27,6 +30,7 @@ try:
     server.bind(('127.0.0.1', port))
 except OSError as error:
     print(error, file=sys.stderr)
+    sys.stdin.read()
     sys.exit(1)
 server.listen()
 time.sleep(60)
@@ -60,12 +64,18 @@ class Harness:
         self.processes, self.browsers = [], []
         self.playwright = SimpleNamespace(chromium=SimpleNamespace(connect_over_cdp=self.connect))
 
+    def release_server(self):
+        """Let the latest stand-in pass its blocking stdin read and exit."""
+        self.processes[-1].stdin.close()
+
     def connect(self, url, timeout):
         if self.reject_all:
+            self.release_server()
             raise ConnectionError("handshake rejected")
         if int(url.rsplit(":", 1)[1]) in self.taken:
             if self.server_exits_first:
                 # Force the order under test: this server exits before the handshake returns.
+                self.release_server()
                 self.processes[-1].wait(20)
             if not self.foreign_is_cdp:
                 raise ConnectionError("not a CDP endpoint")
@@ -87,7 +97,7 @@ class Harness:
         popen = subprocess.Popen
 
         def start(*args, **kwargs):
-            self.processes.append(popen(*args, **kwargs))
+            self.processes.append(popen(*args, stdin=subprocess.PIPE, **kwargs))
             return self.processes[-1]
 
         request = {"binary": str(self.binary), "engine": engine}
@@ -106,6 +116,8 @@ class Harness:
             finally:
                 for listener in self.listeners:
                     listener.close()
+                for process in self.processes:
+                    process.stdin.close()
                 assert all(process.poll() is not None for process in self.processes)
 
 
@@ -133,6 +145,7 @@ def test_handshake_rejected_before_the_server_exits_still_restarts_on_a_new_port
     def reject_first(url, timeout):
         calls.append(url)
         if len(calls) == 1:
+            harness.release_server()
             raise ConnectionError("not a CDP endpoint")
         return connect(url, timeout)
 
@@ -156,7 +169,7 @@ def test_handshake_failure_from_a_running_server_is_raised_without_a_restart(tmp
     "output", ["", "print('unrelated', file=sys.stderr)"], ids=["silent", "unrelated-log"]
 )
 def test_handshake_error_survives_a_server_exit_without_a_port_conflict(tmp_path, output):
-    script = SERVER.replace("time.sleep(60)", f"{output}\ntime.sleep(.2)\nsys.exit(0)")
+    script = SERVER.replace("time.sleep(60)", f"{output}\nsys.stdin.read()\nsys.exit(0)")
     harness = Harness(tmp_path, script, held=0, reject_all=True)
     with patch.object(headless, "NATIVE_CDP_BIND_EXIT_GRACE_SECONDS", 20):
         with pytest.raises(ConnectionError, match="handshake rejected"):
@@ -184,15 +197,19 @@ def test_foreign_cdp_server_is_not_used_after_this_server_lost_the_port(tmp_path
     assert "in use" in log.lower() and metadata["diagnostic_log_process_completed"] is True
 
 
-def wait_for_server_exit(harness):
-    return lambda: harness.processes[-1].wait(20)
+def exit_server(harness):
+    def release_and_wait():
+        harness.release_server()
+        harness.processes[-1].wait(20)
+
+    return release_and_wait
 
 
 def test_foreign_cdp_server_that_answers_first_fails_the_call(tmp_path):
     harness = Harness(tmp_path, foreign_is_cdp=True, server_exits_first=False)
     metadata = {}
     with pytest.raises(RuntimeError, match="(?s)exited with code 1 while.*(?i:in use)"):
-        harness.run(engine="moli", metadata=metadata, during=wait_for_server_exit(harness))
+        harness.run(engine="moli", metadata=metadata, during=exit_server(harness))
     assert len(harness.processes) == 1
     assert harness.browsers[0].closed
     assert metadata["diagnostic_log_process_completed"] is True
@@ -202,7 +219,7 @@ def test_caller_error_is_kept_when_the_server_also_exited(tmp_path):
     harness = Harness(tmp_path, foreign_is_cdp=True, server_exits_first=False)
 
     def fail():
-        harness.processes[-1].wait(20)
+        exit_server(harness)()
         raise LookupError("caller failure")
 
     with pytest.raises(LookupError, match="caller failure"):
@@ -211,16 +228,17 @@ def test_caller_error_is_kept_when_the_server_also_exited(tmp_path):
 
 
 def test_silent_exit_while_the_browser_is_in_use_fails_the_call(tmp_path):
-    script = SERVER.replace("time.sleep(60)", "time.sleep(.2)")
+    script = SERVER.replace("time.sleep(60)", "sys.stdin.read()")
     harness = Harness(tmp_path, script, held=0)
     with pytest.raises(RuntimeError, match="exited with code 0 while"):
-        harness.run(during=wait_for_server_exit(harness))
+        harness.run(during=exit_server(harness))
     assert harness.browsers[0].closed
 
 
 def test_port_check_ignores_the_log_of_an_earlier_attempt(tmp_path):
+    # Bound but never listening, so the handshake cannot run and the exit is always seen first.
     script = SERVER.replace(
-        "time.sleep(60)", "print('unsupported flag', file=sys.stderr)\nsys.exit(3)"
+        "server.listen()\ntime.sleep(60)", "print('unsupported flag', file=sys.stderr)\nsys.exit(3)"
     )
     harness = Harness(tmp_path, script)
     with pytest.raises(RuntimeError) as failure:
