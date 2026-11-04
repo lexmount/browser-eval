@@ -153,6 +153,8 @@ def test_record_report_drills_to_source_output_native_error_and_pending(tmp_path
     assert len(list(output.rglob("*.html"))) == 17
     assert manifest["languages"] == ["zh"]
     assert manifest["complete_methods"] == []
+    assert "data-usage-table" not in (output / "zh/protocol.html").read_text()
+    assert "data-usage-table" in (output / "zh/accounts.html").read_text()
     soup = BeautifulSoup((output / "zh/results.html").read_text(), "html.parser")
     assert len(soup.select("tr[data-status]")) == 6
     assert len(soup.select('tr[data-status="pending"]')) == 2

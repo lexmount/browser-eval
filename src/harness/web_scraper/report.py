@@ -1287,6 +1287,9 @@ def method_examples(output, binding):
                     "html_sha256": request.get("html_sha256"),
                     "native_options": request.get("native_options", {}),
                 }
+                summary = {key: value for key, value in summary.items() if value is not None}
+                elapsed = example.get("elapsed_seconds")
+                timing = f"{elapsed:.3f}" if isinstance(elapsed, (int, float)) else "—"
                 cards.append(
                     '<details class="method-example" id="'
                     + identifier
@@ -1319,7 +1322,7 @@ def method_examples(output, binding):
                     + "<p>HTTP "
                     + esc(str(example.get("http_status")))
                     + " · "
-                    + esc(str(example.get("elapsed_seconds")))
+                    + esc(timing)
                     + " 秒</p></div></div>"
                     + "<details><summary>完整保留请求记录与原生响应</summary>"
                     + code(
@@ -2950,7 +2953,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         )
         + "</details>"
     )
-    bodies["protocol"] += usage_table(
+    bodies["accounts"] += usage_table(
         methods,
         [row for method in methods for row in data["methods"][method]["results"].values()],
         language,
