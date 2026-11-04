@@ -171,7 +171,15 @@ def table(headers, rows, *, inventory=False, attrs="", sort_values=None):
 
 
 def page(
-    language, route, title, body, *, detail=False, languages=("en", "zh"), state="compatibility"
+    language,
+    route,
+    title,
+    body,
+    *,
+    detail=False,
+    languages=("en", "zh"),
+    state="compatibility",
+    navigation=None,
 ):
     labels = LABELS[language]
     if state != "compatibility":
@@ -184,13 +192,31 @@ def page(
         )
         labels[2] = message("results_and_failures", language)
     other = "zh" if language == "en" else "en"
+    entries = (
+        navigation
+        if navigation is not None
+        else [
+            {"route": p, "label": EXTRA_LABELS[p][language] if p in EXTRA_LABELS else labels[i]}
+            for i, p in enumerate(PAGES)
+        ]
+    )
+    if (
+        len(entries) != len(PAGES)
+        or {entry.get("route") for entry in entries} != set(PAGES)
+        or any(
+            not isinstance(entry.get("label"), str) or not entry["label"].strip()
+            for entry in entries
+        )
+    ):
+        raise ValueError("Navigation must name every report page exactly once")
     nav = "".join(
         f'<a href="{p}.html"'
         + (' aria-current="page"' if route == p else "")
         + ">"
-        + (EXTRA_LABELS[p][language] if p in EXTRA_LABELS else labels[i])
+        + esc(entry["label"])
         + "</a>"
-        for i, p in enumerate(PAGES)
+        for entry in entries
+        for p in [entry["route"]]
     )
     other_route = route if not detail else "results"
     if other not in languages:
@@ -2604,6 +2630,7 @@ def build_record_cohort(output, content, *, home, language, profile):
                 detail=route not in PAGES,
                 languages=("zh",),
                 state="field-extraction-cohort",
+                navigation=model.get("navigation"),
             ),
             encoding="utf-8",
         )
@@ -3095,13 +3122,16 @@ def build_record_cohort(output, content, *, home, language, profile):
                 + "</a>"
             )
         bodies["interpretation"] += chapter + "</section>"
+    navigation_labels = {entry["route"]: entry["label"] for entry in model.get("navigation", [])}
     for route in PAGES:
         write(
             route,
             title
             + " · "
             + (
-                message("results_and_failures", language)
+                navigation_labels[route]
+                if route in navigation_labels
+                else message("results_and_failures", language)
                 if route == "results"
                 else EXTRA_LABELS[route][language]
                 if route in EXTRA_LABELS
@@ -3143,6 +3173,7 @@ def build_record_cohort(output, content, *, home, language, profile):
             "comparison_methods": compared,
             "skipped_methods": skipped,
             "method_labels": labels,
+            "navigation": model.get("navigation"),
             "prices": prices,
             "case_count": len(truth),
             "observations": sum(s["executed"] for s in stats.values()),
@@ -3174,6 +3205,15 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         path = output / name
         if path.is_symlink() or digest(path.read_bytes()) != expected:
             raise ValueError("Record report bytes changed: " + name)
+    if manifest.get("navigation") is not None:
+        expected_navigation = [
+            ("zh/" + entry["route"] + ".html", entry["label"]) for entry in manifest["navigation"]
+        ]
+        for path in (output / "zh").glob("*.html"):
+            soup = BeautifulSoup(path.read_text(), "html.parser")
+            actual_navigation = [(a.get("href"), a.get_text()) for a in soup.select("nav a")[:-1]]
+            if actual_navigation != expected_navigation:
+                raise ValueError("Record navigation differs from its declared reader routes")
     views = manifest.get("public_evidence_views", [])
     if {view["path"] for view in views} != {
         name for name in actual if name.startswith("public-evidence/")

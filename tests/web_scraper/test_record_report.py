@@ -9,6 +9,42 @@ from harness.web_scraper.pipeline import digest, read_json, save_json
 from harness.web_scraper.report import check, record_comparison, record_route
 
 
+def test_reader_navigation_order_and_labels_apply_to_home_and_evidence(tmp_path):
+    from harness.web_scraper.report import PAGES, build
+
+    home = create(tmp_path / "initial", mode="field-extraction-cohort")
+    model = read_json(home / "content.json")
+    order = ["index", "protocol", *[route for route in PAGES if route not in {"index", "protocol"}]]
+    model["navigation"] = [{"route": route, "label": "Read " + route} for route in order]
+    save_json(home / "content.json", model)
+    profile = read_json(home / "profile.json")
+    profile["research_report"]["content"]["sha256"] = digest((home / "content.json").read_bytes())
+    save_json(home / "profile.json", profile)
+    output = tmp_path / "report"
+    build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
+    check(output)
+    for route in ["protocol", record_route("c", "three")]:
+        soup = BeautifulSoup((output / "zh" / (route + ".html")).read_text(), "html.parser")
+        links = soup.select("nav a")[: len(PAGES)]
+        assert [link["href"] for link in links] == ["zh/" + item + ".html" for item in order]
+        assert [link.get_text() for link in links] == ["Read " + item for item in order]
+    assert (
+        "Read protocol"
+        in BeautifulSoup((output / "zh/protocol.html").read_text(), "html.parser").h1.get_text()
+    )
+    rebind(output, "zh/protocol.html", lambda s: s.replace("Read protocol", "Wrong label"))
+    with pytest.raises(ValueError, match="navigation differs"):
+        check(output)
+
+
+@pytest.mark.parametrize("routes", [[], ["index"] * 9, ["index"], ["unknown"] * 9])
+def test_navigation_rejects_missing_duplicate_or_unregistered_pages(routes):
+    from harness.web_scraper.report import page
+
+    with pytest.raises(ValueError, match="Navigation must name"):
+        page("zh", "index", "Example", "", navigation=[{"route": r, "label": r} for r in routes])
+
+
 def test_record_report_drills_to_source_output_native_error_and_pending(tmp_path):
     output = tmp_path / "report"
     create(output, mode="field-extraction-cohort")
