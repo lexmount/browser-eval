@@ -18,7 +18,7 @@ uv run --frozen python -m harness.web_search report \
   --output /absolute/path/report --language zh
 ```
 
-Use a new output directory for every collection. The frozen profile declares every query, method, result count, timeout, retry rule and price before calls. New cohorts use `protocol.order="complete provider batches"` (the default when omitted): all cases and rounds for one provider finish before the next provider starts. Explicit rotation remains supported only to continue or reproduce frozen historical cohorts. When the profile enables retries, a transport, HTTP or invalid-response failure receives one retry; a valid empty response does not. The final response is the one logical result, while every physical call is retained. A missing credential fails before calls or output creation.
+Run every publishable Web Search cohort through this certified entry, which freezes executable task inputs. Incomplete cohorts are diagnostic evidence only; never assemble them into a certified release or ranking. Use a new output directory for every collection. The frozen profile declares every query, method, result count, timeout, retry rule and price before calls. New cohorts use `protocol.order="complete provider batches"` (the default when omitted): all cases and rounds for one provider finish before the next provider starts. Do not rotate providers within a query in a new cohort. Explicit rotation remains supported only to continue or reproduce frozen historical cohorts; continuing a cohort preserves its frozen execution contract. When the profile enables retries, a transport, HTTP or invalid-response failure receives one retry; a valid empty response does not. The final response is the one logical result, while every physical call is retained. A missing credential fails before calls or output creation.
 
 Report commands share one entry point; `--help` after any command lists its options. Run them through `uv run --frozen`: `python -m` resolves `harness` from the environment's editable install and does not add this checkout's `src/` itself, so an environment holding a noneditable older package would run that older code.
 
@@ -41,6 +41,21 @@ The profile requests five results and evaluates the first five native organic en
 Use the certified entry above with an explicit external `--profile /absolute/path/serp-profile.json`. Set rounds and retries to fit the smallest account allowance. `max_calls_per_method` accepts a shared integer or a complete method-to-limit map. It rejects an unaffordable full matrix before network calls and counts retained calls, including resume archives, before further spending. Record earlier configuration probes and the remaining reserve in the profile. Check the remaining balance before another collection.
 
 For a proven native-interface change during an interrupted collection, use `--resume --execution-revision /absolute/revision.json`. The `web-search-execution-revision/1` contract binds the previous and replacement profile hashes, root cause, complete superseded method scope and relative hash-bound evidence files. Only endpoint, native output options and budget metadata may change; tasks and measurement controls stay fixed. The collector preserves every unaffected result, archives displaced calls and their original contract, and recollects the complete changed method. Later resumes retain complete logical calls so another interruption does not spend unaffected providers' quotas again. The receipt distinguishes current physical calls from the total retained historical calls.
+
+For native SERP adapters, retain the complete response but score the declared
+organic slots in their original order. Test wrapped JSON, absent optional
+snippets, relative links and invalid entries inside versus outside the cutoff.
+
+A shared projection correction uses the versioned assessment revision over
+hash-bound saved responses, with paired controls and zero new search calls.
+Before finite-quota collection, reserve configuration probes and validate the
+complete matrix's worst-case physical call count; resuming must count retained
+calls as well as current logical results.
+When a remote native interface changes during collection, stop further calls,
+prove the supported replacement request, and bind an execution revision before
+resuming. Recollect the declared changed-method scope while preserving complete
+unaffected calls. Keep archived physical calls in quota accounting, including
+when a second interruption occurs during the correction.
 
 Reference responses are captured before and after collection, with immutable hashes. The identity-scoped contract requires complete successful responses containing predeclared publisher or document identifiers. Volatile page chrome may change; missing identities prevent certification. `--diagnostic` preserves the full matrix for investigation and cannot certify a release. Anchor hits test only supplied known-page URLs. Dataset composition and source attribution come from the selected benchmark version.
 
@@ -124,6 +139,16 @@ The original SimpleQA Verified task measures closed-book model answers using a m
 
 Results analysis provides a same-query outcome explorer and paginated output columns generated from the method registry. Unknown judgments remain separate from misses. The delivery exporter rewrites dynamic detail links as well as ordinary HTML links, preserving language and exact case evidence. Release acceptance operates filters, pagination and dynamic evidence navigation in addition to the standard success/failure workflows.
 
+When published references contain terminal footnotes or fused citation URLs,
+separate that metadata only in a versioned answer derivation. Preserve the
+original answer, keep answers that are themselves URLs intact, and bind paired
+public-scorer/task-predicate controls before any offline recomputation.
+
+Make hash-bound original query sources reachable from the dataset page.
+A provenance hash without an inspectable source does not support a reader’s
+source check. Keep the source author’s historical results separate from current
+benchmark measurements.
+
 ## Full in-house relevance annotation
 
 Export the candidate pool from an existing checked report:
@@ -182,6 +207,23 @@ Metadata changes that leave judge inputs unchanged reuse their original calls.
 Build and check verify the predecessor, original physical receipts, case lists
 and regression controls before accepting the correction.
 
+Web Search relevance labels cover every in-house case with the same frozen rubric.
+Use named human annotations by default. When the user explicitly selects a model
+judge, use `uv run --frozen python -m harness.web_search judge` and retain the exact model, prompt,
+blind inputs, raw responses and quoted scoring evidence. Label the result as model
+preview relevance rather than human gold judgments. Both routes import through
+`--relevance`; neither may substitute nonempty responses or URL checks for labels.
+Keep empty queries and all-zero pools in the score population.
+For explicit website or official-source requirements, bind independently
+qualified URL rules and check eligibility before model grading. Ordinary
+diagnostic domains must not become mandatory sources. Keep source URLs out of
+content-only judging, retain original model grades, and bind rubric corrections
+separately from immutable search calls.
+Register explicit official-source and platform/genre requirements in every query
+language; organization names used only as diagnostics do not impose a source
+restriction. Qualify valid official alternative domains independently. When
+source rules change, reuse original judge calls and regrade only cases whose
+actual judge inputs changed.
 
 ## Independent result audit
 
@@ -237,6 +279,13 @@ from every participant’s quality denominator. The original task, response and
 metrics remain inspectable; all-call latency and cost retain the entire cohort.
 Each exclusion must bind a dataset finding and an explicit adjudication.
 
+Review packets must use the same adapter, request-bound URL resolution and
+organic-slot projection as the scored response, and reject a projection/hash
+mismatch. Independent factual verification needs live read-only source access;
+retain physical review inputs and outputs privately and publish path-free
+provenance projections with distinct original and public hashes. A rate-limited
+review stops new jobs and resumes only missing packets.
+
 ### Comparison report reading layout
 
 The comparison home owns the compact quality/latency/price summary and same-scope
@@ -246,6 +295,12 @@ one performance page. The dataset page owns current inputs and provenance; the r
 explorer shows one query per output page without truncating full summaries or dropping
 providers. Methodology and independent review remain linked appendices. Redundant
 standalone cost and interpretation routes are not generated in this layout.
+
+For Search comparison reports, keep decision summaries distinct from complete result
+and audit inventories. A subset discovery claim must show every selected provider
+on that same subset; the headline relevance score covers the full declared relevance
+population. Give quality, collection timing/billing, input provenance and original
+responses distinct owners, and remove duplicate reading routes when consolidating them.
 
 ## Publish a replacement
 

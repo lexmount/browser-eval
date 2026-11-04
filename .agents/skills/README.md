@@ -7,7 +7,7 @@
 | Humanizer | [blader/humanizer](https://github.com/blader/humanizer) | [Commit, version and hashes](humanizer/SOURCE.json) |
 | Humanizer Chinese | [jiji262/humanizer-chinese](https://github.com/jiji262/humanizer-chinese) | [Commit, version and hashes](humanizer-chinese/SOURCE.json) |
 
-Keep upstream `SKILL.md` and `LICENSE` bytes unchanged. `SOURCE.json` is project-maintained provenance and is not an upstream file. Put project-specific language, evidence and report requirements in `AGENTS.md` or the project-owned benchmark skills. Propose general improvements upstream rather than maintaining a private fork inside a vendored skill.
+Keep upstream `SKILL.md` and `LICENSE` bytes unchanged. `SOURCE.json` is project-maintained provenance and is not an upstream file. Put project-specific language, evidence and report requirements in `AGENTS.md`, the guides it lists or the project-owned benchmark skills. Propose general improvements upstream rather than maintaining a private fork inside a vendored skill.
 
 To update either dependency:
 

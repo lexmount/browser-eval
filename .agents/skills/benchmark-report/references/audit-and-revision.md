@@ -22,7 +22,7 @@ Live exact-reference calls require a fail-closed boundary: capture and freeze th
 
 ## Independent result review
 
-Do not start independent result review automatically. It is an expensive, user-directed stage. When the user requests review without saying full/all, review only machine failures; include machine passes only after an explicit full-review request. Whenever practical, hide the machine verdict and score until the independent judgment is recorded, and supply the complete answer-bearing evidence (including allowlisted source title/resource metadata rather than machine-derived candidates).
+`AGENTS.md` owns when review starts and its default scope. Whenever practical, hide the machine verdict and score until the independent judgment is recorded, and supply the complete answer-bearing evidence (including allowlisted source title/resource metadata rather than machine-derived candidates).
 
 The review record should contain reviewer identity or class, protocol, exact attempt inventory, total matrix size, accepted unreviewed machine passes, input hashes, independent verdict, disagreement reason, adjudicated verdict, and unresolved state. Public presentation must state the reviewed fraction and must not label failure-only review as all-result review.
 
@@ -74,38 +74,6 @@ A score-only revision must record old and new dataset/result hashes, changed fie
 
 Do not treat changed reference text or a list of flipped verdicts as a completed correction. Record the defect mechanism, not only its symptom, and bind each revision to compact synthetic regression cases that execute the same public scorer and task predicate as live evaluation. Include both a valid equivalent form and a nearby invalid form whenever the defect can create errors in both directions. Validate this provenance before writing the revised dataset or results; missing or unknown regression IDs fail closed.
 
-## Native-worker caller audit
+## Track-specific audits
 
-For a local URL-only comparison, verify the product's supported inner timeout and byte/character limits, not only the outer runner deadline or configuration JSON. Record the effective limits. For a fixed-native cohort, the common wall-clock budget belongs to the caller only: omit product timeout overrides and retain native internal timers. Supported capacity and extraction options may be fixed before the run; never patch product globals or supply per-case retrieval hints. A caller-created cap that truncates the fetched HTML before conversion is a measurement defect; retain the old calls and correct the affected complete method scope, rather than changing individual failed cases.
-
-Run `harness.web_fetch.network_preflight.inspect_system_dns` before comparing local guarded fetchers with hosted products. Synthetic addresses in `198.18.0.0/15` make the environment unsuitable for this comparison: stop before product calls and restore a real-public-address DNS environment. Do not weaken product safety guards or replace individual case URLs to work around it. Retain the complete final worker response envelope as private evidence, alongside the normalized answer and public call log. Verify positive controls through the actual product entry point; existing scored outputs alone cannot prove that no response fields were dropped.
-
-
-An explicitly frozen `public_doh` environment is a valid process-scoped DNS
-correction when system DNS returns synthetic addresses. Apply one mode to all
-supported native callers in the cohort, resolve every hostname with the same
-rule, include DNS time in the shared call budget, bind resolver source files,
-and verify both public retrieval and native rejection of private DNS answers.
-Do not silently fall back to another resolver or disable a product guard. Record
-unsupported methods and the local/hosted network asymmetry; do not imply the
-machine's global DNS was changed.
-
-Audit the declared structured output separately from model/UI presentation.
-When a public schema exposes a complete HTML/text body, preserve it as the answer
-rather than keeping only a lossy display projection. Preserve both fields in
-private evidence. Never rescue an empty declared body from a nonempty display
-message. Reproject retained full responses without new product calls when only
-this selection changed; missing historical envelopes require fresh calls across
-the full declared correction scope before claiming revised benchmark scores.
-Reruns of unchanged compiled acceptance-contract tasks freeze the existing executable dataset. They do not require recovering historical qualification raw files or repeating admission review. Source qualification is part of task authoring and reference/rule correction, not a prerequisite for every provider-version comparison. Preserve historical receipts without applying their evidence-file requirements to a new execution protocol.
-
-A published-snapshot score audit uses the maintained Web Fetch profile adapter,
-not a copied renderer. Bind the complete original export, full historical matrix,
-initial and corrected scores, per-input original/public/scored hashes, and every
-changed decision. Preserve collection facts and timing. Evaluate a suspected
-privacy effect with the historical scorer on the same public bytes; a redaction
-receipt by itself does not establish causation. Keep source-backed annotation
-corrections and executable regression provenance together. Reuse the native
-report's routes, interpretation schema, structured history and packer, and run its
-explicit snapshot audit browser gate before packaging. The catalog provides the
-runnable example and commands. Store instance evidence and prose outside Git.
+The [live-URL guide](../../../../src/harness/web_fetch/HEADLESS.md#native-worker-caller-audit) owns native-worker caller audits. The [Web Fetch guide](../../../../src/harness/web_fetch/README.md#certified-cohorts-and-report-builds) owns compiled reruns and published-snapshot audits.

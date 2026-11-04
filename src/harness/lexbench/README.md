@@ -2,6 +2,8 @@
 
 The Moli comparison report adapter lives in this directory, with its reader assets in `template/`. Run each stage through `uv run --frozen python -m harness.lexbench <command>`; `--help` lists the commands. Measured evidence stays outside Git under `BROWSER_EVAL_DATA_HOME` (default: `~/.browser-eval`). It does not use the Web Fetch publication target.
 
+This is a declared historical adapter. It is exempt from the new-track registration rule in `AGENTS.md`, is not listed in `configs/report-templates.json`, and has its own row in the [report language table](../../../docs/report-hosting.md#report-languages).
+
 The frozen Linux runner inputs are read from the selected profile’s `paths.runner`; `LEXBENCH_REPORT_RUNNER_ROOT` can override that path. Report generation verifies their recorded hashes without importing or executing their Python files. `src/harness/resource_calibration.py` verifies complete profiler-off and profiler-on pairs and their shared experimental provenance. Its calculation is derived from the frozen Lexbench source, with Apache-2.0 attribution and license retained in the repository and installation package. All seven resource configurations use Linux ARM64 release binaries, PSS and process-tree CPU measurements in Docker on the Mac host.
 
 The report profile and chart payload have separate schemas. In `moli_report_profile/1`, resource `tasks` and `attempts_per_task` map to the chart's `total_tasks` and `calls_per_task`; `chart_tasks` and `chart_calls` retain their names. The builder validates the measured populations before constructing the chart payload. Do not pass the profile directly to the plotting API.

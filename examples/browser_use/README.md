@@ -79,3 +79,21 @@ uv run --frozen python -m harness.browser_use report \
 ```
 
 The builder rejects duplicate models and runs with different primary browser/task populations.
+
+## Report rules
+
+These add to the [shared presentation rules](../../.agents/skills/benchmark-report/references/report-and-release.md#shared-presentation-contract-all-benchmark-tracks).
+
+### Results and routes
+
+Browser Use reports expose one manifest-authoritative logical result per browser and task. Dataset routes contain only frozen task definitions and acceptance contracts; result routes own verdicts, timings and trajectories. Keep one filterable result inventory instead of adding duplicate success/failure tables.
+
+Browser Use compares every registered model-by-browser configuration in one same-task matrix generated from the participant registry, whose result cells link to full results. Do not introduce pairwise selectors or duplicate comparison prose when more configurations can be represented as columns. List Agent, model, prompt/tool contract, resources, environment and evaluator as shared controls. Standard summaries use mean, P50 and P95; compare every registered configuration together and mark only globally unique winners on directionally comparable metrics. For action latency, compare all configurations by per-call latency and keep unequal-workload totals and call counts neutral.
+
+### Failure review
+
+Keep automatic evaluator failure location separate from reviewed root cause. A root-cause subtype and reason must come from a per-browser, per-task review bound to the current attempts hash; render both fields blank while that result is unverified, and require complete verified coverage before a formal release when the current profile enables the gate.
+
+Every failed result detail must expose the evidenced failure stage, the programmatic evaluator classification, the exact evaluator/runtime error, the reviewed root cause or its unverified state, the remediation owner/status, a link to the relevant trajectory step, sanitized logs, and the last public trace frames when available. Distinguish a failed BrowserTool action from the last successful action before evaluator rejection. Provide a shared HTML evidence viewer as well as a raw JSON link because static hosts may not preview JSON reliably; load the selected JSON on demand and never duplicate complete evidence payloads into every result page. Extract frames only from ordered Playwright `screencast-frame` events, validate full-page dimensions and provenance, and never treat arbitrary trace resources as screenshots. Label frames as last observed pages, not as exact error screenshots unless the evidence proves that timing.
+
+Keep official scores immutable when diagnosis finds benchmark/evaluator, site, shared-environment, or frozen-reference interference. Quarantine affected tasks across all configurations in a clearly labeled post-hoc diagnostic subset, record remediation in `research/browser-use-remediation.json`, and readmit them only after a preregistered full-scope rerun.
