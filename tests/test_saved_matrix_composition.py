@@ -75,3 +75,33 @@ def test_composition_rejects_incompatible_reports(tmp_path, option):
     spec, _ = reports(tmp_path, **{option: True})
     with pytest.raises(ValueError, match='different frozen tasks|duplicate methods'):
         build_saved_matrix(spec, tmp_path / 'combined')
+
+
+def test_composition_selects_method_without_changing_saved_results(tmp_path):
+    spec, _ = reports(tmp_path)
+    source = build_saved_matrix(spec, tmp_path / 'combined').parent
+    audit = source / 'saved-matrix-audit.json'
+    selection = {'schema_version': 1, 'title': 'Selected method', 'saved_reports': [{
+        'id': 'prior', 'root': str(source), 'providers': ['method-1'],
+        'audit': {'path': str(audit), 'sha256': hashlib.sha256(audit.read_bytes()).hexdigest()}}]}
+    path = tmp_path / 'selection.json'
+    write(path, selection)
+    output = build_saved_matrix(path, tmp_path / 'selected').parent
+    assert check_saved_matrix(output, spec_path=path)['valid']
+    model = json.loads((output / 'matrix.json').read_bytes())
+    assert [p['id'] for p in model['providers']] == ['method-1']
+    assert len(model['rows']) == 1
+    row = model['rows'][0]
+    original = json.loads((source / 'matrix.json').read_bytes())['rows'][1]
+    assert (output / row['record_path']).read_bytes() == (source / original['record_path']).read_bytes()
+    assert row['passed'] == original['passed'] and row['elapsed_ms'] == original['elapsed_ms']
+
+
+@pytest.mark.parametrize('selected', [[], ['unknown'], ['method-0', 'method-0'], 'method-0', [None]])
+def test_composition_rejects_invalid_method_selection(tmp_path, selected):
+    path, _ = reports(tmp_path)
+    spec = json.loads(path.read_bytes())
+    spec['saved_reports'][0]['providers'] = selected
+    write(path, spec)
+    with pytest.raises(ValueError, match='Invalid saved report provider selection'):
+        build_saved_matrix(path, tmp_path / 'combined')

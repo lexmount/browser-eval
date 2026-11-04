@@ -39,6 +39,15 @@ def composition_model(output, spec, snapshots):
             raise ValueError('Saved composition source audit changed')
         check_saved_matrix(root)
         audit, model = _read(root / 'saved-matrix-audit.json'), _read(root / 'matrix.json')
+        selected = snapshot.get('providers')
+        if selected is not None:
+            available = {p['id'] for p in model['providers']}
+            if (not isinstance(selected, list) or not selected
+                    or any(not isinstance(p, str) for p in selected)
+                    or len(selected) != len(set(selected)) or not set(selected) <= available):
+                raise ValueError('Invalid saved report provider selection')
+            model['providers'] = [p for p in model['providers'] if p['id'] in selected]
+            model['rows'] = [r for r in model['rows'] if r['provider'] in selected]
         if suites is None:
             suites, families = model['suites'], model.get('report_families')
         if suites != model['suites'] or families != model.get('report_families'):
@@ -97,7 +106,10 @@ def build_composition(spec_path, output):
         check_saved_matrix(root)
         relative = 'evidence/saved-reports/' + identifier
         shutil.copytree(root, output / relative)
-        snapshots.append({'id': identifier, 'path': relative, 'sha256': _hash(audit_path)})
+        snapshot = {'id': identifier, 'path': relative, 'sha256': _hash(audit_path)}
+        if 'providers' in item:
+            snapshot['providers'] = item['providers']
+        snapshots.append(snapshot)
         # Revision receipts use report-root review attachment links. Preserve
         # those exact bytes, rejecting ambiguous collisions across sources.
         model = _read(root / 'matrix.json')
