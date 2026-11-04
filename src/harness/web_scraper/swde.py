@@ -9,6 +9,7 @@ import subprocess
 import tarfile
 import tempfile
 from collections import defaultdict
+from copy import deepcopy
 from pathlib import Path
 
 DOMAINS = ("auto", "book", "camera", "job", "movie", "nbaplayer", "restaurant", "university")
@@ -209,21 +210,119 @@ def task_schema(home, case):
     return read_json(home / "dataset/schemas.json")[case["domain"]]
 
 
-def score(truth, predictions):
+def canonical_text(value):
+    """Preserve characters, punctuation and units; normalize whitespace only."""
+    return " ".join(value.split())
+
+
+def qualify_reference_text(truth, html_pages):
+    """Resolve encoded labels only when exact frozen text nodes prove the result."""
+    from lxml import etree
+    from lxml import html as lxml_html
+
+    from harness.web_scraper.pipeline import digest
+
+    if set(truth) != set(html_pages):
+        raise ValueError("Reference qualification requires the exact frozen HTML population")
+    references = deepcopy(truth)
+    changes, unmatched, source_hashes = [], [], {}
+    for cid, case in sorted(truth.items()):
+        raw = html_pages[cid]
+        source_hashes[cid] = digest(raw)
+        tree = lxml_html.fromstring(
+            raw.decode("utf-8"), parser=lxml_html.HTMLParser(no_network=True)
+        )
+        nodes = defaultdict(list)
+        for node in tree.xpath("//text()[not(ancestor::script) and not(ancestor::style)]"):
+            value = canonical_text(str(node))
+            if value:
+                nodes[value].append(
+                    {
+                        "xpath": tree.getroottree().getpath(node.getparent())
+                        + ("/tail" if node.is_tail else "/text()"),
+                        "text": str(node),
+                    }
+                )
+        for field, values in case["values"].items():
+            accepted = []
+            for value in values:
+                try:
+                    decoded = canonical_text(
+                        lxml_html.fragment_fromstring(value, create_parent="div").text_content()
+                    )
+                except (etree.ParserError, ValueError):
+                    decoded = value
+                selected = decoded if decoded in nodes else canonical_text(value)
+                if selected not in nodes:
+                    unmatched.append({"case_id": cid, "field": field, "original": value})
+                    selected = value
+                elif selected != value:
+                    changes.append(
+                        {
+                            "case_id": cid,
+                            "field": field,
+                            "original": value,
+                            "accepted": selected,
+                            "source_sha256": source_hashes[cid],
+                            "nodes": nodes[selected],
+                        }
+                    )
+                accepted.append(selected)
+            references[cid]["values"][field] = list(dict.fromkeys(accepted))
+    return {
+        "references": references,
+        "changes": changes,
+        "unmatched": unmatched,
+        "source_hashes": source_hashes,
+    }
+
+
+def score(truth, predictions, *, unavailable_reference_groups=(), text_matching="literal"):
     """SWDE page-hit P/R/F1; multi-valued fields hit on a nonempty intersection.
 
     This follows MarkupLM's page_hits_level_metric without its training or
     site-voting stages. Exact strings preserve the source's text-node contract.
+    An explicit source-qualified revision can declare wholly unannotated groups
+    unavailable. Historical calls retain the default frozen population. The caller
+    binds annotation-coverage authority; output contents never choose the scope.
     """
     if set(truth) != set(predictions):
         raise ValueError("Predictions must cover the complete frozen SWDE population")
+    if text_matching not in ("literal", "whitespace"):
+        raise ValueError("Unknown record text matching policy")
+    unavailable = {tuple(group) for group in unavailable_reference_groups}
+    declared = {
+        (reference["domain"], reference["site"], field)
+        for reference in truth.values()
+        for field in reference["values"]
+    }
+    if unavailable - declared:
+        raise ValueError("Unavailable reference group is outside the declared population")
+    if any(
+        values
+        for reference in truth.values()
+        for field, values in reference["values"].items()
+        if (reference["domain"], reference["site"], field) in unavailable
+    ):
+        raise ValueError("A populated reference group cannot be declared unavailable")
     groups = defaultdict(lambda: {"truth_pages": 0, "predicted_pages": 0, "hit_pages": 0})
     exact = {"correct": 0, "total": 0}
     value_counts = {"true_positive": 0, "false_positive": 0, "false_negative": 0}
+    unscored = 0
     for case_id, reference in truth.items():
         prediction = predictions[case_id]
         for field, gold in reference["values"].items():
+            if (reference["domain"], reference["site"], field) in unavailable:
+                unscored += 1
+                continue
             values = prediction.get(field, [])
+            if text_matching == "whitespace":
+                gold = [canonical_text(value) for value in gold]
+                if isinstance(values, list):
+                    values = [
+                        canonical_text(value) if isinstance(value, str) else value
+                        for value in values
+                    ]
             # Invalid field types receive no hit but still count as an attempted prediction.
             valid = {v for v in values if isinstance(v, str)} if isinstance(values, list) else set()
             counts = groups[(reference["domain"], reference["site"], field)]
@@ -260,7 +359,7 @@ def score(truth, predictions):
 
     def average(selected):
         return {
-            metric: sum(r[metric] for r in selected) / len(selected)
+            metric: sum(r[metric] for r in selected) / len(selected) if selected else None
             for metric in ("precision", "recall", "f1")
         }
 
@@ -270,8 +369,11 @@ def score(truth, predictions):
     vr = value_counts["true_positive"] / max(
         1, value_counts["true_positive"] + value_counts["false_negative"]
     )
-    return {
-        "exact_field_sets": {**exact, "rate": exact["correct"] / exact["total"]},
+    result = {
+        "exact_field_sets": {
+            **exact,
+            "rate": exact["correct"] / exact["total"] if exact["total"] else None,
+        },
         "value_micro": {
             **value_counts,
             "precision": vp,
@@ -281,7 +383,91 @@ def score(truth, predictions):
         "page_hit_macro": {**average(rows), "cases": len(truth), "site_field_groups": len(rows)},
         "domains": {
             domain: average([r for r in rows if r["domain"] == domain])
-            for domain in sorted({r["domain"] for r in rows})
+            for domain in sorted({reference["domain"] for reference in truth.values()})
         },
         "site_fields": rows,
     }
+    if unavailable:
+        result["reference_coverage"] = {
+            "unavailable_groups": [
+                dict(zip(("domain", "site", "field"), group, strict=True))
+                for group in sorted(unavailable)
+            ],
+            "unscored_page_fields": unscored,
+        }
+        if not exact["total"]:
+            result["value_micro"].update(precision=None, recall=None, f1=None)
+    if text_matching != "literal":
+        result["text_matching"] = text_matching
+    return result
+
+
+def check_reference_controls():
+    """Execute paired source-reference controls through the public record scorer."""
+    truth = {
+        "one": {"domain": "auto", "site": "a", "values": {"model": ["Car"], "engine": []}},
+        "two": {"domain": "auto", "site": "a", "values": {"model": [], "engine": []}},
+    }
+    unavailable = [("auto", "a", "engine")]
+    predictions = {"one": {"model": ["Car"]}, "two": {"model": []}}
+    qualified = score(truth, predictions, unavailable_reference_groups=unavailable)
+    legacy = score(truth, predictions)
+    if qualified["page_hit_macro"]["f1"] <= legacy["page_hit_macro"]["f1"]:
+        raise ValueError("Unannotated group was scored as quality zero")
+    predictions["one"]["engine"] = ["V6"]
+    if score(truth, predictions, unavailable_reference_groups=unavailable) != qualified:
+        raise ValueError("Unannotated output changed qualified quality")
+    predictions["two"]["model"] = ["invented"]
+    if (
+        score(truth, predictions, unavailable_reference_groups=unavailable)["value_micro"][
+            "false_positive"
+        ]
+        != 1
+    ):
+        raise ValueError("A covered field's false positive was discarded")
+    for invalid in [("auto", "a", "model"), ("auto", "unknown", "engine")]:
+        try:
+            score(truth, predictions, unavailable_reference_groups=[invalid])
+        except ValueError:
+            pass
+        else:
+            raise ValueError("Unavailable-reference scope was not validated")
+    truth = {"one": {"domain": "book", "site": "a", "values": {"title": ["AT&amp;T"]}}}
+    qualified = qualify_reference_text(truth, {"one": b"<p>AT&amp;T</p>"})["references"]
+    for prediction, hit in [("AT&T", True), ("AT&amp;T", False)]:
+        result = score(qualified, {"one": {"title": [prediction]}})
+        if bool(result["site_fields"][0]["hit_pages"]) != hit:
+            raise ValueError("Encoded annotation does not match source DOM text")
+    if qualify_reference_text(truth, {"one": b"<p>AT&amp;amp;T</p>"})["references"] != truth:
+        raise ValueError("Literal entity text was decoded without source authority")
+    truth = {"one": {"domain": "book", "site": "a", "values": {"title": ["Démon\u00a0€ 9.99"]}}}
+    for prediction, hit in [
+        (" Démon € 9.99 ", True),
+        ("Dmon € 9.99", False),
+        ("Démon 9.99", False),
+    ]:
+        result = score(truth, {"one": {"title": [prediction]}}, text_matching="whitespace")
+        if bool(result["site_fields"][0]["hit_pages"]) != hit:
+            raise ValueError("Whitespace matching changed meaningful characters or units")
+    for field, accepted, wrong in [
+        ("director", "Wolfgang Reitherman", "Bruce Reitherman"),
+        ("mpaa_rating", "PG", "PG-13"),
+    ]:
+        truth = {"one": {"domain": "movie", "site": "a", "values": {field: [accepted]}}}
+        for prediction, hit in [(accepted, True), (wrong, False)]:
+            result = score(truth, {"one": {field: [prediction]}}, text_matching="whitespace")
+            if bool(result["site_fields"][0]["hit_pages"]) != hit:
+                raise ValueError(
+                    "Reference correction broadened matching to an adjacent wrong value"
+                )
+    return [
+        "unannotated-group-is-unavailable-not-zero",
+        "unannotated-prediction-does-not-select-quality-scope",
+        "covered-empty-page-still-counts-false-positives",
+        "populated-and-unknown-reference-groups-cannot-be-excluded",
+        "encoded-reference-resolves-only-to-exact-source-nodes",
+        "literal-entity-text-is-not-decoded-twice",
+        "whitespace-equivalence-preserves-accents-and-units",
+        "full-director-name-excludes-another-role-with-same-surname",
+        "complete-rating-does-not-enable-prefix-matching",
+    ]

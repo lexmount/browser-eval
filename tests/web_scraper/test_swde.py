@@ -175,6 +175,100 @@ def test_empty_gold_false_positive_stays_in_the_frozen_population():
     assert result["page_hit_macro"]["site_field_groups"] == 1
 
 
+@pytest.mark.parametrize("unannotated_output", [[], ["V6"], "wrong type"])
+def test_explicitly_unannotated_groups_are_unavailable_for_every_method(unannotated_output):
+    truth = {
+        "one": {"domain": "auto", "site": "a", "values": {"model": ["Car"], "engine": []}},
+        "two": {"domain": "auto", "site": "a", "values": {"model": [], "engine": []}},
+    }
+    predictions = {
+        "one": {"model": ["Car"], "engine": unannotated_output},
+        "two": {"model": ["invented"], "engine": unannotated_output},
+    }
+    result = swde.score(truth, predictions, unavailable_reference_groups=[("auto", "a", "engine")])
+    assert result["page_hit_macro"]["cases"] == 2
+    assert result["page_hit_macro"]["site_field_groups"] == 1
+    assert result["site_fields"][0]["predicted_pages"] == 2
+    assert result["value_micro"]["false_positive"] == 1
+    assert result["exact_field_sets"]["total"] == 2
+    assert result["reference_coverage"]["unscored_page_fields"] == 2
+    with pytest.raises(ValueError, match="populated reference"):
+        swde.score(truth, predictions, unavailable_reference_groups=[("auto", "a", "model")])
+    with pytest.raises(ValueError, match="outside the declared"):
+        swde.score(truth, predictions, unavailable_reference_groups=[("auto", "other", "model")])
+
+
+def test_wholly_unavailable_reference_returns_no_quality_score():
+    truth = {"one": {"domain": "auto", "site": "a", "values": {"engine": []}}}
+    result = swde.score(
+        truth, {"one": {"engine": ["V6"]}}, unavailable_reference_groups=[("auto", "a", "engine")]
+    )
+    assert result["page_hit_macro"]["f1"] is None
+    assert result["domains"]["auto"]["f1"] is None
+    assert result["value_micro"]["f1"] is None
+    assert result["exact_field_sets"]["rate"] is None
+
+
+@pytest.mark.parametrize(
+    "source,label,expected,changed",
+    [
+        ("<p>AT&amp;T</p>", "AT&amp;T", "AT&T", True),
+        ("<p>AT&amp;amp;T</p>", "AT&amp;T", "AT&amp;T", False),
+        ("<p>Bold title</p>", "<b>Bold</b> title", "Bold title", True),
+        ("<p>Other</p>", "AT&amp;T", "AT&amp;T", False),
+        ("<script>AT&T</script><p>Other</p>", "AT&amp;T", "AT&amp;T", False),
+        ("<p>Démon</p>", "Démon", "Démon", False),
+    ],
+)
+def test_reference_text_changes_require_exact_source_nodes(source, label, expected, changed):
+    from copy import deepcopy
+
+    truth = {"one": {"domain": "book", "site": "a", "values": {"title": [label]}}}
+    original = deepcopy(truth)
+    result = swde.qualify_reference_text(truth, {"one": source.encode()})
+    assert result["references"]["one"]["values"]["title"] == [expected]
+    assert bool(result["changes"]) is changed
+    assert truth == original
+    if changed:
+        assert result["changes"][0]["source_sha256"] == pipeline.digest(source.encode())
+        assert result["changes"][0]["nodes"]
+    with pytest.raises(ValueError, match="exact frozen HTML"):
+        swde.qualify_reference_text(truth, {})
+
+
+@pytest.mark.parametrize(
+    "actual,hit",
+    [
+        (" Démon  € 9.99 ", True),
+        ("Dmon € 9.99", False),
+        ("Démon 9.99", False),
+        ("démon € 9.99", False),
+    ],
+)
+def test_whitespace_matching_preserves_accents_units_and_case(actual, hit):
+    truth = {"one": {"domain": "book", "site": "a", "values": {"title": ["Démon\u00a0€ 9.99"]}}}
+    prediction = {"one": {"title": [actual]}}
+    result = swde.score(truth, prediction, text_matching="whitespace")
+    assert bool(result["site_fields"][0]["hit_pages"]) is hit
+    assert prediction["one"]["title"] == [actual]
+
+
+def test_partial_labels_need_field_role_adjudication_not_suffix_matching():
+    truth = {"one": {"domain": "movie", "site": "amctv", "values": {"director": ["Reitherman"]}}}
+    page = b"<p>Director: <a>Wolfgang Reitherman</a></p><p>Cast: <a>Bruce Reitherman</a></p>"
+    result = swde.qualify_reference_text(truth, {"one": page})
+    assert result["unmatched"] == [
+        {"case_id": "one", "field": "director", "original": "Reitherman"}
+    ]
+    assert result["changes"] == []
+    adjudicated = {
+        "one": {"domain": "movie", "site": "amctv", "values": {"director": ["Wolfgang Reitherman"]}}
+    }
+    for name, hit in [("Wolfgang Reitherman", True), ("Bruce Reitherman", False)]:
+        scored = swde.score(adjudicated, {"one": {"director": [name]}})
+        assert bool(scored["site_fields"][0]["hit_pages"]) is hit
+
+
 @pytest.mark.parametrize("method", swde.generic_methods())
 def test_custom_schema_projection_retains_fields_and_invalid_types(method):
     value = {"author": ["Ada"], "year": "invalid scalar", "extra": 123}
@@ -486,7 +580,7 @@ def test_clean_prepare_rejects_wrong_scorer_before_extracting(tmp_path, monkeypa
     assert not (home / "dataset").exists()
 
 
-@pytest.mark.parametrize("interface", ["report", "review", "assemble"])
+@pytest.mark.parametrize("interface", ["report", "assemble"])
 def test_product_interfaces_reject_other_field_families_before_reading_artifacts(
     inputs, tmp_path, interface
 ):
@@ -498,10 +592,18 @@ def test_product_interfaces_reject_other_field_families_before_reading_artifacts
     with pytest.raises(ValueError, match="requires product references"):
         if interface == "report":
             report.build(target, missing, home=home)
-        elif interface == "review":
-            review.prepare(home, missing, target)
         else:
             review.assemble(home, missing, missing, missing, missing, target, profile=missing)
+    assert not target.exists()
+
+
+def test_record_review_missing_content_fails_before_creating_work(inputs, tmp_path):
+    from harness.web_scraper import review
+
+    home, _ = inputs
+    target = tmp_path / "not-created"
+    with pytest.raises(FileNotFoundError):
+        review.prepare(home, tmp_path / "absent-input", target)
     assert not target.exists()
 
 

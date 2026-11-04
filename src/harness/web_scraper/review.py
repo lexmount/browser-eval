@@ -172,8 +172,8 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
     if not records:
         require_product_reference(home)
     home, content, work = Path(home).resolve(), Path(content).resolve(), Path(work).resolve()
-    work.mkdir(parents=True, exist_ok=True)
     model = read_json(content)
+    work.mkdir(parents=True, exist_ok=True)
     truth_path = home / "dataset/dataset/ground-truth.json"
     truth = read_json(truth_path)
     outputs = {cid: [] for cid in truth}
@@ -351,6 +351,13 @@ def reconcile_citations(result, packet):
                 fragments = []
                 if " || " in quote:
                     fragments = [part.strip() for part in quote.split(" || ")]
+                elif quote.startswith("["):
+                    try:
+                        quoted = json.loads(quote)
+                    except json.JSONDecodeError:
+                        quoted = None
+                    if isinstance(quoted, list) and all(isinstance(part, str) for part in quoted):
+                        fragments = quoted
                 elif quote.startswith("“"):
                     fragments = re.findall("“([^”]+)”", quote)
                     remaining = re.sub("“[^”]+”", "", quote)

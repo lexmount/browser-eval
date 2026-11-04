@@ -1007,7 +1007,9 @@ def test_repair_clock_can_cross_cooldown_deadline(tmp_path):
     assert provider.call_count == 3
 
 
-@pytest.mark.parametrize("quote", ["“Model A”；“Price: 13.40”", "Model A || Price: 13.40"])
+@pytest.mark.parametrize(
+    "quote", ["“Model A”；“Price: 13.40”", "Model A || Price: 13.40", '["Model A", "Price: 13.40"]']
+)
 def test_separate_literal_citations_retain_all_fragments_and_judgments(tmp_path, quote):
     source = tmp_path / "source.txt"
     text = "Model A\nCurrent offer\nPrice: 13.40"
