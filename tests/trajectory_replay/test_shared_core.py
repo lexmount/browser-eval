@@ -531,6 +531,30 @@ def test_manifest_task_records_the_frozen_task_definition():
     }
 
 
+def test_ground_truth_validation_records_exactly_the_declared_evidence_fields():
+    evidence = {
+        "schema": "ground-truth/1",
+        "dataset": "dataset.json",
+        "dataset_sha256": "a" * 64,
+        "source_commit": "b" * 40,
+        "validator": "validate.py",
+        "method": "independent",
+        "started_at": "2026-01-01T00:00:00Z",
+        "finished_at": "2026-01-01T00:01:00Z",
+        "automatic_browser_replay": False,
+        "human_review": {"reviewer": "maintainer"},
+    }
+
+    assert docker_runner.ground_truth_validation({**evidence, "private_log": "x"}) == evidence
+    assert docker_runner.ground_truth_validation({"schema": "ground-truth/1"}) == {
+        key: "ground-truth/1" if key == "schema" else None for key in evidence
+    }
+
+
+def test_ground_truth_validation_stays_absent_without_evidence():
+    assert docker_runner.ground_truth_validation(None) is None
+
+
 def test_only_the_public_environment_records_the_image_build_source():
     container = MagicMock()
     container.exec_run.return_value = SimpleNamespace(output=b"version", exit_code=0)
