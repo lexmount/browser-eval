@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import math
 import re
+from copy import copy
 
 import soupsieve
 import unicodedata
@@ -127,8 +128,10 @@ def _html_events(content, headings=()):
     return events
 
 
-def _text_events(content, headings, key_function=_key):
+def _text_events(content, headings, key_function=_key, *, literal=False):
     # Markdown code contributes body content, but cannot declare section titles.
+    # Declared plain text has no Markdown syntax: fences, indentation, hashes and
+    # link labels stay literal lines that can still match a declared title.
     numbered = {m[1]: h['level'] for h in headings
                 if (m := re.match(r'^(\d+(?:\.\d+)*)\.\s+', h['text']))}
     lines, eligible = [], []
@@ -143,7 +146,7 @@ def _text_events(content, headings, key_function=_key):
         raw = raw.expandtabs(4)
         line = raw.strip()
         indent = len(raw) - len(raw.lstrip())
-        marker = re.match(r'^(`{3,}|~{3,})(.*)$', line) if indent < 4 else None
+        marker = re.match(r'^(`{3,}|~{3,})(.*)$', line) if indent < 4 and not literal else None
         if marker:
             token, suffix = marker.groups()
             if fence is None and not (token[0] == '`' and '`' in suffix):
@@ -171,17 +174,17 @@ def _text_events(content, headings, key_function=_key):
                 continue
             marker = re.match(r'^(\s*\d+(?:\.\d+)*\.)\s+(?=\S)', raw)
             continuation_column = marker.end(1) if marker else None
-        heading_eligible = fence is None and indent < 4
-        if (heading_eligible and previous_text and lines and lines[-1] == previous_text
+        heading_eligible = fence is None and (indent < 4 or literal)
+        if (not literal and heading_eligible and previous_text and lines and lines[-1] == previous_text
                 and eligible[-1] == (True, None)
                 and re.fullmatch(r'=+|-+', line)):
             lines[paragraph_start:] = [' '.join(lines[paragraph_start:])]
             eligible[paragraph_start:] = [(True, 1 if line[0] == '=' else 2)]
             paragraph_start = len(lines)
             continue
-        if heading_eligible and re.fullmatch(r'(?:[-*+]\s*|\d+[.)]\s*)?\[[^]]+\]\(#[^)]*\)', line):
+        if not literal and heading_eligible and re.fullmatch(r'(?:[-*+]\s*|\d+[.)]\s*)?\[[^]]+\]\(#[^)]*\)', line):
             continue
-        level_match = re.match(r'^(#{1,6})\s+(.+?)(?:\s+#+)?$', line) if heading_eligible else None
+        level_match = re.match(r'^(#{1,6})\s+(.+?)(?:\s+#+)?$', line) if heading_eligible and not literal else None
         if level_match:
             # Native serializers may append the heading's permalink without a separator.
             label = re.split(r'https?://\S+#\S*$', level_match[2], maxsplit=1)[0].rstrip()
@@ -209,7 +212,7 @@ def _text_events(content, headings, key_function=_key):
             if not eligible[end][0] or (end > index and (eligible[end][1] is not None
                                                        or end in paragraph_boundaries)):
                 break
-            joined += key_function(visible_markdown_links(lines[end]))
+            joined += key_function(lines[end] if literal else visible_markdown_links(lines[end]))
             if joined in declared:
                 match = (end, declared[joined])
                 break
@@ -228,8 +231,7 @@ def _text_events(content, headings, key_function=_key):
                 if numbered:
                     parent = max(parents, key=len) if parents else next(iter(numbered))
                     explicit_level = numbered[parent] + number[1].count('.') - parent.count('.')
-            if key_function is _definition_key and re.fullmatch(
-                    r'[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\(.*\)(?:\s*->\s*\S.*)?', lines[index].strip('`¶ ')):
+            if key_function is _definition_key and _api_signature(lines[index]):
                 explicit_level = 1
             events.append((lines[index], explicit_level))
             index += 1
@@ -243,6 +245,24 @@ def _definition_key(text):
     return re.sub(r'[\s`¶]', '', unicodedata.normalize('NFKC', text).casefold())
 
 
+def _api_signature(text):
+    return re.fullmatch(r'[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*\(.*\)(?:\s*->\s*\S.*)?', text.strip('`¶ \n'))
+
+
+def _local_definition_text(description):
+    # A nested API signature owns its body. Other nested lists, such as
+    # parameter definitions, remain part of the enclosing description.
+    local = copy(description)
+    for term in local.select('dt'):
+        if term.decomposed or not _api_signature(' '.join(term.get_text().split())):
+            continue
+        body = term.find_next_sibling()
+        if body is not None and body.name == 'dd':
+            body.decompose()
+        term.decompose()
+    return local.get_text(' ', strip=True)
+
+
 def _definition_html_events(content):
     root = _content_root(content)
     events = []
@@ -253,22 +273,20 @@ def _definition_html_events(content):
         description = term.find_next_sibling()
         # A term cannot borrow unrelated paragraphs or another term's dd.
         if description is not None and description.name == 'dd':
-            events.append((description.get_text(' ', strip=True), None))
+            events.append((_local_definition_text(description), None))
     return events
 
-def evaluate_document_structure(content, contract, *, html_document=False):
+def evaluate_document_structure(content, contract, *, html_document=False, representation=None):
     if not contract:
         return {}
     validate_document_structure(contract)
     headings = _headings(contract)
     definitions = contract.get('type') == 'definition'
     key_function = _definition_key if definitions else _key
-    if definitions:
-        events = (_definition_html_events(content) if html_document else
-                  _text_events(content, headings, key_function))
+    if html_document:
+        events = _definition_html_events(content) if definitions else _html_events(content, headings)
     else:
-        events = (_html_events(content, headings) if html_document else
-                  _text_events(content, headings))
+        events = _text_events(content, headings, key_function, literal=representation == 'plain_text')
     declared = {key_function(h['text']): h for h in headings}
     # Serializers may change heading levels. The declared source hierarchy
     # determines which subsequent text belongs to a registered section.
