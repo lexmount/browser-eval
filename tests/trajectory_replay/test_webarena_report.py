@@ -16,7 +16,6 @@ from harness.trajectory_replay.webarena_report import (
     _clean,
     _copy_failure_screenshot,
     _detail_page,
-    _format_ms,
     _historical_replay_validity_notice,
     _legacy_retrieval_provenance,
     _load_artifact,
@@ -1092,8 +1091,8 @@ def test_detail_page_preserves_task_timeout_with_unknown_active_action() -> None
         ({}, None, None),
         ({"resource": None}, None, None),
         ({"duration_ms": None, "resource": {"cpu_ms": None}}, None, None),
-        ({"duration_ms": 0, "resource": {"cpu_ms": 0}}, 0, 0),
-        ({"duration_ms": 1500, "resource": {"cpu_ms": 250}}, 1500, 250),
+        ({"duration_ms": 0, "resource": {"cpu_ms": 0}}, "0.0", "0.0"),
+        ({"duration_ms": 1500, "resource": {"cpu_ms": 2500}}, "1.5", "2.5"),
     ],
 )
 def test_detail_page_shows_absent_timing_as_dash_and_real_zero_as_zero(
@@ -1123,11 +1122,12 @@ def test_detail_page_shows_absent_timing_as_dash_and_real_zero_as_zero(
     detail = _detail_page(lang, attempt, task, {"label": "Chromium"}, evidence, [])
 
     t = report_text(lang)
-    for label, milliseconds in (
+    unit = {"en": "s", "zh": "秒"}[lang]
+    for label, seconds in (
         (t("metric.end_to_end_time", "End-to-end time"), rendered_time),
         (t("metric.cpu_time", "CPU time"), rendered_cpu),
     ):
-        value = "—" if milliseconds is None else _format_ms(milliseconds, lang)
+        value = "—" if seconds is None else f"{seconds} {unit}"
         assert f"<div><span>{label}</span><strong>{value}</strong></div>" in detail
 
 
