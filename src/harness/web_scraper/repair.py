@@ -1,9 +1,11 @@
 """Certified failure-only collection and immutable full-population repair views."""
 
 import fcntl
+import re
 from pathlib import Path
 
 from harness.web_fetch.config import load_runtime_env
+from harness.web_scraper.dataset import task_bindings
 from harness.web_scraper.pipeline import (
     available_methods,
     collect_calls,
@@ -16,6 +18,7 @@ from harness.web_scraper.pipeline import (
     requires_fixture,
     save_json,
     validate_dataset,
+    validate_fixture_base,
     validate_native_options,
     verify_retry_history,
 )
@@ -23,6 +26,8 @@ from harness.web_scraper.pipeline import (
 
 def create_plan(home, content, output, options, fixture_base, selected=None):
     require_external_output(output)
+    require_external_output(home)
+    home = Path(home).resolve()
     participants = {}
     for selection in read_json(content)["evidence_runs"]:
         source, rows = load_selection(home, selection)
@@ -52,7 +57,9 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
                 if contract.get("snapshot_manifest")
                 else {}
             ),
-            "parent_run": str(source.relative_to(home)),
+            "parent_run": str(source.relative_to(home))
+            if source.is_relative_to(home)
+            else str(source),
             "parent_manifest_sha256": cert["manifest_sha256"],
             "parent_certificate_sha256": digest((source / "certificate.json").read_bytes()),
             "case_ids": cases,
@@ -76,12 +83,17 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
         "calls_per_case": 1,
         "access_retries_after_repair": 1,
         "selection": "All original non-structured results; never replace successful originals",
+        **task_bindings(home),
     }
+    if fixture_base is not None:
+        validate_fixture_base(fixture_base)
     save_json(output, plan, exclusive=True)
     return plan
 
 
 def verify_parent(home, participant):
+    require_external_output(home)
+    home = Path(home).resolve()
     source = home / participant["parent_run"]
     if digest((source / "manifest.json").read_bytes()) != participant["parent_manifest_sha256"]:
         raise ValueError("Repair parent manifest changed")
@@ -131,6 +143,8 @@ def fixture_check(home, base, cases, suffix="", snapshot_manifest=None):
 
 def run(home, profile, method, destination):
     require_external_output(destination)
+    require_external_output(home)
+    home = Path(home).resolve()
     for name in (
         "execution.lock",
         "calls",
@@ -171,6 +185,11 @@ def run(home, profile, method, destination):
 def collect(home, profile, method, destination):
     validate_dataset(home)
     plan = read_json(profile)
+    if plan.get("fixture_base") is not None:
+        validate_fixture_base(plan["fixture_base"])
+    bindings = task_bindings(home)
+    if any(plan.get(key) != value for key, value in bindings.items()):
+        raise ValueError("Frozen repair task adapter or dataset profile changed")
     participant = plan["participants"][method]
     if participant["method"] != method:
         raise ValueError("Repair participant method differs")
@@ -190,13 +209,16 @@ def collect(home, profile, method, destination):
         for name in ("repair.py", "pipeline.py")
     }
     contract = {
-        "schema": "failed-extraction-repair-run/1",
+        "schema": "failed-extraction-repair-run/2"
+        if bindings
+        else "failed-extraction-repair-run/1",
         "method": method,
         "profile_sha256": digest(profile.read_bytes()),
         "participant": participant,
         "access_retry_limit": plan.get("access_retries_after_repair", 1),
         "code_sha256": code,
         "code_snapshots": False,
+        **bindings,
     }
     target = destination / "contract.json"
     if not target.exists() and (
@@ -262,6 +284,8 @@ def collect(home, profile, method, destination):
     verify_parent(home, participant)
     if code != {n: digest(Path(__file__).with_name(n).read_bytes()) for n in code}:
         raise ValueError("Repair implementation changed during calls")
+    if task_bindings(home) != bindings:
+        raise ValueError("Repair task adapter or dataset profile changed during calls")
     save_json(destination / "fixture-after.json", after)
     manifest = {
         "contract_sha256": digest(target.read_bytes()),
@@ -279,6 +303,7 @@ def collect(home, profile, method, destination):
         "manifest_sha256": digest((destination / "manifest.json").read_bytes()),
         "case_count": len(logical_entries),
         "method": method,
+        **bindings,
     }
     save_json(destination / "certificate.json", certificate)
     return {
@@ -296,6 +321,17 @@ def verify_repair(home, source, repair):
         raise ValueError("Repair certificate changed")
     manifest = read_json(directory / "manifest.json")
     contract = read_json(directory / "contract.json")
+    if contract.get("schema") == "failed-extraction-repair-run/2":
+        for key in ("task_adapter_sha256", "dataset_profile_sha256", "dataset_registry_sha256"):
+            value = contract.get(key)
+            if (
+                not isinstance(value, str)
+                or not re.fullmatch(r"[0-9a-f]{64}", value)
+                or certificate.get(key) != value
+            ):
+                raise ValueError(
+                    "Repair task adapter or dataset binding differs from certification"
+                )
     participant = contract["participant"]
     if (
         certificate["profile_sha256"] != contract["profile_sha256"]
@@ -389,8 +425,12 @@ def overlay_repair(rows, replacements, directory):
 
 def load_selection(home, selection):
     """Verify each selected run and repair once, then return its current logical rows."""
+    require_external_output(home)
+    home = Path(home).resolve()
     source = Path(selection["run"])
     source = source if source.is_absolute() else home / "runs" / source
+    require_external_output(source)
+    source = source.resolve()
     _, rows = load_run(source)
     manifest = read_json(source / "manifest.json")
     attempts = {}
@@ -416,6 +456,9 @@ def load_selection(home, selection):
 
 def compose(home, source, rows, repair):
     """Overlay one repair only when its exact predecessor matches the supplied rows."""
+    require_external_output(home)
+    require_external_output(source)
+    home, source = Path(home).resolve(), Path(source).resolve()
     participant, replacements, _, directory = verify_repair(home, source, repair)
     _, predecessor = load_selection(
         home, {"run": str(source), "repair": participant.get("previous_repairs", [])}

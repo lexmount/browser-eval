@@ -241,6 +241,43 @@ def test_repair_cannot_replace_original_successes(tmp_path):
     provider.assert_not_called()
 
 
+def test_relative_home_repairs_resume_and_compose_without_repeating_calls(tmp_path, monkeypatch):
+    home, source, _, rows = parent_inputs(tmp_path)
+    cwd = tmp_path / "working"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    relative_home = Path("..") / home.relative_to(tmp_path)
+    relative_source = Path("..") / source.relative_to(tmp_path)
+    content = tmp_path / "content.json"
+    profile = tmp_path / "relative-plan.json"
+    create_plan(relative_home, content, profile, {}, "https://frozen.example")
+    destination = tmp_path / "relative-repair"
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch(
+            "harness.web_scraper.pipeline.provider_call",
+            return_value={
+                "http_status": 200,
+                "response": {"result": {"sku": "fixed"}},
+            },
+        ) as provider,
+    ):
+        run(relative_home, profile, "cloudflare-json", destination)
+        run(relative_home, profile, "cloudflare-json", destination)
+    assert provider.call_count == 1
+    current = compose(
+        relative_home,
+        relative_source,
+        rows,
+        {
+            "path": str(destination),
+            "sha256": digest((destination / "certificate.json").read_bytes()),
+        },
+    )
+    assert current[-1]["normalized_fields"]["sku"] == "fixed"
+
+
 def test_ambiguous_repair_dispatch_is_not_repeated(tmp_path):
     home, _, profile, _ = parent_inputs(tmp_path)
     target = tmp_path / "interrupted"
@@ -380,6 +417,45 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
     content["audit"] = {"path": str(audit_path), "sha256": digest(audit_path.read_bytes())}
     save_json(content_path, content)
     build(tmp_path / "reviewed-report", content_path, home=home, profile=home / "profile.json")
+    for mutation in ("scorer", "reference", "projection", "aggregate", "accepted-reference"):
+        stale = deepcopy(result)
+        if mutation in ("scorer", "reference"):
+            stale["scorer_sha256" if mutation == "scorer" else "official_reference_sha256"] = (
+                "0" * 64
+            )
+            error = "reference or scorer binding"
+        elif mutation == "projection":
+            next(iter(stale["results"].values()))["audited_fields"]["sku"]["actual"] = (
+                "stale projection"
+            )
+            error = "field judgments"
+        elif mutation == "accepted-reference":
+            next(iter(stale["audited_reference"].values()))["sku"] = ["different accepted value"]
+            error = "field judgments"
+        else:
+            next(iter(stale["audited_scores"].values()))["sku"]["f1"] = 0.1234567
+            error = "audit aggregates"
+        stale_path = tmp_path / (mutation + ".json")
+        save_json(stale_path, stale)
+        content["audit"] = {"path": str(stale_path), "sha256": digest(stale_path.read_bytes())}
+        save_json(content_path, content)
+        with pytest.raises(ValueError, match=error):
+            build(
+                tmp_path / (mutation + "-report"),
+                content_path,
+                home=home,
+                profile=home / "profile.json",
+            )
+    content["audit"] = {"path": str(audit_path), "sha256": digest(audit_path.read_bytes())}
+    save_json(content_path, content)
+    with patch("harness.web_scraper.pipeline.normalize", return_value={"sku": "new projection"}):
+        with pytest.raises(ValueError, match="field judgments.*current native projection"):
+            build(
+                tmp_path / "changed-projection",
+                content_path,
+                home=home,
+                profile=home / "profile.json",
+            )
     finding = next(iter(result["results"].values()))
     assert finding["reviewer_fields"]["sku"]["status"] == "supported"
     assert finding["field_reconciliation"]["sku"]["resolution"]

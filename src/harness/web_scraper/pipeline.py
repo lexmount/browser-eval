@@ -26,7 +26,8 @@ from harness.record_io import bytes_sha256 as digest
 from harness.record_io import read_json as shared_read_json
 from harness.web_fetch.config import load_runtime_env
 from harness.web_fetch.providers.http_client import request
-from harness.web_scraper.dataset import adapter_sha256, benchmark_config, registry_sha256
+from harness.web_scraper.dataset import benchmark_config
+from lexbench_webfetch.paths import validate_http_url
 
 ROOT = repository_root()
 PROFILE = Path(__file__).resolve().parents[1] / "benchmarks/cards/zyte-product-extraction.json"
@@ -116,8 +117,20 @@ def requires_fixture(method, options=None):
     )
 
 
+def validate_fixture_base(base):
+    """Require a public path prefix that can be safely retained and extended."""
+    validate_http_url(base)
+    parsed = urlsplit(base)
+    if parsed.scheme != "https":
+        raise ValueError("Frozen fixture base requires HTTPS")
+    if parsed.username is not None or parsed.password is not None or "?" in base or "#" in base:
+        raise ValueError("Frozen fixture base must not contain credentials, query or fragment")
+    return base
+
+
 def fixture_url(base, case_id, suffix=""):
-    if not base or not base.startswith("https://") or suffix not in ("", ".html"):
+    validate_fixture_base(base)
+    if suffix not in ("", ".html"):
         raise ValueError("Frozen fixture requires HTTPS and a declared path suffix")
     return f"{base.rstrip('/')}/{case_id}{suffix}"
 
@@ -920,6 +933,7 @@ def provider_call(
         method="POST",
         headers=headers,
         timeout=timeout,
+        allow_redirects=False,
         **({"body": body} if isinstance(body, bytes) else {"json_body": body}),
     )
     payload = decoded_response(response.text())
@@ -1159,6 +1173,8 @@ def require_external_output(path):
 
 def probe(home: Path, methods: list[str], **options):
     """Run or resume one declared scope; never attach two workers to one run."""
+    if options.get("fixture_base") is not None:
+        validate_fixture_base(options["fixture_base"])
     run = options.pop("run_dir", None)
     if run is None:
         run = (
@@ -1455,8 +1471,8 @@ def _probe_unlocked(
         raise ValueError("Selected methods require a dataset-provided custom schema")
     validate_dataset(home)
     load_runtime_env()
-    if fixture_base and urlsplit(fixture_base).scheme != "https":
-        raise ValueError("Remote frozen fixtures require HTTPS")
+    if fixture_base is not None:
+        validate_fixture_base(fixture_base)
     if fixture_suffix not in (".html", ""):
         raise ValueError("Frozen fixture suffix must be .html or empty")
     if native_options is not None:
@@ -1477,7 +1493,11 @@ def _probe_unlocked(
                 )
             ]
             if largest
-            else probe_cases(truth)
+            else (
+                benchmark_config(home)["adapter"].probe_cases(truth)
+                if benchmark_config(home)["adapter"] is not None
+                else probe_cases(truth)
+            )
         )
     )
 
@@ -1528,10 +1548,12 @@ def _probe_unlocked(
         "remote_fixture_before": remote_before,
     }
     if benchmark_config(home)["adapter"] is not None:
-        requested["task_adapter_sha256"] = adapter_sha256(home)
-        requested["dataset_registry_sha256"] = registry_sha256()
-        maximum = len(case_ids) + 20 if maximum_physical_calls is None else maximum_physical_calls
-        if type(maximum) is not int or not len(case_ids) <= maximum <= len(case_ids) + 20:
+        from harness.web_scraper.dataset import task_bindings
+
+        requested.update(task_bindings(home))
+        matrix_size = len(case_ids) * len(methods)
+        maximum = matrix_size + 20 if maximum_physical_calls is None else maximum_physical_calls
+        if type(maximum) is not int or not matrix_size <= maximum <= matrix_size + 20:
             raise ValueError("Physical call budget must cover the cohort and at most 20 repairs")
         requested["maximum_physical_calls"] = maximum
     if snapshot_manifest is not None:
@@ -1550,6 +1572,8 @@ def _probe_unlocked(
             raise ValueError("Resume benchmark registry changed")
         if contract.get("task_adapter_sha256") != requested.get("task_adapter_sha256"):
             raise ValueError("Resume task adapter changed")
+        if contract.get("dataset_profile_sha256") != requested.get("dataset_profile_sha256"):
+            raise ValueError("Resume dataset profile changed")
         for field in (
             "kind",
             "case_ids",
@@ -1758,6 +1782,22 @@ def check_projection_controls():
             raise ValueError("Native baseline stock indicator regression failed")
 
 
+RECORD_PROJECTION_REGRESSIONS = (
+    "record-arrays-survive-native-reprojection",
+    "invalid-record-values-remain-visible-to-the-scorer",
+)
+
+
+def check_record_projection_controls():
+    for fields in (
+        {"author": ["Ada"], "price": ["12.50"]},
+        {"author": "invalid scalar", "price": True},
+    ):
+        if normalize("cloudflare-json", {"result": fields}, schema={"type": "object"}) != fields:
+            raise ValueError("Record projection discarded or coerced native fields")
+    return list(RECORD_PROJECTION_REGRESSIONS)
+
+
 def score_run(home: Path, run: Path, *, reproject=False, output=None):
     """Score the declared population; retain empty predictions for failed calls."""
     require_external_output(Path(output) if output else run / "scores.json")
@@ -1769,8 +1809,9 @@ def score_run(home: Path, run: Path, *, reproject=False, output=None):
         raise ValueError("Score revisions must stay outside Git and preserve physical evidence")
     if reproject and output is None:
         raise ValueError("A projection correction requires a separate output file")
+    adapter = benchmark_config(home)["adapter"]
     if reproject:
-        check_projection_controls()
+        check_record_projection_controls() if adapter else check_projection_controls()
     contract, rows = load_run(run)
     validate_dataset(home)
     if contract["dataset_manifest_sha256"] != digest((home / "dataset/manifest.json").read_bytes()):
@@ -1782,7 +1823,15 @@ def score_run(home: Path, run: Path, *, reproject=False, output=None):
     original_rows = rows
     if reproject:
         rows = [
-            {**r, "normalized_fields": normalize(r["method"], r.get("response", {}))} for r in rows
+            {
+                **r,
+                "normalized_fields": normalize(
+                    r["method"],
+                    r.get("response", {}),
+                    schema=adapter.task_schema(home, truth[r["case_id"]]) if adapter else None,
+                ),
+            }
+            for r in rows
         ]
     scores = score_rows(home, truth, rows, contract["methods"])
     result = {
@@ -1797,14 +1846,19 @@ def score_run(home: Path, run: Path, *, reproject=False, output=None):
             "schema": "native-field-projection/1",
             "root_cause": {
                 method: (
-                    "The upstream baseline emits a canonical stock indicator but can omit "
+                    "Record reprojection used product-only normalization; preserve the case's "
+                    "native fields and invalid value types under its own task schema"
+                    if adapter
+                    else "The upstream baseline emits a canonical stock indicator but can omit "
                     "availability; project only an unambiguous indicator"
                     if method == "extruct"
                     else "Native sold_out stock label was not mapped to OutOfStock"
                 )
                 for method in contract["methods"]
             },
-            "regression_ids": list(PROJECTION_REGRESSIONS),
+            "regression_ids": list(
+                RECORD_PROJECTION_REGRESSIONS if adapter else PROJECTION_REGRESSIONS
+            ),
             "pipeline_sha256": digest(Path(__file__).read_bytes()),
             "original_scores_sha256": digest((run / "scores.json").read_bytes()),
             "changed_cases": [

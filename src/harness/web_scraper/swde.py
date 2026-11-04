@@ -26,16 +26,19 @@ def generic_methods():
 
 def prepare(home: Path, source: Path):
     """Compile the predeclared site-balanced scope from an immutable source archive."""
+    from harness.web_fetch.safety import reject_evidence_symlinks
     from harness.web_scraper.pipeline import digest, read_json, require_external_output
 
     require_external_output(home)
+    require_external_output(home / "dataset")
+    reject_evidence_symlinks(home / "source")
     card = read_json(CARD)
     if digest(source.read_bytes()) != card["source"]["archive_sha256"]:
         raise ValueError("SWDE source archive differs from the pinned release")
     if (home / "dataset/manifest.json").exists():
         from harness.web_scraper.pipeline import validate_dataset
 
-        return validate_dataset(home)
+        return validate_dataset(home, CARD)
     target = home / "dataset"
     if target.exists():
         raise ValueError("Incomplete dataset exists; retain it and use a new destination")
@@ -208,6 +211,16 @@ def task_schema(home, case):
     from harness.web_scraper.pipeline import read_json
 
     return read_json(home / "dataset/schemas.json")[case["domain"]]
+
+
+def probe_cases(truth):
+    """Exercise every declared record category without inspecting provider outputs."""
+    by_domain = {}
+    for case_id, case in sorted(truth.items()):
+        by_domain.setdefault(case["domain"], case_id)
+    if not by_domain:
+        raise ValueError("Compatibility sampling requires nonempty record categories")
+    return [by_domain[domain] for domain in sorted(by_domain)]
 
 
 def canonical_text(value):

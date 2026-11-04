@@ -54,6 +54,100 @@ def test_checkpoint_rejects_modified_calls_and_missing_participants(tmp_path):
         build(tmp_path / "missing", home / "content.json", home=home, profile=home / "profile.json")
 
 
+@pytest.mark.parametrize("completed", [False, True])
+def test_current_collector_hash_only_run_builds_progress_and_certified_reports(
+    tmp_path, monkeypatch, completed
+):
+    from harness.web_scraper import certification, pipeline
+
+    home = create(tmp_path / "fixture", mode="full-cohort-progress")
+    profile = home / "profile.json"
+    model = read_json(profile)
+    model["dataset"]["files"]["evaluate.py"] = digest((home / "dataset/evaluate.py").read_bytes())
+    save_json(profile, model)
+    validate = pipeline.validate_dataset
+    scorer = pipeline.official_scorer
+    monkeypatch.setattr(pipeline, "selected_profile", lambda _: profile)
+    monkeypatch.setattr(certification, "selected_profile", lambda _: profile)
+    monkeypatch.setattr(pipeline, "validate_dataset", lambda h, p=None: validate(h, p or profile))
+    monkeypatch.setattr(certification, "validate_dataset", lambda h: validate(h, profile))
+    monkeypatch.setattr(pipeline, "official_scorer", lambda h: scorer(h, profile))
+    monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "fixture")
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "fixture")
+    calls = []
+
+    def respond(*args, **kwargs):
+        calls.append(args)
+        if not completed and len(calls) == 2:
+            raise KeyboardInterrupt
+        return {
+            "state": "response_received",
+            "http_status": 200,
+            "elapsed_seconds": 0.01,
+            "response": {"result": {"price": "4", "sku": "demo", "availability": "InStock"}},
+        }
+
+    monkeypatch.setattr(pipeline, "provider_call", respond)
+    plan = home / "fresh-plan.json"
+    certification.create_plan(home, ["cloudflare-json"], plan)
+    source = home / "runs/fresh"
+    if completed:
+        certification.run(home, plan, "cloudflare-json", source)
+    else:
+        with pytest.raises(KeyboardInterrupt):
+            certification.run(home, plan, "cloudflare-json", source)
+    assert not (source / "execution/pipeline.py").exists()
+    content = read_json(home / "content.json")
+    content["cohort_plan"] = {"path": str(plan), "sha256": digest(plan.read_bytes())}
+    content["evidence_runs"] = [
+        {"run": str(source), "plan": str(plan), "plan_sha256": digest(plan.read_bytes())}
+    ]
+    content["prices"] = {"cloudflare-json": content["prices"]["synthetic-success"]}
+    save_json(home / "content.json", content)
+    output = tmp_path / "report"
+    build(output, home / "content.json", home=home, profile=profile)
+    manifest = read_json(output / "report-manifest.json")
+    assert manifest["observations"] == (3 if completed else 1)
+    assert manifest["source_runs"][0]["certified"] is completed
+
+
+@pytest.mark.parametrize(
+    "mutation", ["duplicate", "skipped_attempt", "after_success", "quality_retry"]
+)
+def test_checkpoint_report_rejects_invalid_physical_history(tmp_path, mutation):
+    import json
+
+    home = create(tmp_path / "fixture", mode="full-cohort-progress")
+    source = home / "runs/synthetic-success"
+    journal = source / "calls.journal.jsonl"
+    entries = [json.loads(line) for line in journal.read_text(encoding="utf-8").splitlines()]
+    if mutation == "duplicate":
+        entries.append(entries[0])
+    else:
+        first = read_json(source / entries[0]["path"])
+        if mutation == "quality_retry":
+            first.update(http_status=500, compatibility="native_unstructured")
+            save_json(source / entries[0]["path"], first)
+            entries[0]["sha256"] = digest((source / entries[0]["path"]).read_bytes())
+        retried = {
+            **first,
+            "physical_attempt": 3 if mutation == "skipped_attempt" else 2,
+            "retry_execution_seconds": first.get("elapsed_seconds", 0),
+        }
+        path = source / "calls/retry.json"
+        save_json(path, retried)
+        entries.append({"path": "calls/retry.json", "sha256": digest(path.read_bytes())})
+        contract = read_json(source / "contract.json")
+        contract["access_retry_limit"] = 1
+        save_json(source / "contract.json", contract)
+    journal.write_text("".join(json.dumps(entry) + "\n" for entry in entries), encoding="utf-8")
+    output = tmp_path / "invalid-report"
+    with pytest.raises(ValueError, match="physical|Physical|Retry|retry"):
+        build(output, home / "content.json", home=home, profile=home / "profile.json")
+    assert not output.exists()
+
+
 @pytest.mark.parametrize("methods", [[], ["different-method"]])
 def test_full_cohort_cannot_filter_away_a_declared_participant(tmp_path, methods):
     home = create(tmp_path / "first", mode="full-cohort-progress")
@@ -739,7 +833,11 @@ def test_all_asset_formats_receive_publication_privacy_checks(tmp_path, suffix, 
 
 def test_published_release_cannot_drop_dataset_distribution_binding(tmp_path):
     output = tmp_path / "report"
-    create(output, mode="full-cohort-progress")
+    home = create(tmp_path / "fixture", mode="full-cohort-progress")
+    profile = read_json(home / "profile.json")
+    profile["local_example"] = False
+    save_json(home / "profile.json", profile)
+    build(output, home / "content.json", home=home, profile=home / "profile.json")
     manifest = read_json(output / "report-manifest.json")
     manifest["dataset_kind"] = "published-upstream"
     manifest["dataset_distribution"] = None
@@ -763,6 +861,34 @@ def test_field_headers_count_both_nonempty_and_absent_references():
     assert "positive 1, negative 1" in counts[-1].get_text()
 
 
+@pytest.mark.parametrize("kind", [None, "", "other", "published-upstream"])
+def test_release_cannot_change_dataset_kind_independently_of_input_profile(tmp_path, kind):
+    output = tmp_path / "report"
+    create(output, mode="full-cohort-progress")
+    manifest = read_json(output / "report-manifest.json")
+    if kind is None:
+        manifest.pop("dataset_kind")
+    else:
+        manifest["dataset_kind"] = kind
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="dataset kind.*bound input profile"):
+        check(output, release=True)
+
+
+def test_recorded_profile_change_cannot_be_hidden_by_resealing_file_inventory(tmp_path):
+    output = tmp_path / "report"
+    create(output, mode="full-cohort-progress")
+    manifest = read_json(output / "report-manifest.json")
+    path = output / manifest["input_profile"]["path"]
+    profile = read_json(path)
+    profile["local_example"] = False
+    save_json(path, profile)
+    manifest["files"][manifest["input_profile"]["path"]] = digest(path.read_bytes())
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="input profile binding"):
+        check(output, release=True)
+
+
 @pytest.mark.parametrize("completed", [False, True])
 def test_formal_release_requires_certification_even_for_complete_checkpoints(tmp_path, completed):
     output = tmp_path / "report"
@@ -783,10 +909,11 @@ def test_formal_release_requires_certification_even_for_complete_checkpoints(tmp
             (source / "calls.journal.jsonl").write_text(
                 "".join(json.dumps(e) + "\n" for e in entries), encoding="utf-8"
             )
-        build(
-            tmp_path / "complete", home / "content.json", home=home, profile=home / "profile.json"
-        )
-        output = tmp_path / "complete"
+    profile = read_json(home / "profile.json")
+    profile["local_example"] = False
+    save_json(home / "profile.json", profile)
+    output = tmp_path / "declared-upstream"
+    build(output, home / "content.json", home=home, profile=home / "profile.json")
     manifest = read_json(output / "report-manifest.json")
     manifest["dataset_kind"] = "published-upstream"
     manifest["dataset_distribution"] = {"revision": "a" * 40}

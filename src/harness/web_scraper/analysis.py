@@ -74,6 +74,63 @@ def check_reference_controls(home, *, profile=PROFILE):
     return [item[0] for item in REFERENCE_CONTROLS]
 
 
+def product_audit_scores(truth, reviews, methods, excluded, scorer):
+    result = {}
+    for method in methods:
+        result[method] = {}
+        for field in (*FIELDS, "OutOfStock"):
+            values = [
+                reviews[method + ":" + cid]["audited_fields"][field]
+                for cid in truth
+                if field not in excluded.get(cid, [])
+                and not (field == "OutOfStock" and "availability" in excluded.get(cid, []))
+            ]
+            result[method][field] = {
+                **(
+                    scorer["metrics_from_tp_fp_fns"]([(v["tp"], v["fp"], v["fn"]) for v in values])
+                    if values
+                    else {"precision": None, "recall": None, "f1": None}
+                ),
+                "cases": len(values),
+            }
+    return result
+
+
+def check_product_audit(home, truth, rows, audit, *, profile):
+    """Reject cached judgments whose native projection, reference or scorer changed."""
+    from harness.web_scraper.pipeline import normalize
+
+    if (
+        audit.get("official_reference_sha256")
+        != digest((home / "dataset/dataset/ground-truth.json").read_bytes())
+        or audit.get("scorer_sha256") != digest((home / "dataset/evaluate.py").read_bytes())
+        or set(audit.get("audited_reference", {})) != set(truth)
+    ):
+        raise ValueError("Audit reference or scorer binding differs from current scoring inputs")
+    excluded = audit.get("excluded_fields", {})
+    if set(excluded) - set(truth) or any(set(fields) - set(FIELDS) for fields in excluded.values()):
+        raise ValueError("Audit exclusion is outside the declared reference scope")
+    recomputed = {}
+    for row in rows:
+        key = row["method"] + ":" + row["case_id"]
+        current = {**row, "normalized_fields": normalize(row["method"], row.get("response", {}))}
+        fields = field_results(
+            home, audit["audited_reference"][row["case_id"]], current, profile=profile
+        )
+        if fields != audit["results"][key].get("audited_fields"):
+            raise ValueError("Cached audit field judgments differ from current native projection")
+        recomputed[key] = {"audited_fields": fields}
+    expected = product_audit_scores(
+        truth,
+        recomputed,
+        sorted({r["method"] for r in rows}),
+        excluded,
+        official_scorer(home, profile),
+    )
+    if audit.get("audited_scores") != expected:
+        raise ValueError("Cached audit aggregates differ from current field judgments")
+
+
 def native_error(row):
     if row.get("compatibility") == "structured_output":
         return ""

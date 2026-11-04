@@ -8,9 +8,8 @@ from dataclasses import dataclass
 from email.message import Message
 from typing import Any
 
-from lexbench_webfetch.paths import validate_http_url
-
 from harness.web_fetch.diagnostics import emit
+from lexbench_webfetch.paths import validate_http_url
 
 
 @dataclass
@@ -40,6 +39,11 @@ class HttpOnlyRedirectHandler(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
+class NoRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 def inner_timeout_budget(outer_timeout: float, *, native_default: bool = False) -> float:
     """Keep ordinary calls inside the deadline; native cohorts use the full budget."""
     if not math.isfinite(outer_timeout) or outer_timeout <= 0:
@@ -59,6 +63,7 @@ def request(
     body: bytes | None = None,
     timeout: float = 30,
     max_bytes: int = 10_000_000,
+    allow_redirects: bool = True,
 ) -> HttpResponse:
     validate_http_url(url)
     if body is not None and json_body is not None:
@@ -80,7 +85,8 @@ def request(
         timeout=timeout,
     )
     try:
-        response = urllib.request.build_opener(HttpOnlyRedirectHandler()).open(req, timeout=timeout)
+        handler = HttpOnlyRedirectHandler() if allow_redirects else NoRedirectHandler()
+        response = urllib.request.build_opener(handler).open(req, timeout=timeout)
     except urllib.error.HTTPError as error:
         response = error
     try:

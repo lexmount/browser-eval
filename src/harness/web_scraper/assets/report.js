@@ -47,6 +47,7 @@ const fieldNames = {
   price: tr("field_labels_price"),
   sku: tr("field_labels_sku"),
   availability: tr("field_labels_availability"),
+  OutOfStock: tr("field_labels_OutOfStock"),
 };
 const outcomeNames = {
   correct: tr("outcomes_correct"),
@@ -130,10 +131,11 @@ function diagnosisContent(container, row, field) {
   const facts = document.createElement("dl");
   facts.className = "diagnosis-grid";
   const diagnosis = row.diagnosis || {};
+  const diagnosisFields = ["price", "sku", "availability", "OutOfStock"];
   const selectedField =
     field ||
-    ["price", "sku", "availability"].find(
-      (key) => row.field_results?.[key]?.status !== "correct",
+    diagnosisFields.find(
+      (key) => row.field_results?.[key] && row.field_results[key].status !== "correct",
     ) ||
     "price";
   const resultFinding = row.review?.reviewer_fields?.[selectedField];
@@ -171,11 +173,11 @@ function diagnosisContent(container, row, field) {
   ])
     head.append(node("th", label));
   table.append(head);
-  for (const key of ["price", "sku", "availability"]) {
+  for (const key of diagnosisFields) {
     const item = row.field_results?.[key];
     if (!item) continue;
     const r = document.createElement("tr");
-    if (field === key) r.className = "selected-field";
+    if (selectedField === key) r.className = "selected-field";
     for (const text of [
       fieldNames[key],
       valueText(item.expected),

@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 
 from harness.reporting.templates import metric_contract
-from harness.web_scraper.dataset import adapter_sha256, benchmark_config, registry_sha256
+from harness.web_scraper.dataset import benchmark_config, task_bindings
 from harness.web_scraper.pipeline import (
     available_methods,
     data_home,
@@ -17,6 +17,7 @@ from harness.web_scraper.pipeline import (
     score_run,
     selected_profile,
     validate_dataset,
+    validate_fixture_base,
 )
 
 
@@ -65,15 +66,14 @@ def create_plan(home, methods, output, *, snapshots=None):
         if any(not registry[method].get("custom_schema") for method in methods):
             raise ValueError("This dataset requires a complete arbitrary-schema extraction API")
         plan["schema"] = "archived-extraction-full-cohort/1"
-        plan["dataset_profile_sha256"] = digest(selected_profile(home).read_bytes())
-        plan["task_adapter_sha256"] = adapter_sha256(home)
-        plan["dataset_registry_sha256"] = registry_sha256()
+        plan.update(task_bindings(home))
         for participant in plan["participants"].values():
             participant["maximum_physical_calls"] = len(truth) + 20
     if snapshots is not None:
         from harness.web_scraper.snapshots import select
 
         plan["public_snapshots"] = select(home, read_json(snapshots))
+        validate_fixture_base(plan["public_snapshots"]["fixture_base"])
         if (
             not plan["public_snapshots"].get("snapshot_manifest")
             and plan["public_snapshots"].get("hosting_provider") != "external"
@@ -105,13 +105,16 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
         from harness.web_scraper.repair import run as repair_run
 
         return repair_run(home, profile, method, run_dir)
-    if plan.get("task_adapter_sha256"):
-        if (
-            plan["task_adapter_sha256"] != adapter_sha256(home)
-            or plan.get("dataset_registry_sha256") != registry_sha256()
-            or plan["dataset_profile_sha256"] != digest(selected_profile(home).read_bytes())
-        ):
-            raise ValueError("Frozen task adapter or dataset profile changed")
+    binding = run_dir / "certification-precall.json"
+    if (
+        not binding.exists()
+        and run_dir.exists()
+        and any(path.name != "execution.lock" for path in run_dir.iterdir())
+    ):
+        raise ValueError("Pre-call receipt is absent from an already-started execution")
+    policy = {"timeout_seconds": 120, "quality_retries": 0, "access_retries_after_repair": 1}
+    if any(plan.get(key) != value for key, value in policy.items()):
+        raise ValueError("Unsupported frozen timeout or retry policy")
     if plan.get("public_snapshots"):
         from harness.web_scraper.snapshots import inventory
 
@@ -123,20 +126,19 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
             raise ValueError("Cannot override the frozen public snapshot URL")
         fixture_base = selected["fixture_base"]
     participant = plan["participants"][method]
-    policy = {"timeout_seconds": 120, "quality_retries": 0, "access_retries_after_repair": 1}
-    if any(plan.get(key) != value for key, value in policy.items()):
-        raise ValueError("Unsupported frozen timeout or retry policy")
+    if fixture_base is not None:
+        validate_fixture_base(fixture_base)
     if available_methods()[method]["input"] == "url" and (
         not fixture_base or not fixture_base.startswith("https://")
     ):
         raise ValueError("URL participant requires frozen HTTPS fixtures before collection")
-    binding = run_dir / "certification-precall.json"
-    if (
-        not binding.exists()
-        and run_dir.exists()
-        and any(path.name != "execution.lock" for path in run_dir.iterdir())
-    ):
-        raise ValueError("Pre-call receipt is absent from an already-started execution")
+    records = benchmark_config(home)["adapter"] is not None
+    if records and plan.get("schema") != "archived-extraction-full-cohort/1":
+        raise ValueError("Frozen plan schema differs from the selected record benchmark")
+    if records or plan.get("task_adapter_sha256"):
+        bindings = task_bindings(home)
+        if not bindings or any(plan.get(key) != value for key, value in bindings.items()):
+            raise ValueError("Frozen task adapter or dataset profile changed")
     validate_dataset(home)
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     case_hash = digest(("\n".join(sorted(truth)) + "\n").encode())
@@ -215,11 +217,7 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
     )
     contract, rows = load_run(source)
     validate_dataset(home)
-    if plan.get("task_adapter_sha256") and (
-        plan["task_adapter_sha256"] != adapter_sha256(home)
-        or plan.get("dataset_registry_sha256") != registry_sha256()
-        or plan["dataset_profile_sha256"] != digest(selected_profile(home).read_bytes())
-    ):
+    if records and any(plan.get(key) != value for key, value in task_bindings(home).items()):
         raise ValueError("Task adapter or dataset profile changed during collection")
     if (
         digest(profile.read_bytes()) != precall["profile_sha256"]

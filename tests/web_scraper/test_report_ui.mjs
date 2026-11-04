@@ -184,6 +184,24 @@ response.failure_stage = savedStage;
 delete response.review;
 console.log('PASS: method-specific reviewed cause, consistent stage labels and localized empty-error fallback');
 
+context.stockBody = new Element('div');
+context.stockRow = {
+  compatibility: 'structured_output', field_results: {
+    price: {expected: ['1'], actual: '1', status: 'correct'},
+    sku: {expected: ['sku'], actual: 'sku', status: 'correct'},
+    availability: {expected: ['OutOfStock'], actual: 'OutOfStock', status: 'correct'},
+    OutOfStock: {expected: ['OutOfStock'], actual: null, status: 'missing'},
+  },
+};
+vm.runInContext('diagnosisContent(stockBody, stockRow)', context);
+const descendants = element => [element, ...element.children.flatMap(descendants)];
+const stockTable = descendants(context.stockBody).find(e => e.tagName === 'TABLE');
+assert.equal(stockTable.children.length, 5);
+const selectedStock = stockTable.children.find(e => e.className === 'selected-field');
+assert.equal(selectedStock.children[0].textContent, catalog.zh.field_labels_OutOfStock);
+assert.match(selectedStock.textContent, new RegExp(catalog.zh.outcomes_missing));
+console.log('PASS: out-of-stock-only mismatch is displayed and selected automatically');
+
 // A page failing another field must still appear as a pass for the selected field.
 rows.push({dataset: {method: 'a', status: 'fail', stage: 'fields', price: 'correct', title: 'wrong', domain: 'book', site: 'amazon'}});
 rows.push({dataset: {method: 'a', status: 'fail', stage: 'fields', engine: 'wrong', domain: 'auto', site: 'aol'}});

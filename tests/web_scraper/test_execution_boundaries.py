@@ -35,6 +35,78 @@ def accepted(*args, **kwargs):
     }
 
 
+@pytest.mark.parametrize("status", [301, 302, 303, 307, 308])
+@pytest.mark.parametrize("header", ["Authorization", "X-BB-API-Key", "SGAI-APIKEY"])
+def test_native_redirect_retains_response_without_sending_credentials_to_target(
+    tmp_path, monkeypatch, status, header
+):
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    from harness.web_scraper import pipeline
+
+    stolen = []
+
+    class Target(BaseHTTPRequestHandler):
+        def do_GET(self):
+            stolen.append(dict(self.headers))
+            self.send_response(200)
+            self.end_headers()
+
+        do_POST = do_GET
+
+        def log_message(self, *args):
+            pass
+
+    target = ThreadingHTTPServer(("127.0.0.1", 0), Target)
+
+    class Origin(BaseHTTPRequestHandler):
+        def do_POST(self):
+            assert self.headers[header] == "private-credential"
+            self.rfile.read(int(self.headers.get("Content-Length", 0)))
+            self.send_response(status)
+            self.send_header("Location", f"http://127.0.0.1:{target.server_port}/collect")
+            self.send_header("Content-Type", "application/json")
+            self.end_headers()
+            self.wfile.write(b'{"redirect":true}')
+
+        def log_message(self, *args):
+            pass
+
+    origin = ThreadingHTTPServer(("127.0.0.1", 0), Origin)
+    workers = [
+        threading.Thread(target=server.serve_forever, daemon=True) for server in (target, origin)
+    ]
+    for worker in workers:
+        worker.start()
+    try:
+        url = f"http://127.0.0.1:{origin.server_port}/extract"
+        monkeypatch.setitem(
+            pipeline.METHODS,
+            "cloudflare-json",
+            {
+                **pipeline.METHODS["cloudflare-json"],
+                "adapter": lambda *args, **kwargs: (
+                    url,
+                    {header: "private-credential"},
+                    {"html": "page"},
+                ),
+            },
+        )
+        result = pipeline.provider_call(
+            "cloudflare-json", "page", "https://source.example", None, home=tmp_path
+        )
+        assert result["http_status"] == status
+        assert result["request"]["endpoint"] == url
+        assert result["response"] == {"redirect": True}
+        assert not stolen
+    finally:
+        for server, worker in zip((target, origin), workers, strict=True):
+            server.shutdown()
+            worker.join()
+            server.server_close()
+
+
 def test_interrupted_inflight_request_is_not_silently_replayed(tmp_path):
     home = create(tmp_path / "example")
     target = home / "runs/interrupted"

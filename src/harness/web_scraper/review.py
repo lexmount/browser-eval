@@ -486,7 +486,11 @@ def assemble(
     home, content, initial, supplemental, adjudication, output, *, profile, decisions=None
 ):
     """Bind complete reviews to current calls and retain official references separately."""
-    from harness.web_scraper.analysis import check_reference_controls, field_results
+    from harness.web_scraper.analysis import (
+        check_reference_controls,
+        field_results,
+        product_audit_scores,
+    )
     from harness.web_scraper.dataset import require_product_reference
     from harness.web_scraper.repair import load_selection
 
@@ -709,24 +713,7 @@ def assemble(
     from harness.web_scraper.pipeline import official_scorer
 
     scorer = official_scorer(home, profile)
-    audited_scores = {}
-    for method in methods:
-        audited_scores[method] = {}
-        for field in (*FIELDS, "OutOfStock"):
-            values = [
-                result_reviews[method + ":" + cid]["audited_fields"][field]
-                for cid in truth
-                if field not in excluded.get(cid, [])
-                and not (field == "OutOfStock" and "availability" in excluded.get(cid, []))
-            ]
-            audited_scores[method][field] = {
-                **(
-                    scorer["metrics_from_tp_fp_fns"]([(v["tp"], v["fp"], v["fn"]) for v in values])
-                    if values
-                    else {"precision": None, "recall": None, "f1": None}
-                ),
-                "cases": len(values),
-            }
+    audited_scores = product_audit_scores(truth, result_reviews, methods, excluded, scorer)
     value = {
         "schema": "product-complete-audit/1",
         "review_scope": "all",
@@ -873,7 +860,9 @@ Give concise Chinese factual findings and short EXACT source substrings with loc
 every source/reference/method field. For absence, cite main-record context and explain
 which source regions were checked. API errors are missing outputs, not missing source data.
 Do not invent or abbreviate quotations. Return the complete exact case/method inventory
-under the output schema, without numeric scores or private reasoning."""
+under the output schema, without numeric scores or private reasoning.
+Each source_quote must be ONE contiguous exact source substring, never a joined list.
+For failed API outputs cite main-record source context; put runtime errors only in reason."""
             if manifest["schema"] == "record-reference-adjudication/1":
                 prompt += """
 This is source-grounded adjudication of disputed reference annotations. Read the

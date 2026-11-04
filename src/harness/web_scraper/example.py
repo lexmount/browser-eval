@@ -38,6 +38,11 @@ def metrics_from_tp_fp_fns(rows):
     p = 1.0 if fp == fn == 0 else tp / (tp + fp) if tp + fp else 0.0
     r = 1.0 if fp == fn == 0 else tp / (tp + fn) if tp + fn else 0.0
     return {'precision': p, 'recall': r, 'f1': 2*p*r/(p+r) if p+r else 0.0}
+def evaluate(truth, predictions, field, matcher, **options):
+    return metrics_from_tp_fp_fns([
+        matcher(set(reference.get(field, [])), predictions[case_id].get(field))
+        for case_id, reference in truth.items()
+    ])
 """,
         encoding="utf-8",
     )

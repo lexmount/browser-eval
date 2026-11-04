@@ -123,6 +123,100 @@ def test_certified_multi_domain_run_uses_task_schema_and_never_sends_labels(
     assert (run / "certificate.json").is_file()
     certification.run(home, plan, "cloudflare-json", run)
     assert len(calls) == 2  # Completed results are never rerun.
+    original_scores = (run / "scores.json").read_bytes()
+    reprojected = pipeline.score_run(
+        home, run, reproject=True, output=tmp_path / "reprojected.json"
+    )
+    assert reprojected["scores"] == result["scores"]
+    assert reprojected["projection_revision"]["changed_cases"] == []
+    assert set(reprojected["projection_revision"]["regression_ids"]) == set(
+        pipeline.RECORD_PROJECTION_REGRESSIONS
+    )
+    assert (run / "scores.json").read_bytes() == original_scores
+    assert len(calls) == 2
+
+
+@pytest.mark.parametrize(
+    "missing",
+    ["schema", "task_adapter_sha256", "dataset_profile_sha256", "dataset_registry_sha256"],
+)
+def test_record_certification_requires_every_frozen_binding_before_writing(
+    inputs, tmp_path, monkeypatch, missing
+):
+    home, _ = inputs
+    path = tmp_path / "plan.json"
+    plan = certification.create_plan(home, ["cloudflare-json"], path)
+    plan.pop(missing)
+    pipeline.save_json(path, plan)
+    dispatch = Mock(side_effect=AssertionError("must not dispatch"))
+    monkeypatch.setattr(certification, "probe", dispatch)
+    target = tmp_path / "execution"
+    with pytest.raises(ValueError, match="Frozen.*(adapter|schema)"):
+        certification.run(home, path, "cloudflare-json", target)
+    dispatch.assert_not_called()
+    assert not target.exists()
+
+
+@pytest.mark.parametrize(
+    "base",
+    [
+        "https://user:password@fixtures.example",
+        "https://fixtures.example?api_key=private",
+        "https://fixtures.example?X-Amz-Signature=private",
+        "https://fixtures.example#token=private",
+    ],
+)
+def test_fixture_credentials_never_reach_precall_receipts(inputs, tmp_path, monkeypatch, base):
+    home, _ = inputs
+    path = tmp_path / "plan.json"
+    certification.create_plan(home, ["browserbase-json"], path)
+    dispatch = Mock(side_effect=AssertionError("must not dispatch"))
+    monkeypatch.setattr(certification, "probe", dispatch)
+    target = tmp_path / "execution"
+    with pytest.raises(ValueError, match="credentials, query or fragment"):
+        certification.run(home, path, "browserbase-json", target, fixture_base=base)
+    assert not target.exists()
+    dispatch.assert_not_called()
+
+
+@pytest.mark.parametrize("full", [False, True])
+def test_record_compatibility_and_full_runs_budget_the_complete_method_matrix(
+    inputs, tmp_path, monkeypatch, full
+):
+    home, _ = inputs
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "fixture")
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "fixture")
+    monkeypatch.setenv("ZYTE_API_KEY", "fixture")
+    calls = []
+
+    def respond(method, *args, **kwargs):
+        calls.append((method, kwargs["schema"]))
+        value = {field: ["value"] for field in kwargs["schema"]["properties"]}
+        payload = (
+            {"result": value}
+            if method == "cloudflare-json"
+            else {"customAttributes": {"values": value}}
+        )
+        return {"http_status": 200, "response": payload}
+
+    monkeypatch.setattr(pipeline, "provider_call", respond)
+    target = pipeline.probe(
+        home, ["cloudflare-json", "zyte-custom"], full=full, run_dir=tmp_path / "run"
+    )
+    contract, rows = pipeline.load_run(target)
+    assert len(calls) == len(rows) == 4
+    assert contract["maximum_physical_calls"] == 24
+    assert set(contract["case_ids"]) == {"book-a-0001", "job-b-0002"}
+    assert {tuple(schema["properties"]) for _, schema in calls} == {("author",), ("title",)}
+    with pytest.raises(ValueError, match="Physical call budget"):
+        pipeline.probe(
+            home,
+            ["cloudflare-json", "zyte-custom"],
+            full=full,
+            run_dir=tmp_path / "too-small",
+            maximum_physical_calls=3,
+        )
+    assert len(calls) == 4
 
 
 def test_changed_reference_stops_before_any_provider_call(inputs, tmp_path, monkeypatch):
@@ -474,6 +568,72 @@ def test_registered_adapter_dispatch_does_not_depend_on_dataset_name(inputs, mon
     assert "page_hit_macro" in scores["cloudflare-json"]
 
 
+def test_swde_prepare_cannot_reuse_a_valid_other_benchmark(tmp_path, monkeypatch):
+    from harness.web_scraper.example import create
+
+    home = create(tmp_path / "product")
+    monkeypatch.setitem(
+        dataset.BENCHMARKS,
+        "zyte",
+        {
+            **dataset.BENCHMARKS["zyte"],
+            "profile": str(home / "profile.json"),
+        },
+    )
+    archive = tmp_path / "archive.bin"
+    archive.write_bytes(b"pinned archive")
+    card = pipeline.read_json(swde.CARD)
+    card["source"]["archive_sha256"] = pipeline.digest(archive.read_bytes())
+    card_path = tmp_path / "swde-card.json"
+    pipeline.save_json(card_path, card)
+    monkeypatch.setattr(swde, "CARD", card_path)
+    before = (home / "dataset/manifest.json").read_bytes()
+    with pytest.raises(ValueError, match="selected pinned cohort|Pinned"):
+        swde.prepare(home, archive)
+    assert (home / "dataset/manifest.json").read_bytes() == before
+
+
+@pytest.mark.parametrize(
+    "unsafe", ["source", "source/archives", "source/archives/auto.7z", "source/markuplm-eval.py"]
+)
+def test_swde_prepare_rejects_linked_storage_before_download_or_write(
+    tmp_path, monkeypatch, unsafe
+):
+    import io
+    import tarfile
+
+    from harness.web_fetch.providers.http_client import HttpResponse
+
+    home, outside = tmp_path / "home", tmp_path / "outside"
+    home.mkdir()
+    outside.mkdir()
+    (outside / "auto.7z").write_bytes(b"outside sentinel")
+    linked = home / unsafe
+    linked.parent.mkdir(parents=True, exist_ok=True)
+    directory = unsafe in ("source", "source/archives")
+    linked.symlink_to(outside if directory else outside / "auto.7z", target_is_directory=directory)
+    archive = tmp_path / "archive.tar.gz"
+    with tarfile.open(archive, "w:gz") as bundle:
+        item = tarfile.TarInfo("source/auto.7z")
+        item.size = 3
+        bundle.addfile(item, io.BytesIO(b"new"))
+    scorer = b"pinned scorer"
+    card = pipeline.read_json(swde.CARD)
+    card["source"].update(
+        archive_sha256=pipeline.digest(archive.read_bytes()), scorer_sha256=pipeline.digest(scorer)
+    )
+    card_path = tmp_path / "card.json"
+    pipeline.save_json(card_path, card)
+    monkeypatch.setattr(swde, "CARD", card_path)
+    download = Mock(return_value=HttpResponse(200, "https://source.example", {}, scorer))
+    monkeypatch.setattr("harness.web_fetch.providers.http_client.request", download)
+    with pytest.raises(ValueError, match="symlink"):
+        swde.prepare(home, archive)
+    assert (outside / "auto.7z").read_bytes() == b"outside sentinel"
+    assert not (home / "dataset").exists()
+    download.assert_not_called()
+
+
 def test_clean_prepare_downloads_pinned_scorer_and_recovers_after_partial_extraction(
     tmp_path, monkeypatch
 ):
@@ -605,6 +765,81 @@ def test_record_review_missing_content_fails_before_creating_work(inputs, tmp_pa
     with pytest.raises(FileNotFoundError):
         review.prepare(home, tmp_path / "absent-input", target)
     assert not target.exists()
+
+
+@pytest.mark.parametrize("change", ["none", "missing", "before", "during", "certificate"])
+def test_record_repair_binds_adapter_before_resume_after_calls_and_on_read(
+    inputs, tmp_path, monkeypatch, change
+):
+    from harness.web_scraper import repair
+
+    home, _ = inputs
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "fixture")
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "fixture")
+    monkeypatch.setattr(
+        pipeline,
+        "provider_call",
+        Mock(
+            side_effect=[
+                {"http_status": 500, "response": {"error": "temporary origin error"}},
+                {"http_status": 200, "response": {"result": {"title": ["Engineer"]}}},
+            ]
+        ),
+    )
+    plan = tmp_path / "parent-plan.json"
+    certification.create_plan(home, ["cloudflare-json"], plan)
+    parent = tmp_path / "parent"
+    certification.run(home, plan, "cloudflare-json", parent)
+    content = tmp_path / "repair-content.json"
+    pipeline.save_json(content, {"evidence_runs": [{"run": str(parent)}]})
+    path = tmp_path / "repair-plan.json"
+    frozen = repair.create_plan(home, content, path, {}, None)
+    bindings = dataset.task_bindings(home)
+    changed = {**bindings, "task_adapter_sha256": "f" * 64}
+    if change == "missing":
+        frozen.pop("task_adapter_sha256")
+        pipeline.save_json(path, frozen)
+    if change == "before":
+        monkeypatch.setattr(repair, "task_bindings", lambda _: changed)
+
+    def respond(*args, **kwargs):
+        if change == "during":
+            monkeypatch.setattr(repair, "task_bindings", lambda _: changed)
+        return {"http_status": 200, "response": {"result": {"author": ["Ada"]}}}
+
+    dispatch = Mock(side_effect=respond)
+    monkeypatch.setattr(pipeline, "provider_call", dispatch)
+    monkeypatch.setattr(repair, "load_runtime_env", lambda: None)
+    target = tmp_path / "repair"
+    if change in ("missing", "before", "during"):
+        with pytest.raises(ValueError, match="repair task adapter|Repair task adapter"):
+            repair.run(home, path, "cloudflare-json", target)
+        assert dispatch.call_count == (1 if change == "during" else 0)
+        assert not (target / "certificate.json").exists()
+        return
+    repair.run(home, path, "cloudflare-json", target)
+    repair.run(home, path, "cloudflare-json", target)
+    assert dispatch.call_count == 1
+    contract = pipeline.read_json(target / "contract.json")
+    certificate = pipeline.read_json(target / "certificate.json")
+    assert contract["schema"] == "failed-extraction-repair-run/2"
+    for key, value in bindings.items():
+        assert contract[key] == certificate[key] == value
+    if change == "certificate":
+        certificate["task_adapter_sha256"] = "f" * 64
+        pipeline.save_json(target / "certificate.json", certificate)
+    revision = {
+        "path": str(target),
+        "sha256": pipeline.digest((target / "certificate.json").read_bytes()),
+    }
+    if change == "certificate":
+        with pytest.raises(ValueError, match="task adapter or dataset binding"):
+            repair.verify_repair(home, parent, revision)
+    else:
+        _, rows = repair.load_selection(home, {"run": str(parent), "repair": [revision]})
+        by_case = {row["case_id"]: row for row in rows}
+        assert by_case["book-a-0001"]["normalized_fields"] == {"author": ["Ada"]}
+        assert by_case["job-b-0002"]["normalized_fields"] == {"title": ["Engineer"]}
 
 
 def test_invalid_schema_is_rejected_before_any_paid_dispatch(inputs, monkeypatch, tmp_path):

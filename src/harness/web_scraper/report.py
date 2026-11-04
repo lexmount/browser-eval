@@ -20,7 +20,12 @@ from harness.reporting.release_check import check_report_identity, checked_page,
 from harness.reporting.templates import template_identity
 from harness.reporting.versions import bind_build_version
 from harness.web_fetch.publication_privacy import project_evidence_view, publication_risk
-from harness.web_scraper.analysis import failure_stage, field_results, native_error
+from harness.web_scraper.analysis import (
+    check_product_audit,
+    failure_stage,
+    field_results,
+    native_error,
+)
 from harness.web_scraper.messages import message, messages_sha256, validate_catalog
 from harness.web_scraper.pipeline import (
     PROFILE,
@@ -34,6 +39,8 @@ from harness.web_scraper.pipeline import (
     score_rows,
     score_run,
     validate_dataset,
+    verify_execution_snapshot,
+    verify_retry_history,
 )
 from harness.web_scraper.report_ui import JS
 
@@ -290,11 +297,7 @@ def cohort_source(source, selection, home, truth):
         or precall["pipeline_sha256"] != contract["pipeline_sha256"]
     ):
         raise ValueError("Full cohort plan, population or execution binding differs")
-    for relative, sha in [
-        ("execution/pipeline.py", contract["pipeline_sha256"]),
-    ]:
-        if sha and digest((source / relative).read_bytes()) != sha:
-            raise ValueError("Frozen execution changed")
+    verify_execution_snapshot(source, contract)
     certificate = source / "certificate.json"
     if certificate.exists():
         contract, rows = load_run(source)
@@ -379,7 +382,7 @@ def cohort_source(source, selection, home, truth):
     raw = journal.read_bytes()
     if not raw.endswith(b"\n"):
         raise ValueError("Checkpoint contains an unfinished journal entry; retry after the write")
-    latest, physical = {}, []
+    latest, physical, physical_entries, selected_entries = {}, [], [], {}
     for line in raw.splitlines():
         entry = json.loads(line)
         relative = Path(entry["path"])
@@ -398,7 +401,14 @@ def cohort_source(source, selection, home, truth):
         ):
             raise ValueError("Checkpoint call is outside the frozen input scope")
         physical.append(row)
+        physical_entries.append(entry)
+        selected_entries[key] = entry
         latest[key] = row
+    verify_retry_history(
+        source,
+        {"calls": list(selected_entries.values()), "physical_calls": physical_entries},
+        contract,
+    )
     rows = []
     for key, value in latest.items():
         row = dict(value)
@@ -1240,6 +1250,55 @@ def copy_report_assets(output, content, model):
         target.write_bytes(source.read_bytes())
 
 
+def copy_input_profile(output, profile):
+    """Retain the privacy-projected input authority for release exceptions."""
+    source = profile.read_bytes()
+    original = json.loads(source)
+    if type(original.get("local_example", False)) is not bool:
+        raise ValueError("Input profile local_example must be a boolean")
+    raw, receipt = project_evidence_view(
+        "public-evidence/provenance/input-profile.json",
+        source,
+        role="native_response",
+        content_format="json",
+        host_names=publication_host_names(),
+    )
+    projected = json.loads(raw)
+    if projected.get("local_example", False) != original.get(
+        "local_example", False
+    ) or projected.get("dataset") != original.get("dataset"):
+        raise ValueError("Input profile privacy projection changed benchmark authority")
+    path = output / receipt["path"]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(raw)
+    return receipt
+
+
+def check_input_profile(output, manifest):
+    binding = manifest.get("input_profile", {})
+    if binding.get("path") != "public-evidence/provenance/input-profile.json":
+        raise ValueError("Missing bound input profile")
+    path = output / binding["path"]
+    if (
+        not path.is_file()
+        or path.is_symlink()
+        or digest(path.read_bytes()) != binding.get("published_sha256")
+        or binding.get("original_sha256") != manifest.get("profile_sha256")
+    ):
+        raise ValueError("Report input profile binding changed")
+    profile = read_json(path)
+    local = profile.get("local_example", False)
+    kind = "local-example" if local else "published-upstream"
+    if type(local) is not bool or manifest.get("dataset_kind") != kind:
+        raise ValueError("Report dataset kind differs from its bound input profile")
+    if (
+        manifest.get("mode") == "field-extraction-cohort"
+        and manifest.get("local_example") is not local
+    ):
+        raise ValueError("Record example flag differs from its bound input profile")
+    return local
+
+
 def method_examples(output, binding):
     """Render hash-bound native examples grouped by independently defined benchmarks."""
     if not binding:
@@ -1522,6 +1581,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             raise ValueError("Full review is incomplete")
     if read_json(profile).get("independent_result_review_scope") == "all" and audit is None:
         raise ValueError("Full-review profile requires its completed audit")
+    if audit is not None:
+        check_product_audit(home, truth, rows, audit, profile=profile)
     for row in rows:
         row["field_results"] = field_results(home, truth[row["case_id"]], row, profile=profile)
         row["failure_stage"] = failure_stage(row)
@@ -1544,6 +1605,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
     (output / "style.css").write_text(CSS, encoding="utf-8")
     (output / "app.js").write_text(JS, encoding="utf-8")
     copy_report_assets(output, content, model)
+    input_profile = copy_input_profile(output, profile)
     buckets = (
         {
             m: {r["case_id"]: r for r in rows if r["method"] == m}
@@ -1552,7 +1614,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         if cohort
         else {f"{r['method']}-{r['case_id']}": r for r in rows}
     )
-    public_receipts, public_rows = [], []
+    public_receipts, public_rows = [input_profile], []
     for key, bucket in buckets.items():
         name = f"public-evidence/{key}.json"
         raw = json.dumps(bucket, ensure_ascii=False, indent=2, allow_nan=False).encode()
@@ -2127,6 +2189,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             "audited_scores": audit.get("audited_scores") if audit else None,
             "content_sha256": digest(content.read_bytes()),
             "profile_sha256": digest(profile.read_bytes()),
+            "input_profile": input_profile,
             "dataset_manifest_sha256": history["dataset_manifest_sha256"],
             "dataset_distribution": distribution,
             "primary_language": language,
@@ -2150,6 +2213,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
     if manifest.get("mode") == "field-extraction-cohort":
         return check_record_cohort(output, release=release, visual_receipt=visual_receipt)
     check_report_identity(output, manifest, "web-scraper")
+    check_input_profile(output, manifest)
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
     validate_catalog()
@@ -2300,7 +2364,11 @@ def check(output: Path, *, release=False, visual_receipt=None):
             ).find(id=u.fragment):
                 raise ValueError("Broken evidence anchor")
     if manifest.get("mode") != "full-cohort-progress":
-        rows = [read_json(output / view["path"]) for view in views]
+        rows = [
+            read_json(output / view["path"])
+            for view in views
+            if view["path"] != manifest["input_profile"]["path"]
+        ]
         methods = sorted({row["method"] for row in rows})
         names = manifest.get("method_labels", {})
         for lang in manifest["languages"]:
@@ -2721,10 +2789,11 @@ def build_record_cohort(output, content, *, home, language, profile):
     (output / "style.css").write_text(CSS, encoding="utf-8")
     (output / "app.js").write_text(JS, encoding="utf-8")
     copy_report_assets(output, content, model)
+    input_profile = copy_input_profile(output, profile)
     prices = model["prices"]
     if set(prices) != set(methods):
         raise ValueError("Every participant requires a public pricing contract")
-    public_receipts = []
+    public_receipts = [input_profile]
     for method in methods:
         bucket = data["methods"][method]["results"]
         for cid, row in bucket.items():
@@ -3326,6 +3395,10 @@ def build_record_cohort(output, content, *, home, language, profile):
         {
             "mode": "field-extraction-cohort",
             "local_example": bound_profile.get("local_example", False),
+            "dataset_kind": "local-example"
+            if bound_profile.get("local_example", False)
+            else "published-upstream",
+            "input_profile": input_profile,
             "template": template_identity("web-scraper"),
             "template_version": VERSION,
             "browser_eval": version,
@@ -3364,6 +3437,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
     output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
     check_report_identity(output, manifest, "web-scraper")
+    check_input_profile(output, manifest)
     if manifest["renderer_sha256"] != digest(Path(__file__).read_bytes()):
         raise ValueError("Record renderer changed; rebuild required")
     actual = {p.relative_to(output).as_posix() for p in output.rglob("*") if p.is_file()}

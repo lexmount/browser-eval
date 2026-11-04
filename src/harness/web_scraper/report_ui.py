@@ -19,6 +19,7 @@ CLIENT_MESSAGE_KEYS = (
     "failure_repair",
     "field",
     "field_labels_availability",
+    "field_labels_OutOfStock",
     "field_labels_price",
     "field_labels_sku",
     "full_result",

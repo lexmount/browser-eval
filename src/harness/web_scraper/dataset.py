@@ -64,6 +64,17 @@ def registry_sha256():
     return bytes_sha256(Path(__file__).read_bytes())
 
 
+def task_bindings(home):
+    config = benchmark_config(home)
+    if config["adapter"] is None:
+        return {}
+    return {
+        "task_adapter_sha256": adapter_sha256(home),
+        "dataset_profile_sha256": bytes_sha256(config["profile"].read_bytes()),
+        "dataset_registry_sha256": registry_sha256(),
+    }
+
+
 def distribution_identity(home: Path, pin, selection):
     """Link a published dataset only after matching the report's frozen inputs."""
     if selection["track"] != "web-scraper" or not selection.get("revision"):
