@@ -2366,9 +2366,9 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   selected=[c for c in cases.values() if report_family(c)==track]
   coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if report_family(cases[r["case_id"]])==track})} 种已测方法'
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit,diagnostic=diagnostic)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
- overall_title=('任务判定汇总（非排名）' if diagnostic else model_text('本轮任务通过率排名','Task pass-rate ranking for this sample') if local_pass_rate_ranking(dataset) else '综合通过率总榜')
+ overall_title=model_text('本轮任务通过率排名','Task pass-rate ranking for this sample') if diagnostic or local_pass_rate_ranking(dataset) else '综合通过率总榜'
  combined=dataset.get('comparison',{}).get('presentation',{}).get('combined_ranking',True)
- if score_audit or not combined:overall_title='任务通过情况'
+ if not combined:overall_title='任务通过情况'
  budgets={m['timeout_seconds'] for m in manifests if m.get('timeout_seconds') is not None}
  home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None,combined=combined),'overall-ranking')
  home+=input_suite_comparison(dataset,cases,records)

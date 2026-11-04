@@ -368,6 +368,8 @@ def test_saved_ranks_preserve_diagnostic_evidence_disclosure(tmp_path, presentat
     if diagnostic:
         assert '名次按最终选用的结果和当前验收规则计算' in page.get_text()
         assert '未认证' in page.get_text()
+        assert '本轮任务通过率排名' in page.get_text()
+        assert '任务判定汇总（非排名）' not in page.get_text()
 
 
 @pytest.mark.parametrize('presentation,source_check', [('audit', False), ('audit', True), ('final', True)])
