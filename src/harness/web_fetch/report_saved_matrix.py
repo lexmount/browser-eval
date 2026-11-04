@@ -31,7 +31,7 @@ from harness.web_fetch.artifacts import (
     verify_record_artifacts,
 )
 from harness.web_fetch.models import report_family
-from harness.record_io import file_sha256 as _sha, json_bytes
+from harness.record_io import canonical_json_sha256, file_sha256 as _sha, json_bytes
 
 
 # Only source validation can establish final-render admission. Serialized summaries
@@ -39,14 +39,10 @@ from harness.record_io import file_sha256 as _sha, json_bytes
 _FINAL_ADMISSION = ContextVar('saved_matrix_final_admission', default=None)
 
 
-def _fingerprint(value):
-    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
-
-
 @contextmanager
 def _source_validated_render(output, model):
     token = _FINAL_ADMISSION.set({'output': Path(output).resolve(),
-                                  'model': _fingerprint(model)})
+                                  'model': canonical_json_sha256(model)})
     try:
         yield
     finally:
@@ -56,7 +52,7 @@ def _source_validated_render(output, model):
 def _require_source_admission(output, model):
     admission = _FINAL_ADMISSION.get()
     if (admission is None or admission['output'] != Path(output).resolve()
-            or admission['model'] != _fingerprint(model)):
+            or admission['model'] != canonical_json_sha256(model)):
         raise ValueError('A portable final report requires source-backed admission; use the saved-matrix builder')
     return admission
 
@@ -66,7 +62,7 @@ def _require_final_projection(output, dataset, records):
         return
     admission = _FINAL_ADMISSION.get()
     if (admission is None or admission['output'] != Path(output).resolve()
-            or admission.get('projection') != _fingerprint([dataset, records])):
+            or admission.get('projection') != canonical_json_sha256([dataset, records])):
         raise ValueError('Final saved results require source-backed admission')
 
 
@@ -2417,7 +2413,7 @@ def _saved_renderer_projection(output, model):
             {(record['provider'], cases[record['case_id']]['report_family']) for record in records})
         require_reliable(dataset, records)
         admission = _require_source_admission(output, model)
-        admission['projection'] = _fingerprint([dataset, records])
+        admission['projection'] = canonical_json_sha256([dataset, records])
     return dataset, records, identities, scope
 
 

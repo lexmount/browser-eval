@@ -1164,9 +1164,9 @@ def test_parameter_report_requires_authorized_native_execution(tmp_path, defect)
     config_path.write_text(json.dumps(config), encoding='utf-8')
     digest = hashlib.sha256(config_path.read_bytes()).hexdigest()
     manifest.update(provider_config_source=str(config_path), provider_config_sha256=digest,
-                    parameters={'timeout': 45})
+                    parameters={'timeout': 45, 'max_failure_retries': 0})
     (tmp_path/'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
-    contract = {'provider_config_sha256': digest, 'timeout_seconds': 45}
+    contract = {'provider_config_sha256': digest, 'timeout_seconds': 45, 'max_failure_retries': 0}
     record = {'provider': provider.name, 'case_id': case.id, 'url': case.url,
               'started_at': started, 'ok': result.ok,
               'provider_metadata': {'dns_mode': 'system', 'native_route_receipt': ledger.receipt(provider, case)}}

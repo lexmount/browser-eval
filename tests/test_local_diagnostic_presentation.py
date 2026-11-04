@@ -9,7 +9,7 @@ from harness.web_fetch.report import generate, local_audit_banner, overall_ranki
 from tests.test_report_body_scope import case, record
 
 
-def test_diagnostic_tables_sort_saved_pass_rates_without_assigning_ranks():
+def test_diagnostic_tables_use_provider_order_without_assigning_ranks():
     c = case('body', kind='body', track='web')
     high = record(c)
     high['provider'] = 'z-high'
@@ -19,11 +19,13 @@ def test_diagnostic_tables_sort_saved_pass_rates_without_assigning_ranks():
                      ranking([high, low], {c['id']: c}, 'web', diagnostic=True)):
         soup = BeautifulSoup(rendered, 'html.parser')
         table = soup.select_one('table.ranking')
-        assert table.get('data-col') == '2'
-        assert table.get('data-dir') == 'desc'
+        assert table.get('data-col') == '0'
+        assert table.get('data-dir') == 'asc'
+        assert table.get('data-row-index') == 'false'
+        assert not table.select('.comparison-winner')
         assert table.select_one('th').get_text(strip=True).startswith('方法')
         rows = table.select('tbody tr')
-        assert ['z-high', 'a-low'] == [row.select_one('td a')['href'].split('/')[-1].removesuffix('.html') for row in rows]
+        assert ['a-low', 'z-high'] == [row.select_one('td a')['href'].split('/')[-1].removesuffix('.html') for row in rows]
         assert len(rows[0].select('td')) == len(table.select('th'))
         assert '0)' in table.select_one('th button')['onclick']
     # Certified comparisons retain their existing score order and ordinal column.
