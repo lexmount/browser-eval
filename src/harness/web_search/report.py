@@ -7,9 +7,12 @@ import math
 import posixpath
 import re
 from collections import Counter
+from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
 from statistics import median
+from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from bs4 import BeautifulSoup
@@ -449,24 +452,62 @@ def assessment_profile(profile, relevance, review):
         protocol["review"] = "Complete result audit with per-output opinions and finding adjudications." if review["scope"] == "all" else "Failure-only result audit; successful outputs outside the review are counted explicitly."
     return dict(profile, protocol=protocol, **({"independent_result_review_scope": review["scope"], "factual_quality_exclusions": exclusions} if review else {}))
 
-def build(
-    output,
-    *,
-    profile_path=None,
-    source=None,
-    content=None,
-    language="zh",
-    include_english=False,
-    correction=None,
-    relevance=None,
-    review=None,
-    site_prefix="",
-    cohorts=(),
-):
+
+@dataclass(frozen=True)
+class ReportInputs:
+    """Loaded and validated evidence that every bundle and page stage reads."""
+
+    output: Path
+    languages: list[str]
+    site_prefix: str
+    content: Path | None
+    content_bytes: bytes | None
+    authored: dict[str, Any]
+    reading_sections: list[dict[str, Any]]
+    authority: dict[str, Any]
+    profile: dict[str, Any]
+    collection_profile: dict[str, Any]
+    rows: list[dict[str, Any]]
+    selected: list[dict[str, Any]]
+    receipt: dict[str, Any]
+    public_files: dict[str, bytes]
+    redactions: list[dict[str, Any]]
+    billing_corrections: list[dict[str, Any]]
+    scoring_revision: dict[str, Any] | None
+    assessment_revision: dict[str, Any] | None
+    review_data: dict[str, Any] | None
+    review_percent: int | float | None
+    relevance_data: dict[str, Any] | None
+    relevance_scores: list[dict[str, Any]] | None
+    overview_methods: list[dict[str, Any]]
+    overview_rows: list[dict[str, Any]]
+    overview_summary: dict[str, Any]
+    all_call_summary: dict[str, Any]
+    payloads: dict[str, Any]
+    diagnostics: Any
+
+
+@dataclass(frozen=True)
+class ReportEdition:
+    """One language edition: its route prefix, navigation, notice and the shared route list."""
+
+    lang: str
+    zh: bool
+    prefix: str
+    t: Callable[..., str]
+    nav: list[tuple[str, str]]
+    state: str
+    routes: list[str]
+
+
+def _validate_build_options(language: str, site_prefix: str) -> None:
     if language not in ("en", "zh"):
         raise ValueError("Unsupported primary report language; choose en or zh")
     if site_prefix and ("/" in site_prefix or not site_prefix.replace("-", "").isalnum()):
         raise ValueError("Site prefix must be one safe directory name")
+
+
+def _read_authored_content(content: Path | None) -> tuple[bytes | None, dict[str, Any], list[dict[str, Any]]]:
     content_bytes = content.read_bytes() if content else None
     authored = json.loads(content_bytes) if content_bytes is not None else {"sections": []}
     reading_sections = authored.get("reading_sections", [])
@@ -474,11 +515,21 @@ def build(
         not p["key"].replace("-", "").isalnum() for p in reading_sections
     ):
         raise ValueError("Unsafe or overlapping reading section")
+    return content_bytes, authored, reading_sections
+
+
+def _load_assessment_authority(profile_path: str | Path | None) -> dict[str, Any]:
     authority = {}
     if profile_path is not None:
         selector = json.loads(Path(profile_path).read_bytes())
         if selector.get("assessment_authority"):
             authority = _bound(Path(profile_path).resolve().parent, selector["assessment_authority"])
+    return authority
+
+
+def _load_collection(
+    profile_path: str | Path | None, source: Path | None, cohorts: Iterable[Any], authored: dict[str, Any]
+) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
     sources = {}
     if cohorts:
         if not source:
@@ -493,8 +544,17 @@ def build(
         validate_profile(profile)
         rows = []
         receipt = {"certified": False}
-    collection_profile = profile
-    rows, public_files, redactions, billing_corrections = public_calls(profile, rows, source, sources)
+    return profile, rows, receipt, sources
+
+
+def _apply_revisions(
+    correction: Path | None,
+    authored: dict[str, Any],
+    authority: dict[str, Any],
+    profile: dict[str, Any],
+    rows: list[dict[str, Any]],
+    public_files: dict[str, bytes],
+) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any] | None, dict[str, Any] | None]:
     scoring_revision = None
     if correction:
         revision = json.loads(correction.read_text(encoding="utf-8"))
@@ -509,15 +569,19 @@ def build(
         validate_revision_binding(authored["assessment_revision"], normalizer=normalize_response, authority=authority)
         profile, rows, changes = apply_report_revision(profile, rows, authored["assessment_revision"], artifacts=public_files, normalizer=normalize_response)
         assessment_revision = {"contract": authored["assessment_revision"], "changes": changes, "implementation_sha256": {name: bytes_sha256(path.read_bytes()) for name, path in implementation_sources().items()}}
-    profile, rows = project_comparison(profile, rows, authored)
-    materialized_paths = {e["path"] for r in rows for e in [r["evidence"], *[a["evidence"] for a in r.get("attempts", [])]]}
-    redactions = [r for r in redactions if r["path"] in materialized_paths]
-    billing_corrections = [r for r in billing_corrections if r["path"] in materialized_paths]
-    output = Path(output).resolve()
-    output.mkdir(parents=True, exist_ok=True)
-    languages = ["zh", "en"] if include_english or language == "en" else ["zh"]
-    routes = []
-    selected = scoring_rows(profile, rows)
+    return profile, rows, scoring_revision, assessment_revision
+
+
+def _load_assessment(
+    output: Path,
+    review: Path | None,
+    relevance: Path | None,
+    authored: dict[str, Any],
+    authority: dict[str, Any],
+    profile: dict[str, Any],
+    selected: list[dict[str, Any]],
+) -> tuple[dict[str, Any] | None, int | float | None, dict[str, Any] | None]:
+    """Validate the review and relevance inputs; a validated review is written at once."""
     review_data = json.loads(review.read_text(encoding="utf-8")) if review else None
     relevance_data = json.loads(relevance.read_text(encoding="utf-8")) if relevance else None
     review_percent = None
@@ -530,15 +594,10 @@ def build(
             relevance_data = import_annotations(profile, selected, relevance_data)
         verify_provenance(profile, selected, relevance_data, authority=authority)
         verify_protocol(profile, relevance_data, authored.get("relevance_revision"), authority=authority)
-    profile = assessment_profile(profile, relevance_data, review_data)
-    relevance_scores = (
-        score_relevance(profile, selected, relevance_data["plan"], relevance_data["labels"])
-        if relevance_data else None
-    )
-    overview_methods = scoped_overview_methods(profile, authored)
-    overview_rows = scoped_overview_rows(profile, rows, authored)
-    summary = aggregate(scoring_rows(profile, overview_rows))
-    physical = aggregate(overview_rows)
+    return review_data, review_percent, relevance_data
+
+
+def _response_payloads(rows: list[dict[str, Any]], public_files: dict[str, bytes]) -> dict[str, Any]:
     payloads = {}
     for r in rows:
         try:
@@ -547,8 +606,84 @@ def build(
             )
         except ValueError:
             payloads[r["id"]] = {}
+    return payloads
+
+
+def _load_report_inputs(
+    output: str | Path,
+    *,
+    profile_path: str | Path | None,
+    source: Path | None,
+    content: Path | None,
+    language: str,
+    include_english: bool,
+    correction: Path | None,
+    relevance: Path | None,
+    review: Path | None,
+    site_prefix: str,
+    cohorts: Iterable[Any],
+) -> ReportInputs:
+    content_bytes, authored, reading_sections = _read_authored_content(content)
+    authority = _load_assessment_authority(profile_path)
+    profile, rows, receipt, sources = _load_collection(profile_path, source, cohorts, authored)
+    collection_profile = profile
+    rows, public_files, redactions, billing_corrections = public_calls(profile, rows, source, sources)
+    profile, rows, scoring_revision, assessment_revision = _apply_revisions(correction, authored, authority, profile, rows, public_files)
+    profile, rows = project_comparison(profile, rows, authored)
+    materialized_paths = {e["path"] for r in rows for e in [r["evidence"], *[a["evidence"] for a in r.get("attempts", [])]]}
+    redactions = [r for r in redactions if r["path"] in materialized_paths]
+    billing_corrections = [r for r in billing_corrections if r["path"] in materialized_paths]
+    output = Path(output).resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    languages = ["zh", "en"] if include_english or language == "en" else ["zh"]
+    selected = scoring_rows(profile, rows)
+    review_data, review_percent, relevance_data = _load_assessment(output, review, relevance, authored, authority, profile, selected)
+    profile = assessment_profile(profile, relevance_data, review_data)
+    relevance_scores = (
+        score_relevance(profile, selected, relevance_data["plan"], relevance_data["labels"])
+        if relevance_data else None
+    )
+    overview_methods = scoped_overview_methods(profile, authored)
+    overview_rows = scoped_overview_rows(profile, rows, authored)
+    overview_summary = aggregate(scoring_rows(profile, overview_rows))
+    all_call_summary = aggregate(rows)
+    payloads = _response_payloads(rows, public_files)
     diagnostics = operational(rows, payloads, profile["methods"])
-    bundle = []
+    return ReportInputs(
+        output=output,
+        languages=languages,
+        site_prefix=site_prefix,
+        content=content,
+        content_bytes=content_bytes,
+        authored=authored,
+        reading_sections=reading_sections,
+        authority=authority,
+        profile=profile,
+        collection_profile=collection_profile,
+        rows=rows,
+        selected=selected,
+        receipt=receipt,
+        public_files=public_files,
+        redactions=redactions,
+        billing_corrections=billing_corrections,
+        scoring_revision=scoring_revision,
+        assessment_revision=assessment_revision,
+        review_data=review_data,
+        review_percent=review_percent,
+        relevance_data=relevance_data,
+        relevance_scores=relevance_scores,
+        overview_methods=overview_methods,
+        overview_rows=overview_rows,
+        overview_summary=overview_summary,
+        all_call_summary=all_call_summary,
+        payloads=payloads,
+        diagnostics=diagnostics,
+    )
+
+
+def _write_assessment_files(inputs: ReportInputs, bundle: list[dict[str, Any]]) -> None:
+    output, authority, review_data, relevance_data = inputs.output, inputs.authority, inputs.review_data, inputs.relevance_data
+    profile, selected = inputs.profile, inputs.selected
     if authority:
         write_json(output / "assessment-authority.json", authority)
         bundle.append({"path": "assessment-authority.json", "sha256": bytes_sha256((output / "assessment-authority.json").read_bytes())})
@@ -563,6 +698,10 @@ def build(
         target = output / "relevance-judgments.json"
         target.write_text(json.dumps(relevance_data, ensure_ascii=False, indent=2), encoding="utf-8")
         bundle.append({"path": target.name, "sha256": bytes_sha256(target.read_bytes())})
+
+
+def _write_license_and_assets(inputs: ReportInputs, bundle: list[dict[str, Any]]) -> None:
+    output, authored, content = inputs.output, inputs.authored, inputs.content
     notice = definition_path("NOTICE.txt")
     notice_target = output / "query-catalog-license.txt"
     notice_target.write_bytes(notice.read_bytes())
@@ -575,12 +714,19 @@ def build(
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes((content.parent / asset["source"]).read_bytes())
         bundle.append({"path": asset["path"], "sha256": asset["sha256"]})
+
+
+def _remove_previous_routes(output: Path) -> None:
     if (output / "manifest.json").exists():
         old_manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
         for route in [*old_manifest["routes"], *old_manifest.get("language_notices", [])]:
             old = (output / route).resolve()
             if old.is_relative_to(output) and old.is_file():
                 old.unlink()
+
+
+def _write_public_calls(inputs: ReportInputs, bundle: list[dict[str, Any]]) -> None:
+    output, rows, public_files = inputs.output, inputs.rows, inputs.public_files
     for r in rows:
         for evidence in [r["evidence"], *[a["evidence"] for a in r.get("attempts", [])]]:
             if evidence in bundle:
@@ -589,635 +735,813 @@ def build(
             target.parent.mkdir(exist_ok=True)
             target.write_bytes(public_files[evidence["path"]])
             bundle.append(evidence)
-    for lang in languages:
-        zh = lang == "zh"
-        prefix = "" if lang == "zh" else lang + "/"
 
-        t = partial(report_text, zh=zh)
 
-        page_registry = reader_pages(authored.get("presentation"), reviewed=bool(review_data))
-        nav = [(p["route"], p[lang]) for p in page_registry if p["nav"]]
-        if reading_sections and authored.get("presentation") != "comparison-report":
-            nav = (
-                [("index.html", t("Overview"))]
-                + [("index.html#" + p["key"], p["nav"][lang]) for p in reading_sections]
-                + [("interpretation.html", t("Report interpretation"))]
-                + [entry for entry in nav[1:] if entry[0] != "interpretation.html"]
-            )
-        state = (
-            t("Measured API evaluation · frozen model relevance labels and deterministic metrics.") if relevance_data and relevance_data["judge"]["kind"] == "model" else t("Measured API evaluation · human relevance labels and deterministic metrics.") if relevance_data else t("Measured API evaluation · automated target checks, no relevance labels.")
-            if rows
-            else t("Evaluation design preview. No API performance ranking.")
-        )
-        if rows and len(profile["methods"]) == 1:
-            state = t("Single-provider preflight; no cross-provider comparison.")
-        if receipt.get("synthetic"):
-            state = t("Synthetic fixture — not API measurements.")
-        if rows and not receipt["certified"]:
-            state += t(" Diagnostic evidence.")
-        if authored.get("reading_model") and rows and receipt.get("certified"):
-            state = t("Measured Search API responses and documented capabilities · each metric states its evidence scope.")
+def _write_public_bundle(inputs: ReportInputs) -> list[dict[str, Any]]:
+    bundle: list[dict[str, Any]] = []
+    _write_assessment_files(inputs, bundle)
+    _write_license_and_assets(inputs, bundle)
+    _remove_previous_routes(inputs.output)
+    _write_public_calls(inputs, bundle)
+    return bundle
 
-        def page(route, title, body, prefix=prefix, lang=lang, nav=nav, state=state, t=t):
-            path = output / prefix / route
-            path.parent.mkdir(parents=True, exist_ok=True)
-            back = "../" if route.startswith("details/") else ""
-            depth = "../" * (len(Path(prefix + route).parts) - 1 + bool(site_prefix))
-            navigation = "".join(f'<a href="{back}{p}">{label}</a>' for p, label in nav)
-            if len(languages) > 1:
-                other = "zh" if lang == "en" else "en"
-                otherprefix = "" if other == "zh" else other + "/"
-                language_depth = "../" * (len(Path(prefix + route).parts) - 1)
-                navigation += f'''<a href="{language_depth}{otherprefix}{route}">{(zh_text("Chinese") if other == 'zh' else 'English')}</a>'''
-            elif lang == "zh" and authored.get("presentation") != "comparison-report":
-                language_depth = "../" * (len(Path(prefix + route).parts) - 1)
-                navigation += f'<a href="{language_depth}en/index.html">English</a>'
-            navigation += f"<button data-theme>{t('Theme')}</button>"
-            if site_prefix:
-                navigation += f'''<a href="{depth}index.html">{t("Main comparison")}</a>'''
-            notice_html = f'<p class="notice" data-state>{state}</p>'
-            if authored.get("presentation") == "comparison-report" and receipt.get("certified") and not receipt.get("synthetic"):
-                notice_html = ''
-            document = BeautifulSoup(
-                f'''<!doctype html><html lang="{lang}"><head><base href="{depth or './'}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · {t("Web Search")}</title><style>{STYLE}</style></head><body><nav>{navigation}</nav><main><p class="muted">{t("Browser Eval / Web Search")}</p><h1>{esc(title)}</h1>{notice_html}{body}</main><dialog aria-label="{t("Response evidence")}"><button data-close>{t("Close")}</button><pre></pre><a hidden>{t("Full result")}</a></dialog><script>{SCRIPT}</script></body></html>''',
-                "html.parser",
-            )
-            # Artifact Site injects a root base on every nested route. Local pages use
-            # the matching base above; every artifact-owned link names the root path.
-            for node in document.select("[href],[data-evidence],[data-detail]"):
-                if node.name == "base":
-                    continue
-                for attr in ("href", "data-evidence", "data-detail"):
-                    value = node.get(attr)
-                    if value and not value.startswith(("https://", "http://", "#")):
-                        asset_paths = {a["path"] for a in authored.get("assets", [])}
-                        if relevance_data:
-                            asset_paths.add("relevance-judgments.json")
-                        if review_data:
-                            asset_paths.add("independent-review.json")
-                        node[attr] = posixpath.normpath(
-                            posixpath.join(
-                                site_prefix,
-                                "" if value in asset_paths else posixpath.dirname(prefix + route),
-                                value,
-                            )
-                        )
-            if authored.get("presentation") == "comparison-report":
-                footer = document.new_tag("footer")
-                for target, label in [("research.html", t("Method and FAQ")), ("review.html", t("Review evidence"))]:
-                    if target == "review.html" and not review_data:
-                        continue
-                    link = document.new_tag("a", href=posixpath.join(site_prefix, prefix, target))
-                    link.string = label
-                    if target == "review.html":
-                        link.string = label + f" · {review_percent}% · {review_data['case_reviewed']}/{review_data['case_total']}" + t(" queries · ") + f"{review_data['output_reviewed']}/{review_data['output_total']}" + t(" outputs")
-                        link['data-review-coverage'] = ''
-                        link['data-review-percent'] = str(review_percent)
-                        link['data-reviewed-queries'] = f"{review_data['case_reviewed']}/{review_data['case_total']}"
-                        link['data-reviewed-outputs'] = f"{review_data['output_reviewed']}/{review_data['output_total']}"
-                    footer.append(link)
-                document.main.append(footer)
-            path.write_text(str(document).replace("</head>", REPORT_PAGE_MARKER + "</head>"), encoding="utf-8")
-            routes.append(prefix + route)
 
-        hit_key = "anchor_hit_5" if profile["protocol"]["top_k"] == 5 else "anchor_hit_10"
-        cutoff = profile["protocol"]["top_k"]
-        headers = [
-            t("Method"),
-            t("Nonempty / queries"),
-            t("Mean ms"),
-            "P50 ms",
-            "P95 ms",
-            t("Known page@{cutoff}", context="target rank", cutoff=cutoff),
-            t("Price / 1k"),
-        ]
-        summary = aggregate(scoring_rows(profile, overview_rows))
-        physical = aggregate(overview_rows)
-        entries = []
-        for m in overview_methods:
-            s = summary.get(m["id"])
-            a = s["all_latency"] if s else {}
-            hit = s["metrics"][hit_key] if s else {"mean": None, "n": 0}
-            entries.append(
-                [
-                    m["label"],
-                    s["nonempty"] if s else None,
-                    a.get("mean"),
-                    a.get("p50"),
-                    a.get("p95"),
-                    hit["mean"],
-                    m["price_per_1000"],
-                ]
-            )
-        directions = {1: "max", 2: "min", 3: "min", 4: "min", 5: "max", 6: "min" if len({m["currency"] for m in overview_methods}) == 1 else "neutral"}
-        winners = numeric_winners(entries, directions)
-        core = []
-        for entry, m in zip(entries, overview_methods, strict=True):
-            td = []
-            for i, value in enumerate(entry):
-                label = esc(value) if i == 0 else fmt(value)
-                if i == 1 and value is not None:
-                    label = f"{value}/{summary[m['id']]['n']}"
-                if i == 6:
-                    label += " " + m["currency"]
-                if i == 5 and value is not None:
-                    label = t("{value:.1f}% ({n} queries)", value=value * 100, n=summary[m['id']]['metrics'][hit_key]['n'])
-                win = i in winners and value == winners[i]
-                td.append(numeric_cell(label, value if i else None, ("method", "nonempty", "mean-ms", "p50-ms", "p95-ms", "target-hit", "price-per-1000")[i], directions.get(i, "neutral"), win))
-            core.append("<tr>" + "".join(td) + "</tr>")
-        summary = aggregate(selected)
-        physical = aggregate(rows)
-        body = table(headers, core, True)
+def _report_edition(inputs: ReportInputs, lang: str, routes: list[str]) -> ReportEdition:
+    authored, reading_sections, review_data, relevance_data = inputs.authored, inputs.reading_sections, inputs.review_data, inputs.relevance_data
+    profile, rows, receipt = inputs.profile, inputs.rows, inputs.receipt
+    zh = lang == "zh"
+    prefix = "" if lang == "zh" else lang + "/"
 
-        body += cohort_summary(profile, rows, zh)
-        body += authored_sections(authored, "summary", lang)
-        if receipt.get("reference_capture_issues"):
-            body += (
-                '<p class="notice">'
-                + t("{reference_capture_issues} reference captures have HTTP or transfer failures. This cohort remains diagnostic and cannot certify source-text quality.", reference_capture_issues=len(receipt['reference_capture_issues']))
-                + "</p>"
-            )
+    t = partial(report_text, zh=zh)
 
-        body += (
-            "<p>"
-            + t("All-call latency includes failures and every declared round. P50 is the median; P95 uses nearest rank. Quality uses only the preselected first round. A known-page miss is not proof of irrelevant results.")
-            + "</p>"
+    page_registry = reader_pages(authored.get("presentation"), reviewed=bool(review_data))
+    nav = [(p["route"], p[lang]) for p in page_registry if p["nav"]]
+    if reading_sections and authored.get("presentation") != "comparison-report":
+        nav = (
+            [("index.html", t("Overview"))]
+            + [("index.html#" + p["key"], p["nav"][lang]) for p in reading_sections]
+            + [("interpretation.html", t("Report interpretation"))]
+            + [entry for entry in nav[1:] if entry[0] != "interpretation.html"]
         )
-        body += (
-            "<p>"
-            + t("Charges use the prices and billing rules frozen in each method configuration. Unset prices remain unavailable. API charges exclude downstream models and additional fetches.")
-            + "</p>"
-        )
-        body += comparison_tables(profile, selected, rows, zh)
-        body += (
-            "<p>"
-            + t("Collected methods: {methods}. Declared rounds: {rounds}.", methods=len(profile['methods']), rounds=profile['protocol']['rounds'])
-            + "</p>"
-        )
-        body += (
-            "<h2>"
-            + t("What is compared")
-            + '</h2><div class="flow">'
-            + "".join(
-                "<span>" + v + "</span>"
-                for v in [
-                    t("{cases} frozen queries", cases=len(profile['cases'])),
-                    t("Same top-{cutoff} budget", cutoff=cutoff),
-                    t("Serial API calls"),
-                    t("Saved responses & metrics"),
-                ]
-            )
-            + "</div>"
-        )
-        body += (
-            "<p>"
-            + t("Web, site-restricted and vertical queries remain separate populations. Saved requests show each method’s native controls; the comparison uses delivered search text without an answering model.")
-            + "</p>"
-        )
-        if rows:
-            body += latency_rounds(profile, rows, zh)
-            body += "<h2>" + t("Successful-call latency") + "</h2>"
-            body += table(
-                [t("Method"), "N", t("Mean ms", context="duration"), "P50 ms", "P95 ms"],
-                [
-                    cells(
-                        [
-                            esc(m["label"]),
-                            str(physical[m["id"]]["success_latency"]["n"]),
-                            *[
-                                fmt(physical[m["id"]]["success_latency"][k])
-                                for k in ("mean", "p50", "p95")
-                            ],
-                        ]
+    state = (
+        t("Measured API evaluation · frozen model relevance labels and deterministic metrics.") if relevance_data and relevance_data["judge"]["kind"] == "model" else t("Measured API evaluation · human relevance labels and deterministic metrics.") if relevance_data else t("Measured API evaluation · automated target checks, no relevance labels.")
+        if rows
+        else t("Evaluation design preview. No API performance ranking.")
+    )
+    if rows and len(profile["methods"]) == 1:
+        state = t("Single-provider preflight; no cross-provider comparison.")
+    if receipt.get("synthetic"):
+        state = t("Synthetic fixture — not API measurements.")
+    if rows and not receipt["certified"]:
+        state += t(" Diagnostic evidence.")
+    if authored.get("reading_model") and rows and receipt.get("certified"):
+        state = t("Measured Search API responses and documented capabilities · each metric states its evidence scope.")
+    return ReportEdition(lang=lang, zh=zh, prefix=prefix, t=t, nav=nav, state=state, routes=routes)
+
+
+def _write_page(inputs: ReportInputs, edition: ReportEdition, route: str, title: str, body: str) -> None:
+    output, languages, site_prefix, authored = inputs.output, inputs.languages, inputs.site_prefix, inputs.authored
+    receipt, review_data, review_percent, relevance_data = inputs.receipt, inputs.review_data, inputs.review_percent, inputs.relevance_data
+    lang, prefix, t, nav, state, routes = edition.lang, edition.prefix, edition.t, edition.nav, edition.state, edition.routes
+    path = output / prefix / route
+    path.parent.mkdir(parents=True, exist_ok=True)
+    back = "../" if route.startswith("details/") else ""
+    depth = "../" * (len(Path(prefix + route).parts) - 1 + bool(site_prefix))
+    navigation = "".join(f'<a href="{back}{p}">{label}</a>' for p, label in nav)
+    if len(languages) > 1:
+        other = "zh" if lang == "en" else "en"
+        otherprefix = "" if other == "zh" else other + "/"
+        language_depth = "../" * (len(Path(prefix + route).parts) - 1)
+        navigation += f'''<a href="{language_depth}{otherprefix}{route}">{(zh_text("Chinese") if other == 'zh' else 'English')}</a>'''
+    elif lang == "zh" and authored.get("presentation") != "comparison-report":
+        language_depth = "../" * (len(Path(prefix + route).parts) - 1)
+        navigation += f'<a href="{language_depth}en/index.html">English</a>'
+    navigation += f"<button data-theme>{t('Theme')}</button>"
+    if site_prefix:
+        navigation += f'''<a href="{depth}index.html">{t("Main comparison")}</a>'''
+    notice_html = f'<p class="notice" data-state>{state}</p>'
+    if authored.get("presentation") == "comparison-report" and receipt.get("certified") and not receipt.get("synthetic"):
+        notice_html = ''
+    document = BeautifulSoup(
+        f'''<!doctype html><html lang="{lang}"><head><base href="{depth or './'}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · {t("Web Search")}</title><style>{STYLE}</style></head><body><nav>{navigation}</nav><main><p class="muted">{t("Browser Eval / Web Search")}</p><h1>{esc(title)}</h1>{notice_html}{body}</main><dialog aria-label="{t("Response evidence")}"><button data-close>{t("Close")}</button><pre></pre><a hidden>{t("Full result")}</a></dialog><script>{SCRIPT}</script></body></html>''',
+        "html.parser",
+    )
+    # Artifact Site injects a root base on every nested route. Local pages use
+    # the matching base above; every artifact-owned link names the root path.
+    for node in document.select("[href],[data-evidence],[data-detail]"):
+        if node.name == "base":
+            continue
+        for attr in ("href", "data-evidence", "data-detail"):
+            value = node.get(attr)
+            if value and not value.startswith(("https://", "http://", "#")):
+                asset_paths = {a["path"] for a in authored.get("assets", [])}
+                if relevance_data:
+                    asset_paths.add("relevance-judgments.json")
+                if review_data:
+                    asset_paths.add("independent-review.json")
+                node[attr] = posixpath.normpath(
+                    posixpath.join(
+                        site_prefix,
+                        "" if value in asset_paths else posixpath.dirname(prefix + route),
+                        value,
                     )
-                    for m in profile["methods"]
-                ],
-            )
-        if authored.get("reading_model"):
-            body = authored_sections(authored, "lead", lang, rows=selected)
-            body += (
-                "<h2>" + t("Measured baseline") + "</h2>"
-                + "<p>" + esc(cohort_label(profile, authored.get("overview_cohort"), zh)) + "</p>"
-            )
-            overview_case_ids = {r["case_id"] for r in overview_rows}
-            target_count = sum(bool(c.get("anchors") or c.get("paper_ids") or c.get("repositories"))
-                               for c in profile["cases"] if c["id"] in overview_case_ids)
-            body += '<p class="muted">' + t("Nonempty counts queries with at least one result. Mean, P50 (median) and P95 cover all {overview_cases} queries in this table; 95% finish within the P95 time. Known page@{cutoff} checks whether a target URL appears in the first {cutoff} results, across {target_count} predeclared target-page queries.", overview_cases=len(overview_case_ids), cutoff=cutoff, target_count=target_count) + '</p>'
-            body += table(headers, core, True)
-            if profile["protocol"].get("retry"):
-                body += '<p class="lede">' + t("The same {cases} queries went to every provider. Each query has one final result; transport, HTTP or invalid-response failures receive one retry. Latency covers the complete user-visible request, including any retry. Empty valid results are not retried.", cases=len(profile['cases'])) + '</p>'
-            body += authored_sections(authored, "summary", lang, rows=selected)
-            for chapter in reading_sections:
-                body += (
-                    '<section id="'
-                    + esc(chapter["key"])
-                    + '" data-reading="'
-                    + esc(chapter["key"])
-                    + '"><h2>'
-                    + esc(chapter["title"][lang])
-                    + "</h2>"
-                    + authored_sections(authored, chapter["key"] + "-lead", lang, rows=selected, heading_level=3)
-                    + (capability_map(dict(profile, methods=overview_methods), selected, zh) if chapter["key"] == "capabilities" else "")
-                    + (relevance_panel(profile, relevance_scores, relevance_data, zh) if chapter["key"] == "quality" and relevance_scores else "")
-                    + (known_page_chart(dict(profile, methods=overview_methods), selected, zh) if chapter["key"] == "quality" else "")
-                    + (factual_panel(profile, selected, zh) if chapter["key"] == "quality" else "")
-                    + (mode_panel(profile, selected, zh) if chapter["key"] == "speed" else "")
-                    + authored_sections(
-                        authored, chapter["key"], lang, rows=selected, heading_level=3
-                    )
-                    + "</section>"
                 )
-        if not any(c["key"] == "speed" for c in reading_sections) and authored.get("presentation") != "comparison-report":
-            body += mode_panel(profile, selected, zh)
-        if authored.get("presentation") == "comparison-report":
-            body = authored_sections(authored, "lead", lang, rows=selected)
-            body += executive_table(profile, selected, authored, relevance_scores, zh)
-            body += discovery_comparison(profile, selected, authored, zh)
-            body += authored_sections(authored, "summary", lang, rows=selected)
-            for chapter_key, chapter_title in [("capabilities", t("API outputs")), ("quality", t("Retrieval quality"))]:
-                chapter_body = authored_sections(authored, chapter_key + "-lead", lang, rows=selected)
-                if chapter_key == "capabilities":
-                    chapter_body += capability_map(profile, selected, zh)
-                    chapter_body += authored_sections(authored, chapter_key, lang, rows=selected)
-                    if authored.get("interface_example_case_id"):
-                        chapter_body += interface_example(profile, selected, authored["interface_example_case_id"], zh)
-                else:
-                    chapter_body += authored_sections(authored, "quality-definitions", lang, rows=selected)
-                    chapter_body += relevance_panel(profile, relevance_scores, relevance_data, zh) if relevance_scores else ""
-                    chapter_body += factual_panel(profile, selected, zh, compact=True)
-                    chapter_body += authored_sections(authored, chapter_key, lang, rows=selected)
-                page(chapter_key + ".html", chapter_title, chapter_body)
-        if review_data and authored.get("presentation") != "comparison-report":
-            body += f'<p data-review-coverage data-review-percent="{review_percent}" data-reviewed-queries="{review_data["case_reviewed"]}/{review_data["case_total"]}" data-reviewed-outputs="{review_data["output_reviewed"]}/{review_data["output_total"]}"><a href="review.html">{review_percent}% · ' + t("Reviewed {case_reviewed}/{case_total} queries and {output_reviewed}/{output_total} outputs", case_reviewed=review_data['case_reviewed'], case_total=review_data['case_total'], output_reviewed=review_data['output_reviewed'], output_total=review_data['output_total']) + '</a></p>'
-        page(
-            "index.html",
-            authored.get("title", {}).get(lang)
-            or (
-                t("Web Search: {cases}-query comparison", cases=len(profile['cases']))
-                if profile.get("report_cohorts")
-                else t("Search quality, speed and cost")
-            ),
-            body,
+    if authored.get("presentation") == "comparison-report":
+        footer = document.new_tag("footer")
+        for target, label in [("research.html", t("Method and FAQ")), ("review.html", t("Review evidence"))]:
+            if target == "review.html" and not review_data:
+                continue
+            link = document.new_tag("a", href=posixpath.join(site_prefix, prefix, target))
+            link.string = label
+            if target == "review.html":
+                link.string = label + f" · {review_percent}% · {review_data['case_reviewed']}/{review_data['case_total']}" + t(" queries · ") + f"{review_data['output_reviewed']}/{review_data['output_total']}" + t(" outputs")
+                link['data-review-coverage'] = ''
+                link['data-review-percent'] = str(review_percent)
+                link['data-reviewed-queries'] = f"{review_data['case_reviewed']}/{review_data['case_total']}"
+                link['data-reviewed-outputs'] = f"{review_data['output_reviewed']}/{review_data['output_total']}"
+            footer.append(link)
+        document.main.append(footer)
+    path.write_text(str(document).replace("</head>", REPORT_PAGE_MARKER + "</head>"), encoding="utf-8")
+    routes.append(prefix + route)
+
+
+def _known_page_metric(profile: dict[str, Any]) -> str:
+    return "anchor_hit_5" if profile["protocol"]["top_k"] == 5 else "anchor_hit_10"
+
+
+def _core_metrics_table(inputs: ReportInputs, edition: ReportEdition) -> tuple[list[str], list[str]]:
+    """Return the headers and rows of the core comparison over the home page's overview scope."""
+    profile, overview_methods, summary = inputs.profile, inputs.overview_methods, inputs.overview_summary
+    t = edition.t
+    hit_key = _known_page_metric(profile)
+    cutoff = profile["protocol"]["top_k"]
+    headers = [
+        t("Method"),
+        t("Nonempty / queries"),
+        t("Mean ms"),
+        "P50 ms",
+        "P95 ms",
+        t("Known page@{cutoff}", context="target rank", cutoff=cutoff),
+        t("Price / 1k"),
+    ]
+    entries = []
+    for m in overview_methods:
+        s = summary.get(m["id"])
+        a = s["all_latency"] if s else {}
+        hit = s["metrics"][hit_key] if s else {"mean": None, "n": 0}
+        entries.append(
+            [
+                m["label"],
+                s["nonempty"] if s else None,
+                a.get("mean"),
+                a.get("p50"),
+                a.get("p95"),
+                hit["mean"],
+                m["price_per_1000"],
+            ]
         )
-        dataset_profile, dataset_content = quality_dataset(profile, authored)
-        ds = []
-        for c in dataset_profile["cases"]:
-            anchors = "<br>".join(
-                f'''<a href="{esc(u)}" title="{esc(u)}">{t("Target page")} · {esc(u.split('://', 1)[-1].split('/', 1)[0])}</a>'''
-                for u in c.get("anchors", [])
-            ) or t("No target URL declared")
-            if "reference_answer" in c:
-                anchors = esc(c["reference_answer"]) + "<br>" + "<br>".join('<a href="' + esc(u) + '">' + t("Labeled source") + "</a>" for u in c.get("reference_urls", []))
-            if c.get("paper_ids") or c.get("repositories"):
-                anchors += "<br>" + esc(
-                    ", ".join(c.get("paper_ids", []) + c.get("repositories", []))
-                )
-            if c.get("identity_aliases"):
-                anchors += "<br>" + t("Verified equivalent URLs: ")
-                anchors += "<br>".join(esc(u) for u in c["identity_aliases"])
-            ds.append(
+    directions = {1: "max", 2: "min", 3: "min", 4: "min", 5: "max", 6: "min" if len({m["currency"] for m in overview_methods}) == 1 else "neutral"}
+    winners = numeric_winners(entries, directions)
+    core = []
+    for entry, m in zip(entries, overview_methods, strict=True):
+        td = []
+        for i, value in enumerate(entry):
+            label = esc(value) if i == 0 else fmt(value)
+            if i == 1 and value is not None:
+                label = f"{value}/{summary[m['id']]['n']}"
+            if i == 6:
+                label += " " + m["currency"]
+            if i == 5 and value is not None:
+                label = t("{value:.1f}% ({n} queries)", value=value * 100, n=summary[m['id']]['metrics'][hit_key]['n'])
+            win = i in winners and value == winners[i]
+            td.append(numeric_cell(label, value if i else None, ("method", "nonempty", "mean-ms", "p50-ms", "p95-ms", "target-hit", "price-per-1000")[i], directions.get(i, "neutral"), win))
+        core.append("<tr>" + "".join(td) + "</tr>")
+    return headers, core
+
+
+def _default_home_body(inputs: ReportInputs, edition: ReportEdition, headers: list[str], core: list[str]) -> str:
+    profile, rows, selected, receipt, authored = inputs.profile, inputs.rows, inputs.selected, inputs.receipt, inputs.authored
+    physical = inputs.all_call_summary
+    lang, zh, t = edition.lang, edition.zh, edition.t
+    cutoff = profile["protocol"]["top_k"]
+    body = table(headers, core, True)
+
+    body += cohort_summary(profile, rows, zh)
+    body += authored_sections(authored, "summary", lang)
+    if receipt.get("reference_capture_issues"):
+        body += (
+            '<p class="notice">'
+            + t("{reference_capture_issues} reference captures have HTTP or transfer failures. This cohort remains diagnostic and cannot certify source-text quality.", reference_capture_issues=len(receipt['reference_capture_issues']))
+            + "</p>"
+        )
+
+    body += (
+        "<p>"
+        + t("All-call latency includes failures and every declared round. P50 is the median; P95 uses nearest rank. Quality uses only the preselected first round. A known-page miss is not proof of irrelevant results.")
+        + "</p>"
+    )
+    body += (
+        "<p>"
+        + t("Charges use the prices and billing rules frozen in each method configuration. Unset prices remain unavailable. API charges exclude downstream models and additional fetches.")
+        + "</p>"
+    )
+    body += comparison_tables(profile, selected, rows, zh)
+    body += (
+        "<p>"
+        + t("Collected methods: {methods}. Declared rounds: {rounds}.", methods=len(profile['methods']), rounds=profile['protocol']['rounds'])
+        + "</p>"
+    )
+    body += (
+        "<h2>"
+        + t("What is compared")
+        + '</h2><div class="flow">'
+        + "".join(
+            "<span>" + v + "</span>"
+            for v in [
+                t("{cases} frozen queries", cases=len(profile['cases'])),
+                t("Same top-{cutoff} budget", cutoff=cutoff),
+                t("Serial API calls"),
+                t("Saved responses & metrics"),
+            ]
+        )
+        + "</div>"
+    )
+    body += (
+        "<p>"
+        + t("Web, site-restricted and vertical queries remain separate populations. Saved requests show each method’s native controls; the comparison uses delivered search text without an answering model.")
+        + "</p>"
+    )
+    if rows:
+        body += latency_rounds(profile, rows, zh)
+        body += "<h2>" + t("Successful-call latency") + "</h2>"
+        body += table(
+            [t("Method"), "N", t("Mean ms", context="duration"), "P50 ms", "P95 ms"],
+            [
                 cells(
                     [
-                        esc(c["id"]),
-                        esc(
-                            cohort_label(profile, c.get("cohort"), zh)
-                            if profile.get("report_cohorts")
-                            else search_category(c["family"], zh)
-                        ),
-                        esc({"zh": t("Chinese"), "en": t("English")}.get(c["language"], c["language"])),
-                        esc(search_category(c.get("category", c["family"]), zh)),
-                        esc(provenance_label(c.get("provenance_kind", "curated"), zh)),
-                        esc(c["query"]),
-                        anchors,
-                        esc(source_note(c, zh))
-                        + "<br>"
-                        + (
-                            f'<a href="{esc(c["origin"])}">' + t("Source") + "</a>"
-                            if c["origin"].startswith("https://")
-                            else ""
-                        ),
+                        esc(m["label"]),
+                        str(physical[m["id"]]["success_latency"]["n"]),
+                        *[
+                            fmt(physical[m["id"]]["success_latency"][k])
+                            for k in ("mean", "p50", "p95")
+                        ],
                     ]
                 )
-            )
-        page(
-            "dataset.html",
-            t("Tests and sources"),
-            dataset_context(dataset_profile, dataset_content, zh)
-            + '<p><a href="https://huggingface.co/datasets/Lexmount/LexBench-Web-Search">'
-            + t("LexBench Web Search: dataset and sources")
-            + '</a> · <a href="https://github.com/lexmount/browser-eval/tree/main/src/lexbench_websearch">'
-            + t("Scoring code")
-            + "</a></p>"
-            + provenance_table(dataset_profile, zh)
-            + authored_sections(authored, "dataset", lang)
-            + f'<p><a href="{"../" if prefix else ""}query-catalog-license.txt">'
-            + t("Public query catalog attribution and license")
-            + "</a></p>"
-            + '<div class="dataset-controls">' + origin_filter(dataset_profile, zh)
-            + cohort_filter(dataset_profile, zh)
-            + population_filter(dataset_profile, dataset_content, zh)
-            + "<label>"
-            + t("Search queries, categories or sources")
-            + " <input data-query></label></div>"
-            + table(
-                [
-                    "ID",
-                    t("Benchmark"),
-                    t("Language"),
-                    t("Category"),
-                    t("Provenance", context="source type"),
-                    t("Query"),
-                    t("Reference page / answer"),
-                    t("Provenance"),
-                ],
-                [
-                    s.replace(
-                        "<tr>",
-                        f'<tr data-row data-state="all" data-cohort="{esc(c.get("cohort", ""))}" data-origin="{esc(origin_group(c))}" data-case-id="{esc(c["id"])}">',
-                        1,
-                    )
-                    for s, c in zip(ds, dataset_profile["cases"], strict=True)
-                ],
-                bounded=True,
-            ),
+                for m in profile["methods"]
+            ],
         )
-        inventory = []
-        bycase = {c["id"]: c for c in profile["cases"]}
-        method_labels = {method["id"]: method["label"] for method in profile["methods"]}
-        for r in selected:
-            cid = r["case_id"]
-            c = bycase[cid]
-            query_relevance = next((x for x in (relevance_scores or []) if x["case_id"] == cid and x["method"] == r["method"]), None)
-            status, reason = classify(c, r, cutoff=cutoff, quality_excluded=cid in profile.get("factual_quality_exclusions", []), relevance_grades=query_relevance["ranked_grades"] if query_relevance else None)
-            reason_label = {
-                "relevance_hit": t("Useful result found"),
-                "relevance_miss": t("No useful result found"),
-                "quality_excluded": t("Reference qualification excluded"),
-                "api_error": t("API or transport error"),
-                "empty": t("Empty result list"),
-                "domain_mismatch": t("Results outside the requested domain"),
-                "target_miss": t("Reference target absent from top {cutoff}", cutoff=cutoff),
-                "target_hit": t("Reference target found"),
-                "source_hit": t("Published supporting source found"),
-                "answer_hit": t("Reference answer text found"),
-                "answer_miss": t("Reference answer text absent"),
-                "domain_hit": t("Requested site found"),
-                "domain_miss": t("Requested site absent"),
-                "source_miss": t("Published supporting source not found"),
-                "probe": t("Unjudged query"),
-            }[reason]
-            target = "details/" + r["id"] + ".html"
-            state_label = {
-                "fail": t("Miss / error"),
-                "pass": t("Target hit"),
-                "probe": t("Unjudged query"),
-            }[status]
-            diagnostic_text = "\n".join(
-                [
-                    c["query"],
-                    reason_label,
-                    f"HTTP {r['http_status']}; {len(r['results'])} " + t("results"),
-                    error_evidence(r, payloads.get(r["id"], {}))
-                    or (
-                        t("Empty results array")
-                        if not r["results"]
-                        else t("Compare returned URLs with the independent reference target in the full result.")
-                    ),
-                ]
-            )
-            inventory.append(
-                f'''<tr data-row data-state="{status}" data-method="{esc(r['method'])}" data-cohort="{esc(c.get('cohort', ''))}" data-origin="{esc(origin_group(c))}"><td>{esc(cid)}<br>{esc(cohort_label(profile, c.get('cohort'), zh))}</td><td>{esc(c['query'])}</td><td>{esc(method_labels[r['method']])}</td><td>{esc(state_label)}</td><td>{fmt(r['elapsed_ms'])}</td><td><button data-diagnosis="{esc(diagnostic_text)}" data-detail="{target}">{t("Diagnosis")}</button> <a href="{target}">{t("Details")}</a></td></tr>'''
-            )
-            # Relative path from details/ to shared evidence at output root.
-            ev = ("../../" if prefix else "../") + r["evidence"]["path"]
-            detail = f"<section data-summary><p>{esc(c['query'])}</p><p>HTTP {r['http_status']} · {fmt(r['elapsed_ms'])} ms · {len(r['results'])} {t('results')}</p></section>"
-            if query_relevance:
-                detail += relevance_detail(query_relevance, zh)
-            if c.get('anchors'):
-                detail += '<h2>' + t("Webpage discovery references") + '</h2><ul>' + ''.join('<li><a href="' + esc(url) + '">' + esc(url) + '</a></li>' for url in c['anchors']) + '</ul>'
-            elif c.get('domains'):
-                detail += '<h2>' + t("Requested sites") + '</h2><p>' + esc(t(", ").join(c['domains'])) + '</p>'
-            if c.get("reference_annotation"):
-                detail += annotation_detail(c["reference_annotation"], zh)
-            elif c.get("anchors"):
-                detail += (
-                    "<p>"
-                    + t("These URLs define the known-page check; relevance is scored separately.")
-                    + "</p>"
-                )
-            if "reference_answer" in c:
-                detail += "<h3>" + t("Published answer and sources") + "</h3>"
-                detail += "<p>" + esc(c["reference_answer"]) + "</p>"
-                detail += "<ul>" + "".join(
-                    '<li><a href="' + esc(u) + '">' + esc(u) + "</a></li>"
-                    for u in c.get("reference_urls", [])
-                ) + "</ul>"
-                detail += "<p>" + t("Checks compare the first {cutoff} URLs with the published sources and look for the normalized answer phrase in individual returned fields. A phrase match is not a factual correctness or entailment judgment.", cutoff=cutoff) + "</p>"
-            if c.get("paper_ids") or c.get("repositories"):
-                detail += (
-                    "<p>"
-                    + esc(", ".join(c.get("paper_ids", []) + c.get("repositories", [])))
-                    + "</p>"
-                )
-            if c.get("identity_aliases"):
-                detail += "<p>" + t("Verified equivalent URLs: ")
-                detail += esc(", ".join(c["identity_aliases"])) + "</p>"
-            if query_relevance:
-                reason_label = t("Useful results: ") + str(query_relevance["useful"]) + f"/{cutoff}"
-            if review_data:
-                detail += render_detail(review_data, r["id"], zh)
-            diagnosis = reason_label
-            detail += "<p>" + diagnosis + "</p>"
-            detail += (
-                "<h2>"
-                + t("Actual request parameters")
-                + "</h2><pre data-request>"
-                + esc(json.dumps(r.get("request", {}), ensure_ascii=False, indent=2))
-                + "</pre>"
-            )
-            metric_labels = [
-                (hit_key, t("Known target@{cutoff}", cutoff=cutoff)),
-                ("reciprocal_rank", t("Reciprocal rank")),
-                ("domain_precision", t("Requested-domain fraction")),
-                ("duplicate_rate", t("Duplicate-document fraction")),
-                ("content_coverage", t("Results containing content")),
-            ]
-            detail_metrics = r["metrics"]
-            if "reference_answer" in c:
-                detail_metrics = {**r["metrics"], **factual_evidence(c, r["results"], cutoff=cutoff)}
-                metric_labels += [
-                    (f"labeled_source_hit_{cutoff}", t("Published source in top {cutoff}", cutoff=cutoff)),
-                    (f"labeled_source_rr_{cutoff}", t("Published-source reciprocal rank in top {cutoff}", cutoff=cutoff)),
-                    (f"answer_in_preview_{cutoff}", t("Answer phrase in title/snippet")),
-                    (f"answer_in_delivered_text_{cutoff}", t("Answer phrase in delivered text")),
-                ]
-            if "reference_answer" in c:
-                sensitivity = factual_sensitivity(c, r["results"], cutoff=cutoff)
-                detail += '<p>' + t("Post-hoc benchmark-mirror exclusion; blanked ranks: ") + esc(str(sensitivity["excluded_ranks"])) + '</p>'
-                detail += table([t("After excluding benchmark copies and evaluation records"), t("Value")], [cells([t("Answer in preview"), str(sensitivity["metrics"][f"answer_in_preview_{cutoff}"])]), cells([t("Answer in all text"), str(sensitivity["metrics"][f"answer_in_delivered_text_{cutoff}"])])])
-            detail += table(
-                [t("Metric"), t("Value")],
-                [cells([label, fmt(detail_metrics[key])]) for key, label in metric_labels],
-            )
+    return body
 
-            detail += (
-                "<h2>"
-                + t("Exact error")
-                + "</h2><pre data-error>"
-                + esc(
-                    error_evidence(r, payloads.get(r["id"], {}))
-                    or t("No API error reported; inspect the returned response for retrieval diagnostics.")
-                )
-                + "</pre>"
+
+def _reading_model_home_body(inputs: ReportInputs, edition: ReportEdition, headers: list[str], core: list[str]) -> str:
+    profile, selected, authored, reading_sections = inputs.profile, inputs.selected, inputs.authored, inputs.reading_sections
+    overview_rows, overview_methods = inputs.overview_rows, inputs.overview_methods
+    relevance_scores, relevance_data = inputs.relevance_scores, inputs.relevance_data
+    lang, zh, t = edition.lang, edition.zh, edition.t
+    cutoff = profile["protocol"]["top_k"]
+    body = authored_sections(authored, "lead", lang, rows=selected)
+    body += (
+        "<h2>" + t("Measured baseline") + "</h2>"
+        + "<p>" + esc(cohort_label(profile, authored.get("overview_cohort"), zh)) + "</p>"
+    )
+    overview_case_ids = {r["case_id"] for r in overview_rows}
+    target_count = sum(bool(c.get("anchors") or c.get("paper_ids") or c.get("repositories"))
+                       for c in profile["cases"] if c["id"] in overview_case_ids)
+    body += '<p class="muted">' + t("Nonempty counts queries with at least one result. Mean, P50 (median) and P95 cover all {overview_cases} queries in this table; 95% finish within the P95 time. Known page@{cutoff} checks whether a target URL appears in the first {cutoff} results, across {target_count} predeclared target-page queries.", overview_cases=len(overview_case_ids), cutoff=cutoff, target_count=target_count) + '</p>'
+    body += table(headers, core, True)
+    if profile["protocol"].get("retry"):
+        body += '<p class="lede">' + t("The same {cases} queries went to every provider. Each query has one final result; transport, HTTP or invalid-response failures receive one retry. Latency covers the complete user-visible request, including any retry. Empty valid results are not retried.", cases=len(profile['cases'])) + '</p>'
+    body += authored_sections(authored, "summary", lang, rows=selected)
+    for chapter in reading_sections:
+        body += (
+            '<section id="'
+            + esc(chapter["key"])
+            + '" data-reading="'
+            + esc(chapter["key"])
+            + '"><h2>'
+            + esc(chapter["title"][lang])
+            + "</h2>"
+            + authored_sections(authored, chapter["key"] + "-lead", lang, rows=selected, heading_level=3)
+            + (capability_map(dict(profile, methods=overview_methods), selected, zh) if chapter["key"] == "capabilities" else "")
+            + (relevance_panel(profile, relevance_scores, relevance_data, zh) if chapter["key"] == "quality" and relevance_scores else "")
+            + (known_page_chart(dict(profile, methods=overview_methods), selected, zh) if chapter["key"] == "quality" else "")
+            + (factual_panel(profile, selected, zh) if chapter["key"] == "quality" else "")
+            + (mode_panel(profile, selected, zh) if chapter["key"] == "speed" else "")
+            + authored_sections(
+                authored, chapter["key"], lang, rows=selected, heading_level=3
             )
-            detail += f'''<button data-evidence="{ev}">{t("Open response")}</button> <a href="{ev}">JSON</a>'''
-            repeats = [x for x in rows if x["case_id"] == cid and x["method"] == r["method"]]
-            if len(repeats) > 1:
-                repeat_rows = []
-                for call in repeats:
-                    call_path = ("../../" if prefix else "../") + call["evidence"]["path"]
-                    repeat_rows.append(
-                        cells(
-                            [
-                                str(call["round"] + 1),
-                                str(call["http_status"]),
-                                fmt(call["elapsed_ms"]),
-                                str(len(call["results"])),
-                                f'''<button data-evidence="{call_path}">{t("Open response")}</button> <a href="{call_path}">JSON</a>''',
-                            ]
-                        )
-                    )
-                detail += (
-                    "<h2>"
-                    + t("All declared physical calls")
-                    + "</h2>"
-                    + table(
-                        [
-                            t("Round"),
-                            "HTTP",
-                            "ms",
-                            t("Results"),
-                            t("Evidence"),
-                        ],
-                        repeat_rows,
-                    )
-                )
-            peers = [x for x in selected if x["case_id"] == cid]
-            detail += same_task(peers, profile, zh)
-            detail += "<h2>" + t("Returned results") + "</h2>"
-            for item_index, item in enumerate(r["results"]):
-                detail += f'''<article class="specimen"><a href="{esc(item['url'])}">{esc(item['title'])}</a><p>{esc(item['snippet'])}</p><button data-evidence="{ev}" data-result="{item_index}">{t("Summary and content")}</button></article>'''
-            detail_doc = BeautifulSoup(detail, "html.parser")
-            detail_doc.select_one("[data-summary]")["data-result-summary"] = ""
-            for pre in list(detail_doc.select("pre")):
-                if pre.find_parent("details") is None:
-                    disclosure = detail_doc.new_tag("details")
-                    label = detail_doc.new_tag("summary")
-                    label.string = t("Inspect evidence")
-                    pre.wrap(disclosure)
-                    disclosure.insert(0, label)
-            diagnosis_node = detail_doc.new_tag("section", id="result-logs")
-            diagnosis_node["data-failure-diagnosis"] = ""
-            error_node = detail_doc.select_one("[data-error]")
-            error_node["data-kind"] = "error"
-            error_node.parent.wrap(diagnosis_node)
-            detail = '<section data-report-detail="' + ("failed" if status == "fail" else "passed") + '">' + str(detail_doc) + '</section>'
-            page(target, cid + " / " + method_labels[r["method"]], detail)
-        options = [
-            ("fail", t("Target miss / error")),
-            ("pass", t("Declared evidence found")),
-            ("probe", t("Unjudged queries")),
-            ("all", t("All")),
-        ]
-        default = "fail" if any('data-state="fail"' in r for r in inventory) else "all"
-        controls = (
-            "<label>"
-            + t("Filter")
-            + " <select data-filter>"
-            + "".join(
-                f'<option value="{v}"'
-                + (" selected" if v == default else "")
-                + ">"
-                + label
-                + "</option>"
-                for v, label in options
-            )
-            + "</select></label> <label>"
-            + t("Provider")
-            + ' <select data-method-filter><option value="all">'
-            + t("All")
-            + "</option>"
-            + "".join(
-                f'<option value="{esc(method["id"])}">{esc(method["label"])}</option>'
-                for method in profile["methods"]
-            )
-            + "</select></label> <label>"
-            + t("Find")
-            + " <input data-query></label>"
+            + "</section>"
         )
-        page(
-            "results.html",
-            t("Query comparison"),
-            (render_result_comparison(profile, selected, zh, prefix=prefix, site_prefix=site_prefix, content=authored, relevance=relevance_data) if authored.get("presentation") == "comparison-report" else "")
-            + ("" if authored.get("presentation") == "comparison-report" else (
-            origin_filter(profile, zh)
-            + cohort_filter(profile, zh)
-            + controls
-            + table(
-                [
-                    "ID",
-                    t("Query"),
-                    t("Method"),
-                    t("Outcome", context="status"),
-                    "ms",
-                    t("Evidence"),
-                ],
-                inventory,
-            ).replace('class="scroll"', 'class="scroll inventory"')
-            + (
-                ""
-                if rows
-                else "<p>"
-                + t("No authenticated cohort has been collected. Missing credentials are not provider failures.")
-                + "</p>"
-            )
-            + (
-                comparison_tables(profile, selected, rows, zh)
-                if authored.get("reading_model")
-                else ""
-            )
-            ))
-        )
-        research = (
-            authored_sections(authored, "method", lang, rows=selected)
-            + (cohort_summary(profile, rows, zh) if authored.get("reading_model") and authored.get("presentation") != "comparison-report" else "")
-            + fairness_table(profile, rows, zh)
-        )
-        page(
-            "research.html", t("Evaluation method"), research
-        )
-        if authored.get("presentation") != "comparison-report":
-            page("interpretation.html", t("Findings"),
-                 authored_sections(authored, "interpretation-lead", lang, rows=selected)
-                 + interpretation_summary_table(profile, selected, zh, authored, relevance_scores)
-                 + factual_panel(profile, selected, zh)
-                 + authored_sections(authored, "interpretation", lang, rows=selected)
-                 + outcome_table(profile, selected, zh, relevance_scores) + domain_discovery_table(profile, selected, zh))
-        if authored.get("presentation") == "comparison-report":
-            primary_ids = {c["id"] for c in profile["cases"] if "reference_answer" not in c}
-            primary_rows = [r for r in rows if r["case_id"] in primary_ids]
-            primary_profile = dict(profile, cases=[c for c in profile["cases"] if c["id"] in primary_ids])
-            primary_diagnostics = operational(primary_rows, payloads, profile["methods"])
-            timing = benchmark_operations(profile, selected, authored, zh)
-            timing += authored_sections(authored, "performance", lang, rows=selected)
-            timing += '<details class="technical-details"><summary>' + t("Server timing and upstream evidence") + '</summary>' + performance_view(primary_profile, primary_diagnostics, zh, evidence_prefix="../" if prefix else "") + '</details>'
-            timing += '<details><summary>' + t("Pricing terms") + '</summary>' + cost_panel(profile, rows, zh, authored) + '</details>'
-            timing += authored_sections(authored, "cost", lang, rows=selected)
-            page("performance.html", t("Speed and cost"), timing)
+    return body
+
+
+def _comparison_home_body(inputs: ReportInputs, edition: ReportEdition) -> str:
+    profile, selected, authored, relevance_scores = inputs.profile, inputs.selected, inputs.authored, inputs.relevance_scores
+    lang, zh = edition.lang, edition.zh
+    body = authored_sections(authored, "lead", lang, rows=selected)
+    body += executive_table(profile, selected, authored, relevance_scores, zh)
+    body += discovery_comparison(profile, selected, authored, zh)
+    body += authored_sections(authored, "summary", lang, rows=selected)
+    return body
+
+
+def _write_comparison_chapters(inputs: ReportInputs, edition: ReportEdition) -> None:
+    profile, selected, authored = inputs.profile, inputs.selected, inputs.authored
+    relevance_scores, relevance_data = inputs.relevance_scores, inputs.relevance_data
+    lang, zh, t = edition.lang, edition.zh, edition.t
+    page = partial(_write_page, inputs, edition)
+    for chapter_key, chapter_title in [("capabilities", t("API outputs")), ("quality", t("Retrieval quality"))]:
+        chapter_body = authored_sections(authored, chapter_key + "-lead", lang, rows=selected)
+        if chapter_key == "capabilities":
+            chapter_body += capability_map(profile, selected, zh)
+            chapter_body += authored_sections(authored, chapter_key, lang, rows=selected)
+            if authored.get("interface_example_case_id"):
+                chapter_body += interface_example(profile, selected, authored["interface_example_case_id"], zh)
         else:
-            page("performance.html", t("Latency diagnostics"), authored_sections(authored, "performance", lang, rows=selected) + performance_view(profile, diagnostics, zh, evidence_prefix="../" if prefix else ""))
-        if review_data:
-            page("review.html", t("Independent result review"), render_summary(review_data, zh) + authored_sections(authored, "review", lang, rows=selected))
+            chapter_body += authored_sections(authored, "quality-definitions", lang, rows=selected)
+            chapter_body += relevance_panel(profile, relevance_scores, relevance_data, zh) if relevance_scores else ""
+            chapter_body += factual_panel(profile, selected, zh, compact=True)
+            chapter_body += authored_sections(authored, chapter_key, lang, rows=selected)
+        page(chapter_key + ".html", chapter_title, chapter_body)
+
+
+def _write_home_page(inputs: ReportInputs, edition: ReportEdition) -> None:
+    profile, selected, authored, reading_sections = inputs.profile, inputs.selected, inputs.authored, inputs.reading_sections
+    review_data, review_percent = inputs.review_data, inputs.review_percent
+    lang, zh, t = edition.lang, edition.zh, edition.t
+    page = partial(_write_page, inputs, edition)
+    headers, core = _core_metrics_table(inputs, edition)
+    body = _default_home_body(inputs, edition, headers, core)
+    if authored.get("reading_model"):
+        body = _reading_model_home_body(inputs, edition, headers, core)
+    if not any(c["key"] == "speed" for c in reading_sections) and authored.get("presentation") != "comparison-report":
+        body += mode_panel(profile, selected, zh)
+    if authored.get("presentation") == "comparison-report":
+        body = _comparison_home_body(inputs, edition)
+        _write_comparison_chapters(inputs, edition)
+    if review_data and authored.get("presentation") != "comparison-report":
+        body += f'<p data-review-coverage data-review-percent="{review_percent}" data-reviewed-queries="{review_data["case_reviewed"]}/{review_data["case_total"]}" data-reviewed-outputs="{review_data["output_reviewed"]}/{review_data["output_total"]}"><a href="review.html">{review_percent}% · ' + t("Reviewed {case_reviewed}/{case_total} queries and {output_reviewed}/{output_total} outputs", case_reviewed=review_data['case_reviewed'], case_total=review_data['case_total'], output_reviewed=review_data['output_reviewed'], output_total=review_data['output_total']) + '</a></p>'
+    page(
+        "index.html",
+        authored.get("title", {}).get(lang)
+        or (
+            t("Web Search: {cases}-query comparison", cases=len(profile['cases']))
+            if profile.get("report_cohorts")
+            else t("Search quality, speed and cost")
+        ),
+        body,
+    )
+
+
+def _dataset_row(profile: dict[str, Any], c: dict[str, Any], edition: ReportEdition) -> str:
+    zh, t = edition.zh, edition.t
+    anchors = "<br>".join(
+        f'''<a href="{esc(u)}" title="{esc(u)}">{t("Target page")} · {esc(u.split('://', 1)[-1].split('/', 1)[0])}</a>'''
+        for u in c.get("anchors", [])
+    ) or t("No target URL declared")
+    if "reference_answer" in c:
+        anchors = esc(c["reference_answer"]) + "<br>" + "<br>".join('<a href="' + esc(u) + '">' + t("Labeled source") + "</a>" for u in c.get("reference_urls", []))
+    if c.get("paper_ids") or c.get("repositories"):
+        anchors += "<br>" + esc(
+            ", ".join(c.get("paper_ids", []) + c.get("repositories", []))
+        )
+    if c.get("identity_aliases"):
+        anchors += "<br>" + t("Verified equivalent URLs: ")
+        anchors += "<br>".join(esc(u) for u in c["identity_aliases"])
+    return (
+        cells(
+            [
+                esc(c["id"]),
+                esc(
+                    cohort_label(profile, c.get("cohort"), zh)
+                    if profile.get("report_cohorts")
+                    else search_category(c["family"], zh)
+                ),
+                esc({"zh": t("Chinese"), "en": t("English")}.get(c["language"], c["language"])),
+                esc(search_category(c.get("category", c["family"]), zh)),
+                esc(provenance_label(c.get("provenance_kind", "curated"), zh)),
+                esc(c["query"]),
+                anchors,
+                esc(source_note(c, zh))
+                + "<br>"
+                + (
+                    f'<a href="{esc(c["origin"])}">' + t("Source") + "</a>"
+                    if c["origin"].startswith("https://")
+                    else ""
+                ),
+            ]
+        )
+    )
+
+
+def _write_dataset_page(inputs: ReportInputs, edition: ReportEdition) -> None:
+    profile, authored = inputs.profile, inputs.authored
+    lang, zh, prefix, t = edition.lang, edition.zh, edition.prefix, edition.t
+    page = partial(_write_page, inputs, edition)
+    dataset_profile, dataset_content = quality_dataset(profile, authored)
+    ds = [_dataset_row(profile, c, edition) for c in dataset_profile["cases"]]
+    page(
+        "dataset.html",
+        t("Tests and sources"),
+        dataset_context(dataset_profile, dataset_content, zh)
+        + '<p><a href="https://huggingface.co/datasets/Lexmount/LexBench-Web-Search">'
+        + t("LexBench Web Search: dataset and sources")
+        + '</a> · <a href="https://github.com/lexmount/browser-eval/tree/main/src/lexbench_websearch">'
+        + t("Scoring code")
+        + "</a></p>"
+        + provenance_table(dataset_profile, zh)
+        + authored_sections(authored, "dataset", lang)
+        + f'<p><a href="{"../" if prefix else ""}query-catalog-license.txt">'
+        + t("Public query catalog attribution and license")
+        + "</a></p>"
+        + '<div class="dataset-controls">' + origin_filter(dataset_profile, zh)
+        + cohort_filter(dataset_profile, zh)
+        + population_filter(dataset_profile, dataset_content, zh)
+        + "<label>"
+        + t("Search queries, categories or sources")
+        + " <input data-query></label></div>"
+        + table(
+            [
+                "ID",
+                t("Benchmark"),
+                t("Language"),
+                t("Category"),
+                t("Provenance", context="source type"),
+                t("Query"),
+                t("Reference page / answer"),
+                t("Provenance"),
+            ],
+            [
+                s.replace(
+                    "<tr>",
+                    f'<tr data-row data-state="all" data-cohort="{esc(c.get("cohort", ""))}" data-origin="{esc(origin_group(c))}" data-case-id="{esc(c["id"])}">',
+                    1,
+                )
+                for s, c in zip(ds, dataset_profile["cases"], strict=True)
+            ],
+            bounded=True,
+        ),
+    )
+
+
+def _reason_label(reason: str, cutoff: int, t: Callable[..., str]) -> str:
+    return {
+        "relevance_hit": t("Useful result found"),
+        "relevance_miss": t("No useful result found"),
+        "quality_excluded": t("Reference qualification excluded"),
+        "api_error": t("API or transport error"),
+        "empty": t("Empty result list"),
+        "domain_mismatch": t("Results outside the requested domain"),
+        "target_miss": t("Reference target absent from top {cutoff}", cutoff=cutoff),
+        "target_hit": t("Reference target found"),
+        "source_hit": t("Published supporting source found"),
+        "answer_hit": t("Reference answer text found"),
+        "answer_miss": t("Reference answer text absent"),
+        "domain_hit": t("Requested site found"),
+        "domain_miss": t("Requested site absent"),
+        "source_miss": t("Published supporting source not found"),
+        "probe": t("Unjudged query"),
+    }[reason]
+
+
+def _case_reference_detail(c: dict[str, Any], query_relevance: dict[str, Any] | None, cutoff: int, edition: ReportEdition) -> str:
+    zh, t = edition.zh, edition.t
+    detail = ""
+    if query_relevance:
+        detail += relevance_detail(query_relevance, zh)
+    if c.get('anchors'):
+        detail += '<h2>' + t("Webpage discovery references") + '</h2><ul>' + ''.join('<li><a href="' + esc(url) + '">' + esc(url) + '</a></li>' for url in c['anchors']) + '</ul>'
+    elif c.get('domains'):
+        detail += '<h2>' + t("Requested sites") + '</h2><p>' + esc(t(", ").join(c['domains'])) + '</p>'
+    if c.get("reference_annotation"):
+        detail += annotation_detail(c["reference_annotation"], zh)
+    elif c.get("anchors"):
+        detail += (
+            "<p>"
+            + t("These URLs define the known-page check; relevance is scored separately.")
+            + "</p>"
+        )
+    if "reference_answer" in c:
+        detail += "<h3>" + t("Published answer and sources") + "</h3>"
+        detail += "<p>" + esc(c["reference_answer"]) + "</p>"
+        detail += "<ul>" + "".join(
+            '<li><a href="' + esc(u) + '">' + esc(u) + "</a></li>"
+            for u in c.get("reference_urls", [])
+        ) + "</ul>"
+        detail += "<p>" + t("Checks compare the first {cutoff} URLs with the published sources and look for the normalized answer phrase in individual returned fields. A phrase match is not a factual correctness or entailment judgment.", cutoff=cutoff) + "</p>"
+    if c.get("paper_ids") or c.get("repositories"):
+        detail += (
+            "<p>"
+            + esc(", ".join(c.get("paper_ids", []) + c.get("repositories", [])))
+            + "</p>"
+        )
+    if c.get("identity_aliases"):
+        detail += "<p>" + t("Verified equivalent URLs: ")
+        detail += esc(", ".join(c["identity_aliases"])) + "</p>"
+    return detail
+
+
+def _result_metrics_detail(r: dict[str, Any], c: dict[str, Any], hit_key: str, cutoff: int, t: Callable[..., str]) -> str:
+    detail = ""
+    metric_labels = [
+        (hit_key, t("Known target@{cutoff}", cutoff=cutoff)),
+        ("reciprocal_rank", t("Reciprocal rank")),
+        ("domain_precision", t("Requested-domain fraction")),
+        ("duplicate_rate", t("Duplicate-document fraction")),
+        ("content_coverage", t("Results containing content")),
+    ]
+    detail_metrics = r["metrics"]
+    if "reference_answer" in c:
+        detail_metrics = {**r["metrics"], **factual_evidence(c, r["results"], cutoff=cutoff)}
+        metric_labels += [
+            (f"labeled_source_hit_{cutoff}", t("Published source in top {cutoff}", cutoff=cutoff)),
+            (f"labeled_source_rr_{cutoff}", t("Published-source reciprocal rank in top {cutoff}", cutoff=cutoff)),
+            (f"answer_in_preview_{cutoff}", t("Answer phrase in title/snippet")),
+            (f"answer_in_delivered_text_{cutoff}", t("Answer phrase in delivered text")),
+        ]
+    if "reference_answer" in c:
+        sensitivity = factual_sensitivity(c, r["results"], cutoff=cutoff)
+        detail += '<p>' + t("Post-hoc benchmark-mirror exclusion; blanked ranks: ") + esc(str(sensitivity["excluded_ranks"])) + '</p>'
+        detail += table([t("After excluding benchmark copies and evaluation records"), t("Value")], [cells([t("Answer in preview"), str(sensitivity["metrics"][f"answer_in_preview_{cutoff}"])]), cells([t("Answer in all text"), str(sensitivity["metrics"][f"answer_in_delivered_text_{cutoff}"])])])
+    detail += table(
+        [t("Metric"), t("Value")],
+        [cells([label, fmt(detail_metrics[key])]) for key, label in metric_labels],
+    )
+    return detail
+
+
+def _physical_calls_detail(repeats: list[dict[str, Any]], edition: ReportEdition) -> str:
+    prefix, t = edition.prefix, edition.t
+    if len(repeats) <= 1:
+        return ""
+    repeat_rows = []
+    for call in repeats:
+        call_path = ("../../" if prefix else "../") + call["evidence"]["path"]
+        repeat_rows.append(
+            cells(
+                [
+                    str(call["round"] + 1),
+                    str(call["http_status"]),
+                    fmt(call["elapsed_ms"]),
+                    str(len(call["results"])),
+                    f'''<button data-evidence="{call_path}">{t("Open response")}</button> <a href="{call_path}">JSON</a>''',
+                ]
+            )
+        )
+    return (
+        "<h2>"
+        + t("All declared physical calls")
+        + "</h2>"
+        + table(
+            [
+                t("Round"),
+                "HTTP",
+                "ms",
+                t("Results"),
+                t("Evidence"),
+            ],
+            repeat_rows,
+        )
+    )
+
+
+def _wrap_result_detail(detail: str, status: str, t: Callable[..., str]) -> str:
+    detail_doc = BeautifulSoup(detail, "html.parser")
+    detail_doc.select_one("[data-summary]")["data-result-summary"] = ""
+    for pre in list(detail_doc.select("pre")):
+        if pre.find_parent("details") is None:
+            disclosure = detail_doc.new_tag("details")
+            label = detail_doc.new_tag("summary")
+            label.string = t("Inspect evidence")
+            pre.wrap(disclosure)
+            disclosure.insert(0, label)
+    diagnosis_node = detail_doc.new_tag("section", id="result-logs")
+    diagnosis_node["data-failure-diagnosis"] = ""
+    error_node = detail_doc.select_one("[data-error]")
+    error_node["data-kind"] = "error"
+    error_node.parent.wrap(diagnosis_node)
+    detail = '<section data-report-detail="' + ("failed" if status == "fail" else "passed") + '">' + str(detail_doc) + '</section>'
+    return detail
+
+
+def _result_detail(
+    inputs: ReportInputs,
+    edition: ReportEdition,
+    r: dict[str, Any],
+    c: dict[str, Any],
+    query_relevance: dict[str, Any] | None,
+    status: str,
+    reason_label: str,
+) -> str:
+    profile, rows, selected, review_data, payloads = inputs.profile, inputs.rows, inputs.selected, inputs.review_data, inputs.payloads
+    zh, prefix, t = edition.zh, edition.prefix, edition.t
+    cid = c["id"]
+    cutoff = profile["protocol"]["top_k"]
+    # Relative path from details/ to shared evidence at output root.
+    ev = ("../../" if prefix else "../") + r["evidence"]["path"]
+    detail = f"<section data-summary><p>{esc(c['query'])}</p><p>HTTP {r['http_status']} · {fmt(r['elapsed_ms'])} ms · {len(r['results'])} {t('results')}</p></section>"
+    detail += _case_reference_detail(c, query_relevance, cutoff, edition)
+    if query_relevance:
+        reason_label = t("Useful results: ") + str(query_relevance["useful"]) + f"/{cutoff}"
+    if review_data:
+        detail += render_detail(review_data, r["id"], zh)
+    diagnosis = reason_label
+    detail += "<p>" + diagnosis + "</p>"
+    detail += (
+        "<h2>"
+        + t("Actual request parameters")
+        + "</h2><pre data-request>"
+        + esc(json.dumps(r.get("request", {}), ensure_ascii=False, indent=2))
+        + "</pre>"
+    )
+    detail += _result_metrics_detail(r, c, _known_page_metric(profile), cutoff, t)
+    detail += (
+        "<h2>"
+        + t("Exact error")
+        + "</h2><pre data-error>"
+        + esc(
+            error_evidence(r, payloads.get(r["id"], {}))
+            or t("No API error reported; inspect the returned response for retrieval diagnostics.")
+        )
+        + "</pre>"
+    )
+    detail += f'''<button data-evidence="{ev}">{t("Open response")}</button> <a href="{ev}">JSON</a>'''
+    repeats = [x for x in rows if x["case_id"] == cid and x["method"] == r["method"]]
+    detail += _physical_calls_detail(repeats, edition)
+    peers = [x for x in selected if x["case_id"] == cid]
+    detail += same_task(peers, profile, zh)
+    detail += "<h2>" + t("Returned results") + "</h2>"
+    for item_index, item in enumerate(r["results"]):
+        detail += f'''<article class="specimen"><a href="{esc(item['url'])}">{esc(item['title'])}</a><p>{esc(item['snippet'])}</p><button data-evidence="{ev}" data-result="{item_index}">{t("Summary and content")}</button></article>'''
+    return _wrap_result_detail(detail, status, t)
+
+
+def _write_result_pages(inputs: ReportInputs, edition: ReportEdition) -> list[str]:
+    """Write one detail page per scored result and return the matching inventory rows."""
+    profile, selected, relevance_scores, payloads = inputs.profile, inputs.selected, inputs.relevance_scores, inputs.payloads
+    zh, t = edition.zh, edition.t
+    page = partial(_write_page, inputs, edition)
+    cutoff = profile["protocol"]["top_k"]
+    inventory = []
+    bycase = {c["id"]: c for c in profile["cases"]}
+    method_labels = {method["id"]: method["label"] for method in profile["methods"]}
+    for r in selected:
+        cid = r["case_id"]
+        c = bycase[cid]
+        query_relevance = next((x for x in (relevance_scores or []) if x["case_id"] == cid and x["method"] == r["method"]), None)
+        status, reason = classify(c, r, cutoff=cutoff, quality_excluded=cid in profile.get("factual_quality_exclusions", []), relevance_grades=query_relevance["ranked_grades"] if query_relevance else None)
+        reason_label = _reason_label(reason, cutoff, t)
+        target = "details/" + r["id"] + ".html"
+        state_label = {
+            "fail": t("Miss / error"),
+            "pass": t("Target hit"),
+            "probe": t("Unjudged query"),
+        }[status]
+        diagnostic_text = "\n".join(
+            [
+                c["query"],
+                reason_label,
+                f"HTTP {r['http_status']}; {len(r['results'])} " + t("results"),
+                error_evidence(r, payloads.get(r["id"], {}))
+                or (
+                    t("Empty results array")
+                    if not r["results"]
+                    else t("Compare returned URLs with the independent reference target in the full result.")
+                ),
+            ]
+        )
+        inventory.append(
+            f'''<tr data-row data-state="{status}" data-method="{esc(r['method'])}" data-cohort="{esc(c.get('cohort', ''))}" data-origin="{esc(origin_group(c))}"><td>{esc(cid)}<br>{esc(cohort_label(profile, c.get('cohort'), zh))}</td><td>{esc(c['query'])}</td><td>{esc(method_labels[r['method']])}</td><td>{esc(state_label)}</td><td>{fmt(r['elapsed_ms'])}</td><td><button data-diagnosis="{esc(diagnostic_text)}" data-detail="{target}">{t("Diagnosis")}</button> <a href="{target}">{t("Details")}</a></td></tr>'''
+        )
+        detail = _result_detail(inputs, edition, r, c, query_relevance, status, reason_label)
+        page(target, cid + " / " + method_labels[r["method"]], detail)
+    return inventory
+
+
+def _write_results_page(inputs: ReportInputs, edition: ReportEdition, inventory: list[str]) -> None:
+    profile, rows, selected, authored, relevance_data, site_prefix = inputs.profile, inputs.rows, inputs.selected, inputs.authored, inputs.relevance_data, inputs.site_prefix
+    zh, prefix, t = edition.zh, edition.prefix, edition.t
+    page = partial(_write_page, inputs, edition)
+    options = [
+        ("fail", t("Target miss / error")),
+        ("pass", t("Declared evidence found")),
+        ("probe", t("Unjudged queries")),
+        ("all", t("All")),
+    ]
+    default = "fail" if any('data-state="fail"' in r for r in inventory) else "all"
+    controls = (
+        "<label>"
+        + t("Filter")
+        + " <select data-filter>"
+        + "".join(
+            f'<option value="{v}"'
+            + (" selected" if v == default else "")
+            + ">"
+            + label
+            + "</option>"
+            for v, label in options
+        )
+        + "</select></label> <label>"
+        + t("Provider")
+        + ' <select data-method-filter><option value="all">'
+        + t("All")
+        + "</option>"
+        + "".join(
+            f'<option value="{esc(method["id"])}">{esc(method["label"])}</option>'
+            for method in profile["methods"]
+        )
+        + "</select></label> <label>"
+        + t("Find")
+        + " <input data-query></label>"
+    )
+    page(
+        "results.html",
+        t("Query comparison"),
+        (render_result_comparison(profile, selected, zh, prefix=prefix, site_prefix=site_prefix, content=authored, relevance=relevance_data) if authored.get("presentation") == "comparison-report" else "")
+        + ("" if authored.get("presentation") == "comparison-report" else (
+        origin_filter(profile, zh)
+        + cohort_filter(profile, zh)
+        + controls
+        + table(
+            [
+                "ID",
+                t("Query"),
+                t("Method"),
+                t("Outcome", context="status"),
+                "ms",
+                t("Evidence"),
+            ],
+            inventory,
+        ).replace('class="scroll"', 'class="scroll inventory"')
+        + (
+            ""
+            if rows
+            else "<p>"
+            + t("No authenticated cohort has been collected. Missing credentials are not provider failures.")
+            + "</p>"
+        )
+        + (
+            comparison_tables(profile, selected, rows, zh)
+            if authored.get("reading_model")
+            else ""
+        )
+        ))
+    )
+
+
+def _write_method_pages(inputs: ReportInputs, edition: ReportEdition) -> None:
+    profile, rows, selected, authored, relevance_scores = inputs.profile, inputs.rows, inputs.selected, inputs.authored, inputs.relevance_scores
+    lang, zh, t = edition.lang, edition.zh, edition.t
+    page = partial(_write_page, inputs, edition)
+    research = (
+        authored_sections(authored, "method", lang, rows=selected)
+        + (cohort_summary(profile, rows, zh) if authored.get("reading_model") and authored.get("presentation") != "comparison-report" else "")
+        + fairness_table(profile, rows, zh)
+    )
+    page(
+        "research.html", t("Evaluation method"), research
+    )
+    if authored.get("presentation") != "comparison-report":
+        page("interpretation.html", t("Findings"),
+             authored_sections(authored, "interpretation-lead", lang, rows=selected)
+             + interpretation_summary_table(profile, selected, zh, authored, relevance_scores)
+             + factual_panel(profile, selected, zh)
+             + authored_sections(authored, "interpretation", lang, rows=selected)
+             + outcome_table(profile, selected, zh, relevance_scores) + domain_discovery_table(profile, selected, zh))
+
+
+def _write_performance_page(inputs: ReportInputs, edition: ReportEdition) -> None:
+    profile, rows, selected, authored, payloads, diagnostics = inputs.profile, inputs.rows, inputs.selected, inputs.authored, inputs.payloads, inputs.diagnostics
+    lang, zh, prefix, t = edition.lang, edition.zh, edition.prefix, edition.t
+    page = partial(_write_page, inputs, edition)
+    if authored.get("presentation") == "comparison-report":
+        primary_ids = {c["id"] for c in profile["cases"] if "reference_answer" not in c}
+        primary_rows = [r for r in rows if r["case_id"] in primary_ids]
+        primary_profile = dict(profile, cases=[c for c in profile["cases"] if c["id"] in primary_ids])
+        primary_diagnostics = operational(primary_rows, payloads, profile["methods"])
+        timing = benchmark_operations(profile, selected, authored, zh)
+        timing += authored_sections(authored, "performance", lang, rows=selected)
+        timing += '<details class="technical-details"><summary>' + t("Server timing and upstream evidence") + '</summary>' + performance_view(primary_profile, primary_diagnostics, zh, evidence_prefix="../" if prefix else "") + '</details>'
+        timing += '<details><summary>' + t("Pricing terms") + '</summary>' + cost_panel(profile, rows, zh, authored) + '</details>'
+        timing += authored_sections(authored, "cost", lang, rows=selected)
+        page("performance.html", t("Speed and cost"), timing)
+    else:
+        page("performance.html", t("Latency diagnostics"), authored_sections(authored, "performance", lang, rows=selected) + performance_view(profile, diagnostics, zh, evidence_prefix="../" if prefix else ""))
+
+
+def _write_review_page(inputs: ReportInputs, edition: ReportEdition) -> None:
+    selected, authored, review_data = inputs.selected, inputs.authored, inputs.review_data
+    lang, zh, t = edition.lang, edition.zh, edition.t
+    page = partial(_write_page, inputs, edition)
+    page("review.html", t("Independent result review"), render_summary(review_data, zh) + authored_sections(authored, "review", lang, rows=selected))
+
+
+def _write_edition(inputs: ReportInputs, lang: str, routes: list[str]) -> None:
+    edition = _report_edition(inputs, lang, routes)
+    _write_home_page(inputs, edition)
+    _write_dataset_page(inputs, edition)
+    inventory = _write_result_pages(inputs, edition)
+    _write_results_page(inputs, edition, inventory)
+    _write_method_pages(inputs, edition)
+    _write_performance_page(inputs, edition)
+    if inputs.review_data:
+        _write_review_page(inputs, edition)
+
+
+def _write_manifest(
+    inputs: ReportInputs,
+    language: str,
+    routes: list[str],
+    bundle: list[dict[str, Any]],
+    source: Path | None,
+    cohorts: Iterable[Any],
+) -> None:
+    output, languages, site_prefix, content_bytes = inputs.output, inputs.languages, inputs.site_prefix, inputs.content_bytes
+    profile, collection_profile, rows, receipt = inputs.profile, inputs.collection_profile, inputs.rows, inputs.receipt
+    scoring_revision, assessment_revision = inputs.scoring_revision, inputs.assessment_revision
+    redactions, billing_corrections, diagnostics = inputs.redactions, inputs.billing_corrections, inputs.diagnostics
+    review_data, relevance_data = inputs.review_data, inputs.relevance_data
+    authored, reading_sections = inputs.authored, inputs.reading_sections
     build_version = bind_build_version(output)
     bundle.append({"path": FILENAME, "sha256": build_version["sha256"]})
     write_json(
@@ -1263,8 +1587,43 @@ def build(
             renderer_sha256=bytes_sha256(Path(__file__).read_bytes()),
         ),
     )
-    entry = select_report_language(output, language)
-    check(output, evidence_only=True)
+
+
+def build(
+    output: str | Path,
+    *,
+    profile_path: str | Path | None = None,
+    source: Path | None = None,
+    content: Path | None = None,
+    language: str = "zh",
+    include_english: bool = False,
+    correction: Path | None = None,
+    relevance: Path | None = None,
+    review: Path | None = None,
+    site_prefix: str = "",
+    cohorts: Iterable[Any] = (),
+) -> Path:
+    _validate_build_options(language, site_prefix)
+    inputs = _load_report_inputs(
+        output,
+        profile_path=profile_path,
+        source=source,
+        content=content,
+        language=language,
+        include_english=include_english,
+        correction=correction,
+        relevance=relevance,
+        review=review,
+        site_prefix=site_prefix,
+        cohorts=cohorts,
+    )
+    bundle = _write_public_bundle(inputs)
+    routes: list[str] = []
+    for lang in inputs.languages:
+        _write_edition(inputs, lang, routes)
+    _write_manifest(inputs, language, routes, bundle, source, cohorts)
+    entry = select_report_language(inputs.output, language)
+    check(inputs.output, evidence_only=True)
     return entry
 
 
