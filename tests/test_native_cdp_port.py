@@ -219,8 +219,10 @@ def test_silent_exit_while_the_browser_is_in_use_fails_the_call(tmp_path):
 
 
 def test_port_check_ignores_the_log_of_an_earlier_attempt(tmp_path):
+    # A startup-argument rejection happens before listening. Opening the port
+    # first races the fake successful handshake against this process's exit.
     script = SERVER.replace(
-        "time.sleep(60)", "print('unsupported flag', file=sys.stderr)\nsys.exit(3)"
+        "server.listen()", "print('unsupported flag', file=sys.stderr)\nsys.exit(3)"
     )
     harness = Harness(tmp_path, script)
     with pytest.raises(RuntimeError) as failure:
