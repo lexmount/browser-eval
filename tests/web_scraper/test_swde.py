@@ -1,6 +1,7 @@
 """Multi-domain native extraction, frozen references and unchanged product behavior."""
 
 import json
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -361,6 +362,232 @@ def test_invalid_reference_correction_is_rejected_before_writing(
         assert not output.exists()
     assert (run / "scores.json").read_bytes() == before
     assert len(calls) == 2
+
+
+@pytest.fixture
+def record_audit_material(source_revision_run, tmp_path, monkeypatch):
+    from copy import deepcopy
+
+    from harness.web_scraper import review
+
+    home, first, authority, calls = source_revision_run
+    monkeypatch.setenv("SGAI_API_KEY", "test-sgai-key-only")
+    second_calls = []
+
+    def request(url, *, json_body, **kwargs):
+        second_calls.append(json_body)
+        field = json_body["schema"]["required"][0]
+        fields = {field: ["Ada Lovelace" if field == "author" else "Engineer & Co"]}
+        return SimpleNamespace(status=200, headers={}, text=lambda: json.dumps({"json": fields}))
+
+    monkeypatch.setattr(pipeline, "request", request)
+    second = tmp_path / "second-provider"
+    second_plan = tmp_path / "second-plan.json"
+    certification.create_plan(home, ["scrapegraph-extract"], second_plan)
+    certification.run(home, second_plan, "scrapegraph-extract", second)
+    selections = [{"run": str(first)}, {"run": str(second)}]
+    content = tmp_path / "audit-content.json"
+    model = {
+        "participants": {m: {} for m in ["cloudflare-json", "scrapegraph-extract"]},
+        "evidence_runs": selections,
+    }
+    pipeline.save_json(content, model)
+    works = []
+    for index, selection in enumerate(selections):
+        selected = tmp_path / f"selected-{index}.json"
+        pipeline.save_json(selected, {"evidence_runs": [selection]})
+        work = tmp_path / f"review-{index}"
+        manifest = review.prepare(home, selected, work)
+        for entry in manifest["packets"]:
+            packet = review.read_packet(Path(entry["path"]))
+            cases = []
+            for case in packet["cases"]:
+                field = next(iter(case["reference"]))
+                value = "Ada Lovelace" if field == "author" else "Engineer & Co"
+                finding = {
+                    "status": "supported",
+                    "values": [value],
+                    "source_quote": value,
+                    "source_locator": "main record text node",
+                    "reason": "Frozen source value",
+                }
+                cases.append(
+                    {
+                        "case_id": case["case_id"],
+                        "main_record": "Frozen example",
+                        "source_fields": {field: deepcopy(finding)},
+                        "reference": {field: {**finding, "status": "incorrect"}},
+                        "outputs": [
+                            {
+                                "method": output["method"],
+                                "fields": {field: deepcopy(finding)},
+                                "projection_issue": "Native field arrays are unchanged",
+                            }
+                            for output in case["outputs"]
+                        ],
+                    }
+                )
+            opinion = {"cases": cases}
+            review.validate(opinion, packet)
+            pipeline.save_json(work / "reviews" / Path(entry["path"]).name, opinion)
+        pipeline.save_json(
+            work / "reviewer.json", {"model": "synthetic-reviewer", "reasoning": "high"}
+        )
+        works.append(work)
+    rules = tmp_path / "rules.txt"
+    rules.write_text(
+        "Original SWDE labels target source text nodes, including mixed attributes.",
+        encoding="utf-8",
+    )
+    adjudication = tmp_path / "adjudication"
+    manifest = review.prepare_adjudication(works[0], adjudication, rules)
+    originals = {
+        c["case_id"]: c for c in pipeline.read_json(works[0] / "reviews/000.json")["cases"]
+    }
+    for entry in manifest["packets"]:
+        packet = review.read_packet(Path(entry["path"]))
+        opinion = {
+            "cases": [{**deepcopy(originals[c["case_id"]]), "outputs": []} for c in packet["cases"]]
+        }
+        review.validate(opinion, packet)
+        pipeline.save_json(adjudication / "reviews" / Path(entry["path"]).name, opinion)
+    pipeline.save_json(adjudication / "reviewer.json", {"model": "synthetic-adjudicator"})
+    assert len(calls) + len(second_calls) == 4
+    return home, content, works, adjudication, authority
+
+
+@pytest.mark.parametrize("source_revision_run", [False, True], indirect=True)
+def test_record_audit_assembly_joins_all_providers_and_source_qualified_references(
+    record_audit_material, tmp_path
+):
+    from harness.web_scraper.cli import main
+
+    home, content, works, adjudication, authority = record_audit_material
+    output = tmp_path / "complete-audit.json"
+    main(
+        [
+            "--home",
+            str(home),
+            "audit-assemble",
+            "--content",
+            str(content),
+            "--profile",
+            str(swde.CARD),
+            "--initial",
+            str(works[0]),
+            "--additional-review",
+            str(works[1]),
+            "--adjudication",
+            str(adjudication),
+            "--reference-revision",
+            str(authority),
+            "--output",
+            str(output),
+        ]
+    )
+    audit = pipeline.read_json(output)
+    assert audit["schema"] == "record-complete-audit/1"
+    assert audit["case_count"] == 2 and audit["result_count"] == 4
+    assert audit["unresolved"] == audit["accepted_unreviewed_passes"] == 0
+    assert audit["reference_revision_sha256"] == pipeline.digest(authority.read_bytes())
+    assert set(audit["audited_scores"]) == {"cloudflare-json", "scrapegraph-extract"}
+    assert all(s["value_micro"]["f1"] == 1 for s in audit["audited_scores"].values())
+    assert len(audit["review_receipts"]) == 3
+    assert audit["provider_calls_added"] == 0
+    assert audit["results"]["cloudflare-json:job-b-0002"]["audited_fields"]["title"]["actual"] == [
+        "Engineer & Co"
+    ]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "missing",
+        "duplicate",
+        "native",
+        "execution",
+        "schema",
+        "reference",
+        "projection",
+        "adjudication",
+        "profile",
+        "runtime",
+        "source-url",
+    ],
+)
+def test_record_audit_rejects_incomplete_or_changed_review_authorities(
+    record_audit_material, tmp_path, monkeypatch, mutation
+):
+    from harness.web_scraper import review
+
+    home, content, works, adjudication, authority = record_audit_material
+    selected = list(works)
+    adjudications = [adjudication]
+    profile = swde.CARD
+    if mutation == "missing":
+        selected.pop()
+    elif mutation == "duplicate":
+        selected.append(works[0])
+    elif mutation == "adjudication":
+        adjudications.append(adjudication)
+    elif mutation == "projection":
+        monkeypatch.setattr(review, "normalize", lambda *a, **k: {"author": ["Changed"]})
+    elif mutation == "profile":
+        profile = tmp_path / "wrong-profile.json"
+        value = pipeline.read_json(swde.CARD)
+        value["dataset"]["commit"] = "0" * 40
+        pipeline.save_json(profile, value)
+    else:
+        packet = works[0] / "packets/000.json"
+        value = pipeline.read_json(packet)
+        case = value["cases"][0]
+        if mutation == "native":
+            case["outputs"][0]["native_response"] = {"result": {"author": ["Other"]}}
+        elif mutation == "execution":
+            case["outputs"][0]["execution_identity"] = "0" * 64
+        elif mutation == "runtime":
+            case["outputs"][0]["runtime_error"] = "Different runtime error"
+        elif mutation == "source-url":
+            case["source_url"] = "https://unrelated.example"
+        elif mutation == "schema":
+            case["field_schema"]["additionalProperties"] = True
+        elif mutation == "reference":
+            case["reference"][next(iter(case["reference"]))] = []
+        pipeline.save_json(packet, value)
+        manifest = pipeline.read_json(works[0] / "manifest.json")
+        manifest["packets"][0]["sha256"] = pipeline.digest(packet.read_bytes())
+        pipeline.save_json(works[0] / "manifest.json", manifest)
+    output = tmp_path / "not-assembled.json"
+    with pytest.raises(ValueError):
+        review.assemble_record(
+            home,
+            content,
+            selected,
+            output,
+            profile=profile,
+            adjudications=adjudications,
+            reference_revision=authority,
+        )
+    assert not output.exists()
+
+
+def test_complete_record_review_does_not_hide_unresolved_reference_findings(
+    record_audit_material, tmp_path
+):
+    from harness.web_scraper import review
+
+    home, content, works, _, authority = record_audit_material
+    value = review.assemble_record(
+        home,
+        content,
+        works,
+        tmp_path / "draft.json",
+        profile=swde.CARD,
+        reference_revision=authority,
+    )
+    assert value["result_count"] == 4
+    assert value["unresolved"] == 2
+    assert len(value["unresolved_fields"]) == 2
 
 
 @pytest.mark.parametrize("source_revision_run", [True], indirect=True)
@@ -1014,20 +1241,14 @@ def test_clean_prepare_rejects_wrong_scorer_before_extracting(tmp_path, monkeypa
     assert not (home / "dataset").exists()
 
 
-@pytest.mark.parametrize("interface", ["report", "assemble"])
-def test_product_interfaces_reject_other_field_families_before_reading_artifacts(
-    inputs, tmp_path, interface
-):
-    from harness.web_scraper import report, review
+def test_product_interfaces_reject_other_field_families_before_reading_artifacts(inputs, tmp_path):
+    from harness.web_scraper import report
 
     home, _ = inputs
     target = tmp_path / "not-created"
     missing = tmp_path / "absent-input"
     with pytest.raises(ValueError, match="requires product references"):
-        if interface == "report":
-            report.build(target, missing, home=home)
-        else:
-            review.assemble(home, missing, missing, missing, missing, target, profile=missing)
+        report.build(target, missing, home=home)
     assert not target.exists()
 
 

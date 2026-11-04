@@ -1164,7 +1164,7 @@ def test_citation_uses_one_bounded_source_span_without_dropping_repeated_anchors
 ):
     source = tmp_path / "source.html"
     text = "Model A" + "x" * 5000 + ("Model A\n" if nearby_repeat else "") + "Price: 13.40"
-    source.write_text(text)
+    source.write_text(text, encoding="utf-8")
     packet = {
         "cases": [
             {
@@ -1192,7 +1192,7 @@ def test_citation_uses_one_bounded_source_span_without_dropping_repeated_anchors
 
 def test_citation_list_never_executes_python_expressions(tmp_path):
     source = tmp_path / "source.txt"
-    source.write_text("Model A Price: 13.40")
+    source.write_text("Model A Price: 13.40", encoding="utf-8")
     sentinel = tmp_path / "must-not-exist"
     packet = {
         "cases": [

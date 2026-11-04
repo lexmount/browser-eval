@@ -301,6 +301,28 @@ reusing unchanged judgments. Model evidence audits are labeled separately from
 human annotations. Reference changes require source-grounded adjudication and
 paired scorer controls, not model agreement alone.
 
+Record audits can join disjoint complete review scopes, such as separately run
+providers, through the same assembly command:
+
+```sh
+uv run --frozen python -m harness.web_scraper.cli --home /absolute/data/swde \
+  audit-assemble --profile /absolute/data/report-profile.json \
+  --content /absolute/data/report-content.json \
+  --initial /absolute/data/review-first-providers \
+  --additional-review /absolute/data/review-last-provider \
+  --adjudication /absolute/data/reference-adjudication \
+  --reference-revision /absolute/data/reference-revision.json \
+  --output /absolute/data/complete-audit.json
+```
+
+Repeat `--additional-review` and `--additional-adjudication` for non-overlapping
+scopes. Assembly checks every native execution, source, field schema and reference;
+it rejects missing or duplicate results and projections changed after review.
+Disputed references remain unresolved until source adjudication and any required
+reference correction agree. Complete result coverage alone does not clear those
+disputes. Assembly adds no provider calls and preserves reviewer findings beside
+the scores produced by the frozen text-node contract.
+
 The report home exposes all-call mean/P50/P95 and sourced pricing for every method.
 Quality cells link to method/field filters; result rows open lazy evidence dialogs
 and link to full field diagnostics, same-case comparisons and safe source previews.

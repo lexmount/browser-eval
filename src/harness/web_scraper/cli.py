@@ -116,8 +116,12 @@ def main(argv=None):
     p.add_argument("--model", required=True)
     p.add_argument("--workers", type=int, default=4)
     p = sub.add_parser("audit-assemble")
-    for flag in ("content", "initial", "supplemental", "adjudication", "output", "profile"):
+    for flag in ("content", "initial", "output", "profile"):
         p.add_argument("--" + flag, type=Path, required=True)
+    for flag in ("supplemental", "adjudication", "reference-revision"):
+        p.add_argument("--" + flag, type=Path)
+    p.add_argument("--additional-review", type=Path, action="append", default=[])
+    p.add_argument("--additional-adjudication", type=Path, action="append", default=[])
     p.add_argument("--decisions", type=Path, help="Source-bound final reference decisions")
     args = parser.parse_args(argv)
     if args.command == "host":
@@ -278,6 +282,9 @@ def main(argv=None):
             args.output,
             profile=args.profile,
             decisions=args.decisions,
+            additional_reviews=args.additional_review,
+            additional_adjudications=args.additional_adjudication,
+            reference_revision=args.reference_revision,
         )
         print({k: value[k] for k in ("case_count", "result_count", "unresolved")})
 

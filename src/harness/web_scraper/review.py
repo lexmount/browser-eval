@@ -531,8 +531,51 @@ def needs_supplemental_review(row, identities):
     )
 
 
+def current_audit_matrix(home, model):
+    """Verify the complete selected native matrix without consulting review outcomes."""
+    from harness.web_scraper.repair import load_selection
+
+    truth = read_json(home / "dataset/dataset/ground-truth.json")
+    rows, methods = [], []
+    for selection in model["evidence_runs"]:
+        source, records = load_selection(home, selection)
+        contract = read_json(source / "contract.json")
+        methods.extend(contract["methods"])
+        if contract.get("dataset_manifest_sha256") and contract[
+            "dataset_manifest_sha256"
+        ] != digest((home / "dataset/manifest.json").read_bytes()):
+            raise ValueError("Reviewed execution uses a different dataset")
+        if any(
+            row["input_sha256"]
+            != digest((home / "dataset/html" / (row["case_id"] + ".html")).read_bytes())
+            for row in records
+        ):
+            raise ValueError("Reviewed execution uses different HTML inputs")
+        rows.extend(records)
+    expected = {(method, cid) for method in methods for cid in truth}
+    if (
+        len(methods) != len(set(methods))
+        or len(rows) != len(expected)
+        or {(r["method"], r["case_id"]) for r in rows} != expected
+        or (model.get("participants") is not None and set(model["participants"]) != set(methods))
+    ):
+        raise ValueError("Final audit needs the complete declared matrix")
+    return truth, rows, methods
+
+
 def assemble(
-    home, content, initial, supplemental, adjudication, output, *, profile, decisions=None
+    home,
+    content,
+    initial,
+    supplemental,
+    adjudication,
+    output,
+    *,
+    profile,
+    decisions=None,
+    additional_reviews=(),
+    additional_adjudications=(),
+    reference_revision=None,
 ):
     """Bind complete reviews to current calls and retain official references separately."""
     from harness.web_scraper.analysis import (
@@ -540,11 +583,28 @@ def assemble(
         field_results,
         product_audit_scores,
     )
-    from harness.web_scraper.dataset import require_product_reference
-    from harness.web_scraper.repair import load_selection
+    from harness.web_scraper.dataset import benchmark_config, require_product_reference
 
     require_external_output(output)
+    if benchmark_config(home)["adapter"] is not None:
+        if supplemental is not None or decisions is not None:
+            raise ValueError(
+                "Record audits use complete review scopes and source reference revisions"
+            )
+        return assemble_record(
+            home,
+            content,
+            [initial, *additional_reviews],
+            output,
+            adjudications=[work for work in [adjudication, *additional_adjudications] if work],
+            reference_revision=reference_revision,
+            profile=profile,
+        )
     require_product_reference(home)
+    if supplemental is None or adjudication is None:
+        raise ValueError("Product audits require supplemental and adjudication scopes")
+    if additional_reviews or additional_adjudications or reference_revision is not None:
+        raise ValueError("Product audits use their original, supplemental and adjudicated scopes")
     original_inputs, original_opinions, original_receipts = completed(initial)
     changed_inputs, changed_opinions, changed_receipts = completed(supplemental)
     adjudicated_inputs, adjudicated, adjudication_receipts = completed(adjudication)
@@ -574,25 +634,8 @@ def assemble(
                 or case["reference"] != {field: truth[cid].get(field, []) for field in FIELDS}
             ):
                 raise ValueError("Reviewed dataset differs from the scoring dataset")
-    rows, methods = [], []
-    for selection in model["evidence_runs"]:
-        source, records = load_selection(home, selection)
-        contract = read_json(source / "contract.json")
-        methods.extend(contract["methods"])
-        if contract.get("dataset_manifest_sha256") and contract[
-            "dataset_manifest_sha256"
-        ] != digest((home / "dataset/manifest.json").read_bytes()):
-            raise ValueError("Reviewed execution uses a different dataset")
-        if any(
-            row["input_sha256"]
-            != digest((home / "dataset/html" / (row["case_id"] + ".html")).read_bytes())
-            for row in records
-        ):
-            raise ValueError("Reviewed execution uses different HTML inputs")
-        rows.extend(records)
+    _, rows, methods = current_audit_matrix(home, model)
     expected = {(method, cid) for method in methods for cid in truth}
-    if len(rows) != len(expected) or {(r["method"], r["case_id"]) for r in rows} != expected:
-        raise ValueError("Final audit needs the complete declared matrix")
     original_keys = {
         (o["method"], cid) for cid, case in original_inputs.items() for o in case["outputs"]
     }
@@ -793,6 +836,203 @@ def assemble(
             "adjudication": adjudication_receipts,
         },
         "final_decisions_sha256": digest(decisions.read_bytes()) if decisions else None,
+    }
+    save_json(output, value, exclusive=True)
+    return value
+
+
+def assemble_record(
+    home, content, works, output, *, profile, adjudications=(), reference_revision=None
+):
+    """Join disjoint complete reviews and source adjudications for a record matrix."""
+    from harness.web_scraper.analysis import record_field_results
+    from harness.web_scraper.dataset import benchmark_config
+    from harness.web_scraper.pipeline import selected_profile, validate_dataset
+
+    require_external_output(output)
+    authority = read_json(profile)
+    if authority.get("dataset") != read_json(selected_profile(home))["dataset"]:
+        raise ValueError("Record audit profile differs from its selected dataset")
+    bound_content = authority.get("research_report", {}).get("content", {}).get("sha256")
+    if bound_content and digest(Path(content).read_bytes()) != bound_content:
+        raise ValueError("Record audit content differs from its instance profile")
+    validate_dataset(home)
+    adapter = benchmark_config(home)["adapter"]
+    truth, rows, methods = current_audit_matrix(home, read_json(content))
+    expected = {(r["method"], r["case_id"]) for r in rows}
+    inputs, reviewed, sources, receipts = {}, {}, {}, []
+    resolved = {}
+
+    def source_case(cid, case):
+        if (
+            cid not in truth
+            or case["reference"] != truth[cid]["values"]
+            or case["field_schema"] != adapter.task_schema(home, truth[cid])
+            or case.get("source_url") != truth[cid]["url"]
+            or case.get("category") != truth[cid]["domain"]
+            or digest(Path(case["source_html"]).read_bytes())
+            != digest((home / "dataset/html" / (cid + ".html")).read_bytes())
+        ):
+            raise ValueError("Record review belongs to a different source, schema or reference")
+
+    def retain(work, kind):
+        work = Path(work)
+        manifest = read_manifest(work)
+        if manifest["schema"] != kind:
+            raise ValueError("Unexpected record review authority")
+        cases, opinions, packets = completed(work)
+        receipts.append(
+            {
+                "kind": kind,
+                "manifest_sha256": digest((work / "manifest.json").read_bytes()),
+                "reviewer": read_json(work / "reviewer.json"),
+                "packets": packets,
+            }
+        )
+        return cases, opinions
+
+    for work in works:
+        cases, opinions = retain(work, "record-field-evidence-audit/1")
+        for cid, case in cases.items():
+            source_case(cid, case)
+            sources.setdefault(cid, []).append(opinions[cid])
+            by_method = {o["method"]: o for o in opinions[cid]["outputs"]}
+            for native in case["outputs"]:
+                key = native["method"], cid
+                if key in inputs:
+                    raise ValueError("Duplicate independently reviewed record result")
+                inputs[key], reviewed[key] = native, by_method[native["method"]]
+    if set(inputs) != expected:
+        raise ValueError("Record review must cover the complete current method-case matrix")
+    for work in adjudications:
+        cases, opinions = retain(work, "record-reference-adjudication/1")
+        for cid, case in cases.items():
+            source_case(cid, case)
+            if cid in resolved or case["outputs"] or not case.get("benchmark_rules"):
+                raise ValueError("Duplicate or unbound record reference adjudication")
+            resolved[cid] = opinions[cid]
+    references = copy.deepcopy(truth)
+    policy = {"unavailable_reference_groups": [], "text_matching": "literal"}
+    if reference_revision is not None:
+        references, policy = adapter.load_reference_revision(home, reference_revision)
+    unavailable = {tuple(group) for group in policy["unavailable_reference_groups"]}
+    matching = adapter.canonical_text if policy["text_matching"] == "whitespace" else str
+    unresolved, final_sources = [], {}
+    for cid, prior in sources.items():
+        final = resolved.get(cid, prior[0])
+        final_sources[cid] = {
+            "main_record": final["main_record"],
+            "source_fields": final["source_fields"],
+            "reference_review": final["reference"],
+            "adjudicated": cid in resolved,
+        }
+        for field in truth[cid]["values"]:
+            disputed = any(
+                p["reference"][field]["status"] in ("incorrect", "ambiguous") for p in prior
+            )
+            finding = final["reference"][field]
+            group = truth[cid]["domain"], truth[cid]["site"], field
+            if group in unavailable:
+                continue
+            reason = None
+            if disputed and cid not in resolved:
+                reason = "Disputed reference requires source adjudication"
+            elif finding["status"] == "ambiguous":
+                reason = "Reference scope remains ambiguous after adjudication"
+            elif finding["status"] == "incorrect":
+                accepted = final["source_fields"][field]["values"]
+                if references[cid]["values"][field] == truth[cid]["values"][field] or {
+                    matching(value) for value in references[cid]["values"][field]
+                } != {matching(value) for value in accepted}:
+                    reason = "Reference defect needs a matching source-qualified correction"
+            elif finding["status"] == "absent" and references[cid]["values"][field]:
+                reason = "Nonempty reference has an unresolved absence finding"
+            if reason:
+                unresolved.append({"case_id": cid, "field": field, "reason": reason})
+    results, predictions = {}, {method: {} for method in methods}
+    for row in rows:
+        key = row["method"], row["case_id"]
+        method, cid = key
+        native = inputs[key]
+        if (
+            native["native_response"] != row.get("response")
+            or native["execution_identity"] != execution_identity(row)
+            or (
+                native.get("http_status") != row.get("http_status")
+                or native.get("runtime_error") != row.get("error")
+            )
+        ):
+            raise ValueError("Record review differs from its current native execution")
+        current = normalize(
+            method, row.get("response", {}), schema=adapter.task_schema(home, truth[cid])
+        )
+        if current != native["normalized_fields"]:
+            raise ValueError("Record projection changed after independent review")
+        prediction = (current or {}) if row.get("http_status") == 200 else {}
+        predictions[method][cid] = prediction
+        fields = record_field_results(
+            references[cid],
+            {**row, "normalized_fields": current},
+            text_matching=policy["text_matching"],
+            unavailable_fields=[
+                f
+                for f in references[cid]["values"]
+                if (truth[cid]["domain"], truth[cid]["site"], f) in unavailable
+            ],
+        )
+        results[method + ":" + cid] = {
+            "execution_sha256": execution_identity(row),
+            "reviewer_fields": reviewed[key]["fields"],
+            "reviewer_projection_issue": reviewed[key]["projection_issue"],
+            "audited_fields": fields,
+            "native_response_sha256": digest(
+                json.dumps(row.get("response"), sort_keys=True, ensure_ascii=False).encode()
+            ),
+            "field_reconciliation": {
+                field: {
+                    "reviewer_status": reviewed[key]["fields"][field]["status"],
+                    "matcher_status": finding["status"],
+                    "resolution": "unavailable_reference"
+                    if finding["status"] == "unavailable"
+                    else "source_qualified_node_text_contract",
+                }
+                for field, finding in fields.items()
+            },
+        }
+    value = {
+        "schema": "record-complete-audit/1",
+        "review_scope": "all",
+        "review_kind": (
+            "model source-evidence audit with original-node-contract adjudication; not human gold"
+        ),
+        "review_state": "complete" if not unresolved else "reference_adjudication_required",
+        "case_count": len(truth),
+        "result_count": len(results),
+        "original_results_reviewed": len(results),
+        "accepted_unreviewed_passes": 0,
+        "unresolved": len(unresolved),
+        "unresolved_fields": unresolved,
+        "official_reference_sha256": digest(
+            (home / "dataset/dataset/ground-truth.json").read_bytes()
+        ),
+        "dataset_manifest_sha256": digest((home / "dataset/manifest.json").read_bytes()),
+        "schemas_sha256": digest((home / "dataset/schemas.json").read_bytes()),
+        "scorer_sha256": digest((home / "dataset/evaluate.py").read_bytes()),
+        "adapter_sha256": digest(Path(adapter.__file__).read_bytes()),
+        "reference_revision_sha256": digest(Path(reference_revision).read_bytes())
+        if reference_revision
+        else None,
+        "source_hashes": {
+            cid: digest((home / "dataset/html" / (cid + ".html")).read_bytes()) for cid in truth
+        },
+        "reference_policy": policy,
+        "audited_reference": references,
+        "audited_scores": {m: adapter.score(references, predictions[m], **policy) for m in methods},
+        "sources": final_sources,
+        "results": results,
+        "review_receipts": receipts,
+        "regression_ids": adapter.check_reference_controls(),
+        "provider_calls_added": 0,
     }
     save_json(output, value, exclusive=True)
     return value

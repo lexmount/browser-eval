@@ -167,18 +167,45 @@ def failure_stage(row):
     return "provider_response"
 
 
-def record_field_results(reference, row):
+def record_field_results(reference, row, *, text_matching="literal", unavailable_fields=()):
     """Expose exact-set and official page-hit outcomes without changing saved scores."""
+    from harness.web_scraper.swde import canonical_text
+
+    if text_matching not in ("literal", "whitespace"):
+        raise ValueError("Unsupported record text matching policy")
+    unavailable = set(unavailable_fields)
+    if unavailable - set(reference["values"]) or any(
+        reference["values"][field] for field in unavailable
+    ):
+        raise ValueError("Unavailable record fields must be declared and unannotated")
     prediction = (row.get("normalized_fields") or {}) if row.get("http_status") == 200 else {}
     result = {}
     for field, gold in reference["values"].items():
         actual = prediction.get(field, [])
         valid = (
-            {value for value in actual if isinstance(value, str)}
+            {
+                canonical_text(value) if text_matching == "whitespace" else value
+                for value in actual
+                if isinstance(value, str)
+            }
             if isinstance(actual, list)
             else set()
         )
-        expected = set(gold)
+        expected = {
+            canonical_text(value) if text_matching == "whitespace" else value for value in gold
+        }
+        if field in unavailable:
+            result[field] = {
+                "expected": [],
+                "actual": actual,
+                "status": "unavailable",
+                "hit": None,
+                "exact": None,
+                "tp": None,
+                "fp": None,
+                "fn": None,
+            }
+            continue
         invalid = not isinstance(actual, list) or any(
             not isinstance(value, str) for value in actual
         )
