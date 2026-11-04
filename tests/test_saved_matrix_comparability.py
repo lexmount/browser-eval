@@ -300,3 +300,25 @@ def test_final_checker_requires_original_sources(tmp_path):
     with pytest.raises(ValueError, match='original final source specification'):
         check_saved_matrix(output)
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+
+
+@pytest.mark.parametrize('presentation', ['audit', 'final'])
+def test_saved_presentation_does_not_rank_diagnostic_evidence(tmp_path, presentation):
+    from bs4 import BeautifulSoup
+    spec = matrix(tmp_path)
+    spec['presentation'] = presentation
+    output = build(tmp_path, spec).parent
+    dataset = json.loads((output/'dataset.json').read_bytes())
+    page = BeautifulSoup((output/'index.html').read_text(encoding='utf-8'), 'html.parser')
+    diagnostic = presentation == 'audit'
+    assert dataset['comparison']['presentation']['ranking'] == ('diagnostic' if diagnostic else 'saved_task_pass_rate')
+    for selector in ['#ranking-overall', '#ranking-web']:
+        table = page.select_one(selector)
+        assert (table.get('data-row-index') == 'false') is diagnostic
+        if diagnostic:
+            assert table['data-col'] == '0'
+    assert bool(page.select_one('[data-evidence-state="saved_diagnostic"]')) is diagnostic
+    if diagnostic:
+        assert '敏感性分析证据' in page.get_text()
+        assert '本类最高' not in page.get_text()
+        assert '本轮任务通过率排名' not in page.get_text()

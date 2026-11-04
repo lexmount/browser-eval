@@ -25,13 +25,17 @@ def test_saved_ranking_keeps_failed_call_latency_neutral(tmp_path, tie):
     ranking = page.select_one('#ranking-overall')
     assert '请求成功率' in ranking.get_text() and '综合任务通过率' in ranking.get_text()
     rows = ranking.select('tbody tr')
-    assert rows[0].select_one('a')['href'] == 'providers/method.html'
-    assert rows[1].select_one('a')['href'] == 'providers/alphabetic-first.html'
+    assert [row.select_one('a')['href'] for row in rows] == [
+        'providers/alphabetic-first.html', 'providers/method.html']
+    assert ranking['data-row-index'] == 'false'
+    assert (ranking['data-col'], ranking['data-dir']) == ('0', 'asc')
+    assert not ranking.select('.comparison-winner')
     assert len(ranking.select('thead button')) >= 6
     for row in rows:
         assert not row.select('[data-metric-direction="min"]')
         values = row.select('td')[-4:-1]
-        assert all(float(cell['data-sort']) == (12 if row is rows[0] or tie else 6) for cell in values)
+        elapsed = 12 if row.select_one('a')['href'] == 'providers/method.html' or tie else 6
+        assert all(float(cell['data-sort']) == elapsed for cell in values)
         assert not any(cell.select('.comparison-winner') for cell in values)
     successful = page.select_one('#successful-final-call-latency')
     successful_rows = successful.select('tbody tr')
@@ -43,7 +47,7 @@ def test_saved_ranking_keeps_failed_call_latency_neutral(tmp_path, tie):
 
 
 @pytest.mark.parametrize('tie', [False, True])
-def test_saved_suite_pass_rate_highlights_only_a_unique_winner(tmp_path, tie):
+def test_saved_audit_suite_does_not_highlight_pass_rate(tmp_path, tie):
     spec, source, record, raw = fixture(tmp_path)
     other = deepcopy(record)
     other['provider'] = 'other'
@@ -58,9 +62,9 @@ def test_saved_suite_pass_rate_highlights_only_a_unique_winner(tmp_path, tie):
     table = home.select_one('#ranking-first')
     assert table is not None
     winners = table.select('[data-metric="task_pass_rate"] .comparison-winner')
-    assert len(winners) == (0 if tie else 1)
-    if not tie:
-        assert '1/1' in winners[0].get_text()
+    assert not winners
+    assert table['data-row-index'] == 'false'
+    assert (table['data-col'], table['data-dir']) == ('0', 'asc')
 
 
 def test_task_families_combine_suites_without_combining_case_identities(tmp_path):
@@ -243,7 +247,7 @@ def test_precall_rejection_preserves_score_but_excludes_product_failure(tmp_path
     assert '1/2' in home.select_one('#ranking-overall').get_text()
     assert '1/2' in home.select_one('#ranking-first').get_text()
     suite_cells = home.select('#ranking-first tbody tr td')
-    assert [c.get_text() for c in suite_cells[2:5]] == ['3', '3', '1']
+    assert [c.get_text() for c in suite_cells[1:4]] == ['3', '3', '1']
     overall = home.select_one('#ranking-overall')
     assert '无法判定（含未调用）' in overall.get_text()
     timing_cells = overall.select('tbody tr td')[-3:]
@@ -361,22 +365,34 @@ def test_nested_suite_names_partition_by_identity(tmp_path):
         ['first--same'], ['first--nested--same']]
 
 
-def test_suite_ranking_orders_by_fraction_and_exposes_numeric_sort():
-    from harness.web_fetch.report import saved_suite_ranking
+@pytest.mark.parametrize('diagnostic', [False, True])
+@pytest.mark.parametrize('tie', [False, True])
+def test_suite_ranking_preserves_final_order_but_diagnostics_stay_neutral(diagnostic, tie):
+    from harness.web_fetch.report import ranking, _REPORT_SUITES
     cases = {'a': {'id': 'a', 'report_family': 'suite'},
              'b': {'id': 'b', 'report_family': 'suite'}}
     records = [dict(provider=provider, case_id=cid, ok=True,
                     metrics={'content_pass': passed})
                for provider, cid, passed in [('alphabetic-first','a',True),
-                   ('alphabetic-first','b',False), ('z-winner','a',True),
+                   ('alphabetic-first','b',tie), ('z-winner','a',True),
                    ('z-winner','b',True)]]
-    soup = BeautifulSoup(saved_suite_ranking(records,cases,'suite'),'html.parser')
+    token = _REPORT_SUITES.set(({'id': 'suite'},))
+    try:
+        soup = BeautifulSoup(ranking(records,cases,'suite',diagnostic=diagnostic),'html.parser')
+    finally:
+        _REPORT_SUITES.reset(token)
+    table = soup.select_one('#ranking-suite')
     rows = soup.select('tbody tr')
-    assert 'z-winner' in rows[0].get_text()
-    assert [r.select('td')[-1]['data-sort'] for r in rows] == ['1.0','0.5']
+    assert ('alphabetic-first' if diagnostic or tie else 'z-winner') in rows[0].get_text()
+    expected = ['1.0','1.0'] if tie else ['0.5','1.0'] if diagnostic else ['1.0','0.5']
+    assert [r.select('td')[-1]['data-sort'] for r in rows] == expected
     assert len(soup.select('thead button')) == 7
+    assert len(table.select('.comparison-winner')) == (0 if diagnostic or tie else 1)
+    assert table.get('data-row-index') == ('false' if diagnostic else None)
+    assert (table['data-col'], table['data-dir']) == (('0','asc') if diagnostic else ('7','desc'))
     for row in rows:
-        assert all(cell['data-sort'] == cell.get_text() for cell in row.select('td')[2:7])
+        offset = 1 if diagnostic else 2
+        assert all(cell['data-sort'] == cell.get_text() for cell in row.select('td')[offset:offset+5])
 
 
 def test_final_call_timing_labels_are_localized_in_ordinary_reports():

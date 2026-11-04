@@ -66,7 +66,7 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertIn('包含通过与失败',rendered)
   self.assertLess(rendered.index('slow-high-pass'),rendered.index('fast-low-pass'))
   self.assertIn('150 ms',rendered)
- def test_comparison_defaults_to_pass_rate_including_saved_snapshots(self):
+ def test_comparison_defaults_to_pass_rate_except_diagnostics(self):
   from bs4 import BeautifulSoup
   from harness.web_fetch.report import ranking
   cases={key:{'id':key,'track':'web','task_kind':'body'} for key in ('a','b')}
@@ -79,13 +79,18 @@ class ReportRevisionTests(unittest.TestCase):
     with self.subTest(diagnostic=diagnostic,render=render):
      doc=BeautifulSoup(render(),'html.parser');table=doc.select_one('table.ranking')
      column=2 if diagnostic else 3
-     self.assertEqual(table.get('data-col'),str(column))
-     self.assertEqual(table.get('data-dir'),'desc')
+     self.assertEqual(table.get('data-col'),'0' if diagnostic else '3')
+     self.assertEqual(table.get('data-dir'),'asc' if diagnostic else 'desc')
      rows=table.select('tbody tr')
-     self.assertIn('z-high',rows[0].get_text())
-     self.assertEqual([row.select('td')[column].get_text() for row in rows],['100.0%','50.0%','50.0%'])
-     self.assertIsNotNone(rows[0].select('td')[column].select_one('.comparison-winner'))
-     self.assertFalse(any(row.select('td')[column].select_one('.comparison-winner') for row in rows[1:]))
+     self.assertIn('a-low' if diagnostic else 'z-high',rows[0].get_text())
+     expected=['50.0%','50.0%','100.0%'] if diagnostic else ['100.0%','50.0%','50.0%']
+     self.assertEqual([row.select('td')[column].get_text() for row in rows],expected)
+     if diagnostic:
+      self.assertFalse(table.select('.comparison-winner'))
+      self.assertEqual(table['data-row-index'],'false')
+     else:
+      self.assertIsNotNone(rows[0].select('td')[column].select_one('.comparison-winner'))
+      self.assertFalse(any(row.select('td')[column].select_one('.comparison-winner') for row in rows[1:]))
   # A shared maximum has no winner; unavailable metrics remain neutral.
   for row in records:row['metrics']['content_pass']=True
   doc=BeautifulSoup(overall_ranking(records,cases,diagnostic=True),'html.parser')

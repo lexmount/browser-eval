@@ -2401,7 +2401,7 @@ def _saved_renderer_projection(output, model):
     dataset = {'name': model['title'], 'cases': list(cases.values()),
         'coverage_plan': {c.get('track','web'): providers for c in cases.values()},
         'comparison': {'publication_state': ('final_saved_results' if final else 'local_audit_only_not_for_release'),
-                       'presentation': {'ranking': 'saved_task_pass_rate',
+                       'presentation': {'ranking': 'saved_task_pass_rate' if final else 'diagnostic',
                                         'combined_ranking': model.get('combined_ranking', True)}},
         'saved_matrix_scope': scope}
     if model.get('offline_revision'):
