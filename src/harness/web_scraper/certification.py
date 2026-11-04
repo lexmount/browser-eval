@@ -5,7 +5,6 @@ from pathlib import Path
 
 from harness.reporting.templates import metric_contract
 from harness.web_scraper.pipeline import (
-    PROFILE,
     available_methods,
     data_home,
     digest,
@@ -15,6 +14,7 @@ from harness.web_scraper.pipeline import (
     require_external_output,
     save_json,
     score_run,
+    selected_profile,
     validate_dataset,
 )
 
@@ -31,7 +31,7 @@ def create_plan(home, methods, output):
         "case_count": len(truth),
         "case_ids_sha256": digest(("\n".join(sorted(truth)) + "\n").encode()),
         "dataset_manifest_sha256": digest((home / "dataset/manifest.json").read_bytes()),
-        "scorer_sha256": read_json(PROFILE)["dataset"]["files"]["evaluate.py"],
+        "scorer_sha256": read_json(selected_profile(home))["dataset"]["files"]["evaluate.py"],
         "matrix_size": len(truth) * len(methods),
         "participants": {
             m: {
@@ -56,6 +56,16 @@ def create_plan(home, methods, output):
             "memory": "Remote memory unavailable; the local baseline is timed separately.",
         },
     }
+    if selected_profile(home).name == "swde.json":
+        from harness.web_scraper.swde import GENERIC_METHODS
+
+        if any(method not in GENERIC_METHODS for method in methods):
+            raise ValueError("SWDE requires a complete arbitrary-schema extraction API")
+        plan["schema"] = "archived-extraction-full-cohort/1"
+        plan["dataset_profile_sha256"] = digest(selected_profile(home).read_bytes())
+        plan["task_adapter_sha256"] = digest(Path(__file__).with_name("swde.py").read_bytes())
+        for participant in plan["participants"].values():
+            participant["maximum_physical_calls"] = len(truth) + 20
     save_json(output, plan, exclusive=True)
     return plan
 
@@ -67,6 +77,11 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
         from harness.web_scraper.repair import run as repair_run
 
         return repair_run(home, profile, method, run_dir)
+    if plan.get("task_adapter_sha256"):
+        if plan["task_adapter_sha256"] != digest(
+            Path(__file__).with_name("swde.py").read_bytes()
+        ) or plan["dataset_profile_sha256"] != digest(selected_profile(home).read_bytes()):
+            raise ValueError("Frozen task adapter or dataset profile changed")
     participant = plan["participants"][method]
     policy = {"timeout_seconds": 120, "quality_retries": 0, "access_retries_after_repair": 1}
     if any(plan.get(key) != value for key, value in policy.items()):
@@ -87,7 +102,10 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
     case_hash = digest(("\n".join(sorted(truth)) + "\n").encode())
     if plan.get("dataset_manifest_sha256") != digest((home / "dataset/manifest.json").read_bytes()):
         raise ValueError("Frozen plan reference manifest differs")
-    if plan.get("scorer_sha256") != read_json(PROFILE)["dataset"]["files"]["evaluate.py"]:
+    if (
+        plan.get("scorer_sha256")
+        != read_json(selected_profile(home))["dataset"]["files"]["evaluate.py"]
+    ):
         raise ValueError("Frozen plan scorer differs")
     if len(truth) != plan["case_count"] or case_hash != plan["case_ids_sha256"]:
         raise ValueError("Full cohort population differs from the frozen plan")
@@ -153,6 +171,11 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
     )
     contract, rows = load_run(source)
     validate_dataset(home)
+    if plan.get("task_adapter_sha256") and (
+        plan["task_adapter_sha256"] != digest(Path(__file__).with_name("swde.py").read_bytes())
+        or plan["dataset_profile_sha256"] != digest(selected_profile(home).read_bytes())
+    ):
+        raise ValueError("Task adapter or dataset profile changed during collection")
     if (
         digest(profile.read_bytes()) != precall["profile_sha256"]
         or contract["pipeline_sha256"] != precall["pipeline_sha256"]

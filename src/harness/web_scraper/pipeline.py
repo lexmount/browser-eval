@@ -156,7 +156,15 @@ def data_home() -> Path:
     return shared_data_home() / "web-scraper"
 
 
-def prepare(destination: Path, profile=PROFILE):
+def prepare(destination: Path, profile=PROFILE, *, benchmark="zyte", source=None):
+    if benchmark == "swde":
+        if source is None:
+            raise ValueError("SWDE preparation requires the pinned source archive")
+        from harness.web_scraper.swde import prepare as prepare_swde
+
+        return prepare_swde(destination, Path(source))
+    if benchmark != "zyte":
+        raise ValueError("Unknown extraction benchmark")
     require_external_output(destination)
     contract = read_json(profile)
     pin = contract["dataset"]
@@ -173,8 +181,21 @@ def prepare(destination: Path, profile=PROFILE):
     raise ValueError("Dataset preparation requires a pinned Hugging Face distribution")
 
 
-def validate_dataset(home: Path, profile=PROFILE):
-    contract = read_json(profile)
+def selected_profile(home):
+    """Resolve only registered dataset adapters; old Zyte homes retain their identity."""
+    manifest = read_json(home / "dataset/manifest.json")
+    benchmark = manifest.get("benchmark", "zyte")
+    if benchmark == "zyte":
+        return PROFILE
+    if benchmark == "swde":
+        from harness.web_scraper.swde import CARD
+
+        return CARD
+    raise ValueError("Unknown extraction benchmark: " + str(benchmark))
+
+
+def validate_dataset(home: Path, profile=None):
+    contract = read_json(profile or selected_profile(home))
     root = home / "dataset"
     manifest = read_json(root / "manifest.json")
     pin = contract["dataset"]
@@ -462,10 +483,24 @@ def _extruct_request(method, html, source_url, fixture_url, *, timeout, home, na
     }
 
 
-def _cloudflare_request(method, html, source_url, fixture_url, *, timeout, home, native_options):
+def _cloudflare_request(
+    method,
+    html,
+    source_url,
+    fixture_url,
+    *,
+    timeout,
+    home,
+    native_options,
+    schema=None,
+    prompt=None,
+):
     url = f"https://api.cloudflare.com/client/v4/accounts/{os.environ['CLOUDFLARE_ACCOUNT_ID']}/browser-rendering/json"
     headers = {"Authorization": "Bearer " + os.environ["CLOUDFLARE_API_TOKEN"]}
-    body = {"html": html, "response_format": {"type": "json_schema", "json_schema": SCHEMA}}
+    body = {
+        "html": html,
+        "response_format": {"type": "json_schema", "json_schema": schema or SCHEMA},
+    }
     body.update({k: v for k, v in native_options.items() if k != "input_route"})
     if native_options.get("input_route") == "url":
         if not fixture_url:
@@ -475,16 +510,38 @@ def _cloudflare_request(method, html, source_url, fixture_url, *, timeout, home,
     return url, headers, body
 
 
-def _browserbase_request(method, html, source_url, fixture_url, *, timeout, home, native_options):
+def _browserbase_request(
+    method,
+    html,
+    source_url,
+    fixture_url,
+    *,
+    timeout,
+    home,
+    native_options,
+    schema=None,
+    prompt=None,
+):
     if not fixture_url:
         return {"state": "input_blocked", "error": "A frozen HTTPS snapshot URL is required"}
     url = "https://api.browserbase.com/v1/fetch"
     headers = {"X-BB-API-Key": os.environ["BROWSERBASE_API_KEY"]}
-    body = {"url": fixture_url, "format": "json", "schema": SCHEMA, "proxies": False}
+    body = {"url": fixture_url, "format": "json", "schema": schema or SCHEMA, "proxies": False}
     return url, headers, body
 
 
-def _url_json_request(method, html, source_url, fixture_url, *, timeout, home, native_options):
+def _url_json_request(
+    method,
+    html,
+    source_url,
+    fixture_url,
+    *,
+    timeout,
+    home,
+    native_options,
+    schema=None,
+    prompt=None,
+):
     if not fixture_url:
         return {
             "state": "input_blocked",
@@ -505,7 +562,7 @@ def _url_json_request(method, html, source_url, fixture_url, *, timeout, home, n
     body = (
         {
             "url": fixture_url,
-            "formats": [{"type": "json", "schema": SCHEMA}],
+            "formats": [{"type": "json", "schema": schema or SCHEMA}],
             "onlyMainContent": False,
             "maxAge": 0,
         }
@@ -513,7 +570,7 @@ def _url_json_request(method, html, source_url, fixture_url, *, timeout, home, n
         else {
             "url": fixture_url,
             "output": ["json"],
-            "json": {"schema": SCHEMA},
+            "json": {"schema": schema or SCHEMA},
             "run_js": False,
         }
     )
@@ -534,16 +591,28 @@ def _zyte_request(method, html, source_url, fixture_url, *, timeout, home, nativ
     return url, headers, body
 
 
-def _scrapegraph_request(method, html, source_url, fixture_url, *, timeout, home, native_options):
+def _scrapegraph_request(
+    method,
+    html,
+    source_url,
+    fixture_url,
+    *,
+    timeout,
+    home,
+    native_options,
+    schema=None,
+    prompt=None,
+):
     url = "https://v2-api.scrapegraphai.com/api/extract"
     headers = {"SGAI-APIKEY": os.environ["SGAI_API_KEY"]}
     body = {
         "html": html,
-        "prompt": (
+        "prompt": prompt
+        or (
             "Extract the main product current price, SKU and stock availability. "
             "Use null for absent fields."
         ),
-        "schema": SCHEMA,
+        "schema": schema or SCHEMA,
     }
     return url, headers, body
 
@@ -620,6 +689,7 @@ def _raw_html_request(method, html, source_url, fixture_url, *, timeout, home, n
 
 METHODS = {
     "firecrawl-json": {
+        "custom_schema": True,
         **{
             "keys": ["FIRECRAWL_API_KEY"],
             "input": "url",
@@ -630,6 +700,7 @@ METHODS = {
         "adapter": _url_json_request,
     },
     "cloudflare-json": {
+        "custom_schema": True,
         **{
             "keys": ["CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN"],
             "input": "html",
@@ -665,6 +736,7 @@ METHODS = {
         "adapter": _raw_html_request,
     },
     "scrapegraph-extract": {
+        "custom_schema": True,
         **{
             "keys": ["SGAI_API_KEY"],
             "input": "html",
@@ -685,6 +757,7 @@ METHODS = {
         "adapter": _raw_html_request,
     },
     "oxylabs-json": {
+        "custom_schema": True,
         **{
             "keys": ["OXYLABS_API_KEY"],
             "input": "url",
@@ -705,6 +778,7 @@ METHODS = {
         "adapter": _extruct_request,
     },
     "browserbase-json": {
+        "custom_schema": True,
         **{
             "keys": ["BROWSERBASE_API_KEY"],
             "input": "url",
@@ -719,10 +793,22 @@ METHODS = {
 
 @total_deadline
 def provider_call(
-    method, html, source_url, fixture_url=None, *, timeout=120, home=None, native_options=None
+    method,
+    html,
+    source_url,
+    fixture_url=None,
+    *,
+    timeout=120,
+    home=None,
+    native_options=None,
+    schema=None,
+    prompt=None,
 ):
     """One native route per provider; no hidden fallback or quality retry."""
     native_options = validate_native_options(method, native_options)
+    if schema is not None:
+        if not METHODS[method].get("custom_schema", False):
+            raise ValueError("Selected native interface does not support arbitrary schemas")
     prepared = METHODS[method]["adapter"](
         method,
         html,
@@ -731,6 +817,7 @@ def provider_call(
         timeout=timeout,
         home=home,
         native_options=native_options,
+        **({"schema": schema, "prompt": prompt} if schema is not None else {}),
     )
     if isinstance(prepared, dict):
         return prepared
@@ -754,7 +841,7 @@ def provider_call(
             if native_options.get("input_route") == "url"
             else available_methods()[method]["input"],
             "html_sha256": digest(html.encode()),
-            "schema": SCHEMA,
+            "schema": schema or SCHEMA,
             "fixture_url": fixture_url,
             "source_url": source_url,
             "native_options": native_options,
@@ -762,7 +849,7 @@ def provider_call(
     }
 
 
-def normalize(method: str, payload: dict):
+def normalize(method: str, payload: dict, *, schema=None):
     """Map exposed fields only. Never infer answers from labels or source URLs."""
     if not isinstance(payload, dict) or payload.get("success") is False:
         return None
@@ -841,6 +928,8 @@ def normalize(method: str, payload: dict):
             item["availability"] = "InStock" if item["availability"] else "OutOfStock"
     else:
         item = None
+    if schema is not None:
+        return dict(item) if isinstance(item, dict) else None
     if not isinstance(item, dict) or not any(f in item for f in ("price", "sku", "availability")):
         return None
     result = {}
@@ -996,7 +1085,9 @@ def collect_calls(
         raise ValueError("Symlink inputs are prohibited")
     registry = available_methods()
     truth = read_json(home / "dataset/dataset/ground-truth.json")
-    frozen_inputs = read_json(home / "dataset/manifest.json")["files"]
+    dataset_manifest = read_json(home / "dataset/manifest.json")
+    frozen_inputs = dataset_manifest["files"]
+    custom_schema = dataset_manifest.get("benchmark") == "swde"
     dispatch = dispatch or provider_call
     prior = {}
     physical = []
@@ -1055,10 +1146,24 @@ def collect_calls(
                     continue
                 if dispatched_attempts.get((method, case_id), 0) > contract["access_retry_limit"]:
                     raise PermissionError("Access remains blocked; declared retry budget exhausted")
+            if len(physical) >= contract.get("maximum_physical_calls", float("inf")):
+                raise PermissionError("Frozen physical call budget exhausted before dispatch")
             missing = [key for key in registry[method]["keys"] if not os.getenv(key)]
             raw = (home / "dataset/html" / (case_id + ".html")).read_bytes()
             if digest(raw) != frozen_inputs["html/" + case_id + ".html"]["sha256"]:
                 raise ValueError("Frozen extraction HTML changed before dispatch")
+            schema_options = {}
+            if custom_schema:
+                from harness.web_scraper.swde import task_schema
+
+                schema_options = {
+                    "schema": task_schema(home, truth[case_id]),
+                    "prompt": (
+                        "Extract all requested attributes of the main record. Copy text values "
+                        "exactly, including units and punctuation. Return an empty array for "
+                        "absent fields. Exclude navigation and other records."
+                    ),
+                }
             row = {
                 "method": method,
                 "case_id": case_id,
@@ -1105,6 +1210,7 @@ def collect_calls(
                             fixture_url(fixture_base, case_id, fixture_suffix)
                             if fixture_base
                             else None,
+                            **schema_options,
                             **(
                                 {"home": home, "native_options": native_options, "timeout": 120}
                                 if repair
@@ -1114,8 +1220,20 @@ def collect_calls(
                     )
                     if "elapsed_seconds" not in row:
                         row["elapsed_seconds"] = time.monotonic() - last_call_started
-                    normalized = normalize(method, row.get("response", {}))
+                    normalized = normalize(
+                        method,
+                        row.get("response", {}),
+                        **({"schema": schema_options["schema"]} if custom_schema else {}),
+                    )
                     row["normalized_fields"] = normalized
+                    if custom_schema:
+                        from jsonschema import Draft202012Validator
+
+                        errors = list(
+                            Draft202012Validator(schema_options["schema"]).iter_errors(normalized)
+                        )
+                        row["schema_valid"] = not errors
+                        row["schema_errors"] = [e.message for e in errors]
                     row["compatibility"] = (
                         "structured_output"
                         if normalized is not None and row.get("http_status") == 200
@@ -1268,11 +1386,18 @@ def _probe_unlocked(
         "baseline_extractor": read_json(PROFILE).get("baseline_extractor")
         if "extruct" in methods
         else None,
-        "schema": SCHEMA,
+        "schema": read_json(home / "dataset/schemas.json")
+        if selected_profile(home).name == "swde.json"
+        else SCHEMA,
         "remote_fixture_before": remote_before,
     }
+    if selected_profile(home).name == "swde.json":
+        requested["task_adapter_sha256"] = digest(Path(__file__).with_name("swde.py").read_bytes())
+        requested["maximum_physical_calls"] = len(case_ids) + 20
     if continuing:
         contract = read_json(run / "contract.json")
+        if contract.get("task_adapter_sha256") != requested.get("task_adapter_sha256"):
+            raise ValueError("Resume task adapter changed")
         for field in (
             "kind",
             "case_ids",
@@ -1556,6 +1681,22 @@ def score_rows(home, truth, rows, methods):
     """Use the same upstream scoring boundary for original and repaired views."""
     from decimal import InvalidOperation
 
+    if selected_profile(home).name == "swde.json":
+        from harness.web_scraper.swde import score
+
+        return {
+            method: score(
+                truth,
+                {
+                    r["case_id"]: (r.get("normalized_fields") or {})
+                    if r.get("http_status") == 200
+                    else {}
+                    for r in rows
+                    if r["method"] == method
+                },
+            )
+            for method in methods
+        }
     scorer = official_scorer(home)
     original_decimal = scorer["decimal_matching"]
 
