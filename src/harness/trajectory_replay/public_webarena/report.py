@@ -560,7 +560,7 @@ def _summary_page(
     else:
         ratio_baseline = ""
     ratio_intro = (
-        t("public.summary.ratio_intro", "Ratios are computed per common task as evaluated browser / {baseline}, then aggregated.", baseline=engine_label(ratio_baseline))
+        t("public.summary.ratio_intro", "Ratios are computed per common task as evaluated browser / {baseline}, then aggregated. ", baseline=engine_label(ratio_baseline))
         if ratio_baseline
         else ""
     )
@@ -574,9 +574,9 @@ def _summary_page(
     final_failure_count = sum(int(row[1]) for row in failure_rows)
     failure_breakdown = t("replay.separator.comma", ", ").join(t("public.summary.breakdown", "{count} {category}", count=row[1], category=row[0]) for row in failure_rows)
     failure_summary = (
-        t("public.summary.failure_summary", "The {count} results that did not pass include {breakdown}.", count=final_failure_count, breakdown=failure_breakdown)
+        t("public.summary.failure_summary", "The {count} results that did not pass include {breakdown}. ", count=final_failure_count, breakdown=failure_breakdown)
         if failure_rows
-        else t("public.summary.no_failures", "No result failed in this run.")
+        else t("public.summary.no_failures", "No result failed in this run. ")
     )
     stage_labels = {
         t("public.failure.interaction", "Page interaction interrupted"): t("public.stage.interaction", "Page interaction"),

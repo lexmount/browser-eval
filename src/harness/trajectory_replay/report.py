@@ -79,7 +79,7 @@ def _engines(summary: dict[str, Any]) -> tuple[str, ...]:
 
 
 def _all_parties(engines: tuple[str, ...]) -> str:
-    return t("curated.parties.both", "both providers") if len(engines) == 2 else t("curated.parties.all", "all providers ")
+    return t("curated.parties.both", "both providers") if len(engines) == 2 else t("curated.parties.all", "all providers")
 
 
 def _provider_count(engines: tuple[str, ...]) -> str:
@@ -380,10 +380,9 @@ def _recommendation(summary: dict[str, Any], engines: tuple[str, ...]) -> str:
     if len(engines) == 1:
         return t("curated.recommendation.single", "This run has only one provider, {engines}, with {top} correct results; there is nothing to compare, so no default is recommended.", engines=engine_names(engines), top=top)
     if len(leaders) > 1:
-        subject = (
-            f"{_provider_count(engines)} Provider" if leaders == engines else f" {engine_names(leaders)}"
-        )
-        return t("curated.recommendation.tied", "In this run{subject} have the same number of correct results ({top} each); correctness alone cannot select a default, so decide using resource metrics on tasks {parties} passed and the failure types.", subject=subject, top=top, parties=parties)
+        if leaders == engines:
+            return t("curated.recommendation.tied_all", "In this run, {count} providers have the same number of correct results ({top} each); correctness alone cannot select a default, so decide using resource metrics on tasks {parties} passed and the failure types.", count=_provider_count(engines), top=top, parties=parties)
+        return t("curated.recommendation.tied", "In this run, {leaders} have the same number of correct results ({top} each); correctness alone cannot select a default, so decide using resource metrics on tasks {parties} passed and the failure types.", leaders=engine_names(leaders), top=top, parties=parties)
     leader = leaders[0]
     others = tuple(engine for engine in engines if engine != leader)
     lower = t("replay.separator.list", ", ").join(t("curated.recommendation.lower", "{engine} with {count}", engine=engine_label(engine), count=passes[engine]) for engine in others)

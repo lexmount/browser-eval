@@ -7,6 +7,7 @@ import string
 import pytest
 
 from harness.reporting.source_policy import HAN
+from harness.trajectory_replay import report
 from harness.trajectory_replay.messages import MESSAGES, report_text
 
 PACKAGE = MESSAGES.parent
@@ -94,3 +95,25 @@ def test_english_is_source_text_and_chinese_comes_from_the_catalog():
     assert english("no.such.id", "Source only") == "Source only"
     with pytest.raises(ValueError, match="zh/no.such.id"):
         chinese("no.such.id", "Source only")
+
+
+def test_english_sentences_spliced_before_more_text_end_with_a_space():
+    sources = {node.args[0].value: node.args[1].value for _, node in _lookups()}
+    for name in ("failure_summary", "no_failures", "ratio_intro"):
+        key = f"public.summary.{name}"
+        assert sources[key].endswith(" "), key
+
+
+def test_english_tied_recommendation_reads_as_a_sentence(monkeypatch):
+    monkeypatch.setattr(report, "t", report_text("en"))
+    summary = {"functional": {name: {"result_final_passes": 7} for name in ("a", "b", "c")}}
+
+    both = report._recommendation(summary, ("a", "b"))
+    assert both.startswith("In this run, both providers have the same")
+    three = report._recommendation(summary, ("a", "b", "c"))
+    assert three.startswith("In this run, 3 providers have the same")
+    assert "on tasks all providers passed" in three
+
+    summary["functional"]["c"]["result_final_passes"] = 1
+    tied_leaders = report._recommendation(summary, ("a", "b", "c"))
+    assert tied_leaders.startswith(f"In this run, {report.engine_names(('a', 'b'))} have the same")
