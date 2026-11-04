@@ -51,6 +51,12 @@ def _require(condition, detail):
 
 
 def validate_release(source: Path, *, presentation_binding: Path | None = None, snapshot_audit=False) -> bool:
+    if (source / 'saved-matrix-audit.json').is_file():
+        from harness.web_fetch.report_saved_matrix import check_saved_matrix
+        if presentation_binding is not None or snapshot_audit:
+            raise ValueError('Saved matrices use their own bound release audit')
+        check_saved_matrix(source)
+        return False
     dataset_path = source / "dataset.json"
     dataset = json.loads(dataset_path.read_text(encoding="utf-8")) if dataset_path.exists() else {}
     records = load_jsonl(source / "results.jsonl")
