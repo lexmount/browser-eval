@@ -53,6 +53,8 @@ const outcomeNames = {
   missing: tr("outcomes_missing"),
   unexpected: tr("outcomes_unexpected"),
   wrong: tr("outcomes_wrong"),
+  partial: tr("outcomes_partial"),
+  invalid: tr("outcomes_invalid"),
 };
 const stageNames = {
   client_transport: tr("stages_client_transport"),
@@ -95,6 +97,28 @@ function show(dialog, button) {
   dialog.querySelector("[data-call-log-close]")?.focus();
 }
 function diagnosisContent(container, row, field) {
+  if (row.record_schema) {
+    container.replaceChildren();
+    container.append(node("p", `${row.method_label} · ${row.case_id} · HTTP ${row.http_status ?? "—"}`));
+    const table = document.createElement("table");
+    const header = document.createElement("tr");
+    for (const label of [tr("field"), tr("reference"), tr("output"), tr("outcome_243a87d2")]) header.append(node("th", label));
+    table.append(header);
+    for (const [field, result] of Object.entries(row.field_results || {})) {
+      const line = document.createElement("tr");
+      for (const value of [row.field_labels?.[field] || field, valueText(result.expected), valueText(result.actual), outcomeNames[result.status] || result.status]) line.append(node("td", value));
+      table.append(line);
+    }
+    container.append(table);
+    if (row.native_error || row.http_status !== 200) container.append(node("pre", row.native_error || JSON.stringify(row.response)));
+    const link = node("a", tr("full_result"));
+    link.href = row.result_href;
+    container.append(link);
+    const details = document.createElement("details");
+    details.append(node("summary", tr("complete_request_response_and_repair_history")), node("pre", JSON.stringify(row, null, 2)));
+    container.append(details);
+    return;
+  }
   container.replaceChildren();
   const lang = document.documentElement.lang.startsWith("en") ? "en" : "zh";
   container.append(
@@ -285,10 +309,13 @@ if (form) {
     let shown = 0;
     for (const row of document.querySelectorAll("tr[data-status]")) {
       const field = controls.field || "";
-      const bad = row.dataset.status === "fail" ||
-        (field ? row.dataset[field] : row.dataset.outcome) !== "correct";
+      const applicable = !field || row.dataset[field] !== undefined || row.dataset.status === "pending";
+      const bad = field ? (Boolean(row.dataset.stage) && row.dataset.stage !== "fields") || row.dataset[field] !== "correct" : row.dataset.status === "fail";
       const status = controls.status || "all";
       const show =
+        applicable &&
+        (!controls.domain || row.dataset.domain === controls.domain) &&
+        (!controls.site || row.dataset.site === controls.site) &&
         (!controls.method || row.dataset.method === controls.method) &&
         (!controls.stage || row.dataset.stage === controls.stage) &&
         (!controls.query ||

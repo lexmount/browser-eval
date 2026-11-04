@@ -29,6 +29,8 @@ def matchers(home, profile, source_sha256):
 
 
 def field_results(home, reference, row, *, profile=PROFILE):
+    if "values" in reference:
+        return record_field_results(reference, row)
     source_sha = digest((home / "dataset/evaluate.py").read_bytes())
     scorer = matchers(home, profile, source_sha)
     prediction = (row.get("normalized_fields") or {}) if row.get("http_status") == 200 else {}
@@ -106,3 +108,120 @@ def failure_stage(row):
     if "download page" in error or "third-party" in error or "fetching page" in error:
         return "provider_fetch"
     return "provider_response"
+
+
+def record_field_results(reference, row):
+    """Expose exact-set and official page-hit outcomes without changing saved scores."""
+    prediction = (row.get("normalized_fields") or {}) if row.get("http_status") == 200 else {}
+    result = {}
+    for field, gold in reference["values"].items():
+        actual = prediction.get(field, [])
+        valid = (
+            {value for value in actual if isinstance(value, str)}
+            if isinstance(actual, list)
+            else set()
+        )
+        expected = set(gold)
+        invalid = not isinstance(actual, list) or any(
+            not isinstance(value, str) for value in actual
+        )
+        exact = not invalid and expected == valid and len(valid) == len(actual)
+        if exact:
+            status = "correct"
+        elif invalid:
+            status = "invalid"
+        elif not valid:
+            status = "missing"
+        elif not expected:
+            status = "unexpected"
+        elif expected & valid:
+            status = "partial"
+        else:
+            status = "wrong"
+        result[field] = {
+            "expected": sorted(expected),
+            "actual": actual,
+            "status": status,
+            "hit": bool(expected & valid),
+            "exact": exact,
+            "tp": len(expected & valid),
+            "fp": len(valid - expected)
+            + (
+                bool(actual)
+                if not isinstance(actual, list)
+                else sum(not isinstance(value, str) for value in actual)
+            ),
+            "fn": len(expected - valid),
+        }
+    return result
+
+
+def record_statistics(truth, rows, *, certified, scorer):
+    """Summarize one declared method without scoring an incomplete population."""
+    import math
+    import statistics
+    from collections import Counter
+
+    by_case = {row["case_id"]: row for row in rows}
+    if len(by_case) != len(rows) or set(by_case) - set(truth):
+        raise ValueError("Record report requires one selected result per declared case")
+    complete = certified and set(by_case) == set(truth)
+    durations = sorted(
+        row["elapsed_seconds"] for row in rows if row.get("elapsed_seconds") is not None
+    )
+    latency = {
+        "timed": len(durations),
+        "missing": len(rows) - len(durations),
+        "mean": statistics.mean(durations) if durations else None,
+        "p50": statistics.median(durations) if durations else None,
+        "p95": durations[max(0, math.ceil(len(durations) * 0.95) - 1)] if durations else None,
+    }
+    field_counts, failures = Counter(), Counter()
+    exact_pages = 0
+    retry_seconds, retry_missing, physical_calls = 0.0, 0, 0
+    for row in rows:
+        fields = record_field_results(truth[row["case_id"]], row)
+        field_counts.update(value["status"] for value in fields.values())
+        exact_pages += bool(fields) and all(value["exact"] for value in fields.values())
+        if row.get("compatibility") != "structured_output":
+            failures[failure_stage(row)] += 1
+        attempts = row.get("physical_attempts", [row])
+        physical_calls += len(attempts)
+        if "retry_execution_seconds" in row:
+            retry_seconds += row["retry_execution_seconds"]
+            retry_missing += row.get("retry_missing_timers", 0)
+        else:
+            retry_seconds += sum(
+                value["elapsed_seconds"]
+                for value in attempts[:-1]
+                if value.get("elapsed_seconds") is not None
+            )
+            retry_missing += sum(value.get("elapsed_seconds") is None for value in attempts[:-1])
+    predictions = (
+        {
+            case_id: (
+                (by_case[case_id].get("normalized_fields") or {})
+                if by_case[case_id].get("http_status") == 200
+                else {}
+            )
+            for case_id in truth
+        }
+        if complete
+        else None
+    )
+    return {
+        "planned": len(truth),
+        "executed": len(rows),
+        "unexecuted": len(truth) - len(rows),
+        "certified": complete,
+        "structured": sum(row.get("compatibility") == "structured_output" for row in rows),
+        "schema_invalid": sum(row.get("schema_valid") is False for row in rows),
+        "scores": scorer(truth, predictions) if complete else None,
+        "latency": latency,
+        "field_outcomes": dict(field_counts),
+        "failure_stages": dict(failures),
+        "exact_pages": exact_pages,
+        "physical_calls": physical_calls,
+        "retry_seconds": retry_seconds,
+        "retry_missing_timers": retry_missing,
+    }

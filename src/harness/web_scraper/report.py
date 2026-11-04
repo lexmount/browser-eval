@@ -177,7 +177,10 @@ def page(
     if state != "compatibility":
         labels = list(labels)
         labels[7] = message(
-            "frozen_product_page_extraction_machine_scoring_failed_calls_retai", language
+            "records_notice"
+            if state == "field-extraction-cohort"
+            else "frozen_product_page_extraction_machine_scoring_failed_calls_retai",
+            language,
         )
         labels[2] = message("results_and_failures", language)
     other = "zh" if language == "en" else "en"
@@ -607,9 +610,24 @@ def usage_table(methods, rows, lang, labels=None):
             metadata = data.get("metadata") if isinstance(data, dict) else None
             metadata = metadata if isinstance(metadata, dict) else {}
             receipts = {}
-            value = headers.get("x-scrapfly-api-cost", metadata.get("creditsUsed"))
+            parse_metadata = headers.get("parse_metadata", {})
+            parse_metadata = parse_metadata if isinstance(parse_metadata, dict) else {}
+            value = headers.get(
+                "x-scrapfly-api-cost",
+                metadata.get("creditsUsed", parse_metadata.get("creditsUsed")),
+            )
             if value is not None:
                 receipts["credits"] = value
+            custom = headers.get("custom_attributes", {})
+            custom = custom if isinstance(custom, dict) else {}
+            tokens = response.get("usage", {})
+            tokens = tokens if isinstance(tokens, dict) else {}
+            for unit, native in (
+                ("input_tokens", custom.get("inputTokens", tokens.get("promptTokens"))),
+                ("output_tokens", custom.get("outputTokens", tokens.get("completionTokens"))),
+            ):
+                if native is not None:
+                    receipts[unit] = native
             for key in ("x-browser-ms-used", "x-browser-time", "x-browser-usage"):
                 if key in headers:
                     receipts[key] = headers[key]
@@ -1153,10 +1171,28 @@ def public_risk(raw):
     )
 
 
+def copy_report_assets(output, content, model):
+    """Materialize only content-bound reusable assets."""
+    for asset in model.get("assets", []):
+        source = content.parent / asset["source"]
+        target = output / asset["path"]
+        if (
+            Path(asset["path"]).is_absolute()
+            or ".." in Path(asset["path"]).parts
+            or source.is_symlink()
+            or digest(source.read_bytes()) != asset["sha256"]
+        ):
+            raise ValueError("Unsafe or changed report asset")
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(source.read_bytes())
+
+
 def build(output: Path, content: Path, *, home: Path, run=None, language=None, profile=PROFILE):
     from harness.web_scraper.dataset import require_product_reference
 
     require_external_output(output)
+    if content.is_file() and read_json(content).get("mode") == "field-extraction-cohort":
+        return build_record_cohort(output, content, home=home, language=language, profile=profile)
     require_product_reference(home)
     validate_catalog()
     language = resolve_report_language(output, language)
@@ -1326,18 +1362,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
     output.mkdir(parents=True, exist_ok=True)
     (output / "style.css").write_text(CSS, encoding="utf-8")
     (output / "app.js").write_text(JS, encoding="utf-8")
-    for asset in model.get("assets", []):
-        source = content.parent / asset["source"]
-        target = output / asset["path"]
-        if (
-            Path(asset["path"]).is_absolute()
-            or ".." in Path(asset["path"]).parts
-            or source.is_symlink()
-            or digest(source.read_bytes()) != asset["sha256"]
-        ):
-            raise ValueError("Unsafe or changed report asset")
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(source.read_bytes())
+    copy_report_assets(output, content, model)
     buckets = (
         {
             m: {r["case_id"]: r for r in rows if r["method"] == m}
@@ -1941,6 +1966,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
 def check(output: Path, *, release=False, visual_receipt=None):
     output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
+    if manifest.get("mode") == "field-extraction-cohort":
+        return check_record_cohort(output, release=release, visual_receipt=visual_receipt)
     check_report_identity(output, manifest, "web-scraper")
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
@@ -2273,37 +2300,8 @@ def check(output: Path, *, release=False, visual_receipt=None):
         ).select_one("[data-language-notice] a[href='zh/index.html']"):
             raise ValueError("Missing English notice or stale English pages")
     if release:
-        if visual_receipt is None:
-            raise ValueError("Release requires actual visual coverage")
-        visual = read_json(visual_receipt)
-        if visual["report_manifest_sha256"] != digest(
-            (output / "report-manifest.json").read_bytes()
-        ):
-            raise ValueError("Visual receipt belongs to a different report")
-        required = {(lang, route, "desktop") for lang in manifest["languages"] for route in PAGES}
-        if "en" not in manifest["languages"]:
-            required.add(("en", "english-notice", "desktop"))
-        observed = set()
-        for item in visual["observations"]:
-            width = item["viewport_width"]
-            if (item["viewport"] == "narrow" and not 320 <= width <= 480) or (
-                item["viewport"] == "desktop" and width < 1000
-            ):
-                raise ValueError("Visual viewport dimensions do not match the declared class")
-            screenshot = Path(item["screenshot"])
-            if (
-                screenshot.is_symlink()
-                or digest(screenshot.read_bytes()) != item["screenshot_sha256"]
-            ):
-                raise ValueError("Visual evidence changed")
-            raw = screenshot.read_bytes()
-            if image_width(raw) != width:
-                raise ValueError("Screenshot width does not match the observed viewport")
-            if not item["heading"] or item["document_width"] > item["viewport_width"] + 1:
-                raise ValueError("Missing heading or overflowing report viewport")
-            observed.add((item["language"], item["route_class"], item["viewport"]))
-        if not required.issubset(observed):
-            raise ValueError("Incomplete top-level reader coverage")
+        check_visual_receipt(output, manifest, visual_receipt)
+
     return {
         "pages_per_language": len(zh),
         "observations": manifest["observations"],
@@ -2311,6 +2309,36 @@ def check(output: Path, *, release=False, visual_receipt=None):
         "files": len(actual),
         "release": release,
     }
+
+
+def check_visual_receipt(output, manifest, visual_receipt):
+    """Verify the shared reader-pass receipt against this exact report tree."""
+    if visual_receipt is None:
+        raise ValueError("Release requires actual visual coverage")
+    visual = read_json(visual_receipt)
+    if visual["report_manifest_sha256"] != digest((output / "report-manifest.json").read_bytes()):
+        raise ValueError("Visual receipt belongs to a different report")
+    required = {(lang, route, "desktop") for lang in manifest["languages"] for route in PAGES}
+    if "en" not in manifest["languages"]:
+        required.add(("en", "english-notice", "desktop"))
+    observed = set()
+    for item in visual["observations"]:
+        width = item["viewport_width"]
+        if (item["viewport"] == "narrow" and not 320 <= width <= 480) or (
+            item["viewport"] == "desktop" and width < 1000
+        ):
+            raise ValueError("Visual viewport dimensions do not match the declared class")
+        screenshot = Path(item["screenshot"])
+        if screenshot.is_symlink() or digest(screenshot.read_bytes()) != item["screenshot_sha256"]:
+            raise ValueError("Visual evidence changed")
+        raw = screenshot.read_bytes()
+        if image_width(raw) != width:
+            raise ValueError("Screenshot width does not match the observed viewport")
+        if not item["heading"] or item["document_width"] > item["viewport_width"] + 1:
+            raise ValueError("Missing heading or overflowing report viewport")
+        observed.add((item["language"], item["route_class"], item["viewport"]))
+    if not required.issubset(observed):
+        raise ValueError("Incomplete top-level reader coverage")
 
 
 def package(output, archive, *, visual_receipt):
@@ -2334,3 +2362,901 @@ def package(output, archive, *, visual_receipt):
             "report_manifest_sha256": digest((output / "report-manifest.json").read_bytes()),
         },
     )
+
+
+def record_cohort_inputs(home, model, *, profile):
+    """Load a field-schema cohort through the existing certified/checkpoint owner."""
+    from harness.web_scraper.analysis import record_statistics
+    from harness.web_scraper.dataset import benchmark_config
+    from harness.web_scraper.pipeline import selected_profile
+
+    adapter = benchmark_config(home)["adapter"]
+    if adapter is None:
+        raise ValueError("Field-schema reports require a registered record scorer")
+    local_example = read_json(profile).get("local_example", False)
+    validate_dataset(home, profile if local_example else None)
+    truth = read_json(home / "dataset/dataset/ground-truth.json")
+    methods = model["participants"]
+    selections = model["evidence_runs"]
+    if not methods or len(selections) != len(methods):
+        raise ValueError("Every planned participant needs its complete source or checkpoint")
+    if digest(Path(model["dataset_manifest"]).read_bytes()) != digest(
+        (home / "dataset/manifest.json").read_bytes()
+    ):
+        raise ValueError("Report uses a different dataset manifest")
+    result = {
+        "cases": truth,
+        "methods": {},
+        "sources": {},
+        "dataset": read_json(profile if local_example else selected_profile(home)),
+    }
+    seen = set()
+    for selection in selections:
+        source = Path(selection["run"])
+        source = source if source.is_absolute() else home / source
+        contract, rows, receipt = cohort_source(source, selection, home, truth)
+        method = contract["methods"][0]
+        if method not in methods or method in seen:
+            raise ValueError("Unexpected or duplicated report participant")
+        seen.add(method)
+        if contract["dataset_manifest_sha256"] != digest(
+            (home / "dataset/manifest.json").read_bytes()
+        ):
+            raise ValueError("Measured source belongs to a different dataset")
+        stats = record_statistics(truth, rows, certified=receipt["certified"], scorer=adapter.score)
+        if stats["certified"] and receipt["scores"][method] != stats["scores"]:
+            raise ValueError("Record report scores differ from the certified scorer")
+        result["methods"][method] = {"statistics": stats, "results": {}}
+        result["sources"][method] = {
+            "run_id": source.name,
+            "contract": contract,
+            "receipt": receipt,
+            "plan_sha256": selection["plan_sha256"],
+        }
+        for row in rows:
+            current = dict(row)
+            current["field_results"] = field_results(home, truth[row["case_id"]], row)
+            current["failure_stage"] = failure_stage(row)
+            current["native_error"] = native_error(row)
+            current["exact_fields"] = sum(
+                value["exact"] for value in current["field_results"].values()
+            )
+            current["referenced_fields"] = sum(
+                bool(value["expected"]) for value in current["field_results"].values()
+            )
+            current["hit_fields"] = sum(value["hit"] for value in current["field_results"].values())
+            current["status"] = (
+                "call_error"
+                if row.get("compatibility") != "structured_output"
+                else "exact"
+                if all(value["exact"] for value in current["field_results"].values())
+                else "field_difference"
+            )
+            result["methods"][method]["results"][row["case_id"]] = current
+    if seen != set(methods):
+        raise ValueError("Report omits a planned participant")
+    return result
+
+
+def record_route(kind, *identities):
+    return kind + "-" + digest("\0".join(identities).encode())[:24]
+
+
+def record_comparison(headers, rows, metrics):
+    """Use the common table owner and raw-value extrema checks for each metric."""
+    soup = BeautifulSoup(table(headers, rows, attrs="data-sortable"), "html.parser")
+    for column, (name, direction, values) in metrics.items():
+        observed = []
+        for row, value in zip(soup.select("tbody tr"), values, strict=True):
+            cell = row.select("td")[column]
+            cell.attrs.update({"data-metric": name, "data-metric-direction": direction})
+            if value is not None:
+                cell["data-sort"] = str(value)
+                observed.append((float(value), cell))
+        if observed and direction != "neutral":
+            extreme = (min if direction == "min" else max)(value for value, _ in observed)
+            for value, cell in observed:
+                if value == extreme:
+                    span = soup.new_tag("span", attrs={"class": "comparison-winner"})
+                    span.string = cell.get_text()
+                    cell.clear()
+                    cell.append(span)
+    return str(soup)
+
+
+def build_record_cohort(output, content, *, home, language, profile):
+    """Render registered record schemas through the shared report layout and controls."""
+    from collections import Counter
+
+    from harness.web_scraper.dataset import benchmark_config
+
+    require_external_output(output)
+    model = read_json(content)
+    bound_profile = read_json(profile)
+    if bound_profile.get("research_report", {}).get("content", {}).get("sha256") != digest(
+        content.read_bytes()
+    ):
+        raise ValueError("Record report content is not bound to its instance profile")
+    language = resolve_report_language(output, language)
+    if language != "zh":
+        raise ValueError(
+            "This cohort has Chinese authored content only; generate English on request"
+        )
+    if output.exists() and any(output.iterdir()):
+        raise ValueError("Use an empty report directory")
+    data = record_cohort_inputs(home, model, profile=profile)
+    methods = list(model["participants"])
+    labels = {method: model["participants"][method]["label"] for method in methods}
+    truth = data["cases"]
+    stats = {method: data["methods"][method]["statistics"] for method in methods}
+    title = model["title"]
+
+    def t(key):
+        return message("records_" + key, language)
+
+    output.mkdir(parents=True)
+    (output / "zh").mkdir()
+    (output / "en").mkdir()
+    (output / "data").mkdir()
+    (output / "public-evidence").mkdir()
+    (output / "style.css").write_text(CSS, encoding="utf-8")
+    (output / "app.js").write_text(JS, encoding="utf-8")
+    copy_report_assets(output, content, model)
+    prices = model["prices"]
+    if set(prices) != set(methods):
+        raise ValueError("Every participant requires a public pricing contract")
+    public_receipts = []
+    for method in methods:
+        bucket = data["methods"][method]["results"]
+        for cid, row in bucket.items():
+            row["method_label"] = labels[method]
+            row["record_schema"] = True
+            row["field_labels"] = model.get("field_labels", {})
+            row["result_href"] = "zh/" + record_route("r", method, cid) + ".html"
+            row["case_href"] = "zh/" + record_route("c", cid) + ".html"
+            if isinstance(row.get("request"), dict):
+                row["request"]["endpoint"] = re.sub(
+                    r"/accounts/[^/]+/", "/accounts/[REDACTED]/", row["request"].get("endpoint", "")
+                )
+        raw, receipt = project_evidence_view(
+            "public-evidence/" + method + ".json",
+            json.dumps(bucket, ensure_ascii=False).encode(),
+            role="native_response",
+            content_format="json",
+            host_names=publication_host_names(),
+        )
+        after = json.loads(raw)
+        (output / "public-evidence" / (method + ".json")).write_bytes(raw)
+        data["methods"][method]["results"] = after
+        public_receipts.append(receipt)
+    reference_raw, reference_receipt = project_evidence_view(
+        "public-evidence/reference.json",
+        json.dumps(truth, ensure_ascii=False).encode(),
+        role="scored_answer",
+        content_format="json",
+        host_names=publication_host_names(),
+    )
+    (output / "public-evidence/reference.json").write_bytes(reference_raw)
+    public_receipts.append(reference_receipt)
+    truth = json.loads(reference_raw)
+    from harness.web_scraper.analysis import record_statistics
+
+    adapter = benchmark_config(home)["adapter"]
+    for method in methods:
+        if (
+            record_statistics(
+                truth,
+                list(data["methods"][method]["results"].values()),
+                certified=stats[method]["certified"],
+                scorer=adapter.score,
+            )
+            != stats[method]
+        ):
+            raise ValueError("Public evidence projection changed measured verdicts or metrics")
+    save_json(output / "data/metrics.json", stats)
+    source_raw, source_receipt = project_evidence_view(
+        "public-evidence/sources.json",
+        json.dumps(data["sources"], ensure_ascii=False).encode(),
+        role="native_response",
+        content_format="json",
+        host_names=publication_host_names(),
+    )
+    (output / "public-evidence/sources.json").write_bytes(source_raw)
+    public_receipts.append(source_receipt)
+
+    def route_link(route, label):
+        return '<a href="' + route + '.html">' + esc(label) + "</a>"
+
+    def write(route, heading, body):
+        (output / "zh" / (route + ".html")).write_text(
+            page(
+                language,
+                route,
+                heading,
+                body,
+                detail=route not in PAGES,
+                languages=("zh",),
+                state="field-extraction-cohort",
+            ),
+            encoding="utf-8",
+        )
+
+    def value(value):
+        return esc(json.dumps(value, ensure_ascii=False))
+
+    def score(method, *keys):
+        current = stats[method]["scores"]
+        for key in keys:
+            current = current.get(key) if current is not None else None
+        return current
+
+    def metric(number, percent=False):
+        return "—" if number is None else f"{number * 100:.2f}%" if percent else f"{number:.3f}"
+
+    def evidence_button(method, cid):
+        return (
+            '<button data-call-log-open="diagnosis" data-src="../public-evidence/'
+            + esc(method)
+            + '.json" data-key="'
+            + esc(cid)
+            + '">'
+            + t("open")
+            + "</button>"
+        )
+
+    dialog = (
+        '<dialog id="diagnosis" aria-labelledby="diagnosis-title"><h2 id="diagnosis-title">'
+        + t("result")
+        + "</h2><button data-call-log-close>"
+        + LABELS[language][10]
+        + "</button><div data-diagnosis-body></div></dialog>"
+    )
+    status_labels = {
+        "exact": t("exact_page"),
+        "field_difference": t("field_difference"),
+        "call_error": t("call_error"),
+    }
+    headers = [
+        t(key) for key in ("method", "executed", "returned", "macro", "micro", "exact", "details")
+    ]
+    core_rows = [
+        [
+            esc(labels[m]),
+            f"{stats[m]['executed']} / {len(truth)}",
+            str(stats[m]["structured"]),
+            metric(score(m, "page_hit_macro", "f1")),
+            metric(score(m, "value_micro", "f1")),
+            metric(score(m, "exact_field_sets", "rate"), True),
+            route_link("interpretation#" + m, t("interpretation")),
+        ]
+        for m in methods
+    ]
+    # Fragment links need the fragment after the filename.
+    for m, row in zip(methods, core_rows, strict=True):
+        row[-1] = '<a href="interpretation.html#' + esc(m) + '">' + t("interpretation") + "</a>"
+    core = record_comparison(
+        headers,
+        core_rows,
+        {
+            3: ("macro-f1", "max", [score(m, "page_hit_macro", "f1") for m in methods]),
+            4: ("micro-f1", "max", [score(m, "value_micro", "f1") for m in methods]),
+            5: ("exact-rate", "max", [score(m, "exact_field_sets", "rate") for m in methods]),
+        },
+    )
+    operations = operating_metrics(
+        methods,
+        [row for m in methods for row in data["methods"][m]["results"].values()],
+        prices,
+        language,
+        labels,
+    )
+    bodies = {route: model.get("pages", {}).get(route, {}).get("body", "") for route in PAGES}
+    bodies["index"] = (
+        "<section data-core-metrics>" + core + "</section>" + bodies["index"] + operations
+    )
+    domains = Counter(ref["domain"] for ref in truth.values())
+    sites = Counter((ref["domain"], ref["site"]) for ref in truth.values())
+    domain_labels = model.get("domain_labels", {})
+    domain_rows = [
+        [
+            esc(domain_labels.get(d, d)),
+            str(n),
+            str(sum(category == d for category, _ in sites)),
+            esc(" / ".join(next(ref["values"] for ref in truth.values() if ref["domain"] == d))),
+        ]
+        for d, n in sorted(domains.items())
+    ]
+    bodies["dataset"] += table([t("domain"), t("count"), t("site"), t("fields")], domain_rows)
+    bodies["dataset"] += table(
+        [t("case"), t("domain"), t("site"), t("source")],
+        [
+            [
+                esc(cid),
+                esc(domain_labels.get(ref["domain"], ref["domain"])),
+                esc(ref["site"]),
+                route_link(record_route("d", cid), t("source")),
+            ]
+            for cid, ref in sorted(truth.items())
+        ],
+        inventory=True,
+    )
+    domain_scores = []
+    for domain, count in sorted(domains.items()):
+        domain_scores.append(
+            [
+                esc(domain_labels.get(domain, domain)) + f" (n={count})",
+                *[metric(score(m, "domains", domain, "f1")) for m in methods],
+            ]
+        )
+    bodies["results"] = (
+        table([t("domain"), *map(esc, labels.values())], domain_scores) + bodies["results"]
+    )
+    group_keys = sorted(
+        {(ref["domain"], ref["site"], field) for ref in truth.values() for field in ref["values"]}
+    )
+    group_scores = {
+        method: {
+            (item["domain"], item["site"], item["field"]): item
+            for item in (stats[method]["scores"] or {}).get("site_fields", [])
+        }
+        for method in methods
+    }
+    bodies["results"] += (
+        "<details><summary>"
+        + t("site")
+        + " / "
+        + t("field")
+        + " F1</summary>"
+        + table(
+            [t("domain"), t("site"), t("field"), t("count"), *labels.values()],
+            [
+                [
+                    esc(domain_labels.get(domain, domain)),
+                    esc(site),
+                    esc(field),
+                    str(
+                        sum(
+                            ref["domain"] == domain and ref["site"] == site
+                            for ref in truth.values()
+                        )
+                    ),
+                    *[
+                        (
+                            '<a href="results.html?status=all&amp;domain='
+                            + domain
+                            + "&amp;site="
+                            + site
+                            + "&amp;field="
+                            + field
+                            + "&amp;method="
+                            + method
+                            + '">'
+                            + metric(group_scores[method][(domain, site, field)]["f1"])
+                            + "</a>"
+                        )
+                        if (domain, site, field) in group_scores[method]
+                        else "—"
+                        for method in methods
+                    ],
+                ]
+                for domain, site, field in group_keys
+            ],
+            inventory=True,
+        )
+        + "</details>"
+    )
+    bodies["protocol"] += usage_table(
+        methods,
+        [row for method in methods for row in data["methods"][method]["results"].values()],
+        language,
+        labels,
+    )
+    controls = (
+        '<form data-result-controls class="controls"><select data-result-filter="status"><option value="fail" selected>'
+        + t("field_difference")
+        + '</option><option value="all">'
+        + LABELS[language][13]
+        + '</option><option value="pass">'
+        + t("exact_page")
+        + '</option></select><select data-result-filter="method"><option value="">'
+        + t("method")
+        + "</option>"
+        + "".join('<option value="' + esc(m) + '">' + esc(labels[m]) + "</option>" for m in methods)
+        + "</select>"
+        + "".join(
+            '<select data-result-filter="'
+            + key
+            + '"><option value="">'
+            + t(key)
+            + "</option>"
+            + "".join(
+                '<option value="'
+                + esc(v)
+                + '">'
+                + esc(domain_labels.get(v, v) if key == "domain" else v)
+                + "</option>"
+                for v in values
+            )
+            + "</select>"
+            for key, values in [
+                ("domain", sorted(domains)),
+                ("site", sorted({r["site"] for r in truth.values()})),
+                ("field", sorted({f for r in truth.values() for f in r["values"]})),
+            ]
+        )
+        + '<input type="search" data-result-filter="query" aria-label="'
+        + t("case")
+        + '"></form><p data-result-count></p>'
+    )
+    inventory_rows = []
+    snapshot_base = model.get("snapshot_base")
+    if not snapshot_base:
+        raise ValueError("Report requires a hash-bound frozen input preview origin")
+    for cid, ref in sorted(truth.items()):
+        data_route, comparison = record_route("d", cid), record_route("c", cid)
+        schema = benchmark_config(home)["adapter"].task_schema(home, ref)
+        source = (
+            "<p>"
+            + esc(domain_labels.get(ref["domain"], ref["domain"]))
+            + " · "
+            + esc(ref["site"])
+            + "</p>"
+        )
+        source += table(
+            [t("field"), t("reference")],
+            [[esc(field), value(gold)] for field, gold in ref["values"].items()],
+        )
+        source += (
+            "<details><summary>"
+            + t("schema")
+            + "</summary><pre>"
+            + value(schema)
+            + "</pre></details>"
+        )
+        source += (
+            '<p><a href="'
+            + esc(ref["url"])
+            + '">'
+            + t("original_url")
+            + '</a> · <a href="'
+            + esc(snapshot_base + "/" + cid)
+            + '">'
+            + t("download")
+            + '</a></p><iframe sandbox class="frozen-preview" loading="lazy" title="'
+            + t("preview")
+            + '" src="'
+            + esc(snapshot_base + "/" + cid)
+            + '"></iframe>'
+        )
+        write(data_route, cid, source)
+        comparisons = []
+        for method in methods:
+            row = data["methods"][method]["results"].get(cid)
+            result_route = record_route("r", method, cid)
+            if row is None:
+                comparisons.append(
+                    [
+                        esc(labels[method]),
+                        t("pending"),
+                        "—",
+                        "—",
+                        route_link(result_route, t("details")),
+                    ]
+                )
+                write(
+                    result_route,
+                    labels[method] + " · " + cid,
+                    "<section data-result-summary>"
+                    + t("pending")
+                    + "</section>"
+                    + route_link(data_route, t("source")),
+                )
+                inventory_rows.append(
+                    '<tr data-status="pending" data-outcome="pending" data-method="'
+                    + esc(method)
+                    + '" data-domain="'
+                    + esc(ref["domain"])
+                    + '" data-site="'
+                    + esc(ref["site"])
+                    + '" data-search="'
+                    + esc(cid + " " + ref["site"])
+                    + '"><td>'
+                    + esc(cid)
+                    + "</td><td>"
+                    + esc(labels[method])
+                    + "</td><td>"
+                    + esc(domain_labels.get(ref["domain"], ref["domain"]))
+                    + "</td><td>"
+                    + t("pending")
+                    + "</td><td>—</td><td>—</td><td>"
+                    + route_link(result_route, t("details"))
+                    + "</td></tr>"
+                )
+                continue
+            field_rows = [
+                [
+                    esc(field),
+                    value(f["expected"]),
+                    value(f["actual"]),
+                    message("outcomes_" + f["status"], language),
+                    t("yes") if f["hit"] else t("no"),
+                    t("yes") if f["exact"] else t("no"),
+                ]
+                for field, f in row["field_results"].items()
+            ]
+            short = status_labels[row["status"]]
+            comparisons.append(
+                [
+                    esc(labels[method]),
+                    short,
+                    str(row["exact_fields"]) + "/" + str(len(ref["values"])),
+                    metric(row.get("elapsed_seconds")),
+                    route_link(result_route, t("details")),
+                ]
+            )
+            body = (
+                '<article data-report-detail="'
+                + ("failed" if row["status"] != "exact" else "passed")
+                + '"><section data-result-summary><p>'
+                + esc(short)
+                + " · HTTP "
+                + esc(str(row.get("http_status")), quote=True)
+                + " · "
+                + metric(row.get("elapsed_seconds"))
+                + " s · "
+                + esc(STAGES[row["failure_stage"]][0])
+                + "</p></section>"
+            )
+            body += (
+                '<p class="case-links">'
+                + route_link(comparison, t("all_methods"))
+                + route_link(data_route, t("source"))
+                + '<a href="interpretation.html#'
+                + esc(method)
+                + '">'
+                + t("interpretation")
+                + "</a>"
+                + "</p>"
+            )
+            body += table(
+                [t("field"), t("reference"), t("actual"), t("outcome"), t("hit"), t("equal")],
+                field_rows,
+            )
+            body += (
+                '<section data-failure-diagnosis id="result-logs"><h2>'
+                + t("error")
+                + "</h2><details><summary>HTTP "
+                + esc(str(row.get("http_status")))
+                + '</summary><pre data-kind="error">'
+                + esc(
+                    row["native_error"]
+                    or json.dumps(
+                        row.get("response")
+                        if row["status"] == "call_error"
+                        else {
+                            field: f["status"]
+                            for field, f in row["field_results"].items()
+                            if not f["exact"]
+                        },
+                        ensure_ascii=False,
+                    )
+                )
+                + "</pre></details></section>"
+            )
+            body += (
+                evidence_button(method, cid)
+                + '<a href="../public-evidence/'
+                + esc(method)
+                + '.json">'
+                + t("raw")
+                + "</a>"
+                + dialog
+                + "</article>"
+            )
+            write(result_route, labels[method] + " · " + cid, body)
+            attrs = (
+                ' data-status="'
+                + ("pass" if row["status"] == "exact" else "fail")
+                + '" data-outcome="'
+                + ("correct" if row["status"] == "exact" else "wrong")
+                + '" data-method="'
+                + esc(method)
+                + '" data-stage="'
+                + esc(row["failure_stage"])
+                + '" data-search="'
+                + esc(" ".join([cid, ref["domain"], ref["site"], labels[method]]))
+                + '"'
+            )
+            attrs += (
+                ' data-domain="'
+                + esc(ref["domain"])
+                + '" data-site="'
+                + esc(ref["site"])
+                + '"'
+                + "".join(
+                    " data-" + field + '="' + result["status"] + '"'
+                    for field, result in row["field_results"].items()
+                )
+            )
+            inventory_rows.append(
+                "<tr"
+                + attrs
+                + "><td>"
+                + esc(cid)
+                + "</td><td>"
+                + esc(labels[method])
+                + "</td><td>"
+                + esc(domain_labels.get(ref["domain"], ref["domain"]))
+                + "</td><td>"
+                + esc(short)
+                + "</td><td>"
+                + str(row["exact_fields"])
+                + "/"
+                + str(len(ref["values"]))
+                + "</td><td>"
+                + metric(row.get("elapsed_seconds"))
+                + "</td><td>"
+                + evidence_button(method, cid)
+                + " "
+                + route_link(result_route, t("details"))
+                + "</td></tr>"
+            )
+        write(
+            comparison,
+            cid + " · " + t("all_methods"),
+            table([t("method"), t("outcome"), t("exact"), t("timing"), t("details")], comparisons)
+            + route_link(data_route, t("source")),
+        )
+    bodies["results"] += (
+        controls
+        + '<div class="table-wrap inventory"><table data-sortable><thead><tr>'
+        + "".join(
+            "<th>" + t(k) + "</th>"
+            for k in ("case", "method", "domain", "outcome", "exact", "timing", "details")
+        )
+        + "</tr></thead><tbody>"
+        + "".join(inventory_rows)
+        + "</tbody></table></div>"
+        + dialog
+    )
+    bodies["interpretation"] = (
+        "<section data-interpretation-comparison>" + core + "</section>" + bodies["interpretation"]
+    )
+    for method in methods:
+        current = stats[method]
+        chapter = '<section id="' + esc(method) + '"><h2>' + esc(labels[method]) + "</h2>"
+        chapter += model["participants"][method].get("interpretation", "")
+        chapter += (
+            "<h3>"
+            + t("diagnostics")
+            + "</h3>"
+            + table(
+                [t("outcome"), t("count")],
+                [
+                    [message("outcomes_" + k, language), str(v)]
+                    for k, v in sorted(current["field_outcomes"].items())
+                ],
+            )
+        )
+        chapter += table(
+            [t("outcome"), t("count")],
+            [[STAGES[k][0], str(v)] for k, v in sorted(current["failure_stages"].items())],
+        )
+        specimen = model["participants"][method].get("specimen")
+        if specimen:
+            chapter += route_link(record_route("r", method, specimen), t("result"))
+        bodies["interpretation"] += chapter + "</section>"
+    for route in PAGES:
+        write(
+            route,
+            title
+            + " · "
+            + (
+                message("results_and_failures", language)
+                if route == "results"
+                else EXTRA_LABELS[route][language]
+                if route in EXTRA_LABELS
+                else LABELS[language][PAGES.index(route)]
+            ),
+            bodies[route],
+        )
+    (output / "en/index.html").write_text(
+        message("english_not_generated_notice", "en"), encoding="utf-8"
+    )
+    (output / "index.html").write_text(
+        '<!doctype html><html><head><meta http-equiv="refresh" content="0;url=zh/index.html"></head><body><a href="zh/index.html">'
+        + esc(title)
+        + "</a></body></html>",
+        encoding="utf-8",
+    )
+    version = bind_build_version(output)
+    files = {
+        p.relative_to(output).as_posix(): digest(p.read_bytes())
+        for p in sorted(output.rglob("*"))
+        if p.is_file()
+    }
+    save_json(
+        output / "report-manifest.json",
+        {
+            "mode": "field-extraction-cohort",
+            "local_example": bound_profile.get("local_example", False),
+            "template": template_identity("web-scraper"),
+            "template_version": VERSION,
+            "browser_eval": version,
+            "renderer_sha256": digest(Path(__file__).read_bytes()),
+            "profile_sha256": digest(profile.read_bytes()),
+            "content_sha256": digest(content.read_bytes()),
+            "dataset_manifest_sha256": digest((home / "dataset/manifest.json").read_bytes()),
+            "dataset_benchmark": read_json(home / "dataset/manifest.json").get("benchmark"),
+            "primary_language": "zh",
+            "languages": ["zh"],
+            "planned_methods": methods,
+            "method_labels": labels,
+            "prices": prices,
+            "case_count": len(truth),
+            "observations": sum(s["executed"] for s in stats.values()),
+            "complete_methods": [m for m in methods if stats[m]["certified"]],
+            "metrics_sha256": digest((output / "data/metrics.json").read_bytes()),
+            "public_evidence_views": public_receipts,
+            "files": files,
+        },
+        exclusive=True,
+    )
+    check_record_cohort(output)
+
+
+def check_record_cohort(output, *, release=False, visual_receipt=None):
+    """Check the public record matrix and shared presentation semantics."""
+    from harness.reporting.presentation import check_presentation
+    from harness.web_scraper.analysis import record_statistics
+    from harness.web_scraper.dataset import benchmark_config
+
+    output = open_report(output)
+    manifest = read_json(output / "report-manifest.json")
+    check_report_identity(output, manifest, "web-scraper")
+    if manifest["renderer_sha256"] != digest(Path(__file__).read_bytes()):
+        raise ValueError("Record renderer changed; rebuild required")
+    actual = {p.relative_to(output).as_posix() for p in output.rglob("*") if p.is_file()}
+    if actual != set(manifest["files"]) | {"report-manifest.json"}:
+        raise ValueError("Record report contains missing or undeclared files")
+    for name, expected in manifest["files"].items():
+        path = output / name
+        if path.is_symlink() or digest(path.read_bytes()) != expected:
+            raise ValueError("Record report bytes changed: " + name)
+    views = manifest.get("public_evidence_views", [])
+    if {view["path"] for view in views} != {
+        name for name in actual if name.startswith("public-evidence/")
+    }:
+        raise ValueError("Record public evidence view receipts are incomplete")
+    for view in views:
+        raw = (output / view["path"]).read_bytes()
+        if (
+            digest(raw) != view["published_sha256"]
+            or len(raw) != view["published_bytes"]
+            or public_risk(raw)
+        ):
+            raise ValueError("Record public evidence privacy receipt failed")
+    metrics = read_json(output / "data/metrics.json")
+    truth = read_json(output / "public-evidence/reference.json")
+    if len(truth) != manifest["case_count"] or set(metrics) != set(manifest["planned_methods"]):
+        raise ValueError("Record report matrix differs from its declared population")
+    adapter = benchmark_config(name=manifest["dataset_benchmark"])["adapter"]
+    for method in manifest["planned_methods"]:
+        rows = list(read_json(output / "public-evidence" / (method + ".json")).values())
+        recomputed = record_statistics(
+            truth, rows, certified=method in manifest["complete_methods"], scorer=adapter.score
+        )
+        if recomputed != metrics[method]:
+            raise ValueError("Record report metrics do not reproduce: " + method)
+        for cid in truth:
+            for route in (
+                record_route("d", cid),
+                record_route("c", cid),
+                record_route("r", method, cid),
+            ):
+                if not (output / "zh" / (route + ".html")).is_file():
+                    raise ValueError(
+                        "Record report is missing a source, comparison or result detail"
+                    )
+    expected_operations = BeautifulSoup(
+        operating_metrics(
+            manifest["planned_methods"],
+            [
+                row
+                for method in manifest["planned_methods"]
+                for row in read_json(output / "public-evidence" / (method + ".json")).values()
+            ],
+            manifest["prices"],
+            "zh",
+            manifest["method_labels"],
+        ),
+        "html.parser",
+    )
+    home = BeautifulSoup((output / "zh/index.html").read_text(), "html.parser")
+    if [row.get_text(strip=True) for row in home.select("[data-operating-metrics] tbody tr")] != [
+        row.get_text(strip=True) for row in expected_operations.select("tbody tr")
+    ]:
+        raise ValueError("Record timing or pricing differs from measured evidence")
+    for route, selector in (
+        ("index", "[data-core-metrics]"),
+        ("interpretation", "[data-interpretation-comparison]"),
+    ):
+        soup = BeautifulSoup((output / "zh" / (route + ".html")).read_text(), "html.parser")
+        rendered = soup.select(selector + " tbody tr")
+        if len(rendered) != len(metrics):
+            raise ValueError("Record core comparison participant count differs")
+        for method, row in zip(manifest["planned_methods"], rendered, strict=True):
+            cells = row.select("td")
+            current = metrics[method]
+            scores = current["scores"]
+            expected = [
+                manifest["method_labels"][method],
+                str(current["executed"]) + " / " + str(len(truth)),
+                str(current["structured"]),
+                f"{scores['page_hit_macro']['f1']:.3f}" if scores else "—",
+                f"{scores['value_micro']['f1']:.3f}" if scores else "—",
+                f"{scores['exact_field_sets']['rate'] * 100:.2f}%" if scores else "—",
+            ]
+            if [cell.get_text(strip=True) for cell in cells[:6]] != expected:
+                raise ValueError("Record core comparison values differ from measured evidence")
+    inventory = BeautifulSoup((output / "zh/results.html").read_text(), "html.parser")
+    rows = inventory.select("tr[data-status]")
+    if len(rows) != len(truth) * len(metrics) or len(
+        inventory.select('tr[data-status="pending"]')
+    ) != sum(x["unexecuted"] for x in metrics.values()):
+        raise ValueError("Record inventory omits planned or pending results")
+    for method in manifest["planned_methods"]:
+        bucket = read_json(output / "public-evidence" / (method + ".json"))
+        for cid, row in bucket.items():
+            detail = BeautifulSoup(
+                (output / "zh" / (record_route("r", method, cid) + ".html")).read_text(),
+                "html.parser",
+            )
+            button = detail.select_one("[data-call-log-open]")
+            if (
+                button is None
+                or button.get("data-key") != cid
+                or button.get("data-src") != "public-evidence/" + method + ".json"
+            ):
+                raise ValueError("Record detail evidence points to a different result")
+            if row["status"] == "call_error":
+                error = detail.select_one('#result-logs pre[data-kind="error"]')
+                if error is None or (
+                    row["native_error"] and error.get_text() != row["native_error"]
+                ):
+                    raise ValueError("Record native failure error is missing or changed")
+    for file in sorted((output / "zh").glob("*.html")):
+        soup = check_presentation(file.read_text())
+        for node in soup.select("a[href],script[src],link[href]"):
+            value = node.get("href", node.get("src", ""))
+            parsed = urlsplit(value)
+            if parsed.scheme or parsed.netloc or not parsed.path:
+                continue
+            target = output / unquote(parsed.path)
+            if not target.is_file():
+                raise ValueError("Broken record evidence/navigation target: " + value)
+    if release and manifest.get("local_example"):
+        raise ValueError("Synthetic record evidence cannot be a formal release")
+    if release and set(manifest["complete_methods"]) != set(manifest["planned_methods"]):
+        raise ValueError("Formal record release requires every planned participant complete")
+    if release:
+        check_visual_receipt(output, manifest, visual_receipt)
+        observations = read_json(visual_receipt)["observations"]
+        observed = {
+            (item["route_class"], item["viewport"], item.get("theme")) for item in observations
+        }
+        required = {
+            (route, viewport, theme)
+            for route in (
+                *PAGES,
+                "success-detail",
+                "failure-detail",
+                "source-detail",
+                "case-comparison",
+            )
+            for viewport in ("desktop", "narrow")
+            for theme in ("light", "dark")
+        }
+        if not required.issubset(observed):
+            raise ValueError("Incomplete record report detail, theme or viewport coverage")
+    return manifest

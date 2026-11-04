@@ -320,3 +320,25 @@ Verified 2026-11-04 against [Pages pricing](https://developers.cloudflare.com/pa
 [Pages limits](https://developers.cloudflare.com/pages/platform/limits/),
 [Direct Upload limits](https://developers.cloudflare.com/pages/get-started/direct-upload/#limits)
 and [versioned preview URLs](https://developers.cloudflare.com/pages/configuration/preview-deployments/#preview-aliases).
+
+## Multi-value field reports
+
+The same report owner supports registered record schemas through
+`mode: field-extraction-cohort`. The instance content binds every planned
+participant to its certified source or journal checkpoint, with source-plan
+hashes, pricing and a frozen preview origin. Complete certified methods expose
+page-hit macro F1, value-level micro F1 and exact-field-set rate. Incomplete
+methods retain progress and latency without a quality score.
+
+```sh
+uv run --frozen python -m harness.web_scraper.example \
+  --output /tmp/scraper-record-example --mode field-extraction-cohort
+uv run --frozen python -m harness.web_scraper.cli check /tmp/scraper-record-example
+```
+
+The synthetic example has no provider certification and cannot be released.
+The report inventories the entire planned matrix, including unexecuted pages,
+and links category/site/field summaries to per-result filters, exact values,
+frozen inputs and lazy native evidence. Public projections bind original and
+public hashes separately and must reproduce every aggregate metric. The formal
+release gate requires all participants complete and a hash-bound visual receipt.

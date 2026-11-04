@@ -18,3 +18,7 @@ html.dark .field-unexpected,html.dark .field-wrong{color:#ffa19d}
 @media(max-width:650px){.diagnosis-grid{grid-template-columns:1fr}.controls{gap:8px}}
 
 [data-core-metrics] th small{display:block;white-space:normal;min-width:130px;font-weight:400;line-height:1.5}[data-core-metrics] td:first-child,[data-operating-metrics] td:first-child{white-space:nowrap;min-width:150px}[data-operating-metrics] td:nth-child(7){white-space:nowrap;min-width:110px}[data-operating-metrics] td:last-child{min-width:250px;max-width:360px}
+
+.frozen-preview{width:100%;height:65vh;border:1px solid var(--line);border-radius:8px;background:white}
+
+.table-wrap td:first-child{white-space:nowrap}
