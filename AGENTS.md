@@ -15,7 +15,7 @@ Every track records full source commits and exact task/reference/scorer hashes. 
 
 # Report maintenance
 
-Repository documentation, identifiers, comments and docstrings use English. Report UI messages belong in language catalogs; source quotations and acceptance fixtures retain their original language. Keep the root README and `docs/README.zh-CN.md` aligned; additional README translations are welcome, but other guides need no parallel translation. Preserve original-language source quotations and hash-bound acceptance/evidence artifacts. Report-generation languages follow the track contracts below.
+Text the project writes has English as its source; text from outside keeps its original language byte for byte. `CONTRIBUTING.md#text-language` owns the rule. Keep the root README and `docs/README.zh-CN.md` aligned; additional README translations are welcome, but other guides need no parallel translation. Preserve hash-bound acceptance/evidence artifacts. Report-generation languages follow the track contracts below.
 
 - For new search-provider cohorts, run each provider's complete declared case set before starting the next provider. Do not rotate providers within a query. Preserve already frozen in-flight execution contracts when continuing a cohort.
 

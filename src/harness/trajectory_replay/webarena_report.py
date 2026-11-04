@@ -943,13 +943,10 @@ def _detail_page(
         expected_network = f'<h3>{t("result.diagnosis.required_network_match", "Required network match")}</h3><pre>{_e(json.dumps(failed["expected_network"], ensure_ascii=False, indent=2))}</pre>' if failed.get("expected_network") else ""
         failure_panel = f'''<section id="diagnosis"><h2>{t("result.diagnosis.heading", "Failure diagnosis and treatment")}</h2><div class="diagnosis-panel"><div class="diagnosis-facts"><div><span>{t("common.failure_stage", "Failure stage")}</span><strong>{_e(stage)}</strong></div><div><span>{t("result.diagnosis.failure_location", "Failure location")}</span><strong>{_e(action_locator)}</strong></div><div><span>{t("common.reviewed_category", "Reviewed category")}</span><strong>{_e(label)}</strong></div></div><h3>{t("result.diagnosis.programmatic_finding", "Exact programmatic finding")}</h3><pre>{_e(failed["message"])}</pre>{expected_network}<h3>{t("result.diagnosis.reviewed_cause", "Reviewed cause and basis")}</h3><p>{_e(reason)}</p><p>{t("result.diagnosis.owner", "Owner")}: {_e(review.get(f"remediation_owner_{lang}", review.get("remediation_owner")) if review else "—")} · {t("result.diagnosis.status", "Status")}: {_e(review.get(f"remediation_status_{lang}", review.get("remediation_status")) if review else "—")}</p>{step_link}</div></section>'''
     failure_panel += _supplemental_diagnostic_html(evidence.get("supplemental_diagnostic"), lang)
-    # Chinese shows an absent duration or CPU sample as a dash; English shows zero.
-    duration_ms = attempt.get("duration_ms") if zh else attempt.get("duration_ms", 0)
-    cpu_ms = (attempt.get("resource") or {}).get("cpu_ms")
     facts = [
         (t("result.facts.actions_completed", "Actions completed"), f'{attempt["completed_action_count"]}/{attempt["action_count"]}'),
-        (t("metric.end_to_end_time", "End-to-end time"), _format_ms(duration_ms, lang)),
-        (t("metric.cpu_time", "CPU time"), _format_ms(cpu_ms if zh else cpu_ms or 0, lang)),
+        (t("metric.end_to_end_time", "End-to-end time"), _format_ms(attempt.get("duration_ms"), lang)),
+        (t("metric.cpu_time", "CPU time"), _format_ms((attempt.get("resource") or {}).get("cpu_ms"), lang)),
         (t("metric.mean_memory", "Mean memory"), _format_mib((attempt.get("resource") or {}).get("memory_mean_bytes"))),
     ]
     fact_html = "".join(f'<div><span>{_e(label)}</span><strong>{_e(value)}</strong></div>' for label, value in facts)

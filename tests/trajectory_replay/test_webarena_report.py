@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from harness.record_io import canonical_json_sha256
 from harness.reporting.mermaid import mermaid_script_attributes
 from harness.reporting.privacy import TRAJECTORY_REPLAY
+from harness.trajectory_replay.messages import report_text
 from harness.trajectory_replay.report_inputs import bound_dataset_path
 from harness.trajectory_replay.webarena_report import (
     LEGACY_REPLAY_VALIDITY_INPUTS,
@@ -1081,6 +1082,53 @@ def test_detail_page_preserves_task_timeout_with_unknown_active_action() -> None
     assert "活动动作未记录" in detail
     assert "查看已保存轨迹证据" in detail
     assert 'id="step-1"' in detail
+
+
+@pytest.mark.parametrize("lang", ["en", "zh"])
+@pytest.mark.parametrize(
+    ("samples", "rendered_time", "rendered_cpu"),
+    [
+        ({}, None, None),
+        ({"resource": None}, None, None),
+        ({"duration_ms": None, "resource": {"cpu_ms": None}}, None, None),
+        ({"duration_ms": 0, "resource": {"cpu_ms": 0}}, "0.0", "0.0"),
+        ({"duration_ms": 1500, "resource": {"cpu_ms": 2500}}, "1.5", "2.5"),
+    ],
+)
+def test_detail_page_shows_absent_timing_as_dash_and_real_zero_as_zero(
+    lang, samples, rendered_time, rendered_cpu
+) -> None:
+    task = {
+        "task_id": 90,
+        "task": {"intent": "Open the route", "sites": ["map"]},
+        "tool_calls": [{"action": "navigate", "url": "https://example.test"}],
+    }
+    attempt = {
+        "engine": "chromium",
+        "participant_id": "chromium",
+        "task_id": 90,
+        "status": "pass",
+        "completed_action_count": 1,
+        "action_count": 1,
+        "planned_actions": task["tool_calls"],
+        **samples,
+    }
+    evidence = {
+        "programmatic_failure": {"stage": "pass", "step": None, "message": ""},
+        "trajectory": [],
+        "screenshot": None,
+    }
+
+    detail = _detail_page(lang, attempt, task, {"label": "Chromium"}, evidence, [])
+
+    t = report_text(lang)
+    unit = {"en": "s", "zh": "秒"}[lang]
+    for label, seconds in (
+        (t("metric.end_to_end_time", "End-to-end time"), rendered_time),
+        (t("metric.cpu_time", "CPU time"), rendered_cpu),
+    ):
+        value = "—" if seconds is None else f"{seconds} {unit}"
+        assert f"<div><span>{label}</span><strong>{value}</strong></div>" in detail
 
 
 def test_unexecuted_qualified_step_stays_visible_and_is_not_called_an_action_error() -> None:
