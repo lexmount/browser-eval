@@ -308,7 +308,7 @@ def test_body_evidence_accepts_direct_unicode_script_observations(headings):
     validate_review_evidence({
         "attempt_id": "unicode", "verdict": "pass", "anomalies": [],
         "evidence": "; ".join(label + ": " + heading for label, heading in
-                              zip(("beginning", "middle", "end"), headings)),
+                              zip(("beginning", "middle", "end"), headings, strict=True)),
     }, "body")
 
 

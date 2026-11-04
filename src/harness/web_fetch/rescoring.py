@@ -118,7 +118,7 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False, reference_revis
             )
         checker = (
             (
-                lambda case, binding: check_case_reference_revision_binding(
+                lambda case, binding, revised_hashes=revised_hashes: check_case_reference_revision_binding(
                     case, binding, revised_hashes
                 )
             )

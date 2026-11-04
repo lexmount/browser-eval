@@ -378,7 +378,7 @@ def coordinated_fixture(root, monkeypatch, defect=None):
         old_raw = b'{"cases":[{"id":"qa","question":"old"}]}'
         new_question = 'mismatch' if defect == 'graph' and track == tracks[1] else 'new'
         raw = json.dumps({'cases': [{'id': 'qa', 'question': new_question}]}).encode()
-        def contents(payload):
+        def contents(payload, track=track):
             binding = {'path': 'datasets/factual-v1.json', 'count': 1,
                        'sha256': hashlib.sha256(payload).hexdigest()}
             registry = {'datasets': {'factual-v1': binding}}

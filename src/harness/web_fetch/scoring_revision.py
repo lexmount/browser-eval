@@ -70,7 +70,7 @@ def _resource_prompt_policy_correction(old: dict, new: dict) -> bool:
         and prior.get("kind") == current.get("kind")
         and prior.get("url_patterns", []) == current.get("url_patterns", [])
         and set(prior.get("urls", [])) <= set(current.get("urls", []))
-        for prior, current in zip(old_targets, new_targets)
+        for prior, current in zip(old_targets, new_targets, strict=True)
     )
     return (
         old.get("task_kind", "body") == new.get("task_kind", "body") == "resource"

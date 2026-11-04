@@ -68,7 +68,7 @@ class HeadlessReportTests(unittest.TestCase):
                 'network_rx_bytes_per_second', 'network_tx_bytes_per_second')
         rows = [{'provider': provider, 'metrics': {
             key: {'mean': value, 'p50': value, 'p95': value} for key in keys}}
-            for provider, value in zip(providers, (1, 10, 10, 10))]
+            for provider, value in zip(providers, (1, 10, 10, 10), strict=True)]
         rows[1]['metrics']['cpu_ms']['mean'] = 0.5
         rows[2]['metrics']['memory_peak_bytes']['mean'] = 0.5
         rows[3]['metrics']['network_rx_bytes']['mean'] = 0.5
@@ -260,7 +260,7 @@ class HeadlessReportTests(unittest.TestCase):
         rows = []
         for provider, values in [('moli', [10, 100, 1000]), ('peer', [20, 50, 60]),
                                  ('undisplayed-version', [5, 5, 5])]:
-            for cid, elapsed in zip(cases, values):
+            for cid, elapsed in zip(cases, values, strict=True):
                 passed = not (provider == 'peer' and cid == 'c') and not (
                     provider == 'undisplayed-version' and cid == 'b')
                 rows.append({'provider': provider, 'case_id': cid, 'ok': passed,
@@ -582,7 +582,7 @@ class CurrentBrowserArticleTests(unittest.TestCase):
                for cid,track in [('web-case','web'),('risk-case','risk_control')]}
         rows=[]
         for name,values in [('moli',[(True,10),(False,30)]),('lightpanda',[(True,20),(True,40)])]:
-            for (cid,case),(passed,ms) in zip(cases.items(),values):
+            for (cid,case),(passed,ms) in zip(cases.items(),values,strict=True):
                 attempt=name+'__'+cid
                 artifact='artifacts/'+attempt+'.txt'
                 (root/artifact).parent.mkdir(exist_ok=True)

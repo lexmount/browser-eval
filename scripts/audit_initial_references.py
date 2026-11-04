@@ -73,8 +73,10 @@ def audit_case(case: dict, evaluation: Path, *, sources: Path | None = None) -> 
                        evidence_candidates[-1])
     rendered_path = contained_path(folder, "rendered.txt")
     def public_path(path):
-        if path is None:return None
-        try:return path.relative_to(ROOT).as_posix()
+        if path is None:
+            return None
+        try:
+            return path.relative_to(ROOT).as_posix()
         except ValueError:
             prefix = evaluation.relative_to(ROOT).as_posix() + "/" if evaluation.is_relative_to(ROOT) else ""
             return prefix + "sources/" + path.relative_to(sources).as_posix()

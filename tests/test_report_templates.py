@@ -62,7 +62,7 @@ class ReportTemplateTests(unittest.TestCase):
                               dict(id='challenges',label='Challenges',case_count=1)]
             model['rows'][1]['cohort']='challenges'
             model['metrics']={'articles':[1,1],'challenges':[0,1],'overall':[1,2]}
-            for row,elapsed in zip(model['rows'],(1000,9000)):
+            for row,elapsed in zip(model['rows'],(1000,9000),strict=True):
                 raw=json.dumps({'ok':row['initial_pass'],'elapsed_ms':elapsed}).encode()
                 (source/row['log']['path']).write_bytes(raw)
                 row['log']['sha256']=hashlib.sha256(raw).hexdigest()
@@ -341,7 +341,7 @@ class ReportTemplateTests(unittest.TestCase):
         for missing in (False, True):
             with self.subTest(missing=missing), tempfile.TemporaryDirectory() as temp:
                 root=Path(temp);source=root/'source';model=diagnostic_example(source)
-                for row,elapsed in zip(model['rows'],(1000,9000)):
+                for row,elapsed in zip(model['rows'],(1000,9000),strict=True):
                     log={'ok':row['initial_pass'],'elapsed_ms':elapsed}
                     if missing and not row['initial_pass']:log.pop('elapsed_ms')
                     raw=json.dumps(log).encode();binding=row['log']

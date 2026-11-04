@@ -12,7 +12,7 @@ from harness.web_fetch.reference_inputs import benchmark_input_path
 def test_historical_binding_selects_its_exact_definition_bytes(tmp_path, monkeypatch, matching):
     source_revision = 'f' * 40
     revisions = ['a' * 40, 'b' * 40, 'c' * 40]
-    selected = dict(zip(['current', 'middle', 'last'], revisions))
+    selected = dict(zip(['current', 'middle', 'last'], revisions, strict=True))
     checkout = tmp_path / 'checkout'
     (checkout / 'evaluation').mkdir(parents=True)
     relative = 'evaluation/example/source-inputs.json'

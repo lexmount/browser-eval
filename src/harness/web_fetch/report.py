@@ -297,7 +297,7 @@ def generate_wcxb(out: Path, rows: list[dict], summary: dict, ground_truth: dict
   issue_table='<div class="scroll"><table><thead><tr><th>'+esc(x['provider'])+'</th>'+''.join('<th>'+esc(diag(lang,d))+'</th>' for d in issue_types)+'</tr></thead><tbody>'+issue_rows+'</tbody></table></div>'
   home+='<section><h2>'+('问题分布' if lang=='zh' else 'Issue distribution')+'</h2><p>'+((f'每格是该浏览器 {quality_count} 页有效参考中的程序定位次数；选择一种定位可在结果分析中查看对应网页。') if lang=='zh' else f'Programmatic locators across {quality_count} qualified pages per browser; filter the results analysis to inspect corresponding pages.')+'</p>'+issue_table+'</section>'
   page(lang,'index.html',x['headline'],home)
-  opts=lambda values:'<option value="">'+esc(x['all'])+'</option>'+''.join(f'<option value="{esc(v)}">{esc(v)}</option>' for v in values)
+  opts=lambda values,x=x:'<option value="">'+esc(x['all'])+'</option>'+''.join(f'<option value="{esc(v)}">{esc(v)}</option>' for v in values)
   types=sorted({g['page_type'] for g in ground_truth.values()})
   type_options='<option value="">'+esc(x['all'])+'</option>'+''.join(f'<option value="{esc(t)}">{esc(type_label(lang,t))}</option>' for t in types)
   filters=f'<div class="filters"><label>{esc(x["query"])}<input id="q" type="search"></label><label>{esc(x["provider"])}<select id="provider">{opts(providers)}</select></label><label>{esc(x["type"])}<select id="type">{type_options}</select></label><label>{"诊断结果" if lang=="zh" else "Diagnostic result"}<select id="scope"><option value="fail">{"待查" if lang=="zh" else "Inspect"}</option><option value="pass">{"未触发" if lang=="zh" else "No locator"}</option><option value="all">{esc(x["all"])}</option></select></label><label>{esc(x["diagnosis"])}<select id="diagnosis"><option value="">{esc(x["all"])}</option><option value="issues">{esc(x["issues"])}</option>'+''.join(f'<option value="{esc(v)}">{esc(diag(lang,v))}</option>' for v in sorted({r['diagnosis'] for r in rows if r['quality_eligible'] and r['diagnosis']!='none'}))+'</select></label></div>'
@@ -747,7 +747,7 @@ def comparative_rows(rows, directions):
   extreme=(max(valid) if direction=='max' else min(valid)) if valid else None
   numbers[index]=(values,extreme,valid.count(extreme)==1)
  result=[]
- for row_number,((attrs,values),cells) in enumerate(zip(rows,matches)):
+ for row_number,((attrs,values),cells) in enumerate(zip(rows,matches,strict=True)):
   for index in sorted(directions,reverse=True):
    metric,direction=directions[index];column,extreme,unique=numbers[index]
    fragment=cells[index].group();opening,body=fragment.split('>',1)
@@ -916,7 +916,7 @@ def generate_cohort_diagnostic(out, model):
   page('datasets/index.html','评测集',hero('网页任务集','每组保留自己的选样与验收范围；任务页不显示测量分数。')+blocks('datasets')+section('全部任务',dataset_search+table(['样本','组别','源页','任务'],dataset,'filtered-table',sortable=True)))
   for r in rows:
    dialogs=[]
-   def evidence(target,title,body,kind):
+   def evidence(target,title,body,kind,dialogs=dialogs):
     dialogs.append('<dialog class="call-log-dialog wmb-detail-dialog" id="'+target+'" aria-labelledby="'+target+'-title"><div class="call-log-shell"><header><h2 id="'+target+'-title">'+esc(title)+'</h2><button type="button" data-call-log-close aria-label="关闭">关闭</button></header><div class="wmb-dialog-content" data-evidence-kind="'+kind+'">'+body+'</div></div></dialog>')
     return '<button type="button" class="call-log-button" data-call-log-open="'+target+'" aria-haspopup="dialog">'+esc(title)+'</button>'
    actions=''
@@ -984,11 +984,11 @@ def generate_public_benchmark_research(out:Path,research:dict,*,include_english:
   encoding='utf-8')
  direct=research['direct_benchmarks'];adjacent=research['adjacent_browser_benchmarks']
  for english in ((False,True) if include_english else (False,)):
-  def h(zh,en):return en if english else zh
+  def h(zh,en,english=english):return en if english else zh
   sample_size=research['sampling_contract']['size']
   parent_pages=next(x for x in direct if x['id']=='webmainbench-545')['pages']
   current_cases=sum(research['current_benchmark']['tracks'].values())
-  def field(row,key):return row.get(key) if english else row.get(key+'_zh',row.get(key))
+  def field(row,key,english=english):return row.get(key) if english else row.get(key+'_zh',row.get(key))
   def research_table(headers,rows,**kwargs):return table(headers,rows,index_header=h('序号','No.'),**kwargs)
   artifact_prefix='../../' if english else '../'
   home=_research_hero(h('公开 Web Fetch 评测集调研','Public Web Fetch benchmark research'),h('已核对公开数据、官方评分器和采用证据；当前只定义下一轮实测边界。','Public data, official scorers and adoption evidence are verified; this edition only defines the next measurement boundary.'),english)
@@ -1646,7 +1646,7 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagn
   n=sum(measured(r,cases[r['case_id']]) for r in rs);ok=sum(bool(r['ok']) for r in rs);passed=sum(succeeded(r,cases[r['case_id']]) for r in rs)
   body=[r for r in rs if cases[r['case_id']].get('task_kind','body')=='body'];bodypass=sum(succeeded(r,cases[r['case_id']]) for r in body)
   full=[r for r in rs if comparable_body_reference(cases[r['case_id']]) and r['metrics'].get('word_f1') is not None]
-  def avg(key):
+  def avg(key,full=full):
    per_case=defaultdict(list)
    for r in full:
     if r['metrics'].get(key) is not None:per_case[r['case_id']].append(r['metrics'][key] if r['ok'] else 0)
@@ -1925,7 +1925,7 @@ def comparison_rows(cases,bycase,names):
   attempts={r['provider']:r for r in bycase.get(case_id,[])}
   passed=[name for name in names if name in attempts and measured(attempts[name],c) and succeeded(attempts[name],c)]
   failed=[name for name in names if name in attempts and measured(attempts[name],c) and not succeeded(attempts[name],c)]
-  method_links=lambda selected,state:('<span class="outcome-list">'+''.join(f'<a class="outcome-pill {state}" href="{esc(safe_href("../attempts/"+attempts[name]["attempt_id"]+".html"))}">{model_text(provider_label(name),browser_method_label(name,language="en"))}</a>' for name in selected)+'</span>') if selected else '—'
+  method_links=lambda selected,state,attempts=attempts:('<span class="outcome-list">'+''.join(f'<a class="outcome-pill {state}" href="{esc(safe_href("../attempts/"+attempts[name]["attempt_id"]+".html"))}">{model_text(provider_label(name),browser_method_label(name,language="en"))}</a>' for name in selected)+'</span>') if selected else '—'
   attrs=(dataset_attrs(c)+f' data-pass="{esc(" ".join(passed))}" data-fail="{esc(" ".join(failed))}"')
   task=(f'<div class="task-cell">{link("../datasets/"+case_id+".html",c["name"])}<div class="task-meta"><code class="tiny">{esc(case_id)}</code>'
         f'<span class="track-badge">{esc(case_track_label(c))}</span></div></div>')
@@ -3233,7 +3233,7 @@ def _wmb_comparison(cases,bycase,names,labels,english=False):
   results={r['provider']:r for r in bycase[case['id']]}
   delivered=[name for name in names if results[name]['_body_present']]
   failed=[name for name in names if not results[name]['_body_present']]
-  def pills(selected,kind):
+  def pills(selected,kind,results=results):
    return '<span class="outcome-list">'+''.join('<a class="outcome-pill '+kind+'" href="../attempts/'+esc(results[name]['attempt_id'])+'.html">'+esc(labels[name])+'</a>' for name in selected)+'</span>' if selected else '—'
   values=cell(link('../datasets/'+case['id']+'.html',case['id']))+cell(esc(_wmb_category(case,'language'))+' · '+esc(_wmb_category(case,'level')))+cell(pills(delivered,'pass'))+cell(pills(failed,'fail'))
   attrs=' data-delivered="'+esc(' '.join(delivered))+'" data-failed="'+esc(' '.join(failed))+'"'+_wmb_row_attrs(case)
@@ -3360,7 +3360,7 @@ def generate_webmainbench(out:Path,dataset:dict,records:list,summaries:dict,mani
    rows.append(('',values))
   return rows
  for english in ((False,True) if include_english else (False,)):
-  h=lambda zh,en:scope(en if english else zh)
+  h=lambda zh,en,scope=scope,english=english:scope(en if english else zh)
   corrected_label=h('修正后复算','recomputed after correction')
   corrected_suffix=(f' ({corrected_label})' if english else f'（{corrected_label}）')
   metric_labels={name:name+(corrected_suffix if corrected and name in ('overall','table_TEDS') else '') for name in metric_order}
@@ -3774,7 +3774,7 @@ def generate_webmainbench_full(out: Path, dataset: dict, records: list[dict],
         if len(sort_types) != len(headers):
             raise ValueError("Table sort contract differs from its columns")
         header_cells = []
-        for label, sort_type in zip(headers, sort_types):
+        for label, sort_type in zip(headers, sort_types, strict=True):
             if sort_type:
                 header_cells.append('<th aria-sort="none"><button type="button" class="sort-button" data-table-sort onclick="sortReportTable(this)" data-sort-type="' +
                                     esc(sort_type) + '">' + esc(label) + '<span aria-hidden="true"> ↕</span></button></th>')
@@ -4269,7 +4269,7 @@ def render_score_audit(out, audit, binding):
  markup=table(['方法','题目','旧判定','修复前','修复后','原因分类','证据'],inventory,metrics=[])
  # Keep paragraphs in the evidence sections, outside the fixed-height inventory.
  document=BeautifulSoup(markup,'html.parser')
- for element,item in zip(document.select('tbody tr'),audit['changes']):element['data-audit-provider']=item['provider']
+ for element,item in zip(document.select('tbody tr'),audit['changes'],strict=True):element['data-audit-provider']=item['provider']
  body+=section('逐项判定',controls+'<div style="max-height:60vh;overflow:auto">'+str(document)+'</div>')
  body+=section('脱敏副本的影响','<p>'+esc(audit['privacy_summary'])+'</p>'+''.join('<p>'+esc(text)+'</p>' for text in audit['privacy_findings']))
  details=[]

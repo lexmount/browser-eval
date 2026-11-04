@@ -5,6 +5,10 @@ from functools import partial
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from harness.reporting.presentation import esc
+from harness.reporting.privacy import WEB_SEARCH_PREVIEW
+from harness.web_search.messages import report_text, zh_text
+from harness.web_search.relevance import parse_judgments
 from lexbench_websearch.evidence_quality import is_benchmark_page
 from lexbench_websearch.relevance import query_metrics
 from lexbench_websearch.scoring import (
@@ -14,11 +18,6 @@ from lexbench_websearch.scoring import (
     in_domain,
     task_acceptance,
 )
-
-from harness.reporting.presentation import esc
-from harness.reporting.privacy import WEB_SEARCH_PREVIEW
-from harness.web_search.messages import report_text, zh_text
-from harness.web_search.relevance import parse_judgments
 
 
 def acceptance(case, row, metric="source", *, quality_excluded=False, cutoff=5, relevance_grades=None):
@@ -220,7 +219,9 @@ def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=No
         "content": t("Page body excerpt"), "sourceItem": t("Reference page"),
         "outsidePreview": t("The answer text occurs later in the full body; use the full response link above."),
         "answerField": t("contains answer cue"), "tasks": t("tasks")}
-    options = lambda values: ''.join(f'<option value="{e(k)}">{e(v)}</option>' for k, v in values)
+    def options(values):
+        return ''.join(f'<option value="{e(k)}">{e(v)}</option>' for k, v in values)
+
     methods = [(m["id"], m["label"]) for m in data["methods"]]
     populations = sorted({case["benchmark"] for case in data["cases"]})
     names = {"custom": t("In-house scenarios"), "factual": t("Public factual questions")}

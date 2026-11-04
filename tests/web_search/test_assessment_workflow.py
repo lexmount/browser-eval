@@ -84,7 +84,7 @@ class AssessmentRevisionScenarios(unittest.TestCase):
         self.assertEqual(rows[0]["metrics"]["anchor_hit_5"], 1)
         self.assertEqual(len(changes), 1)
         self.assertEqual(self.rows, original)
-        for old, new in zip(original, rows):
+        for old, new in zip(original, rows, strict=True):
             self.assertEqual(
                 {k: v for k, v in old.items() if k != "metrics"},
                 {k: v for k, v in new.items() if k != "metrics"},
@@ -102,7 +102,7 @@ class AssessmentRevisionScenarios(unittest.TestCase):
         self.assertNotIn("anchors", self.profile["cases"][1])
         self.assertEqual(rows[1]["metrics"]["anchor_hit_5"], 1)
         self.assertEqual(rows[2]["metrics"]["answer_in_preview_5"], 1)
-        for old, new in zip(before, rows):
+        for old, new in zip(before, rows, strict=True):
             self.assertEqual(
                 {k: v for k, v in old.items() if k != "metrics"},
                 {k: v for k, v in new.items() if k != "metrics"},

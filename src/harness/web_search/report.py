@@ -16,18 +16,6 @@ from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from bs4 import BeautifulSoup
-from lexbench_websearch import answer_rules
-from lexbench_websearch.evidence_quality import CONTAMINATION_RULE, factual_sensitivity
-from lexbench_websearch.inputs import definition_path, implementation_sources
-from lexbench_websearch.relevance import score as score_relevance
-from lexbench_websearch.relevance import summary as relevance_summary
-from lexbench_websearch.scoring import (
-    canonical_url,
-    classify,
-    evaluate,
-    factual_evidence,
-    in_domain,
-)
 
 from harness.record_io import bytes_sha256, same_json_record
 from harness.report_languages import (
@@ -78,6 +66,18 @@ from harness.web_search.revisions import (
     validate_revision_binding,
 )
 from harness.web_search.runner import reference_available, reference_changes
+from lexbench_websearch import answer_rules
+from lexbench_websearch.evidence_quality import CONTAMINATION_RULE, factual_sensitivity
+from lexbench_websearch.inputs import definition_path, implementation_sources
+from lexbench_websearch.relevance import score as score_relevance
+from lexbench_websearch.relevance import summary as relevance_summary
+from lexbench_websearch.scoring import (
+    canonical_url,
+    classify,
+    evaluate,
+    factual_evidence,
+    in_domain,
+)
 
 CHINESE_SEPARATORS = re.compile("[\u3001\uff1a\uff1b]")
 ASSETS = Path(__file__).with_name("assets")
@@ -2890,7 +2890,7 @@ def cost_panel(profile, rows, zh, content=None):
             label = '<a href="' + esc(source) + '">' + label + '</a>'
         rule = rules.get(method.get("billing"), method.get("billing", ""))
         row = cells([esc(method["label"]), label, esc(method.get("price_checked", "")), esc(rule), str(logical), str(physical), str(billed) if price is not None else report_text("Unknown", zh)])
-        label = fmt(total) + " " + currency if total is not None else (report_text("Not priced", zh) if price is None else report_text("Partial charges known; some billing remains unknown", zh, value=sum((c for c in [a.get('cost') for r in rows if r['method'] == method['id'] for a in r.get('attempts', [r])] if c is not None)), currency=currency))
+        label = fmt(total) + " " + currency if total is not None else (report_text("Not priced", zh) if price is None else report_text("Partial charges known; some billing remains unknown", zh, value=sum(c for c in [a.get('cost') for r in rows if r['method'] == method['id'] for a in r.get('attempts', [r])] if c is not None), currency=currency))
         rendered.append(row[:-5] + numeric_cell(label, total, "cohort-cost", "min" if comparable else "neutral", 0 in winners and total == winners[0]) + '</tr>')
     return ('<section data-cost-budget><h2>' + report_text("Unit prices, billable calls and estimated charges", zh) + '</h2>'
             + table([report_text("Method", zh), report_text("Price /1,000", zh), report_text("Price checked", zh), report_text("Billing condition", zh), report_text("Search tasks", zh), report_text("Physical calls", zh), report_text("Known billable calls", zh), report_text("Estimated total", zh)], rendered)

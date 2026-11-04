@@ -117,7 +117,7 @@ def render_capabilities(out, names, *, table, cell, link, records=()):
             continue
         row = capabilities[name]
         english = english_capabilities[name]
-        def localized(key):
+        def localized(key, row=row, english=english):
             return bilingual_text(row[key],english[key])
         tested = (bilingual_text(row['tested'], row['tested_en']) if row.get('tested_en') else bilingual_text('仓库登记配置示例；实际调用以保存记录为准。', 'Repository configuration example; consult saved records for actual calls.') + localized('tested'))
         method = cell(link('#capability-'+name, labels.get(name,name),browser_method_label(name,language='en')))

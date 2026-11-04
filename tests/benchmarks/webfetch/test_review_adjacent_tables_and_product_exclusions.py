@@ -33,7 +33,7 @@ def product_controls():
         if representation == 'scoped-html':
             contract['entry_scope'] = {'html_selector': '.product', 'title_selector': '.name',
                                        'link_selector': 'a[href]', 'price_selector': '.price'}
-        def card(name, number):
+        def card(name, number, representation=representation):
             if representation == 'markdown':
                 return f'[{name}](https://example.test/item/{number}) $10'
             return f'<div class="product"><a class="name" href="/item/{number}">{name}</a><span class="price">$10</span></div>'

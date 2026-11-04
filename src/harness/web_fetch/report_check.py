@@ -116,7 +116,7 @@ class Tables(HTMLParser):
 
 def require_table_index_headers(parser, *, english=False, diagnostic=False):
     expected = 'No.' if english else '序号'
-    for header, unindexed in zip(parser.headers, parser.unindexed_headers):
+    for header, unindexed in zip(parser.headers, parser.unindexed_headers, strict=True):
         if diagnostic and unindexed and header in {'方法', '方法 ↕', 'Method', 'Method ↕'}:
             continue
         if header != expected:

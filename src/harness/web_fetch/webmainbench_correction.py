@@ -462,7 +462,7 @@ def load_corrected_cases(path):
         raise ValueError("Corrected dataset must contain unique track IDs")
     for identifier in ids:
         safe_identifier(identifier)
-    return dict(zip(ids, rows))
+    return dict(zip(ids, rows, strict=True))
 
 
 def revise_dataset_scoring(source, corrected_dataset, manifest_path, scorer_repo, scorer_commit, output):
