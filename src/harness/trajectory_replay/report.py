@@ -12,7 +12,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from harness.environments.browser import DEFAULT_BROWSER_IMAGES
-from harness.trajectory_replay.participants import engine_label, summary_engines
+from harness.trajectory_replay.participants import engine_label, engine_names, summary_engines
 
 ASSETS = Path(__file__).with_name("assets")
 REPORT_CSS = (ASSETS / "curated-report.css").read_text(encoding="utf-8")
@@ -111,11 +111,6 @@ def _display_number(value: float | int | None, divisor: float = 1.0) -> float | 
 def _engines(summary: dict[str, Any]) -> tuple[str, ...]:
     """Participants in evidence order; a summary with no results keeps the registry's."""
     return summary_engines(summary) or tuple(DEFAULT_BROWSER_IMAGES)
-
-
-def _names(engines: tuple[str, ...]) -> str:
-    labels = [engine_label(engine) for engine in engines]
-    return " 与 ".join(filter(None, ("、".join(labels[:-1]), labels[-1])))
 
 
 def _all_parties(engines: tuple[str, ...]) -> str:
@@ -307,7 +302,7 @@ def _shell(
     detail_title: str = "",
     back_anchor: str = "",
 ) -> str:
-    names = _names(engines)
+    names = engine_names(engines)
     label = next(p[1] for p in PAGES if p[0] == active)
     index = next(i for i, p in enumerate(PAGES) if p[0] == active)
     prev_link = (
@@ -422,12 +417,12 @@ def _recommendation(summary: dict[str, Any], engines: tuple[str, ...]) -> str:
     leaders = tuple(engine for engine in engines if passes[engine] == top)
     if len(engines) == 1:
         return (
-            f"本轮只有 {_names(engines)} 一个 Provider，结果正确任务数为 {top}；"
+            f"本轮只有 {engine_names(engines)} 一个 Provider，结果正确任务数为 {top}；"
             "没有可比较的方案，不给出默认建议。"
         )
     if len(leaders) > 1:
         subject = (
-            f"{_provider_count(engines)} Provider" if leaders == engines else f" {_names(leaders)}"
+            f"{_provider_count(engines)} Provider" if leaders == engines else f" {engine_names(leaders)}"
         )
         return (
             f"本轮{subject} 的结果正确任务数相同（均为 {top}）；"
@@ -439,7 +434,7 @@ def _recommendation(summary: dict[str, Any], engines: tuple[str, ...]) -> str:
     claim = f"本轮建议默认使用 {engine_label(leader)}：其结果正确任务数为 {top}，高于 {lower}；"
     if leader == engines[0]:
         return (
-            f"{claim}{_names(others)} 在{parties}均成功的任务上若表现出更低耗时或资源占用，"
+            f"{claim}{engine_names(others)} 在{parties}均成功的任务上若表现出更低耗时或资源占用，"
             "可作为任务已验证兼容时的备选。"
         )
     return f"{claim}仍需结合{parties}成功任务上的资源指标和失败类型确认适用边界。"
@@ -1228,7 +1223,7 @@ def _markdown(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         return _stat(((paired_engines.get(engine) or {}).get("duration_ms") or {}), stat)
 
     lines = [
-        f"# {_names(_engines(summary))} 浏览器工具调用评测",
+        f"# {engine_names(_engines(summary))} 浏览器工具调用评测",
         "",
         f"运行编号：`{manifest.get('run_id', 'unknown')}`",
         "",

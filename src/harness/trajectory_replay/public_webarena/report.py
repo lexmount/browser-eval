@@ -14,7 +14,7 @@ from urllib.parse import urlparse
 
 from harness.distribution import bundled_data_path
 from harness.environments.browser import DEFAULT_BROWSER_IMAGES
-from harness.trajectory_replay.participants import engine_label, summary_engines
+from harness.trajectory_replay.participants import engine_label, engine_names, summary_engines
 from harness.trajectory_replay.public_webarena.publication import REPORT_STEM, public_projection
 from harness.trajectory_replay.public_webarena.result_audit import audit_result_set
 
@@ -432,6 +432,9 @@ def _load_public_research() -> tuple[dict[str, Any], dict[str, Any]]:
 
 
 def _research_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
+    compared_engines = engine_names(
+        summary_engines(summary) or tuple(DEFAULT_BROWSER_IMAGES), " 和 "
+    )
     adoption, catalog = _load_public_research()
     records = adoption.get("records") or []
     browser_records = [
@@ -555,7 +558,7 @@ def _research_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         + f'<div class="rank-grid">{engineering_cards}</div>'
         + '<p>WebVoyager 只保留为历史参照。OSWorld 2.0 太宽，ScreenSpot-Pro 只测单步定位；它们都不会进入本轮固定轨迹正式分母。</p></section>'
         '<section class="card"><h2>Mind2Web 家族的三套评测</h2><ul>'
-        '<li>原始 Mind2Web 是离线 HTML 和动作预测数据集。它适合比较元素选择与动作预测，不能真正比较 Chromium 和 Moli。</li>'
+        '<li>原始 Mind2Web 是离线 HTML 和动作预测数据集。它适合比较元素选择与动作预测，不能真正比较 ' + _e(compared_engines) + '。</li>'
         '<li>Online-Mind2Web 在 300 个真实网站任务上判断最终任务是否完成。截图、URL 和轨迹是 judge 证据，并不要求复现固定动作序列；WebJudge 是 LLM-as-a-judge。</li>'
         '<li>Online-Mind2Web 的 easy、medium、hard 按人工参考路径长度划分，分别为不超过 5 步、6 到 10 步、至少 11 步。这个标签不是网站难度，也不是 agent 实际执行步数。</li>'
         '<li>Mind2Web 2 有 130 个长程研究任务，评估实时搜索、综合回答和引用归因，属于网页研究类。</li></ul></section>'

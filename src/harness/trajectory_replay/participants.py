@@ -22,6 +22,11 @@ def engine_label(engine: str) -> str:
     return ENGINE_LABELS.get(engine, engine.replace("_", " ").strip().title())
 
 
+def engine_names(engines: tuple[str, ...], conjunction: str = " 与 ") -> str:
+    labels = [engine_label(engine) for engine in engines]
+    return conjunction.join(filter(None, ("、".join(labels[:-1]), labels[-1])))
+
+
 def summary_engines(summary: dict[str, Any]) -> tuple[str, ...]:
     """Read the participant set and its order from one summary's own results."""
     functional = summary.get("functional") or {}
@@ -59,7 +64,7 @@ def participant_registry(methods: list[dict[str, Any]]) -> dict[str, dict[str, A
     for method in methods:
         identity = method.get("id")
         if (not isinstance(identity, str)
-                or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", identity)
+                or not SAFE_ENGINE.fullmatch(identity)
                 or identity in registry or not method.get("engine")):
             raise ValueError("participant registry requires unique safe method ids and engines")
         registry[identity] = method
