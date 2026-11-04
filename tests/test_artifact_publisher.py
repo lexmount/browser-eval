@@ -139,3 +139,39 @@ class ArtifactPublisherTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'Unsafe bundle path'):
             upload_large_archive(self.request, self.archive, 'current', 'ver_old')
         self.assertEqual(len(self.calls), 1)
+
+
+class UploadResumeTests(unittest.TestCase):
+    @patch('harness.reporting.publish.time.sleep')
+    def test_verified_stage_is_reused_and_rate_limited_commit_is_retried(self, sleep):
+        import hashlib
+        with tempfile.TemporaryDirectory() as directory:
+            archive = Path(directory) / 'report.zip'
+            contents = {'index.html': b'home', 'evidence.json': b'{"complete":true}'}
+            with zipfile.ZipFile(archive, 'w') as bundle:
+                for name, body in contents.items(): bundle.writestr(name, body)
+            calls = []
+            commits = 0
+            def request(path, data=None, content_type=None, **kwargs):
+                nonlocal commits
+                calls.append((path, data, content_type, kwargs))
+                if path == '/api/sites/current': result = {'version': {'id': 'ver_old'}}
+                elif path.startswith('/api/uploads?'): result = {'versionId': 'ver_stage'}
+                elif path == '/api/uploads/ver_stage':
+                    result = {'files': [{'relpath': name, 'bytes': len(body),
+                              'sha256': hashlib.sha256(body).hexdigest()}
+                              for name, body in contents.items()]}
+                elif '/commit?' in path:
+                    commits += 1
+                    if commits == 1:
+                        raise HTTPError('https://reports.example'+path, 429, 'limited',
+                                        {'Retry-After': '2'}, None)
+                    result = {'slug': 'current', 'versionId': 'ver_new'}
+                else: self.fail('Unexpected reupload: '+path)
+                return 200, json.dumps(result).encode()
+            result = upload_large_archive(request, archive, 'current', 'ver_old', resume=True)
+            self.assertEqual(json.loads(result)['versionId'], 'ver_new')
+            self.assertFalse(any(c[3].get('method') == 'PUT' for c in calls))
+            retries = [c for c in calls if '/commit?' in c[0]]
+            self.assertEqual(retries[0], retries[1])
+            sleep.assert_called_once_with(2)

@@ -69,6 +69,22 @@ def updated_receipt(receipt, response):
     return {**current, 'versionId': version, 'last_update': response}
 
 
+def _rate_limit_delay(error):
+    header = error.headers.get('Retry-After', '') if error.headers else ''
+    delay = 30.0
+    if header:
+        try:
+            delay = float(header)
+        except ValueError:
+            try:
+                delay = parsedate_to_datetime(header).timestamp() - time.time()
+            except (TypeError, ValueError, OverflowError):
+                pass
+    if not math.isfinite(delay) or delay > 120:
+        raise error
+    return max(1.0, delay)
+
+
 def put_file(request, path, data):
     """Retry only the identical idempotent staging PUT with bounded waits."""
     for attempt in range(4):
@@ -82,19 +98,7 @@ def put_file(request, path, data):
             elif error.code == 429:
                 if attempt == 3:
                     raise
-                header = error.headers.get('Retry-After', '') if error.headers else ''
-                delay = 30.0
-                if header:
-                    try:
-                        delay = float(header)
-                    except ValueError:
-                        try:
-                            delay = parsedate_to_datetime(header).timestamp() - time.time()
-                        except (TypeError, ValueError, OverflowError):
-                            pass
-                if not math.isfinite(delay) or delay > 120:
-                    raise  # Never retry earlier than a longer server-requested wait.
-                delay = max(1.0, delay)
+                delay = _rate_limit_delay(error)
             else:
                 raise
             error.close()
@@ -111,7 +115,7 @@ def put_file(request, path, data):
             time.sleep(delay)
 
 
-def upload_large_archive(request, archive, slug=None, expected=None, title=None, *, max_workers=1):
+def upload_large_archive(request, archive, slug=None, expected=None, title=None, *, max_workers=1, resume=False):
     """Upload unpacked bytes to staging and commit the full tree once."""
     if slug and not expected:
         raise ValueError('An existing site requires an exported version baseline')
@@ -146,9 +150,24 @@ def upload_large_archive(request, archive, slug=None, expected=None, title=None,
         endpoint = '/api/uploads/' + quote(session, safe='')
         # The current service may choose the first uploaded HTML as the
         # version entry. Stage the root page before concurrent file uploads.
+        retained = set()
+        if resume:
+            _, staged = request(endpoint)
+            receipts = json.loads(staged).get('files', [])
+            if any(item['relpath'] not in names for item in receipts):
+                raise ValueError('Retained upload contains files outside this release')
+            by_path = {item['relpath']: item for item in receipts}
+            for info in files:
+                receipt = by_path.get(info.filename, {})
+                if (receipt.get('bytes') == info.file_size
+                        and receipt.get('sha256') == hashlib.sha256(bundle.read(info)).hexdigest()):
+                    retained.add(info.filename)
+            print(f'Reusing {len(retained)}/{len(files)} verified uploaded files', flush=True)
         entry = next(info for info in files if info.filename == 'index.html')
-        put_file(request, endpoint + '/files/index.html', bundle.read(entry))
-        remaining = [info for info in files if info.filename != 'index.html']
+        if entry.filename not in retained:
+            put_file(request, endpoint + '/files/index.html', bundle.read(entry))
+        remaining = [info for info in files
+                     if info.filename != 'index.html' and info.filename not in retained]
         if max_workers > 1:
             with ThreadPoolExecutor(max_workers=max_workers) as pool:
                 pending = {
@@ -170,7 +189,20 @@ def upload_large_archive(request, archive, slug=None, expected=None, title=None,
         # /versions and /edit. Also recheck before chunk commit; this read is
         # explicitly not claimed to be an atomic server-side lock.
         check_baseline()
-        _, raw = request(endpoint + '/commit' + query, b'{}', 'application/json')
+        for attempt in range(4):
+            try:
+                _, raw = request(endpoint + '/commit' + query, b'{}', 'application/json')
+                break
+            except HTTPError as error:
+                if error.code != 429 or attempt == 3:
+                    raise
+                delay = _rate_limit_delay(error)
+                error.close()
+                print(f'Commit rate limited; retrying the same operation in {delay:g}s', flush=True)
+                while delay > 0:
+                    interval = min(delay, 30)
+                    time.sleep(interval)
+                    delay -= interval
         if slug and json.loads(raw).get('slug', slug) != slug:
             raise RuntimeError('Publication returned an unexpected site')
         return raw
@@ -708,7 +740,8 @@ def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
     operation_hash = hashlib.sha256(json_bytes(identity)).hexdigest()
     journal = update.work / f'{update.prefix}-update-{operation_hash[:24]}.json'
     reject_evidence_symlinks(journal)
-    operation = (json.loads(journal.read_bytes()) if journal.exists()
+    resumed = journal.exists()
+    operation = (json.loads(journal.read_bytes()) if resumed
                  else {**identity, 'expected_version': update.expected_version})
     if any(operation.get(key) != value for key, value in identity.items()):
         raise ValueError(f'{label} publication journal targets another release')
@@ -759,7 +792,7 @@ def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
                     raise ValueError(f'Remote {label} version changed; reconcile before updating')
                 response = response_json(*recovered, operation=f'{label} commit recovery')
             else:
-                response = json.loads(upload_large_archive(request, release.archive, slug, expected, max_workers=4))
+                response = json.loads(upload_large_archive(request, release.archive, slug, expected, max_workers=4, resume=resumed))
             version = response.get('versionId')
             if (response.get('slug', slug) != slug or not isinstance(version, str)
                     or not version.startswith('ver_')):
