@@ -13,14 +13,11 @@ from harness.web_fetch.webmainbench_certification import (
     verify_source_checkout,
 )
 from harness.web_fetch.webmainbench_scoring import aggregate, verify_score
+from tests.helpers import write_json
 
 
 def _digest(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
-
-
-def _write_json(path: Path, value: object) -> None:
-    path.write_text(json.dumps(value), encoding="utf-8")
 
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:
@@ -47,8 +44,8 @@ def _cohort(tmp_path: Path) -> Path:
                       "physical_artifact_path": physical_path, "output_sha256": _digest(body)})
     _write_jsonl(shard / "results.jsonl", rows)
     _write_jsonl(shard / "physical-attempts.jsonl", calls)
-    _write_json(shard / "dataset.json", {"case_count": 2, "case_ids": ["one", "two"]})
-    _write_json(shard / "execution.json", {"case_count": 2, "provider": "moli",
+    write_json(shard / "dataset.json", {"case_count": 2, "case_ids": ["one", "two"]})
+    write_json(shard / "execution.json", {"case_count": 2, "provider": "moli",
                                              "source_dataset_sha256": "source"})
     return shard
 
@@ -158,7 +155,7 @@ def test_scored_cohort_keeps_exact_measured_results_and_scorer_source(tmp_path, 
     scorer = tmp_path / "scorer"
     scorer.mkdir()
     (scorer / "metric.py").write_text("frozen scorer", encoding="utf-8")
-    _write_json(shard / "score-summary.json", {
+    write_json(shard / "score-summary.json", {
         "provider": "moli", "case_count": 2, "official_aggregate": aggregate(scored),
         "scorer": {"commit": "pinned", "metric_config": {"use_llm": False},
                    "metric_source_sha256": {"metric.py": _digest(b"frozen scorer")}},
@@ -175,7 +172,7 @@ def test_scored_cohort_keeps_exact_measured_results_and_scorer_source(tmp_path, 
             relative = "linked.py"
         summary = json.loads((shard / "score-summary.json").read_text(encoding="utf-8"))
         summary["scorer"]["metric_source_sha256"] = {relative: _digest(external.read_bytes())}
-        _write_json(shard / "score-summary.json", summary)
+        write_json(shard / "score-summary.json", summary)
         with pytest.raises(ValueError):
             verify_score(shard, "moli", {"one", "two"}, scorer, {
                 "case_count": 2, "official_scorer_commit": "pinned", "metric_config": {"use_llm": False},

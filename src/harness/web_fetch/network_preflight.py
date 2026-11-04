@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from urllib.parse import urlsplit
 
 from harness.web_fetch import network_dns
+from harness.web_fetch.providers.headless import engine_definition
 
 GUARDED_NATIVE_TYPES = {"openclaw_builtin", "deepseek_harness_builtin", "cowagent_builtin", "langchain_webbase", "moli_webfetch", "crawl4ai"}
 
@@ -75,7 +76,7 @@ def preflight_guarded_providers(providers, cases):
         provider for provider in providers
         if provider.type in native or (
             provider.type in {"headless_markdown", "headless_html"}
-            and provider.config.get("engine") != "kitesurf"
+            and not engine_definition(provider.config.get("engine")).hosted
         )
     ]
     isolated = [provider for provider in selected

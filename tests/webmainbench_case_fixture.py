@@ -7,10 +7,7 @@ import subprocess
 from harness.record_io import file_sha256
 
 from harness.web_fetch.webmainbench_scoring import CORE_METRICS, SCORER_COMMIT, aggregate
-
-
-def write_json(path, value):
-    path.write_text(json.dumps(value), encoding="utf-8")
+from tests.helpers import write_json
 
 
 def write_rows(path, rows):

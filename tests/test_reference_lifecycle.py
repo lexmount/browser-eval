@@ -26,6 +26,7 @@ from harness.web_fetch.reference_lifecycle import (
     validate_resource_source_evidence,
 )
 from harness.web_fetch.runner import rescore_evaluation, run_evaluation
+from tests.helpers import write_json
 
 
 class ReferenceLifecycleTests(unittest.TestCase):
@@ -71,14 +72,10 @@ class ReferenceLifecycleTests(unittest.TestCase):
         with self.assertRaisesRegex(ReferenceLifecycleError, 'reference mode'):
             self.checks(case)
 
-    def write_json(self, path, value):
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(value), encoding="utf-8")
-
     def dataset(self, case=None):
         case = case or self.case
         payload = {"tool": "web_fetch", "id": "test", "cases": [deepcopy(case.__dict__)]}
-        self.write_json(self.dataset_path, payload)
+        write_json(self.dataset_path, payload)
         return payload
 
     def checks(self, case=None):
@@ -87,7 +84,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
     def prepare_run(self):
         dataset = self.dataset()
         self.run.mkdir()
-        self.write_json(self.run / "dataset.json", dataset)
+        write_json(self.run / "dataset.json", dataset)
         manifest = {"schema_version": 1, "tool": "web_fetch",
             "started_at": self.now.isoformat(),
             "completed_at": (self.now + timedelta(seconds=2)).isoformat(),
@@ -95,7 +92,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
             "providers": [{"name": "p", "type": "synthetic"}],
             "dataset": {"id": "test", "case_count": 1}, "parameters": {"runs": 1},
             "reference_checks": self.checks()}
-        self.write_json(self.run / "manifest.json", manifest)
+        write_json(self.run / "manifest.json", manifest)
         artifact = self.run / "artifacts/output.txt"
         artifact.parent.mkdir()
         artifact.write_text("Provider raw output stays unchanged", encoding="utf-8")
@@ -117,7 +114,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
 
     def finalize(self, rows, now=None):
         path = self.root / "observations.json"
-        self.write_json(path, rows)
+        write_json(path, rows)
         return finalize_reference_checks(self.run, path, now=now or self.now + timedelta(seconds=4))
 
     def test_timezone_age_and_future_clocks(self):
@@ -355,7 +352,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
                     "rendered.txt": case.ground_truth_main_content, "reference.txt": case.ground_truth_main_content}
         for name, text in contents.items():
             (folder / name).write_text(text, encoding="utf-8")
-        self.write_json(folder / "evidence.json", {"case_id": "body", "url": case.url,
+        write_json(folder / "evidence.json", {"case_id": "body", "url": case.url,
             "completion": "Complete article", "checked_at": self.now.isoformat(),
             "initial_checked_at": self.now.isoformat(), "initial_sha256": sha256(contents["initial.html.txt"]),
             "rendered_sha256": sha256(contents["rendered.txt"]), "reference_sha256": sha256(contents["reference.txt"])})
@@ -465,7 +462,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         row = self.observation(original)
         for rows in ([], [row, row], [row, {**row, "case_id": "unknown"}]):
             with self.subTest(rows=rows):
-                self.write_json(self.run / "manifest.json", original)
+                write_json(self.run / "manifest.json", original)
                 self.assertEqual(self.finalize(rows)["status"], "reference_unverified")
 
     def test_postcheck_time_bounds_and_completion(self):
@@ -479,7 +476,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
                         {"completion": {"satisfied": True, "elapsed_ms": True, "timeout_ms": 1000}},
                         {"independent": False}, {"scope_identity": {}}, {"content_sha256": "bad"}):
             with self.subTest(updates=updates):
-                self.write_json(self.run / "manifest.json", original)
+                write_json(self.run / "manifest.json", original)
                 self.assertEqual(self.finalize([self.observation(original, **updates)])["status"], "reference_unverified")
 
     def test_postcheck_late_capture_rejected_but_delayed_finalization_allowed(self):
@@ -489,13 +486,13 @@ class ReferenceLifecycleTests(unittest.TestCase):
         ], now=self.now + timedelta(minutes=32))
         self.assertEqual(result["status"], "reference_unverified")
 
-        self.write_json(self.run / "manifest.json", original)
+        write_json(self.run / "manifest.json", original)
         result = self.finalize([
             self.observation(original, checked_at=(self.now + timedelta(seconds=3)).isoformat())
         ], now=self.now + timedelta(hours=3))
         self.assertEqual(result["status"], "verified")
 
-        self.write_json(self.run / "manifest.json", original)
+        write_json(self.run / "manifest.json", original)
         result = self.finalize([
             self.observation(original, checked_at=(self.now + timedelta(seconds=5)).isoformat())
         ], now=self.now + timedelta(seconds=4))
@@ -509,14 +506,14 @@ class ReferenceLifecycleTests(unittest.TestCase):
         records_path.write_text(json.dumps(record) + "\n" + json.dumps(second) + "\n", encoding="utf-8")
         original.update(attempt_count=2, attempt_ids=[record["attempt_id"], second["attempt_id"]],
                         completed_at=(self.now + timedelta(seconds=6)).isoformat())
-        self.write_json(self.run / "manifest.json", original)
+        write_json(self.run / "manifest.json", original)
         self.assertEqual(self.finalize([self.observation(original)], now=self.now + timedelta(seconds=7))["status"],
                          "reference_unverified")
 
     def test_execution_batches_and_manifest_updated_consistently_legacy_untouched(self):
         original = self.prepare_run()
         legacy = {"batch_id": "legacy", "note": "Historical; no freshness claim"}
-        self.write_json(self.run / "execution.json", {"batches": [original, legacy], "original": "metadata"})
+        write_json(self.run / "execution.json", {"batches": [original, legacy], "original": "metadata"})
         self.assertEqual(self.finalize([self.observation(original)])["status"], "verified")
         execution = json.loads((self.run / "execution.json").read_text(encoding="utf-8"))
         manifest = json.loads((self.run / "manifest.json").read_text(encoding="utf-8"))
@@ -536,7 +533,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         with self.assertRaises(ReferenceLifecycleError):
             preflight_reference_checks([self.case], self.dataset_path, now=self.now + timedelta(minutes=31))
         original.pop("reference_checks")
-        self.write_json(self.run / "manifest.json", original)
+        write_json(self.run / "manifest.json", original)
         with self.assertRaisesRegex(ReferenceLifecycleError, "historical"):
             self.finalize([])
         self.assertNotIn("reference_checks", json.loads((self.run / "manifest.json").read_text(encoding="utf-8")))
@@ -603,7 +600,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         manifest = self.verified_run()
         records = [json.loads((self.run / "results.jsonl").read_text(encoding="utf-8"))]
         # Whole-run byte hashes are provenance, not equality gates after merge.
-        self.write_json(self.run / "dataset.json", {"cases": [self.case.__dict__], "merged": True})
+        write_json(self.run / "dataset.json", {"cases": [self.case.__dict__], "merged": True})
         require_verified_reference_checks([manifest, {"historical": True}],
             cases={"body": self.case}, records=records, source=self.run)
         require_verified_reference_checks(manifest, cases=self.dataset())
@@ -763,7 +760,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
         }
         raw = (json.dumps(record) + "\n").encode()
         (self.run / "results.jsonl").write_bytes(raw)
-        self.write_json(self.run / "latency-corrections.json", {
+        write_json(self.run / "latency-corrections.json", {
             "schema_version": 1,
             "selection": "same four cases for all three Moli versions; final round always selected, never best-of",
             "diagnostic_results_sha256": "a" * 64,
@@ -777,7 +774,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
 
         receipt = json.loads((self.run / "latency-corrections.json").read_text(encoding="utf-8"))
         receipt["changes"][0]["before_ms"] += 1
-        self.write_json(self.run / "latency-corrections.json", receipt)
+        write_json(self.run / "latency-corrections.json", receipt)
         with self.assertRaisesRegex(ReferenceLifecycleError, "Invalid latency correction"):
             require_verified_reference_checks(manifest, cases=self.dataset(), records=[record], source=self.run)
 
@@ -823,7 +820,7 @@ class ReferenceLifecycleTests(unittest.TestCase):
     def test_legacy_rescore_still_allowed_without_claiming_protocol(self):
         manifest = self.prepare_run()
         del manifest["reference_checks"]
-        self.write_json(self.run / "manifest.json", manifest)
+        write_json(self.run / "manifest.json", manifest)
         record = json.loads((self.run / "results.jsonl").read_text(encoding="utf-8"))
         del record["metrics"]["reference_sha256"]
         (self.run / "results.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")

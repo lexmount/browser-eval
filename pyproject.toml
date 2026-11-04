@@ -76,6 +76,7 @@ testpaths = ["tests"]
 addopts = ["--import-mode=importlib"]
 markers = [
   "real_smoke: accesses real containers or live deployment endpoints",
+  "slow: one call takes about eight seconds or more; deselect with -m 'not slow'",
 ]
 
 [tool.ruff]
@@ -124,7 +125,7 @@ include = ["harness*", "lexbench_webfetch*", "lexbench_websearch*"]
 "harness" = ["licenses/*.txt"]
 "harness.trajectory_replay" = ["messages.json", "resources/fixtures/*.html"]
 "harness.browser_use" = ["report-translations.json"]
-"harness.lexbench" = ["assets/*.js", "assets/*.cjs"]
+"harness.lexbench" = ["assets/*.js", "assets/*.cjs", "template/*"]
 "harness.web_fetch" = ["report-translations.json", "data/*.json", "data/latency-certifiers/*.txt", "templates/*.html", "assets/methodology/*.png", "assets/*.js", "html_to_markdown.mjs"]
 "harness.web_fetch.workers" = ["*.mts", "*.mjs", "*.c"]
 "harness.environments.webarena" = ["runtime/*.ini", "topology.json"]

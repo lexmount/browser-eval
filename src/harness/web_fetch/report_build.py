@@ -1624,9 +1624,17 @@ def _presentation_detail_scope(records, selected, manifest, renderer_sha256):
             if previous != renderer_sha256 else set(selected))
 
 
+def renderer_sha256():
+    """Identify the presentation: the renderer and the stylesheets and scripts it loads."""
+    package = Path(__file__).parent
+    sources = [package / 'report.py', *sorted(
+        path for path in (package / 'assets').iterdir() if path.suffix in {'.css', '.js'})]
+    return hashlib.sha256(b'\0'.join(path.read_bytes() for path in sources)).hexdigest()
+
+
 def _current_template_refresh(output, binding, manifest):
     """Select all current pages only after their authority has been validated."""
-    current = file_sha256(Path(__file__).with_name('report.py'))
+    current = renderer_sha256()
     if manifest.get('presentation_refresh', {}).get('renderer_sha256') == current:
         return False
     revision = binding.get('offline_revision')
@@ -1662,8 +1670,7 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
         revised_attempt_ids, dataset_case_ids = _review_refresh_changes(output, binding, dataset, records)
         detail_attempt_ids |= revised_attempt_ids
         detail_attempt_ids = _presentation_detail_scope(
-            records, detail_attempt_ids, manifest,
-            file_sha256(Path(__file__).with_name('report.py')))
+            records, detail_attempt_ids, manifest, renderer_sha256())
         refresh_all_current_pages = _current_template_refresh(output, binding, manifest)
         if refresh_all_current_pages:
             dataset_case_ids = {case['id'] for case in dataset['cases']}
@@ -1725,7 +1732,7 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
             'provider_calls_added': 0, 'scores_changed': False,
             'scoring_git_revision': binding.get('measured_scoring_git_revision'),
             'scoring_source_sha256': binding['measured_scoring_source_sha256'],
-            'renderer_sha256': file_sha256(Path(__file__).with_name('report.py')),
+            'renderer_sha256': renderer_sha256(),
             'changed_routes': sorted(set(changed) | set(manifest.get('presentation_refresh', {}).get('changed_routes', []))),
             **({'revised_attempt_ids': sorted(revised_attempt_ids),
                 'revised_case_ids': sorted(dataset_case_ids),

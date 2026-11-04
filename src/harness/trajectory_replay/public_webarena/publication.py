@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
-from harness.environments.webarena.topology import configured_site_secrets
+from harness.environments.webarena.topology import configured_site_secrets, known_site_secrets
 from harness.record_io import file_sha256, read_json
 from harness.reporting.privacy import PRIVATE_IPV4, PUBLIC_WEBARENA
 from harness.reporting.publication import PublicationClient, archive_inventory
@@ -49,9 +49,14 @@ def public_projection(value: Any) -> Any:
 
 def export_public_report_bundle(formal_root: Path, output_root: Path) -> Path:
     """Export reports plus only the binding fields needed by the site builder."""
+    # Like packaging, an export is public output that must be checked for every site password.
+    passwords = known_site_secrets()
     manifest = _read_json(contained_path(formal_root, "run/manifest.json", reject_symlinks=True))
     summary = _read_json(contained_path(formal_root, "run/summary.json", reject_symlinks=True))
     files = _report_files(formal_root, summary)
+    for source in files:
+        if _contains_site_password(source.read_text(encoding="utf-8", errors="ignore"), passwords):
+            raise ValueError(f"site password in public report: {source.name}")
     target = output_root / "formal/webarena-public-trajectories"
     reports_target = target / "reports"
     reports_target.mkdir(parents=True, exist_ok=False)
@@ -208,6 +213,8 @@ def _contains_site_password(text: str, passwords: tuple[str, ...]) -> bool:
 
 
 def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Path) -> dict:
+    # Rendering tolerates an unset password; a package cannot be checked for one it cannot name.
+    passwords = known_site_secrets()
     manifest, summary, _audit = _validate_binding(formal_root, authority)
     files = _report_files(formal_root, summary)
     inputs = {
@@ -234,7 +241,6 @@ def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Pat
             shutil.copy2(source, staging / source.name)
         shutil.copy2(staging / f"{REPORT_STEM}.html", staging / "index.html")
         _validate_internal_links(staging)
-        passwords = configured_site_secrets()
         for path in staging.rglob("*"):
             if not path.is_file():
                 continue

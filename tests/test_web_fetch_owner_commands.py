@@ -214,11 +214,11 @@ def named_commands(text):
     return {name for name in OWNER_COMMANDS if re.search(rf"(?<![\w-]){name}(?![\w-])", text)}
 
 
-def test_every_owner_command_is_shown_by_a_guide_or_listed_as_pending():
+def test_every_owner_command_is_shown_by_a_guide_or_listed_as_kept():
     shown = named_commands("\n".join((ROOT / path).read_text(encoding="utf-8") for path in COMMAND_INDEX_FILES))
     inventory = (ROOT / "scripts/README.md").read_text(encoding="utf-8")
-    pending = named_commands(inventory.split("## Pending owner decision (#93)")[1].split("\n## ")[0])
-    assert pending == set(OWNER_COMMANDS) - shown
+    kept = named_commands(inventory.split("## Kept as is (#151)")[1].split("\n## ")[0])
+    assert kept == set(OWNER_COMMANDS) - shown
 
 
 def test_command_inventory_runs_track_stages_through_the_locked_runtime():

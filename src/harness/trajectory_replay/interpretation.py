@@ -13,8 +13,8 @@ from harness.trajectory_replay.failure_matrix import (
     failure_category_matrix,
     failure_signature_cards,
 )
+from harness.trajectory_replay.messages import MESSAGES
 
-MESSAGES = Path(__file__).with_name("messages.json")
 
 def _report_page_url(report_url: str, relative: str) -> str:
     base = urlsplit(report_url)

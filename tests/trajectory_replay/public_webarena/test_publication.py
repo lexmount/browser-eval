@@ -14,6 +14,20 @@ from harness.trajectory_replay.public_webarena.publication import (
 from tests.public_webarena_fixture import write_report_fixture
 
 
+def write_site_logins(path, reddit_password="synthetic-reddit-secret"):
+    """Write a complete synthetic .env, as packaging requires every registered login."""
+    path.write_text(
+        "".join(
+            f"WEBARENA_{site}_USERNAME=synthetic-{site.lower()}-user\n"
+            f"WEBARENA_{site}_PASSWORD=synthetic-{site.lower()}-secret\n"
+            for site in ("SHOPPING", "SHOPPING_ADMIN", "GITLAB")
+        )
+        + "WEBARENA_REDDIT_USERNAME=synthetic-reddit-user\n"
+        + f"WEBARENA_REDDIT_PASSWORD={reddit_password}\n",
+        encoding="utf-8",
+    )
+
+
 def test_public_projection_scrubs_private_hosts_and_user_paths():
     value = {"url": "http://10.0.0.41:17770/x", "path": "/data/example/run/file"}
     assert public_projection(value) == {
@@ -50,7 +64,7 @@ def test_public_package_rejects_a_site_password_the_projection_missed(
     page = staged / "reports/webarena-trajectory-replay-latest.html"
     page.write_text(page.read_text(encoding="utf-8") + written, encoding="utf-8")
     secrets = tmp_path / "repository.env"
-    secrets.write_text(f"WEBARENA_REDDIT_PASSWORD={password}\n", encoding="utf-8")
+    write_site_logins(secrets, password)
     monkeypatch.setattr(env_file, "_repository_credentials_file", secrets)
     monkeypatch.setenv("WEBARENA_REDDIT_PASSWORD", "exported-secret")
 
@@ -76,12 +90,70 @@ def test_public_package_accepts_a_report_without_the_site_password(tmp_path, mon
     staged = tmp_path / "staged"
     stage_report(source, staged)
     secrets = tmp_path / "repository.env"
-    secrets.write_text('WEBARENA_REDDIT_PASSWORD=secret"value\n', encoding="utf-8")
+    write_site_logins(secrets, 'secret"value')
     monkeypatch.setattr(env_file, "_repository_credentials_file", secrets)
 
     build(staged, tmp_path / "a.zip", tmp_path / "a.json", authority=authority)
 
     assert (tmp_path / "a.zip").is_file()
+
+
+@pytest.mark.parametrize("unset", ["WEBARENA_REDDIT_PASSWORD", "WEBARENA_GITLAB_PASSWORD"])
+def test_public_package_stops_while_a_site_password_is_unset(tmp_path, monkeypatch, unset):
+    source, authority = write_report_fixture(tmp_path)
+    secrets = tmp_path / "repository.env"
+    write_site_logins(secrets)
+    secrets.write_text(
+        "".join(
+            line
+            for line in secrets.read_text(encoding="utf-8").splitlines(keepends=True)
+            if not line.startswith(unset + "=")
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(env_file, "_repository_credentials_file", secrets)
+    monkeypatch.setenv(unset, "exported-secret")
+
+    staged = tmp_path / "staged"
+    stage_report(source, staged)
+    assert (staged / "reports/webarena-trajectory-replay-latest.html").is_file()
+
+    with pytest.raises(ValueError, match=unset):
+        build(staged, tmp_path / "a.zip", tmp_path / "a.json", authority=authority)
+    assert not (tmp_path / "a.zip").exists()
+    assert not (tmp_path / "a.json").exists()
+
+
+def test_public_export_stops_while_a_site_password_is_unset(tmp_path, monkeypatch):
+    source, _ = write_report_fixture(tmp_path)
+    staged = tmp_path / "staged"
+    stage_report(source, staged)
+    page = staged / "reports/webarena-trajectory-replay-latest.html"
+    page.write_text(page.read_text(encoding="utf-8") + "secret-value", encoding="utf-8")
+    monkeypatch.setattr(env_file, "_repository_credentials_file", tmp_path / "absent.env")
+    monkeypatch.setenv("WEBARENA_REDDIT_PASSWORD", "secret-value")
+
+    with pytest.raises(ValueError, match="WEBARENA_"):
+        export_public_report_bundle(staged, tmp_path / "public")
+    assert not (tmp_path / "public").exists()
+
+
+@pytest.mark.parametrize(
+    "written", ["secret-value", "secret&#45;value"], ids=["plain", "html-escaped"]
+)
+def test_public_export_rejects_a_site_password_in_a_report_page(tmp_path, monkeypatch, written):
+    source, _ = write_report_fixture(tmp_path)
+    staged = tmp_path / "staged"
+    stage_report(source, staged)
+    page = staged / "reports/webarena-trajectory-replay-latest.html"
+    page.write_text(page.read_text(encoding="utf-8") + written, encoding="utf-8")
+    secrets = tmp_path / "repository.env"
+    write_site_logins(secrets, "secret-value")
+    monkeypatch.setattr(env_file, "_repository_credentials_file", secrets)
+
+    with pytest.raises(ValueError, match="site password in public report"):
+        export_public_report_bundle(staged, tmp_path / "public")
+    assert not (tmp_path / "public").exists()
 
 
 def test_public_bundle_contains_reports_and_minimal_binding(tmp_path):

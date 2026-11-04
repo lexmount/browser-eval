@@ -5,9 +5,8 @@ const path = require("path"),
 const dataHome =
   process.env.BROWSER_EVAL_DATA_HOME ||
   path.join(os.homedir(), ".browser-eval");
-const site =
-  process.env.MOLI_REPORT_SITE ||
-  path.join(dataHome, "reports/moli-1.1.8-failures-site");
+const site = process.env.MOLI_REPORT_SITE;
+if (!site) throw new Error("MOLI_REPORT_SITE must name the built report");
 const { chromium } = require(
   path.join(
     process.env.LEXBENCH_NODE_MODULES ||

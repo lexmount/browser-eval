@@ -64,7 +64,7 @@ The [corrected WebMainBench dataset](https://huggingface.co/datasets/Lexmount/Le
 | Official default | `SCORER_COMMIT` in [webmainbench_scoring.py](../src/harness/web_fetch/webmainbench_scoring.py) |
 | Selected correction | `scorer_commit` in the selected experiment's correction binding; [existing binding](../evaluation/webmainbench-full/scoring-correction-binding.json) |
 
-Choose the scorer named by the experiment's [profile and correction records](../evaluation/webmainbench-full). See the [scoring guide](../src/harness/web_fetch/WEBMAINBENCH.md); switching to another branch tip changes the evaluation.
+Choose the scorer named by the experiment's external profile and its [correction records](../evaluation/webmainbench-full). See the [scoring guide](../src/harness/web_fetch/WEBMAINBENCH.md); switching to another branch tip changes the evaluation.
 
 | Other inputs | Setup and version record |
 | --- | --- |

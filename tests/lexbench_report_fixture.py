@@ -15,6 +15,7 @@ from pathlib import Path
 from harness.lexbench import report
 from harness.lexbench.resource_matrix import schedule
 from harness.lexbench.resource_summary import stats
+from tests import helpers
 from tests.test_resource_calibration import experiment
 
 CANDIDATE_114 = "v4_cdp_emulation_setdefaultbackgroundcoloroverride"
@@ -42,9 +43,7 @@ def sha(raw: bytes) -> str:
 
 
 def write_json(path: Path, value) -> str:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False) + "\n", encoding="utf-8")
-    return sha(path.read_bytes())
+    return sha(helpers.write_json(path, value).read_bytes())
 
 
 def write_jsonl(path: Path, rows: list[dict]) -> str:
@@ -58,22 +57,6 @@ def pin_vendor_assets(monkeypatch) -> None:
     pinned = {content: digest for content, digest in VENDOR_ASSETS.values()}
     actual = report.bytes_sha256
     monkeypatch.setattr(report, "bytes_sha256", lambda data: pinned.get(data) or actual(data))
-
-
-def write_charts_as_utf8(monkeypatch) -> None:
-    """Keep snapshots locale-independent until #208 decides on the published ``charts.py``."""
-    actual_chart = report.render_chart
-    actual_write = Path.write_text
-
-    def write_utf8(self, data, encoding="utf-8", errors=None, newline=None):
-        return actual_write(self, data, encoding, errors, newline)
-
-    def render_chart(*args, **kwargs):
-        with monkeypatch.context() as patch:
-            patch.setattr(Path, "write_text", write_utf8)
-            return actual_chart(*args, **kwargs)
-
-    monkeypatch.setattr(report, "render_chart", render_chart)
 
 
 def fold_per_call_routes(output: Path) -> None:

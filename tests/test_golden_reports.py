@@ -21,13 +21,15 @@ from tests.lexbench_report_fixture import (
     build_report_inputs,
     fold_per_call_routes,
     pin_vendor_assets,
-    write_charts_as_utf8,
 )
 from tests.public_webarena_fixture import write_report_fixture
 from tests.test_webmainbench_full_report import render_full_report
 from tests.test_webmainbench_report import sample_report_inputs
 from tests.trajectory_replay.curated_report_fixture import build_curated_report
-from tests.trajectory_replay.test_webarena_report import build_replay_fixture
+from tests.trajectory_replay.test_webarena_report import (
+    STEP_DURATION_SAMPLES,
+    build_replay_fixture,
+)
 from tests.wcxb_fixture import create_report_inputs
 
 # Reports record the revision and source hash of the builder. Both change with
@@ -60,12 +62,20 @@ def test_trajectory_replay_report(tmp_path: Path, monkeypatch, outcome: str) -> 
     )
 
 
+def test_trajectory_replay_report_with_indexed_steps(tmp_path: Path, monkeypatch) -> None:
+    output, *_, files = build_replay_fixture(
+        tmp_path, monkeypatch, step_samples=STEP_DURATION_SAMPLES
+    )
+    check_golden(
+        "trajectory-replay-step-durations", output, tmp_path, path_inputs=[files["results.json"]]
+    )
+
+
 @pytest.mark.parametrize("scenario", ["minimal", "macos", "linux"])
 def test_lexbench_report(tmp_path: Path, monkeypatch, scenario: str) -> None:
     monkeypatch.delenv("LEXBENCH_REPORT_RUNNER_ROOT", raising=False)
     monkeypatch.chdir(tmp_path)
     pin_vendor_assets(monkeypatch)
-    write_charts_as_utf8(monkeypatch)
     lexbench_report.main(build_report_inputs(tmp_path, scenario))
     fold_per_call_routes(tmp_path / "report")
     check_golden(f"lexbench-{scenario}", tmp_path / "report", tmp_path)

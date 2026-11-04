@@ -2,8 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-const source = fs.readFileSync(new URL('../src/harness/web_fetch/report.py', import.meta.url), 'utf8');
-const js = source.match(/JS=r'''([\s\S]*?)'''/)[1];
+const js = fs.readFileSync(new URL('../src/harness/web_fetch/assets/report.js', import.meta.url), 'utf8');
 const filters = [{dataset:{filter:'track'},value:'image'}, {dataset:{filter:'result'},value:'pass'}, {dataset:{filter:'query'},value:'CAT'}];
 const rows = [
   {dataset:{track:'image',result:'pass'},textContent:'Cat photo'},

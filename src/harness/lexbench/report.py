@@ -238,8 +238,8 @@ def resolve_paths(
     if missing:
         parser.error(
             f"Report template {args.source} lacks {', '.join(missing)}; "
-            "pass --source with a template directory, or in a checkout drop --source "
-            "and paths.source to use the maintained template"
+            "pass --source with a template directory, or drop --source "
+            "and paths.source to use the installed template"
         )
     bench_root = configured_path("runner", os.environ.get("LEXBENCH_REPORT_RUNNER_ROOT"))
     version_runs = configured_path("version_runs")
@@ -1518,18 +1518,20 @@ def load_macos_resources(
     resource_builds: JsonObject,
     public_candidate_files: dict[str, bytes],
 ) -> tuple[JsonObject | None, JsonObject | None]:
-    macos_resource = None
-    official_resource = None
-    for resource_path, is_official in [(macos_path, False), (official_path, True)]:
-        if resource_path is None:
-            continue
-        entry = load_macos_resource(
-            resource_path, is_official, fixed_candidates, resource_builds, public_candidate_files
+    macos_resource = (
+        load_macos_resource(
+            macos_path, False, fixed_candidates, resource_builds, public_candidate_files
         )
-        if is_official:
-            official_resource = entry
-        else:
-            macos_resource = entry
+        if macos_path is not None
+        else None
+    )
+    official_resource = (
+        load_macos_resource(
+            official_path, True, fixed_candidates, resource_builds, public_candidate_files
+        )
+        if official_path is not None
+        else None
+    )
     return macos_resource, official_resource
 
 

@@ -1,5 +1,7 @@
 # Contributing
 
+Simple is the best; reject over-design.
+
 PRs are welcome for adapters, execution fixes, tests, documentation and translations. Public task definitions are versioned on [Hugging Face](https://huggingface.co/Lexmount); scoring code is maintained here; see [benchmark boundaries](docs/benchmarks.md). Run the [offline example](README.md#quickstart), then open the guide for the track you want to change.
 
 ## Report a bug
@@ -17,9 +19,7 @@ Include the task ID, method and versions, OS, command and sanitized error. Remov
 | New report instance | An external instance profile, evidence and report content; reuse its build and release commands |
 | Reusable logic | `src/harness/`; `scripts/` stays a thin command entry point |
 
-Use English for identifiers, comments and docstrings. Store report interface text
-in language catalogs, and select it through the existing report language contract.
-Keep original-language task text, source quotations and multilingual test fixtures. Keep measured counts, host facts and report-specific interpretation out
+Keep measured counts, host facts and report-specific interpretation out
 of shared renderers: read them from the selected profile and bound evidence.
 Published historical reports retain their own content and provenance.
 
@@ -29,12 +29,18 @@ module, avoiding a circular import or preserving test isolation.
 
 Test both accepted and rejected scenarios. Fix scoring rules rather than editing saved verdicts. Refactoring must preserve historical measurements and certificates.
 
-Write documentation in English. Keep the [Chinese README](docs/README.zh-CN.md) aligned when setup or usage changes; other docs do not need duplicate translations. Preserve original task text, quotations and frozen acceptance inputs. Reports follow their track's language settings.
+Keep the [Chinese README](docs/README.zh-CN.md) aligned when setup or usage changes. Additional README translations are welcome; other docs do not need duplicate translations. Reports follow their track's language settings.
 
 Benchmark changes follow [benchmark editions](docs/benchmarks.md#benchmark-editions).
-Keep human-readable editions, immutable dataset/scorer hashes and the package
-commit together. A minor scoring correction requires common-edition rescoring;
-changed task populations or requests require a major edition.
+
+### Text language
+
+The test for any string: did the project write it, or did it come from the web or a dataset?
+
+- **The project wrote it.** Identifiers, comments, docs, logs, errors, catalog keys and report interface text have English as their source. The Chinese report edition comes from language catalogs, selected through the report language contract.
+- **It came from outside.** Dataset queries and tasks, frozen web pages, human references, measured responses and quotations keep their original language byte for byte. Never translate, normalize or re-punctuate them; language checks must exempt them.
+
+Test fixtures that stand in for outside text keep its language. Frozen acceptance and audit artifacts are hash-bound experiment inputs whoever wrote them; see [reference inputs](docs/reference-inputs.md).
 
 ## Update Web Fetch dependencies and methods
 
@@ -91,7 +97,8 @@ make test-python TEST_PATHS=tests/web_search
 make test-python TEST_PATHS=tests/test_scoring_regressions.py PYTEST_ARGS='-k reference'
 ```
 
-`TEST_PATHS` selects files or directories; `PYTEST_ARGS` adds pytest options.
+`TEST_PATHS` selects files or directories; `PYTEST_ARGS` adds pytest options;
+`PYTEST_ARGS='-m "not slow"'` skips the slowest tests while iterating, and CI still runs them.
 Without `TEST_PATHS`, Python tests cover the entire suite. `make docs-check`
 checks README navigation, citations, track naming and source-language policy;
 it needs neither Node.js nor downloaded benchmark data.
@@ -124,7 +131,7 @@ UPDATE_GOLDEN=1 uv run --frozen --all-extras python -m pytest tests/test_golden_
 
 To see the changed lines, set `GOLDEN_KEEP=<directory>` on two revisions and compare the kept builds with `diff -r`.
 
-For report releases, open success and failure details, evidence dialogs and return links on desktop and narrow viewports in both themes. Real services need the environments listed in their track guides.
+For report releases, follow the [release gates](.agents/skills/benchmark-report/references/report-and-release.md#release-gates). Real services need the environments listed in their track guides.
 
 <details>
 <summary>What the package gate tests</summary>
@@ -156,4 +163,4 @@ Contributions use the [Apache License 2.0](LICENSE). Contributors retain copyrig
 
 ## Software releases
 
-Follow the [release guide](docs/releases.md) for software compatibility, version changes and release checks. Benchmark editions and report builds have separate identities. Routine review fixes and report rebuilds retain the current version; bump versions and publish tags only for an explicitly requested release.
+Follow the [release guide](docs/releases.md) for software compatibility, version changes and release checks. Benchmark editions and report builds have separate identities. `AGENTS.md` owns when a version may change.

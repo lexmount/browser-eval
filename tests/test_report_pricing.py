@@ -108,6 +108,15 @@ def test_report_bound_pricing_overrides_legacy_catalog(tmp_path):
     assert json.loads((tmp_path / "adoption/pricing.json").read_text(encoding='utf-8')) == bound
 
 
+@pytest.mark.parametrize(
+    ('names', 'heading'),
+    [(['chromium', 'moli-candidate'], '本轮执行模式的成本边界'), (['chromium', 'exa'], '获取 1,000 个网页')],
+)
+def test_only_browser_only_cohorts_get_the_cost_boundary_table(tmp_path, names, heading):
+    rendered = render_pricing(tmp_path, names, table=table, cell=cell, link=link, esc=esc)
+    assert rendered.startswith(f'<h3>{heading}')
+
+
 def test_firecrawl_current_route_and_billing_boundaries_are_localized_one_to_one():
     with tempfile.TemporaryDirectory() as directory:
         rendered = render_pricing(

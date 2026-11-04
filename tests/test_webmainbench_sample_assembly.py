@@ -7,7 +7,8 @@ from harness.record_io import file_sha256
 from harness.web_fetch import webmainbench_assembly as assembly
 from harness.web_fetch.webmainbench_diagnostics import sample_review_main
 from harness.web_fetch.webmainbench_evidence import read_jsonl, scored_shard_bindings
-from tests.webmainbench_sample_fixture import sample_fixture, write_json, write_rows
+from tests.webmainbench_sample_fixture import sample_fixture, write_rows
+from tests.helpers import write_json
 
 
 def assemble(fixture):

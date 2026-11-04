@@ -87,6 +87,7 @@ def test_all_git_dependencies_resolve_to_locked_source_commits():
             assert locked.fragment == requested, name
 
 
+@pytest.mark.slow
 def test_installed_benchmarks_match_their_frozen_catalogs():
     from importlib import import_module
 
