@@ -16,7 +16,7 @@
  "mermaid.min.js": "9e3a4a3b08758d51e3f3c4d456f0b81942fc31550bc46a67ed8b7b20d0ff510c",
  "report-languages.json": "9b74fd8293a5e57d7f8bb1887240ae86ceef5c8956d700c32c306f82d17a5c4b",
  "reproduction/cohort.json": "a3db2aa57d103fef4ceccc31f6f2f2a14696a390b83f838dec776cf0f362bffd",
- "reproduction/plot_version_summary.py": "062add8a46b3d0893bdbd052dd28b502b05960975ef7568f4af7413d508cdd3e",
+ "reproduction/plot_version_summary.py": "8a68cbf7f3922cfe343c13ba838b068852b3952fd1d59eb10cb344c4104b17b0",
  "reproduction/protocol.json": "bbfd2ef106f12055cd0039524dae4ed227a591bb97f7aeebc745c869a0878dd6",
  "reproduction/run.py": "280e8441917ecb19c13265ac6a0c97c02cd842ae39d95d8e64b95044c1944921",
  "style.css": "41bf10e0d2e6e29d9a0ffe96473c5a90b17c1e73b2fdf260cd49cbf5e342cf5d"
