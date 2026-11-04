@@ -1,5 +1,7 @@
 import hashlib
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -1206,6 +1208,70 @@ def test_built_result_pages_keep_absent_and_zero_step_durations_apart(
             for method in ("chromium", "moli-old", "moli-fixed")
         }
         assert rendered == {"chromium": "0.00 s", "moli-old": "—", "moli-fixed": "—"}
+
+
+# Runs the report's own script against a minimal DOM and opens step 1's dialog.
+STEP_DIALOG_DRIVER = """
+const payload=PAYLOAD;
+const slots={};
+const dialog={
+  dataset:{evidenceUrl:'evidence',standardUrl:'standard'},open:false,
+  querySelector:selector=>slots[selector]??={textContent:'',hidden:false,addEventListener(){}},
+  addEventListener(){},showModal(){this.open=true},
+};
+let openStep;
+const elements={
+  '#step-dialog':dialog,
+  '#trajectory':{addEventListener:(_type,listener)=>{openStep=listener}},
+};
+global.document={
+  documentElement:{lang:payload.lang,dataset:{}},
+  querySelector:selector=>elements[selector]??null,
+  querySelectorAll:()=>[],
+};
+global.localStorage={getItem:()=>null};
+global.fetch=async name=>({ok:true,json:async()=>payload[name]});
+REPORT_SCRIPT
+openStep({target:{closest:()=>({dataset:{openStep:'1'}})}}).then(()=>{
+  console.log(slots['[data-step-status]'].textContent);
+}).catch(error=>{console.error(error);process.exitCode=1});
+"""
+
+
+def _step_dialog_status(output: Path, edition: Path, method: str) -> str:
+    """Open step 1's dialog with the built page's script and evidence; return its status."""
+    node = shutil.which("node")
+    assert node, "Node is required to execute the report's step dialog"
+    page = edition / "result" / f"{method}-29.html"
+    soup = BeautifulSoup(page.read_text(encoding="utf-8"), "html.parser")
+    dialog = soup.select_one("#step-dialog")
+    payload = {
+        "lang": soup.html["lang"],
+        "evidence": json.loads((page.parent / dialog["data-evidence-url"]).read_text("utf-8")),
+        "standard": json.loads((page.parent / dialog["data-standard-url"]).read_text("utf-8")),
+    }
+    script = (output / "assets" / "app.js").read_text(encoding="utf-8")
+    harness = STEP_DIALOG_DRIVER.replace("PAYLOAD", json.dumps(payload)).replace(
+        "REPORT_SCRIPT", script
+    )
+    result = subprocess.run([node, "-e", harness], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stderr
+    return result.stdout.strip()
+
+
+def test_step_dialog_keeps_absent_and_zero_durations_apart(tmp_path: Path, monkeypatch) -> None:
+    output, *_ = build_replay_fixture(tmp_path, monkeypatch, step_samples=STEP_DURATION_SAMPLES)
+
+    for edition, prefix in ((output, "实际状态："), (output / "en", "Actual status: ")):
+        rendered = {
+            method: _step_dialog_status(output, edition, method)
+            for method in ("chromium", "moli-old", "moli-fixed")
+        }
+        assert rendered == {
+            "chromium": f"{prefix}pass · 0.00 s",
+            "moli-old": f"{prefix}pass · —",
+            "moli-fixed": f"{prefix}pass · —",
+        }
 
 
 def test_unexecuted_qualified_step_stays_visible_and_is_not_called_an_action_error() -> None:
