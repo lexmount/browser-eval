@@ -271,16 +271,19 @@ class VisibleLocalScope(HTMLParser):
         super().__init__()
         self.stack = []
         self.visible = set()
+        self.is_report = False
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
+        if tag == 'meta' and attrs.get('name') == 'browser-eval-report' and attrs.get('content') == '1':
+            self.is_report = True
         inherited = self.stack[-1][1:] if self.stack else (False, set())
         style = re.sub(r'\s+', '', attrs.get('style', '')).lower()
         hidden = (inherited[0] or tag in {'script', 'style', 'template'}
                   or 'hidden' in attrs or attrs.get('aria-hidden') == 'true'
                   or 'display:none' in style or 'visibility:hidden' in style)
         kinds = set(inherited[1])
-        if attrs.get('data-evidence-state') == 'local_measurement': kinds.add('evidence')
+        if attrs.get('data-evidence-state') in {'local_measurement', 'saved_diagnostic', 'saved_results'}: kinds.add('evidence')
         if attrs.get('data-ranking-scope') == 'saved-task-pass-rate': kinds.add('ranking')
         if tag not in {'area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'}:
             self.stack.append((tag, hidden, kinds))
@@ -300,10 +303,10 @@ def check_local_diagnostic_presentation(root: Path, *, ranked=False):
     """Track evidence state and scope any explicitly requested sample ranking."""
     for path in root.rglob('*.html'):
         page = path.read_text(encoding='utf-8')
-        if '<meta name="browser-eval-report" content="1">' not in page:
-            continue  # Original response/source HTML is evidence, not report prose.
         disclosure = VisibleLocalScope()
         disclosure.feed(page)
+        if not disclosure.is_report:
+            continue  # Original response/source HTML is evidence, not report prose.
         if 'evidence' not in disclosure.visible:
             raise ValueError('Local diagnostic disclosure missing: ' + str(path.relative_to(root)))
         if ranked and 'ranking' not in disclosure.visible:

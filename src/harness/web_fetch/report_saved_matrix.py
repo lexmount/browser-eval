@@ -2320,13 +2320,19 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     # Source HTML captures are immutable evidence, not generated navigation routes.
     routes = sorted(p for p in output.rglob('*.html')
                     if p.relative_to(output).parts[0] != 'evidence')
+    from harness.web_fetch.report_check import VisibleLocalScope
     virtual_root = 'https://saved-matrix.invalid/__report__/'
     for page in routes:
         relative = page.relative_to(output).as_posix()
         if relative not in audit['files']:
             raise ValueError('Unbound saved-matrix HTML route')
+        content = page.read_text(encoding='utf-8')
+        disclosure = VisibleLocalScope()
+        disclosure.feed(content)
+        if disclosure.is_report and not {'evidence', 'ranking'} <= disclosure.visible:
+            raise ValueError('Saved-result evidence/ranking scope disclosure missing: ' + relative)
         parser = _Links()
-        parser.feed(page.read_text(encoding='utf-8'))
+        parser.feed(content)
         page_url = virtual_root + relative
         base_url = urljoin(page_url, unquote(parser.base)) if parser.base is not None else page_url
         base = urlsplit(base_url)
@@ -2480,11 +2486,11 @@ def render_saved_with_standard_generator(output, model):
     label_token = _REPORT_PROVIDER_LABELS.set({p['id']: p['label'] for p in model['providers']})
     try:
         entry = generate(output,dataset,records,[],authored_interpretation=False,frozen_scores=True)
-        from harness.web_fetch.report import write, hero, saved_matrix_scope_section
+        from harness.web_fetch.report import write, hero, saved_matrix_scope_section, local_audit_banner
         for provider in providers:
             if not any(r['provider'] == provider for r in records):
                 write(output, 'providers/'+provider+'.html', provider_label(provider),
-                      hero(provider_label(provider), '')+saved_matrix_scope_section(scope), root_links=True)
+                      local_audit_banner(dataset)+hero(provider_label(provider), '')+saved_matrix_scope_section(scope), root_links=True)
     finally:
         _REPORT_SUITES.reset(token)
         _REPORT_PROVIDER_LABELS.reset(label_token)

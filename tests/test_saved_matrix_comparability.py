@@ -509,3 +509,30 @@ def test_uncommitted_first_call_counts_in_native_settings_coverage(tmp_path):
     spec['presentation'] = 'final'
     with pytest.raises(ValueError, match='uniform settings'):
         build(tmp_path, spec, 'final')
+
+
+@pytest.mark.parametrize('presentation', ['audit', 'final'])
+@pytest.mark.parametrize('route', ['index.html', 'providers/method.html', 'attempt'])
+@pytest.mark.parametrize('defect', ['remove', 'hide'])
+def test_saved_disclosure_is_required_on_home_and_detail_routes(tmp_path, presentation, route, defect):
+    from bs4 import BeautifulSoup
+    from harness.web_fetch.report_saved_matrix import check_saved_matrix
+    spec = matrix(tmp_path)
+    spec['presentation'] = presentation
+    root = build(tmp_path, spec).parent
+    path = next((root/'attempts').glob('*.html')) if route == 'attempt' else root/route
+    page = BeautifulSoup(path.read_text(), 'html.parser')
+    scope = page.select_one('[data-ranking-scope="saved-task-pass-rate"]')
+    assert scope and '认证' in scope.get_text()
+    if defect == 'remove':
+        scope.decompose()
+    else:
+        scope['hidden'] = ''
+    path.write_text(str(page), encoding='utf-8')
+    # Rebinding bytes cannot turn a missing or hidden disclosure into valid UI.
+    audit_path = root/'saved-matrix-audit.json'
+    audit = json.loads(audit_path.read_bytes())
+    audit['files'][path.relative_to(root).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+    audit_path.write_text(json.dumps(audit))
+    with pytest.raises(ValueError, match='disclosure missing|Rendered page differs from validated source'):
+        check_saved_matrix(root, spec_path=tmp_path/'spec.json' if presentation == 'final' else None)

@@ -355,7 +355,9 @@ def test_entirely_missing_method_stays_in_both_rankings(tmp_path):
         assert len(rows) == 2
         absent = next(row for row in rows if 'Absent method' in row.get_text())
         assert '未完成' in absent.get_text()
-    assert (root/'providers/absent.html').is_file()
+    absent_page = BeautifulSoup((root/'providers/absent.html').read_text(), 'html.parser')
+    assert absent_page.select_one('[data-evidence-state="saved_diagnostic"]')
+    assert absent_page.select_one('[data-ranking-scope="saved-task-pass-rate"]')
     assert '2 种方法' in home.get_text()
     assert '调用矩阵尚不完整，暂不汇总全部方法共同成功任务的耗时。' in home.get_text()
     assert '全部 1 种受测配置共同通过' not in home.get_text()

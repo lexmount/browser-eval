@@ -2235,10 +2235,12 @@ def local_pass_rate_ranking(dataset):
 
 
 def local_audit_banner(dataset):
+ if dataset.get('saved_matrix_scope') and local_pass_rate_ranking(dataset):
+  return '<div class="wrap source-note" data-evidence-state="saved_results" data-ranking-scope="saved-task-pass-rate"><strong>'+model_text('保存结果排名 · 不构成基准认证','Saved-result rankings · not benchmark certification')+'</strong><p>'+model_text('名次按所列结果和验收规则计算。来源及执行设置核验不等于基准认证；配置和采集时间见评测方法。','Ranks describe the listed results and acceptance rules. Source and execution-setting verification is not benchmark certification; see methodology for configurations and collection dates.')+'</p></div>'
  if dataset.get('comparison',{}).get('publication_state')!='local_audit_only_not_for_release':
   return ''
  if dataset.get('saved_matrix_scope'):
-  return '<div class="wrap callout" data-evidence-state="saved_diagnostic"><strong>'+model_text('保存结果排名 · 未认证','Saved-result rankings · uncertified')+'</strong><p>'+model_text('名次按最终选用的结果和当前验收规则计算。分类配置选择、规则修订及运行条件见评测方法；本榜不代表未经调参的同条件比较。','Ranks use the selected final results and current acceptance rules. See methodology for category configuration selection, rule revisions and execution conditions; this is not an untuned controlled comparison.')+'</p></div>'
+  return '<div class="wrap callout" data-evidence-state="saved_diagnostic" data-ranking-scope="saved-task-pass-rate"><strong>'+model_text('保存结果排名 · 未认证','Saved-result rankings · uncertified')+'</strong><p>'+model_text('名次按最终选用的结果和当前验收规则计算。分类配置选择、规则修订及运行条件见评测方法；本榜不代表未经调参的同条件比较。','Ranks use the selected final results and current acceptance rules. See methodology for category configuration selection, rule revisions and execution conditions; this is not an untuned controlled comparison.')+'</p></div>'
  if measurement_presentation(dataset).local_matrix:
   if local_pass_rate_ranking(dataset):
    return '<p class="wrap source-note" data-evidence-state="local_measurement" data-ranking-scope="saved-task-pass-rate">'+model_text('按本次所列任务的通过率排序；未完成仓库认证流程。测试日期和核验范围见详情。','Ordered by pass rate on the listed tasks; repository certification is incomplete. See details for test dates and verification scope.')+'</p>'
