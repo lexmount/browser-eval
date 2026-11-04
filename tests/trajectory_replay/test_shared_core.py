@@ -159,6 +159,25 @@ def test_http_origin_keeps_only_scheme_and_authority():
     assert docker_runner.http_origin("about:blank") is None
 
 
+def test_origin_recorder_keeps_every_top_level_http_origin_for_the_next_reset():
+    page = MagicMock()
+    visited: set[str] = set()
+    record = docker_runner.main_frame_origin_recorder(page, visited)
+
+    record(MagicMock(url="https://subframe.test/embed"))
+    assert visited == set()
+
+    page.main_frame.url = "about:blank"
+    record(page.main_frame)
+    assert visited == set()
+
+    page.main_frame.url = "https://first.test:8443/a?q=1"
+    record(page.main_frame)
+    page.main_frame.url = "https://second.test/b"
+    record(page.main_frame)
+    assert visited == {"https://first.test:8443", "https://second.test"}
+
+
 def test_materializing_a_task_replaces_only_the_fixture_origin():
     task = _browser_task(
         evaluator={"kind": "exact"}, environment={"kind": "none"}, trajectory={"actions": []}
