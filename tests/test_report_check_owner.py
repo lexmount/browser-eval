@@ -9,7 +9,8 @@ from pathlib import Path
 import pytest
 
 from harness.web_fetch.report_check import check
-from tests.report_check_fixture import create_report, write_json
+from tests.report_check_fixture import create_report
+from tests.helpers import write_json
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts/check_report.py"
 

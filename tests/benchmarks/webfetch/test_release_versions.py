@@ -20,6 +20,7 @@ def matching_catalog(tmp_path):
     return path
 
 
+@pytest.mark.slow
 def test_catalog_binds_every_registered_suite(matching_catalog):
     from lexbench_webfetch.benchmark import registry
     release = catalog_release(matching_catalog)
@@ -29,6 +30,7 @@ def test_catalog_binds_every_registered_suite(matching_catalog):
     assert release["case_count"] == sum(row["case_count"] for row in entries)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("change", ["omitted_suite", "count", "reference", "scorer", "tag"])
 def test_published_catalog_rejects_changed_population_rules_or_reference_bindings(tmp_path, change, matching_catalog):
     release = json.loads(matching_catalog.read_text(encoding="utf-8"))
@@ -250,6 +252,7 @@ def test_list_name_rule_is_part_of_measurement_not_just_public_display_fields():
         verify_release(first, after, exact_dataset=False)
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("released", [False, True])
 def test_version_command_distinguishes_published_and_unreleased_scorers(monkeypatch, capsys, released):
     from lexbench_webfetch import versions

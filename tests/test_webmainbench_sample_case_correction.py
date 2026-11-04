@@ -8,7 +8,8 @@ import pytest
 
 from harness.record_io import file_sha256
 from harness.web_fetch import webmainbench_case_correction as correction
-from tests.webmainbench_case_fixture import correction_fixture, write_json, write_rows
+from tests.webmainbench_case_fixture import correction_fixture, write_rows
+from tests.helpers import write_json
 
 
 def apply_fixture(fixture):

@@ -8,7 +8,8 @@ import pytest
 
 from harness.web_fetch import webmainbench_certification as certification
 from harness.web_fetch.webmainbench_scoring import CORE_METRICS, aggregate
-from tests.webmainbench_case_fixture import certification_fixture, measured_shard, write_json, write_rows
+from tests.webmainbench_case_fixture import certification_fixture, measured_shard, write_rows
+from tests.helpers import write_json
 
 
 @pytest.fixture

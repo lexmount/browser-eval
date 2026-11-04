@@ -31,7 +31,8 @@ def test_public_wcxb_build_check_package_accept_external_nonhistorical_cohort(tm
     import sys
     from pathlib import Path
     from harness.web_fetch.wcxb_scoring import score
-    from tests.wcxb_fixture import create_cohort, write_json
+    from tests.wcxb_fixture import create_cohort
+    from tests.helpers import write_json
 
     repository = Path(__file__).resolve().parents[1]
     cohort = create_cohort(tmp_path / 'cohort', providers=('alpha', 'beta', 'gamma'))

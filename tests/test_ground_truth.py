@@ -9,6 +9,7 @@ from harness.web_fetch.config import load_dataset
 from lexbench_webfetch.metrics import normalize_for_match
 from harness.web_fetch.reference_inputs import input_tree
 from lexbench_webfetch.reference_quality import audit_reference
+import pytest
 
 
 class GroundTruthTest(unittest.TestCase):
@@ -40,6 +41,7 @@ class GroundTruthTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'full-reference evidence'):
                 load_dataset(path)
 
+    @pytest.mark.slow
     def test_current_task_set_and_reference_integrity(self):
         self.require_sources()
         data,cases=self.historical_dataset()

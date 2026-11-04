@@ -1707,6 +1707,8 @@ def main():
     if installed.is_relative_to(args.source_root.resolve()):
         raise ValueError('Package smoke must use an installed distribution outside the checkout')
     verify_package_tree(args.source_root, installed)
+    # Fixtures run from the checkout import tests.helpers; harness stays installed (src layout).
+    sys.path.append(str(args.source_root))
     verify_bundled_data(args.source_root, installed)
     verify_report_assets(installed)
     from importlib import import_module

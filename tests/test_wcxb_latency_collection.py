@@ -9,7 +9,8 @@ from harness.record_io import load_jsonl
 from harness.web_fetch import wcxb_latency as timing
 from harness.web_fetch import wcxb_scoring as scoring
 from harness.web_fetch.models import ProviderResult
-from tests.wcxb_fixture import create_cohort, sha, write_json
+from tests.wcxb_fixture import create_cohort, sha
+from tests.helpers import write_json
 
 
 # The earlier source-text digest that certified timing receipts may still name.

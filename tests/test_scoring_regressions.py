@@ -13,6 +13,7 @@ from harness.web_fetch.reference_lifecycle import (
 from lexbench_webfetch.scoring import score_attempt
 from lexbench_webfetch.scoring_regressions import SCORING_OPTION_FIELDS, active_scoring_regressions, require_scoring_regressions, valid_correction_provenance
 from harness.web_fetch.scoring_revision import ALLOWED_FIELDS, correction_provenance
+import pytest
 
 
 class ScoringRegressionTests(unittest.TestCase):
@@ -108,6 +109,7 @@ class ScoringRegressionTests(unittest.TestCase):
             (root/'scoring-revisions.json').write_text(json.dumps([receipt]), encoding="utf-8")
             self.assertTrue(valid_scoring_revision(root))
 
+    @pytest.mark.slow
     def test_every_registered_false_verdict_control_runs_through_shared_scorer(self):
         rows = active_scoring_regressions()
         root_modes = {}

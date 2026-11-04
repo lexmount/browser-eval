@@ -11,15 +11,11 @@ from pathlib import Path
 from harness.web_fetch.wcxb_dataset import validate_manifest
 from harness.web_fetch.webmainbench_runner import load_wcxb_source
 from harness.web_fetch.wcxb_scoring import UPSTREAM_EVALUATOR_SHA256
+from tests.helpers import write_json
 
 
 def sha(raw):
     return hashlib.sha256(raw).hexdigest()
-
-
-def write_json(path, value):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value) + "\n", encoding="utf-8")
 
 
 def write_jsonl(path, rows):

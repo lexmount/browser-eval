@@ -10,15 +10,11 @@ import pytest
 
 from harness.web_fetch import webmainbench_latency_correction as latency
 from harness.web_fetch import webmainbench_runner
+from tests.helpers import write_json
 
 
 def sha(payload):
     return hashlib.sha256(payload).hexdigest()
-
-
-def write_json(path, value):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value), encoding="utf-8")
 
 
 @pytest.fixture
