@@ -1,6 +1,6 @@
-"""Rule-based and optional LLM-assisted failure diagnosis.
+"""Audits of curated replay inputs, readiness and saved evidence.
 
-Diagnostics are explanatory only. They never participate in pass/fail scoring.
+Audits report on evidence only. They never change a stored verdict.
 """
 
 from __future__ import annotations

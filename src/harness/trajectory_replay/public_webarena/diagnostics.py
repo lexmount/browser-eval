@@ -1,6 +1,6 @@
-"""Rule-based and optional LLM-assisted failure diagnosis.
+"""Public WebArena repair-packet, recorded-outcome, exclusion and runtime-smoke diagnostics.
 
-Diagnostics are explanatory only. They never participate in pass/fail scoring.
+Diagnostics and repair proposals are explanatory only. They never change a stored verdict.
 """
 
 from __future__ import annotations
