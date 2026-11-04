@@ -20,7 +20,7 @@ Encode these rules once in metric metadata and render from that metadata. Add a 
 
 Use short, stable, reader-facing section names. A page should have one primary question and avoid repeating another page's full tables. Put headline decisions and the minimum evidence needed to understand them on the first page; put task-level comparison, failure analysis, and evidence drill-down together when readers move among them.
 
-Treat report structure as an information architecture, not a running list of requested explanations. Assign each fact to exactly one primary location: headline comparison, dataset definition, methodology, filterable result inventory, or result detail. Link to that owner instead of adding another summary table. If a process has at least three dependent stages or a meaningful branch, lead with a Mermaid or ImageGen diagram; use adjacent prose only for definitions, constraints, exceptions, and evidence that the diagram cannot carry.
+Treat report structure as an information architecture, not a running list of requested explanations. Assign each fact to exactly one primary location: headline comparison, dataset definition, methodology, filterable result inventory, or result detail. Link to that owner instead of adding another summary table. If a process has at least three dependent stages or a meaningful branch, lead with a Mermaid diagram or a generated image that encodes the flow; use adjacent prose only for definitions, constraints, exceptions, and evidence that the diagram cannot carry.
 
 Result states must link to the corresponding task and method evidence. Filters should preserve all compared methods in the result row and support more than two methods when the evaluation contract permits it.
 
@@ -33,7 +33,7 @@ Choose checks from the changed surface:
 | Metric value or comparison logic | Unit test the semantic contract and independently recompute affected derived values |
 | Table markup or emphasis | Render representative directional, tied, missing, and observational rows |
 | Navigation or drill-down | Deterministically check all routes and links; render every top-level page once |
-| CSS, layout, or responsive behavior | Run shared component coverage; visually inspect only the affected page types at one representative width |
+| CSS, layout, or responsive behavior | Run shared component coverage; visually inspect the affected page types at one representative width, plus the release reader pass when publishing |
 | Text-only wording | Factual and terminology review; no visual sweep unless wrapping or hierarchy changes |
 | Release metadata only | Binding and destination check only |
 

@@ -1,5 +1,7 @@
 # Contributing
 
+Simple is the best; reject over-design.
+
 PRs are welcome for adapters, execution fixes, tests, documentation and translations. Public task definitions are versioned on [Hugging Face](https://huggingface.co/Lexmount); scoring code is maintained here; see [benchmark boundaries](docs/benchmarks.md). Run the [offline example](README.md#quickstart), then open the guide for the track you want to change.
 
 ## Report a bug
@@ -131,7 +133,7 @@ UPDATE_GOLDEN=1 uv run --frozen --all-extras python -m pytest tests/test_golden_
 
 To see the changed lines, set `GOLDEN_KEEP=<directory>` on two revisions and compare the kept builds with `diff -r`.
 
-For report releases, open success and failure details, evidence dialogs and return links on desktop and narrow viewports in both themes. Real services need the environments listed in their track guides.
+For report releases, follow the [release gates](.agents/skills/benchmark-report/references/report-and-release.md#release-gates). Real services need the environments listed in their track guides.
 
 <details>
 <summary>What the package gate tests</summary>

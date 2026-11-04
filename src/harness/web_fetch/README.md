@@ -29,8 +29,10 @@ historical datasets and source captures are installed outside the checkout; see
 [frozen reference inputs](../../../docs/reference-inputs.md). Git ignores provider artifacts,
 results, execution manifests, selection receipts and internal audit notes.
 
-`research/report-changes.json` drives the public, collapsible `changes/index.html`.
-Record each substantive release's issue, change, score effect, evidence and limits.
+`report-assets/report-changes.json`, bound beside the evidence, drives the public,
+collapsible `changes/index.html`; `research/report-changes.json` is a frozen legacy
+fallback. Record each substantive release's issue, change, score effect, evidence and
+limits in the bound asset.
 Keep the measured dataset/results untouched for presentation-only revisions.
 
 Offline local revisions stage only their changed artifacts, receipts and current
@@ -288,7 +290,7 @@ validation, not each measured fetch; a changed binary requires revalidation.
 
 ### Retries
 
-A repair run may retain successful results and rerun only failed or affected cases. Keep every physical call and select the final response under the declared retry/correction policy. Recompute scores for the complete selected result population when the scorer changes; rescoring does not require new provider calls. If executable builds differ, disclose their fingerprints and selected result counts as cumulative results. This does not establish the full-suite result or speed of one build.
+A repair run may retain successful results and rerun only cases with a declared cause (changed input, provider route or version, runtime contract, source validity or infrastructure failure), not failures as such; without one, label the results cumulative and diagnostic. A predeclared failure retry is part of the run contract. Keep every physical call and select the final response under the declared retry/correction policy. Recompute scores for the complete selected result population when the scorer changes; rescoring does not require new provider calls. If executable builds differ, disclose their fingerprints and selected result counts as cumulative results. This does not establish the full-suite result or speed of one build.
 
 
 All methods default to one retry after a failed task. Set
