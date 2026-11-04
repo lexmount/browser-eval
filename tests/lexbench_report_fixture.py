@@ -121,7 +121,7 @@ def write_call_evidence(run: Path, task: str, attempt: int) -> str:
     contents = {
         "grader.json": json.dumps({"observations": checks}),
         "stdout.log": "starting at http://127.0.0.1:4100\n" + json.dumps(checks) + "\n",
-        "stderr.log": "warning from /Users/synthetic/runner.py\n",
+        "stderr.log": "warning from /Users/fixture/runner.py\n",
     }
     for name in EVIDENCE_FILES:
         (folder / name).write_text(contents.get(name, f"{name} of {task}\n"), encoding="utf-8")
