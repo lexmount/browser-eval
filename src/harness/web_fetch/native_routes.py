@@ -192,6 +192,10 @@ def normalized_http_parameters(case, arguments):
         body['url'] = '<input-url>'
     elif slots == ['urls'] and body['urls'] in ([case.url], [encode_http_target_url(case.url)]):
         body['urls'] = ['<input-url>']
+    elif (not slots and isinstance(body.get('extract'), dict)
+          and 'dom_id' not in body['extract']
+          and body['extract'].get('url') in (case.url, encode_http_target_url(case.url))):
+        body['extract']['url'] = '<input-url>'
     else:
         raise ValueError('Native HTTP input differs from the frozen task URL')
     # Native fetch-use requires a fresh opaque UUID per physical invocation.
