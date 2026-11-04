@@ -2442,6 +2442,11 @@ def record_route(kind, *identities):
     return kind + "-" + digest("\0".join(identities).encode())[:24]
 
 
+def record_result_href(method, case_id):
+    """One canonical case page, with an addressable panel for each participant."""
+    return record_route("c", case_id) + ".html#" + method
+
+
 def record_comparison(headers, rows, metrics):
     """Use the common table owner and raw-value extrema checks for each metric."""
     soup = BeautifulSoup(table(headers, rows, attrs="data-sortable"), "html.parser")
@@ -2512,7 +2517,7 @@ def build_record_cohort(output, content, *, home, language, profile):
             row["method_label"] = labels[method]
             row["record_schema"] = True
             row["field_labels"] = model.get("field_labels", {})
-            row["result_href"] = "zh/" + record_route("r", method, cid) + ".html"
+            row["result_href"] = "zh/" + record_result_href(method, cid)
             row["case_href"] = "zh/" + record_route("c", cid) + ".html"
             if isinstance(row.get("request"), dict):
                 row["request"]["endpoint"] = re.sub(
@@ -2593,9 +2598,11 @@ def build_record_cohort(output, content, *, home, language, profile):
     def metric(number, percent=False):
         return "—" if number is None else f"{number * 100:.2f}%" if percent else f"{number:.3f}"
 
-    def evidence_button(method, cid):
+    def evidence_button(method, cid, dialog_id="diagnosis"):
         return (
-            '<button data-call-log-open="diagnosis" data-src="../public-evidence/'
+            '<button data-call-log-open="'
+            + esc(dialog_id)
+            + '" data-src="../public-evidence/'
             + esc(method)
             + '.json" data-key="'
             + esc(cid)
@@ -2829,10 +2836,18 @@ def build_record_cohort(output, content, *, home, language, profile):
             + '"></iframe>'
         )
         write(data_route, cid, source)
-        comparisons = []
+        comparisons, panels = [], []
         for method in methods:
             row = data["methods"][method]["results"].get(cid)
-            result_route = record_route("r", method, cid)
+            result_href = record_result_href(method, cid)
+            result_link = '<a href="' + esc(result_href) + '">' + t("details") + "</a>"
+            panel_start = (
+                '<details data-result-panel id="'
+                + esc(method)
+                + '"><summary>'
+                + esc(labels[method])
+                + "</summary>"
+            )
             if row is None:
                 comparisons.append(
                     [
@@ -2840,16 +2855,14 @@ def build_record_cohort(output, content, *, home, language, profile):
                         t("pending"),
                         "—",
                         "—",
-                        route_link(result_route, t("details")),
+                        result_link,
                     ]
                 )
-                write(
-                    result_route,
-                    labels[method] + " · " + cid,
-                    "<section data-result-summary>"
+                panels.append(
+                    panel_start
+                    + "<section data-result-summary>"
                     + t("pending")
-                    + "</section>"
-                    + route_link(data_route, t("source")),
+                    + "</section></details>"
                 )
                 inventory_rows.append(
                     '<tr data-status="pending" data-outcome="pending" data-method="'
@@ -2869,7 +2882,7 @@ def build_record_cohort(output, content, *, home, language, profile):
                     + "</td><td>"
                     + t("pending")
                     + "</td><td>—</td><td>—</td><td>"
-                    + route_link(result_route, t("details"))
+                    + result_link
                     + "</td></tr>"
                 )
                 continue
@@ -2891,7 +2904,7 @@ def build_record_cohort(output, content, *, home, language, profile):
                     short,
                     str(row["exact_fields"]) + "/" + str(len(ref["values"])),
                     metric(row.get("elapsed_seconds")),
-                    route_link(result_route, t("details")),
+                    result_link,
                 ]
             )
             body = (
@@ -2923,7 +2936,9 @@ def build_record_cohort(output, content, *, home, language, profile):
                 field_rows,
             )
             body += (
-                '<section data-failure-diagnosis id="result-logs"><h2>'
+                '<section data-failure-diagnosis data-result-logs id="result-logs-'
+                + esc(method)
+                + '"><h2>'
                 + t("error")
                 + "</h2><details><summary>HTTP "
                 + esc(str(row.get("http_status")))
@@ -2944,16 +2959,18 @@ def build_record_cohort(output, content, *, home, language, profile):
                 + "</pre></details></section>"
             )
             body += (
-                evidence_button(method, cid)
+                evidence_button(method, cid, "diagnosis-" + method)
                 + '<a href="../public-evidence/'
                 + esc(method)
                 + '.json">'
                 + t("raw")
                 + "</a>"
-                + dialog
+                + dialog.replace('id="diagnosis"', 'id="diagnosis-' + esc(method) + '"').replace(
+                    "diagnosis-title", "diagnosis-" + method + "-title"
+                )
                 + "</article>"
             )
-            write(result_route, labels[method] + " · " + cid, body)
+            panels.append(panel_start + body + "</details>")
             attrs = (
                 ' data-status="'
                 + ("pass" if row["status"] == "exact" else "fail")
@@ -2998,14 +3015,15 @@ def build_record_cohort(output, content, *, home, language, profile):
                 + "</td><td>"
                 + evidence_button(method, cid)
                 + " "
-                + route_link(result_route, t("details"))
+                + result_link
                 + "</td></tr>"
             )
         write(
             comparison,
             cid + " · " + t("all_methods"),
             table([t("method"), t("outcome"), t("exact"), t("timing"), t("details")], comparisons)
-            + route_link(data_route, t("source")),
+            + route_link(data_route, t("source"))
+            + "".join(panels),
         )
     bodies["results"] += (
         controls
@@ -3044,7 +3062,13 @@ def build_record_cohort(output, content, *, home, language, profile):
         )
         specimen = model["participants"][method].get("specimen")
         if specimen:
-            chapter += route_link(record_route("r", method, specimen), t("result"))
+            chapter += (
+                '<a href="'
+                + esc(record_result_href(method, specimen))
+                + '">'
+                + t("result")
+                + "</a>"
+            )
         bodies["interpretation"] += chapter + "</section>"
     for route in PAGES:
         write(
@@ -3152,7 +3176,6 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             for route in (
                 record_route("d", cid),
                 record_route("c", cid),
-                record_route("r", method, cid),
             ):
                 if not (output / "zh" / (route + ".html")).is_file():
                     raise ValueError(
@@ -3209,9 +3232,12 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         bucket = read_json(output / "public-evidence" / (method + ".json"))
         for cid, row in bucket.items():
             detail = BeautifulSoup(
-                (output / "zh" / (record_route("r", method, cid) + ".html")).read_text(),
+                (output / "zh" / (record_route("c", cid) + ".html")).read_text(),
                 "html.parser",
             )
+            detail = detail.find("details", id=method)
+            if detail is None:
+                raise ValueError("Record case page omits a participant detail")
             button = detail.select_one("[data-call-log-open]")
             if (
                 button is None
@@ -3220,7 +3246,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             ):
                 raise ValueError("Record detail evidence points to a different result")
             if row["status"] == "call_error":
-                error = detail.select_one('#result-logs pre[data-kind="error"]')
+                error = detail.select_one('[data-result-logs] pre[data-kind="error"]')
                 if error is None or (
                     row["native_error"] and error.get_text() != row["native_error"]
                 ):

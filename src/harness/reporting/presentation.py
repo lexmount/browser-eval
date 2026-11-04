@@ -38,22 +38,33 @@ def check_presentation(html):
             unique = sum(v == extreme for v, _ in values) == 1
             for value, cell in values:
                 marked = cell.select_one('.comparison-winner') is not None
-                if marked != ((unique or table.get("data-highlight-ties") == "all") and value == extreme):
+                if marked != (
+                    (unique or table.get("data-highlight-ties") == "all") and value == extreme
+                ):
                     raise ValueError('Column extremum highlight missing, incorrect, or tied')
     for detail in soup.select('[data-report-detail]'):
         if len(detail.select('[data-result-summary]')) != 1:
             raise ValueError('Result detail requires exactly one summary')
-        if any(pre.find_parent('dialog') is None and pre.find_parent('details') is None for pre in detail.select('pre')):
+        if any(
+            pre.find_parent('dialog') is None and pre.find_parent('details') is None
+            for pre in detail.select('pre')
+        ):
             raise ValueError('Raw evidence must not be flattened into the result summary')
         ids = [node['id'] for node in detail.select('[id]')]
         if len(ids) != len(set(ids)):
             raise ValueError('Duplicate evidence target')
         for button in detail.select('[data-call-log-open]'):
             dialog = detail.find('dialog', id=button['data-call-log-open'])
-            if dialog is None or not dialog.select_one('[data-call-log-close]') or not dialog.get('aria-labelledby'):
+            if (dialog is None or not dialog.select_one('[data-call-log-close]')
+                    or not dialog.get('aria-labelledby')):
                 raise ValueError('Evidence trigger lacks an accessible closable dialog')
         if detail['data-report-detail'] == 'failed':
-            if detail.select_one('[data-failure-diagnosis]') is None or detail.select_one('#result-logs pre[data-kind="error"], #result-logs [data-log-unavailable]') is None:
+            error_target = (
+                '#result-logs pre[data-kind="error"], #result-logs [data-log-unavailable], '
+                '[data-result-logs] pre[data-kind="error"], [data-result-logs] [data-log-unavailable]'
+            )
+            if (detail.select_one('[data-failure-diagnosis]') is None
+                    or detail.select_one(error_target) is None):
                 raise ValueError('Failed result lacks diagnosis or exact error evidence')
     return soup
 

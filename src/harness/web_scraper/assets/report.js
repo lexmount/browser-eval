@@ -333,3 +333,15 @@ if (form) {
     control.addEventListener(control.tagName === "INPUT" ? "input" : "change", update);
   update();
 }
+
+// Case comparisons own all participant details; fragment links open one panel.
+const revealResultPanel = () => {
+  const id = location.hash.slice(1);
+  if (!id) return;
+  const panel = document.getElementById(id);
+  if (panel?.matches?.("details[data-result-panel]")) { panel.open = true; panel.scrollIntoView(); }
+};
+if (typeof window !== "undefined") {
+  window.addEventListener("hashchange", revealResultPanel);
+  revealResultPanel();
+}

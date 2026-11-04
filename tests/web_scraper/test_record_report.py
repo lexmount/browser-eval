@@ -14,6 +14,7 @@ def test_record_report_drills_to_source_output_native_error_and_pending(tmp_path
     create(output, mode="field-extraction-cohort")
     manifest = check(output)
     assert manifest["observations"] == 4
+    assert len(list(output.rglob("*.html"))) == 17
     assert manifest["languages"] == ["zh"]
     assert manifest["complete_methods"] == []
     soup = BeautifulSoup((output / "zh/results.html").read_text(), "html.parser")
@@ -34,11 +35,14 @@ def test_record_report_drills_to_source_output_native_error_and_pending(tmp_path
         == "https://example.org/frozen/one"
     )
     failed = BeautifulSoup(
-        (output / "zh" / (record_route("r", "fixture-a", "three") + ".html")).read_text(),
+        (output / "zh" / (record_route("c", "three") + ".html")).read_text(),
         "html.parser",
     )
-    assert len(failed.select("[data-result-summary]")) == 1
-    assert "Synthetic navigation timeout" in failed.select_one("#result-logs").get_text()
+    assert len(failed.select("#fixture-a [data-result-summary]")) == 1
+    assert (
+        "Synthetic navigation timeout"
+        in failed.select_one("#fixture-a [data-result-logs]").get_text()
+    )
     assert "data-language-notice" in (output / "en/index.html").read_text()
     with pytest.raises(ValueError, match="Synthetic record evidence"):
         check(output, release=True)
@@ -81,7 +85,7 @@ def test_release_checks_reject_semantic_damage_even_after_file_rebinding(tmp_pat
 
         rebind(output, "zh/results.html", remove)
     else:
-        route = "zh/" + record_route("r", "fixture-a", "three") + ".html"
+        route = "zh/" + record_route("c", "three") + ".html"
         if damage == "error":
             rebind(
                 output,

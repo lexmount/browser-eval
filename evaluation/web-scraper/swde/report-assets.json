@@ -1,0 +1,16 @@
+{
+  "schema": "browser-eval-report-assets/1",
+  "assets": [
+    {
+      "role": "dataset-snapshot-version-flow",
+      "path": "assets/snapshot-version-flow.png",
+      "sha256": "7baf13878903ce6d3c09c3a755c732c838d5c20a1595d9dac1ae43c5d0e44be5",
+      "source": {
+        "base_url": "https://yours.lexmount.cn/artifact-site",
+        "slug": "k_EiRhGA2i1W",
+        "version_id": "ver_bf4b31fee8a342d89aebf351d211001b",
+        "path": "snapshot-version-flow.png"
+      }
+    }
+  ]
+}
