@@ -68,6 +68,31 @@ def test_native_lexmount_rejects_unrecognized_engine_before_call():
         request.assert_not_called()
 
 
+def test_native_auto_can_omit_optional_trace():
+    instance = provider()
+    instance.config.update(engine='auto', trace_include_steps=False)
+    case = EvalCase(id='sample', name='Sample', category='test',
+                   url='https://example.com', expected_any=[])
+    response = HttpResponse(200, case.url, {}, b'{"result":{"main_text":"body"}}')
+    with patch('harness.web_fetch.providers.lexmount.request', return_value=response) as request:
+        result = instance.fetch(case, 30)
+    assert result.content == 'body'
+    assert request.call_args.kwargs['json_body'] == {
+        'extract': {'url': case.url, 'options': {'engine_preference': 'auto'}}}
+
+
+@pytest.mark.parametrize('value', ['false', 0, None])
+def test_native_trace_rejects_non_boolean_before_call(value):
+    instance = provider()
+    instance.config['trace_include_steps'] = value
+    case = EvalCase(id='sample', name='Sample', category='test',
+                   url='https://example.com', expected_any=[])
+    with patch('harness.web_fetch.providers.lexmount.request') as request:
+        with pytest.raises(ValueError, match='must be boolean'):
+            instance.fetch(case, 30)
+        request.assert_not_called()
+
+
 def test_native_nested_input_rejects_url_drift_and_snapshot_reuse():
     from harness.web_fetch.native_routes import NativeRouteLedger, normalized_http_parameters
     case = EvalCase(id='unicode', name='Unicode', category='test',
