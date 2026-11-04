@@ -54,7 +54,7 @@ Use short, stable, reader-facing section names. A page should have one primary q
 
 Treat report structure as an information architecture, not a running list of requested explanations. Assign each fact to exactly one primary location: headline comparison, dataset definition, methodology, filterable result inventory, or result detail. Link to that owner instead of adding another summary table. If a process has at least three dependent stages or a meaningful branch, lead with a Mermaid diagram or a generated image that encodes the flow; use adjacent prose only for definitions, constraints, exceptions, and evidence that the diagram cannot carry.
 
-Give each report page one primary reader question. Before adding a section, first place the information in the existing summary, filterable inventory, or result detail that owns it; remove duplicated tables and prose.
+Before adding a section, first place the information in the existing summary, filterable inventory, or result detail that owns it; remove duplicated tables and prose.
 
 Keep pass, fail and all result filters with failure classification, defaulting to fail; a track may fall back to all when nothing failed. Result inventories are fixed-height, horizontally scrollable diagnosis tables. Do not place full reviewed causes, evaluator payloads, latency stacks or other paragraph-length content in inventory cells. Every failure row opens an in-page diagnosis with the failure stage, exact program error, reviewed cause, treatment and links to the relevant trajectory, screenshots and logs; the full result page remains the canonical evidence view.
 
