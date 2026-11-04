@@ -1101,6 +1101,24 @@ def test_diagnostic_viewers_share_unchanged_source_across_languages(tmp_path):
     assert source.read_bytes()==original
 
 
+@pytest.mark.parametrize(('label','note','english_label','english_note'),[
+    ('已保存的诊断日志','仅包含实际观测的日志。','Saved diagnostic logs','Contains only observed logs.'),
+    ('完整原始响应','产品实际返回；公开副本已隐藏凭据与本机路径。','Complete original response','Actual product response; credentials and local paths are hidden in this public copy.'),
+])
+def test_refreshed_log_route_translates_saved_chinese_header_without_a_prior_render(tmp_path,monkeypatch,label,note,english_label,english_note):
+    from harness.web_fetch import report_i18n
+    from harness.web_fetch.report import diagnostic_view_page
+    from bs4 import BeautifulSoup
+    monkeypatch.setattr(report_i18n,'TEXT',dict(report_i18n._TRANSLATIONS['TEXT']))
+    source=tmp_path/'logs/actual.txt';source.parent.mkdir()
+    source.write_text('observed log',encoding='utf-8')
+    relative=diagnostic_view_page(tmp_path,'logs/actual.txt',label,note)
+    report_i18n.write_english_report(tmp_path,source_routes=[relative])
+    soup=BeautifulSoup((tmp_path/'en'/relative).read_text(encoding='utf-8'),'html.parser')
+    assert soup.h1.get_text()==english_label
+    assert soup.find('h2',string='Record source').find_next('p').get_text()==english_note
+
+
 def test_long_product_and_caller_logs_use_one_existing_source(tmp_path):
     from harness.web_fetch.report import run_log_section
     from bs4 import BeautifulSoup
