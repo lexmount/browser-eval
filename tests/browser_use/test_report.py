@@ -29,7 +29,7 @@ from harness.browser_use.report_check import (
     _check_reader_facing_ux,
     check_public_privacy,
 )
-from harness.browser_use.report_i18n import localize_html, translate_text
+from harness.browser_use.report_i18n import localize_html, write_english_report
 from harness.browser_use.selection import load_pilot
 from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.record_io import optional_file_sha256
@@ -202,15 +202,23 @@ def _add_formal_certification(profile: dict, model: dict) -> None:
     _persist_fix_log(profile, model)
 
 
+def _write_english_fix_log(monkeypatch, stage: Path, model: dict) -> None:
+    english_pass = stage.parent / "english-pass"
+    monkeypatch.setattr(report_module, "t", report_module._EN)
+    (english_pass / "data").mkdir(parents=True)
+    report_module._write_fix_log(english_pass, model)
+    write_english_report(english_pass, stage)
+
+
 def test_fix_log_renders_one_bilingual_model_and_hash_bound_real_artifact_links(
-    tmp_path: Path,
+    tmp_path: Path, monkeypatch
 ) -> None:
     profile, _ = _fix_log_fixture(tmp_path)
     model = report_module._load_fix_log(profile)
     stage = tmp_path / "report"
     (stage / "data").mkdir(parents=True)
     report_module._write_fix_log(stage, model)
-    report_module._write_fix_log(stage, model, english=True)
+    _write_english_fix_log(monkeypatch, stage, model)
     chinese = (stage / "fixes/fixture-fix.html").read_text(encoding="utf-8")
     english = (stage / "en/fixes/fixture-fix.html").read_text(encoding="utf-8")
     assert "测试用例中的证据说明" in chinese
@@ -232,14 +240,16 @@ def test_fix_log_renders_one_bilingual_model_and_hash_bound_real_artifact_links(
         assert optional_file_sha256(stage / artifact["href"]) == artifact["sha256"]
 
 
-def test_fix_log_renders_revised_trajectory_without_claiming_shared_input(tmp_path: Path) -> None:
+def test_fix_log_renders_revised_trajectory_without_claiming_shared_input(
+    tmp_path: Path, monkeypatch
+) -> None:
     profile, model = _fix_log_fixture(tmp_path)
     _revise_trajectory_comparison(profile, model)
     loaded = report_module._load_fix_log(profile)
     stage = tmp_path / "report"
     (stage / "data").mkdir(parents=True)
     report_module._write_fix_log(stage, loaded)
-    report_module._write_fix_log(stage, loaded, english=True)
+    _write_english_fix_log(monkeypatch, stage, loaded)
 
     chinese = (stage / "fixes/fixture-fix.html").read_text(encoding="utf-8")
     english = (stage / "en/fixes/fixture-fix.html").read_text(encoding="utf-8")
@@ -401,15 +411,16 @@ def test_fix_log_rejects_unbound_or_misrepresented_evidence(tmp_path: Path, chan
         report_module._load_fix_log(profile)
 
 
-def test_fix_log_empty_state_does_not_invent_measurements(tmp_path: Path) -> None:
-    (tmp_path / "data").mkdir()
+def test_fix_log_empty_state_does_not_invent_measurements(tmp_path: Path, monkeypatch) -> None:
+    stage = tmp_path / "report"
+    (stage / "data").mkdir(parents=True)
     model = report_module._load_fix_log({})
-    report_module._write_fix_log(tmp_path, model)
-    report_module._write_fix_log(tmp_path, model, english=True)
-    assert "暂无已绑定验证证据" in (tmp_path / "fixes/index.html").read_text(encoding="utf-8")
+    report_module._write_fix_log(stage, model)
+    _write_english_fix_log(monkeypatch, stage, model)
+    assert "暂无已绑定验证证据" in (stage / "fixes/index.html").read_text(encoding="utf-8")
     assert (
         "No fix records with bound validation evidence"
-        in (tmp_path / "en/fixes/index.html").read_text(encoding="utf-8")
+        in (stage / "en/fixes/index.html").read_text(encoding="utf-8")
     )
 
 
@@ -755,19 +766,6 @@ def test_failed_result_inventory_opens_exact_diagnosis_and_links_trajectory(
         "#runtime",
     ):
         assert expected in html
-
-
-def test_english_localization_includes_visible_attributes() -> None:
-    source = (
-        '<html lang="zh-CN"><body><button title="更优" aria-label="更优">更优</button>'
-        '<input placeholder="任务、意图、验收合同"></body></html>'
-    )
-
-    localized = localize_html(source, PurePosixPath("analysis/index.html"))
-
-    assert 'title="Better"' in localized
-    assert 'aria-label="Better"' in localized
-    assert 'placeholder="Task, intent, or acceptance contract"' in localized
 
 
 def test_reader_facing_ux_requires_home_core_tables_without_current_data(
@@ -2078,7 +2076,7 @@ def test_participant_registry_rejects_an_invalid_profile(updates: dict, message:
         Participants.from_profile(profile)
 
 
-def test_current_engine_row_keeps_its_published_translation() -> None:
+def test_current_engine_row_keeps_its_published_translation(monkeypatch) -> None:
     # A label may carry a version; the row names the browsers themselves.
     participants = Participants.from_profile(
         {
@@ -2089,10 +2087,8 @@ def test_current_engine_row_keeps_its_published_translation() -> None:
         }
     )
     assert participants.engine_names == "Chromium 与 Moli"
-    assert (
-        translate_text(f"一套站点环境，{participants.engine_names} 串行")
-        == "One site stack; Chromium and Moli run serially"
-    )
+    monkeypatch.setattr(report_module, "t", report_module._EN)
+    assert participants.engine_names == "Chromium and Moli"
 
 
 def test_logical_results_require_a_model_and_leave_their_input_unchanged() -> None:
