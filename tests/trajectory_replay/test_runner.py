@@ -20,8 +20,9 @@ from harness.environments.browser import (
     published_endpoint,
 )
 from harness.trajectory_replay import diagnostics, runner
-from harness.trajectory_replay.runner import _http_origin, _prepare_page
-from harness.trajectory_replay.suite import BrowserTask, TaskSuite
+from harness.trajectory_replay.core import docker_runner
+from harness.trajectory_replay.core.suite import BrowserTask, TaskSuite
+from harness.trajectory_replay.runner import _prepare_page
 from harness.web_fetch import config as web_fetch_config
 
 
@@ -36,7 +37,7 @@ def test_empty_tool_trace_cannot_pass_process_validation(monkeypatch):
     sampler = MagicMock()
     monkeypatch.setattr(runner, "ResourceSampler", lambda *args, **kwargs: sampler)
     monkeypatch.setattr(runner, "execute_steps", lambda *args, **kwargs: None)
-    monkeypatch.setattr(runner, "_resource_result", lambda *args: {})
+    monkeypatch.setattr(runner, "resource_result", lambda *args: {})
 
     result = runner._run_task("chromium", page, set(), resources, task, 1, 100)
 
@@ -51,25 +52,31 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
     tmp_path, monkeypatch, unexpected_diagnostic_error, generate_report, with_smoke
 ):
     suite_path = tmp_path / "suite.json"
-    suite_path.write_text("{}")
+    suite_path.write_text("{}", encoding="utf-8")
     import shutil
 
     from harness.trajectory_replay.report_inputs import replay_fixture_root
     shutil.copytree(replay_fixture_root(), suite_path.parent / "fixtures")
-    (suite_path.parent / "fixtures/core.html").write_text("Original historical core")
+    (suite_path.parent / "fixtures/core.html").write_text(
+        "Original historical core", encoding="utf-8"
+    )
     (suite_path.parent / "fixtures/nested").mkdir()
-    (suite_path.parent / "fixtures/nested/custom.js").write_text("window.historical = true;")
+    (suite_path.parent / "fixtures/nested/custom.js").write_text(
+        "window.historical = true;", encoding="utf-8"
+    )
     smoke_path = tmp_path / "selected-smoke.json"
     smoke_raw = b'{"results":[{"status":"fail"}],"executed_at":"2026-09-01"}'
     smoke_path.write_bytes(smoke_raw)
     # A neighboring success must not be selected instead of the explicit evidence.
-    (suite_path.parent / "agent_smoke.json").write_text('{"results":[{"status":"pass"}]}')
+    (suite_path.parent / "agent_smoke.json").write_text(
+        '{"results":[{"status":"pass"}]}', encoding="utf-8"
+    )
     output = tmp_path / "artifacts"
     task = BrowserTask(
         "task", "Task", ({"action": "navigate", "url": "{fixture_origin}/core.html"},),
         (), (), "simple", {}, {},
     )
-    monkeypatch.setattr(runner, "_start_fixture_server", lambda root: (
+    monkeypatch.setattr(runner, "start_fixture_server", lambda root: (
         MagicMock(), MagicMock(), "http://fixture.test",
     ))
     task.ground_truth["expected_outputs"] = {}
@@ -80,13 +87,13 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
     monkeypatch.setattr(
         runner, "sync_playwright", lambda: SimpleNamespace(start=lambda: playwright)
     )
-    monkeypatch.setattr(runner, "start_browser_container", lambda *a, **k: MagicMock())
-    monkeypatch.setattr(runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
-    monkeypatch.setattr(runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
-    monkeypatch.setattr(runner, "DockerStatsResources", lambda _: None)
+    monkeypatch.setattr(docker_runner, "start_browser_container", lambda *a, **k: MagicMock())
+    monkeypatch.setattr(docker_runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
+    monkeypatch.setattr(docker_runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
+    monkeypatch.setattr(docker_runner, "DockerStatsResources", lambda _: None)
     monkeypatch.setattr(runner, "_reset_state", lambda *a: None)
     monkeypatch.setattr(runner, "_prepare_page", lambda page, *a, **k: page)
-    monkeypatch.setattr(runner, "_environment", lambda *a: {})
+    monkeypatch.setattr(runner, "docker_environment", lambda *a: {})
     monkeypatch.setattr(
         runner,
         "_run_task",
@@ -106,18 +113,21 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
     monkeypatch.setattr(runner, "summarize_attempts", lambda *a, **k: dict(baseline))
     report_path = tmp_path / "report.html"
     report = MagicMock(
-        side_effect=lambda *a, **k: report_path.write_text("<html>Saved results</html>")
+        side_effect=lambda *a, **k: report_path.write_text(
+            "<html>Saved results</html>", encoding="utf-8"
+        )
     )
     monkeypatch.setattr(runner, "write_latest_report", report)
     monkeypatch.setattr(web_fetch_config, "ROOT", tmp_path)
     (tmp_path / ".env").write_text(
-        "OPENAI_API_KEY=test\nOPENAI_BASE_URL=https://test.invalid\n"
+        "OPENAI_API_KEY=test\nOPENAI_BASE_URL=https://test.invalid\n",
+        encoding="utf-8"
     )
 
     def verify_artifacts():
         attempts = (output / "attempts.jsonl").read_bytes()
         summary_bytes = (output / "summary.json").read_bytes()
-        manifest = json.loads((output / "manifest.json").read_text())
+        manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
         if with_smoke:
             assert manifest["agent_smoke"]["results"] == [{"status": "fail"}]
             assert manifest["agent_smoke"]["provenance"]["source_sha256"] == (
@@ -131,6 +141,7 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
         for name, digest in manifest["fixture_files"].items():
             assert digest == hashlib.sha256((fixture_root / name).read_bytes()).hexdigest()
         assert len(attempts.splitlines()) == 2
+        assert manifest["protocol"]["engines"] == ["chromium", "moli"]
         assert (
             manifest["artifact_provenance"]["attempts_sha256"]
             == hashlib.sha256(attempts).hexdigest()
@@ -196,7 +207,7 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
                 'dataset_sha256': hashlib.sha256(suite_path.read_bytes()).hexdigest(),
                 'results': [{'task_id': 'task', 'status': 'pass', 'observed': {}}],
                 'automatic_browser_replay': {'status': 'pass', 'passed': 1},
-            }))
+            }), encoding="utf-8")
             monkeypatch.setattr(sys, 'argv', ['rebuild_report', '--artifacts', str(output),
                 '--suite', str(suite_path), '--reports', str(tmp_path),
                 '--ground-truth-evidence', str(evidence)])
@@ -223,11 +234,6 @@ def test_external_websocket_url_rewrites_container_advertised_host():
         )
         == "ws://127.0.0.1:32776/devtools/browser/moli-browser"
     )
-
-
-def test_http_origin_keeps_only_scheme_and_authority():
-    assert _http_origin("https://example.com:8443/a?q=1") == "https://example.com:8443"
-    assert _http_origin("about:blank") is None
 
 
 def test_published_endpoint_handles_missing_port_binding():

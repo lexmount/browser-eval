@@ -25,11 +25,11 @@ def release(track, cases, *, identity="sample", annotations=None):
 
 
 def exported_rows(output, name="sample"):
-    return [json.loads(line) for line in (output / f"data/{name}.jsonl").read_text().splitlines()]
+    return [json.loads(line) for line in (output / f"data/{name}.jsonl").read_text(encoding="utf-8").splitlines()]
 
 
 def metadata(output):
-    return yaml.safe_load((output / "README.md").read_text().split("---", 2)[1])
+    return yaml.safe_load((output / "README.md").read_text(encoding="utf-8").split("---", 2)[1])
 
 
 def test_fetch_viewer_exposes_original_hierarchy_without_changing_execution_inputs(tmp_path):
@@ -49,7 +49,7 @@ def test_fetch_viewer_exposes_original_hierarchy_without_changing_execution_inpu
     assert list(manifest["datasets"]) == ["webfetch"]
     with tarfile.open(tmp_path / "definitions.tar.gz") as archive:
         assert {item.name: archive.extractfile(item).read() for item in archive} == source.files
-    body = (tmp_path / "README.md").read_text()
+    body = (tmp_path / "README.md").read_text(encoding="utf-8")
     assert "{{dataset_summary}}" not in body and "{{total_records}}" not in body
     assert "| `embedded-documents` | `webfetch` | 1 |" in body
 
@@ -95,7 +95,7 @@ def test_published_instructions_can_name_an_available_immutable_toolkit(tmp_path
     source = release("webfetch", [{"id": "sample", "language": "en"}])
     revision = "a" * 40
     result = replace(source, tooling_revision=revision).build(tmp_path)
-    card = (tmp_path / "README.md").read_text()
+    card = (tmp_path / "README.md").read_text(encoding="utf-8")
     assert "git checkout " + revision in card
     assert f"https://github.com/lexmount/browser-eval/blob/{revision}/src/harness/benchmarks/data-lock.json" in card
     assert result["tooling"]["revision"] == revision
@@ -116,7 +116,7 @@ def test_published_instructions_can_name_an_available_immutable_toolkit(tmp_path
 def test_cards_explain_use_and_credit_sources_with_specific_discovery_terms(tmp_path, track, tags, source):
     release(track, [{"id": "task", "language": "en"}]).build(tmp_path)
     assert tags <= set(metadata(tmp_path)["tags"])
-    text = (tmp_path / "README.md").read_text()
+    text = (tmp_path / "README.md").read_text(encoding="utf-8")
     assert source in text
     if track == 'websearch':
         assert '(definitions/sources.json)' in text
@@ -195,7 +195,7 @@ def test_fetch_editions_select_exact_populations_and_keep_all_raw_inputs(tmp_pat
     dirty['viewer_filters'] = {} if historical else {
         'viewer_exclude_datasets': ['articles'],
         'viewer_exclude_tracks': {'webfetch': ['challenge', 'dynamic']}}
-    (tmp_path / 'manifest.json').write_text(json.dumps(dirty))
+    (tmp_path / 'manifest.json').write_text(json.dumps(dirty), encoding="utf-8")
     rebuilt = DatasetRelease.from_git(tmp_path, 'webfetch', revision).build(tmp_path / 'rebuilt')
     assert {row['config']: row['count'] for row in rebuilt['viewer']['configurations']} == expected
 
@@ -213,5 +213,5 @@ def test_current_dataset_cards_link_to_existing_browser_eval_code_and_guides():
 
     root = Path(__file__).resolve().parents[2]
     for card in CARDS.glob('*.md'):
-        for target in re.findall(r'https://github.com/lexmount/browser-eval/blob/main/([^\s)#]+)', card.read_text()):
+        for target in re.findall(r'https://github.com/lexmount/browser-eval/blob/main/([^\s)#]+)', card.read_text(encoding="utf-8")):
             assert (root / target).exists(), (card.name, target)

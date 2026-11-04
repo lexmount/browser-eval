@@ -70,7 +70,7 @@ def dataset():
 
 
 def test_dataset_covers_the_exact_audited_cohort(dataset):
-    cohort = json.loads(COHORT.read_text())
+    cohort = json.loads(COHORT.read_text(encoding="utf-8"))
     assert dataset["case_count"] == len(dataset["cases"]) == 100
     assert [case["id"] for case in dataset["cases"]] == [case["id"] for case in cohort["cases"]]
     assert dataset["site_count"] == 74
@@ -116,8 +116,8 @@ def test_training_page_language_alternatives_rebuild_from_rule_review(dataset):
 
 
 def test_language_rule_revision_is_the_predecessor_of_the_current_sample_revision():
-    revision = json.loads(LANGUAGE_REVISION.read_text())
-    successor = json.loads(ZILLOW_REVISION.read_text())
+    revision = json.loads(LANGUAGE_REVISION.read_text(encoding="utf-8"))
+    successor = json.loads(ZILLOW_REVISION.read_text(encoding="utf-8"))
     assert (
         successor["correction"]["predecessor_dataset_sha256"]
         == revision["correction"]["new_dataset_sha256"]
@@ -131,20 +131,20 @@ def test_language_rule_revision_is_the_predecessor_of_the_current_sample_revisio
 
 
 def test_zillow_sample_revision_binds_current_frozen_inputs():
-    revision = json.loads(ZILLOW_REVISION.read_text())
-    successor = json.loads((ROOT/'research/risk-control-training-list-revision.json').read_text())
-    profile = json.loads(RUN_PROFILE.read_text())
+    revision = json.loads(ZILLOW_REVISION.read_text(encoding="utf-8"))
+    successor = json.loads((ROOT/'research/risk-control-training-list-revision.json').read_text(encoding="utf-8"))
+    profile = json.loads(RUN_PROFILE.read_text(encoding="utf-8"))
     for key in ('dataset', 'run_profile'):
         assert revision['correction']['new_'+key+'_sha256'] == successor['correction']['predecessor_'+key+'_sha256']
-    full_page = json.loads((ROOT/'research/risk-control-full-page-rule-revision.json').read_text())
+    full_page = json.loads((ROOT/'research/risk-control-full-page-rule-revision.json').read_text(encoding="utf-8"))
     assert successor['correction']['new_dataset_sha256'] == full_page['correction']['predecessor_dataset_sha256']
     assert successor['correction']['new_run_profile_sha256'] == full_page['correction']['predecessor_run_profile_sha256']
-    locale=json.loads((ROOT/'research/risk-control-navigation-language-revision.json').read_text())
+    locale=json.loads((ROOT/'research/risk-control-navigation-language-revision.json').read_text(encoding="utf-8"))
     for key in ('dataset','run_profile'):
         assert full_page['correction']['new_'+key+'_sha256'] == locale['correction']['predecessor_'+key+'_sha256']
-    responsive=json.loads((ROOT/'research/risk-control-responsive-navigation-revision.json').read_text())
-    xtools=json.loads(XTOOLS_REVISION.read_text())
-    content_owner=json.loads(CONTENT_OWNER_REVISION.read_text())
+    responsive=json.loads((ROOT/'research/risk-control-responsive-navigation-revision.json').read_text(encoding="utf-8"))
+    xtools=json.loads(XTOOLS_REVISION.read_text(encoding="utf-8"))
+    content_owner=json.loads(CONTENT_OWNER_REVISION.read_text(encoding="utf-8"))
     assert responsive['predecessor_revision'] == 'research/risk-control-navigation-language-revision.json'
     assert locale['correction']['new_dataset_sha256'] == responsive['correction']['predecessor_dataset_sha256']
     assert locale['correction']['new_run_profile_sha256'] == responsive['correction']['predecessor_run_profile_sha256']
@@ -171,9 +171,9 @@ def test_zillow_sample_revision_binds_current_frozen_inputs():
 
 
 def test_every_secondary_risk_anchor_is_bound_to_independent_revision(dataset):
-    revision = json.loads(LANGUAGE_REVISION.read_text())
+    revision = json.loads(LANGUAGE_REVISION.read_text(encoding="utf-8"))
     case_id = revision["case_id"]
-    locale=json.loads((ROOT/'research/risk-control-navigation-language-revision.json').read_text())
+    locale=json.loads((ROOT/'research/risk-control-navigation-language-revision.json').read_text(encoding="utf-8"))
     declared = {**revision["correction"]["equivalent_ui_alternatives_added"],
                 **locale["correction"]["equivalent_ui_alternatives_added"]}
     observed = {}
@@ -201,11 +201,11 @@ def test_compiler_reads_explicit_definitions_without_checkout_defaults(tmp_path,
     from lexbench_webfetch import risk_control_dataset as compiler
 
     rule = tmp_path / "rules.md"
-    rule.write_text(RULE_FILES[0].read_text())
+    rule.write_text(RULE_FILES[0].read_text(encoding="utf-8"), encoding="utf-8")
     expected = compiler.parse_sections((RULE_FILES[0],))
     assert compiler.parse_sections((rule,)) == expected
     manifest = tmp_path / "input-manifest.json"
-    manifest.write_text('{"evidence_roots":{"reference":"independent-inputs"}}')
+    manifest.write_text('{"evidence_roots":{"reference":"independent-inputs"}}', encoding="utf-8")
     monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data"))
     assert compiler.evidence_roots(manifest) == {
         "reference": tmp_path / "data/independent-inputs"
@@ -225,7 +225,7 @@ def test_dataset_and_qualification_manifest_bind_current_source_bytes(dataset):
     }
     assert dataset["source_bindings"] == expected_dataset_bindings
 
-    qualification = json.loads(MANIFEST.read_text())
+    qualification = json.loads(MANIFEST.read_text(encoding="utf-8"))
     qualification_root = MANIFEST.parent.parent
     for binding in qualification["files"]:
         path = qualification_root / binding["path"]
@@ -311,7 +311,7 @@ def test_zillow_full_score_requires_distinct_numeric_card_fields(dataset, fields
 def test_compact_cohort_receipt_binds_final_manifest_and_limits_the_claim():
     import hashlib
 
-    receipt = json.loads(COHORT_RECEIPT.read_text())
+    receipt = json.loads(COHORT_RECEIPT.read_text(encoding="utf-8"))
     assert receipt["cohort_manifest_sha256"] == hashlib.sha256(COHORT.read_bytes()).hexdigest()
     assert receipt["scope"] == {
         "url_cases": 100,
@@ -324,7 +324,7 @@ def test_compact_cohort_receipt_binds_final_manifest_and_limits_the_claim():
 
 
 def test_cohort_keeps_only_scoring_inputs_and_compact_qualification_metadata():
-    cohort = json.loads(COHORT.read_text())
+    cohort = json.loads(COHORT.read_text(encoding="utf-8"))
     required = {
         "id",
         "url",
@@ -361,7 +361,7 @@ def test_cohort_keeps_only_scoring_inputs_and_compact_qualification_metadata():
 def test_run_profile_binds_every_rule_and_qualification_authority():
     import hashlib
 
-    profile = json.loads(RUN_PROFILE.read_text())
+    profile = json.loads(RUN_PROFILE.read_text(encoding="utf-8"))
     expected = {
         "qualification_manifest",
         "cohort_receipt",
@@ -386,7 +386,7 @@ def test_direct_formal_execution_is_rejected_before_provider_validation(tmp_path
 
 def test_frozen_execution_inputs_do_not_require_historical_source_files(tmp_path):
     from harness.web_fetch.risk_control import frozen_risk_control_input_snapshot
-    profile = json.loads(RUN_PROFILE.read_text())
+    profile = json.loads(RUN_PROFILE.read_text(encoding="utf-8"))
     profile_path = tmp_path / "evaluation/risk-control/run-profile.json"
     profile_path.parent.mkdir(parents=True)
     profile_path.write_bytes(RUN_PROFILE.read_bytes())
@@ -399,7 +399,7 @@ def test_frozen_execution_inputs_do_not_require_historical_source_files(tmp_path
     # There is no qualification data home or browser.txt tree in this fixture.
     snapshot = frozen_risk_control_input_snapshot(profile_path)
     assert snapshot["case_count"] == 100
-    (tmp_path / profile["dataset"]["path"]).write_text('{"cases": []}')
+    (tmp_path / profile["dataset"]["path"]).write_text('{"cases": []}', encoding="utf-8")
     with pytest.raises(ValueError, match="Changed frozen input"):
         frozen_risk_control_input_snapshot(profile_path)
 
@@ -492,18 +492,19 @@ def certified_report_fixture(tmp_path):
         "after": proof_snapshot,
         "unchanged": True,
     }
-    (tmp_path / "reference-proof-verification.json").write_text(json.dumps(proof_verification))
+    (tmp_path / "reference-proof-verification.json").write_text(json.dumps(proof_verification), encoding="utf-8")
     proof_sha = hashlib.sha256(
         (tmp_path / "reference-proof-verification.json").read_bytes()
     ).hexdigest()
     manifest["reference_proof_verification_sha256"] = proof_sha
     execution["batches"] = [manifest]
-    (tmp_path / "dataset.json").write_text(json.dumps(dataset))
+    (tmp_path / "dataset.json").write_text(json.dumps(dataset), encoding="utf-8")
     (tmp_path / "results.jsonl").write_text(
-        "".join(json.dumps(record) + "\n" for record in records)
+        "".join(json.dumps(record) + "\n" for record in records),
+        encoding="utf-8"
     )
-    (tmp_path / "manifest.json").write_text(json.dumps(manifest))
-    (tmp_path / "execution.json").write_text(json.dumps(execution))
+    (tmp_path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (tmp_path / "execution.json").write_text(json.dumps(execution), encoding="utf-8")
     receipt = {
         "schema_version": 1,
         "kind": "certified_risk_control_100_moli_v1",
@@ -519,7 +520,7 @@ def certified_report_fixture(tmp_path):
         "physical_calls": 100,
         "complete_diagnostic_logs": True,
     }
-    (tmp_path / "certification.json").write_text(json.dumps(receipt))
+    (tmp_path / "certification.json").write_text(json.dumps(receipt), encoding="utf-8")
     return dataset, records, receipt, manifest, execution
 
 
@@ -529,10 +530,11 @@ def rewrite_certified_report_fixture(tmp_path, records, receipt, manifest, execu
     execution["aggregate"]["case_ids"] = [record["case_id"] for record in records]
     execution["batches"] = [manifest]
     (tmp_path / "results.jsonl").write_text(
-        "".join(json.dumps(record) + "\n" for record in records)
+        "".join(json.dumps(record) + "\n" for record in records),
+        encoding="utf-8"
     )
-    (tmp_path / "manifest.json").write_text(json.dumps(manifest))
-    (tmp_path / "execution.json").write_text(json.dumps(execution))
+    (tmp_path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (tmp_path / "execution.json").write_text(json.dumps(execution), encoding="utf-8")
     receipt.update(
         {
             "results_sha256": hashlib.sha256((tmp_path / "results.jsonl").read_bytes()).hexdigest(),
@@ -546,14 +548,14 @@ def rewrite_certified_report_fixture(tmp_path, records, receipt, manifest, execu
             "physical_calls": len(records),
         }
     )
-    (tmp_path / "certification.json").write_text(json.dumps(receipt))
+    (tmp_path / "certification.json").write_text(json.dumps(receipt), encoding="utf-8")
 
 
 def test_report_requires_complete_profile_bound_risk_control_certification(tmp_path):
     dataset, records, receipt, _, _ = certified_report_fixture(tmp_path)
     require_risk_control_certification(tmp_path, dataset, records)
     receipt["results_sha256"] = "0" * 64
-    (tmp_path / "certification.json").write_text(json.dumps(receipt))
+    (tmp_path / "certification.json").write_text(json.dumps(receipt), encoding="utf-8")
     with pytest.raises(ValueError, match="mismatched"):
         require_risk_control_certification(tmp_path, dataset, records)
 
@@ -562,9 +564,9 @@ def test_report_requires_complete_profile_bound_risk_control_certification(tmp_p
 def test_report_rejects_hash_bound_but_incomplete_reference_proof_receipt(tmp_path):
     dataset, records, receipt, manifest, execution = certified_report_fixture(tmp_path)
     proof_path = tmp_path / "reference-proof-verification.json"
-    proof = json.loads(proof_path.read_text())
+    proof = json.loads(proof_path.read_text(encoding="utf-8"))
     proof["unchanged"] = False
-    proof_path.write_text(json.dumps(proof))
+    proof_path.write_text(json.dumps(proof), encoding="utf-8")
     proof_sha = hashlib.sha256(proof_path.read_bytes()).hexdigest()
     manifest["reference_proof_verification_sha256"] = proof_sha
     receipt["reference_proof_verification_sha256"] = proof_sha
@@ -982,14 +984,14 @@ def test_certified_report_preserves_certificate_bound_files(tmp_path, capsys):
     from harness.web_fetch.report_build import build_report
     from harness.web_fetch.runner import run_evaluation
 
-    profile = json.loads(RUN_PROFILE.read_text())
+    profile = json.loads(RUN_PROFILE.read_text(encoding="utf-8"))
     provider = profile["provider"]["name"]
     read_frozen_dataset_bytes(DATASET)
     frozen, cases = load_dataset(DATASET)
     measured = measured_risk_control_dataset(
         profile, frozen, hashlib.sha256(RUN_PROFILE.read_bytes()).hexdigest())
     provider_config = tmp_path / "fixture-provider.json"
-    provider_config.write_text(json.dumps({provider: {"type": "fixture"}}))
+    provider_config.write_text(json.dumps({provider: {"type": "fixture"}}), encoding="utf-8")
     records, _ = run_evaluation(
         output_dir=tmp_path, dataset_meta=measured, dataset_path=DATASET,
         cases=cases, providers=[FixtureProvider(provider, {"type": "fixture"})],
@@ -1007,9 +1009,9 @@ def test_certified_report_preserves_certificate_bound_files(tmp_path, capsys):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(diagnostic)
     results = tmp_path / "results.jsonl"
-    results.write_text("".join(json.dumps(row) + "\n" for row in records))
+    results.write_text("".join(json.dumps(row) + "\n" for row in records), encoding="utf-8")
     receipt["results_sha256"] = hashlib.sha256(results.read_bytes()).hexdigest()
-    (tmp_path / "certification.json").write_text(json.dumps(receipt))
+    (tmp_path / "certification.json").write_text(json.dumps(receipt), encoding="utf-8")
     report = tmp_path / "report"
     assert build_report(tmp_path, report).is_file()
     for name in ("dataset.json", "manifest.json", "execution.json",
@@ -1025,7 +1027,7 @@ def test_new_risk_certification_uses_frozen_inputs_and_preserves_old_receipts(tm
     verification = {"schema_version": 1, "kind": "risk_control_frozen_input_verification",
                     "before": snapshot, "after": snapshot, "unchanged": True}
     path = tmp_path / "frozen-input-verification.json"
-    path.write_text(json.dumps(verification))
+    path.write_text(json.dumps(verification), encoding="utf-8")
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     manifest.pop("reference_proof_verification_sha256")
     manifest["frozen_input_verification_sha256"] = digest
@@ -1036,7 +1038,7 @@ def test_new_risk_certification_uses_frozen_inputs_and_preserves_old_receipts(tm
     rewrite_certified_report_fixture(tmp_path, records, receipt, manifest, execution)
     require_risk_control_certification(tmp_path, dataset, records)
     verification["after"] = {**snapshot, "case_count": 99}
-    path.write_text(json.dumps(verification))
+    path.write_text(json.dumps(verification), encoding="utf-8")
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
     manifest["frozen_input_verification_sha256"] = digest
     receipt["frozen_input_verification_sha256"] = digest

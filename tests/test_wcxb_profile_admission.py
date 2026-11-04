@@ -26,7 +26,7 @@ def test_report_builder_rejects_metric_binding_before_creating_output(tmp_path, 
         profile['metric_implementation_sha256'] = value.pop('metric_implementation_sha256')
     else:
         value['metric_implementation_sha256'] = '0' * 64
-    path.write_text(json.dumps(value))
+    path.write_text(json.dumps(value), encoding='utf-8')
     monkeypatch.setattr(report_build, 'load_bound_content', lambda *args, **kwargs: {})
     monkeypatch.setattr(report_build, 'load_jsonl', lambda *args, **kwargs: (_ for _ in ()).throw(AdmissionPassed()))
     output = tmp_path / 'report'
@@ -43,7 +43,7 @@ def test_report_builder_keeps_known_legacy_metric_admission(tmp_path, monkeypatc
     summary = options['evidence_root'] / 'wcxb-score-summary.json'
     value = json.loads(summary.read_bytes())
     value.pop('metric_implementation_sha256')
-    summary.write_text(json.dumps(value))
+    summary.write_text(json.dumps(value), encoding='utf-8')
     monkeypatch.setattr(report_build, 'load_bound_content', lambda *args, **kwargs: {})
     monkeypatch.setattr(report_build, 'load_jsonl', lambda *args, **kwargs: (_ for _ in ()).throw(AdmissionPassed()))
     with pytest.raises(AdmissionPassed):
@@ -54,11 +54,11 @@ def test_report_builder_keeps_known_legacy_metric_admission(tmp_path, monkeypatc
 def profile_selection(tmp_path, monkeypatch, *, legacy=False):
     locked = tmp_path / 'locked/tasks.json'
     locked.parent.mkdir()
-    locked.write_text(json.dumps({'source_sha256': 'a' * 64}))
+    locked.write_text(json.dumps({'source_sha256': 'a' * 64}), encoding='utf-8')
     selected = tmp_path / 'selected.json'
-    selected.write_text(json.dumps({'source_sha256': ('b' if legacy else 'a') * 64}))
+    selected.write_text(json.dumps({'source_sha256': ('b' if legacy else 'a') * 64}), encoding='utf-8')
     profile = tmp_path / 'profile.json'
-    profile.write_text(json.dumps({'sample_manifest': str(selected)}))
+    profile.write_text(json.dumps({'sample_manifest': str(selected)}), encoding='utf-8')
     monkeypatch.setattr(data, 'definition_path', lambda track, relative: locked.parent / relative)
     return locked.parent / 'source', selected, profile
 
@@ -92,7 +92,7 @@ def test_qualified_v2_selection_from_full_511_source_is_source_verified(tmp_path
         manifest['cases'][0]['reference'] = 'Wrong reference'
     elif defect == 'hash':
         manifest['source_sha256'] = '0' * 64
-    path.write_text(json.dumps(manifest))
+    path.write_text(json.dumps(manifest), encoding='utf-8')
     if defect:
         with pytest.raises(ValueError):
             runner.load_wcxb_source(source, manifest=path)
@@ -106,7 +106,7 @@ def test_invalid_managed_scorer_cache_gives_precise_recovery_without_deleting(tm
     target = tmp_path / 'cache/benchmark-code/webmainbench' / revision
     target.mkdir(parents=True)
     marker = target / 'local-change.txt'
-    marker.write_text('retain this change')
+    marker.write_text('retain this change', encoding='utf-8')
     monkeypatch.setenv('BROWSER_EVAL_DATASET_CACHE', str(tmp_path / 'cache'))
     monkeypatch.setattr(data, 'binding', lambda track: {'scorer': {'revision': revision}})
     monkeypatch.setattr(wmb, 'verify_scorer_checkout', lambda *args: (_ for _ in ()).throw(ValueError('dirty checkout')))
@@ -114,7 +114,7 @@ def test_invalid_managed_scorer_cache_gives_precise_recovery_without_deleting(tm
         wmb.prepare_scorer()
     assert str(target) in str(error.value)
     assert 'rerun' in str(error.value) and ('move' in str(error.value).lower() or 'remove' in str(error.value).lower())
-    assert marker.read_text() == 'retain this change'
+    assert marker.read_text(encoding='utf-8') == 'retain this change'
 
 
 @pytest.mark.parametrize('entrypoint', ['runner', 'scoring', 'certification', 'latency', 'latency-certify', 'report'])
@@ -126,7 +126,7 @@ def test_all_entrypoints_honor_profile_selection_with_default_source(tmp_path, m
     source, selected, profile_path = profile_selection(tmp_path, monkeypatch)
     profile = json.loads(profile_path.read_bytes())
     profile.update(comparison_kind='wcxb_frozen_html_to_markdown')
-    profile_path.write_text(json.dumps(profile))
+    profile_path.write_text(json.dumps(profile), encoding='utf-8')
     captured = {}
     if entrypoint == 'runner':
         monkeypatch.setattr(runner, 'run', lambda args: captured.update(source=args.dataset, manifest=args.case_ids_file))
@@ -150,7 +150,7 @@ def test_all_entrypoints_honor_profile_selection_with_default_source(tmp_path, m
             evidence = tmp_path / 'evidence'
             evidence.mkdir()
             for name in ('receipt.json', 'calls.jsonl'):
-                (evidence / name).write_text('{}')
+                (evidence / name).write_text('{}', encoding='utf-8')
             monkeypatch.setattr(wcxb_scoring, 'participant_names', lambda value: [])
             monkeypatch.setattr(runner, 'load_wcxb_source', stop)
             with pytest.raises(AdmissionPassed):
@@ -161,7 +161,7 @@ def test_all_entrypoints_honor_profile_selection_with_default_source(tmp_path, m
         wcxb_latency.main(['--profile', str(profile_path), '--release', str(tmp_path / 'release'),
                            '--candidate', str(tmp_path / 'candidate'), '--output', str(tmp_path / 'out')])
     else:
-        (tmp_path / 'report-content-binding.json').write_text('{}')
+        (tmp_path / 'report-content-binding.json').write_text('{}', encoding='utf-8')
         monkeypatch.setattr(report_build, 'build_wcxb_report', lambda evidence, corpus, sample, *args, **kwargs:
                             captured.update(source=corpus, manifest=sample) or tmp_path / 'index.html')
         script = Path(__file__).resolve().parents[1] / 'scripts/build_report.py'

@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 from harness.browser_use.failure_cause_review import review_path
-from harness.browser_use.report_check import check
+from harness.browser_use.report_check import check, check_public_privacy
 from harness.browser_use.report_publish import tree_sha256
 from harness.browser_use.report_visual import check as check_visual
 from harness.browser_use.report_visual import receipt_is_current
@@ -29,6 +29,7 @@ def validate_release(
 ) -> None:
     """Run every release gate before creating a publishable archive."""
 
+    check_public_privacy(report)
     check(report, evidence, None, require_complete=True,
           authority_root=authority_root, profile_path=profile_path)
     check_links(report)
@@ -47,7 +48,7 @@ def package(
     profile = profile_path or authority / "evaluation/browser-use/current-report.json"
     names = ("manifest.json", "run-config.json", "attempts.jsonl", "result-review.json")
     inputs = [profile]
-    profile_data = json.loads(profile.read_text())
+    profile_data = json.loads(profile.read_text(encoding="utf-8"))
     history_path, _ = bound_json_asset(profile_data.get("report_history"), root=profile.parent)
     if history_path is not None:
         inputs.append(history_path)
@@ -97,7 +98,3 @@ def main() -> None:
         profile_path=args.profile,
     )
     print(args.output)
-
-
-if __name__ == "__main__":
-    main()

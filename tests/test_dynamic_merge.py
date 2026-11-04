@@ -22,8 +22,8 @@ class DynamicMergeTests(unittest.TestCase):
         self.assemble()
         source = self.fixture.measured
         self.assertEqual((source/'results.jsonl').read_bytes(), (self.output/'results.jsonl').read_bytes())
-        before = json.loads((source/'execution.json').read_text())['batches']
-        after = json.loads((self.output/'execution.json').read_text())['batches']
+        before = json.loads((source/'execution.json').read_text(encoding='utf-8'))['batches']
+        after = json.loads((self.output/'execution.json').read_text(encoding='utf-8'))['batches']
         for a, b in zip(before, after, strict=True):
             for key in ('batch_id', 'attempt_ids', 'started_at', 'completed_at', 'providers', 'parameters'):
                 self.assertEqual(a[key], b[key])
@@ -37,7 +37,7 @@ class DynamicMergeTests(unittest.TestCase):
         self.fixture.save()
         before = self.fixture.snapshot(self.fixture.measured)
         self.assemble()
-        batches = json.loads((self.output / 'execution.json').read_text())['batches']
+        batches = json.loads((self.output / 'execution.json').read_text(encoding='utf-8'))['batches']
         for original, projected in zip(self.fixture.batches, batches, strict=True):
             for key in ('provider_config_source', 'provider_config_sha256', 'runtime_identity_record'):
                 self.assertEqual(projected[key], original[key])
@@ -45,9 +45,9 @@ class DynamicMergeTests(unittest.TestCase):
 
     def test_undeclared_identity_sidecar_cannot_replace_batch_provenance(self):
         sidecar = self.fixture.measured / 'runtime-identity.json'
-        sidecar.write_text('{"provider_config_sha256": "unrelated", "fixture": "other run"}')
+        sidecar.write_text('{"provider_config_sha256": "unrelated", "fixture": "other run"}', encoding='utf-8')
         self.assemble()
-        batches = json.loads((self.output / 'execution.json').read_text())['batches']
+        batches = json.loads((self.output / 'execution.json').read_text(encoding='utf-8'))['batches']
         for original, projected in zip(self.fixture.batches, batches, strict=True):
             self.assertEqual(projected['runtime_identity_record'], original['runtime_identity_record'])
             self.assertNotIn('runtime_identity_sha256', projected)
@@ -67,7 +67,7 @@ class DynamicMergeTests(unittest.TestCase):
 
     def test_rejects_changed_raw_evidence_before_creating_output(self):
         path = self.fixture.measured / self.fixture.records[0]['artifact_path']
-        path.write_text('tampered')
+        path.write_text('tampered', encoding='utf-8')
         with self.assertRaisesRegex(ValueError, 'hash mismatch'):
             self.assemble()
         self.assertFalse(self.output.exists())
@@ -80,10 +80,10 @@ class DynamicMergeTests(unittest.TestCase):
     def test_refuses_to_overwrite_existing_output(self):
         self.output.mkdir()
         marker = self.output / 'keep.txt'
-        marker.write_text('existing')
+        marker.write_text('existing', encoding='utf-8')
         with self.assertRaises(FileExistsError):
             self.assemble()
-        self.assertEqual(marker.read_text(), 'existing')
+        self.assertEqual(marker.read_text(encoding='utf-8'), 'existing')
 
     def test_empty_or_nested_assembly_cannot_modify_input_evidence(self):
         before = self.fixture.snapshot(self.fixture.measured)
@@ -170,7 +170,7 @@ class DynamicMergeTests(unittest.TestCase):
         fixture.setUp()
         self.addCleanup(fixture.doCleanups)
         manifest = fixture.verified_run()
-        (fixture.run / 'execution.json').write_text(json.dumps({'batches': [manifest]}))
+        (fixture.run / 'execution.json').write_text(json.dumps({'batches': [manifest]}), encoding='utf-8')
         merge(fixture.root, [fixture.run], self.output)
         relative = manifest['reference_checks']['postcheck']['evidence_path']
         self.assertEqual((self.output / relative).read_bytes(), (fixture.run / relative).read_bytes())
@@ -194,7 +194,7 @@ class DynamicMergeTests(unittest.TestCase):
             with self.subTest(field=field):
                 dataset = json.loads(original)
                 dataset['cases'][0][field] = value
-                path.write_text(json.dumps(dataset))
+                path.write_text(json.dumps(dataset), encoding='utf-8')
                 with self.assertRaisesRegex(ValueError, 'frozen cases'):
                     self.assemble()
                 self.assertFalse(self.output.exists())

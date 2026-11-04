@@ -38,3 +38,12 @@ class SharedRankingPresentationTests(unittest.TestCase):
         self.assertIn('comparison-winner good">0 ms',rendered)
         with self.assertRaises(ValueError):
             check_presentation(rendered.replace('comparison-winner good','good'))
+
+    def test_each_track_keeps_its_escaping_of_an_absent_value(self):
+        from harness.reporting.presentation import esc as fetch_esc
+        from harness.web_search.report import esc as search_esc
+        for esc in (fetch_esc, search_esc):
+            self.assertEqual(esc('<a href="x">\'&'), '&lt;a href=&quot;x&quot;&gt;&#x27;&amp;')
+            self.assertEqual(esc(0), '0')
+        self.assertEqual(fetch_esc(None), '')
+        self.assertEqual(search_esc(None), 'None')

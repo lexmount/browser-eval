@@ -204,7 +204,7 @@ def main(argv: list[str] | None = None) -> None:
         subprocess.run(command, check=True)
         summaries.append(verify_shard(args.output_root / provider, provider, case_ids, profile))
         expected_binary = profile.get("binary_sha256")
-        if expected_binary and json.loads((args.output_root / provider / "execution.json").read_text())[
+        if expected_binary and json.loads((args.output_root / provider / "execution.json").read_text(encoding="utf-8"))[
                 "implementation_identity"]["binary_sha256"] != expected_binary:
             raise ValueError("Measured binary differs from declared version")
         _unchanged(bound)
@@ -303,10 +303,3 @@ def main_score(argv: list[str] | None = None) -> None:
     with score_certificate.open("x", encoding="utf-8") as stream:
         stream.write(json.dumps(certificate, ensure_ascii=False, indent=2) + "\n")
     print("Certified complete scoring", flush=True)
-
-
-if __name__ == "__main__":
-    if sys.argv[1:2] == ["score"]:
-        main_score(sys.argv[2:])
-    else:
-        main()

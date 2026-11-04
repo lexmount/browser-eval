@@ -23,9 +23,9 @@ def test_cli_scores_fixed_posts_without_runtime_reference(tmp_path, include_body
             "minimum_posts": 1,
         }},
     }
-    (tmp_path / "task.json").write_text(json.dumps(task))
+    (tmp_path / "task.json").write_text(json.dumps(task), encoding="utf-8")
     (tmp_path / "answer.txt").write_text(
-        "# Article feed\n\n## Alice [Today](https://example.test/post/1)\n\n" + (body if include_body else ""))
+        "# Article feed\n\n## Alice [Today](https://example.test/post/1)\n\n" + (body if include_body else ""), encoding="utf-8")
     command = [sys.executable, "-m", "lexbench_webfetch.cli", "score",
                "--task", str(tmp_path / "task.json"),
                "--response", str(tmp_path / "answer.txt")]
@@ -60,15 +60,15 @@ def test_compile_articles_cli_and_output_protection(tmp_path, monkeypatch, capsy
     monkeypatch.setattr(sys, "argv", ["lexbench-webfetch", "compile-articles",
         "--evidence-home", str(tmp_path / "evidence"), "--output", str(output)])
     cli.main()
-    assert json.loads(output.read_text()) == dataset
+    assert json.loads(output.read_text(encoding="utf-8")) == dataset
     assert json.loads(capsys.readouterr().out)["case_count"] == 1
     with pytest.raises(SystemExit) as error:
         cli.main()
     assert error.value.code == 1
     assert "already exists" in capsys.readouterr().err
-    assert json.loads(output.read_text()) == dataset
+    assert json.loads(output.read_text(encoding="utf-8")) == dataset
     output.unlink()
-    (tmp_path / "source-inputs.json").write_text("{}")
+    (tmp_path / "source-inputs.json").write_text("{}", encoding="utf-8")
     with pytest.raises(SystemExit):
         cli.main()
     assert "immutable" in capsys.readouterr().err

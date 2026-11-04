@@ -30,7 +30,7 @@ SPECS = {name: item['interface'] for name, item in report_method_catalog()['meth
 
 def method_provenance(out):
  path=out/'implementation-provenance.json'
- return {item['binary_sha256']:item for item in json.loads(path.read_text()).get('implementations',[])} if path.is_file() else {}
+ return {item['binary_sha256']:item for item in json.loads(path.read_text(encoding='utf-8')).get('implementations',[])} if path.is_file() else {}
 
 
 def method_spec(name, record, *, timeout_seconds=None, language="zh"):
@@ -213,7 +213,7 @@ def render_interfaces(out,records):
  messages=report_method_catalog()['messages']
  english_messages=report_method_catalog('en')['messages']
  dataset_path=out/"dataset.json"
- dataset=json.loads(dataset_path.read_text()) if dataset_path.is_file() else {}
+ dataset=json.loads(dataset_path.read_text(encoding='utf-8')) if dataset_path.is_file() else {}
  comparison=dataset.get("comparison",{})
  native_default=measurement_presentation(dataset).native_outputs
  def pre(value):return '<pre>'+escape(value if isinstance(value,str) else json.dumps(value,ensure_ascii=False,indent=2))+'</pre>'
@@ -235,7 +235,7 @@ def render_interfaces(out,records):
   if r and native_default and not bindings:
    raise ValueError("Measured native interface requires a saved call log: "+name)
   if bindings:
-   request=json.loads(evidence_artifacts.verify_public_call_log(out,bindings[-1]).read_text())["request"]
+   request=json.loads(evidence_artifacts.verify_public_call_log(out,bindings[-1]).read_text(encoding='utf-8'))["request"]
    model=method_page_model(name,name,[x for x in records if x["provider"]==name])
    s={**s,"entry":model["endpoint"],"params":[],"request":request,"notes":messages['interface_request_note']}
    english_model=method_page_model(name,name,[x for x in records if x["provider"]==name],language="en")
@@ -243,11 +243,11 @@ def render_interfaces(out,records):
   access=method_access(name,records)
   english_access=method_access(name,records,language="en")
   if r:
-   content=contained_path(out,r['artifact_path']).read_text();sample={k:r.get(k) for k in ['ok','status_code','title','final_url']};sample['content_excerpt']=content[:450];sample['content_characters']=len(content)
+   content=contained_path(out,r['artifact_path']).read_text(encoding='utf-8');sample={k:r.get(k) for k in ['ok','status_code','title','final_url']};sample['content_excerpt']=content[:450];sample['content_characters']=len(content)
   else:sample={'measurement':None,'note':messages['interface_unmeasured_sample']}
   # Explicit whitelist: no local paths, request IDs, credentials or session metadata.
   meta=r.get('provider_metadata',{}) if r else {};sample['metadata']={k:meta[k] for k in ['engine','upstream_status','links_count','images_count','extractor','truncated','document_count'] if k in meta}
-  dest=out/'adoption'/'interfaces';dest.mkdir(exist_ok=True);(dest/(name+'.json')).write_text(json.dumps({'interface':s,'access':access,'sample':sample,'attempt_id':r['attempt_id'] if r else None},ensure_ascii=False,indent=2)+'\n')
+  dest=out/'adoption'/'interfaces';dest.mkdir(exist_ok=True);(dest/(name+'.json')).write_text(json.dumps({'interface':s,'access':access,'sample':sample,'attempt_id':r['attempt_id'] if r else None},ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
   body+=f'<details class="interface-panel" id="interface-{name}"'+(' open' if i==0 else '')+'><summary>'+bilingual_text(browser_method_label(name),browser_method_label(name,language='en'))+'</summary>'
   body+='<p class="interface-endpoint"><code>'+bilingual_text(s['entry'],english['entry'])+'</code></p><p class="source-note">'+bilingual_text(s['auth'],english['auth'])+'</p>'
   if access:

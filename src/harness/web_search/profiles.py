@@ -10,7 +10,7 @@ from lexbench_websearch.inputs import resolve_profile
 
 from harness.data_home import data_home as default_data_home
 from harness.record_io import bytes_sha256
-from harness.web_fetch.publication_target import validate_service_base
+from harness.reporting.publication_target import validate_service_base
 from harness.web_search.core import validate_profile
 
 

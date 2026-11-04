@@ -117,7 +117,8 @@ def test_task_execution_order_matches_upstream_numeric_order(tmp_path, monkeypat
                 "schema": "lex_webarena_verified_pilot/1",
                 "tasks": [{"task_id": n} for n in [645, 66, 610]],
             }
-        )
+        ),
+        encoding="utf-8"
     )
     assert cohort.selected_task_ids(selection) == [66, 610, 645]
 
@@ -310,7 +311,9 @@ def test_https_admin_reset_requires_restored_application_settings(
     monkeypatch.setattr(
         cohort.subprocess,
         "run",
-        lambda *_a, **_k: (tmp_path / "site-reset.json").write_text(json.dumps(receipt)),
+        lambda *_a, **_k: (tmp_path / "site-reset.json").write_text(
+            json.dumps(receipt), encoding="utf-8"
+        ),
     )
     args = argparse.Namespace(
         output=tmp_path,
@@ -342,3 +345,19 @@ def test_browser_session_setup_error_closes_probe_and_propagates(
     with pytest.raises(RuntimeError, match="owned CDP context"):
         cohort.verify_browser_session(tool)
     assert closed == [True]
+
+
+def test_cohort_preflight_stops_before_any_browser_without_site_accounts(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from harness import env_file
+
+    args, _manifest, _save = _fixture(tmp_path, monkeypatch)
+    monkeypatch.setattr(env_file, "_repository_credentials_file", tmp_path / "absent.env")
+    monkeypatch.setattr(cohort, "remote_benchmark", lambda _: pytest.fail("the run continued"))
+    monkeypatch.setattr(
+        cohort, "validate_remote_cohort_reset_receipt", lambda *a, **k: pytest.fail("reset used")
+    )
+    with pytest.raises(ValueError, match="WEBARENA_[A-Z_]+_PASSWORD"):
+        cohort.preflight_cohort(args)
+    assert not args.output.exists()

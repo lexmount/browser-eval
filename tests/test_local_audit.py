@@ -25,7 +25,7 @@ def test_review_refresh_derives_changed_details_and_cases_from_bound_inputs(tmp_
             {'attempt_id': 'b1', 'case_id': 'b', 'metrics': {'value': 1}},
             {'attempt_id': 'b2', 'case_id': 'b', 'metrics': {'value': 1}}]
     _write(tmp_path / 'before-dataset.json', dataset)
-    (tmp_path / 'before-results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    (tmp_path / 'before-results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding="utf-8")
     baseline = {key: {'path': path, 'sha256': _digest(tmp_path / path)}
                 for key, path in [('dataset', 'before-dataset.json'), ('results', 'before-results.jsonl')]}
     binding = {'review_refresh_baseline': baseline}
@@ -37,20 +37,20 @@ def test_review_refresh_derives_changed_details_and_cases_from_bound_inputs(tmp_
     assert _review_refresh_changes(tmp_path, {}, current_dataset, current_rows) == (set(), set())
     with pytest.raises(ValueError, match='inventory'):
         _review_refresh_changes(tmp_path, binding, current_dataset, current_rows[:-1])
-    (tmp_path / 'before-results.jsonl').write_text('changed bytes')
+    (tmp_path / 'before-results.jsonl').write_text('changed bytes', encoding="utf-8")
     with pytest.raises(ValueError):
         _review_refresh_changes(tmp_path, binding, current_dataset, current_rows)
 
 
 def test_frozen_scoring_controls_allow_additions_but_reject_edits(tmp_path, monkeypatch):
     original_root = local_audit.ROOT
-    receipt = json.loads((original_root / 'research/dynamic-100-moli-119-local-audit.json').read_text())
+    receipt = json.loads((original_root / 'research/dynamic-100-moli-119-local-audit.json').read_text(encoding="utf-8"))
     root = tmp_path / 'repo'
     bindings = receipt['repository_evidence']
     scoring_path = root / bindings['scoring_revision_path']
     scoring_path.parent.mkdir(parents=True)
     scoring_path.write_bytes((original_root / bindings['scoring_revision_path']).read_bytes())
-    scoring = json.loads(scoring_path.read_text())
+    scoring = json.loads(scoring_path.read_text(encoding="utf-8"))
     # This boundary test owns a frozen synthetic registry. Historical measured
     # registries are retained with their scorer, not selected by today's runtime.
     controls = {'cases': [
@@ -69,7 +69,7 @@ def test_frozen_scoring_controls_allow_additions_but_reject_edits(tmp_path, monk
     dataset = {'id': scoring['dataset_id'], 'cases': [{'id': 'fixture'}]}
     reference = root / 'evaluation/sources/fixture/reference.txt'
     reference.parent.mkdir(parents=True)
-    reference.write_text('Independent synthetic reference')
+    reference.write_text('Independent synthetic reference', encoding="utf-8")
     inventory = [{
         'case_id': 'fixture', 'path': 'evaluation/sources/fixture/reference.txt',
         'sha256': _digest(reference), 'bytes': reference.stat().st_size,
@@ -271,7 +271,7 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     records, _ = run_evaluation(output_dir=evidence, dataset_meta=dataset,
         dataset_path=inputs, cases=cases, providers=[build_provider("fixture", {"type": "fixture"})],
         provider_config_path=config, runs=1, timeout=timeout, delay=0, max_failure_retries=0)
-    batch = json.loads((evidence / "manifest.json").read_text())
+    batch = json.loads((evidence / "manifest.json").read_text(encoding="utf-8"))
     _write(evidence / "execution.json", {"batches": [batch]})
     _write(evidence / "local-run-contract.json", {
         "schema_version": 1, "kind": "uniform_native_local_measurement",
@@ -279,7 +279,7 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
         "scoring_source_sha256": SCORING_SOURCE_SHA256, "providers": ["fixture"],
         "runs": 1, "timeout_seconds": timeout, "max_failure_retries": 0})
     contract_path = evidence / "local-run-contract.json"
-    contract = json.loads(contract_path.read_text())
+    contract = json.loads(contract_path.read_text(encoding="utf-8"))
     contract.update(provider_config_sha256=batch["provider_config_sha256"],
                     runtime_source_sha256=batch["runtime_source_sha256"])
     _write(contract_path, contract)
@@ -297,23 +297,23 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     output = tmp_path / "report"
     build_report(evidence, output, local_audit=True, include_english=include_english)
     from harness.web_fetch.report_version import check_release
-    check_release(output, json.loads((output / "dataset.json").read_text()), records)
-    home = (output / "index.html").read_text()
+    check_release(output, json.loads((output / "dataset.json").read_text(encoding="utf-8")), records)
+    home = (output / "index.html").read_text(encoding="utf-8")
     assert "本地未认证诊断快照" in home
     assert "查看调用链问题和日志留存范围" not in home
     assert 'href="guide/index.html"' in home
     assert "5案例小范围" not in home
-    guide = (output / "guide/index.html").read_text()
+    guide = (output / "guide/index.html").read_text(encoding="utf-8")
     assert "比例只对应本报告列出的案例与配置" in guide
     assert "小范围调用链测试" not in guide
     assert "推算100题" not in guide
-    detail = (output / "attempts" / (records[0]["attempt_id"] + ".html")).read_text()
+    detail = (output / "attempts" / (records[0]["attempt_id"] + ".html")).read_text(encoding="utf-8")
     assert "运行日志与证据" in detail
     assert not (output / "result-review.json").exists()
-    assert json.loads((output / "report-manifest.json").read_text())["certified"] is False
+    assert json.loads((output / "report-manifest.json").read_text(encoding="utf-8"))["certified"] is False
     english_output = tmp_path / "report-bilingual"
     build_report(evidence, english_output, local_audit=True, include_english=True)
-    assert json.loads((english_output / "report-manifest.json").read_text())["languages"] == ["zh", "en"]
+    assert json.loads((english_output / "report-manifest.json").read_text(encoding="utf-8"))["languages"] == ["zh", "en"]
     assert (english_output / "en/index.html").is_file()
     from harness.web_fetch import report_interfaces
     from harness.web_fetch.artifacts import record_public_call_log_bindings
@@ -321,8 +321,8 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     monkeypatch.setattr(report_interfaces, "SPECS", {"fixture": spec})
     interfaces = report_interfaces.render_interfaces(output, records)
     assert "本轮保存的调用字段" in interfaces
-    saved = json.loads((output / record_public_call_log_bindings(records[0])[-1]["path"]).read_text())
-    rendered = json.loads((output / "adoption/interfaces/fixture.json").read_text())
+    saved = json.loads((output / record_public_call_log_bindings(records[0])[-1]["path"]).read_text(encoding="utf-8"))
+    rendered = json.loads((output / "adoption/interfaces/fixture.json").read_text(encoding="utf-8"))
     assert rendered["interface"]["request"] == saved["request"]
     assert rendered["interface"]["params"] == []
     assert spec["params"]  # Rendering must not mutate registered examples.
@@ -343,14 +343,14 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     # byte, even after the repository scorer has moved on.
     from harness.web_fetch.report_build import refresh_local_presentation
     binding_path = tmp_path / "presentation-binding.json"
-    frozen_rows = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
+    frozen_rows = [json.loads(line) for line in (output / "results.jsonl").read_text(encoding="utf-8").splitlines()]
     historical_scorer = "f" * 64
     for row in frozen_rows:
         row["metrics"]["scoring_source_sha256"] = historical_scorer
-    (output / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in frozen_rows))
-    manifest = json.loads((output / "report-manifest.json").read_text())
+    (output / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in frozen_rows), encoding="utf-8")
+    manifest = json.loads((output / "report-manifest.json").read_text(encoding="utf-8"))
     manifest["results_sha256"] = _digest(output / "results.jsonl")
-    historical_edition = json.loads((output / "benchmark-release.json").read_text())
+    historical_edition = json.loads((output / "benchmark-release.json").read_text(encoding="utf-8"))
     historical_edition["scoring_source_sha256"] = historical_scorer
     _write(output / "benchmark-release.json", historical_edition)
     manifest["benchmark_release"]["sha256"] = _digest(output / "benchmark-release.json")
@@ -380,8 +380,8 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     attempt_id = frozen_rows[0]["attempt_id"]
     debug = public_logs / (attempt_id + ".debug.txt")
     response = public_logs / (attempt_id + ".response.txt")
-    debug.write_text("actual library event\n")
-    response.write_text('{"observed": "actual API response"}\n')
+    debug.write_text("actual library event\n", encoding="utf-8")
+    response.write_text('{"observed": "actual API response"}\n', encoding="utf-8")
     rebuilt = tmp_path / "frozen-bilingual-report"
     before_results = (output / "results.jsonl").read_bytes()
     with pytest.raises(ValueError, match="stale scoring"):
@@ -392,15 +392,15 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     assert (rebuilt / "dataset.json").read_bytes() == (output / "dataset.json").read_bytes()
     assert (rebuilt / "en/index.html").is_file()
     for prefix in ("", "en/"):
-        detail = (rebuilt / prefix / "attempts" / (attempt_id + ".html")).read_text()
+        detail = (rebuilt / prefix / "attempts" / (attempt_id + ".html")).read_text(encoding="utf-8")
         assert attempt_id + ".debug.txt" in detail
         assert attempt_id + ".response.html" in detail
     from harness.web_fetch.report_i18n import untranslated_english_narrative, localize_html
     from pathlib import PurePosixPath
-    english_detail = (rebuilt / "en/attempts" / (attempt_id + ".html")).read_text()
+    english_detail = (rebuilt / "en/attempts" / (attempt_id + ".html")).read_text(encoding="utf-8")
     assert "View complete API response (credentials and local paths hidden)" in english_detail
     for suffix in ("debug", "response"):
-        view = (rebuilt / "en/logs" / (attempt_id + "." + suffix + ".html")).read_text()
+        view = (rebuilt / "en/logs" / (attempt_id + "." + suffix + ".html")).read_text(encoding="utf-8")
         assert not untranslated_english_narrative(view, {"中文"})
     sample = ('<p>必需文字组 3（任一写法即可）</p><blockquote>first\n<span>或</span>\nsecond</blockquote><blockquote>引文 first\n或\nsecond</blockquote>'
               '<p>正文没有抓全；低于目标的位置为：位置 1 77.5%。下方会把完整标准答案与实际返回并排展示。</p>'
@@ -421,8 +421,8 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     assert '<pre>原始返回：位置 1\n或\n真实正文</pre>' in localized
     assert (rebuilt / "logs" / debug.name).read_bytes() == debug.read_bytes()
     assert (rebuilt / "logs" / response.name).read_bytes() == response.read_bytes()
-    assert json.loads((rebuilt / "report-manifest.json").read_text())["presentation"]["frozen_scores"]
-    rebuilt_manifest = json.loads((rebuilt / "report-manifest.json").read_text())
+    assert json.loads((rebuilt / "report-manifest.json").read_text(encoding="utf-8"))["presentation"]["frozen_scores"]
+    rebuilt_manifest = json.loads((rebuilt / "report-manifest.json").read_text(encoding="utf-8"))
     from harness.reporting.templates import resolve_template
     assert rebuilt_manifest["template"] == resolve_template("webfetch")
     assert rebuilt_manifest["generated_languages"] == ["zh", "en"]
@@ -456,16 +456,16 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
             check(rebuilt, authority_root=Path(__file__).resolve().parents[1],
                   presentation_binding=binding_path)
     _write(rebuilt/"report-manifest.json", rebuilt_manifest)
-    reproduce = (rebuilt / "reproduce/index.html").read_text()
+    reproduce = (rebuilt / "reproduce/index.html").read_text(encoding="utf-8")
     assert "--language zh --include-english" in reproduce
     assert "--language bilingual" not in reproduce
     assert "--presentation-binding" in reproduce
     assert all(row["metrics"]["scoring_source_sha256"] == historical_scorer
-               for row in map(json.loads, (rebuilt / "results.jsonl").read_text().splitlines()))
+               for row in map(json.loads, (rebuilt / "results.jsonl").read_text(encoding="utf-8").splitlines()))
     chinese = tmp_path / "frozen-chinese-report"
     build_report(rebuilt, chinese, local_audit=True, presentation_binding=binding_path)
     assert list((chinese / "en").rglob("*.html")) == [chinese / "en/index.html"]
-    assert "not been generated" in (chinese / "en/index.html").read_text()
+    assert "not been generated" in (chinese / "en/index.html").read_text(encoding="utf-8")
     _write(binding_path, {**binding, "results_sha256": "0" * 64})
     with pytest.raises(ValueError, match="input binding changed"):
         build_report(output, tmp_path / "invalid-rebuild", local_audit=True,
@@ -473,10 +473,10 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     _write(binding_path, binding)
     binding.pop("measured_scoring_git_revision", None)
     _write(binding_path, binding)
-    (output / "changes/index.html").write_text("<html><body>Old release history</body></html>")
+    (output / "changes/index.html").write_text("<html><body>Old release history</body></html>", encoding="utf-8")
     # Refresh must install the shared behavior/style required by new detail HTML.
     for relative in ("assets/report.js", "assets/style.css"):
-        (output / relative).write_text("stale-presentation-asset")
+        (output / relative).write_text("stale-presentation-asset", encoding="utf-8")
     before = {path.relative_to(output).as_posix(): _digest(path)
               for path in output.rglob("*") if path.is_file()}
     from unittest.mock import patch
@@ -495,7 +495,7 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
         refresh_local_presentation(output, binding_path)
     assert rendered.call_args.kwargs['authored_interpretation'] is False
     for relative in ("assets/report.js", "assets/style.css"):
-        assert "stale-presentation-asset" not in (output / relative).read_text()
+        assert "stale-presentation-asset" not in (output / relative).read_text(encoding="utf-8")
     allowed = {"index.html", "methodology/index.html", "adoption/index.html",
                "reproduce/index.html", "changes/index.html", "providers/fixture.html",
                "adoption/interfaces/fixture.json", "report-manifest.json",
@@ -506,12 +506,12 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
         if relative not in allowed:
             assert _digest(output / relative) == digest
     assert _digest(output / "results.jsonl") == binding["results_sha256"]
-    refreshed = json.loads((output / "report-manifest.json").read_text())
+    refreshed = json.loads((output / "report-manifest.json").read_text(encoding="utf-8"))
     assert refreshed["certified"] is False
     assert refreshed["presentation_refresh"]["scores_changed"] is False
     assert refreshed["presentation_refresh"]["scoring_git_revision"] is None
-    assert "Old release history" not in (output / "changes/index.html").read_text()
-    assert "2026-10-09-dynamic-1000-native-presentation" not in (output / "changes/index.html").read_text()
+    assert "Old release history" not in (output / "changes/index.html").read_text(encoding="utf-8")
+    assert "2026-10-09-dynamic-1000-native-presentation" not in (output / "changes/index.html").read_text(encoding="utf-8")
     assert "changes/index.html" in refreshed["presentation_refresh"]["changed_routes"]
     _write(binding_path, {**binding, "results_sha256": "0" * 64})
     with pytest.raises(ValueError, match="input binding changed"):
@@ -527,10 +527,10 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     # A review-only update installs both the new detail and current coverage,
     # while keeping the authored guide, logs, references and measured inputs.
     from lexbench_webfetch.metrics import task_passed
-    current_case = json.loads((output / "dataset.json").read_text())["cases"][0]
+    current_case = json.loads((output / "dataset.json").read_text(encoding="utf-8"))["cases"][0]
     current_record = frozen_rows[0]
     verdict = "pass" if task_passed(current_record["ok"], current_record["metrics"]) else "fail"
-    text = artifact.read_text()
+    text = artifact.read_text(encoding="utf-8")
     opinion = {"attempt_id": attempt_id, "verdict": verdict,
                "reason": "Observed fixture answer: " + text[:80], "anomalies": []}
     initial_path = output / "local-evidence/fresh-initial.json"
@@ -570,27 +570,27 @@ def test_new_local_matrix_is_complete_and_keeps_logs_without_claiming_review(tmp
     for relative, digest in before_review.items():
         if relative not in permitted:
             assert _digest(output / relative) == digest
-    assert "1/1" in (output / "review/index.html").read_text()
+    assert "1/1" in (output / "review/index.html").read_text(encoding="utf-8")
     for prefix in (["", "en/"] if include_english else [""]):
-        assert opinion["reason"] in (output / prefix / "attempts" / (attempt_id + ".html")).read_text()
-    assert json.loads((output / "presentation-binding.json").read_text()) == binding
+        assert opinion["reason"] in (output / prefix / "attempts" / (attempt_id + ".html")).read_text(encoding="utf-8")
+    assert json.loads((output / "presentation-binding.json").read_text(encoding="utf-8")) == binding
     assert (output / "results.jsonl").read_bytes() == before_results
     # A compact current authority has no old full-matrix baseline. Template
     # invalidation must still install all live derived pages, not copied ones.
     stale_routes = ['analysis/index.html', 'guide/index.html', 'datasets/index.html',
                     'datasets/' + current_case['id'] + '.html']
     for relative in stale_routes:
-        (output/relative).write_text('<html><body>stale-current-state-route</body></html>')
+        (output/relative).write_text('<html><body>stale-current-state-route</body></html>', encoding="utf-8")
     for relative in ['summary.json', 'reliability.json']:
         _write(output/relative, {'stale_current_state': True})
     with patch('harness.web_fetch.report_build._current_template_refresh', return_value=True):
         refresh_local_presentation(output, binding_path, review_only=True)
     for relative in stale_routes:
-        assert 'stale-current-state-route' not in (output/relative).read_text()
+        assert 'stale-current-state-route' not in (output/relative).read_text(encoding="utf-8")
         if include_english:
-            assert 'stale-current-state-route' not in (output/'en'/relative).read_text()
+            assert 'stale-current-state-route' not in (output/'en'/relative).read_text(encoding="utf-8")
     for relative in ['summary.json', 'reliability.json']:
-        assert 'stale_current_state' not in json.loads((output/relative).read_text())
+        assert 'stale_current_state' not in json.loads((output/relative).read_text(encoding="utf-8"))
     assert (output/'results.jsonl').read_bytes() == before_results
     assert artifact.read_bytes() == original_output
 
@@ -677,7 +677,7 @@ def test_report_real_diagnostics_do_not_claim_missing_debug(tmp_path):
     from harness.web_fetch.report import run_log_section
     log = tmp_path / "logs/real.txt"
     log.parent.mkdir()
-    log.write_text('{"source":"caller","event":"request_sent"}\n')
+    log.write_text('{"source":"caller","event":"request_sent"}\n', encoding="utf-8")
     record = {"attempt_id": "a", "provider": "moli-webfetch", "case_id": "c",
               "run": 1, "started_at": "2026-10-08T00:00:00+00:00", "ok": False, "elapsed_ms": 45000,
               "provider_metadata": {"public_debug_log_path": "logs/real.txt",
@@ -691,7 +691,7 @@ def test_report_real_diagnostics_do_not_claim_missing_debug(tmp_path):
     assert "没有保存 debug 日志" not in html
     assert "实际诊断日志" in html
     assert (tmp_path / "logs/real.html").is_file()
-    assert "request_sent" in (tmp_path / "logs/real.html").read_text()
+    assert "request_sent" in (tmp_path / "logs/real.html").read_text(encoding="utf-8")
 
 
 def test_local_score_correction_preserves_call_facts_and_original_contract(tmp_path):
@@ -864,7 +864,7 @@ def test_local_offline_projection_keeps_native_url_and_call_facts(tmp_path, retu
 
 def test_local_review_retains_deferred_failure_and_rejects_wrong_coverage(tmp_path):
     import copy
-    (tmp_path / "results.jsonl").write_text("saved results")
+    (tmp_path / "results.jsonl").write_text("saved results", encoding="utf-8")
     record = {"attempt_id": "a", "ok": False, "metrics": {"content_sha256": "body"}}
     review = {"kind": "local_independent_review", "review_protocol": {"scope": "all"},
               "reviewed_attempts": 1, "expected_attempts": 1,
@@ -913,7 +913,7 @@ def test_retrospective_page_review_preserves_call_and_checks_other_requirements(
                 'observed_final_url': 'https://example.test/document'}}},
             'acceptance_contract': {'version': 1, 'schema': 'body_text', 'minimum_records': 0,
                 'stable_text_anchors': [{'id': 'body', 'alternatives': ['Expected complete body']}]}}
-    (tmp_path / 'answer.txt').write_text(body)
+    (tmp_path / 'answer.txt').write_text(body, encoding="utf-8")
     record = {'attempt_id': 'method__synthetic__r001', 'case_id': 'synthetic',
               'artifact_path': 'answer.txt', 'ok': True, 'final_url': None,
               'metrics': score_attempt(case, body.encode(), ok=True)}
@@ -986,7 +986,7 @@ def test_offline_rescore_reuses_only_unchanged_identity_inputs(tmp_path, defect,
         'acceptance_contract': {'version': 1, 'schema': 'body_text', 'minimum_records': 0,
             'stable_text_anchors': [{'id': 'body', 'alternatives': ['Expected complete body']}]}}
     current = copy.deepcopy(old)
-    (tmp_path/'answer.txt').write_text(body)
+    (tmp_path/'answer.txt').write_text(body, encoding="utf-8")
     record = {'attempt_id': f'method__{case_id}__r001', 'case_id': case_id,
         'artifact_path': 'answer.txt', 'ok': True, 'final_url': None,
         'metrics': score_attempt(current, body.encode(), ok=True)}
@@ -1134,7 +1134,7 @@ def test_full_current_refresh_requires_explicit_authority_and_changed_template(t
     assert not _current_template_refresh(tmp_path,binding('local_offline_score_revision'),changed)
     assert not _current_template_refresh(tmp_path,binding(schema=2),changed)
     assert not _current_template_refresh(tmp_path,{},changed)
-    bad=binding();path.write_text('changed')
+    bad=binding();path.write_text('changed', encoding="utf-8")
     with pytest.raises(ValueError):
         _current_template_refresh(tmp_path,bad,changed)
 
@@ -1153,7 +1153,7 @@ def test_frozen_manifest_uses_only_the_selected_task_replacement_authority(tmp_p
     original = {'task_replacement': {'path': 'deleted-history/receipt.json', 'sha256': 'old'},
                 'results_sha256': 'unchanged-results'}
     write_frozen_presentation_manifest(tmp_path, original)
-    saved = json.loads((tmp_path/'report-manifest.json').read_text())
+    saved = json.loads((tmp_path/'report-manifest.json').read_text(encoding="utf-8"))
     assert saved['results_sha256'] == original['results_sha256']
     if current:
         assert 'task_replacement' not in saved

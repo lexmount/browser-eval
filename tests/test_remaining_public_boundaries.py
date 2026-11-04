@@ -14,11 +14,11 @@ def test_trusted_extractor_probe_and_existing_output(tmp_path):
                       'class WebFetch:\n'
                       '    @staticmethod\n'
                       '    def _extract_text(html):\n'
-                      '        return re.sub(r"<[^>]+>", "", html)\n')
-    expected = probe_extractor(source.read_text())
+                      '        return re.sub(r"<[^>]+>", "", html)\n', encoding='utf-8')
+    expected = probe_extractor(source.read_text(encoding='utf-8'))
     output = tmp_path / 'probe.json'
     probe_main([str(source), '--output', str(output)])
-    assert json.loads(output.read_text()) == expected
+    assert json.loads(output.read_text(encoding='utf-8')) == expected
     assert expected['observations']['body_preserved']
     assert expected['observations']['navigation_preserved']
     assert not expected['observations']['detail_url_preserved']
@@ -43,7 +43,7 @@ def test_wcxb_visual_generated_report(tmp_path):
     diagnostic['f1'] = 0.25
     svg = '<svg xmlns="http://www.w3.org/2000/svg" width="40" height="20"><text y="15">test</text></svg>'
     image = inputs[0] / 'specimen.svg'
-    image.write_text(svg)
+    image.write_text(svg, encoding='utf-8')
     card = ('<article class="repair-case"><figure><img src="specimen.svg" alt="synthetic" />'
             '</figure><div class="repair-samples"><pre>source</pre><pre>before</pre>'
             '<pre>after</pre></div></article>')
@@ -53,9 +53,9 @@ def test_wcxb_visual_generated_report(tmp_path):
         outputs = {row['provider']: 'Independent article 0' for row in inputs[1]
                    if row['case_id'] == case_id}
         (inputs[0] / 'evidence' / f'{case_id}.json').write_text(json.dumps({
-            'source_html': '<main>Independent article 0</main>', 'outputs': outputs}))
+            'source_html': '<main>Independent article 0</main>', 'outputs': outputs}), encoding='utf-8')
     generate_wcxb(*inputs)
-    (inputs[0] / "wcxb-scores.jsonl").write_text("".join(json.dumps(row) + "\n" for row in inputs[1]))
+    (inputs[0] / "wcxb-scores.jsonl").write_text("".join(json.dumps(row) + "\n" for row in inputs[1]), encoding='utf-8')
     check_visual(inputs[0], browser_executable())
 
 

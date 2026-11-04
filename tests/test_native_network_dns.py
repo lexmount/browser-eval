@@ -61,7 +61,7 @@ class NativeDnsBrokerTests(unittest.TestCase):
                 token = broker.token
                 self.assertEqual(self.query(broker, "failed.invalid"), b"ERROR\n")
             sink.finish(ProviderResult(False, ""))
-            raw = sink.path.read_text()
+            raw = sink.path.read_text(encoding="utf-8")
             rows = [json.loads(line) for line in raw.splitlines()]
             self.assertEqual(calls, ["failed.invalid"])
             self.assertEqual(rows[1]["source"], "caller_dns")
@@ -128,7 +128,7 @@ int main(void) {
         with tempfile.TemporaryDirectory() as directory:
             path = pathlib.Path(directory)
             library, manifest = build_native_dns_library(path / "dns.dylib")
-            probe = path / "probe.c"; probe.write_text(source)
+            probe = path / "probe.c"; probe.write_text(source, encoding="utf-8")
             binary = path / "probe"
             subprocess.run(["cc", "-Wall", "-Wextra", "-Werror", str(probe), "-o", str(binary)], check=True)
             with NativeDnsBroker(resolver=lambda host,timeout: [("127.0.0.1",4),("::1",6)]) as broker:

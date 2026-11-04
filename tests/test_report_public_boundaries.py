@@ -7,9 +7,9 @@ from harness.web_fetch.artifacts import copy_cohort_evidence
 
 class ReportPublicBoundaryTests(unittest.TestCase):
     def _minimal_cohort(self, root: Path) -> None:
-        (root / 'dataset.json').write_text('{"cases": []}')
-        (root / 'results.jsonl').write_text('')
-        (root / 'speed-comparison.json').write_text('{}')
+        (root / 'dataset.json').write_text('{"cases": []}', encoding='utf-8')
+        (root / 'results.jsonl').write_text('', encoding='utf-8')
+        (root / 'speed-comparison.json').write_text('{}', encoding='utf-8')
 
     def test_speed_cohort_copies_only_declared_public_files(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -17,9 +17,9 @@ class ReportPublicBoundaryTests(unittest.TestCase):
             source, target = root / 'source', root / 'target'
             source.mkdir()
             self._minimal_cohort(source)
-            (source / 'private-session-note.txt').write_text('internal')
+            (source / 'private-session-note.txt').write_text('internal', encoding='utf-8')
             (source / 'artifacts').mkdir()
-            (source / 'artifacts/unbound-debug.txt').write_text('internal')
+            (source / 'artifacts/unbound-debug.txt').write_text('internal', encoding='utf-8')
 
             copy_cohort_evidence(source, target, {'cases': []}, [], [],
                                        summary_name='speed-comparison.json')

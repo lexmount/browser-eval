@@ -77,8 +77,7 @@ report-group registry used by configuration, execution and presentation.
 ## Independent browser observations
 
 `browser_observations.py` owns browser reference capture; the corresponding
-`scripts/capture_headless_browser_observations.py` command only parses the shared
-entry point. Install the `headless-eval` extra and a Playwright Chromium
+`uv run --frozen python -m harness.web_fetch headless-observations` command runs it. Install the `headless-eval` extra and a Playwright Chromium
 browser, or pass `--browser-binary` with an installed Chromium executable. Batch capture requires POSIX process isolation.
 New tasks declare their completion and content scope in the task definition:
 
@@ -131,7 +130,7 @@ content requirement establishes the source scope.
 Current qualified inputs come from [LexBench-WCXB on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-WCXB), selected by the [data lock](../benchmarks/data-lock.json). Browser Eval owns the runner and scorer. Existing experiment profiles keep their original source manifests and input hashes.
 
 `wcxb_scoring.py` owns certified frozen-HTML scoring. The maintained command is
-`scripts/score_wcxb_results.py`; the required `--profile` argument selects an
+`uv run --frozen python -m harness.web_fetch wcxb-score`; the required `--profile` argument selects an
 external experiment profile. The profile's ordered
 participants must match the cohort certificate exactly. Adding or renaming a
 participant in a separately certified cohort requires data changes rather than
@@ -233,7 +232,7 @@ findings, explanatory prose and examples. It does not contain rendering code.
 
 ```bash
 uv run --frozen python scripts/build_report.py --profile /absolute/instance/profile.json --output <new-report-directory>
-uv run --frozen python scripts/check_diagnostic_report.py <new-report-directory> --profile /absolute/instance/profile.json
+uv run --frozen python -m harness.web_fetch diagnostic-check <new-report-directory> --profile /absolute/instance/profile.json
 ```
 
 Set `BROWSER_EVAL_DATA_HOME` when the external evidence uses a nondefault root.
@@ -250,7 +249,7 @@ entry. The shared runner retains its exact configuration hash in each execution
 batch; changing one instance does not overwrite another report's defaults.
 Use Artifact Site's official CLI for transport and recovery, supplying the
 profile-bound host, slug and expected version. An update does not create a share.
-After export, `check_diagnostic_report.py --deployed-archive <export.zip>` compares
+After export, `diagnostic-check --deployed-archive <export.zip>` compares
 the complete deployed tree with the locally checked instance, byte for byte.
 
 The answer envelope accepts body text and explicitly paired name/link records
@@ -327,21 +326,21 @@ The three result filters remain pass/fail/all; unmeasured rows appear in all.
 
 ### Correct a score or reference
 
-`scripts/rescore_content.py` recomputes
+`uv run --frozen python -m harness.web_fetch content-rescore` recomputes
 all applicable records through the shared scorer without supplier calls.
 Known scoring failure modes have compact synthetic positive and negative controls
 in `src/harness/benchmarks/scoring-regressions.json`; CI executes every control through the
 same `score_attempt` orchestration and task predicate used by live and offline
 scoring. A new decision-changing scoring correction, or a frozen-reference
-correction via `scripts/revise_reference_evidence.py`, must use its revision
+correction via `uv run --frozen python -m harness.web_fetch reference-revision`, must use its revision
 command with a concrete `--root-cause-category`,
 `--root-cause`, and one or more `--regression-id` values. The command validates
 those controls before touching evidence and writes their IDs plus FP/FN direction
 counts into the revision receipt. Directly editing stored verdicts is not a
 supported correction path.
 
-Reference corrections use `harness.web_fetch.reference_revision`; the
-`revise_reference_evidence.py` command invokes that same owner. It validates
+Reference corrections use `harness.web_fetch.reference_revision` through the
+`reference-revision` command. It validates
 existing revision histories before any change, stages the full evidence bundle,
 and copies only the selected cases' corrected reference inputs. A failed copy,
 score or receipt write leaves the original bundle intact. Success retains the
@@ -349,9 +348,8 @@ predecessor beside the evidence directory under `.NAME-reference-history-*/origi
 these private copies preserve prior references and are excluded from the report.
 
 Offline rescoring and scoring revisions are available through
-`uv run --frozen python -m harness.web_fetch.rescoring --help` and
-`uv run --frozen python -m harness.web_fetch.scoring_revision --help`. The existing
-`rescore_content.py` and `revise_body_scoring.py` commands use the same owners.
+`uv run --frozen python -m harness.web_fetch content-rescore --help` and
+`uv run --frozen python -m harness.web_fetch scoring-revision --help`.
 Supply an evidence directory and, for rule revisions, an explicit canonical
 input plus the required root cause and executable regression IDs. Neither
 operation calls providers. Declared evidence must remain present, unmodified
@@ -360,13 +358,13 @@ and free of symbolic links before scores can be rewritten.
 ### Retain or merge an existing review
 
 Existing independent judgments can be retained after a score-only correction
-with `scripts/rebase_blind_result_review.py`. It requires identical task and
+with `uv run --frozen python -m harness.web_fetch review-rebase`. It requires identical task and
 reviewer-visible inputs, retains the independent verdicts, and requires explicit
 adjudication for remaining disagreements. `--output` stages a validated blind
 review; `--install` also requires the complete publication review checks.
 The output cannot overwrite input evidence or the prior review.
 
-`scripts/merge_result_review_revision.py` combines a prior complete review with
+`uv run --frozen python -m harness.web_fetch review-merge` combines a prior complete review with
 already recorded supplemental judgments. Use `--prior-review` for a bound scoring
 revision chain, or `--prior-evidence` for a refreshed result matrix. Changed tasks
 invalidate reviews across all methods; rerun outputs invalidate the affected
@@ -378,10 +376,10 @@ dataset before publication.
 
 ### Request an independent review
 
-Independent execution remains opt-in through `scripts/review_headless_results.py`;
+Independent execution remains opt-in through `uv run --frozen python -m harness.web_fetch review-headless`;
 its default scope is machine failures. Reviewing passes or the full matrix also
 requires `--confirm-full-review`. `--prepare-only` creates blinded packets without
-starting a reviewer. `scripts/review_result_anomalies.py` investigates an already
+starting a reviewer. `uv run --frozen python -m harness.web_fetch review-anomalies` investigates an already
 recorded blind review without changing its independent judgments.
 
 Keep each command's `--work` directory outside Git and measured evidence. Its private
@@ -515,11 +513,11 @@ Pass private input directories explicitly; merged output must be new.
 These commands make no provider calls and do not rescore:
 
 ```sh
-uv run --frozen python scripts/merge_dynamic_supplement.py \
+uv run --frozen python -m harness.web_fetch dynamic-merge \
   --reference /absolute/path/frozen-reference \
   --runs /absolute/path/run-a /absolute/path/run-b \
   --output /absolute/path/new-assembled-supplement
-uv run --frozen python scripts/append_dynamic_content.py \
+uv run --frozen python -m harness.web_fetch dynamic-append \
   --source /absolute/path/current-evidence \
   --reference /absolute/path/frozen-reference \
   --measured /absolute/path/new-assembled-supplement \
@@ -690,7 +688,7 @@ validated stable acceptance contract, the following safeguards still apply:
    to make a provider pass.
 3. After the last relevant call, independently recapture the same complete
    scope within 30 minutes. Submit the observation to
-   `scripts/finalize_reference_checks.py --run-dir RUN --observations FILE`.
+   `uv run --frozen python -m harness.web_fetch reference-finalize --run-dir RUN --observations FILE`.
    The JSON observation contains `case_id`, `independent: true`, `checked_at`,
    `content_text`, the exact `scope_identity` from the manifest binding, and
    `completion: {satisfied, elapsed_ms, timeout_ms}`. These fields attest to
@@ -804,7 +802,7 @@ Node uses the products' resolver interfaces. Native private-address checks and
 address pinning remain active where the product provides them. CowAgent's native
 SSRF setting is preserved (the pinned implementation defaults to disabled).
 Moli on Darwin uses a process-local native resolver bridge. Build it explicitly
-outside Git with `uv run --frozen python scripts/build_native_dns.py
+outside Git with `uv run --frozen python -m harness.web_fetch native-dns
 ~/.browser-eval/toolchains/native-dns/libbrowser-eval-dns.dylib`, and configure
 `native_dns_library` (or `MOLI_NATIVE_DNS_LIBRARY` in the example). The adapter
 checks the library hash, compiled C source hash and architecture before calls;
@@ -984,12 +982,12 @@ round before observing results. Failed calls remain in the physical log; an
 incomplete, drifting or invalid cohort receives no valid receipt.
 
 ```bash
-uv run --frozen python -m harness.web_fetch.wcxb_latency \
+uv run --frozen python -m harness.web_fetch wcxb-latency \
   --profile /absolute/path/current-report.json \
   --dataset /absolute/path/wcxb --manifest /absolute/path/qualified.json \
   --release /absolute/path/released-binary --candidate /absolute/path/candidate-binary \
   --output /absolute/path/new-paired-evidence
-uv run --frozen python -m harness.web_fetch.wcxb_latency certify \
+uv run --frozen python -m harness.web_fetch wcxb-latency certify \
   --profile /absolute/path/current-report.json \
   --dataset /absolute/path/wcxb --sample-manifest /absolute/path/qualified.json \
   --evidence-root /absolute/path/new-paired-evidence
@@ -1009,7 +1007,8 @@ WCXB release and visual checks pass, the publisher can be invoked from an
 installed package with an explicit repository authority:
 
 ```bash
-uv run --frozen python -m harness.web_fetch.wcxb_publication \
+uv run --frozen python -m harness.web_fetch wcxb-publish \
+  --profile /absolute/path/current-report.json \
   --authority-root /absolute/path/browser-eval --source /absolute/path/wcxb-report
 ```
 
@@ -1048,7 +1047,7 @@ and execution limits. The manifest declares the parent population and selected
 tasks; the assembler does not infer a population from the available shard files.
 Sample execution is serial, with one logical result per method and task.
 
-`review_webmainbench_results.py` is an explicit deterministic audit entry. It
+`uv run --frozen --extra webmainbench-eval python -m harness.web_fetch webmainbench-review` is an explicit deterministic audit entry. It
 checks saved evidence without calling a provider or importing the official
 scorer for its independent text, code and formula checks. Its receipt binds the
 profile and every reviewed record, output, summary, execution record and fixture
@@ -1059,7 +1058,7 @@ result review.
 After an explicitly requested audit has produced a passing receipt, assemble it:
 
 ```bash
-uv run --frozen python scripts/assemble_webmainbench_evidence.py \
+uv run --frozen python -m harness.web_fetch webmainbench-assemble \
   --source-root /absolute/path/provider-shards \
   --dataset /absolute/path/WebMainBench_545.jsonl \
   --sample-manifest evaluation/public-webmainbench-200.json \
@@ -1314,7 +1313,7 @@ causes without copying every failure's complete output and logs.
 ### Sharing a frozen diagnostic snapshot
 
 Pass the same `--presentation-binding /path/to/binding.json` to
-`scripts/package_artifact_site.py` and `scripts/check_publication_bundle.py` when
+`uv run --frozen python -m harness.web_fetch site-package` and `site-bundle-check` when
 sharing a previously validated frozen local report. Both commands verify its
 saved matrix, scorer identity, evidence and revision bindings through the existing
 presentation validator. This does not certify the cohort or add result reviews;
@@ -1325,13 +1324,15 @@ The profile-bound publisher accepts the same binding. Use `--visibility unlisted
 for ordinary link sharing at the existing `/s/<slug>` address; `private` and
 `public` must follow the requested access scope. The publisher verifies the
 actual access state without creating an independent share link.
+`uv run --frozen python -m harness.web_fetch site-verify` checks a published
+report's metadata and, with `--export`, its bytes against the expected archive.
 
 Large publication trees automatically use content-defined deduplication and a
 compressed catalog when fixed-block storage exceeds the upload budget. Both
 encodings retain complete virtual files, source bindings and file hashes.
 An acceptance contract stays inline when no standalone contract file exists.
 To reuse a completed public content cache, pass `--cached-content <directory>`
-to `scripts/package_artifact_site.py` with the same source and, when applicable,
+to `uv run --frozen python -m harness.web_fetch site-package` with the same source and, when applicable,
 `--presentation-binding`. The packer refreshes source-bound result privacy and
 footprint projections when the cache uses an earlier representation; it rejects
 a cache bound to another source. `--refresh-privacy` additionally applies the

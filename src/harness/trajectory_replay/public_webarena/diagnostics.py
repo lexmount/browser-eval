@@ -38,6 +38,7 @@ from harness.trajectory_replay.diagnostics import (
     diagnostic_output_path,
     write_diagnostic,
 )
+from harness.trajectory_replay.participants import DEFAULT_DIAGNOSIS_MODEL
 from harness.trajectory_replay.public_webarena.qualification import (
     build_probe,
     task_contract_sha256,
@@ -164,7 +165,7 @@ def add_llm_diagnoses(
     *,
     api_key: str,
     api_base: str,
-    model: str = "gpt-5.6-sol",
+    model: str = DEFAULT_DIAGNOSIS_MODEL,
     reasoning_effort: str = "low",
     timeout_seconds: int = 120,
 ) -> dict[str, Any]:
@@ -251,7 +252,7 @@ def diagnose_summary(
     use_llm: bool = False,
     api_key: str | None = None,
     api_base: str | None = None,
-    model: str = "gpt-5.6-sol",
+    model: str = DEFAULT_DIAGNOSIS_MODEL,
     reasoning_effort: str = "low",
 ) -> dict[str, Any]:
     groups = build_failure_groups(summary)

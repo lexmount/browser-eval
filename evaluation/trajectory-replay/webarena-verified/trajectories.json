@@ -158,7 +158,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -170,7 +170,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999/f/DIY"
+          "url": "http://host.docker.internal:9999/f/DIY"
         },
         {
           "action": "click",
@@ -243,7 +243,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         }
       ],
       "evaluation_input": {
@@ -296,7 +296,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -355,7 +355,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com"
+          "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com"
         },
         {
           "action": "click",
@@ -497,7 +497,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -647,7 +647,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -716,7 +716,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -792,7 +792,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -922,7 +922,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -1081,7 +1081,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "click",
@@ -1158,7 +1158,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "fill",
@@ -1302,7 +1302,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -1387,11 +1387,11 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com/-/commits/main?author=kilian"
+          "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com/-/commits/main?author=kilian"
         }
       ],
       "evaluation_input": {
@@ -1444,7 +1444,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -1511,7 +1511,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -1585,7 +1585,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770/ostent-16gb-memory-card-stick-storage-for-sony-ps-vita-psv1000-2000-pch-z081-z161-z321-z641.html"
+          "url": "http://host.docker.internal:7770/ostent-16gb-memory-card-stick-storage-for-sony-ps-vita-psv1000-2000-pch-z081-z161-z321-z641.html"
         },
         {
           "action": "click",
@@ -1654,11 +1654,11 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/?personal=true&sort=stars_desc"
+          "url": "http://host.docker.internal:8023/?personal=true&sort=stars_desc"
         }
       ],
       "evaluation_input": {
@@ -1709,7 +1709,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -1953,7 +1953,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "click",
@@ -2030,7 +2030,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -2099,7 +2099,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -2249,7 +2249,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -2400,7 +2400,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "click",
@@ -2469,7 +2469,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -2631,7 +2631,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "click",
@@ -2690,7 +2690,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "fill",
@@ -2906,7 +2906,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -2995,7 +2995,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "click",
@@ -3070,15 +3070,15 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com"
+          "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com"
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com/-/graphs/main/charts?from=2023-01-01&to=2023-12-31"
+          "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com/-/graphs/main/charts?from=2023-01-01&to=2023-12-31"
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com/-/commits/main?author=Kilian&since=2023-01-01T00%3A00%3A00Z&until=2023-12-31T23%3A59%3A59Z"
+          "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com/-/commits/main?author=Kilian&since=2023-01-01T00%3A00%3A00Z&until=2023-12-31T23%3A59%3A59Z"
         }
       ],
       "evaluation_input": {
@@ -3131,7 +3131,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "click",
@@ -3210,7 +3210,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -3222,7 +3222,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/primer/design/-/graphs/main/charts"
+          "url": "http://host.docker.internal:8023/primer/design/-/graphs/main/charts"
         },
         {
           "action": "scroll",
@@ -3233,7 +3233,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/primer/design/-/graphs/main"
+          "url": "http://host.docker.internal:8023/primer/design/-/graphs/main"
         }
       ],
       "evaluation_input": {
@@ -3490,7 +3490,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -3502,7 +3502,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/byteblaze/gimmiethat.space/-/project_members"
+          "url": "http://host.docker.internal:8023/byteblaze/gimmiethat.space/-/project_members"
         }
       ],
       "evaluation_input": {
@@ -3555,7 +3555,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -3641,7 +3641,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "fill",
@@ -3728,7 +3728,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -3812,7 +3812,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -3916,7 +3916,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -4084,7 +4084,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -4164,7 +4164,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/byteblaze/gimmiethat.space"
+          "url": "http://host.docker.internal:8023/byteblaze/gimmiethat.space"
         },
         {
           "action": "click",
@@ -4279,7 +4279,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -4441,7 +4441,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "fill",
@@ -5107,7 +5107,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7770"
+          "url": "http://host.docker.internal:7770"
         },
         {
           "action": "click",
@@ -5321,7 +5321,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -5523,7 +5523,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/primer/design"
+          "url": "http://host.docker.internal:8023/primer/design"
         },
         {
           "action": "click",
@@ -5535,7 +5535,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/primer/design/-/milestones"
+          "url": "http://host.docker.internal:8023/primer/design/-/milestones"
         },
         {
           "action": "click",
@@ -5623,7 +5623,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -5874,7 +5874,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -5992,7 +5992,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999/f/pics"
+          "url": "http://host.docker.internal:9999/f/pics"
         },
         {
           "action": "click",
@@ -6015,11 +6015,11 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999/submit/connecticut"
+          "url": "http://host.docker.internal:9999/submit/connecticut"
         },
         {
           "action": "fill",
-          "text": "http://192.168.5.2:9999/submission_images/b02113033af32feae9ff147dbbe3764039368d67d193885bd04e65c2e6beea9c.jpg",
+          "text": "http://host.docker.internal:9999/submission_images/b02113033af32feae9ff147dbbe3764039368d67d193885bd04e65c2e6beea9c.jpg",
           "selector": "input[name=\"submission[url]\"]:visible",
           "replay_mode": "snapshot_ref_semantics"
         },
@@ -6090,7 +6090,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -6192,7 +6192,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -6292,7 +6292,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -6380,7 +6380,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -6496,7 +6496,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -6599,7 +6599,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -6696,7 +6696,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023"
+          "url": "http://host.docker.internal:8023"
         },
         {
           "action": "click",
@@ -6799,7 +6799,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/primer/design"
+          "url": "http://host.docker.internal:8023/primer/design"
         },
         {
           "action": "click",
@@ -7178,7 +7178,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "click",
@@ -7190,7 +7190,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999/f/gadgets"
+          "url": "http://host.docker.internal:9999/f/gadgets"
         },
         {
           "action": "click",
@@ -7281,7 +7281,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "fill",
@@ -7305,7 +7305,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999/user/ThetaGang_wsb"
+          "url": "http://host.docker.internal:9999/user/ThetaGang_wsb"
         },
         {
           "action": "click",
@@ -7447,7 +7447,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:9999"
+          "url": "http://host.docker.internal:9999"
         },
         {
           "action": "fill",
@@ -7540,7 +7540,7 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:7780/admin"
+          "url": "http://host.docker.internal:7780/admin"
         },
         {
           "action": "click",
@@ -7677,11 +7677,11 @@
       "tool_calls": [
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/CellularPrivacy/Android-IMSI-Catcher-Detector"
+          "url": "http://host.docker.internal:8023/CellularPrivacy/Android-IMSI-Catcher-Detector"
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/CellularPrivacy/Android-IMSI-Catcher-Detector/-/graphs/master/charts"
+          "url": "http://host.docker.internal:8023/CellularPrivacy/Android-IMSI-Catcher-Detector/-/graphs/master/charts"
         },
         {
           "action": "evaluate",
@@ -7693,7 +7693,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100"
+          "url": "http://host.docker.internal:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100"
         },
         {
           "action": "get_text",
@@ -7701,7 +7701,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100&page=2"
+          "url": "http://host.docker.internal:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100&page=2"
         },
         {
           "action": "get_text",
@@ -7709,7 +7709,7 @@
         },
         {
           "action": "navigate",
-          "url": "http://192.168.5.2:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100&page=3"
+          "url": "http://host.docker.internal:8023/api/v4/projects/61/repository/contributors?ref=master&per_page=100&page=3"
         }
       ],
       "evaluation_input": {

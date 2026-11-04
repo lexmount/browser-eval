@@ -8,6 +8,7 @@ missing object or mutates the snapshot.
 
 from __future__ import annotations
 
+import argparse
 import html
 import json
 import re
@@ -17,7 +18,6 @@ from urllib.request import urlopen
 
 OBJECT_PATH = re.compile(r"^/(node|way|relation)/([1-9][0-9]{0,18})/?$")
 TYPE_CODE = {"node": "N", "way": "W", "relation": "R"}
-NOMINATIM = "http://127.0.0.1:8085"
 # Nominatim deliberately omits many route relations.  This exact object is
 # frozen from Wikidata Q1132510 revision 2489023584, whose P402 value is
 # relation 5475586 and whose P625 coordinate is the value below.  The source
@@ -61,13 +61,13 @@ STYLE = """
 """
 
 
-def lookup(kind: str, identifier: str) -> dict | None:
+def lookup(kind: str, identifier: str, nominatim: str) -> dict | None:
     frozen = FROZEN_OBJECTS.get((kind, identifier))
     if frozen is not None:
         return frozen
     query = urlencode({"osm_ids": TYPE_CODE[kind] + identifier,
                        "format": "json", "addressdetails": 1, "extratags": 1})
-    with urlopen(f"{NOMINATIM}/lookup?{query}", timeout=10) as response:
+    with urlopen(f"{nominatim}/lookup?{query}", timeout=10) as response:
         places = json.load(response)
     return next((place for place in places
                  if place.get("osm_type") == kind and str(place.get("osm_id")) == identifier),
@@ -112,7 +112,7 @@ class DetailHandler(BaseHTTPRequestHandler):
             return
         kind, identifier = match.groups()
         try:
-            place = lookup(kind, identifier)
+            place = lookup(kind, identifier, self.server.nominatim)
         except (OSError, ValueError, json.JSONDecodeError):
             self.send_error(502, "Frozen Map lookup unavailable")
             return
@@ -130,9 +130,20 @@ class DetailHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
 
-def serve() -> None:
-    ThreadingHTTPServer(("127.0.0.1", 8091), DetailHandler).serve_forever()
+class DetailServer(ThreadingHTTPServer):
+    def __init__(self, address: tuple[str, int], nominatim: str) -> None:
+        super().__init__(address, DetailHandler)
+        self.nominatim = nominatim
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--port", type=int, required=True)
+    parser.add_argument("--nominatim-port", type=int, required=True)
+    args = parser.parse_args(argv)
+    nominatim = f"http://127.0.0.1:{args.nominatim_port}"
+    DetailServer(("127.0.0.1", args.port), nominatim).serve_forever()
 
 
 if __name__ == "__main__":
-    serve()
+    main()

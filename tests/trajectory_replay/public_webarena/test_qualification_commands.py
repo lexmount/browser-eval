@@ -22,14 +22,16 @@ def _inputs(tmp_path):
     }
     suite = tmp_path / "suite.json"
     suite.write_text(json.dumps({"schema": "lex_browser_use_tasks/4", "benchmark": {},
-                                 "tasks": [task]}))
+                                 "tasks": [task]}), encoding="utf-8")
     decision = {"task_id": "one", "disposition": "needs_trace_repair", "adjudication": {
         "status": "eligible", "reason": "Use the current save control",
         "corrected_trajectory": {"schema": "lex_browser_trajectory/1",
                                  "actions": [{"action": "click", "selector": "#current-save"}]},
     }}
     adjudication = tmp_path / "qualification.json"
-    adjudication.write_text(json.dumps({"schema": q.QUALIFICATION_SCHEMA, "tasks": [decision]}))
+    adjudication.write_text(
+        json.dumps({"schema": q.QUALIFICATION_SCHEMA, "tasks": [decision]}), encoding="utf-8"
+    )
     return task, suite, adjudication
 
 
@@ -39,10 +41,10 @@ def _attempts(tmp_path, task):
         directory = tmp_path / f"pass-{index}"
         directory.mkdir()
         (directory / "final.png").write_bytes(b"synthetic screenshot")
-        (directory / "final-page.json").write_text('{"visible_text":"Saved"}')
+        (directory / "final-page.json").write_text('{"visible_text":"Saved"}', encoding="utf-8")
         (directory / "network.har").write_text(json.dumps({"log": {
             "creator": {"name": HAR_CREATOR_NAME, "version": HAR_CREATOR_VERSION}, "entries": [],
-        }}))
+        }}), encoding="utf-8")
         row = {"task_id": task["id"], "engine": "chromium", "attempt": 1, "is_retry": False,
                "qualification_run": True, "qualification_pass_index": index,
                "qualification_required_passes": 2, "run_id": f"run-{index}",
@@ -55,10 +57,10 @@ def _attempts(tmp_path, task):
                        (directory / name).read_bytes()).hexdigest()}
                    for key, name in (("screenshot", "final.png"), ("page", "final-page.json"))
                }}}
-        (directory / "attempt.json").write_text(json.dumps(row))
+        (directory / "attempt.json").write_text(json.dumps(row), encoding="utf-8")
         rows.append(row)
     projection = tmp_path / "attempts.jsonl"
-    projection.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    projection.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
     return projection
 
 
@@ -73,11 +75,11 @@ def test_pending_suite_commands_validate_before_write_and_preserve_old_output(tm
     q.load_suite(output)
     frozen = output.read_bytes()
     entry(args)
-    invalid = json.loads(adjudication.read_text())
+    invalid = json.loads(adjudication.read_text(encoding="utf-8"))
     invalid["tasks"][0]["adjudication"]["corrected_trajectory"]["actions"] = [
         {"action": "nonexistent_action"},
     ]
-    adjudication.write_text(json.dumps(invalid))
+    adjudication.write_text(json.dumps(invalid), encoding="utf-8")
     with pytest.raises(ValueError):
         entry(args)
     assert output.read_bytes() == frozen
@@ -94,14 +96,14 @@ def test_apply_command_preserves_input_and_rejects_output_replacement(tmp_path):
     decision = {"schema": q.QUALIFICATION_SCHEMA, "tasks": [{"task_id": "one", "adjudication": {
         "status": "skipped", "reason": "Source contract requires correction",
     }}]}
-    adjudication.write_text(json.dumps(decision))
+    adjudication.write_text(json.dumps(decision), encoding="utf-8")
     output = tmp_path / "applied.json"
     args = ["--suite", str(suite), "--qualification", str(adjudication), "--output", str(output)]
     q.main_apply_adjudication(args)
     assert q.load_suite(output).tasks[0].ground_truth["qualification"]["status"] == "skipped"
     frozen = output.read_bytes()
     decision["tasks"][0]["adjudication"]["reason"] = "A different source defect"
-    adjudication.write_text(json.dumps(decision))
+    adjudication.write_text(json.dumps(decision), encoding="utf-8")
     with pytest.raises(ValueError, match="overwrite"):
         q.main_apply_adjudication(args)
     assert output.read_bytes() == frozen and suite.read_bytes() == original
@@ -113,16 +115,22 @@ def test_queue_and_finalization_commands_bind_two_pass_evidence_and_preserve_out
     queue = tmp_path / "queue.json"
     queue_args = ["--suite", str(suite), "--attempts", str(projection), "--output", str(queue)]
     q.main_repair_queue(queue_args)
-    assert json.loads(queue.read_text())["tasks"][0]["adjudication"]["status"] == "eligible"
+    assert (
+        json.loads(queue.read_text(encoding="utf-8"))["tasks"][0]["adjudication"]["status"]
+        == "eligible"
+    )
     result = tmp_path / "final.json"
     args = ["--suite", str(suite), "--qualification", str(queue), "--validated-run",
             f"{suite}::{projection}", "--output", str(result)]
     q.main_finalize_adjudication(args)
-    assert json.loads(result.read_text())["tasks"][0]["adjudication"]["status"] == "eligible"
+    assert (
+        json.loads(result.read_text(encoding="utf-8"))["tasks"][0]["adjudication"]["status"]
+        == "eligible"
+    )
     frozen_queue, frozen_final = queue.read_bytes(), result.read_bytes()
-    rows = [json.loads(line) for line in projection.read_text().splitlines()]
+    rows = [json.loads(line) for line in projection.read_text(encoding="utf-8").splitlines()]
     rows[0]["status"] = "fail"
-    projection.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    projection.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
     for entry, arguments in (
         (q.main_repair_queue, queue_args), (q.main_finalize_adjudication, args),
     ):

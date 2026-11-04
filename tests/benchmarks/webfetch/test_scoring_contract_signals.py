@@ -43,7 +43,7 @@ def test_current_registry_rejects_old_selector_and_silent_overrides(tmp_path):
     for extra in [{'historical_policy_versions': {'old': 1}},
                   {'control_revisions': {'overrides': {'old': {'expected_task_pass': True}}}}]:
         path = tmp_path/'controls.json'
-        path.write_text(json.dumps({'schema_version': 1, 'cases': [], **extra}))
+        path.write_text(json.dumps({'schema_version': 1, 'cases': [], **extra}), encoding='utf-8')
         with pytest.raises(ValueError):
             load_scoring_regressions(path)
 

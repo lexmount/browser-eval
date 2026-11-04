@@ -42,7 +42,7 @@ def invoke(tmp_path, *arguments, reject_builder=False, language='en'):
 
 def run_fixture(tmp_path, *, no_report=False, reject_builder=False, fail_on_failure=False, language='en'):
     env_file = tmp_path / 'empty.env'
-    env_file.write_text('')
+    env_file.write_text('', encoding='utf-8')
     arguments = ['run', '--delay', '0', '--output', tmp_path / 'run', '--env-file', env_file]
     if no_report:
         arguments.append('--no-report')
@@ -54,7 +54,7 @@ def run_fixture(tmp_path, *, no_report=False, reject_builder=False, fail_on_fail
 def saved_records(run):
     for name in ('manifest.json', 'dataset.json', 'summary.json', 'results.jsonl'):
         assert (run / name).is_file()
-    rows = [json.loads(line) for line in (run / 'results.jsonl').read_text().splitlines()]
+    rows = [json.loads(line) for line in (run / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
     assert len(rows) == 2
     assert {row['ok'] for row in rows} == {True, False}
     for row in rows:
@@ -78,7 +78,7 @@ def test_default_run_keeps_local_report_convenience_without_publication(tmp_path
     assert result.returncode == 0, result.stdout + result.stderr
     rows = saved_records(tmp_path / 'run')
     assert (tmp_path / 'run/report/index.html').is_file()
-    report_rows = [json.loads(line) for line in (tmp_path / 'run/report/results.jsonl').read_text().splitlines()]
+    report_rows = [json.loads(line) for line in (tmp_path / 'run/report/results.jsonl').read_text(encoding='utf-8').splitlines()]
     assert report_rows == rows
     assert 'Report:' in result.stdout
 
@@ -100,8 +100,8 @@ def test_rescore_no_report_preserves_existing_html_and_reports_staleness(tmp_pat
     run = tmp_path / 'run'
     report = run / 'report'
     report.mkdir()
-    (report / 'index.html').write_text('Previous report')
-    (report / 'report-languages.json').write_text('not valid JSON')
+    (report / 'index.html').write_text('Previous report', encoding='utf-8')
+    (report / 'report-languages.json').write_text('not valid JSON', encoding='utf-8')
     before = {path.name: path.read_bytes() for path in report.iterdir()}
     result = invoke(tmp_path, 'rescore', run, '--dataset', DATASET, '--no-report',
                     reject_builder=True, language='unsupported-report-language')
@@ -135,7 +135,7 @@ def test_default_rescore_rebuilds_local_report_without_publication(tmp_path):
     assert result.returncode == 0, result.stdout + result.stderr
     rows = saved_records(run)
     assert (run / 'report/index.html').is_file()
-    assert [json.loads(line) for line in (run / 'report/results.jsonl').read_text().splitlines()] == rows
+    assert [json.loads(line) for line in (run / 'report/results.jsonl').read_text(encoding='utf-8').splitlines()] == rows
     assert 'report:' in result.stdout
 
 
@@ -145,7 +145,7 @@ def test_no_report_rescore_still_rejects_tampered_evidence(tmp_path):
     run = tmp_path / 'run'
     rows = saved_records(run)
     before = (run / 'results.jsonl').read_bytes()
-    (run / rows[0]['artifact_path']).write_text('Changed after collection')
+    (run / rows[0]['artifact_path']).write_text('Changed after collection', encoding='utf-8')
     result = invoke(tmp_path, 'rescore', run, '--dataset', DATASET, '--no-report', reject_builder=True)
     assert result.returncode != 0
     assert 'Artifact differs from its result binding' in result.stderr

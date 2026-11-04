@@ -69,7 +69,7 @@ class HostedFetchTest(unittest.TestCase):
                     root = Path(directory)
                     dataset = {'id': 'invalid-utf8', 'cases': [vars(self.case)]}
                     dataset_path = root / 'input.json'
-                    dataset_path.write_text(json.dumps(dataset))
+                    dataset_path.write_text(json.dumps(dataset), encoding='utf-8')
                     records, _ = run_evaluation(
                         output_dir=root, dataset_meta=dataset,
                         dataset_path=dataset_path, cases=[self.case],
@@ -443,7 +443,7 @@ class HostedFetchTest(unittest.TestCase):
             root = Path(directory)
             reference = root/'sources/article/reference.txt'
             reference.parent.mkdir(parents=True)
-            reference.write_text('Required article text')
+            reference.write_text('Required article text', encoding='utf-8')
             self.case.source_benchmark.update(stable_annotation={
                 'anchor_evidence': 'sources/article/reference.txt',
                 'anchor_evidence_sha256': hashlib.sha256(reference.read_bytes()).hexdigest(),
@@ -454,9 +454,9 @@ class HostedFetchTest(unittest.TestCase):
                        'coverage_plan':{'web':list(TYPES)},
                        'comparison':{'evidence_state':'diagnostic','kind':'web_fetch_diagnostic'}}
             dataset_path = root/'dataset.json'
-            dataset_path.write_text(json.dumps(dataset))
+            dataset_path.write_text(json.dumps(dataset), encoding='utf-8')
             config_path = root/'providers.json'
-            config_path.write_text('{}')
+            config_path.write_text('{}', encoding='utf-8')
             records, _ = run_evaluation(output_dir=root/'run', dataset_meta=dataset,
                 dataset_path=dataset_path, cases=[self.case], providers=[self.provider(k, log_level='debug') for k in TYPES],
                 provider_config_path=config_path, runs=1, timeout=45, delay=0, provider_concurrency=1,max_failure_retries=0)
@@ -485,8 +485,8 @@ class HostedFetchTest(unittest.TestCase):
             log = CallDiagnostics(path, 'test')
             log.emit('caller','request',headers={'X-BB-API-Key':'secret-bb','X-Browser-Use-API-Key':'secret-bu'})
             log.file.close()
-            self.assertNotIn('secret-bb',path.read_text())
-            self.assertNotIn('secret-bu',path.read_text())
+            self.assertNotIn('secret-bb',path.read_text(encoding='utf-8'))
+            self.assertNotIn('secret-bu',path.read_text(encoding='utf-8'))
 
     @patch('harness.web_fetch.providers.http_client.urllib.request.build_opener')
     def test_runner_retains_http_errors_and_exception_trace(self, opener):
@@ -506,20 +506,20 @@ class HostedFetchTest(unittest.TestCase):
             self.assertEqual([r['ok'] for r in rows],[True,False,False])
             self.assertEqual(opener.return_value.open.call_count,3)
             for row in rows:
-                log=(root/'run'/row['provider_metadata']['diagnostic_log_path']).read_text()
+                log=(root/'run'/row['provider_metadata']['diagnostic_log_path']).read_text(encoding='utf-8')
                 self.assertNotIn('private-test-key',log)
                 self.assertIn('http_request_started',log)
-            failure_log=(root/'run'/rows[-1]['provider_metadata']['diagnostic_log_path']).read_text()
+            failure_log=(root/'run'/rows[-1]['provider_metadata']['diagnostic_log_path']).read_text(encoding='utf-8')
             self.assertIn('synthetic DNS failure',failure_log)
             self.assertIn('Traceback',failure_log)
-            server_log=(root/'run'/rows[1]['provider_metadata']['diagnostic_log_path']).read_text()
+            server_log=(root/'run'/rows[1]['provider_metadata']['diagnostic_log_path']).read_text(encoding='utf-8')
             self.assertIn('native failure',server_log)
 
     def test_historical_unscored_collection_cannot_build_report(self):
         from harness.web_fetch.report_build import build_report
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root/'manifest.json').write_text('{"collection_only":true}')
+            (root/'manifest.json').write_text('{"collection_only":true}', encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'Collection-only evidence'):
                 build_report(root, root/'report')
 
@@ -538,7 +538,7 @@ class HostedFetchTest(unittest.TestCase):
                     providers=[self.provider('deepseek_fetch',log_level='debug')],provider_config_path=root/'providers.json',
                     runs=1,timeout=0.02,delay=0,max_failure_retries=0)
                 self.assertEqual(rows[0]['error_type'],'timeout')
-                log=(root/'run'/rows[0]['provider_metadata']['diagnostic_log_path']).read_text()
+                log=(root/'run'/rows[0]['provider_metadata']['diagnostic_log_path']).read_text(encoding='utf-8')
                 self.assertIn('answer_timeout',log)
                 self.assertIn('End-to-end answer deadline exceeded',log)
                 self.assertEqual(opener.return_value.open.call_count,1)

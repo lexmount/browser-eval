@@ -3,11 +3,9 @@ import fs from 'node:fs';
 import vm from 'node:vm';
 
 const source = fs.readFileSync(
-  new URL('../../src/harness/browser_use/report.py', import.meta.url),
+  new URL('../../src/harness/browser_use/assets/report.js', import.meta.url),
   'utf8',
 );
-const match = source.match(/REPORT_JS = """([\s\S]*?)"""\nREPORT_STYLE/);
-assert.ok(match, 'browser-use report JavaScript must remain extractable');
 
 const controls = [
   {dataset: {filter: 'result'}, value: '', addEventListener() {}},
@@ -90,7 +88,7 @@ const context = vm.createContext({
   addEventListener(name, callback) { listeners[name] = callback; },
 });
 
-vm.runInContext(match[1], context);
+vm.runInContext(source, context);
 listeners.DOMContentLoaded();
 assert.equal(search.value, 'missing');
 assert.equal(controls[0].value, 'fail');

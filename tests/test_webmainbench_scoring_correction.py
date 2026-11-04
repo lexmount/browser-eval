@@ -111,7 +111,7 @@ class WebMainBenchScoringCorrectionTests(unittest.TestCase):
         self.assertEqual(result["table_TEDS"]["details"]["prediction_source"], "metric_error")
 
     def test_track_controls_are_paired_by_root_cause(self):
-        document = json.loads(regression_registry_path().read_text())
+        document = json.loads(regression_registry_path().read_text(encoding="utf-8"))
         self.assertEqual({row["id"] for row in document["cases"]}, set(CONTROL_IDS))
         modes = {}
         for row in document["cases"]:
@@ -144,7 +144,7 @@ class WebMainBenchScoringCorrectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / "references").mkdir()
-            (root / "references/case.md").write_text("corrected")
+            (root / "references/case.md").write_text("corrected", encoding="utf-8")
             validate_population_binding(root, dataset, [row], manifest)
 
     def test_correction_authority_rejects_method_outcome_basis(self):
@@ -169,7 +169,7 @@ class WebMainBenchScoringCorrectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             destination = Path(directory) / "scoring-correction-source"
             destination.mkdir()
-            (destination / "stale.json").write_text("{}")
+            (destination / "stale.json").write_text("{}", encoding="utf-8")
 
             prepare_correction_source(destination)
 

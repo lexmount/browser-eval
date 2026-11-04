@@ -29,6 +29,7 @@ from harness.environments.browser import (
     ENGINE_PORTS,
     configured_browser_images,
     published_endpoint,
+    rotated_engine_order,
     start_browser_container,
     wait_cdp,
 )
@@ -55,7 +56,11 @@ from harness.environments.webarena.runtime import (
     site_runtime_compatibility,
     verify_session_viewport,
 )
-from harness.environments.webarena.topology import CONTAINER_HOST_ALIAS
+from harness.environments.webarena.topology import (
+    CONTAINER_HOST_ALIAS,
+    CREDENTIAL_SITES,
+    require_site_credentials,
+)
 from harness.record_io import load_jsonl
 from harness.resource_accounting import (
     DockerStatsResources,
@@ -522,6 +527,12 @@ def _scheduled_tasks(tasks: tuple[PilotTask, ...], max_tasks: int | None) -> tup
     return tasks[:max_tasks]
 
 
+def _engine_order(task_index: int) -> tuple[str, ...]:
+    """Rotate call order by task so every registered browser takes every position."""
+
+    return rotated_engine_order(tuple(ENGINE_IMAGES), task_index)
+
+
 def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     repo_root = Path(args.repo_root).resolve()
     repo_env = _load_repo_env(repo_root)
@@ -540,6 +551,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     output_dir = Path(args.output).expanduser().resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     selection = load_pilot(args.selection)
+    require_site_credentials(CREDENTIAL_SITES)
     benchmark = configure_benchmark()
     resolved = validate_against_official(selection, benchmark)
     model = OpenAIResponsesModel(
@@ -645,8 +657,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             for task_index, selected in enumerate(
                 _scheduled_tasks(selection.tasks, args.max_tasks)
             ):
-                order = ("chromium", "moli") if task_index % 2 == 0 else ("moli", "chromium")
-                for engine in order:
+                for engine in _engine_order(task_index):
                     _run_engine_attempts(
                         completed=completed,
                         model=args.model,
@@ -722,7 +733,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                 "isolation_unit": "docker-daemon-and-fixed-site-ports",
                 "parallelism_rule": "one active attempt per Docker daemon",
             },
-            "engine_order": "alternating by task",
+            "engine_order": "rotating by task",
             "sites": [site.value for site in SITE_PORTS],
             "official_container_hostname_allowlist": [CONTAINER_HOST_ALIAS],
         },

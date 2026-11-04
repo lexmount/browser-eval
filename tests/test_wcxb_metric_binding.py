@@ -185,11 +185,11 @@ def test_frozen_evidence_naming_the_superseded_digest_keeps_verifying():
 def test_frozen_cohort_rescoring_keeps_profile_and_certificate_bytes(cohort):
     profile = json.loads(cohort['profile_path'].read_bytes())
     profile['metric_implementation_sha256'] = RETIRED_DIGEST
-    cohort['profile_path'].write_text(json.dumps(profile))
+    cohort['profile_path'].write_text(json.dumps(profile), encoding='utf-8')
     certificate = cohort['evidence_root'] / 'certification.json'
     value = json.loads(certificate.read_bytes())
     value['metric_implementation_sha256'] = RETIRED_DIGEST
-    certificate.write_text(json.dumps(value))
+    certificate.write_text(json.dumps(value), encoding='utf-8')
     before = cohort['profile_path'].read_bytes(), certificate.read_bytes()
     assert scoring.score(**cohort)['metric_implementation_sha256'] == approved_digest()
     assert (cohort['profile_path'].read_bytes(), certificate.read_bytes()) == before
@@ -210,7 +210,7 @@ def test_superseded_digest_stops_verifying_once_the_code_changes(monkeypatch, tm
 def test_explicit_profile_implementation_hash_must_match(cohort):
     profile = json.loads(cohort['profile_path'].read_bytes())
     profile['metric_implementation_sha256'] = '0' * 64
-    cohort['profile_path'].write_text(json.dumps(profile))
+    cohort['profile_path'].write_text(json.dumps(profile), encoding='utf-8')
     assert_rejected(cohort)
 
 
@@ -219,7 +219,7 @@ def test_known_adaptation_scores_legacy_and_explicit_profiles_without_rewriting(
     if explicit:
         profile = json.loads(cohort['profile_path'].read_bytes())
         profile['metric_implementation_sha256'] = approved_digest()
-        cohort['profile_path'].write_text(json.dumps(profile))
+        cohort['profile_path'].write_text(json.dumps(profile), encoding='utf-8')
     before = cohort['profile_path'].read_bytes()
     summary = scoring.score(**cohort)
     assert summary['metric_implementation_sha256'] == approved_digest()
@@ -232,7 +232,7 @@ def test_certificate_metric_binding_must_agree_with_actual_implementation(cohort
     certificate = cohort['evidence_root'] / 'certification.json'
     value = json.loads(certificate.read_bytes())
     value['metric_implementation_sha256'] = '0' * 64
-    certificate.write_text(json.dumps(value))
+    certificate.write_text(json.dumps(value), encoding='utf-8')
     assert_rejected(cohort)
 
 

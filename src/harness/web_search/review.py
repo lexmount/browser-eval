@@ -7,10 +7,8 @@ import json
 import os
 import re
 import shutil
-import signal
 import subprocess
 import tempfile
-import threading
 import time
 from collections import Counter
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
@@ -25,6 +23,7 @@ from lexbench_websearch.scoring import candidate_identity, classify
 
 from harness.record_io import bytes_sha256
 from harness.reporting.publication import atomic_write
+from harness.review_runner import ReviewerSessions
 from harness.web_search.core import normalize_response
 from harness.web_search.diagnostics import error_evidence
 from harness.web_search.messages import report_text
@@ -718,9 +717,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
         raise ValueError("Limit must be positive")
     entries = contract["packets"][:limit] if limit is not None else contract["packets"]
 
-    active = {}
-    active_lock = threading.Lock()
-    stopping = Event()
+    sessions = ReviewerSessions()
     # Runtime credentials must never become retained review evidence.
     stale_auth = root / "codex-home" / "auth.json"
     stale_auth.unlink(missing_ok=True)
@@ -736,7 +733,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
     rate_limited = Event()
 
     def execute_locked(entry):
-        if stopping.is_set():
+        if sessions.stopping:
             return entry["id"], "interrupted"
         if _successful(root, entry, contract):
             return entry["id"], "reused"
@@ -748,7 +745,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
         attempt.mkdir()
         packet = json.loads((root / entry["path"]).read_bytes())
         text = _input_text(contract, packet, entry["sha256"])
-        (attempt / "input.txt").write_text(text)
+        (attempt / "input.txt").write_text(text, encoding="utf-8")
         result_path = attempt / "result.json"
         schema_path = attempt / "schema.json"
         save(schema_path, _packet_schema(json.loads((root / "schema.json").read_bytes()), packet, entry["sha256"]))
@@ -767,21 +764,20 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
             "command": command,
         }
         with (attempt / "stdout.log").open("wb") as out, (attempt / "stderr.log").open("wb") as err:
-            with active_lock:
-                if stopping.is_set():
-                    state.update(status="interrupted", returncode=None)
-                    save(attempt / "status.json", state)
-                    save(job / "status.json", state)
-                    return entry["id"], "interrupted"
-                process = subprocess.Popen(
-                    command, stdin=subprocess.PIPE, stdout=out, stderr=err, start_new_session=True,
-                    env={**{k: v for k, v in os.environ.items() if k in {"PATH", "TMPDIR", "LANG", "LC_ALL"}}, "CODEX_HOME": str(isolated_home.resolve()), "HOME": runtime.name}
-                )
-                active[entry["id"]] = (process, job / "status.json", state)
+            process = sessions.start(
+                command, stdin=subprocess.PIPE, stdout=out, stderr=err,
+                env={**{k: v for k, v in os.environ.items() if k in {"PATH", "TMPDIR", "LANG", "LC_ALL"}}, "CODEX_HOME": str(isolated_home.resolve()), "HOME": runtime.name}
+            )
+            if process is None:
+                state.update(status="interrupted", returncode=None)
+                save(attempt / "status.json", state)
+                save(job / "status.json", state)
+                return entry["id"], "interrupted"
             state["pid"] = process.pid
-            save(job / "status.json", state)
+            failure = "Reviewer job ended unexpectedly"
             try:
-                process.communicate(text.encode(), timeout=timeout)
+                save(job / "status.json", state)
+                sessions.communicate(process, text.encode(), timeout=timeout)
                 state["returncode"] = process.returncode
                 session_log = (attempt / "stdout.log").read_bytes()
                 state["session_log_sha256"] = bytes_sha256(session_log)
@@ -800,19 +796,18 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
                 validate_result(packet, json.loads(result_path.read_bytes()), entry["sha256"], source_mode=_source_mode(contract))
                 atomic_write(job / "result.json", result_path.read_bytes())
                 state.update(status="completed", result_sha256=bytes_sha256(result_path.read_bytes()))
-            except (subprocess.TimeoutExpired, ValueError, OSError) as error:
-                if process.poll() is None:
-                    os.killpg(process.pid, signal.SIGKILL)
-                    process.wait()
-                state.update(status="interrupted" if stopping.is_set() else "failed",
-                             returncode=process.returncode, error=str(error))
-            with active_lock:
-                active.pop(entry["id"], None)
-            state["finished_at"] = time.time()
-            save(attempt / "status.json", state)
-            save(job / "status.json", state)
+            except (subprocess.TimeoutExpired, ValueError, OSError, KeyError, TypeError) as error:
+                failure = str(error)
+            finally:
+                sessions.kill(process)
+                if state["status"] != "completed":
+                    state.update(status="interrupted" if sessions.stopping else "failed",
+                                 returncode=process.returncode, error=failure)
+                state["finished_at"] = time.time()
+                save(attempt / "status.json", state)
+                save(job / "status.json", state)
         if state["status"] == "failed":
-            logs = "\n".join((attempt / name).read_text(errors="replace")
+            logs = "\n".join((attempt / name).read_text(errors="replace", encoding="utf-8")
                              for name in ("stdout.log", "stderr.log"))
             if re.search(r"\b429\b|rate[ _-]?limit|too many requests|usage limit", logs, re.I):
                 state["failure_kind"] = "rate_limit"
@@ -829,7 +824,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
         import fcntl
         job = root / "jobs" / entry["id"]
         job.mkdir(parents=True, exist_ok=True)
-        with (job / "process.lock").open("a") as lock:
+        with (job / "process.lock").open("a", encoding="utf-8") as lock:
             try:
                 fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             except BlockingIOError as error:
@@ -854,16 +849,7 @@ def run(root, *, workers=4, limit=None, executable="codex", timeout=3600):
                 results[entry["id"]] = future.result()
         return [results[entry["id"]] for entry in entries if entry["id"] in results]
     finally:
-        with active_lock:
-            stopping.set()
-            remaining = list(active.values())
-        for process, _, _ in remaining:
-            if process.poll() is None:
-                try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                process.wait()
+        sessions.stop()
         pool.shutdown(wait=True, cancel_futures=True)
         runtime.cleanup()
 
@@ -1179,57 +1165,51 @@ def coverage_percent(evidence):
 
 def render_summary(evidence, zh=True):
     counts = Counter(d["resolution"] for d in evidence["adjudications"].values())
-    title = (report_text('text_521deef44b4ce505') if zh else "Result audit") + f" · {coverage_percent(evidence)}%"
+    title = report_text("Result audit", zh) + f" · {coverage_percent(evidence)}%"
     text = (
-        f"{report_text('text_90bb19b8d33a329b')}{evidence['case_reviewed']}/{evidence['case_total']}{report_text('text_268af354b8e63839')}{evidence['output_reviewed']}/{evidence['output_total']}{report_text('text_6192de481d05f674')}{evidence['candidate_reviewed']}/{evidence['candidate_total']}{report_text('text_c2b90d006fe98670')}"
-        if zh
-        else f"Reviewed {evidence['case_reviewed']}/{evidence['case_total']} queries, "
-        f"{evidence['output_reviewed']}/{evidence['output_total']} outputs and "
-        f"{evidence['candidate_reviewed']}/{evidence['candidate_total']} pooled candidates."
+        report_text("Reviewed {case_reviewed}/{case_total} queries, {output_reviewed}/{output_total} outputs and {candidate_reviewed}/{candidate_total} pooled candidates.", zh, case_reviewed=evidence['case_reviewed'], case_total=evidence['case_total'], output_reviewed=evidence['output_reviewed'], output_total=evidence['output_total'], candidate_reviewed=evidence['candidate_reviewed'], candidate_total=evidence['candidate_total'])
     )
     labels = {
-        "fixed": (report_text('text_c2d8b42fdddbd04a'), "Corrected"),
-        "provider-limitation": (report_text('text_14ba277fe38c5ab7'), "Provider limitations"),
-        "reference-limitation": (report_text('text_93084e3165b7d5d9'), "Reference verification limits"),
-        "no-change": (report_text('text_d6033c4c7f89cf08'), "No change"),
-        "quarantined": (report_text('text_900bf523d9865d33'), "Quarantined"),
+        "fixed": report_text("Corrected", zh),
+        "provider-limitation": report_text("Provider limitations", zh),
+        "reference-limitation": report_text("Reference verification limits", zh),
+        "no-change": report_text("No change", zh),
+        "quarantined": report_text("Quarantined", zh),
     }
     if evidence.get("provenance"):
-        text += (report_text('text_f4c1952da4aa046f') if zh else " Inputs, opinions and operator-provided execution records are hash-bound.")
+        text += report_text(" Inputs, opinions and operator-provided execution records are hash-bound.", zh)
     else:
-        text += (report_text('text_6b520df0066f1f26') if zh else " This historical audit retains published opinions and adjudications; execution logs were not retained.")
-    text += (report_text('text_fd24495319bb5085') if zh else " Recorded model: ") + str(evidence.get("model") or (report_text('text_7450cc5b16e2453c') if zh else "not recorded")) + ("。" if zh else ".")
+        text += report_text(" This historical audit retains published opinions and adjudications; execution logs were not retained.", zh)
+    text += report_text(" Recorded model: ", zh) + str(evidence.get("model") or report_text("not recorded", zh)) + report_text(".", zh)
 
-    body = f"<section data-independent-review><h2>{title}</h2><p>{text}</p><p data-review-unresolved>" + (report_text('text_d4ea0ba87bdd97bd') if zh else "All findings adjudicated; unresolved: 0.") + "</p><details><summary>" + (report_text('text_fe166e30477a49cd') if zh else "Finding dispositions (multiple findings per query)") + "</summary><ul>"
+    body = f"<section data-independent-review><h2>{title}</h2><p>{text}</p><p data-review-unresolved>" + report_text("All findings adjudicated; unresolved: 0.", zh) + "</p><details><summary>" + report_text("Finding dispositions (multiple findings per query)", zh) + "</summary><ul>"
     for key, value in sorted(counts.items()):
-        body += f"<li>{labels[key][0 if zh else 1]}：{value}" + (report_text('text_3964b7fccde8777a') if zh else " findings") + "</li>"
+        body += f"<li>{labels[key]}：{value}" + report_text(" findings", zh) + "</li>"
     body += (
         "</ul></details><p>"
         + (
-            (report_text('review_failures') if evidence.get("scope") == "failures" else report_text('text_43598a52b30b24f9'))
-            if zh
-            else ("Review covers failed outputs; passing outputs are outside this review." if evidence.get("scope") == "failures" else "Review covers every output, including empty and failed calls. Reviewed does not mean passed. Every finding retains its decision and evidence.")
+            report_text("Review covers failed outputs; passing outputs are outside this review.", zh) if evidence.get("scope") == "failures" else report_text("Review covers every output, including empty and failed calls. Reviewed does not mean passed. Every finding retains its decision and evidence.", zh)
         )
         + "</p>"
     )
-    body += '<p data-unreviewed-passes>' + (report_text('review_unreviewed') if zh else 'Accepted passing outputs without review: ') + str(evidence.get('accepted_unreviewed_passes', 0)) + '</p>'
+    body += '<p data-unreviewed-passes>' + report_text("Accepted passing outputs without review: ", zh) + str(evidence.get('accepted_unreviewed_passes', 0)) + '</p>'
     reference_cases = [c for c in evidence["cases"] if c["dataset_review"]["status"] == "issue"]
     if reference_cases:
-        body += '<details><summary>' + (report_text('text_84a8421bb5133e4f') if zh else "Per-query reference decisions") + '</summary><div class="scroll inventory"><table><thead><tr>'
-        for label in ((report_text('text_069c995adb7e2886'), report_text('text_e99a6717b6917534'), report_text('text_2e9f011743981bcd')) if zh else ("Query", "Decision", "Basis")):
+        body += '<details><summary>' + report_text("Per-query reference decisions", zh) + '</summary><div class="scroll inventory"><table><thead><tr>'
+        for label in ((report_text("Query", zh, context="question"), report_text("Decision", zh), report_text("Basis", zh))):
             body += '<th>' + label + '</th>'
         body += '</tr></thead><tbody>'
         for case in reference_cases:
             decision = evidence["adjudications"][case["case_id"] + ":dataset"]
             target = "details/" + case["output_reviews"][0]["row_id"] + ".html"
-            label = labels[decision["resolution"]][0 if zh else 1]
+            label = labels[decision["resolution"]]
             if decision.get("quality_excluded"):
-                label = report_text('text_a3ba02fb085ac7f6') if zh else "Excluded from every method’s quality denominator"
+                label = report_text("Excluded from every method’s quality denominator", zh)
             body += '<tr><td><a href="' + escape(target) + '">' + escape(case["case_id"]) + '</a></td><td>' + escape(label) + '</td><td>' + escape(decision["reason"]) + '</td></tr>'
         body += '</tbody></table></div></details>'
     body += (
         '<p><a href="independent-review.json">'
-        + (report_text('text_11b83848d2887126') if zh else "Complete review record")
+        + report_text("Complete review record", zh)
         + "</a></p></section>"
     )
     return body
@@ -1242,21 +1222,20 @@ def render_detail(evidence, row_id, zh=True):
             continue
         body = (
             "<section data-independent-opinion><h2>"
-            + (report_text('text_521deef44b4ce505') if zh else "Result audit")
+            + report_text("Result audit", zh)
             + "</h2>"
         )
         decision = evidence["adjudications"].get(case["case_id"] + ":dataset", {})
         if decision.get("quality_excluded"):
             body += '<p class="notice" data-reference-quarantine>' + (
-                report_text('text_405542b0bdb7e30e')
-                if zh else "This query is quarantined from every method’s quality summary. Original inputs and diagnostics remain below; latency and cost remain included."
+                report_text("This query is quarantined from every method’s quality summary. Original inputs and diagnostics remain below; latency and cost remain included.", zh)
             ) + " " + escape(decision["reason"]) + '</p>'
-        body += '<details><summary>' + (report_text('text_73abe0f2d9af6695') if zh else 'Original review opinion, evidence and decisions') + '</summary><p>' + escape(opinion['reason']) + '</p><p>' + escape(opinion['evidence']) + '</p>'
+        body += '<details><summary>' + report_text("Original review opinion, evidence and decisions", zh) + '</summary><p>' + escape(opinion['reason']) + '</p><p>' + escape(opinion['evidence']) + '</p>'
         if case["dataset_review"]["status"] == "issue":
 
             body += (
                 "<h3>"
-                + (report_text('text_70c3d9dbe9725464') if zh else "Reference review")
+                + report_text("Reference review", zh)
                 + "</h3><p>"
                 + escape(case["dataset_review"]["reason"])
                 + "</p>"
@@ -1303,7 +1282,7 @@ def render_detail(evidence, row_id, zh=True):
         body += "</details></section>"
         return body
     if evidence.get("scope") == "failures":
-        return '<section data-review-not-selected><h2>' + (report_text('text_521deef44b4ce505') if zh else "Result audit") + '</h2><p>' + (report_text('text_ed25f23fdfc1af1e') if zh else "This result is outside the failure-only audit scope.") + "</p></section>"
+        return '<section data-review-not-selected><h2>' + report_text("Result audit", zh) + '</h2><p>' + report_text("This result is outside the failure-only audit scope.", zh) + "</p></section>"
     raise ValueError("Missing independent opinion for result detail")
 
 

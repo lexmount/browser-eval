@@ -172,7 +172,7 @@ def _provider_replacement_scope_history(root):
     if index_path.is_symlink() or not index_path.is_file():
         raise ValueError('Invalid inherited provider replacement scope index')
     try:
-        index = json.loads(index_path.read_text())
+        index = json.loads(index_path.read_text(encoding='utf-8'))
     except (OSError, ValueError, TypeError) as error:
         raise ValueError('Invalid inherited provider replacement scope index') from error
     if not isinstance(index, list) or not index:
@@ -193,7 +193,7 @@ def _provider_replacement_scope_history(root):
         if item.get('sha256') != file_sha256(path):
             raise ValueError('Inherited provider replacement scope hash differs')
         try:
-            receipt = json.loads(path.read_text())
+            receipt = json.loads(path.read_text(encoding='utf-8'))
         except (OSError, ValueError, TypeError) as error:
             raise ValueError('Invalid inherited provider replacement scope receipt') from error
         if (not _valid_provider_replacement_receipt(receipt)
@@ -213,7 +213,7 @@ def _selected_provider_replacement_rows(run, root, rows, receipt_path):
     receipt_path = unlinked_path(Path(receipt_path))
     if not receipt_path.is_file():
         raise ValueError('Provider replacement scope receipt is missing')
-    receipt = json.loads(receipt_path.read_text())
+    receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
     if (not _valid_provider_replacement_receipt(receipt)
             or receipt.get('baseline_dataset_sha256') != file_sha256(run/'dataset.json')
             or receipt.get('baseline_results_sha256') != file_sha256(run/'results.jsonl')
@@ -224,7 +224,7 @@ def _selected_provider_replacement_rows(run, root, rows, receipt_path):
     source_by_attempt = {row['attempt_id']: row for row in rows}
     baseline_by_pair = {(row['provider'], row['case_id']): row for row in read_records(run)}
     baseline_cases = {
-        case['id']: case for case in json.loads((run/'dataset.json').read_text())['cases']
+        case['id']: case for case in json.loads((run/'dataset.json').read_text(encoding='utf-8'))['cases']
     }
     selected = []
     seen = set()
@@ -259,7 +259,7 @@ def has_bound_direct_scoring_revision(root):
     dataset_hash = file_sha256(root/'dataset.json')
     results_hash = file_sha256(root/'results.jsonl')
     try:
-        receipts = json.loads(path.read_text())
+        receipts = json.loads(path.read_text(encoding='utf-8'))
     except (OSError, ValueError, TypeError):
         return False
     return any(
@@ -280,7 +280,7 @@ def copy_bound_review(source, output):
     """Carry a prior review only when its immutable inputs remain byte-identical."""
     prior=source/'result-review.json'
     if not prior.is_file():return False
-    review=json.loads(prior.read_text())
+    review=json.loads(prior.read_text(encoding='utf-8'))
     bindings=review.get('bindings',{})
     if (bindings.get('dataset_sha256') != file_sha256(output/'dataset.json')
             or bindings.get('results_sha256') != file_sha256(output/'results.jsonl')):
@@ -294,7 +294,7 @@ def copy_scoring_revision_history(source, output):
     receipt_path = source/'scoring-revisions.json'
     if not receipt_path.is_file():
         return False
-    receipts = json.loads(receipt_path.read_text())
+    receipts = json.loads(receipt_path.read_text(encoding='utf-8'))
     if not isinstance(receipts, list):
         raise ValueError('Invalid scoring revision history')
     archives = {}
@@ -314,7 +314,7 @@ def copy_scoring_revision_history(source, output):
         archives[relative] = archived
     presentation = source / 'report-binding-revisions.json'
     if presentation.is_file():
-        for receipt in json.loads(presentation.read_text()):
+        for receipt in json.loads(presentation.read_text(encoding='utf-8')):
             for side in ('input', 'output'):
                 relative = receipt[f'{side}_dataset_path']
                 snapshot = contained_path(source, relative, reject_symlinks=True)
@@ -367,7 +367,7 @@ def copy_projected_latency_correction(source, output):
                                  for change in changes],
     }
     target = output / 'latency-corrections.json'
-    target.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + '\n')
+    target.write_text(json.dumps(receipt, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
     latency_correction_original_elapsed(output)
     return True
 
@@ -376,17 +376,17 @@ def copy_projected_review(source, output, excluded_providers):
     """Project a valid review onto a provider-subset without re-judging attempts."""
     prior=source/'result-review.json'
     if not prior.is_file():return False
-    source_dataset=json.loads((source/'dataset.json').read_text())
+    source_dataset=json.loads((source/'dataset.json').read_text(encoding='utf-8'))
     source_records=read_records(source)
     require_result_review(source,source_dataset,source_records)
-    output_dataset=json.loads((output/'dataset.json').read_text())
+    output_dataset=json.loads((output/'dataset.json').read_text(encoding='utf-8'))
     output_records=read_records(output)
     if source_dataset.get('cases') != output_dataset.get('cases'):
         raise ValueError('Cannot project a result review across changed cases')
     original = {row['attempt_id']: row for row in source_records}
     if any(row != original.get(row['attempt_id']) for row in output_records):
         raise ValueError('Cannot project a result review across changed attempt evidence')
-    review=json.loads(prior.read_text())
+    review=json.loads(prior.read_text(encoding='utf-8'))
     retained={row['attempt_id'] for row in output_records}
     reviewed={row.get('attempt_id') for row in review.get('attempts',[])}
     scope=review.get('review_protocol',{}).get('scope','all')
@@ -404,12 +404,12 @@ def copy_projected_review(source, output, excluded_providers):
         'judgments_reused_only_for_byte_identical_attempt_evidence':True,
     }
     path=output/'result-review.json'
-    path.write_text(json.dumps(review,ensure_ascii=False,indent=2)+'\n')
+    path.write_text(json.dumps(review,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     checked=require_result_review(output,output_dataset,output_records)
     for key in ('expected_attempts','reviewed_attempts','total_attempts',
                 'accepted_unreviewed_passes','disagreements','unresolved'):
         review[key]=checked[key]
-    path.write_text(json.dumps(review,ensure_ascii=False,indent=2)+'\n')
+    path.write_text(json.dumps(review,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     return True
 
 
@@ -422,7 +422,7 @@ def bind_assembled_scoring_revision(output, *, source=None, historical_sources=(
         if source is None or valid_scoring_revision(output):return False
         if not valid_scoring_revision(source):
             raise ValueError('Assembly source has invalid scoring authority')
-        if json.loads((output/'dataset.json').read_text()).get('comparison',{}).get(
+        if json.loads((output/'dataset.json').read_text(encoding='utf-8')).get('comparison',{}).get(
                 'require_independent_result_review'):
             raise ValueError('Assembly requires its declared independent result review')
         inherited=path.read_bytes()
@@ -454,11 +454,11 @@ def bind_assembled_scoring_revision(output, *, source=None, historical_sources=(
             'dataset_sha256':file_sha256(source/'dataset.json'),
             'results_sha256':file_sha256(source/'results.jsonl'),
             'receipts_sha256':hashlib.sha256(inherited).hexdigest()}
-        path.write_text(json.dumps([receipt],ensure_ascii=False,indent=2)+'\n')
+        path.write_text(json.dumps([receipt],ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         if not valid_scoring_revision(output):
             raise ValueError('Assembly revalidation left invalid scoring authority')
         return True
-    dataset=json.loads((output/'dataset.json').read_text())
+    dataset=json.loads((output/'dataset.json').read_text(encoding='utf-8'))
     records=read_records(output)
     if historical_sources:
         require_blind_result_review(output, dataset, records, historical_sources=historical_sources)
@@ -511,7 +511,7 @@ def bind_assembled_scoring_revision(output, *, source=None, historical_sources=(
         for name in ('dataset.json','results.jsonl','result-review.json','reference-revisions.json'):
             source=output/name
             if source.is_file():shutil.copy2(source,check/name)
-        (check/'scoring-revisions.json').write_text(candidate)
+        (check/'scoring-revisions.json').write_text(candidate, encoding='utf-8')
         if not valid_scoring_revision(check):
             raise ValueError('Assembled scoring revision would leave an invalid history')
     atomic_write(path, candidate.encode())
@@ -528,8 +528,8 @@ def bind_missing_assembled_scoring_gap(output: Path, assembly_review: Path) -> b
     end of the repaired chain.
     """
     path=output/'scoring-revisions.json'
-    history=json.loads(path.read_text())
-    review=json.loads(assembly_review.read_text())
+    history=json.loads(path.read_text(encoding='utf-8'))
+    review=json.loads(assembly_review.read_text(encoding='utf-8'))
     if (review.get('review_protocol',{}).get('scope') != 'all'
             or review.get('review_protocol',{}).get('machine_judgments_withheld') is not True
             or review.get('unresolved') != 0
@@ -579,10 +579,10 @@ def bind_missing_assembled_scoring_gap(output: Path, assembly_review: Path) -> b
         for name in ('dataset.json','results.jsonl','result-review.json','reference-revisions.json'):
             source=output/name
             if source.is_file():shutil.copy2(source,check/name)
-        (check/'scoring-revisions.json').write_text(candidate)
+        (check/'scoring-revisions.json').write_text(candidate, encoding='utf-8')
         if not valid_scoring_revision(check):
             raise ValueError('Repaired assembly scoring history is still invalid')
-    path.write_text(candidate)
+    path.write_text(candidate, encoding='utf-8')
     return True
 
 
@@ -591,9 +591,9 @@ def read_verified_batches(root, dataset, rows):
     manifest_path=root/'manifest.json'
     execution_path=root/'execution.json'
     if execution_path.exists():
-        batches=json.loads(execution_path.read_text())['batches']
+        batches=json.loads(execution_path.read_text(encoding='utf-8'))['batches']
     elif manifest_path.exists():
-        batches=[json.loads(manifest_path.read_text())]
+        batches=[json.loads(manifest_path.read_text(encoding='utf-8'))]
     else:
         raise ValueError('Evidence has neither manifest.json nor execution.json: '+str(root))
     require_verified_reference_checks(batches,cases=dataset,records=rows,source=root,
@@ -736,7 +736,7 @@ def _write_projected_reference_revisions(source, target, case_ids):
     path=source/'reference-revisions.json'
     if not covered or not path.is_file():
         return False
-    receipts=json.loads(path.read_text())
+    receipts=json.loads(path.read_text(encoding='utf-8'))
     changes=[];transitions=[];provenance=[]
     for receipt in receipts if isinstance(receipts,list) else ():
         if (not isinstance(receipt,dict)
@@ -781,7 +781,7 @@ def _write_projected_reference_revisions(source, target, case_ids):
         'Projected validated reference corrections: '+'; '.join(root_causes),
         regression_ids)
     (target/'reference-revisions.json').write_text(
-        json.dumps([receipt],ensure_ascii=False,indent=2)+'\n')
+        json.dumps([receipt],ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     return True
 
 
@@ -790,12 +790,12 @@ def _copy_speed_bundle(source, target, dataset, rows, batches, excluded_provider
     speed_declared={name for providers in dataset.get('coverage_plan',{}).values()
                     for name in providers}
     excluded_providers=sorted(set(excluded_providers)&speed_declared)
-    source_execution=json.loads((source/'execution.json').read_text())
+    source_execution=json.loads((source/'execution.json').read_text(encoding='utf-8'))
     source_aggregate=source_execution.get('aggregate')
     projected_dataset,projected_rows,projected_batches=dataset,rows,batches
     original_latency = latency_correction_original_elapsed(source)
     if excluded_providers:
-        source_summary=json.loads((source/'speed-comparison.json').read_text())
+        source_summary=json.loads((source/'speed-comparison.json').read_text(encoding='utf-8'))
         rebuilt=build_speed_summary(dataset,rows,batches,source_aggregate)
         if ({key:value for key,value in source_summary.items() if key!='bindings'} != rebuilt
                 or source_summary.get('bindings') != {
@@ -814,16 +814,16 @@ def _copy_speed_bundle(source, target, dataset, rows, batches, excluded_provider
                                 if name not in set(excluded_providers)]
         aggregate['batch_count']=len(projected_batches)
         execution={**source_execution,'batches':projected_batches,'aggregate':aggregate}
-        (target/'dataset.json').write_text(json.dumps(projected_dataset,ensure_ascii=False,indent=2)+'\n')
+        (target/'dataset.json').write_text(json.dumps(projected_dataset,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         (target/'results.jsonl').write_text(''.join(
-            json.dumps(row,ensure_ascii=True)+'\n' for row in projected_rows))
-        (target/'execution.json').write_text(json.dumps(execution,ensure_ascii=False,indent=2)+'\n')
+            json.dumps(row,ensure_ascii=True)+'\n' for row in projected_rows), encoding='utf-8')
+        (target/'execution.json').write_text(json.dumps(execution,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         summary=build_speed_summary(projected_dataset,projected_rows,projected_batches,aggregate)
         summary['bindings']={
             'dataset_sha256':file_sha256(target/'dataset.json'),
             'results_sha256':file_sha256(target/'results.jsonl'),
         }
-        (target/'speed-comparison.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n')
+        (target/'speed-comparison.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         copy_projected_review(source,target,excluded_providers)
         _write_projected_reference_revisions(
             source,target,{case['id'] for case in projected_dataset.get('cases',[])})
@@ -845,7 +845,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     provider_additions = provider_additions or []
     exclude_providers = exclude_providers or []
     if output.exists():raise ValueError('Destination exists; evidence must not be overwritten')
-    dataset=json.loads((run/'dataset.json').read_text())
+    dataset=json.loads((run/'dataset.json').read_text(encoding='utf-8'))
     cases={c['id']:c for c in dataset['cases']}
     reference_input_roots={identifier:run for identifier in cases}
     canonical=(json.loads(read_dataset_bytes(canonical_dataset)) if canonical_dataset else None)
@@ -867,7 +867,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     expected={(c['id'],p) for c in cases.values() for p in dataset['coverage_plan'][c.get('track','web')]}
     if len(original)!=len(expected) or {(r['case_id'],r['provider']) for r in original}!=expected:
         raise ValueError('Original run has incomplete coverage')
-    source_manifest=(json.loads((run/'manifest.json').read_text())
+    source_manifest=(json.loads((run/'manifest.json').read_text(encoding='utf-8'))
                      if (run/'manifest.json').exists() else {})
     require_certifiable_evidence(dataset, [source_manifest])
     live_physical_run=(source_manifest.get('reference_checks',{}).get('status') ==
@@ -882,7 +882,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     replacement_cases={};batches=[];evidence=[];selected=[];audit=[]
     reference_evidence=[]
     if assembled_input:
-        prior_batches=json.loads((run/'execution.json').read_text())['batches']
+        prior_batches=json.loads((run/'execution.json').read_text(encoding='utf-8'))['batches']
         require_verified_reference_checks(prior_batches,cases=dataset,records=original,source=run,
             equivalent_capture_bindings=dataset.get('comparison',{}).get('reference_binding_mode') ==
             'equivalent_reference_bytes_with_independent_batch_captures',
@@ -892,12 +892,12 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         reference_evidence.append((run, prior_batches))
         prior_audit=run/'selection-audit.json'
         if prior_audit.is_file():
-            inherited=json.loads(prior_audit.read_text())
+            inherited=json.loads(prior_audit.read_text(encoding='utf-8'))
             if not isinstance(inherited,list):
                 raise ValueError('Invalid inherited selection audit')
             audit.extend(inherited)
     for root in replacements:
-        new_dataset=json.loads((root/'dataset.json').read_text())
+        new_dataset=json.loads((root/'dataset.json').read_text(encoding='utf-8'))
         rows=read_records(root)
         replacement_batches=read_verified_batches(root,new_dataset,rows)
         for case in new_dataset['cases']:
@@ -932,7 +932,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             if certificates is None:
                 raise ValueError('Fresh-reference assembly requires certificate evidence: '+cid)
             cert=certificates/cid
-            manifest=json.loads((cert/'manifest.json').read_text())
+            manifest=json.loads((cert/'manifest.json').read_text(encoding='utf-8'))
             if {r['attempt_id']:r for r in read_records(cert)}!={r['attempt_id']:r for r in rows}:
                 raise ValueError('Certificate records differ from original call records: '+cid)
             batches.append(project_execution_manifest(manifest));evidence.append(cert)
@@ -940,14 +940,14 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         selected.extend((r,run) for r in rows)
     stable=[r for r in original if not requires_fresh_reference(canonical_cases.get(r['case_id'],cases[r['case_id']])) and r['case_id'] not in replacement_cases]
     if stable and not assembled_input:
-        manifest=json.loads((run/'manifest.json').read_text())
+        manifest=json.loads((run/'manifest.json').read_text(encoding='utf-8'))
         manifest.pop('reference_checks',None)  # only non-snapshot cases in this projection
         manifest.update(attempt_count=len(stable),attempt_ids=[r['attempt_id'] for r in stable])
         manifest['dataset']['case_count']=len({r['case_id'] for r in stable})
         manifest['projection']={'kind':'non-snapshot-cases-only','source_manifest_sha256':file_sha256(run/'manifest.json')}
         batches.append(project_execution_manifest(manifest))
     for root in additions:
-        new_dataset=json.loads((root/'dataset.json').read_text())
+        new_dataset=json.loads((root/'dataset.json').read_text(encoding='utf-8'))
         rows=read_records(root)
         addition_batches=read_verified_batches(root,new_dataset,rows)
         incoming={c['id']:c for c in new_dataset['cases']}
@@ -968,7 +968,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     pair_replacements = {}
     replacement_scope_receipts = []
     for replacement_index, root in enumerate(provider_replacements):
-        new_dataset=json.loads((root/'dataset.json').read_text())
+        new_dataset=json.loads((root/'dataset.json').read_text(encoding='utf-8'))
         rows=read_records(root)
         replacement_batches=read_verified_batches(root,new_dataset,rows)
         receipt_path = (provider_replacement_scope_receipts[replacement_index]
@@ -1011,7 +1011,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         reference_evidence.append((root, replacement_batches))
     added_providers=set()
     for root in provider_additions:
-        new_dataset=json.loads((root/'dataset.json').read_text())
+        new_dataset=json.loads((root/'dataset.json').read_text(encoding='utf-8'))
         rows=read_records(root)
         addition_batches=read_verified_batches(root,new_dataset,rows)
         incoming={c['id']:c for c in new_dataset['cases']}
@@ -1103,17 +1103,17 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
         target=output/'diagnostics'/'replaced-cases'/cid;target.mkdir(parents=True)
         rows=[r for r in original if r['case_id']==cid]
         # Keep the existing diagnostic serialization stable for downstream tools.
-        (target/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in rows))
+        (target/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in rows), encoding='utf-8')
         certificate=certificates/cid if certificates is not None else None
         if certificate is not None and certificate.exists():
-            rejected=project_execution_manifest(json.loads((certificate/'manifest.json').read_text()))
-            (target/'manifest.json').write_text(json.dumps(rejected,ensure_ascii=False,indent=2)+'\n')
+            rejected=project_execution_manifest(json.loads((certificate/'manifest.json').read_text(encoding='utf-8')))
+            (target/'manifest.json').write_text(json.dumps(rejected,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         elif (run/'manifest.json').exists():
-            rejected=project_execution_manifest(json.loads((run/'manifest.json').read_text()))
+            rejected=project_execution_manifest(json.loads((run/'manifest.json').read_text(encoding='utf-8')))
             rejected.pop('reference_checks',None)
             rejected.update(attempt_count=len(rows),attempt_ids=[r['attempt_id'] for r in rows])
             rejected['projection']={'kind':'replaced-non-snapshot-case','source_manifest_sha256':file_sha256(run/'manifest.json')}
-            (target/'manifest.json').write_text(json.dumps(rejected,ensure_ascii=False,indent=2)+'\n')
+            (target/'manifest.json').write_text(json.dumps(rejected,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         else:
             rejected_batches=_prune_shadowed_batch_attempts(
                 [project_execution_manifest(batch) for batch in prior_batches],rows,
@@ -1121,14 +1121,14 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             if not rejected_batches:
                 raise ValueError('Assembled input has no execution batch for replaced case: '+cid)
             (target/'execution.json').write_text(json.dumps(
-                {'batches':rejected_batches},ensure_ascii=False,indent=2)+'\n')
+                {'batches':rejected_batches},ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         if certificate is not None and (certificate/'manifest.json').is_file():
             materialize_reference_checks(target, certificate,
-                [json.loads((certificate/'manifest.json').read_text())])
+                [json.loads((certificate/'manifest.json').read_text(encoding='utf-8'))])
         materialize_bound_artifacts(target, run, rows)
     for name,payload in [('dataset.json',dataset),('execution.json',{'batches':batches}),('selection-audit.json',audit)]:
-        (output/name).write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n')
-    (output/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in records))
+        (output/name).write_text(json.dumps(payload,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
+    (output/'results.jsonl').write_text(''.join(json.dumps(r, ensure_ascii=True)+'\n' for r in records), encoding='utf-8')
     if inherited_replacement_scope_history or replacement_scope_receipts:
         index = []
         for item, source, _ in inherited_replacement_scope_history:
@@ -1147,7 +1147,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
                 'replacements': receipt['replacements'],
             })
         (output/'provider-replacement-scopes.json').write_text(
-            json.dumps(index, ensure_ascii=False, indent=2)+'\n')
+            json.dumps(index, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     copy_scoring_revision_history(run, output)
     copy_projected_latency_correction(run, output)
     # Consolidate independently validated source reference-correction receipts
@@ -1158,7 +1158,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     for root in dict.fromkeys(evidence):
         covered=reference_revision_cases(root)
         if not covered:continue
-        receipts=json.loads((root/'reference-revisions.json').read_text())
+        receipts=json.loads((root/'reference-revisions.json').read_text(encoding='utf-8'))
         for receipt in receipts:
             if (not isinstance(receipt,dict)
                     or receipt.get('kind') != 'audited_reference_correction'
@@ -1214,7 +1214,7 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
             next(iter(categories)) if len(categories)==1 else 'multi-root',
             'Consolidated validated reference corrections: '+'; '.join(root_causes),
             regression_ids)
-        (output/'reference-revisions.json').write_text(json.dumps([consolidated],ensure_ascii=False,indent=2)+'\n')
+        (output/'reference-revisions.json').write_text(json.dumps([consolidated],ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     if exclude_providers:
         review_copied=copy_projected_review(run,output,exclude_providers)
         if (dataset.get('comparison',{}).get('require_independent_result_review')
@@ -1239,9 +1239,9 @@ def _assemble(run, certificates, replacements, output, additions=None, provider_
     if speed_cohort:
         if not (speed_cohort/'speed-comparison.json').is_file():
             raise ValueError('Speed cohort has not been packaged')
-        speed_dataset=json.loads((speed_cohort/'dataset.json').read_text())
+        speed_dataset=json.loads((speed_cohort/'dataset.json').read_text(encoding='utf-8'))
         speed_rows=read_records(speed_cohort)
-        speed_execution=json.loads((speed_cohort/'execution.json').read_text())
+        speed_execution=json.loads((speed_cohort/'execution.json').read_text(encoding='utf-8'))
         speed_batches=speed_execution.get('batches')
         if not isinstance(speed_batches,list):
             raise ValueError('Speed cohort execution has no batches')

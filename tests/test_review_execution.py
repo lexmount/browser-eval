@@ -26,8 +26,8 @@ def fixture(root):
         "status_code": 200,
         "metrics": {"content_pass": False, "content_sha256": hashlib.sha256(b"").hexdigest()},
     }
-    (evidence / "dataset.json").write_text(json.dumps(dataset))
-    (evidence / "results.jsonl").write_text(json.dumps(row) + "\n")
+    (evidence / "dataset.json").write_text(json.dumps(dataset), encoding="utf-8")
+    (evidence / "results.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
     update_prior(evidence)
     return evidence
 
@@ -50,7 +50,7 @@ def update_prior(evidence):
             }
         ],
     }
-    (evidence / "result-review.json").write_text(json.dumps(review))
+    (evidence / "result-review.json").write_text(json.dumps(review), encoding="utf-8")
 
 
 def snapshot(root):
@@ -79,31 +79,62 @@ def test_resume_rejects_changed_context_before_overwriting_work(tmp_path, phase,
     ]
     with (
         patch("sys.argv", argv),
-        patch("subprocess.run", side_effect=AssertionError("No reviewer calls")),
+        patch("subprocess.Popen", side_effect=AssertionError("No reviewer calls")),
     ):
         main()
         main()  # Exact-input preparation is resumable.
     before = snapshot(work)
     if change == "dataset":
-        document = json.loads((evidence / "dataset.json").read_text())
+        document = json.loads((evidence / "dataset.json").read_text(encoding="utf-8"))
         document["cases"][0]["required_facts"] = ["new independent requirement"]
-        (evidence / "dataset.json").write_text(json.dumps(document))
+        (evidence / "dataset.json").write_text(json.dumps(document), encoding="utf-8")
         update_prior(evidence)
     elif change == "results":
-        row = json.loads((evidence / "results.jsonl").read_text())
+        row = json.loads((evidence / "results.jsonl").read_text(encoding="utf-8"))
         row["elapsed_ms"] = 123
-        (evidence / "results.jsonl").write_text(json.dumps(row) + "\n")
+        (evidence / "results.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
         update_prior(evidence)
     elif change == "model":
         argv[argv.index("synthetic-model-a")] = "synthetic-model-b"
     else:
-        (evidence / "answer.txt").write_text("changed answer")
+        (evidence / "answer.txt").write_text("changed answer", encoding="utf-8")
     with (
         patch("sys.argv", argv),
-        patch("subprocess.run", side_effect=AssertionError("No reviewer calls")),
+        patch("subprocess.Popen", side_effect=AssertionError("No reviewer calls")),
     ):
         with pytest.raises(ValueError):
             main()
+    assert snapshot(work) == before
+
+
+@pytest.mark.parametrize("phase", ["blind", "anomaly"])
+def test_resume_rejects_a_changed_reviewer_runner(tmp_path, phase):
+    evidence = fixture(tmp_path)
+    work = tmp_path / "work"
+    main = review_main if phase == "blind" else anomaly_main
+    argv = [
+        "review",
+        "--evidence",
+        str(evidence),
+        "--work",
+        str(work),
+        "--model",
+        "synthetic-model",
+        "--reviewer",
+        "internal",
+        "--prepare-only",
+    ]
+    with patch("sys.argv", argv):
+        main()
+    before = snapshot(work)
+    changed = tmp_path / "review_runner.py"
+    changed.write_text("# changed runner\n", encoding="utf-8")
+    with (
+        patch("sys.argv", argv),
+        patch("harness.review_runner.__file__", str(changed)),
+        pytest.raises(ValueError, match="use a new review directory"),
+    ):
+        main()
     assert snapshot(work) == before
 
 
@@ -120,7 +151,8 @@ def completed_blind_batch(work):
                     }
                 ]
             }
-        )
+        ),
+        encoding="utf-8"
     )
 
 
@@ -143,15 +175,15 @@ def test_cached_blind_judgment_is_retained_but_changed_packet_is_rejected(tmp_pa
     completed_blind_batch(work)
     with (
         patch("sys.argv", argv),
-        patch("subprocess.run", side_effect=AssertionError("No reviewer calls")),
+        patch("subprocess.Popen", side_effect=AssertionError("No reviewer calls")),
     ):
         review_main()
-    result = json.loads((work / "result-review.json").read_text())
+    result = json.loads((work / "result-review.json").read_text(encoding="utf-8"))
     assert result["attempts"][0]["agent_verdict"] == "fail"
     packet = work / "batch-001-input.json"
-    document = json.loads(packet.read_text())
+    document = json.loads(packet.read_text(encoding="utf-8"))
     document["cases"][0]["required_facts"] = ["different frozen task"]
-    packet.write_text(json.dumps(document))
+    packet.write_text(json.dumps(document), encoding="utf-8")
     before = snapshot(work)
     with patch("sys.argv", argv), pytest.raises(ValueError, match="input packet changed"):
         review_main()
@@ -160,9 +192,9 @@ def test_cached_blind_judgment_is_retained_but_changed_packet_is_rejected(tmp_pa
 
 def test_partial_provider_review_cannot_replace_a_complete_installed_review(tmp_path):
     evidence = fixture(tmp_path)
-    row = json.loads((evidence / "results.jsonl").read_text())
+    row = json.loads((evidence / "results.jsonl").read_text(encoding="utf-8"))
     second = {**row, "provider": "other", "attempt_id": "other__a__r001"}
-    (evidence / "results.jsonl").write_text(json.dumps(row) + "\n" + json.dumps(second) + "\n")
+    (evidence / "results.jsonl").write_text(json.dumps(row) + "\n" + json.dumps(second) + "\n", encoding="utf-8")
     before = (evidence / "result-review.json").read_bytes()
     work = tmp_path / "work"
     argv = [
@@ -191,7 +223,7 @@ def test_legacy_unbound_workspace_is_preserved_and_rejected(tmp_path, phase):
     evidence = fixture(tmp_path)
     work = tmp_path / "work"
     work.mkdir()
-    (work / "batch-001.json").write_text('{"historical": "judgment"}')
+    (work / "batch-001.json").write_text('{"historical": "judgment"}', encoding="utf-8")
     before = snapshot(work)
     argv = [
         "review",
@@ -235,7 +267,7 @@ def test_invalid_execution_limits_fail_before_work_or_calls(tmp_path, phase, opt
         value,
     ]
     main = review_main if phase == "blind" else anomaly_main
-    with patch("sys.argv", argv), patch("subprocess.run", side_effect=AssertionError("No calls")):
+    with patch("sys.argv", argv), patch("subprocess.Popen", side_effect=AssertionError("No calls")):
         with pytest.raises(SystemExit):
             main()
     assert not work.exists()

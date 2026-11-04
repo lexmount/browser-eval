@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-REPLAY_ARGS=(-m harness.trajectory_replay.cli)
+REPLAY_ARGS=(-m harness.trajectory_replay evaluate)
 for argument in "$@"; do
   case "${argument}" in
     --no-report) REPLAY_ARGS+=(--no-report) ;;
@@ -16,7 +16,7 @@ CPUS="${TRAJECTORY_REPLAY_CPUS:-2}"
 MEMORY="${TRAJECTORY_REPLAY_MEMORY:-2g}"
 BUILD_IMAGES="${TRAJECTORY_REPLAY_BUILD_IMAGES:-1}"
 LLM_DIAGNOSTICS="${TRAJECTORY_REPLAY_LLM_DIAGNOSTICS:-0}"
-DIAGNOSIS_MODEL="${TRAJECTORY_REPLAY_DIAGNOSIS_MODEL:-gpt-5.6-sol}"
+DIAGNOSIS_MODEL="${TRAJECTORY_REPLAY_DIAGNOSIS_MODEL:-}"
 DIAGNOSIS_EFFORT="${TRAJECTORY_REPLAY_DIAGNOSIS_REASONING_EFFORT:-low}"
 DATA_HOME="${BROWSER_EVAL_DATA_HOME:-${HOME}/.browser-eval}"
 OUTPUT="${TRAJECTORY_REPLAY_OUTPUT_DIR:-${DATA_HOME}/trajectory-replay/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
@@ -51,8 +51,10 @@ fi
 
 RUNNER=(uv run --frozen --extra browser-use-eval python)
 
-EXTRA_ARGS=(--diagnosis-model "${DIAGNOSIS_MODEL}" \
-  --diagnosis-reasoning-effort "${DIAGNOSIS_EFFORT}")
+EXTRA_ARGS=(--diagnosis-reasoning-effort "${DIAGNOSIS_EFFORT}")
+if [[ -n "${DIAGNOSIS_MODEL}" ]]; then
+  EXTRA_ARGS+=(--diagnosis-model "${DIAGNOSIS_MODEL}")
+fi
 if [[ "${LLM_DIAGNOSTICS}" == "1" ]]; then
   EXTRA_ARGS+=(--llm-diagnostics)
 fi

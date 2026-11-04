@@ -21,23 +21,23 @@ def inputs(tmp_path):
     completion = source / plan.COMPLETION_CANDIDATES
     completion.parent.mkdir(parents=True)
     original = (Path(__file__).resolve().parents[2] / plan.COMPLETION_CANDIDATES)
-    payload = json.loads(original.read_text())
+    payload = json.loads(original.read_text(encoding='utf-8'))
     rule = next(row for row in payload['rules'] if row['task_id'] == 465)
     rule.update({'task_id': TASK_ID, 'action_count': 1})
     rule.pop('pre_action_readiness', None)
     payload['rules'] = [rule]
-    completion.write_text(json.dumps(payload))
+    completion.write_text(json.dumps(payload), encoding='utf-8')
     calls = [{'action': 'click', 'selector': '#save'}]
     seeds = tmp_path / 'seeds.json'
     seeds.write_text(json.dumps({'tasks': [{
         'task_id': TASK_ID, 'replay_status': 'ready', 'canonical_candidate_id': 'one',
         'candidates': [{'id': 'one', 'tool_calls': calls}],
-    }]}))
+    }]}), encoding='utf-8')
     dataset = completion.parent / 'trajectories.json'
     dataset.write_text(json.dumps({
         'provenance': {'seed_manifest_sha256': hashlib.sha256(seeds.read_bytes()).hexdigest()},
         'trajectories': [{'task_id': TASK_ID, 'tool_calls': calls}],
-    }))
+    }), encoding='utf-8')
     proposal = tmp_path / 'proposal.json'
     base = ['--task', str(TASK_ID), '--seeds', str(seeds), '--source-root', str(source)]
     return base, proposal
@@ -53,9 +53,9 @@ def proposal(tmp_path, *, retry=False):
     base, path = inputs(tmp_path)
     assert execution.main_mutation_diagnostic([*base, '--emit-proposal', str(path)]) == 0
     if retry:
-        payload = json.loads(path.read_text())
+        payload = json.loads(path.read_text(encoding='utf-8'))
         payload['observer_retry_policy'] = retry_policy()
-        path.write_text(json.dumps(payload))
+        path.write_text(json.dumps(payload), encoding='utf-8')
     return base, path
 
 
@@ -67,11 +67,11 @@ def environment(tmp_path, monkeypatch, *, score=1, navigation_error=False, trigg
     sites.write_text(json.dumps({'schema': 'lex_webarena_remote_sites/1', 'sites': {
         'shopping': 'https://shop.example.test', 'shopping_admin': 'https://admin.example.test/admin',
         'reddit': 'https://reddit.example.test', 'gitlab': 'https://gitlab.example.test',
-    }}))
+    }}), encoding='utf-8')
     binary = tmp_path / 'browser'
     binary.write_bytes(b'fixed binary')
     reset = tmp_path / 'reset.json'
-    reset.write_text(json.dumps({'task_id': TASK_ID}))
+    reset.write_text(json.dumps({'task_id': TASK_ID}), encoding='utf-8')
     activity = {'created': 0, 'closed': 0, 'trigger': 0, 'observer': 0,
                 'waits': 0, 'evaluations': 0}
     evaluation = SimpleNamespace(score=score, status='PASS' if score else 'FAIL',
@@ -133,7 +133,7 @@ def environment(tmp_path, monkeypatch, *, score=1, navigation_error=False, trigg
             pass
 
         def stop(self, _, target):
-            target.write_text('{"log":{"entries":[]}}')
+            target.write_text('{"log":{"entries":[]}}', encoding='utf-8')
 
     monkeypatch.setattr(execution, 'CdpHarRecorder', Recorder)
 
@@ -162,7 +162,7 @@ def environment(tmp_path, monkeypatch, *, score=1, navigation_error=False, trigg
 
 def test_proposal_round_trip_needs_no_browser_and_retains_canonical_calls(tmp_path, monkeypatch):
     base, path = proposal(tmp_path)
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding='utf-8'))
     assert payload['tool_calls'][0] == {'action': 'click', 'selector': '#save'}
     assert len(payload['tool_calls']) == 2
     monkeypatch.chdir(tmp_path)
@@ -171,7 +171,7 @@ def test_proposal_round_trip_needs_no_browser_and_retains_canonical_calls(tmp_pa
     )
     assert checked == 0
     payload['tool_calls'][0]['selector'] = '#different'
-    path.write_text(json.dumps(payload))
+    path.write_text(json.dumps(payload), encoding='utf-8')
     with pytest.raises(ValueError, match='preserve the canonical actions'):
         execution.main_mutation_diagnostic([*base, '--proposal', str(path), '--check-proposal'])
 
@@ -184,9 +184,9 @@ def test_proposal_round_trip_needs_no_browser_and_retains_canonical_calls(tmp_pa
 ])
 def test_invalid_observer_retry_is_rejected_during_proposal_check(tmp_path, overrides):
     base, path = proposal(tmp_path, retry=True)
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding='utf-8'))
     payload['observer_retry_policy'].update(overrides)
-    path.write_text(json.dumps(payload))
+    path.write_text(json.dumps(payload), encoding='utf-8')
     with pytest.raises(ValueError, match='bounded compiled read-only observer'):
         execution.main_mutation_diagnostic([*base, '--proposal', str(path), '--check-proposal'])
 
@@ -212,7 +212,7 @@ def test_diagnostic_retries_only_final_observer_and_closes_tool(
     finally:
         os.umask(mask)
     assert sys.path == old_path
-    receipt = json.loads((output / 'receipt.json').read_text())
+    receipt = json.loads((output / 'receipt.json').read_text(encoding='utf-8'))
     assert receipt['status'] == 'diagnostic_pass' and receipt['promotable'] is False
     assert receipt['recorded_agent_response_used'] is False
     assert receipt['input_hashes_stable'] is True
@@ -234,7 +234,7 @@ def test_failure_keeps_evidence_and_never_repeats_mutation(tmp_path, monkeypatch
     kwargs = {fault: 0 if fault == 'score' else True}
     argv, _, output, activity = environment(tmp_path, monkeypatch, **kwargs)
     assert execution.main_mutation_diagnostic(argv) == 1
-    receipt = json.loads((output / 'receipt.json').read_text())
+    receipt = json.loads((output / 'receipt.json').read_text(encoding='utf-8'))
     assert receipt['status'] == expected and receipt['promotable'] is False
     assert activity['created'] == activity['closed'] == activity['trigger'] == 1
     assert activity['observer'] <= 1 and activity['waits'] == 0
@@ -243,9 +243,9 @@ def test_failure_keeps_evidence_and_never_repeats_mutation(tmp_path, monkeypatch
 
 def test_invalid_retry_cannot_create_output_or_browser(tmp_path, monkeypatch):
     argv, path, output, activity = environment(tmp_path, monkeypatch)
-    payload = json.loads(path.read_text())
+    payload = json.loads(path.read_text(encoding='utf-8'))
     payload['observer_retry_policy']['navigation_ready_timeout_ms'] = 0
-    path.write_text(json.dumps(payload))
+    path.write_text(json.dumps(payload), encoding='utf-8')
     with pytest.raises(ValueError, match='bounded compiled read-only observer'):
         execution.main_mutation_diagnostic(argv)
     assert not output.exists() and activity['created'] == 0
@@ -273,7 +273,7 @@ def test_setup_failure_retains_terminal_receipt_without_actions(tmp_path, monkey
     old_path = list(sys.path)
     assert execution.main_mutation_diagnostic(argv) == 1
     assert sys.path == old_path
-    receipt = json.loads((output / 'receipt.json').read_text())
+    receipt = json.loads((output / 'receipt.json').read_text(encoding='utf-8'))
     assert receipt['status'] == 'diagnostic_incomplete' and receipt['completed_action_count'] == 0
     assert 'synthetic browser setup failed' in receipt['error']
     assert activity['created'] == 1 and activity['trigger'] == activity['observer'] == 0
@@ -291,3 +291,16 @@ def test_preflight_cannot_change_frozen_inputs_before_browser_start(tmp_path, mo
     with pytest.raises(ValueError, match='inputs changed during diagnostic preflight'):
         execution.main_mutation_diagnostic(argv)
     assert not output.exists() and activity['created'] == 0
+
+
+def test_diagnostic_stops_before_any_browser_without_site_accounts(tmp_path, monkeypatch):
+    from harness import env_file
+
+    argv, _, output, activity = environment(tmp_path, monkeypatch)
+    monkeypatch.setattr(env_file, '_repository_credentials_file', tmp_path / 'absent.env')
+
+    with pytest.raises(ValueError, match='WEBARENA_[A-Z_]+_PASSWORD'):
+        execution.main_mutation_diagnostic(argv)
+    assert activity['created'] == 0
+    assert activity['trigger'] == 0
+    assert not output.exists()

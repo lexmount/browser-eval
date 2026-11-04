@@ -10,7 +10,7 @@ ROOT = Path("evaluation/trajectory-replay/webarena-verified/retrieval-candidates
 @pytest.mark.parametrize("rejected", [False, True])
 def test_wizard_transition_requires_values_not_just_successful_click(rejected):
     candidate = json.loads(
-        (ROOT.parent / "trajectory-candidates/task-547.json").read_text()
+        (ROOT.parent / "trajectory-candidates/task-547.json").read_text(encoding="utf-8")
     )
     setup = r"""
 let clicked=0,handlerChecks=0;
@@ -59,7 +59,7 @@ def run(script, setup):
 
 @pytest.mark.parametrize("bad", [False, True])
 def test_legacy_grid_not_notification_provider(bad):
-    value = json.loads((ROOT / "task-41.json").read_text())
+    value = json.loads((ROOT / "task-41.json").read_text(encoding="utf-8"))
     script = value["tool_calls"][-1]["script"]
     setup = r"""
 global.location={pathname:'/admin/search/term/report/',href:'https://test/admin/search/term/report/'};
@@ -81,7 +81,7 @@ global.document={getElementById:id=>id.endsWith('-total-count')?
 @pytest.mark.parametrize("bad", [False, True])
 @pytest.mark.parametrize("label", ["1 Item(s)", "Items 1 to 1 of 1 total", "Items 1-1 of 1"])
 def test_single_page_history_and_inconsistent_total(bad, label):
-    value = json.loads((ROOT / "task-50.json").read_text())
+    value = json.loads((ROOT / "task-50.json").read_text(encoding="utf-8"))
     script = value["tool_calls"][-1]["script"]
     setup = r"""
 global.location={origin:'http://test',href:'http://test/sales/order/history/?limit=50'};
@@ -106,7 +106,7 @@ headers:{get:()=> 'text/html'},text:async()=>''});
 @pytest.mark.parametrize("task_id", [183, 184])
 @pytest.mark.parametrize("bad", [False, True])
 def test_inventory_current_records_and_runtime_color_labels(task_id, bad):
-    value = json.loads((ROOT / f"task-{task_id}.json").read_text())
+    value = json.loads((ROOT / f"task-{task_id}.json").read_text(encoding="utf-8"))
     setup = r"""
 global.location={origin:'https://test',href:'https://test/admin/catalog/product/',
 pathname:'/admin/catalog/product/'};
@@ -145,7 +145,7 @@ json:async()=>({...data,items:BAD?[{...rows[0],qty:null}]:rows})}};
 @pytest.mark.parametrize("bad", [False, True])
 @pytest.mark.parametrize("string_total", [False, True])
 def test_modern_grid_ignores_notification_and_clears_saved_filters(bad, string_total):
-    value = json.loads((ROOT / "task-94.json").read_text())
+    value = json.loads((ROOT / "task-94.json").read_text(encoding="utf-8"))
     script = value["tool_calls"][-1]["script"]
     setup = r"""
 global.location={origin:'https://test',href:'https://test/admin/sales/invoice/',

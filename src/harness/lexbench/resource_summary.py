@@ -49,8 +49,8 @@ def validate_population(protocol: dict) -> tuple[set, set]:
 def summarize(directory: Path) -> dict:
     protocol_path = contained_path(directory, "protocol.json", reject_symlinks=True)
     receipt_path = contained_path(directory, "receipt.json", reject_symlinks=True)
-    protocol = json.loads(protocol_path.read_text())
-    receipt = json.loads(receipt_path.read_text())
+    protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     if (
         protocol["schema"] != "moli_linux_resource_profiles/1"
         or receipt["schema"] != "moli_linux_resource_profiles_receipt/1"
@@ -92,7 +92,7 @@ def summarize(directory: Path) -> dict:
             ):
                 if sha256(contained_path(run, filename, reject_symlinks=True)) != binding[key]:
                     raise ValueError("resource run changed after completion")
-            manifest = json.loads((run / "run_manifest.json").read_text())
+            manifest = json.loads((run / "run_manifest.json").read_text(encoding="utf-8"))
             rows = load_jsonl(run / "results.jsonl")
             if (
                 manifest["completion_status"] != "completed"
@@ -113,7 +113,7 @@ def summarize(directory: Path) -> dict:
                     raise ValueError("resource build or layout mismatch")
             rows_by_phase[phase] = rows
             manifests[phase] = manifest
-            hosts[phase] = json.loads((run / "host_summary.json").read_text())
+            hosts[phase] = json.loads((run / "host_summary.json").read_text(encoding="utf-8"))
         rows = rows_by_phase["engine"]
         by_key = {(r["task_id"], r["attempt"]): r for r in rows}
         if any(
@@ -269,14 +269,10 @@ def main(argv=None):
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     result = summarize(args.directory)
-    with args.output.open("x") as output:
+    with args.output.open("x", encoding="utf-8") as output:
         output.write(json.dumps(result, indent=2) + "\n")
     print(
         json.dumps(
             {"publishable": result["publishable"], "methods": list(result["configurations"])}
         )
     )
-
-
-if __name__ == "__main__":
-    main()

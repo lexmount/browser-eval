@@ -35,14 +35,14 @@ class PublicCallScenarios(unittest.TestCase):
             example(root)
             output = root / "report"
             manifest_path = output / "manifest.json"
-            manifest = json.loads(manifest_path.read_text())
+            manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
             binding = next(x for x in manifest["bundle"] if x["path"].startswith("calls/"))
             path = output / binding["path"]
-            value = json.loads(path.read_text())
+            value = json.loads(path.read_text(encoding='utf-8'))
             value["leaked_link"] = "https://reader:private-secret@example.org"
-            path.write_text(json.dumps(value))
+            path.write_text(json.dumps(value), encoding='utf-8')
             binding["sha256"] = bytes_sha256(path.read_bytes())
-            manifest_path.write_text(json.dumps(manifest))
+            manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, "Public evidence contains URL credentials"):
                 check(output)
 

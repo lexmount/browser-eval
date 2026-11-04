@@ -73,6 +73,6 @@ def probe_main(argv=None):
     output = unlinked_path(args.output)
     if output.exists():
         raise ValueError("output already exists")
-    result = probe_extractor(args.source.read_text())
+    result = probe_extractor(args.source.read_text(encoding='utf-8'))
     write_new_file(output, (json.dumps(result, ensure_ascii=False, indent=2) + "\n").encode())
     print(json.dumps(result["observations"]))

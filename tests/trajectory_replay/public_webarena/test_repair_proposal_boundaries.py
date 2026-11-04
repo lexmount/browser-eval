@@ -29,7 +29,7 @@ def setup_command(tmp_path, kind):
         "source": {"verified_evaluators": [{"evaluator": "NetworkEventEvaluator",
                    "expected": {"post_data": {"title": "Exact title"}}}]}}]}
     suite_path = tmp_path / "suite.json"
-    suite_path.write_text(json.dumps(suite))
+    suite_path.write_text(json.dumps(suite), encoding="utf-8")
     args = ["--suite", str(suite_path)]
     if kind == "action_repair":
         config = {"schema": "lex_browser_use_action_repair/1", "task_id": "task-1",
@@ -44,7 +44,7 @@ def setup_command(tmp_path, kind):
                                        "output": "answer"}}
     if kind in {"action_repair", "observed_repair"}:
         config_path = tmp_path / "config.json"
-        config_path.write_text(json.dumps(config))
+        config_path.write_text(json.dumps(config), encoding="utf-8")
         args += ["--config", str(config_path)]
     elif kind in BATCH:
         args += ["--task-ids", "task-1"]
@@ -54,7 +54,7 @@ def setup_command(tmp_path, kind):
                 "failed_step": {"index": 2, "action": "click", "error":
                     "click action done; waiting for scheduled navigations to finish"}}]}
             path = tmp_path / "qualification.json"
-            path.write_text(json.dumps(qualification))
+            path.write_text(json.dumps(qualification), encoding="utf-8")
             args += ["--qualification", str(path)]
     else:
         args += ["--task-id", "task-1", "--action-index", "2"]
@@ -143,7 +143,7 @@ def test_generation_rejects_inputs_changed_before_publication(tmp_path, monkeypa
 
     def change_input(suite, config):
         proposal = original(suite, config)
-        (tmp_path / "config.json").write_text('{}')
+        (tmp_path / "config.json").write_text('{}', encoding="utf-8")
         return proposal
 
     monkeypatch.setattr(q, "propose_action_repair", change_input)

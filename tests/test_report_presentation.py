@@ -163,7 +163,7 @@ class ReportRevisionTests(unittest.TestCase):
    write(root,'index.html','中文','<p>正文</p>')
    from harness.web_fetch.report_i18n import write_english_report
    write_english_report(root)
-   zh=(root/'index.html').read_text();en=(root/'en/index.html').read_text()
+   zh=(root/'index.html').read_text(encoding='utf-8');en=(root/'en/index.html').read_text(encoding='utf-8')
    self.assertIn('href="en/index.html" hreflang="en">English</a>',zh)
    self.assertIn('lang="en"',en)
    self.assertIn('href="../index.html" hreflang="zh-CN">中文</a>',en)
@@ -253,18 +253,18 @@ class ReportRevisionTests(unittest.TestCase):
   from harness.web_fetch.report_i18n import write_english_report
   with tempfile.TemporaryDirectory() as directory:
    root=Path(directory);(root/'guide').mkdir()
-   (root/'guide/article.html').write_text('<html lang="zh-CN"><body><p>漏译的解释</p></body></html>')
+   (root/'guide/article.html').write_text('<html lang="zh-CN"><body><p>漏译的解释</p></body></html>', encoding='utf-8')
    with self.assertRaisesRegex(ValueError,'Untranslated English article'):
     write_english_report(root)
  def test_english_article_gate_keeps_source_evidence(self):
   from harness.web_fetch.report_i18n import write_english_report
   with tempfile.TemporaryDirectory() as directory:
    root=Path(directory);(root/'guide').mkdir()
-   (root/'dataset.json').write_text('{"cases":[{"name":"中文任务名"}]}')
+   (root/'dataset.json').write_text('{"cases":[{"name":"中文任务名"}]}', encoding='utf-8')
    (root/'guide/article.html').write_text(
-       '<html lang="zh-CN"><body><p>中文任务名</p><pre>标准答案与实际输出原文</pre></body></html>')
+       '<html lang="zh-CN"><body><p>中文任务名</p><pre>标准答案与实际输出原文</pre></body></html>', encoding='utf-8')
    write_english_report(root)
-   rendered=(root/'en/guide/article.html').read_text()
+   rendered=(root/'en/guide/article.html').read_text(encoding='utf-8')
    self.assertIn('中文任务名',rendered)
    self.assertIn('标准答案与实际输出原文',rendered)
  def test_visible_accessibility_attributes_are_localized(self):
@@ -337,10 +337,10 @@ class MeasuredInterfaceIdentityTests(unittest.TestCase):
   import json
   from harness.web_fetch.report_interfaces import render_interfaces
   with tempfile.TemporaryDirectory() as directory:
-   out=Path(directory);(out/'adoption').mkdir();(out/'answer.md').write_text('Body')
+   out=Path(directory);(out/'adoption').mkdir();(out/'answer.md').write_text('Body', encoding='utf-8')
    rows=[{'case_id':'static-simple','attempt_id':str(i),'artifact_path':'answer.md',**r} for i,r in enumerate(records)]
    render_interfaces(out,rows)
-   return json.loads((out/'adoption/interfaces'/f'{name}.json').read_text())
+   return json.loads((out/'adoption/interfaces'/f'{name}.json').read_text(encoding='utf-8'))
  def test_generic_moli_uses_observed_release_and_task_adapter(self):
   record={'provider':'moli','provider_type':'moli_webfetch','provider_metadata':{'reported_version':'moli 1.1.15'}}
   output=self.render([record]);access=output['access']

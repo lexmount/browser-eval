@@ -204,7 +204,7 @@ def method_access(name, records, *, language="zh"):
 def _execution_browser_method_registry():
     """Use the execution registry for release and source-build participants."""
     try:
-        return json.loads(bundled_data_path("configs/providers.headless.json").read_text())["providers"]
+        return json.loads(bundled_data_path("configs/providers.headless.json").read_text(encoding="utf-8"))["providers"]
     except FileNotFoundError:
         return {}
 
@@ -291,7 +291,7 @@ def with_measured_method_labels(render):
     signature = inspect.signature(render)
     def render_with_labels(out, dataset, records, *args, **kwargs):
         path = Path(out) / "implementation-provenance.json"
-        provenance = json.loads(path.read_text()) if path.is_file() else {}
+        provenance = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
         identities = {item["binary_sha256"]: item for item in provenance.get("implementations", [])
                       if item.get("binary_sha256")}
         records_token = _REPORT_RECORDS.set({row["provider"]: row for row in records})
@@ -349,7 +349,7 @@ def with_measured_method_labels(render):
         comparison = dataset.get("comparison")
         saved = Path(out) / "dataset.json"
         if comparison is None and saved.is_file():
-            comparison = json.loads(saved.read_text()).get("comparison", {})
+            comparison = json.loads(saved.read_text(encoding="utf-8")).get("comparison", {})
         token = _REPORT_METHODS.set((comparison or {}).get("method_registry", _REPORT_METHODS.get()))
         try:
             return render_with_labels(out, dataset, records, *args, **kwargs)

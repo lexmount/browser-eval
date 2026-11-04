@@ -248,3 +248,12 @@ def test_output_notice_describes_only_delivered_fields(zh):
     assert ("正文" if zh else "Page bodies") not in notice()
     rows[0]["results"][0]["content"] = "An API-provided page body"
     assert ("网页正文显示节选" if zh else "bodies are shown as excerpts") in notice()
+
+
+def test_method_labels_keep_the_web_search_escaping_including_an_absent_label():
+    profile, rows = matrix()
+    profile["methods"][0]["label"] = "<b>\"A\"&'</b>"
+    profile["methods"][1]["label"] = None
+    page = render_comparison(profile, rows, False)
+    assert 'value="a">&lt;b&gt;&quot;A&quot;&amp;&#x27;&lt;/b&gt;</label>' in page
+    assert 'value="b">None</label>' in page

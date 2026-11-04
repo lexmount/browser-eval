@@ -328,7 +328,3 @@ def main() -> None:
             {"tasks": len(catalog["rows"]), "catalog_sha256": file_sha256(args.output_catalog)}
         )
     )
-
-
-if __name__ == "__main__":
-    main()

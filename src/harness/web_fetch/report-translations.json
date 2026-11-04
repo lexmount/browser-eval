@@ -1,5 +1,6 @@
 {
   "TEXT": {
+    "本页汇总已保存结果；证据与文件核验不等于基准认证。最终展示模式不补足历史调用的认证条件，也不代表新一轮独立盲审。": "This page summarizes saved results; evidence and file verification are not benchmark certification. Final presentation does not complete historical certification requirements or constitute a new independent blind review.",
     "评分变化分步记录": "Stepwise verdict changes",
     "修订类型": "Revision type",
     "失败 → 通过": "Fail → pass",
@@ -1547,7 +1548,6 @@
     "速度汇总与共同成功样本": "Latency summary and shared-pass subset",
     "速度汇总与样本分母": "Latency summary and sample denominators",
     "速度子集逐次记录": "Per-call latency-cohort records",
-    "唯一输出目录为 reports/webfetch/。固定的 Python 3.11 与 uv.lock 依赖不满足时会立即失败。重新测量使用 uv run --frozen python scripts/run_headless_benchmark.py 和 configs/providers.headless.json；先独立采集并冻结参考，再调用，最后做测后核验。完整命令与版本见仓库 harness/web_fetch/HEADLESS.md。": "The only output directory is reports/webfetch/. The build fails immediately if the pinned Python 3.11 and uv.lock environment is unavailable. Fresh measurement uses uv run --frozen python scripts/run_headless_benchmark.py and configs/providers.headless.json: capture and freeze references independently, run provider calls, then perform post-run validation. See harness/web_fetch/HEADLESS.md for complete commands and versions.",
     "官方浏览器安装说明": "Official browser installation guide",
     "Cloudflare 控制台": "Cloudflare dashboard",
     "Kitesurf 接入说明": "Kitesurf integration guide",

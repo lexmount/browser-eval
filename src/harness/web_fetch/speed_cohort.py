@@ -139,13 +139,13 @@ def main(argv=None):
     parser.add_argument('--run',type=Path,required=True)
     parser.add_argument('--upgrade-execution-metadata',action='store_true',help='Upgrade a legacy batches-only execution.json after validating its existing evidence; never calls providers')
     args=parser.parse_args(argv);root=args.run
-    dataset=json.loads((root/'dataset.json').read_text())
+    dataset=json.loads((root/'dataset.json').read_text(encoding='utf-8'))
     cases={c['id']:c for c in dataset['cases']}
     records=load_jsonl(root/'results.jsonl')
     execution_path=root/'execution.json'
     if not execution_path.is_file():
         raise ValueError('Speed cohort requires aggregate execution.json')
-    execution=json.loads(execution_path.read_text())
+    execution=json.loads(execution_path.read_text(encoding='utf-8'))
     batches=execution.get('batches')
     upgrade=False
     if execution.get('schema_version') == 1 and isinstance(execution.get('aggregate'),dict):
@@ -162,11 +162,11 @@ def main(argv=None):
     if upgrade:
         upgraded={**execution,'schema_version':1,'aggregate':aggregate}
         temporary=execution_path.with_suffix('.json.upgrading')
-        temporary.write_text(json.dumps(upgraded,ensure_ascii=False,indent=2)+'\n')
+        temporary.write_text(json.dumps(upgraded,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         temporary.replace(execution_path)
     summary['bindings']={'dataset_sha256':hashlib.sha256((root/'dataset.json').read_bytes()).hexdigest(),
                          'results_sha256':hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()}
-    (root/'speed-comparison.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n')
+    (root/'speed-comparison.json').write_text(json.dumps(summary,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     print(f"common-pass={len(summary['common_pass_cases'])}/{len(cases)} providers={len(summary['providers'])}; full predeclared sample retained")
 
 
@@ -210,7 +210,7 @@ def selection_main():
         'selection':'Provider-blind reference-length quantile sampling over ordinary web body tasks; at most one case per hostname',
         'planned_before_calls':True,'case_count':len(selected)})
     args.output.mkdir(parents=True)
-    (args.output/'dataset.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+    (args.output/'dataset.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     materialize_task_references(args.output, {name: input_tree(args.dataset,name)
         for name in ('sources','list-references')}, [case['id'] for case in selected])
     print(','.join(c['id'] for c in selected))

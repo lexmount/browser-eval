@@ -20,12 +20,14 @@ AUDIT = ROOT / "research/trajectory-replay-task67-reference-audit.json"
 
 
 def _candidate() -> dict:
-    return json.loads(CANDIDATE.read_text())
+    return json.loads(CANDIDATE.read_text(encoding="utf-8"))
 
 
 def test_current_reader_preserves_frozen_prefix_and_uses_reviewed_body_spans() -> None:
     candidate = _candidate()
-    seed = next(row for row in json.loads(SEEDS.read_text())["rows"] if row["task_id"] == 67)
+    seed = next(
+        row for row in json.loads(SEEDS.read_text(encoding="utf-8"))["rows"] if row["task_id"] == 67
+    )
     calls = candidate["tool_calls"]
 
     assert candidate["task_id"] == 67
@@ -66,7 +68,7 @@ def test_current_reader_has_no_browser_semantic_heuristic() -> None:
 
 
 def test_source_audit_confirms_restored_top_ten_and_body_only_correction() -> None:
-    audit = json.loads(AUDIT.read_text())
+    audit = json.loads(AUDIT.read_text(encoding="utf-8"))
     rows = {row["post_id"]: row for row in audit["reviewed_posts"]}
 
     assert audit["source"]["reset_receipt"]

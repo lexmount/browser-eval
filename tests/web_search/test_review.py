@@ -52,7 +52,7 @@ def example(tmp_path, model="gpt-6.1-sol", scope="all", extra_cases=0, source_mo
                 if method["id"] == "a"
                 else {"results": []}
             )
-            path.write_text(json.dumps(payload))
+            path.write_text(json.dumps(payload), encoding="utf-8")
             rows.append(
                 {
                     "id": path.stem,
@@ -65,7 +65,7 @@ def example(tmp_path, model="gpt-6.1-sol", scope="all", extra_cases=0, source_mo
                     "evidence": {"path": path.name, "sha256": bytes_sha256(path.read_bytes())},
                 }
             )
-    (report / "manifest.json").write_text("{}")
+    (report / "manifest.json").write_text("{}", encoding="utf-8")
     root = tmp_path / "review"
     with patch("harness.web_search.report.check", return_value=(profile, rows)):
         contract = review.freeze(report, root, budget=1000, model=model, scope=scope, authorization="Explicit full-review test scenario" if scope == "all" else None, source_mode=source_mode)
@@ -145,7 +145,7 @@ def complete(root, contract):
         attempt = job / "attempt-001"
         attempt.mkdir()
         (attempt / "result.json").write_bytes((job / "result.json").read_bytes())
-        (attempt / "input.txt").write_text(review.LIVE_PROMPT + json.dumps({"packet_sha256": entry["sha256"], **packet}, ensure_ascii=False))
+        (attempt / "input.txt").write_text(review.LIVE_PROMPT + json.dumps({"packet_sha256": entry["sha256"], **packet}, ensure_ascii=False), encoding="utf-8")
         review.save(
             job / "status.json",
             {
@@ -219,7 +219,7 @@ def test_frozen_input_tampering_rejected(tmp_path, target):
         "schema": root / "schema.json",
         "alias": root / "alias-map.private.json",
     }[target]
-    path.write_text(path.read_text() + " ")
+    path.write_text(path.read_text(encoding="utf-8") + " ", encoding="utf-8")
     with pytest.raises(ValueError):
         review.load_frozen(root)
 
@@ -232,7 +232,7 @@ def test_successful_jobs_resume_without_new_process_and_invalid_job_not_counted(
         side_effect=AssertionError("must not repeat completed review"),
     ):
         assert review.run(root, workers=2) == [("0001", "reused"), ("0002", "reused")]
-    (root / "jobs/0001/result.json").write_text("{}")
+    (root / "jobs/0001/result.json").write_text("{}", encoding="utf-8")
     data = review.collect(root)
     assert data["case_reviewed"] == 1 and data["output_reviewed"] == 2
     with pytest.raises(ValueError, match="incomplete"):
@@ -255,7 +255,7 @@ def test_live_job_is_not_restarted(tmp_path):
     _, root, contract = example(tmp_path)
     job = root / "jobs" / contract["packets"][0]["id"]
     job.mkdir(parents=True)
-    with (job / "process.lock").open("a") as active:
+    with (job / "process.lock").open("a", encoding="utf-8") as active:
         fcntl.flock(active, fcntl.LOCK_EX | fcntl.LOCK_NB)
         with patch("harness.web_search.review.subprocess.Popen", side_effect=AssertionError("duplicate reviewer")), pytest.raises(ValueError, match="active reviewer"):
             review.run(root, limit=1)
@@ -307,7 +307,7 @@ def test_report_binding_ignores_derived_metrics_but_rejects_changed_answers():
 def test_failure_only_review_counts_only_selected_outputs_and_can_resume(tmp_path):
     _, root, contract = example(tmp_path, scope="failures")
     frozen = review.load_frozen(root)
-    aliases = json.loads((root / "alias-map.private.json").read_text())
+    aliases = json.loads((root / "alias-map.private.json").read_text(encoding="utf-8"))
     assert frozen == contract
     assert contract["output_count"] == len(aliases)
     assert 0 < contract["output_count"] < 4
@@ -321,7 +321,7 @@ def native_case(tmp_path, adapter, payload, *, error="", results=None):
     profile = {"protocol": protocol, "methods": [method],
                "cases": [{"id": "q", "query": "Penguin", "family": "web"}]}
     path = tmp_path / "response.json"
-    path.write_text(json.dumps(payload))
+    path.write_text(json.dumps(payload), encoding="utf-8")
     projected = normalize_response(payload, method, protocol, request) if not error else []
     row = {"id": "q-result", "case_id": "q", "method": method["id"],
            "http_status": 200, "error": error, "request": request,
@@ -384,7 +384,7 @@ def test_native_review_rejects_disagreement_instead_of_fabricating_empty_output(
         row["normalized_results_sha256"] = bytes_sha256(review.encoded([]))
     else:
         path = tmp_path / row["evidence"]["path"]
-        path.write_text(json.dumps({"organic": [None]}))
+        path.write_text(json.dumps({"organic": [None]}), encoding="utf-8")
         row["evidence"]["sha256"] = bytes_sha256(path.read_bytes())
     with pytest.raises(ValueError, match="projection disagrees|organic result"):
         review.make_cases(profile, [row], tmp_path)
@@ -407,6 +407,9 @@ def test_review_command_allows_live_source_checks_but_disables_mutating_tools(tm
 
         def communicate(self, text, timeout):
             pass
+
+        def poll(self):
+            return self.returncode
 
     with patch("harness.web_search.review.subprocess.Popen", Process):
         assert review.run(root, limit=1) == [("0001", "completed")]
@@ -467,7 +470,7 @@ def test_account_limit_stops_new_packets_keeps_running_success_and_resumes(tmp_p
     assert not (root / "jobs/0004").exists()
     success_bytes = (root / "jobs/0002/result.json").read_bytes()
     failed_log = root / "jobs/0001/attempt-001/stderr.log"
-    assert failed_log.read_text() == failure_log
+    assert failed_log.read_text(encoding="utf-8") == failure_log
 
     class SuccessfulProcess(Process):
         def __init__(self, command, **kwargs):
@@ -488,7 +491,7 @@ def test_account_limit_stops_new_packets_keeps_running_success_and_resumes(tmp_p
                                                 ("0003", "completed"), ("0004", "completed")]
     assert set(started) == {"0001", "0003", "0004"}
     assert (root / "jobs/0002/result.json").read_bytes() == success_bytes
-    assert failed_log.read_text() == failure_log
+    assert failed_log.read_text(encoding="utf-8") == failure_log
     assert (root / "jobs/0001/attempt-002/result.json").exists()
     assert review.collect(root, require_complete=True)["case_reviewed"] == 4
 
@@ -536,17 +539,17 @@ def test_collect_requires_unchanged_private_physical_execution(tmp_path, defect)
     elif defect == "input":
         state["input_sha256"] = "0" * 64
     elif defect == "input-file":
-        (root / "jobs/0001/attempt-001/input.txt").write_text("Different review instructions")
+        (root / "jobs/0001/attempt-001/input.txt").write_text("Different review instructions", encoding="utf-8")
     elif defect == "attempt-output":
-        (root / "jobs/0001/attempt-001/result.json").write_text("{}")
+        (root / "jobs/0001/attempt-001/result.json").write_text("{}", encoding="utf-8")
     elif defect == "output":
         with (root / "jobs/0001/result.json").open("ab") as f:
             f.write(b"\n")
     elif defect == "packet":
-        (root / contract["packets"][0]["path"]).write_text("{}")
+        (root / contract["packets"][0]["path"]).write_text("{}", encoding="utf-8")
     elif defect == "raw":
         raw = next((root / "raw").glob("*.json"))
-        raw.write_text("{}")
+        raw.write_text("{}", encoding="utf-8")
     review.save(state_path, state)
     with pytest.raises(ValueError, match="incomplete|changed"):
         review.collect(root, require_complete=True)
@@ -609,7 +612,7 @@ def test_packet_schema_physical_receipt_cannot_drift(tmp_path, defect):
     review.save(job / "status.json", state)
     assert review._successful(root, entry, contract)
     if defect == "bytes":
-        schema_path.write_text("{}")
+        schema_path.write_text("{}", encoding="utf-8")
     elif defect == "receipt":
         state["schema_sha256"] = "0" * 64
     elif defect == "command":
@@ -626,3 +629,57 @@ def test_packet_schema_physical_receipt_cannot_drift(tmp_path, defect):
     assert review._successful(root, entry, contract) is None
     with pytest.raises(ValueError, match="incomplete"):
         review.collect(root, require_complete=True)
+
+
+@pytest.mark.parametrize("error", [KeyError("cases"), TypeError("not a mapping")])
+def test_malformed_opinion_error_records_a_terminal_failed_job(tmp_path, error):
+    _, root, contract = example(tmp_path)
+
+    class Process:
+        pid, returncode = 123456, 0
+
+        def __init__(self, command, **kwargs):
+            Path(command[command.index("--output-last-message") + 1]).write_text("{}", encoding="utf-8")
+
+        def communicate(self, text, timeout):
+            pass
+
+        def poll(self):
+            return self.returncode
+
+    with (patch("harness.web_search.review.subprocess.Popen", Process),
+          patch("harness.web_search.review.validate_result", side_effect=error)):
+        assert review.run(root, workers=1) == [("0001", "failed"), ("0002", "failed")]
+    for entry in contract["packets"]:
+        job = root / "jobs" / entry["id"]
+        state = json.loads((job / "status.json").read_bytes())
+        assert state["status"] == "failed" and state["finished_at"]
+        assert state["error"] == str(error)
+        assert json.loads((job / "attempt-001/status.json").read_bytes()) == state
+
+
+@pytest.mark.parametrize(
+    ("failure", "raised"),
+    [(OSError("disk full"), None), (AttributeError("unexpected"), AttributeError)],
+)
+def test_job_error_before_the_wait_kills_the_reviewer_and_records_it(tmp_path, failure, raised):
+    _, root, contract = example(tmp_path)
+    reviewer = tmp_path / "codex"
+    reviewer.write_text("#!/bin/sh\nexec sleep 60\n", encoding="utf-8")
+    reviewer.chmod(0o755)
+    original_save = review.save
+
+    def save(path, value):
+        if path.name == "status.json" and value.get("status") == "running":
+            raise failure
+        original_save(path, value)
+
+    with patch("harness.web_search.review.save", save):
+        if raised:
+            with pytest.raises(raised):
+                review.run(root, workers=1, executable=str(reviewer))
+        else:
+            assert review.run(root, workers=1, executable=str(reviewer))[0] == ("0001", "failed")
+    state = json.loads((root / "jobs/0001/status.json").read_bytes())
+    assert state["status"] == "failed" and state["returncode"] == -9 and state["finished_at"]
+    assert state["error"] == ("disk full" if not raised else "Reviewer job ended unexpectedly")

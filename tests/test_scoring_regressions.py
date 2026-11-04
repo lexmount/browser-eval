@@ -18,11 +18,11 @@ from harness.web_fetch.scoring_revision import ALLOWED_FIELDS, correction_proven
 class ScoringRegressionTests(unittest.TestCase):
     def test_policy_supersession_preserves_inputs_and_rejects_changed_body(self):
         from lexbench_webfetch.scoring_regressions import default_registry_path
-        document=json.loads(default_registry_path().read_text())
+        document=json.loads(default_registry_path().read_text(encoding="utf-8"))
         self.assertTrue(document['superseded_cases'])
         with tempfile.TemporaryDirectory() as directory:
             path=Path(directory)/'controls.json'
-            path.write_text(json.dumps(document))
+            path.write_text(json.dumps(document), encoding="utf-8")
             current=active_scoring_regressions(path)
             old,new=next(iter(document['superseded_cases'].items()))
             self.assertNotIn(old,current)
@@ -32,12 +32,12 @@ class ScoringRegressionTests(unittest.TestCase):
                                 ('status_code', 503)):
                 changed=json.loads(json.dumps(document))
                 next(row for row in changed['cases'] if row['id']==new)[field]=value
-                path.write_text(json.dumps(changed))
+                path.write_text(json.dumps(changed), encoding="utf-8")
                 with self.subTest(field=field),self.assertRaises(ValueError):
                     active_scoring_regressions(path)
             changed=json.loads(json.dumps(document))
             changed['superseded_cases'][old]='nonexistent-control'
-            path.write_text(json.dumps(changed))
+            path.write_text(json.dumps(changed), encoding="utf-8")
             with self.assertRaises(ValueError):
                 active_scoring_regressions(path)
 
@@ -61,14 +61,14 @@ class ScoringRegressionTests(unittest.TestCase):
             self.assertTrue(valid_scoring_revision(root))
             self.assertEqual((root/'scoring-revisions.json').read_bytes(), history)
             self.assertEqual((root/'results.jsonl').read_bytes(), b'')
-            dataset = json.loads((root/'dataset.json').read_text())
+            dataset = json.loads((root/'dataset.json').read_text(encoding="utf-8"))
             dataset['cases'][0]['url'] = 'https://different.test'
             changed = json.dumps(dataset).encode()
-            revisions = json.loads((root/'report-binding-revisions.json').read_text())
+            revisions = json.loads((root/'report-binding-revisions.json').read_text(encoding="utf-8"))
             revisions[0]['output_dataset_sha256'] = hashlib.sha256(changed).hexdigest()
             (root/revisions[0]['output_dataset_path']).write_bytes(changed)
             (root/'dataset.json').write_bytes(changed)
-            (root/'report-binding-revisions.json').write_text(json.dumps(revisions))
+            (root/'report-binding-revisions.json').write_text(json.dumps(revisions), encoding="utf-8")
             self.assertFalse(valid_scoring_revision(root))
 
     def test_historical_blind_review_keeps_revision_chain_readable_after_new_anomaly_rule(self):
@@ -105,7 +105,7 @@ class ScoringRegressionTests(unittest.TestCase):
                      'changed_cases':[],'task_decision_changes':[],
                      'source_scoring_receipts_sha256':scoring_revision_history_sha256([]),
                      'independent_result_review_sha256':hashlib.sha256(review_raw).hexdigest()}
-            (root/'scoring-revisions.json').write_text(json.dumps([receipt]))
+            (root/'scoring-revisions.json').write_text(json.dumps([receipt]), encoding="utf-8")
             self.assertTrue(valid_scoring_revision(root))
 
     def test_every_registered_false_verdict_control_runs_through_shared_scorer(self):
@@ -312,7 +312,7 @@ class ScoringRegressionTests(unittest.TestCase):
                     ["successful-empty-response-is-not-task-success"], decisions,
                 ),
             }
-            (root / "scoring-revisions.json").write_text(json.dumps([receipt]))
+            (root / "scoring-revisions.json").write_text(json.dumps([receipt]), encoding="utf-8")
             self.assertTrue(valid_scoring_revision(root))
 
     def test_scoring_revision_requires_a_continuous_fully_valid_history(self):
@@ -347,17 +347,17 @@ class ScoringRegressionTests(unittest.TestCase):
 
             broken = json.loads(json.dumps([first, final]))
             broken[1]["input_results_sha256"] = "e" * 64
-            (root / "scoring-revisions.json").write_text(json.dumps(broken))
+            (root / "scoring-revisions.json").write_text(json.dumps(broken), encoding="utf-8")
             self.assertFalse(valid_scoring_revision(root))
 
             unauthorized = json.loads(json.dumps([first, final]))
             unauthorized[0]["changed_cases"] = [{
                 "case_id": "case", "fields": ["url"],
             }]
-            (root / "scoring-revisions.json").write_text(json.dumps(unauthorized))
+            (root / "scoring-revisions.json").write_text(json.dumps(unauthorized), encoding="utf-8")
             self.assertFalse(valid_scoring_revision(root))
 
-            (root / "scoring-revisions.json").write_text(json.dumps([first, final]))
+            (root / "scoring-revisions.json").write_text(json.dumps([first, final]), encoding="utf-8")
             self.assertTrue(valid_scoring_revision(root))
 
     def test_scoring_history_crosses_explicit_reference_revision_transition(self):
@@ -379,7 +379,7 @@ class ScoringRegressionTests(unittest.TestCase):
             final = {**base,
                 "input_dataset_sha256": "e" * 64, "input_results_sha256": "f" * 64,
                 "output_dataset_sha256": current[0], "output_results_sha256": current[1]}
-            (root / "scoring-revisions.json").write_text(json.dumps([first, final]))
+            (root / "scoring-revisions.json").write_text(json.dumps([first, final]), encoding="utf-8")
             reference = {
                 "kind": "audited_reference_correction", "provider_calls": 0,
                 "output_dataset_sha256": current[0], "output_results_sha256": current[1],
@@ -389,10 +389,10 @@ class ScoringRegressionTests(unittest.TestCase):
                     "output_dataset_sha256": "e" * 64, "output_results_sha256": "f" * 64,
                 }],
             }
-            (root / "reference-revisions.json").write_text(json.dumps([reference]))
+            (root / "reference-revisions.json").write_text(json.dumps([reference]), encoding="utf-8")
             self.assertTrue(valid_scoring_revision(root))
             reference["revision_transitions"][0]["output_results_sha256"] = "0" * 64
-            (root / "reference-revisions.json").write_text(json.dumps([reference]))
+            (root / "reference-revisions.json").write_text(json.dumps([reference]), encoding="utf-8")
             self.assertFalse(valid_scoring_revision(root))
 
     def test_reference_revision_requires_the_same_root_cause_binding(self):
@@ -422,10 +422,10 @@ class ScoringRegressionTests(unittest.TestCase):
                 ),
             }
             path = root / "reference-revisions.json"
-            path.write_text(json.dumps([receipt]))
+            path.write_text(json.dumps([receipt]), encoding="utf-8")
             self.assertEqual(reference_revision_cases(root), {"article": {"a" * 64}})
             receipt["correction_provenance"]["regression_ids"] = ["missing"]
-            path.write_text(json.dumps([receipt]))
+            path.write_text(json.dumps([receipt]), encoding="utf-8")
             self.assertEqual(reference_revision_cases(root), {})
 
 

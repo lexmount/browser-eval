@@ -150,10 +150,10 @@ class SearchScenarios(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             p = Path(tmp)
-            (p / "a.json").write_text("{}")
+            (p / "a.json").write_text("{}", encoding="utf-8")
             binding = {"path": "a.json", "sha256": hashlib.sha256(b"{}").hexdigest()}
             verify_bundle(p, [binding])
-            (p / "a.json").write_text('{"changed":1}')
+            (p / "a.json").write_text('{"changed":1}', encoding="utf-8")
             with self.assertRaises(ValueError):
                 verify_bundle(p, [binding])
             (p / "link.json").symlink_to(p / "a.json")

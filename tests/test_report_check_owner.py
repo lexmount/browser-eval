@@ -59,7 +59,7 @@ def test_valid_report_runs_from_outside_checkout(tmp_path, optimized, english):
 def test_invalid_report_cannot_bypass_checks_with_optimization(tmp_path, optimized, defect):
     root, authority = create_report(tmp_path)
     if defect == "artifact":
-        (root / "artifacts/one.txt").write_text("changed")
+        (root / "artifacts/one.txt").write_text("changed", encoding="utf-8")
     elif defect == "duplicate_case":
         dataset = json.loads((root / "dataset.json").read_bytes())
         dataset["cases"] *= 2
@@ -68,22 +68,22 @@ def test_invalid_report_cannot_bypass_checks_with_optimization(tmp_path, optimiz
         path = root / "results.jsonl"
         path.write_bytes(path.read_bytes() * 2)
     elif defect == "reference":
-        (root / "references/one.txt").write_text("changed")
+        (root / "references/one.txt").write_text("changed", encoding="utf-8")
     elif defect == "execution":
         write_json(root / "execution.json", {"batches": []})
     elif defect == "workflow":
-        with (root / "index.html").open("a") as stream:
+        with (root / "index.html").open("a", encoding="utf-8") as stream:
             stream.write("<p>需用户辅助</p>")
     elif defect == "table":
-        with (root / "index.html").open("a") as stream:
+        with (root / "index.html").open("a", encoding="utf-8") as stream:
             stream.write("<table><tr><th>Wrong first header</th></tr></table>")
     elif defect == "duplicate_summary":
-        with (root / "attempts/alpha__one.html").open("a") as stream:
+        with (root / "attempts/alpha__one.html").open("a", encoding="utf-8") as stream:
             stream.write("<h3>实际返回</h3>")
     elif defect == "reliability":
         write_json(root / "reliability.json", {})
     else:
-        (root / "en/index.html").write_text("missing notice")
+        (root / "en/index.html").write_text("missing notice", encoding="utf-8")
     result = run_check(root, authority, optimized)
     assert result.returncode != 0, result.stdout
     assert "PASS:" not in result.stdout
@@ -93,14 +93,14 @@ def test_invalid_report_cannot_bypass_checks_with_optimization(tmp_path, optimiz
 def test_bilingual_mismatches_rejected(tmp_path, defect):
     root, authority = create_report(tmp_path, english=True)
     path = root / "en/index.html"
-    text = path.read_text()
+    text = path.read_text(encoding="utf-8")
     if defect == "number":
         text = text.replace("1 task", "2 tasks")
     elif defect == "link":
         text += '<a href="missing.html">Evidence</a>'
     else:
         text += "<p>未翻译的说明</p>"
-    path.write_text(text)
+    path.write_text(text, encoding="utf-8")
     with pytest.raises(ValueError, match="parity|untranslated"):
         check(root, authority_root=authority)
 
@@ -120,7 +120,7 @@ def test_output_artifact_must_stay_in_report(tmp_path, kind):
         path = root / "results.jsonl"
         row = json.loads(path.read_bytes())
         row["artifact_path"] = "../outside.txt"
-        path.write_text(json.dumps(row) + "\n")
+        path.write_text(json.dumps(row) + "\n", encoding="utf-8")
     else:
         path = root / "artifacts/one.txt"
         path.unlink()
@@ -156,12 +156,12 @@ def test_duplicate_provider_declarations_are_rejected(tmp_path, source):
 
 def test_explicit_wcxb_profile_dispatches_to_wcxb_gate(tmp_path):
     from harness.web_fetch.wcxb_publication import write_inventory
-    (tmp_path / "wcxb-score-summary.json").write_text("{}")
+    (tmp_path / "wcxb-score-summary.json").write_text("{}", encoding="utf-8")
     write_json(tmp_path / "sample-manifest.json", {"cases": []})
-    (tmp_path / "index.html").write_text('<h1>Synthetic WCXB report</h1>')
+    (tmp_path / "index.html").write_text('<h1>Synthetic WCXB report</h1>', encoding="utf-8")
     profile = tmp_path / "selected-profile.json"
-    profile.write_text(json.dumps({"comparison_kind": "wcxb_frozen_html_to_markdown"}))
-    (tmp_path / "report-content-binding.json").write_text("{}")
+    profile.write_text(json.dumps({"comparison_kind": "wcxb_frozen_html_to_markdown"}), encoding="utf-8")
+    (tmp_path / "report-content-binding.json").write_text("{}", encoding="utf-8")
     write_inventory(tmp_path, json.loads(profile.read_bytes()))
     result = subprocess.run(
         [
@@ -186,7 +186,7 @@ def test_bilingual_query_only_evidence_links_must_match(tmp_path, same_target):
         (root / "index.html", "one"),
         (root / "en/index.html", "one" if same_target else "two"),
     ):
-        path.write_text(path.read_text() + f'<a href="?case={value}">Evidence</a>')
+        path.write_text(path.read_text(encoding="utf-8") + f'<a href="?case={value}">Evidence</a>', encoding="utf-8")
     if same_target:
         assert check(root, authority_root=authority).startswith("PASS:")
     else:
@@ -214,10 +214,10 @@ def test_presentation_checks_remain_active_for_chinese_only_reports(tmp_path, op
     root, authority = create_revision_report(tmp_path)
     if defect == "table_width":
         path = root / "analysis/index.html"
-        path.write_text(path.read_text().replace("<td>请求失败</td>", ""))
+        path.write_text(path.read_text(encoding="utf-8").replace("<td>请求失败</td>", ""), encoding="utf-8")
     elif defect == "filter":
         path = root / "analysis/index.html"
-        path.write_text(path.read_text().replace('value="fail" selected', 'value="fail"'))
+        path.write_text(path.read_text(encoding="utf-8").replace('value="fail" selected', 'value="fail"'), encoding="utf-8")
     elif defect == "adoption_count":
         path = root / "adoption/counts.json"
         data = json.loads(path.read_bytes())
@@ -225,21 +225,23 @@ def test_presentation_checks_remain_active_for_chinese_only_reports(tmp_path, op
         write_json(path, data)
     elif defect == "overview":
         path = root / "index.html"
-        path.write_text(path.read_text().replace('class="home-overview"', 'class="missing"'))
+        path.write_text(path.read_text(encoding="utf-8").replace('class="home-overview"', 'class="missing"'), encoding="utf-8")
     elif defect == "sort":
         path = root / "index.html"
-        path.write_text(path.read_text().replace('data-col="1"', 'data-col="0"'))
+        path.write_text(path.read_text(encoding="utf-8").replace('data-col="1"', 'data-col="0"'), encoding="utf-8")
     elif defect == "interface":
         path = root / "adoption/index.html"
-        path.write_text(path.read_text().replace("<pre>Response</pre>", ""))
+        path.write_text(path.read_text(encoding="utf-8").replace("<pre>Response</pre>", ""), encoding="utf-8")
     elif defect == "obsolete_metric":
         path = root / "index.html"
-        path.write_text(path.read_text() + "<p>条件通过率</p>")
+        path.write_text(path.read_text(encoding="utf-8") + "<p>条件通过率</p>", encoding="utf-8")
     result = subprocess.run(
         [
             sys.executable,
             *(["-O"] if optimized else []),
-            str(SCRIPT.with_name("check_report_revision.py")),
+            "-m",
+            "harness.web_fetch",
+            "report-revision-check",
             str(root),
             "--authority-root",
             str(authority),
@@ -273,9 +275,10 @@ def test_presentation_inventories_require_unique_registered_entries(tmp_path, de
         first, second, *_ = SPECS
         path = root / "adoption/index.html"
         path.write_text(
-            path.read_text().replace(
+            path.read_text(encoding="utf-8").replace(
                 'id="interface-' + second + '"', 'id="interface-' + first + '"'
-            )
+            ),
+            encoding="utf-8"
         )
     with pytest.raises(ValueError, match="Duplicate adoption|Interface inventory"):
         check_revision(root, authority_root=authority)
@@ -290,10 +293,10 @@ def test_registered_browser_build_has_its_own_interface_panel(tmp_path, defect):
     provider = next(name for name, spec in browser_method_registry().items()
                     if spec.get('engine') == 'moli' and name not in SPECS)
     root, authority = create_revision_report(tmp_path)
-    row=json.loads((root/'results.jsonl').read_text())
+    row=json.loads((root/'results.jsonl').read_text(encoding="utf-8"))
     row['provider']=provider
-    (root/'results.jsonl').write_text(json.dumps(row)+'\n')
-    counts=json.loads((root/'adoption/counts.json').read_text())
+    (root/'results.jsonl').write_text(json.dumps(row)+'\n', encoding="utf-8")
+    counts=json.loads((root/'adoption/counts.json').read_text(encoding="utf-8"))
     control = next(item for item in counts['methods'] if item['provider'] == 'alpha')
     counts['methods'] = [item for item in counts['methods'] if item['provider'] != 'alpha']
     if not any(item['provider'] == provider for item in counts['methods']):
@@ -305,8 +308,8 @@ def test_registered_browser_build_has_its_own_interface_panel(tmp_path, defect):
     if defect=='duplicate':additions+=panel
     if defect=='unregistered':additions+=panel.replace(provider,'unknown-build')
     content = re.sub(r'<details\b[^>]*id="interface-' + re.escape(provider) + r'"[^>]*>.*?</details>',
-                     '', path.read_text(), flags=re.S)
-    path.write_text(content.replace('</body>',additions+'</body>'))
+                     '', path.read_text(encoding="utf-8"), flags=re.S)
+    path.write_text(content.replace('</body>',additions+'</body>'), encoding="utf-8")
     if defect:
         with pytest.raises(ValueError):check_revision(root,authority_root=authority)
     else:
@@ -322,14 +325,14 @@ def test_body_family_rankings_reject_resource_columns(tmp_path, family, defect):
     from tests.test_report_body_scope import case, record
 
     root, authority = create_revision_report(tmp_path)
-    dataset=json.loads((root/'dataset.json').read_text())
+    dataset=json.loads((root/'dataset.json').read_text(encoding="utf-8"))
     c=case(family,'body',family)
     dataset['cases'].append(c)
     rendered=ranking([record(c)],{family:c},family)
     if defect:
         rendered=rendered.replace('完整度','资源命中率')
     path=root/'index.html'
-    path.write_text(path.read_text()+rendered)
+    path.write_text(path.read_text(encoding="utf-8")+rendered, encoding="utf-8")
     write_json(root/'dataset.json',dataset)
     if defect:
         with pytest.raises(ValueError,match='Body ranking metric columns'):
@@ -342,17 +345,17 @@ def test_release_rejects_missing_or_relabelled_measured_version(tmp_path,label):
     from harness.web_fetch.report_check import check_revision
     from tests.report_check_fixture import create_revision_report
     root,authority=create_revision_report(tmp_path)
-    row=json.loads((root/'results.jsonl').read_text())
+    row=json.loads((root/'results.jsonl').read_text(encoding="utf-8"))
     row['provider']='moli'
     row['provider_metadata']={'binary_sha256':'measured-binary'}
-    (root/'results.jsonl').write_text(json.dumps(row)+'\n')
-    counts=json.loads((root/'adoption/counts.json').read_text())
+    (root/'results.jsonl').write_text(json.dumps(row)+'\n', encoding="utf-8")
+    counts=json.loads((root/'adoption/counts.json').read_text(encoding="utf-8"))
     counts['methods']=[item for item in counts['methods'] if item['provider']!='alpha']
     write_json(root/'adoption/counts.json',counts)
     write_json(root/'implementation-provenance.json',{'implementations':[
         {'provider':'moli','binary_sha256':'measured-binary','version':'1.1.15'}]})
     p=root/'index.html'
-    p.write_text(p.read_text()+'<a href="providers/moli.html">'+label+'</a>')
+    p.write_text(p.read_text(encoding="utf-8")+'<a href="providers/moli.html">'+label+'</a>', encoding="utf-8")
     if label=='Moli 1.1.15':
         assert check_revision(root,authority_root=authority).startswith('PASS:')
     else:

@@ -27,7 +27,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             root = Path(directory)
             dataset = root / 'dataset.json'
             dataset.write_text(json.dumps({'cases': [{
-                'id': 'provisional', 'rule_review': {'status': 'unresolved'}}]}))
+                'id': 'provisional', 'rule_review': {'status': 'unresolved'}}]}), encoding="utf-8")
             with patch('harness.web_fetch.certification.run') as invoked:
                 with self.assertRaises(SystemExit):
                     main(['--dataset', str(dataset), '--output', str(root / 'run'),
@@ -55,10 +55,10 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                       'acceptance_contract':{'version':1,'schema':'body_text',
                           'minimum_records':0,'stable_text_anchors':[
                               {'id':'a','alternatives':['Required label']}]}}
-                dataset.write_text(json.dumps({'tool':'web_fetch','comparison':{},'cases':[case]}))
+                dataset.write_text(json.dumps({'tool':'web_fetch','comparison':{},'cases':[case]}), encoding="utf-8")
                 original=dataset.read_bytes()
                 config=root/'provider.json'
-                config.write_text(json.dumps({'providers':{'fixture':{'type':'fixture'}}}))
+                config.write_text(json.dumps({'providers':{'fixture':{'type':'fixture'}}}), encoding="utf-8")
                 (root/'evaluation/list-references').mkdir(parents=True)
 
                 def execute(stage, arguments):
@@ -89,10 +89,10 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
                     assemble(output,root/'certificates',[],root/'formal')
                 self.assertFalse((root/'formal').exists())
-                saved=json.loads((output/'dataset.json').read_text())
+                saved=json.loads((output/'dataset.json').read_text(encoding="utf-8"))
                 self.assertEqual(saved['comparison']['evidence_state'],'diagnostic')
                 self.assertEqual(saved['comparison']['unqualified_reference_cases'],[])
-                batches=json.loads((output/'execution.json').read_text())['batches']
+                batches=json.loads((output/'execution.json').read_text(encoding="utf-8"))['batches']
                 self.assertTrue(all(b['parameters']['max_failure_retries']==retries for b in batches))
                 self.assertTrue(all(b['parameters']['timeout']==30 for b in batches))
                 self.assertTrue(all(b['evidence_state']=='diagnostic' and
@@ -109,7 +109,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 from harness.web_fetch.report_package import validate_release
                 with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
                     validate_release(output)
-                (output/'dataset.json').write_text(json.dumps(saved))
+                (output/'dataset.json').write_text(json.dumps(saved), encoding="utf-8")
                 with self.assertRaisesRegex(ReferenceLifecycleError,'[Dd]iagnostic'):
                     validate_release(output)
                 self.assertEqual(dataset.read_bytes(),original)
@@ -146,13 +146,13 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                             'method': 'Independent source capture',
                             'evidence_path': 'sources/fixed-resource/evidence.json',
                             'evidence_sha256': 'b' * 64}}
-            dataset.write_text(json.dumps({'tool': 'web_fetch', 'comparison': {}, 'cases': [case, fixed, resource]}))
+            dataset.write_text(json.dumps({'tool': 'web_fetch', 'comparison': {}, 'cases': [case, fixed, resource]}), encoding="utf-8")
             original = dataset.read_bytes()
             from lexbench_webfetch.versions import freeze_release
             edition = root / 'benchmark-release.json'
             freeze_release(dataset, edition, benchmark='frozen-example', version='1.0.0')
             config = root / 'providers.json'
-            config.write_text(json.dumps({'providers': {'fixture': {'type': 'fixture'}}}))
+            config.write_text(json.dumps({'providers': {'fixture': {'type': 'fixture'}}}), encoding="utf-8")
             (root / 'evaluation/list-references').mkdir(parents=True)
             stages = []
 
@@ -175,16 +175,16 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 main(['--dataset', str(dataset), '--output', str(output),
                       '--work-root', str(root / 'work'), '--providers', 'fixture',
                       '--provider-config', str(config), '--case-ids', 'stable,fixed-answer,fixed-resource'])
-            measured = json.loads((output / 'dataset.json').read_text())
+            measured = json.loads((output / 'dataset.json').read_text(encoding="utf-8"))
             self.assertEqual(measured['cases'], [case, fixed, resource])
             self.assertEqual(dataset.read_bytes(), original)
             self.assertEqual((output / 'benchmark-input-release.json').read_bytes(), edition.read_bytes())
-            release_binding = json.loads((output / 'execution.json').read_text())['aggregate']['benchmark_release']
+            release_binding = json.loads((output / 'execution.json').read_text(encoding="utf-8"))['aggregate']['benchmark_release']
             self.assertEqual(release_binding['sha256'], hashlib.sha256(edition.read_bytes()).hexdigest())
             self.assertEqual(measured['comparison']['source_reference_policy'],
                              'frozen_benchmark_inputs_with_explicit_live_exact_checks')
-            batches = json.loads((output / 'execution.json').read_text())['batches']
-            records = [json.loads(line) for line in (output / 'results.jsonl').read_text().splitlines()]
+            batches = json.loads((output / 'execution.json').read_text(encoding="utf-8"))['batches']
+            records = [json.loads(line) for line in (output / 'results.jsonl').read_text(encoding="utf-8").splitlines()]
             self.assertEqual(len(records), 3)
             resource_record = next(row for row in records if row['case_id'] == 'fixed-resource')
             self.assertTrue(resource_record['metrics']['content_pass'])
@@ -200,7 +200,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
     def test_missing_dynamic_execution_contract_fails_before_external_work(self):
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);dataset=root/'dataset.json'
-            dataset.write_text(json.dumps({'cases':[{'id':'dynamic-page','track':'dynamic'}]}))
+            dataset.write_text(json.dumps({'cases':[{'id':'dynamic-page','track':'dynamic'}]}), encoding="utf-8")
             with patch('harness.web_fetch.certification.run') as invoked:
                 with self.assertRaisesRegex(ValueError,'require retrieval_hints'):
                     main(['--dataset',str(dataset),'--output',str(root/'run'),
@@ -211,16 +211,16 @@ class CertifiedBenchmarkTests(unittest.TestCase):
     def write_capture(captures: Path, case_id: str, *, status: int = 200,
                       text: str = "reference") -> None:
         (captures / case_id).mkdir(parents=True, exist_ok=True)
-        (captures / case_id / "reference.txt").write_text(text)
+        (captures / case_id / "reference.txt").write_text(text, encoding="utf-8")
         (captures / "audit.json").write_text(json.dumps([
             {"case_id": case_id, "status": status, "missing_facts": []}
-        ]))
+        ]), encoding="utf-8")
 
     @staticmethod
     def write_output_dataset(command: list[str], source: Path) -> None:
         output = Path(command[command.index("--output") + 1])
         output.mkdir(parents=True, exist_ok=True)
-        (output / "dataset.json").write_text(source.read_text())
+        (output / "dataset.json").write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
 
     @staticmethod
     def write_browser_observations(command: list[str]) -> None:
@@ -231,7 +231,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             "case_id": case_id,
             "status": "success",
             "completion": {"satisfied": True},
-        } for case_id in case_ids}))
+        } for case_id in case_ids}), encoding="utf-8")
 
     def test_builds_mandatory_lifecycle_in_order(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -243,10 +243,10 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 "source_verification": {"reference_mode": "live_exact",
                     "method": "Independent visible browser DOM; complete declared scope"
                 },
-            }]}))
+            }]}), encoding="utf-8")
             output, work = root / "run", root / "work"
             config = root / "instance-provider.json"
-            config.write_text('{"providers": {"p": {"type": "fixture"}}}')
+            config.write_text('{"providers": {"p": {"type": "fixture"}}}', encoding="utf-8")
             original_config = config.read_bytes()
 
             def completed(stage, arguments):
@@ -260,7 +260,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                     self.write_output_dataset(command, dataset)
                 if stage_name(command) == "reference_freeze.postcheck_main":
                     (work / "post-captures").mkdir(parents=True, exist_ok=True)
-                    (work / "post-captures/observations.json").write_text("[]\n")
+                    (work / "post-captures/observations.json").write_text("[]\n", encoding="utf-8")
 
             with patch("harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(output),
@@ -289,7 +289,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 "source_verification": {"reference_mode": "live_exact",
                     "method": "Independent visible browser DOM; complete declared scope"
                 },
-            }]}))
+            }]}), encoding="utf-8")
             def completed(stage, arguments):
                 command = [stage, *arguments]
                 if stage_name(command) == "source_capture.main":
@@ -305,8 +305,8 @@ class CertifiedBenchmarkTests(unittest.TestCase):
     def test_forwards_explicit_reference_promotion_to_freeze_only(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory);dataset=root/'dataset.json';promotion=root/'promotion.json'
-            dataset.write_text(json.dumps({'cases':[{'id':'stable'}]}))
-            promotion.write_text('{}')
+            dataset.write_text(json.dumps({'cases':[{'id':'stable'}]}), encoding="utf-8")
+            promotion.write_text('{}', encoding="utf-8")
             output,work=root/'run',root/'work'
             def completed(stage, arguments):
                 command = [stage, *arguments]
@@ -317,7 +317,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                     self.write_output_dataset(command, dataset)
                 if stage_name(command)=='reference_freeze.postcheck_main':
                     (work/'post-captures').mkdir(parents=True, exist_ok=True)
-                    (work/'post-captures/observations.json').write_text('[]\n')
+                    (work/'post-captures/observations.json').write_text('[]\n', encoding="utf-8")
             with patch('harness.web_fetch.certification.run',side_effect=completed) as invoked:
                 main(['--dataset',str(dataset),'--output',str(output),'--work-root',str(work),
                       '--providers','p','--case-ids','stable',
@@ -341,7 +341,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                     "method": "Independent HTTP response and reviewed article selector",
                     "selector": "main",
                 },
-            }]}))
+            }]}), encoding="utf-8")
             output, work = root / "run", root / "work"
 
             def completed(stage, arguments):
@@ -357,7 +357,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                     self.write_output_dataset(command, dataset)
                 elif script == "reference_freeze.postcheck_main":
                     (work / "post-captures").mkdir(parents=True, exist_ok=True)
-                    (work / "post-captures/observations.json").write_text("[]\n")
+                    (work / "post-captures/observations.json").write_text("[]\n", encoding="utf-8")
 
             with patch("harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(output),
@@ -395,7 +395,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                     "method": "Independent HTTP response and reviewed article selector",
                     "selector": "main",
                 },
-            }]}))
+            }]}), encoding="utf-8")
             output, work = root / "run", root / "work"
 
             def completed(stage, arguments):
@@ -411,7 +411,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 elif script == "benchmark_runner.main":
                     self.write_output_dataset(command, dataset)
                 elif script == "reference_freeze.postcheck_main":
-                    (work / "post-captures/observations.json").write_text("[]\n")
+                    (work / "post-captures/observations.json").write_text("[]\n", encoding="utf-8")
 
             with patch("harness.web_fetch.certification.run", side_effect=completed) as invoked:
                 main(["--dataset", str(dataset), "--output", str(output),
@@ -442,7 +442,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 "source_verification": {"reference_mode": "live_exact",
                     "method": "Independent HTTP response and reviewed article selector"
                 },
-            }]}))
+            }]}), encoding="utf-8")
             work = root / "work"
 
             def completed(stage, arguments):
@@ -472,7 +472,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 "source_verification": {"reference_mode": "live_exact",
                     "method": "Independent rendered browser DOM; complete declared scope"
                 },
-            }]}))
+            }]}), encoding="utf-8")
 
             def completed(stage, arguments):
                 command = [stage, *arguments]
@@ -485,7 +485,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                         "case_id": case_id,
                         "status": "failure",
                         "completion": {"satisfied": False},
-                    }}))
+                    }}), encoding="utf-8")
 
             with self.assertRaises(SystemExit), patch(
                     "harness.web_fetch.certification.run", side_effect=completed) as invoked:
@@ -513,7 +513,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 "source_verification": {"reference_mode": "live_exact",
                     "method": "Independent rendered browser DOM; complete declared scope"
                 },
-            }]}))
+            }]}), encoding="utf-8")
 
             def completed(stage, arguments):
                 command = [stage, *arguments]
@@ -529,7 +529,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                             "case_id": case_id,
                             "status": "failure",
                             "completion": {"satisfied": False},
-                        }}))
+                        }}), encoding="utf-8")
                 elif script == "benchmark_runner.main":
                     self.write_output_dataset(command, dataset)
 
@@ -560,8 +560,8 @@ def test_explicit_browser_reference_route_is_used_even_with_usable_http_capture(
         "source_verification": {"reference_mode": "live_exact", "observation_route": "browser"},
     }
     (tmp_path / case["id"]).mkdir()
-    (tmp_path / case["id"] / "reference.txt").write_text("Required fact")
-    (tmp_path / "audit.json").write_text(json.dumps([{"case_id": case["id"], "status": 200}]))
+    (tmp_path / case["id"] / "reference.txt").write_text("Required fact", encoding="utf-8")
+    (tmp_path / "audit.json").write_text(json.dumps([{"case_id": case["id"], "status": 200}]), encoding="utf-8")
     assert browser_observation_cases({"cases": [case]}, tmp_path, [case["id"]]) == [case["id"]]
 
 
@@ -580,7 +580,7 @@ def test_conflicting_http_route_and_browser_provenance_is_rejected(tmp_path):
             "method": "Independent rendered browser DOM; complete declared scope",
         },
     }
-    (tmp_path / "audit.json").write_text(json.dumps([{"case_id": case["id"], "status": 200}]))
+    (tmp_path / "audit.json").write_text(json.dumps([{"case_id": case["id"], "status": 200}]), encoding="utf-8")
     with pytest.raises(ValueError, match="contradicts browser reference provenance"):
         browser_observation_cases({"cases": [case]}, tmp_path, [case["id"]])
 
@@ -596,7 +596,7 @@ def test_explicit_empty_arguments_do_not_dispatch_an_ambient_subcommand(monkeypa
 
 def test_invalid_selected_reference_route_stops_before_any_capture(tmp_path):
     dataset = tmp_path / "dataset.json"
-    dataset.write_text(json.dumps({"cases": [{"id": "one", "track": "web", "task_kind": "body", "ground_truth_main_content": "Required fact", "source_verification": {"reference_mode": "live_exact", "observation_route": "http", "method": "Independent rendered browser DOM; complete declared scope"}}]}))
+    dataset.write_text(json.dumps({"cases": [{"id": "one", "track": "web", "task_kind": "body", "ground_truth_main_content": "Required fact", "source_verification": {"reference_mode": "live_exact", "observation_route": "http", "method": "Independent rendered browser DOM; complete declared scope"}}]}), encoding="utf-8")
     with patch("harness.web_fetch.certification.run") as invoked:
         with pytest.raises(ValueError, match="contradicts browser reference provenance"):
             main(["--dataset", str(dataset), "--case-ids", "one", "--providers", "p", "--output", str(tmp_path / "output"), "--work-root", str(tmp_path / "work")])
@@ -614,7 +614,6 @@ def test_invalid_selected_reference_route_stops_before_any_capture(tmp_path):
         ["run_certified_benchmark.py", "webmainbench-full"],
         ["run_certified_benchmark.py", "wcxb"],
         ["run_certified_benchmark.py", "wcxb-latency"],
-        ["correct_webmainbench_teds.py"],
     ],
 )
 def test_certification_commands_have_help_without_evidence_or_provider_calls(command, tmp_path):

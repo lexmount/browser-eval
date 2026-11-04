@@ -4,9 +4,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 from pathlib import Path
-from urllib.parse import quote
 
 from lexbench_webfetch.paths import contained_path
 
@@ -14,17 +12,14 @@ from harness.record_io import canonical_json_sha256, json_bytes
 from harness.reporting import links as report_links
 from harness.reporting.publication import (
     PublicationClient,
-    PublicationOperation,
     archive_inventory,
     atomic_write,
     package_archive,
     public_share_context,
-    response_json,
-    snapshot_publication,
 )
+from harness.reporting.publication_target import publication_base, require_publication_version
+from harness.reporting.publish import StagedUpdate, publish_staged_update
 from harness.web_fetch import wcxb_report_check
-from harness.web_fetch.publication import upload_large_archive
-from harness.web_fetch.publication_target import publication_base, require_publication_version
 from harness.web_fetch.safety import evidence_tree_identity, reject_evidence_symlinks
 from harness.data_home import data_home
 
@@ -94,7 +89,7 @@ def package(source: Path, archive: Path, receipt: Path, *, authority_root: Path,
 
 
 def publish(*, source: Path, authority_root: Path, work: Path, transport=None, profile_path: Path | None = None) -> dict:
-    """Resume the same staged update and verify every deployed byte before binding it."""
+    """Build the frozen package, then run its staged update against the profile's own target."""
     profile_path = profile_path or authority_root / 'evaluation/wcxb/current-report.json'
     binding_path = profile_path.with_name('report-content-binding.json')
     reject_evidence_symlinks(profile_path)
@@ -108,97 +103,33 @@ def publish(*, source: Path, authority_root: Path, work: Path, transport=None, p
     share_path, _ = public_share_context(base, profile.get('artifact_hub_share_url', ''))
     archive, proof = work / 'wcxb-current.zip', work / 'wcxb-package.json'
     attestation = package(source, archive, proof, authority_root=authority_root, profile_path=profile_path)
-    identity = {'base_url': base, 'slug': slug,
-                'archive_sha256': attestation['archive_sha256']}
-    # The release identifies the operation; its mutable live version is a guard.
-    operation_hash = hashlib.sha256(json_bytes(identity)).hexdigest()
-    journal = work / f'wcxb-update-{operation_hash[:24]}.json'
-    reject_evidence_symlinks(journal)
-    operation = (json.loads(journal.read_bytes()) if journal.exists()
-                 else {**identity, 'expected_version': expected})
-    if any(operation.get(key) != value for key, value in identity.items()):
-        raise ValueError('WCXB publication journal targets another release')
-    if expected not in {operation.get('expected_version'), operation.get('versionId')}:
-        raise ValueError('WCXB publication version differs from its pending operation')
-    expected = operation['expected_version']
 
-    def save():
-        atomic_write(journal, json_bytes(operation))
-        os.chmod(journal, 0o600)
+    def unchanged_profile():
+        if profile_path.read_bytes() != profile_bytes:
+            raise ValueError('WCXB publication profile changed')
 
-    save()
-    with snapshot_publication(archive, inputs=[source, profile_path, binding_path, proof]) as release:
-        def request(path, data=None, content_type=None, auth=True, method=None):
-            release.check()
-            if profile_path.read_bytes() != profile_bytes:
-                raise ValueError('WCXB publication profile changed')
-            if not path.startswith('/') or path.startswith('//'):
-                raise ValueError('WCXB request must stay on its configured service')
-            extra_headers = {}
-            if path.startswith('/api/uploads') and method != 'PUT' and data is not None:
-                phase = 'commit' if '/commit?' in path else 'start'
-                extra_headers['Idempotency-Key'] = f'wcxb-{phase}-{operation_hash[:32]}'
-            if transport is not None:
-                # Synthetic transports never load a real account credential.
-                headers = CLIENT.headers(base, content_type, authenticated=False, extra_headers=extra_headers)
-                status, raw = transport(path, data, content_type, auth=auth, method=method, headers=headers)
-            else:
-                status, raw, _ = CLIENT.request(base, path, data, content_type, method=method,
-                                                authenticated=auth, extra_headers=extra_headers)
-            release.check()
-            if status == 404 and path.startswith('/api/operations/'):
-                return status, raw
-            if not 200 <= status < 300:
-                raise RuntimeError(f'WCXB publication HTTP {status}: {path}')
-            return status, raw
-
-        site_path = '/api/sites/' + quote(slug, safe='')
-        _, raw = request(site_path)
-        remote = json.loads(raw)
-        version = operation.get('versionId')
-        if version is None:
-            if remote['version']['id'] != expected:
-                recovered = PublicationOperation(journal, 'wcxb-').completed(
-                    f'wcxb-commit-{operation_hash[:32]}', request=request, decode=response_json,
-                )
-                if recovered is None:
-                    raise ValueError('Remote WCXB version changed; reconcile before updating')
-                response = response_json(*recovered, operation='WCXB commit recovery')
-            else:
-                response = json.loads(upload_large_archive(request, release.archive, slug, expected, max_workers=4))
-            version = response.get('versionId')
-            if (response.get('slug', slug) != slug or not isinstance(version, str)
-                    or not version.startswith('ver_')):
-                raise ValueError('WCXB upload returned another site or an invalid version')
-            operation['versionId'] = version
-            save()
-        elif not isinstance(version, str) or not version.startswith('ver_'):
-            raise ValueError('WCXB journal has an invalid activated version')
-        _, raw = request(site_path)
-        published = json.loads(raw)
-        if published['version']['id'] != version or published['version']['entry'] != 'index.html':
-            raise ValueError('Published WCXB site does not bind the activated home page')
-        _, exported = request(site_path + '/export')
-        if archive_inventory(exported) != archive_inventory(release.archive):
-            raise ValueError('Deployed WCXB bytes differ from the validated package')
-        _, shared = request(share_path, auth=False)
-        if not shared:
-            raise ValueError('WCXB public share page is empty')
-        title = f"WCXB 主内容提取报告 · {profile['case_count']} 页评测"
-        request(site_path, json.dumps({'title': title}, ensure_ascii=False).encode(),
-                'application/json', method='PATCH')
-        release.check()
+    def bind(version):
         profile['artifact_hub_expected_version'] = version
         atomic_write(profile_path, json_bytes(profile))
-    operation['verified'] = True
-    save()
+
+    version = publish_staged_update(
+        StagedUpdate(
+            label='WCXB', prefix='wcxb', client=CLIENT, base=base, slug=slug,
+            expected_version=expected, share_path=share_path,
+            title=f"WCXB 主内容提取报告 · {profile['case_count']} 页评测",
+            archive=archive, archive_sha256=attestation['archive_sha256'],
+            inputs=(source, profile_path, binding_path, proof), work=work,
+            guard=unchanged_profile, bind=bind,
+        ),
+        transport=transport,
+    )
     return {'slug': slug, 'versionId': version, 'verified_files': len(attestation['files']),
             'url': profile['artifact_hub_share_url']}
 
 
-def main(argv=None, *, root: Path | None = None) -> None:
+def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--authority-root', type=Path, default=root or Path.cwd())
+    parser.add_argument('--authority-root', type=Path, default=Path.cwd())
     parser.add_argument('--source', type=Path)
     parser.add_argument('--profile', type=Path, required=True, help='external WCXB instance profile')
     parser.add_argument('--package-only', action='store_true', help='validate and create a local archive without publishing')
@@ -214,7 +145,3 @@ def main(argv=None, *, root: Path | None = None) -> None:
         return
     print(json.dumps(publish(source=args.source or authority / 'reports/wcxb',
                              authority_root=authority, work=args.work, profile_path=args.profile), ensure_ascii=False))
-
-
-if __name__ == '__main__':
-    main()

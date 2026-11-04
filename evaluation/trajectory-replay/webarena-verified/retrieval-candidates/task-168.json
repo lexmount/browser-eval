@@ -3,11 +3,11 @@
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023"
+      "url": "http://host.docker.internal:8023"
     },
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023/?personal=true&sort=stars_desc"
+      "url": "http://host.docker.internal:8023/?personal=true&sort=stars_desc"
     },
     {
       "action": "evaluate",
@@ -17,7 +17,7 @@
   "retrieval_contract": {
     "schema": "lex_replay_current_run_retrieval/3",
     "task_id": 168,
-    "canonical_calls_sha256": "83b256dcae4d80d544e2c169b09919bcc8b0ba109ccde731d424d6caf656f4f7",
+    "canonical_calls_sha256": "10f331260a928a0bcbf4b3d23d9b0c900d4d38db16316a8059684913dcb66074",
     "sources": [
       {
         "name": "owned",

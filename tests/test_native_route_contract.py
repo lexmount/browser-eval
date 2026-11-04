@@ -194,12 +194,12 @@ def test_runner_freezes_route_matrix_before_mocked_provider_calls(tmp_path):
                       source_benchmark={'input_media_kind': 'html_page'}) for label in ('one', 'two')]
     dataset = {'tool': 'web_fetch', 'id': 'fixture', 'cases': [asdict(c) for c in cases]}
     source = tmp_path/'dataset.json'
-    source.write_text(json.dumps(dataset))
+    source.write_text(json.dumps(dataset), encoding='utf-8')
     provider = build_provider('tavily', {'type': 'tavily_extract', 'api_key': 'fixture',
                                         'uniform_native_parameters': True})
     output = tmp_path/'run'
     def call(endpoint, **kwargs):
-        frozen = json.loads((output/'native-route-contract.json').read_text())
+        frozen = json.loads((output/'native-route-contract.json').read_text(encoding='utf-8'))
         assert frozen['pre_call_frozen'] and len(frozen['cases']) == 2
         target = kwargs['json_body']['urls'][0]
         return HttpResponse(200, endpoint, {}, json.dumps({'results': [
@@ -210,7 +210,7 @@ def test_runner_freezes_route_matrix_before_mocked_provider_calls(tmp_path):
                                    runs=1, timeout=45, delay=0, reference_policy='frozen_existing')
     assert transport.call_count == 2
     assert len(records) == 2
-    manifest = json.loads((output/'manifest.json').read_text())
+    manifest = json.loads((output/'manifest.json').read_text(encoding='utf-8'))
     assert manifest['native_routes_required'] and not manifest['native_route_errors']
     assert all(r['provider_metadata']['native_route_receipt']['requests'] for r in records)
 
@@ -336,9 +336,9 @@ def test_contract_survives_aggregation_and_complete_declared_subset(tmp_path):
     with pytest.raises(ValueError, match='frozen interface'):
         verify_native_execution_manifests(output, [manifest], dataset, bad)
     contract = output/manifest['native_route_contract']['path']
-    doc = json.loads(contract.read_text())
+    doc = json.loads(contract.read_text(encoding='utf-8'))
     doc['pre_call_frozen'] = False
-    contract.write_text(json.dumps(doc))
+    contract.write_text(json.dumps(doc), encoding='utf-8')
     with pytest.raises(ValueError, match='hash changed'):
         verify_native_execution_manifests(output, [manifest], dataset, records)
     with pytest.raises(ValueError, match='bytes changed'):
@@ -355,7 +355,7 @@ def test_moli_actual_cli_obeys_declared_route_without_network(tmp_path, media, k
     from harness.web_fetch.providers.base import build_provider
     binary = tmp_path/'fake-moli'
     binary.write_text('#!'+sys.executable+'\nimport sys\n'
-                      'print("moli 1.1.4" if sys.argv[1:]==["--version"] else "answer")\n')
+                      'print("moli 1.1.4" if sys.argv[1:]==["--version"] else "answer")\n', encoding='utf-8')
     binary.chmod(0o700)
     provider = build_provider('moli', {'type': 'moli_webfetch', 'binary': str(binary),
         'expected_reported_version': 'moli 1.1.4',
@@ -432,7 +432,7 @@ def test_runner_persists_pre_transport_failure_without_inventing_request(tmp_pat
                     source_benchmark={'input_media_kind': 'html_page'})
     dataset = {'tool': 'web_fetch', 'id': 'fixture', 'cases': [asdict(case)]}
     source = tmp_path/'dataset.json'
-    source.write_text(json.dumps(dataset))
+    source.write_text(json.dumps(dataset), encoding='utf-8')
     provider = build_provider('tavily', {'type': 'tavily_extract', 'api_key': 'fixture',
                                         'uniform_native_parameters': True})
     with patch.object(provider, 'fetch', return_value=ProviderResult(False, '', error_type='configuration')):
@@ -729,7 +729,7 @@ def test_native_http_retries_keep_each_physical_route_receipt(tmp_path, retries)
                     source_benchmark={'input_media_kind': 'html_page'})
     dataset = {'id': 'retry', 'cases': [asdict(case)]}
     source = tmp_path/'dataset.json'
-    source.write_text(json.dumps(dataset))
+    source.write_text(json.dumps(dataset), encoding='utf-8')
     provider = build_provider('tavily', {'type': 'tavily_extract', 'api_key': 'fixture',
                                         'uniform_native_parameters': True})
     calls = []
@@ -748,7 +748,7 @@ def test_native_http_retries_keep_each_physical_route_receipt(tmp_path, retries)
             max_failure_retries=retries)
     assert len(calls) == retries + 1
     assert len(rows) == 1 and rows[0]['metrics']['content_pass']
-    manifest = json.loads((output/'manifest.json').read_text())
+    manifest = json.loads((output/'manifest.json').read_text(encoding='utf-8'))
     assert verify_native_route_contract(output, manifest, dataset, rows)
     if not retries:
         return
@@ -896,7 +896,7 @@ def _synthetic_route_baseline():
 def test_synthetic_all_provider_route_declarations_match_frozen_baseline():
     import json
     from pathlib import Path
-    expected = json.loads((Path(__file__).parent / 'fixtures/native-route-baseline.json').read_text())
+    expected = json.loads((Path(__file__).parent / 'fixtures/native-route-baseline.json').read_text(encoding='utf-8'))
     assert _synthetic_route_baseline() == expected
 
 

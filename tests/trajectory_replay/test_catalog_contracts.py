@@ -11,6 +11,7 @@ from harness.trajectory_replay.catalog_contracts import (
     ACCEPTANCE_SCHEMAS,
     RUN_SCHEMAS,
     repository_root,
+    resolved_deployment,
     validate_catalog_comparison_release,
     validate_catalog_report_profile,
     validate_environment_preparation,
@@ -147,11 +148,13 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
     fork = "https://github.com/lexmount/webarena-verified.git"
     (repository / "pyproject.toml").write_text(
         f"[project]\nname='fixture'\n[project.optional-dependencies]\n"
-        f"browser-use-eval = ['webarena-verified @ git+{fork}@{revision}']\n"
+        f"browser-use-eval = ['webarena-verified @ git+{fork}@{revision}']\n",
+        encoding="utf-8"
     )
     (repository / "uv.lock").write_text(
         f"version = 1\n[[package]]\nname = 'webarena-verified'\n"
-        f"source = {{ git = '{fork}?rev={revision}#{revision}' }}\n"
+        f"source = {{ git = '{fork}?rev={revision}#{revision}' }}\n",
+        encoding="utf-8"
     )
     task_ids = [4, 11, 23]
     official_checksum = "official-data"
@@ -244,19 +247,19 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
 
     assert validate_catalog_report_profile(profile, data_home)["accepted_counts"] == counts
 
-    changed = json.loads(profile.read_text())
+    changed = json.loads(profile.read_text(encoding="utf-8"))
     changed["accepted_counts"]["physical_attempts"] += 1
-    profile.write_text(json.dumps(changed))
+    profile.write_text(json.dumps(changed), encoding="utf-8")
     with pytest.raises(ValueError, match="acceptance population changed"):
         validate_catalog_report_profile(profile, data_home)
 
-    changed = json.loads(dataset.read_text())
+    changed = json.loads(dataset.read_text(encoding="utf-8"))
     changed["evaluator_source"]["repository"] = "https://github.com/ServiceNow/webarena-verified.git"
-    dataset.write_text(json.dumps(changed))
-    changed_profile = json.loads(profile.read_text())
+    dataset.write_text(json.dumps(changed), encoding="utf-8")
+    changed_profile = json.loads(profile.read_text(encoding="utf-8"))
     changed_profile["accepted_counts"] = counts
     changed_profile["dataset_sha256"] = file_sha256(dataset)
-    profile.write_text(json.dumps(changed_profile))
+    profile.write_text(json.dumps(changed_profile), encoding="utf-8")
     with pytest.raises(ValueError, match="dataset definition is invalid"):
         validate_catalog_report_profile(profile, data_home)
 
@@ -439,3 +442,21 @@ def test_comparison_release_binds_population_review_and_publication(tmp_path):
     results.write_text(json.dumps(changed), encoding="utf-8")
     with pytest.raises(ValueError, match="results artifact changed"):
         validate_catalog_comparison_release(binding, data_home)
+
+
+def test_deployment_identity_resolves_named_variables_or_stops() -> None:
+    profile = {
+        "deployment": {
+            "acceptance_app_id_env": "DEMO_ACCEPTANCE",
+            "source_app_id_env": "DEMO_SOURCE",
+            "site_reset_between_tasks": False,
+        }
+    }
+
+    assert resolved_deployment(profile, {"DEMO_ACCEPTANCE": "12", "DEMO_SOURCE": "34"}.get) == {
+        "acceptance_app_id": 12,
+        "source_app_id": 34,
+        "site_reset_between_tasks": False,
+    }
+    with pytest.raises(ValueError, match="integer values for DEMO_ACCEPTANCE, DEMO_SOURCE"):
+        resolved_deployment(profile, {"DEMO_ACCEPTANCE": "not-a-number"}.get)

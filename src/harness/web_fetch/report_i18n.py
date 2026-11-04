@@ -726,7 +726,7 @@ def write_english_report(out: Path, *, source_routes=None) -> int:
                 raise FileNotFoundError('Missing Chinese route: ' + str(route))
             sources.append(out / str(route))
     history_path = out / "report-changes.json"
-    translations = release_translations(json.loads(history_path.read_text())) if history_path.is_file() else {}
+    translations = release_translations(json.loads(history_path.read_text(encoding="utf-8"))) if history_path.is_file() else {}
     article_translations = archived_translations(out)
     english_root = out / "en"
     if source_routes is None and english_root.exists():
@@ -740,7 +740,7 @@ def write_english_report(out: Path, *, source_routes=None) -> int:
         )
     archived_manifest = out / "archived-reading.json"
     if archived_manifest.is_file():
-        allowed_source_text.update(json.loads(archived_manifest.read_text()).get("preserved_source_names", []))
+        allowed_source_text.update(json.loads(archived_manifest.read_text(encoding="utf-8")).get("preserved_source_names", []))
     for source_path in sources:
         source = PurePosixPath(source_path.relative_to(out).as_posix())
         target = out / "en" / Path(str(source))
@@ -791,6 +791,7 @@ SAVED_MATRIX_ZH = {'parameter_rerun_title': '参数重测与结果选择',
  'adapter_rejected_note': '适配器在请求发出前拒绝，产品没有被调用；原始记录和旧分数保留，但不计为产品失败，也不计入通过率分母。',
  'provider': '方法',
  'limitations': '范围与限制',
+ 'certification_note': '本页汇总已保存结果；证据与文件核验不等于基准认证。最终展示模式不补足历史调用的认证条件，也不代表新一轮独立盲审。',
  'record_link': '原始结果记录',
  'answer_link': '原始返回',
  'receipt_link': '证据凭据',

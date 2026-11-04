@@ -9,7 +9,7 @@ import os
 import subprocess
 import tempfile
 import time
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from contextlib import closing, contextmanager
 from pathlib import Path
 from typing import Any
@@ -32,10 +32,11 @@ from webarena_verified.types.task import WebArenaSite
 
 from harness.environments.webarena.topology import (
     CONTAINER_HOST_ALIAS,
-    DEFAULT_SITE_CREDENTIALS,
+    CREDENTIAL_SITES,
     HOST_LOOPBACK,
     MAGENTO_ELASTICSEARCH_PORT,
     MUTABLE_SITE_PORTS,
+    site_credentials,
     site_url,
 )
 from harness.resource_accounting import DockerStatsResources, ResourceSampler, delta_counters
@@ -43,9 +44,22 @@ from harness.resource_accounting import DockerStatsResources, ResourceSampler, d
 SITE_PORTS = {WebArenaSite(site): ports for site, ports in MUTABLE_SITE_PORTS.items()}
 
 
-SITE_CREDENTIALS = {
-    WebArenaSite(site): dict(credentials) for site, credentials in DEFAULT_SITE_CREDENTIALS.items()
-}
+class _SiteCredentials(Mapping):
+    """Resolve logins on use, so importing this module needs no local credentials."""
+
+    def __getitem__(self, site: WebArenaSite) -> dict[str, str]:
+        if WebArenaSite(site).value not in CREDENTIAL_SITES:
+            raise KeyError(site)
+        return site_credentials(WebArenaSite(site).value)
+
+    def __iter__(self):
+        return (WebArenaSite(site) for site in CREDENTIAL_SITES)
+
+    def __len__(self) -> int:
+        return len(CREDENTIAL_SITES)
+
+
+SITE_CREDENTIALS = _SiteCredentials()
 
 
 SITE_AUTH_HEADERS = {
@@ -219,7 +233,6 @@ def configure_benchmark(hostname: str = CONTAINER_HOST_ALIAS) -> WebArenaVerifie
             urls=list(
                 dict.fromkeys([site_url(site, hostname), site_url(site, CONTAINER_HOST_ALIAS)])
             ),
-            credentials=SITE_CREDENTIALS[site],
             use_header_login=site == WebArenaSite.SHOPPING_ADMIN,
         )
         for site in SITE_PORTS

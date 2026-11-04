@@ -12,11 +12,12 @@ import pytest
 from harness.lexbench.resource_evidence import load_matrix
 from harness.lexbench.resource_summary import summarize, validate_summary
 from tests.test_resource_calibration import experiment
+from tests.test_lexbench_cli import checkout_env
 
 
 def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value))
+    path.write_text(json.dumps(value), encoding="utf-8")
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
@@ -25,7 +26,7 @@ def report_profile(root):
     write_json(path, {
         "functional_population": {"cases": 2, "attempts_per_case": 3},
         "resource_population": {"tasks": 1, "attempts_per_task": 1, "chart_tasks": 1, "chart_calls": 1},
-        "paths": {key: str(root / key) for key in ("cohort", "source", "output", "vendor_dir", "functional_correction", "runner", "version_runs", "version_candidate", "layout_policy_runner")},
+        "paths": {key: str(root / key) for key in ("cohort", "output", "vendor_dir", "functional_correction", "runner", "version_runs", "version_candidate", "layout_policy_runner")},
     })
     return path
 
@@ -36,10 +37,10 @@ def saved_profiles(tmp_path):
     marker = tmp_path / "executed"
     poison = f'from pathlib import Path\nPath({str(marker)!r}).write_text("executed")\nraise RuntimeError("Evidence source was executed")\n'
     for filename in ("__init__.py", "resources.py"):
-        (runner / "runner" / filename).write_text(poison)
+        (runner / "runner" / filename).write_text(poison, encoding="utf-8")
     directory = tmp_path / "profiles"
     directory.mkdir()
-    (directory / "orchestrator.py").write_text("# frozen synthetic collector\n")
+    (directory / "orchestrator.py").write_text("# frozen synthetic collector\n", encoding="utf-8")
     tasks = [f"task-{i}" for i in range(557)]
     configs = {
         f"build_{i}": {
@@ -116,7 +117,7 @@ def saved_profiles(tmp_path):
                             },
                         )
                     )
-            (run / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+            (run / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
             receipt["results"][f"{method}:{phase}"] = {
                 "run_id": run.name,
                 "rows": len(rows),
@@ -143,7 +144,7 @@ def test_resource_summary_rebuilds_full_scope_without_executing_bound_python_inp
 def test_changed_source_provenance_is_rejected_without_executing_it(tmp_path):
     directory, _, marker = saved_profiles(tmp_path)
     protocol = json.loads((directory / "protocol.json").read_bytes())
-    (Path(protocol["runner_root"]) / "runner/resources.py").write_text("changed")
+    (Path(protocol["runner_root"]) / "runner/resources.py").write_text("changed", encoding="utf-8")
     with pytest.raises(ValueError, match="runner changed"):
         summarize(directory)
     assert not marker.exists()
@@ -156,9 +157,9 @@ def test_report_builder_import_and_help_do_not_require_private_evidence(monkeypa
     with pytest.raises(SystemExit) as exit_status:
         module.main(["--help"])
     assert exit_status.value.code == 0
-    command = Path(__file__).resolve().parents[1] / "scripts/moli_report/build.py"
     result = subprocess.run(
-        [sys.executable, str(command), "--help"], text=True, capture_output=True
+        [sys.executable, "-m", "harness.lexbench", "report", "--help"],
+        text=True, capture_output=True, env=checkout_env(),
     )
     assert result.returncode == 0, result.stderr
     assert "--linux-resource-profiles" in result.stdout
@@ -170,7 +171,6 @@ def test_report_builder_import_and_help_do_not_require_private_evidence(monkeypa
 def test_report_rejects_changed_protocol_and_partial_scope_before_output(
     tmp_path, optimized, damage
 ):
-    root = Path(__file__).resolve().parents[1]
     evidence = tmp_path / "explicit-evidence"
     digest = "a" * 64
     write_json(
@@ -194,7 +194,7 @@ def test_report_rejects_changed_protocol_and_partial_scope_before_output(
         [
             sys.executable,
             *(["-O"] if optimized else []),
-            str(root / "scripts/moli_report/build.py"),
+            "-m", "harness.lexbench", "report",
             "--profile", str(report_profile(tmp_path)),
             "--cohort",
             str(evidence / "report-cohort.json"),
@@ -203,6 +203,7 @@ def test_report_rejects_changed_protocol_and_partial_scope_before_output(
         ],
         text=True,
         capture_output=True,
+        env=checkout_env(),
     )
     assert result.returncode != 0
     assert (
@@ -218,7 +219,7 @@ def test_report_rejects_certificate_paths_outside_declared_regular_evidence(tmp_
     evidence = tmp_path / "evidence"
     evidence.mkdir()
     outside = tmp_path / "outside.txt"
-    outside.write_text("not report evidence")
+    outside.write_text("not report evidence", encoding="utf-8")
     if path_kind == "parent":
         name = "../outside.txt"
     elif path_kind == "absolute":
@@ -250,7 +251,7 @@ def test_report_rejects_certificate_paths_outside_declared_regular_evidence(tmp_
     result = subprocess.run(
         [
             sys.executable,
-            str(Path(__file__).resolve().parents[1] / "scripts/moli_report/build.py"),
+            "-m", "harness.lexbench", "report",
             "--profile", str(report_profile(tmp_path)),
             "--cohort",
             str(evidence / "report-cohort.json"),
@@ -259,6 +260,7 @@ def test_report_rejects_certificate_paths_outside_declared_regular_evidence(tmp_
         ],
         text=True,
         capture_output=True,
+        env=checkout_env(),
     )
     assert result.returncode != 0
     assert any(
@@ -279,7 +281,7 @@ def test_saved_profile_inputs_cannot_escape_runner_provenance_root(tmp_path, pat
     protocol = json.loads(protocol_path.read_bytes())
     root = Path(protocol["runner_root"])
     outside = tmp_path / "outside.txt"
-    outside.write_text("not runner input")
+    outside.write_text("not runner input", encoding="utf-8")
     if path_kind == "parent":
         name = "../outside.txt"
     elif path_kind == "absolute":
@@ -311,7 +313,7 @@ def test_resource_matrix_receipt_cannot_read_files_outside_its_run(tmp_path, pat
     run = runner / "runs/one"
     run.mkdir(parents=True)
     outside = runner / "runs/outside.txt"
-    outside.write_text("not run evidence")
+    outside.write_text("not run evidence", encoding="utf-8")
     if path_kind == "parent":
         name = "../outside.txt"
     elif path_kind == "absolute":
@@ -384,15 +386,13 @@ def test_matrix_results_without_hash_binding_are_rejected_before_reading(tmp_pat
 
 
 def test_report_requires_a_profile_instead_of_selecting_a_private_instance(tmp_path):
-    root = Path(__file__).resolve().parents[1]
-    result = subprocess.run([sys.executable, str(root / 'scripts/moli_report/build.py')],
-                            cwd=tmp_path, text=True, capture_output=True)
+    result = subprocess.run([sys.executable, '-m', 'harness.lexbench', 'report'],
+                            cwd=tmp_path, text=True, capture_output=True, env=checkout_env())
     assert result.returncode != 0
     assert '--profile' in result.stderr and 'required' in result.stderr
 
 
 def test_profile_selects_external_evidence_and_output_without_legacy_paths(tmp_path):
-    root = Path(__file__).resolve().parents[1]
     evidence = tmp_path / 'other-product'
     write_json(evidence / 'report-cohort.json', {'strata': {}})
     write_json(evidence / 'report-runs.json', {})
@@ -402,15 +402,45 @@ def test_profile_selects_external_evidence_and_output_without_legacy_paths(tmp_p
     write_json(profile, {'resource_population': {'tasks': 1, 'attempts_per_task': 1,
         'chart_tasks': 1, 'chart_calls': 1}, 'paths': {
         'cohort': str(evidence / 'report-cohort.json'), 'output': str(tmp_path / 'other-report'),
-        'source': str(root / 'scripts/moli_report'), 'runner': str(evidence),
+        'runner': str(evidence),
         'version_runs': str(evidence), 'version_candidate': str(evidence / 'candidate'),
         'vendor_dir': str(evidence), 'functional_correction': str(evidence),
         'layout_policy_runner': str(evidence)}})
-    result = subprocess.run([sys.executable, str(root / 'scripts/moli_report/build.py'),
-                             '--profile', str(profile)], cwd=tmp_path, text=True, capture_output=True)
+    result = subprocess.run([sys.executable, '-m', 'harness.lexbench', 'report',
+                             '--profile', str(profile)], cwd=tmp_path, text=True, capture_output=True,
+                            env=checkout_env())
     assert result.returncode != 0
     assert 'Protocol hash mismatch' in result.stderr
     assert not (tmp_path / 'other-report').exists()
+
+
+@pytest.mark.parametrize('selector', ['profile', 'option'])
+def test_template_source_without_the_template_stops_before_reading_evidence(tmp_path, selector):
+    profile = json.loads(report_profile(tmp_path).read_text(encoding='utf-8'))
+    # A profile written before the template moved names this relative path.
+    if selector == 'profile':
+        profile['paths']['source'] = 'scripts/moli_report'
+    write_json(tmp_path / 'report-profile.json', profile)
+    option = ['--source', str(tmp_path / 'absent-template')] if selector == 'option' else []
+    result = subprocess.run([sys.executable, '-m', 'harness.lexbench', 'report',
+                             '--profile', str(tmp_path / 'report-profile.json'), *option],
+                            cwd=tmp_path, text=True, capture_output=True, env=checkout_env())
+    assert result.returncode == 2
+    assert 'lacks index.html' in result.stderr and 'paths.source' in result.stderr
+    assert not (tmp_path / 'output').exists()
+
+
+def test_packaged_install_without_the_default_template_names_both_routes(tmp_path, monkeypatch, capsys):
+    from harness.lexbench import report
+    monkeypatch.setattr(report, 'TEMPLATE_DIRECTORY', tmp_path / 'absent-template')
+    with pytest.raises(SystemExit) as stopped:
+        report.main(['--profile', str(report_profile(tmp_path))])
+    assert stopped.value.code == 2
+    message = capsys.readouterr().err
+    assert 'lacks index.html' in message
+    assert 'pass --source with a template directory' in message
+    assert 'drop --source and paths.source' in ' '.join(message.split())
+    assert not (tmp_path / 'output').exists()
 
 
 @pytest.mark.parametrize('change', ['none', 'attempt', 'source'])

@@ -11,7 +11,7 @@ import uuid
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from harness.web_fetch.publication_target import validate_service_base
+from harness.reporting.publication_target import validate_service_base
 
 
 def token_path(base_url):
@@ -42,7 +42,7 @@ def load_token(*, base_url):
     if not token:
         for path in candidates:
             try:
-                token = path.read_text().strip()
+                token = path.read_text(encoding='utf-8').strip()
             except FileNotFoundError:
                 continue
             if token:
@@ -90,7 +90,7 @@ def save_token(token, *, base_url, replace_existing=False):
             finally:
                 temporary.unlink(missing_ok=True)
             return backup
-    with os.fdopen(descriptor, 'w') as stream:
+    with os.fdopen(descriptor, 'w', encoding='utf-8') as stream:
         stream.write(token + '\n')
 
 

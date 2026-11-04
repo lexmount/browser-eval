@@ -15,7 +15,7 @@ from copy import deepcopy
 
 from lexbench_webfetch.paths import contained_path
 
-from harness.record_io import file_sha256
+from harness.record_io import file_sha256, read_json
 from harness.web_fetch.local_execution_contract import LOCAL_SCHEMA1_PARAMETERS
 
 
@@ -39,14 +39,14 @@ def require_legacy_execution_segments(
 ):
     """Verify resumed measurements against retained pre-call plans and physical files."""
     correction_path = contained_path(source, "local-evidence/scoring-correction.json")
-    correction = json.loads(correction_path.read_text()) if correction_path.is_file() else None
+    correction = json.loads(correction_path.read_text(encoding="utf-8")) if correction_path.is_file() else None
     def read(binding, *, json_lines=False):
         path = contained_path(source, binding["path"], reject_symlinks=True)
         if file_sha256(path) != binding["sha256"]:
             raise ValueError("Local execution evidence binding changed")
         if json_lines:
-            return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
-        return json.loads(path.read_text())
+            return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+        return read_json(path)
 
     plans = contract["execution_plans"]
     if set(plans) not in ({"original", "resumed"}, {"original", "resumed", "admitted"}):

@@ -16,9 +16,9 @@ class MoliReportPackTests(unittest.TestCase):
         for name, prefix in [("index.html", ""), ("en.html", ""), ("en/index.html", "../")]:
             path = root / name
             path.parent.mkdir(exist_ok=True)
-            path.write_text(f'<html><script defer src="{prefix}mermaid.min.js"></script></html>')
+            path.write_text(f'<html><script defer src="{prefix}mermaid.min.js"></script></html>', encoding="utf-8")
         for name in ("app.js", "style.css", "mermaid.min.js", "mermaid-LICENSE.txt"):
-            (root / name).write_text(name)
+            (root / name).write_text(name, encoding="utf-8")
         (root / "data").mkdir()
         contents = {
             "data/model.json": '{"message":"中文证据"}'.encode(),
@@ -36,7 +36,7 @@ class MoliReportPackTests(unittest.TestCase):
             summary = MODULE.package(root / "source", root / "package", pack_limit=80)
             self.assertEqual(summary["bundled_files"], 3)
             self.assertGreater(summary["packs"], 1)
-            catalog = json.loads((root / "package/bundle-manifest.json").read_text())["files"]
+            catalog = json.loads((root / "package/bundle-manifest.json").read_text(encoding="utf-8"))["files"]
             self.assertEqual(set(catalog), set(expected))
             for name, entry in catalog.items():
                 payload = gzip.decompress((root / "package" / entry["pack"]).read_bytes())
@@ -44,7 +44,7 @@ class MoliReportPackTests(unittest.TestCase):
                 self.assertEqual(data, expected[name])
                 self.assertEqual(hashlib.sha256(data).hexdigest(), entry["sha256"])
             for name in ("index.html", "en.html", "en/index.html"):
-                self.assertIn("bundle-loader.js", (root / "package" / name).read_text())
+                self.assertIn("bundle-loader.js", (root / "package" / name).read_text(encoding="utf-8"))
             with self.assertRaisesRegex(ValueError, "already exists"):
                 MODULE.package(root / "source", root / "package")
 
@@ -52,7 +52,7 @@ class MoliReportPackTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self.create_report(root / "source")
-            (root / "outside").write_text("not public")
+            (root / "outside").write_text("not public", encoding="utf-8")
             (root / "source/data/link").symlink_to(root / "outside")
             with self.assertRaisesRegex(ValueError, "symlinks"):
                 MODULE.package(root / "source", root / "package")
@@ -67,14 +67,15 @@ class MoliReportPackTests(unittest.TestCase):
             self.create_report(source)
             (source / "en/index.html").unlink()
             write_language_contract(source, include_english=False)
-            notice = (source / "en/index.html").read_text()
+            notice = (source / "en/index.html").read_text(encoding="utf-8")
             (source / "en.html").write_text(
-                notice.replace('href="../index.html"', 'href="index.html"')
+                notice.replace('href="../index.html"', 'href="index.html"'),
+                encoding="utf-8"
             )
             MODULE.package(source, root / "package")
             for name in ("en.html", "en/index.html"):
-                self.assertEqual((root / "package" / name).read_text(), (source / name).read_text())
-                self.assertNotIn("bundle-loader.js", (root / "package" / name).read_text())
+                self.assertEqual((root / "package" / name).read_text(encoding="utf-8"), (source / name).read_text(encoding="utf-8"))
+                self.assertNotIn("bundle-loader.js", (root / "package" / name).read_text(encoding="utf-8"))
             self.assertTrue((root / "package/report-languages.json").is_file())
 
     def test_rejects_symlinked_source_directory(self):
@@ -90,7 +91,7 @@ class MoliReportPackTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self.create_report(root / "source")
-            (root / "source/en/index.html").write_text("<html>missing runtime</html>")
+            (root / "source/en/index.html").write_text("<html>missing runtime</html>", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "runtime marker"):
                 MODULE.package(root / "source", root / "package")
             self.assertFalse((root / "package").exists())
@@ -125,13 +126,13 @@ class MoliReportPackTests(unittest.TestCase):
 
             def concurrent_writer(*args, **kwargs):
                 (root / "package").mkdir()
-                (root / "package/owned").write_text("another process")
+                (root / "package/owned").write_text("another process", encoding="utf-8")
                 return original(*args, **kwargs)
 
             with patch.object(MODULE, "write_packs", side_effect=concurrent_writer):
                 with self.assertRaisesRegex(ValueError, "already exists"):
                     MODULE.package(root / "source", root / "package")
-            self.assertEqual((root / "package/owned").read_text(), "another process")
+            self.assertEqual((root / "package/owned").read_text(encoding="utf-8"), "another process")
             self.assertEqual(list((root / "package").iterdir()), [root / "package/owned"])
 
     def test_rejects_dangling_destination_link(self):
@@ -148,11 +149,13 @@ class MoliReportPackTests(unittest.TestCase):
         import subprocess
         import sys
 
-        script = Path(__file__).resolve().parents[1] / "scripts/moli_report/pack.py"
+        from tests.test_lexbench_cli import checkout_env
+
         with tempfile.TemporaryDirectory() as directory:
             result = subprocess.run(
-                [sys.executable, str(script), "--help"],
+                [sys.executable, "-m", "harness.lexbench", "package", "--help"],
                 cwd=directory,
+                env=checkout_env(),
                 check=True,
                 capture_output=True,
                 text=True,

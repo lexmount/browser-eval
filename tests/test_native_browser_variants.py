@@ -63,7 +63,7 @@ class NativeBrowserVariantTests(unittest.TestCase):
                     {"provider": "moli-candidate", "binary_sha256": "b" * 64,
                      "version": "1.1.17（60773df3）"},
                 ]
-            }))
+            }), encoding="utf-8")
             self.assertEqual(
                 render(out, {}, records),
                 "Moli 多构建结果（2 例 1.1.15；1 例 1.1.17（60773df3））",
@@ -89,7 +89,7 @@ class NativeBrowserVariantTests(unittest.TestCase):
                     {"provider": "moli-candidate", "binary_sha256": "b" * 64,
                      "version": "1.1.17（0d9a7ceb，修正结果）"},
                 ]
-            }))
+            }), encoding="utf-8")
             self.assertEqual(render(out, {}, records), "Moli 1.1.17（候选版）")
 
     def test_unknown_native_participant_cannot_bypass_route_validation(self):
@@ -243,15 +243,15 @@ class NativeBrowserVariantTests(unittest.TestCase):
                        "case_count": 1, "providers": [self.candidate],
                        "case_ids_sha256": hashlib.sha256(b'["body"]').hexdigest(),
                        **{k: v for k, v in comparison.items() if k != "kind"}}
-            (root / "profile.json").write_text(json.dumps(profile))
+            (root / "profile.json").write_text(json.dumps(profile), encoding="utf-8")
             (root / "dataset.json").write_text(json.dumps({"id": "branch", "cases": self.cases,
-                "coverage_plan": {"web": [self.candidate]}, "comparison": comparison}))
+                "coverage_plan": {"web": [self.candidate]}, "comparison": comparison}), encoding="utf-8")
             row = self.row({"route": "ordinary_markdown", "output": "markdown"}, attempt_id="branch-body")
-            (root / "results.jsonl").write_text(json.dumps(row) + "\n")
+            (root / "results.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "requires native_task_route_contract"):
                 require_current_report_profile(root, root / "profile.json")
             profile["native_task_route_contract"] = 4
-            (root / "profile.json").write_text(json.dumps(profile))
+            (root / "profile.json").write_text(json.dumps(profile), encoding="utf-8")
             require_current_report_profile(root, root / "profile.json")
 
     def test_interpretation_counts_engines_and_configurations_separately(self):
@@ -268,13 +268,13 @@ class NativeBrowserVariantTests(unittest.TestCase):
                     "artifact_path": "output.txt"} for p in providers for f in cases]
         with tempfile.TemporaryDirectory() as folder:
             out = Path(folder)
-            (out / "output.txt").write_text("Observed body")
+            (out / "output.txt").write_text("Observed body", encoding="utf-8")
             content = {"schema": "webfetch_browser_interpretation/1", "title": "配置对比",
                        "intro": "同一任务和答案。", "scoring": "按任务验收。", "conclusions": "保留实际结果。",
                        "evidence_sha256": canonical_json_sha256(_headless_article_input(cases, records, sorted(providers))),
                        "providers": {p: {"specimen_case_id": "web", "explanation": "未满足要求。"} for p in providers}}
             path = out / "article.json"
-            path.write_text(json.dumps(content))
+            path.write_text(json.dumps(content), encoding="utf-8")
             body = _render_current_browser_article(out, cases, records,
                 {"path": "article.json", "sha256": hashlib.sha256(path.read_bytes()).hexdigest()})
             self.assertIn("5 种浏览器", body)

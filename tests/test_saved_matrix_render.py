@@ -37,6 +37,9 @@ def test_final_ranking_reuses_pass_order_and_latency_extrema(tmp_path, tie):
     assert page.select_one('#completion') is None
     assert page.select_one('#saved-limitations') is None
     assert 'id="saved-limitations"' in (root/'methodology/index.html').read_text()
+    methodology = BeautifulSoup((root/'methodology/index.html').read_text(), 'html.parser')
+    certification = methodology.select_one('[data-saved-certification="not-conferred"]')
+    assert certification is not None and '不等于基准认证' in certification.get_text()
 
 
 @pytest.mark.parametrize('tie', [False, True])

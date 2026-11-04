@@ -49,7 +49,7 @@ def test_declared_acceptance_scenarios(identifier, row):
 def test_standalone_cli_accepts_and_rejects_task_deliveries(tmp_path, kind, requirements, answer, passed):
     task = {'id': 'sample', 'name': 'Sample', 'url': 'https://example.test/page',
             'category': 'test', 'task_kind': kind, 'expected_any': [], **requirements}
-    (tmp_path/'task.json').write_text(json.dumps(task))
+    (tmp_path/'task.json').write_text(json.dumps(task), encoding='utf-8')
     (tmp_path/'answer.txt').write_bytes(answer)
     result = subprocess.run([sys.executable, '-m', 'lexbench_webfetch.cli', 'score',
                              '--task', str(tmp_path/'task.json'),
@@ -67,8 +67,8 @@ def test_file_acceptance_uses_delivered_bytes_and_declared_hash(tmp_path, valid)
             'source_verification': {'mime': 'image/png', 'file_sha256': hashlib.sha256(good).hexdigest()}}
     raw = good if valid else good[:-1] + b'y'
     (tmp_path/'file.bin').write_bytes(raw)
-    (tmp_path/'task.json').write_text(json.dumps(task))
-    (tmp_path/'answer.txt').write_text('file attached')
+    (tmp_path/'task.json').write_text(json.dumps(task), encoding='utf-8')
+    (tmp_path/'answer.txt').write_text('file attached', encoding='utf-8')
     result = subprocess.run([sys.executable, '-m', 'lexbench_webfetch.cli', 'score',
                              '--task', str(tmp_path/'task.json'), '--response', str(tmp_path/'answer.txt'),
                              '--file', str(tmp_path/'file.bin')], cwd=tmp_path, text=True, capture_output=True)
@@ -107,9 +107,9 @@ def test_cli_preserves_structured_answer_evidence(tmp_path, kind, metadata, pass
             "stable_text_anchors": []}
     elif kind == "resource":
         task["expected_resources"] = [{"id": "target", "urls": ["/target.png"]}]
-    (tmp_path / "task.json").write_text(json.dumps(task))
-    (tmp_path / "answer.txt").write_text("")
-    (tmp_path / "metadata.json").write_text(json.dumps(metadata))
+    (tmp_path / "task.json").write_text(json.dumps(task), encoding='utf-8')
+    (tmp_path / "answer.txt").write_text("", encoding='utf-8')
+    (tmp_path / "metadata.json").write_text(json.dumps(metadata), encoding='utf-8')
     expected = evaluate_response(task, b"", metadata=metadata)
     assert expected["passed"] is passed
     result = subprocess.run([sys.executable, "-m", "lexbench_webfetch.cli", "score",
@@ -121,9 +121,9 @@ def test_cli_preserves_structured_answer_evidence(tmp_path, kind, metadata, pass
 
 @pytest.mark.parametrize("metadata", [[], "invalid", None, 42])
 def test_cli_rejects_non_object_answer_metadata(tmp_path, metadata):
-    (tmp_path / "task.json").write_text('{"url":"https://example.test","expected_any":[]}')
-    (tmp_path / "answer.txt").write_text("content")
-    (tmp_path / "metadata.json").write_text(json.dumps(metadata))
+    (tmp_path / "task.json").write_text('{"url":"https://example.test","expected_any":[]}', encoding='utf-8')
+    (tmp_path / "answer.txt").write_text("content", encoding='utf-8')
+    (tmp_path / "metadata.json").write_text(json.dumps(metadata), encoding='utf-8')
     result = subprocess.run([sys.executable, "-m", "lexbench_webfetch.cli", "score",
         "--task", str(tmp_path / "task.json"), "--response", str(tmp_path / "answer.txt"),
         "--metadata", str(tmp_path / "metadata.json")], cwd=tmp_path, text=True, capture_output=True)

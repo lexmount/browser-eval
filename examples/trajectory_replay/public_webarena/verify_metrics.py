@@ -27,12 +27,12 @@ def verify(artifacts: Path) -> dict:
     artifacts = artifacts.resolve()
     rows = [
         json.loads(line)
-        for line in (artifacts / "attempts.jsonl").read_text().splitlines()
+        for line in (artifacts / "attempts.jsonl").read_text(encoding="utf-8").splitlines()
         if line.strip()
     ]
-    summary = json.loads((artifacts / "summary.json").read_text())
+    summary = json.loads((artifacts / "summary.json").read_text(encoding="utf-8"))
     manifest_path = artifacts / "manifest.json"
-    manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else None
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else None
     primary = {}
     for row in rows:
         if not row.get("is_retry"):

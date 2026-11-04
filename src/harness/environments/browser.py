@@ -9,6 +9,8 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from harness.environments.webarena.topology import CONTAINER_HOST_ALIAS
+
 DEFAULT_BROWSER_IMAGES = {
     "chromium": "lex-browser-eval-chromium:local",
     "moli": "lex-browser-eval-moli:local",
@@ -20,6 +22,12 @@ def configured_browser_images() -> dict[str, str]:
     images = dict(DEFAULT_BROWSER_IMAGES)
     images["moli"] = os.environ.get("BROWSER_EVAL_MOLI_IMAGE", images["moli"])
     return images
+
+
+def rotated_engine_order(engines: tuple[str, ...], task_index: int) -> tuple[str, ...]:
+    """Rotate call order by task so every registered browser takes every position."""
+    offset = task_index % len(engines)
+    return engines[offset:] + engines[:offset]
 
 
 def external_websocket_url(endpoint: str, advertised: str) -> str:
@@ -90,7 +98,7 @@ def start_browser_container(
         "shm_size": "512m",
         "security_opt": ["no-new-privileges"],
         "network": network,
-        "extra_hosts": {"host.docker.internal": "host-gateway"},
+        "extra_hosts": {CONTAINER_HOST_ALIAS: "host-gateway"},
     }
     if cpus is not None:
         if cpus <= 0:

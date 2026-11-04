@@ -12,7 +12,7 @@ REGRESSIONS=['reference-scope-retains-main-content',
 
 def create_promotion_inputs(root):
     captures=root/'captures';captures.mkdir()
-    (captures/'audit.json').write_text('[]')
+    (captures/'audit.json').write_text('[]', encoding='utf-8')
     checked='2026-09-11T00:00:00+00:00'
     old='Old rendered reference body'
     new='New independently rendered reference body'
@@ -27,7 +27,7 @@ def create_promotion_inputs(root):
               hashlib.sha256(old.encode()).hexdigest()}}
     dataset={'cases':[case],'coverage_plan':{'web':['p']}}
     dataset_path=root/'dataset.json'
-    dataset_path.write_text(json.dumps(dataset))
+    dataset_path.write_text(json.dumps(dataset), encoding='utf-8')
     observation={'case_id':'javascript-spa','independent':True,
         'checked_at':checked,'content_text':new,'selector':'body',
         'observation_method':'visible_inner_text','observed_records':10,
@@ -35,6 +35,6 @@ def create_promotion_inputs(root):
         'observer':{'browser':'Chromium','binary':'explicit'},
         'completion':{'satisfied':True,'elapsed_ms':10,'timeout_ms':1000}}
     observations_path=root/'observations.json'
-    observations_path.write_text(json.dumps({'javascript-spa':observation}))
+    observations_path.write_text(json.dumps({'javascript-spa':observation}), encoding='utf-8')
     return dict(dataset_path=dataset_path, captures=captures, observations_path=observations_path,
                 observation=observation, new_reference=new, checked_at=checked)

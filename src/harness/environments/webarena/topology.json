@@ -3,9 +3,8 @@
   "hosts": {
     "container_host_alias": "host.docker.internal",
     "host_loopback": "127.0.0.1",
-    "recording_gateways": {
-      "192.168.5.2": "Colima VM host gateway through which the frozen local catalogs and Browser Use evidence were recorded"
-    },
+    "recording_gateways_env": "WEBARENA_RECORDING_GATEWAYS",
+    "recording_gateways_note": "Colima VM host gateway through which the frozen local catalogs and Browser Use evidence were recorded",
     "public_recorded_hosts": [
       "onestopmarket.example.com",
       "gitlab.example.com",
@@ -23,7 +22,7 @@
       "container_port": 80,
       "recorded_ports": [7770],
       "official_trace_ports": [7770],
-      "credentials": {"username": "emma.lopez@gmail.com", "password": "Password.123"}
+      "credentials_env": {"username": "WEBARENA_SHOPPING_USERNAME", "password": "WEBARENA_SHOPPING_PASSWORD"}
     },
     "shopping_admin": {
       "mutable": true,
@@ -33,7 +32,7 @@
       "url_suffix": "/admin",
       "recorded_ports": [7780],
       "official_trace_ports": [7780],
-      "credentials": {"username": "admin", "password": "admin1234"}
+      "credentials_env": {"username": "WEBARENA_SHOPPING_ADMIN_USERNAME", "password": "WEBARENA_SHOPPING_ADMIN_PASSWORD"}
     },
     "reddit": {
       "mutable": true,
@@ -42,7 +41,7 @@
       "container_port": 80,
       "recorded_ports": [9999, 4399],
       "official_trace_ports": [9999],
-      "credentials": {"username": "MarvelsGrantMan136", "password": "test1234"}
+      "credentials_env": {"username": "WEBARENA_REDDIT_USERNAME", "password": "WEBARENA_REDDIT_PASSWORD"}
     },
     "gitlab": {
       "mutable": true,
@@ -51,7 +50,7 @@
       "container_port": 8023,
       "recorded_ports": [8023],
       "official_trace_ports": [8023],
-      "credentials": {"username": "byteblaze", "password": "hello1234"}
+      "credentials_env": {"username": "WEBARENA_GITLAB_USERNAME", "password": "WEBARENA_GITLAB_PASSWORD"}
     },
     "map": {
       "mutable": false,
@@ -72,6 +71,11 @@
   "container_services": {
     "env_ctrl_port": 8877,
     "initializer_readiness_port": 8080,
-    "magento_elasticsearch_port": 9200
+    "magento_elasticsearch_port": 9200,
+    "map_local_services": {
+      "rails_port": 3000,
+      "nominatim_port": 8085,
+      "detail_port": 8091
+    }
   }
 }

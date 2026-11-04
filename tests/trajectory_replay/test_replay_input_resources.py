@@ -31,7 +31,7 @@ def test_runner_serves_packaged_pages_when_suite_is_in_an_unrelated_cache(
     revision = '1' * 40
     suite = cache / track / revision / 'definitions' / definition
     suite.parent.mkdir(parents=True)
-    suite.write_text('{}')
+    suite.write_text('{}', encoding='utf-8')
     ledger = {'revision': revision, 'files': {
         'definitions/' + definition: {'sha256': hashlib.sha256(suite.read_bytes()).hexdigest()},
     }}
@@ -39,7 +39,7 @@ def test_runner_serves_packaged_pages_when_suite_is_in_an_unrelated_cache(
     monkeypatch.setattr(data, 'definition_path', lambda *args: suite)
     # Unbound cache neighbors cannot shadow the packaged locked-input fixtures.
     (suite.parent/'fixtures').mkdir()
-    (suite.parent/'fixtures/core.html').write_text('Unbound cache page')
+    (suite.parent/'fixtures/core.html').write_text('Unbound cache page', encoding='utf-8')
     task = SimpleNamespace(task_id='local', environment={}, ground_truth={},
                            tool_calls=({'url': '{fixture_origin}/core.html'},))
     monkeypatch.setattr(runner, 'load_suite', lambda path: SimpleNamespace(tasks=(task,)))
@@ -54,17 +54,19 @@ def test_runner_serves_packaged_pages_when_suite_is_in_an_unrelated_cache(
         assert (root / 'core.html').is_file()
         assert (root / 'forms.html').is_file()
         assert (root / 'page2.html').is_file()
-        assert 'html' in (root / 'core.html').read_text().lower()
+        assert 'html' in (root / 'core.html').read_text(encoding='utf-8').lower()
         raise LocatedFixture
 
-    monkeypatch.setattr(runner, '_start_fixture_server', start)
+    monkeypatch.setattr(runner, 'start_fixture_server', start)
     with pytest.raises(LocatedFixture):
         runner.run_evaluation(suite_path=suite if resolved else None, output_dir=tmp_path/'run',
                               reports_dir=tmp_path/'reports')
 
 
 def test_measured_smoke_is_explicit_and_hash_bound(tmp_path):
-    (tmp_path / 'agent_smoke.json').write_text('{"results": [{"status": "pass"}]}')
+    (tmp_path / "agent_smoke.json").write_text(
+        '{"results": [{"status": "pass"}]}', encoding="utf-8"
+    )
     assert report_inputs.agent_smoke_input(None) is None
     evidence = tmp_path / 'evidence.json'
     raw = b'{"results": [{"status": "fail"}], "executed_at":"2026-09-01"}'
@@ -75,7 +77,7 @@ def test_measured_smoke_is_explicit_and_hash_bound(tmp_path):
     assert actual['provenance']['reused_not_rerun'] is True
     with pytest.raises(FileNotFoundError):
         report_inputs.agent_smoke_input(tmp_path / 'missing.json')
-    evidence.write_text('{}')
+    evidence.write_text('{}', encoding='utf-8')
     with pytest.raises(ValueError, match='results'):
         report_inputs.agent_smoke_input(evidence)
 
@@ -87,7 +89,7 @@ def test_explicit_missing_smoke_fails_before_browser_start(tmp_path, monkeypatch
     else:
         from harness.trajectory_replay.public_webarena import runner
     suite = tmp_path / 'suite.json'
-    suite.write_text('{}')
+    suite.write_text('{}', encoding='utf-8')
     monkeypatch.setattr(runner, 'load_suite', lambda path: SimpleNamespace(tasks=()))
     docker = MagicMock()
     monkeypatch.setattr(runner.docker, 'from_env', docker)
@@ -118,7 +120,7 @@ def test_reproduction_command_selects_the_actual_suite_revision(
     changelog = tmp_path / 'changes.json'
     changelog.write_text(json.dumps({'schema': 'lexmount_webarena_trajectory_report_changes/1',
                                     'releases': [{'date': '2026-09-01', 'type': 'initial',
-                                                  'effect': 'Published'}]}))
+                                                  'effect': 'Published'}]}), encoding='utf-8')
     monkeypatch.setattr(report, '_report_input', lambda name: changelog)
     rendered = html.unescape(report._appendix_page({'suite_sha256': digest}))
     assert '--suite "$(uv run --frozen python -c ' in rendered
@@ -139,7 +141,7 @@ def test_custom_reproduction_requires_explicit_suite_not_current_default(tmp_pat
     changelog = tmp_path / 'changes.json'
     changelog.write_text(json.dumps({'schema': 'lexmount_webarena_trajectory_report_changes/1',
                                     'releases': [{'date': 'today', 'type': 'initial',
-                                                  'effect': 'Published'}]}))
+                                                  'effect': 'Published'}]}), encoding='utf-8')
     monkeypatch.setattr(report, '_report_input', lambda name: changelog)
     rendered = html.unescape(report._appendix_page({'suite_sha256': 'f'*64}))
     assert '--suite <frozen-suite.json>' in rendered
@@ -162,13 +164,22 @@ def test_report_preserves_recorded_edition_when_a_newer_release_has_identical_su
     changelog.write_text(json.dumps({
         'schema': 'lexmount_webarena_trajectory_report_changes/1',
         'releases': [{'date': 'today', 'type': 'initial', 'effect': 'Published'}],
-    }))
+    }), encoding='utf-8')
     monkeypatch.setattr(report, '_report_input', lambda name: changelog)
     manifest = {'suite_sha256': digest, 'suite_dataset': {
         'benchmark_dataset': 'webarena-replay', 'definition': definition,
         'revision': old['revision'],
     }}
     rendered = html.unescape(report._appendix_page(manifest))
+    assert '--engines chromium,moli ' in rendered
+    assert '--engines moli ' in html.unescape(
+        report._appendix_page({**manifest, 'protocol': {'engines': ['moli']}})
+    )
+    hostile = report._appendix_page(
+        {**manifest, 'protocol': {'engines': ['<img src=x onerror=alert(1)>']}}
+    )
+    assert '<img src=x' not in hostile
+    assert '--engines &lt;img src=x onerror=alert(1)&gt; ' in hostile
     assert old['revision'] in rendered
     assert current['revision'] not in rendered
     manifest['suite_dataset']['definition'] = 'inventories/human-candidates-v1.json'
@@ -186,9 +197,15 @@ def test_cli_forwards_explicit_smoke_input(tmp_path, monkeypatch, family):
         monkeypatch.setattr(cli, 'load_runtime_env', lambda path: None)
         monkeypatch.setattr(cli, 'configure_browser_docker_host', lambda path: None)
     run = MagicMock()
-    monkeypatch.setattr(cli, 'run_evaluation', run)
+    if family == 'curated':
+        from harness.trajectory_replay import runner
+        monkeypatch.setattr(runner, 'run_evaluation', run)
+        command = ['evaluate']
+    else:
+        monkeypatch.setattr(cli, 'run_evaluation', run)
+        command = []
     smoke = str(tmp_path / 'chosen.json')
-    monkeypatch.setattr(sys, 'argv', ['replay', '--suite', str(tmp_path/'suite.json'),
+    monkeypatch.setattr(sys, 'argv', ['replay', *command, '--suite', str(tmp_path/'suite.json'),
                                      '--ground-truth-evidence', str(tmp_path/'truth.json'),
                                      '--agent-smoke', smoke, '--output', str(tmp_path/'run'),
                                      '--no-report'])
@@ -206,12 +223,12 @@ def test_explicit_suite_uses_its_custom_fixture_tree(tmp_path, monkeypatch, fami
         monkeypatch.setattr(runner, 'require_linux_cgroup_v2', lambda client: None)
     suite = tmp_path/'historical'/'suite.json'
     suite.parent.mkdir()
-    suite.write_text('{}')
+    suite.write_text('{}', encoding='utf-8')
     fixture = suite.parent/'fixtures'
     (fixture/'nested').mkdir(parents=True)
-    (fixture/'core.html').write_text('<h1>Original historical core</h1>')
-    (fixture/'nested/custom.html').write_text('<h1>Original custom page</h1>')
-    (fixture/'nested/site.css').write_text('h1 {color:blue}')
+    (fixture/'core.html').write_text('<h1>Original historical core</h1>', encoding='utf-8')
+    (fixture/'nested/custom.html').write_text('<h1>Original custom page</h1>', encoding='utf-8')
+    (fixture/'nested/site.css').write_text('h1 {color:blue}', encoding='utf-8')
     task = SimpleNamespace(task_id='local', environment={}, ground_truth={},
                            tool_calls=({'url': '{fixture_origin}/nested/custom.html'},))
     monkeypatch.setattr(runner, 'load_suite', lambda path: SimpleNamespace(tasks=(task,)))
@@ -223,11 +240,11 @@ def test_explicit_suite_uses_its_custom_fixture_tree(tmp_path, monkeypatch, fami
 
     def start(root):
         assert root == fixture
-        assert (root/'core.html').read_text() == '<h1>Original historical core</h1>'
+        assert (root/'core.html').read_text(encoding='utf-8') == '<h1>Original historical core</h1>'
         assert (root/'nested/custom.html').is_file()
         raise CorrectHistoricalFiles
 
-    monkeypatch.setattr(runner, '_start_fixture_server', start)
+    monkeypatch.setattr(runner, 'start_fixture_server', start)
     with pytest.raises(CorrectHistoricalFiles):
         runner.run_evaluation(suite_path=suite, output_dir=tmp_path/'run',
                               reports_dir=tmp_path/'reports')
@@ -243,16 +260,16 @@ def test_invalid_explicit_fixtures_fail_before_engine_initialization(
     else:
         from harness.trajectory_replay.public_webarena import runner
     suite = tmp_path/'suite.json'
-    suite.write_text('{}')
+    suite.write_text('{}', encoding='utf-8')
     root = tmp_path/'fixtures'
     if failure != 'missing-directory':
         root.mkdir()
         if failure == 'symlink':
             outside = tmp_path/'outside.html'
-            outside.write_text('Unbound outside page')
+            outside.write_text('Unbound outside page', encoding='utf-8')
             (root/'custom.html').symlink_to(outside)
         else:
-            (root/'other.html').write_text('Wrong page')
+            (root/'other.html').write_text('Wrong page', encoding='utf-8')
     task = SimpleNamespace(task_id='local', environment={}, ground_truth={},
                            tool_calls=({'url': '{fixture_origin}/custom.html'},))
     monkeypatch.setattr(runner, 'load_suite', lambda path: SimpleNamespace(tasks=(task,)))

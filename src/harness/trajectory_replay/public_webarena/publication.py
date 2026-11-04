@@ -14,34 +14,37 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
+from harness.environments.webarena.topology import configured_site_secrets
 from harness.record_io import file_sha256, read_json
-from harness.reporting.privacy import PUBLIC_WEBARENA
-from harness.reporting.publication import archive_inventory
+from harness.reporting.privacy import PRIVATE_IPV4, PUBLIC_WEBARENA
+from harness.reporting.publication import PublicationClient, archive_inventory
+from harness.reporting.publication_target import publication_document, require_publication_version
+from harness.reporting.publish import ReceiptRelease, publish_receipt_release
+from harness.trajectory_replay.public_webarena.config import (
+    map_strings,
+    redact_site_passwords,
+    site_password_spellings,
+)
 from harness.trajectory_replay.public_webarena.result_audit import audit_result_set
-from harness.web_fetch.publication_target import publication_document, require_publication_version
-from harness.web_fetch.report_publish import PublishConfig, publish
 from harness.web_fetch.safety import unlinked_path
 from lexbench_webfetch.paths import contained_path
 
+CLIENT = PublicationClient("Public-WebArena-Report-Publisher/1.0", put_timeout=90)
+# A pending operation replays its original bytes under its idempotency key, so this name stays.
+UPLOAD_NAME = "webfetch"
 REPORT_STEM = "webarena-trajectory-replay-latest"
 
-PRIVATE_IPV4 = re.compile(
-    r"(?<![0-9])(?:10(?:\.[0-9]{1,3}){3}|192\.168(?:\.[0-9]{1,3}){2}|"
-    r"172\.(?:1[6-9]|2[0-9]|3[01])(?:\.[0-9]{1,3}){2})(?![0-9])"
-)
 
 
 def public_projection(value: Any) -> Any:
-    """Remove host-specific identities while retaining report semantics and hashes."""
-    if isinstance(value, dict):
-        return {key: public_projection(item) for key, item in value.items()}
-    if isinstance(value, list):
-        return [public_projection(item) for item in value]
-    if isinstance(value, tuple):
-        return tuple(public_projection(item) for item in value)
-    if isinstance(value, str):
-        return PUBLIC_WEBARENA.redact(PRIVATE_IPV4.sub("webarena.local", value))
-    return value
+    """Remove host identities and site passwords while retaining report semantics and hashes."""
+    passwords = configured_site_secrets()
+    return map_strings(
+        value,
+        lambda text: PUBLIC_WEBARENA.redact(
+            PRIVATE_IPV4.sub("webarena.local", redact_site_passwords(text, passwords))
+        ),
+    )
 
 
 def export_public_report_bundle(formal_root: Path, output_root: Path) -> Path:
@@ -196,6 +199,14 @@ def _validate_internal_links(root: Path) -> None:
                 raise ValueError(f"broken local link: {page} -> {value}")
 
 
+def _contains_site_password(text: str, passwords: tuple[str, ...]) -> bool:
+    """Match any spelling of a password, also after decoding the HTML escapes around it."""
+    decoded = html.unescape(text)
+    return any(
+        spelling in text or spelling in decoded for spelling in site_password_spellings(passwords)
+    )
+
+
 def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Path) -> dict:
     manifest, summary, _audit = _validate_binding(formal_root, authority)
     files = _report_files(formal_root, summary)
@@ -223,12 +234,15 @@ def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Pat
             shutil.copy2(source, staging / source.name)
         shutil.copy2(staging / f"{REPORT_STEM}.html", staging / "index.html")
         _validate_internal_links(staging)
+        passwords = configured_site_secrets()
         for path in staging.rglob("*"):
             if not path.is_file():
                 continue
             text = path.read_text(encoding="utf-8", errors="ignore")
             if PRIVATE_IPV4.search(text) or PUBLIC_WEBARENA.found(text):
                 raise ValueError(f"private host or local user path in public report: {path.name}")
+            if _contains_site_password(text, passwords):
+                raise ValueError(f"site password in public report: {path.name}")
             found = next((term for term in FORBIDDEN_PUBLIC_RESULT_TERMS if term in text), None)
             if found:
                 raise ValueError(
@@ -264,7 +278,9 @@ def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Pat
         },
     }
     attestation.parent.mkdir(parents=True, exist_ok=True)
-    attestation.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+    attestation.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     return payload
 
 
@@ -426,21 +442,23 @@ def publish_current(
     resume = prior.get("submission_state") == "submitted_unverified" and prior.get(
         "archive_sha256"
     ) == file_sha256(archive)
-    config = PublishConfig(
+    config = ReceiptRelease(
         profile,
         archive,
         formal_root,
         receipt,
         journal,
-        mode="reuse" if resume and not journal.exists() else "update",
+        namespace="public-webarena",
+        upload_name=UPLOAD_NAME,
+        client=CLIENT,
+        package_check=package_check,
         title=str(_read_json(profile).get("title") or "WebArena 轨迹重放"),
+        mode="reuse" if resume and not journal.exists() else "update",
         base_url=base_url,
         expected_version=expected_version,
-        operation_namespace="public-webarena",
+        inputs=(attestation,),
     )
-    result = publish(
-        config, transport=transport, package_check=package_check, validation_inputs=[attestation]
-    )
+    result = publish_receipt_release(config, transport=transport)
     return {"slug": result["slug"], "version": result["versionId"], "url": result["url"]}
 
 

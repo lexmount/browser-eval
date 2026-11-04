@@ -47,7 +47,7 @@ class NativeMetadataTests(unittest.TestCase):
         class Chromium:
             def launch_persistent_context(self, directory, **kwargs):
                 observed['local_state'] = json.loads(
-                    (Path(directory) / 'Local State').read_text()
+                    (Path(directory) / 'Local State').read_text(encoding='utf-8')
                 )
                 return Context()
         class Driver:
@@ -111,7 +111,7 @@ class NativeMetadataTests(unittest.TestCase):
         ):
             with self.subTest(engine=engine), tempfile.TemporaryDirectory() as directory:
                 script = Path(directory) / 'native.js'
-                script.write_text('"# Body"')
+                script.write_text('"# Body"', encoding='utf-8')
                 metadata = {'format': 'lightpanda_json'} if engine == 'lightpanda' else {
                     'format': 'obscura_eval', 'script_path': str(script),
                     'script_sha256': hashlib.sha256(script.read_bytes()).hexdigest()}
@@ -150,7 +150,7 @@ class NativeMetadataTests(unittest.TestCase):
     def test_modified_vendor_script_is_rejected_before_browser_call(self):
         with tempfile.TemporaryDirectory() as directory:
             script = Path(directory) / 'native.js'
-            script.write_text('"changed"')
+            script.write_text('"changed"', encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'hash mismatch'):
                 cli_command('obscura', '/browser', 'https://example.com/', 5, 'markdown',
                             native_metadata={'format': 'obscura_eval', 'script_path': str(script),
@@ -161,7 +161,7 @@ class NativeMetadataTests(unittest.TestCase):
         from types import SimpleNamespace
         with tempfile.TemporaryDirectory() as directory:
             script = Path(directory) / 'native.js'
-            script.write_text('"# Isolated body"')
+            script.write_text('"# Isolated body"', encoding='utf-8')
             digest = hashlib.sha256(script.read_bytes()).hexdigest()
             provider = HeadlessProvider('obscura', {
                 'type': 'headless_markdown', 'engine': 'obscura',
@@ -424,15 +424,15 @@ class HeadlessTests(unittest.TestCase):
                  'ok':True,'error_type':None,'metrics':{'content_pass':True}}
                 for provider in ('p','q') for case_id in ('a','b')
             ]
-            (evidence/'dataset.json').write_text(json.dumps(dataset))
+            (evidence/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             for record in records:
                 artifact = evidence / record['artifact_path']
                 artifact.parent.mkdir(parents=True, exist_ok=True)
                 artifact.write_bytes(b'Independent synthetic answer')
                 record['metrics']['content_sha256'] = hashlib.sha256(artifact.read_bytes()).hexdigest()
             (evidence/'results.jsonl').write_text(
-                ''.join(json.dumps(row)+'\n' for row in records))
-            argv = ['review_headless_results.py','--evidence',str(evidence),
+                ''.join(json.dumps(row)+'\n' for row in records), encoding='utf-8')
+            argv = ['review-headless','--evidence',str(evidence),
                     '--work',str(work),'--batch-cases','1','--model','inherited',
                     '--reviewer','internal','--scope','all','--provider','p',
                     '--confirm-full-review','--prepare-only']
@@ -441,7 +441,7 @@ class HeadlessTests(unittest.TestCase):
             packets = sorted(work.glob('batch-*-input.json'))
             self.assertEqual(len(packets), 2)
             attempts = [attempt for path in packets
-                        for attempt in json.loads(path.read_text())['attempts']]
+                        for attempt in json.loads(path.read_text(encoding='utf-8'))['attempts']]
             self.assertEqual({row['attempt_id'] for row in attempts},
                              {'p__a__r001','p__b__r001'})
             self.assertTrue(all('metrics' not in row for row in attempts))
@@ -459,17 +459,17 @@ class HeadlessTests(unittest.TestCase):
                  'artifact_path':'b.txt','ok':True,'error_type':None,
                  'metrics':{'content_pass':True}},
             ]
-            (evidence/'dataset.json').write_text(json.dumps(dataset))
+            (evidence/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
             for row in rows:
                 artifact = evidence / row['artifact_path']
                 artifact.write_bytes(b'Independent synthetic answer')
                 row['metrics']['content_sha256'] = hashlib.sha256(artifact.read_bytes()).hexdigest()
-            (evidence/'results.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in rows))
-            argv=['review_headless_results.py','--evidence',str(evidence),
+            (evidence/'results.jsonl').write_text(''.join(json.dumps(x)+'\n' for x in rows), encoding='utf-8')
+            argv=['review-headless','--evidence',str(evidence),
                   '--work',str(work),'--model','inherited','--reviewer','internal',
                   '--prepare-only']
             with patch('sys.argv',argv): review_main()
-            packet=json.loads(next(work.glob('batch-*-input.json')).read_text())
+            packet=json.loads(next(work.glob('batch-*-input.json')).read_text(encoding='utf-8'))
             self.assertEqual([x['attempt_id'] for x in packet['attempts']],['p__a__r001'])
             with patch('sys.argv',argv[:-1]+['--scope','all','--prepare-only']):
                 with self.assertRaises(SystemExit): review_main()
@@ -477,7 +477,7 @@ class HeadlessTests(unittest.TestCase):
             pass_argv=argv[:-1]+['--work',str(pass_work),'--scope','machine-passes',
                                  '--confirm-full-review','--prepare-only']
             with patch('sys.argv',pass_argv): review_main()
-            pass_packet=json.loads(next(pass_work.glob('batch-*-input.json')).read_text())
+            pass_packet=json.loads(next(pass_work.glob('batch-*-input.json')).read_text(encoding='utf-8'))
             self.assertEqual([x['attempt_id'] for x in pass_packet['attempts']],['q__a__r001'])
 
     def test_required_anomaly_pass_is_added_to_default_failure_review(self):
@@ -488,15 +488,15 @@ class HeadlessTests(unittest.TestCase):
             row={'attempt_id':'p__a__r001','provider':'p','case_id':'a',
                  'artifact_path':'empty.txt','ok':True,'error_type':None,
                  'metrics':{'content_pass':True}}
-            (evidence/'empty.txt').write_text('')
+            (evidence/'empty.txt').write_text('', encoding='utf-8')
             row['metrics']['content_sha256'] = hashlib.sha256(b'').hexdigest()
-            (evidence/'dataset.json').write_text(json.dumps(dataset))
-            (evidence/'results.jsonl').write_text(json.dumps(row)+'\n')
-            argv=['review_headless_results.py','--evidence',str(evidence),
+            (evidence/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+            (evidence/'results.jsonl').write_text(json.dumps(row)+'\n', encoding='utf-8')
+            argv=['review-headless','--evidence',str(evidence),
                   '--work',str(work),'--model','inherited','--reviewer','internal',
                   '--prepare-only']
             with patch('sys.argv',argv): review_main()
-            packet=json.loads(next(work.glob('batch-*-input.json')).read_text())
+            packet=json.loads(next(work.glob('batch-*-input.json')).read_text(encoding='utf-8'))
             self.assertEqual([x['attempt_id'] for x in packet['attempts']],['p__a__r001'])
 
     def test_independent_review_receives_real_file_evidence(self):
@@ -662,7 +662,7 @@ class HeadlessTests(unittest.TestCase):
 
     def test_lightpanda_iframe_capability_receipt_does_not_overclaim_markdown(self):
         receipt = json.loads(Path(
-            'research/lightpanda-100-native-iframe-capability.json').read_text())
+            'research/lightpanda-100-native-iframe-capability.json').read_text(encoding='utf-8'))
         self.assertEqual(receipt['provider_calls'], 0)
         observations = receipt['observations']
         both = ['--load-resources', 'iframe', '--with-frames']
@@ -821,8 +821,8 @@ class HeadlessTests(unittest.TestCase):
                 provider_config_path=root/'config.json', runs=1, timeout=1, delay=0)
             meta = records[0]['provider_metadata']
             self.assertNotIn('_rendered_html', meta)
-            self.assertEqual((root/meta['rendered_html_path']).read_text(), html)
-            self.assertEqual((root/records[0]['artifact_path']).read_text(), 'Fixture')
+            self.assertEqual((root/meta['rendered_html_path']).read_text(encoding='utf-8'), html)
+            self.assertEqual((root/records[0]['artifact_path']).read_text(encoding='utf-8'), 'Fixture')
 
 
 if __name__ == '__main__':

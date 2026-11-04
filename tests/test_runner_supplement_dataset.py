@@ -44,7 +44,7 @@ class SupplementDatasetTests(unittest.TestCase):
             for filename, content in (("reference.txt", self.content),
                                       ("rendered.txt", self.content),
                                       ("initial.html.txt", "<main>Loading</main>")):
-                (source / filename).write_text(content)
+                (source / filename).write_text(content, encoding="utf-8")
             self.write(self.dataset_path.parent / "list-references" / (case["id"] + ".json"),
                        {"origin": "supplement"})
         self.write(self.root / "configs/providers.resources.json", {
@@ -65,7 +65,7 @@ class SupplementDatasetTests(unittest.TestCase):
 
     def write(self, path, payload):
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(payload))
+        path.write_text(json.dumps(payload), encoding="utf-8")
 
     def fake_measure(self, **kwargs):
         folder = kwargs["output_dir"]
@@ -76,7 +76,7 @@ class SupplementDatasetTests(unittest.TestCase):
             for case in kwargs["cases"]:
                 artifact = Path("artifacts") / name / case.id / "run-001.txt"
                 (folder / artifact).parent.mkdir(parents=True, exist_ok=True)
-                (folder / artifact).write_text(self.content)
+                (folder / artifact).write_text(self.content, encoding="utf-8")
                 records.append({"case_id": case.id, "provider": name,
                                 "attempt_id": name + "__" + case.id,
                                 "artifact_path": artifact.as_posix(),
@@ -98,13 +98,13 @@ class SupplementDatasetTests(unittest.TestCase):
         for call in self.measure.call_args_list:
             self.assertEqual(call.kwargs["dataset_path"], self.dataset_path)
             self.assertEqual({case.id for case in call.kwargs["cases"]}, self.ids)
-        records = [json.loads(line) for line in (self.output / "results.jsonl").read_text().splitlines()]
+        records = [json.loads(line) for line in (self.output / "results.jsonl").read_text(encoding="utf-8").splitlines()]
         self.assertEqual(len(records), len(self.ids) * len(METHODS))
         self.assertEqual({(row["case_id"], row["provider"]) for row in records},
                          {(case, name) for case in self.ids for name in METHODS})
         for case in self.ids:
-            self.assertEqual((self.output / "sources" / case / "reference.txt").read_text(), self.content)
-            self.assertEqual(json.loads((self.output / "list-references" / (case + ".json")).read_text()),
+            self.assertEqual((self.output / "sources" / case / "reference.txt").read_text(encoding="utf-8"), self.content)
+            self.assertEqual(json.loads((self.output / "list-references" / (case + ".json")).read_text(encoding="utf-8")),
                              {"origin": "supplement"})
         self.assertEqual(self.dataset_path.read_bytes(), before)
         self.assertFalse((self.root / "evaluation").exists())
@@ -133,11 +133,11 @@ class SupplementDatasetTests(unittest.TestCase):
                                 '--providers', ','.join(selected), '--track', 'dynamic',
                                 '--output', str(output), '--measure-only'])
                 rows = [json.loads(line) for line in
-                        (output / 'results.jsonl').read_text().splitlines()]
+                        (output / 'results.jsonl').read_text(encoding="utf-8").splitlines()]
                 self.assertEqual({(row['provider'], row['case_id']) for row in rows},
                                  {(name, case) for name in selected for case in self.ids})
                 self.assertEqual(len(rows), count * len(self.ids))
-                self.assertEqual(json.loads((output / 'dataset.json').read_text())['coverage_plan'],
+                self.assertEqual(json.loads((output / 'dataset.json').read_text(encoding="utf-8"))['coverage_plan'],
                                  {'dynamic': sorted(selected)})
         self.assertEqual(self.dataset_path.read_bytes(), original)
         self.report.assert_not_called()
@@ -149,7 +149,7 @@ class SupplementDatasetTests(unittest.TestCase):
         self.payload["cases"].append(unrelated)
         self.write(self.dataset_path, self.payload)
         self.benchmark_main()
-        self.assertEqual(json.loads((self.output / "dataset.json").read_text())["coverage_plan"],
+        self.assertEqual(json.loads((self.output / "dataset.json").read_text(encoding="utf-8"))["coverage_plan"],
                          {"dynamic": sorted(METHODS)})
         for call in self.measure.call_args_list:
             self.assertEqual({case.id for case in call.kwargs["cases"]}, self.ids)
@@ -185,12 +185,12 @@ class SupplementDatasetTests(unittest.TestCase):
     def test_existing_output_rejected_before_env_loading(self):
         self.output.mkdir(parents=True)
         sentinel = self.output / "measured.txt"
-        sentinel.write_text("preserve")
+        sentinel.write_text("preserve", encoding="utf-8")
         with self.assertRaises(SystemExit):
             self.benchmark_main()
         self.env_loader.assert_not_called()
         self.measure.assert_not_called()
-        self.assertEqual(sentinel.read_text(), "preserve")
+        self.assertEqual(sentinel.read_text(encoding="utf-8"), "preserve")
 
 
 if __name__ == "__main__":

@@ -788,8 +788,8 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None):
     if actual.get('configured_parameters') != configured:
         raise ValueError('Parameter rerun native options differ from authorization')
     parameters = _request_parameters(provider, EvalCase(**case), expected, contract['timeout_seconds'])
-    # Authentication values are resolved only at collection and are never loaded
-    # for a report. All non-authentication request arguments must match exactly.
+    # Reporting does not load credentials or require the collection token.
+    # Non-authentication environment options must match the frozen request.
     actual_parameters = {k: v for k, v in actual['request_parameters'].items() if k != 'headers_sha256'}
     expected_parameters = {k: v for k, v in parameters.items() if k != 'headers_sha256'}
     baseline_requests = (baseline or {}).get('provider_metadata', {}).get('native_route_receipt', {}).get('requests', [])

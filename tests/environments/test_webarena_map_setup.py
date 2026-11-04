@@ -9,15 +9,20 @@ import shutil
 import subprocess
 import sys
 import tarfile
-from unittest.mock import patch
+from pathlib import Path
+from unittest.mock import Mock, call, patch
 
 import pytest
 
+from harness.environments.webarena import map_setup
 from harness.environments.webarena.map_setup import (
+    GIB,
     MAPPINGS,
     configure_browser_assets,
     configure_tiles,
+    detail_service_command,
     extract_archive,
+    main,
     require_space,
     restore_compressed,
     serve,
@@ -26,6 +31,9 @@ from harness.environments.webarena.map_setup import (
     verify_archive,
     version_browser_assets,
 )
+
+LOCAL_SERVICES = {"rails_port": 3000, "nominatim_port": 8085, "detail_port": 8091}
+CONTRACT = Path(__file__).parents[2] / "deploy/webarena/site-delivery-contract.json"
 
 
 def archive_at(path, members):
@@ -42,14 +50,14 @@ def test_remote_browsers_receive_same_origin_urls_with_or_without_gzip(tmp_path)
     source.write_bytes(b'const search="/nominatim/", route="/osrm/";')
     packed = tmp_path / "application.js.gz"
     packed.write_bytes(gzip.compress(b'const search="http://localhost:8080/nominatim/";'))
-    configure_browser_assets(tmp_path)
+    configure_browser_assets(8080, tmp_path)
     assert gzip.decompress(packed.read_bytes()) == source.read_bytes()
     previous = packed.read_bytes()
-    configure_browser_assets(tmp_path)
+    configure_browser_assets(8080, tmp_path)
     assert packed.read_bytes() == previous
     source.write_bytes(b'const route="http://localhost:8080/osrm/";')
     with pytest.raises(ValueError, match="localhost"):
-        configure_browser_assets(tmp_path)
+        configure_browser_assets(8080, tmp_path)
 
 
 def test_corrupt_precompressed_script_is_rebuilt_from_valid_script(tmp_path):
@@ -58,7 +66,7 @@ def test_corrupt_precompressed_script_is_rebuilt_from_valid_script(tmp_path):
     packed = tmp_path / "application.js.gz"
     packed.write_bytes(b"damaged gzip data")
 
-    configure_browser_assets(tmp_path)
+    configure_browser_assets(8080, tmp_path)
 
     assert gzip.decompress(packed.read_bytes()) == source.read_bytes()
 
@@ -75,9 +83,9 @@ def test_patched_browser_script_gets_a_new_url(tmp_path):
         "assets": {"application.js": old},
         "files": {old: {"logical_path": "application.js", "digest": "a" * 64,
                         "size": 123, "integrity": "old"}},
-    }))
+    }), encoding="utf-8")
     version_browser_assets(assets, manifest)
-    updated = json.loads(manifest.read_text())
+    updated = json.loads(manifest.read_text(encoding="utf-8"))
     name = updated["assets"]["application.js"]
     assert name != old
     assert name == "application-" + hashlib.sha256(content).hexdigest() + ".js"
@@ -203,7 +211,7 @@ def test_receipt_with_only_empty_directories_does_not_count_as_ready(tmp_path):
     first = next(iter(MAPPINGS))
     (state / (first + ".json")).write_text(json.dumps({
         "sha256": "a" * 64, "bytes": 1, "query_only": False,
-    }))
+    }), encoding="utf-8")
     with pytest.raises(ValueError, match="Receipt exists but dataset is missing"):
         setup(tmp_path, contract, 0)
 
@@ -376,10 +384,10 @@ def test_tile_cache_survives_container_directory_recreation(tmp_path):
     (cache / "default/world.meta").write_bytes(b"rendered world")
     apache = tmp_path / "apache.conf"
     apache.write_text("<VirtualHost *:8080>\n    ModTileMissingRequestTimeout 30\n"
-                      "    ProxyPass / http://localhost:3000/\n</VirtualHost>\n")
+                      "    ProxyPass / http://localhost:3000/\n</VirtualHost>\n", encoding="utf-8")
     renderd = tmp_path / "renderd.conf"
-    renderd.write_text("[renderd]\nnum_threads=4\n")
-    configure_tiles(root, cache, apache, renderd)
+    renderd.write_text("[renderd]\nnum_threads=4\n", encoding="utf-8")
+    configure_tiles(root, LOCAL_SERVICES, cache, apache, renderd)
     assert cache.is_symlink()
     assert (root / "tiles/default/world.meta").read_bytes() == b"rendered world"
     (cache / "default/city.meta").write_bytes(b"new city")
@@ -387,14 +395,152 @@ def test_tile_cache_survives_container_directory_recreation(tmp_path):
     cache.unlink()
     shutil.rmtree(cache.with_name(cache.name + ".image-baseline"))
     cache.mkdir()
-    configure_tiles(root, cache, apache, renderd)
-    configure_tiles(root, cache, apache, renderd)
+    configure_tiles(root, LOCAL_SERVICES, cache, apache, renderd)
+    configure_tiles(root, LOCAL_SERVICES, cache, apache, renderd)
     assert (cache / "default/city.meta").read_bytes() == b"new city"
-    assert apache.read_text().count("ModTileMissingRequestTimeout 120") == 1
-    assert apache.read_text().count("ModTileMaxLoadMissing 1000") == 1
-    assert apache.read_text().count("ProxyPassMatch") == 1
-    assert apache.read_text().index("ProxyPassMatch") < apache.read_text().index("ProxyPass /")
-    assert "num_threads=2" in renderd.read_text()
+    assert apache.read_text(encoding="utf-8").count("ModTileMissingRequestTimeout 120") == 1
+    assert apache.read_text(encoding="utf-8").count("ModTileMaxLoadMissing 1000") == 1
+    assert apache.read_text(encoding="utf-8").count("ProxyPassMatch") == 1
+    assert apache.read_text(encoding="utf-8").index("ProxyPassMatch") < apache.read_text(
+        encoding="utf-8"
+    ).index("ProxyPass /")
+    assert "num_threads=2" in renderd.read_text(encoding="utf-8")
+
+
+def test_apache_detail_route_is_unchanged_when_ports_come_from_the_contract(tmp_path):
+    root = tmp_path / "volume"
+    tiles = root / "tiles"
+    tiles.mkdir(parents=True)
+    cache = tmp_path / "image-cache"
+    cache.symlink_to(tiles, target_is_directory=True)
+    apache = tmp_path / "apache.conf"
+    original = ("<VirtualHost *:8080>\n    ModTileMissingRequestTimeout 30\n"
+                "    ProxyPass / http://localhost:3000/\n</VirtualHost>\n")
+    apache.write_text(original, encoding="utf-8")
+    renderd = tmp_path / "renderd.conf"
+    renderd.write_text("[renderd]\nnum_threads=4\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="Rails proxy"):
+        configure_tiles(root, {**LOCAL_SERVICES, "rails_port": 3100}, cache, apache, renderd)
+    assert apache.read_text(encoding="utf-8") == original
+    configure_tiles(root, LOCAL_SERVICES, cache, apache, renderd)
+    assert apache.read_text(encoding="utf-8") == (
+        "<VirtualHost *:8080>\n    ModTileMissingRequestTimeout 120\n"
+        '    ProxyPassMatch "^/(node|way|relation)/([1-9][0-9]{0,18})/?$" '
+        '"http://127.0.0.1:8091/$1/$2"\n'
+        "    ProxyPass / http://localhost:3000/\n    ModTileMaxLoadMissing 1000\n</VirtualHost>\n"
+    )
+
+
+def test_browser_asset_check_follows_the_contract_service_port(tmp_path):
+    source = tmp_path / "application.js"
+    source.write_bytes(b'const search="http://localhost:8080/nominatim/";')
+    with pytest.raises(ValueError, match="localhost"):
+        configure_browser_assets(8080, tmp_path)
+    configure_browser_assets(9090, tmp_path)
+
+
+def test_detail_service_command_carries_the_contract_ports():
+    assert detail_service_command(LOCAL_SERVICES) == [
+        "python3", "/opt/map_detail.py", "--port", "8091", "--nominatim-port", "8085",
+    ]
+
+
+def steps_of_main():
+    """Replace every step that touches the container; their order and arguments stay visible."""
+    steps = Mock()
+    steps.serve.return_value = 7
+    names = ("setup", "configure_browser_assets", "version_browser_assets",
+             "configure_tiles", "serve")
+    return steps, patch.multiple(map_setup, **{name: getattr(steps, name) for name in names})
+
+
+def test_serving_hands_the_repository_contract_values_to_each_step(tmp_path):
+    component = json.loads(CONTRACT.read_text(encoding="utf-8"))["components"]["map"]
+    steps, patched = steps_of_main()
+    with patched:
+        status = main(["--root", str(tmp_path), "--contract", str(CONTRACT), "--reserve-gib", "5",
+                       "--source-base", "https://mirror.invalid/map", "--compression", "zstd",
+                       "--serve", "--query-only"])
+    assert status == 7
+    assert steps.mock_calls == [
+        call.setup(tmp_path, component, 5 * GIB, "https://mirror.invalid/map", "zstd", True),
+        call.configure_browser_assets(8080),
+        call.version_browser_assets(),
+        call.configure_tiles(tmp_path, LOCAL_SERVICES),
+        call.serve(
+            tmp_path,
+            5 * GIB,
+            ["/entrypoint.sh", "/usr/bin/supervisord", "-c",
+             "/etc/supervisor/conf.d/supervisord.conf"],
+            ["python3", "/opt/map_detail.py", "--port", "8091", "--nominatim-port", "8085"],
+        ),
+    ]
+
+
+def test_setup_without_serve_stops_after_the_volume_is_ready(tmp_path):
+    component = json.loads(CONTRACT.read_text(encoding="utf-8"))["components"]["map"]
+    steps, patched = steps_of_main()
+    with patched:
+        status = main(["--root", str(tmp_path), "--contract", str(CONTRACT)])
+    assert status == 0
+    assert steps.mock_calls == [call.setup(tmp_path, component, 64 * GIB, "", "", False)]
+
+
+def test_contract_without_local_ports_stops_the_script_before_any_download(tmp_path):
+    component = json.loads(CONTRACT.read_text(encoding="utf-8"))["components"]["map"]
+    del component["local_services"]
+    contract = tmp_path / "contract.json"
+    contract.write_text(json.dumps({"components": {"map": component}}), encoding="utf-8")
+    root = tmp_path / "volume"
+    result = subprocess.run(
+        [sys.executable, map_setup.__file__, "--root", str(root), "--contract", str(contract)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "KeyError: 'local_services'" in result.stderr
+    assert not root.exists()
+
+
+def test_mounted_script_initializes_a_volume_with_only_the_standard_library(tmp_path):
+    """The upstream Map image mounts this one file and has no `harness` package.
+
+    `-I` alone keeps the virtualenv's site-packages, where this project is installed, so only
+    `-I -S` limits the script to the standard library it gets inside that container.
+    """
+    mounted = tmp_path / "opt/map_setup.py"
+    mounted.parent.mkdir()
+    shutil.copyfile(map_setup.__file__, mounted)
+    root = tmp_path / "volume"
+    state = root / ".map-setup"
+    state.mkdir(parents=True)
+    component = {
+        "data_urls": [],
+        "data_archive_bytes": {},
+        "data_archive_sha256": {},
+        "local_services": LOCAL_SERVICES,
+    }
+    for name, mappings in MAPPINGS.items():
+        path = archive_at(state / name, [(prefix + "/data", b"verified") for prefix in mappings])
+        component["data_urls"].append("https://example.invalid/" + name)
+        component["data_archive_bytes"][name] = path.stat().st_size
+        component["data_archive_sha256"][name] = hashlib.sha256(path.read_bytes()).hexdigest()
+    contract = tmp_path / "contract.json"
+    contract.write_text(json.dumps({"components": {"map": component}}), encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, "-I", "-S", str(mounted), "--root", str(root), "--contract", str(contract),
+         "--reserve-gib", "0"],
+        capture_output=True,
+        text=True,
+        cwd=mounted.parent,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "All Map archives verified and initialized" in result.stdout
+    for mappings in MAPPINGS.values():
+        for target in mappings.values():
+            assert (root / target / "data").read_bytes() == b"verified"
 
 
 def test_tile_configuration_rejects_multiple_virtual_hosts(tmp_path):
@@ -407,9 +553,9 @@ def test_tile_configuration_rejects_multiple_virtual_hosts(tmp_path):
     original = ("<VirtualHost *:8080>\n    ModTileMissingRequestTimeout 30\n"
                 "    ProxyPass / http://localhost:3000/\n</VirtualHost>\n"
                 "<VirtualHost *:80>\n</VirtualHost>\n")
-    apache.write_text(original)
+    apache.write_text(original, encoding="utf-8")
     renderd = tmp_path / "renderd.conf"
-    renderd.write_text("[renderd]\nnum_threads=4\n")
+    renderd.write_text("[renderd]\nnum_threads=4\n", encoding="utf-8")
     with pytest.raises(ValueError, match="virtual host"):
-        configure_tiles(root, cache, apache, renderd)
-    assert apache.read_text() == original
+        configure_tiles(root, LOCAL_SERVICES, cache, apache, renderd)
+    assert apache.read_text(encoding="utf-8") == original

@@ -73,7 +73,8 @@ def scores(tmp_path, task_id, entries, catalog_path=ARCHIVED):
                     "entries": entries,
                 }
             }
-        )
+        ),
+        encoding="utf-8"
     )
     response = (
         {"task_type": "NAVIGATE", "status": "SUCCESS", "retrieved_data": None}
@@ -285,7 +286,7 @@ def test_current_510_restores_upstream_quantity_and_name(tmp_path, values, expec
 
 def test_510_revision_receipt_binds_rules_and_candidate():
     receipt = json.loads(
-        Path("research/trajectory-replay-task510-quantity-revision.json").read_text()
+        Path("research/trajectory-replay-task510-quantity-revision.json").read_text(encoding="utf-8")
     )
     before = load_corrections(receipt['predecessor_catalog_path'], require_current_upstream=False)
     after = load_corrections(receipt['revised_catalog_path'], require_current_upstream=False)
@@ -304,7 +305,9 @@ def test_assertion_audit_rejects_changes_outside_declared_step(tmp_path):
     dataset = tmp_path / 'dataset.json'
     candidate = tmp_path / 'candidate.json'
     calls = [{'action': 'evaluate', 'script': 'true'}, {'action': 'evaluate', 'script': '1'}]
-    dataset.write_text(json.dumps({'trajectories': [{'task_id': 42, 'tool_calls': calls}]}))
+    dataset.write_text(
+        json.dumps({"trajectories": [{"task_id": 42, "tool_calls": calls}]}), encoding="utf-8"
+    )
     revised = json.loads(json.dumps(calls))
     revised[0]['script'] = 'false'
     payload = {
@@ -315,9 +318,9 @@ def test_assertion_audit_rejects_changes_outside_declared_step(tmp_path):
             "predecessor_dataset_sha256": hashlib.sha256(dataset.read_bytes()).hexdigest(),
         },
     }
-    candidate.write_text(json.dumps(payload))
+    candidate.write_text(json.dumps(payload), encoding="utf-8")
     assert bound_cart_scripts(dataset, candidate) == ('true', 'false')
     revised[1]['script'] = '2'
-    candidate.write_text(json.dumps(payload))
+    candidate.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match='only its declared assertion'):
         bound_cart_scripts(dataset, candidate)

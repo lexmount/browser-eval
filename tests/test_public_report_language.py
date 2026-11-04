@@ -34,7 +34,8 @@ def test_media_family_guides_preserve_numbers_and_translate_every_explanation():
 def test_registered_interfaces_and_pricing_have_complete_english(tmp_path):
     from collections import Counter
     from pathlib import PurePosixPath
-    from harness.web_fetch.report import table, cell, link, esc
+    from harness.reporting.presentation import esc
+    from harness.web_fetch.report import table, cell, link
     from harness.web_fetch.report_interfaces import SPECS, render_interfaces
     from harness.web_fetch.report_pricing import render_pricing
     from harness.web_fetch.report_i18n import localize_html
@@ -54,13 +55,13 @@ def test_registered_interfaces_and_pricing_have_complete_english(tmp_path):
 
 def test_scoped_english_refresh_preserves_unselected_pages_and_rejects_escaping_paths(tmp_path, monkeypatch):
     from harness.web_fetch.report_i18n import write_english_report
-    (tmp_path/'index.html').write_text('<html lang="zh-CN"><body><h1>评测方法</h1></body></html>')
+    (tmp_path/'index.html').write_text('<html lang="zh-CN"><body><h1>评测方法</h1></body></html>', encoding="utf-8")
     (tmp_path/'en/attempts').mkdir(parents=True)
     saved = tmp_path/'en/attempts/saved.html'
     original = b'Exact previously generated result detail'
     saved.write_bytes(original)
     assert write_english_report(tmp_path, source_routes=['index.html']) == 1
-    assert 'Methodology' in (tmp_path/'en/index.html').read_text()
+    assert 'Methodology' in (tmp_path/'en/index.html').read_text(encoding="utf-8")
     assert saved.read_bytes() == original
     monkeypatch.chdir(tmp_path)
     assert write_english_report(Path('.'), source_routes=['index.html']) == 1
@@ -69,7 +70,7 @@ def test_scoped_english_refresh_preserves_unselected_pages_and_rejects_escaping_
             write_english_report(tmp_path, source_routes=[route])
     assert saved.read_bytes() == original
     (tmp_path/'alias').mkdir()
-    (tmp_path/'alias/index.html').write_text('<html></html>')
+    (tmp_path/'alias/index.html').write_text('<html></html>', encoding="utf-8")
     (tmp_path/'outside').mkdir()
     (tmp_path/'en/alias').symlink_to(tmp_path/'outside', target_is_directory=True)
     with pytest.raises(ValueError, match='Symlinked evidence'):
@@ -85,7 +86,7 @@ def test_chinese_only_commands_preserve_omitted_language(tmp_path, monkeypatch, 
     output = tmp_path / "report"
     if saved:
         output.mkdir()
-        (output / "report-languages.json").write_text(json.dumps({"languages": ["zh"], "primary_language": "zh"}))
+        (output / "report-languages.json").write_text(json.dumps({"languages": ["zh"], "primary_language": "zh"}), encoding="utf-8")
     calls = []
     builder = "build_diagnostic_cohorts" if mode == "--diagnostic-cohorts" else "build_webmainbench_full_report"
     monkeypatch.setattr(report_build, builder, lambda *args, **kwargs: calls.append((args, kwargs)) or output / "index.html")
@@ -112,7 +113,7 @@ def test_historical_diagnostic_command_builds_actual_report(tmp_path, language):
         command += ["--language", language]
     result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
-    assert json.loads((output / "report-manifest.json").read_text())["languages"] == ["zh"]
+    assert json.loads((output / "report-manifest.json").read_text(encoding="utf-8"))["languages"] == ["zh"]
     original = (output / "index.html").read_bytes()
     english = subprocess.run(command + ["--language", "en"], cwd=ROOT, capture_output=True, text=True)
     assert english.returncode == 2
@@ -132,14 +133,15 @@ def test_make_language_override_is_only_explicit(tmp_path, monkeypatch, target, 
     if not make or subprocess.run([make, "--version"], capture_output=True).returncode:
         pytest.skip("Make is not installed")
     profile = tmp_path / "instance.json"
-    profile.write_text(json.dumps({"providers": [], "frozen_inputs": True}))
+    profile.write_text(json.dumps({"providers": [], "frozen_inputs": True}), encoding="utf-8")
     args = [make, "PROFILE=" + str(profile), "--no-print-directory", "-n", "-f", str(ROOT / "Makefile"), target, "EVIDENCE=" + str(tmp_path), "OUTPUT=" + str(tmp_path / "report")]
     if language:
         args += ["REPORT_LANGUAGE=" + language]
     env = {key: value for key, value in os.environ.items() if key not in {"REPORT_LANGUAGE", "MAKEFLAGS"}}
     result = subprocess.run(args, cwd=tmp_path, capture_output=True, text=True, env=env)
     assert result.returncode == 0, result.stderr
-    command = next(shlex.split(line) for line in result.stdout.splitlines() if "scripts/build_" in line)
+    command = next(shlex.split(line) for line in result.stdout.splitlines() if "scripts/build_" in line or "-m harness.browser_use report" in line
+                   or "-m harness.trajectory_replay report" in line)
     if language:
         assert command[command.index("--language") + 1] == language
     else:
@@ -151,7 +153,7 @@ def test_make_language_override_is_only_explicit(tmp_path, monkeypatch, target, 
         from harness.web_fetch import report_build, storage
         output = tmp_path / "reports/webfetch"
         output.mkdir(parents=True)
-        (output / "report-languages.json").write_text(json.dumps({"primary_language": "zh", "languages": ["zh"]}))
+        (output / "report-languages.json").write_text(json.dumps({"primary_language": "zh", "languages": ["zh"]}), encoding="utf-8")
         command = command[command.index("scripts/build_report.py"):]
         command[0] = str(ROOT / command[0])
         captured = []
@@ -181,12 +183,12 @@ def test_run_selects_language_and_rebuild_preserves_it(tmp_path, language):
     result = cli("run", "--delay", "0", "--output", str(run), *options)
     assert result.returncode == 0, result.stdout + result.stderr
     selected = language or "en"
-    contract = json.loads((run / "report/report-languages.json").read_text())
+    contract = json.loads((run / "report/report-languages.json").read_text(encoding="utf-8"))
     assert contract["primary_language"] == selected
     assert contract["languages"] == (["zh", "en"] if selected == "en" else ["zh"])
     expected = run / "report" / ("en/index.html" if selected == "en" else "index.html")
     assert str(expected) in result.stdout
-    assert ('lang="en"' if selected == "en" else 'lang="zh-CN"') in expected.read_text()
+    assert ('lang="en"' if selected == "en" else 'lang="zh-CN"') in expected.read_text(encoding="utf-8")
     measured = (run / "results.jsonl").read_bytes()
     rebuilt = cli("report", str(run))
     assert rebuilt.returncode == 0, rebuilt.stdout + rebuilt.stderr
@@ -195,7 +197,7 @@ def test_run_selects_language_and_rebuild_preserves_it(tmp_path, language):
     other = "zh" if selected == "en" else "en"
     changed = cli("report", str(run), "--language", other)
     assert changed.returncode == 0, changed.stdout + changed.stderr
-    assert json.loads((run / "report/report-languages.json").read_text())["primary_language"] == other
+    assert json.loads((run / "report/report-languages.json").read_text(encoding="utf-8"))["primary_language"] == other
     assert (run / "results.jsonl").read_bytes() == measured
     from harness.reporting.links import check
     check(run / "report")
@@ -212,7 +214,7 @@ def test_run_uses_environment_language_for_a_new_report(tmp_path):
         env=env,
     )
     assert result.returncode == 0, result.stdout + result.stderr
-    contract = json.loads((run / "report/report-languages.json").read_text())
+    contract = json.loads((run / "report/report-languages.json").read_text(encoding="utf-8"))
     assert contract["primary_language"] == "zh"
     assert contract["languages"] == ["zh"]
 
@@ -225,15 +227,20 @@ def test_unsupported_language_fails_before_calls_or_output(tmp_path):
     assert not run.exists()
 
 
-@pytest.mark.parametrize("script", ["build_report.py", "build_browser_use_report.py", "build_webarena_replay_report.py"])
-def test_report_entrypoints_reject_unknown_language_before_loading_evidence(tmp_path, script):
-    if script == "build_webarena_replay_report.py":
+@pytest.mark.parametrize("entry, replay", [
+    ([str(ROOT / "scripts/build_report.py")], False),
+    (["-m", "harness.browser_use", "report"], False),
+    (["-m", "harness.trajectory_replay", "report"], True),
+], ids=["web-fetch", "browser-use", "trajectory-replay"])
+def test_report_entrypoints_reject_unknown_language_before_loading_evidence(tmp_path, entry, replay):
+    if replay:
         pytest.importorskip("webarena_verified")
     output = tmp_path / "report"
     arguments = ["--language", "fr", "--output", str(output)]
-    arguments += (["--results", "missing"] if "replay" in script else ["--evidence", "missing"])
-    result = subprocess.run([sys.executable, str(ROOT / "scripts" / script), *arguments],
-                            cwd=ROOT, capture_output=True, text=True)
+    arguments += (["--results", "missing"] if replay else ["--evidence", "missing"])
+    path = os.pathsep.join(filter(None, [str(ROOT / "src"), os.environ.get("PYTHONPATH")]))
+    result = subprocess.run([sys.executable, *entry, *arguments], cwd=ROOT, capture_output=True,
+                            text=True, env={**os.environ, "PYTHONPATH": path})
     assert result.returncode == 2
     assert "invalid choice" in result.stderr
     assert not output.exists()
@@ -244,7 +251,7 @@ def test_explicit_english_has_localized_ui_and_preserved_task_text(tmp_path):
     run = tmp_path / "run"
     result = cli("run", "--delay", "0", "--language", "en", "--output", str(run))
     assert result.returncode == 0, result.stderr
-    dataset = json.loads((run / "dataset.json").read_text())
+    dataset = json.loads((run / "dataset.json").read_text(encoding="utf-8"))
     # Task wording and participant metadata are source inputs, not report copy.
     source_text = {"中文", "确定性安装测试", "固定"}
     source_text.update(case["name"] for case in dataset["cases"])
@@ -252,11 +259,11 @@ def test_explicit_english_has_localized_ui_and_preserved_task_text(tmp_path):
     untranslated = {
         str(page.relative_to(run / "report/en")): fragments
         for page in (run / "report/en").rglob("*.html")
-        if (fragments := untranslated_english_narrative(page.read_text(), source_text))
+        if (fragments := untranslated_english_narrative(page.read_text(encoding="utf-8"), source_text))
     }
     assert not untranslated, untranslated
     for case in dataset["cases"]:
-        assert case["task_prompt"] in (run / f"report/en/datasets/{case['id']}.html").read_text()
+        assert case["task_prompt"] in (run / f"report/en/datasets/{case['id']}.html").read_text(encoding="utf-8")
 
 
 def test_release_translation_uses_each_reports_records_without_global_state(tmp_path):
@@ -265,14 +272,14 @@ def test_release_translation_uses_each_reports_records_without_global_state(tmp_
     for edition in ("First", "Second"):
         root = tmp_path / edition
         root.mkdir()
-        (root / "index.html").write_text(f'<html lang="zh-CN"><head></head><body><h1>{title}</h1><p>{summary}</p></body></html>')
+        (root / "index.html").write_text(f'<html lang="zh-CN"><head></head><body><h1>{title}</h1><p>{summary}</p></body></html>', encoding="utf-8")
         history = {"releases": [{"id": "example", "title": title, "summary": summary, "changes": [],
                                 "i18n": {"en": {"title": edition, "summary": edition + " release", "changes": []}}}]}
         path = root / "report-changes.json"
-        path.write_text(json.dumps(history))
+        path.write_text(json.dumps(history), encoding="utf-8")
         original = path.read_bytes()
         write_english_report(root)
-        english = (root / "en/index.html").read_text()
+        english = (root / "en/index.html").read_text(encoding="utf-8")
         assert f'<h1>{edition}</h1>' in english
         assert f'<p>{edition} release</p>' in english
         assert path.read_bytes() == original

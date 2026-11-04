@@ -7,6 +7,7 @@ import time
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from functools import partial
+from importlib import import_module
 from typing import Any
 
 from lexbench_webfetch.models import EvalCase
@@ -240,56 +241,34 @@ class Provider(ABC):
         """Reset cancellation state before the timed worker can start."""
 
 
+# Provider type -> (module in this package, class). Modules load on demand because
+# adapters import this module and some carry their own optional dependencies.
+PROVIDER_TYPES = {
+    "brightdata_unlocker": ("hosted_fetch", "HostedFetchProvider"),
+    "browser_use_fetch": ("hosted_fetch", "HostedFetchProvider"),
+    "browserbase_fetch": ("hosted_fetch", "HostedFetchProvider"),
+    "deepseek_fetch": ("hosted_fetch", "HostedFetchProvider"),
+    "crawl4ai_cloud": ("hosted_fetch", "HostedFetchProvider"),
+    "headless_html": ("headless", "HeadlessProvider"),
+    "headless_markdown": ("headless", "HeadlessProvider"),
+    "moli_webfetch": ("moli", "MoliWebFetchProvider"),
+    "http": ("http", "HttpProvider"),
+    "cowagent_builtin": ("cowagent", "CowAgentBuiltinProvider"),
+    "lexmount": ("lexmount", "LexmountProvider"),
+    "lexmount_cn": ("lexmount", "LexmountProvider"),
+    "firecrawl": ("firecrawl", "FirecrawlProvider"),
+    "tavily_extract": ("tavily", "TavilyExtractProvider"),
+    "exa_contents": ("exa", "ExaContentsProvider"),
+    "cloudflare_markdown": ("cloudflare", "CloudflareMarkdownProvider"),
+    "cloudflare_content": ("cloudflare", "CloudflareContentProvider"),
+    "subprocess_jsonl": ("subprocess_jsonl", "SubprocessJsonlProvider"),
+    "fixture": ("fixture", "FixtureProvider"),
+}
+
+
 def build_provider(name: str, config: dict[str, Any]) -> Provider:
     provider_type = config.get("type")
-    if provider_type in {"brightdata_unlocker", "browser_use_fetch", "browserbase_fetch", "deepseek_fetch", "crawl4ai_cloud"}:
-        from harness.web_fetch.providers.hosted_fetch import HostedFetchProvider
-        return HostedFetchProvider(name, config)
-    if provider_type in {"headless_html", "headless_markdown"}:
-        from harness.web_fetch.providers.headless import HeadlessProvider
-        return HeadlessProvider(name, config)
-    if provider_type == "moli_webfetch":
-        from harness.web_fetch.providers.moli import MoliWebFetchProvider
-
-        return MoliWebFetchProvider(name, config)
-    if provider_type == "http":
-        from harness.web_fetch.providers.http import HttpProvider
-
-        return HttpProvider(name, config)
-    if provider_type == "cowagent_builtin":
-        from harness.web_fetch.providers.cowagent import CowAgentBuiltinProvider
-
-        return CowAgentBuiltinProvider(name, config)
-    if provider_type in {"lexmount", "lexmount_cn"}:
-        from harness.web_fetch.providers.lexmount import LexmountProvider
-
-        return LexmountProvider(name, config)
-    if provider_type == "firecrawl":
-        from harness.web_fetch.providers.firecrawl import FirecrawlProvider
-
-        return FirecrawlProvider(name, config)
-    if provider_type == "tavily_extract":
-        from harness.web_fetch.providers.tavily import TavilyExtractProvider
-
-        return TavilyExtractProvider(name, config)
-    if provider_type == "exa_contents":
-        from harness.web_fetch.providers.exa import ExaContentsProvider
-
-        return ExaContentsProvider(name, config)
-    if provider_type == "cloudflare_markdown":
-        from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
-
-        return CloudflareMarkdownProvider(name, config)
-    if provider_type == "cloudflare_content":
-        from harness.web_fetch.providers.cloudflare import CloudflareContentProvider
-
-        return CloudflareContentProvider(name, config)
-    if provider_type == "subprocess_jsonl":
-        from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
-
-        return SubprocessJsonlProvider(name, config)
-    if provider_type == "fixture":
-        from harness.web_fetch.providers.fixture import FixtureProvider
-
-        return FixtureProvider(name, config)
-    raise ValueError(f"unknown provider type: {provider_type!r}")
+    if provider_type not in PROVIDER_TYPES:
+        raise ValueError(f"unknown provider type: {provider_type!r}")
+    module, class_name = PROVIDER_TYPES[provider_type]
+    return getattr(import_module(f"harness.web_fetch.providers.{module}"), class_name)(name, config)

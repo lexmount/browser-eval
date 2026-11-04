@@ -10,9 +10,10 @@ from pathlib import Path
 import pytest
 
 from harness.lexbench import reproduction
+from tests.test_lexbench_cli import checkout_env
 
 ROOT = Path(__file__).resolve().parents[1]
-ENTRY = ROOT / "scripts/moli_report/run.py"
+ENTRY = ["-m", "harness.lexbench", "reproduce"]
 
 
 def write(path, value):
@@ -125,8 +126,8 @@ def test_complete_frozen_scope_prepares_readonly_serial_command_without_executio
 @pytest.mark.parametrize("optimized", [False, True])
 def test_changed_binary_is_rejected_under_both_python_modes(frozen, optimized, tmp_path):
     (frozen["repo"] / "build_artifacts/moli/bin/moli").write_bytes(b"wrong build")
-    command = [sys.executable] + (["-O"] if optimized else []) + [str(ENTRY), *arguments(frozen)]
-    result = subprocess.run(command, cwd=tmp_path, capture_output=True, text=True)
+    command = [sys.executable] + (["-O"] if optimized else []) + [*ENTRY, *arguments(frozen)]
+    result = subprocess.run(command, cwd=tmp_path, capture_output=True, text=True, env=checkout_env())
     assert result.returncode != 0
     assert "Frozen input changed: moli" in result.stderr
     assert not frozen["out"].exists()
@@ -155,7 +156,7 @@ def test_published_reproduction_source_uses_adjacent_frozen_bindings(frozen, tmp
     "field,value", [("jobs", 2), ("try_layout", True), ("k", 1), ("seed", "other")]
 )
 def test_changed_experiment_contract_is_rejected(frozen, field, value):
-    protocol = json.loads(frozen["protocol"].read_text())
+    protocol = json.loads(frozen["protocol"].read_text(encoding="utf-8"))
     protocol[field] = value
     write(frozen["protocol"], protocol)
     with pytest.raises(ValueError, match="frozen layout cohort"):
@@ -164,7 +165,7 @@ def test_changed_experiment_contract_is_rejected(frozen, field, value):
 
 
 def test_parent_path_in_frozen_input_is_rejected_before_execution(frozen):
-    protocol = json.loads(frozen["protocol"].read_text())
+    protocol = json.loads(frozen["protocol"].read_text(encoding="utf-8"))
     protocol["inputs"]["../outside"] = "a" * 64
     write(frozen["protocol"], protocol)
     with pytest.raises(ValueError, match="relative"):
@@ -184,21 +185,24 @@ def test_input_change_during_execution_is_rejected(frozen, monkeypatch):
 def test_existing_execution_is_preserved(frozen, monkeypatch):
     previous = frozen["out"] / "off_baseline"
     previous.mkdir(parents=True)
-    (previous / "kept").write_text("earlier evidence")
+    (previous / "kept").write_text("earlier evidence", encoding="utf-8")
     monkeypatch.setattr(
         reproduction.subprocess, "run", lambda *a, **k: pytest.fail("execution started")
     )
     with pytest.raises(ValueError, match="Run already exists"):
         reproduction.main([*arguments(frozen), "--execute"])
-    assert (previous / "kept").read_text() == "earlier evidence"
+    assert (previous / "kept").read_text(encoding="utf-8") == "earlier evidence"
 
 
 def test_command_import_and_help_have_no_private_input_dependency(tmp_path):
     code = (
-        "import runpy,sys; sys.argv=['caller','--unrelated']; "
-        f"runpy.run_path({str(ENTRY)!r},run_name='imported')"
+        "import sys; sys.argv=['caller','--unrelated']; "
+        "import harness.lexbench.cli, harness.lexbench.reproduction"
     )
-    subprocess.run([sys.executable, "-c", code], cwd=tmp_path, check=True, capture_output=True)
+    environment = checkout_env()
+    subprocess.run([sys.executable, "-c", code], cwd=tmp_path, check=True, capture_output=True,
+                   env=environment)
     subprocess.run(
-        [sys.executable, str(ENTRY), "--help"], cwd=tmp_path, check=True, capture_output=True
+        [sys.executable, *ENTRY, "--help"], cwd=tmp_path, check=True, capture_output=True,
+        env=environment,
     )

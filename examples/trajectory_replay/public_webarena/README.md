@@ -1,6 +1,6 @@
 # Replay WebArena recordings
 
-Benchmark inputs are published in [LexBench-WebArena-Replay on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay). The data lock pins the current immutable revision. Formal measurement defaults to the eligible human-recording suite; qualification and diagnostics retain the complete candidate inventory. Explicit historical suite paths remain supported.
+Set the `WEBARENA_<SITE>_USERNAME` and `WEBARENA_<SITE>_PASSWORD` variables listed in [`.env.example`](../../../.env.example) in the repository `.env` before you run a replay; exported values and `--env-file` cannot change a login. They are the default accounts of the self-hosted WebArena images, listed as `ACCOUNTS` in [the upstream configuration](https://github.com/web-arena-x/webarena/blob/dce04686a56253aefba7b18a4fa0937cf1dc987b/browser_env/env_config.py). Benchmark inputs are published in [LexBench-WebArena-Replay on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay). The data lock pins the current immutable revision. Formal measurement defaults to the eligible human-recording suite; qualification and diagnostics retain the complete candidate inventory. Explicit historical suite paths remain supported.
 
 Add `--no-report` to the replay CLI to retain scores and evidence without building local HTML. The report rebuild command reads the saved manifest and resolves its exact suite from the locked definitions; use `--suite` for other historical bundles. Report publication requires a separate explicit request and authorization.
 
@@ -44,6 +44,8 @@ uv run --frozen python -m harness.trajectory_replay.public_webarena.cli \
   --reports <evidence>/formal/webarena-public-trajectories/reports
 ```
 
+`--env-file` selects the file for ordinary settings, and an exported variable wins over it. Site logins, the Rainbond API token and the LLM diagnostics key ignore both and read only the repository `.env`. The variable names of a login come from `credentials_env` in the runtime config.
+
 ## Evidence and publication
 
 Measured attempts, screenshots, HAR, and reports stay outside Git. The repository keeps
@@ -67,8 +69,9 @@ domains. Reset deletes and recreates the whole slice from the pinned baseline; d
 removes the application. Read-only Map and Wikipedia services may be shared when
 separately deployed; they are different services, not substitutes for each other.
 Set both shared URLs in `shared_environments` in the pool config. Every newly
-provisioned slice then receives its own four writable-site URLs plus the same
-Map and Wikipedia URLs in its generated runtime config. Scaling the pool does
+provisioned slice then receives its own four writable-site URLs and their login
+variable names plus the same Map and Wikipedia URLs in its generated runtime
+config, which never holds login values. Scaling the pool does
 not copy the large Map or Wikipedia volumes.
 
 The baseline also contains a small digest-pinned initializer component. It calls the

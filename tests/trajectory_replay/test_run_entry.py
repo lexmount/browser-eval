@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from harness.trajectory_replay import cli, runner
-from harness.trajectory_replay.suite import TaskSuite
+from harness.trajectory_replay.core.suite import TaskSuite
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -32,7 +32,7 @@ def wrapper_environment(tmp_path):
         ),
     }.items():
         path = binaries / name
-        path.write_text("#!/bin/sh\n" + body)
+        path.write_text("#!/bin/sh\n" + body, encoding="utf-8")
         path.chmod(0o755)
     env = {
         **os.environ,
@@ -95,7 +95,7 @@ def test_wrapper_defaults_to_distinct_external_run_and_report_paths(
             cwd=tmp_path, env=env, capture_output=True, text=True,
         )
         assert result.returncode == 0, result.stderr
-    calls = log.read_text().splitlines()
+    calls = log.read_text(encoding="utf-8").splitlines()
     outputs = [Path(calls[i + 1]) for i, value in enumerate(calls) if value == "--output"]
     reports = [Path(calls[i + 1]) for i, value in enumerate(calls) if value == "--reports"]
     assert len(outputs) == len(set(outputs)) == 2
@@ -119,7 +119,7 @@ def test_failed_wrapper_run_preserves_a_previous_run(tmp_path, wrapper_environme
     assert result.returncode == 23
     assert artifact.read_bytes() == b"completed run\n"
     assert "Evidence directory:" in result.stdout
-    assert "--artifacts" not in log.read_text().splitlines()
+    assert "--artifacts" not in log.read_text(encoding="utf-8").splitlines()
 
 
 def test_wrapper_resolves_relative_output_from_callers_directory(tmp_path, wrapper_environment):
@@ -131,7 +131,7 @@ def test_wrapper_resolves_relative_output_from_callers_directory(tmp_path, wrapp
     )
     assert result.returncode == 0, result.stderr
     assert (tmp_path / "selected-run").is_dir()
-    calls = log.read_text().splitlines()
+    calls = log.read_text(encoding="utf-8").splitlines()
     assert calls[calls.index("--output") + 1] == str(tmp_path / "selected-run")
 
 
@@ -197,21 +197,17 @@ def test_runner_rechecks_destination_after_loading_inputs(tmp_path, monkeypatch,
 
 
 def test_direct_cli_requires_explicit_inputs_and_keeps_report_with_run(monkeypatch, tmp_path):
-    import sys
-
     calls = []
-    monkeypatch.setattr(cli, "run_evaluation", lambda **kwargs: calls.append(kwargs))
-    monkeypatch.setattr(sys, "argv", ["replay"])
+    monkeypatch.setattr(runner, "run_evaluation", lambda **kwargs: calls.append(kwargs))
     with pytest.raises(SystemExit) as error:
-        cli.main()
+        cli.main(["evaluate"])
     assert error.value.code == 2
     assert calls == []
     output = tmp_path / "run"
-    monkeypatch.setattr(sys, "argv", [
-        "replay", "--suite", "suite.json", "--ground-truth-evidence", "qualification.json",
+    cli.main([
+        "evaluate", "--suite", "suite.json", "--ground-truth-evidence", "qualification.json",
         "--output", str(output),
     ])
-    cli.main()
     assert calls[0]["reports_dir"] == output / "report"
     assert calls[0]["suite_path"] == "suite.json"
     assert calls[0]["ground_truth_evidence_path"] == "qualification.json"
@@ -231,7 +227,7 @@ def test_wrapper_accepts_system_temp_aliases(tmp_path, wrapper_environment, alia
         result = subprocess.run(['bash', str(ROOT / 'examples/trajectory_replay/run.sh')],
                                 env=env, capture_output=True, text=True)
         assert result.returncode == 0, result.stderr
-        calls = log.read_text().splitlines()
+        calls = log.read_text(encoding="utf-8").splitlines()
         assert calls[calls.index('--output') + 1] == str(root / 'new-run')
         assert (root / 'new-run').is_dir()
 
@@ -247,7 +243,7 @@ def test_wrapper_no_report_keeps_evidence_paths_and_failure_status(
         cwd=tmp_path, env=env, capture_output=True, text=True,
     )
     assert result.returncode == exit_code, result.stderr
-    calls = log.read_text().splitlines()
+    calls = log.read_text(encoding="utf-8").splitlines()
     assert calls.count("--no-report") == 1
     output = Path(calls[calls.index("--output") + 1])
     assert output.is_relative_to(Path(env["BROWSER_EVAL_DATA_HOME"]))

@@ -14,6 +14,7 @@ import tempfile
 import zipfile
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
+from dataclasses import dataclass
 from io import BytesIO
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -57,9 +58,6 @@ from harness.reporting.templates import template_identity
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
 from lexbench_webfetch.metrics import percentile
 
-ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli"}
-MODEL_LABELS = {"gpt-5.6-sol": "GPT-5.6 Sol"}
-BASELINE_ENGINE = "chromium"
 TIER_LABELS = {"easy": "简单", "medium": "中等", "hard": "困难"}
 SITE_LABELS = {
     "shopping": "Shopping",
@@ -69,34 +67,57 @@ SITE_LABELS = {
 }
 
 
-def _configure_engine_labels(profile: dict[str, Any]) -> None:
-    engines = [str(engine) for engine in profile.get("engines") or []]
-    labels = profile.get("engine_labels") or {}
-    if not engines or len(engines) != len(set(engines)):
-        raise ValueError("current Browser Use profile must register unique browser engines")
-    if set(labels) - set(engines):
-        raise ValueError("Browser Use engine labels contain an unregistered browser")
-    global ENGINE_LABELS
-    ENGINE_LABELS = {
-        engine: str(labels.get(engine) or engine.replace("_", " ").title()) for engine in engines
-    }
+@dataclass(frozen=True)
+class Participants:
+    """The browsers and models one report compares, read from its profile."""
+
+    engines: dict[str, str]
+    models: dict[str, str]
+    baseline_engine: str
+
+    @classmethod
+    def from_profile(cls, profile: dict[str, Any]) -> Participants:
+        engines = [str(engine) for engine in profile.get("engines") or []]
+        engine_labels = profile.get("engine_labels") or {}
+        if not engines or len(engines) != len(set(engines)):
+            raise ValueError("current Browser Use profile must register unique browser engines")
+        if set(engine_labels) - set(engines):
+            raise ValueError("Browser Use engine labels contain an unregistered browser")
+        models = [str(model) for model in profile.get("models") or []]
+        model_labels = profile.get("model_labels") or {}
+        baseline = str(profile.get("baseline_engine") or "")
+        if not models or len(models) != len(set(models)):
+            raise ValueError("current Browser Use profile must register unique models")
+        if any(not re.fullmatch(r"[A-Za-z0-9._-]+", model) for model in models):
+            raise ValueError("Browser Use model IDs must be safe path components")
+        if set(model_labels) - set(models):
+            raise ValueError("Browser Use model labels contain an unregistered model")
+        if baseline not in engines:
+            raise ValueError("Browser Use baseline_engine must be a registered browser engine")
+        return cls(
+            engines={
+                engine: str(engine_labels.get(engine) or _engine_name(engine))
+                for engine in engines
+            },
+            models={model: str(model_labels.get(model) or model) for model in models},
+            baseline_engine=baseline,
+        )
+
+    @property
+    def engines_baseline_first(self) -> list[str]:
+        others = (engine for engine in self.engines if engine != self.baseline_engine)
+        return [self.baseline_engine, *others]
+
+    @property
+    def engine_names(self) -> str:
+        """Join registered browser names, without the versions a label may carry."""
+
+        names = [_engine_name(engine) for engine in self.engines]
+        return " 与 ".join(filter(None, ("、".join(names[:-1]), names[-1])))
 
 
-def _configure_models(profile: dict[str, Any]) -> None:
-    models = [str(model) for model in profile.get("models") or []]
-    labels = profile.get("model_labels") or {}
-    baseline = str(profile.get("baseline_engine") or "")
-    if not models or len(models) != len(set(models)):
-        raise ValueError("current Browser Use profile must register unique models")
-    if any(not re.fullmatch(r"[A-Za-z0-9._-]+", model) for model in models):
-        raise ValueError("Browser Use model IDs must be safe path components")
-    if set(labels) - set(models):
-        raise ValueError("Browser Use model labels contain an unregistered model")
-    if baseline not in ENGINE_LABELS:
-        raise ValueError("Browser Use baseline_engine must be a registered browser engine")
-    global MODEL_LABELS, BASELINE_ENGINE
-    MODEL_LABELS = {model: str(labels.get(model) or model) for model in models}
-    BASELINE_ENGINE = baseline
+def _engine_name(engine: str) -> str:
+    return engine.replace("_", " ").title()
 
 
 METHODOLOGY_FIGURE = Path(__file__).parent / "assets" / "webarena-autonomous-evaluation-flow.png"
@@ -135,6 +156,7 @@ def _evidence_paths(evidence: Path | Iterable[Path]) -> list[Path]:
 
 def _load_evidence_bundles(
     evidence: Path | Iterable[Path],
+    participants: Participants,
 ) -> list[dict[str, Any]]:
     """Load isolated model cohorts without ever combining physical attempts on disk."""
 
@@ -147,11 +169,11 @@ def _load_evidence_bundles(
         review = _read_json(path / "result-review.json")
         protocol = manifest.get("protocol") or {}
         model = str(protocol.get("model") or "")
-        if not model and len(paths) == 1 and len(MODEL_LABELS) == 1:
-            model = next(iter(MODEL_LABELS))
+        if not model and len(paths) == 1 and len(participants.models) == 1:
+            model = next(iter(participants.models))
         if not model:
             raise ValueError(f"evidence manifest does not identify its model: {path}")
-        if model not in MODEL_LABELS:
+        if model not in participants.models:
             raise ValueError(f"evidence model is not registered in the current profile: {model}")
         if model in seen_models:
             raise ValueError(f"more than one evidence directory was supplied for model: {model}")
@@ -164,7 +186,7 @@ def _load_evidence_bundles(
                     f"attempt model differs from its evidence manifest: {row_model} != {model}"
                 )
             source["model"] = model
-            if str(source.get("engine") or "") not in ENGINE_LABELS:
+            if str(source.get("engine") or "") not in participants.engines:
                 raise ValueError(
                     f"attempt browser is not registered in the current profile: {source.get('engine')}"
                 )
@@ -180,7 +202,7 @@ def _load_evidence_bundles(
                 "manifest_sha256": optional_file_sha256(path / "manifest.json"),
             }
         )
-    expected_models = set(MODEL_LABELS)
+    expected_models = set(participants.models)
     if len(expected_models) > 1 and seen_models != expected_models:
         missing = sorted(expected_models - seen_models)
         extra = sorted(seen_models - expected_models)
@@ -210,7 +232,7 @@ def _load_evidence_bundles(
             }
             for bundle in bundles
         }
-        reference_model = next(iter(MODEL_LABELS))
+        reference_model = next(iter(participants.models))
         reference = cohorts[reference_model]
         if not reference:
             raise ValueError("multi-model report cannot use an empty primary cohort")
@@ -221,7 +243,7 @@ def _load_evidence_bundles(
                     f"missing={sorted(reference - cohort)}, extra={sorted(cohort - reference)}"
                 )
             task_ids = {task_id for _, task_id in cohort}
-            expected = {(engine, task_id) for engine in ENGINE_LABELS for task_id in task_ids}
+            expected = {(engine, task_id) for engine in participants.engines for task_id in task_ids}
             if cohort != expected:
                 raise ValueError(f"model cohort is missing a registered browser: {model}")
     return bundles
@@ -295,14 +317,11 @@ def _table(
 
 
 def _attempt_id(row: dict[str, Any]) -> str:
-    model = str(row.get("model") or (next(iter(MODEL_LABELS)) if len(MODEL_LABELS) == 1 else ""))
-    if not model:
-        raise ValueError("logical result does not identify its model")
-    return f"{model}-{row['engine']}-{int(row['task_id'])}"
+    return f"{_row_model(row)}-{row['engine']}-{int(row['task_id'])}"
 
 
 def _row_model(row: dict[str, Any]) -> str:
-    model = str(row.get("model") or (next(iter(MODEL_LABELS)) if len(MODEL_LABELS) == 1 else ""))
+    model = str(row.get("model") or "")
     if not model:
         raise ValueError("attempt does not identify its model")
     return model
@@ -340,13 +359,7 @@ def _logical_results(
     """
     grouped: dict[tuple[str, str, int], list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
-        model = str(
-            row.get("model") or (next(iter(MODEL_LABELS)) if len(MODEL_LABELS) == 1 else "")
-        )
-        if not model:
-            raise ValueError("attempt does not identify its model")
-        row["model"] = model
-        grouped[(model, str(row["engine"]), int(row["task_id"]))].append(row)
+        grouped[(_row_model(row), str(row["engine"]), int(row["task_id"]))].append(row)
     results: list[dict[str, Any]] = []
     for key in sorted(grouped):
         executions = sorted(grouped[key], key=lambda row: int(row["attempt"]))
@@ -525,11 +538,13 @@ def _public_execution(row: dict[str, Any], *, authoritative: bool) -> dict[str, 
     }
 
 
-def _primary_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, dict[str, Any]]]:
+def _primary_summary(
+    rows: list[dict[str, Any]], participants: Participants
+) -> dict[str, dict[str, dict[str, Any]]]:
     result: dict[str, dict[str, dict[str, Any]]] = {}
-    for model in MODEL_LABELS:
+    for model in participants.models:
         result[model] = {}
-        for engine in ENGINE_LABELS:
+        for engine in participants.engines:
             logical = [r for r in rows if r["model"] == model and r["engine"] == engine]
             durations = [float(r.get("duration_ms") or 0) for r in logical]
             tool_durations = [float(r.get("browser_tool_duration_ms") or 0) for r in logical]
@@ -575,22 +590,22 @@ def _primary_summary(rows: list[dict[str, Any]]) -> dict[str, dict[str, dict[str
     return result
 
 
-def _paired_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
+def _paired_summary(rows: list[dict[str, Any]], participants: Participants) -> dict[str, Any]:
     """Compare every browser with the profile baseline, always within one model."""
 
     primary = {
         (str(r["model"]), str(r["engine"]), int(r["task_id"])): float(r["score"]) == 1 for r in rows
     }
     result: dict[str, Any] = {}
-    for model in MODEL_LABELS:
+    for model in participants.models:
         comparisons: dict[str, Any] = {}
-        for engine in ENGINE_LABELS:
-            if engine == BASELINE_ENGINE:
+        for engine in participants.engines:
+            if engine == participants.baseline_engine:
                 continue
             ids = sorted(
                 task_id
                 for task_id in {key[2] for key in primary if key[0] == model}
-                if (model, BASELINE_ENGINE, task_id) in primary
+                if (model, participants.baseline_engine, task_id) in primary
                 and (model, engine, task_id) in primary
             )
             counts = {
@@ -600,7 +615,7 @@ def _paired_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
                 "both_fail": 0,
             }
             for task_id in ids:
-                baseline_passed = primary[(model, BASELINE_ENGINE, task_id)]
+                baseline_passed = primary[(model, participants.baseline_engine, task_id)]
                 comparison_passed = primary[(model, engine, task_id)]
                 key = (
                     "both_pass"
@@ -627,14 +642,14 @@ def _paired_summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
                 else (1.0 if ids else None)
             )
             comparisons[engine] = {
-                "baseline_engine": BASELINE_ENGINE,
+                "baseline_engine": participants.baseline_engine,
                 "comparison_engine": engine,
                 "paired": len(ids),
                 **counts,
                 "mcnemar_exact_p": p,
             }
         result[model] = {
-            "baseline_engine": BASELINE_ENGINE,
+            "baseline_engine": participants.baseline_engine,
             "comparisons": comparisons,
         }
     return result
@@ -813,12 +828,14 @@ def _adoption_top3(evidence: dict[str, Any]) -> str:
     )
 
 
-def _same_task_comparison(tasks: list[dict[str, Any]], attempts: list[dict[str, Any]]) -> str:
+def _same_task_comparison(
+    tasks: list[dict[str, Any]], attempts: list[dict[str, Any]], participants: Participants
+) -> str:
     """Render one task-by-configuration matrix; never reduce it to pairwise controls."""
 
     results = {(_row_model(row), str(row["engine"]), int(row["task_id"])): row for row in attempts}
-    engines = [BASELINE_ENGINE, *(engine for engine in ENGINE_LABELS if engine != BASELINE_ENGINE)]
-    configurations = [(model, engine) for model in MODEL_LABELS for engine in engines]
+    engines = participants.engines_baseline_first
+    configurations = [(model, engine) for model in participants.models for engine in engines]
     if len(configurations) < 2:
         return '<p class="muted-box">至少需要两个参评配置才能进行同题比较。</p>'
 
@@ -866,7 +883,7 @@ def _same_task_comparison(tasks: list[dict[str, Any]], attempts: list[dict[str, 
         )
 
     headers = "".join(
-        f'<th>{_e(MODEL_LABELS[model])}<br><span class="table-kicker">{_e(ENGINE_LABELS[engine])}</span></th>'
+        f'<th>{_e(participants.models[model])}<br><span class="table-kicker">{_e(participants.engines[engine])}</span></th>'
         for model, engine in configurations
     )
     return (
@@ -885,7 +902,7 @@ def _same_task_comparison(tasks: list[dict[str, Any]], attempts: list[dict[str, 
     )
 
 
-def _action_duration_cards(attempts: list[dict[str, Any]]) -> str:
+def _action_duration_cards(attempts: list[dict[str, Any]], participants: Participants) -> str:
     actions = sorted(
         {
             action
@@ -896,8 +913,8 @@ def _action_duration_cards(attempts: list[dict[str, Any]]) -> str:
     cards: list[str] = []
     for action in actions:
         metrics: dict[str, tuple[float, int, float | None]] = {}
-        for model in MODEL_LABELS:
-            for engine in ENGINE_LABELS:
+        for model in participants.models:
+            for engine in participants.engines:
                 key = f"{model}|{engine}"
                 total = sum(
                     float((row.get("browser_tool_duration_by_action_ms") or {}).get(action) or 0)
@@ -917,15 +934,15 @@ def _action_duration_cards(attempts: list[dict[str, Any]]) -> str:
         )
         maximum = max((values[2] or 0 for values in metrics.values()), default=0)
         browser_rows = []
-        for model in MODEL_LABELS:
-            for engine in ENGINE_LABELS:
+        for model in participants.models:
+            for engine in participants.engines:
                 key = f"{model}|{engine}"
                 total, count, average = metrics[key]
                 width = 0 if average is None or maximum <= 0 else max(2.0, average / maximum * 100)
                 average_text = "—" if average is None else f"{average / 1000:.3f} 秒"
                 browser_rows.append(
                     f'<div class="action-browser-row{" action-winner" if key in average_winners else ""}"><div class="action-browser-head">'
-                    f"<b>{_e(MODEL_LABELS[model])} · {_e(ENGINE_LABELS[engine])}</b>{_winner(average_text, won=key in average_winners, label='全部配置中单次均值最低')}"
+                    f"<b>{_e(participants.models[model])} · {_e(participants.engines[engine])}</b>{_winner(average_text, won=key in average_winners, label='全部配置中单次均值最低')}"
                     f'</div><div class="action-bar" aria-hidden="true"><i style="width:{width:.1f}%"></i></div>'
                     f'<div class="action-browser-meta">总耗时 {total / 1000:.1f} 秒 · {count} 次调用</div></div>'
                 )
@@ -939,7 +956,9 @@ def _action_duration_cards(attempts: list[dict[str, Any]]) -> str:
     return '<div class="action-card-grid">' + "".join(cards) + "</div>"
 
 
-def _summary_comparison_rows(summary: dict[str, dict[str, dict[str, Any]]]) -> list[list[Any]]:
+def _summary_comparison_rows(
+    summary: dict[str, dict[str, dict[str, Any]]], participants: Participants
+) -> list[list[Any]]:
     lower_names = (
         "mean_duration_ms",
         "p50_duration_ms",
@@ -974,12 +993,12 @@ def _summary_comparison_rows(summary: dict[str, dict[str, dict[str, Any]]]) -> l
     }
     rows: list[list[Any]] = []
     for model, model_summary in summary.items():
-        for engine, label in ENGINE_LABELS.items():
+        for engine, label in participants.engines.items():
             key = f"{model}|{engine}"
             current = model_summary[engine]
             rows.append(
                 [
-                    MODEL_LABELS[model],
+                    participants.models[model],
                     label,
                     _winner(
                         f"{current['passed']}/{current['completed']}",
@@ -1116,7 +1135,9 @@ def _publication_label(value: Any) -> str:
     }.get(str(value), "按证据清单处理")
 
 
-def _resource_comparison_table(summary: dict[str, dict[str, dict[str, Any]]]) -> str:
+def _resource_comparison_table(
+    summary: dict[str, dict[str, dict[str, Any]]], participants: Participants
+) -> str:
     metrics = (
         ("cpu_ms", "CPU 时间", "ms"),
         ("cpu_average_utilization_pct", "平均 CPU 单核占用", "pct"),
@@ -1146,12 +1167,12 @@ def _resource_comparison_table(summary: dict[str, dict[str, dict[str, Any]]]) ->
     }
     rows: list[list[Any]] = []
     for model, model_summary in summary.items():
-        for engine, label in ENGINE_LABELS.items():
+        for engine, label in participants.engines.items():
             key = f"{model}|{engine}"
             resources = model_summary[engine].get("resources") or {}
             rows.append(
                 [
-                    MODEL_LABELS[model],
+                    participants.models[model],
                     label,
                     *[
                         _metric_stack(
@@ -1176,84 +1197,10 @@ def _resource_comparison_table(summary: dict[str, dict[str, dict[str, Any]]]) ->
     )
 
 
-REPORT_JS = """function theme(){const r=document.documentElement,n=r.dataset.theme==='dark'?'light':'dark';r.dataset.theme=n;try{localStorage.setItem('browser-use-theme',n)}catch(e){}}
-function openDiagnosis(id){const d=document.getElementById(id);if(d?.showModal)d.showModal()}
-function closeDiagnosis(id){const d=document.getElementById(id);if(d?.open)d.close()}
-function updateViewUrl(){const u=new URL(location.href),q=document.querySelector('[data-search]');[...u.searchParams.keys()].filter(k=>k==='q'||k.startsWith('f_')).forEach(k=>u.searchParams.delete(k));if(q?.value)u.searchParams.set('q',q.value);document.querySelectorAll('[data-filter]').forEach(c=>{if(c.value)u.searchParams.set('f_'+c.dataset.filter,c.value)});history.replaceState(null,'',u.pathname+(u.search?'?'+u.searchParams.toString():'')+u.hash)}
-function filterRows(save=true){const controls=[...document.querySelectorAll('[data-filter]')],query=(document.querySelector('[data-search]')?.value||'').trim().toLowerCase();let visible=0,total=0;document.querySelectorAll('tbody tr[data-tier]:not([data-relation])').forEach(r=>{total++;const hidden=Boolean(controls.some(c=>c.value&&r.dataset[c.dataset.filter]!==c.value)||(query&&!String(r.dataset.search||r.textContent).toLowerCase().includes(query)));r.hidden=hidden;if(!hidden)visible++});document.querySelectorAll('[data-visible-count]').forEach(x=>x.textContent=visible+' / '+total);if(save)updateViewUrl()}
-function filterMatrix(){const root=document.getElementById('configuration-matrix');if(!root)return;const controls=[...root.querySelectorAll('[data-matrix-filter]')];let visible=0,total=0;root.querySelectorAll('tbody tr[data-tier]').forEach(r=>{total++;const hidden=controls.some(c=>c.value&&r.dataset[c.dataset.matrixFilter]!==c.value);r.hidden=hidden;if(!hidden)visible++});const count=root.querySelector('[data-matrix-count]');if(count)count.textContent=visible+' / '+total}
-function applySort(t,col,dir){const b=t?.tBodies[0];if(!b)return;const value=r=>{const c=r.cells[col],v=String(c?.dataset.sort??c?.textContent??'').trim();if(!v||/^(?:[—–-]|n[/]a)$/i.test(v))return null;const numeric=v.replace(/[^0-9.-]/g,'');return /[0-9]/.test(numeric)&&!Number.isNaN(Number(numeric))?Number(numeric):v};[...b.rows].sort((a,z)=>{const av=value(a),zv=value(z);if(av===null||zv===null)return av===zv?0:av===null?1:-1;const cmp=typeof av==='number'&&typeof zv==='number'?av-zv:String(av).localeCompare(String(zv),'zh-CN');return dir==='asc'?cmp:-cmp}).forEach(r=>b.appendChild(r));t.dataset.col=String(col);t.dataset.dir=dir;t.querySelectorAll('thead th').forEach((h,i)=>h.setAttribute('aria-sort',i===col?(dir==='asc'?'ascending':'descending'):'none'))}
-function sortTable(id,col){const t=document.getElementById(id);if(!t)return;const dir=t.dataset.col==col&&t.dataset.dir==='asc'?'desc':'asc';applySort(t,col,dir);const u=new URL(location.href);u.searchParams.set('sort',id+':'+col+':'+dir);history.replaceState(null,'',u.pathname+'?'+u.searchParams.toString()+u.hash)}
-function applyAnchor(){if(!location.hash)return;const id=decodeURIComponent(location.hash.slice(1)),target=document.getElementById(id);if(target?.scrollIntoView)requestAnimationFrame(()=>target.scrollIntoView({block:'start'}))}
-function hasOption(control,value){return !control?.options||[...control.options].some(option=>option.value===value)}
-function restoreView(){const p=new URLSearchParams(location.search),q=document.querySelector('[data-search]');if(q&&p.has('q'))q.value=p.get('q')||'';document.querySelectorAll('[data-filter]').forEach(c=>{const v=p.get('f_'+c.dataset.filter);if(v!==null&&hasOption(c,v))c.value=v});const s=(p.get('sort')||'').split(':');if(s.length===3)applySort(document.getElementById(s[0]),Number(s[1]),s[2]);filterRows(false);filterMatrix();try{if(!location.hash){const y=sessionStorage.getItem('browser-use-scroll:'+location.pathname+location.search);if(y!==null)requestAnimationFrame(()=>scrollTo(0,Number(y)||0))}}catch(e){}}
-document.addEventListener('DOMContentLoaded',()=>{try{document.documentElement.dataset.theme=localStorage.getItem('browser-use-theme')||'light'}catch(e){}restoreView();applyAnchor();document.querySelectorAll('[data-filter]').forEach(x=>x.addEventListener('change',()=>filterRows()));document.querySelectorAll('[data-search]').forEach(x=>x.addEventListener('input',()=>filterRows()));document.querySelectorAll('[data-matrix-filter]').forEach(x=>x.addEventListener('change',filterMatrix));document.querySelectorAll('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d)d.close()}))});addEventListener('pagehide',()=>{try{sessionStorage.setItem('browser-use-scroll:'+location.pathname+location.search,String(scrollY))}catch(e){}});"""
+REPORT_JS = (Path(__file__).parent / "assets" / "report.js").read_text(encoding="utf-8")
 REPORT_STYLE = (
     SHARED_STYLE
-    + """
-:root{--max:1440px}
-.hero h1,.publication-article h1,.publication-article h2{overflow-wrap:anywhere;word-break:break-word;max-width:100%}
-.callout strong{margin-right:.3em}
-.top nav{gap:18px;flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}.top nav>a,.top nav>button{flex:0 0 auto}.top nav .brand{font-weight:850;color:var(--ink)}.top nav a[aria-current=page]{color:var(--ink);font-weight:800;text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:8px}.top .theme-toggle{margin-left:auto}.page-main{min-height:78vh}.hero.compact{padding:34px 0 26px}.hero.compact h1{font-size:clamp(34px,4vw,50px);margin:10px 0}.hero.compact .lead{margin:0}.section{padding:32px 0}.fine{font-size:13px;color:var(--muted)}.result-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.result-grid .card{border-top:3px solid var(--accent)}.overview-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.overview-card{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:20px;min-width:0}.overview-card h3{margin:8px 0}.audit-strip{display:grid;gap:10px}.audit-strip .callout{margin:0}.filters,.pair-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}.filters select,.filters input,.pair-controls select{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--panel);color:var(--ink)}.filters input{min-width:260px}.comparison-count{margin-left:auto;padding:8px 12px;border-radius:999px;background:var(--wash);color:var(--accent);font-weight:750}.status-pass{color:var(--good);font-weight:750}.status-fail{color:var(--bad);font-weight:750}.status-unproven{color:var(--warn,var(--bad));font-weight:750}.flow{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px;list-style:none;padding:0}.flow li{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:13px;min-width:0}.flow li+li:before{content:'→';color:var(--accent);margin-right:7px}.method-figure{margin:24px 0}.method-figure img{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:16px;background:#f6faff}.method-figure figcaption{margin-top:10px;color:var(--muted);font-size:13px;line-height:1.55}.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.detail-grid .kv{min-height:92px;min-width:0}.page-links{display:flex;gap:10px;flex-wrap:wrap}.page-links a{border:1px solid var(--line);background:var(--panel);padding:8px 12px;border-radius:9px}.rank-list{counter-reset:rank}.rank-item{counter-increment:rank;display:grid;grid-template-columns:54px minmax(0,1fr);gap:16px;padding:20px 0;border-top:1px solid var(--line)}.rank-item:before{content:counter(rank);font-size:34px;font-weight:850;color:var(--accent)}.rank-item h3{margin:4px 0}.article-entry{border-left:4px solid var(--accent)}.source-list li{margin:9px 0}.table-wrap{margin:18px 0}.table-wrap table{min-width:760px}#task-table{min-width:1280px}#pair-table{min-width:1180px}.table-wrap caption{text-align:left;padding:10px 12px;color:var(--muted);caption-side:bottom}.footer{border-top:1px solid var(--line)}.evidence-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}.evidence-card{border:1px solid var(--line);border-radius:12px;background:var(--panel);padding:16px;min-width:0}.evidence-card h3{margin-top:0}.json-view,.log-view{white-space:pre-wrap;overflow-wrap:anywhere;max-height:540px;overflow:auto;padding:14px;border:1px solid var(--line);border-radius:9px;background:var(--bg);font-size:12px;line-height:1.55}.trajectory{list-style:none;padding:0;counter-reset:step}.trajectory>li{counter-increment:step;display:grid;grid-template-columns:46px minmax(0,1fr);gap:12px;padding:15px 0;border-top:1px solid var(--line)}.trajectory>li:before{content:counter(step);display:grid;place-items:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:white;font-weight:800}.trajectory summary{cursor:pointer;font-weight:750}.rule-fail{border-left:4px solid var(--bad)}.rule-pass{border-left:4px solid var(--good)}.count-note{margin-left:auto;color:var(--muted);font-size:13px}.badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--wash);font-size:12px;margin-right:6px}.muted-box{padding:14px;border:1px dashed var(--line);border-radius:10px;color:var(--muted)}@media(max-width:900px){.result-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.overview-grid{grid-template-columns:1fr}.flow{grid-template-columns:repeat(3,minmax(0,1fr))}.evidence-pair{grid-template-columns:1fr}.grid>.card{grid-column:1/-1!important}}@media(max-width:600px){.wrap{width:calc(100% - 28px)}.top nav{gap:14px}.result-grid,.flow{grid-template-columns:1fr}.flow li+li:before{content:'↓';display:block}.hero{padding-top:24px}.hero.compact h1{font-size:30px;line-height:1.18}.filters input{min-width:0;width:100%}.comparison-count{margin-left:0}.rank-item{grid-template-columns:36px minmax(0,1fr)}}@media print{.top,.filters,.pair-controls{display:none!important}.card,.table-wrap{box-shadow:none}.json-view,.log-view{max-height:none;overflow:visible}.evidence-pair{grid-template-columns:1fr}}
-/* Publication QA overrides: readable dense tables, code, and text-heavy figures. */
-.table-wrap{overflow-x:auto;max-width:100%;contain:inline-size;border:1px solid var(--line);border-radius:14px;background:var(--panel)}
-.table-wrap table{min-width:860px;margin:0;border:0}
-.table-wrap th{white-space:nowrap}
-.table-wrap th,.table-wrap td{word-break:normal;overflow-wrap:break-word;vertical-align:top}
-#task-table{min-width:1500px}
-#task-table th:nth-child(1),#task-table td:nth-child(1){min-width:76px;white-space:nowrap}
-#task-table th:nth-child(2),#task-table td:nth-child(2),#task-table th:nth-child(4),#task-table td:nth-child(4),#task-table th:nth-child(5),#task-table td:nth-child(5){min-width:88px;white-space:nowrap}
-#task-table th:nth-child(3),#task-table td:nth-child(3){min-width:140px;white-space:nowrap}
-#task-table th:nth-child(6),#task-table td:nth-child(6){min-width:250px}
-#task-table th:nth-child(7),#task-table td:nth-child(7){min-width:430px}
-#task-table th:nth-child(8),#task-table td:nth-child(8),#task-table th:nth-child(9),#task-table td:nth-child(9){min-width:112px;white-space:nowrap}
-#pair-table{min-width:1320px}
-#pair-table th:nth-child(-n+4),#pair-table td:nth-child(-n+4){white-space:nowrap}
-#pair-table th:nth-child(1),#pair-table td:nth-child(1){min-width:260px;white-space:normal}
-#pair-table th:nth-child(n+5),#pair-table td:nth-child(n+5){min-width:235px}
-#result-table{min-width:1580px;table-layout:fixed}
-#result-table th,#result-table td{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;vertical-align:middle;height:72px;max-height:72px}
-#result-table th:nth-child(1),#result-table td:nth-child(1){width:230px}
-#result-table th:nth-child(2),#result-table td:nth-child(2){width:170px}
-#result-table th:nth-child(3),#result-table td:nth-child(3){width:80px}
-#result-table th:nth-child(4),#result-table td:nth-child(4){width:75px}
-#result-table th:nth-child(5),#result-table td:nth-child(5){width:250px}
-#result-table th:nth-child(6),#result-table td:nth-child(6){width:180px}
-#result-table th:nth-child(7),#result-table td:nth-child(7){width:180px}
-#result-table th:nth-child(8),#result-table td:nth-child(8){width:310px}
-#result-table th:nth-child(9),#result-table td:nth-child(9){width:170px}
-#engine-result-table,#change-table{min-width:1080px}
-#result-table td:first-child,#engine-result-table td:first-child{white-space:nowrap;min-width:150px}
-.json-view,.log-view{background:var(--code-bg)!important;color:var(--code-ink)!important;border-color:#334b68!important;line-height:1.65}
-.json-view code,.log-view code{color:inherit!important;background:transparent!important}
-.detail-grid .kv{overflow-wrap:anywhere;word-break:break-word}
-.method-figure{overflow-x:auto;border:1px solid var(--line);border-radius:16px;background:#f6faff}
-.method-figure img{min-width:960px;border:0;border-radius:0}
-.method-figure figcaption{padding:0 16px 14px}
-.release-current,.release-archive{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:22px;margin:16px 0}
-.release-current{border-top:4px solid var(--accent)}
-.release-history>summary,.release-current details>summary,.release-archive details>summary{cursor:pointer;font-weight:800;padding:8px 0}
-.comparison-winner{color:var(--good);font-weight:850}.winner-mark{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 5px;margin-left:7px;border-radius:999px;background:var(--good);color:white;font-size:11px;line-height:1}.winner-cell{position:relative;padding:9px 10px;border:1px solid color-mix(in srgb,var(--good) 42%,var(--line));border-radius:10px;background:color-mix(in srgb,var(--good) 9%,var(--panel))}.metric-stack{display:grid;gap:5px;min-width:150px}.metric-stack>span{display:flex;align-items:center;justify-content:space-between;gap:12px;white-space:nowrap}.metric-stack>span>b{font-size:12px;color:var(--muted)}.review-round{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:22px;margin:16px 0}.review-round header{display:flex;align-items:start;justify-content:space-between;gap:18px}.review-round h3{margin:5px 0}.review-status{flex:0 0 auto;padding:5px 10px;border-radius:999px;background:var(--wash);font-size:12px;font-weight:800}.review-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}.review-fields>div{border-top:1px solid var(--line);padding-top:12px}.review-fields b{display:block;margin-bottom:5px}.review-fields p{margin:0}
-.browser-comparison{border:1px solid var(--line);border-radius:18px;background:var(--panel);padding:24px;box-shadow:0 12px 32px rgba(25,45,70,.06)}.comparison-heading{display:flex;align-items:start;justify-content:space-between;gap:24px;margin-bottom:10px}.comparison-heading h3{margin:0 0 6px;font-size:22px}.comparison-heading p{margin:0;color:var(--muted);line-height:1.65}.matrix-filters{margin:16px 0}.comparison-result{margin-top:12px}.table-wrap .configuration-matrix{min-width:1120px;table-layout:fixed}.configuration-matrix th:first-child,.configuration-matrix td:first-child{width:420px}.configuration-matrix th:not(:first-child),.configuration-matrix td:not(:first-child){width:165px;text-align:center;vertical-align:middle}.task-cell a{font-weight:750}.task-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:7px}.track-badge{display:inline-block;padding:3px 8px;border-radius:999px;background:var(--panel2);color:var(--muted);font-size:12px;white-space:nowrap}.outcome-pill{display:inline-block;min-width:62px;padding:6px 10px;border-radius:8px;font-size:13px;text-decoration:none;font-weight:750}.outcome-pill.pass{background:var(--success-bg);color:var(--good)}.outcome-pill.fail{background:var(--failure-bg);color:var(--bad)}.outcome-pill.missing{background:var(--panel2);color:var(--muted)}
-.action-card-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.action-card{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:18px;min-width:0}.action-card>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.action-card>header code{font-size:16px;font-weight:800}.action-card>header span{font-size:12px;color:var(--muted)}.action-browser-row{padding:12px 0;border-top:1px solid var(--line)}.action-browser-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.action-bar{height:7px;border-radius:999px;background:var(--panel2);overflow:hidden;margin:8px 0}.action-bar i{display:block;height:100%;border-radius:inherit;background:var(--accent)}.action-browser-row.action-winner .action-bar i{background:var(--good)}.action-browser-meta{font-size:12px;color:var(--muted)}
-.finding-list{display:grid;gap:8px;margin:0 0 20px;padding:16px 20px 16px 38px;border-left:4px solid var(--accent);border-radius:0 12px 12px 0;background:var(--wash)}.finding-list li{padding-left:4px}.table-kicker{display:block;color:var(--muted);font:700 11px/1.4 ui-monospace,monospace;letter-spacing:.04em;margin-top:3px}.core-comparison-table{min-width:1240px;table-layout:fixed}.core-comparison-table td:nth-child(1),.core-comparison-table td:nth-child(2){font-weight:750}.core-comparison-table th:nth-child(1),.core-comparison-table td:nth-child(1){width:145px}.core-comparison-table th:nth-child(2),.core-comparison-table td:nth-child(2){width:135px}.core-comparison-table th:nth-child(3),.core-comparison-table td:nth-child(3){width:115px}.core-comparison-table th:nth-child(4),.core-comparison-table td:nth-child(4){width:105px}.core-comparison-table th:nth-child(n+5),.core-comparison-table td:nth-child(n+5){width:245px}.pair-outcome-table{min-width:900px}.wide-data-table td{line-height:1.65}.report-entry-links{margin-top:18px}.report-entry-links a{font-weight:750}.source-note a{margin-left:5px}
-#task-family-table{min-width:1320px;table-layout:fixed}#task-family-table th:nth-child(1),#task-family-table td:nth-child(1){width:150px}#task-family-table th:nth-child(2),#task-family-table td:nth-child(2){width:90px}#task-family-table th:nth-child(3),#task-family-table td:nth-child(3){width:300px}#task-family-table th:nth-child(n+4),#task-family-table td:nth-child(n+4){width:190px;white-space:nowrap}.metric-note{margin:14px 0 0;border-top:1px solid var(--line);padding-top:12px;color:var(--muted)}.metric-note summary{cursor:pointer;font-weight:750;color:var(--ink)}
-.diagnosis-button,.dialog-actions button{border:1px solid var(--accent);background:var(--accent);color:white;padding:8px 12px;border-radius:9px;font:inherit;font-weight:750;cursor:pointer;white-space:nowrap}.diagnosis-button:hover,.dialog-actions button:hover{filter:brightness(.94)}.diagnosis-dialog{width:min(920px,calc(100% - 32px));max-height:88vh;padding:0;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:var(--ink);box-shadow:0 28px 90px rgba(10,25,45,.28)}.diagnosis-dialog::backdrop{background:rgba(5,15,25,.62);backdrop-filter:blur(3px)}.diagnosis-dialog-head{position:sticky;top:0;z-index:1;display:flex;align-items:start;justify-content:space-between;gap:20px;padding:22px 24px 16px;border-bottom:1px solid var(--line);background:var(--panel)}.diagnosis-dialog-head h2{font-size:24px;margin:4px 0}.dialog-close{border:0;background:var(--panel2);color:var(--ink);width:36px;height:36px;border-radius:50%;font-size:24px;line-height:1;cursor:pointer}.diagnosis-dialog-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:18px 24px}.diagnosis-dialog-grid>div{padding:13px;border:1px solid var(--line);border-radius:10px;background:var(--bg);min-width:0;overflow-wrap:anywhere}.diagnosis-dialog-grid b{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}.dialog-error,.dialog-review{padding:0 24px 18px}.dialog-error h3,.dialog-review h3{margin:8px 0}.dialog-error .log-view{max-height:240px}.dialog-review p{margin:6px 0}.dialog-actions{position:sticky;bottom:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 24px;border-top:1px solid var(--line);background:var(--panel)}.dialog-actions a{padding:8px 10px;border:1px solid var(--line);border-radius:9px}.dialog-actions button{margin-left:auto}
-.failure-lead{padding:20px 22px;margin-bottom:14px;border:1px solid color-mix(in srgb,var(--bad) 35%,var(--line));border-left:6px solid var(--bad);border-radius:14px;background:var(--failure-bg)}.failure-lead .status-line{color:var(--bad);font-size:13px;font-weight:850}.failure-lead h3{font-size:24px;margin:5px 0}.failure-lead p{margin:4px 0}.success-lead{border-color:color-mix(in srgb,var(--good) 35%,var(--line));border-left-color:var(--good);background:var(--success-bg)}.success-lead .status-line{color:var(--good)}.runtime-strip{grid-template-columns:repeat(6,minmax(0,1fr));margin:14px 0}.failure-error{margin-top:16px}.failure-error .log-view{max-height:260px}.trajectory-step.failure-step{margin:8px 0;padding:14px;border:1px solid color-mix(in srgb,var(--bad) 40%,var(--line));border-left:5px solid var(--bad);border-radius:12px;background:var(--failure-bg)}.trajectory-step.failure-step:before{background:var(--bad)}.evidence-viewer-head{display:flex;align-items:center;justify-content:space-between;gap:16px}.evidence-viewer-head h2{margin:0}.evidence-viewer-shell .json-view{max-height:none;min-height:60vh}
-.action-card-grid{grid-auto-rows:1fr}.action-card{height:100%}.dialog-step,.step-signature{padding:13px 16px;border-radius:10px;background:var(--wash);overflow-wrap:anywhere}.dialog-step{margin:0 24px 18px}.dialog-step b{margin-right:8px}.step-signature{margin:0 0 14px}
-.attempt-summary{display:grid;grid-template-columns:minmax(270px,1.4fr) repeat(4,minmax(135px,.7fr));gap:12px;align-items:stretch}.attempt-verdict{padding:20px 22px;border:1px solid var(--line);border-left:5px solid var(--good);border-radius:12px;background:var(--success-bg)}.attempt-verdict.failure{border-left-color:var(--bad);background:var(--failure-bg)}.attempt-verdict .status-line{display:block;font-size:24px;font-weight:850;margin-bottom:6px}.attempt-verdict p{margin:0;line-height:1.65}.attempt-jumps{display:flex;gap:14px;flex-wrap:wrap;margin-top:14px;font-weight:750}.attempt-fact{padding:16px;border:1px solid var(--line);border-radius:12px;background:var(--panel);overflow-wrap:anywhere}.attempt-fact b{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}.attempt-secondary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:12px}
-.diagnosis-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.diagnosis-grid .attempt-fact{min-height:110px}.diagnosis-reason{margin-top:14px;padding:18px 20px;border-left:5px solid var(--bad);border-radius:10px;background:var(--failure-bg);line-height:1.7}.evidence-links{display:flex;gap:8px}.screenshot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.screenshot-grid figure{margin:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--panel)}.screenshot-grid img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;object-position:top}.screenshot-grid figcaption{padding:10px 12px;color:var(--muted);font-size:12px}
-.task-goal{padding:22px 24px;border-radius:16px;background:var(--wash);border:1px solid var(--line);margin-bottom:18px}.task-goal span,.rule-index{display:block;color:var(--accent);font-size:12px;font-weight:850;letter-spacing:.08em;text-transform:uppercase}.task-goal p{font-size:20px;font-weight:750;line-height:1.6;margin:7px 0}.task-goal small{color:var(--muted)}.verification-list{display:grid;gap:14px}.verification-rule{padding:20px 22px;border:1px solid var(--line);border-left:5px solid var(--good);border-radius:14px;background:var(--panel);min-width:0}.verification-rule.rule-fail{border-left-color:var(--bad)}.verification-rule>header{display:flex;align-items:start;justify-content:space-between;gap:18px}.verification-rule h3{margin:4px 0 0;font-size:19px}.rule-verdict{flex:0 0 auto;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:850}.rule-verdict.pass{background:var(--success-bg);color:var(--good)}.rule-verdict.fail{background:var(--failure-bg);color:var(--bad)}.rule-purpose{color:var(--muted);margin:12px 0 6px}.rule-summary{font-size:17px;font-weight:750;margin:0 0 14px}.verification-rule details{border-top:1px solid var(--line);padding-top:12px;margin-top:10px}.verification-rule summary{cursor:pointer;font-weight:750}.compact-evidence{margin-top:12px}.compact-evidence .json-view{max-height:360px}
-.page-main{overflow-x:clip}
-.section[id]{scroll-margin-top:76px}
-@media(max-width:980px){.attempt-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.attempt-verdict{grid-column:1/-1}.attempt-secondary,.diagnosis-grid,.runtime-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.screenshot-grid{grid-template-columns:1fr}}
-/* Interpretation article: compact evidence-first reading, without dashboard sprawl. */
-.interpretation-v2{max-width:1120px;margin:0 auto;padding:34px 0 72px}.interpretation-v2>.essay-head{padding:22px 0 28px;border-bottom:1px solid var(--line)}.interpretation-v2>.essay-head h1{max-width:950px;font-size:clamp(38px,5vw,64px);line-height:1.08;margin:12px 0 16px;letter-spacing:-.035em}.interpretation-v2>.essay-head .lead{max-width:900px;font-size:20px;line-height:1.75}.interpretation-v2>section{padding:34px 0;border-bottom:1px solid var(--line)}.interpretation-v2>section>h2{font-size:clamp(28px,3vw,38px);margin:0 0 12px}.interpretation-v2>section>h3{font-size:22px;margin:30px 0 8px}.answer-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.answer-strip article,.evidence-examples article,.decision-grid article{min-width:0;padding:20px;border:1px solid var(--line);border-radius:15px;background:var(--panel)}.answer-strip b{display:block;font-size:18px;line-height:1.45}.answer-strip p,.evidence-examples p,.decision-grid p{margin:9px 0 0;color:var(--muted)}.score-flow-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:22px 0}.score-flow-card{padding:18px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}.score-flow-card header,.cause-bar>div{display:flex;justify-content:space-between;align-items:center;gap:14px}.score-flow-card header span{font-weight:850;color:var(--accent)}.score-flow-card p{margin:9px 0 0;color:var(--muted);font-size:13px}.score-flow-card p span{color:var(--accent);padding:0 4px}.score-track{display:flex;height:9px;margin-top:14px;border-radius:999px;background:var(--panel2);overflow:hidden}.score-track i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),#4d7cff)}.score-track i.recovered{background:var(--good)}.cause-bars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:22px 0}.cause-bar{position:relative;overflow:hidden;min-height:126px;padding:17px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}.cause-bar strong{font-size:26px}.cause-bar span{display:block;margin-top:10px;color:var(--muted);font-size:13px;line-height:1.5}.cause-bar i{position:absolute;left:0;bottom:0;height:5px;background:var(--accent);border-radius:0 999px 999px 0}.evidence-examples,.decision-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}.evidence-examples h3,.decision-grid h3{margin:0;font-size:18px}.audit-ladder{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:22px 0}.audit-ladder article{position:relative;padding:20px 22px;border:1px solid var(--line);background:var(--panel)}.audit-ladder article:first-child{border-radius:14px 0 0 14px}.audit-ladder article:last-child{border-radius:0 14px 14px 0}.audit-ladder article+article{border-left:0}.audit-ladder span{display:grid;place-items:center;width:30px;height:30px;margin-bottom:12px;border-radius:50%;background:var(--accent);color:white;font-weight:850}.audit-ladder b{font-size:17px}.audit-ladder p{margin:8px 0 0;color:var(--muted);font-size:14px}.interpretation-v2 .essay-note{margin-top:22px}.interpretation-v2 .table-wrap{margin:20px 0}.interpretation-v2 .core-comparison-table{min-width:860px}
-.verdict-strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:16px 0}.verdict-strip article{display:grid;grid-template-columns:auto minmax(0,1fr);gap:3px 12px;align-items:center;padding:17px;border:1px solid var(--line);border-radius:14px;background:var(--panel)}.verdict-strip strong{grid-row:1/3;font-size:34px;color:var(--accent)}.verdict-strip b{line-height:1.4}.verdict-strip p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
-@media(max-width:900px){.answer-strip,.verdict-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.answer-strip article:last-child,.verdict-strip article:last-child{grid-column:1/-1}.cause-bars{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:760px){.browser-comparison{padding:18px}.comparison-heading{display:block}.comparison-count{display:inline-block;margin-top:12px}.comparison-controls{grid-template-columns:1fr}.action-card-grid{grid-template-columns:1fr}.interpretation-v2{padding-top:18px}.interpretation-v2>.essay-head h1{font-size:36px}.interpretation-v2>.essay-head .lead{font-size:17px}.interpretation-v2>section{padding:27px 0}}
-@media(max-width:600px){.hero h1{word-break:break-all;line-break:anywhere;text-wrap:balance}.method-figure img{min-width:900px}.table-wrap{margin-left:-4px;margin-right:-4px}.json-view,.log-view{font-size:13px}.review-round header{display:block}.review-status{display:inline-block;margin-top:8px}.review-fields,.attempt-summary,.attempt-secondary,.diagnosis-dialog-grid,.answer-strip,.score-flow-grid,.cause-bars,.evidence-examples,.decision-grid,.verdict-strip,.audit-ladder{grid-template-columns:1fr}.answer-strip article:last-child,.verdict-strip article:last-child{grid-column:auto}.audit-ladder article:first-child,.audit-ladder article:last-child{border-radius:14px}.audit-ladder article+article{border-left:1px solid var(--line);border-top:0}.diagnosis-dialog-head,.diagnosis-dialog-grid,.dialog-error,.dialog-review,.dialog-actions{padding-left:16px;padding-right:16px}.dialog-actions button{margin-left:0}}
-"""
+    + (Path(__file__).parent / "assets" / "report.css").read_text(encoding="utf-8")
 )
 NAV = [
     ("", "Browser Use", "home"),
@@ -1294,20 +1241,9 @@ def _evidence_viewer_page() -> str:
         '<a id="evidence-raw-link" class="button-link" hidden download>下载原始 JSON</a></div>'
         '<p id="evidence-viewer-status" class="fine" role="status">正在读取证据…</p>'
         '<pre id="evidence-viewer-content" class="json-view" tabindex="0"></pre>'
-        "</div></section><script>(()=>{"
-        'const status=document.getElementById("evidence-viewer-status");'
-        'const output=document.getElementById("evidence-viewer-content");'
-        'const raw=document.getElementById("evidence-raw-link");'
-        'const source=new URLSearchParams(location.search).get("src")||"";'
-        r"const valid=/^artifacts\/[a-z0-9._-]+\/executions\/[0-9]+\/execution-evidence[.]json$/i.test(source)||['data/trajectory-replay-bridge.json','data/trajectory-replay-failure-review.json'].includes(source);"
-        'const english=document.documentElement.lang==="en";'
-        'if(!valid){status.textContent=english?"Invalid evidence path.":"证据路径无效。";return;}'
-        "raw.href=source;raw.hidden=false;"
-        'fetch(new URL(source,document.baseURI),{credentials:"same-origin"})'
-        ".then(response=>{if(!response.ok)throw new Error(`HTTP ${response.status}`);return response.json();})"
-        '.then(value=>{output.textContent=JSON.stringify(value,null,2);status.textContent=english?"Evidence loaded.":"证据已载入。";})'
-        '.catch(error=>{status.textContent=(english?"Unable to load evidence: ":"无法读取执行证据：")+error.message;});'
-        "})();</script>"
+        "</div></section><script>"
+        + (Path(__file__).parent / "assets" / "evidence-viewer.js").read_text(encoding="utf-8")
+        + "</script>"
     )
     return _page(title="完整执行证据", active="analysis", body=body)
 
@@ -1825,7 +1761,7 @@ def _execution_evidence_html(result_id: str, executions: list[dict[str, Any]]) -
 
 
 def _common_final_success_resource_rows(
-    attempts: list[dict[str, Any]],
+    attempts: list[dict[str, Any]], participants: Participants
 ) -> tuple[int, list[list[Any]]]:
     task_ids = {int(row["task_id"]) for row in attempts}
     common = {
@@ -1839,8 +1775,8 @@ def _common_final_success_resource_rows(
                 and float(row.get("score") or 0) == 1
                 for row in attempts
             )
-            for model in MODEL_LABELS
-            for engine in ENGINE_LABELS
+            for model in participants.models
+            for engine in participants.engines
         )
     }
 
@@ -1848,8 +1784,8 @@ def _common_final_success_resource_rows(
         return statistics.median(values) if values else None
 
     rows: list[list[Any]] = []
-    for model in MODEL_LABELS:
-        for engine in ENGINE_LABELS:
+    for model in participants.models:
+        for engine in participants.engines:
             cohort = [
                 {
                     **row,
@@ -1862,8 +1798,8 @@ def _common_final_success_resource_rows(
             ]
             rows.append(
                 [
-                    MODEL_LABELS[model],
-                    ENGINE_LABELS[engine],
+                    participants.models[model],
+                    participants.engines[engine],
                     _seconds(median([float(row.get("duration_ms") or 0) for row in cohort])),
                     _seconds(
                         median([float(row.get("browser_tool_duration_ms") or 0) for row in cohort])
@@ -1927,7 +1863,32 @@ def _failure_scope_figure(verified_causes: dict[str, dict[str, Any]]) -> str:
     return f'<div class="cause-bars" aria-label="{sum(count for _, count, _ in rows)} 个失败结果的复核原因分布">' + bars + "</div>"
 
 
+def _replay_engine_field(bridge: dict[str, Any], suffix: str) -> tuple[str, dict[str, Any]]:
+    """Return the engine and value of the one frozen ``<engine><suffix>`` bridge field."""
+
+    fields = [
+        (key.removesuffix(suffix), value) for key, value in bridge.items() if key.endswith(suffix)
+    ]
+    if len(fields) > 1:
+        raise ValueError(f"trajectory replay bridge has more than one {suffix} field")
+    return fields[0] if fields else ("", {})
+
+
+def _replay_results(bridge: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    return {
+        engine: value
+        for engine, value in (bridge.get("effective_results") or {}).items()
+        if isinstance(value, dict) and "tasks" in value and "passes" in value
+    }
+
+
+def _replay_counts_are_valid(value: dict[str, Any]) -> bool:
+    tasks, passes = value["tasks"], value["passes"]
+    return type(tasks) is int and type(passes) is int and 0 <= passes <= tasks
+
+
 def _validate_replay_contract_definitions(bridge: dict[str, Any]) -> None:
+    replay_engine, provenance = _replay_engine_field(bridge, "_trajectory_provenance")
     definitions = {}
     for name in ("trajectories", "corrections"):
         binding = (bridge.get("contract_definitions") or {}).get(name) or {}
@@ -1971,9 +1932,9 @@ def _validate_replay_contract_definitions(bridge: dict[str, Any]) -> None:
     if (dict(counts) != bridge.get("contract_counts")
         or {key: dict(value) for key, value in cross.items()} != bridge.get("source_contract_counts")
         or categories != bridge.get("correction_categories")
-        or len(rows) != bridge["effective_results"]["chromium"]["tasks"]):
+        or len(rows) != _replay_results(bridge).get(replay_engine, {}).get("tasks")):
         raise ValueError("trajectory replay contract counts differ from qualified definitions")
-    if dict(origins) != bridge["chromium_trajectory_provenance"]["successful_browser_use_execution_by_origin"]:
+    if dict(origins) != provenance.get("successful_browser_use_execution_by_origin"):
         raise ValueError("trajectory replay model-browser origins differ from qualified definitions")
     bridge["original_contract_task_groups"] = {
         source: sorted(row["task_id"] for row in rows
@@ -1984,7 +1945,7 @@ def _validate_replay_contract_definitions(bridge: dict[str, Any]) -> None:
 
 
 def _load_trajectory_replay_bridge(
-    profile: dict[str, Any], *, selection_sha256: str
+    profile: dict[str, Any], *, selection_sha256: str, task_count: int
 ) -> dict[str, Any] | None:
     """Load the hash-bound cross-track control without treating it as an Agent score."""
 
@@ -2010,27 +1971,46 @@ def _load_trajectory_replay_bridge(
         raise ValueError("trajectory replay profile is missing or is not hash-bound")
     _validate_replay_contract_definitions(bridge)
     result = bridge.get("effective_results") or {}
-    chromium = result.get("chromium") or {}
-    moli = result.get("moli") or {}
-    provenance = bridge.get("chromium_trajectory_provenance") or {}
+    measured = _replay_results(bridge)
+    # The bound profile states which browsers ran; the results are what it checks.
+    registered = {
+        str(method.get("engine") or "")
+        for method in _read_json(trajectory_profile_path).get("methods") or []
+    }
+    if {key for key, value in result.items() if isinstance(value, dict)} != registered or (
+        set(measured) != registered
+    ):
+        raise ValueError("trajectory replay results differ from the browsers in the bound profile")
+    if not all(_replay_counts_are_valid(value) for value in measured.values()):
+        raise ValueError("trajectory replay bridge has an invalid current control cardinality")
+    replay_engine, provenance = _replay_engine_field(bridge, "_trajectory_provenance")
+    reviewed_engine, review = _replay_engine_field(bridge, "_failure_review")
+    source_tasks = {
+        source: sum(counts.values())
+        for source, counts in (bridge.get("source_contract_counts") or {}).items()
+    }
+    failures = {
+        engine: value["tasks"] - value["passes"] for engine, value in measured.items()
+    }
     if (
-        int(result.get("logical_results") or 0) != 180
-        or int(chromium.get("tasks") or 0) != 90
-        or int(chromium.get("passes") or 0) != 90
-        or int(moli.get("tasks") or 0) != 90
-        or int(moli.get("passes") or 0) != 54
-        or int(provenance.get("expert_repair_spec") or 0) != 30
-        or int(provenance.get("successful_browser_use_execution") or 0) != 60
+        task_count < 1
+        or replay_engine not in measured
+        or reviewed_engine not in measured
+        or int(result.get("logical_results") or 0) != task_count * len(measured)
+        or any(value["tasks"] != task_count for value in measured.values())
+        or any(count != 0 for engine, count in failures.items() if engine != reviewed_engine)
+        or int(provenance.get("expert_repair_spec") or 0) != source_tasks.get("expert_repair_spec")
+        or int(provenance.get("successful_browser_use_execution") or 0)
+        != source_tasks.get("authoritative_successful_browser_use_execution")
     ):
         raise ValueError("trajectory replay bridge has an invalid current control cardinality")
-    review = bridge.get("moli_failure_review") or {}
     review_path = Path(str(review.get("path") or ""))
     if (
         review_path.is_symlink()
         or not review_path.is_file()
         or optional_file_sha256(review_path) != review.get("sha256")
-        or int(review.get("failed_results") or 0) != 36
-        or int(review.get("verified_results") or 0) != 36
+        or int(review.get("failed_results") or 0) != failures[reviewed_engine]
+        or int(review.get("verified_results") or 0) != failures[reviewed_engine]
     ):
         raise ValueError("trajectory replay browser-failure review is missing or inconsistent")
     review_data = _read_json(review_path)
@@ -2039,7 +2019,7 @@ def _load_trajectory_replay_bridge(
     for group in review_data.get("cause_groups") or []:
         for item in group.get("results") or []:
             key = (str(item.get("engine") or ""), int(item["task_id"]))
-            if key in reviewed_keys or key[0] != "moli":
+            if key in reviewed_keys or key[0] != reviewed_engine:
                 raise ValueError("trajectory replay responsibility inventory is inconsistent")
             reviewed_keys.add(key)
             responsibilities[str(group.get("responsibility") or "")] += 1
@@ -2057,7 +2037,7 @@ def _load_trajectory_replay_bridge(
 
 
 def _replay_original_contract_rows(
-    bridge: dict[str, Any], attempts: list[dict[str, Any]]
+    bridge: dict[str, Any], attempts: list[dict[str, Any]], participants: Participants
 ) -> list[list[str]]:
     groups = bridge["original_contract_task_groups"]
     historical = set(groups["authoritative_successful_browser_use_execution"])
@@ -2067,10 +2047,10 @@ def _replay_original_contract_rows(
     if len(indexed) != len(attempts):
         raise ValueError("replay diagnostic requires authoritative logical results")
     rows = []
-    engines = [BASELINE_ENGINE, *(engine for engine in ENGINE_LABELS if engine != BASELINE_ENGINE)]
-    for model in MODEL_LABELS:
+    engines = participants.engines_baseline_first
+    for model in participants.models:
         for engine in engines:
-            cells = [f"{MODEL_LABELS[model]} × {ENGINE_LABELS[engine]}"]
+            cells = [f"{participants.models[model]} × {participants.engines[engine]}"]
             for population in populations:
                 keys = [(model, engine, task_id) for task_id in population]
                 if any(key not in indexed for key in keys):
@@ -2082,7 +2062,9 @@ def _replay_original_contract_rows(
 
 
 def _trajectory_replay_control(
-    bridge: dict[str, Any] | None, attempts: list[dict[str, Any]] | None = None
+    bridge: dict[str, Any] | None,
+    participants: Participants,
+    attempts: list[dict[str, Any]] | None = None,
 ) -> str:
     """Explain the selected replay comparison without inheriting a past article."""
     if bridge is None:
@@ -2096,10 +2078,9 @@ def _trajectory_replay_control(
 
     result_rows = [
         [str(value.get("label") or key.capitalize()), f"{value['passes']}/{value['tasks']}"]
-        for key, value in bridge["effective_results"].items()
-        if isinstance(value, dict) and 'tasks' in value and 'passes' in value
+        for key, value in _replay_results(bridge).items()
     ]
-    provenance = bridge["chromium_trajectory_provenance"]
+    _, provenance = _replay_engine_field(bridge, "_trajectory_provenance")
     source_labels = {
         "authoritative_successful_browser_use_execution": text("历史成功轨迹", "Historical successful executions"),
         "expert_repair_spec": text("专家修复轨迹", "Expert-repaired trajectories"),
@@ -2127,10 +2108,10 @@ def _trajectory_replay_control(
         body += '<p>' + text(
             "以下为保留原合同任务的事后诊断，不替代自主执行的完整任务分母或官方结果。",
             "The following post-hoc diagnostic uses original-contract tasks. It does not replace the full autonomous-run population or official outcomes.") + '</p>'
-        body += _table([text("配置", "Configuration"), text("全部原合同任务", "All original-contract tasks"), text("历史成功路径来源", "Historical-success paths"), text("专家修复路径来源", "Expert-repaired paths")], _replay_original_contract_rows(bridge, attempts))
+        body += _table([text("配置", "Configuration"), text("全部原合同任务", "All original-contract tasks"), text("历史成功路径来源", "Historical-success paths"), text("专家修复路径来源", "Expert-repaired paths")], _replay_original_contract_rows(bridge, attempts, participants))
     body += '<p class="source-note"><a href="evidence-viewer.html?src=data/trajectory-replay-bridge.json">' + text(
         "跨轨迹控制证据", "Cross-track control evidence") + '</a>'
-    if bridge.get("moli_failure_review"):
+    if _replay_engine_field(bridge, "_failure_review")[1]:
         body += ' · <a href="evidence-viewer.html?src=data/trajectory-replay-failure-review.json">' + text(
             "固定轨迹失败复核", "Replay failure review") + '</a>'
     return body + '</p></section>'
@@ -2170,6 +2151,7 @@ def _article_body(
     cohort_commits: dict[str, str],
     automatic_failure_counts: Counter[str],
     trajectory_replay_bridge: dict[str, Any] | None,
+    participants: Participants,
 ) -> str:
     from harness.browser_use.report_i18n import bilingual_text
 
@@ -2185,17 +2167,17 @@ def _article_body(
     eligible = [row for row in attempts if int(row['task_id']) not in excluded]
     clean_count = task_count - len(excluded)
     failed = [row for row in attempts if float(row.get('score') or 0) < 1]
-    summary = _primary_summary(attempts)
-    pairs = _paired_summary(attempts)
+    summary = _primary_summary(attempts, participants)
+    pairs = _paired_summary(attempts, participants)
     comparison_rows = [
-        [MODEL_LABELS[model], ENGINE_LABELS[item['baseline_engine']],
-         ENGINE_LABELS[item['comparison_engine']], item['paired'], item['both_pass'],
+        [participants.models[model], participants.engines[item['baseline_engine']],
+         participants.engines[item['comparison_engine']], item['paired'], item['both_pass'],
          item['baseline_only'], item['comparison_only'], item['both_fail']]
         for model, group in pairs.items() for item in group['comparisons'].values()
     ]
     clean_rows = [
-        [MODEL_LABELS[model], ENGINE_LABELS[engine], f"{value['passed']}/{value['completed']}", _pct(value['score'])]
-        for model, group in _primary_summary(eligible).items() for engine, value in group.items()
+        [participants.models[model], participants.engines[engine], f"{value['passed']}/{value['completed']}", _pct(value['score'])]
+        for model, group in _primary_summary(eligible, participants).items() for engine, value in group.items()
     ]
     chapters = []
     for model, engine in sorted(configurations):
@@ -2204,7 +2186,7 @@ def _article_body(
             continue
         ids = {_attempt_id(row) for row in failures}
         causes = {key: value for key, value in verified_causes.items() if key in ids}
-        label = f'{MODEL_LABELS[model]} × {ENGINE_LABELS[engine]}'
+        label = f'{participants.models[model]} × {participants.engines[engine]}'
         specimen = next(iter(causes), _attempt_id(failures[0]))
         cause = causes.get(specimen) or {}
         reason = cause.get('reason') or {}
@@ -2217,7 +2199,7 @@ def _article_body(
             + _failure_cause_table(causes)
             + f'<p><a href="results/{_e(specimen)}.html#verification">{_e(specimen)}</a> · {explanation}</p></section>'
         )
-    common_count, resource_rows = _common_final_success_resource_rows(attempts)
+    common_count, resource_rows = _common_final_success_resource_rows(attempts, participants)
     coverage = review.get('coverage') or {}
     reviewed = int(coverage.get('reviewed_attempts') or 0)
     recorded = int(coverage.get('recorded_attempts') or 0)
@@ -2230,12 +2212,12 @@ def _article_body(
         + '</p><p class="page-links"><a href="datasets/">查看评测集</a><a href="analysis/">下钻全部结果</a><a href="data/interpretation-evidence.json" download>下载论点与证据</a></p></header><section><h2>'
         + text(f'{task_count} 题核心指标', f'Core metrics across {task_count} tasks') + '</h2>'
         + _table(['模型', '浏览器', '通过任务', '通过率', 'Agent 总耗时', 'BrowserTool 耗时', 'Tokens'],
-                 _summary_comparison_rows(summary), table_id='home-core-metrics', classes='core-comparison-table')
+                 _summary_comparison_rows(summary, participants), table_id='home-core-metrics', classes='core-comparison-table')
         + '<p class="source-note">' + text('每个模型与浏览器配置使用同一任务范围；结果页保留全部物理执行。',
             'Every configuration uses the same task scope; result pages retain all physical executions.') + '</p></section>'
         + '<section><h2>按同题比较浏览器</h2>'
         + _table(['模型', '浏览器 A', '浏览器 B', '同题数', '两边都通过', 'A 通过、B 失败', 'A 失败、B 通过', '两边都失败'], comparison_rows)
-        + _trajectory_replay_control(trajectory_replay_bridge, attempts) + '</section>'
+        + _trajectory_replay_control(trajectory_replay_bridge, participants, attempts) + '</section>'
         + '<section id="failure-findings"><h2>程序判分落点与复核根因</h2>'
         + text('程序判分说明未通过的规则；根因复核解释已有证据支持的原因，两者不互相替代。',
                'Programmatic findings identify failed rules; cause reviews explain the evidence-supported cause. They serve different purposes.')
@@ -2255,7 +2237,7 @@ def _article_body(
         + '<section><h2>' + text(f'完整 {task_count} 题的速度与浏览器资源', f'Latency and browser resources across {task_count} tasks') + '</h2>'
         + text(f'均值、P50、P95 在全部 {configuration_count} 种配置中比较。CPU、内存和网络只计浏览器，不含 Agent 和模型服务。',
                f'Mean, P50 and P95 compare all {configuration_count} configurations. CPU, memory and network cover the browser, excluding the Agent and model service.')
-        + _resource_comparison_table(summary)
+        + _resource_comparison_table(summary, participants)
         + text('最低值标记只描述各配置的实际运行条件，不能视为统一视口下的资源效率结论。',
                'Minimum markers describe the recorded configuration; they do not establish resource efficiency at a common viewport.')
         + '</section><section><h2>共同成功任务的性能与资源</h2>'
@@ -2268,16 +2250,16 @@ def _article_body(
     )
 
 
-def _filters(*, attempts: bool = False, dataset: bool = False) -> str:
+def _filters(participants: Participants, *, attempts: bool = False, dataset: bool = False) -> str:
     engine_options = "".join(
         f'<option value="{_e(engine)}">{_e(label)}</option>'
-        for engine, label in ENGINE_LABELS.items()
+        for engine, label in participants.engines.items()
     )
     extra = (
         '<label>模型 <select data-filter="model"><option value="">全部</option>'
         + "".join(
             f'<option value="{_e(model)}">{_e(label)}</option>'
-            for model, label in MODEL_LABELS.items()
+            for model, label in participants.models.items()
         )
         + "</select></label>"
         + f'<label>浏览器 <select data-filter="engine"><option value="">全部</option>{engine_options}</select></label>'
@@ -2307,7 +2289,7 @@ def _filters(*, attempts: bool = False, dataset: bool = False) -> str:
     )
 
 
-def _task_table(tasks: list[dict[str, Any]]) -> str:
+def _task_table(tasks: list[dict[str, Any]], participants: Participants) -> str:
     rows = []
     for task in tasks:
         task_id, site, kind = int(task["task_id"]), task["sites"][0], task["task_type"]
@@ -2351,7 +2333,7 @@ def _task_table(tasks: list[dict[str, Any]]) -> str:
         for i, x in enumerate(labels)
     )
     return (
-        _filters(dataset=True)
+        _filters(participants, dataset=True)
         + f'<div class="table-wrap"><table id="task-table"><thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
     )
 
@@ -2405,6 +2387,7 @@ def _diagnosis_dialog(
 def _attempt_table(
     attempts: list[dict[str, Any]],
     tasks: list[dict[str, Any]],
+    participants: Participants,
     verified_causes: dict[str, dict[str, Any]] | None = None,
 ) -> str:
     verified_causes = verified_causes or {}
@@ -2435,7 +2418,7 @@ def _attempt_table(
                 _diagnosis_dialog(
                     result_id=p["id"],
                     task_id=p["task_id"],
-                    configuration=f"{MODEL_LABELS[p['model']]} · {ENGINE_LABELS[p['engine']]}",
+                    configuration=f"{participants.models[p['model']]} · {participants.engines[p['engine']]}",
                     failure_point=failure_point,
                     automatic_failure=automatic_failure,
                     evaluator_error=_evaluator_error_text(result_record, row),
@@ -2451,8 +2434,8 @@ def _attempt_table(
         values = [
             Safe(f'<a href="results/{p["id"]}.html">{p["id"]}</a>'),
             Safe(
-                f'<strong>{_e(MODEL_LABELS[p["model"]])}</strong><span class="table-kicker">'
-                f"{_e(ENGINE_LABELS[p['engine']])}</span>"
+                f'<strong>{_e(participants.models[p["model"]])}</strong><span class="table-kicker">'
+                f"{_e(participants.engines[p['engine']])}</span>"
             ),
             Safe(f'<a href="datasets/{p["task_id"]}.html">#{p["task_id"]}</a>'),
             _status(row),
@@ -2492,7 +2475,7 @@ def _attempt_table(
         ]
     )
     return (
-        _filters(attempts=True)
+        _filters(participants, attempts=True)
         + f'<div class="table-wrap"><table id="result-table"><thead><tr>{headers}</tr></thead><tbody>{"".join(rows)}</tbody></table></div>'
         + "".join(dialogs)
     )
@@ -2683,14 +2666,13 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         raise ValueError("Symlinked report profile is forbidden")
     profile = _read_json(profile_path)
     fix_log = _load_fix_log(profile)
-    _configure_engine_labels(profile)
-    _configure_models(profile)
+    participants = Participants.from_profile(profile)
     selection_path = report_selection_path(profile, selection_path)
     selection = load_pilot(selection_path)
     trajectory_replay_bridge = _load_trajectory_replay_bridge(
-        profile, selection_sha256=selection.sha256
+        profile, selection_sha256=selection.sha256, task_count=len(selection.tasks)
     )
-    bundles = _load_evidence_bundles(evidence)
+    bundles = _load_evidence_bundles(evidence, participants)
     source_attempts = [row for bundle in bundles for row in bundle["source_attempts"]]
     manifest, config = bundles[0]["manifest"], bundles[0]["config"]
     review_attempts = []
@@ -2783,7 +2765,8 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
     tier_counts = {
         tier: sum(task["tier"] == tier for task in tasks) for tier in ("easy", "medium", "hard")
     }
-    summary_by_model, paired_by_model = _primary_summary(attempts), _paired_summary(attempts)
+    summary_by_model = _primary_summary(attempts, participants)
+    paired_by_model = _paired_summary(attempts, participants)
     excluded_task_ids = _external_interference_task_ids(verified_causes)
     qualified_attempts = [
         row for row in attempts if int(row["task_id"]) not in excluded_task_ids
@@ -2791,8 +2774,8 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
     qualified_tasks = [
         task for task in tasks if int(task["task_id"]) not in excluded_task_ids
     ]
-    qualified_summary = _primary_summary(qualified_attempts)
-    model = "、".join(MODEL_LABELS.values())
+    qualified_summary = _primary_summary(qualified_attempts, participants)
+    model = "、".join(participants.models.values())
     adoption_evidence = _read_json(Path("research/browser-use-benchmark-adoption.json"))
     parent = output.parent
     parent.mkdir(parents=True, exist_ok=True)
@@ -2845,6 +2828,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             cohort_commits,
             automatic_failure_counts,
             trajectory_replay_bridge,
+            participants,
         )
         home = f'<section class="section"><div class="wrap">{article}</div></section>'
         (stage / "index.html").write_text(
@@ -2885,7 +2869,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 "题集范围",
                 f"<p>本轮在模型执行前固定 {task_count} 个任务，覆盖四个已部署站点以及 RETRIEVE、NAVIGATE、MUTATE 三种最终合同。这里仅描述题目与验收规则；通过率、耗时、轨迹和可完成性观察统一放在结果分析中。</p>",
             )
-            + _section(f"{task_count} 个任务", _task_table(tasks))
+            + _section(f"{task_count} 个任务", _task_table(tasks, participants))
         )
         (stage / "datasets/index.html").write_text(
             _page(title="评测集", active="datasets", body=datasets, depth=1), encoding="utf-8"
@@ -2909,9 +2893,9 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 '<p>评测集页面保持为冻结输入；实测输出、判分和轨迹在结果页查看。</p><div class="page-links">'
                 + "".join(
                     f'<a href="results/{model_id}-{engine}-{task_id}.html">'
-                    f"{_e(MODEL_LABELS[model_id])} · {_e(ENGINE_LABELS[engine])} 结果</a>"
-                    for model_id in MODEL_LABELS
-                    for engine in ENGINE_LABELS
+                    f"{_e(participants.models[model_id])} · {_e(participants.engines[engine])} 结果</a>"
+                    for model_id in participants.models
+                    for engine in participants.engines
                     if (model_id, engine, task_id) in by_attempt
                 )
                 + '<a href="analysis/#same-task">全部浏览器对照</a></div>',
@@ -3010,9 +2994,9 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             + '<p class="page-links">'
             + "".join(
                 f'<a href="results/{model_id}-{engine}-{example_id}.html#trajectory">'
-                + translated(f"{MODEL_LABELS[model_id]} · {ENGINE_LABELS[engine]} 自主轨迹示例",
-                             f"{MODEL_LABELS[model_id]} · {ENGINE_LABELS[engine]} autonomous trajectory") + '</a>'
-                for model_id in MODEL_LABELS for engine in ENGINE_LABELS
+                + translated(f"{participants.models[model_id]} · {participants.engines[engine]} 自主轨迹示例",
+                             f"{participants.models[model_id]} · {participants.engines[engine]} autonomous trajectory") + '</a>'
+                for model_id in participants.models for engine in participants.engines
                 for example_id in [next((int(task["task_id"]) for task in tasks
                                          if (model_id, engine, int(task["task_id"])) in by_attempt), None)]
                 if example_id is not None
@@ -3083,19 +3067,19 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         analysis += _section(
             f"同题全配置对比：完整 {len(tasks)} 题",
             "<p>" + bilingual_text(
-                f"每行是一道预注册任务，{len(MODEL_LABELS) * len(ENGINE_LABELS)} 列对应模型×浏览器配置；可筛出结果有差异、全部通过或全部失败的任务。",
-                f"Each row is a registered task, with {len(MODEL_LABELS) * len(ENGINE_LABELS)} columns for model-by-browser configurations. Filter for disagreement, all-pass or all-fail tasks.") + "</p>"
-            + _same_task_comparison(tasks, attempts),
+                f"每行是一道预注册任务，{len(participants.models) * len(participants.engines)} 列对应模型×浏览器配置；可筛出结果有差异、全部通过或全部失败的任务。",
+                f"Each row is a registered task, with {len(participants.models) * len(participants.engines)} columns for model-by-browser configurations. Filter for disagreement, all-pass or all-fail tasks.") + "</p>"
+            + _same_task_comparison(tasks, attempts, participants),
         ).replace('<section class="section">', '<section class="section" id="same-task">', 1)
         analysis += _section(
             "BrowserTool 动作延迟",
             "<p>每个动作把全部模型×浏览器配置放在一起比较单次调用墙钟均值，只标记全局唯一最低值。总耗时和调用数受 Agent 行为量影响，仅用于解释工作量，不参与快慢判定。</p>"
-            + _action_duration_cards(attempts),
+            + _action_duration_cards(attempts, participants),
         )
         analysis += _section(
             f"{result_count} 个结果与失败诊断",
             f"<p>这里保留预注册 {task_count} 题的全部官方结果；其中 {len(excluded_task_ids)} 题已标记外部干扰。默认显示失败；点击“查看诊断”可核对发生位置、程序报错、复核根因、轨迹、画面和日志。</p>"
-            + _attempt_table(attempts, tasks, verified_causes),
+            + _attempt_table(attempts, tasks, participants, verified_causes),
         )
         (stage / "analysis/index.html").write_text(
             _page(title="结果分析", active="analysis", body=analysis, depth=1), encoding="utf-8"
@@ -3161,7 +3145,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             remediation_owner, remediation_action, external_interference = _remediation(cause_code)
             detail = _hero(
                 public["id"],
-                f"{MODEL_LABELS[public['model']]} · {ENGINE_LABELS[public['engine']]} · Task #{public['task_id']}",
+                f"{participants.models[public['model']]} · {participants.engines[public['engine']]} · Task #{public['task_id']}",
                 (
                     f"失败发生在{failure_point}；下方保留程序报错、复核根因和对应执行证据。"
                     if float(public["score"]) < 1
@@ -3317,15 +3301,15 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 ["模型", "浏览器", "运行版本", "镜像 ID", "接入方式", "通过任务"],
                 [
                     [
-                        MODEL_LABELS[model_id],
+                        participants.models[model_id],
                         Safe(f'<a href="engines/{engine}.html">{_e(label)}</a>'),
                         (participant_versions.get(engine) or {}).get("Browser", "—"),
                         (participant_images.get(engine) or {}).get("id", "—"),
                         "独立容器 · CDP · CowAgent BrowserTool",
                         f"{summary_by_model[model_id][engine]['passed']}/{summary_by_model[model_id][engine]['completed']}",
                     ]
-                    for model_id in MODEL_LABELS
-                    for engine, label in ENGINE_LABELS.items()
+                    for model_id in participants.models
+                    for engine, label in participants.engines.items()
                 ],
             )
             + "<p>每个模型分别比较各浏览器，不把不同模型的结果合并排名。</p>",
@@ -3342,7 +3326,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                     ],
                     [
                         "模型",
-                        ", ".join(MODEL_LABELS.values())
+                        ", ".join(participants.models.values())
                         + f" · reasoning={protocol.get('reasoning_effort', '—')}",
                         "作为分层变量为各浏览器生成决策",
                     ],
@@ -3379,11 +3363,11 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             environment.get("browser_images") or {},
         )
         engine_rows = []
-        for engine in ENGINE_LABELS:
+        for engine in participants.engines:
             version, image = versions.get(engine) or {}, images.get(engine) or {}
             engine_rows.append(
                 [
-                    Safe(f'<a href="engines/{engine}.html">{ENGINE_LABELS[engine]}</a>'),
+                    Safe(f'<a href="engines/{engine}.html">{participants.engines[engine]}</a>'),
                     version.get("Browser", "—"),
                     version.get("Protocol-Version", "—"),
                     image.get("architecture", "—"),
@@ -3391,7 +3375,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 ]
             )
             body = _hero(
-                "Engine", ENGINE_LABELS[engine], "本轮浏览器运行身份、完整任务结果与失败证据入口。"
+                "Engine", participants.engines[engine], "本轮浏览器运行身份、完整任务结果与失败证据入口。"
             ) + _section(
                 "运行身份",
                 _table(
@@ -3404,15 +3388,15 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                         [
                             "各模型任务成绩",
                             "；".join(
-                                f"{MODEL_LABELS[model_id]} {summary_by_model[model_id][engine]['passed']}/{summary_by_model[model_id][engine]['completed']}"
-                                for model_id in MODEL_LABELS
+                                f"{participants.models[model_id]} {summary_by_model[model_id][engine]['passed']}/{summary_by_model[model_id][engine]['completed']}"
+                                for model_id in participants.models
                             ),
                         ],
                         [
                             "各模型逻辑结果耗时 P50",
                             "；".join(
-                                f"{MODEL_LABELS[model_id]} {_seconds(summary_by_model[model_id][engine]['p50_duration_ms'])}"
-                                for model_id in MODEL_LABELS
+                                f"{participants.models[model_id]} {_seconds(summary_by_model[model_id][engine]['p50_duration_ms'])}"
+                                for model_id in participants.models
                             ),
                         ],
                     ],
@@ -3425,7 +3409,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 f'<div class="report-entry-links"><a class="button-link" href="analysis/index.html?f_engine={engine}#result-table">打开筛选后的结果清单 →</a></div>',
             )
             (stage / f"engines/{engine}.html").write_text(
-                _page(title=ENGINE_LABELS[engine], active="adoption", body=body, depth=1),
+                _page(title=participants.engines[engine], active="adoption", body=body, depth=1),
                 encoding="utf-8",
             )
 
@@ -3507,12 +3491,12 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 ["运行方式", "是否允许", "隔离要求"],
                 [
                     [
-                        "一套站点环境，Chromium 与 Moli 串行",
+                        f"一套站点环境，{participants.engine_names} 串行",
                         "允许，默认方案",
                         "同一 daemon 锁；每次尝试前重置并核对初态",
                     ],
                     [
-                        "一套站点环境，两个浏览器并行",
+                        f"一套站点环境，{'两个' if len(participants.engines) == 2 else '多个'}浏览器并行",
                         "不允许",
                         "账号不同仍会共享对象、索引、缓存和后台任务",
                     ],
@@ -3551,10 +3535,11 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             _page(title="账号", active="accounts", body=accounts, depth=1), encoding="utf-8"
         )
 
+        configuration_count = len(participants.models) * len(participants.engines)
         claims = {
             "schema": "lex_browser_use_interpretation/1",
             "claims": [
-                {"claim": "审查合格比较集的模型内浏览器配对结果", "basis": _paired_summary(qualified_attempts)},
+                {"claim": "审查合格比较集的模型内浏览器配对结果", "basis": _paired_summary(qualified_attempts, participants)},
                 {"claim": "失败根因以当前证据绑定的逐结果核验为准", "basis": verified_causes},
                 {
                     "claim": "官方 evaluator 的失败规则组合",
@@ -3581,16 +3566,20 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                                 for row in attempts
                                 if int(row["task_id"])
                                 not in _external_interference_task_ids(verified_causes)
-                            ]
+                            ],
+                            participants,
                         ),
                     },
                 },
                 {
-                    "claim": "四配置最终共同成功任务的性能与资源 P50",
+                    "claim": (
+                        f"{'四' if configuration_count == 4 else f'{configuration_count} 种'}"
+                        "配置最终共同成功任务的性能与资源 P50"
+                    ),
                     "basis": dict(
                         zip(
                             ("task_count", "rows"),
-                            _common_final_success_resource_rows(qualified_attempts),
+                            _common_final_success_resource_rows(qualified_attempts, participants),
                             strict=True,
                         )
                     ),
@@ -3640,7 +3629,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
             write_json(stage / "data/trajectory-replay-bridge.json", trajectory_replay_bridge, parents=True)
             write_json(
                 stage / "data/trajectory-replay-failure-review.json",
-                _read_json(Path(str((trajectory_replay_bridge.get("moli_failure_review") or {}).get("path") or ""))), parents=True,
+                _read_json(Path(str(_replay_engine_field(trajectory_replay_bridge, "_failure_review")[1].get("path") or ""))), parents=True,
             )
         write_json(
             stage / "data/evidence-index.json",
@@ -3667,7 +3656,7 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 "task_count": len(qualified_tasks),
                 "excluded_task_ids": sorted(excluded_task_ids),
                 "summary": qualified_summary,
-                "paired_summary": _paired_summary(qualified_attempts),
+                "paired_summary": _paired_summary(qualified_attempts, participants),
             },
             "selection_sha256": selection.sha256,
             "evidence_bindings": {
@@ -3712,9 +3701,9 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
                 )
             }
             | {
-                "models": list(MODEL_LABELS),
-                "model_labels": MODEL_LABELS,
-                "baseline_engine": BASELINE_ENGINE,
+                "models": list(participants.models),
+                "model_labels": participants.models,
+                "baseline_engine": participants.baseline_engine,
                 "max_task_executions": protocol.get("max_task_executions") or profile.get("max_task_executions"),
                 "environment_reset": (
                     "official site containers reset before every execution; "
@@ -3863,7 +3852,3 @@ def main() -> None:
     configuration = _read_json(args.profile)
     selection_path = report_selection_path(configuration, args.selection)
     print(build_report(evidence=args.evidence, output=args.output, selection_path=selection_path, include_english=args.include_english, language=args.language or primary_report_language(args.output), profile_path=args.profile))
-
-
-if __name__ == "__main__":
-    main()

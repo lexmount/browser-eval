@@ -40,7 +40,7 @@ def edition(tmp_path):
                 'source_sha256': inventory.hexdigest(), 'scope': 'qualified_test', 'split': 'test',
                 'size': 2, 'primary_quality_case_count': 2,
                 'distribution': {'parent': {'article': 2}, 'sample': {'article': 2}}, 'cases': cases}
-    (definitions / 'tasks.json').write_text(json.dumps(manifest))
+    (definitions / 'tasks.json').write_text(json.dumps(manifest), encoding='utf-8')
     return source, definitions / 'tasks.json'
 
 
@@ -50,7 +50,7 @@ def test_default_qualified_edition_is_locked_and_needs_no_checkout(edition, monk
         manifest.parent / relative if track == 'wcxb' else pytest.fail('Wrong dataset')))
     assert selected_wcxb_input() == edition
     records, digest = load_wcxb_source(source)
-    selected, _ = validate_manifest(records, digest, json.loads(manifest.read_text()))
+    selected, _ = validate_manifest(records, digest, json.loads(manifest.read_text(encoding='utf-8')))
     assert [row['track_id'] for row in selected] == ['001', '002']
     assert selected[0]['ground_truth']['with'] == ['Source paragraph']
     assert not (source / 'evaluate.py').exists()
@@ -64,26 +64,26 @@ def test_qualified_edition_rejects_changed_bytes_or_declared_population(edition,
         path = source / 'test' / changed / f'001.{suffix}'
         path.write_bytes(path.read_bytes() + b' ')
     else:
-        task = json.loads(manifest.read_text())
+        task = json.loads(manifest.read_text(encoding='utf-8'))
         if changed == 'count':
             task['source_count'] = 511
         elif changed == 'identity':
             task['cases'][0]['file_id'] = 'foreign'
         else:
             task['cases'][0]['reference'] = 'Wrong independent reference'
-        manifest.write_text(json.dumps(task))
+        manifest.write_text(json.dumps(task), encoding='utf-8')
     with pytest.raises((ValueError, EOFError, gzip.BadGzipFile)):
         records, digest = load_wcxb_source(source)
-        validate_manifest(records, digest, json.loads(manifest.read_text()))
+        validate_manifest(records, digest, json.loads(manifest.read_text(encoding='utf-8')))
 
 
 def test_score_command_resolves_qualified_hf_inputs_by_default(edition, tmp_path, monkeypatch):
     source, manifest = edition
-    (tmp_path / 'profile.json').write_text('{}')
+    (tmp_path / 'profile.json').write_text('{}', encoding='utf-8')
     monkeypatch.setattr(data, 'definition_path', lambda track, relative: manifest.parent / relative)
     called = {}
     monkeypatch.setattr(wcxb_scoring, 'score', lambda **args: called.update(args))
-    monkeypatch.setattr(sys, 'argv', ['score_wcxb_results.py', '--evidence-root', str(tmp_path / 'evidence'),
+    monkeypatch.setattr(sys, 'argv', ['wcxb-score', '--evidence-root', str(tmp_path / 'evidence'),
                                     '--profile', str(tmp_path / 'profile.json')])
     wcxb_scoring.main()
     assert called['source'] == source

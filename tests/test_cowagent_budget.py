@@ -11,7 +11,7 @@ def test_native_timer_and_response_survive_success_failure_and_next_call(tmp_pat
     package = tmp_path / 'agent/tools/web_fetch'
     package.mkdir(parents=True)
     for directory in (tmp_path / 'agent', tmp_path / 'agent/tools', package):
-        (directory / '__init__.py').write_text('')
+        (directory / '__init__.py').write_text('', encoding='utf-8')
     (package / 'web_fetch.py').write_text('''from types import SimpleNamespace
 DEFAULT_TIMEOUT = 30
 class WebFetch:
@@ -22,7 +22,7 @@ class WebFetch:
             raise RuntimeError('native failure')
         return SimpleNamespace(status='success', result='native answer',
                                ext_data={'native_field': 1}, display='native display')
-''')
+''', encoding='utf-8')
     provider = CowAgentBuiltinProvider('cow', {'repo_path': str(tmp_path),
                                              'workspace': str(tmp_path / 'workspace')})
     try:

@@ -27,7 +27,8 @@ def readiness_files(tmp_path):
                     "arguments": {"action": "click", "selector": 'button:has-text("Submit")'},
                 },
             ]
-        )
+        ),
+        encoding="utf-8"
     )
     results = tmp_path / "results.json"
     results.write_text(
@@ -47,16 +48,17 @@ def readiness_files(tmp_path):
                     }
                 ]
             }
-        )
+        ),
+        encoding="utf-8"
     )
     return results, trace
 
 
 def command(name, *args):
     return subprocess.run(
-        [sys.executable, str(ROOT / "scripts" / name), *map(str, args)],
+        [sys.executable, "-m", "harness.trajectory_replay", name, *map(str, args)],
         cwd=ROOT,
-        env={**os.environ, "PYTHONPATH": str(ROOT)},
+        env={**os.environ, "PYTHONPATH": os.pathsep.join((str(ROOT / "src"), str(ROOT)))},
         capture_output=True,
         text=True,
         timeout=20,
@@ -67,7 +69,7 @@ def test_readiness_command_creates_new_diagnostic_without_changing_a_pass(tmp_pa
     results, trace = readiness_files(tmp_path)
     originals = {path: path.read_bytes() for path in (results, trace)}
     output = tmp_path / "diagnostic.json"
-    result = command("audit_replay_readiness.py", "--results", results, "--output", output)
+    result = command("audit-readiness", "--results", results, "--output", output)
     assert result.returncode == 0, result.stderr
     payload = json.loads(output.read_bytes())
     assert payload["score_effect"] == "none"
@@ -75,7 +77,7 @@ def test_readiness_command_creates_new_diagnostic_without_changing_a_pass(tmp_pa
     assert payload["findings"][0]["dispatch_state_known"] is False
     assert all(path.read_bytes() == content for path, content in originals.items())
     output.write_bytes(b"Independent receipt")
-    result = command("audit_replay_readiness.py", "--results", results, "--output", output)
+    result = command("audit-readiness", "--results", results, "--output", output)
     assert result.returncode != 0 and output.read_bytes() == b"Independent receipt"
 
 
@@ -96,7 +98,7 @@ def test_readiness_command_rejects_unsafe_boundaries(tmp_path, boundary):
         linked = tmp_path / "linked"
         linked.symlink_to(tmp_path, target_is_directory=True)
         output = linked / "diagnostic.json"
-    result = command("audit_replay_readiness.py", "--results", input_path, "--output", output)
+    result = command("audit-readiness", "--results", input_path, "--output", output)
     assert result.returncode != 0
     assert results.read_bytes() == original
     if boundary == "linked-output":
@@ -111,7 +113,7 @@ def test_readiness_rejects_trace_changed_during_inspection(tmp_path, monkeypatch
 
     def change(trace_rows):
         value = original(trace_rows)
-        trace.write_text("[]")
+        trace.write_text("[]", encoding="utf-8")
         return value
 
     monkeypatch.setattr(d, "snapshot_readiness_gaps", change)
@@ -129,7 +131,7 @@ def test_shared_path_guard_rejects_user_links(tmp_path, link_kind):
         path = linked / "output.json"
     else:
         if link_kind == "file":
-            target.write_text("retained")
+            target.write_text("retained", encoding="utf-8")
         linked.symlink_to(target)
         path = linked
     with pytest.raises(ValueError, match="symlinked"):
@@ -189,7 +191,9 @@ def test_cart_controls_execute_both_assertions_without_network(tmp_path):
         pytest.skip(str(exc))
     dataset, candidate = tmp_path / "dataset.json", tmp_path / "candidate.json"
     frozen = [{"action": "evaluate", "script": "() => true"}]
-    dataset.write_text(json.dumps({"trajectories": [{"task_id": 42, "tool_calls": frozen}]}))
+    dataset.write_text(
+        json.dumps({"trajectories": [{"task_id": 42, "tool_calls": frozen}]}), encoding="utf-8"
+    )
     assertion = """() => {
       const rows = document.querySelectorAll('#shopping-cart-table tbody.cart.item');
       const fields = document.querySelectorAll('input[name="cart[1][qty]"]');
@@ -208,7 +212,8 @@ def test_cart_controls_execute_both_assertions_without_network(tmp_path):
                     "predecessor_dataset_sha256": hashlib.sha256(dataset.read_bytes()).hexdigest(),
                 },
             }
-        )
+        ),
+        encoding="utf-8"
     )
     before = {path: path.read_bytes() for path in (dataset, candidate)}
     result = d.audit_cart_assertion(dataset, candidate, browser, product="Synthetic product")

@@ -131,8 +131,8 @@ def load_matrix(directory: Path, builds: dict, summaries: dict) -> dict:
     receipt_path = contained_path(directory, "receipt.json", reject_symlinks=True)
     for path in (protocol_path, calls_path, receipt_path):
         digest(path)
-    protocol = json.loads(protocol_path.read_text())
-    receipt = json.loads(receipt_path.read_text())
+    protocol = json.loads(protocol_path.read_text(encoding="utf-8"))
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     calls = load_jsonl(calls_path)
     if receipt["protocol_sha256"] != digest(protocol_path) or receipt[
         "physical_calls_sha256"

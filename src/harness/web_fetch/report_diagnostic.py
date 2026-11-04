@@ -9,12 +9,11 @@ from collections import Counter
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
 
-from bs4 import BeautifulSoup
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path, safe_identifier, validate_http_url
 
-from harness.record_io import json_bytes, load_jsonl
-from harness.reporting.presentation import check_presentation
+from harness.record_io import json_bytes, load_jsonl, read_json
+from harness.reporting.release_check import checked_page, open_report, read_page
 from harness.reporting.versions import check_build_version
 from harness.web_fetch.artifacts import (
     verify_record_private_artifacts,
@@ -76,7 +75,7 @@ def prepare_diagnostic_evidence(spec_path, output):
     """Adapt complete saved cohorts and bound reviews, never make provider calls."""
 
     spec_path, output = Path(spec_path).resolve(), Path(output)
-    spec = json.loads(spec_path.read_text())
+    spec = json.loads(spec_path.read_text(encoding='utf-8'))
     if spec.get('schema') != 'webfetch_diagnostic_inputs/1':
         raise ValueError('Unsupported diagnostic input manifest')
     if any(output.iterdir()):
@@ -96,9 +95,9 @@ def prepare_diagnostic_evidence(spec_path, output):
         dataset_path=run/'dataset.json';results_path=run/'results.jsonl'
         observations_path=contained_path(spec_path.parent,cohort['observations'])
         review_path=contained_path(spec_path.parent,cohort['review'])
-        dataset=json.loads(dataset_path.read_text());cases={c['id']:c for c in dataset['cases']}
+        dataset=json.loads(dataset_path.read_text(encoding='utf-8'));cases={c['id']:c for c in dataset['cases']}
         records=load_jsonl(results_path)
-        observations=json.loads(observations_path.read_text());review=json.loads(review_path.read_text())
+        observations=json.loads(observations_path.read_text(encoding='utf-8'));review=json.loads(review_path.read_text(encoding='utf-8'))
         expected_bindings={k:hashlib.sha256(p.read_bytes()).hexdigest() for k,p in
             [('dataset_sha256',dataset_path),('results_sha256',results_path),('observations_sha256',observations_path)]}
         if review.get('bindings') != expected_bindings:
@@ -108,7 +107,7 @@ def prepare_diagnostic_evidence(spec_path, output):
                 or len(review['rows'])!=len(cases) or set(reviewed)!=set(cases)
                 or set(observations)!=set(cases) or len({r['provider'] for r in records})!=1):
             raise ValueError('Diagnostic inputs require the complete task/observation/review matrix')
-        execution=json.loads((run/'execution.json').read_text())
+        execution=json.loads((run/'execution.json').read_text(encoding='utf-8'))
         attempt_ids=[aid for batch in execution['batches'] for aid in batch.get('attempt_ids',[])]
         if (len(attempt_ids)!=len(records) or set(attempt_ids)!={r['attempt_id'] for r in records}
                 or set(execution.get('aggregate',{}).get('case_ids',[]))!=set(cases)
@@ -141,7 +140,7 @@ def prepare_diagnostic_evidence(spec_path, output):
             log={k:v for k,v in record.items() if k not in ('provider_metadata','artifact_path')}
             metadata=record['provider_metadata'];public_call=metadata.get('call_log')
             if public_call:
-                call=json.loads(contained_path(run,public_call['path']).read_text())
+                call=json.loads(contained_path(run,public_call['path']).read_text(encoding='utf-8'))
                 log['process']=call['process'];log['request']=call['request'];log['call_error']=call['error']
                 log['error_message']=call['error']['message']
             log['provider_identity']=dict(reported_version=version,binary_sha256=binary_sha)
@@ -355,7 +354,7 @@ def diagnostic_cohort_summary(model, files):
 
 def load_diagnostic(source):
     source = Path(source).resolve()
-    model = json.loads(contained_path(source, "report.json").read_text())
+    model = json.loads(contained_path(source, "report.json").read_text(encoding='utf-8'))
     if model.get("schema") != "webfetch_cohort_diagnostic/1" or model.get("certified") is not False:
         raise ValueError("Expected an explicitly diagnostic WebFetch model")
     groups = {g["id"]: g for g in model["cohorts"]}
@@ -439,14 +438,14 @@ def check_diagnostic_report(output, profile=None):
     """Enforce the shared reader structure and evidence dialogs at release."""
 
 
-    output = Path(output)
+    output = open_report(output)
     model, files = load_diagnostic(output)
     if profile is not None:
-        require_diagnostic_scope(model, json.loads(Path(profile).read_text()))
-    manifest = json.loads((output / "report-manifest.json").read_text())
+        require_diagnostic_scope(model, read_json(Path(profile)))
+    manifest = read_json(output / "report-manifest.json")
     check_build_version(output, manifest)
     if profile is not None:
-        binding = json.loads(Path(profile).read_text()).get('diagnostic_input')
+        binding = read_json(Path(profile)).get('diagnostic_input')
         if binding and manifest.get('input_sha256') != binding['sha256']:
             raise ValueError('Rendered diagnostic instance does not bind the planned input')
     if manifest["template"]["track"] != "webfetch" or manifest["template"]["renderer"] not in {"src/harness/web_fetch/report.py", "harness/web_fetch/report.py"}:
@@ -460,12 +459,11 @@ def check_diagnostic_report(output, profile=None):
     core = ["index.html", "datasets/index.html", "methodology/index.html", "analysis/index.html",
             "review/index.html", "guide/index.html", "reproduce/index.html", "en/index.html"]
     for route in core:
-        page = (output / route).read_text()
-        check_presentation(page)
-    home = BeautifulSoup((output / 'index.html').read_text(), 'html.parser')
+        checked_page(output / route)
+    home = read_page(output / 'index.html')
     overall = diagnostic_call_summary(model['rows'], files)
     for route in ('index.html', 'guide/index.html'):
-        page = BeautifulSoup((output / route).read_text(), 'html.parser')
+        page = read_page(output / route)
         rendered = page.select('[data-summary-overall]')
         expected_values = [overall[k] for k in ('total','delivered','accepted','mean_ms','p50_ms','p95_ms')]
         if (len(rendered) != 1 or [c.get('data-sort') for c in rendered[0].select('td')][3:]
@@ -496,7 +494,7 @@ def check_diagnostic_report(output, profile=None):
         width = re.fullmatch(r'width:([0-9.]+)%', fill.get('style', ''))
         if not width or abs(float(width[1]) - 100 * passed / total) > 1e-9:
             raise ValueError('Cohort chart percentage mismatch')
-    analysis = BeautifulSoup((output / 'analysis/index.html').read_text(), 'html.parser')
+    analysis = read_page(output / 'analysis/index.html')
     expected_counts = diagnostic_failure_counts(model, files)
     actual_counts = analysis.select('[data-failure-type]')
     if Counter(c.get('data-failure-type') for c in actual_counts) != Counter({k: 1 for k in expected_counts}):
@@ -507,7 +505,7 @@ def check_diagnostic_report(output, profile=None):
                 or FAILURE_TYPES[kind] not in count.get_text()
                 or not count.select_one('a[href="analysis/index.html#issue='+kind+'"]')):
             raise ValueError('Failure type count or drilldown differs from saved checks')
-    guide = BeautifulSoup((output / 'guide/index.html').read_text(), 'html.parser')
+    guide = read_page(output / 'guide/index.html')
     if not guide.select_one('#guide-results') or not guide.select_one('#guide-conclusions'):
         raise ValueError('Interpretation lacks outcome or conclusion')
     lead = guide.select_one('.hero .lead')
@@ -550,7 +548,7 @@ def check_diagnostic_report(output, profile=None):
                 raise ValueError('Interpretation specimen differs from bound evidence')
     for row in model["rows"]:
         route = "attempts/" + row["id"] + ".html"
-        soup = check_presentation((output / route).read_text())
+        soup = checked_page(output / route)
         if soup.select_one('[data-task-id]')["data-task-id"] != row["id"]:
             raise ValueError("Result identity mismatch")
         detail = soup.select_one('[data-report-detail]')
@@ -583,7 +581,7 @@ def check_diagnostic_report(output, profile=None):
             elif pre.get_text() != files[binding['path']].decode('utf-8'):
                 raise ValueError("Rendered evidence differs from saved output")
     for route in output.rglob("*.html"):
-        soup = BeautifulSoup(route.read_text(), "html.parser")
+        soup = read_page(route)
         for node in soup.select("[href], [src], [data-evidence-file]"):
             if node.name == 'base':
                 continue

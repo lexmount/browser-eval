@@ -11,9 +11,10 @@ import pytest
 
 from harness.lexbench.charts import combine_comparisons, render_chart
 from harness.lexbench.verification import validate, validate_release
+from tests.test_lexbench_cli import checkout_env
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "scripts/moli_report/verify.py"
+COMMAND = [sys.executable, "-m", "harness.lexbench", "check"]
 
 
 def test_importing_command_does_not_parse_arguments_or_read_report(tmp_path):
@@ -21,10 +22,11 @@ def test_importing_command_does_not_parse_arguments_or_read_report(tmp_path):
         [
             sys.executable,
             "-c",
-            "import runpy, sys; sys.argv = ['caller', '--unrelated']; "
-            f"runpy.run_path({str(SCRIPT)!r}, run_name='imported_command')",
+            "import sys; sys.argv = ['caller', '--unrelated']; "
+            "import harness.lexbench.cli, harness.lexbench.verification",
         ],
         cwd=tmp_path,
+        env=checkout_env(),
         check=True,
         capture_output=True,
         text=True,
@@ -33,8 +35,9 @@ def test_importing_command_does_not_parse_arguments_or_read_report(tmp_path):
 
 def test_release_profile_can_be_selected_explicitly(tmp_path):
     result = subprocess.run(
-        [sys.executable, str(SCRIPT), "--help"],
+        [*COMMAND, "--help"],
         cwd=tmp_path,
+        env=checkout_env(),
         check=True,
         capture_output=True,
         text=True,
@@ -176,13 +179,13 @@ def report(tmp_path):
             lang,
         )
     save(site, "reproduction/plot_version_summary.py", b"# synthetic chart source\n")
-    messages = (ROOT / 'scripts/moli_report/messages.json').read_text().replace('<', '\\u003c')
+    messages = (ROOT / 'src/harness/lexbench/template/messages.json').read_text(encoding="utf-8").replace('<', '\\u003c')
     shell = '<script type="application/json" id="report-messages">' + messages + '</script>'
     save(site, "index.html", ('<html lang="zh-CN">' + shell + '</html>').encode())
     save(site, "en/index.html", b'<html lang="en"></html>')
     save(site, "README.md", b"Synthetic offline evidence")
-    save(site, "app.js", (ROOT / "scripts/moli_report/app.js").read_bytes())
-    save(site, "style.css", (ROOT / "scripts/moli_report/style.css").read_bytes())
+    save(site, "app.js", (ROOT / "src/harness/lexbench/template/app.js").read_bytes())
+    save(site, "style.css", (ROOT / "src/harness/lexbench/template/style.css").read_bytes())
     model = {
         "schema": "moli_layout_report/2",
         "task_count": 372,
@@ -335,14 +338,14 @@ def test_release_binding_uses_selected_profile_registry():
 def test_profile_option_without_release_is_rejected_before_reading_site(tmp_path):
     result = subprocess.run(
         [
-            sys.executable,
-            str(SCRIPT),
+            *COMMAND,
             "--site",
             str(tmp_path / "absent"),
             "--profile",
             str(tmp_path / "unread.json"),
         ],
         cwd=tmp_path,
+        env=checkout_env(),
         capture_output=True,
         text=True,
     )
@@ -455,7 +458,8 @@ def chinese_only_report(report):
         path.unlink()
     write_language_contract(site, include_english=False)
     (site / "en.html").write_text(
-        (site / "en/index.html").read_text().replace('href="../index.html"', 'href="index.html"')
+        (site / "en/index.html").read_text(encoding="utf-8").replace('href="../index.html"', 'href="index.html"'),
+        encoding="utf-8"
     )
     return site, model
 
@@ -490,14 +494,14 @@ def test_requested_editions_are_generated_and_verified_end_to_end(report, includ
     shutil.rmtree(site / "assets")
     options = {"include_english": True} if include_english else {}
     write_presentation(
-        ROOT / "scripts/moli_report", site,
+        ROOT / "src/harness/lexbench/template", site,
         model["combined_comparison"], model["version_comparison"], **options,
     )
     assert generated_languages(site) == (("zh", "en") if include_english else ("zh",))
     assert len(list((site / "assets").glob("*.svg"))) == (4 if include_english else 2)
-    assert 'lang="zh-CN"' in (site / "index.html").read_text()
+    assert 'lang="zh-CN"' in (site / "index.html").read_text(encoding="utf-8")
     for entry in ("en.html", "en/index.html"):
-        html = (site / entry).read_text()
+        html = (site / entry).read_text(encoding="utf-8")
         assert ('lang="en"' in html) is include_english
         assert ("data-english-not-generated" in html) is not include_english
     assert verify(site)["result"] == "pass"
@@ -505,7 +509,7 @@ def test_requested_editions_are_generated_and_verified_end_to_end(report, includ
 
 def test_build_command_requires_explicit_option_for_english():
     result = subprocess.run(
-        [sys.executable, str(ROOT / "scripts/moli_report/build.py"), "--help"],
-        check=True, capture_output=True, text=True,
+        [sys.executable, "-m", "harness.lexbench", "report", "--help"],
+        check=True, capture_output=True, text=True, env=checkout_env(),
     )
     assert "--include-english" in result.stdout

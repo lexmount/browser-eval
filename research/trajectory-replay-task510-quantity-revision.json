@@ -44,7 +44,7 @@
   "effect": "Restores the upstream totals-response quantity and product-name rule. All three saved task-510 results remain accepted without browser calls. Historical cohort definitions and scores are unchanged. The explicit product-selection task revision remains a disclosed scope change.",
   "trajectory_candidate": {
     "path": "evaluation/trajectory-replay/webarena-verified/trajectory-candidates/task-510.json",
-    "sha256": "71e761d4931214002be74ac2adf6ffb10968f9140bd6b46cea8c5e35dde67dd2",
+    "sha256": "31326fc978d7ec11b8e366f1d91635f725b21dabfea49abe69c49e707310d963",
     "changed_step": 11,
     "local_dom_controls": 9,
     "invalid_cases_rejected": 8,

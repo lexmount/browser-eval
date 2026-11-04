@@ -416,12 +416,12 @@ def _offline_browser_article(body, out, cases, model):
         payload = '<h3>完整实际返回</h3><pre data-standalone-output="'+escape(name)+'">'+escape(raw)+'</pre>'
         payload += '<h3>结果与评分</h3><pre>'+escape(json.dumps({key:row[key] for key in ('attempt_id','provider','case_id','run_id','started_at','elapsed_ms','ok','status_code','error_type','metrics') if key in row},ensure_ascii=False,indent=2))+'</pre>'
         for binding in record_public_call_log_bindings(row):
-            snapshot = json.loads((out/'dataset.json').read_text()).get('comparison',{}).get('score_audit') if (out/'dataset.json').is_file() else None
+            snapshot = json.loads((out/'dataset.json').read_text(encoding='utf-8')).get('comparison',{}).get('score_audit') if (out/'dataset.json').is_file() else None
             if snapshot:
                 from harness.web_fetch.published_snapshot import read_snapshot_public_file
-                log = read_snapshot_public_file(out,binding).read_text()
+                log = read_snapshot_public_file(out,binding).read_text(encoding='utf-8')
             else:
-                log = verify_public_call_log(out,binding).read_text()
+                log = verify_public_call_log(out,binding).read_text(encoding='utf-8')
             payload += '<h3>调用日志</h3><pre>'+escape(log)+'</pre>'
         evidence('../attempts/'+row['attempt_id']+'.html', 'offline-result-'+row['attempt_id'],
                  '完整结果与调用证据 · '+name, payload)
@@ -447,7 +447,7 @@ def _offline_browser_article(body, out, cases, model):
         mime = 'image/jpeg' if suffix in {'.jpg','.jpeg'} else 'image/'+suffix[1:]
         image['src'] = 'data:'+mime+';base64,'+base64.b64encode(contained_path(out,relative).read_bytes()).decode('ascii')
     if (out/'result-review.json').is_file():
-        review=json.loads((out/'result-review.json').read_text())
+        review=json.loads((out/'result-review.json').read_text(encoding='utf-8'))
         summary={key:review[key] for key in ('reviewed_attempts','total_attempts','expected_attempts','accepted_unreviewed_passes','disagreements','unresolved') if key in review}
         evidence('../review/index.html','offline-review','独立审查范围',
                  '<pre>'+escape(json.dumps(summary,ensure_ascii=False,indent=2))+'</pre>')
@@ -528,7 +528,7 @@ def _browser_reviewed_error(out, model, row):
     if not relative:return None
     if relative not in {binding['path'] for binding in item['evidence_paths']}:
         raise ValueError('Program error excerpt has no verified evidence binding')
-    return contained_path(out,relative,reject_symlinks=True).read_text()
+    return contained_path(out,relative,reject_symlinks=True).read_text(encoding='utf-8')
 
 
 @with_measured_method_labels
@@ -624,7 +624,7 @@ def _render_current_browser_article(out, cases, records, binding):
     body += section('通过任务的耗时', '<p>只计各浏览器自己通过的任务。各行样本可能不同，须结合通过数阅读；这张表不改变任务范围或整体排名。</p>'+latency_table('successful'), 'successful-latency')
     resource = contained_path(out, 'resource-cohort/resource-comparison.json')
     if resource.is_file():
-        resource_summary = json.loads(resource.read_text())
+        resource_summary = json.loads(resource.read_text(encoding='utf-8'))
         # The resource cohort is an independently registered measurement.  Its
         # provider IDs can differ from the main result matrix (for example,
         # ``moli`` versus a source-build comparison ID).  Render the cohort's
@@ -683,7 +683,7 @@ def _render_current_browser_article(out, cases, records, binding):
                         '<div data-browser-chapter="'+escape(name)+'">'+paragraph(chapter['explanation'])+distribution+example+'</div>', 'browser-'+name,
                         browser_method_label(name,language='en')+': '+str(stat['passed'])+'/'+str(model['cases'])+' tasks passed')
     review_path = contained_path(out,'result-review.json')
-    review = json.loads(review_path.read_text()) if review_path.is_file() else None
+    review = json.loads(review_path.read_text(encoding='utf-8')) if review_path.is_file() else None
     body += section('结论与审查范围', paragraph(content['conclusions'])+
                     ('<p>独立核验范围与修订见<a href="../review/index.html">核验记录</a>。逐题原因与原始证据可从结果分析打开。</p>' if review else
                      '<p>独立结果审查：0/'+str(model['results'])+'。未经独立复判的程序通过结果：'+str(sum(stats[n]['passed'] for n in names))+'。本轮报告使用统一评分器的原始验收结果。</p>'), 'conclusions')
@@ -835,17 +835,17 @@ def _render_current_browser_article(out, cases, records, binding):
             wrapper.append(node.extract())
         owner.append(wrapper)
     append_html(owner,'<footer class="m-end">调用日期：'+escape('、'.join(dates))+'。本页使用本轮冻结结果；任务、输出与逐题审查见报告对应栏目。</footer>')
-    style=(Path(__file__).parent/'templates/interpretation-headless.css').read_text()
+    style=(Path(__file__).parent/'templates/interpretation-headless.css').read_text(encoding='utf-8')
     body='<style>'+style+'</style>'+str(reading)
     body += '<script>document.addEventListener("DOMContentLoaded",()=>{if(typeof wmbRenderFlow==="function")wmbRenderFlow()});</script>'
     evidence = {'schema':'webfetch_browser_interpretation_evidence/1','input_sha256':content['evidence_sha256'],
                 'cases':model['cases'],'results':model['results'],'providers':names,'interfaces':interfaces,
                 'stats':{n:{k:v for k,v in stats[n].items() if k not in {'specimen','failure_reviews'}} for n in names}}
     guide = contained_path(out,'guide');guide.mkdir(parents=True,exist_ok=True)
-    (guide/'interpretation-evidence.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+'\n')
+    (guide/'interpretation-evidence.json').write_text(json.dumps(evidence,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     from harness.web_fetch.report import EXTRA
     standalone = _offline_browser_article(body,out,cases,model)
-    (guide/'article.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+escape(content['title'])+'</title><style>'+STYLE+EXTRA+'</style></head><body>'+standalone+'</body></html>')
+    (guide/'article.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+escape(content['title'])+'</title><style>'+STYLE+EXTRA+'</style></head><body>'+standalone+'</body></html>', encoding='utf-8')
     return body+'<aside class="wrap"><a href="article.html" download>下载独立 HTML</a> · <a href="interpretation-evidence.json">本文计算明细</a></aside>'
 
 
@@ -904,8 +904,8 @@ def check_current_browser_article(out, cases, records, binding):
             if tag=='p':self.network_row=None
     for relative in ('guide/index.html','guide/article.html'):
         page=contained_path(out,relative)
-        inspect=Inspect();inspect.feed(page.read_text())
-        document = BeautifulSoup(page.read_text(), 'html.parser')
+        inspect=Inspect();inspect.feed(page.read_text(encoding='utf-8'))
+        document = BeautifulSoup(page.read_text(encoding='utf-8'), 'html.parser')
         chapter_ids = [node.get('id') for node in document.select('.reading-chapter')]
         if chapter_ids != ['reading-'+key for key in ('scope','results','method','configuration','failures','conclusion')]:
             raise ValueError('Browser interpretation reading sequence is incomplete')
@@ -1087,7 +1087,7 @@ def check_current_browser_article(out, cases, records, binding):
             if link!=expected_link or (not link.startswith('#') and not (page.parent/urlsplit(link).path).is_file()):
                 raise ValueError('Browser result evidence target is broken')
         if relative.endswith('article.html'):
-            offline = BeautifulSoup(page.read_text(),'html.parser')
+            offline = BeautifulSoup(page.read_text(encoding='utf-8'),'html.parser')
             if offline.select('script,link[rel="stylesheet"]'):
                 raise ValueError('Independent article requires external runtime')
             for name in model['providers']:
@@ -1104,7 +1104,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None, a
     out = Path(out)
     dataset_path = out / 'dataset.json'
     if content_binding is None and dataset_path.is_file():
-        content_binding = json.loads(dataset_path.read_text()).get('comparison', {}).get('report_interpretation')
+        content_binding = json.loads(dataset_path.read_text(encoding='utf-8')).get('comparison', {}).get('report_interpretation')
     if authored and content_binding is not None:
         return _render_current_browser_article(out, cases, records, content_binding)
     passes = sum(task_passed(row['ok'], row['metrics'],

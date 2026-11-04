@@ -11,7 +11,7 @@ from harness.web_fetch.dynamic_cohort import append
 
 def dump(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value))
+    path.write_text(json.dumps(value), encoding='utf-8')
 
 
 def digest(text):
@@ -44,9 +44,9 @@ class AppendDynamicContentTests(unittest.TestCase):
         dump(self.source/'dataset.json', {'cases': [{'id': 'old', 'track': 'web'}]})
         # Nonstandard whitespace is intentional: existing records stay byte-identical.
         self.previous_text = json.dumps(self.previous, indent=None, separators=(', ', ': '))+'\n'
-        (self.source/'results.jsonl').write_text(self.previous_text)
+        (self.source/'results.jsonl').write_text(self.previous_text, encoding='utf-8')
         dump(self.source/'execution.json', {'batches': [{'attempt_ids': ['old-run']}]})
-        (self.source/'unrelated.txt').write_text('retain me')
+        (self.source/'unrelated.txt').write_text('retain me', encoding='utf-8')
         self.cases, self.checks, self.records = [], [], []
         for key in ('one', 'two'):
             rendered = f'{key} complete record'
@@ -63,9 +63,9 @@ class AppendDynamicContentTests(unittest.TestCase):
             self.cases.append(case)
             folder = self.reference/'sources'/key
             folder.mkdir(parents=True)
-            (folder/'initial.html.txt').write_text(initial)
-            (folder/'rendered.txt').write_text(rendered)
-            (folder/'reference.txt').write_text(rendered)
+            (folder/'initial.html.txt').write_text(initial, encoding='utf-8')
+            (folder/'rendered.txt').write_text(rendered, encoding='utf-8')
+            (folder/'reference.txt').write_text(rendered, encoding='utf-8')
             dump(folder/'evidence.json', {
                 'initial_sha256': digest(initial), 'rendered_sha256': digest(rendered),
                 'reference_sha256': digest(rendered),
@@ -74,7 +74,7 @@ class AppendDynamicContentTests(unittest.TestCase):
                                 'timeout_ms': 1000, 'elapsed_ms': 10, 'checked_at': '2026-09-03'})
             artifact = f'artifacts/p/{key}/run.txt'
             (self.measured/artifact).parent.mkdir(parents=True)
-            (self.measured/artifact).write_text(rendered)
+            (self.measured/artifact).write_text(rendered, encoding='utf-8')
             self.records.append({'attempt_id': f'p-{key}', 'provider': 'p', 'case_id': key,
                                  'artifact_path': artifact,
                                  'metrics': {'content_sha256': digest(rendered), 'content_pass': True}})
@@ -89,7 +89,7 @@ class AppendDynamicContentTests(unittest.TestCase):
             dump(directory/'dataset.json', {'cases': self.cases})
 
     def save_records(self):
-        (self.measured/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in self.records))
+        (self.measured/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in self.records), encoding='utf-8')
 
     def run_append(self):
         append(self.source, self.reference, self.measured, self.checks)
@@ -113,14 +113,14 @@ class AppendDynamicContentTests(unittest.TestCase):
         reference_cases[0]['source_benchmark']['render_evidence'] = {'new_attestation': True}
         dump(self.reference/'dataset.json', {'cases': reference_cases})
         self.run_append()
-        text = (self.source/'results.jsonl').read_text()
+        text = (self.source/'results.jsonl').read_text(encoding='utf-8')
         self.assertTrue(text.startswith(self.previous_text))
         self.assertEqual([json.loads(line) for line in text.splitlines()][1:], self.records)
-        self.assertEqual((self.source/'unrelated.txt').read_text(), 'retain me')
-        self.assertEqual(json.loads((self.source/'dataset.json').read_text())['coverage_plan'],
+        self.assertEqual((self.source/'unrelated.txt').read_text(encoding='utf-8'), 'retain me')
+        self.assertEqual(json.loads((self.source/'dataset.json').read_text(encoding='utf-8'))['coverage_plan'],
                          {'web': ['p'], 'dynamic': ['p']})
         for case in self.cases:
-            audit = json.loads((self.source/'sources'/case['id']/'render-audit.json').read_text())
+            audit = json.loads((self.source/'sources'/case['id']/'render-audit.json').read_text(encoding='utf-8'))
             self.assertTrue(audit['valid'])
         self.assertEqual(list(self.root.glob('.source-append-*')), [])
 
@@ -152,7 +152,7 @@ class AppendDynamicContentTests(unittest.TestCase):
         self.assert_preflight_rejects('duplicate supplement cases')
 
     def test_invalid_execution_preflight(self):
-        (self.source/'execution.json').write_text('invalid JSON')
+        (self.source/'execution.json').write_text('invalid JSON', encoding='utf-8')
         self.assert_preflight_rejects()
 
     def test_invalid_manifest_preflight(self):
@@ -161,15 +161,15 @@ class AppendDynamicContentTests(unittest.TestCase):
         self.assert_preflight_rejects('manifest mismatch')
 
     def test_corrupt_artifact_preflight(self):
-        (self.measured/self.records[-1]['artifact_path']).write_text('corrupt')
+        (self.measured/self.records[-1]['artifact_path']).write_text('corrupt', encoding='utf-8')
         self.assert_preflight_rejects('Output hash mismatch')
 
     def test_corrupt_evidence_hash_preflight(self):
-        (self.reference/'sources/two/initial.html.txt').write_text('<main>different</main>')
+        (self.reference/'sources/two/initial.html.txt').write_text('<main>different</main>', encoding='utf-8')
         self.assert_preflight_rejects('Source evidence hash mismatch')
 
     def test_corrupt_reference_file_preflight(self):
-        (self.reference/'sources/two/reference.txt').write_text('corrupt')
+        (self.reference/'sources/two/reference.txt').write_text('corrupt', encoding='utf-8')
         self.assert_preflight_rejects('Frozen reference hash mismatch')
 
     def test_late_source_collision_preflight(self):
@@ -179,7 +179,7 @@ class AppendDynamicContentTests(unittest.TestCase):
     def test_output_collision_preflight(self):
         target = self.source/self.records[-1]['artifact_path']
         target.parent.mkdir(parents=True)
-        target.write_text('existing')
+        target.write_text('existing', encoding='utf-8')
         self.assert_preflight_rejects('Output collision')
 
     def test_duplicate_artifact_paths_preflight(self):
@@ -230,7 +230,7 @@ class AppendDynamicContentTests(unittest.TestCase):
         def corrupt_copy(src, dst, *args, **kwargs):
             result = copytree(src, dst, *args, **kwargs)
             if Path(src) == self.reference/'sources/two':
-                (Path(dst)/'rendered.txt').write_text('changed after preflight')
+                (Path(dst)/'rendered.txt').write_text('changed after preflight', encoding='utf-8')
             return result
 
         with patch('harness.web_fetch.dynamic_cohort.shutil.copytree', corrupt_copy):

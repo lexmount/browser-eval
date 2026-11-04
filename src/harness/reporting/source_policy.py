@@ -14,11 +14,17 @@ HAN = re.compile(r"[\u3400-\u9fff]")
 # External report instances selected with `--profile`; none may live under `evaluation/`.
 REPORT_INSTANCE_NAMES = frozenset({"current-report.json", "current-run.json", "current-comparison.json"})
 CATALOG_RENDERERS = (
+    "harness/web_search/comparison.py",
+    "harness/web_search/assets/comparison.css",
+    "harness/web_search/assets/comparison.js",
+    "harness/web_search/assets/delivery-bridge.js",
+    "harness/web_search/assets/delivery-loader.js",
+    "harness/web_search/delivery.py",
     "harness/web_search/report.py",
     "harness/web_search/pages.py",
     "harness/web_search/relevance.py",
     "harness/web_search/review.py",
-    "scripts/moli_report/app.js",
+    "harness/lexbench/template/app.js",
     "harness/trajectory_replay/interpretation.py",
     "harness/web_fetch/methods.py",
     "harness/web_fetch/report_interfaces.py",

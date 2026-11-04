@@ -266,7 +266,7 @@ def test_add_two_methods_preserves_existing_results(tmp_path: Path) -> None:
 def test_rejects_incomplete_old_cohort(tmp_path: Path) -> None:
     inputs = _fixture(tmp_path)
     receipt = inputs["cohort_inputs"]["moli-fixed"][1]
-    data = json.loads(receipt.read_text())
+    data = json.loads(receipt.read_text(encoding="utf-8"))
     data["results"] = data["results"][:36]
     _write(receipt, data)
     with pytest.raises(ValueError, match="exactly one execution"):
@@ -300,18 +300,18 @@ def test_sampling_inventory_order_does_not_override_numeric_execution(tmp_path: 
 
 def test_selection_cannot_silently_drop_malformed_rows_with_consistent_hashes(tmp_path):
     inputs = _fixture(tmp_path)
-    selection = json.loads(inputs['selection_path'].read_text())
+    selection = json.loads(inputs['selection_path'].read_text(encoding="utf-8"))
     selection['tasks'].append(None)
     _write(inputs['selection_path'], selection)
     selection_sha = _sha(inputs['selection_path'])
-    profile = json.loads(inputs['profile_path'].read_text())
+    profile = json.loads(inputs['profile_path'].read_text(encoding="utf-8"))
     profile['task_selection']['sha256'] = selection_sha
     _write(inputs['profile_path'], profile)
     for manifest_path, receipt_path in inputs['cohort_inputs'].values():
-        manifest = json.loads(manifest_path.read_text())
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         manifest['selection_sha256'] = selection_sha
         _write(manifest_path, manifest)
-        receipt = json.loads(receipt_path.read_text())
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         receipt['manifest_sha256'] = _sha(manifest_path)
         for key in ('reference_sha256_before', 'reference_sha256_after'):
             receipt[key]['manifest'] = receipt['manifest_sha256']
@@ -324,7 +324,7 @@ def test_selection_cannot_silently_drop_malformed_rows_with_consistent_hashes(tm
 def test_rejects_execution_in_sampling_order(tmp_path: Path) -> None:
     inputs = _fixture(tmp_path, reverse_inventory=True)
     receipt_path = inputs["cohort_inputs"]["chromium"][1]
-    receipt = json.loads(receipt_path.read_text())
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     receipt["executed_task_ids"].reverse()
     _write(receipt_path, receipt)
     with pytest.raises(ValueError, match="exactly one execution"):
@@ -335,12 +335,12 @@ def test_rejects_execution_in_sampling_order(tmp_path: Path) -> None:
 def test_rejects_duplicate_inventory_task_ids(tmp_path: Path, inventory: str) -> None:
     inputs = _fixture(tmp_path)
     path = inputs[inventory]
-    data = json.loads(path.read_text())
+    data = json.loads(path.read_text(encoding="utf-8"))
     rows = data["trajectories" if inventory == "dataset_path" else "tasks"]
     rows[1]["task_id"] = rows[0]["task_id"]
     _write(path, data)
     if inventory == "dataset_path":
-        profile = json.loads(inputs["profile_path"].read_text())
+        profile = json.loads(inputs["profile_path"].read_text(encoding="utf-8"))
         profile["dataset"]["sha256"] = _sha(path)
         _write(inputs["profile_path"], profile)
     with pytest.raises(ValueError, match="selection|reference-validity"):
@@ -350,11 +350,11 @@ def test_rejects_duplicate_inventory_task_ids(tmp_path: Path, inventory: str) ->
 def test_rejects_cross_method_task_contract(tmp_path: Path) -> None:
     inputs = _fixture(tmp_path)
     manifest = inputs["cohort_inputs"]["moli-fixed"][0]
-    data = json.loads(manifest.read_text())
+    data = json.loads(manifest.read_text(encoding="utf-8"))
     data["tasks"][0]["task_contract_sha256"] = "0" * 64
     _write(manifest, data)
     receipt = inputs["cohort_inputs"]["moli-fixed"][1]
-    receipt_data = json.loads(receipt.read_text())
+    receipt_data = json.loads(receipt.read_text(encoding="utf-8"))
     receipt_data["manifest_sha256"] = _sha(manifest)
     receipt_data["reference_sha256_before"]["manifest"] = _sha(manifest)
     receipt_data["reference_sha256_after"]["manifest"] = _sha(manifest)
@@ -370,7 +370,7 @@ def test_rejects_missing_evidence_or_validity(tmp_path: Path) -> None:
         aggregate_method_cohorts(**inputs)
     inputs = _fixture(tmp_path)
     validity = inputs["validity_path"]
-    data = json.loads(validity.read_text())
+    data = json.loads(validity.read_text(encoding="utf-8"))
     data["tasks"][0].pop("status")
     _write(validity, data)
     with pytest.raises(ValueError, match="validity lacks current source proof"):
@@ -380,11 +380,11 @@ def test_rejects_missing_evidence_or_validity(tmp_path: Path) -> None:
 def test_rejects_hash_bound_but_false_site_reset(tmp_path: Path) -> None:
     inputs = _fixture(tmp_path)
     reset_path = tmp_path / "chromium/site-reset.json"
-    reset = json.loads(reset_path.read_text())
+    reset = json.loads(reset_path.read_text(encoding="utf-8"))
     reset["sites"]["reddit"]["new_pod"] = reset["sites"]["reddit"]["old_pod"]
     _write(reset_path, reset)
     receipt_path = inputs["cohort_inputs"]["chromium"][1]
-    receipt = json.loads(receipt_path.read_text())
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     receipt["cohort_reset_sha256"] = _sha(reset_path)
     _write(receipt_path, receipt)
     with pytest.raises(ValueError, match="remote cohort reset is not proven"):
@@ -394,11 +394,11 @@ def test_rejects_hash_bound_but_false_site_reset(tmp_path: Path) -> None:
 def test_rejects_reset_receipt_from_a_task(tmp_path: Path) -> None:
     inputs = _fixture(tmp_path)
     reset_path = tmp_path / "chromium/site-reset.json"
-    reset = json.loads(reset_path.read_text())
+    reset = json.loads(reset_path.read_text(encoding="utf-8"))
     reset["task_id"] = 2
     _write(reset_path, reset)
     receipt_path = inputs["cohort_inputs"]["chromium"][1]
-    receipt = json.loads(receipt_path.read_text())
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     receipt["cohort_reset_sha256"] = _sha(reset_path)
     _write(receipt_path, receipt)
     with pytest.raises(

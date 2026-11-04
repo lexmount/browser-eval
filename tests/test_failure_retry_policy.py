@@ -39,7 +39,7 @@ def run_task(tmp_path):
             providers=[provider], provider_config_path=tmp_path/'providers.json',
             runs=1, timeout=2, delay=0, **options,
         )
-        assert len(rows) == len((tmp_path/'results.jsonl').read_text().splitlines()) == 1
+        assert len(rows) == len((tmp_path/'results.jsonl').read_text(encoding='utf-8').splitlines()) == 1
         return rows[0]
     return run
 
@@ -56,7 +56,7 @@ def test_default_retry_treats_all_task_failures_equally(tmp_path, run_task, fail
     row = run_task(provider)
     assert provider.calls == 2
     assert row['metrics']['content_pass']
-    assert (tmp_path/row['artifact_path']).read_text() == 'Expected'
+    assert (tmp_path/row['artifact_path']).read_text(encoding='utf-8') == 'Expected'
 
 
 @pytest.mark.parametrize('retries', [0, 1])
@@ -67,9 +67,9 @@ def test_configured_retry_bound_selects_last_answer_not_best(tmp_path, run_task,
     row = run_task(provider, max_failure_retries=retries)
     assert provider.calls == retries + 1
     assert not row['metrics']['content_pass']
-    assert (tmp_path/row['artifact_path']).read_text() == f'wrong answer {retries + 1}'
+    assert (tmp_path/row['artifact_path']).read_text(encoding='utf-8') == f'wrong answer {retries + 1}'
     assert row['elapsed_ms'] == (retries + 1) * 10
-    assert json.loads((tmp_path/'manifest.json').read_text())['attempt_count'] == 1
+    assert json.loads((tmp_path/'manifest.json').read_text(encoding='utf-8'))['attempt_count'] == 1
 
 
 def test_success_stops_retries_before_exhausting_budget(run_task):

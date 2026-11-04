@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -29,17 +30,20 @@ def test_suites_have_separate_task_contracts() -> None:
 
 
 def test_public_web_arena_options_exist_only_on_public_entrypoint() -> None:
-    def help_text(module: str) -> str:
+    path = os.pathsep.join(filter(None, [str(ROOT / "src"), os.environ.get("PYTHONPATH")]))
+
+    def help_text(*entry: str) -> str:
         result = subprocess.run(
-            [sys.executable, "-m", module, "--help"],
+            [sys.executable, "-m", *entry, "--help"],
             check=True,
             capture_output=True,
             text=True,
             cwd=ROOT,
+            env={**os.environ, "PYTHONPATH": path},
         )
         return result.stdout
 
-    curated_help = help_text("harness.trajectory_replay.cli")
+    curated_help = help_text("harness.trajectory_replay", "evaluate")
     trajectory_help = help_text("harness.trajectory_replay.public_webarena.cli")
     assert "--webarena-config" not in curated_help
     assert "--qualification-run" not in curated_help

@@ -22,14 +22,14 @@ class CurrentProfileScenarios(unittest.TestCase):
             "cases": [{"id": "topic", "query": "Topic", "family": "web"}],
         }
         self.historical = self.root / "historical.json"
-        self.historical.write_text(json.dumps(profile, indent=3) + "\n")
+        self.historical.write_text(json.dumps(profile, indent=3) + "\n", encoding="utf-8")
         self.raw = self.historical.read_bytes()
         self.binding = {"path": "historical.json", "sha256": bytes_sha256(self.raw)}
         self.entry = self.root / "current.json"
         self.selection = {"schema": "web-search-current/1", "title": "Current", "profile": self.binding,
                           "methods": ["lexmount", "body", "summary"], "supplementary_profiles": [],
                           "publication_target": "target.json"}
-        self.entry.write_text(json.dumps(self.selection))
+        self.entry.write_text(json.dumps(self.selection), encoding="utf-8")
         self.target = {"base_url": "https://reports.example.org", "slug": "search", "versionId": "live-version",
                        "url": "https://reports.example.org/s/search", "methods": self.selection["methods"],
                        "bindings": {"primary_profile": self.binding, "primary_receipt": {"path": "evidence/receipt.json", "sha256": "receipt-hash"}}}
@@ -38,7 +38,7 @@ class CurrentProfileScenarios(unittest.TestCase):
                          "receipt": {"separate_collections": [{"cohort": "primary", "profile_sha256": self.binding["sha256"], "receipt_sha256": "receipt-hash"}]}}
 
     def save_target(self):
-        (self.root / "target.json").write_text(json.dumps(self.target))
+        (self.root / "target.json").write_text(json.dumps(self.target), encoding="utf-8")
 
     def test_current_collection_freezes_a_new_three_method_identity(self):
         raw = load_profile_bytes(self.entry, root=self.root)
@@ -63,18 +63,18 @@ class CurrentProfileScenarios(unittest.TestCase):
     def test_current_selection_rejects_unknown_or_duplicate_methods(self):
         for ids in [["missing"], ["lexmount", "lexmount"]]:
             with self.subTest(ids=ids):
-                self.entry.write_text(json.dumps(dict(self.selection, methods=ids)))
+                self.entry.write_text(json.dumps(dict(self.selection, methods=ids)), encoding="utf-8")
                 with self.assertRaisesRegex(ValueError, "method selection"):
                     load_profile_bytes(self.entry, root=self.root)
 
     def test_current_selection_rejects_traversal_and_symlink_inputs(self):
         for path in ["../historical.json", str(self.historical)]:
             with self.subTest(path=path):
-                self.entry.write_text(json.dumps(dict(self.selection, profile=dict(self.binding, path=path))))
+                self.entry.write_text(json.dumps(dict(self.selection, profile=dict(self.binding, path=path))), encoding="utf-8")
                 with self.assertRaises(ValueError):
                     load_profile_bytes(self.entry, root=self.root)
         (self.root / "alias.json").symlink_to(self.historical)
-        self.entry.write_text(json.dumps(dict(self.selection, profile=dict(self.binding, path="alias.json"))))
+        self.entry.write_text(json.dumps(dict(self.selection, profile=dict(self.binding, path="alias.json"))), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "symlink"):
             load_profile_bytes(self.entry, root=self.root)
 
@@ -119,7 +119,7 @@ class CurrentProfileScenarios(unittest.TestCase):
 
     def test_full_review_requirement_cannot_be_dropped_at_formal_release(self):
         self.selection['independent_result_review_scope'] = 'all'
-        self.entry.write_text(json.dumps(self.selection))
+        self.entry.write_text(json.dumps(self.selection), encoding="utf-8")
         resolved = json.loads(load_profile_bytes(self.entry, root=self.root))
         self.assertEqual(resolved['independent_result_review_scope'], 'all')
         with self.assertRaisesRegex(ValueError, 'complete independent'):
@@ -149,7 +149,7 @@ class CurrentProfileScenarios(unittest.TestCase):
 def test_publication_checks_pinned_files_and_real_population(tmp_path):
     from harness.web_search.profiles import verify_publication_inputs
     source = tmp_path / "proof.json"
-    source.write_text("{}")
+    source.write_text("{}", encoding="utf-8")
     binding = {"path": source.name, "sha256": bytes_sha256(source.read_bytes())}
     target = {"bindings": {"relevance": binding, "independent_review": binding}, "logical_results": 1, "cases": 1, "physical_calls": 1}
     manifest = {"rows": [{"attempts": [{}]}], "profile": {"cases": [{}]}, "relevance_sha256": binding["sha256"], "independent_review_sha256": binding["sha256"]}
@@ -159,7 +159,7 @@ def test_publication_checks_pinned_files_and_real_population(tmp_path):
         broken = dict(target, **{field: 2})
         with pytest.raises(ValueError, match="population"):
             verify_publication_inputs(manifest, broken, data_home=tmp_path)
-    source.write_text("changed")
+    source.write_text("changed", encoding="utf-8")
     with pytest.raises(ValueError, match="binding changed"):
         verify_publication_inputs(manifest, target, data_home=tmp_path)
 
@@ -179,7 +179,7 @@ def test_two_external_instances_resolve_without_repository_defaults(tmp_path):
         (root / "execution.json").write_bytes(raw)
         selection = {"schema": "web-search-current/1", "title": name, "profile": {"path": "execution.json", "sha256": bytes_sha256(raw)}, "methods": [m["id"] for m in profile["methods"]], "supplementary_profiles": [], "publication_target": "site.json"}
         path = root / "instance.json"
-        path.write_text(json.dumps(selection))
+        path.write_text(json.dumps(selection), encoding="utf-8")
         resolved = load_profile(path)
         assert resolved["title"] == name
         assert resolved["cases"][0]["query"] == name + " query"

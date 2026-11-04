@@ -145,10 +145,10 @@ def test_skill_documents_may_name_bundled_files_relative_to_the_skill(tmp_path):
     skill = tmp_path / ".agents/skills/example"
     (skill / "scripts").mkdir(parents=True)
     (skill / "references").mkdir()
-    (skill / "SKILL.md").write_text("")
-    (skill / "scripts/bundled.py").write_text("")
+    (skill / "SKILL.md").write_text("", encoding="utf-8")
+    (skill / "scripts/bundled.py").write_text("", encoding="utf-8")
     document = skill / "references/guide.md"
-    document.write_text("Run `scripts/bundled.py TIMELINE`, not `scripts/gone.py TIMELINE`.")
+    document.write_text("Run `scripts/bundled.py TIMELINE`, not `scripts/gone.py TIMELINE`.", encoding="utf-8")
     assert missing_paths(document, tmp_path) == ["scripts/gone.py"]
 
 
@@ -175,8 +175,8 @@ def test_skill_documents_may_name_bundled_files_relative_to_the_skill(tmp_path):
 ])
 def test_path_checker_accepts_and_rejects_scenarios(tmp_path, text, expected):
     (tmp_path / "scripts").mkdir()
-    (tmp_path / "scripts/present.py").write_text("")
-    (tmp_path / "present.md").write_text("")
+    (tmp_path / "scripts/present.py").write_text("", encoding="utf-8")
+    (tmp_path / "present.md").write_text("", encoding="utf-8")
     document = tmp_path / "doc.md"
-    document.write_text(text)
+    document.write_text(text, encoding="utf-8")
     assert missing_paths(document, tmp_path, {"evaluation/logical.json"}) == expected

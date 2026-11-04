@@ -49,14 +49,14 @@ def receipt_path():
 
 
 def test_current_source_has_paired_revision_provenance():
-    receipt = json.loads(receipt_path().read_text())
+    receipt = json.loads(receipt_path().read_text(encoding="utf-8"))
     import lexbench_websearch
     verify_receipt(receipt, Path(lexbench_websearch.__file__).parent)
 
 
 @pytest.mark.parametrize("defect", ["cause", "regressions", "predecessor"])
 def test_correction_receipt_cannot_erase_cause_controls_or_history(defect):
-    receipt = deepcopy(json.loads(receipt_path().read_text()))
+    receipt = deepcopy(json.loads(receipt_path().read_text(encoding="utf-8")))
     revision = receipt["revisions"][0]
     if defect == "cause":
         revision.pop("root_cause")

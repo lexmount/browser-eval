@@ -26,7 +26,7 @@ class ArtifactAuthTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, patch('pathlib.Path.home', return_value=Path(directory)), patch.dict(os.environ, {}, clear=True):
             legacy = Path(directory) / '.config/artifact-hub/tokens/site.app.example'
             legacy.parent.mkdir(parents=True)
-            legacy.write_text('ahp_legacy_fixture')
+            legacy.write_text('ahp_legacy_fixture', encoding='utf-8')
             app = 'https://site.app.example'
             dev = 'https://site.dev.example'
             self.assertEqual(load_token(base_url=app), 'ahp_legacy_fixture')
@@ -34,13 +34,13 @@ class ArtifactAuthTests(unittest.TestCase):
             save_token('ahp_dev_fixture', base_url=dev)
             self.assertEqual(load_token(base_url=app), 'ahp_app_fixture')
             self.assertEqual(load_token(base_url=dev), 'ahp_dev_fixture')
-            self.assertEqual(legacy.read_text().strip(), 'ahp_legacy_fixture')
+            self.assertEqual(legacy.read_text(encoding='utf-8').strip(), 'ahp_legacy_fixture')
             self.assertEqual(stat.S_IMODE(token_path(app).stat().st_mode), 0o600)
             with patch.dict(os.environ, {'ARTIFACT_SITE_TOKEN': 'ahp_environment_fixture'}):
                 self.assertEqual(load_token(base_url=app), 'ahp_environment_fixture')
-            token_path(app).write_text('')
+            token_path(app).write_text('', encoding='utf-8')
             self.assertEqual(load_token(base_url=app), 'ahp_legacy_fixture')
-            token_path(app).write_text('not-a-valid-token')
+            token_path(app).write_text('not-a-valid-token', encoding='utf-8')
             with self.assertRaises(ValueError):
                 load_token(base_url=app)
 
@@ -50,7 +50,7 @@ class ArtifactAuthTests(unittest.TestCase):
                              '.config/artifact-hub/tokens/other.example'):
                 path = Path(directory) / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_text('ahp_other_host_fixture')
+                path.write_text('ahp_other_host_fixture', encoding='utf-8')
             with self.assertRaises(ValueError):
                 load_token(base_url='https://app.example')
 
@@ -68,8 +68,8 @@ class ArtifactAuthTests(unittest.TestCase):
             path=token_path('https://app.example')
             save_token('ahp_old_fixture',base_url='https://app.example')
             backup=save_token('ahp_new_fixture',base_url='https://app.example',replace_existing=True)
-            self.assertEqual(backup.read_text().strip(),'ahp_old_fixture')
-            self.assertEqual(path.read_text().strip(),'ahp_new_fixture')
+            self.assertEqual(backup.read_text(encoding='utf-8').strip(),'ahp_old_fixture')
+            self.assertEqual(path.read_text(encoding='utf-8').strip(),'ahp_new_fixture')
             for file in (path,backup):
                 self.assertEqual(stat.S_IMODE(file.stat().st_mode),0o600)
 
@@ -92,7 +92,7 @@ class ArtifactAuthTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory, patch('pathlib.Path.home', return_value=Path(directory)), patch.dict(os.environ, {}, clear=True):
             old = Path(directory) / '.config/artifact-hub/tokens/app.example'
             old.parent.mkdir(parents=True)
-            old.write_text('ahp_old_name_fixture')
+            old.write_text('ahp_old_name_fixture', encoding='utf-8')
             self.assertEqual(load_token(base_url='https://app.example'), 'ahp_old_name_fixture')
             save_token('ahp_new_name_fixture', base_url='https://new.example')
             self.assertIn('.config/artifact-site/', str(token_path('https://new.example')))
@@ -104,7 +104,7 @@ class ArtifactAuthTests(unittest.TestCase):
             self.assertEqual(load_token(base_url=app), 'ahp_stale_other_host')
             old = Path(directory) / '.config/artifact-hub/tokens/app.example'
             old.parent.mkdir(parents=True)
-            old.write_text('ahp_old_name_fixture')
+            old.write_text('ahp_old_name_fixture', encoding='utf-8')
             self.assertEqual(load_token(base_url=app), 'ahp_old_name_fixture')
             save_token('ahp_scoped_fixture', base_url=app)
             self.assertEqual(load_token(base_url=app), 'ahp_scoped_fixture')

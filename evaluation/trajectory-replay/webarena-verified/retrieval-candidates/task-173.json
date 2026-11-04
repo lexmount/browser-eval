@@ -3,7 +3,7 @@
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023"
+      "url": "http://host.docker.internal:8023"
     },
     {
       "action": "click",
@@ -21,7 +21,7 @@
   "retrieval_contract": {
     "schema": "lex_replay_current_run_retrieval/1",
     "task_id": 173,
-    "canonical_calls_sha256": "9f278b55f0847c5a26970ea6cdcfdee81a8c4791986585abcde26344089c3dd5",
+    "canonical_calls_sha256": "472d2524ced61276d96f276eacfec38d830c6448be3ccbf53288316b1ad2f1dd",
     "sources": [
       {
         "name": "current",

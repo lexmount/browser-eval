@@ -16,8 +16,11 @@ import traceback
 from pathlib import Path
 from urllib.parse import quote, urlsplit
 
-from harness.env_file import parse_env_file
-from harness.environments.webarena.topology import TRUSTED_RECORDED_HOSTS
+from harness.env_file import local_setting, parse_env_file, select_env_file
+from harness.environments.webarena.topology import (
+    TRUSTED_RECORDED_HOSTS,
+    require_site_credentials,
+)
 from harness.record_io import file_sha256
 from harness.trajectory_replay.catalog_contracts import (
     RUN_SCHEMA,
@@ -30,14 +33,19 @@ from harness.trajectory_replay.catalog_contracts import (
     validate_environment_preparation,
     verify_physical_evidence,
 )
+from harness.trajectory_replay.participants import BROWSER_ADAPTERS
 from harness.trajectory_replay.remote_execution import (
-    _run_task,
-    _stop_browser,
     finalize_timed_out_task,
+    run_replay_task,
     sanitize_remote_text,
     start_local_browser,
+    stop_browser,
 )
-from harness.trajectory_replay.remote_runtime import rebind_remote_calls, remote_benchmark
+from harness.trajectory_replay.remote_runtime import (
+    load_remote_sites,
+    rebind_remote_calls,
+    remote_benchmark,
+)
 from harness.trajectory_replay.webarena_corrections import load_corrections
 from harness.trajectory_replay.webarena_runtime_source import verify_webarena_runtime_source
 
@@ -139,6 +147,32 @@ def _load_env_values(path: Path) -> dict[str, str]:
     if path.is_symlink() or not path.is_file():
         raise ValueError("credential environment file must be a regular file")
     return parse_env_file(path)
+
+
+def _load_environment_profile(path: Path, engine: str, env_file: Path) -> dict:
+    """Read the versioned profile and resolve its named routing variables locally."""
+
+    profile = json.loads(path.read_text(encoding="utf-8"))
+    names = profile.get("host_overrides_env")
+    if names is None or engine not in {"chromium", "kitesurf"}:
+        return profile
+    if (
+        not isinstance(names, dict)
+        or set(names) != {"pattern", "address"}
+        or "host_overrides" in profile
+    ):
+        raise ValueError("environment host override variables are invalid")
+    values = {name: local_setting(name, env_file) for name in names.values()}
+    missing = [name for name, value in values.items() if not value.strip()]
+    if missing:
+        raise ValueError(
+            f"{engine} replay on this environment requires {', '.join(sorted(missing))}"
+            f" in the environment or {env_file.name}"
+        )
+    return {
+        **profile,
+        "host_overrides": [{key: values[name].strip() for key, name in names.items()}],
+    }
 
 
 def _kitesurf_cdp_config(
@@ -252,7 +286,7 @@ def _run_with_setup_recovery(
 ) -> tuple[dict, subprocess.Popen]:
     """Run one task, restarting only before physical evidence exists.
 
-    ``_run_task`` creates ``task_dir`` immediately before browser-session work and
+    ``run_replay_task`` creates ``task_dir`` immediately before browser-session work and
     catches all later execution failures into a committed result. An exception
     with no task directory is therefore a setup failure that is safe to retry;
     once the directory exists, retrying could duplicate a physical execution.
@@ -269,7 +303,7 @@ def _run_with_setup_recovery(
                 if state["finished"]:
                     return
                 state["timed_out"] = True
-            _stop_browser(current)
+            stop_browser(current)
 
         started = time.monotonic()
         timer = threading.Timer(task_timeout_ms / 1_000, expire)
@@ -485,14 +519,18 @@ def main() -> None:
     parser.add_argument("--binary", type=Path)
     parser.add_argument(
         "--engine",
-        choices=("chromium", "moli", "lightpanda", "obscura", "kitesurf"),
+        choices=BROWSER_ADAPTERS,
         default="chromium",
     )
     parser.add_argument(
         "--credential-env-file",
         type=Path,
         default=repository_root(Path(__file__)) / ".env",
-        help="local credential source for a remote browser; values are never persisted",
+        help=(
+            "file for WebArena routing, deployment and gateway variables, read after the "
+            "exported environment; Kitesurf credentials come only from this file and are never "
+            "persisted. WebArena site accounts always come from the repository .env"
+        ),
     )
     parser.add_argument("--backend", choices=("browsertool", "playwright"), default="browsertool")
     parser.add_argument("--cowagent", type=Path)
@@ -521,6 +559,7 @@ def main() -> None:
         help="JSON selection for a large unresolved-only replay",
     )
     args = parser.parse_args()
+    select_env_file(args.credential_env_file)
     if args.catalog is None and args.action_overrides is not None:
         raise ValueError('--action-overrides requires an explicit qualified --catalog')
     webarena_runtime = verify_webarena_runtime_source()
@@ -535,6 +574,13 @@ def main() -> None:
             raise ValueError("Kitesurf is remote and does not accept --binary")
         remote_endpoint, remote_headers, remote_binding = _kitesurf_cdp_config(
             args.credential_env_file.expanduser()
+        )
+        # The probe opens a hosted browser, so check accounts, the reset receipt and the
+        # environment profile first. Catalog and resume checks still run after it.
+        require_site_credentials(load_remote_sites(args.site_map))
+        validate_environment_preparation(args.site_reset_receipt, args.environment_profile)
+        _load_environment_profile(
+            args.environment_profile, args.engine, args.credential_env_file.expanduser()
         )
         try:
             remote_binding["runtime_metadata"] = _probe_kitesurf_runtime(
@@ -575,8 +621,12 @@ def main() -> None:
             or any(row.get("action_overrides") is not None for row in catalog.get("rows") or [])
         ):
             raise ValueError("catalog requires its versioned action overrides input")
+        credential_env_file = args.credential_env_file.expanduser()
         validate_environment_preparation(args.site_reset_receipt, args.environment_profile)
-        environment_profile = json.loads(args.environment_profile.read_text(encoding="utf-8"))
+        environment_profile = _load_environment_profile(
+            args.environment_profile, args.engine, credential_env_file
+        )
+        require_site_credentials(sites)
         corrections = load_corrections()
         benchmark = remote_benchmark(sites)
         if args.task_selection is not None and args.task_id:
@@ -617,6 +667,11 @@ def main() -> None:
                 file_sha256(args.task_selection) if args.task_selection is not None else None
             ),
         }
+        if "host_overrides" in environment_profile and "host_overrides_env" in environment_profile:
+            # The profile bytes only name the routing variables; bind the resolved values.
+            binding["environment_host_overrides_sha256"] = hashlib.sha256(
+                json.dumps(environment_profile["host_overrides"], sort_keys=True).encode()
+            ).hexdigest()
         prepared_catalog = args.catalog.read_bytes() if default_catalog else None
     if remote_binding is not None:
         binding["remote_browser"] = remote_binding
@@ -667,7 +722,7 @@ def main() -> None:
     ) -> dict:
         task_id = frozen["task_id"]
         task_origins = _task_origins(benchmark, task_id, sites)
-        return _run_task(
+        return run_replay_task(
             task_id=task_id,
             row=row,
             benchmark=benchmark,
@@ -744,7 +799,7 @@ def main() -> None:
             return started
 
         def restart_browser(current: subprocess.Popen) -> subprocess.Popen:
-            _stop_browser(current)
+            stop_browser(current)
             return start_browser()
 
         endpoint = ""
@@ -774,8 +829,4 @@ def main() -> None:
                 ) and pending_index + 1 < len(pending):
                     process = restart_browser(process)
         finally:
-            _stop_browser(process)
-
-
-if __name__ == "__main__":
-    main()
+            stop_browser(process)

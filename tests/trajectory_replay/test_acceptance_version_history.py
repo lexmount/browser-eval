@@ -22,7 +22,7 @@ def test_appended_scoring_revision_requires_exact_method_declaration(tmp_path):
             ],
         }
         path = tmp_path / f"{method}.json"
-        path.write_text(json.dumps(value))
+        path.write_text(json.dumps(value), encoding="utf-8")
         attempts.append(
             {
                 "task_id": 448,

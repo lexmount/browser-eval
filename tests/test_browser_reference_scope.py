@@ -100,8 +100,8 @@ def test_browser_audit_resume_is_input_bound_and_preserves_access_failures(tmp_p
     cases[0]['url']='https://example.com/changed'
     with pytest.raises(ValueError,match='inputs changed'):
         browser_capture.capture_batch(cases,**options)
-    saved=tmp_path/'blocked.json';data=json.loads(saved.read_text())
-    data['observation']['status']='success';saved.write_text(json.dumps(data))
+    saved=tmp_path/'blocked.json';data=json.loads(saved.read_text(encoding='utf-8'))
+    data['observation']['status']='success';saved.write_text(json.dumps(data), encoding='utf-8')
     with pytest.raises(ValueError,match='observation changed'):
         browser_capture.capture_batch([cases[1]],**options)
 
@@ -139,7 +139,7 @@ def test_public_doh_capture_uses_fresh_persistent_profile_and_records_route(monk
             from harness.web_fetch.network_dns import DNS_ENDPOINT
             observed['directory'] = directory
             observed['launch'] = kwargs
-            state = json.loads((browser_capture.Path(directory) / 'Local State').read_text())
+            state = json.loads((browser_capture.Path(directory) / 'Local State').read_text(encoding='utf-8'))
             assert state['dns_over_https'] == {
                 'mode': 'secure', 'templates': DNS_ENDPOINT + '{?dns}',
             }
@@ -325,7 +325,7 @@ def test_system_dns_selects_a_public_address_and_records_method(monkeypatch):
 
 
 @pytest.mark.parametrize('address', [
-    '127.0.0.1', '10.1.2.3', '192.168.1.2', '169.254.1.2', '::1', 'not-an-ip',
+    '127.0.0.1', '10.0.0.4', '192.168.0.2', '169.254.1.2', '::1', 'not-an-ip',
 ])
 def test_explicit_dns_override_rejects_private_or_invalid_addresses(address):
     with pytest.raises(ValueError):
@@ -393,7 +393,7 @@ def test_batch_writes_every_case_before_failing_closed(tmp_path, monkeypatch):
     dataset.write_text(json.dumps({'cases': [
         {'id': 'unreachable', 'url': 'https://example.invalid/'},
         {'id': 'reachable', 'url': 'https://example.com/'},
-    ]}))
+    ]}), encoding='utf-8')
 
     def fake_capture(case, timeout_ms, attempts, browser_binary, resolved_ip):
         succeeded = case['id'] == 'reachable'
@@ -405,7 +405,7 @@ def test_batch_writes_every_case_before_failing_closed(tmp_path, monkeypatch):
 
     monkeypatch.setattr(browser_capture, '_capture_in_process', fake_capture)
     monkeypatch.setattr('sys.argv', [
-        'capture_headless_browser_observations.py',
+        'headless-observations',
         '--dataset', str(dataset), '--output', str(output),
         '--case-ids', 'unreachable,reachable', '--attempts', '2',
     ])
@@ -414,7 +414,7 @@ def test_batch_writes_every_case_before_failing_closed(tmp_path, monkeypatch):
         browser_capture.main()
 
     assert raised.value.code == 1
-    rows = json.loads(output.read_text())
+    rows = json.loads(output.read_text(encoding='utf-8'))
     assert set(rows) == {'unreachable', 'reachable'}
     assert rows['unreachable']['status'] == 'failure'
     assert rows['reachable']['status'] == 'success'
@@ -445,7 +445,7 @@ def test_mixed_live_resource_capture_freezes_text_and_preserves_resource_checks(
         'resources': [{'tag': 'img', 'url': url + 'photo.png'}]}
     folder = tmp_path / 'sources/mixed'; folder.mkdir(parents=True)
     raw = json.dumps(evidence).encode(); (folder / 'evidence.json').write_bytes(raw)
-    (tmp_path / 'audit.json').write_text('[]')
+    (tmp_path / 'audit.json').write_text('[]', encoding='utf-8')
     case = {'id': 'mixed', 'url': url, 'track': 'image', 'task_kind': 'resource',
         'ground_truth_main_content': 'Required article anchor',
         'acceptance_contract': {'version': 1, 'schema': 'body_text', 'minimum_records': 0,
@@ -457,7 +457,7 @@ def test_mixed_live_resource_capture_freezes_text_and_preserves_resource_checks(
     def freeze():
         row = browser_capture.capture(case, 3000, os.environ['BROWSER_EVAL_TEST_BROWSER_BINARY'])
         frozen, _, _ = compute_reference_update({'cases': [case]}, tmp_path, {'mixed': row})
-        path = tmp_path / 'dataset.json'; path.write_text(json.dumps(frozen))
+        path = tmp_path / 'dataset.json'; path.write_text(json.dumps(frozen), encoding='utf-8')
         checks = preflight_reference_checks(frozen['cases'], path)
         assert checks['cases']['mixed']['reference_sha256']
         assert frozen['cases'][0]['ground_truth_main_content'] == 'Required article anchor'

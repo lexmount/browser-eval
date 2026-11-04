@@ -20,7 +20,7 @@ class HeadlessProviderProjectionTests(unittest.TestCase):
                 for identifier in ("a", "b")
             ]
             dataset = {"id": "d", "cases": cases, "coverage_plan": {"web": ["p", "q"]}}
-            (source / "dataset.json").write_text(json.dumps(dataset))
+            (source / "dataset.json").write_text(json.dumps(dataset), encoding="utf-8")
             records = []
             for provider in ("p", "q"):
                 for identifier in ("a", "b"):
@@ -34,7 +34,7 @@ class HeadlessProviderProjectionTests(unittest.TestCase):
                         "started_at": "2026-01-01T00:00:00+00:00",
                         "completed_at": "2026-01-01T00:00:01+00:00", "elapsed_ms": 1000,
                         "artifact_path": relative, "metrics": {"content_sha256": hashlib.sha256(data).hexdigest()}})
-            (source / "results.jsonl").write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in records))
+            (source / "results.jsonl").write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in records), encoding="utf-8")
             manifest = {"started_at": "2026-01-01T00:00:00+00:00",
                 "completed_at": "2026-01-01T00:00:02+00:00",
                 "dataset": {"id": "d", "case_count": 2},
@@ -44,29 +44,29 @@ class HeadlessProviderProjectionTests(unittest.TestCase):
                 "unexecuted": [],
                 "reference_checks": {"status": "awaiting_postcheck",
                     "cases": {identifier: {"reference_sha256": identifier} for identifier in ("a", "b")}}}
-            (source / "manifest.json").write_text(json.dumps(manifest))
+            (source / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
             project_provider_run(source, output, "p", references)
 
-            projected = json.loads((output / "dataset.json").read_text())
+            projected = json.loads((output / "dataset.json").read_text(encoding="utf-8"))
             self.assertEqual(projected["coverage_plan"], {"web": ["p"]})
-            rows = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
+            rows = [json.loads(line) for line in (output / "results.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual({row["provider"] for row in rows}, {"p"})
             self.assertEqual(len(rows), 2)
             self.assertEqual((output / "artifacts/p/a/run-001.txt").read_bytes(), b"p-a")
-            saved = json.loads((output / "manifest.json").read_text())
+            saved = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(saved["projection"]["selection"],
                              "all frozen cases for one provider; no score-based selection")
 
             subset = root / "subset"
             project_provider_run(source, subset, "p", references, {"b"})
-            subset_dataset = json.loads((subset / "dataset.json").read_text())
+            subset_dataset = json.loads((subset / "dataset.json").read_text(encoding="utf-8"))
             self.assertEqual([case["id"] for case in subset_dataset["cases"]], ["b"])
             subset_rows = [json.loads(line) for line in
-                           (subset / "results.jsonl").read_text().splitlines()]
+                           (subset / "results.jsonl").read_text(encoding="utf-8").splitlines()]
             self.assertEqual([(row["provider"], row["case_id"]) for row in subset_rows],
                              [("p", "b")])
-            subset_manifest = json.loads((subset / "manifest.json").read_text())
+            subset_manifest = json.loads((subset / "manifest.json").read_text(encoding="utf-8"))
             self.assertEqual(set(subset_manifest["reference_checks"]["cases"]), {"b"})
             self.assertIn("explicit predeclared", subset_manifest["projection"]["selection"])
 
@@ -77,7 +77,7 @@ class HeadlessProviderProjectionTests(unittest.TestCase):
             source.mkdir()
             cases = [{"id": identifier, "track": "web"} for identifier in ("a", "b")]
             dataset = {"id": "d", "cases": cases, "coverage_plan": {"web": ["p", "q"]}}
-            (source / "dataset.json").write_text(json.dumps(dataset))
+            (source / "dataset.json").write_text(json.dumps(dataset), encoding="utf-8")
             records = []
             for provider in ("p", "q"):
                 for index, identifier in enumerate(("a", "b")):
@@ -120,7 +120,8 @@ class HeadlessProviderProjectionTests(unittest.TestCase):
                         "provider_metadata": metadata,
                     })
             (source / "results.jsonl").write_text(
-                "".join(json.dumps(row) + "\n" for row in records)
+                "".join(json.dumps(row) + "\n" for row in records),
+                encoding="utf-8"
             )
             observation = b'{"observations":[]}'
             observation_hash = hashlib.sha256(observation).hexdigest()
@@ -149,14 +150,14 @@ class HeadlessProviderProjectionTests(unittest.TestCase):
                         },
                     }
                 batches.append(batch)
-            (source / "execution.json").write_text(json.dumps({"batches": batches}))
+            (source / "execution.json").write_text(json.dumps({"batches": batches}), encoding="utf-8")
 
             with patch("harness.web_fetch.evidence.require_verified_reference_checks") as verify:
                 project_provider_run(source, output, "p")
 
             self.assertEqual(verify.call_count, 2)
             self.assertFalse((output / "manifest.json").exists())
-            projected = json.loads((output / "execution.json").read_text())["batches"]
+            projected = json.loads((output / "execution.json").read_text(encoding="utf-8"))["batches"]
             self.assertEqual([batch["attempt_ids"] for batch in projected], [
                 ["p__a__r001"], ["p__b__r001"],
             ])
@@ -174,8 +175,8 @@ class HeadlessProviderProjectionTests(unittest.TestCase):
             root = Path(directory); source = root / "run"; source.mkdir()
             dataset = {"id": "d", "cases": [{"id": "a"}, {"id": "b"}],
                        "coverage_plan": {"web": ["p"]}}
-            (source / "dataset.json").write_text(json.dumps(dataset))
-            (source / "results.jsonl").write_text(json.dumps({"provider": "p", "case_id": "a"}) + "\n")
+            (source / "dataset.json").write_text(json.dumps(dataset), encoding="utf-8")
+            (source / "results.jsonl").write_text(json.dumps({"provider": "p", "case_id": "a"}) + "\n", encoding="utf-8")
             with self.assertRaisesRegex(ValueError, "incomplete"):
                 project_provider_run(source, root / "out", "p")
 

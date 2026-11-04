@@ -13,11 +13,11 @@ def report_fixture(root):
     (root / 'manifest.json').write_text(json.dumps({
         'primary_language': 'zh', 'languages': ['zh'],
         'authored': {'presentation': 'comparison-report'},
-    }))
+    }), encoding='utf-8')
     for filename in ('index', 'dataset', 'results', 'performance',
                      'research', 'capabilities', 'quality'):
         (root / (filename + '.html')).write_text(
-            '<!doctype html><html lang="zh"><meta charset="utf-8"><main><h1>' + filename + '</h1></main>')
+            '<!doctype html><html lang="zh"><meta charset="utf-8"><main><h1>' + filename + '</h1></main>', encoding='utf-8')
 
 
 @pytest.mark.parametrize('primary', ['zh', 'en'])
@@ -32,15 +32,15 @@ def test_capture_produces_complete_bound_proof_and_rejects_tampering(tmp_path, m
     root, receipt = tmp_path / 'report', tmp_path / 'reader.json'
     report_fixture(root)
     if primary == 'en':
-        manifest = json.loads((root / 'manifest.json').read_text())
+        manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
         manifest.update(primary_language='en', languages=['en', 'zh'])
-        (root / 'manifest.json').write_text(json.dumps(manifest))
+        (root / 'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
         (root / 'en').mkdir()
         for page in root.glob('*.html'):
-            (root / 'en' / page.name).write_text(page.read_text().replace('lang="zh"', 'lang="en"'))
+            (root / 'en' / page.name).write_text(page.read_text(encoding='utf-8').replace('lang="zh"', 'lang="en"'), encoding='utf-8')
     visual.capture(root, receipt)
     assert visual.verify(root, receipt)
-    original = json.loads(receipt.read_text())
+    original = json.loads(receipt.read_text(encoding='utf-8'))
     assert len(original['captures']) == (14 if primary == 'en' else 7)
     assert next(item['route'] for item in original['captures'] if item['language'] == primary and item['route_class'] == 'home') == ('en/index.html' if primary == 'en' else 'index.html')
     assert {capture['route_class'] for capture in original['captures']} >= {'quality', 'performance'}
@@ -69,17 +69,17 @@ def test_capture_produces_complete_bound_proof_and_rejects_tampering(tmp_path, m
         elif damage == 'heading': first['heading_count'] = 0
         elif damage == 'image': first['sha256'] = '0' * 64
         elif damage == 'path': first['path'] = '../outside.png'
-        receipt.write_text(json.dumps(proof))
+        receipt.write_text(json.dumps(proof), encoding='utf-8')
         with pytest.raises((ValueError, OSError)):
             visual.verify(root, receipt)
-    receipt.write_text(json.dumps(original))
+    receipt.write_text(json.dumps(original), encoding='utf-8')
     assert visual.verify(root, receipt)
 
 
 def test_legacy_asserted_readability_is_not_accepted(tmp_path):
     root, receipt = tmp_path / 'report', tmp_path / 'reader.json'
     report_fixture(root)
-    receipt.write_text(json.dumps({'captures': [{'readable': True}]}))
+    receipt.write_text(json.dumps({'captures': [{'readable': True}]}), encoding='utf-8')
     with pytest.raises(ValueError, match='producer proof'):
         visual.verify(root, receipt)
 
@@ -88,9 +88,9 @@ def test_legacy_asserted_readability_is_not_accepted(tmp_path):
 def test_standalone_routes_follow_saved_primary_language(tmp_path, primary, languages):
     root = tmp_path / 'report'
     report_fixture(root)
-    manifest = json.loads((root / 'manifest.json').read_text())
+    manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
     manifest.update(primary_language=primary, languages=languages)
-    (root / 'manifest.json').write_text(json.dumps(manifest))
+    (root / 'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
     secondary = 'en' if 'en' in languages else None
     if secondary:
         (root / secondary).mkdir()

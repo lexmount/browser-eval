@@ -38,7 +38,7 @@
         "identity": "parent agent, independent source review"
       },
       "scope": "Ordered Books Hot top ten: exactly one recommended book with its title in the post description",
-      "evidence_sha256": "170eb27d62de0e9f8c943e89b4ad694413259fe8b0def065648991cb6c24ebf6"
+      "evidence_sha256": "ab3503aef39ca13faa70a53add3643f415a4f4320796e1e5237a0b11c15b781a"
     },
     "reviewed_span_projection": {
       "kind": "reviewed_ordered_spans/1",
@@ -161,13 +161,13 @@
         "sources_sha256": "20a7a51f8a137175f3b0bea182c375083d3264eaf4bdf2e1c6b3902f3e6ef91b",
         "projection_sha256": "fd08641aa2aa4a981d341534cf2fe709e18f7d202325719c6c10486b7804a2f0",
         "decision": "Only the body of post 17445 yields an exact book title; post 59396 names its book only in the header.",
-        "audit_sha256": "7057e6eb5cfd9c49d23d1984b9fce96e8ea13f68a4698dba5cef0eb70739bef2",
+        "audit_sha256": "85dee99ccb884bd3143886d13462cffb8f703186e9faa16dc5eaf0b2bf82f7f3",
         "predecessor_artifacts": []
       },
-      "source_review_sha256": "45016f178efd195852e3a673c870e1a6f1c2261328efc17407cd56e440b5ed9b",
+      "source_review_sha256": "9140713ec31ae667f3191aab9811676630910024d60dcc4036edb539d1b7314e",
       "source_review_artifact": {
-        "utf8": "{\"audit_sha256\":\"7057e6eb5cfd9c49d23d1984b9fce96e8ea13f68a4698dba5cef0eb70739bef2\",\"decision\":\"Only the body of post 17445 yields an exact book title; post 59396 names its book only in the header.\",\"predecessor_artifacts\":[],\"projection_sha256\":\"fd08641aa2aa4a981d341534cf2fe709e18f7d202325719c6c10486b7804a2f0\",\"reviewer\":{\"identity\":\"parent agent, independent source review\",\"kind\":\"agent\"},\"scope\":\"Ordered Books Hot top ten: exactly one recommended book with its title in the post description\",\"sources_sha256\":\"20a7a51f8a137175f3b0bea182c375083d3264eaf4bdf2e1c6b3902f3e6ef91b\",\"task_id\":67}",
-        "sha256": "45016f178efd195852e3a673c870e1a6f1c2261328efc17407cd56e440b5ed9b",
+        "utf8": "{\"audit_sha256\":\"85dee99ccb884bd3143886d13462cffb8f703186e9faa16dc5eaf0b2bf82f7f3\",\"decision\":\"Only the body of post 17445 yields an exact book title; post 59396 names its book only in the header.\",\"predecessor_artifacts\":[],\"projection_sha256\":\"fd08641aa2aa4a981d341534cf2fe709e18f7d202325719c6c10486b7804a2f0\",\"reviewer\":{\"identity\":\"parent agent, independent source review\",\"kind\":\"agent\"},\"scope\":\"Ordered Books Hot top ten: exactly one recommended book with its title in the post description\",\"sources_sha256\":\"20a7a51f8a137175f3b0bea182c375083d3264eaf4bdf2e1c6b3902f3e6ef91b\",\"task_id\":67}",
+        "sha256": "9140713ec31ae667f3191aab9811676630910024d60dcc4036edb539d1b7314e",
         "content": {
           "reviewer": {
             "kind": "agent",
@@ -178,7 +178,7 @@
           "sources_sha256": "20a7a51f8a137175f3b0bea182c375083d3264eaf4bdf2e1c6b3902f3e6ef91b",
           "projection_sha256": "fd08641aa2aa4a981d341534cf2fe709e18f7d202325719c6c10486b7804a2f0",
           "decision": "Only the body of post 17445 yields an exact book title; post 59396 names its book only in the header.",
-          "audit_sha256": "7057e6eb5cfd9c49d23d1984b9fce96e8ea13f68a4698dba5cef0eb70739bef2",
+          "audit_sha256": "85dee99ccb884bd3143886d13462cffb8f703186e9faa16dc5eaf0b2bf82f7f3",
           "predecessor_artifacts": []
         }
       }

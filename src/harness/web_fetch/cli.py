@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import argparse
+import importlib
+import json
+import sys
+from collections.abc import Sequence
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -28,6 +32,100 @@ from harness.web_fetch.runner import rescore_evaluation, run_evaluation
 from harness.data_home import data_home
 
 EXAMPLES = Path(__file__).parent / "data"
+# Stages whose owner parses its own arguments, including --help.
+OWNER_COMMANDS = {
+    "headless-run": ("harness.web_fetch.headless_runner", "main",
+                     "Run a browser Markdown cohort with shared evidence checks"),
+    "headless-observations": ("harness.web_fetch.browser_observations", "main",
+                              "Capture independent browser observations"),
+    "headless-assemble": ("harness.web_fetch.assembly", "main",
+                          "Assemble exact headless measurements without selecting retries by score"),
+    "headless-check": ("harness.web_fetch.headless_runner", "main_evidence_check",
+                       "Audit complete measured evidence, including a publication-blocked cohort"),
+    "headless-resources": ("harness.web_fetch.resource_cohort", "main",
+                           "Build a bound client resource comparison from a reviewed cohort"),
+    "review-headless": ("harness.web_fetch.review_execution", "review_main",
+                        "Run an opt-in independent result review"),
+    "review-anomalies": ("harness.web_fetch.review_execution", "anomaly_main",
+                         "Investigate result anomalies through an opt-in independent review"),
+    "review-merge": ("harness.web_fetch.result_review", "merge_main",
+                     "Merge supplemental independent result reviews"),
+    "review-rebase": ("harness.web_fetch.result_review", "rebase_main",
+                      "Rebind completed independent reviews after score-only corrections"),
+    "content-rescore": ("harness.web_fetch.rescoring", "main",
+                        "Rescore an evidence directory offline"),
+    "scoring-revision": ("harness.web_fetch.scoring_revision", "main",
+                         "Apply a scoring revision to an evidence directory"),
+    "reference-revision": ("harness.web_fetch.reference_revision", "main",
+                           "Apply an offline reference revision to an evidence directory"),
+    "reference-finalize": ("harness.web_fetch.cli", "finalize_reference_main",
+                           "Finalize run-local reference checks from independent captures"),
+    "dynamic-append": ("harness.web_fetch.dynamic_cohort", "main_append",
+                       "Append measured dynamic content to current evidence"),
+    "dynamic-merge": ("harness.web_fetch.dynamic_cohort", "main_merge",
+                      "Merge a measured dynamic supplement"),
+    "native-dns": ("harness.web_fetch.cli", "native_dns_main",
+                   "Prepare the process-local native DNS bridge outside Git"),
+    "report-revision-check": ("harness.web_fetch.report_check", "revision_main",
+                              "Check report presentation and adoption"),
+    "diagnostic-check": ("harness.web_fetch.cli", "diagnostic_check_main",
+                         "Check a diagnostic edition without declaring it certified"),
+    "site-bundle-check": ("harness.web_fetch.publication_check", "main",
+                          "Validate a Web Fetch publication bundle"),
+    "site-package": ("harness.web_fetch.report_package", "main",
+                     "Package a Web Fetch report for Artifact Site"),
+    "site-publish": ("harness.web_fetch.report_publish", "main",
+                     "Publish a profile-bound Web Fetch package"),
+    "site-verify": ("harness.web_fetch.publication_verify", "main",
+                    "Verify published report metadata and optionally its bytes"),
+    "import-env": ("harness.web_fetch.accounts", "main_import_credentials",
+                   "Import declared hosted credentials into a .env file"),
+    "wcxb-select": ("harness.web_fetch.wcxb_dataset", "main",
+                    "Freeze a WCXB sample manifest"),
+    "wcxb-latency": ("harness.web_fetch.wcxb_latency", "main",
+                     "Collect or certify (certify) paired WCXB timing"),
+    "wcxb-score": ("harness.web_fetch.wcxb_scoring", "main",
+                   "Score a certified WCXB cohort against its profile"),
+    "wcxb-visual": ("harness.web_fetch.wcxb_report_check", "visual_main",
+                    "Check WCXB report interactions, themes and viewports"),
+    "wcxb-publish": ("harness.web_fetch.wcxb_publication", "main",
+                     "Package or publish a checked WCXB report"),
+    "webmainbench-select": ("harness.web_fetch.public_benchmark_sample", "main",
+                            "Freeze the WebMainBench-545 sample manifest"),
+    "webmainbench-score": ("harness.web_fetch.webmainbench_scoring", "main",
+                           "Score one WebMainBench shard with the pinned scorer"),
+    "webmainbench-review": ("harness.web_fetch.webmainbench_diagnostics", "sample_review_main",
+                            "Audit a declared sample without the official scorer"),
+    "webmainbench-assemble": ("harness.web_fetch.webmainbench_assembly", "sample_main",
+                              "Assemble a declared sample from reviewed shards"),
+    "webmainbench-check": ("harness.web_fetch.webmainbench_report_check", "sample_main",
+                           "Check a frozen sample report"),
+    "webmainbench-audit": ("harness.web_fetch.webmainbench_diagnostics", "suspicion_main",
+                           "Flag frozen evidence anomalies without changing scores"),
+    "webmainbench-case-correction": ("harness.web_fetch.webmainbench_case_correction", "main",
+                                     "Apply one-case replacement evidence to a new directory"),
+    "webmainbench-case-rescore": ("harness.web_fetch.webmainbench_correction", "case_scoring_main",
+                                  "Rescore a certified case correction offline"),
+    "webmainbench-scoring-correction": ("harness.web_fetch.webmainbench_correction",
+                                        "scoring_revision_main",
+                                        "Apply a decision-authority manifest to the full population"),
+    "webmainbench-teds-correction": ("harness.web_fetch.webmainbench_diagnostics", "correct_teds",
+                                     "Apply an offline TEDS-only revision"),
+    "webmainbench-teds-review": ("harness.web_fetch.webmainbench_diagnostics", "teds_review_main",
+                                 "Verify the scope and unchanged evidence of a TEDS revision"),
+    "webmainbench-latency-correction": ("harness.web_fetch.webmainbench_latency_correction", "main",
+                                        "Apply a certified latency correction"),
+    "webmainbench-content-review": ("harness.web_fetch.review_execution", "content_review_main",
+                                    "Prepare or resume a source-grounded content review"),
+    "webmainbench-full-run": ("harness.web_fetch.webmainbench_certification", "main",
+                              "Run a certified complete cohort"),
+    "webmainbench-full-score": ("harness.web_fetch.webmainbench_certification", "main_score",
+                                "Score a certified complete cohort"),
+    "webmainbench-full-assemble": ("harness.web_fetch.webmainbench_assembly", "main",
+                                   "Verify and package the baseline and variant cohorts"),
+    "webmainbench-full-check": ("harness.web_fetch.webmainbench_report_check", "main",
+                                "Check a complete report"),
+}
 
 
 def default_run_dir() -> Path:
@@ -128,6 +226,56 @@ def command_accounts(args: argparse.Namespace) -> int:
     return 0
 
 
+def finalize_reference_main() -> None:
+    """Finalize run-local body reference checks from independent offline JSON captures.
+
+    Observations are a list, or {"observations": [...]}. Each entry requires case_id,
+    independent: true, content_text, timezone-aware checked_at, scope_identity copied
+    exactly from manifest.reference_checks.cases[case_id], and completion containing
+    satisfied: true, elapsed_ms and timeout_ms. No network or browser work is done.
+    """
+    from harness.web_fetch.reference_lifecycle import finalize_reference_checks
+
+    parser = argparse.ArgumentParser(description=finalize_reference_main.__doc__)
+    parser.add_argument("--run-dir", type=Path, required=True)
+    parser.add_argument("--observations", type=Path, required=True)
+    args = parser.parse_args()
+    result = finalize_reference_checks(args.run_dir, args.observations)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    raise SystemExit(0 if result["status"] == "verified" else 1)
+
+
+def native_dns_main() -> None:
+    """Prepare the process-local native DNS bridge outside Git."""
+    from harness.web_fetch.network_dns import build_native_dns_library
+
+    parser = argparse.ArgumentParser(description=native_dns_main.__doc__)
+    parser.add_argument("destination", type=Path)
+    args = parser.parse_args()
+    path, manifest = build_native_dns_library(args.destination)
+    print(f"{path} {manifest['library_sha256']}")
+
+
+def diagnostic_check_main() -> None:
+    """Check a WebFetch diagnostic edition without declaring it certified."""
+    from harness.web_fetch.publication import verify_published_tree
+    from harness.web_fetch.report_diagnostic import check_diagnostic_report
+
+    parser = argparse.ArgumentParser(description=diagnostic_check_main.__doc__)
+    parser.add_argument("output", type=Path, nargs="?")
+    parser.add_argument("--output", dest="named_output", type=Path)
+    parser.add_argument("--profile", type=Path, help="Independently planned cohort/case/version scope")
+    parser.add_argument("--deployed-archive", type=Path, help="Exported deployed tree to compare byte-for-byte")
+    args = parser.parse_args()
+    if bool(args.output) == bool(args.named_output):
+        parser.error("provide one output directory, positional or --output")
+    output = args.output or args.named_output
+    result = check_diagnostic_report(output, profile=args.profile)
+    if args.deployed_archive:
+        result["verified_files"] = verify_published_tree(output, args.deployed_archive)
+    print(json.dumps(result))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="browser-harness-eval",
@@ -185,12 +333,31 @@ def build_parser() -> argparse.ArgumentParser:
     )
     accounts.add_argument("--env-file", type=Path)
     accounts.set_defaults(handler=command_accounts)
+    for name, (_, _, summary) in OWNER_COMMANDS.items():
+        sub.add_parser(name, help=summary, add_help=False)
     return parser
 
 
-def main() -> None:
+def run_owner_command(prog: str, name: str, arguments: Sequence[str]) -> None:
+    module, function, _ = OWNER_COMMANDS[name]
+    # Resolve the owner only when selected.
+    handler = getattr(importlib.import_module(module), function)
+    invoked = sys.argv
+    # Owners read sys.argv: several record their own source hash, so their mains stay unchanged.
+    sys.argv = [f"{prog} {name}", *arguments]
+    try:
+        handler()
+    finally:
+        sys.argv = invoked
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    arguments = list(sys.argv[1:] if argv is None else argv)
     parser = build_parser()
-    args = parser.parse_args()
+    if arguments[:1] and arguments[0] in OWNER_COMMANDS:
+        run_owner_command(parser.prog, arguments[0], arguments[1:])
+        return
+    args = parser.parse_args(arguments)
     if getattr(args, "output", "sentinel") is None:
         args.output = default_run_dir()
     try:

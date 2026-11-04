@@ -578,7 +578,7 @@ def run_evaluation(
         [case.id for case in cases])
     if network_audit is not None:
         (output_dir / 'network-preflight.json').write_text(
-            json.dumps(network_audit, ensure_ascii=False, indent=2) + '\n')
+            json.dumps(network_audit, ensure_ascii=False, indent=2) + '\n', encoding="utf-8")
     artifacts_dir = output_dir / "artifacts"
     artifacts_dir.mkdir(exist_ok=True)
     started_at = utc_now()

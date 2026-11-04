@@ -15,12 +15,13 @@ from harness.web_fetch import report_package
 def report_tree(root, *, sampled=False):
     source = root / "report"
     (source / "assets").mkdir(parents=True)
-    (source / "assets/style.css").write_text("body { color: black; }")
-    (source / "assets/report.js").write_text("window.addEventListener('report-ready',initReport);")
+    (source / "assets/style.css").write_text("body { color: black; }", encoding="utf-8")
+    (source / "assets/report.js").write_text("window.addEventListener('report-ready',initReport);", encoding="utf-8")
     (source / "index.html").write_text(
-        '<html lang="zh-CN"><body><a href="detail.html">详情</a></body></html>'
+        '<html lang="zh-CN"><body><a href="detail.html">详情</a></body></html>',
+        encoding="utf-8"
     )
-    (source / "detail.html").write_text('<html><body><a href="index.html">返回</a></body></html>')
+    (source / "detail.html").write_text('<html><body><a href="index.html">返回</a></body></html>', encoding="utf-8")
     dataset = {"id": "new-browser-cohort", "cases": [{"id": "alpha"}, {"id": "beta"}]}
     records = []
     if sampled:
@@ -39,7 +40,7 @@ def report_tree(root, *, sampled=False):
                         "artifact_path": provider + "-" + case + ".txt",
                     }
                 )
-                (source / records[-1]["artifact_path"]).write_text("measured output")
+                (source / records[-1]["artifact_path"]).write_text("measured output", encoding="utf-8")
         review = {
             "status": "passed",
             "failures": [],
@@ -47,31 +48,31 @@ def report_tree(root, *, sampled=False):
             "providers": ["first", "second"],
             "sample_manifest_sha256": "frozen-sample",
         }
-        (source / "result-review.json").write_text(json.dumps(review))
+        (source / "result-review.json").write_text(json.dumps(review), encoding="utf-8")
     else:
-        (source / "reliability.json").write_text('{"complete":true}')
-    (source / "dataset.json").write_text(json.dumps(dataset))
-    (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in records))
+        (source / "reliability.json").write_text('{"complete":true}', encoding="utf-8")
+    (source / "dataset.json").write_text(json.dumps(dataset), encoding="utf-8")
+    (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in records), encoding="utf-8")
     return source, root / "published.zip"
 
 
 @pytest.mark.parametrize("damage", [None, "missing", "failure-only", "partial", "stale-binding"])
 def test_full_review_cannot_be_bypassed_by_stale_complete_flag(tmp_path, damage):
     source, archive = report_tree(tmp_path)
-    dataset = json.loads((source / "dataset.json").read_text())
+    dataset = json.loads((source / "dataset.json").read_text(encoding="utf-8"))
     dataset["comparison"] = {
         "require_independent_result_review": True,
         "independent_result_review_scope": "all",
     }
-    (source / "dataset.json").write_text(json.dumps(dataset))
+    (source / "dataset.json").write_text(json.dumps(dataset), encoding="utf-8")
     records = [{"attempt_id": "native-" + name, "provider": "native",
                 "case_id": name, "artifact_path": name + ".txt",
                 "ok": True, "metrics": {"content_pass": True}}
                for name in ("alpha", "beta")]
     for row in records:
-        (source / row["artifact_path"]).write_text("The declared synthetic answer.")
+        (source / row["artifact_path"]).write_text("The declared synthetic answer.", encoding="utf-8")
     (source / "results.jsonl").write_text(
-        "".join(json.dumps(row) + "\n" for row in records))
+        "".join(json.dumps(row) + "\n" for row in records), encoding="utf-8")
     review = {
         "schema_version": 1,
         "bindings": {"dataset_sha256": hashlib.sha256(
@@ -91,7 +92,7 @@ def test_full_review_cannot_be_bypassed_by_stale_complete_flag(tmp_path, damage)
     elif damage == "stale-binding":
         review["bindings"]["results_sha256"] = "0" * 64
     if damage != "missing":
-        (source / "result-review.json").write_text(json.dumps(review))
+        (source / "result-review.json").write_text(json.dumps(review), encoding="utf-8")
     archive.write_bytes(b"previous verified release")
     if damage:
         with pytest.raises(ValueError):
@@ -104,9 +105,9 @@ def test_full_review_cannot_be_bypassed_by_stale_complete_flag(tmp_path, damage)
 
 def test_declared_small_matrix_packages_through_public_command(tmp_path):
     source, archive = report_tree(tmp_path, sampled=True)
-    entry = Path(__file__).resolve().parents[1] / "scripts/package_artifact_site.py"
     subprocess.run(
-        [sys.executable, str(entry), str(source), str(archive)], check=True, capture_output=True
+        [sys.executable, "-m", "harness.web_fetch", "site-package", str(source), str(archive)],
+        check=True, capture_output=True,
     )
     with zipfile.ZipFile(archive) as bundle:
         manifest = json.loads(bundle.read("manifest.json"))
@@ -122,11 +123,11 @@ def test_declared_small_matrix_packages_through_public_command(tmp_path):
 
 def test_retained_success_and_failure_rerun_can_be_packaged_together(tmp_path):
     source, archive = report_tree(tmp_path, sampled=True)
-    rows = [json.loads(line) for line in (source / 'results.jsonl').read_text().splitlines()]
+    rows = [json.loads(line) for line in (source / 'results.jsonl').read_text(encoding="utf-8").splitlines()]
     for row in rows:
         row['provider_metadata'] = {'binary_sha256':
             'retained-build' if row['case_id'] == 'alpha' else 'repair-build'}
-    (source / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    (source / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding="utf-8")
     report_package.build(source, archive)
     assert archive.is_file()
 
@@ -139,27 +140,27 @@ def test_ordinary_package_and_publication_require_the_bound_benchmark_edition(tm
 
     source, archive = report_tree(tmp_path, sampled=True)
     dataset_path = source / "dataset.json"
-    dataset = json.loads(dataset_path.read_text())
+    dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
     for case in dataset["cases"]:
         case["url"] = "https://example.test/" + case["id"]
-    dataset_path.write_text(json.dumps(dataset))
+    dataset_path.write_text(json.dumps(dataset), encoding="utf-8")
     cases = {case["id"]: case for case in dataset["cases"]}
-    rows = [json.loads(line) for line in (source / "results.jsonl").read_text().splitlines()]
+    rows = [json.loads(line) for line in (source / "results.jsonl").read_text(encoding="utf-8").splitlines()]
     for row in rows:
         row["ok"] = True
         row["metrics"] = score_attempt(cases[row["case_id"]],
                                        (source / row["artifact_path"]).read_bytes(), ok=True)
-    (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+    (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
     release = create_release(dataset, benchmark="sample", version="1.0.0")
     sidecar = source / "benchmark-release.json"
-    sidecar.write_text(json.dumps(release))
+    sidecar.write_text(json.dumps(release), encoding="utf-8")
     manifest = {"benchmark_release": {"path": sidecar.name,
         "sha256": hashlib.sha256(sidecar.read_bytes()).hexdigest(),
         "benchmark": "sample", "version": "1.0.0"}}
-    (source / "report-manifest.json").write_text(json.dumps(manifest))
+    (source / "report-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     home = source / "index.html"
-    home.write_text(home.read_text() + '<a data-benchmark-release="1.0.0" '
-                    'href="benchmark-release.json">sample v1.0.0</a>')
+    home.write_text(home.read_text(encoding="utf-8") + '<a data-benchmark-release="1.0.0" '
+                    'href="benchmark-release.json">sample v1.0.0</a>', encoding="utf-8")
     report_package.build(source, archive)
     check(archive, source)
     before = archive.read_bytes()
@@ -169,12 +170,12 @@ def test_ordinary_package_and_publication_require_the_bound_benchmark_edition(tm
         sidecar.unlink()
     elif damage == "changed":
         release["version"] = "99.0.0"
-        sidecar.write_text(json.dumps(release))
+        sidecar.write_text(json.dumps(release), encoding="utf-8")
     elif damage == "dropped-binding":
-        (source / "report-manifest.json").write_text('{}')
+        (source / "report-manifest.json").write_text('{}', encoding="utf-8")
     else:
-        home.write_text(home.read_text().replace('data-benchmark-release="1.0.0"',
-                                                 'data-benchmark-release="99.0.0"'))
+        home.write_text(home.read_text(encoding="utf-8").replace('data-benchmark-release="1.0.0"',
+                                                 'data-benchmark-release="99.0.0"'), encoding="utf-8")
     with pytest.raises(ValueError, match="[Bb]enchmark"):
         report_package.build(source, archive)
     assert archive.read_bytes() == before
@@ -197,9 +198,9 @@ def test_ordinary_package_and_publication_require_the_bound_benchmark_edition(tm
 )
 def test_incomplete_or_misbound_matrix_preserves_existing_archive(tmp_path, damage):
     source, archive = report_tree(tmp_path, sampled=True)
-    rows = [json.loads(line) for line in (source / "results.jsonl").read_text().splitlines()]
+    rows = [json.loads(line) for line in (source / "results.jsonl").read_text(encoding="utf-8").splitlines()]
     review_path = source / "result-review.json"
-    review = json.loads(review_path.read_text())
+    review = json.loads(review_path.read_text(encoding="utf-8"))
     if damage == "missing":
         rows.pop()
     elif damage == "duplicate":
@@ -216,8 +217,8 @@ def test_incomplete_or_misbound_matrix_preserves_existing_archive(tmp_path, dama
         review["sample_manifest_sha256"] = "different-sample"
     else:
         review["status"] = "pending"
-    (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
-    review_path.write_text(json.dumps(review))
+    (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    review_path.write_text(json.dumps(review), encoding="utf-8")
     archive.write_bytes(b"previous verified release")
     with pytest.raises(ValueError):
         report_package.build(source, archive)
@@ -227,11 +228,10 @@ def test_incomplete_or_misbound_matrix_preserves_existing_archive(tmp_path, dama
 
 def test_optimized_python_still_rejects_broken_links(tmp_path):
     source, archive = report_tree(tmp_path)
-    (source / "index.html").write_text('<a href="absent.html">Broken target</a>')
+    (source / "index.html").write_text('<a href="absent.html">Broken target</a>', encoding="utf-8")
     archive.write_bytes(b"previous verified release")
-    entry = Path(__file__).resolve().parents[1] / "scripts/package_artifact_site.py"
     rejected = subprocess.run(
-        [sys.executable, "-O", str(entry), str(source), str(archive)],
+        [sys.executable, "-O", "-m", "harness.web_fetch", "site-package", str(source), str(archive)],
         capture_output=True,
         text=True,
     )
@@ -251,7 +251,7 @@ def test_mutation_during_packaging_is_not_installed(tmp_path, monkeypatch, chang
         if not changed_once:
             changed_once = True
             if changed == "source":
-                (source / "new-evidence.txt").write_text("new evidence")
+                (source / "new-evidence.txt").write_text("new evidence", encoding="utf-8")
             else:
                 archive.write_bytes(b"independently installed release")
         return project(name, data)
@@ -285,10 +285,7 @@ def test_symlinks_cannot_enter_publication(tmp_path, linked):
 
 
 def test_importing_command_does_not_parse_arguments_or_create_files(tmp_path):
-    entry = Path(__file__).resolve().parents[1] / "scripts/package_artifact_site.py"
-    code = 'import runpy,sys; sys.argv=["package", "--unknown"]; runpy.run_path(sys.argv[1])'
-    # Supply the file independently so command arguments stay deliberately invalid.
-    code = code.replace("sys.argv[1]", repr(str(entry)))
+    code = 'import sys; sys.argv=["package", "--unknown"]; import harness.web_fetch.report_package'
     subprocess.run([sys.executable, "-c", code], cwd=tmp_path, check=True, capture_output=True)
     assert not list(tmp_path.iterdir())
 
@@ -311,14 +308,14 @@ def test_inline_acceptance_contract_survives_missing_file_and_cached_repack(tmp_
     from harness.reporting.packs import read_packed_file, write_packs
     from harness.web_fetch.publication_check import check
     source, archive = report_tree(tmp_path, sampled=True)
-    records = [json.loads(line) for line in (source/'results.jsonl').read_text().splitlines()]
+    records = [json.loads(line) for line in (source/'results.jsonl').read_text(encoding="utf-8").splitlines()]
     for row in records:
         row['output_sha256'] = hashlib.sha256((source/row['artifact_path']).read_bytes()).hexdigest()
-    (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records))
+    (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records), encoding="utf-8")
     (source/'attempts').mkdir()
     target = 'attempts/first-alpha.html'
     inline = '<pre data-kind="contract">{&quot;minimum&quot;:1}</pre>'
-    (source/target).write_text('<html><body>'+inline+'<pre data-kind="metadata">{}</pre></body></html>')
+    (source/target).write_text('<html><body>'+inline+'<pre data-kind="metadata">{}</pre></body></html>', encoding="utf-8")
     report_package.build(source,archive)
     check(archive,source)
     with zipfile.ZipFile(archive) as bundle:
@@ -340,7 +337,7 @@ def test_inline_acceptance_contract_survives_missing_file_and_cached_repack(tmp_
             entry.update(parts=[digest] if raw else [],size=len(raw),sha256=digest)
         manifest['blocks'],_ = write_packs(blocks.items(),cached,limit=4*1024*1024,
                                            pattern='data/{index:03d}.gz',compresslevel=9)
-        (cached/'manifest.json').write_text(json.dumps(manifest))
+        (cached/'manifest.json').write_text(json.dumps(manifest), encoding="utf-8")
     report_package.build(source,archive,cached_content=cached)
     check(archive,source)
     with zipfile.ZipFile(archive) as bundle:
@@ -352,10 +349,10 @@ def test_inline_acceptance_contract_survives_missing_file_and_cached_repack(tmp_
 def test_data_attachments_preserve_report_and_require_fixed_published_versions(tmp_path,monkeypatch):
     from harness.web_fetch.publication_check import check
     source,archive = report_tree(tmp_path,sampled=True)
-    rows = [json.loads(line) for line in (source/'results.jsonl').read_text().splitlines()]
+    rows = [json.loads(line) for line in (source/'results.jsonl').read_text(encoding="utf-8").splitlines()]
     for row in rows:
         row['output_sha256'] = hashlib.sha256((source/row['artifact_path']).read_bytes()).hexdigest()
-    (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+    (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding="utf-8")
     partition = report_package.partition_content
     monkeypatch.setattr(report_package,'partition_content',
                         lambda content,output:partition(content,output,max_files=5))
@@ -393,7 +390,7 @@ def test_cached_privacy_refresh_keeps_source_identity(tmp_path):
     cached = tmp_path/'cached'
     output = tmp_path/'output'
     source.mkdir()
-    (source/'results.jsonl').write_text('')
+    (source/'results.jsonl').write_text('', encoding="utf-8")
     name = 'native.response.txt'
     raw = json.dumps({'result':'Example: {"clientSecret": "string"}'}).encode()
     (source/name).write_bytes(raw)
@@ -402,7 +399,7 @@ def test_cached_privacy_refresh_keeps_source_identity(tmp_path):
     write_compact_packs([(name,{'source_sha256':digest,'size':len(raw),'sha256':digest},raw),
                          ('publication-privacy.json',{'size':len(privacy),'sha256':hashlib.sha256(privacy).hexdigest()},privacy)],cached)
     for filename in ('index.html','style.css','report.js'):
-        (cached/filename).write_text('')
+        (cached/filename).write_text('', encoding="utf-8")
     report_package._compact_cached_content(cached,output,source=source,refresh_privacy=True)
     manifest = read_packed_manifest(lambda path:(output/path).read_bytes())
     def read(path):
@@ -437,7 +434,7 @@ def test_cached_results_refresh_decoded_public_representation_from_source(tmp_pa
         if name=='results.jsonl':metadata['source_sha256']=hashlib.sha256(original).hexdigest()
         entries.append((name,metadata,raw))
     write_compact_packs(entries,cached)
-    for name in ('index.html','style.css','report.js'):(cached/name).write_text('')
+    for name in ('index.html','style.css','report.js'):(cached/name).write_text('', encoding="utf-8")
     report_package._compact_cached_content(cached,output,source=source)
     manifest=read_packed_manifest(lambda name:(output/name).read_bytes())
     def read(name):return reconstruct_packed_file(manifest,name,lambda p:gzip.decompress((output/p).read_bytes()))
@@ -458,7 +455,7 @@ def test_public_package_checks_original_and_retained_view_hashes(tmp_path,damage
     from harness.web_fetch.publication_privacy import project_evidence_view
     from harness.web_fetch.publication_check import check
     source,archive=report_tree(tmp_path,sampled=True)
-    rows=[json.loads(line) for line in (source/'results.jsonl').read_text().splitlines()]
+    rows=[json.loads(line) for line in (source/'results.jsonl').read_text(encoding="utf-8").splitlines()]
     for row in rows:
         row['output_sha256']=hashlib.sha256((source/row['artifact_path']).read_bytes()).hexdigest()
     original=b'Answer saved at /Users/example/private/answer.txt'
@@ -480,7 +477,7 @@ def test_public_package_checks_original_and_retained_view_hashes(tmp_path,damage
         'provider_calls_added':0,'files':[{'original_path':artifact,
         'original_sha256':original_hash,'view_receipt':proof}]})
     save('presentation-binding.json',{'publication_evidence_views':index} if damage!='missing_binding' else {})
-    (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+    (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding="utf-8")
     report_package.build(source,archive)
     if damage:
         with pytest.raises(ValueError,match='Original scored output hash differs'):

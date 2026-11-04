@@ -13,7 +13,7 @@ class BeforeProvider(Exception):
 
 def sample(path, parent):
     path.write_text(json.dumps({'schema_version': 1, 'parent': {'sha256': parent},
-        'sampling': {'size': 1}, 'cases': [{'track_id': 'shared-case'}]}))
+        'sampling': {'size': 1}, 'cases': [{'track_id': 'shared-case'}]}), encoding='utf-8')
     return path
 
 
@@ -59,7 +59,7 @@ def test_run_accepts_selection_bound_to_actual_historical_or_corrected_corpus(tm
 
 def test_plain_id_list_is_an_explicit_unbound_selection(tmp_path):
     path = tmp_path / 'ids.txt'
-    path.write_text('shared-case\n')
+    path.write_text('shared-case\n', encoding='utf-8')
     ids, binding = runner.load_selected_ids(path, expected_dataset_sha256='b' * 64)
     assert ids == {'shared-case'}
     assert binding['format'] == 'track_id_lines'

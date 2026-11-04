@@ -7,6 +7,7 @@ import importlib.util
 import json
 import math
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -14,7 +15,10 @@ import sys
 import tempfile
 import threading
 import time
+from collections.abc import Callable, Mapping
 from contextlib import contextmanager
+from dataclasses import dataclass, field
+from functools import partial
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -32,7 +36,6 @@ from harness.web_fetch.providers.cloudflare import CloudflareMarkdownProvider
 from harness.web_fetch.providers.runtime_identity import require_expected_provider_versions
 from harness.web_fetch.retrieval_hints import native_contract_for_case, plan_for_case
 
-ENGINES = ('kitesurf', 'lightpanda', 'obscura', 'moli', 'chromium')
 LOOPBACK_SANDBOX_PROFILE = (
     '(version 1)(allow default)(deny network*)'
     '(allow network* (local unix-socket))'
@@ -46,6 +49,310 @@ HEADLESS_CONVERSION = (
 )
 
 
+def _wait_flag_completion(delay_flag, plan):
+    arguments = [
+        '--wait-selector' if plan['wait_kind'] == 'selector' else '--wait-script',
+        plan['wait_value'],
+        '--wait-until',
+        plan['wait_until'],
+    ]
+    if plan['delay_ms']:
+        arguments += [delay_flag, str(plan['delay_ms'])]
+    return arguments
+
+
+def _obscura_completion_arguments(plan):
+    # Obscura can wait for one top-level selector but cannot express a
+    # selector count or enter a child frame from its one-shot fetch CLI.
+    wait_until = 'networkidle0' if plan['wait_until'] == 'networkidle' else plan['wait_until']
+    arguments = ['--wait-until', wait_until]
+    if not plan.get('frame_selector'):
+        arguments += ['--selector', plan['selector']]
+    if plan['delay_ms']:
+        # Its public CLI accepts whole seconds, and applies this fixed wait
+        # before its selector poll rather than after selector completion.
+        arguments += ['--wait', str(max(1, math.ceil(plan['delay_ms'] / 1000)))]
+    return arguments
+
+
+def _exact_completion(plan):
+    strategy = (
+        'frame_selector_count_script'
+        if plan.get('frame_selector')
+        else 'selector'
+        if plan['wait_kind'] == 'selector'
+        else 'selector_count_script'
+    )
+    return {
+        'strategy': strategy,
+        'completion_support': 'exact',
+        'minimum_count_enforced': True,
+        'unsupported': [],
+    }
+
+
+def _chromium_completion(plan):
+    metadata = _exact_completion(plan)
+    if plan.get('frame_selector'):
+        # These paths can wait on same-origin child content, but their
+        # existing Markdown/outerHTML contract does not serialize it.
+        metadata['output_unsupported'] = ['child_frame_serialization']
+    return metadata
+
+
+def _lightpanda_completion(plan):
+    if plan['wait_kind'] == 'selector':
+        return _exact_completion(plan)
+    # Lightpanda 1.0.0 accepts --wait-script but does not enforce the
+    # predicate: even `() => false` returns a successful response
+    # immediately.  Keep using the official flag so the attempted route is
+    # reproducible, but do not describe count, frame or text-completeness
+    # predicates as an exact request boundary.
+    metadata = {
+        'strategy': 'native_script_not_enforced',
+        'completion_support': 'unsupported',
+        'minimum_count_enforced': False,
+        'unsupported': [
+            'script_enforcement', 'minimum_count', 'minimum_text_fragments',
+        ],
+    }
+    if plan.get('frame_selector'):
+        metadata['unsupported'].append('child_frame_selector')
+    return metadata
+
+
+def _obscura_completion(plan):
+    frame = bool(plan.get('frame_selector'))
+    # The CLI only warns when its selector poll expires and still exits
+    # successfully, so even the one-element condition is observed but not
+    # enforced as a request boundary.
+    unsupported = [
+        'selector_enforcement',
+        'post_completion_delay',
+        'completion_timeout',
+    ]
+    if frame:
+        unsupported += ['child_frame_selector', 'selector']
+    if plan['minimum_count'] != 1:
+        unsupported.append('minimum_count')
+    return {
+        'strategy': 'fixed_delay' if frame else 'fixed_delay_then_selector',
+        'completion_support': 'approximate',
+        'minimum_count_enforced': False,
+        'unsupported': unsupported,
+    }
+
+
+# Slots of an argument template. Each expands to zero or more arguments that
+# depend on the call; every other template token is a literal argument.
+_URL = '<url>'
+_EXPRESSION = '<expression>'
+_TIMEOUT_MS = '<timeout-ms>'
+_TIMEOUT_SECONDS = '<timeout-seconds>'
+_PROXY = '<proxy>'
+_CA_CERT = '<ca-cert>'
+_PRIVATE_NETWORK = '<allow-private-network>'
+_SUBDOCUMENTS = '<subdocuments>'
+_COMPLETION = '<completion>'
+_COMPLETION_OR_WAIT = '<completion-or-requested-wait>'
+_COMPLETION_OR_DOM_LOADED = '<completion-or-domcontentloaded>'
+_BLOCK_PRIVATE_NETWORKS = '<block-private-networks>'
+_LOG_LEVEL = '<log-level>'
+_PROJECTION_IFRAMES = '<projection-iframes>'
+
+# Metadata values resolved from the call rather than the engine.
+_CLI_WAIT = '<cli-wait>'
+_CDP_WAIT = '<cdp-wait>'
+_CLI_RAW_WAIT = {'file': 'automatic raw response',
+                 'document': 'automatic raw response or serialized HTML'}
+_NAVIGATION_WAIT = dict.fromkeys(('file', 'document'), 'navigation response bytes')
+_ADAPTIVE_WAIT = 'load + adaptive settle'
+_PAGE_EXTRACTORS = {'resource': 'rendered_dom_resources',
+                    'media_metadata': 'rendered_body_and_standard_media_metadata',
+                    'document_page': 'browser_runtime_document_text'}
+_CLI_ROUTES = {'html': 'html', 'markdown': 'markdown', 'document': 'raw', 'file': 'raw',
+               'resource': 'projection', 'media_metadata': 'projection',
+               'document_page': 'projection'}
+
+
+def _expand(template, slots):
+    arguments = []
+    for token in template:
+        if token in slots:
+            arguments += slots[token]
+        else:
+            arguments.append(token)
+    return arguments
+
+
+@dataclass(frozen=True)
+class HostedBackend:
+    """A provider-run browser reached through its account API."""
+    browser: str
+    account_deployment: str
+    cdp_deployment: str
+    container_deployment: str
+    container_identity_deployment: str
+    identity_source: str
+    identity_endpoint: str
+    endpoint_route: str
+
+    def endpoint(self, account_id):
+        return 'wss://api.cloudflare.com/client/v4/accounts/' + account_id + self.endpoint_route
+
+
+@dataclass(frozen=True)
+class HeadlessEngine:
+    """Everything that differs between engines; defaults describe no capability."""
+    # One-shot CLI argument templates by route, after the binary. A route without
+    # a template is unavailable for this engine.
+    commands: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
+    # Native CDP server arguments after `serve --host --port`; None means no server.
+    cdp_server_arguments: tuple[str, ...] | None = None
+    cdp_ca_certificate_environment: bool = False
+    retain_cdp_server_log: bool = False
+    proxy_flag: str = '--proxy'
+    subdocument_flags: tuple[str, ...] = ()
+    subdocument_interface: str | None = None
+    subdocument_support: str = 'unsupported'
+    native_json_format: str | None = None
+    native_eval_format: str | None = None
+    completion_arguments: Callable[[dict], list[str]] | None = None
+    completion_semantics: Callable[[dict], dict] | None = None
+    # Launched through Playwright, which owns its revision, DNS profile and DOM conversion.
+    playwright_launched: bool = False
+    container_browser_args: tuple[str, ...] = ()
+    version_args: tuple[str, ...] | None = None
+    hosted: HostedBackend | None = None
+    # Native Markdown for documents and webpage media: under every provider type,
+    # or only under headless_markdown.
+    rich_task_markdown: bool = False
+    rich_task_markdown_any_type: bool = False
+    document_markdown: bool = False
+    video_body_markdown: bool = False
+    wait_until: Mapping[str, str] = field(default_factory=dict)
+    default_wait_until: str = 'load'
+    file_extractor: str = ''
+    markdown_extractor: str = ''
+
+
+ENGINES = {
+    'kitesurf': HeadlessEngine(
+        hosted=HostedBackend(
+            browser='kitesurf',
+            account_deployment='Cloudflare Browser Run account API',
+            cdp_deployment='public cloud CDP',
+            container_deployment='Cloudflare Browser Run from isolated client container',
+            container_identity_deployment=(
+                'Cloudflare Browser Run account API from isolated client container'),
+            identity_source=('provider product and endpoint observed before calls; '
+                             'hosted backend version is not exposed'),
+            identity_endpoint='Browser Rendering /markdown with browser=kitesurf',
+            endpoint_route='/browser-run/devtools/browser?browser=kitesurf',
+        ),
+        rich_task_markdown=True,
+        wait_until={**_NAVIGATION_WAIT, 'markdown': 'networkidle2'},
+        default_wait_until=_CDP_WAIT,
+        file_extractor='kitesurf_cdp_response',
+        markdown_extractor='cloudflare_native_markdown',
+    ),
+    'lightpanda': HeadlessEngine(
+        commands={
+            'html': ('fetch', '--dump', 'html', _PROXY, _COMPLETION_OR_DOM_LOADED,
+                     '--http-timeout', _TIMEOUT_MS, _URL),
+            'markdown': ('fetch', '--dump', 'markdown', _SUBDOCUMENTS, _PROXY,
+                         _COMPLETION_OR_WAIT, _CA_CERT, '--terminate-ms', _TIMEOUT_MS,
+                         '--http-timeout', _TIMEOUT_MS, _URL),
+        },
+        cdp_server_arguments=('--http-timeout', _TIMEOUT_MS, _PROJECTION_IFRAMES,
+                              _PROXY, _CA_CERT),
+        proxy_flag='--http-proxy',
+        subdocument_flags=('--with-frames', '--load-resources', 'iframe'),
+        subdocument_interface='--load-resources iframe + --with-frames',
+        subdocument_support='native_markdown_omits_child_document',
+        native_json_format='lightpanda_json',
+        completion_arguments=partial(_wait_flag_completion, '--wait-ms'),
+        completion_semantics=_lightpanda_completion,
+        version_args=('version',),
+        rich_task_markdown=True,
+        wait_until={**_NAVIGATION_WAIT, 'markdown': _CLI_WAIT},
+        file_extractor='lightpanda_cdp_response',
+        markdown_extractor='lightpanda_native_markdown',
+    ),
+    'obscura': HeadlessEngine(
+        commands={
+            'html': ('fetch', '--dump', 'html', _PROXY, _COMPLETION_OR_DOM_LOADED,
+                     '--timeout', _TIMEOUT_SECONDS, '--quiet', _URL),
+            # Its documented default is load plus an adaptive, at-most
+            # five-second quiescence wait. Do not replace it with a fixed delay.
+            'markdown': (_PRIVATE_NETWORK, _PROXY, 'fetch', '--dump', 'markdown', _COMPLETION,
+                         '--timeout', _TIMEOUT_SECONDS, '--quiet', _URL),
+            'raw': ('fetch', '--dump', 'original', _PRIVATE_NETWORK, _PROXY,
+                    '--timeout', _TIMEOUT_SECONDS, '--quiet', _URL),
+            'projection': ('fetch', '--eval', _EXPRESSION, '--timeout', _TIMEOUT_SECONDS,
+                           '--quiet', _PRIVATE_NETWORK, _PROXY, _URL),
+            'native_eval': (_PRIVATE_NETWORK, _PROXY, 'fetch', '--eval', _EXPRESSION,
+                            '--timeout', _TIMEOUT_SECONDS, '--quiet', _URL),
+        },
+        cdp_server_arguments=('--quiet', _PRIVATE_NETWORK, _PROXY),
+        cdp_ca_certificate_environment=True,
+        native_eval_format='obscura_eval',
+        completion_arguments=_obscura_completion_arguments,
+        completion_semantics=_obscura_completion,
+        rich_task_markdown=True,
+        wait_until={**_CLI_RAW_WAIT, 'markdown': _ADAPTIVE_WAIT,
+                    'resource': _ADAPTIVE_WAIT, 'media_metadata': _ADAPTIVE_WAIT},
+        file_extractor='obscura_original_response',
+        markdown_extractor='obscura_native_markdown',
+    ),
+    'moli': HeadlessEngine(
+        commands={
+            'html': ('fetch', '--dump', 'html', _PROXY, _COMPLETION_OR_DOM_LOADED,
+                     '--timeout', _TIMEOUT_MS, '--http-timeout', _TIMEOUT_MS, _URL),
+            'markdown': ('fetch', '--dump', 'markdown', _SUBDOCUMENTS, _PROXY,
+                         _COMPLETION_OR_WAIT, _CA_CERT, '--timeout', _TIMEOUT_MS,
+                         '--http-timeout', _TIMEOUT_MS, _URL),
+            # All three measured Moli releases write direct raw responses such as
+            # PDF and media bytes when --dump is omitted. Supplying --dump markdown
+            # rejects those responses before extraction can begin. Version 1.1.3
+            # documents this behavior explicitly; 1.0.6 and 1.1.1 are bound to
+            # release binaries and covered by route probes and end-to-end tests.
+            'raw': ('fetch', _PROXY, '--timeout', _TIMEOUT_MS,
+                    '--http-timeout', _TIMEOUT_MS, _URL),
+        },
+        cdp_server_arguments=(_BLOCK_PRIVATE_NETWORKS, _LOG_LEVEL, _PROXY, _CA_CERT),
+        retain_cdp_server_log=True,
+        proxy_flag='--http-proxy',
+        subdocument_flags=('--with-frames',),
+        subdocument_interface='--with-frames',
+        subdocument_support='native',
+        completion_arguments=partial(_wait_flag_completion, '--delay-ms'),
+        completion_semantics=_exact_completion,
+        document_markdown=True,
+        video_body_markdown=True,
+        wait_until={**_CLI_RAW_WAIT, 'markdown': _CLI_WAIT},
+        file_extractor='moli_cdp_response',
+        markdown_extractor='moli_native_markdown',
+    ),
+    'chromium': HeadlessEngine(
+        completion_semantics=_chromium_completion,
+        playwright_launched=True,
+        container_browser_args=('--no-sandbox',),
+        rich_task_markdown_any_type=True,
+        wait_until=dict.fromkeys(('file', 'document'),
+                                 'browser response bytes or completed native download'),
+        file_extractor='browser_native_response_or_download',
+        markdown_extractor='node-html-markdown',
+    ),
+}
+_UNREGISTERED_ENGINE = HeadlessEngine()
+
+
+def _engine_definition(engine):
+    """Unregistered names remain valid report labels but select no capability."""
+    return ENGINES.get(engine, _UNREGISTERED_ENGINE) if isinstance(engine, str) else _UNREGISTERED_ENGINE
+
+
 def _resolve_binary(engine, configured):
     # An explicitly expanded empty environment variable is a configuration
     # error.  It must not behave like an omitted option and silently select a
@@ -53,7 +360,8 @@ def _resolve_binary(engine, configured):
     if configured == '':
         return None
     resolved = shutil.which(configured or engine)
-    if resolved or engine != 'chromium' or configured not in (None, '', 'chromium'):
+    if (resolved or not _engine_definition(engine).playwright_launched
+            or configured not in (None, '', engine)):
         return resolved
     # Playwright owns the Chromium revision used by this adapter. Requiring a
     # second PATH alias can silently select a different system browser.
@@ -63,41 +371,11 @@ def _resolve_binary(engine, configured):
     return bundled if Path(bundled).is_file() else None
 
 
-def _cli_completion_arguments(engine, plan):
-    if not plan:
-        return None
-    if engine in {'moli', 'lightpanda'}:
-        arguments = [
-            '--wait-selector' if plan['wait_kind'] == 'selector' else '--wait-script',
-            plan['wait_value'],
-            '--wait-until',
-            plan['wait_until'],
-        ]
-        if plan['delay_ms']:
-            arguments += [
-                '--delay-ms' if engine == 'moli' else '--wait-ms',
-                str(plan['delay_ms']),
-            ]
-        return arguments
-    if engine == 'obscura':
-        # Obscura can wait for one top-level selector but cannot express a
-        # selector count or enter a child frame from its one-shot fetch CLI.
-        wait_until = 'networkidle0' if plan['wait_until'] == 'networkidle' else plan['wait_until']
-        arguments = ['--wait-until', wait_until]
-        if not plan.get('frame_selector'):
-            arguments += ['--selector', plan['selector']]
-        if plan['delay_ms']:
-            # Its public CLI accepts whole seconds, and applies this fixed wait
-            # before its selector poll rather than after selector completion.
-            arguments += ['--wait', str(max(1, math.ceil(plan['delay_ms'] / 1000)))]
-        return arguments
-    return None
-
-
 def completion_metadata(engine, plan, output_mode):
     """Describe the exact native semantics used for one normalized plan."""
     if not plan:
         return None
+    semantics = _engine_definition(engine).completion_semantics
     if output_mode in {'document', 'file'}:
         metadata = {
             'strategy': 'raw_response',
@@ -105,62 +383,8 @@ def completion_metadata(engine, plan, output_mode):
             'minimum_count_enforced': False,
             'unsupported': ['selector', 'minimum_count', 'post_completion_delay'],
         }
-    elif engine in {'moli', 'chromium'} or (
-        engine == 'lightpanda' and plan['wait_kind'] == 'selector'
-    ):
-        strategy = (
-            'frame_selector_count_script'
-            if plan.get('frame_selector')
-            else 'selector'
-            if plan['wait_kind'] == 'selector'
-            else 'selector_count_script'
-        )
-        metadata = {
-            'strategy': strategy,
-            'completion_support': 'exact',
-            'minimum_count_enforced': True,
-            'unsupported': [],
-        }
-        if engine == 'chromium' and plan.get('frame_selector'):
-            # These paths can wait on same-origin child content, but their
-            # existing Markdown/outerHTML contract does not serialize it.
-            metadata['output_unsupported'] = ['child_frame_serialization']
-    elif engine == 'lightpanda':
-        # Lightpanda 1.0.0 accepts --wait-script but does not enforce the
-        # predicate: even `() => false` returns a successful response
-        # immediately.  Keep using the official flag so the attempted route is
-        # reproducible, but do not describe count, frame or text-completeness
-        # predicates as an exact request boundary.
-        metadata = {
-            'strategy': 'native_script_not_enforced',
-            'completion_support': 'unsupported',
-            'minimum_count_enforced': False,
-            'unsupported': [
-                'script_enforcement', 'minimum_count', 'minimum_text_fragments',
-            ],
-        }
-        if plan.get('frame_selector'):
-            metadata['unsupported'].append('child_frame_selector')
-    elif engine == 'obscura':
-        frame = bool(plan.get('frame_selector'))
-        # The CLI only warns when its selector poll expires and still exits
-        # successfully, so even the one-element condition is observed but not
-        # enforced as a request boundary.
-        unsupported = [
-            'selector_enforcement',
-            'post_completion_delay',
-            'completion_timeout',
-        ]
-        if frame:
-            unsupported += ['child_frame_selector', 'selector']
-        if plan['minimum_count'] != 1:
-            unsupported.append('minimum_count')
-        metadata = {
-            'strategy': 'fixed_delay' if frame else 'fixed_delay_then_selector',
-            'completion_support': 'approximate',
-            'minimum_count_enforced': False,
-            'unsupported': unsupported,
-        }
+    elif semantics:
+        metadata = semantics(plan)
     else:
         raise ValueError('unsupported dynamic engine: ' + engine)
     return {
@@ -211,10 +435,21 @@ def cli_command(
     detail_links=False,
     include_subdocuments=False,
 ):
+    definition = _engine_definition(engine)
+    slots = {
+        _URL: [url],
+        _TIMEOUT_MS: [str(max(1, math.ceil(timeout * 1000)))],
+        _TIMEOUT_SECONDS: [str(math.ceil(timeout))],
+        _PROXY: [definition.proxy_flag, http_proxy] if http_proxy else [],
+        _CA_CERT: ['--ca-cert', str(ca_cert)] if ca_cert else [],
+        _PRIVATE_NETWORK: ['--allow-private-network'] if allow_private_network else [],
+        _SUBDOCUMENTS: list(definition.subdocument_flags) if include_subdocuments else [],
+    }
     if native_metadata:
         if output_mode != 'markdown':
             raise ValueError('native metadata requires native Markdown completion')
-        if engine == 'lightpanda' and native_metadata.get('format') == 'lightpanda_json':
+        native_format = native_metadata.get('format')
+        if definition.native_json_format and native_format == definition.native_json_format:
             return cli_command(
                 engine, binary, url, timeout, output_mode,
                 wait_until=wait_until,
@@ -228,107 +463,52 @@ def cli_command(
             ) + ['--json']
         if retrieval_plan:
             raise ValueError('native metadata requires native Markdown completion')
-        if engine == 'obscura' and native_metadata.get('format') == 'obscura_eval':
+        if definition.native_eval_format and native_format == definition.native_eval_format:
             source = _native_script_bytes(native_metadata)
-            expression = ('JSON.stringify({content:(' + source.decode('utf-8')
-                          + '),final_url:location.href,title:document.title})')
-            prefix = [binary, '--allow-private-network'] if allow_private_network else [binary]
-            if http_proxy:
-                prefix += ['--proxy', http_proxy]
-            return prefix + ['fetch', '--eval', expression, '--timeout',
-                             str(math.ceil(timeout)), '--quiet', url]
+            slots[_EXPRESSION] = ['JSON.stringify({content:(' + source.decode('utf-8')
+                                  + '),final_url:location.href,title:document.title})']
+            return [binary, *_expand(definition.commands['native_eval'], slots)]
         raise ValueError('unsupported native metadata route')
-    ms = str(max(1, math.ceil(timeout * 1000)))
-    if output_mode in {'resource', 'media_metadata', 'document_page'}:
+    route = _CLI_ROUTES.get(output_mode)
+    if route is None:
+        raise ValueError('Unsupported browser output mode: ' + output_mode)
+    if route == 'projection':
         from harness.web_fetch.task_outputs import (
             DOCUMENT_PAGE_EXPRESSION,
             MEDIA_METADATA_EXPRESSION,
             resource_expression,
         )
-        expression = resource_expression(track, detail_links) if output_mode == 'resource' else {'media_metadata': MEDIA_METADATA_EXPRESSION, 'document_page': DOCUMENT_PAGE_EXPRESSION}[output_mode]
-        if engine == 'obscura':
-            command = [binary, 'fetch', '--eval', expression, '--timeout', str(math.ceil(timeout)), '--quiet']
-            if allow_private_network:
-                command.append('--allow-private-network')
-            if http_proxy:
-                command += ['--proxy', http_proxy]
-            return command + [url]
-        raise ValueError('Rendered projection requires a native CDP or eval interface')
-    if output_mode not in {'html', 'markdown', 'document', 'file'}:
-        raise ValueError('Unsupported browser output mode: ' + output_mode)
-    if output_mode in {'document', 'file'}:
-        if engine == 'obscura':
-            command = [binary, 'fetch', '--dump', 'original']
-            if allow_private_network:
-                command.append('--allow-private-network')
-            if http_proxy:
-                command += ['--proxy', http_proxy]
-            return command + ['--timeout', str(math.ceil(timeout)), '--quiet', url]
-        if engine != 'moli':
-            raise ValueError('Raw document auto-output is only supported by Moli')
-        # All three measured Moli releases write direct raw responses such as
-        # PDF and media bytes when --dump is omitted. Supplying --dump markdown
-        # rejects those responses before extraction can begin. Version 1.1.3
-        # documents this behavior explicitly; 1.0.6 and 1.1.1 are bound to
-        # release binaries and covered by route probes and end-to-end tests.
-        command = [binary, 'fetch']
-        if http_proxy:
-            command += ['--http-proxy', http_proxy]
-        return command + ['--timeout', ms, '--http-timeout', ms, url]
-    if output_mode == 'markdown':
-        completion = _cli_completion_arguments(engine, retrieval_plan)
-        if engine == 'obscura':
-            # Obscura's documented default is load plus an adaptive, at-most
-            # five-second quiescence wait. Do not replace it with a fixed delay.
-            prefix = [binary, '--allow-private-network'] if allow_private_network else [binary]
-            if http_proxy:
-                prefix += ['--proxy', http_proxy]
-            return prefix + ['fetch', '--dump', 'markdown', *(completion or []), '--timeout',
-                    str(math.ceil(timeout)), '--quiet', url]
-        common = [binary, 'fetch', '--dump', 'markdown']
-        if include_subdocuments and engine in {'moli', 'lightpanda'}:
-            common.append('--with-frames')
-            if engine == 'lightpanda':
-                common += ['--load-resources', 'iframe']
-        if http_proxy:
-            common += ['--http-proxy', http_proxy]
-        common += completion or ['--wait-until', wait_until or 'done']
-        if engine == 'moli':
-            return common + (['--ca-cert', str(ca_cert)] if ca_cert else []) + ['--timeout', ms, '--http-timeout', ms, url]
-        if engine == 'lightpanda':
-            return common + (['--ca-cert', str(ca_cert)] if ca_cert else []) + ['--terminate-ms', ms, '--http-timeout', ms, url]
-        raise ValueError('Not a native Markdown CLI engine: ' + engine)
-    completion = _cli_completion_arguments(engine, retrieval_plan)
-    common = [binary, 'fetch', '--dump', 'html']
-    if http_proxy:
-        common += ['--http-proxy' if engine in {'moli', 'lightpanda'} else '--proxy', http_proxy]
-    common += completion or ['--wait-until', 'domcontentloaded']
-    if engine == 'obscura':
-        return common + ['--timeout', str(math.ceil(timeout)), '--quiet', url]
-    if engine == 'moli':
-        return common + ['--timeout', ms, '--http-timeout', ms, url]
-    if engine == 'lightpanda':
-        return common + ['--http-timeout', ms, url]
-    raise ValueError('Not a CLI engine: ' + engine)
+        slots[_EXPRESSION] = [
+            resource_expression(track, detail_links) if output_mode == 'resource'
+            else {'media_metadata': MEDIA_METADATA_EXPRESSION,
+                  'document_page': DOCUMENT_PAGE_EXPRESSION}[output_mode]]
+    template = definition.commands.get(route)
+    if template is None:
+        raise ValueError({
+            'projection': 'Rendered projection requires a native CDP or eval interface',
+            'raw': 'Raw document auto-output is only supported by Moli',
+            'markdown': 'Not a native Markdown CLI engine: ' + str(engine),
+            'html': 'Not a CLI engine: ' + str(engine),
+        }[route])
+    if route in {'html', 'markdown'}:
+        arguments = definition.completion_arguments
+        completion = arguments(retrieval_plan) if arguments and retrieval_plan else None
+        slots[_COMPLETION] = completion or []
+        slots[_COMPLETION_OR_WAIT] = completion or ['--wait-until', wait_until or 'done']
+        slots[_COMPLETION_OR_DOM_LOADED] = completion or ['--wait-until', 'domcontentloaded']
+    return [binary, *_expand(template, slots)]
 
 
 def output_mode_for_case(engine, provider_type, case):
     """Choose one product-native route for each task family."""
+    definition = _engine_definition(engine)
     if engine in ENGINES and case.task_kind == 'file':
         return 'file'
-    if engine == 'moli' and case.track == 'document':
+    if definition.document_markdown and case.track == 'document':
         return 'markdown'
-    native_markdown = (
-        provider_type == 'headless_markdown'
-        and engine in {'lightpanda', 'obscura', 'kitesurf'}
-    )
-    if native_markdown and (
-        case.track == 'document'
-        or (case.task_kind == 'resource' and case.track in {'image', 'video'})
-        or (case.task_kind == 'body' and case.track == 'video')
-    ):
-        return 'markdown'
-    if engine == 'chromium' and (
+    rich_task_markdown = definition.rich_task_markdown_any_type or (
+        definition.rich_task_markdown and provider_type == 'headless_markdown')
+    if rich_task_markdown and (
         case.track == 'document'
         or (case.task_kind == 'resource' and case.track in {'image', 'video'})
         or (case.task_kind == 'body' and case.track == 'video')
@@ -343,7 +523,7 @@ def output_mode_for_case(engine, provider_type, case):
     if case.task_kind == 'resource' and case.track in {'image', 'video'}:
         return 'resource'
     if case.task_kind == 'body' and case.track == 'video':
-        return 'markdown' if engine == 'moli' else 'media_metadata'
+        return 'markdown' if definition.video_body_markdown else 'media_metadata'
     return 'markdown' if provider_type == 'headless_markdown' else 'html'
 
 
@@ -367,14 +547,16 @@ class HeadlessProvider(Provider):
     @property
     def cancellation_cleanup_seconds(self):
         # Remote and resource-container calls retain their own boundaries.
-        local = (self.config.get('engine') != 'kitesurf'
+        local = (not _engine_definition(self.config.get('engine')).hosted
                  and self.config.get('resource_sample_interval_ms') is None)
         return 1.0 if local else 0.0
 
     def validate(self):
         errors = []
         engine = self.config.get('engine')
-        if engine not in ENGINES:
+        definition = _engine_definition(engine)
+        requires_credentials = definition.hosted and self.type == 'headless_markdown'
+        if definition is _UNREGISTERED_ENGINE:
             errors.append('engine')
         native_metadata = self.config.get('native_metadata')
         if native_metadata is not None:
@@ -391,22 +573,22 @@ class HeadlessProvider(Provider):
         resource_interval = self.config.get('resource_sample_interval_ms')
         try:
             dns_mode = validate_dns_mode(self.config.get('dns_mode', 'system'))
-            if engine == 'kitesurf' and dns_mode != 'system':
+            if definition.hosted and dns_mode != 'system':
                 errors.append('hosted Kitesurf owns its DNS environment')
             elif dns_mode == 'public_doh':
                 if resource_interval is not None:
                     errors.append('public_doh is unavailable inside resource containers')
-                elif engine != 'chromium':
+                elif not definition.playwright_launched:
                     validate_native_dns_library(self.config.get('native_dns_library'))
         except ValueError as error:
             errors.append(str(error))
         if resource_interval is not None:
-            if engine == 'kitesurf' and self.type == 'headless_markdown':
+            if requires_credentials:
                 errors.extend(name for name in ('api_token', 'account_id')
                               if not self.config.get(name))
             if not self.config.get('resource_container_image'):
                 errors.append('resource_container_image')
-            if engine != 'kitesurf' and not self.config.get('resource_binary'):
+            if not definition.hosted and not self.config.get('resource_binary'):
                 errors.append('resource_binary')
             if not errors:
                 try:
@@ -416,19 +598,17 @@ class HeadlessProvider(Provider):
             self._resolved_binary = self.config.get('resource_binary')
             return self._expected_version_errors(errors)
         binary = _resolve_binary(engine, self.config.get('binary'))
-        if engine != 'kitesurf' and not binary:
+        if not definition.hosted and not binary:
             errors.append('binary')
         self._resolved_binary = binary
-        if engine == 'kitesurf' and self.type == 'headless_markdown':
+        if requires_credentials:
             errors.extend(name for name in ('api_token', 'account_id') if not self.config.get(name))
         if self.config.get('network_policy') == 'loopback_only':
             if not sandbox_exec_available():
                 errors.append('macos sandbox-exec for loopback_only network policy')
-        dependencies = ('playwright',) if engine in {'chromium'} or self.type == 'headless_html' else ()
-        for dependency in dependencies:
-            if importlib.util.find_spec(dependency) is None:
-                errors.append(dependency)
-        if engine == 'chromium' or self.type == 'headless_html':
+        if definition.playwright_launched or self.type == 'headless_html':
+            if importlib.util.find_spec('playwright') is None:
+                errors.append('playwright')
             if not shutil.which('node'):
                 errors.append('node')
             try:
@@ -462,10 +642,13 @@ class HeadlessProvider(Provider):
         if not refresh and hasattr(self, '_implementation_identity'):
             return dict(self._implementation_identity)
         engine = self.config['engine']
+        definition = _engine_definition(engine)
+        hosted = definition.hosted
+        version_args = list(definition.version_args) if definition.version_args else None
         if self.config.get('resource_sample_interval_ms') is not None:
             resource = self._resource_runner().implementation_identity(
                 self.config.get('resource_binary'),
-                version_args=['version'] if engine == 'lightpanda' else None,
+                version_args=version_args,
             )
             identity = {
                 'identity_source': (
@@ -473,19 +656,19 @@ class HeadlessProvider(Provider):
                 ),
                 'engine': engine,
                 'deployment': (
-                    'Cloudflare Browser Run account API from isolated client container'
-                    if engine == 'kitesurf' else 'isolated Linux client container'
+                    hosted.container_identity_deployment
+                    if hosted else 'isolated Linux client container'
                 ),
                 **resource,
             }
             self._implementation_identity = identity
             return dict(identity)
-        if engine == 'kitesurf':
+        if hosted:
             identity = {
-                'identity_source': 'provider product and endpoint observed before calls; hosted backend version is not exposed',
+                'identity_source': hosted.identity_source,
                 'engine': engine,
-                'deployment': 'Cloudflare Browser Run account API',
-                'endpoint': 'Browser Rendering /markdown with browser=kitesurf',
+                'deployment': hosted.account_deployment,
+                'endpoint': hosted.identity_endpoint,
                 'binary_sha256': None,
                 'reported_version': None,
             }
@@ -500,8 +683,8 @@ class HeadlessProvider(Provider):
         reported = None
         probe_error = None
         try:
-            version_args = ['version'] if engine == 'lightpanda' else ['--version']
-            version = subprocess.run([binary, *version_args], capture_output=True, text=True,
+            version = subprocess.run([binary, *(version_args or ['--version'])],
+                                     capture_output=True, text=True,
                                      timeout=5, check=False)
             candidate = (version.stdout or version.stderr).strip()[:200]
             if version.returncode == 0 and candidate:
@@ -532,6 +715,10 @@ class HeadlessProvider(Provider):
             return ProviderResult(False, '', error_type='configuration',
                                   error_message=str(error))
         engine = self.config['engine']
+        definition = _engine_definition(engine)
+        if definition is _UNREGISTERED_ENGINE:
+            raise ValueError('unsupported headless engine: ' + str(engine))
+        hosted = definition.hosted
         resource_interval = self.config.get('resource_sample_interval_ms')
         output_mode = output_mode_for_case(engine, self.type, case)
         binary = (self.config.get('resource_binary') if resource_interval is not None else
@@ -542,32 +729,13 @@ class HeadlessProvider(Provider):
             if native_contract else None
         )
         cli_wait = completion_plan.wait_until if completion_plan else 'done'
-        wait_until = ('browser response bytes or completed native download' if output_mode in {'file','document'} and engine == 'chromium'
-                      else 'navigation response bytes' if output_mode in {'file','document'} and engine in {'lightpanda','kitesurf'}
-                      else 'automatic raw response' if output_mode == 'file'
-                      else 'automatic raw response or serialized HTML' if output_mode == 'document'
-                      else 'networkidle2' if engine == 'kitesurf' and output_mode == 'markdown'
-                      else cli_wait if output_mode == 'markdown' and engine in {'moli','lightpanda'}
-                      else 'load + adaptive settle' if output_mode == 'markdown' and engine == 'obscura'
-                      else 'load + adaptive settle' if engine == 'obscura' and output_mode in {'resource','media_metadata'}
-                      else self.config.get('cdp_wait_until', 'load') if engine == 'kitesurf'
-                      else 'load')
-        extractor = ('browser_native_response_or_download' if output_mode == 'file' and engine == 'chromium'
-                     else 'kitesurf_cdp_response' if output_mode == 'file' and engine == 'kitesurf'
-                     else 'lightpanda_cdp_response' if output_mode == 'file' and engine == 'lightpanda'
-                     else 'obscura_original_response' if output_mode == 'file' and engine == 'obscura'
-                     else 'moli_cdp_response' if output_mode == 'file'
-                     else 'browser_native_response_or_download+document_text' if output_mode == 'document' and engine == 'chromium'
-                     else 'kitesurf_cdp_response+document_text' if output_mode == 'document' and engine == 'kitesurf'
-                     else 'lightpanda_cdp_response+document_text' if output_mode == 'document' and engine == 'lightpanda'
-                     else 'obscura_original_response+document_text' if output_mode == 'document' and engine == 'obscura'
-                     else 'moli_cdp_response+document_text' if output_mode == 'document'
-                     else 'cloudflare_native_markdown' if engine == 'kitesurf' and output_mode == 'markdown'
-                     else f'{engine}_native_markdown' if output_mode == 'markdown' and engine != 'chromium'
-                     else 'rendered_dom_resources' if output_mode == 'resource'
-                     else 'rendered_body_and_standard_media_metadata' if output_mode == 'media_metadata'
-                     else 'browser_runtime_document_text' if output_mode == 'document_page'
-                     else 'node-html-markdown')
+        route_wait = definition.wait_until.get(output_mode, definition.default_wait_until)
+        wait_until = {_CLI_WAIT: cli_wait,
+                      _CDP_WAIT: self.config.get('cdp_wait_until', 'load')}.get(route_wait, route_wait)
+        extractor = {'file': definition.file_extractor,
+                     'document': definition.file_extractor + '+document_text',
+                     'markdown': definition.markdown_extractor,
+                     **_PAGE_EXTRACTORS}.get(output_mode, 'node-html-markdown')
         output_contract = ('original_file_bytes' if output_mode == 'file' else
                            'readable_document_text' if output_mode in {'document','document_page'} else
                            'structured_resource_urls' if output_mode == 'resource' else
@@ -577,11 +745,11 @@ class HeadlessProvider(Provider):
                     'dns_mode': self.config.get('dns_mode', 'system'),
                     'session': 'fresh per call',
                     'network_policy': self.config.get('network_policy', 'unrestricted'),
-                    'deployment': ('Cloudflare Browser Run from isolated client container'
-                                   if resource_interval is not None and engine == 'kitesurf'
+                    'deployment': (hosted.container_deployment
+                                   if resource_interval is not None and hosted
                                    else 'isolated Linux client container'
                                    if resource_interval is not None
-                                   else 'public cloud CDP' if engine == 'kitesurf'
+                                   else hosted.cdp_deployment if hosted
                                    else 'local process')}
         if output_mode in {'resource', 'media_metadata', 'document_page'}:
             from harness.web_fetch.task_outputs import (
@@ -603,43 +771,32 @@ class HeadlessProvider(Provider):
             (native_contract and native_contract.include_subdocuments)
             or subdocument_tracks.get(case.track, False)
         )
-        if normalized_plan and engine != 'kitesurf':
+        if normalized_plan and not hosted:
             metadata['completion'] = completion_metadata(engine, normalized_plan, output_mode)
             metadata['completion']['effective_route_timeout_ms'] = round(
                 min(timeout, retrieval_plan.timeout_ms / 1000) * 1000
                 if retrieval_plan else timeout * 1000
             )
         if include_subdocuments:
-            interface = (
-                '--load-resources iframe + --with-frames'
-                if engine == 'lightpanda' and output_mode == 'markdown'
-                else '--with-frames'
-                if engine == 'moli' and output_mode == 'markdown'
-                else None
-            )
+            interface = definition.subdocument_interface if output_mode == 'markdown' else None
             metadata['subdocuments'] = {
                 'requested': True,
-                'support': (
-                    'native' if engine == 'moli' and interface
-                    else 'native_markdown_omits_child_document'
-                    if engine == 'lightpanda' and interface
-                    else 'unsupported'
-                ),
+                'support': definition.subdocument_support if interface else 'unsupported',
                 'interface': interface,
                 'harness_content_assembly': False,
             }
-        if engine == 'kitesurf' and output_mode == 'markdown' and resource_interval is None:
+        if hosted and output_mode == 'markdown' and resource_interval is None:
             cloudflare = CloudflareMarkdownProvider(self.name, {
                 'account_id': self.config['account_id'], 'api_token': self.config['api_token'],
-                'browser': 'kitesurf', 'wait_until': self.config.get('wait_until', 'networkidle2'),
+                'browser': hosted.browser, 'wait_until': self.config.get('wait_until', 'networkidle2'),
                 'max_bytes': self.config.get('max_bytes', 20_000_000),
                 'page_output': 'native_markdown',
                 'uniform_native_parameters': self.config.get('uniform_native_parameters', False),
-                'endpoint': 'wss://api.cloudflare.com/client/v4/accounts/' + self.config['account_id'] + '/browser-run/devtools/browser?browser=kitesurf',
+                'endpoint': hosted.endpoint(self.config['account_id']),
             })
             result = cloudflare.fetch(case, timeout)
             result.metadata = {**metadata, **result.metadata,
-                'deployment': 'Cloudflare Browser Run account API'}
+                'deployment': hosted.account_deployment}
             return result
         if binary:
             identity = self.implementation_identity()
@@ -654,8 +811,8 @@ class HeadlessProvider(Provider):
                    'timeout': timeout, 'output_mode': output_mode,
                    'task_kind': case.task_kind,
                    'resource_detail_links': resource_detail_links(case) if output_mode == 'resource' else False,
-                   'browser_args': ['--no-sandbox']
-                   if resource_interval is not None and engine == 'chromium' else [],
+                   'browser_args': list(definition.container_browser_args)
+                   if resource_interval is not None else [],
                    'wait_until': retrieval_plan.wait_until if retrieval_plan else None,
                    'track': case.track,
                    'retrieval_plan': normalized_plan,
@@ -675,21 +832,21 @@ class HeadlessProvider(Provider):
                    'network_policy': self.config.get('network_policy', 'unrestricted'),
                    'endpoint': self.config.get('endpoint',
                    'wss://kitesurf.cloudflare.app/devtools/browser')}
-        if engine == 'kitesurf':
+        if hosted:
             cdp_wait = self.config.get('cdp_wait_until', 'load')
             if cdp_wait not in {'load', 'domcontentloaded', 'networkidle', 'commit'}:
                 raise ValueError('Kitesurf cdp_wait_until must be a supported CDP completion event')
-            metadata.update(browser='kitesurf', endpoint_route='/browser-run/devtools/browser?browser=kitesurf')
+            metadata.update(browser=hosted.browser, endpoint_route=hosted.endpoint_route)
             request.update({
                 'remote_markdown_api': output_mode == 'markdown',
                 'account_id': self.config['account_id'],
                 'api_token': self.config['api_token'],
-                'browser': 'kitesurf',
+                'browser': hosted.browser,
                 'wait_until': self.config.get('wait_until', 'networkidle2') if output_mode == 'markdown' else cdp_wait,
                 'max_bytes': self.config.get('max_bytes', 20_000_000),
-                'endpoint': 'wss://api.cloudflare.com/client/v4/accounts/' + self.config['account_id'] + '/browser-run/devtools/browser?browser=kitesurf',
+                'endpoint': hosted.endpoint(self.config['account_id']),
             })
-        if engine == 'chromium' or self.type == 'headless_html':
+        if definition.playwright_launched or self.type == 'headless_html':
             configured_package = self.config.get('node_html_markdown_path')
             request['node_html_markdown_path'] = (str(converter_package(configured_package))
                                                  if resource_interval is None else configured_package)
@@ -818,35 +975,84 @@ class HeadlessProvider(Provider):
         return raw, diagnostic, stopped, process.returncode, stdout_bytes, stderr_bytes
 
 
+NATIVE_CDP_PORT_ATTEMPTS = 3
+NATIVE_CDP_BIND_EXIT_GRACE_SECONDS = 1
+_ADDRESS_IN_USE = re.compile(rb'address\s*(?:is\s*)?(?:already\s*)?in\s*use', re.I)
+
+
+def _native_cdp_attempt_output(log, start):
+    """Return what the server wrote since ``start``; the child shares the file offset, so it stays put."""
+    return os.pread(log.fileno(), os.fstat(log.fileno()).st_size - start, start)
+
+
+def _connect_native_cdp(playwright, process, port, deadline):
+    """Return ``(browser, handshake_error)``, with a browser only while ``process`` is alive.
+
+    Another listener can answer on a port this server failed to bind, so an open
+    port alone does not prove that the answer came from this process. The browser
+    is ``None`` once the server has exited, and the error is the handshake failure
+    that preceded that exit, if any.
+    """
+    remaining = lambda: max(.001, deadline - time.monotonic())
+    while process.poll() is None:
+        if time.monotonic() >= deadline:
+            raise TimeoutError('Native CDP server startup exceeded the call deadline')
+        try:
+            with socket.create_connection(('127.0.0.1', port), timeout=min(.1, remaining())):
+                break
+        except OSError:
+            time.sleep(min(.02, remaining()))
+    else:
+        return None, None
+    try:
+        browser = playwright.chromium.connect_over_cdp(
+            'http://127.0.0.1:' + str(port), timeout=remaining() * 1000)
+    except Exception as error:
+        # A foreign listener can reject the handshake before this server exits on its failed bind.
+        try:
+            process.wait(timeout=min(NATIVE_CDP_BIND_EXIT_GRACE_SECONDS, remaining()))
+        except subprocess.TimeoutExpired:
+            pass
+        if process.poll() is None:
+            raise
+        return None, error
+    if process.poll() is None:
+        return browser, None
+    browser.close()
+    return None, None
+
+
 @contextmanager
 def native_cdp_browser(playwright, request, deadline, metadata=None):
-    """Own a fresh native CDP server within the caller's complete deadline."""
-    with socket.socket() as reservation:
-        reservation.bind(('127.0.0.1', 0))
-        port = reservation.getsockname()[1]
+    """Own a fresh native CDP server within the caller's complete deadline.
+
+    The servers only accept a numeric port and bind it themselves, so another
+    process can take the chosen port first. A server that reports this is
+    restarted on a new port. A server that exits after the caller received a
+    browser fails the call, because the result cannot be attributed to it.
+    """
     remaining = lambda: max(.001, deadline - time.monotonic())
-    command = [request['binary'], 'serve', '--host', '127.0.0.1', '--port', str(port)]
-    engine = request['engine']
-    if engine == 'lightpanda':
-        command += ['--http-timeout', str(max(1, math.ceil(remaining() * 1000)))]
-    elif engine == 'moli':
-        if request.get('block_private_networks'): command.append('--block-private-networks')
-        if request.get('log_level'): command += ['--log-level', request['log_level']]
-    elif engine == 'obscura':
-        command.append('--quiet')
-        if request.get('allow_private_network'):
-            command.append('--allow-private-network')
-    else:
+    definition = _engine_definition(request['engine'])
+    if definition.cdp_server_arguments is None:
         raise ValueError('Unsupported native CDP server engine')
-    if engine == 'lightpanda' and request.get('output_mode') in {'resource', 'document_page'}:
-        command += ['--load-resources', 'iframe']
-    if request.get('http_proxy'):
-        command += ['--http-proxy' if engine in {'lightpanda', 'moli'} else '--proxy', request['http_proxy']]
-    if request.get('ca_cert') and engine in {'lightpanda', 'moli'}:
-        command += ['--ca-cert', str(request['ca_cert'])]
+    command = _expand(definition.cdp_server_arguments, {
+        _TIMEOUT_MS: [str(max(1, math.ceil(remaining() * 1000)))],
+        _BLOCK_PRIVATE_NETWORKS: (
+            ['--block-private-networks'] if request.get('block_private_networks') else []),
+        _LOG_LEVEL: ['--log-level', request['log_level']] if request.get('log_level') else [],
+        _PRIVATE_NETWORK: (
+            ['--allow-private-network'] if request.get('allow_private_network') else []),
+        _PROJECTION_IFRAMES: (
+            ['--load-resources', 'iframe']
+            if request.get('output_mode') in {'resource', 'document_page'} else []),
+        _PROXY: [definition.proxy_flag, request['http_proxy']] if request.get('http_proxy') else [],
+        _CA_CERT: ['--ca-cert', str(request['ca_cert'])] if request.get('ca_cert') else [],
+    })
     browser = None
     with tempfile.TemporaryFile() as log:
-        environment = {**os.environ, 'SSL_CERT_FILE': str(request['ca_cert'])} if engine == 'obscura' and request.get('ca_cert') else None
+        environment = ({**os.environ, 'SSL_CERT_FILE': str(request['ca_cert'])}
+                       if definition.cdp_ca_certificate_environment and request.get('ca_cert')
+                       else None)
         from harness.web_fetch.network_dns import native_process_dns_environment
         with native_process_dns_environment(
             request.get('dns_mode', 'system'),
@@ -855,37 +1061,48 @@ def native_cdp_browser(playwright, request, deadline, metadata=None):
             metadata if metadata is not None else {},
             environment,
         ) as process_environment:
-            process = subprocess.Popen(
-                command, stdout=log, stderr=log, env=process_environment
-            )
+            process = None
             try:
-                while True:
-                    if process.poll() is not None:
-                        log.seek(0)
-                        raise RuntimeError(log.read().decode('utf-8', 'replace')[:4000])
-                    if time.monotonic() >= deadline:
-                        raise TimeoutError('Native CDP server startup exceeded the call deadline')
-                    try:
-                        with socket.create_connection(('127.0.0.1', port), timeout=min(.1, remaining())):
-                            break
-                    except OSError:
-                        time.sleep(min(.02, remaining()))
-                browser = playwright.chromium.connect_over_cdp(
-                    'http://127.0.0.1:' + str(port), timeout=remaining() * 1000)
+                for attempt in range(1, NATIVE_CDP_PORT_ATTEMPTS + 1):
+                    with socket.socket() as candidate:
+                        candidate.bind(('127.0.0.1', 0))
+                        port = candidate.getsockname()[1]
+                    log_start = os.fstat(log.fileno()).st_size
+                    process = subprocess.Popen(
+                        [request['binary'], 'serve', '--host', '127.0.0.1', '--port', str(port), *command],
+                        stdout=log, stderr=log, env=process_environment,
+                    )
+                    browser, handshake_error = _connect_native_cdp(playwright, process, port, deadline)
+                    if browser is not None:
+                        break
+                    output = _native_cdp_attempt_output(log, log_start)
+                    port_lost = _ADDRESS_IN_USE.search(output)
+                    if not port_lost and handshake_error is not None:
+                        raise handshake_error
+                    if attempt == NATIVE_CDP_PORT_ATTEMPTS or not port_lost:
+                        raise RuntimeError(output.decode('utf-8', 'replace')[:4000]
+                                           or f'Native CDP server exited with code {process.returncode} and no output')
                 yield browser
+                # Nothing stops the server while the caller runs, so an exit here means the
+                # connection that served the caller may belong to another process on this port.
+                if process.poll() is not None:
+                    output = _native_cdp_attempt_output(log, log_start).decode('utf-8', 'replace')[:4000]
+                    raise RuntimeError(
+                        f'Native CDP server exited with code {process.returncode} while its browser '
+                        f'was in use, so the result may come from another process: {output or "no output"}')
             finally:
                 try:
                     if browser is not None:
                         browser.close()
                 finally:
-                    if process.poll() is None:
+                    if process is not None and process.poll() is None:
                         process.terminate()
                         try:
                             process.wait(timeout=1)
                         except subprocess.TimeoutExpired:
                             process.kill()
                             process.wait(timeout=1)
-                    if engine == 'moli' and metadata is not None:
+                    if process is not None and definition.retain_cdp_server_log and metadata is not None:
                         log.seek(0)
                         raw_log = log.read(int(request.get('max_diagnostic_bytes', 100_000_000))+1)
                         metadata.update(_diagnostic_log_b64=base64.b64encode(raw_log).decode('ascii'),

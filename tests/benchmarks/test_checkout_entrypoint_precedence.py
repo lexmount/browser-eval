@@ -12,7 +12,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS = sorted(path for path in (ROOT/'scripts').glob('*.py')
-                 if 'sys.path.' in path.read_text())
+                 if 'sys.path.' in path.read_text(encoding='utf-8'))
 
 
 @pytest.fixture(scope='module')
@@ -45,7 +45,7 @@ PROBE = r'''
 import ast, importlib, pathlib, sys
 script = pathlib.Path(sys.argv[1])
 prefix = []
-for node in ast.parse(script.read_text()).body:
+for node in ast.parse(script.read_text(encoding="utf-8")).body:
     prefix.append(node)
     if (isinstance(node, ast.Expr) and isinstance(node.value, ast.Call)
         and isinstance(node.value.func, ast.Attribute)
@@ -80,7 +80,7 @@ def test_complete_cli_help_works_without_editable_install(stale_wheel_install, t
     environment = {**os.environ, 'PYTHONPATH': os.pathsep.join(
         [str(stale_wheel_install), *site.getsitepackages()])}
     # These help commands only parse arguments; they do not collect or render results.
-    result = subprocess.run([sys.executable, '-S', str(ROOT/'scripts'/'assemble_headless.py'), '--help'],
+    result = subprocess.run([sys.executable, '-S', str(ROOT/'scripts'/'run_benchmark.py'), '--help'],
                             cwd=tmp_path, env=environment, text=True, capture_output=True)
     assert result.returncode == 0, result.stderr
     assert 'usage:' in result.stdout.lower()

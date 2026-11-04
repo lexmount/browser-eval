@@ -433,7 +433,7 @@ def audit_fixed_native_comparison(
         ),
     }
     output_json.parent.mkdir(parents=True, exist_ok=True)
-    output_json.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
+    output_json.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     def identifiers(relation: str) -> str:
         values = [item["case_id"] for item in paired if item["relation"] == relation]
@@ -475,5 +475,5 @@ def audit_fixed_native_comparison(
         "",
     ])
     output_markdown.parent.mkdir(parents=True, exist_ok=True)
-    output_markdown.write_text(markdown)
+    output_markdown.write_text(markdown, encoding="utf-8")
     return summary

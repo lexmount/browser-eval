@@ -18,7 +18,7 @@ def run_judge(tmp_path, monkeypatch):
     from harness.web_search import report
 
     monkeypatch.setattr(config, "ROOT", tmp_path)
-    (tmp_path / ".env").write_text("SEARCH_JUDGE_API_KEY=test-only\nSEARCH_JUDGE_BASE_URL=https://test.invalid/v1\n")
+    (tmp_path / ".env").write_text("SEARCH_JUDGE_API_KEY=test-only\nSEARCH_JUDGE_BASE_URL=https://test.invalid/v1\n", encoding="utf-8")
 
     profile = {
         "protocol": {"top_k": 5},
@@ -103,7 +103,7 @@ def test_every_physical_attempt_is_bound_and_success_resume_never_calls(run_judg
     input_packet = json.loads(json.loads(requests[-1].data)["messages"][1]["content"])
     assert "example.org" not in json.dumps(input_packet)
     assert all("source_eligible" in c for c in input_packet["candidates"])
-    evidence = json.loads((run_judge.output / "relevance.json").read_text())
+    evidence = json.loads((run_judge.output / "relevance.json").read_text(encoding="utf-8"))
     attempts = evidence["judge"]["calls"][0]["attempts"]
     assert [a["status"] for a in attempts] == [429, 200]
     assert base64.b64decode(attempts[0]["response_bytes_base64"]) == b"rate limited\xff\r\n"
@@ -148,7 +148,7 @@ def test_failures_keep_bytes_and_total_retry_budget_survives_resume(
         with pytest.raises(ValueError, match="Incomplete judge run"):
             run_judge()
     assert count == expected
-    journal = json.loads(next(run_judge.output.glob("*-attempts.json")).read_text())
+    journal = json.loads(next(run_judge.output.glob("*-attempts.json")).read_text(encoding="utf-8"))
     assert len(journal) == expected
     assert all(base64.b64decode(a["response_bytes_base64"]) == body for a in journal)
 
@@ -183,9 +183,9 @@ def test_corrupt_failure_journal_never_authorizes_a_new_request(run_judge, monke
     with pytest.raises(ValueError, match="Incomplete judge run"):
         run_judge()
     journal_path = next(run_judge.output.glob("*-attempts.json"))
-    journal = json.loads(journal_path.read_text())
+    journal = json.loads(journal_path.read_text(encoding="utf-8"))
     journal[0]["retryable"] = True
-    journal_path.write_text(json.dumps(journal))
+    journal_path.write_text(json.dumps(journal), encoding="utf-8")
     with pytest.raises(ValueError, match="Incomplete judge run"):
         run_judge()
     assert count == 1
@@ -221,7 +221,7 @@ def test_missing_repository_credential_fails_before_output_creation(run_judge, m
 
 def test_custom_proxy_credential_is_loaded_from_real_repository_env_file(run_judge, monkeypatch):
     name = "BIFROST_API_KEY"
-    (run_judge.output.parent / ".env").write_text(f"{name}=repository-test-value\nSEARCH_JUDGE_BASE_URL=https://test.invalid/v1\n")
+    (run_judge.output.parent / ".env").write_text(f"{name}=repository-test-value\nSEARCH_JUDGE_BASE_URL=https://test.invalid/v1\n", encoding="utf-8")
     monkeypatch.setenv(name, "stale-shell-value")
     calls = []
 
@@ -268,7 +268,7 @@ def test_invalid_credential_variable_name_creates_no_output(run_judge, name):
 def test_loopback_http_is_usable_for_local_transport_tests(run_judge, monkeypatch, base):
     monkeypatch.setattr(urllib.request, "urlopen", lambda request, **kw: Response(answer(request)))
     from harness.web_fetch import config
-    (config.ROOT / ".env").write_text("SEARCH_JUDGE_API_KEY=test-only\nSEARCH_JUDGE_BASE_URL=" + base + "\n")
+    (config.ROOT / ".env").write_text("SEARCH_JUDGE_API_KEY=test-only\nSEARCH_JUDGE_BASE_URL=" + base + "\n", encoding="utf-8")
     run_judge(["--base-url", base])
     assert (run_judge.output / "relevance.json").is_file()
 
@@ -289,26 +289,26 @@ def test_correction_reuses_identical_inputs_and_calls_only_changed_cases(
 
     monkeypatch.setattr(urllib.request, "urlopen", transport)
     rules = tmp_path / "source-rules.json"
-    rules.write_text("{}")
+    rules.write_text("{}", encoding="utf-8")
     run_judge(["--source-requirements", str(rules)])
     assert len(requests) == 2
     prior = run_judge.output / "relevance.json"
     # Exercise a genuine legacy receipt shape without inventing physical attempts.
-    previous = json.loads(prior.read_text())
+    previous = json.loads(prior.read_text(encoding="utf-8"))
     previous["judge"]["configuration"].pop("receipt_schema")
     for call in previous["judge"]["calls"]:
         del call["attempts"]
     import hashlib
     pinned = tmp_path / "legacy-evidence.json"
-    pinned.write_text(json.dumps({"model":[hashlib.sha256(json.dumps(previous,ensure_ascii=False,sort_keys=True).encode()).hexdigest()]}))
+    pinned.write_text(json.dumps({"model":[hashlib.sha256(json.dumps(previous,ensure_ascii=False,sort_keys=True).encode()).hexdigest()]}), encoding="utf-8")
     authority = json.loads(pinned.read_bytes())
     destination = tmp_path / "report/assessment-authority.json"
     destination.parent.mkdir(exist_ok=True)
     destination.write_bytes(pinned.read_bytes())
     validate_model_evidence(previous, authority=authority)
-    prior.write_text(json.dumps(previous))
+    prior.write_text(json.dumps(previous), encoding="utf-8")
     changed = tmp_path / "changed-rules.json"
-    changed.write_text(json.dumps({"q": {"domains": ["required.invalid"]}}))
+    changed.write_text(json.dumps({"q": {"domains": ["required.invalid"]}}), encoding="utf-8")
     output = tmp_path / "corrected"
     run_judge(
         [
@@ -321,7 +321,7 @@ def test_correction_reuses_identical_inputs_and_calls_only_changed_cases(
         ]
     )
     assert len(requests) == 3  # one changed source-policy input, not both queries
-    evidence = json.loads((output / "relevance.json").read_text())
+    evidence = json.loads((output / "relevance.json").read_text(encoding="utf-8"))
     assert evidence["judge"]["inherited_case_ids"] == ["unchanged"]
     assert (
         next(c for c in evidence["judge"]["calls"] if c["case_id"] == "unchanged")
@@ -378,7 +378,8 @@ def test_judge_host_allowlist_is_not_interpolated_from_the_shell(run_judge, monk
 
     monkeypatch.setenv("JUDGE_BASE_FROM_SHELL", "https://test.invalid/v1")
     (config.ROOT / ".env").write_text(
-        "SEARCH_JUDGE_API_KEY=test-only\nSEARCH_JUDGE_BASE_URL=${JUDGE_BASE_FROM_SHELL}\n"
+        "SEARCH_JUDGE_API_KEY=test-only\nSEARCH_JUDGE_BASE_URL=${JUDGE_BASE_FROM_SHELL}\n",
+        encoding="utf-8"
     )
     monkeypatch.setattr(
         urllib.request, "urlopen", lambda *a, **kw: pytest.fail("token sent to a shell-chosen host")

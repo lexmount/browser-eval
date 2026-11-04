@@ -3,15 +3,15 @@
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com"
+      "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com"
     },
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com/-/graphs/main/charts?from=2023-01-01&to=2023-12-31"
+      "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com/-/graphs/main/charts?from=2023-01-01&to=2023-12-31"
     },
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023/a11yproject/a11yproject.com/-/commits/main?author=Kilian&since=2023-01-01T00%3A00%3A00Z&until=2023-12-31T23%3A59%3A59Z"
+      "url": "http://host.docker.internal:8023/a11yproject/a11yproject.com/-/commits/main?author=Kilian&since=2023-01-01T00%3A00%3A00Z&until=2023-12-31T23%3A59%3A59Z"
     },
     {
       "action": "evaluate",
@@ -21,7 +21,7 @@
   "retrieval_contract": {
     "schema": "lex_replay_current_run_retrieval/1",
     "task_id": 303,
-    "canonical_calls_sha256": "dae8c6e1c000d0abe63ef16ad61e9b537fa023cafd38482c7f5dff5dc5adbeea",
+    "canonical_calls_sha256": "8432b7f4aa5f65f6b3b3e3b3a93e3512edccb521670df73fb09a411fbda0d22e",
     "sources": [
       {
         "name": "observation",

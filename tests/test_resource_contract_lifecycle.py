@@ -158,8 +158,8 @@ class ResourceContractLifecycleTests(unittest.TestCase):
                 "ok": True,
                 "metrics": {"resource_pass": True},
             }
-            (root / "dataset.json").write_text(json.dumps(dataset))
-            (root / "results.jsonl").write_text(json.dumps(record) + "\n")
+            (root / "dataset.json").write_text(json.dumps(dataset), encoding="utf-8")
+            (root / "results.jsonl").write_text(json.dumps(record) + "\n", encoding="utf-8")
             review = {
                 "schema_version": 1,
                 "bindings": {
@@ -181,7 +181,7 @@ class ResourceContractLifecycleTests(unittest.TestCase):
                     "final_verdict": "pass",
                 }],
             }
-            (root / "result-review.json").write_text(json.dumps(review))
+            (root / "result-review.json").write_text(json.dumps(review), encoding="utf-8")
             history = [{
                 "kind": "audited_scoring_rule_revision",
                 "provider_calls": 0,
@@ -195,7 +195,7 @@ class ResourceContractLifecycleTests(unittest.TestCase):
                 }],
                 "task_decision_changes": [],
             }]
-            (root / "scoring-revisions.json").write_text(json.dumps(history))
+            (root / "scoring-revisions.json").write_text(json.dumps(history), encoding="utf-8")
             self.assertTrue(bind_assembled_scoring_revision(root))
             self.assertTrue(valid_scoring_revision(root))
 
@@ -226,8 +226,8 @@ class ResourceContractLifecycleTests(unittest.TestCase):
                 current = json.loads(json.dumps(record))
                 if actual is not None:
                     current["metrics"]["resource_acceptance_contract_sha256"] = actual
-                (source / "dataset.json").write_text(json.dumps({"cases": [case]}))
-                (source / "results.jsonl").write_text(json.dumps(current) + "\n")
+                (source / "dataset.json").write_text(json.dumps({"cases": [case]}), encoding="utf-8")
+                (source / "results.jsonl").write_text(json.dumps(current) + "\n", encoding="utf-8")
                 with patch("harness.web_fetch.report_build.generate") as generated:
                     with self.assertRaisesRegex(
                         ValueError, "Resource acceptance contract hash missing or mismatched",

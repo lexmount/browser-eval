@@ -23,10 +23,7 @@ from contextlib import nullcontext
 from pathlib import Path, PurePosixPath
 from typing import BinaryIO
 from urllib.error import HTTPError
-from urllib.parse import urlencode
 from urllib.request import Request, urlopen
-
-from harness.web_fetch.safety import unlinked_path, write_new_file
 
 GIB = 1024**3
 MAPPINGS = {
@@ -261,7 +258,7 @@ def setup(
         archive = state / name
         receipt = state / (name + ".json")
         if receipt.exists():
-            previous = json.loads(receipt.read_text())
+            previous = json.loads(receipt.read_text(encoding="utf-8"))
             if previous.get("sha256") != digest or previous.get("bytes") != size:
                 raise ValueError(f"Dataset revision requires a new volume: {name}")
             if previous.get("query_only", False) != query_only:
@@ -317,7 +314,10 @@ def setup(
         os.sync()
         temporary = receipt.with_suffix(".tmp")
         temporary.write_text(
-            json.dumps({"sha256": digest, "bytes": size, "files": counts, "query_only": query_only})
+            json.dumps(
+                {"sha256": digest, "bytes": size, "files": counts, "query_only": query_only}
+            ),
+            encoding="utf-8",
         )
         temporary.replace(receipt)
         os.sync()
@@ -328,13 +328,13 @@ def setup(
     print("All Map archives verified and initialized", flush=True)
 
 
-def configure_browser_assets(assets: Path = Path("/app/public/assets")) -> None:
+def configure_browser_assets(service_port: int, assets: Path = Path("/app/public/assets")) -> None:
     """Keep precompressed JS identical to the image's patched same-origin JS."""
     for source in assets.glob("*.js"):
         content = source.read_bytes()
         if any(
-            url in content
-            for url in (b"http://localhost:8080/nominatim/", b"http://localhost:8080/osrm/")
+            f"http://localhost:{service_port}/{path}/".encode() in content
+            for path in ("nominatim", "osrm")
         ):
             raise ValueError(f"Browser service URL still uses localhost: {source.name}")
         packed = source.with_suffix(".js.gz")
@@ -353,7 +353,7 @@ def version_browser_assets(
     manifest: Path = Path("/app/tmp/manifest.json"),
 ) -> None:
     """Give patched precompiled assets new URLs so browsers cannot reuse stale JS."""
-    data = json.loads(manifest.read_text())
+    data = json.loads(manifest.read_text(encoding="utf-8"))
     changed = False
     for logical, filename in data["assets"].items():
         if not logical.endswith(".js"):
@@ -383,12 +383,13 @@ def version_browser_assets(
         changed = True
     if changed:
         temporary = manifest.with_suffix(".tmp")
-        temporary.write_text(json.dumps(data))
+        temporary.write_text(json.dumps(data), encoding="utf-8")
         temporary.replace(manifest)
 
 
 def configure_tiles(
     root: Path,
+    local_services: dict[str, int],
     cache: Path = Path("/var/cache/renderd/tiles"),
     apache: Path = Path("/etc/apache2/sites-enabled/tile-server.conf"),
     renderd: Path = Path("/etc/renderd.conf"),
@@ -409,7 +410,7 @@ def configure_tiles(
     config, count = re.subn(
         r"(?m)^([ \t]*)ModTileMissingRequestTimeout[ \t]+\d+[ \t]*$",
         r"\g<1>ModTileMissingRequestTimeout 120",
-        apache.read_text(),
+        apache.read_text(encoding="utf-8"),
     )
     if count != 1:
         raise ValueError("Unexpected Apache tile timeout configuration")
@@ -420,21 +421,35 @@ def configure_tiles(
     if "ModTileMaxLoadMissing" not in config:
         config = config.replace("</VirtualHost>", "    ModTileMaxLoadMissing 1000\n</VirtualHost>")
     if "ProxyPassMatch" not in config:
-        catch_all = "    ProxyPass / http://localhost:3000/"
+        catch_all = f"    ProxyPass / http://localhost:{local_services['rails_port']}/"
         if catch_all not in config:
             raise ValueError("Unexpected Apache Rails proxy configuration")
         detail = (
             '    ProxyPassMatch "^/(node|way|relation)/([1-9][0-9]{0,18})/?$" '
-            '"http://127.0.0.1:8091/$1/$2"\n'
+            f'"http://127.0.0.1:{local_services["detail_port"]}/$1/$2"\n'
         )
         config = config.replace(catch_all, detail + catch_all)
-    apache.write_text(config)
+    apache.write_text(config, encoding="utf-8")
     config, count = re.subn(
-        r"(?m)^num_threads[ \t]*=[ \t]*\d+[ \t]*$", "num_threads=2", renderd.read_text()
+        r"(?m)^num_threads[ \t]*=[ \t]*\d+[ \t]*$",
+        "num_threads=2",
+        renderd.read_text(encoding="utf-8"),
     )
     if count != 1:
         raise ValueError("Unexpected render worker configuration")
-    renderd.write_text(config)
+    renderd.write_text(config, encoding="utf-8")
+
+
+def detail_service_command(local_services: dict[str, int]) -> list[str]:
+    """Start the mounted detail service on the contract's container-local ports."""
+    return [
+        "python3",
+        "/opt/map_detail.py",
+        "--port",
+        str(local_services["detail_port"]),
+        "--nominatim-port",
+        str(local_services["nominatim_port"]),
+    ]
 
 
 def serve(root: Path, reserve: int, command: list[str], detail: list[str] | None = None) -> int:
@@ -476,98 +491,7 @@ def serve(root: Path, reserve: int, command: list[str], detail: list[str] | None
                     signal.signal(sig, handler)
 
 
-def verify_map_endpoint(base: str) -> dict:
-    base = base.rstrip("/")
-    checks = []
-
-    def get(path: str) -> bytes:
-        with urlopen(base + path, timeout=120) as response:
-            if response.status != 200:
-                raise AssertionError(f"HTTP {response.status}: {path}")
-            return response.read()
-
-    for path in ("/", "/login", "/api/capabilities"):
-        if not get(path):
-            raise ValueError(path)
-        checks.append({"path": path, "status": "pass"})
-    query = urlencode({"q": "Carnegie Mellon University", "format": "jsonv2", "addressdetails": 1})
-    places = json.loads(get("/nominatim/search?" + query))
-    cmu = next(
-        (place for place in places if place.get("address", {}).get("postcode") == "15213"), None
-    )
-    if cmu is None:
-        raise ValueError("CMU search result missing from the frozen Map snapshot")
-    if "Carnegie Mellon" not in cmu["display_name"]:
-        raise ValueError("Frozen Map acceptance failed")
-    checks.append({"feature": "search", "result": cmu, "status": "pass"})
-    reverse = json.loads(
-        get(
-            "/nominatim/reverse?"
-            + urlencode(
-                {"lat": cmu["lat"], "lon": cmu["lon"], "format": "jsonv2", "addressdetails": 1}
-            )
-        )
-    )
-    if not (reverse.get("address") and "error" not in reverse):
-        raise ValueError("Frozen Map acceptance failed")
-    checks.append({"feature": "reverse", "result": reverse, "status": "pass"})
-    coordinates = f"{cmu['lon']},{cmu['lat']};-79.9608,40.4444"
-    for profile in ("car", "bike", "foot"):
-        route = json.loads(
-            get(f"/osrm/routed-{profile}/route/v1/driving/{coordinates}?overview=false")
-        )
-        if not (route["code"] == "Ok" and route["routes"][0]["distance"] > 0):
-            raise ValueError("Frozen Map acceptance failed")
-        checks.append({"feature": f"route-{profile}", "result": route, "status": "pass"})
-    tile = get("/tile/0/0/0.png")
-    if not (tile.startswith(b"\x89PNG\r\n\x1a\n") and len(tile) > 100):
-        raise ValueError("Frozen Map acceptance failed")
-    checks.append({"feature": "tile", "bytes": len(tile), "status": "pass"})
-    for path, name in (
-        ("/node/1479729158", "Bei Jing"),
-        ("/way/172206707", "Chatham University"),
-        ("/relation/2279034", "Carnegie Mellon University"),
-    ):
-        detail = get(path).decode("utf-8")
-        if "<!doctype html>" not in detail.lower():
-            raise ValueError("Frozen Map acceptance failed")
-        if not (name in detail and path.rsplit("/", 1)[1] in detail):
-            raise ValueError("Frozen Map acceptance failed")
-        if not "Not Found" not in detail:
-            raise ValueError("Frozen Map acceptance failed")
-        checks.append({"feature": "object-detail", "path": path, "status": "pass"})
-    causeway = get("/relation/5475586").decode("utf-8")
-    if not ("Lake Pontchartrain Causeway" in causeway and "5475586" in causeway):
-        raise ValueError("Frozen Map acceptance failed")
-    checks.append(
-        {"feature": "frozen-route-relation", "path": "/relation/5475586", "status": "pass"}
-    )
-    try:
-        get("/relation/999999999999")
-    except HTTPError as error:
-        if not error.code == 404:
-            raise ValueError("Frozen Map acceptance failed") from error
-    else:
-        raise ValueError("An unknown frozen object must not be fabricated")
-    checks.append({"feature": "unavailable-object", "status": "pass"})
-    return {"base_url": base, "status": "pass", "checks": checks}
-
-
-def map_check_main(argv=None):
-    parser = argparse.ArgumentParser(description="Read-only frozen Map deployment acceptance.")
-    parser.add_argument("--url", required=True)
-    parser.add_argument("--output", type=Path, required=True)
-    args = parser.parse_args(argv)
-
-    output = unlinked_path(args.output)
-    if output.exists():
-        raise ValueError("Map acceptance output already exists")
-    result = verify_map_endpoint(args.url)
-    write_new_file(output, (json.dumps(result, ensure_ascii=False, indent=2) + "\n").encode())
-    print(json.dumps({"status": result["status"], "checks": len(result["checks"])}))
-
-
-if __name__ == "__main__":
+def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path("/data"))
     parser.add_argument("--contract", type=Path, required=True)
@@ -580,29 +504,34 @@ if __name__ == "__main__":
         action="store_true",
         help="Omit osm2pgsql flatnode import/update cache for frozen queries",
     )
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
+    component = json.loads(args.contract.read_text(encoding="utf-8"))["components"]["map"]
+    local_services = component["local_services"]
     setup(
         args.root,
-        json.loads(args.contract.read_text())["components"]["map"],
+        component,
         args.reserve_gib * GIB,
         args.source_base,
         args.compression,
         args.query_only,
     )
-    if args.serve:
-        configure_browser_assets()
-        version_browser_assets()
-        configure_tiles(args.root)
-        raise SystemExit(
-            serve(
-                args.root,
-                args.reserve_gib * GIB,
-                [
-                    "/entrypoint.sh",
-                    "/usr/bin/supervisord",
-                    "-c",
-                    "/etc/supervisor/conf.d/supervisord.conf",
-                ],
-                ["python3", "/opt/map_detail.py"],
-            )
-        )
+    if not args.serve:
+        return 0
+    configure_browser_assets(component["service_port"])
+    version_browser_assets()
+    configure_tiles(args.root, local_services)
+    return serve(
+        args.root,
+        args.reserve_gib * GIB,
+        [
+            "/entrypoint.sh",
+            "/usr/bin/supervisord",
+            "-c",
+            "/etc/supervisor/conf.d/supervisord.conf",
+        ],
+        detail_service_command(local_services),
+    )
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

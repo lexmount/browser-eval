@@ -42,7 +42,7 @@ class StableLifecycleTests(unittest.TestCase):
             case = self.case()
             dataset = {'id': 'stable', 'tool': 'web_fetch', 'cases': [deepcopy(case.__dict__)]}
             path = root/'dataset.json'
-            path.write_text(json.dumps(dataset))
+            path.write_text(json.dumps(dataset), encoding='utf-8')
             provider = Mock()
             provider.config = {}
             provider.name, provider.type, provider.min_interval_seconds = 'p', 'synthetic', 0
@@ -52,16 +52,16 @@ class StableLifecycleTests(unittest.TestCase):
             run_evaluation(output_dir=run, dataset_meta=dataset, dataset_path=path,
                 cases=[case], providers=[provider], provider_config_path=root/'providers.json',
                 runs=1, timeout=10, delay=0)
-            row = json.loads((run/'results.jsonl').read_text())
+            row = json.loads((run/'results.jsonl').read_text(encoding='utf-8'))
             self.assertTrue(task_passed(row['ok'], row['metrics']))
             self.assertEqual(row['metrics']['acceptance_contract_sha256'], hashlib.sha256(
                 json.dumps(case.acceptance_contract, sort_keys=True, ensure_ascii=False).encode()).hexdigest())
-            self.assertNotIn('reference_checks', json.loads((run/'manifest.json').read_text()))
+            self.assertNotIn('reference_checks', json.loads((run/'manifest.json').read_text(encoding='utf-8')))
             raw = (run/row['artifact_path']).read_bytes()
             rescored, _ = rescore_evaluation(run_dir=run, dataset_meta=dataset, dataset_path=path, cases=[case])
             self.assertTrue(task_passed(rescored[0]['ok'], rescored[0]['metrics']))
             self.assertEqual((run/row['artifact_path']).read_bytes(), raw)
-            (run/row['artifact_path']).write_text('Tampered')
+            (run/row['artifact_path']).write_text('Tampered', encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'integrity|Public call log output binding changed|Artifact differs from its result binding'):
                 rescore_evaluation(run_dir=run, dataset_meta=dataset, dataset_path=path, cases=[case])
 

@@ -86,19 +86,19 @@ def test_comparison_report_has_owned_chapters_and_bound_populations(tmp_path):
         ],
         'sections': [{'page': 'capabilities', 'title': {'en': 'Fields', 'zh': '字段'}, 'paragraphs': [{'en': 'Chapter-specific text.', 'zh': '章节专属说明。'}]}],
     }
-    source = tmp_path / 'content.json'; source.write_text(json.dumps(content))
+    source = tmp_path / 'content.json'; source.write_text(json.dumps(content), encoding='utf-8')
     output = tmp_path / 'comparison'
     build(output, source=tmp_path / 'fixture', content=source)
-    home = BeautifulSoup((output / 'index.html').read_text(), 'html.parser')
+    home = BeautifulSoup((output / 'index.html').read_text(encoding='utf-8'), 'html.parser')
     assert len(home.select('[data-executive]')) == 1
     assert len(home.select('[data-discovery] tbody tr')) == 1
     assert [node['data-population'] for node in home.select('[data-population]')] == ['overall', 'scenario']
     assert not home.select('[data-modes]')
     assert 'Chapter-specific text.' not in home.get_text()
-    assert '章节专属说明。' in (output / 'capabilities.html').read_text()
+    assert '章节专属说明。' in (output / 'capabilities.html').read_text(encoding='utf-8')
     assert check(output)
     home.select_one('[data-executive] td').string = 'invented method'
-    (output / 'index.html').write_text(str(home))
+    (output / 'index.html').write_text(str(home), encoding='utf-8')
     with pytest.raises(ValueError, match='Population summary'):
         check(output)
 
@@ -141,10 +141,10 @@ def test_projection_only_publishes_metadata_for_materialized_calls(tmp_path, mon
         return rows, files, redactions, corrections
     monkeypatch.setattr(report, 'public_calls', with_audit_records)
     content = tmp_path / 'selection.json'
-    content.write_text(json.dumps({'comparison_methods': ['lexmount']}))
+    content.write_text(json.dumps({'comparison_methods': ['lexmount']}), encoding='utf-8')
     output = tmp_path / 'selected'
     build(output, source=tmp_path / 'fixture', content=content)
-    manifest = json.loads((output / 'manifest.json').read_text())
+    manifest = json.loads((output / 'manifest.json').read_text(encoding='utf-8'))
     retained = {r['evidence']['path'] for r in manifest['rows']}
     assert {r['path'] for r in manifest['evidence_redactions']} == retained
     assert {r['path'] for r in manifest['billing_corrections']} == retained

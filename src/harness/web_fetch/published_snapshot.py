@@ -6,14 +6,13 @@ import shutil
 import tempfile
 from pathlib import Path
 
-from bs4 import BeautifulSoup
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path
 from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 
-from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl
+from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl, read_json
 from harness.report_languages import generated_languages
-from harness.reporting.presentation import check_presentation
+from harness.reporting.release_check import checked_page, open_report, read_page
 from harness.reporting.templates import resolve_template
 from harness.reporting.visual import browser_executable, local_report_server, settle_theme
 from harness.web_fetch.report import generate
@@ -49,11 +48,11 @@ def _check_annotation_version(dataset, baseline, revision, digest):
 def validate_snapshot_audit(source, profile_path):
     """Validate the full matrix, immutable calls and every score-bearing view."""
     source, profile_path = Path(source).resolve(), Path(profile_path).resolve()
-    config = json.loads(profile_path.read_text())
+    config = json.loads(profile_path.read_text(encoding='utf-8'))
     if config.get('variant') != 'published-snapshot-audit' or config.get('certified') is not False:
         raise ValueError('Published snapshot audits are explicitly diagnostic')
     inputs = {key: _bound(profile_path.parent, value) for key, value in config['inputs'].items()}
-    snapshot = json.loads(inputs['snapshot_manifest'].read_text())
+    snapshot = json.loads(inputs['snapshot_manifest'].read_text(encoding='utf-8'))
     paths = list(source.rglob('*'))
     if any(path.is_symlink() for path in paths):
         raise ValueError('Published snapshots reject symlinks')
@@ -65,16 +64,16 @@ def validate_snapshot_audit(source, profile_path):
     for relative, item in snapshot['files'].items():
         if file_sha256(contained_path(source, relative, reject_symlinks=True)) != item['sha256']:
             raise ValueError('Published snapshot changed: '+relative)
-    baseline = json.loads(contained_path(source, 'dataset.json').read_text())
+    baseline = json.loads(contained_path(source, 'dataset.json').read_text(encoding='utf-8'))
     previous = load_jsonl(contained_path(source, 'results.jsonl'))
-    dataset = json.loads(inputs['dataset'].read_text())
+    dataset = json.loads(inputs['dataset'].read_text(encoding='utf-8'))
     if 'annotation_revision' in inputs:
         if dataset.get('definition_revision',{}).get('parent_dataset_sha256') != file_sha256(source/'dataset.json'):
             raise ValueError('Annotation revision has a different report parent')
-        _check_annotation_version(dataset, baseline, json.loads(inputs['annotation_revision'].read_text()), file_sha256(inputs['annotation_revision']))
+        _check_annotation_version(dataset, baseline, json.loads(inputs['annotation_revision'].read_text(encoding='utf-8')), file_sha256(inputs['annotation_revision']))
     records = load_jsonl(inputs['results'])
-    receipt = json.loads(inputs['receipt'].read_text())
-    audit = json.loads(inputs['review'].read_text())
+    receipt = json.loads(inputs['receipt'].read_text(encoding='utf-8'))
+    audit = json.loads(inputs['review'].read_text(encoding='utf-8'))
     scoring_source = SCORING_SOURCE_SHA256
     if config.get('benchmark_release'):
         _, release = load_release(source, dataset, records, profile=profile_path)
@@ -122,7 +121,7 @@ def validate_snapshot_audit(source, profile_path):
             raise ValueError('Snapshot audit confuses original and public bytes')
         if view['view'] not in {'original', 'recovered_original', 'published_projection'}:
             raise ValueError('Unknown snapshot scoring view')
-    historic = json.loads(inputs['historical_verdicts'].read_text())['verdicts']
+    historic = json.loads(inputs['historical_verdicts'].read_text(encoding='utf-8'))['verdicts']
     initial = {row['attempt_id']:row for row in load_jsonl(inputs['initial_results'])}
     if set(historic) != rows.keys() or initial.keys() != rows.keys() or any(type(v) is not bool for v in historic.values()):
         raise ValueError('Snapshot audit comparison lacks the complete original matrix')
@@ -141,7 +140,7 @@ def validate_snapshot_audit(source, profile_path):
         if any(item.get(key) != value for key,value in expected.items()):
             raise ValueError('Snapshot audit comparison counts differ: '+item['provider'])
     if 'method_registry' in inputs:
-        methods=json.loads(inputs['method_registry'].read_text())
+        methods=json.loads(inputs['method_registry'].read_text(encoding='utf-8'))
         if set(methods) != expected_providers or any(not m.get('engine') or not m.get('label') for m in methods.values()):
             raise ValueError('Snapshot audit method registry is incomplete')
         for row in records:
@@ -205,7 +204,7 @@ def build_snapshot_audit(source, output, *, profile):
         if config.get('report_suite_labels'):
             comparison['report_suite_labels'] = config['report_suite_labels']
         if 'method_registry' in inputs:
-            comparison['method_registry'] = json.loads(inputs['method_registry'].read_text())
+            comparison['method_registry'] = json.loads(inputs['method_registry'].read_text(encoding='utf-8'))
         for key in ('independent_review', 'report_interpretation'):
             comparison.pop(key, None)
         comparison['report_interpretation'] = {'path':'audit/interpretation.json','sha256':file_sha256(staging/'audit/interpretation.json')}
@@ -220,14 +219,14 @@ def build_snapshot_audit(source, output, *, profile):
             'figure': 'audit/scoring-explained.png'}
         if historical_privacy:
             comparison['score_audit']['historical_privacy']=historical_privacy
-        (staging / 'dataset.json').write_text(json.dumps(dataset, ensure_ascii=False, indent=2)+'\n')
+        (staging / 'dataset.json').write_text(json.dumps(dataset, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
         shutil.copy2(inputs['results'], staging / 'results.jsonl')
-        batches = json.loads((staging / 'execution.json').read_text())['batches']
+        batches = json.loads((staging / 'execution.json').read_text(encoding='utf-8'))['batches']
         from harness.web_fetch.report_version import bind_release
         release_binding = bind_release(source, staging, dataset, records, profile=profile)
         generate(staging, dataset, records, batches, authored_interpretation=True, frozen_scores=True)
         write_frozen_result_summary(staging, dataset, records)
-        (staging / '.generated-report').write_text('webfetch\n')
+        (staging / '.generated-report').write_text('webfetch\n', encoding='utf-8')
         manifest = {'schema_version':1, 'template':resolve_template('webfetch'),
             'evidence_state':'published_snapshot_score_audit', 'certified':False,
             'dataset_sha256':file_sha256(staging/'dataset.json'),
@@ -238,7 +237,7 @@ def build_snapshot_audit(source, output, *, profile):
             manifest['benchmark_release'] = release_binding
         from harness.reporting.versions import bind_build_version
         manifest['browser_eval'] = bind_build_version(staging)
-        (staging/'report-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n')
+        (staging/'report-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         check_snapshot_audit(staging)
         _install_report_tree(staging, output)
     return output / 'index.html'
@@ -246,15 +245,15 @@ def build_snapshot_audit(source, output, *, profile):
 
 def check_snapshot_audit(root):
     """Deterministic checks for matrix values, disclosure and reviewed evidence."""
-    root = Path(root)
-    manifest=json.loads((root/'report-manifest.json').read_text())
+    root = open_report(root)
+    manifest=read_json(root/'report-manifest.json')
     if manifest.get('evidence_state')!='published_snapshot_score_audit' or manifest.get('certified') is not False:
         raise ValueError('Snapshot audit lost its diagnostic identity')
     for name in ['dataset','results']:
         relative='dataset.json' if name=='dataset' else 'results.jsonl'
         if manifest.get(name+'_sha256')!=file_sha256(root/relative):
             raise ValueError('Snapshot audit input changed: '+name)
-    dataset = json.loads((root/'dataset.json').read_text())
+    dataset = read_json(root/'dataset.json')
     rows = load_jsonl(root/'results.jsonl')
     check_release(root, dataset, rows)
     if dataset.get('definition_revision'):
@@ -262,24 +261,24 @@ def check_snapshot_audit(root):
         historical=root/'audit/history/dataset.json'
         if dataset['definition_revision'].get('parent_dataset_sha256') != file_sha256(historical):
             raise ValueError('Annotation revision has a different report parent')
-        _check_annotation_version(dataset,json.loads(historical.read_text()),json.loads(revision_path.read_text()),file_sha256(revision_path))
+        _check_annotation_version(dataset,read_json(historical),read_json(revision_path),file_sha256(revision_path))
     binding = dataset['comparison']['score_audit']
-    audit = json.loads(_bound(root, binding).read_text())
+    audit = read_json(_bound(root, binding))
     if binding.get('historical_privacy'):_bound(root,binding['historical_privacy'])
     check_saved_result_summary(root, dataset, rows)
     for relative in ['index.html','guide/index.html','audit/index.html','analysis/index.html']:
-        soup = BeautifulSoup((root/relative).read_text(), 'html.parser')
+        soup = read_page(root/relative)
         if not soup.select_one('[data-evidence-state="published_snapshot_score_audit"]'):
             raise ValueError('Snapshot report lost its evidence disclosure: '+relative)
-    methodology = BeautifulSoup((root/'methodology/index.html').read_text(), 'html.parser')
+    methodology = read_page(root/'methodology/index.html')
     scope = methodology.select_one('[data-scoring-input-scope]')
     expected_scope = [binding[key] for key in ['total_attempts','projected_scoring_inputs','recovered_originals','reviewed_attempts']]
     if scope is None or any(str(value) not in scope.get_text() for value in expected_scope):
         raise ValueError('Snapshot report lost its scoring input scope')
-    audit_html = BeautifulSoup((root/'audit/index.html').read_text(), 'html.parser')
+    audit_html = read_page(root/'audit/index.html')
     check_current_browser_article(root,{case['id']:case for case in dataset['cases']},rows,dataset['comparison']['report_interpretation'])
     for route in ['index.html','guide/index.html','analysis/index.html','audit/index.html']:
-        check_presentation((root/route).read_text())
+        checked_page(root/route)
     for item in audit['providers']:
         element = audit_html.select_one('[data-audit-summary-provider="'+item['provider']+'"]')
         fields=['published_passes','historical_passes','initial_rescore_passes']+(['original_definition_passes'] if 'original_definition_passes' in item else [])+['corrected_passes','total']
@@ -298,7 +297,7 @@ def check_snapshot_audit(root):
         for evidence in item.get('evidence',[]):
             archived={**evidence,'path':'audit/history/'+evidence['path']} if evidence.get('historical') else evidence
             _bound(root,archived)
-        detail=BeautifulSoup((root/'attempts'/f'{identifier}.html').read_text(),'html.parser')
+        detail=read_page(root/'attempts'/f'{identifier}.html')
         if not detail.select_one('[data-score-audit]'):
             raise ValueError('Snapshot result lost its audit explanation: '+identifier)
     return f'PASS: {len(cases)} tasks, {len(rows)} saved calls, {len(audit["changes"])} reviewed changes; zero new calls'
@@ -310,10 +309,10 @@ def read_snapshot_public_file(root, binding):
     observed = file_sha256(path)
     if observed == binding['sha256']:
         return path
-    dataset=json.loads(contained_path(root,'dataset.json').read_text())
+    dataset=json.loads(contained_path(root,'dataset.json').read_text(encoding='utf-8'))
     historical=dataset.get('comparison',{}).get('score_audit',{}).get('historical_privacy')
     privacy_path=_bound(root,historical) if historical else contained_path(root,'publication-privacy.json')
-    privacy = json.loads(privacy_path.read_text())
+    privacy = json.loads(privacy_path.read_text(encoding='utf-8'))
     proof = next((item for item in privacy['files'] if item['path'] == binding['path']), {})
     if (proof.get('original_sha256') != binding['sha256']
             or proof.get('published_sha256') != observed
@@ -329,7 +328,7 @@ def check_snapshot_visual(root, receipt):
     if receipt == root or root in receipt.parents:
         raise ValueError('Visual receipts belong outside the public report')
     check_snapshot_audit(root)
-    dataset=json.loads((root/'dataset.json').read_text())
+    dataset=json.loads((root/'dataset.json').read_text(encoding='utf-8'))
     rows=load_jsonl(root/'results.jsonl');cases={c['id']:c for c in dataset['cases']}
     routes=['index.html','guide/index.html','audit/index.html','analysis/index.html',
             'datasets/index.html','methodology/index.html','review/index.html',
@@ -376,5 +375,5 @@ def check_snapshot_visual(root, receipt):
                 page.locator('header a[href]').first.click();page.wait_for_load_state('networkidle')
                 if not page.url.endswith('/index.html'):raise ValueError('Nested report navigation failed')
         browser.close()
-    receipt.write_text(json.dumps({'schema':'webfetch_snapshot_visual/1','states':states,'interactions':interactions,'errors':errors},ensure_ascii=False,indent=2)+'\n')
+    receipt.write_text(json.dumps({'schema':'webfetch_snapshot_visual/1','states':states,'interactions':interactions,'errors':errors},ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     return f'PASS: {len(states)} visual states and {len(interactions)} evidence dialogs'

@@ -67,7 +67,7 @@ def _bounded_transport_raw_absence(source, record, layers) -> bool:
 
 def _text(path):
     try:
-        return Path(path).read_text(errors='replace')
+        return Path(path).read_text(errors='replace', encoding='utf-8')
     except (OSError, TypeError):
         return ''
 

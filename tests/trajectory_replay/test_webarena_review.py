@@ -128,7 +128,7 @@ def test_append_methods_keeps_old_diagnostics_bound_to_unchanged_results(
     }
     review = _write(tmp_path / "review.json", payload)
     assert set(load_validated_failure_review(results, review)["by_result"]) == {("moli", 1)}
-    changed = json.loads(results.read_text())
+    changed = json.loads(results.read_text(encoding="utf-8"))
     if tamper == "row":
         changed["attempts"][0]["duration_ms"] = 11
     elif tamper == "digest":
@@ -153,7 +153,7 @@ def test_append_methods_keeps_old_diagnostics_bound_to_unchanged_results(
 
 def test_historical_task173_review_supersedes_browser_attribution_with_bound_evidence() -> None:
     review = json.loads(
-        Path("research/trajectory-replay-reviews/20260917-original-36.json").read_text()
+        Path("research/trajectory-replay-reviews/20260917-original-36.json").read_text(encoding="utf-8")
     )
     matches = [
         (group, row)
@@ -225,10 +225,10 @@ def test_review_requires_exact_hash_bound_failure_coverage(tmp_path: Path) -> No
     # An empty identity map used to pass the subset test. A diagnostic must
     # bind every observed method to a measured binary, including negative
     # controls where one browser's identity is absent or changed.
-    result_payload = json.loads(results.read_text())
+    result_payload = json.loads(results.read_text(encoding="utf-8"))
     result_payload["attempts"][1]["binary_sha256"] = "a" * 64
     _write(results, result_payload)
-    payload = json.loads(review.read_text())
+    payload = json.loads(review.read_text(encoding="utf-8"))
     payload["bindings"]["effective_results_sha256"] = hashlib.sha256(
         results.read_bytes()
     ).hexdigest()
@@ -265,4 +265,70 @@ def test_review_requires_exact_hash_bound_failure_coverage(tmp_path: Path) -> No
     payload["cause_groups"][0]["results"][0]["task_id"] = 2
     review.write_text(json.dumps(payload), encoding="utf-8")
     with pytest.raises(ValueError, match="coverage mismatch"):
+        load_validated_failure_review(results, review)
+
+
+def test_review_evidence_paths_are_portable_below_the_data_home(tmp_path, monkeypatch) -> None:
+    from harness.trajectory_replay.webarena_review import review_evidence_path
+
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path))
+    absolute = tmp_path / "elsewhere.json"
+    assert review_evidence_path(absolute) == absolute
+    assert review_evidence_path("evidence/run/a.json") == (
+        tmp_path.resolve() / "evidence/run/a.json"
+    )
+    with pytest.raises(ValueError):
+        review_evidence_path("../outside.json")
+
+
+def test_relative_evidence_paths_load_through_the_review_and_report(tmp_path, monkeypatch) -> None:
+    from harness.trajectory_replay.webarena_report import _load_artifact
+
+    def digest(path):
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    home = tmp_path / "data"
+    (home / "evidence/run").mkdir(parents=True)
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(home))
+    row = {"participant_id": "moli", "engine": "moli", "task_id": 1,
+           "status": "fail", "binary_sha256": "a" * 64}
+    prior = _write(home / "evidence/run/prior.json", {"attempts": [row]})
+    data = {"task_id": 1, "cohort_results_sha256": digest(prior),
+            "binary_sha256": {"release": "a" * 64}, "observations": [{"method": "release"}]}
+    diagnostic = _write(home / "evidence/run/diagnostic.json", data)
+    results = _write(tmp_path / "results.json", {"engines": ["moli"], "attempts": [row]})
+    payload = {
+        "schema": "lex_webarena_trajectory_replay_failure_review/1",
+        "bindings": {"effective_results_sha256": digest(results)},
+        "inherited_result_cohorts": [
+            {"path": "evidence/run/prior.json", "sha256": digest(prior)}
+        ],
+        "coverage": {"failed_results": 1, "verified_results": 1},
+        "cause_groups": [{
+            "code": "browser", "label_zh": "浏览器差异", "label_en": "Browser difference",
+            "responsibility": "browser", "remediation_owner": "browser",
+            "remediation_status": "open",
+            "results": [{
+                "participant_id": "moli", "engine": "moli", "task_id": 1,
+                "reason_zh": "目标不存在。", "reason_en": "Target missing.",
+                "supplemental_diagnostic": {
+                    "path": "evidence/run/diagnostic.json", "sha256": digest(diagnostic),
+                },
+            }],
+        }],
+    }
+    review = _write(tmp_path / "review.json", payload)
+
+    assert set(load_validated_failure_review(results, review)["by_result"]) == {("moli", 1)}
+    assert _load_artifact(
+        {"path": "evidence/run/diagnostic.json", "sha256": digest(diagnostic)}
+    ) == data
+
+    payload["cause_groups"][0]["results"][0]["supplemental_diagnostic"]["sha256"] = "0" * 64
+    _write(review, payload)
+    with pytest.raises(ValueError, match="supplemental diagnostic evidence"):
+        load_validated_failure_review(results, review)
+    payload["inherited_result_cohorts"][0]["path"] = "../outside.json"
+    _write(review, payload)
+    with pytest.raises(ValueError):
         load_validated_failure_review(results, review)

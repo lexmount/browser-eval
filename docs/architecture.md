@@ -15,13 +15,15 @@ Browser Eval owns scoring, execution, evidence handling and local report generat
 
 Public WebArena human-recording replay is isolated under
 `src/harness/trajectory_replay/public_webarena/` with its [own examples and release
-contract](../examples/trajectory_replay/public_webarena/README.md).
+contract](../examples/trajectory_replay/public_webarena/README.md). That isolation covers
+report targets and denominators: both replay tracks build their metrics, suite loading, executor
+helpers and Docker runner helpers on `src/harness/trajectory_replay/core/`.
 The curated replay tasks also record [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser) as a scenario design source.
 The original CDP and driver inputs are versioned in [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser), with execution supplied by that upstream runtime.
 Headless fixed-action scenarios are replayed by the upstream runner on local
 fixtures to assess browser/driver compatibility. The upstream
 benchmark also contains individual protocol and Web-platform probes.
-`src/harness/lexbench/` builds retained comparison reports from upstream results;
+[`src/harness/lexbench/`](../src/harness/lexbench/README.md) builds retained comparison reports from upstream results;
 it does not add an in-tree compatibility runner. Compatibility is an evaluation
 goal of these workloads, rather than a separate Browser Eval track.
 
@@ -75,8 +77,9 @@ through configuration, registries or explicit parameters.
 | WebMainBench certification, scoring and aggregation | `webmainbench_certification.py`, `webmainbench_scoring.py`, `webmainbench_assembly.py` |
 | WCXB scoring, paired timing and publication | `wcxb_metrics.py`, `wcxb_scoring.py`, `wcxb_latency.py`, `wcxb_publication.py` |
 | Web Fetch report construction and rendering | `report_build.py`, `report.py` |
-| Common report assets, links, presentation and publication | `src/harness/reporting/` |
+| Common report assets, links, presentation and publication lifecycles (`publish.py`, with each track as an adapter) | `src/harness/reporting/` |
 | Generated-language inventory and absent-English notice | `src/harness/report_languages.py` |
+| Independent reviewer subprocess execution | `src/harness/review_runner.py` |
 | Shared WebArena deployment and network capture | `src/harness/environments/webarena/` |
 
 Unqualified Python filenames in the table are under `src/harness/web_fetch/`.
@@ -137,6 +140,15 @@ uv run --frozen python scripts/restore_report_content.py \
   --output /absolute/data-home/report-assets/webmainbench-sample/report-content.json
 ```
 
+The binding pins the export by version and hashes, not by link, because Artifact
+Site share links stay out of this public repository. To obtain the export, a
+maintainer with access to the hosting site opens the report through the private
+publication target kept beside its external evidence, then downloads the version
+named by `source.version`. The site identities removed from older release records
+are found the same way. The `archive_sha256` check rejects any other archive.
+Without site access, the bound content cannot be restored; supply new authored
+content with its own binding instead.
+
 Restoration verifies the declared inventory, content and source bindings before
 creating a new file. It does not replace existing content. Changed measurements
 require updated content bindings rather than reuse of an old interpretation.
@@ -159,7 +171,8 @@ links, filters, pagination, dialogs and evidence loading; shared component tests
 own narrow-width and theme behavior. Packaging copies only declared public files,
 rejects symlinks and checks that source and authority bytes remain unchanged.
 
-For an explicitly requested and authorized publication, use the selected track's publisher after its release gates pass. Publishers
+For an explicitly requested and authorized publication, use the selected track's publisher after its release gates pass. Each
+publisher is an adapter that names its own target over the lifecycles in `src/harness/reporting/publish.py`. Publishers
 freeze the archive and authority, check the expected remote version, retain
 private operation journals for interrupted requests, and verify deployed bytes
 before updating local bindings. Keep journals and receipts until recovery
@@ -178,7 +191,7 @@ rebuild before publication or an incremental update.
 
 ### Content review
 
-Source-grounded content review uses `scripts/review_webmainbench_content.py` with
+Source-grounded content review uses `uv run --frozen python -m harness.web_fetch webmainbench-content-review` with
 `--evidence`, `--correction`, `--work` and an explicit `--provider`. Its scope is
 the complete frozen dataset, including machine passes; comparisons corroborate
 the source evidence. `--prepare-only` creates private, hash-bound reading packets
@@ -190,7 +203,7 @@ scripts and styles but retain hidden nodes, so they do not prove rendered visibi
 
 ### Saved-evidence diagnostics
 
-`scripts/audit_webmainbench_suspicions.py` scans saved evidence with a source dataset.
+`uv run --frozen python -m harness.web_fetch webmainbench-audit` scans saved evidence with a source dataset.
 It verifies frozen source/reference hashes and every logical output hash before
 returning investigation signals. Missing bindings, duplicate logical results or
 inputs changed during analysis are errors. Large inline input failures use the

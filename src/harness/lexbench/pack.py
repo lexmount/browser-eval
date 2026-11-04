@@ -65,7 +65,7 @@ def package(source: Path, destination: Path, pack_limit: int = 8 * 1024 * 1024) 
             target = stage / name
             target.parent.mkdir(parents=True, exist_ok=True)
             if name.endswith(".html"):
-                text = (source / name).read_text()
+                text = (source / name).read_text(encoding="utf-8")
                 if name in {"en.html", "en/index.html"} and "en" not in languages:
                     return_link = "../index.html" if name.startswith("en/") else "index.html"
                     if (
@@ -73,7 +73,7 @@ def package(source: Path, destination: Path, pack_limit: int = 8 * 1024 * 1024) 
                         or f'href="{return_link}"' not in text
                     ):
                         raise ValueError("English not-generated notice is missing")
-                    target.write_text(text)
+                    target.write_text(text, encoding="utf-8")
                     continue
                 prefix = "../" if name.startswith("en/") else ""
                 marker = f'<script defer src="{prefix}mermaid.min.js"></script>'
@@ -82,7 +82,8 @@ def package(source: Path, destination: Path, pack_limit: int = 8 * 1024 * 1024) 
                 target.write_text(
                     text.replace(
                         marker, f'<script defer src="{prefix}bundle-loader.js"></script>' + marker
-                    )
+                    ),
+                    encoding="utf-8"
                 )
             else:
                 shutil.copy2(source / name, target)
@@ -113,7 +114,8 @@ def package(source: Path, destination: Path, pack_limit: int = 8 * 1024 * 1024) 
         for name, entry in catalog.items():
             entry.update(metadata[name])
         (stage / "bundle-manifest.json").write_text(
-            json.dumps({"files": catalog}, separators=(",", ":")) + "\n"
+            json.dumps({"files": catalog}, separators=(",", ":")) + "\n",
+            encoding="utf-8"
         )
         summary = {
             "bundled_files": len(catalog),
@@ -132,7 +134,3 @@ def main(argv=None):
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
     print(json.dumps(package(args.source, args.output)))
-
-
-if __name__ == "__main__":
-    main()

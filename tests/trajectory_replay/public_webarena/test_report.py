@@ -13,6 +13,7 @@ from harness.trajectory_replay.public_webarena.report import (
     _failure_review,
     _method_page,
     _metric_tables,
+    _research_page,
     _results_page,
     _suite_page,
     _summary_page,
@@ -378,7 +379,9 @@ def test_report_uses_fixed_latest_filename_and_removes_legacy_versions(tmp_path,
     assert 'data-search="任务01 任务 01 example' in suite
     for html_path in reports.glob("*.html"):
         assert "人工复核" not in html_path.read_text(encoding="utf-8")
-    audit = json.loads((reports / "webarena-trajectory-replay-latest-data.json").read_text())
+    audit = json.loads(
+        (reports / "webarena-trajectory-replay-latest-data.json").read_text(encoding="utf-8")
+    )
     assert "human_review" not in audit["ground_truth_validation"]
     assert "final_passes" not in audit["result_audit"]
     assert "final_failures" not in audit["result_audit"]
@@ -641,7 +644,7 @@ def test_report_links_to_full_failures_and_tool_trace_on_detail_pages(tmp_path, 
     assert len(detail_files) == 1
     assert f'href="{detail_files[0].name}"' in results
     assert "webarena-trajectory-replay-latest-task-7461736b-6368726f6d69756d.html" not in results
-    detail = detail_files[0].read_text()
+    detail = detail_files[0].read_text(encoding="utf-8")
     assert "<details" not in detail
     assert 'href="#' not in detail
     assert f'href="{detail_files[0].name}#case-steps"' in detail
@@ -839,6 +842,20 @@ def test_detail_renders_webarena_evaluators_as_readable_rules():
     assert "完整预期" in body
     assert "完整实际值" in body
     assert "逐条断言" in body
+
+
+@pytest.mark.parametrize(
+    ("engines", "compared"),
+    [
+        (("chromium", "moli"), "Chromium 和 Moli"),
+        (("chromium", "obscura", "lightpanda"), "Chromium、Obscura 和 Lightpanda"),
+        (("obscura",), "Obscura"),
+    ],
+)
+def test_research_page_names_the_participants_it_compares(engines, compared):
+    page = _research_page({}, {"functional": {engine: {} for engine in engines}})
+
+    assert f"不能真正比较 {compared}。</li>" in page
 
 
 def test_webarena_report_uses_self_hosted_trajectory_scope_language():

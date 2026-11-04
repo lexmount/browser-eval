@@ -47,7 +47,7 @@ def read_rows(path):
 def validate(
     root: Path, original_rows: list[dict], expected_parent: str
 ) -> tuple[dict, list, list]:
-    certificate = json.loads((root / "certificate.json").read_text())
+    certificate = json.loads((root / "certificate.json").read_text(encoding="utf-8"))
     plan = certificate["preflight"]
     if (
         certificate.get("kind") != "webmainbench_origin_correction_v1"
@@ -138,7 +138,8 @@ def apply(
         ("superseded-case-calls.jsonl", history),
     ]:
         (staging / filename).write_text(
-            "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in values)
+            "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in values),
+            encoding="utf-8"
         )
     revised = copy.deepcopy(summaries)
     for provider, summary in revised.items():
@@ -148,7 +149,8 @@ def apply(
         summary["request_successes"] = sum(r["ok"] for r in selected)
         summary["request_success_rate"] = summary["request_successes"] / len(selected)
     (staging / "score-summaries.json").write_text(
-        json.dumps(revised, ensure_ascii=False, indent=2) + "\n"
+        json.dumps(revised, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8"
     )
     receipt = {
         **certificate,
@@ -160,7 +162,8 @@ def apply(
         "score_summaries_sha256": file_sha256(staging / "score-summaries.json"),
     }
     (staging / "case-correction.json").write_text(
-        json.dumps(receipt, ensure_ascii=False, indent=2) + "\n"
+        json.dumps(receipt, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8"
     )
     return (result, revised)
 
@@ -192,7 +195,7 @@ def certify_case_correction(argv=None):
         raise ValueError("Correction destination already exists")
     originals = read_rows(args.source / "results.jsonl")
     selected = {r["provider"]: r for r in originals if r["case_id"] == args.case_id}
-    source_dataset = json.loads((args.source / "dataset.json").read_text())
+    source_dataset = json.loads((args.source / "dataset.json").read_text(encoding="utf-8"))
     declared = source_dataset["coverage_plan"]["static_html"]
     if set(selected) != set(declared):
         raise ValueError("Correction source method matrix is incomplete")
@@ -218,7 +221,7 @@ def certify_case_correction(argv=None):
     prior_certificate_sha256 = None
     if args.prior_correction:
         certificate_path = args.prior_correction / "certificate.json"
-        prior_certificate = json.loads(certificate_path.read_text())
+        prior_certificate = json.loads(certificate_path.read_text(encoding="utf-8"))
         prior_plan = prior_certificate.get("preflight", {})
         if (
             prior_certificate.get("kind") != "webmainbench_origin_correction_v1"
@@ -307,7 +310,7 @@ def certify_case_correction(argv=None):
     args.output.mkdir(parents=True)
     write_json(args.output / "preflight.json", plan)
     selection = args.output / "case-ids.txt"
-    selection.write_text(args.case_id + "\n")
+    selection.write_text(args.case_id + "\n", encoding="utf-8")
     corrected = []
     physical = []
     for name in providers:
@@ -383,7 +386,7 @@ def certify_case_correction(argv=None):
         if not row["ok"] or not row["output_chars"]:
             raise ValueError("Correction still fails: " + name)
         calculator = official_calculator(args.scorer, shard / "score-cache", plan["scorer_commit"])
-        output = (shard / row["artifact_path"]).read_text()
+        output = (shard / row["artifact_path"]).read_text(encoding="utf-8")
         kwargs = dict(
             predicted_content=output,
             groundtruth_content=source_case["groundtruth_content"],
@@ -431,7 +434,8 @@ def certify_case_correction(argv=None):
             raise ValueError("Binary changed during correction")
     for filename, values in [("results.jsonl", corrected), ("physical-attempts.jsonl", physical)]:
         (args.output / filename).write_text(
-            "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in values)
+            "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in values),
+            encoding="utf-8"
         )
     write_json(
         args.output / "certificate.json",

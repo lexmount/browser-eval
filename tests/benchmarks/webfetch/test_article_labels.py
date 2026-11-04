@@ -75,7 +75,7 @@ def test_only_relevant_current_contracts_declare_labels():
     from harness.benchmarks.data import definition_path
 
     DEFINITIONS = definition_path("webfetch", "evaluation/articles")
-    rules = json.loads((DEFINITIONS / 'rules.json').read_text())['rules']
+    rules = json.loads((DEFINITIONS / 'rules.json').read_text(encoding='utf-8'))['rules']
     comments = [r['comment_contract'] for r in rules if 'comment_contract' in r]
     posts = [r['post_contract'] for r in rules if 'post_contract' in r]
     assert (len(rules), len(comments), len(posts)) == (100, 20, 5)

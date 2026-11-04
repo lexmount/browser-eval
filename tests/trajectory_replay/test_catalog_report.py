@@ -180,16 +180,16 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
     assert "1 / 1" in (output / "index.html").read_text(encoding="utf-8")
     assert "物理执行：1 次" in (output / "case/000.html").read_text(encoding="utf-8")
     assert '<base href="/">' in (output / "case/000.html").read_text(encoding="utf-8")
-    public = json.loads((output / "evidence/000.json").read_text())
+    public = json.loads((output / "evidence/000.json").read_text(encoding="utf-8"))
     assert public["physical_attempt_count"] == 1
     if hosted:
         assert public["participant"]["remote_browser"] == remote_browser
         assert public["participant"]["runtime_metadata"] == runtime_metadata
         assert public["participant"]["request_bridge"] == request_bridge
-        assert "1 个浏览器运行时身份" in (output / "index.html").read_text()
-        assert "Browser.getVersion" in (output / "method.html").read_text()
-        assert "Playwright request bridge" in (output / "method.html").read_text()
-        manifest = json.loads((output / "manifest.json").read_text())
+        assert "1 个浏览器运行时身份" in (output / "index.html").read_text(encoding="utf-8")
+        assert "Browser.getVersion" in (output / "method.html").read_text(encoding="utf-8")
+        assert "Playwright request bridge" in (output / "method.html").read_text(encoding="utf-8")
+        manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
         assert manifest["participant"]["request_bridge"] == request_bridge
     else:
         assert public["participant"]["binary_sha256"] == "b" * 64
@@ -221,3 +221,110 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
         webarena_report.validate_catalog_acceptance_report(
             output, archive, profile=profile
         )
+
+
+def test_catalog_report_p95_uses_the_shared_nearest_rank_definition(
+    monkeypatch, tmp_path: Path
+) -> None:
+    # Linear interpolation gives 8.80 seconds for this population; nearest rank gives 10.00.
+    durations = [1000, 2000, 3000, 4000, 10000]
+    task_ids = list(range(len(durations)))
+    run = tmp_path / "evidence" / "run"
+    run.mkdir(parents=True)
+    progress = run / "progress.jsonl"
+    progress.write_text(
+        "".join(
+            json.dumps(
+                {
+                    "task_id": task_id,
+                    "status": "pass",
+                    "score": 1.0,
+                    "duration_ms": duration,
+                    "action_count": 1,
+                    "completed_actions": 1,
+                    "executed_actions_sha256": "a" * 64,
+                }
+            )
+            + "\n"
+            for task_id, duration in zip(task_ids, durations, strict=True)
+        ),
+        encoding="utf-8",
+    )
+    digest = file_sha256(progress)
+    for task_id in task_ids:
+        for name, value in {
+            "evaluation.json": {"score": 1.0, "status": "pass"},
+            "actual_response.json": {"task_type": "retrieve", "status": "SUCCESS"},
+            "trace.json": {"events": []},
+        }.items():
+            _write_json(run / f"task-{task_id}" / name, value)
+    paths = {name: tmp_path / f"{name}.json" for name in ("ledger", "catalog", "suite", "scope")}
+    _write_json(
+        paths["ledger"],
+        {
+            "counts": {
+                "total": len(task_ids),
+                "pass": len(task_ids),
+                "unresolved": 0,
+                "physical_attempts": len(task_ids),
+                "excluded_duplicate_attempts": 0,
+            },
+            "participant": {"engine": "moli", "backend": "playwright", "binary_sha256": "b" * 64},
+            "binary_sha256s": ["b" * 64],
+            "runs": [{"kind": "segment"}],
+            "rows": [
+                {
+                    "task_id": task_id,
+                    "attempts": [
+                        {"status": "pass", "progress_sha256": digest, "binary_sha256": "b" * 64}
+                    ],
+                }
+                for task_id in task_ids
+            ],
+        },
+    )
+    _write_json(
+        paths["catalog"],
+        {
+            "task_ids": task_ids,
+            "rows": [
+                {
+                    "task_id": task_id,
+                    "mode": "direct",
+                    "source_kind": "recorded",
+                    "source_actions": [{"action": "navigate", "url": "https://example.test"}],
+                }
+                for task_id in task_ids
+            ],
+        },
+    )
+    _write_json(paths["suite"], {"tasks": []})
+    _write_json(paths["scope"], {"task_ids": task_ids, "official_dataset_sha256": "data"})
+    monkeypatch.setattr(
+        webarena_report,
+        "_catalog_official_tasks",
+        lambda: [
+            {
+                "task_id": task_id,
+                "intent": "Open the example",
+                "sites": ["wikipedia"],
+                "eval": [{"evaluator": "URLExactEvaluator"}],
+            }
+            for task_id in task_ids
+        ],
+    )
+    output = tmp_path / "report"
+
+    webarena_report.build_catalog_acceptance_report(
+        evidence_root=tmp_path / "evidence",
+        ledger_path=paths["ledger"],
+        scope_path=paths["scope"],
+        catalog_path=paths["catalog"],
+        suite_path=paths["suite"],
+        site_map_path=None,
+        output=output,
+        archive=tmp_path / "report.zip",
+    )
+
+    index = (output / "index.html").read_text(encoding="utf-8")
+    assert "<td>4.00 秒</td><td>3.00 秒</td><td>10.00 秒</td>" in index

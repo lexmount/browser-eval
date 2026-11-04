@@ -35,7 +35,7 @@ from harness.web_fetch.publication_privacy import (
     project_redundant_result_streams,
     publication_file_risk,
 )
-from harness.web_fetch.publication_target import validate_service_base
+from harness.reporting.publication_target import validate_service_base
 from harness.web_fetch.published_snapshot import check_snapshot_audit
 from harness.web_fetch.reference_lifecycle import require_certifiable_evidence
 from harness.web_fetch.report_build import validate_local_presentation
@@ -52,11 +52,11 @@ def _require(condition, detail):
 
 def validate_release(source: Path, *, presentation_binding: Path | None = None, snapshot_audit=False) -> bool:
     dataset_path = source / "dataset.json"
-    dataset = json.loads(dataset_path.read_text()) if dataset_path.exists() else {}
+    dataset = json.loads(dataset_path.read_text(encoding="utf-8")) if dataset_path.exists() else {}
     records = load_jsonl(source / "results.jsonl")
     check_release(source, dataset, records)
     manifest_path=source/'report-manifest.json'
-    audit_state=manifest_path.is_file() and json.loads(manifest_path.read_text()).get('evidence_state')=='published_snapshot_score_audit'
+    audit_state=manifest_path.is_file() and json.loads(manifest_path.read_text(encoding="utf-8")).get('evidence_state')=='published_snapshot_score_audit'
     if snapshot_audit:
         if not audit_state or presentation_binding is not None:
             raise ValueError('Snapshot packaging requires its explicit diagnostic report')
@@ -71,7 +71,7 @@ def validate_release(source: Path, *, presentation_binding: Path | None = None, 
     for name in ('manifest.json', 'execution.json'):
         path = source / name
         if path.is_file():
-            value = json.loads(path.read_text())
+            value = json.loads(path.read_text(encoding="utf-8"))
             manifests.extend(value.get('batches', [value]))
     require_certifiable_evidence(dataset, manifests)
     content_binding = dataset.get('comparison', {}).get('report_interpretation')
@@ -80,13 +80,13 @@ def validate_release(source: Path, *, presentation_binding: Path | None = None, 
                                       records, content_binding)
     sampled = dataset.get("comparison", {}).get("kind") == "webmainbench_frozen_html_to_markdown"
     if not sampled:
-        reliability = json.loads((source / "reliability.json").read_text())
+        reliability = json.loads((source / "reliability.json").read_text(encoding="utf-8"))
         if reliability.get("complete") is not True:
             raise ValueError("Refusing to package an incomplete or unjudged benchmark report")
         if dataset.get("comparison", {}).get("require_independent_result_review"):
             require_result_review(source, dataset, records)
         return False
-    review = json.loads((source / "result-review.json").read_text())
+    review = json.loads((source / "result-review.json").read_text(encoding="utf-8"))
     if review.get("status") != "passed" or review.get("failures"):
         raise ValueError("Refusing to package an incomplete or unreviewed benchmark report")
     cases = [row["id"] for row in dataset.get("cases", [])]
@@ -358,9 +358,9 @@ def _build_content(source, destination, archive, *, webmainbench, raw_blocks, de
         "files": files,
         "blocks": blocks,
     }
-    (destination / "manifest.json").write_text(json.dumps(manifest, separators=(",", ":")))
+    (destination / "manifest.json").write_text(json.dumps(manifest, separators=(",", ":")), encoding="utf-8")
     (destination / "style.css").write_bytes((source / "assets/style.css").read_bytes())
-    js = (source / "assets/report.js").read_text()
+    js = (source / "assets/report.js").read_text(encoding="utf-8")
     if not webmainbench:
         ready_listener = "window.addEventListener('report-ready',initReport);"
         dom_listener = "window.addEventListener('DOMContentLoaded',initReport);"
@@ -379,7 +379,7 @@ def _build_content(source, destination, archive, *, webmainbench, raw_blocks, de
         "catch{return 'light'}}\n"
         "function saveTheme(t){try{localStorage.setItem('webfetch-theme',t)}catch{}}\n" + js
     )
-    (destination / "report.js").write_text(js)
+    (destination / "report.js").write_text(js, encoding="utf-8")
     (destination / "loader.js").write_bytes(
         (Path(__file__).parent / "assets/report-loader.js").read_bytes()
     )
@@ -392,7 +392,8 @@ def _build_content(source, destination, archive, *, webmainbench, raw_blocks, de
         '<meta name="viewport" content="width=device-width,initial-scale=1">'
         '<title>Web Fetch 评测</title><link rel="stylesheet" href="style.css">'
         '<script defer src="report.js"></script><script defer src="loader.js"></script>'
-        "</head><body><p>正在加载报告…</p></body></html>"
+        "</head><body><p>正在加载报告…</p></body></html>",
+        encoding="utf-8"
     )
     # Validate every download and every internal page/file link after transformation.
     for name, digest in original.items():
@@ -483,7 +484,7 @@ def _compact_cached_content(cached: Path, destination: Path, *, source: Path, re
                         if key not in ('parts','inline_base64')}
             if Path(name).parent.name == 'attempts' and b'<pre data-file="contracts/' in raw:
                 def embedded_contract():
-                    original = (source/name).read_text()
+                    original = (source/name).read_text(encoding="utf-8")
                     matches = re.findall(r'<pre data-kind="contract">.*?</pre>', original, re.S)
                     _require(len(matches) == 1, 'Missing inline acceptance contract: '+name)
                     return project_file(name, matches[0].encode())[0].decode()
@@ -667,7 +668,7 @@ def _build_incremental(source: Path, baseline: Path, destination: Path):
             )[0]
         ):
             raise ValueError("Incremental update cannot replace measured results")
-        refresh = json.loads((source / "report-manifest.json").read_text()).get(
+        refresh = json.loads((source / "report-manifest.json").read_text(encoding="utf-8")).get(
             "presentation_refresh"
         )
         if (
@@ -736,7 +737,8 @@ def _build_incremental(source: Path, baseline: Path, destination: Path):
             ),
         }
         (destination / "update-receipt.json").write_text(
-            json.dumps(receipt, ensure_ascii=False, indent=2) + "\n"
+            json.dumps(receipt, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8"
         )
         return receipt
 
@@ -795,7 +797,7 @@ DATA_ATTACHMENT_HTML = b'<!doctype html><html lang="en"><meta charset="utf-8"><t
 
 
 def _wire_manifest(content):
-    descriptor = json.loads((content/'manifest.json').read_text())
+    descriptor = json.loads((content/'manifest.json').read_text(encoding="utf-8"))
     return (json.loads(gzip.decompress((content/'manifest.json.gz').read_bytes()))
             if descriptor.get('schema_version') == 3 else descriptor)
 
@@ -807,7 +809,7 @@ def _save_wire_manifest(content, manifest):
         (content/'manifest.json.gz').write_bytes(encoded)
         (content/'manifest.json').write_text(json.dumps({'schema_version':3,
             'compressed_manifest':'manifest.json.gz',
-            'manifest_sha256':hashlib.sha256(encoded).hexdigest()},separators=(',',':')))
+            'manifest_sha256':hashlib.sha256(encoded).hexdigest()},separators=(',',':')), encoding="utf-8")
     else:
         (content/'manifest.json').write_bytes(raw)
 
@@ -860,13 +862,13 @@ def partition_content(content, output, *, max_bytes=300*1024*1024, max_files=200
         manifest['external_packs'] = external
         _save_wire_manifest(content,manifest)
     plan = {'schema_version':1,'parts':parts}
-    (output/'parts.json').write_text(json.dumps(plan,indent=2)+'\n')
+    (output/'parts.json').write_text(json.dumps(plan,indent=2)+'\n', encoding="utf-8")
     return plan
 
 
 def part_archives(plan_path):
     """Resolve only immutable archives named by the private preparation plan."""
-    plan = json.loads(plan_path.read_text())
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
     result = {}
     for label,entry in plan['parts'].items():
         path = contained_path(plan_path.parent,entry['archive'],reject_symlinks=True)
@@ -878,7 +880,7 @@ def part_archives(plan_path):
 def bind_data_parts(archive, plan_path, publications):
     """Bind a prepared report to the exact committed versions of its data files."""
     part_archives(plan_path)
-    plan = json.loads(plan_path.read_text())
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
     _require(set(publications) == set(plan['parts']),'Published data part registry differs')
     archive_inventory(archive)  # Reject unsafe ZIP paths before extraction.
     before = _archive_identity(archive)
@@ -907,6 +909,6 @@ def bind_data_parts(archive, plan_path, publications):
             os.replace(staged,archive)
     plan['publications'] = publications
     temporary = plan_path.with_suffix('.tmp')
-    temporary.write_text(json.dumps(plan,indent=2)+'\n')
+    temporary.write_text(json.dumps(plan,indent=2)+'\n', encoding="utf-8")
     os.replace(temporary,plan_path)
     return _archive_identity(archive)

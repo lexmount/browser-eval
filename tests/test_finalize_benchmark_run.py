@@ -25,10 +25,10 @@ class FinalizeBenchmarkRunTests(unittest.TestCase):
             self.write(paths[0], first)
             self.write(paths[1], second)
             observations = root / "observations.json"
-            observations.write_text("[]\n")
+            observations.write_text("[]\n", encoding="utf-8")
 
             def finalize(worker: Path, _observations: Path) -> dict:
-                manifest = json.loads((worker / "manifest.json").read_text())
+                manifest = json.loads((worker / "manifest.json").read_text(encoding="utf-8"))
                 digest = hashlib.sha256(b"evidence\n").hexdigest()
                 relative = f"reference-checks/observations-{digest}.json"
                 manifest["reference_checks"] = {"status": "verified", "postcheck": {
@@ -36,17 +36,17 @@ class FinalizeBenchmarkRunTests(unittest.TestCase):
                 self.write(worker / "manifest.json", manifest)
                 certificate = worker / relative
                 certificate.parent.mkdir()
-                certificate.write_text("evidence\n")
+                certificate.write_text("evidence\n", encoding="utf-8")
                 return {"status": "verified"}
 
             with patch("harness.web_fetch.evidence.finalize_reference_checks", side_effect=finalize):
                 finalize_aggregate(root, observations)
 
-            batches = json.loads((root / "execution.json").read_text())["batches"]
+            batches = json.loads((root / "execution.json").read_text(encoding="utf-8"))["batches"]
             self.assertEqual(batches[0]["reference_checks"]["status"], "verified")
             self.assertNotIn("reference_checks", batches[1])
             digest = hashlib.sha256(b"evidence\n").hexdigest()
-            self.assertEqual((root / f"reference-checks/observations-{digest}.json").read_text(),
+            self.assertEqual((root / f"reference-checks/observations-{digest}.json").read_text(encoding="utf-8"),
                              "evidence\n")
 
     def test_refuses_worker_inventory_mismatch_before_finalizing(self) -> None:
@@ -55,7 +55,7 @@ class FinalizeBenchmarkRunTests(unittest.TestCase):
             self.write(root / "execution.json", {"batches": [{"attempt_ids": ["p__a__r001"]}]})
             self.write(root / "workers/p/web/manifest.json", {"attempt_ids": ["p__b__r001"]})
             observations = root / "observations.json"
-            observations.write_text("[]\n")
+            observations.write_text("[]\n", encoding="utf-8")
             with patch("harness.web_fetch.evidence.finalize_reference_checks") as finalize:
                 with self.assertRaisesRegex(ValueError, "differ"):
                     finalize_aggregate(root, observations)
@@ -94,7 +94,7 @@ class FinalizeBenchmarkRunTests(unittest.TestCase):
             with patch("harness.web_fetch.evidence.finalize_reference_checks") as finalize:
                 finalize_aggregate(root, observations)
             finalize.assert_not_called()
-            batches = json.loads((root / "execution.json").read_text())["batches"]
+            batches = json.loads((root / "execution.json").read_text(encoding="utf-8"))["batches"]
             self.assertEqual(batches[0]["reference_checks"]["status"], "verified")
             self.assertEqual((root / relative).read_bytes(), observations.read_bytes())
 
@@ -138,10 +138,10 @@ def retained_run(root):
     worker = root / 'workers/custom/body'
     worker.mkdir(parents=True)
     observations = root / 'observations.json'
-    observations.write_text('[]\n')
+    observations.write_text('[]\n', encoding="utf-8")
     digest = hashlib.sha256(observations.read_bytes()).hexdigest()
     for name in ('dataset.json', 'results.jsonl'):
-        (worker / name).write_text('{}\n')
+        (worker / name).write_text('{}\n', encoding="utf-8")
     relative = f'reference-checks/observations-{digest}.json'
     (worker / 'reference-checks').mkdir()
     (worker / relative).write_bytes(observations.read_bytes())
@@ -151,14 +151,14 @@ def retained_run(root):
             'dataset_sha256': hashlib.sha256((worker / 'dataset.json').read_bytes()).hexdigest(),
             'results_sha256': hashlib.sha256((worker / 'results.jsonl').read_bytes()).hexdigest(),
         }}}
-    (worker / 'manifest.json').write_text(json.dumps(batch))
-    (root / 'execution.json').write_text(json.dumps({'batches': [batch]}))
+    (worker / 'manifest.json').write_text(json.dumps(batch), encoding="utf-8")
+    (root / 'execution.json').write_text(json.dumps({'batches': [batch]}), encoding="utf-8")
     return worker, observations, batch, relative
 
 
 def test_aggregate_copies_only_certificate_bound_observations(tmp_path):
     worker, observations, _, relative = retained_run(tmp_path)
-    (worker / 'reference-checks/private-notes.txt').write_text('private investigation')
+    (worker / 'reference-checks/private-notes.txt').write_text('private investigation', encoding="utf-8")
     finalize_aggregate(tmp_path, observations)
     assert (tmp_path / relative).read_bytes() == observations.read_bytes()
     assert not (tmp_path / 'reference-checks/private-notes.txt').exists()
@@ -170,7 +170,7 @@ def test_aggregate_rejects_duplicate_worker_batches_before_any_finalization(tmp_
     worker, observations, batch, _ = retained_run(tmp_path)
     duplicate = worker.parent / 'duplicate'
     duplicate.mkdir()
-    (duplicate / 'manifest.json').write_text(json.dumps(batch))
+    (duplicate / 'manifest.json').write_text(json.dumps(batch), encoding="utf-8")
     before = (tmp_path / 'execution.json').read_bytes()
     with patch('harness.web_fetch.evidence.finalize_reference_checks') as finalize:
         with pytest.raises(ValueError):
@@ -183,7 +183,7 @@ def test_aggregate_rejects_corrupted_retained_observation_without_publishing(tmp
     import pytest
 
     worker, observations, _, relative = retained_run(tmp_path)
-    (worker / relative).write_text('modified')
+    (worker / relative).write_text('modified', encoding="utf-8")
     before = (tmp_path / 'execution.json').read_bytes()
     with pytest.raises(ValueError):
         finalize_aggregate(tmp_path, observations)
@@ -208,7 +208,7 @@ def test_aggregate_refuses_worker_metadata_changes_with_same_attempt_inventory(t
 
     worker, observations, batch, _ = retained_run(tmp_path)
     batch['timeout'] = 999
-    (worker / 'manifest.json').write_text(json.dumps(batch))
+    (worker / 'manifest.json').write_text(json.dumps(batch), encoding="utf-8")
     before = (tmp_path / 'execution.json').read_bytes()
     with pytest.raises(ValueError):
         finalize_aggregate(tmp_path, observations)
@@ -220,7 +220,7 @@ def test_aggregate_cannot_replace_an_existing_aggregate_certificate(tmp_path):
 
     worker, observations, batch, _ = retained_run(tmp_path)
     batch['reference_checks']['postcheck']['checked_at'] = '2026-10-09T01:00:00+00:00'
-    (worker / 'manifest.json').write_text(json.dumps(batch))
+    (worker / 'manifest.json').write_text(json.dumps(batch), encoding="utf-8")
     before = (tmp_path / 'execution.json').read_bytes()
     with pytest.raises(ValueError):
         finalize_aggregate(tmp_path, observations)

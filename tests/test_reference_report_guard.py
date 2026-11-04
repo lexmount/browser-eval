@@ -16,11 +16,11 @@ class ReferenceReportGuardTests(unittest.TestCase):
         record = {'attempt_id': 'p__c__r001', 'provider': 'p', 'case_id': 'c',
                   'artifact_path': 'artifacts/p/c/run.txt',
                   'metrics': {'scoring_source_sha256': SCORING_SOURCE_SHA256}, 'ok': True}
-        (root/'dataset.json').write_text(json.dumps({'cases': [case]}))
-        (root/'results.jsonl').write_text(json.dumps(record)+'\n')
+        (root/'dataset.json').write_text(json.dumps({'cases': [case]}), encoding='utf-8')
+        (root/'results.jsonl').write_text(json.dumps(record)+'\n', encoding='utf-8')
         (root/'manifest.json').write_text(json.dumps({'attempt_ids': [record['attempt_id']],
             'reference_checks': {'status': 'awaiting_postcheck', 'cases': {
-                'c': {'reference_sha256': 'a'*64}}}}))
+                'c': {'reference_sha256': 'a'*64}}}}), encoding='utf-8')
 
     def test_report_blocks_pending_before_writes(self):
         with tempfile.TemporaryDirectory() as directory:

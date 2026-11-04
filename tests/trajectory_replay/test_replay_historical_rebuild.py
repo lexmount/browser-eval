@@ -18,7 +18,7 @@ def test_rebuild_resolves_historical_suite_before_loading_it(tmp_path, monkeypat
     track = 'webarena-replay' if public else 'trajectory-replay'
     definition = 'suites/human-qualified-v1.json' if public else 'suites/curated-v1.json'
     original = tmp_path / 'old-suite.json'
-    original.write_text('{"edition":"original"}')
+    original.write_text('{"edition":"original"}', encoding='utf-8')
     newer = tmp_path / 'current-suite.json'
     newer.write_bytes(original.read_bytes() if mode == 'identical' else b'{"edition":"new"}')
     digest = hashlib.sha256(original.read_bytes()).hexdigest()
@@ -40,8 +40,8 @@ def test_rebuild_resolves_historical_suite_before_loading_it(tmp_path, monkeypat
                                      'revision': old['revision']}
     artifacts = tmp_path / 'run'
     artifacts.mkdir()
-    (artifacts/'attempts.jsonl').write_text('')
-    (artifacts/'manifest.json').write_text(json.dumps(manifest))
+    (artifacts/'attempts.jsonl').write_text('', encoding='utf-8')
+    (artifacts/'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
     root = Path(__file__).resolve().parents[2]
     script = root / 'examples/trajectory_replay'
     if public:

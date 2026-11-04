@@ -17,12 +17,13 @@ def test_restarted_worker_keeps_its_own_response_and_logs(tmp_path, monkeypatch,
     worker.write_text(
         'import json,sys,time\nfrom pathlib import Path\n'
         'counter=Path(sys.argv[1])\n'
-        'generation=int(counter.read_text())+1 if counter.exists() else 1\n'
+        'generation=int(counter.read_text(encoding="utf-8"))+1 if counter.exists() else 1\n'
         'counter.write_text(str(generation))\n'
         'for line in sys.stdin:\n'
         ' print("worker-"+str(generation),file=sys.stderr,flush=True)\n'
         ' time.sleep(2 if generation==1 else .35)\n'
-        ' print(json.dumps({"ok":True,"content":"worker-"+str(generation)}),flush=True)\n'
+        ' print(json.dumps({"ok":True,"content":"worker-"+str(generation)}),flush=True)\n',
+        encoding='utf-8'
     )
     provider = SubprocessJsonlProvider('custom', {
         'repo_path': str(tmp_path), 'command': [sys.executable, '-u', str(worker), str(counter)],

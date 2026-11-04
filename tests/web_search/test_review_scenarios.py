@@ -28,7 +28,7 @@ def test_suffix_sharing_methods_have_independent_quotas(tmp_path):
     profile["methods"] = [{**base, "id": mid} for mid in ("variant-a", "a")]
     profile["protocol"]["max_calls_per_method"] = 1
     source = tmp_path / "profile.json"
-    source.write_text(json.dumps(profile))
+    source.write_text(json.dumps(profile), encoding='utf-8')
     output = tmp_path / "run"
     with (
         patch("harness.web_search.runner.load_runtime_env"),
@@ -47,7 +47,7 @@ def test_suffix_sharing_methods_have_independent_quotas(tmp_path):
     reservations.mkdir()
     (output / "reservations" / name).rename(reservations / name)
     assert physical_call_counts(profile, output) == {"variant-a": 1, "a": 1}
-    (output / "calls" / name).write_text("{}")
+    (output / "calls" / name).write_text("{}", encoding='utf-8')
     (output / "reservations" / name).write_bytes((reservations / name).read_bytes())
     assert physical_call_counts(profile, output) == {"variant-a": 2, "a": 1}
 
@@ -66,7 +66,7 @@ def test_execution_revision_resolves_composed_profiles_and_current_cohorts(tmp_p
     source = compact if selection is None else tmp_path / "current.json"
 
     def save():
-        compact.write_text(json.dumps(profile))
+        compact.write_text(json.dumps(profile), encoding='utf-8')
         if selection:
             binding = {"path": compact.name, "sha256": bytes_sha256(compact.read_bytes())}
             source.write_text(
@@ -79,7 +79,8 @@ def test_execution_revision_resolves_composed_profiles_and_current_cohorts(tmp_p
                         "supplementary_profiles": [{**binding, "id": "supplement"}],
                         "publication_target": "target.json",
                     }
-                )
+                ),
+                encoding='utf-8'
             )
 
     save()
@@ -112,7 +113,7 @@ def test_execution_revision_resolves_composed_profiles_and_current_cohorts(tmp_p
         save()
         new_bytes = load_profile_bytes(source, cohort=cohort)
         proof = tmp_path / "proof.json"
-        proof.write_text('{"accepted":true}')
+        proof.write_text('{"accepted":true}', encoding='utf-8')
         revision = tmp_path / "revision.json"
         revision.write_text(
             json.dumps(
@@ -124,7 +125,8 @@ def test_execution_revision_resolves_composed_profiles_and_current_cohorts(tmp_p
                     "profile_sha256": bytes_sha256(new_bytes),
                     "evidence": [{"path": proof.name, "sha256": bytes_sha256(proof.read_bytes())}],
                 }
-            )
+            ),
+            encoding='utf-8'
         )
         if tail.endswith(b"\n"):
             with patch("harness.web_search.runner.http_call", side_effect=response):
@@ -146,7 +148,7 @@ def test_execution_revision_resolves_composed_profiles_and_current_cohorts(tmp_p
     assert (output / "resume-1/previous-profile.json").read_bytes() == old_bytes
     assert (output / "resume-1/previous-results.jsonl").read_bytes() == interrupted_bytes
     frozen = json.loads(new_bytes)
-    assert len((output / "results.jsonl").read_text().splitlines()) == len(frozen["cases"])
+    assert len((output / "results.jsonl").read_text(encoding='utf-8').splitlines()) == len(frozen["cases"])
     if selection:
         assert frozen["current_selection"]["cohort"] == cohort
 
@@ -177,8 +179,8 @@ def test_combined_release_export_keeps_the_explicit_publication_plan(tmp_path, m
     ]
     output.mkdir()
     manifest = output / "manifest.json"
-    manifest.write_text(json.dumps({"receipt": {"certified": True}}))
-    visual.write_text(json.dumps({"manifest_sha256": bytes_sha256(manifest.read_bytes())}))
+    manifest.write_text(json.dumps({"receipt": {"certified": True}}), encoding='utf-8')
+    visual.write_text(json.dumps({"manifest_sha256": bytes_sha256(manifest.read_bytes())}), encoding='utf-8')
     monkeypatch.setattr(report, "check", lambda _: None)
     with (
         patch("harness.web_search.publication.verify_plan") as verify_plan,
@@ -225,7 +227,7 @@ def test_interrupted_paid_attempt_still_exhausts_budget(tmp_path, boundary, stop
     profile['methods'] = profile['methods'][:1]
     profile['protocol']['max_calls_per_method'] = 2
     source = tmp_path / 'profile.json'
-    source.write_text(json.dumps(profile))
+    source.write_text(json.dumps(profile), encoding='utf-8')
     output = tmp_path / 'run'
     sent = 0
     original_write = Path.write_bytes
@@ -307,7 +309,7 @@ def test_supplementary_quarantines_remain_in_composed_quality_population(tmp_pat
         source = tmp_path / str(index)
         source.mkdir()
         for name in ('profile.json', 'results.jsonl', 'receipt.json'):
-            (source / name).write_text('{}')
+            (source / name).write_text('{}', encoding='utf-8')
         sources.append(source)
     with patch.object(report, 'load_run', side_effect=[(p, [], {'certified': True}) for p in profiles]):
         combined, _, _, _ = report.load_report_runs(sources[0], [('extra', sources[1])], {})
@@ -325,17 +327,17 @@ def test_repeated_factual_collection_builds_and_checks_selected_score_round(tmp_
     profile['protocol']['rounds'] = 2
     for case in profile['cases']:
         case['reference_answer'] = 'Fixture'
-    (source / 'profile.json').write_text(json.dumps(profile))
-    rows = [json.loads(line) for line in (source / 'results.jsonl').read_text().splitlines()]
+    (source / 'profile.json').write_text(json.dumps(profile), encoding='utf-8')
+    rows = [json.loads(line) for line in (source / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
     for row in rows:
         case = next(c for c in profile['cases'] if c['id'] == row['case_id'])
         row['metrics'] = evaluate(case, row['results'])
     rows += [dict(row, id=row['id'].removesuffix('r0') + 'r1', round=1) for row in rows]
-    (source / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
+    (source / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
     receipt = json.loads((source / 'receipt.json').read_bytes())
     receipt.update(call_count=len(rows), profile_sha256=bytes_sha256((source / 'profile.json').read_bytes()),
                    results_sha256=bytes_sha256((source / 'results.jsonl').read_bytes()))
-    (source / 'receipt.json').write_text(json.dumps(receipt))
+    (source / 'receipt.json').write_text(json.dumps(receipt), encoding='utf-8')
     report.build(tmp_path / 'repeated-report', source=source)
     assert report.check(tmp_path / 'repeated-report')
 
@@ -349,7 +351,7 @@ def test_interrupted_archive_never_counts_one_send_twice(tmp_path):
     profile['methods'] = profile['methods'][:1]
     profile['protocol']['max_calls_per_method'] = 2
     source = tmp_path / 'profile.json'
-    source.write_text(json.dumps(profile))
+    source.write_text(json.dumps(profile), encoding='utf-8')
     output = tmp_path / 'run'
     sent = 0
     normalize = report.normalize_response
@@ -395,6 +397,6 @@ def test_interrupted_archive_never_counts_one_send_twice(tmp_path):
             run(source, output, certified=True, resume=True)
     assert sent == 2
     assert physical_call_counts(profile, output) == {profile['methods'][0]['id']: 2}
-    receipt = json.loads((output / 'receipt.json').read_text())
+    receipt = json.loads((output / 'receipt.json').read_text(encoding='utf-8'))
     assert receipt['total_retained_physical_call_count'] == 2
     assert receipt['certified']

@@ -463,13 +463,13 @@ def assemble(
         staging = Path(work) / "package"
         _assemble_cohort(root, staging, source, profile_path, scorer=scorer,
                          sample_manifest=sample_manifest, review_path=review_path)
-        baseline_cert = (json.loads((staging / "cohort-certificate.json").read_text())
+        baseline_cert = (json.loads((staging / "cohort-certificate.json").read_text(encoding="utf-8"))
                          if sample_manifest is None else None)
         rows = read_jsonl(staging / "results.jsonl")
         calls = read_jsonl(staging / "physical-attempts.jsonl")
-        summaries = json.loads((staging / "score-summaries.json").read_text())
-        execution = json.loads((staging / "execution.json").read_text())
-        dataset = json.loads((staging / "dataset.json").read_text())
+        summaries = json.loads((staging / "score-summaries.json").read_text(encoding="utf-8"))
+        execution = json.loads((staging / "execution.json").read_text(encoding="utf-8"))
+        dataset = json.loads((staging / "dataset.json").read_text(encoding="utf-8"))
         providers = list(profile["providers"])
         bound_variants = []
         for index, item in enumerate(variants):
@@ -478,7 +478,7 @@ def assemble(
             variant_profile_path = contained_path(
                 registry_path.parent, item["profile"], reject_symlinks=True
             )
-            variant_profile = json.loads(variant_profile_path.read_text())
+            variant_profile = json.loads(variant_profile_path.read_text(encoding="utf-8"))
             source_provider = item.get("source_provider")
             if source_provider is None and len(variant_profile["providers"]) == 1:
                 source_provider = variant_profile["providers"][0]
@@ -496,7 +496,7 @@ def assemble(
             ):
                 if variant_profile.get(key) != profile.get(key):
                     raise ValueError("Variant and baseline contracts differ: " + key)
-            cert = json.loads((candidate / "cohort-certificate.json").read_text())
+            cert = json.loads((candidate / "cohort-certificate.json").read_text(encoding="utf-8"))
             if cert.get("preflight") != baseline_cert["postflight"]:
                 raise ValueError("Variant and baseline source bindings differ")
             if variant_profile.get("binary_sha256") and (
@@ -529,11 +529,11 @@ def assemble(
             calls.extend(
                 alias_row(row, source_provider, provider) for row in variant_calls
             )
-            summary = json.loads((intermediate / "score-summaries.json").read_text())[
+            summary = json.loads((intermediate / "score-summaries.json").read_text(encoding="utf-8"))[
                 source_provider
             ]
             summaries[provider] = {**summary, "provider": provider}
-            batch = json.loads((intermediate / "execution.json").read_text())[
+            batch = json.loads((intermediate / "execution.json").read_text(encoding="utf-8"))[
                 "batches"
             ][0]
             if (
@@ -634,7 +634,7 @@ def assemble(
     print(f"Assembled {len(rows)} results and {len(calls)} physical calls", flush=True)
 
 
-def sample_main(argv=None, *, root=None):
+def sample_main(argv=None):
     parser = argparse.ArgumentParser(description="Assemble a profile-declared WebMainBench sample")
     parser.add_argument("--source-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
@@ -682,7 +682,3 @@ def main() -> None:
         cohorts=cohorts,
         scorer=args.scorer,
     )
-
-
-if __name__ == "__main__":
-    main()

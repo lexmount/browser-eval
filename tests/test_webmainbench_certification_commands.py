@@ -50,7 +50,7 @@ def test_declared_method_subset_and_caller_relative_paths(command_inputs, monkey
     root, profile, _ = command_inputs
     commands = install_child(command_inputs, monkeypatch)
     certification.main(arguments())
-    receipt = json.loads((root / "run/cohort-certificate.json").read_text())
+    receipt = json.loads((root / "run/cohort-certificate.json").read_text(encoding="utf-8"))
     assert [row["provider"] for row in receipt["providers"]] == profile["providers"]
     assert len(commands) == 2
     assert receipt["preflight"] == receipt["postflight"]
@@ -88,7 +88,7 @@ def test_invalid_profile_stops_before_any_child(command_inputs, monkeypatch, dam
 
 def test_dirty_scorer_is_rejected_before_calls(command_inputs, monkeypatch):
     root, *_ = command_inputs
-    (root / "scorer/webmainbench/metrics/metric.py").write_text("different scorer")
+    (root / "scorer/webmainbench/metrics/metric.py").write_text("different scorer", encoding="utf-8")
     commands = install_child(command_inputs, monkeypatch)
     with pytest.raises(ValueError, match="clean"):
         certification.main(arguments())
@@ -100,7 +100,7 @@ def test_dirty_scorer_is_rejected_before_calls(command_inputs, monkeypatch):
 def test_input_drift_never_produces_a_certificate(command_inputs, monkeypatch, changed):
     def after(root, _provider):
         path = root / {"profile": "profile.json", "config": "providers.json", "source": "source.jsonl"}[changed]
-        path.write_text(path.read_text() + " ")
+        path.write_text(path.read_text(encoding="utf-8") + " ", encoding="utf-8")
 
     commands = install_child(command_inputs, monkeypatch, after=after)
     with pytest.raises(ValueError, match="changed"):
@@ -112,7 +112,7 @@ def test_input_drift_never_produces_a_certificate(command_inputs, monkeypatch, c
 def test_earlier_method_drift_is_rejected_before_certification(command_inputs, monkeypatch):
     def after(root, provider):
         if provider == "obscura":
-            (root / "run/chromium/artifacts/case-0.md").write_text("changed earlier method")
+            (root / "run/chromium/artifacts/case-0.md").write_text("changed earlier method", encoding="utf-8")
 
     commands = install_child(command_inputs, monkeypatch, after=after)
     with pytest.raises(ValueError, match="artifact mismatch"):
@@ -161,7 +161,7 @@ def test_scoring_honors_paths_and_preserves_measurement_certificate(command_inpu
     root = command_inputs[0]
     before = (root / "run/cohort-certificate.json").read_bytes()
     certification.main_score(score_arguments())
-    receipt = json.loads((root / "run/scoring-certificate.json").read_text())
+    receipt = json.loads((root / "run/scoring-certificate.json").read_text(encoding="utf-8"))
     assert len(commands) == 2
     assert (root / "run/cohort-certificate.json").read_bytes() == before
     assert [r["provider"] for r in receipt["providers"]] == command_inputs[1]["providers"]
@@ -172,10 +172,10 @@ def test_invalid_certified_inputs_stop_before_scoring(command_inputs, monkeypatc
     commands = install_scoring_child(command_inputs, monkeypatch)
     root = command_inputs[0]
     if damage == "output":
-        (root / "run/chromium/artifacts/case-0.md").write_text("changed output")
+        (root / "run/chromium/artifacts/case-0.md").write_text("changed output", encoding="utf-8")
     elif damage in ("cohort", "methods"):
         path = root / "run/cohort-certificate.json"
-        value = json.loads(path.read_text())
+        value = json.loads(path.read_text(encoding="utf-8"))
         if damage == "cohort":
             value["preflight"]["case_count"] = 1
         else:
@@ -183,7 +183,7 @@ def test_invalid_certified_inputs_stop_before_scoring(command_inputs, monkeypatc
         write_json(path, value)
     elif damage == "profile":
         path = root / "profile.json"
-        path.write_text(path.read_text() + " ")
+        path.write_text(path.read_text(encoding="utf-8") + " ", encoding="utf-8")
     else:
         target = root / "external.json"
         target.write_bytes((root / "run/chromium/dataset.json").read_bytes())
@@ -201,7 +201,7 @@ def test_drift_during_scoring_never_receives_a_certificate(command_inputs, monke
     def after(root, _provider):
         path = root / {"profile": "profile.json", "cohort": "run/cohort-certificate.json",
                        "earlier-method": "run/chromium/results.jsonl"}[changed]
-        path.write_text(path.read_text() + " ")
+        path.write_text(path.read_text(encoding="utf-8") + " ", encoding="utf-8")
 
     commands = install_scoring_child(command_inputs, monkeypatch, after=after)
     with pytest.raises(ValueError, match="changed|differs"):

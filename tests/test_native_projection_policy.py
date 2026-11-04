@@ -19,7 +19,7 @@ from lexbench_webfetch.models import EvalCase
 def _saved_tavily(tmp_path, *, success=True):
     case = EvalCase('one', 'One', 'https://example.test/one', 'control', [],
                     source_benchmark={'input_media_kind': 'html_page'})
-    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [asdict(case)]}))
+    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [asdict(case)]}), encoding='utf-8')
     provider = build_provider('tavily', {'type': 'tavily_extract', 'api_key': 'fixture',
                                         'uniform_native_parameters': True})
     ledger = NativeRouteLedger([case], [provider])
@@ -101,7 +101,7 @@ def test_one_native_case_read_per_materialization_and_fresh_next_operation(tmp_p
         assert read.call_count == 1
     dataset = json.loads((tmp_path/'dataset.json').read_bytes())
     dataset['cases'][0]['url'] = 'https://example.test/changed'
-    (tmp_path/'dataset.json').write_text(json.dumps(dataset))
+    (tmp_path/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
     with pytest.raises(ValueError, match='request identity'):
         materialize_bound_artifacts(tmp_path/'next-copy', tmp_path, [record])
 
@@ -127,7 +127,7 @@ def test_moli_missing_binary_hash_rejected_before_route_transport(tmp_path):
 def test_http_adapter_and_saved_verifier_share_frozen_selection(tmp_path, kind, payload, status, track, task_kind):
     case = EvalCase('one', 'One', 'https://example.test/one', 'control', [], track=track,
                     task_kind=task_kind, source_benchmark={'input_media_kind': 'html_page'})
-    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [asdict(case)]}))
+    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [asdict(case)]}), encoding='utf-8')
     provider = build_provider('method', {'type': kind, 'api_key': 'fixture', 'api_token': 'fixture',
                                          'account_id': 'fixture', 'uniform_native_parameters': True})
     ledger = NativeRouteLedger([case], [provider])
@@ -151,7 +151,7 @@ def test_worker_policy_replays_optional_fields_for_both_outcomes(tmp_path, ok):
     import sys
     case = EvalCase('one', 'One', 'https://example.test/one', 'control', [],
                     source_benchmark={'input_media_kind': 'html_page'})
-    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [asdict(case)]}))
+    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [asdict(case)]}), encoding='utf-8')
     payload = {'ok': ok, 'content': 'answer', 'metadata': {'images': ['https://example.test/p.png']}}
     source = 'import sys,json\nfor line in sys.stdin: print('+repr(json.dumps(payload))+',flush=True)'
     provider = build_provider('worker', {'type': 'subprocess_jsonl', 'command': [sys.executable, '-u', '-c', source],
@@ -180,7 +180,7 @@ def test_frozen_policy_source_is_materialized_and_hash_checked(tmp_path):
     target = tmp_path/'copy'
     materialize_native_route_contracts(target, tmp_path, [manifest])
     assert (target/policy['source_path']).read_bytes() == (tmp_path/policy['source_path']).read_bytes()
-    (tmp_path/policy['source_path']).write_text('changed')
+    (tmp_path/policy['source_path']).write_text('changed', encoding='utf-8')
     with pytest.raises(ValueError, match='policy source changed'):
         materialize_native_route_contracts(tmp_path/'other', tmp_path,
             [{'native_route_contract': {'path': contract.name, 'sha256': hashlib.sha256(contract.read_bytes()).hexdigest()}}])

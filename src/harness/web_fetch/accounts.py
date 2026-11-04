@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from harness.env_file import parse_env_file, read_env_statements
+from harness.web_fetch import config
 from harness.web_fetch.methods import report_method_catalog
 
 
@@ -108,10 +109,11 @@ def import_credentials(source: Path, target: Path) -> tuple[list[str], list[str]
     return imported, missing
 
 
-def main_import_credentials(argv: list[str] | None = None, *, default_target: Path | None = None) -> None:
+def main_import_credentials(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="Import declared hosted credentials into a .env file.")
     parser.add_argument("--source", type=Path, default=Path.home() / ".env")
-    parser.add_argument("--target", type=Path, default=default_target or Path.cwd() / ".env")
+    parser.add_argument("--target", type=Path, default=config.ROOT / ".env",
+                        help="defaults to the repository .env that evaluation runs load")
     args = parser.parse_args(argv)
     imported, missing = import_credentials(args.source, args.target)
     print(f"Imported {len(imported)} hosted benchmark variables into {args.target}")

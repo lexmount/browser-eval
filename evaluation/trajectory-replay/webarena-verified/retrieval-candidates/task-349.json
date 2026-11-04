@@ -3,7 +3,7 @@
   "tool_calls": [
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023"
+      "url": "http://host.docker.internal:8023"
     },
     {
       "action": "click",
@@ -15,7 +15,7 @@
     },
     {
       "action": "navigate",
-      "url": "http://192.168.5.2:8023/byteblaze/gimmiethat.space/-/project_members"
+      "url": "http://host.docker.internal:8023/byteblaze/gimmiethat.space/-/project_members"
     },
     {
       "action": "evaluate",
@@ -25,7 +25,7 @@
   "retrieval_contract": {
     "schema": "lex_replay_current_run_retrieval/1",
     "task_id": 349,
-    "canonical_calls_sha256": "0a38ac087eaaf0f4aa73ff8cbf7a2ebe9b8b5d3963f015aa5a87724289eededf",
+    "canonical_calls_sha256": "43a71099f497e8db7f7d9d96303026f2816be8e7c5cea61a479aea05e74f1d96",
     "sources": [
       {
         "name": "observation",

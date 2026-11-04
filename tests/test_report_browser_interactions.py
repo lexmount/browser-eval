@@ -39,7 +39,7 @@ def browser():
 def test_browser_use_sort_filter_restore_and_keyboard_dialog(tmp_path, browser, display):
     from harness.browser_use.report import REPORT_JS
 
-    (tmp_path / "app.js").write_text(REPORT_JS)
+    (tmp_path / "app.js").write_text(REPORT_JS, encoding='utf-8')
     (tmp_path / "index.html").write_text('''<!doctype html><html><head><meta charset="utf-8">
     <script defer src="app.js"></script></head><body>
     <input data-search aria-label="Search"><select data-filter="result">
@@ -53,7 +53,7 @@ def test_browser_use_sort_filter_restore_and_keyboard_dialog(tmp_path, browser, 
     <tr data-tier="easy" data-result="pass"><td>N/A</td></tr>
     </tbody></table><button id="open" onclick="openDiagnosis('detail')">Evidence</button>
     <dialog id="detail" aria-label="Evidence"><button onclick="closeDiagnosis('detail')">Close</button>
-    <pre>Exact evaluator error</pre></dialog></body></html>''')
+    <pre>Exact evaluator error</pre></dialog></body></html>''', encoding='utf-8')
     with local_report_server(tmp_path) as origin:
         page = local_page(browser, origin, **display)
         try:
@@ -108,13 +108,13 @@ def test_replay_real_assets_evidence_dialog_and_private_nested_navigation(tmp_pa
     <strong data-dialog-title></strong><span data-dialog-stage></span><span data-dialog-step></span>
     <span data-dialog-category></span><pre data-dialog-error></pre><p data-dialog-cause></p>
     <p data-dialog-remediation></p><a data-dialog-link>Detail</a><a data-dialog-step-link>Step</a></dialog>'''
-    (tmp_path / 'index.html').write_text(_shell('zh', 'index', 'Home', '<h1>Home</h1>'))
-    (tmp_path / 'results.html').write_text(_shell('zh', 'results', 'Results', body))
+    (tmp_path / 'index.html').write_text(_shell('zh', 'index', 'Home', '<h1>Home</h1>'), encoding='utf-8')
+    (tmp_path / 'results.html').write_text(_shell('zh', 'results', 'Results', body), encoding='utf-8')
     (tmp_path / 'result').mkdir()
-    (tmp_path / 'result/fixture.html').write_text(_shell('zh', 'results', 'Detail', '<h1>Detail</h1>', depth=1, current_route='result/fixture.html'))
+    (tmp_path / 'result/fixture.html').write_text(_shell('zh', 'results', 'Detail', '<h1>Detail</h1>', depth=1, current_route='result/fixture.html'), encoding='utf-8')
     (tmp_path / 'data/evidence').mkdir(parents=True)
-    (tmp_path / 'data/results.json').write_text(json.dumps([{'key':'fixture','browser':'Synthetic','task_id':1,'failure_stage':'official_evaluation'}]))
-    (tmp_path / 'data/evidence/fixture.json').write_text(json.dumps({'official_evaluation':{'error':'Expected mutation was absent'}}))
+    (tmp_path / 'data/results.json').write_text(json.dumps([{'key':'fixture','browser':'Synthetic','task_id':1,'failure_stage':'official_evaluation'}]), encoding='utf-8')
+    (tmp_path / 'data/evidence/fixture.json').write_text(json.dumps({'official_evaluation':{'error':'Expected mutation was absent'}}), encoding='utf-8')
     with hosted_preview(tmp_path) as origin:
         page = local_page(browser, origin, **display)
         try:
@@ -170,17 +170,17 @@ def test_wcxb_generated_filter_and_diagnosis_keyboard_return(tmp_path, browser, 
 
 def test_moli_actual_result_evidence_loader_and_keyboard_return(tmp_path, browser, display):
     from pathlib import Path
-    source = Path(__file__).resolve().parents[1] / 'scripts/moli_report'
-    html = (source / 'index.html').read_text().replace('{{lang}}', 'zh').replace('{{base}}', '')
-    html = html.replace('{{messages}}', (source / 'messages.json').read_text())
+    source = Path(__file__).resolve().parents[1] / 'src/harness/lexbench/template'
+    html = (source / 'index.html').read_text(encoding='utf-8').replace('{{lang}}', 'zh').replace('{{base}}', '')
+    html = html.replace('{{messages}}', (source / 'messages.json').read_text(encoding='utf-8'))
     html = html.replace('<script defer src="mermaid.min.js"></script>', '')
-    (tmp_path / 'style.css').write_text((source / 'style.css').read_text())
-    (tmp_path / 'index.html').write_text(html)
-    (tmp_path / 'app.js').write_text((source / 'app.js').read_text())
+    (tmp_path / 'style.css').write_text((source / 'style.css').read_text(encoding='utf-8'), encoding='utf-8')
+    (tmp_path / 'index.html').write_text(html, encoding='utf-8')
+    (tmp_path / 'app.js').write_text((source / 'app.js').read_text(encoding='utf-8'), encoding='utf-8')
     (tmp_path / 'data/cases').mkdir(parents=True)
     model = {'cases': [{'id': 'fixture', 'title': 'Fixture result'}], 'functional_methods': [],
              'protocol': {'k_runs': 1}, 'runs': {key: {'run_id': key} for key in ('off_baseline', 'off_engine', 'on_baseline', 'on_engine')}}
-    (tmp_path / 'data/model.json').write_text(json.dumps(model))
+    (tmp_path / 'data/model.json').write_text(json.dumps(model), encoding='utf-8')
     modes = {}
     for mode, status in [('off', 'pass'), ('on', 'fail')]:
         modes[mode] = {'passes': int(status == 'pass'), 'attempts': [{
@@ -189,8 +189,8 @@ def test_moli_actual_result_evidence_loader_and_keyboard_return(tmp_path, browse
             'failure': {'class': 'fixture', 'detail': 'Expected mutation missing'} if status == 'fail' else None,
             'evidence': {'baseline': {'log': {'url': 'data/log.txt', 'sha256': ''}}},
         }]}
-    (tmp_path / 'data/cases/fixture.json').write_text(json.dumps({'id': 'fixture', 'title': 'Fixture result', 'subset': 'Fixture', 'modes': modes}))
-    (tmp_path / 'data/log.txt').write_text('Exact fixture error\nExpected mutation missing')
+    (tmp_path / 'data/cases/fixture.json').write_text(json.dumps({'id': 'fixture', 'title': 'Fixture result', 'subset': 'Fixture', 'modes': modes}), encoding='utf-8')
+    (tmp_path / 'data/log.txt').write_text('Exact fixture error\nExpected mutation missing', encoding='utf-8')
     with local_report_server(tmp_path) as origin:
         page = local_page(browser, origin, **display)
         errors = []

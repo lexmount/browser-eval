@@ -40,7 +40,7 @@ def bind(root, name, value, *, lines=False):
     path = root / name
     path.parent.mkdir(parents=True, exist_ok=True)
     text = ''.join(json.dumps(row) + '\n' for row in value) if lines else json.dumps(value)
-    path.write_text(text)
+    path.write_text(text, encoding='utf-8')
     return {'path': name, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
 
 

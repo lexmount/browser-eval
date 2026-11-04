@@ -18,7 +18,7 @@ def sha(payload):
 
 def write_json(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value))
+    path.write_text(json.dumps(value), encoding="utf-8")
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def cohort(tmp_path, monkeypatch):
     source = tmp_path / "source.jsonl"
     sample = tmp_path / "sample.txt"
     ids = [f"case-{i:03}" for i in range(200)]
-    sample.write_text("\n".join(ids))
+    sample.write_text("\n".join(ids), encoding="utf-8")
     source_rows = [
         {
             "track_id": f"case-{i:03}",
@@ -38,7 +38,7 @@ def cohort(tmp_path, monkeypatch):
         }
         for i in range(545)
     ]
-    source.write_text("".join(json.dumps(row) + "\n" for row in source_rows))
+    source.write_text("".join(json.dumps(row) + "\n" for row in source_rows), encoding="utf-8")
     original_loader = webmainbench_runner.load_source
     monkeypatch.setattr(
         webmainbench_runner,
@@ -52,7 +52,7 @@ def cohort(tmp_path, monkeypatch):
         case_id = row["track_id"]
         reference = base / "references" / f"{case_id}.md"
         reference.parent.mkdir(exist_ok=True)
-        reference.write_text(row["groundtruth_content"])
+        reference.write_text(row["groundtruth_content"], encoding="utf-8")
         definitions.append(
             {
                 "id": case_id,
@@ -86,7 +86,7 @@ def cohort(tmp_path, monkeypatch):
                     },
                 }
             )
-    (base / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in prior))
+    (base / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in prior), encoding="utf-8")
     prior_hashes = {version: sha((base / "results.jsonl").read_bytes()) for version in binary}
     calls = []
     for definition in definitions:
@@ -110,7 +110,7 @@ def cohort(tmp_path, monkeypatch):
                         "stderr": "" if body else "https://langrensha.163.com/wanfa/guize/",
                     }
                 )
-    (calls_root / "calls.jsonl").write_text("".join(json.dumps(row) + "\n" for row in calls))
+    (calls_root / "calls.jsonl").write_text("".join(json.dumps(row) + "\n" for row in calls), encoding="utf-8")
     write_json(
         calls_root / "selection.json",
         {
@@ -174,7 +174,7 @@ def test_apply_complete_frozen_cohort_survives_entry_point_changes(cohort, tmp_p
         cert["environment_exclusion"].update(
             certifying_runner_sha256=binding["sha256"], certifying_runner_source=binding
         )
-        emitter.write_text("# changed current entry point\n")
+        emitter.write_text("# changed current entry point\n", encoding="utf-8")
     write_json(calls_root / "certification.json", cert)
     output = tmp_path / "corrected"
     latency.main(
@@ -193,7 +193,7 @@ def test_apply_complete_frozen_cohort_survives_entry_point_changes(cohort, tmp_p
     )
     receipt = latency.validate_latency_correction(output)
     assert receipt["changed_result_count"] == 400
-    current = [json.loads(line) for line in (output / "results.jsonl").read_text().splitlines()]
+    current = [json.loads(line) for line in (output / "results.jsonl").read_text(encoding="utf-8").splitlines()]
     for old, new in zip(prior, current, strict=True):
         assert new["metrics"] == old["metrics"] and new["ok"] == old["ok"]
         assert new["output_sha256"] == old["output_sha256"]
@@ -244,7 +244,7 @@ def test_historical_source_damage_is_rejected_before_using_a_certificate(
             artifact.symlink_to(external)
         else:
             source["source_artifact"] = str(external)
-            registry_path.write_text(json.dumps(registry))
+            registry_path.write_text(json.dumps(registry), encoding="utf-8")
     monkeypatch.setattr(latency, "__file__", str(local / "latency.py"))
     with pytest.raises((ValueError, FileNotFoundError)):
         latency.verify_certifier_source(tmp_path, {"certifying_runner_sha256": source["sha256"]})
@@ -260,10 +260,10 @@ def test_invalid_timing_in_an_unselected_round_cannot_certify_a_complete_cohort(
     )
     cert["environment_exclusion"]["certifying_runner_sha256"] = registry["sources"][0]["sha256"]
     path = calls_root / "calls.jsonl"
-    calls = [json.loads(line) for line in path.read_text().splitlines()]
+    calls = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
     assert calls[0]["round"] == 1
     calls[0]["elapsed_ms"] = value
-    path.write_text("".join(json.dumps(row) + "\n" for row in calls))
+    path.write_text("".join(json.dumps(row) + "\n" for row in calls), encoding="utf-8")
     cert["calls_sha256"] = sha(path.read_bytes())
     write_json(calls_root / "certification.json", cert)
     output = tmp_path / "corrected"
@@ -384,7 +384,6 @@ def test_invalid_certifier_provenance_is_rejected(tmp_path, damage):
     "command",
     [
         ["run_certified_webmainbench_latency.py"],
-        ["apply_webmainbench_latency_correction.py"],
         ["run_certified_benchmark.py", "webmainbench-latency"],
     ],
 )

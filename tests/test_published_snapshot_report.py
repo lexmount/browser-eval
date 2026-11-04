@@ -21,7 +21,7 @@ def example(root, recover_original=False):
     for case in cases:
         raw=b'complete answer' if case['id']=='complete' else b'partial output'
         path=source/'artifacts'/f'{case["id"]}.txt';path.parent.mkdir(exist_ok=True);path.write_bytes(raw)
-        reference=source/'references'/f'{case["id"]}.txt';reference.parent.mkdir(exist_ok=True);reference.write_text('complete answer')
+        reference=source/'references'/f'{case["id"]}.txt';reference.parent.mkdir(exist_ok=True);reference.write_text('complete answer', encoding='utf-8')
         rows.append({'provider':'chromium','provider_type':'fixture','case_id':case['id'],'case_name':case['name'],
             'category':'web','attempt_id':'chromium__'+case['id']+'__r001','run':1,'run_id':'call-'+case['id'],
             'url':case['url'],'started_at':'2026-10-01T00:00:00Z','elapsed_ms':100,
@@ -30,9 +30,9 @@ def example(root, recover_original=False):
             'metrics':score_attempt(case,raw,ok=True)})
     rows[0]['metrics']['content_pass']=False
     rows[0]['metrics']['acceptance_checks']['content']=False
-    (source/'dataset.json').write_text(json.dumps(dataset))
-    (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
-    (source/'execution.json').write_text(json.dumps({'batches':[{'timeout_seconds':5,'attempt_ids':[row['attempt_id'] for row in rows]}]}))
+    (source/'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+    (source/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
+    (source/'execution.json').write_text(json.dumps({'batches':[{'timeout_seconds':5,'attempt_ids':[row['attempt_id'] for row in rows]}]}), encoding='utf-8')
     privacy=[];recovered={}
     if recover_original:
         artifact=source/rows[0]['artifact_path'];original=root/'recovered.txt';original.write_bytes(artifact.read_bytes())
@@ -40,11 +40,11 @@ def example(root, recover_original=False):
         privacy.append({'path':rows[0]['artifact_path'],'original_sha256':file_sha256(original),
                         'published_sha256':file_sha256(artifact),'published_bytes':artifact.stat().st_size,'scored_output':True})
         recovered[rows[0]['artifact_path']]=original
-    (source/'publication-privacy.json').write_text(json.dumps({'files':privacy}))
+    (source/'publication-privacy.json').write_text(json.dumps({'files':privacy}), encoding='utf-8')
     result,receipt=score_published_snapshot(source,dataset,recovered=recovered)
     manifest={'files':{p.relative_to(source).as_posix():{'sha256':file_sha256(p)} for p in source.rglob('*') if p.is_file()}}
     def save(name,value):
-        path=root/name;path.write_text(json.dumps(value,ensure_ascii=False));return {'path':name,'sha256':file_sha256(path)}
+        path=root/name;path.write_text(json.dumps(value,ensure_ascii=False), encoding='utf-8');return {'path':name,'sha256':file_sha256(path)}
     review={'title':'Saved output review','summary':'One corrected serialization decision.',
         'figure_caption':'Saved output and acceptance rules.','metric_note':'Two saved calls, no new calls.',
         'focus_heading':'Sample configuration','focus_summary':'One correction.',
@@ -64,16 +64,16 @@ def example(root, recover_original=False):
             'review':save('review.json',review),'interpretation':save('interpretation.json',article),
             'snapshot_manifest':save('manifest.json',manifest),
             'historical_verdicts':save('historic.json',{'verdicts':{r['attempt_id']:False for r in rows}})}
-    initial=root/'initial.jsonl';initial.write_text(''.join(json.dumps(row)+'\n' for row in rows))
+    initial=root/'initial.jsonl';initial.write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
     inputs['initial_results']={'path':initial.name,'sha256':file_sha256(initial)}
-    result_path=root/'corrected.jsonl';result_path.write_text(''.join(json.dumps(row)+'\n' for row in result))
+    result_path=root/'corrected.jsonl';result_path.write_text(''.join(json.dumps(row)+'\n' for row in result), encoding='utf-8')
     inputs['results']={'path':result_path.name,'sha256':file_sha256(result_path)}
     figure=root/'figure.png';figure.write_bytes(b'fixture image');inputs['figure']={'path':figure.name,'sha256':file_sha256(figure)}
     profile={'variant':'published-snapshot-audit','certified':False,'inputs':inputs,
         'source':{'url':'https://example.test/report','version':'frozen','archive_sha256':'0'*64},
         'correction_provenance':{'category':'format-normalization','root_cause':'Visible native label boundaries must preserve complete declared words.',
              'regression_ids':['native-serialization-stock-label','native-serialization-stock-word-fragment']}}
-    path=root/'profile.json';path.write_text(json.dumps(profile));return source,path
+    path=root/'profile.json';path.write_text(json.dumps(profile), encoding='utf-8');return source,path
 
 
 @pytest.mark.parametrize("recover_original",[False,True])
@@ -95,34 +95,34 @@ def test_saved_matrix_keeps_native_routes_and_inspectable_review(tmp_path,recove
     assert {p.relative_to(source):p.read_bytes() for p in source.rglob('*') if p.is_file()}==before
     from bs4 import BeautifulSoup
     for route in ['index.html','guide/index.html','analysis/index.html','audit/index.html']:
-        page=BeautifulSoup((out/route).read_text(),'html.parser')
+        page=BeautifulSoup((out/route).read_text(encoding='utf-8'),'html.parser')
         assert page.select_one('main[data-evidence-state]') is not None
         assert not page.select('[role="status"][data-evidence-state]')
         for unwanted in ['保存输出的评分复核','本地未认证诊断结果','任务判定汇总（非排名）']:
             assert unwanted not in page.get_text()
-    method=out/'methodology/index.html';original=method.read_text()
-    method.write_text(original.replace('data-scoring-input-scope','data-removed-scope'))
+    method=out/'methodology/index.html';original=method.read_text(encoding='utf-8')
+    method.write_text(original.replace('data-scoring-input-scope','data-removed-scope'), encoding='utf-8')
     with pytest.raises(ValueError,match='lost its scoring input scope'):check_snapshot_audit(out)
-    method.write_text(original)
-    detail=out/'attempts/chromium__complete__r001.html';detail.write_text(detail.read_text().replace('data-score-audit','data-deleted-audit'))
+    method.write_text(original, encoding='utf-8')
+    detail=out/'attempts/chromium__complete__r001.html';detail.write_text(detail.read_text(encoding='utf-8').replace('data-score-audit','data-deleted-audit'), encoding='utf-8')
     with pytest.raises(ValueError,match='lost its audit explanation'):check_snapshot_audit(out)
 
 
 @pytest.mark.parametrize('defect',['extra-file','changed-source','changed-call','wrong-view','wrong-count','review-omission'])
 def test_snapshot_boundary_rejects_unbound_evidence_and_call_changes(tmp_path,defect):
-    source,profile=example(tmp_path);config=json.loads(profile.read_text())
-    if defect=='extra-file':(source/'private-note.txt').write_text('undeclared')
-    elif defect=='changed-source':(source/'artifacts/complete.txt').write_text('tampered')
+    source,profile=example(tmp_path);config=json.loads(profile.read_text(encoding='utf-8'))
+    if defect=='extra-file':(source/'private-note.txt').write_text('undeclared', encoding='utf-8')
+    elif defect=='changed-source':(source/'artifacts/complete.txt').write_text('tampered', encoding='utf-8')
     elif defect in {'wrong-count','review-omission'}:
-        p=tmp_path/config['inputs']['review']['path'];review=json.loads(p.read_text())
+        p=tmp_path/config['inputs']['review']['path'];review=json.loads(p.read_text(encoding='utf-8'))
         if defect=='wrong-count':review['providers'][0]['corrected_passes']=2
         else:review['changes']=[];review['reviewed_attempts']=0
-        p.write_text(json.dumps(review));config['inputs']['review']['sha256']=file_sha256(p);profile.write_text(json.dumps(config))
+        p.write_text(json.dumps(review), encoding='utf-8');config['inputs']['review']['sha256']=file_sha256(p);profile.write_text(json.dumps(config), encoding='utf-8')
     else:
-        p=tmp_path/config['inputs']['results']['path'];rows=[json.loads(x) for x in p.read_text().splitlines()]
+        p=tmp_path/config['inputs']['results']['path'];rows=[json.loads(x) for x in p.read_text(encoding='utf-8').splitlines()]
         if defect=='changed-call':rows[0]['elapsed_ms']=1
         else:rows[0]['scoring']['artifact_view']='published_projection'
-        p.write_text(''.join(json.dumps(row)+'\n' for row in rows));config['inputs']['results']['sha256']=file_sha256(p);profile.write_text(json.dumps(config))
+        p.write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8');config['inputs']['results']['sha256']=file_sha256(p);profile.write_text(json.dumps(config), encoding='utf-8')
     with pytest.raises(ValueError):validate_snapshot_audit(source,profile)
 
 
@@ -133,7 +133,7 @@ def test_snapshot_package_uses_the_shared_publisher_without_certification(tmp_pa
     source,profile=example(tmp_path);out=tmp_path/'report'
     build_snapshot_audit(source,out,profile=profile);archive=tmp_path/'report.zip'
     build(out,archive,snapshot_audit=True)
-    target=tmp_path/'publication.json';target.write_text(json.dumps({'artifact_hub_base_url':'https://example.test'}))
+    target=tmp_path/'publication.json';target.write_text(json.dumps({'artifact_hub_base_url':'https://example.test'}), encoding='utf-8')
     config=PublishConfig(target,archive,out,tmp_path/'publication-receipt.json',tmp_path/'operation.json',mode='create',visibility='private')
     def transport(path,data=None,content_type=None,**kwargs):
         if path=='/api/sites':return 200,json.dumps({'slug':'new-audit','versionId':'ver_new'}).encode()
@@ -146,12 +146,12 @@ def test_snapshot_package_uses_the_shared_publisher_without_certification(tmp_pa
 
 @pytest.mark.parametrize('defect',[None,'same-id','different-rule','different-parent'])
 def test_annotation_version_is_distinct_and_matches_report_rules(tmp_path,defect):
-    source,profile=example(tmp_path);config=json.loads(profile.read_text())
-    dataset_path=tmp_path/config['inputs']['dataset']['path'];dataset=json.loads(dataset_path.read_text())
+    source,profile=example(tmp_path);config=json.loads(profile.read_text(encoding='utf-8'))
+    dataset_path=tmp_path/config['inputs']['dataset']['path'];dataset=json.loads(dataset_path.read_text(encoding='utf-8'))
     parent=dataset['id'];dataset['id']=parent+'--annotation-v2'
     dataset['cases'][0]['diagnostic_any']=['source terminology']
     revision={'id':'annotation-v2','changes':[{'case_id':'complete','set':{'diagnostic_any':['source terminology']},'remove':[]}]}
-    revision_path=tmp_path/'annotation.json';revision_path.write_text(json.dumps(revision))
+    revision_path=tmp_path/'annotation.json';revision_path.write_text(json.dumps(revision), encoding='utf-8')
     config['inputs']['annotation_revision']={'path':revision_path.name,'sha256':file_sha256(revision_path)}
     dataset['definition_revision']={'id':'annotation-v2','path':'audit/annotation-definition.json',
         'sha256':file_sha256(revision_path),'parent_dataset_id':parent,
@@ -159,13 +159,13 @@ def test_annotation_version_is_distinct_and_matches_report_rules(tmp_path,defect
     if defect=='same-id':dataset['id']=parent
     elif defect=='different-rule':dataset['cases'][0]['diagnostic_any']=['unbound terminology']
     elif defect=='different-parent':dataset['definition_revision']['parent_dataset_sha256']='0'*64
-    dataset_path.write_text(json.dumps(dataset));config['inputs']['dataset']['sha256']=file_sha256(dataset_path)
-    receipt=tmp_path/config['inputs']['receipt']['path'];data=json.loads(receipt.read_text())
-    data['corrected_dataset_sha256']=canonical_json_sha256(dataset);receipt.write_text(json.dumps(data));config['inputs']['receipt']['sha256']=file_sha256(receipt)
-    article=tmp_path/config['inputs']['interpretation']['path'];data=json.loads(article.read_text())
-    rows=[json.loads(line) for line in (tmp_path/config['inputs']['results']['path']).read_text().splitlines()]
+    dataset_path.write_text(json.dumps(dataset), encoding='utf-8');config['inputs']['dataset']['sha256']=file_sha256(dataset_path)
+    receipt=tmp_path/config['inputs']['receipt']['path'];data=json.loads(receipt.read_text(encoding='utf-8'))
+    data['corrected_dataset_sha256']=canonical_json_sha256(dataset);receipt.write_text(json.dumps(data), encoding='utf-8');config['inputs']['receipt']['sha256']=file_sha256(receipt)
+    article=tmp_path/config['inputs']['interpretation']['path'];data=json.loads(article.read_text(encoding='utf-8'))
+    rows=[json.loads(line) for line in (tmp_path/config['inputs']['results']['path']).read_text(encoding='utf-8').splitlines()]
     data['evidence_sha256']=canonical_json_sha256(_headless_article_input({c['id']:c for c in dataset['cases']},rows,['chromium']))
-    article.write_text(json.dumps(data));config['inputs']['interpretation']['sha256']=file_sha256(article);profile.write_text(json.dumps(config))
+    article.write_text(json.dumps(data), encoding='utf-8');config['inputs']['interpretation']['sha256']=file_sha256(article);profile.write_text(json.dumps(config), encoding='utf-8')
     output=tmp_path/'versioned-report'
     if defect:
         with pytest.raises(ValueError,match='Annotation revision|annotation version'):build_snapshot_audit(source,output,profile=profile)

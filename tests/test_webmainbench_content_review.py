@@ -18,7 +18,7 @@ class ContentReviewTests(unittest.TestCase):
             sources = {}
             for name in ['source', 'outline', 'reference', 'target', 'chromium']:
                 path = work / name
-                path.write_text('literal content')
+                path.write_text('literal content', encoding='utf-8')
                 sources[name] = {'path': str(path), 'sha256': file_sha256(path)}
             case = {'case_id': 'one', 'target': sources['target'],
                     'comparisons': {'chromium': sources['chromium']}}
@@ -34,15 +34,15 @@ class ContentReviewTests(unittest.TestCase):
                                  'coverage_evidence': ['beginning', 'ending'],
                                  'reference_assessment': 'reference covers the body', 'issues': []}]}
             write_content_document(work / 'reviews' / packet.name, review)
-            with patch('harness.web_fetch.review_execution.subprocess.run') as call:
+            with patch('harness.web_fetch.review_execution.run_reviewer') as call:
                 self.assertEqual(run_content_packet(item, work, 'model', 'codex'), review)
                 call.assert_not_called()
                 for name in sources:
                     path = Path(sources[name]['path'])
-                    path.write_text('changed')
+                    path.write_text('changed', encoding='utf-8')
                     with self.assertRaisesRegex(ValueError, 'Review input changed'):
                         run_content_packet(item, work, 'model', 'codex')
-                    path.write_text('literal content')
+                    path.write_text('literal content', encoding='utf-8')
                 call.assert_not_called()
 
     def test_review_cannot_omit_or_repeat_a_page(self):
@@ -54,7 +54,7 @@ class ContentReviewTests(unittest.TestCase):
     def test_review_cannot_invent_an_output_quote(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'output.md'
-            path.write_text('actual content')
+            path.write_text('actual content', encoding='utf-8')
             packet = {'cases': [{'case_id': 'one', 'target': {'path': str(path)}}]}
             review = {'cases': [{'case_id': 'one', 'page_purpose': 'article',
                                  'expected_content': 'body', 'verdict': 'defect',
@@ -86,19 +86,19 @@ def content_fixture(root):
     for name in ('one', 'two'):
         source = evidence / 'sources' / f'{name}.html.txt'
         reference = evidence / 'references' / f'{name}.md'
-        source.write_text('<main>synthetic body</main><script>hidden</script>')
-        reference.write_text('synthetic body')
+        source.write_text('<main>synthetic body</main><script>hidden</script>', encoding='utf-8')
+        reference.write_text('synthetic body', encoding='utf-8')
         cases.append({'id': name, 'url': 'https://example.invalid/' + name,
                       'input_html_sha256': file_sha256(source), 'reference_sha256': file_sha256(reference)})
         for provider in ('custom', 'comparison'):
             path = evidence / f'{provider}-{name}.md'
-            path.write_text('synthetic body')
+            path.write_text('synthetic body', encoding='utf-8')
             rows.append({'provider': provider, 'case_id': name, 'artifact_path': path.name,
                          'output_sha256': file_sha256(path)})
-    (evidence / 'dataset.json').write_text(json.dumps({'cases': cases}))
-    (evidence / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows))
-    (correction / 'results.jsonl').write_text('')
-    (correction / 'certificate.json').write_text('{}')
+    (evidence / 'dataset.json').write_text(json.dumps({'cases': cases}), encoding='utf-8')
+    (evidence / 'results.jsonl').write_text(''.join(json.dumps(row) + '\n' for row in rows), encoding='utf-8')
+    (correction / 'results.jsonl').write_text('', encoding='utf-8')
+    (correction / 'certificate.json').write_text('{}', encoding='utf-8')
     return evidence, correction
 
 
@@ -110,10 +110,10 @@ def test_content_preparation_uses_declared_provider_and_population(tmp_path):
     work = tmp_path / 'work'
     manifest = prepare_content_review(evidence, correction, work, provider='custom')
     assert manifest['case_count'] == 2 and manifest['provider'] == 'custom'
-    packet = json.loads(Path(manifest['packets'][0]['path']).read_text())
+    packet = json.loads(Path(manifest['packets'][0]['path']).read_text(encoding='utf-8'))
     assert {row['case_id'] for row in packet['cases']} == {'one', 'two'}
     assert all(set(row['comparisons']) == {'comparison'} for row in packet['cases'])
-    assert all('hidden' not in Path(row['source_outline']).read_text() for row in packet['cases'])
+    assert all('hidden' not in Path(row['source_outline']).read_text(encoding='utf-8') for row in packet['cases'])
 
 
 def test_prepare_only_never_runs_reviewer_and_rejects_changed_resume(tmp_path):
@@ -123,12 +123,12 @@ def test_prepare_only_never_runs_reviewer_and_rejects_changed_resume(tmp_path):
     evidence, correction = content_fixture(tmp_path)
     argv = ['--evidence', str(evidence), '--correction', str(correction),
             '--work', str(tmp_path / 'work'), '--provider', 'custom', '--prepare-only']
-    with patch('harness.web_fetch.review_execution.subprocess.run') as call:
+    with patch('harness.web_fetch.review_execution.run_reviewer') as call:
         content_review_main(argv)
         content_review_main(argv)
         with pytest.raises(ValueError, match='workspace does not match'):
             content_review_main([*argv, '--provider', 'comparison'])
-        (correction / 'certificate.json').write_text('{"changed":true}')
+        (correction / 'certificate.json').write_text('{"changed":true}', encoding='utf-8')
         with pytest.raises(ValueError, match='workspace does not match'):
             content_review_main(argv)
         call.assert_not_called()
@@ -143,8 +143,8 @@ def test_missing_target_and_duplicate_results_fail_before_packets(tmp_path):
     with pytest.raises(ValueError, match='Target provider must cover'):
         prepare_content_review(evidence, correction, work, provider='absent')
     results = evidence / 'results.jsonl'
-    row = results.read_text().splitlines()[0]
-    results.write_text(results.read_text() + row + '\n')
+    row = results.read_text(encoding='utf-8').splitlines()[0]
+    results.write_text(results.read_text(encoding='utf-8') + row + '\n', encoding='utf-8')
     with pytest.raises(ValueError, match='duplicate or unexpected'):
         prepare_content_review(evidence, correction, work, provider='custom')
     assert not (work / 'packets').exists()
@@ -163,11 +163,11 @@ def test_input_drift_during_reviewer_execution_cannot_install_review(tmp_path):
 
     def run(command, **kwargs):
         raw = Path(command[command.index('--output-last-message') + 1])
-        raw.write_text(json.dumps({'cases': []}))
-        (evidence / 'sources' / 'one.html.txt').write_text('changed source')
+        raw.write_text(json.dumps({'cases': []}), encoding='utf-8')
+        (evidence / 'sources' / 'one.html.txt').write_text('changed source', encoding='utf-8')
         return subprocess.CompletedProcess(command, 0)
 
-    with patch('harness.web_fetch.review_execution.subprocess.run', side_effect=run):
+    with patch('harness.web_fetch.review_execution.run_reviewer', side_effect=run):
         with pytest.raises(ValueError, match='Review input changed'):
             run_content_packet(item, work, 'synthetic-model', 'synthetic-reviewer')
     assert not (work / 'reviews' / Path(item['path']).name).exists()

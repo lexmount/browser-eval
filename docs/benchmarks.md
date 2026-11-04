@@ -95,8 +95,17 @@ retrieval route or output type. Both forms require exact parent hashes, per-task
 field-change hashes, independent source bindings and passing regression controls.
 Select a reviewed revision through the existing Web Fetch `export --revision`
 command and retain its new dataset identity. A scope revision changes the task
-contract; historical results require a disclosed common-rule rescore, not a silent
-score replacement. Neither a revision PR nor an export creates a release tag.
+contract. For local analysis of saved answers, use the existing
+`revise_local_snapshot` owner with explicit `rule_revision`, authority and paired
+regression IDs, then bind its receipt as the saved matrix's `offline_revision`.
+This retains the original calls and rules and applies each changed case to every
+method. The narrower certified scoring-correction command does not authorize
+arbitrary prompt changes. A local re-evaluation does not establish that old calls
+executed the revised task or make changed input contracts directly comparable:
+a formal release requires a major edition and remains a separate comparison.
+Neither a revision PR nor an export creates a release tag. Merge revision support
+first, then the reviewed dataset PR; select its verified merged commit in a
+separate `make pin-dataset DATASET=webfetch REV=<full-HF-commit>` change.
 
 
 After review, merge the HF pull request and validate its merged commit. For a
@@ -125,6 +134,24 @@ For resource-only or raw-file tasks, declare `content_score_applicable: false` w
 Browser Eval wrote the [30 public-web replay tasks](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay), including their actions and exact assertions. [Headless scenario designs](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) informed some interactions; its original executable cases use different fixtures, operations and acceptance checks. The replay task JSON freezes actions and expected outputs, while live target pages can still change.
 
 [WebArena replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) has separate official tasks, self-hosted application state and evaluator rules. Its full task catalog is the current viewer population; qualified recordings and corrected-task editions remain versioned source inputs for the [public replay runtime](../examples/trajectory_replay/public_webarena/README.md). The original Headless driver runtime remains upstream-owned. Follow each dataset card for its input format and runtime contract.
+
+### WebArena replay input correction
+
+WebArena Replay 1.0.1 corrects the host values in Browser Eval's recorded replay inputs, which named private recording hosts. Exported task questions, actions and evaluator inputs are unchanged, so this is a patch edition. Its definitions change only the hashes that bind those corrected sources. The [release index](releases.md#benchmark-release-index) records the edition, and the data lock keeps the previous edition in `history`.
+
+Corrected inputs use the recorded container host, so they follow the same port-based rebinding as other recorded inputs and reach the sites in your site map. Older evidence still uses the earlier hosts. To replay or redact it, list those hosts in `WEBARENA_RECORDING_GATEWAYS`.
+
+The correction changes bytes that earlier evidence binds:
+
+| Earlier material | Effect | What to do |
+| --- | --- | --- |
+| Stored attempts for tasks 280 and 282 | Their correction record digest changed | Re-evaluate, or check them against a private copy of the original bytes |
+| A run or ordered sweep started before the correction | It stops on changed inputs | Start a new run or sweep |
+| A frozen cohort manifest | It stops when a recorded source revision changed | Freeze and qualify a new manifest |
+| Qualification receipts for corrected candidates | They refer to the earlier candidate bytes | Requalify those tasks |
+| An instance profile that binds the bridge or an earlier dataset hash | It stops with a hash error | Update the bound hash, or keep selecting the earlier edition by revision |
+
+Published reports and measured evidence are not changed. A profile may keep selecting an earlier edition through its recorded revision.
 
 ## Benchmark editions
 
@@ -272,13 +299,13 @@ maintained report's releases or review rounds. Build, check and package use the
 same binding.
 
 ```sh
-uv run --frozen python scripts/build_browser_use_report.py \
+uv run --frozen python -m harness.browser_use report \
   --profile /absolute/instance/profile.json \
   --evidence /absolute/model-evidence --output /absolute/instance/report
-uv run --frozen python scripts/check_browser_use_report.py \
+uv run --frozen python -m harness.browser_use check \
   /absolute/instance/report --profile /absolute/instance/profile.json \
   --evidence /absolute/model-evidence --require-complete
-uv run --frozen python scripts/package_browser_use_artifact_site.py \
+uv run --frozen python -m harness.browser_use package \
   --report /absolute/instance/report --profile /absolute/instance/profile.json \
   --evidence /absolute/model-evidence --output /absolute/instance/report.zip \
   --attestation /absolute/instance/attestation.json \
@@ -298,12 +325,12 @@ distributions and specimen links. An optional authored interpretation uses
 belong to the selected evidence.
 
 ```sh
-uv run --frozen python scripts/build_webarena_replay_report.py \
+uv run --frozen python -m harness.trajectory_replay report \
   --profile /absolute/instance/profile.json --results /absolute/results.json \
   --review /absolute/failure-review.json --output /absolute/instance/report
-uv run --frozen python scripts/check_webarena_replay_report.py \
+uv run --frozen python -m harness.trajectory_replay check \
   /absolute/instance/report --profile /absolute/instance/profile.json
-uv run --frozen python scripts/package_webarena_replay_artifact_site.py \
+uv run --frozen python -m harness.trajectory_replay package \
   --report /absolute/instance/report --profile /absolute/instance/profile.json \
   --evidence /absolute/results.json --review /absolute/failure-review.json \
   --output /absolute/instance/report.zip \
@@ -328,12 +355,12 @@ For WCXB, select a profile-bound evidence directory and a fresh output with
 requirements. An optional `paired_comparison` names `baseline` and `candidate`
 participants. A declared timing correction still requires complete paired evidence;
 ordinary cohorts do not inherit another report’s timing or optional-feature claims. Run
-`scripts/check_report.py` with that profile and `scripts/check_wcxb_visual.py`
+`scripts/check_report.py` with that profile and `uv run --frozen --extra headless-eval python -m harness.web_fetch wcxb-visual`
 against the output. The existing publication entry point also supports local
 packaging without credentials or a network upload:
 
 ```sh
-uv run --frozen python scripts/publish_wcxb_artifact_site.py --package-only \
+uv run --frozen python -m harness.web_fetch wcxb-publish --package-only \
   --profile /absolute/instance/profile.json \
   --source /absolute/instance/report --work /absolute/instance/package
 ```
@@ -357,13 +384,13 @@ Build with `scripts/build_report.py --profile <profile> --evidence <snapshot>
 --output <new-report> --language zh`. This historical format supports Chinese and
 provides an English not-generated notice. Check with `scripts/check_report.py
 <new-report> --profile <profile> --visual-receipt <private-receipt>`, then package
-through `scripts/package_artifact_site.py <new-report> <package.zip> --snapshot-audit`.
+through `uv run --frozen python -m harness.web_fetch site-package <new-report> <package.zip> --snapshot-audit`.
 Run these Python entries through `uv run --frozen python`. The mode retains the
 original routes and metric populations and labels the new report as a saved-input
 audit; it does not certify new calls or replace the original release. The ordinary
 packaging path rejects this evidence state without the explicit audit flag.
 
-When publication is requested and authorized, publish through `scripts/publish_artifact_site.py --snapshot-audit` with a separate
+When publication is requested and authorized, publish through `uv run --frozen python -m harness.web_fetch site-publish --snapshot-audit` with a separate
 publication target, receipt and operation journal. Use `--create` for a new report
 and set visibility explicitly. A later update uses that report's own site and
 expected version. Keep the original report's target unchanged.

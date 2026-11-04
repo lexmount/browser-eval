@@ -354,6 +354,7 @@ def audit(
                     sort_keys=True,
                     separators=(",", ":"),
                 ),
+                binding.get("environment_host_overrides_sha256"),
             )
             if participant_contract is None:
                 participant_contract = participant
@@ -409,6 +410,10 @@ def audit(
                 run_record[evaluator_identity] = binding[evaluator_identity]
             if "action_overrides_sha256" in binding:
                 run_record["action_overrides_sha256"] = binding["action_overrides_sha256"]
+            if "environment_host_overrides_sha256" in binding:
+                run_record["environment_host_overrides_sha256"] = binding[
+                    "environment_host_overrides_sha256"
+                ]
             bindings.append(run_record)
             run_inputs_sha256 = run_record["inputs_sha256"]
             for row in rows:
@@ -710,7 +715,3 @@ def main() -> None:
         json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     print(json.dumps(result["counts"]))
-
-
-if __name__ == "__main__":
-    main()

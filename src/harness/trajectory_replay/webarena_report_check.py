@@ -15,12 +15,11 @@ from urllib.parse import parse_qs, unquote, urlsplit
 
 from bs4 import BeautifulSoup
 
+from harness.record_io import read_json
 from harness.reporting.presentation import visible_text as _visible_text
 from harness.reporting.privacy import TRAJECTORY_REPLAY
-from harness.reporting.templates import template_identity
-from harness.reporting.versions import check_build_version
+from harness.reporting.release_check import check_report_identity, open_report, read_page
 from harness.trajectory_replay.report_languages import language_roots, report_languages
-from harness.web_fetch.safety import reject_evidence_symlinks
 
 
 def _text_without_verified_embedded_images(text: str, image_digests: set[str]) -> str:
@@ -47,14 +46,14 @@ def _check_interpretation(
     participants: list[str] | None = None,
 ) -> None:
     manifest_path = root / "report-manifest.json"
-    manifest = json.loads(manifest_path.read_text()) if manifest_path.is_file() else {}
+    manifest = (
+        read_json(manifest_path) if manifest_path.is_file() else {}
+    )
     derived = manifest.get("interpretation_kind") == "data-derived"
     sections = []
     for language_root in language_roots(root):
-        integrated = BeautifulSoup(
-            (language_root / "interpretation.html").read_text(), "html.parser"
-        )
-        offline = BeautifulSoup((language_root / "article.html").read_text(), "html.parser")
+        integrated = read_page(language_root / "interpretation.html")
+        offline = read_page(language_root / "article.html")
         article = integrated.select_one("article.interpretation")
         standalone = offline.select_one("article.interpretation")
         if article is None or standalone is None or article.get_text() != standalone.get_text():
@@ -142,7 +141,7 @@ def _check_interpretation(
         for path in language_root.rglob("*.html"):
             if path.relative_to(language_root).parts[0] == "en":
                 continue
-            page = BeautifulSoup(path.read_text(), "html.parser")
+            page = read_page(path)
             if page.select_one("header.top nav") is None:
                 continue
             links = page.select("header.top nav a[data-report-interpretation]")
@@ -161,7 +160,7 @@ def _check_legacy_retrieval_audit(root: Path, chinese_home: str, english_home: s
     if 'class="callout historical-validity"' in chinese_home:
         if not legacy_audit.is_file():
             raise ValueError("historical retrieval provenance audit is missing")
-        audit = json.loads(legacy_audit.read_text(encoding="utf-8"))
+        audit = read_json(legacy_audit)
         rows = audit.get("results")
         if (
             audit.get("schema") != "trajectory_replay_legacy_retrieval_provenance/1"
@@ -515,24 +514,17 @@ def _check_formal_execution_scope(manifest: dict) -> None:
 
 
 def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, int]:
-    reject_evidence_symlinks(report_dir)
-    root = report_dir.resolve()
-    manifest = json.loads((root / "report-manifest.json").read_text(encoding="utf-8"))
-    check_build_version(root, manifest)
-    if (manifest.get("profile_sha256")
-            and manifest.get("template") != template_identity("trajectory-replay")):
-        raise ValueError("report bypasses the maintained replay template")
+    root = open_report(report_dir)
+    manifest = read_json(root / "report-manifest.json")
+    check_report_identity(root, manifest, "trajectory-replay", profile_path)
     if profile_path is not None:
-        if (profile_path.is_symlink() or manifest.get("profile_sha256")
-                != hashlib.sha256(profile_path.read_bytes()).hexdigest()):
-            raise ValueError("report was built from a different instance profile")
-        profile = json.loads(profile_path.read_text())
+        profile = read_json(profile_path)
         if manifest.get("execution_backend") != profile.get("execution_backend"):
             raise ValueError("report backend differs from the bound instance profile")
     for lang, note in (manifest.get("measurement_notes") or {}).items():
         language_root = root if lang == "zh" else root / lang
         for name in ("index.html", "environment.html"):
-            page = BeautifulSoup((language_root / name).read_text(), "html.parser")
+            page = read_page(language_root / name)
             if not note or note not in page.get_text():
                 raise ValueError("declared measurement context is absent from the report")
     if report_languages(root) == ("zh",):
@@ -552,7 +544,7 @@ def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, in
             raise ValueError("English not-generated notice or return link is missing")
         if list((root / "assets/interpretation").glob("*-en.png")):
             raise ValueError("Chinese-only report contains unused English illustrations")
-    results = json.loads((root / "data/results.json").read_text(encoding="utf-8"))
+    results = read_json(root / "data/results.json")
     required_manifest_fields = (
         "task_count",
         "participant_count",
@@ -628,7 +620,7 @@ def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, in
             r"[0-9a-f]{64}", str(next(iter(contract_hashes)))
         ):
             raise ValueError(f"task {task_id} mixes result contract versions")
-    metrics = json.loads((root / "data/metrics.json").read_text(encoding="utf-8"))
+    metrics = read_json(root / "data/metrics.json")
     _check_metric_populations(metrics, results, participants)
     _check_core_comparison(root, metrics, results, participants)
     has_resource_samples = any(
@@ -689,7 +681,7 @@ def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, in
         for participant in participants:
             for task_id in task_ids:
                 evidence_path = root / "data/evidence" / f"{participant}-{task_id}.json"
-                evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+                evidence = read_json(evidence_path)
                 if (
                     not isinstance(evidence.get("site_reset"), dict)
                     or evidence.get("readiness") is None
@@ -729,7 +721,7 @@ def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, in
         frozen_path = root / "data/trajectory" / f"{task_id}.json"
         if not frozen_path.is_file():
             raise ValueError(f"qualified trajectory is missing for task {task_id}")
-        frozen = json.loads(frozen_path.read_text(encoding="utf-8"))
+        frozen = read_json(frozen_path)
         action_count = len(frozen.get("tool_calls") or [])
         if frozen.get("task_id") != task_id or action_count < 1:
             raise ValueError(f"qualified trajectory is invalid for task {task_id}")
@@ -738,7 +730,7 @@ def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, in
             planned_path = root / "data/trajectory" / f"{key}.json"
             if not planned_path.is_file():
                 raise ValueError(f"method-specific trajectory is missing: {key}")
-            planned = json.loads(planned_path.read_text(encoding="utf-8"))
+            planned = read_json(planned_path)
             planned_count = len(planned.get("tool_calls") or [])
             planned_digest = hashlib.sha256(
                 json.dumps(
@@ -763,7 +755,7 @@ def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, in
             evidence_path = root / "data/evidence" / f"{key}.json"
             if not evidence_path.is_file():
                 raise ValueError(f"method-specific result evidence is missing: {key}")
-            evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+            evidence = read_json(evidence_path)
             if report_languages(root) == ("zh",) and any(
                 key.endswith("_en") and key[:-3] + "_zh" in (evidence.get("review") or {})
                 for key in (evidence.get("review") or {})
@@ -950,7 +942,3 @@ def main() -> None:
     parser.add_argument("--profile", type=Path)
     args = parser.parse_args()
     print(json.dumps(check(args.report_dir, profile_path=args.profile), ensure_ascii=False))
-
-
-if __name__ == "__main__":
-    main()

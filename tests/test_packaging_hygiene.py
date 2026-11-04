@@ -13,7 +13,7 @@ from harness import distribution, package_gate, platform_capabilities
 from tests.package_smoke import verify_package_tree
 
 ROOT = Path(__file__).resolve().parents[1]
-MAKEFILE = (ROOT / "Makefile").read_text()
+MAKEFILE = (ROOT / "Makefile").read_text(encoding="utf-8")
 
 
 def make(*arguments, cwd=ROOT):
@@ -25,17 +25,34 @@ def make(*arguments, cwd=ROOT):
 
 
 def bundled():
-    return tomllib.loads((ROOT / "pyproject.toml").read_text())["tool"]["browser-eval"]["bundled-data"]
+    return tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["browser-eval"]["bundled-data"]
 
 
 def test_bundled_data_exists_and_reaches_the_source_archive():
-    manifest = {line.split()[1] for line in (ROOT / "MANIFEST.in").read_text().splitlines()
+    manifest = {line.split()[1] for line in (ROOT / "MANIFEST.in").read_text(encoding="utf-8").splitlines()
                 if line.startswith("include ")}
     # setuptools always archives pyproject.toml.
     assert manifest | {"pyproject.toml"} == set(bundled())
     assert all((ROOT / relative).is_file() for relative in bundled())
-    project = tomllib.loads((ROOT / "pyproject.toml").read_text())
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     assert "data-files" not in project["tool"]["setuptools"]
+
+
+def test_every_report_asset_is_declared_for_the_wheel():
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    declared = {path for package, patterns in project["tool"]["setuptools"]["package-data"].items()
+                for pattern in patterns
+                for path in (ROOT / "src" / package.replace(".", "/")).glob(pattern)}
+    for line in (ROOT / "MANIFEST.in").read_text(encoding="utf-8").splitlines():
+        if line.startswith("recursive-include "):
+            directory, *patterns = line.split()[1:]
+            declared |= {path for pattern in patterns for path in (ROOT / directory).rglob(pattern)}
+    tree = ROOT / "src/harness"
+    assets = {path for path in tree.rglob("*")
+              if path.is_file() and path.suffix not in {".py", ".pyc"} and not path.name.startswith(".")
+              and ("assets" in path.parts or "templates" in path.parts)}
+    assert tree / "browser_use/assets/webarena-autonomous-evaluation-flow.png" in assets
+    assert assets <= declared, sorted(map(str, assets - declared))
 
 
 def test_checkout_reads_bundled_data_from_its_repository_path():
@@ -54,7 +71,7 @@ def installed_tree(tmp_path, monkeypatch):
     package = tmp_path / "site-packages/harness"
     data = package / "distribution_data/configs"
     data.mkdir(parents=True)
-    (package / "__init__.py").write_text("")
+    (package / "__init__.py").write_text("", encoding="utf-8")
     monkeypatch.setattr(distribution, "repository_root", lambda: tmp_path / "site-packages")
     monkeypatch.setattr(distribution.importlib.resources, "files", lambda name: package)
     return data
@@ -62,7 +79,7 @@ def installed_tree(tmp_path, monkeypatch):
 
 def test_installed_reader_uses_package_data_and_rejects_missing_or_linked(tmp_path, monkeypatch):
     data = installed_tree(tmp_path, monkeypatch)
-    (data / "real.json").write_text("{}")
+    (data / "real.json").write_text("{}", encoding="utf-8")
     assert distribution.bundled_data_path("configs/real.json") == data / "real.json"
     with pytest.raises(FileNotFoundError):
         distribution.bundled_data_path("configs/absent.json")
@@ -75,21 +92,21 @@ def test_installed_reader_uses_package_data_and_rejects_missing_or_linked(tmp_pa
 def test_package_tree_requires_exact_bundled_data(tmp_path, damage):
     source, installed = tmp_path / "source", tmp_path / "installed"
     (source / "src/harness").mkdir(parents=True)
-    (source / "src/harness/__init__.py").write_text("")
-    (source / "uv.lock").write_text("lock")
+    (source / "src/harness/__init__.py").write_text("", encoding="utf-8")
+    (source / "uv.lock").write_text("lock", encoding="utf-8")
     (source / "pyproject.toml").write_text(
         '[tool.setuptools.package-dir]\n"" = "src"\n'
-        '[tool.browser-eval]\nbundled-data = ["uv.lock"]\n')
+        '[tool.browser-eval]\nbundled-data = ["uv.lock"]\n', encoding="utf-8")
     (installed / "distribution_data").mkdir(parents=True)
-    (installed / "__init__.py").write_text("")
+    (installed / "__init__.py").write_text("", encoding="utf-8")
     copy = installed / "distribution_data/uv.lock"
-    copy.write_text("lock")
+    copy.write_text("lock", encoding="utf-8")
     if damage == "missing":
         copy.unlink()
     elif damage == "changed":
-        copy.write_text("other")
+        copy.write_text("other", encoding="utf-8")
     elif damage == "extra":
-        (installed / "distribution_data/private.json").write_text("{}")
+        (installed / "distribution_data/private.json").write_text("{}", encoding="utf-8")
     if damage == "none":
         verify_package_tree(source, installed)
     else:
@@ -105,7 +122,7 @@ def fake_build(outputs):
         if command[1] == "build":
             directory = Path(command[command.index("--out-dir") + 1])
             for name in outputs:
-                (directory / name).write_text("")
+                (directory / name).write_text("", encoding="utf-8")
         return subprocess.CompletedProcess(command, 0)
 
     return commands, run
@@ -122,7 +139,7 @@ def test_distribution_gate_installs_every_profile_with_the_pinned_python(monkeyp
         return recording(command, **kwargs)
 
     package_gate.check_distribution(ROOT, uv="uv", run=run)
-    version = (ROOT / ".python-version").read_text().strip()
+    version = (ROOT / ".python-version").read_text(encoding="utf-8").strip()
     assert commands[0][:2] == ["uv", "build"]
     assert commands[1][:4] == ["uv", "venv", "--seed", "--python"] and commands[1][4] == version
     extras = {extra for extra, _ in package_gate.OPTIONAL_PROFILES}
@@ -165,9 +182,9 @@ def test_base_cli_check_requires_the_explicit_language_contract(contract, notice
             assert kwargs["env"]["BROWSER_EVAL_REPORT_LANGUAGE"] == "zh"
             report = Path(command[command.index("--output") + 1]) / "report"
             (report / "en").mkdir(parents=True)
-            (report / "report-languages.json").write_text(json.dumps(contract))
+            (report / "report-languages.json").write_text(json.dumps(contract), encoding="utf-8")
             if notice:
-                (report / "en/index.html").write_text("")
+                (report / "en/index.html").write_text("", encoding="utf-8")
         return subprocess.CompletedProcess(command, 0)
 
     if accepted:
@@ -193,7 +210,7 @@ def test_help_documents_every_target_and_is_the_default():
 
 
 def test_make_ci_runs_each_ci_job():
-    workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+    workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
     ci = make("-n", "ci", "PYTEST_ARGS=-q").stdout
     for job in ("checks", "package"):
         for step in workflow["jobs"][job]["steps"]:
@@ -213,7 +230,7 @@ def test_make_ci_runs_each_ci_job():
 def test_required_profile_is_rejected_before_any_tool_runs(target, tmp_path):
     (tmp_path / "bin").mkdir()
     fake = tmp_path / "bin/uv"
-    fake.write_text("#!/bin/sh\nexit 0\n")
+    fake.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
     fake.chmod(0o700)
     result = make(target, f"UV={fake}", "EVIDENCE=/synthetic", "OUTPUT=/synthetic", "RUN_ROOT=/synthetic",
                   "SOURCE=/synthetic", "REVIEW=/synthetic", cwd=ROOT)
@@ -258,29 +275,29 @@ def test_documented_make_commands_name_the_required_profile():
     assert not profileless_make_commands('make report PROFILE=/p.json EVIDENCE=/e', targets)
     assert not profileless_make_commands("`make report` reaches build_report.py", targets)
     offenders = {str(path.relative_to(ROOT)): found for path in tracked("*.md", "configs/*.json", "src/harness/**/*.py")
-                 if (found := profileless_make_commands(path.read_text(), targets))}
+                 if (found := profileless_make_commands(path.read_text(encoding="utf-8"), targets))}
     assert not offenders
     assert profileless_make_commands_in_code('"Run `make report` to publish."', targets) == ["report"]
     assert not profileless_make_commands_in_code('f"Run `make report PROFILE={profile}` to publish."', targets)
     assert not profileless_make_commands_in_code('"run make pin-dataset"', targets)
     offenders = {str(path.relative_to(ROOT)): found for path in tracked("src/harness/**/*.py", "scripts/*.py")
-                 if (found := profileless_make_commands_in_code(path.read_text(), targets))}
+                 if (found := profileless_make_commands_in_code(path.read_text(encoding="utf-8"), targets))}
     assert not offenders
 
 
 def test_python_policy_agrees_across_project_lock_and_ci():
-    project = tomllib.loads((ROOT / "pyproject.toml").read_text())
-    pinned = (ROOT / ".python-version").read_text().strip()
+    project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    pinned = (ROOT / ".python-version").read_text(encoding="utf-8").strip()
     assert pinned == "3.11"
-    workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+    workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
     versions = {step["with"]["python-version"] for job in workflow["jobs"].values()
                 for step in job["steps"] if "python-version" in step.get("with", {})}
     assert versions == {pinned}
     declared = project["project"]["requires-python"]
     assert declared == f">={pinned}"
-    assert tomllib.loads((ROOT / "uv.lock").read_text())["requires-python"] == declared
+    assert tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))["requires-python"] == declared
     for readme in ("README.md", "docs/README.zh-CN.md"):
-        text = (ROOT / readme).read_text()
+        text = (ROOT / readme).read_text(encoding="utf-8")
         assert "3.14" not in text
 
 
@@ -307,7 +324,7 @@ def test_missing_macos_tool_and_sandbox_are_named(monkeypatch, tmp_path):
     with pytest.raises(platform_capabilities.MacOSRequiredError, match="absent"):
         platform_capabilities.sandbox_exec_command("(version 1)")
     present = tmp_path / "present"
-    present.write_text("")
+    present.write_text("", encoding="utf-8")
     monkeypatch.setattr(platform_capabilities, "SANDBOX_EXEC", present)
     assert platform_capabilities.sandbox_exec_available()
     assert platform_capabilities.sandbox_exec_command("(version 1)") == [str(present), "-p", "(version 1)"]

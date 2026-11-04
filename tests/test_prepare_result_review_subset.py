@@ -27,8 +27,8 @@ class RefreshReviewSubsetTests(unittest.TestCase):
             for path, cases, rows in ((prior, old_cases, old_rows), (current, new_cases, new_rows)):
                 (path / "dataset.json").write_text(json.dumps({
                     "cases": cases, "comparison": {"require_independent_result_review": True},
-                }))
-                (path / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+                }), encoding="utf-8")
+                (path / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
             # This helper requires the prior review to be valid; create the
             # minimal exact full review accepted by the shared validator.
             review = {

@@ -161,11 +161,11 @@ def build_summary(dataset: dict, records: list[dict], batches: list[dict]) -> di
 def load_cohort(root: Path) -> tuple[dict, list[dict], list[dict], dict]:
     dataset_path = contained_path(root, 'dataset.json', reject_symlinks=True)
     results_path = contained_path(root, 'results.jsonl', reject_symlinks=True)
-    dataset = json.loads(dataset_path.read_text())
+    dataset = json.loads(dataset_path.read_text(encoding="utf-8"))
     records = load_jsonl(results_path)
     execution = contained_path(root, 'execution.json', reject_symlinks=True)
-    batches = (json.loads(execution.read_text())['batches'] if execution.is_file()
-               else [json.loads(contained_path(root, 'manifest.json', reject_symlinks=True).read_text())])
+    batches = (json.loads(execution.read_text(encoding="utf-8"))['batches'] if execution.is_file()
+               else [json.loads(contained_path(root, 'manifest.json', reject_symlinks=True).read_text(encoding="utf-8"))])
     require_verified_reference_checks(batches, cases=dataset, records=records, source=root,
                                       allow_scoring_rule_revision=True)
     require_result_review(root, dataset, records)
@@ -183,7 +183,7 @@ def load_cohort(root: Path) -> tuple[dict, list[dict], list[dict], dict]:
 def validate_cohort(root: Path) -> tuple[dict, list[dict], list[dict]]:
     dataset, records, batches, expected = load_cohort(root)
     path = contained_path(root, 'resource-comparison.json', reject_symlinks=True)
-    if not path.is_file() or json.loads(path.read_text()) != expected:
+    if not path.is_file() or json.loads(path.read_text(encoding="utf-8")) != expected:
         raise ValueError('Resource comparison differs from its complete bound cohort')
     return dataset, records, batches
 
@@ -192,10 +192,10 @@ def package(root: Path) -> dict:
     _, _, batches, summary = load_cohort(root)
     public_batches = [project_execution_manifest(batch) for batch in batches]
     target = contained_path(root, 'resource-comparison.json', reject_symlinks=True)
-    target.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + '\n')
+    target.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + '\n', encoding="utf-8")
     if not (root / 'execution.json').is_file():
         (root / 'execution.json').write_text(
-            json.dumps({'batches': public_batches}, ensure_ascii=False, indent=2) + '\n')
+            json.dumps({'batches': public_batches}, ensure_ascii=False, indent=2) + '\n', encoding="utf-8")
     return summary
 
 

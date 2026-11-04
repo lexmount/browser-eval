@@ -26,13 +26,13 @@ def snapshot(tmp_path):
               'url': case['url'], 'run': 1, 'ok': True, 'elapsed_ms': 43.5,
               'run_id': 'unchanged-call', 'artifact_path': 'answer.txt',
               'provider_metadata': {}, 'metrics': score_attempt(case, raw, ok=True)}
-    (source / 'dataset.json').write_text(json.dumps(dataset))
-    (source / 'results.jsonl').write_text(json.dumps(record) + '\n')
+    (source / 'dataset.json').write_text(json.dumps(dataset), encoding='utf-8')
+    (source / 'results.jsonl').write_text(json.dumps(record) + '\n', encoding='utf-8')
     receipt = {'files': [{'path': 'answer.txt', 'scored_output': True,
         'original_sha256': hashlib.sha256(raw).hexdigest(),
         'published_sha256': hashlib.sha256(public).hexdigest(),
         'published_bytes': len(public)}]}
-    (source / 'publication-privacy.json').write_text(json.dumps(receipt))
+    (source / 'publication-privacy.json').write_text(json.dumps(receipt), encoding='utf-8')
     return source, dataset, record, original
 
 
@@ -57,7 +57,7 @@ def test_unbound_or_changed_evidence_cannot_be_scored(tmp_path, defect):
     source, dataset, _, original = snapshot(tmp_path)
     recovered = None
     receipt_path = source / 'publication-privacy.json'
-    receipt = json.loads(receipt_path.read_text())
+    receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
     if defect in {'public_hash', 'original_hash'}:
         receipt['files'][0]['published_sha256' if defect == 'public_hash' else 'original_sha256'] = '0' * 64
     elif defect == 'size':
@@ -69,6 +69,6 @@ def test_unbound_or_changed_evidence_cannot_be_scored(tmp_path, defect):
         dataset['cases'] = []
     else:
         dataset['cases'][0]['url'] = 'https://example.test/other'
-    receipt_path.write_text(json.dumps(receipt))
+    receipt_path.write_text(json.dumps(receipt), encoding='utf-8')
     with pytest.raises(ValueError):
         score_published_snapshot(source, dataset, recovered=recovered)

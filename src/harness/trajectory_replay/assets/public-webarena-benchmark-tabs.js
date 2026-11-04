@@ -1,0 +1,4 @@
+(()=>{const buttons=[...document.querySelectorAll('.benchmark-tabs button')];
+const cards=[...document.querySelectorAll('.benchmark-card')];const count=document.getElementById('benchmark-count');
+function show(category){for(const card of cards)card.hidden=card.dataset.category!==category;for(const button of buttons){const active=button.dataset.category===category;button.classList.toggle('active',active);button.setAttribute('aria-pressed',String(active));}count.textContent=`显示 ${cards.filter(card=>!card.hidden).length} 个同类 benchmark`;}
+for(const button of buttons)button.onclick=()=>show(button.dataset.category);show('end_to_end_browser_use');})();

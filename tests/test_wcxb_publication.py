@@ -5,6 +5,7 @@ import zipfile
 
 import pytest
 
+from harness.reporting import publish as shared
 from harness.web_fetch import wcxb_publication as release
 from tests.wcxb_fixture import write_json
 
@@ -13,8 +14,8 @@ from tests.wcxb_fixture import write_json
 def report(tmp_path, monkeypatch):
     authority, source = tmp_path / 'authority', tmp_path / 'report'
     source.mkdir()
-    (source / 'index.html').write_text('<!doctype html><h1>Synthetic WCXB</h1>')
-    (source / '.generated-report').write_text('generated\n')
+    (source / 'index.html').write_text('<!doctype html><h1>Synthetic WCXB</h1>', encoding='utf-8')
+    (source / '.generated-report').write_text('generated\n', encoding='utf-8')
     profile = {'comparison_kind': 'wcxb_frozen_html_to_markdown', 'case_count': 2,
                'artifact_hub_base_url': 'https://artifacts.example.invalid',
                'artifact_hub_site': 'wcxb-site', 'artifact_hub_expected_version': 'ver_old',
@@ -97,9 +98,9 @@ def test_bad_public_boundary_stops_before_remote_or_overwrite(report, change, tm
     kwargs, profile_path, _ = report
     source = kwargs['source']
     if change == 'extra-file':
-        (source / 'private-note.txt').write_text('internal note')
+        (source / 'private-note.txt').write_text('internal note', encoding='utf-8')
     elif change == 'changed-file':
-        (source / 'index.html').write_text('changed after build')
+        (source / 'index.html').write_text('changed after build', encoding='utf-8')
     elif change == 'missing-file':
         (source / 'index.html').unlink()
     elif change == 'profile':
@@ -125,6 +126,22 @@ def test_wrong_remote_version_stops_before_any_upload(report):
         release.publish(**kwargs, transport=site)
     assert len(site.calls) == 2
     assert profile_path.read_bytes() == before
+
+
+def test_changed_profile_version_cannot_take_over_a_pending_operation(report):
+    kwargs, profile_path, _ = report
+    site = Site();site.version = 'ver_somebody_else'
+    with pytest.raises(ValueError, match='version changed'):
+        release.publish(**kwargs, transport=site)
+    journal = next(kwargs['work'].glob('wcxb-update-*.json'))
+    pending = journal.read_bytes()
+    assert json.loads(pending)['expected_version'] == 'ver_old'
+    write_json(profile_path, {**json.loads(profile_path.read_bytes()), 'artifact_hub_expected_version': 'ver_other'})
+    site.calls.clear()
+    with pytest.raises(ValueError, match='version differs from its pending operation'):
+        release.publish(**kwargs, transport=site)
+    assert site.calls == []
+    assert journal.read_bytes() == pending
 
 
 def test_failed_export_verification_resumes_without_reupload(report):
@@ -182,7 +199,7 @@ def test_lost_commit_response_recovers_the_same_operation_without_reupload(repor
 def test_profile_binding_interruption_resumes_without_another_commit(report, monkeypatch):
     kwargs, profile_path, _ = report
     site = Site()
-    original = release.atomic_write
+    original = shared.atomic_write
     failed = False
 
     def interrupt(path, payload):
@@ -193,7 +210,7 @@ def test_profile_binding_interruption_resumes_without_another_commit(report, mon
             raise OSError('interrupted after profile binding')
         original(path, payload)
 
-    monkeypatch.setattr(release, 'atomic_write', interrupt)
+    monkeypatch.setattr(shared, 'atomic_write', interrupt)
     with pytest.raises(OSError, match='profile binding'):
         release.publish(**kwargs, transport=site)
     assert json.loads(profile_path.read_bytes())['artifact_hub_expected_version'] == 'ver_new'

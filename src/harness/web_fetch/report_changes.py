@@ -7,6 +7,7 @@ import json
 import shutil
 from collections import defaultdict
 
+from harness.reporting.presentation import esc
 from harness.web_fetch.storage import research_evidence_dir
 
 ROOT=repository_root()
@@ -129,7 +130,7 @@ def webmainbench_history(data):
 
 def render_localized_release_history(data, english, evidence_links=(), *, kind='webmainbench_frozen_html_to_markdown'):
     """Render reader-facing release history without embedding release prose in report.py."""
-    from harness.web_fetch.report import cell, esc, hero, link, section, table
+    from harness.web_fetch.report import cell, hero, link, section, table
     releases = localized_release_history(data, kind)
     latest, *older = releases
     def localized(row, key):
@@ -167,7 +168,7 @@ def render_webmainbench_history(data, english, evidence_links=()):
 
 
 def render_changes(out, cases, records, dataset=None):
-    from harness.web_fetch.report import cell, esc, hero, link, section, table, write
+    from harness.web_fetch.report import cell, hero, link, section, table, write
     evidence_root=research_evidence_dir()
     selection=out/'file-rerun-selection.json'
     rerun_sources=[]
@@ -181,10 +182,10 @@ def render_changes(out, cases, records, dataset=None):
     source = out / 'report-assets/report-changes.json'
     if not source.is_file():
         source = (ROOT / 'research/report-changes.json')
-    data=json.loads(source.read_text())
+    data=json.loads(source.read_text(encoding='utf-8'))
     require_review_rounds(data)
     public_data=select_cohort_history(data,dataset,records)
-    (out/'report-changes.json').write_text(json.dumps(public_data,ensure_ascii=False,indent=2)+'\n')
+    (out/'report-changes.json').write_text(json.dumps(public_data,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     releases=public_data['releases']
     if not releases:
         raise ValueError('No release history applies to the current report cohort')
@@ -195,7 +196,7 @@ def render_changes(out, cases, records, dataset=None):
         +release_details(latest,table,cell,esc)+'</article>',latest['id'])
 
     if selection.exists():
-        selected=json.loads(selection.read_text())
+        selected=json.loads(selection.read_text(encoding='utf-8'))
         grouped=defaultdict(lambda:[0,0])
         for row in selected['records']:
             grouped[row['provider']][0]+=1
@@ -217,7 +218,7 @@ def render_changes(out, cases, records, dataset=None):
     diagnostic=evidence_root/'file-delivery-check'
     if (diagnostic/'scope.json').exists():
         shutil.copytree(diagnostic,out/'file-delivery-check')
-        scope=json.loads((diagnostic/'scope.json').read_text())
+        scope=json.loads((diagnostic/'scope.json').read_text(encoding='utf-8'))
         body+=section('独立文件源对照',
             '<p>公共文件另以独立 HTTP 字节链路验证 '+str(scope['control_pass'])+'/'+str(scope['control_calls'])+' 次目标哈希匹配，用于确认源文件与统一字节验收链路可用。该对照不是参评方法，不进入排名，也不替代任何 provider 的调用。</p>'
             '<details><summary>查看独立对照记录</summary><p>'+link('../file-delivery-check/results.jsonl','下载调用与哈希记录')+'</p></details>')
@@ -230,6 +231,6 @@ def render_changes(out, cases, records, dataset=None):
 
     revision=out/'scoring-revisions.json'
     if revision.exists():
-        require_revision_release_bindings(json.loads(revision.read_text()),data['releases'])
+        require_revision_release_bindings(json.loads(revision.read_text(encoding='utf-8')),data['releases'])
     body+=section('范围与下载','<p>'+esc(data['history_scope'])+'</p><p>'+link('../report-changes.json','下载结构化版本记录')+' · '+link('../reliability.json','下载完整性状态')+' · '+link('https://github.com/lexmount/browser-eval/commits/main','查看仓库变更')+'</p>')
     write(out,'changes/index.html','报告版本说明','<div class="change-log">'+body+'</div>')

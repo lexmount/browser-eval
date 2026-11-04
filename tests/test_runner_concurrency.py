@@ -221,7 +221,7 @@ class RunnerConcurrencyTest(unittest.TestCase):
                 dataset_path=Path('dataset.json'), cases=[case],
                 providers=[Identified('identified', {})],
                 provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0)
-            manifest = json.loads((root / 'manifest.json').read_text())
+            manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
             identity = manifest['providers'][0]['implementation_identity']
             self.assertEqual(identity['repository']['head'], 'a' * 40)
 
@@ -246,9 +246,9 @@ class RunnerConcurrencyTest(unittest.TestCase):
             self.assertEqual(provider.calls, 1)
             self.assertEqual(len(records), 1)
             self.assertFalse(records[0]['metrics']['content_pass'])
-            self.assertEqual((root / records[0]['artifact_path']).read_text(), 'wrong')
+            self.assertEqual((root / records[0]['artifact_path']).read_text(encoding='utf-8'), 'wrong')
             self.assertNotIn('retry', records[0]['provider_metadata'])
-            manifest = json.loads((root / 'manifest.json').read_text())
+            manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
             self.assertEqual(manifest['attempt_count'], 1)
             self.assertNotIn('physical_attempt_count', manifest)
 
@@ -279,9 +279,9 @@ class RunnerConcurrencyTest(unittest.TestCase):
             self.assertEqual(retry['physical_attempts'], 2)
             self.assertEqual(retry['retries_used'], 1)
             self.assertEqual([item['task_pass'] for item in retry['attempts']], [False, True])
-            self.assertEqual((root / retry['attempts'][0]['artifact_path']).read_text(), '')
-            self.assertEqual((root / records[0]['artifact_path']).read_text(), 'Expected')
-            manifest = json.loads((root / 'manifest.json').read_text())
+            self.assertEqual((root / retry['attempts'][0]['artifact_path']).read_text(encoding='utf-8'), '')
+            self.assertEqual((root / records[0]['artifact_path']).read_text(encoding='utf-8'), 'Expected')
+            manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
             self.assertEqual(manifest['attempt_count'], 1)
             self.assertEqual(manifest['parameters']['max_failure_retries'], 1)
 
@@ -304,7 +304,7 @@ class RunnerConcurrencyTest(unittest.TestCase):
                 provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0,
                 max_failure_retries=1)
             self.assertEqual(provider.calls, 2)
-            self.assertEqual((root / records[0]['artifact_path']).read_text(), 'failure-2')
+            self.assertEqual((root / records[0]['artifact_path']).read_text(encoding='utf-8'), 'failure-2')
             self.assertEqual(records[0]['provider_metadata']['retry']['selection'],
                              'final physical attempt is authoritative; no best-of selection')
 
@@ -317,9 +317,9 @@ class RunnerConcurrencyTest(unittest.TestCase):
             records,_=run_evaluation(output_dir=root,dataset_meta={'id':'test'},dataset_path=Path('dataset.json'),
                 cases=[EvalCase('case','Case','https://example.com','static',[])],providers=[TextProvider('text',{})],
                 provider_config_path=Path('providers.json'),runs=1,timeout=2,delay=0)
-            self.assertEqual(len((root/'results.jsonl').read_text().splitlines()),1)
-            self.assertEqual(json.loads((root/'results.jsonl').read_text())['provider_metadata']['raw_response'],value)
-            self.assertEqual((root/records[0]['artifact_path']).read_text(),value)
+            self.assertEqual(len((root/'results.jsonl').read_text(encoding='utf-8').splitlines()),1)
+            self.assertEqual(json.loads((root/'results.jsonl').read_text(encoding='utf-8'))['provider_metadata']['raw_response'],value)
+            self.assertEqual((root/records[0]['artifact_path']).read_text(encoding='utf-8'),value)
 
     def test_unstoppable_timeout_is_quarantined_not_counted_as_remaining_failures(self):
         release = threading.Event()
@@ -342,13 +342,13 @@ class RunnerConcurrencyTest(unittest.TestCase):
                         dataset_meta={'id':'fixture','cases':[]}, dataset_path=Path('dataset.json'),
                         cases=cases, providers=[Unstoppable('slow', {})],
                         provider_config_path=Path('providers.json'), runs=2, timeout=.02, delay=0)
-                records = [json.loads(line) for line in (run_dir/'results.jsonl').read_text().splitlines()]
+                records = [json.loads(line) for line in (run_dir/'results.jsonl').read_text(encoding='utf-8').splitlines()]
                 self.assertEqual(calls, ['case-0'])
                 self.assertEqual(len(records), 1)
                 self.assertEqual(records[0]['error_type'], 'timeout')
                 self.assertFalse(records[0]['ok'])
-                self.assertEqual((run_dir/records[0]['artifact_path']).read_text(), '')
-                manifest = json.loads((run_dir/'manifest.json').read_text())
+                self.assertEqual((run_dir/records[0]['artifact_path']).read_text(encoding='utf-8'), '')
+                manifest = json.loads((run_dir/'manifest.json').read_text(encoding='utf-8'))
                 self.assertEqual(manifest['unexecuted'][0]['provider'], 'slow')
                 self.assertEqual(manifest['attempt_count'], 1)
         finally:

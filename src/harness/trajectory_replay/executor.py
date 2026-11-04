@@ -7,37 +7,8 @@ from collections.abc import Iterable
 from contextlib import nullcontext
 from typing import Any
 
+from harness.trajectory_replay.core.executor import actionability_probe, body_text
 from harness.trajectory_replay.suite import validate_selector
-
-
-def _body_text(page: Any, timeout: int, limit: int) -> str:
-    return page.locator("body").first.inner_text(timeout=timeout)[:limit]
-
-
-def _actionability_probe(page: Any, selector: str) -> dict[str, Any]:
-    """Capture post-failure DOM/actionability evidence without affecting scoring."""
-    return page.evaluate(
-        """selector => {
-          const element = document.querySelector(selector);
-          if (!element) return {found: false};
-          const style = getComputedStyle(element);
-          const rect = element.getBoundingClientRect();
-          return {
-            found: true,
-            connected: element.isConnected,
-            disabled: Boolean(element.disabled),
-            ariaDisabled: element.getAttribute('aria-disabled'),
-            display: style.display,
-            visibility: style.visibility,
-            opacity: style.opacity,
-            pointerEvents: style.pointerEvents,
-            rect: {x: rect.x, y: rect.y, width: rect.width, height: rect.height},
-            clientRectCount: element.getClientRects().length,
-            text: (element.textContent || '').trim().slice(0, 500)
-          };
-        }""",
-        selector,
-    )
 
 
 def execute_steps(
@@ -80,7 +51,7 @@ def execute_steps(
                 title_fn = getattr(page, "title", None)
                 title = title_fn() if callable(title_fn) else ""
                 status = getattr(response, "status", "") if response is not None else ""
-                body = _body_text(page, timeout, limit)
+                body = body_text(page, timeout, limit)
                 observation = (
                     f"Navigated to: {getattr(page, 'url', call['url'])}\n"
                     f"Title: {title}\nStatus: {status}\n\n--- Page Snapshot ---\n{body}"
@@ -185,42 +156,10 @@ def execute_steps(
             selector = call.get("selector")
             if action in {"click", "fill", "select"} and isinstance(selector, str):
                 try:
-                    record["actionability_probe"] = _actionability_probe(page, selector)
+                    record["actionability_probe"] = actionability_probe(page, selector)
                 except Exception as probe_exc:
                     record["actionability_probe_error"] = f"{type(probe_exc).__name__}: {probe_exc}"
             raise
         finally:
             record["duration_ms"] = round((time.perf_counter() - started) * 1000, 3)
     return captured
-
-
-def judge_outputs(
-    outputs: dict[str, str], assertions: Iterable[dict[str, Any]]
-) -> list[dict[str, Any]]:
-    checks: list[dict[str, Any]] = []
-    for assertion in assertions:
-        name = str(assertion.get("output") or "")
-        actual = outputs.get(name, "")
-        expected = assertion.get("equals")
-        passed = isinstance(expected, str) and actual == expected
-        checks.append(
-            {
-                "output": name,
-                "kind": "exact string equality",
-                "expected": expected,
-                "actual": actual,
-                "passed": passed,
-            }
-        )
-    return checks
-
-
-def validate_outputs(outputs: dict[str, str], assertions: Iterable[dict[str, Any]]) -> list[str]:
-    failures: list[str] = []
-    for check in judge_outputs(outputs, assertions):
-        if not check["passed"]:
-            failures.append(
-                f"{check['output']} exact mismatch: expected {check['expected']!r}, "
-                f"got {check['actual']!r}"
-            )
-    return failures

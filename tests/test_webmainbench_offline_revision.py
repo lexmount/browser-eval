@@ -11,7 +11,7 @@ from harness.web_fetch import webmainbench_correction as correction
 
 
 def write_rows(path, rows):
-    path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
 
 
 @pytest.fixture
@@ -29,7 +29,7 @@ def certified_case(tmp_path, monkeypatch):
     rows, calls = [], []
     for provider in ("first", "second"):
         path = source / (provider + ".md")
-        path.write_text("reference")
+        path.write_text("reference", encoding="utf-8")
         rows.append(
             {
                 "provider": provider,
@@ -69,7 +69,7 @@ def certified_case(tmp_path, monkeypatch):
             results_sha256=file_sha256(source / "results.jsonl"),
             physical_sha256=file_sha256(source / "physical-attempts.jsonl"),
         )
-        (source / "certificate.json").write_text(json.dumps(certificate))
+        (source / "certificate.json").write_text(json.dumps(certificate), encoding="utf-8")
 
     recertify()
     # Fixed third-party responses isolate evidence handling from scoring mathematics.
@@ -143,7 +143,7 @@ def test_invalid_revision_never_creates_output(certified_case, tmp_path, monkeyp
     elif damage == "missing_call":
         write_rows(source / "physical-attempts.jsonl", calls[:1])
     elif damage == "changed_physical_output":
-        (source / "first.md").write_text("changed")
+        (source / "first.md").write_text("changed", encoding="utf-8")
     else:
 
         def reject(_):
@@ -183,7 +183,7 @@ def test_output_symlink_cannot_redirect_revision(certified_case, tmp_path):
     source, dataset, *_ = certified_case
     destination = tmp_path / "unrelated"
     destination.mkdir()
-    (destination / "keep").write_text("untouched")
+    (destination / "keep").write_text("untouched", encoding="utf-8")
     output = tmp_path / "revised"
     output.symlink_to(destination, target_is_directory=True)
     with pytest.raises(ValueError):
@@ -224,7 +224,7 @@ def test_full_population_revision_is_atomic(certified_case, tmp_path, monkeypatc
                 "reference_sha256": bytes_sha256("reference".encode()),
             }
         )
-        (source / "references" / (identifier + ".md")).write_text("reference")
+        (source / "references" / (identifier + ".md")).write_text("reference", encoding="utf-8")
         for original in sample_rows:
             results.append(
                 {
@@ -236,7 +236,8 @@ def test_full_population_revision_is_atomic(certified_case, tmp_path, monkeypatc
     write_rows(dataset, corrected)
     write_rows(source / "results.jsonl", results)
     (source / "dataset.json").write_text(
-        json.dumps({"cases": cases, "coverage_plan": {"static_html": ["first", "second"]}})
+        json.dumps({"cases": cases, "coverage_plan": {"static_html": ["first", "second"]}}),
+        encoding="utf-8"
     )
     (source / "score-summaries.json").write_text(
         json.dumps(
@@ -244,7 +245,8 @@ def test_full_population_revision_is_atomic(certified_case, tmp_path, monkeypatc
                 name: {"official_aggregate": {"old": True}, "scorer": {}}
                 for name in ("first", "second")
             }
-        )
+        ),
+        encoding="utf-8"
     )
     population = {
         "row_count": 545,
@@ -266,7 +268,8 @@ def test_full_population_revision_is_atomic(certified_case, tmp_path, monkeypatc
                     }
                 },
             }
-        )
+        ),
+        encoding="utf-8"
     )
     before = snapshot(source)
     output = tmp_path / "full-revised"

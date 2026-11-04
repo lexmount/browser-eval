@@ -50,8 +50,8 @@
           "engine": "moli",
           "task_id": 374,
           "trace_sha256": "ab26125dc9f4957f8949ca75121f9843b090271c9bef2fe360fdcae1fef3e022",
-          "reason_zh": "失败时目标元素存在，CSS 未将其隐藏，但记录的边界矩形为零；因此带 :visible 的定位器无法匹配，等待 60 秒后超时。该记录定位到布局/可见性输出，不单凭它认定某个源码提交是原因。 失败记录：第 8 步，动作 click。 目标：a:is([href=\"https://webarena-slice-warm-1-195-shopping-admin.dev.lexmount.net/admin/admin/system_design_theme/edit/id/1/\"],[href=\"http://webarena-slice-warm-1-195-shopping-admin.dev.lexmount.net/admin/admin/system_design_theme/edit/id/1/\"]):visible。",
-          "reason_en": "Recorded target controls exist with visible CSS but all-zero bounding rectangles; the visible locator times out. Recorded failure: step 8, action click. Target: a:is([href=\"https://webarena-slice-warm-1-195-shopping-admin.dev.lexmount.net/admin/admin/system_design_theme/edit/id/1/\"],[href=\"http://webarena-slice-warm-1-195-shopping-admin.dev.lexmount.net/admin/admin/system_design_theme/edit/id/1/\"]):visible."
+          "reason_zh": "失败时目标元素存在，CSS 未将其隐藏，但记录的边界矩形为零；因此带 :visible 的定位器无法匹配，等待 60 秒后超时。该记录定位到布局/可见性输出，不单凭它认定某个源码提交是原因。 失败记录：第 8 步，动作 click。 目标：a:is([href=\"https://shopping-admin.webarena.example/admin/admin/system_design_theme/edit/id/1/\"],[href=\"http://shopping-admin.webarena.example/admin/admin/system_design_theme/edit/id/1/\"]):visible。",
+          "reason_en": "Recorded target controls exist with visible CSS but all-zero bounding rectangles; the visible locator times out. Recorded failure: step 8, action click. Target: a:is([href=\"https://shopping-admin.webarena.example/admin/admin/system_design_theme/edit/id/1/\"],[href=\"http://shopping-admin.webarena.example/admin/admin/system_design_theme/edit/id/1/\"]):visible."
         },
         {
           "participant_id": "moli-1.1.8",
@@ -133,7 +133,7 @@
           "reason_zh": "原运行在带 :visible 的定位器上超时。补充实测直接进入订单页，没有复现完整历史前缀：1.1.8 中三个 Filters 候选均为零面积；PR 版本第一个为 100.703125 × 33。零面积解释了可见性筛选为何拒绝目标；这定位到布局输出差异，尚不能单独归因于某个源码提交。补充实测使用当前站点与冻结浏览器，不点击最终目标、不提交表单，不替代原成绩。",
           "reason_en": "The historical run times out on a :visible locator. The supplemental probe navigates directly to the orders page rather than reproducing the complete historical prefix: in 1.1.8, all three Filters candidates have zero area; the first PR candidate measures 100.703125 × 33. Zero area explains rejection by the visibility filter and identifies a layout-output difference, but does not isolate an individual source commit. The probe uses the current site and frozen binaries, does not click the final target or submit a form, and does not replace the original score.",
           "supplemental_diagnostic": {
-            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-108-readonly-geometry.json",
+            "path": "evidence/current/trajectory-replay/audit-20260920/task-108-readonly-geometry.json",
             "sha256": "87172a29ebc5eeb6c0112f2077c0ac8965f25d3299deb0b016e4e37d9980408d"
           }
         },
@@ -145,7 +145,7 @@
           "reason_zh": "原运行在带 :visible 的定位器上超时。补充实测执行到失败点击之前，额外等待 10 秒：1.1.8 中四个评论分页候选均为零面积；PR 版本两个候选分别为 14.84375 × 32 和 36 × 34。零面积解释了可见性筛选为何拒绝目标；这定位到布局输出差异，尚不能单独归因于某个源码提交。补充实测使用当前站点与冻结浏览器，不点击最终目标、不提交表单，不替代原成绩。",
           "reason_en": "The historical run times out on a :visible locator. The supplemental probe executes the prefix before the failed click and waits an additional 10 seconds: in 1.1.8, all four review-pagination candidates have zero area; two PR candidates measure 14.84375 × 32 and 36 × 34. Zero area explains rejection by the visibility filter and identifies a layout-output difference, but does not isolate an individual source commit. The probe uses the current site and frozen binaries, does not click the final target or submit a form, and does not replace the original score.",
           "supplemental_diagnostic": {
-            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-163-readonly-geometry.json",
+            "path": "evidence/current/trajectory-replay/audit-20260920/task-163-readonly-geometry.json",
             "sha256": "ce19d39e07ddc90c3d4872fbe8cb7a2a29a9f1bd1124986fb9a9c075db579b49"
           }
         },
@@ -157,7 +157,7 @@
           "reason_zh": "原运行在带 :visible 的定位器上超时。补充实测直接进入订单页，没有复现完整历史前缀：1.1.8 中三个 Filters 候选均为零面积；PR 版本第一个为 100.703125 × 33。零面积解释了可见性筛选为何拒绝目标；这定位到布局输出差异，尚不能单独归因于某个源码提交。补充实测使用当前站点与冻结浏览器，不点击最终目标、不提交表单，不替代原成绩。",
           "reason_en": "The historical run times out on a :visible locator. The supplemental probe navigates directly to the orders page rather than reproducing the complete historical prefix: in 1.1.8, all three Filters candidates have zero area; the first PR candidate measures 100.703125 × 33. Zero area explains rejection by the visibility filter and identifies a layout-output difference, but does not isolate an individual source commit. The probe uses the current site and frozen binaries, does not click the final target or submit a form, and does not replace the original score.",
           "supplemental_diagnostic": {
-            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-196-readonly-geometry.json",
+            "path": "evidence/current/trajectory-replay/audit-20260920/task-196-readonly-geometry.json",
             "sha256": "98adb44e54e3dbac9b27d44987d9a1f6b904909622783b6ba760f5b1c8fda635"
           }
         },
@@ -169,7 +169,7 @@
           "reason_zh": "原运行在带 :visible 的定位器上超时。补充实测执行到失败点击之前，额外等待 10 秒：1.1.8 中Submit Review 按钮为零面积；PR 版本为 134.953125 × 32。零面积解释了可见性筛选为何拒绝目标；这定位到布局输出差异，尚不能单独归因于某个源码提交。补充实测使用当前站点与冻结浏览器，不点击最终目标、不提交表单，不替代原成绩。",
           "reason_en": "The historical run times out on a :visible locator. The supplemental probe executes the prefix before the failed click and waits an additional 10 seconds: in 1.1.8, Submit Review has zero area; the PR button measures 134.953125 × 32. Zero area explains rejection by the visibility filter and identifies a layout-output difference, but does not isolate an individual source commit. The probe uses the current site and frozen binaries, does not click the final target or submit a form, and does not replace the original score.",
           "supplemental_diagnostic": {
-            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-585-readonly-geometry.json",
+            "path": "evidence/current/trajectory-replay/audit-20260920/task-585-readonly-geometry.json",
             "sha256": "15cb080ca2c82dfa612607e22a4544a8b9669a67875b482b8057d06916230797"
           }
         },
@@ -181,7 +181,7 @@
           "reason_zh": "原轨迹先点击页眉链接展开下拉菜单，再选择同一 href 的第二个可见链接。按此前缀补充实测并等待 10 秒：两版的页眉链接均为 70.203125 × 32；1.1.8 的菜单内链接为 0 × 0，PR 版本为 238 × 32。因此 1.1.8 的 :visible 筛选只剩一个候选，第二个匹配无法成立。直接导航到目标页不能复现展开菜单状态，不能作为此故障的对照。该实测定位到展开菜单后的布局输出，尚未单独隔离具体源码提交；未点击最终链接、未修改站点数据，原成绩不变。",
           "reason_en": "The trajectory first clicks the header link to open its dropdown, then selects the second visible link with the same href. A supplemental probe reproduces that prefix and waits 10 seconds: both header links measure 70.203125 × 32, but the menu link measures 0 × 0 in 1.1.8 and 238 × 32 in the PR build. The released build therefore retains only one visible candidate and cannot match the second. Direct navigation to the destination does not reproduce the open-menu state and is not a valid control for this failure. This identifies layout output after menu expansion, not an isolated source commit. The final link is not clicked, site data is not changed, and the original score is retained.",
           "supplemental_diagnostic": {
-            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-156-readonly-prefix-geometry.json",
+            "path": "evidence/current/trajectory-replay/audit-20260920/task-156-readonly-prefix-geometry.json",
             "sha256": "a1e8875daa0c2564172266762d39301abe14fb42810daa533404b6ea9e40889b"
           }
         },
@@ -193,7 +193,7 @@
           "reason_zh": "原运行在展开用户菜单后，快照已经列出 Set status，但 :visible 定位器仍超时。补充实测按此前缀展开菜单，两版祖先节点都有 dropdown show；旧版菜单内按钮为 0 × 0，PR 版为 238 × 32。当前账号已有 Busy 状态，按钮改称 Edit status，因此补充数据证明的是菜单布局差异，不能把当前文案变化倒推为原失败原因。源代码修复在 context_host/layout.rs 的精确几何查询中拒绝复用已过期的布局树。实测没有点击状态按钮，原成绩不变。",
           "reason_en": "The historical snapshot lists Set status after the user menu opens, but its :visible locator times out. A supplemental prefix probe finds dropdown show on the menu ancestor in both builds; the release menu button measures 0 × 0 and the PR button 238 × 32. The current account is already Busy and now labels the button Edit status, so this proves a menu-layout difference rather than making the current label the historical cause. The source repair in context_host/layout.rs rejects stale layout trees for exact geometry queries. The status button is not clicked and the original score is unchanged.",
           "supplemental_diagnostic": {
-            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-418-supplemental-state.json",
+            "path": "evidence/current/trajectory-replay/audit-20260920/task-418-supplemental-state.json",
             "sha256": "59519f2d48fce3c01689ef897f18979494737383f5c3ffdea5b288ef8692ed99"
           }
         }
@@ -281,7 +281,7 @@
           "reason_zh": "第 2 步寻找第二个可见的 /primer/design 链接。只读实测发现两个同址链接均存在，第二个文字链接尺寸正常；发布版却把第一个头像链接算成零宽，过滤后只剩一个可见候选，第二个可见候选因此不存在。PR 版第一个链接为 64×48。独立行内链接嵌套块元素实验也复现零宽到非零宽的差异。原始诊断另有选择器语法错误，已修复诊断采集，但它不是点击超时的原因。",
           "reason_en": "Step 2 requests the second visible /primer/design link. A read-only probe finds both links and normal text-link geometry, but the release gives the first avatar link zero width. Visibility filtering leaves only one candidate, so the second visible candidate does not exist. The PR build measures the first link as 64×48. An independent inline-link/block-content fixture reproduces the zero-to-nonzero width change. The original diagnostic selector error was separate and has been repaired; it did not cause the click timeout.",
           "supplemental_diagnostic": {
-            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-314-readonly-geometry.json",
+            "path": "evidence/current/trajectory-replay/audit-20260920/task-314-readonly-geometry.json",
             "sha256": "43511ee1c3a0cde0b63faf27d07ba7311c94b1ab3218cdb37a56f4c048dd490f"
           }
         },
@@ -293,7 +293,7 @@
           "reason_zh": "第 2 步寻找第二个可见的 /byteblaze/gimmiethat.space 链接。只读实测确认第一个头像链接在发布版中宽度为零，在 PR 版中为 64×48；第二个文字链接在两版中均有正常尺寸。零宽候选被过滤后，原选择器要求的第二个可见链接不存在。这个差异与独立行内链接嵌套块元素实验一致。原始诊断的 SyntaxError 发生在点击超时之后，不是点击失败原因。",
           "reason_en": "Step 2 requests the second visible /byteblaze/gimmiethat.space link. The read-only probe measures the first avatar link at zero width in the release and 64×48 in the PR build; the second text link has normal geometry in both. Filtering out the zero-width candidate leaves no second visible link. This agrees with the independent inline-link/block-content fixture. The original diagnostic SyntaxError followed the click timeout and did not cause it.",
           "supplemental_diagnostic": {
-            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-349-readonly-geometry.json",
+            "path": "evidence/current/trajectory-replay/audit-20260920/task-349-readonly-geometry.json",
             "sha256": "9fbf55b3fa56440e452f72b58b9ec0c43c729953e7420f811640d38191846b59"
           }
         }
@@ -319,7 +319,7 @@
           "reason_zh": "第 3 步 Promise.all 同时读取十篇帖子，其中一个请求 active=10008ms、queued=0ms、收到 0 字节后返回 curl 28；首个异常使整步退出，未进入答案评测。源码中 HTTP 请求总超时默认 30 秒，浏览器子资源连接超时默认 10 秒，不能把错误中的 10 秒误写为所有 HTTP 请求的总预算。使用冻结两版浏览器对同十个 URL 各做一次后续并发读取，20 个请求均为 200 且正文非空，旧版也能完成。故原成绩是一次真实传输超时，但不能计作已证明的 PR 浏览器修复。原日志没有 DNS、建连、首字节分段计时，不能进一步区分当时的网络与服务端因素；补充表展示的是当前读取对照，不替代历史失败。",
           "reason_en": "Step 3 uses Promise.all for ten post reads. One request fails with curl 28 after active=10008ms, queued=0ms and zero bytes received; fail-fast exits the action before answer evaluation. Source defaults are a 30-second overall HTTP timeout and a 10-second browser-subresource connect timeout, so the observed 10 seconds is not the overall budget of every HTTP request. One later concurrent read of the same URLs with each frozen build produces 20 HTTP-200 nonempty bodies; the release can complete too. The historical outcome is a real transport timeout, not a proven PR browser repair. The original log lacks DNS, connection and first-byte timings, preventing separation of the contemporaneous network and server factors. The supplemental table is a current read comparison, not a replacement score.",
           "supplemental_diagnostic": {
-            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-67-supplemental-reads.json",
+            "path": "evidence/current/trajectory-replay/audit-20260920/task-67-supplemental-reads.json",
             "sha256": "ed2fecc04a799d5989f0941bbbebc2a4598857ebe7b118e7c7cfcf5140103dd7"
           }
         }
@@ -375,7 +375,7 @@
           "reason_zh": "相关 GraphQL 请求已返回 HTTP 200，验收失败因为记录缺少 Referer。独立本地 HTTP 实验对照服务器收到的头和正式 HAR 采集器：两版的 fetch/XHR 都实际发送 Referer；1.1.8 仅在带 Cookie 的两种组合中丢失记录，无 Cookie 对照正常，冻结 PR 四种组合均正常。源码 moli-protocol/src/domains/network/output_queue.rs 的 append_missing_subresource_request_extra_info 遇到已有 Cookie 元数据便提前返回，遗漏传输层请求头；PR 去掉该返回，并有 staged_cookie_report_does_not_suppress_observed_transport_headers 回归测试。本轮 PR 三个相关 GraphQL 请求也均记录正确 Referer。原失败成绩不变。",
           "reason_en": "Relevant GraphQL requests return HTTP 200, but acceptance fails because their records omit Referer. An isolated HTTP fixture compares server-observed headers with the production HAR recorder: both builds send Referer for fetch and XHR; 1.1.8 loses it only in the two cookie-bearing combinations, while its no-cookie controls and all four frozen-PR combinations record it correctly. In moli-protocol/src/domains/network/output_queue.rs, append_missing_subresource_request_extra_info returns early for existing cookie metadata, suppressing transport headers. The PR removes this return and adds staged_cookie_report_does_not_suppress_observed_transport_headers. Its three relevant cohort GraphQL requests also record Referer. The original failure score is unchanged.",
           "supplemental_diagnostic": {
-            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-339-header-recording.json",
+            "path": "evidence/current/trajectory-replay/audit-20260920/task-339-header-recording.json",
             "sha256": "9ecba7340315bcb903d62f386e43ce0a5a20bb8ae3adf479093e37323a08592b"
           }
         },
@@ -387,7 +387,7 @@
           "reason_zh": "订单筛选 XHR 已带 fraud 参数并返回 HTTP 200；三个 sales_order_grid 请求都记录了 Cookie，却都遗漏 Referer。独立本地实验复现同一组合：1.1.8 的带 Cookie XHR 在服务器端有 Referer、HAR 中没有，无 Cookie 对照正常；冻结 PR 均正确。根因是 moli-protocol/src/domains/network/output_queue.rs 的 append_missing_subresource_request_extra_info 在已有 Cookie 元数据时提前返回，阻止实际请求头进入协议事件。PR 删除这一分支，本轮三个订单请求的 Referer 也均正确。原站点请求未重新执行，原失败成绩保持不变。",
           "reason_en": "The order-filter XHR carries the fraud parameter and returns HTTP 200. All three sales_order_grid records contain Cookie but omit Referer. An isolated fixture reproduces this combination: 1.1.8 sends Referer on a cookie-bearing XHR but omits it from HAR; the no-cookie control and frozen PR are correct. The cause is the early return for existing cookie metadata in append_missing_subresource_request_extra_info, moli-protocol/src/domains/network/output_queue.rs, which suppresses observed headers in protocol events. The PR removes that branch, and all three cohort order requests record Referer correctly. No original site request was rerun; the historical failure score remains unchanged.",
           "supplemental_diagnostic": {
-            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-676-header-recording.json",
+            "path": "evidence/current/trajectory-replay/audit-20260920/task-676-header-recording.json",
             "sha256": "9344dfbe06253811bdd6596a12b7bb67157ee3ce0d9eeba04d382390ab4a3cc9"
           }
         }
@@ -413,7 +413,7 @@
           "reason_zh": "第 5 步快照明确标记 Add to Cart 为 disabled；第 6 步随即执行 element.click()，没有等待 enabled，也不校验点击效果。该调用返回成功，但没有 cart/add 请求，第 10 步购物车仍为空。Magento 的 catalogAddToCart._create 在绑定提交处理器后才解除禁用。只读实测中，发布版在 DOMContentLoaded 后第 2 秒样本已启用，PR 版在第 5 秒样本才启用，且均无脚本错误或请求失败。两版均能初始化，先后顺序也会变化：这是已证实的轨迹就绪条件缺口，不能据一次 PR 通过宣称浏览器修复。原记录没有点击瞬间的 disabled 值，故不伪称已回溯证明该瞬间状态；第 6 步仍保持工具成功，第 10 步仍保持原失败。修正需要在共享轨迹中显式等待可操作条件，再按新轨迹资格验证。",
           "reason_en": "Step 5 explicitly snapshots Add to Cart as disabled. Step 6 immediately calls element.click(), without waiting for enabled state or checking its effect. The call succeeds but emits no cart/add request; step 10 finds an empty cart. Magento catalogAddToCart._create enables the button only after binding submission. A read-only probe finds the release enabled at the 2-second sample after DOMContentLoaded and the PR build at the 5-second sample, with no script errors or failed requests in either. Both can initialize, and readiness order varies: this establishes a missing trajectory precondition, not a demonstrated browser repair from one PR pass. The historical trace lacks the disabled value at the exact click, so it does not prove that instant retrospectively. Step 6 remains tool success and step 10 remains the original failure. A shared explicit readiness condition requires new trajectory qualification.",
           "supplemental_diagnostic": {
-            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-506-supplemental-state.json",
+            "path": "evidence/current/trajectory-replay/audit-20260920/task-506-supplemental-state.json",
             "sha256": "e73ba0bc8328dd16af748a038d8858a903551963a7f5cac75a630b0ba69c95f7"
           }
         }
@@ -439,7 +439,7 @@
           "reason_zh": "原始第 5 步把几何可见性、组件初始化、选项和事件绑定合并检查。补充只读实测逐项拆开后，组件已初始化、Color／Size 正确、向导关联与 Next 点击处理器均正常；发布版对话框和 Next 却返回零矩形，5 秒后仍不变，PR 版返回正常尺寸。失败条件是 getClientRects().length 为零，归入布局状态未更新。诊断额外等待 Edit Configurations 出现后才打开窗口，不点击 Next、不保存；原始成绩保留。",
           "reason_en": "The original step 5 combines geometry, component initialization, selected attributes and event binding. A supplemental read-only probe separates these checks: initialization, Color/Size selection, wizard ownership and the Next click handler are all ready, but the release returns zero rectangles for the dialog and Next button even after another five seconds; the PR build returns normal dimensions. The failed predicate is getClientRects().length > 0, locating stale layout geometry. This diagnostic additionally waits for Edit Configurations to appear before opening the dialog, never clicks Next or saves, and preserves the original score.",
           "supplemental_diagnostic": {
-            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-547-readonly-geometry.json",
+            "path": "evidence/current/trajectory-replay/audit-20260920/task-547-readonly-geometry.json",
             "sha256": "8226b45f11913c73686a34d0a3604fd5db4f5bdf9f333f90bd68d038e8f17e24"
           }
         }
@@ -465,7 +465,7 @@
           "reason_zh": "第 6 步用 offsetParent 筛选建议项，误把已显示的用户按钮排除。补充只读实测确认：发布版仍返回零面积和空 offsetParent，多等 5 秒不变；PR 版返回正常几何值。下方表格保留两版实测。独立 CSS 更新实验也复现了旧布局树被复用；修复在 context_host/layout.rs 拒绝脏缓存，并在 layout_state.rs 标记布局输入变化。原始分数不变。",
           "reason_en": "Step 6 filters suggestions by offsetParent and excludes the displayed user button. A read-only probe confirms zero-area geometry and a null offsetParent in the release, unchanged after another five seconds, versus normal geometry in the PR build. The table below retains both observations. An isolated CSS-update probe also reproduces reuse of a stale layout tree. The fix rejects dirty cached trees in context_host/layout.rs and marks changed inputs in layout_state.rs. The original score is unchanged.",
           "supplemental_diagnostic": {
-            "path": "/Users/lianglinkai/.browser-eval/evidence/current/trajectory-replay/audit-20260920/task-576-readonly-geometry.json",
+            "path": "evidence/current/trajectory-replay/audit-20260920/task-576-readonly-geometry.json",
             "sha256": "975b5fa872f2c9281705dcce1f55aa8efd55ff295bbc34e3093d0934f10a6d7b"
           }
         }

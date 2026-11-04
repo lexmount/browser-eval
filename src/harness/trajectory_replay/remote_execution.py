@@ -27,15 +27,19 @@ from harness.environments.webarena.runtime import (
     login_context,
     prepare_browser_viewport,
 )
-from harness.environments.webarena.topology import LOCAL_RECORDED_HOSTS, TRUSTED_RECORDED_HOSTS
+from harness.environments.webarena.topology import (
+    LOCAL_RECORDED_HOSTS,
+    TRUSTED_RECORDED_HOSTS,
+    require_site_credentials,
+)
 from harness.record_io import canonical_json_sha256, file_sha256
 from harness.trajectory_replay.catalog_contracts import (
     apply_action_overrides,
     catalog_action_overrides,
 )
+from harness.trajectory_replay.core.suite import BrowserTask
 from harness.trajectory_replay.public_webarena.executor import execute_steps
 from harness.trajectory_replay.public_webarena.response_builder import build_agent_response
-from harness.trajectory_replay.public_webarena.suite import BrowserTask
 from harness.trajectory_replay.remote_runtime import (
     COHORT_RESET_SCOPE,
     checked_file_sha256,
@@ -306,7 +310,7 @@ def _kernel_assigned_port(process: subprocess.Popen) -> int:
     raise TimeoutError("browser did not open a CDP port")
 
 
-def _stop_browser(process: subprocess.Popen) -> None:
+def stop_browser(process: subprocess.Popen) -> None:
     if process.poll() is not None:
         return
     process.terminate()
@@ -338,7 +342,7 @@ def start_local_browser(
         _wait_cdp(endpoint, process)
     except BaseException:
         # The browser runs in its own session, so an interrupt would orphan it.
-        _stop_browser(process)
+        stop_browser(process)
         raise
     return process, endpoint
 
@@ -485,7 +489,7 @@ def _evaluate_assertions(service: object, contract: object) -> list[dict]:
     )
 
 
-def _run_task(
+def run_replay_task(
     *,
     task_id: int,
     row: dict,
@@ -872,6 +876,7 @@ def preflight_cohort(args: argparse.Namespace) -> tuple[dict, dict, object, dict
         or set(dataset_rows) != set(expected_ids)
     ):
         raise ValueError("manifest does not contain the exact ordered selected tasks")
+    require_site_credentials(sites)
     benchmark = remote_benchmark(sites)
     by_id: dict[int, dict] = {}
     for row in rows:
@@ -1166,7 +1171,7 @@ def _execute_cohort(args: argparse.Namespace) -> int:
             )
             _write(args.output / "browser-readiness.json", readiness)
             for task_id in execution_manifest["task_ids"]:
-                result = _run_task(
+                result = run_replay_task(
                     task_id=task_id,
                     row=tasks[task_id],
                     benchmark=benchmark,
@@ -1192,7 +1197,7 @@ def _execute_cohort(args: argparse.Namespace) -> int:
                     flush=True,
                 )
         finally:
-            _stop_browser(process)
+            stop_browser(process)
     after = cohort_reference_hashes(args)
     verify_cohort_evidence(args.output, results, tasks)
     certified = certify_cohort(
@@ -1410,6 +1415,7 @@ def _execute_mutation_diagnostic(args: argparse.Namespace) -> int:
     if output.is_symlink():
         raise ValueError("diagnostic output is symlinked")
     sites = load_remote_sites(args.site_map)
+    require_site_credentials(sites)
     benchmark = remote_benchmark(sites)
     task = benchmark.get_task(args.task)
     if not task.is_mutate_task:

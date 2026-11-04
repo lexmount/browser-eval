@@ -8,13 +8,11 @@ import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 
-from lexbench_webfetch.paths import contained_path
-
 from harness.data_home import data_home
 from harness.record_io import bytes_sha256
+from harness.reporting.publication import PublicationClient
+from harness.reporting.publish import ReceiptRelease, publish_receipt_release
 from harness.web_fetch.config import ROOT
-from harness.web_fetch.report_publish import PublishConfig
-from harness.web_fetch.report_publish import publish as publish_package
 from harness.web_search import delivery as report_delivery
 from harness.web_search import profiles
 from harness.web_search import report as search_report
@@ -26,6 +24,7 @@ from harness.web_search.profiles import (
     current_selection,
     publication_metadata,
 )
+from lexbench_webfetch.paths import contained_path
 
 
 def prepare(report, visual, content, sources, work, *, profile):
@@ -134,6 +133,11 @@ def verify_plan(report, work):
     return plan
 
 
+CLIENT = PublicationClient("Web-Search-Report-Publisher/1.0", put_timeout=90)
+# A pending operation replays its original bytes under its idempotency key, so this name stays.
+UPLOAD_NAME = "webfetch"
+
+
 def publish(report, work, *, transport=None):
     plan = verify_plan(report, work)
     target = plan["target"]
@@ -154,13 +158,13 @@ def publish(report, work, *, transport=None):
     if completed.get("archive_sha256") == plan["archive_sha256"] and completed.get("publication_pending") is False and completed.get("versionId") != target["versionId"]:
         result = completed
     else:
-        result = publish_package(
-        PublishConfig(authority, work / "report.zip", work / "delivery", receipt_file,
-                      work / "operation-pending.json", mode="update",
-                      title=plan.get("title", "Search API evaluation"),
-                      operation_namespace="search", visibility=target["visibility"]),
-            transport=transport, package_check=package_check,
-            validation_inputs=(work / "publication-plan.json", work / "inputs"),
+        result = publish_receipt_release(
+            ReceiptRelease(authority, work / "report.zip", work / "delivery", receipt_file,
+                           work / "operation-pending.json", namespace="search", upload_name=UPLOAD_NAME, client=CLIENT,
+                           package_check=package_check, title=plan.get("title", "Search API evaluation"),
+                           mode="update", visibility=target["visibility"],
+                           inputs=(work / "publication-plan.json", work / "inputs")),
+            transport=transport,
         )
     updated = dict(target, previous_version=target["versionId"], versionId=result["versionId"], published_at=datetime.now(UTC).isoformat(), code_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT).decode().strip())
     # Keep the exact planned files immutable after activation, then bind their new paths.

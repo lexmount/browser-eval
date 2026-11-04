@@ -23,7 +23,7 @@ from harness.trajectory_replay.webarena_plan import (
 def test_committed_trajectories_match_their_task_contract() -> None:
     root = Path(__file__).resolve().parents[2]
     selection = json.loads(
-        (root / "evaluation/browser-use/webarena-verified-pilot.json").read_text()
+        (root / "evaluation/browser-use/webarena-verified-pilot.json").read_text(encoding="utf-8")
     )
     dataset = json.loads(
         (root / "evaluation/trajectory-replay/webarena-verified/trajectories.json").read_text(

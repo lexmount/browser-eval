@@ -36,7 +36,7 @@ class GroundTruthTest(unittest.TestCase):
         payload = {'tool':'web_fetch', 'cases':[case]}
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory)/'dataset.json'
-            path.write_text(json.dumps(payload))
+            path.write_text(json.dumps(payload), encoding='utf-8')
             with self.assertRaisesRegex(ValueError, 'full-reference evidence'):
                 load_dataset(path)
 
@@ -66,7 +66,7 @@ class GroundTruthTest(unittest.TestCase):
                 self.assertEqual(c['required_facts'],[])
                 self.assertEqual(c['source_benchmark']['minimum_entries'],3)
                 self.assertEqual(c['source_benchmark']['verification_scope'],'first_three_name_detail_pairs')
-                reference=json.loads((input_tree(Path('evaluation/dataset.json'),'list-references')/(c['id']+'.json')).read_text())
+                reference=json.loads((input_tree(Path('evaluation/dataset.json'),'list-references')/(c['id']+'.json')).read_text(encoding='utf-8'))
                 self.assertGreaterEqual(len(reference['items']),3,c['id'])
             elif c['task_kind']=='file':self.assertFalse(c['content_score_applicable'])
             elif c['task_kind']=='resource':self.assertTrue(c['expected_resources'])
@@ -81,7 +81,7 @@ class GroundTruthTest(unittest.TestCase):
                 continue
             folder = sources / case['id']
             audit = validate_render_reference(case, (folder / 'initial.html.txt').read_bytes(),
-                                              (folder / 'rendered.txt').read_text())
+                                              (folder / 'rendered.txt').read_text(encoding='utf-8'))
             self.assertTrue(audit['valid'], audit['errors'])
 
     def test_restricted_tasks_retain_existing_evidence(self):
@@ -89,7 +89,7 @@ class GroundTruthTest(unittest.TestCase):
         by={c['id']:c for c in data['cases']}
         for cid,count in [('challenge-04',30),('challenge-06',15)]:
             self.assertEqual(by[cid]['source_verification']['state'],'restricted')
-            self.assertEqual(len(json.loads((self.require_sources()/cid/'items.json').read_text())),count)
+            self.assertEqual(len(json.loads((self.require_sources()/cid/'items.json').read_text(encoding='utf-8'))),count)
             self.assertNotIn('需用户辅助',by[cid]['source_verification']['note'])
 
     def test_document_references_match_frozen_sources_and_embedded_provenance(self):
@@ -113,15 +113,15 @@ class GroundTruthTest(unittest.TestCase):
         self.assertIn('Table Of Content',cases['document-03']['ground_truth_main_content'])
         self.assertIn('page 3 / 3',cases['document-03']['ground_truth_main_content'])
         for identifier in ('document-07','document-08'):
-            evidence=json.loads((sources/identifier/'evidence.json').read_text())
+            evidence=json.loads((sources/identifier/'evidence.json').read_text(encoding='utf-8'))
             embedded=evidence['embedded_document']
             reference=cases[identifier]['ground_truth_main_content']
             self.assertEqual(embedded['text_chars'],len(reference),identifier)
             self.assertEqual(embedded['text_sha256'],hashlib.sha256(reference.encode()).hexdigest(),identifier)
-        embedded07=json.loads((sources/'document-07'/'evidence.json').read_text())['embedded_document']
+        embedded07=json.loads((sources/'document-07'/'evidence.json').read_text(encoding='utf-8'))['embedded_document']
         linked=(sources/'document-07'/embedded07['evidence_path']).resolve()
         self.assertEqual(hashlib.sha256(linked.read_bytes()).hexdigest(),embedded07['sha256'])
-        self.assertIn('/pdf/sample-3pp.pdf',(sources/'document-08'/'source.html.txt').read_text())
+        self.assertIn('/pdf/sample-3pp.pdf',(sources/'document-08'/'source.html.txt').read_text(encoding='utf-8'))
 
     def test_feishu_help_acceptance_is_content_not_table_markup(self):
         data,_=self.historical_dataset()

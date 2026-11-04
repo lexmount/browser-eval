@@ -18,7 +18,7 @@ from harness.trajectory_replay.report_inputs import bound_dataset_path, replay_i
 
 
 def dump(path, value):
-    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+    path.write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return path
 
 
@@ -166,7 +166,7 @@ def test_current_catalog_rebinds_once_and_rejects_changed_resume_inputs(tmp_path
     def resolve(track, relative, revision=None):
         return source_paths[relative]
 
-    target = json.loads(sites_path.read_text())
+    target = json.loads(sites_path.read_text(encoding="utf-8"))
     target["sites"] = {
         k: v.replace("public.example", "deployment.invalid") for k, v in target["sites"].items()
     }
@@ -177,7 +177,7 @@ def test_current_catalog_rebinds_once_and_rejects_changed_resume_inputs(tmp_path
         assert selected == binding and portable == suite
         assert load_catalog_inputs(selected, portable, deployment)[0]["task_ids"] == [1, 2]
         assert current_catalog_inputs(deployment, binding) == (selected, portable)
-        payload = json.loads(catalog.read_text())
+        payload = json.loads(catalog.read_text(encoding="utf-8"))
         payload["rows"][0]["source_kind"] = "changed"
         dump(catalog, payload)
         with pytest.raises(ValueError, match="different catalog input binding"):
@@ -216,11 +216,15 @@ def test_replay_cli_report_option(public, no_report, tmp_path):
     import sys
 
     from harness.trajectory_replay import cli as curated_cli
+    from harness.trajectory_replay import runner as curated_runner
     from harness.trajectory_replay.public_webarena import cli as human_cli
 
     cli = human_cli if public else curated_cli
+    # The curated router imports its runner on selection; the public entry binds it at import.
+    run_owner = human_cli if public else curated_runner
     argv = [
         "replay",
+        *([] if public else ["evaluate"]),
         "--suite",
         str(tmp_path / "explicit.json"),
         "--output",
@@ -230,7 +234,7 @@ def test_replay_cli_report_option(public, no_report, tmp_path):
     ]
     if no_report:
         argv.append("--no-report")
-    with patch.object(sys, "argv", argv), patch.object(cli, "run_evaluation") as run:
+    with patch.object(sys, "argv", argv), patch.object(run_owner, "run_evaluation") as run:
         if public:
             with (
                 patch.object(cli, "load_runtime_env"),

@@ -10,6 +10,7 @@ import pytest
 from webarena_verified.types.task import WebArenaSite
 
 from harness.browser_use.runner import (
+    _engine_order,
     _exhausted_agent_steps,
     _limit_cowagent_transport_retries,
     _load_completed_attempts,
@@ -51,6 +52,9 @@ from harness.environments.webarena.runtime import (
     wait_container_healthy,
     wait_magento_dependencies_ready,
 )
+from harness.environments.webarena.topology import RECORDING_GATEWAYS
+
+GW = RECORDING_GATEWAYS[0]
 
 
 def test_browser_config_requests_owned_context_and_supported_viewport_keys() -> None:
@@ -774,14 +778,14 @@ def test_login_context_requires_an_active_context_and_page(missing: str) -> None
 def test_container_host_gateway_returns_literal_ip() -> None:
     class Result:
         exit_code = 0
-        output = b"192.168.5.2 host.docker.internal\n"
+        output = (GW + " host.docker.internal\n").encode()
 
     class Container:
         def exec_run(self, command):
             assert command == ["getent", "hosts", "host.docker.internal"]
             return Result()
 
-    assert container_host_gateway(Container()) == "192.168.5.2"
+    assert container_host_gateway(Container()) == GW
 
 
 def test_wait_container_healthy_waits_past_starting(monkeypatch) -> None:
@@ -1414,7 +1418,8 @@ def test_provider_credentials_come_only_from_the_repository_env(tmp_path, monkey
     assert _load_repo_env(tmp_path) == {"COWAGENT_REPO": "/explicit/cowagent"}
 
     (tmp_path / ".env").write_text(
-        "OPENAI_API_KEY=repository-key\nOPENAI_BASE_URL=https://models.invalid\n"
+        "OPENAI_API_KEY=repository-key\nOPENAI_BASE_URL=https://models.invalid\n",
+        encoding="utf-8"
     )
     assert _load_repo_env(tmp_path) == {
         "OPENAI_API_KEY": "repository-key",
@@ -1422,7 +1427,7 @@ def test_provider_credentials_come_only_from_the_repository_env(tmp_path, monkey
         "COWAGENT_REPO": "/explicit/cowagent",
     }
 
-    (tmp_path / ".env").write_text("OPENAI_BASE_URL=${OPENAI_BASE_URL}\n")
+    (tmp_path / ".env").write_text("OPENAI_BASE_URL=${OPENAI_BASE_URL}\n", encoding="utf-8")
     assert _load_repo_env(tmp_path)["OPENAI_BASE_URL"] == "${OPENAI_BASE_URL}"
 
 
@@ -1432,7 +1437,9 @@ def test_explicit_env_file_is_read_without_shell_interpolation(tmp_path, monkeyp
     (tmp_path / "cowagent/agent/protocol").mkdir(parents=True)
     (tmp_path / "cowagent/agent/protocol/agent.py").touch()
     env_file = tmp_path / "provider.env"
-    env_file.write_text("OPENAI_API_KEY=${SHELL_ONLY_KEY}\nOPENAI_BASE_URL=${SHELL_ONLY_URL}\n")
+    env_file.write_text(
+        "OPENAI_API_KEY=${SHELL_ONLY_KEY}\nOPENAI_BASE_URL=${SHELL_ONLY_URL}\n", encoding="utf-8"
+    )
     runner = "harness.browser_use.runner"
     for name in ("require_clean_git_checkout", "load_pilot", "configure_benchmark"):
         monkeypatch.setattr(f"{runner}.{name}", lambda *_args: None)
@@ -1458,3 +1465,51 @@ def test_explicit_env_file_is_read_without_shell_interpolation(tmp_path, monkeyp
         run(args)
 
     assert reached.value.args == ("${SHELL_ONLY_KEY}", "${SHELL_ONLY_URL}")
+
+
+def test_browser_use_run_stops_before_sites_start_without_site_accounts(
+    monkeypatch, tmp_path
+) -> None:
+    from harness import env_file
+    from harness.browser_use import runner as runner_module
+
+    monkeypatch.setattr(env_file, "_repository_credentials_file", tmp_path / "absent.env")
+    local = tmp_path / "run.env"
+    local.write_text("OPENAI_API_KEY=synthetic-key\n", encoding="utf-8")
+    cowagent = tmp_path / "cowagent"
+    (cowagent / "agent/protocol").mkdir(parents=True)
+    (cowagent / "agent/protocol/agent.py").write_text("", encoding="utf-8")
+    monkeypatch.setattr(runner_module, "require_clean_git_checkout", lambda path: "commit")
+    monkeypatch.setattr(runner_module, "load_pilot", lambda path: object())
+    monkeypatch.setattr(
+        runner_module, "prepare_sites", lambda *args, **kwargs: pytest.fail("sites started")
+    )
+    monkeypatch.setattr(
+        runner_module, "configure_benchmark", lambda *args: pytest.fail("run continued")
+    )
+    arguments = SimpleNamespace(
+        repo_root=str(tmp_path),
+        env_file=str(local),
+        cowagent_repo=str(cowagent),
+        output=str(tmp_path / "output"),
+        selection=str(tmp_path / "selection.json"),
+    )
+
+    with pytest.raises(ValueError, match="WEBARENA_SHOPPING_PASSWORD"):
+        runner_module.run(arguments)
+
+
+def test_engine_order_rotates_every_registered_browser(monkeypatch: pytest.MonkeyPatch) -> None:
+    from harness.browser_use import runner as runner_module
+
+    assert _engine_order(0) == ("chromium", "moli")
+    assert _engine_order(1) == ("moli", "chromium")
+    monkeypatch.setattr(runner_module, "ENGINE_IMAGES", {"a": "1", "b": "2", "c": "3"})
+    assert [_engine_order(index) for index in range(4)] == [
+        ("a", "b", "c"),
+        ("b", "c", "a"),
+        ("c", "a", "b"),
+        ("a", "b", "c"),
+    ]
+    monkeypatch.setattr(runner_module, "ENGINE_IMAGES", {"solo": "1"})
+    assert _engine_order(1) == ("solo",)

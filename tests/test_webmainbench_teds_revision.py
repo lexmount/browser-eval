@@ -20,12 +20,13 @@ def inputs(tmp_path):
     repo = tmp_path / "scorer"
     package = repo / "webmainbench/metrics"
     package.mkdir(parents=True)
-    (package / "__init__.py").write_text("")
+    (package / "__init__.py").write_text("", encoding="utf-8")
     (package / "base.py").write_text(
         "from dataclasses import dataclass\n"
         "@dataclass\nclass MetricResult:\n"
         "    name: str\n    score: float\n    details: dict\n"
-        "    success: bool\n    error_message: str | None = None\n"
+        "    success: bool\n    error_message: str | None = None\n",
+        encoding="utf-8"
     )
     (package / "calculator.py").write_text(
         "from .base import MetricResult\n"
@@ -34,7 +35,8 @@ def inputs(tmp_path):
         "        return MetricResult('table_TEDS', 0.4, {}, True)\n"
         "class MetricCalculator:\n"
         "    def __init__(self, config):\n"
-        "        self.metrics = {'table_TEDS': TableMetric()}\n"
+        "        self.metrics = {'table_TEDS': TableMetric()}\n",
+        encoding="utf-8"
     )
     subprocess.run(["git", "init", "-q", str(repo)], check=True)
     subprocess.run(["git", "-C", str(repo), "add", "."], check=True)
@@ -62,11 +64,11 @@ def inputs(tmp_path):
     names = ("text_edit", "code_edit", "formula_edit", "table_edit", "table_TEDS")
     for identifier in ("one", "two"):
         reference = source / "references" / (identifier + ".md")
-        reference.write_text("reference")
+        reference.write_text("reference", encoding="utf-8")
         cases.append({"id": identifier, "meta": {}})
         for provider in ("first", "second"):
             artifact = source / (provider + "-" + identifier + ".md")
-            artifact.write_text("response")
+            artifact.write_text("response", encoding="utf-8")
             metrics = {name: {"score": 0.5, "success": True, "details": {}} for name in names}
             metrics["overall"] = {
                 "score": 0.5,
@@ -100,10 +102,11 @@ def inputs(tmp_path):
             "dimensions": {},
         }
     (source / "dataset.json").write_text(
-        json.dumps({"cases": cases, "coverage_plan": {"static_html": ["first", "second"]}})
+        json.dumps({"cases": cases, "coverage_plan": {"static_html": ["first", "second"]}}),
+        encoding="utf-8"
     )
-    (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
-    (source / "score-summaries.json").write_text(json.dumps(summaries))
+    (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    (source / "score-summaries.json").write_text(json.dumps(summaries), encoding="utf-8")
     yield source, repo, rows, summaries
     for name in list(sys.modules):
         if name == "webmainbench" or name.startswith("webmainbench."):
@@ -144,7 +147,7 @@ def test_revision_retains_first_official_scores_and_aggregate(inputs, tmp_path, 
     for original, revised in zip(rows, after):
         assert revised["official_metrics"] == original["official_metrics"]
         assert revised["metrics"]["table_TEDS"]["score"] == 0.4
-    revised_summaries = json.loads((output / "score-summaries.json").read_text())
+    revised_summaries = json.loads((output / "score-summaries.json").read_text(encoding="utf-8"))
     for provider, summary in summaries.items():
         assert (
             revised_summaries[provider]["original_official_aggregate"]
@@ -152,7 +155,7 @@ def test_revision_retains_first_official_scores_and_aggregate(inputs, tmp_path, 
         )
     assert snapshot(source) == before
     audit = diagnostics.review_teds_correction(source, output)
-    (output / "teds-correction-review.json").write_text(json.dumps(audit))
+    (output / "teds-correction-review.json").write_text(json.dumps(audit), encoding="utf-8")
     diagnostics.validate_teds_revision(output)
 
 
@@ -185,7 +188,7 @@ def test_changed_source_during_scoring_is_rejected(inputs, tmp_path, monkeypatch
 
         def change_source(*args, **kwargs):
             result = calculate(*args, **kwargs)
-            (source / "first-one.md").write_text("changed during scoring")
+            (source / "first-one.md").write_text("changed during scoring", encoding="utf-8")
             return result
 
         metric.calculate = change_source
@@ -211,7 +214,7 @@ def test_verified_prior_revision_can_be_inherited(inputs, tmp_path, monkeypatch)
     prior = tmp_path / "prior"
     run_revision(monkeypatch, source, repo, prior)
     audit = diagnostics.review_teds_correction(source, prior)
-    (prior / "teds-correction-review.json").write_text(json.dumps(audit))
+    (prior / "teds-correction-review.json").write_text(json.dumps(audit), encoding="utf-8")
     head = subprocess.check_output(["git", "-C", str(repo), "rev-parse", "HEAD"], text=True).strip()
     output = tmp_path / "inherited"
     receipt = diagnostics.revise_teds(
@@ -231,11 +234,11 @@ def test_first_revision_captures_the_original_summary(inputs, tmp_path, monkeypa
         del row["official_metrics"]
     for summary in summaries.values():
         del summary["original_official_aggregate"]
-    (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
-    (source / "score-summaries.json").write_text(json.dumps(summaries))
+    (source / "results.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    (source / "score-summaries.json").write_text(json.dumps(summaries), encoding="utf-8")
     output = tmp_path / "first-revision"
     run_revision(monkeypatch, source, repo, output)
-    revised = json.loads((output / "score-summaries.json").read_text())
+    revised = json.loads((output / "score-summaries.json").read_text(encoding="utf-8"))
     for provider, summary in summaries.items():
         assert revised[provider]["original_official_aggregate"] == summary["official_aggregate"]
     assert diagnostics.review_teds_correction(source, output)["status"] == "passed"
@@ -246,12 +249,12 @@ def test_prior_evidence_changes_during_reuse_prevent_installation(inputs, tmp_pa
     prior = tmp_path / "prior"
     run_revision(monkeypatch, source, repo, prior)
     audit = diagnostics.review_teds_correction(source, prior)
-    (prior / "teds-correction-review.json").write_text(json.dumps(audit))
+    (prior / "teds-correction-review.json").write_text(json.dumps(audit), encoding="utf-8")
     factory = diagnostics.official_calculator
 
     def changing_scorer(*args):
         calculator = factory(*args)
-        (prior / "first-one.md").write_text("changed during reuse")
+        (prior / "first-one.md").write_text("changed during reuse", encoding="utf-8")
         return calculator
 
     monkeypatch.setattr(diagnostics, "official_calculator", changing_scorer)

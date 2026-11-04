@@ -152,7 +152,7 @@ def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | 
 
 
     if profile is not None:
-        configuration = json.loads(profile.read_text())
+        configuration = json.loads(profile.read_text(encoding='utf-8'))
         binding = configuration.get('diagnostic_input')
         if binding:
             selected = source or contained_path(data_home(), binding['path'])
@@ -190,7 +190,7 @@ def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | 
                                         for path, raw in files.items()}}
         from harness.reporting.versions import bind_build_version
         manifest['browser_eval'] = bind_build_version(staging)
-        (staging / "report-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2))
+        (staging / "report-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
         check_diagnostic_report(staging, profile=profile)
         staging.rename(output)
     except Exception:
@@ -309,7 +309,7 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
         authored_interpretation = manifest.get('presentation', {}).get(
             'authored_interpretation', bool(dataset.get('comparison', {}).get('report_interpretation')))
     review_path = source / "result-review.json"
-    binding = json.loads(presentation_binding.read_text())
+    binding = json.loads(presentation_binding.read_text(encoding='utf-8'))
     required = ["local-run-contract.json", "execution.json"]
     if review_path.is_file():
         required.append("result-review.json")
@@ -324,11 +324,11 @@ def _build_frozen_presentation(source, output, presentation_binding, *,
         shutil.copytree(source, staging, copy_function=copy_evidence_file)
         shutil.rmtree(staging / "en", ignore_errors=True)
         shutil.copy2(presentation_binding, staging / "presentation-binding.json")
-        batches = json.loads((source / "execution.json").read_text())["batches"]
+        batches = json.loads((source / "execution.json").read_text(encoding='utf-8'))["batches"]
         for record in records:
             case = next(item for item in dataset['cases'] if item['id'] == record['case_id'])
             if not record.get('diagnosis'):
-                text = contained_path(source, record['artifact_path']).read_text(errors='replace')
+                text = contained_path(source, record['artifact_path']).read_text(errors='replace', encoding='utf-8')
                 record['diagnosis'] = diagnose(record, case, text)
             metadata = record.setdefault("provider_metadata", {})
             metadata["public_log_note"] = dataset.get("comparison", {}).get(
@@ -364,9 +364,9 @@ def write_frozen_presentation_manifest(output, manifest, *, show_local_status_ba
     current = dict(manifest)
     binding_path = output / 'presentation-binding.json'
     if binding_path.is_file():
-        binding = json.loads(binding_path.read_text())
+        binding = json.loads(binding_path.read_text(encoding='utf-8'))
         if binding.get('offline_revision'):
-            authority = json.loads(read_evidence_binding(output, binding['offline_revision']).read_text())
+            authority = json.loads(read_evidence_binding(output, binding['offline_revision']).read_text(encoding='utf-8'))
             if authority.get('kind') == 'current_local_snapshot_authority':
                 if authority.get('schema_version') != 1:
                     raise ValueError('Unsupported current presentation authority')
@@ -379,7 +379,7 @@ def write_frozen_presentation_manifest(output, manifest, *, show_local_status_ba
                    presentation={"show_local_status_banners": show_local_status_banners,
                                  "frozen_scores": True, "authored_interpretation": authored_interpretation})
     current['browser_eval'] = bind_build_version(output)
-    (output / "report-manifest.json").write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n")
+    (output / "report-manifest.json").write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n", encoding='utf-8')
 
 
 def write_frozen_result_summary(output, dataset, records):
@@ -407,7 +407,7 @@ def write_frozen_result_summary(output, dataset, records):
             providers[provider] = item
         summary[track] = providers
     for name, value in [('summary.json', summary), ('reliability.json', assess_reliability(dataset, records))]:
-        (output / name).write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n')
+        (output / name).write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
 def build_report(source: Path, output: Path, *, include_english: bool = False,
@@ -418,7 +418,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     include_english = includes_english(language, include_english)
     source, output = source.resolve(), output.resolve()
     manifest_path = contained_path(source, 'manifest.json')
-    if manifest_path.is_file() and json.loads(manifest_path.read_text()).get('collection_only'):
+    if manifest_path.is_file() and json.loads(manifest_path.read_text(encoding='utf-8')).get('collection_only'):
         raise ValueError('Collection-only evidence has no scores; explicitly rescore before building a scored report')
     if source == output or output in source.parents:
         raise ValueError('Report output must not contain its evidence source')
@@ -432,7 +432,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             source, output, presentation_binding, include_english=include_english,
             language=language, authored_interpretation=authored_interpretation,
             show_local_status_banners=show_local_status_banners, profile_path=profile_path)
-    dataset_probe = json.loads(contained_path(source, 'dataset.json').read_text())
+    dataset_probe = json.loads(contained_path(source, 'dataset.json').read_text(encoding='utf-8'))
     diagnostic_preview = (diagnostic_preview and
         dataset_probe.get('comparison', {}).get('kind') == 'web_fetch_diagnostic')
     if not local_audit and not diagnostic_preview:
@@ -442,7 +442,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                                          language=language, profile_path=profile_path)
     if not local_audit:
         require_selection_history(source)
-    dataset = json.loads(contained_path(source,'dataset.json').read_text())
+    dataset = json.loads(contained_path(source,'dataset.json').read_text(encoding='utf-8'))
     if authored_interpretation is None:
         authored_interpretation = bool(dataset.get('comparison', {}).get('report_interpretation'))
     records = load_jsonl(contained_path(source,'results.jsonl'))
@@ -460,16 +460,16 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     speed_dataset=None
     speed_batches=[]
     if speed_root.exists():
-        speed=json.loads((speed_root/'speed-comparison.json').read_text())
+        speed=json.loads((speed_root/'speed-comparison.json').read_text(encoding='utf-8'))
         if speed.get('bindings',{}).get('dataset_sha256') != file_sha256(speed_root/'dataset.json'):
             raise ValueError('Speed comparison dataset binding mismatch')
         if speed.get('bindings',{}).get('results_sha256') != file_sha256(speed_root/'results.jsonl'):
             raise ValueError('Speed comparison result binding mismatch')
-        speed_dataset=json.loads((speed_root/'dataset.json').read_text())
+        speed_dataset=json.loads((speed_root/'dataset.json').read_text(encoding='utf-8'))
         speed_records=load_jsonl(speed_root/'results.jsonl')
         speed_execution=speed_root/'execution.json'
         if speed_execution.is_file():
-            speed_batches=json.loads(speed_execution.read_text()).get('batches', [])
+            speed_batches=json.loads(speed_execution.read_text(encoding='utf-8')).get('batches', [])
         for row in speed_records:
             verify_record_private_artifacts(speed_root, row)
             verify_record_public_call_logs(speed_root, row)
@@ -528,7 +528,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     if not cases or not records:
         raise ValueError('A report requires tasks and measured records')
     execution = source/'execution.json'
-    manifests = json.loads(execution.read_text())['batches'] if execution.exists() else [json.loads((source/'manifest.json').read_text())]
+    manifests = json.loads(execution.read_text(encoding='utf-8'))['batches'] if execution.exists() else [json.loads((source/'manifest.json').read_text(encoding='utf-8'))]
     verify_native_execution_manifests(source, manifests, dataset, records)
     if not local_audit and not diagnostic_preview:
         require_verified_reference_checks(manifests, cases=dataset, records=records, source=source,
@@ -599,7 +599,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 meta["public_response_sha256"] = file_sha256(destination)
             for binding in record_public_call_log_bindings(r):
                 log_source = verify_public_call_log(source, binding)
-                call_log = json.loads(log_source.read_text())
+                call_log = json.loads(log_source.read_text(encoding='utf-8'))
                 call_output = call_log['output']
                 call_output_source = contained_path(source, call_output['path'])
                 call_output_target = contained_path(staging, call_output['path'])
@@ -660,34 +660,34 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         # Preserve frozen input bytes across build and release profile checks.
         shutil.copy2(contained_path(source,'dataset.json'), staging/'dataset.json')
         for name,data in [('execution.json',{'batches':manifests}),('summary.json',summary)]:
-            (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+            (staging/name).write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         if (source / 'certification.json').is_file():
             shutil.copy2(source / 'certification.json', staging / 'certification.json')
             if dataset.get('comparison', {}).get('kind') == 'risk_control_100_moli':
                 from harness.web_fetch.risk_control import risk_control_verification_binding
-                receipt = json.loads((source / 'certification.json').read_text())
+                receipt = json.loads((source / 'certification.json').read_text(encoding='utf-8'))
                 verification_name, _ = risk_control_verification_binding(receipt)
                 for name in ('dataset.json', 'manifest.json', 'execution.json', verification_name):
                     shutil.copy2(contained_path(source, name), staging / name)
         reliability=assess_reliability(dataset,records)
-        (staging/'reliability.json').write_text(json.dumps(reliability,ensure_ascii=False,indent=2)+'\n')
+        (staging/'reliability.json').write_text(json.dumps(reliability,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         # Keep the downloadable result file byte-identical to the independently
         # reviewed evidence. Derived diagnosis/title fields remain report-only.
         (staging/'results.jsonl').write_bytes(contained_path(source,'results.jsonl').read_bytes())
         if result_review is not None:
-            (staging/'result-review.json').write_text(json.dumps(result_review,ensure_ascii=False,indent=2)+'\n')
+            (staging/'result-review.json').write_text(json.dumps(result_review,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         if local_audit:
             if (source/'local-evidence').is_dir():
                 shutil.copytree(source/'local-evidence', staging/'local-evidence')
         content_binding = dataset.get('comparison', {}).get('report_interpretation')
         if content_binding is not None:
             copy_bound_assets(source, staging, {content_binding['path']: content_binding['sha256']})
-            authored_content = json.loads(contained_path(staging, content_binding['path']).read_text())
+            authored_content = json.loads(contained_path(staging, content_binding['path']).read_text(encoding='utf-8'))
             nested_assets = {item['path']: item['sha256'] for item in authored_content.get('figures', [])}
             failure_binding = authored_content.get('failure_review')
             if failure_binding:
                 copy_bound_assets(source, staging, {failure_binding['path']: failure_binding['sha256']})
-                failure_review = json.loads(contained_path(staging, failure_binding['path']).read_text())
+                failure_review = json.loads(contained_path(staging, failure_binding['path']).read_text(encoding='utf-8'))
                 for item in failure_review.get('failures', []):
                     for evidence in item.get('evidence_paths', []):
                         if not isinstance(evidence, dict):
@@ -715,15 +715,15 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         else:
             provenance=repository_root()/'research/headless-implementation-provenance.json'
             if provenance.is_file():
-                payload=json.loads(provenance.read_text())
+                payload=json.loads(provenance.read_text(encoding='utf-8'))
                 hashes={r.get('provider_metadata',{}).get('binary_sha256') for r in records}
                 matched=[item for item in payload.get('implementations',[]) if item.get('binary_sha256') in hashes]
                 if matched:
                     (staging/'implementation-provenance.json').write_text(json.dumps(
-                        {**payload,'implementations':matched},ensure_ascii=False,indent=2)+'\n')
+                        {**payload,'implementations':matched},ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         if (source/'scoring-revisions.json').is_file():
             scoring_path = source/'scoring-revisions.json'
-            scoring_revisions = json.loads(scoring_path.read_text())
+            scoring_revisions = json.loads(scoring_path.read_text(encoding='utf-8'))
             shutil.copy2(scoring_path, staging/'scoring-revisions.json')
             for revision in scoring_revisions:
                 relative = revision.get('prior_result_review_path')
@@ -743,7 +743,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             shutil.copy2(source/'reference-revisions.json', staging/'reference-revisions.json')
         replacement_scopes = source/'provider-replacement-scopes.json'
         if replacement_scopes.is_file():
-            scopes = json.loads(replacement_scopes.read_text())
+            scopes = json.loads(replacement_scopes.read_text(encoding='utf-8'))
             if not isinstance(scopes, list):
                 raise ValueError('Provider replacement scope index is invalid')
             for item in scopes:
@@ -758,7 +758,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 shutil.copy2(bound, target)
             shutil.copy2(replacement_scopes, staging/'provider-replacement-scopes.json')
         if (source/'report-binding-revisions.json').is_file():
-            receipts = json.loads((source/'report-binding-revisions.json').read_text())
+            receipts = json.loads((source/'report-binding-revisions.json').read_text(encoding='utf-8'))
             bindings = {row[f'{side}_dataset_path']: row[f'{side}_dataset_sha256']
                         for row in receipts for side in ('input', 'output')}
             copy_bound_assets(source, staging, bindings)
@@ -778,7 +778,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 from harness.web_fetch.report import NATIVE_OPTION_LABELS
                 config_bytes = contained_path(source, 'providers.json', reject_symlinks=True).read_bytes()
                 config_hash = hashlib.sha256(config_bytes).hexdigest()
-                contract = json.loads((source / 'local-run-contract.json').read_text())
+                contract = json.loads((source / 'local-run-contract.json').read_text(encoding='utf-8'))
                 if config_hash != contract.get('provider_config_sha256'):
                     raise ValueError('Frozen option configuration differs from the local run contract')
                 config = json.loads(config_bytes)['providers']
@@ -803,7 +803,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                     'scope_description': '仅展示本报告调用配置中明确设置的公开选项；未列出的参数不代表关闭。原始配置私下保留，公开副本仅包含允许展示的字段。',
                     'scope_description_en': 'Only explicitly configured public options for this report are shown; omitted parameters do not mean disabled. The original configuration remains private; this public copy contains only allowed fields.'}
                 (staging / 'frozen-method-options.json').write_text(
-                    json.dumps(options, ensure_ascii=False, indent=2) + '\n')
+                    json.dumps(options, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
             (staging / "report-manifest.json").write_text(json.dumps({
                 "schema_version": 1, "template": resolve_template("webfetch"),
                 "evidence_state": "local_measurement", "certified": False,
@@ -811,7 +811,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 "dataset_sha256": file_sha256(source / "dataset.json"),
                 "results_sha256": file_sha256(source / "results.jsonl"),
                 "presentation": {"show_local_status_banners": show_local_status_banners},
-            }, ensure_ascii=False, indent=2))
+            }, ensure_ascii=False, indent=2), encoding='utf-8')
         from harness.web_fetch.report_reading import copy_archived_reading
         copy_archived_reading(source,staging)
         from harness.web_fetch.report_version import bind_release
@@ -833,8 +833,8 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
                 languages=template_manifest['generated_languages'], provider_calls_added=0)
         from harness.reporting.versions import bind_build_version
         template_manifest['browser_eval'] = bind_build_version(staging)
-        (staging/'report-manifest.json').write_text(json.dumps(template_manifest, ensure_ascii=False, indent=2)+'\n')
-        (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
+        (staging/'report-manifest.json').write_text(json.dumps(template_manifest, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+        (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n', encoding='utf-8')
         # Replace only an explicitly marked generated directory; never merge stale pages.
         _install_report_tree(staging, output)
     finally:
@@ -923,21 +923,21 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
     authority = repository_root()
     if profile_path is None:
         raise ValueError('WebMainBench report builds require an explicit profile_path')
-    profile = json.loads(profile_path.read_text())
+    profile = json.loads(profile_path.read_text(encoding='utf-8'))
     content_binding_path = profile_path.parent / 'webmainbench-content-binding.json'
     content_binding = json.loads(content_binding_path.read_text(encoding='utf-8'))
     content_source = data_home() / 'report-assets/webmainbench-sample'
     report_content = load_bound_content(
         content_source, content_binding, evidence_root=source, authority_root=authority)
-    dataset = json.loads(contained_path(source, 'dataset.json').read_text())
+    dataset = json.loads(contained_path(source, 'dataset.json').read_text(encoding='utf-8'))
     records = load_jsonl(contained_path(source, 'results.jsonl'), skip_blank=True)
     teds_revision = validate_teds_revision_if_present(source, records)
-    summaries = json.loads(contained_path(source, 'score-summaries.json').read_text())
-    manifests = json.loads(contained_path(source, 'execution.json').read_text())['batches']
+    summaries = json.loads(contained_path(source, 'score-summaries.json').read_text(encoding='utf-8'))
+    manifests = json.loads(contained_path(source, 'execution.json').read_text(encoding='utf-8'))['batches']
     latency_diagnostic = load_latency_diagnostic(source, dataset, records, manifests,
         (profile.get('latency_diagnostic') or {}).get('manifest_sha256'))
     review_path = source / 'result-review.json'
-    review = json.loads(review_path.read_text()) if review_path.is_file() else None
+    review = json.loads(review_path.read_text(encoding='utf-8')) if review_path.is_file() else None
     if review is not None and review.get('bindings', {}).get('results_jsonl_sha256') != file_sha256(prior_results_path(source)):
         raise ValueError('WebMainBench result review is not bound to preserved scored evidence')
     research_path = repository_root() / 'research/public-web-benchmarks.json'
@@ -1022,7 +1022,7 @@ def build_webmainbench_report(source: Path, output: Path, *, include_english: bo
         record_build_version(staging)
         if language is not None:
             select_report_language(staging, language)
-        (staging / '.generated-report').write_text('Generated from persisted evidence. Rebuild; do not edit.\n')
+        (staging / '.generated-report').write_text('Generated from persisted evidence. Rebuild; do not edit.\n', encoding='utf-8')
         if output.exists():
             backup = Path(tempfile.mkdtemp(prefix='.report-swap-', dir=output.parent)) / 'report'
             output.rename(backup)
@@ -1150,7 +1150,7 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
     correction_root = None
     corrected_keys = set()
     if correction_binding_path.exists():
-        correction_binding = json.loads(correction_binding_path.read_text())
+        correction_binding = json.loads(correction_binding_path.read_text(encoding='utf-8'))
         correction_root = data_home() / correction_binding['relative_path']
         if file_sha256(correction_root / 'certificate.json') != correction_binding['sha256']:
             raise ValueError('Case correction differs from bound certificate')
@@ -1238,7 +1238,7 @@ def build_webmainbench_full_report(source: Path, output: Path, *, authority_root
         illustration_binding = profile_path.parent / 'illustrations.json'
         if illustration_binding.exists():
             (staging / 'assets').mkdir(exist_ok=True)
-            for asset in json.loads(illustration_binding.read_text())['assets']:
+            for asset in json.loads(illustration_binding.read_text(encoding='utf-8'))['assets']:
                 asset_source = data_home() / 'report-assets/webmainbench-full' / asset['name']
                 if file_sha256(asset_source) != asset['sha256']:
                     raise ValueError('Report illustration changed: ' + asset['name'])
@@ -1286,8 +1286,8 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
     report_content = load_bound_content(
         source / "report-assets", content_binding,
         evidence_root=source, authority_root=authority_root)
-    certificate = json.loads((source / 'certification.json').read_text())
-    summary = json.loads((source / 'wcxb-score-summary.json').read_text())
+    certificate = json.loads((source / 'certification.json').read_text(encoding='utf-8'))
+    summary = json.loads((source / 'wcxb-score-summary.json').read_text(encoding='utf-8'))
     records, corpus_hash = load_wcxb_source(corpus, manifest=sample_path)
     sample_bytes = sample_path.read_bytes()
     sample_hash = hashlib.sha256(sample_bytes).hexdigest()
@@ -1324,7 +1324,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                 != profile.get('latency_correction_receipt_sha256')):
             raise ValueError('WCXB full-scope latency correction is missing or differs from profile')
         _, corrected_calls = load_full_paired_latency(correction_root, profile, case_ids)
-        correction_certificate = json.loads((correction_root / 'certification.json').read_text())
+        correction_certificate = json.loads((correction_root / 'certification.json').read_text(encoding='utf-8'))
         if (correction_certificate.get('kind') != 'certified_wcxb_paired_latency'
                 or correction_certificate.get('complete') is not True
                 or correction_certificate.get('receipt_sha256')
@@ -1348,7 +1348,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                 or file_sha256(optional_receipt)
                 != profile.get('optional_ui_receipt_sha256')):
             raise ValueError('WCXB optional UI-stripping evidence is missing or differs from profile')
-        optional = json.loads(optional_receipt.read_text())
+        optional = json.loads(optional_receipt.read_text(encoding='utf-8'))
         if (optional.get('case_id') not in case_ids or optional.get('source_sha256') != corpus_hash
                 or optional.get('builds', {}).get('release', {}).get('binary_sha256') != profile['release_binary_sha256']
                 or optional.get('builds', {}).get('candidate', {}).get('binary_sha256') != profile['candidate_binary_sha256']
@@ -1404,7 +1404,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                 raise ValueError('WCXB results changed: ' + provider)
             if file_sha256(run_dir / 'physical-attempts.jsonl') != summary['providers'][provider]['physical_attempts_sha256']:
                 raise ValueError('WCXB physical attempts changed: ' + provider)
-            manifest = json.loads((run_dir / 'execution.json').read_text())
+            manifest = json.loads((run_dir / 'execution.json').read_text(encoding='utf-8'))
             if manifest['run_id'] != batch['run_id'] or manifest['source_dataset_sha256'] != corpus_hash:
                 raise ValueError('WCXB run identity changed: ' + provider)
             identities[provider] = manifest['implementation_identity']
@@ -1429,7 +1429,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
         ground_truth = {}
         for record in records:
             gt_path = contained_path(corpus / 'test' / 'ground-truth', f'{record["track_id"]}.json')
-            gt = json.loads(gt_path.read_text())['ground_truth']
+            gt = json.loads(gt_path.read_text(encoding='utf-8'))['ground_truth']
             ground_truth[record['track_id']] = {
                 'main_content': record['groundtruth_content'],
                 'page_type': record['meta']['page_type'],
@@ -1463,7 +1463,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
             evidence_hashes[case_id] = file_sha256(target)
         review_file = staging / 'research/wcxb-representative-review.json'
         if review_file.is_file():
-            review = json.loads(review_file.read_text())
+            review = json.loads(review_file.read_text(encoding='utf-8'))
             if (review.get('scope') != 'targeted_representative_anomaly_review'
                     or review.get('total_results') != len(rows)
                     or review.get('result_count') != sum(len(case['outputs']) for case in review['cases'])
@@ -1473,7 +1473,7 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                 case_id = case_review['case_id']
                 if case_id not in rows_by_case or not set(case_review['outputs']) <= set(providers):
                     raise ValueError('WCXB review case or method inventory differs')
-                evidence = json.loads((evidence_root / f'{case_id}.json').read_text())
+                evidence = json.loads((evidence_root / f'{case_id}.json').read_text(encoding='utf-8'))
                 if (hashlib.sha256(evidence['source_html'].encode()).hexdigest() != case_review['source_html_sha256']
                         or hashlib.sha256(evidence['reference'].encode()).hexdigest() != case_review['reference_sha256']):
                     raise ValueError('WCXB reviewed input or reference changed: ' + case_id)
@@ -1482,10 +1482,10 @@ def build_wcxb_report(source: Path, corpus: Path, sample_path: Path, profile: di
                     if (bound['sha256'] != rows_by_case[case_id][provider]['output_sha256']
                             or bound['attempt_id'] != rows_by_case[case_id][provider]['attempt_id']):
                         raise ValueError('WCXB reviewed result changed: ' + case_id + '/' + provider)
-        (staging / 'evidence-manifest.json').write_text(json.dumps(evidence_hashes, sort_keys=True, indent=2) + '\n')
+        (staging / 'evidence-manifest.json').write_text(json.dumps(evidence_hashes, sort_keys=True, indent=2) + '\n', encoding='utf-8')
         for folder in ('artifacts', 'references', 'inputs'):
             shutil.rmtree(staging / folder, ignore_errors=True)
-        (staging / '.generated-report').write_text('generated\n')
+        (staging / '.generated-report').write_text('generated\n', encoding='utf-8')
         if language is not None:
             select_report_language(staging, language)
         from harness.web_fetch.wcxb_publication import write_inventory
@@ -1514,9 +1514,9 @@ def validate_local_presentation(output: Path, binding_path: Path):
     not a fresh build or certification. All measured files remain untouched.
     """
     output = output.resolve()
-    binding = json.loads(binding_path.read_text())
+    binding = json.loads(binding_path.read_text(encoding='utf-8'))
     manifest_path = contained_path(output, 'report-manifest.json')
-    manifest = json.loads(manifest_path.read_text())
+    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
     if (binding.get('comparison_kind') != 'uniform_native_local_measurement'
             or manifest.get('evidence_state') != 'local_measurement'
             or manifest.get('certified') is not False
@@ -1535,19 +1535,19 @@ def validate_local_presentation(output: Path, binding_path: Path):
             raise ValueError('Presentation evidence binding changed: ' + item['path'])
     if binding.get('publication_projection'):
         require_host_metadata_projection(output, binding['publication_projection'])
-    dataset = json.loads((output / 'dataset.json').read_text())
+    dataset = json.loads((output / 'dataset.json').read_text(encoding='utf-8'))
     records = load_jsonl(contained_path(output, 'results.jsonl'))
     check_release(output, dataset, records)
     if binding.get('publication_evidence_views'):
         require_public_evidence_view_inventory(output, binding['publication_evidence_views'], records)
     execution = output/'execution.json'
     if execution.is_file():
-        verify_native_execution_manifests(output, json.loads(execution.read_text())['batches'], dataset, records)
+        verify_native_execution_manifests(output, json.loads(execution.read_text(encoding='utf-8'))['batches'], dataset, records)
     scoring_sources = {row['attempt_id']: binding.get('measured_scoring_source_sha256') for row in records}
     if binding.get('offline_revision'):
         scoring_sources, input_dataset, input_results = validate_revision_chain(
             output, binding['offline_revision'], dataset, records)
-        revision_authority = json.loads(read_evidence_binding(output, binding['offline_revision']).read_text())
+        revision_authority = json.loads(read_evidence_binding(output, binding['offline_revision']).read_text(encoding='utf-8'))
         if revision_authority.get('kind') == 'current_local_snapshot_authority':
             if (revision_authority.get('schema_version') != 1
                     or input_dataset is not None or input_results is not None
@@ -1562,7 +1562,7 @@ def validate_local_presentation(output: Path, binding_path: Path):
             if input_dataset is None or input_results is None:
                 raise ValueError('Historical presentation revision has no input snapshot')
             if binding.get('task_replacement'):
-                previous_dataset = json.loads(read_evidence_binding(output, input_dataset).read_text())
+                previous_dataset = json.loads(read_evidence_binding(output, input_dataset).read_text(encoding='utf-8'))
                 previous_records = load_jsonl(read_evidence_binding(output, input_results))
                 require_local_task_replacement(output, binding['task_replacement'], previous_dataset, previous_records)
     elif binding.get('task_replacement'):
@@ -1599,7 +1599,7 @@ def _review_refresh_changes(output, binding, dataset, records):
     baseline = binding.get('review_refresh_baseline')
     if baseline is None:
         return set(), set()
-    before_dataset = json.loads(read_evidence_binding(output, baseline['dataset']).read_text())
+    before_dataset = json.loads(read_evidence_binding(output, baseline['dataset']).read_text(encoding='utf-8'))
     before_records = load_jsonl(read_evidence_binding(output, baseline['results']))
     old_cases = {case['id']: case for case in before_dataset['cases']}
     cases = {case['id']: case for case in dataset['cases']}
@@ -1632,7 +1632,7 @@ def _current_template_refresh(output, binding, manifest):
     revision = binding.get('offline_revision')
     if not revision:
         return False
-    authority = json.loads(read_evidence_binding(output, revision).read_text())
+    authority = json.loads(read_evidence_binding(output, revision).read_text(encoding='utf-8'))
     return (authority.get('kind') == 'current_local_snapshot_authority'
             and authority.get('schema_version') == 1)
 
@@ -1652,7 +1652,7 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
                    and item.get('sha256') == file_sha256(review_path)
                    for item in binding.get('evidence_bindings', [])):
             raise ValueError('Review refresh requires a hash-bound result review')
-        review = json.loads(review_path.read_text())
+        review = json.loads(review_path.read_text(encoding='utf-8'))
         require_current_review_state(records, review)
         require_adjudication_evidence(output, dataset, records, review)
         detail_attempt_ids = {row['attempt_id'] for row in review['attempts']
@@ -1705,7 +1705,7 @@ def refresh_local_presentation(output: Path, binding_path: Path, *, review_only:
     with tempfile.TemporaryDirectory(prefix='.presentation-', dir=output.parent) as scratch:
         staging = Path(scratch) / 'report'
         shutil.copytree(output, staging, copy_function=copy_evidence_file)
-        batches = json.loads((output / 'execution.json').read_text())['batches']
+        batches = json.loads((output / 'execution.json').read_text(encoding='utf-8'))['batches']
         generate(staging, dataset, records, batches, include_english=include_english, presentation_only=True,
                  frozen_scores=True, authored_interpretation=authored_interpretation,
                  detail_attempt_ids=detail_attempt_ids,

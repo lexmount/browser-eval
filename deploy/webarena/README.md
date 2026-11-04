@@ -2,7 +2,7 @@
 
 `src/harness/environments/webarena/` maintains Docker and Rainbond environments. Tasks and evaluators come from the pinned `webarena-verified` dependency. Image identity has one authority: `evaluation/browser-use-public/webarena-environment-images.json`.
 
-`src/harness/environments/webarena/topology.json` is the single registry of WebArena site ports, container ports, default site credentials and the hosts that recorded frozen inputs (including the Colima gateway); code derives port maps, origins and redaction tables from it. `runtime.example.json` supplies the local Docker host, and its ports must match the registry. `site-delivery-contract.json` defines internal ports, initialization and read-only Map data mounts. Map is optional; a contract does not trigger download or deployment. Stateful sites recreate their initial databases from images without sharing writable database directories between slices. Rainbond GitLab needs its own 2 GiB `/dev/shm` memory mount.
+`src/harness/environments/webarena/topology.json` is the single registry of WebArena site ports, container ports, the variable names of site credentials and the variable that lists the hosts behind older recorded inputs (including a Colima gateway); code derives port maps, origins and redaction tables from it. `runtime.example.json` supplies the local Docker host, and its ports must match the registry. `site-delivery-contract.json` defines internal ports, initialization and read-only Map data mounts. Map is optional; a contract does not trigger download or deployment. Stateful sites recreate their initial databases from images without sharing writable database directories between slices. Rainbond GitLab needs its own 2 GiB `/dev/shm` memory mount.
 
 Copy runtime configuration outside Git, set `hostname` and use an absolute image-lock path:
 
@@ -31,6 +31,8 @@ Use the Map digest from the image lock. Persist `/map-data` and `/var/lib/postgr
 | `src/harness/environments/webarena/map_setup.py` | `/opt/map_setup.py` |
 | `src/harness/environments/webarena/map_detail.py` | `/opt/map_detail.py` |
 | `deploy/webarena/site-delivery-contract.json` | `/opt/map-contract.json` |
+
+`map_setup.py` and `map_detail.py` run in the upstream image without the topology registry. The ports they use inside the container come from the Map component of the mounted contract (`service_port` and `local_services`), which `verify_deployment_contract` keeps equal to the registry. Update the contract and both scripts together.
 
 Startup links `/var/cache/renderd/tiles` to `/map-data/tiles` to preserve rendered tiles across recreation. Rendering concurrency is 2; a missing tile gets up to 120 seconds. Use container resource limits so other shared-node workloads do not cause tile rejection. Readiness checks `/tile/0/0/0.png` before admitting traffic. Startup also synchronizes gzip copies of compiled JavaScript; stale compressed assets would otherwise send remote browsers to `localhost`. Requests remain same-origin.
 

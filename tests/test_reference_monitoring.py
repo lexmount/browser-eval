@@ -29,13 +29,13 @@ def live_run(tmp_path, track='web'):
                  'rendered.txt': case['ground_truth_main_content'],
                  'reference.txt': case['ground_truth_main_content']}
         for name, text in texts.items():
-            (folder / name).write_text(text)
+            (folder / name).write_text(text, encoding='utf-8')
         digests = {name: hashlib.sha256(text.encode()).hexdigest() for name, text in texts.items()}
         (folder / 'evidence.json').write_text(json.dumps({
             'case_id': case['id'], 'url': case['url'], 'completion': 'Complete fixture',
             'checked_at': checked, 'initial_checked_at': checked,
             'initial_sha256': digests['initial.html.txt'],
-            'rendered_sha256': digests['rendered.txt'], 'reference_sha256': digests['reference.txt']}))
+            'rendered_sha256': digests['rendered.txt'], 'reference_sha256': digests['reference.txt']}), encoding='utf-8')
     run = tmp_path / 'run'
     records = make_run(run, 'old', definition, certify=False)
     manifest = json.loads((run / 'manifest.json').read_bytes())
@@ -46,7 +46,7 @@ def live_run(tmp_path, track='web'):
         'scope_identity': manifest['reference_checks']['cases'][case['id']]['scope_identity'],
         'completion': {'satisfied': True, 'elapsed_ms': 1, 'timeout_ms': 1000}}
     observations = tmp_path / 'observations.json'
-    observations.write_text(json.dumps([observation]))
+    observations.write_text(json.dumps([observation]), encoding='utf-8')
     return run, definition, records, observations
 
 
@@ -93,7 +93,7 @@ def test_live_monitors_reject_extra_calls_before_observation_or_certificate(tmp_
 def test_certification_with_no_live_reference_scope_needs_no_observation_file(tmp_path):
     run = tmp_path / 'run'
     run.mkdir()
-    (run / 'dataset.json').write_text(json.dumps(dataset(False)))
+    (run / 'dataset.json').write_text(json.dumps(dataset(False)), encoding='utf-8')
     output = tmp_path / 'certificates'
     evidence.certification_main(['--run-dir', str(run), '--observations', str(tmp_path / 'missing'),
                                  '--output', str(output), '--timeout', '0'])
@@ -108,10 +108,10 @@ def test_certification_with_no_live_reference_scope_needs_no_observation_file(tm
 def test_arbitrary_browser_reference_requires_observation_before_freeze_or_postcheck(tmp_path, monkeypatch, provenance):
     run, definition, _, _ = live_run(tmp_path)
     definition['cases'][0]['source_verification'].update(provenance)
-    (run / 'dataset.json').write_text(json.dumps(definition))
+    (run / 'dataset.json').write_text(json.dumps(definition), encoding='utf-8')
     captures = tmp_path / 'captures'
     captures.mkdir()
-    (captures / 'audit.json').write_text('[]')
+    (captures / 'audit.json').write_text('[]', encoding='utf-8')
     with pytest.raises(ValueError, match='requires independent browser observation'):
         reference_freeze.compute_reference_update(definition, captures)
     def forbidden(*args):
@@ -130,7 +130,7 @@ def test_browser_recovery_records_its_acquisition_route_for_future_postchecks(tm
     row['selector'] = 'main'
     captures = tmp_path / 'captures'
     captures.mkdir()
-    (captures / 'audit.json').write_text('[]')
+    (captures / 'audit.json').write_text('[]', encoding='utf-8')
     frozen, _, _ = reference_freeze.compute_reference_update(definition, captures, {case['id']: row})
     assert frozen['cases'][0]['source_verification']['observation_route'] == 'browser'
     assert case['source_verification']['observation_route'] == 'http'
@@ -146,7 +146,7 @@ def test_existing_certificate_cannot_be_reused_for_changed_calls(tmp_path):
     before = (target / 'manifest.json').read_bytes()
     evidence.certification_main(arguments)
     records[0]['elapsed_ms'] += 100
-    (run / 'results.jsonl').write_text(json.dumps(records[0]) + '\n')
+    (run / 'results.jsonl').write_text(json.dumps(records[0]) + '\n', encoding='utf-8')
     with pytest.raises(ValueError, match='different evidence'):
         evidence.certification_main(arguments)
     assert (target / 'manifest.json').read_bytes() == before
@@ -157,7 +157,7 @@ def test_resume_retains_certificate_when_live_run_adds_completion_metadata(tmp_p
     source = json.loads((run / 'manifest.json').read_bytes())
     for key in ('attempt_count', 'attempt_ids', 'completed_at'):
         source.pop(key, None)
-    (run / 'manifest.json').write_text(json.dumps(source))
+    (run / 'manifest.json').write_text(json.dumps(source), encoding='utf-8')
     output = tmp_path / 'certificates'
     arguments = ['--run-dir', str(run), '--observations', str(observations),
                  '--output', str(output), '--timeout', '0']
@@ -165,11 +165,11 @@ def test_resume_retains_certificate_when_live_run_adds_completion_metadata(tmp_p
     before = (output / 'one/source-manifest.json').read_bytes()
     source.update(attempt_count=1, attempt_ids=['old__one__r001'],
                   completed_at=datetime.now(timezone.utc).isoformat())
-    (run / 'manifest.json').write_text(json.dumps(source))
+    (run / 'manifest.json').write_text(json.dumps(source), encoding='utf-8')
     evidence.certification_main(arguments)
     assert (output / 'one/source-manifest.json').read_bytes() == before
     source['reference_checks']['cases']['one']['reference_sha256'] = '0' * 64
-    (run / 'manifest.json').write_text(json.dumps(source))
+    (run / 'manifest.json').write_text(json.dumps(source), encoding='utf-8')
     with pytest.raises(ValueError, match='different evidence'):
         evidence.certification_main(arguments)
 
@@ -211,7 +211,7 @@ def test_browser_observation_time_is_compared_as_an_instant_across_timezones(tmp
     observed = last_call + timedelta(seconds=1 if after else -1)
     row['checked_at'] = observed.astimezone(timezone(timedelta(hours=-8 if after else 8))).isoformat()
     browser = tmp_path / 'browser.json'
-    browser.write_text(json.dumps({definition['cases'][0]['id']: row}))
+    browser.write_text(json.dumps({definition['cases'][0]['id']: row}), encoding='utf-8')
     def forbidden(*args):
         pytest.fail('Provided browser observations must not trigger HTTP capture')
     monkeypatch.setattr(reference_freeze, 'capture', forbidden)
@@ -249,11 +249,11 @@ def test_postcheck_monitor_rejects_invalid_provenance_without_rewriting_it(
     arguments = ['--run-dir', str(run), '--captures', str(output), '--timeout', '0']
     if source == 'browser':
         path = tmp_path / 'browser.json'
-        path.write_text(json.dumps({definition['cases'][0]['id']: row}))
+        path.write_text(json.dumps({definition['cases'][0]['id']: row}), encoding='utf-8')
         arguments += ['--browser-observations', str(path)]
     else:
         output.mkdir()
-        (output / 'observations.json').write_text(json.dumps([row]))
+        (output / 'observations.json').write_text(json.dumps([row]), encoding='utf-8')
         arguments += ['--resume']
     with pytest.raises(ValueError):
         reference_freeze.postcheck_main(arguments)
@@ -274,8 +274,8 @@ def test_resumed_http_postcheck_preserves_acquisition_duration(tmp_path):
     output = tmp_path / 'post'
     folder = output / row['case_id']
     folder.mkdir(parents=True)
-    (folder / 'evidence.json').write_text(json.dumps(row))
-    (folder / 'reference.txt').write_text(row['content_text'])
+    (folder / 'evidence.json').write_text(json.dumps(row), encoding='utf-8')
+    (folder / 'reference.txt').write_text(row['content_text'], encoding='utf-8')
     reference_freeze.postcheck_main(['--run-dir', str(run), '--captures', str(output),
                                     '--resume', '--timeout', '10'])
     saved = json.loads((output / 'observations.json').read_bytes())[0]

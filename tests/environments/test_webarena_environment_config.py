@@ -144,7 +144,7 @@ def test_map_acceptance_checks_full_frozen_contract(tmp_path, monkeypatch, damag
     import json
     from urllib.error import HTTPError
 
-    from harness.environments.webarena import map_setup
+    from harness.environments.webarena import map_check
 
     class Response(io.BytesIO):
         status = 200
@@ -184,25 +184,25 @@ def test_map_acceptance_checks_full_frozen_contract(tmp_path, monkeypatch, damag
             return Response(f"<!doctype html>{identifier} {names[identifier]}".encode())
         return Response(json.dumps(data).encode())
 
-    monkeypatch.setattr(map_setup, "urlopen", get)
+    monkeypatch.setattr(map_check, "urlopen", get)
     output = tmp_path / "receipt.json"
     if damage:
         with pytest.raises(ValueError):
-            map_setup.map_check_main(["--url", "https://map.example", "--output", str(output)])
+            map_check.map_check_main(["--url", "https://map.example", "--output", str(output)])
         assert not output.exists()
         return
-    map_setup.map_check_main(["--url", "https://map.example", "--output", str(output)])
-    receipt = json.loads(output.read_text())
+    map_check.map_check_main(["--url", "https://map.example", "--output", str(output)])
+    receipt = json.loads(output.read_text(encoding="utf-8"))
     assert receipt["status"] == "pass" and len(receipt["checks"]) == 14
     monkeypatch.setattr(
-        map_setup,
+        map_check,
         "urlopen",
         lambda *args, **kwargs: (_ for _ in ()).throw(
             AssertionError("existing output must fail before HTTP")
         ),
     )
     with pytest.raises(ValueError, match="output already exists"):
-        map_setup.map_check_main(["--url", "https://map.example", "--output", str(output)])
+        map_check.map_check_main(["--url", "https://map.example", "--output", str(output)])
 
 
 def test_map_acceptance_remains_enforced_under_python_optimization():
@@ -211,12 +211,12 @@ def test_map_acceptance_remains_enforced_under_python_optimization():
 
     code = """
 import io
-from harness.environments.webarena import map_setup
+from harness.environments.webarena import map_check
 class Response(io.BytesIO):
     status = 200
-map_setup.urlopen = lambda *args, **kwargs: Response(b'[]')
+map_check.urlopen = lambda *args, **kwargs: Response(b'[]')
 try:
-    map_setup.verify_map_endpoint('https://map.example')
+    map_check.verify_map_endpoint('https://map.example')
 except ValueError as error:
     if 'CMU search result missing' not in str(error):
         raise RuntimeError('wrong rejection')

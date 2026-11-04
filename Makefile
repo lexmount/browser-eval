@@ -89,7 +89,7 @@ clean: ## Remove build outputs and tool caches; keeps reports and environments
 	find src tests scripts -type d -name __pycache__ -prune -exec rm -rf {} +
 
 import-env: ## Import benchmark credentials into the repository .env
-	$(PY) scripts/import_benchmark_env.py
+	$(PY) -m harness.web_fetch import-env
 
 runtime-check: ## Require the Python version in .python-version
 	@$(PY) -c 'import sys; pinned = open(".python-version").read().strip(); current = "%d.%d" % sys.version_info[:2]; sys.exit(0 if current == pinned else "Python " + pinned + " is required by .python-version; this is Python " + current)'
@@ -101,7 +101,7 @@ webfetch-diagnostic-report: runtime-check ## Build and check a diagnostic report
 	$(call require_profile,DIAGNOSTIC_PROFILE)
 	@test -n "$(OUTPUT)"
 	$(PY) scripts/build_report.py --profile "$(DIAGNOSTIC_PROFILE)" $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(EVIDENCE),--evidence "$(EVIDENCE)") --output "$(OUTPUT)"
-	$(PY) scripts/check_diagnostic_report.py "$(OUTPUT)" --profile "$(DIAGNOSTIC_PROFILE)"
+	$(PY) -m harness.web_fetch diagnostic-check "$(OUTPUT)" --profile "$(DIAGNOSTIC_PROFILE)"
 
 track-naming-check: runtime-check ## Check retired track names
 	$(PY) scripts/check_track_naming.py
@@ -158,7 +158,7 @@ report-check: runtime-check ## Check the Web Fetch report: PROFILE
 	$(call require_profile)
 	$(PY) scripts/check_report.py reports/webfetch --profile "$(PROFILE)"
 	$(PY) scripts/check_report_links.py reports/webfetch
-	$(PY) scripts/check_report_revision.py reports/webfetch
+	$(PY) -m harness.web_fetch report-revision-check reports/webfetch
 
 popular-sites-report: runtime-check ## Build the popular-sites report: PROFILE, EVIDENCE
 	$(call require_profile)
@@ -174,23 +174,23 @@ wcxb-release-check: runtime-check ## Run the WCXB release gate: PROFILE
 	$(call require_profile)
 	$(PY) scripts/check_report.py reports/wcxb --profile "$(PROFILE)"
 	$(PY) scripts/check_report_links.py reports/wcxb
-	$(PY) scripts/check_report_revision.py reports/wcxb
-	$(UV) run --frozen --extra headless-eval python scripts/check_wcxb_visual.py reports/wcxb
+	$(PY) -m harness.web_fetch report-revision-check reports/wcxb
+	$(UV) run --frozen --extra headless-eval python -m harness.web_fetch wcxb-visual reports/wcxb
 
 browser-use-report: runtime-check ## Build the Browser Use report: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE="/absolute/path [/absolute/path...]" is required' >&2; exit 2)
-	$(PY) scripts/build_browser_use_report.py $(foreach path,$(EVIDENCE),--evidence "$(path)") --output "$(or $(OUTPUT),reports/browser-use)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
+	$(PY) -m harness.browser_use report $(foreach path,$(EVIDENCE),--evidence "$(path)") --output "$(or $(OUTPUT),reports/browser-use)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 browser-use-review: runtime-check ## Review Browser Use results: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/review_browser_use_results.py --evidence "$(EVIDENCE)"
+	$(PY) -m harness.browser_use review --evidence "$(EVIDENCE)"
 
 browser-use-visual-check: runtime-check ## Run the Browser Use visual gate
-	$(PY) scripts/check_browser_use_visual.py "$(or $(OUTPUT),reports/browser-use)" $(if $(VISUAL_RECEIPT),--receipt "$(VISUAL_RECEIPT)",)
+	$(PY) -m harness.browser_use visual "$(or $(OUTPUT),reports/browser-use)" $(if $(VISUAL_RECEIPT),--receipt "$(VISUAL_RECEIPT)",)
 
 browser-use-report-check: runtime-check ## Check the Browser Use report: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE="/absolute/path [/absolute/path...]" is required' >&2; exit 2)
-	$(PY) scripts/check_browser_use_report.py "$(or $(OUTPUT),reports/browser-use)" $(if $(PROFILE),--profile "$(PROFILE)",) $(foreach path,$(EVIDENCE),--evidence "$(path)") --require-complete
+	$(PY) -m harness.browser_use check "$(or $(OUTPUT),reports/browser-use)" $(if $(PROFILE),--profile "$(PROFILE)",) $(foreach path,$(EVIDENCE),--evidence "$(path)") --require-complete
 	$(PY) scripts/check_report_links.py "$(or $(OUTPUT),reports/browser-use)"
 
 browser-use-release-check: browser-use-report-check ## Run the Browser Use release gate: EVIDENCE
@@ -198,32 +198,32 @@ browser-use-release-check: browser-use-report-check ## Run the Browser Use relea
 
 trajectory-replay-report: runtime-check ## Build the Trajectory Replay report: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path is required' >&2; exit 2)
-	$(PY) scripts/build_webarena_replay_report.py --results "$(EVIDENCE)" --output "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(REVIEW),--review "$(REVIEW)",) $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
+	$(PY) -m harness.trajectory_replay report --results "$(EVIDENCE)" --output "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(REVIEW),--review "$(REVIEW)",) $(if $(REPORT_LANGUAGE),--language "$(REPORT_LANGUAGE)",) $(if $(filter 1,$(ENGLISH)),--include-english,)
 
 trajectory-replay-report-check: runtime-check ## Check the Trajectory Replay report
-	$(PY) scripts/check_webarena_replay_report.py "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(PROFILE),--profile "$(PROFILE)",)
+	$(PY) -m harness.trajectory_replay check "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(PROFILE),--profile "$(PROFILE)",)
 
 trajectory-replay-visual-check: runtime-check ## Run the Trajectory Replay visual gate
-	$(PY) scripts/check_webarena_replay_visual.py "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(VISUAL_RECEIPT),--receipt "$(VISUAL_RECEIPT)",)
+	$(PY) -m harness.trajectory_replay visual "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(VISUAL_RECEIPT),--receipt "$(VISUAL_RECEIPT)",)
 
 trajectory-replay-release-check: trajectory-replay-report-check ## Run the Trajectory Replay release gate
 	$(MAKE) trajectory-replay-visual-check
 
 trajectory-replay-package: runtime-check ## Package the Trajectory Replay report: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path/effective-results.json is required' >&2; exit 2)
-	$(PY) scripts/package_webarena_replay_artifact_site.py --evidence "$(EVIDENCE)" --report "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(REVIEW),--review "$(REVIEW)",) $(if $(ARCHIVE),--output "$(ARCHIVE)",) $(if $(ATTESTATION),--attestation "$(ATTESTATION)",) $(if $(VISUAL_RECEIPT),--visual-receipt "$(VISUAL_RECEIPT)",)
+	$(PY) -m harness.trajectory_replay package --evidence "$(EVIDENCE)" --report "$(or $(OUTPUT),reports/trajectory-replay)" $(if $(PROFILE),--profile "$(PROFILE)",) $(if $(REVIEW),--review "$(REVIEW)",) $(if $(ARCHIVE),--output "$(ARCHIVE)",) $(if $(ATTESTATION),--attestation "$(ATTESTATION)",) $(if $(VISUAL_RECEIPT),--visual-receipt "$(VISUAL_RECEIPT)",)
 
 trajectory-replay-publish: runtime-check ## Publish the Trajectory Replay report: PROFILE
 	$(call require_profile)
-	$(PY) scripts/publish_webarena_replay_artifact_site.py --profile "$(PROFILE)"
+	$(PY) -m harness.trajectory_replay publish --profile "$(PROFILE)"
 
 webarena-catalog-report: runtime-check ## Build the WebArena catalog report
 	@test -n "$(EVIDENCE_ROOT)" -a -n "$(LEDGER)" -a -n "$(SCOPE)" -a -n "$(CATALOG)" -a -n "$(SUITE)" -a -n "$(SITE_MAP)" -a -n "$(OUTPUT)" -a -n "$(ARCHIVE)" || (echo 'EVIDENCE_ROOT, LEDGER, SCOPE, CATALOG, SUITE, SITE_MAP, OUTPUT and ARCHIVE are required' >&2; exit 2)
-	$(PY) scripts/build_webarena_catalog_report.py --evidence-root "$(EVIDENCE_ROOT)" --ledger "$(LEDGER)" --scope "$(SCOPE)" --catalog "$(CATALOG)" --portable-suite "$(SUITE)" --site-map "$(SITE_MAP)" --output "$(OUTPUT)" --archive "$(ARCHIVE)"
+	$(PY) -m harness.trajectory_replay catalog-report --evidence-root "$(EVIDENCE_ROOT)" --ledger "$(LEDGER)" --scope "$(SCOPE)" --catalog "$(CATALOG)" --portable-suite "$(SUITE)" --site-map "$(SITE_MAP)" --output "$(OUTPUT)" --archive "$(ARCHIVE)"
 
 webarena-catalog-release-check: runtime-check ## Run the WebArena catalog release gate: PROFILE, COMPARISON_RELEASE
 	$(call require_profile)
-	$(PY) scripts/check_webarena_catalog_release.py --profile "$(PROFILE)" --comparison-release "$(COMPARISON_RELEASE)" $(if $(DATA_HOME),--data-home "$(DATA_HOME)",)
+	$(PY) -m harness.trajectory_replay catalog-release-check --profile "$(PROFILE)" --comparison-release "$(COMPARISON_RELEASE)" $(if $(DATA_HOME),--data-home "$(DATA_HOME)",)
 
 public-webarena-report: runtime-check ## Build the public WebArena report: PROFILE
 	$(call require_profile)
@@ -250,16 +250,16 @@ public-benchmark-report: runtime-check ## Build and check the public benchmark r
 
 public-benchmark-sample: runtime-check ## Select the WebMainBench sample: SOURCE
 	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
-	$(PY) scripts/select_public_benchmark_sample.py --source "$(SOURCE)"
+	$(PY) -m harness.web_fetch webmainbench-select --source "$(SOURCE)" --output "$(WEBMAINBENCH_SAMPLE)"
 
 webmainbench-audit: runtime-check ## Audit WebMainBench suspicions: EVIDENCE, SOURCE, OUTPUT
 	@test -n "$(EVIDENCE)" -a -n "$(SOURCE)" -a -n "$(OUTPUT)" || (echo 'EVIDENCE, SOURCE and new OUTPUT paths are required' >&2; exit 2)
-	$(PY) scripts/audit_webmainbench_suspicions.py --evidence "$(EVIDENCE)" --source-dataset "$(SOURCE)" --output "$(OUTPUT)"
+	$(PY) -m harness.web_fetch webmainbench-audit --evidence "$(EVIDENCE)" --source-dataset "$(SOURCE)" --output "$(OUTPUT)"
 
 webmainbench-apply-case-correction: runtime-check ## Apply a case correction: RUN_ROOT, CORRECTION, OUTPUT, CASE_ID, SOURCE
 	$(call require_profile,WEBMAINBENCH_PROFILE)
 	@test -n "$(RUN_ROOT)" -a -n "$(CORRECTION)" -a -n "$(OUTPUT)" -a -n "$(CASE_ID)" -a -n "$(SOURCE)" || (echo 'RUN_ROOT, CORRECTION, OUTPUT, CASE_ID and SOURCE are required' >&2; exit 2)
-	$(PY) scripts/apply_webmainbench_case_correction.py --source-root "$(RUN_ROOT)" --correction "$(CORRECTION)" --output "$(OUTPUT)" --case-id "$(CASE_ID)" $(if $(PROVIDERS),--providers "$(PROVIDERS)",) --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)"
+	$(PY) -m harness.web_fetch webmainbench-case-correction --source-root "$(RUN_ROOT)" --correction "$(CORRECTION)" --output "$(OUTPUT)" --case-id "$(CASE_ID)" $(if $(PROVIDERS),--providers "$(PROVIDERS)",) --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)"
 
 webmainbench-run: runtime-check ## Run one WebMainBench provider shard: PROVIDER, OUTPUT
 	@test -n "$(PROVIDER)" || (echo 'PROVIDER is required' >&2; exit 2)
@@ -268,14 +268,14 @@ webmainbench-run: runtime-check ## Run one WebMainBench provider shard: PROVIDER
 
 webmainbench-score: runtime-check ## Score one WebMainBench shard: EVIDENCE
 	@test -n "$(EVIDENCE)" || (echo 'EVIDENCE=/absolute/path/to/provider-shard is required' >&2; exit 2)
-	$(UV) run --frozen --extra webmainbench-eval python scripts/score_webmainbench_results.py --evidence "$(EVIDENCE)" $(if $(SOURCE),--dataset "$(SOURCE)",) $(if $(SCORER),--scorer-repo "$(SCORER)",) $(if $(DATASET_SHA256),--expected-dataset-sha256 "$(DATASET_SHA256)",) $(if $(REVISION),--revision "$(REVISION)",)
+	$(UV) run --frozen --extra webmainbench-eval python -m harness.web_fetch webmainbench-score --evidence "$(EVIDENCE)" $(if $(SOURCE),--dataset "$(SOURCE)",) $(if $(SCORER),--scorer-repo "$(SCORER)",) $(if $(DATASET_SHA256),--expected-dataset-sha256 "$(DATASET_SHA256)",) $(if $(REVISION),--revision "$(REVISION)",)
 
 webmainbench-review: runtime-check ## Review WebMainBench results: RUN_ROOT, SOURCE, REVIEW
 	$(call require_profile,WEBMAINBENCH_PROFILE)
 	@test -n "$(RUN_ROOT)" || (echo 'RUN_ROOT=/absolute/path/to/declared-provider-shards is required' >&2; exit 2)
 	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
 	@test -n "$(REVIEW)" || (echo 'REVIEW=/absolute/path/to/new-review.json is required' >&2; exit 2)
-	$(UV) run --frozen --extra webmainbench-eval python scripts/review_webmainbench_results.py --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)" --output "$(REVIEW)"
+	$(UV) run --frozen --extra webmainbench-eval python -m harness.web_fetch webmainbench-review --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)" --output "$(REVIEW)"
 
 webmainbench-assemble: runtime-check ## Assemble WebMainBench evidence: RUN_ROOT, SOURCE, REVIEW, OUTPUT
 	$(call require_profile,WEBMAINBENCH_PROFILE)
@@ -283,7 +283,7 @@ webmainbench-assemble: runtime-check ## Assemble WebMainBench evidence: RUN_ROOT
 	@test -n "$(SOURCE)" || (echo 'SOURCE=/absolute/path/to/WebMainBench_545.jsonl is required' >&2; exit 2)
 	@test -n "$(REVIEW)" || (echo 'REVIEW=/absolute/path/to/passed-review.json is required' >&2; exit 2)
 	@test -n "$(OUTPUT)" || (echo 'OUTPUT=/absolute/path/to/assembled-evidence is required' >&2; exit 2)
-	$(PY) scripts/assemble_webmainbench_evidence.py --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)" --review "$(REVIEW)" --output "$(OUTPUT)"
+	$(PY) -m harness.web_fetch webmainbench-assemble --source-root "$(RUN_ROOT)" --dataset "$(SOURCE)" --sample-manifest "$(WEBMAINBENCH_SAMPLE)" --profile "$(WEBMAINBENCH_PROFILE)" --review "$(REVIEW)" --output "$(OUTPUT)"
 
 test-native-adapters: ## Run Node native adapter tests
 	node --test tests/test_public_dns.mjs tests/test_dsh_output.mjs

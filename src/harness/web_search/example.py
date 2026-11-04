@@ -78,7 +78,7 @@ def example(output):
                     server_timing=payload.get("timing"),
                 )
             )
-    (source / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    (source / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
     write_json(
         source / "receipt.json",
         dict(

@@ -22,10 +22,10 @@ from urllib.parse import urlparse
 
 from harness.environments.webarena.topology import RECORDED_PORT_SITES
 from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl, same_json_record
+from harness.trajectory_replay.core.suite import TaskSuite
 from harness.trajectory_replay.public_webarena.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
 from harness.trajectory_replay.public_webarena.suite import (
     TRAJECTORY_SCHEMA,
-    TaskSuite,
     load_suite,
     validate_selector,
 )
@@ -976,9 +976,9 @@ def main_qualification(argv=None) -> None:
         "--env-file",
         type=Path,
         help=(
-            "dotenv file passed to every qualification shard; defaults to repository .env. "
-            "The Rainbond API token of a slice run ignores it and comes only from "
-            "the repository .env"
+            "dotenv file for ordinary settings, passed to every qualification shard; "
+            "defaults to repository .env. Site logins and the Rainbond API token of a "
+            "slice run ignore it and come only from the repository .env"
         ),
     )
     parser.add_argument(

@@ -77,7 +77,7 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
                 '<p>输入为任务定义与超时预算，输出为预设的内容或错误。完整输出见该方法的结果详情。</p>',
                 'interface-' + name)
         return body + _implementation_scope(records, section=section, table=table, cell=cell, esc=esc)
-    dataset=json.loads((out/'dataset.json').read_text()) if (out/'dataset.json').is_file() else {}
+    dataset=json.loads((out/'dataset.json').read_text(encoding='utf-8')) if (out/'dataset.json').is_file() else {}
     native=measurement_presentation(dataset).native_outputs
     if not authored and not native:
         body=hero('本轮方法与接口','以下内容来自本轮结果记录与适配器契约。')
@@ -102,11 +102,11 @@ def render_methods(out,records,*,hero,section,table,cell,link,esc,authored=True)
             body+=section('费用信息','<p>本轮结果未绑定价格资料；费用取决于调用方配置与服务账单。</p>',anchor)
         return body + _implementation_scope(records, section=section, table=table, cell=cell, esc=esc)
     source=repository_root()/'research/provider-adoption.json'
-    data=json.loads(source.read_text());names=sorted({r['provider'] for r in records})
+    data=json.loads(source.read_text(encoding='utf-8'));names=sorted({r['provider'] for r in records})
     counts=adoption_counts(data,sorted(set(PROFILES)|set(names)))
     dest=out/'adoption';dest.mkdir(exist_ok=True)
-    (dest/'evidence.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
-    (dest/'counts.json').write_text(json.dumps({'snapshot':data['generated_at'],'scope':'签名命中线索，不是运行调用次数或全网采用量','methods':counts},ensure_ascii=False,indent=2)+'\n')
+    (dest/'evidence.json').write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
+    (dest/'counts.json').write_text(json.dumps({'snapshot':data['generated_at'],'scope':'签名命中线索，不是运行调用次数或全网采用量','methods':counts},ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
     intro=[];rows=[];details=''
     for name in names:
         registered=report_method(name,next(row for row in records if row['provider']==name))

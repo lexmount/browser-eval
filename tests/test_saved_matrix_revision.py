@@ -12,8 +12,10 @@ from lexbench_webfetch.scoring import score_attempt
 from tests.test_saved_matrix_evidence import fixture, write, assert_proof_mutations_rejected, assert_revision_document_mutation_rejected, assert_saved_receipt_mutation_rejected, assert_scoring_flags_rejected, assert_whitespace_record_rejected
 
 
-def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalled=False, completion_note=False, answer=b'answer'):
+def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalled=False, completion_note=False, answer=b'answer', title=None):
     spec, source, row, _ = fixture(tmp_path)
+    if title is not None:
+        row['title'] = title
     case = json.loads((source/'dataset.json').read_text())['cases'][0]
     case['required_facts'] = [{'id':'shell', 'alternatives':['Subscribe']}]
     spec['suites'][0]['dataset'] = write(source/'dataset.json', {'cases':[case]})
@@ -63,6 +65,13 @@ def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalle
         'receipt':{'path':str(receipt),'sha256':hashlib.sha256(receipt.read_bytes()).hexdigest()}}
     write(tmp_path/'spec.json', spec)
     return spec, source, revision
+
+
+@pytest.mark.parametrize('separator', ['\u2028', '\u2029', '\u0085'])
+def test_revision_jsonl_preserves_unicode_line_separators(tmp_path, separator):
+    spec, _, _ = revision_fixture(tmp_path, title='before' + separator + 'after')
+    report = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revised').parent
+    assert check_saved_matrix(report, spec_path=tmp_path/'spec.json')['valid']
 
 
 def test_revision_round_trip_preserves_call_with_completion_note(tmp_path):

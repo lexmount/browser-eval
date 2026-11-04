@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 from bs4 import BeautifulSoup
 
-from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.record_io import canonical_json_sha256
+from harness.reporting.mermaid import mermaid_script_attributes
 from harness.reporting.privacy import TRAJECTORY_REPLAY
 from harness.trajectory_replay.report_inputs import bound_dataset_path
 from harness.trajectory_replay.webarena_report import (
@@ -110,7 +110,7 @@ def build_replay_fixture(tmp_path: Path, monkeypatch, extra_methods=0, *, failed
         trace = tmp_path / (attempt["participant_id"] + "-trace.json")
         trace.write_text(json.dumps([{"action": "snapshot", "status": attempt["status"],
                                      "result": {"text": "Fixture snapshot"},
-                                     "error": attempt.get("error")}]))
+                                     "error": attempt.get("error")}]), encoding="utf-8")
         attempt["evidence"]["trace"] = {
             "path": str(trace), "sha256": hashlib.sha256(trace.read_bytes()).hexdigest(),
         }
@@ -142,7 +142,7 @@ def build_replay_fixture(tmp_path: Path, monkeypatch, extra_methods=0, *, failed
         path.write_text(json.dumps(value), encoding="utf-8")
         files[name] = path
     data["dataset_sha256"] = hashlib.sha256(files["dataset.json"].read_bytes()).hexdigest()
-    frozen_task = json.loads(files["dataset.json"].read_text())["trajectories"][0]
+    frozen_task = json.loads(files["dataset.json"].read_text(encoding="utf-8"))["trajectories"][0]
     contract_sha256 = canonical_json_sha256({
         "task": frozen_task["task"], "evaluation_input": frozen_task["evaluation_input"],
     })
@@ -158,6 +158,25 @@ def build_replay_fixture(tmp_path: Path, monkeypatch, extra_methods=0, *, failed
     return output, manifest, methods, profile, data, attempts, files
 
 
+@pytest.mark.parametrize(("change", "rejected"), [
+    ({"entrypoint": "scripts/build_webarena_replay_report.py"}, False),
+    ({"renderer": "src/other/report.py"}, True),
+    ({"track": "other"}, True),
+], ids=["entry-point-before-the-move", "other-renderer", "other-track"])
+def test_check_binds_the_renderer_not_the_entry_point(tmp_path, monkeypatch, change, rejected):
+    output, *_ = build_replay_fixture(tmp_path, monkeypatch)
+    path = output / "report-manifest.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    assert manifest["profile_sha256"]
+    manifest["template"].update(change)
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    if rejected:
+        with pytest.raises(ValueError, match="bypasses the maintained trajectory-replay template"):
+            check_report(output)
+    else:
+        assert check_report(output)["html_pages"]
+
+
 @pytest.mark.parametrize("extra_methods", [0, 2])
 def test_complete_three_method_report_builds_one_unified_matrix(
     tmp_path: Path, monkeypatch, extra_methods
@@ -167,7 +186,9 @@ def test_complete_three_method_report_builds_one_unified_matrix(
     )
     assert manifest["primary_language"] == "en"
     assert manifest["entrypoint"] == "en/index.html"
-    assert json.loads((output / "report-manifest.json").read_text())["languages"] == ["zh", "en"]
+    assert json.loads((output / "report-manifest.json").read_text(encoding="utf-8"))[
+        "languages"
+    ] == ["zh", "en"]
     invalid_profile = tmp_path / "reset-every-task-profile.json"
     invalid_profile.write_text(
         json.dumps(
@@ -194,42 +215,51 @@ def test_complete_three_method_report_builds_one_unified_matrix(
     assert manifest["method_count"] == len(methods)
     assert manifest["logical_results"] == len(methods)
     assert manifest["routes"] == 24 + 2 * extra_methods
-    assert "36/36" not in (output / "index.html").read_text()
-    assert "fixes.html" not in (output / "index.html").read_text()
-    chinese_home = (output / "index.html").read_text()
-    english_home = (output / "en/index.html").read_text()
+    assert "36/36" not in (output / "index.html").read_text(encoding="utf-8")
+    assert "fixes.html" not in (output / "index.html").read_text(encoding="utf-8")
+    chinese_home = (output / "index.html").read_text(encoding="utf-8")
+    english_home = (output / "en/index.html").read_text(encoding="utf-8")
     assert "历史配置没有声明执行后端" in chinese_home
     assert "historical profile does not declare an execution backend" in english_home
     assert "没有 Agent 决策或模型调用" in chinese_home
     assert "本轮没有记录进程级 CPU、内存和网络采样" in chinese_home
     assert "CPU 时间" not in chinese_home
     assert "平均内存" not in chinese_home
-    assert "参考答案均已核验" not in (output / "index.html").read_text()
-    assert "with verified references" not in (output / "en/index.html").read_text()
-    assert "独立复核范围见复核说明" in (output / "index.html").read_text()
-    assert "independent review scope" in (output / "en/index.html").read_text()
+    assert "参考答案均已核验" not in (output / "index.html").read_text(encoding="utf-8")
+    assert "with verified references" not in (output / "en/index.html").read_text(encoding="utf-8")
+    assert "独立复核范围见复核说明" in (output / "index.html").read_text(encoding="utf-8")
+    assert "independent review scope" in (output / "en/index.html").read_text(encoding="utf-8")
     for lang, prefix in (("zh", ""), ("en", "en/")):
         for name in ("index.html", "environment.html"):
-            assert profile["measurement_notes"][lang] in (output / (prefix + name)).read_text()
+            assert profile["measurement_notes"][lang] in (output / (prefix + name)).read_text(
+                encoding="utf-8"
+            )
     for route in ("index.html", "results.html", "dataset.html", "environment.html"):
-        assert "历史 90 题" not in (output / route).read_text()
-        assert "historical 90-task" not in (output / "en" / route).read_text()
-    assert "可核验题通过" not in (output / "index.html").read_text()
-    assert "Passes on verifiable tasks" not in (output / "en/index.html").read_text()
-    assert "每个方法开始前恢复站点基线" in (output / "environment.html").read_text()
-    assert "Colima" not in (output / "environment.html").read_text()
+        assert "历史 90 题" not in (output / route).read_text(encoding="utf-8")
+        assert "historical 90-task" not in (output / "en" / route).read_text(encoding="utf-8")
+    assert "可核验题通过" not in (output / "index.html").read_text(encoding="utf-8")
+    assert "Passes on verifiable tasks" not in (output / "en/index.html").read_text(
+        encoding="utf-8"
+    )
+    assert "每个方法开始前恢复站点基线" in (output / "environment.html").read_text(encoding="utf-8")
+    assert "Colima" not in (output / "environment.html").read_text(encoding="utf-8")
     for route in ("environment.html", "en/environment.html"):
-        environment = (output / route).read_text()
+        environment = (output / route).read_text(encoding="utf-8")
         assert 'data-topology-fallback' in environment and 'class="mermaid"' in environment
+        assert mermaid_script_attributes("loader") in environment
         assert 'Rainbond WebArena' in environment
-    assert "方法身份与修复序列" in (output / "environment.html").read_text()
-    assert "Method identity and repair sequence" in (output / "en/environment.html").read_text()
+    assert "方法身份与修复序列" in (output / "environment.html").read_text(encoding="utf-8")
+    assert "Method identity and repair sequence" in (output / "en/environment.html").read_text(
+        encoding="utf-8"
+    )
     environment_path = output / "environment.html"
-    original_environment = environment_path.read_text()
-    environment_path.write_text(original_environment.replace("方法身份与修复序列", ""))
+    original_environment = environment_path.read_text(encoding="utf-8")
+    environment_path.write_text(
+        original_environment.replace("方法身份与修复序列", ""), encoding="utf-8"
+    )
     with pytest.raises(ValueError, match="method identity"):
         check_report(output)
-    environment_path.write_text(original_environment)
+    environment_path.write_text(original_environment, encoding="utf-8")
     assert not (output / "diagnostics.html").exists()
     assert check_report(output)["html_pages"] == 24 + 2 * extra_methods
     # Byte-identical links must not bypass the publication boundary.
@@ -248,18 +278,18 @@ def test_complete_three_method_report_builds_one_unified_matrix(
         retained.rename(artifact)
     assert check_report(output)["html_pages"] == 24 + 2 * extra_methods
     home = output / "index.html"
-    original_home = home.read_text()
+    original_home = home.read_text(encoding="utf-8")
     for language_prefix in ("", "en/"):
         for route in ("index.html", "environment.html", "results.html"):
-            rendered = (output / language_prefix / route).read_text()
+            rendered = (output / language_prefix / route).read_text(encoding="utf-8")
             assert "All six methods" not in rendered
             assert "六种方法" not in rendered
             assert "Playwright" not in rendered
-    assert "execution backend" in (output / "en/index.html").read_text()
-    home.write_text(original_home.replace(profile["measurement_notes"]["zh"], ""))
+    assert "execution backend" in (output / "en/index.html").read_text(encoding="utf-8")
+    home.write_text(original_home.replace(profile["measurement_notes"]["zh"], ""), encoding="utf-8")
     with pytest.raises(ValueError, match="measurement context"):
         check_report(output)
-    home.write_text(original_home)
+    home.write_text(original_home, encoding="utf-8")
     manifest = build_webarena_replay_report(
         results_path=files["results.json"], dataset_path=files["dataset.json"],
         review_path=files["review.json"], profile_path=files["profile.json"],
@@ -268,26 +298,26 @@ def test_complete_three_method_report_builds_one_unified_matrix(
     assert manifest["languages"] == ["zh"]
     assert manifest["english_status"] == "not_generated"
     assert manifest["routes"] == 13 + extra_methods
-    english_notice = (output / "en/index.html").read_text()
+    english_notice = (output / "en/index.html").read_text(encoding="utf-8")
     assert '英文报告未生成' in english_notice
     assert 'new URL("en/",b.href)' in english_notice
     assert "location.origin+location.pathname" not in english_notice
     assert not (output / "en/results.html").exists()
     assert (
         'class="language" href="../en/index.html"'
-        in (output / "result/chromium-29.html").read_text()
+        in (output / "result/chromium-29.html").read_text(encoding="utf-8")
     )
     assert check_report(output)["html_pages"] == 13 + extra_methods
     manifest_path = output / "report-manifest.json"
-    changed = json.loads(manifest_path.read_text())
+    changed = json.loads(manifest_path.read_text(encoding="utf-8"))
     changed["browser_count"] += 1
-    manifest_path.write_text(json.dumps(changed))
+    manifest_path.write_text(json.dumps(changed), encoding="utf-8")
     with pytest.raises(ValueError, match="complete manifest-declared"):
         check_report(output)
     changed["browser_count"] -= 1
-    manifest_path.write_text(json.dumps(changed))
+    manifest_path.write_text(json.dumps(changed), encoding="utf-8")
     stale = output / "en/results.html"
-    stale.write_text("stale English report")
+    stale.write_text("stale English report", encoding="utf-8")
     with pytest.raises(ValueError, match="stale English"):
         check_report(output)
     stale.unlink()
@@ -402,23 +432,28 @@ def test_core_three_method_comparison_rejects_wrong_score_and_tie_highlight(tmp_
         )
     for directory in (tmp_path, tmp_path / "en"):
         directory.mkdir(exist_ok=True)
-        (directory / "index.html").write_text("".join(row(method) for method in participants))
+        (directory / "index.html").write_text(
+            "".join(row(method) for method in participants), encoding="utf-8"
+        )
     _check_core_comparison(tmp_path, {"methods": methods}, results, participants)
     (tmp_path / "en/index.html").write_text(
         row(participants[0], marker='<strong class="winner">Best</strong>')
-        + "".join(row(method) for method in participants[1:])
+        + "".join(row(method) for method in participants[1:]),
+        encoding="utf-8"
     )
     with pytest.raises(ValueError, match="highlight"):
         _check_core_comparison(tmp_path, {"methods": methods}, results, participants)
     (tmp_path / "en/index.html").write_text(
-        row(participants[0], count=1) + "".join(row(method) for method in participants[1:])
+        row(participants[0], count=1) + "".join(row(method) for method in participants[1:]),
+        encoding="utf-8"
     )
     with pytest.raises(ValueError, match="core score"):
         _check_core_comparison(tmp_path, {"methods": methods}, results, participants)
     (tmp_path / "en/index.html").write_text(
         row(participants[0]).replace('</tr>',
                                     '<td data-metric="verifiable-pass">2/2</td></tr>')
-        + "".join(row(method) for method in participants[1:])
+        + "".join(row(method) for method in participants[1:]),
+        encoding="utf-8"
     )
     with pytest.raises(ValueError, match="one core score"):
         _check_core_comparison(tmp_path, {"methods": methods}, results, participants)
@@ -491,10 +526,13 @@ def test_affected36_comparison_rejects_wrong_score_and_tied_highlight(tmp_path: 
         )
     for directory, heading in ((tmp_path, "36 题"), (tmp_path / "en", "36 failures")):
         directory.mkdir(exist_ok=True)
-        (directory / "index.html").write_text(heading + "".join(row(item) for item in compare))
+        (directory / "index.html").write_text(
+            heading + "".join(row(item) for item in compare), encoding="utf-8"
+        )
     _check_affected36_comparison(tmp_path, compare, results, set(range(36)), ["old", "new"])
     (tmp_path / "en/index.html").write_text(
-        "36 failures" + row(compare[0], '<span class="winner">Best</span>') + row(compare[1])
+        "36 failures" + row(compare[0], '<span class="winner">Best</span>') + row(compare[1]),
+        encoding="utf-8"
     )
     with pytest.raises(ValueError, match="highlight"):
         _check_affected36_comparison(tmp_path, compare, results, set(range(36)), ["old", "new"])
@@ -602,7 +640,7 @@ def test_legacy_seed_requires_direct_absolute_evidence(tmp_path, monkeypatch, pa
     directory = root / "evidence"
     directory.mkdir()
     source = directory / "seed.json"
-    source.write_text('{"tasks": []}')
+    source.write_text('{"tasks": []}', encoding="utf-8")
     selected = source
     if path_kind == "relative":
         monkeypatch.chdir(root)
@@ -873,11 +911,11 @@ def test_validity_identity_uses_measured_profile_not_publication_profile(tmp_pat
     results_path = tmp_path / "results.json"
     dataset_path = tmp_path / "dataset.json"
     publication_path = tmp_path / "current-profile.json"
-    results_path.write_text(json.dumps(results))
-    dataset_path.write_text("{}")
-    publication_path.write_text('{"host":"old.example"}')
+    results_path.write_text(json.dumps(results), encoding="utf-8")
+    dataset_path.write_text("{}", encoding="utf-8")
+    publication_path.write_text('{"host":"old.example"}', encoding="utf-8")
     before = _measured_validity_identity(results, results_path, dataset_path)
-    publication_path.write_text('{"host":"new.example","version":"new"}')
+    publication_path.write_text('{"host":"new.example","version":"new"}', encoding="utf-8")
     assert _measured_validity_identity(results, results_path, dataset_path) == before
     assert before["profile_sha256"] == "a" * 64
     changed_run = _measured_validity_identity(
@@ -1099,7 +1137,7 @@ def test_public_evidence_return_value_is_the_same_sanitized_value_written_to_dis
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     trace = tmp_path / "trace.json"
-    trace.write_text('[{"index": 1, "status": "fail"}]')
+    trace.write_text('[{"index": 1, "status": "fail"}]', encoding="utf-8")
     attempt = {
         "participant_id": "browser",
         "engine": "browser",
@@ -1272,7 +1310,7 @@ def test_report_authored_copy_does_not_claim_unconditional_current_qualification
 
 def test_task173_corrected_review_reaches_public_json_and_bilingual_detail(tmp_path: Path) -> None:
     review = json.loads(
-        Path("research/trajectory-replay-reviews/20260917-original-36.json").read_text()
+        Path("research/trajectory-replay-reviews/20260917-original-36.json").read_text(encoding="utf-8")
     )
     group, item = next(
         (group, item)
@@ -1340,7 +1378,9 @@ def test_site_reset_and_readiness_are_available_in_public_result_evidence(
         "new_pod": "new",
     }
     assert public["readiness"]["stable_http_status"] == 200
-    stored = json.loads((tmp_path / "report/data/evidence/chromium-29.json").read_text())
+    stored = json.loads(
+        (tmp_path / "report/data/evidence/chromium-29.json").read_text(encoding="utf-8")
+    )
     assert stored["site_reset"] == public["site_reset"]
 
 
@@ -1348,7 +1388,7 @@ def test_step_dialog_exposes_secondary_failure_state_without_replacing_error(
     tmp_path: Path,
 ) -> None:
     _assets(tmp_path)
-    script = (tmp_path / "assets/app.js").read_text()
+    script = (tmp_path / "assets/app.js").read_text(encoding="utf-8")
     assert "actual?.failure_ui_state||actual?.failure_ui_state_error" in script
     assert "observation_error:actual.failure_ui_state_error" in script
     assert "zh?'remediation_owner_zh':'remediation_owner_en'" in script
@@ -1441,13 +1481,12 @@ def test_supplemental_requests_keep_unavailable_url_and_observed_version():
     assert 'Read failed before a URL was recorded' in html
 
 
-def test_local_environment_page_names_the_profile_bound_site_gateway(
-    tmp_path: Path, monkeypatch
-) -> None:
+def test_environment_page_never_names_a_recording_gateway(tmp_path: Path, monkeypatch) -> None:
     _, _, _, profile, _, _, files = build_replay_fixture(tmp_path, monkeypatch)
-    gateway = next(iter(RECORDING_GATEWAYS))
+    gateway = ".".join(("10", "77", "3", "9"))
+    monkeypatch.setenv("WEBARENA_RECORDING_GATEWAYS", gateway)
 
-    def environment_page(hosts: list[str], name: str) -> str:
+    def environment_page(hosts: list[str], name: str, language: str) -> str:
         execution = {
             key: value for key, value in profile["execution"].items() if key != "site_stack"
         }
@@ -1459,15 +1498,15 @@ def test_local_environment_page_names_the_profile_bound_site_gateway(
         build_webarena_replay_report(
             results_path=files["results.json"], dataset_path=files["dataset.json"],
             review_path=files["review.json"], profile_path=files["profile.json"],
-            output_dir=output, language="en",
+            output_dir=output, language=language,
         )
-        return (output / "en/environment.html").read_text(encoding="utf-8")
+        route = "en/environment.html" if language == "en" else "environment.html"
+        return (output / route).read_text(encoding="utf-8")
 
-    page = environment_page([gateway, "host.docker.internal"], "bound")
-    assert f"Colima gateway {gateway}|" in page
-    assert f"{gateway} is the host gateway inside the Colima VM" in page
-    for hosts, name in (([], "unbound"), (["host.docker.internal", "unregistered.test"], "other")):
-        page = environment_page(hosts, name)
-        assert gateway not in page
-        assert "Colima gateway|" in page
-        assert "The site gateway is the host gateway inside the Colima VM" in page
+    page = environment_page([gateway, "host.docker.internal"], "english", "en")
+    assert gateway not in page
+    assert "Colima gateway|" in page
+    assert "The site gateway is the host gateway inside the Colima VM" in page
+    page = environment_page([gateway, "host.docker.internal"], "chinese", "zh")
+    assert gateway not in page
+    assert "所用网关是 Colima" in page

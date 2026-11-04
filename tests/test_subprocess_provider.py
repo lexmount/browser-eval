@@ -29,17 +29,17 @@ class SubprocessProviderTest(unittest.TestCase):
             )
             subprocess.run(["git", "-C", str(repo), "config", "user.name", "Test"], check=True)
             source = repo / "source.ts"
-            source.write_text("export const value = 1;\n")
+            source.write_text("export const value = 1;\n", encoding='utf-8')
             subprocess.run(["git", "-C", str(repo), "add", "source.ts"], check=True)
             subprocess.run(["git", "-C", str(repo), "commit", "-qm", "fixture"], check=True)
             head = subprocess.check_output(
                 ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
             ).strip()
             node = repo / "node"
-            node.write_text("#!/bin/sh\nprintf 'v24.15.0\\n'\n")
+            node.write_text("#!/bin/sh\nprintf 'v24.15.0\\n'\n", encoding='utf-8')
             os.chmod(node, 0o755)
             pnpm = repo / "pnpm"
-            pnpm.write_text("#!/bin/sh\nprintf '12.1.0\\n'\n")
+            pnpm.write_text("#!/bin/sh\nprintf '12.1.0\\n'\n", encoding='utf-8')
             os.chmod(pnpm, 0o755)
             provider = SubprocessJsonlProvider(
                 "worker",
@@ -71,7 +71,7 @@ class SubprocessProviderTest(unittest.TestCase):
             self.assertIn("package manager 0.0.0", provider.validate())
             self.assertFalse(hasattr(provider, "_implementation_identity"))
             provider.config["expected_package_manager_version"] = "12.1.0"
-            source.write_text("dirty\n")
+            source.write_text("dirty\n", encoding='utf-8')
             self.assertIn("clean tracked checkout", provider.validate())
 
     def test_missing_command_executable_fails_preflight(self):
@@ -84,7 +84,7 @@ class SubprocessProviderTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             repo = Path(directory)
             runtime = repo / "runtime"
-            runtime.write_text("#!/bin/sh\n")
+            runtime.write_text("#!/bin/sh\n", encoding='utf-8')
             os.chmod(runtime, 0o755)
             virtualenv_python = repo / "venv" / "bin" / "python"
             virtualenv_python.parent.mkdir(parents=True)
@@ -168,7 +168,7 @@ class SubprocessProviderTest(unittest.TestCase):
                         else:
                             persist_result_artifacts(Path(directory),
                                 Path('artifacts/control/result.txt'), result)
-                            self.assertEqual(target.read_text(), content)
+                            self.assertEqual(target.read_text(encoding='utf-8'), content)
                             if declaration['content_format'] == 'json':
                                 self.assertEqual(json.loads(content), payload['result'])
 

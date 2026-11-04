@@ -9,6 +9,13 @@ from pathlib import Path
 import pytest
 
 from harness.record_io import file_sha256
+from harness.reporting import publish as shared
+from harness.reporting.publication import (
+    PublicationOperation,
+    public_share_context,
+    response_json,
+    write_receipt,
+)
 from harness.trajectory_replay import webarena_report_package as packager
 from harness.trajectory_replay import webarena_report_publish as publisher
 
@@ -17,7 +24,7 @@ from harness.trajectory_replay import webarena_report_publish as publisher
 def private_publication_files(monkeypatch, tmp_path):
     for key in ("ATTESTATION", "PROFILE", "REVIEW"):
         path = tmp_path / (key.lower() + "-default.json")
-        path.write_text("{}")
+        path.write_text("{}", encoding="utf-8")
         monkeypatch.setattr(publisher, key, path)
     monkeypatch.setattr(publisher, "BINDING_JOURNAL", tmp_path / "binding-pending.json")
 
@@ -27,14 +34,14 @@ def _sha256(path: Path) -> str:
 
 
 def test_response_json_keeps_http_failure_details() -> None:
-    assert publisher.response_json(200, b'{"ok":true}', operation="upload") == {"ok": True}
+    assert response_json(200, b'{"ok":true}', operation="upload") == {"ok": True}
     for status, payload, expected in (
         (413, b'{"error":"too large"}', "HTTP 413"),
         (502, b"", "empty response"),
         (200, b"", "without a valid JSON response"),
     ):
         try:
-            publisher.response_json(status, payload, operation="upload")
+            response_json(status, payload, operation="upload")
         except RuntimeError as error:
             assert expected in str(error)
         else:
@@ -49,8 +56,8 @@ def test_staged_file_put_has_longer_socket_timeout() -> None:
 
 def test_public_share_must_be_same_origin_and_token_route() -> None:
     base = "https://reports.example"
-    assert publisher.public_share_context(base, base + "/v/token")[0] == "/v/token"
-    assert publisher.public_share_context(base, base + "/v/token") == (
+    assert public_share_context(base, base + "/v/token")[0] == "/v/token"
+    assert public_share_context(base, base + "/v/token") == (
         "/v/token",
         "token",
     )
@@ -63,7 +70,7 @@ def test_public_share_must_be_same_origin_and_token_route() -> None:
         base + "/v/token?owner=true",
     ):
         try:
-            publisher.public_share_context(base, url)
+            public_share_context(base, url)
         except ValueError:
             pass
         else:
@@ -89,13 +96,13 @@ def test_bind_publication_updates_profile_and_attestation(monkeypatch, tmp_path:
     monkeypatch.setattr(publisher, "BINDING_JOURNAL", tmp_path / "binding-pending.json")
 
     publisher.bind_publication(
-        json.loads(profile.read_text()),
+        json.loads(profile.read_text(encoding="utf-8")),
         slug="abc",
         share_url="https://app.example/v/token",
         version="ver_new",
     )
 
-    publication = json.loads(profile.read_text())["publication"]
+    publication = json.loads(profile.read_text(encoding="utf-8"))["publication"]
     assert publication == {
         "base_url": "https://app.example",
         "site_slug": "abc",
@@ -103,7 +110,7 @@ def test_bind_publication_updates_profile_and_attestation(monkeypatch, tmp_path:
         "expected_version": "ver_new",
         "state": "verified",
     }
-    assert json.loads(attestation.read_text())["profile_sha256"] == _sha256(profile)
+    assert json.loads(attestation.read_text(encoding="utf-8"))["profile_sha256"] == _sha256(profile)
 
 
 def test_binding_journal_recovers_interrupted_two_file_update(monkeypatch, tmp_path: Path) -> None:
@@ -131,7 +138,7 @@ def test_binding_journal_recovers_interrupted_two_file_update(monkeypatch, tmp_p
     monkeypatch.setattr(publisher, "atomic_write", interrupt_attestation)
     with pytest.raises(OSError, match="simulated interruption"):
         publisher.bind_publication(
-            json.loads(profile.read_text()),
+            json.loads(profile.read_text(encoding="utf-8")),
             slug="abc",
             share_url="https://app.example/v/token",
             version="ver_new",
@@ -142,32 +149,34 @@ def test_binding_journal_recovers_interrupted_two_file_update(monkeypatch, tmp_p
     publisher.recover_publication_binding()
 
     assert not journal.exists()
-    assert json.loads(profile.read_text())["publication"]["expected_version"] == "ver_new"
-    assert json.loads(attestation.read_text())["profile_sha256"] == _sha256(profile)
+    assert (
+        json.loads(profile.read_text(encoding="utf-8"))["publication"]["expected_version"]
+        == "ver_new"
+    )
+    assert json.loads(attestation.read_text(encoding="utf-8"))["profile_sha256"] == _sha256(profile)
 
 
 def test_pending_created_site_is_bound_to_release_package(monkeypatch, tmp_path: Path) -> None:
     archive = tmp_path / "package.zip"
     archive.write_bytes(b"package")
     receipt = tmp_path / "receipt.json"
-    monkeypatch.setattr(publisher, "ARCHIVE", archive)
-    monkeypatch.setattr(publisher, "RECEIPT", receipt)
     base = "https://app.example"
-    publisher.save_receipt(
+    write_receipt(
+        receipt,
         {
             "base_url": base,
             "slug": "site-1",
             "archive_sha256": file_sha256(archive),
             "verified": False,
-        }
+        },
     )
 
-    assert publisher.pending_created_site(base) == "site-1"
+    assert shared.pending_created_site(receipt, base, file_sha256(archive)) == "site-1"
     with pytest.raises(ValueError, match="differs"):
-        publisher.pending_created_site("https://other.example")
+        shared.pending_created_site(receipt, "https://other.example", file_sha256(archive))
     archive.write_bytes(b"different")
     with pytest.raises(ValueError, match="differs"):
-        publisher.pending_created_site(base)
+        shared.pending_created_site(receipt, base, file_sha256(archive))
 
 
 def test_receipt_replace_interruption_preserves_previous_receipt(
@@ -176,33 +185,42 @@ def test_receipt_replace_interruption_preserves_previous_receipt(
     receipt = tmp_path / "receipt.json"
     original = b'{"slug":"site-1"}\n'
     receipt.write_bytes(original)
-    monkeypatch.setattr(publisher, "RECEIPT", receipt)
 
     def interrupt_replace(_source, _destination) -> None:
         raise OSError("simulated interruption")
 
     monkeypatch.setattr(os, "replace", interrupt_replace)
     with pytest.raises(OSError, match="simulated interruption"):
-        publisher.save_receipt({"slug": "site-2"})
+        write_receipt(receipt, {"slug": "site-2"})
 
     assert receipt.read_bytes() == original
 
 
+def _identity(archive: Path, *, slug: str = "", expected_version: str = "") -> dict:
+    return shared.operation_identity(
+        "lex_webarena_replay_artifact_operation/1",
+        base="https://app.example",
+        title="Replay",
+        archive_sha256=file_sha256(archive),
+        slug=slug,
+        expected_version=expected_version,
+    )
+
+
 @pytest.mark.parametrize(
-    ("path", "kind"),
-    (("/api/sites", "create"), ("/api/sites/site-1/versions", "version")),
+    ("path", "slug", "expected"),
+    (("/api/sites", "", ""), ("/api/sites/site-1/versions", "site-1", "ver_1")),
 )
 def test_upload_recovers_lost_response_with_same_persisted_operation(
-    monkeypatch, tmp_path: Path, path: str, kind: str
+    tmp_path: Path, path: str, slug: str, expected: str
 ) -> None:
     archive = tmp_path / "package.zip"
     archive.write_bytes(b"package")
     operation_journal = tmp_path / "operation-pending.json"
-    monkeypatch.setattr(publisher, "ARCHIVE", archive)
-    monkeypatch.setattr(publisher, "OPERATION_JOURNAL", operation_journal)
+    operations = PublicationOperation(operation_journal, "trajectory-replay-")
     requests = []
 
-    def fake_request(_base, request_path, *_args, **kwargs):
+    def fake_request(request_path, *_args, **kwargs):
         requests.append((request_path, kwargs))
         if request_path.startswith("/api/operations/"):
             return (
@@ -214,38 +232,23 @@ def test_upload_recovers_lost_response_with_same_persisted_operation(
                         "result": {"slug": "site-1", "versionId": "ver_2"},
                     }
                 ).encode(),
-                {},
             )
         raise OSError("response was lost after commit")
 
-    monkeypatch.setattr(publisher, "request", fake_request)
-    identity = publisher.operation_identity(
-        base="https://app.example",
-        title="Replay",
-        kind=kind,
-        slug="site-1" if kind == "version" else "",
-        expected_version="ver_1" if kind == "version" else "",
-    )
+    identity = _identity(archive, slug=slug, expected_version=expected)
+    upload = {"request": fake_request, "decode": response_json}
     with pytest.raises(OSError, match="response was lost"):
-        publisher.idempotent_upload(
-            "https://app.example",
-            path,
-            b"payload",
-            "multipart/form-data; boundary=fixed",
-            identity,
-            allow_create=True,
+        operations.upload(
+            path, b"payload", "multipart/form-data; boundary=fixed", identity,
+            allow_create=True, **upload,
         )
-    pending = json.loads(operation_journal.read_text())
+    pending = json.loads(operation_journal.read_text(encoding="utf-8"))
     operation_key = pending["key"]
     assert requests[0][1]["extra_headers"] == {"Idempotency-Key": operation_key}
 
-    status, raw = publisher.idempotent_upload(
-        "https://app.example",
-        path,
-        b"payload",
-        "multipart/form-data; boundary=fixed",
-        identity,
-        allow_create=False,
+    status, raw = operations.upload(
+        path, b"payload", "multipart/form-data; boundary=fixed", identity,
+        allow_create=False, **upload,
     )
 
     assert status == 200
@@ -254,53 +257,39 @@ def test_upload_recovers_lost_response_with_same_persisted_operation(
     assert requests[-1][0] == f"/api/operations/{operation_key}"
 
 
-def test_pending_operation_rejects_changed_release(monkeypatch, tmp_path: Path) -> None:
+def test_pending_operation_rejects_changed_release(tmp_path: Path) -> None:
     archive = tmp_path / "package.zip"
     archive.write_bytes(b"first")
-    operation_journal = tmp_path / "operation-pending.json"
-    monkeypatch.setattr(publisher, "ARCHIVE", archive)
-    monkeypatch.setattr(publisher, "OPERATION_JOURNAL", operation_journal)
-    original = publisher.operation_identity(
-        base="https://app.example", title="Replay", kind="create"
-    )
-    publisher.pending_operation(original, allow_create=True)
+    operations = PublicationOperation(tmp_path / "operation-pending.json", "trajectory-replay-")
+    operations.pending(_identity(archive), allow_create=True)
     archive.write_bytes(b"changed")
-    changed = publisher.operation_identity(
-        base="https://app.example", title="Replay", kind="create"
-    )
 
     with pytest.raises(ValueError, match="differs from this release"):
-        publisher.pending_operation(changed, allow_create=True)
+        operations.pending(_identity(archive), allow_create=True)
 
 
-def test_running_operation_does_not_resubmit_upload(monkeypatch, tmp_path: Path) -> None:
+def test_running_operation_does_not_resubmit_upload(tmp_path: Path) -> None:
     archive = tmp_path / "package.zip"
     archive.write_bytes(b"package")
     operation_journal = tmp_path / "operation-pending.json"
-    monkeypatch.setattr(publisher, "ARCHIVE", archive)
-    monkeypatch.setattr(publisher, "OPERATION_JOURNAL", operation_journal)
-    identity = publisher.operation_identity(
-        base="https://app.example", title="Replay", kind="create"
-    )
-    publisher.pending_operation(identity, allow_create=True)
+    operations = PublicationOperation(operation_journal, "trajectory-replay-")
+    identity = _identity(archive)
+    operations.pending(identity, allow_create=True)
     requests = []
 
-    def fake_request(_base, path, *_args, **_kwargs):
+    def fake_request(path, *_args, **_kwargs):
         requests.append(path)
-        return 200, b'{"status":"running"}', {}
+        return 200, b'{"status":"running"}'
 
-    monkeypatch.setattr(publisher, "request", fake_request)
     with pytest.raises(RuntimeError, match="still running"):
-        publisher.idempotent_upload(
-            "https://app.example",
-            "/api/sites",
-            b"payload",
-            "multipart/form-data; boundary=fixed",
-            identity,
-            allow_create=False,
+        operations.upload(
+            "/api/sites", b"payload", "multipart/form-data; boundary=fixed", identity,
+            allow_create=False, request=fake_request, decode=response_json,
         )
 
-    assert requests == [f"/api/operations/{json.loads(operation_journal.read_text())['key']}"]
+    assert requests == [
+        f"/api/operations/{json.loads(operation_journal.read_text(encoding='utf-8'))['key']}"
+    ]
 
 
 def test_multipart_archive_is_stable_for_operation_replay(monkeypatch, tmp_path: Path) -> None:
@@ -311,15 +300,14 @@ def test_multipart_archive_is_stable_for_operation_replay(monkeypatch, tmp_path:
     assert publisher.multipart_archive("Replay") == publisher.multipart_archive("Replay")
 
 
-def test_large_replay_bundle_uses_staged_file_upload(monkeypatch, tmp_path: Path) -> None:
+def test_large_replay_bundle_uses_staged_file_upload(tmp_path: Path) -> None:
     archive = tmp_path / "package.zip"
     with zipfile.ZipFile(archive, "w") as bundle:
         bundle.writestr("index.html", "<title>Replay</title>")
         bundle.writestr("assets/figure.png", b"figure-bytes")
-    monkeypatch.setattr(publisher, "ARCHIVE", archive)
     calls = []
 
-    def fake_request(_base, path, data=None, _content_type=None, **kwargs):
+    def fake_request(path, data=None, _content_type=None, **kwargs):
         calls.append((path, data, kwargs))
         if path == "/api/sites/site-1":
             payload = {"site": {"currentVersionId": "ver_old"}}
@@ -331,22 +319,15 @@ def test_large_replay_bundle_uses_staged_file_upload(monkeypatch, tmp_path: Path
             payload = {"ok": True}
         return 200, json.dumps(payload).encode(), {}
 
-    monkeypatch.setattr(publisher, "request", fake_request)
-    identity = publisher.operation_identity(
-        base="https://app.example",
-        title="Replay",
-        kind="version",
-        slug="site-1",
-        expected_version="ver_old",
-    )
-
     result = json.loads(
-        publisher.staged_archive_upload(
-            "https://app.example",
+        shared.staged_release_upload(
+            fake_request,
+            archive,
             title="Replay",
             slug="site-1",
             expected_version="ver_old",
-            identity=identity,
+            identity=_identity(archive, slug="site-1", expected_version="ver_old"),
+            key_prefix="trajectory-staged-",
         )
     )
 
@@ -374,30 +355,28 @@ def test_pending_receipt_rejects_mismatched_operation_before_remote_write(
     monkeypatch.setattr(publisher, "ARCHIVE", archive)
     monkeypatch.setattr(publisher, "RECEIPT", receipt)
     monkeypatch.setattr(publisher, "OPERATION_JOURNAL", operation_journal)
-    publisher.save_receipt(
+    write_receipt(
+        receipt,
         {
             "base_url": "https://app.example",
             "slug": "site-1",
             "archive_sha256": file_sha256(archive),
             "verified": False,
-        }
+        },
     )
-    publisher.pending_operation(
-        publisher.operation_identity(
-            base="https://app.example", title="Different title", kind="create"
+    PublicationOperation(operation_journal, "trajectory-replay-").pending(
+        shared.operation_identity(
+            "lex_webarena_replay_artifact_operation/1",
+            base="https://app.example",
+            title="Different title",
+            archive_sha256=file_sha256(archive),
         ),
         allow_create=True,
     )
     monkeypatch.setattr(publisher, "validate_package", lambda: {})
-    monkeypatch.setattr(
-        publisher,
-        "publication_target",
-        lambda **_kwargs: (
-            {"publication": {"title": "Replay"}},
-            "https://app.example",
-            "",
-            "",
-        ),
+    publisher.PROFILE.write_text(
+        json.dumps({"publication": {"base_url": "https://app.example", "title": "Replay"}}),
+        encoding="utf-8",
     )
     monkeypatch.setattr(publisher, "multipart_archive", lambda _title, **_kwargs: (b"zip", "zip"))
 
@@ -405,7 +384,7 @@ def test_pending_receipt_rejects_mismatched_operation_before_remote_write(
         raise AssertionError("mismatched operation must fail before any remote call")
 
     monkeypatch.setattr(publisher, "request", unexpected_remote_call)
-    monkeypatch.setattr(publisher, "verify_export", unexpected_remote_call)
+    monkeypatch.setattr(shared, "verify_export", unexpected_remote_call)
 
     with pytest.raises(ValueError, match="differs from this release"):
         publisher.main(create=False)
@@ -422,18 +401,12 @@ def test_share_failure_resumes_same_site_without_second_creation(
     monkeypatch.setattr(publisher, "RECEIPT", receipt)
     monkeypatch.setattr(publisher, "OPERATION_JOURNAL", tmp_path / "operation-pending.json")
     monkeypatch.setattr(publisher, "validate_package", lambda: {})
-    monkeypatch.setattr(
-        publisher,
-        "publication_target",
-        lambda **_kwargs: (
-            {"publication": {"title": "Replay"}},
-            "https://app.example",
-            "",
-            "",
-        ),
+    publisher.PROFILE.write_text(
+        json.dumps({"publication": {"base_url": "https://app.example", "title": "Replay"}}),
+        encoding="utf-8",
     )
     monkeypatch.setattr(publisher, "multipart_archive", lambda _title, **_kwargs: (b"zip", "zip"))
-    monkeypatch.setattr(publisher, "verify_export", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(shared, "verify_export", lambda *_args, **_kwargs: None)
     calls = []
     fail_share_once = True
 
@@ -554,7 +527,10 @@ def test_package_rejects_diagnostic_appendix_and_mixed_dataset(
     dataset = tmp_path / "corrected.json"
     dataset.write_text("{}", encoding="utf-8")
     profile = tmp_path / "profile.json"
-    profile.write_text(json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}))
+    profile.write_text(
+        json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}),
+        encoding="utf-8",
+    )
     review = tmp_path / "review.json"
     review.write_text("{}", encoding="utf-8")
     monkeypatch.setattr(packager, "PROFILE", profile)
@@ -563,12 +539,12 @@ def test_package_rejects_diagnostic_appendix_and_mixed_dataset(
     monkeypatch.setattr(packager, "validate_release", lambda *_args, **_kwargs: {})
     manifest = {"dataset_sha256": _sha256(dataset), "results_sha256": _sha256(evidence),
                 "diagnostic_closure_sha256": "a" * 64}
-    (report / "report-manifest.json").write_text(json.dumps(manifest))
+    (report / "report-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ValueError, match="diagnostic-only"):
         packager.package(report, evidence, tmp_path / "report.zip", tmp_path / "visual.json")
     manifest.pop("diagnostic_closure_sha256")
     manifest["dataset_sha256"] = "0" * 64
-    (report / "report-manifest.json").write_text(json.dumps(manifest))
+    (report / "report-manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(ValueError, match="different result or dataset"):
         packager.package(report, evidence, tmp_path / "report.zip", tmp_path / "visual.json")
 
@@ -583,7 +559,10 @@ def test_publication_rejects_diagnostic_appendix_and_stale_corrected_dataset(
     dataset = tmp_path / "corrected.json"
     dataset.write_text("{}", encoding="utf-8")
     profile = tmp_path / "profile.json"
-    profile.write_text(json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}))
+    profile.write_text(
+        json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}),
+        encoding="utf-8",
+    )
     review = tmp_path / "review.json"
     review.write_text("{}", encoding="utf-8")
     monkeypatch.setattr(publisher, "PROFILE", profile)
@@ -592,7 +571,7 @@ def test_publication_rejects_diagnostic_appendix_and_stale_corrected_dataset(
     evidence.write_text("{}", encoding="utf-8")
     (report / "report-manifest.json").write_text(json.dumps({
         "dataset_sha256": _sha256(dataset), "results_sha256": _sha256(evidence),
-    }))
+    }), encoding="utf-8")
     attestation = {
         "schema": "lex_webarena_replay_publication_attestation/1",
         "archive_sha256": _sha256(archive),
@@ -618,7 +597,10 @@ def test_publication_rejects_diagnostic_appendix_and_stale_corrected_dataset(
     attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
     with pytest.raises(ValueError, match="registered methods and the declared task set"):
         publisher.validate_package()
-    profile.write_text(json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}))
+    profile.write_text(
+        json.dumps({"dataset": {"path": str(dataset), "sha256": _sha256(dataset)}}),
+        encoding="utf-8",
+    )
     attestation["profile_sha256"] = _sha256(profile)
     attestation_path.write_text(json.dumps(attestation), encoding="utf-8")
     attestation["diagnostic_closure_sha256"] = "a" * 64
