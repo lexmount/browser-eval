@@ -976,6 +976,24 @@ class ProviderTest(unittest.TestCase):
         provider.config.pop('scrape_selectors')
         self.assertEqual(provider.validate(), [])
 
+    @patch('harness.web_fetch.providers.cloudflare.request')
+    def test_cloudflare_explicit_selectors_override_diagnostic_defaults(self, mock_request):
+        from dataclasses import replace
+        selectors = ['body', 'video']
+        case = replace(self.case, track='video', task_kind='resource',
+                       expected_resources=[{'id': 'entry', 'kind': 'video-link'}])
+        mock_request.return_value = HttpResponse(200, case.url, {}, b'{"success":true,"result":[]}')
+        for native in (False, True):
+            with self.subTest(native=native):
+                provider = CloudflareMarkdownProvider('cf', {
+                    'api_token': 'x', 'account_id': 'a', 'scrape_selectors': selectors,
+                    'uniform_native_parameters': native})
+                provider.fetch(case, 2)
+                body = mock_request.call_args.kwargs['json_body']
+                self.assertEqual(body['elements'], [{'selector': value} for value in selectors])
+                if not native:
+                    self.assertIn('actionTimeout', body)
+
     @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_reads_markdown(self, mock_request) -> None:
         body = b'{"success":true,"result":"# Example","meta":{"status":200}}'

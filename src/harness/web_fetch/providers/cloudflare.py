@@ -274,7 +274,7 @@ class CloudflareMarkdownProvider(Provider):
         return None
 
     def _diagnostic_media(self, body, include_video_page_links, timeout_ms):
-        if include_video_page_links:
+        if include_video_page_links and not self.config.get('scrape_selectors'):
             body['elements'] = [{'selector': 'a[href]'}]
         self._diagnostic_timeouts(body, timeout_ms)
 
