@@ -344,6 +344,7 @@ tree = [
 ]
 web-scraper-eval = [
     { name = "extruct" },
+    { name = "huggingface-hub" },
     { name = "jsonschema" },
     { name = "price-parser" },
     { name = "requests" },
@@ -370,6 +371,7 @@ requires-dist = [
     { name = "extruct", marker = "extra == 'web-scraper-eval'", specifier = "==0.18.0" },
     { name = "fastcdc", specifier = "==1.7.0" },
     { name = "huggingface-hub", marker = "extra == 'dataset-publish'", specifier = "==1.31.0" },
+    { name = "huggingface-hub", marker = "extra == 'web-scraper-eval'", specifier = "==1.31.0" },
     { name = "jieba", marker = "extra == 'webmainbench-eval'", specifier = "==0.42.1" },
     { name = "json-repair", marker = "extra == 'browser-use-eval'", specifier = ">=0.54,<1" },
     { name = "jsonschema", marker = "extra == 'web-scraper-eval'", specifier = ">=4.25,<5" },

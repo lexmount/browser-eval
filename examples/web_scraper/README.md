@@ -55,13 +55,63 @@ registered Stagehand route uses its native Model Gateway and needs a project ID;
 it does not read an OpenAI key. Bright Data's site-specific scraper remains discoverable as a candidate, but
 is rejected by the full archived-page plan because it cannot parse arbitrary HTML.
 
-URL-only interfaces need a reachable HTTPS address serving the frozen snapshots.
-Start the fixture origin with `serve --port 8767`, then expose that origin through
-an HTTPS reverse proxy. Only the registered HTML paths are served. Gzip transport
-preserves the original decompressed bytes. The collector checks every selected
-remote file against its frozen hash before and after collection. Original live
-websites are never substituted for archived inputs. External images and scripts
-are not archived, so browser rendering can still fetch those resources.
+New cohorts give every native API the same public URL for each frozen page.
+Each dataset has its own hosting service. Browser Eval can find and reuse a
+Cloudflare deployment (the default) or verify a service hosted elsewhere:
+
+```sh
+# Check HF latest and find a matching deployment in your Cloudflare account.
+uv run --frozen --extra web-scraper-eval python -m harness.web_scraper.cli \
+  --home /absolute/data/DATASET host \
+  --output /absolute/data/snapshots.json
+
+# Alternatively, use your own public service.
+uv run --frozen --extra web-scraper-eval python -m harness.web_scraper.cli \
+  --home /absolute/data/DATASET host --provider external \
+  --base https://your-service.example/frozen \
+  --output /absolute/data/snapshots.json
+```
+
+Cloudflare reads `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` from the
+repository `.env`. Colleagues with access to the same account and Pages projects
+find the same deployment. Read permission is enough to reuse one; creating or
+updating a deployment also needs Pages write permission. Registered project names
+are resolved through the dataset registry; `--project` overrides that selection.
+At entry, the host command resolves HF latest to a full commit and compares its
+original HTML inventory with the prepared dataset. Use `--revision HF_COMMIT_OR_TAG`
+to select another HF edition; its full resolved commit is frozen in the result.
+Discovery searches historical Cloudflare deployments as well as the current one.
+New deployments carry the HF commit and HTML inventory hash in their metadata. An HF-bound immutable
+Cloudflare deployment uses a fast inventory and deployment-identity check;
+unregistered deployments receive a full page-hash check. Matching inputs are
+reused without uploads or provider calls. If hosting is missing or differs, the
+command writes a deployment proposal and makes no remote changes. After approval,
+run the same command with `--approve-plan /absolute/data/approved-proposal.json`
+and a fresh output path. A changed HF commit or Cloudflare deployment invalidates
+the proposal before any write. The deployment is checked before it can be used.
+A new HTML version gets a new immutable deployment URL. Earlier cohorts retain
+their original URLs and input protocols. External services require no Cloudflare
+credentials and undergo the same complete page-hash check.
+
+Use the generated binding in `plan --snapshots`. Each method then receives the
+same case URL, and the collector verifies all input hashes before and after calls.
+Keep raw HTML, original benchmark names, sources and licenses; exclude reference
+answers, API responses and credentials from public hosting. New Cloudflare
+packages block scripts and external resources through response headers; earlier
+deployments retain their recorded serving behavior.
+
+Hugging Face keeps the authoritative input files. An optional `snapshots.json`
+records the public URLs and matching hashes without replacing those files.
+`snapshots-publish` compares the pinned HF originals with a complete online
+verification receipt, then atomically adds the binding and dataset-card section.
+A mismatch prevents publication. Use a full HF commit when downloading a binding;
+a later HTML change requires a new deployment and a new HF commit. Running
+cohorts do not follow moving aliases or auto-update their inputs.
+
+The [snapshot index](https://lexbench-snapshots.pages.dev) is an optional navigation
+page. Dataset discovery and evaluation do not depend on it. `snapshots-build`,
+`snapshots-verify` and `snapshots-index` expose the package, verification and
+navigation stages for other hosting workflows.
 
 ## Freeze and run the full population
 
@@ -69,11 +119,11 @@ are not archived, so browser rendering can still fetch those resources.
 uv run --frozen python -m harness.web_scraper.cli plan \
   --methods cloudflare-json firecrawl-json scrapegraph-extract scrapfly-product \
   oxylabs-json zyte-product diffbot-product browserbase-json \
+  --snapshots /absolute/data/snapshots.json \
   --output /absolute/data/full-cohort.json
 uv run --frozen python scripts/run_certified_benchmark.py --track web-scraper \
   --profile /absolute/data/full-cohort.json --method firecrawl-json \
-  --run-dir /absolute/data/runs/firecrawl \
-  --fixture-base https://your-frozen-origin.example
+  --run-dir /absolute/data/runs/firecrawl
 uv run --frozen python -m harness.web_scraper.cli score /absolute/data/runs/firecrawl
 ```
 
@@ -125,21 +175,22 @@ Use a separate data directory for this benchmark:
 uv run --frozen --extra web-scraper-eval python -m harness.web_scraper.cli --home /absolute/data/swde \
   prepare --benchmark swde --source /absolute/downloads/swde-source.tar.gz
 uv run --frozen --extra web-scraper-eval python -m harness.web_scraper.cli --home /absolute/data/swde \
-  plan --methods zyte-custom firecrawl-parse-json scrapegraph-extract \
+  plan --methods zyte-custom firecrawl-json scrapegraph-extract \
   cloudflare-json browserbase-json oxylabs-json \
+  --snapshots /absolute/data/snapshots.json \
   --output /absolute/data/swde/precall.json
 uv run --frozen --extra web-scraper-eval python scripts/run_certified_benchmark.py --track web-scraper \
   --home /absolute/data/swde --profile /absolute/data/swde/precall.json \
   --method scrapegraph-extract --run-dir /absolute/data/swde/runs/scrapegraph
 ```
 
-Each selected method receives the domain’s array-valued field schema and the same
-HTML. Zyte Custom, Firecrawl Parse and ScrapeGraph accept uploaded HTML;
-Cloudflare accepts HTML with its native schema endpoint. Browserbase and Oxylabs
-require a public HTTPS snapshot origin, passed through `--fixture-base`. The
-runner checks every remote page against the original hash before and after
-collection. Cloudflare’s optional native rendering controls must be frozen in the
-participant plan. Product-specific extractors are rejected for SWDE.
+Each selected method receives the domain’s array-valued field schema and the
+same public snapshot URL. Zyte Custom extracts from its fetched HTTP response;
+Firecrawl Scrape JSON, ScrapeGraph Extract, Cloudflare JSON, Browserbase JSON and
+Oxylabs JSON use their bundled extraction APIs. The plan binds the versioned URL
+and rejects an override at collection. Product-specific extractors are rejected
+for SWDE. Firecrawl Parse remains available only to reproduce earlier HTML-upload
+cohorts; it cannot join a new URL-only plan.
 
 The primary score reproduces MarkupLM’s page-hit precision, recall and F1
 arithmetic: a matching value makes a page-field hit even when other values are
@@ -240,3 +291,26 @@ uv run --frozen python -m harness.web_scraper.cli publish \
   --source /absolute/report --target /absolute/publication-target.json \
   --work /absolute/new-publication --visual-receipt /absolute/visual-receipt.json
 ```
+
+
+## Snapshot hosting cost and capacity
+
+Cloudflare Pages static-file requests are free and unlimited; these snapshot
+packages do not use Functions. The documented Free-plan limits are 100 Pages
+projects per account, 20,000 files per deployment and 25 MiB per file. The Pages
+build service has 500 builds per month on Free; this is a build quota, not a limit
+on reads or a count of retained snapshot versions. Browser Eval uploads prepared
+files with Wrangler. One dataset uses one project and can have multiple immutable
+deployments. The current 140-page and 800-page editions fit these limits.
+
+The official limits page does not state a numeric total for retained deployment
+versions. Do not describe retention as unlimited or treat CDN cache expiry as
+snapshot deletion. Keep the HF originals and validate the selected deployment
+before use. Larger datasets can use another hosting service through `--provider
+external --base URL`; provider-specific billing and lifecycle remain with that
+service.
+
+Verified 2026-11-04 against [Pages pricing](https://developers.cloudflare.com/pages/functions/pricing/),
+[Pages limits](https://developers.cloudflare.com/pages/platform/limits/),
+[Direct Upload limits](https://developers.cloudflare.com/pages/get-started/direct-upload/#limits)
+and [versioned preview URLs](https://developers.cloudflare.com/pages/configuration/preview-deployments/#preview-aliases).

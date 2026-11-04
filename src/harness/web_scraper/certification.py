@@ -20,7 +20,7 @@ from harness.web_scraper.pipeline import (
 )
 
 
-def create_plan(home, methods, output):
+def create_plan(home, methods, output, *, snapshots=None):
     require_external_output(output)
     registry = available_methods()
     if not methods or len(set(methods)) != len(methods) or any(m not in registry for m in methods):
@@ -70,6 +70,25 @@ def create_plan(home, methods, output):
         plan["dataset_registry_sha256"] = registry_sha256()
         for participant in plan["participants"].values():
             participant["maximum_physical_calls"] = len(truth) + 20
+    if snapshots is not None:
+        from harness.web_scraper.snapshots import select
+
+        plan["public_snapshots"] = select(home, read_json(snapshots))
+        for method, participant in plan["participants"].items():
+            if (
+                registry[method]["input"] != "url"
+                and "input_route" not in registry[method]["options"]
+            ):
+                raise ValueError(
+                    "Selected interface cannot consume a public snapshot URL: " + method
+                )
+            participant["input"] = "url"
+            participant["fixture_suffix"] = ""
+            if registry[method]["input"] != "url":
+                participant["native_options"] = {"input_route": "url"}
+        plan["resource_decision"]["memory"] = (
+            "Remote memory unavailable; local client memory does not measure the provider."
+        )
     save_json(output, plan, exclusive=True)
     return plan
 
@@ -88,6 +107,16 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
             or plan["dataset_profile_sha256"] != digest(selected_profile(home).read_bytes())
         ):
             raise ValueError("Frozen task adapter or dataset profile changed")
+    if plan.get("public_snapshots"):
+        from harness.web_scraper.snapshots import inventory
+
+        selected = plan["public_snapshots"]
+        version, _ = inventory(home)
+        if version != selected["html_inventory_sha256"]:
+            raise ValueError("Public snapshot input version changed")
+        if fixture_base is not None and fixture_base != selected["fixture_base"]:
+            raise ValueError("Cannot override the frozen public snapshot URL")
+        fixture_base = selected["fixture_base"]
     participant = plan["participants"][method]
     policy = {"timeout_seconds": 120, "quality_retries": 0, "access_retries_after_repair": 1}
     if any(plan.get(key) != value for key, value in policy.items()):

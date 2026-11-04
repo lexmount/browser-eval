@@ -11,8 +11,26 @@ from harness.benchmarks.data import binding, definition_path
 from harness.record_io import bytes_sha256, read_json
 
 BENCHMARKS = {
-    "zyte": {"profile": "zyte-product-extraction.json", "module": None},
-    "swde": {"profile": "swde.json", "module": "harness.web_scraper.swde"},
+    "zyte": {
+        "profile": "zyte-product-extraction.json",
+        "module": None,
+        "snapshot_project": "browser-eval-zyte140-snapshots",
+        "snapshot_distribution": {
+            "repository": "Lexmount/LexBench-Zyte-Product-Extraction",
+            "input_path": "definitions/runtime/manifest.json",
+            "input_format": "html-manifest",
+        },
+    },
+    "swde": {
+        "profile": "swde.json",
+        "module": "harness.web_scraper.swde",
+        "snapshot_project": "browser-eval-swde800-snapshots",
+        "snapshot_distribution": {
+            "repository": "Lexmount/LexBench-SWDE",
+            "input_path": "inputs.jsonl",
+            "input_format": "html-jsonl",
+        },
+    },
 }
 
 
@@ -26,15 +44,15 @@ def benchmark_config(home=None, *, name=None):
     return {
         "profile": Path(__file__).resolve().parents[1] / "benchmarks/cards" / item["profile"],
         "adapter": importlib.import_module(item["module"]) if item["module"] else None,
+        "snapshot_project": item.get("snapshot_project"),
+        "snapshot_distribution": item.get("snapshot_distribution"),
     }
 
 
 def require_product_reference(home):
     """Keep product-only report and review entries out of other schema families."""
     if benchmark_config(home)["adapter"] is not None:
-        raise ValueError(
-            "This interface requires product references; use collection and scoring."
-        )
+        raise ValueError("This interface requires product references; use collection and scoring.")
 
 
 def adapter_sha256(home):

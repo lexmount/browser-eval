@@ -47,3 +47,18 @@ Keep one current profile that a fresh session can validate before running, scori
 For native-content browser comparisons, use task-appropriate official interfaces and score the returned deliverable. A final URL or HTML language tag is diagnostic unless the benchmark explicitly evaluates that metadata. Do not repair missing text using JSON DOM conversion or external PDF/DOCX parsers. The declared Chromium HTML-to-Markdown exception does not authorize document parsers. Bind native script versions, generate the interface matrix from the runner route selector, and require route validation at aggregation and publication. Keep negative controls for wrong content alongside positive controls for correct content with missing metadata.
 
 Keep browser engines distinct from execution configurations. Released and source-build variants use separate method identities in the execution registry and share the engine's native route constraints. Derive interface columns and participant counts from that registry. A strict native-mode marker selects default completion; it supplies no per-case selector or wait and must survive both dataset conversion and runner validation. Resource projection must preserve single URL values and tokenize only srcset candidates, including literal commas inside URLs. Protect these boundaries with runner, report and actual-browser controls.
+
+
+## Hosted copies of frozen inputs
+
+For Web Scraper snapshot hosting, use the selected HF edition as the input
+authority. Resolve the requested tag or latest once, freeze its full commit, and
+keep historical runs pinned. Default to Cloudflare but accept other public origins.
+Public HTML hosting is optional: reuse each dataset's independent service or
+verify a caller-supplied origin. A navigation page is optional and owns no inputs.
+Compare original-file inventories and immutable deployment identity before use;
+perform full byte verification for a newly deployed or unbound copy. A mismatch
+must produce a target- and version-bound proposal without remote writes. Deploy
+only after explicit approval, reject a proposal if its HF commit or target has
+changed, and retain previous deployment URLs. Hosting metadata may accompany HF
+originals, but it must never replace them or silently advance an active cohort.

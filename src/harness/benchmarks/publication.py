@@ -24,6 +24,27 @@ def encoded(value: object) -> bytes:
     return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
 
 
+def publish_snapshot_metadata(repository, metadata, *, parent_revision, readme, api=None):
+    """Add a verified URL binding atomically without changing original dataset files."""
+    from huggingface_hub import CommitOperationAdd, HfApi
+
+    if not re.fullmatch(r"[0-9a-f]{40}", parent_revision):
+        raise ValueError("Snapshot publication requires an exact source commit")
+    if metadata.get("huggingface_source_revision") != parent_revision:
+        raise ValueError("Snapshot source revision differs from the publication parent")
+    client = api or HfApi()
+    return client.create_commit(
+        repo_id=repository,
+        repo_type="dataset",
+        parent_commit=parent_revision,
+        commit_message="Bind verified public HTML snapshot URLs",
+        operations=[
+            CommitOperationAdd(path_in_repo="snapshots.json", path_or_fileobj=encoded(metadata)),
+            CommitOperationAdd(path_in_repo="README.md", path_or_fileobj=readme.encode("utf-8")),
+        ],
+    )
+
+
 def _derived_field(reference: str):
     """Resolve a ``module:function`` projection named by track card metadata."""
     module, _, name = reference.partition(":")

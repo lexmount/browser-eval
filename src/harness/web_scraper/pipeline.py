@@ -638,8 +638,15 @@ def _zyte_request(
             "pageContentOptions": {"extractFrom": "userHtml", "userHtml": html},
             "customAttributes": schema["properties"],
         }
-        if native_options:
-            body["customAttributesOptions"] = native_options
+        options = {k: v for k, v in native_options.items() if k != "input_route"}
+        if options:
+            body["customAttributesOptions"] = options
+    if native_options.get("input_route") == "url":
+        if not fixture_url:
+            raise ValueError("Zyte URL extraction requires a frozen fixture")
+        body["url"] = fixture_url
+        key = "pageContentOptions" if method == "zyte-custom" else "productOptions"
+        body[key] = {"extractFrom": "httpResponseBody"}
     return url, headers, body
 
 
@@ -666,6 +673,11 @@ def _scrapegraph_request(
         ),
         "schema": schema or SCHEMA,
     }
+    if native_options.get("input_route") == "url":
+        if not fixture_url:
+            raise ValueError("ScrapeGraph URL extraction requires a frozen fixture")
+        del body["html"]
+        body["url"] = fixture_url
     return url, headers, body
 
 
@@ -699,15 +711,23 @@ def _raw_html_request(method, html, source_url, fixture_url, *, timeout, home, n
             params["discussion"] = str(native_options["discussion"]).lower()
         if "norender" in native_options:
             params["norender"] = str(native_options["norender"]).lower()
+    url_input = native_options.get("input_route") == "url"
+    if url_input:
+        if not fixture_url:
+            raise ValueError("Native URL extraction requires a frozen fixture")
+        params["url"] = fixture_url
+        if method == "scrapfly-product":
+            endpoint = "https://api.scrapfly.io/scrape"
+            params["render_js"] = "false"
     url = endpoint + "?" + urlencode(params)
     started = time.monotonic()
     session = _RAW_SESSIONS.get(method)
     if session is None:
         session = _RAW_SESSIONS[method] = requests.Session()
-    with session.post(
+    transport = session.get if url_input else session.post
+    with transport(
         url,
-        data=html.encode(),
-        headers={"Content-Type": "text/html"},
+        **({} if url_input else {"data": html.encode(), "headers": {"Content-Type": "text/html"}}),
         timeout=timeout,
         stream=True,
         allow_redirects=False,
@@ -728,7 +748,7 @@ def _raw_html_request(method, html, source_url, fixture_url, *, timeout, home, n
             },
             "request": {
                 "endpoint": endpoint,
-                "input": "html",
+                "input": "url" if url_input else "html",
                 "html_sha256": digest(html.encode()),
                 "source_url": source_url,
                 "effective_context_url": params["url"],
@@ -782,7 +802,7 @@ METHODS = {
         "input": "html",
         "minimum_call_interval_seconds": 0,
         "post_call_cooldown_seconds": 0,
-        "options": ["maxInputTokens", "maxOutputTokens"],
+        "options": ["maxInputTokens", "maxOutputTokens", "input_route"],
         "custom_schema": True,
         "requires_custom_schema": True,
         "adapter": _zyte_request,
@@ -793,7 +813,7 @@ METHODS = {
             "input": "html",
             "minimum_call_interval_seconds": 0,
             "post_call_cooldown_seconds": 0,
-            "options": [],
+            "options": ["input_route"],
         },
         "adapter": _zyte_request,
     },
@@ -803,7 +823,7 @@ METHODS = {
             "input": "html",
             "minimum_call_interval_seconds": 13,
             "post_call_cooldown_seconds": 10,
-            "options": ["discussion", "use_fixture_context", "norender"],
+            "options": ["discussion", "use_fixture_context", "norender", "input_route"],
         },
         "adapter": _raw_html_request,
     },
@@ -814,7 +834,7 @@ METHODS = {
             "input": "html",
             "minimum_call_interval_seconds": 0,
             "post_call_cooldown_seconds": 0,
-            "options": [],
+            "options": ["input_route"],
         },
         "adapter": _scrapegraph_request,
     },
@@ -824,7 +844,7 @@ METHODS = {
             "input": "html",
             "minimum_call_interval_seconds": 0,
             "post_call_cooldown_seconds": 0,
-            "options": [],
+            "options": ["input_route"],
         },
         "adapter": _raw_html_request,
     },

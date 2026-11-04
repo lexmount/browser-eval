@@ -23,9 +23,46 @@ def main(argv=None):
     p.add_argument("--benchmark", choices=tuple(BENCHMARKS), default="zyte")
     p.add_argument("--source", type=Path)
     sub.add_parser("reproduce")
+    for command in ("snapshots-build", "snapshots-verify"):
+        p = sub.add_parser(command)
+        p.add_argument("--dataset", action="append", required=True, metavar="NAME=HOME")
+        p.add_argument("--output", type=Path, required=True)
+        if command == "snapshots-verify":
+            p.add_argument("--binding", type=Path, required=True)
+        else:
+            p.add_argument(
+                "--previous",
+                type=Path,
+                help="Prior verified public package; preserves old version URLs",
+            )
+    p = sub.add_parser("snapshots-index")
+    p.add_argument("--binding", type=Path, required=True)
+    p.add_argument("--output", type=Path, required=True)
+    p = sub.add_parser("host")
+    p.add_argument("--provider", choices=("cloudflare", "external"), default="cloudflare")
+    p.add_argument("--base", help="Public base URL for external hosting")
+    p.add_argument("--revision", help="HF commit or tag; default resolves latest once")
+    p.add_argument("--project", help="Override the registered Cloudflare Pages project")
+    p.add_argument(
+        "--approve-plan",
+        type=Path,
+        help="Explicitly approved deployment proposal; unchanged inputs required",
+    )
+    p.add_argument("--output", type=Path, required=True)
+    p = sub.add_parser("snapshots-publish")
+    p.add_argument("--binding", type=Path, required=True)
+    p.add_argument("--verification", type=Path, required=True)
+    p.add_argument("--revision", required=True)
+    p.add_argument("--output", type=Path, required=True)
     p = sub.add_parser("plan")
     p.add_argument("--methods", nargs="+", required=True)
     p.add_argument("--output", type=Path, required=True)
+    p.add_argument(
+        "--snapshots",
+        type=Path,
+        required=True,
+        help="Verified public snapshot registry for new URL-only cohorts",
+    )
     p = sub.add_parser("serve")
     p.add_argument("--port", type=int, default=8767)
     p = sub.add_parser("repair-plan")
@@ -80,7 +117,55 @@ def main(argv=None):
         p.add_argument("--" + flag, type=Path, required=True)
     p.add_argument("--decisions", type=Path, help="Source-bound final reference decisions")
     args = parser.parse_args(argv)
-    if args.command == "prepare":
+    if args.command == "host":
+        from harness.web_scraper.snapshots import host
+
+        print(
+            host(
+                args.home,
+                args.output,
+                provider=args.provider,
+                public_base=args.base,
+                project=args.project,
+                approve_plan=args.approve_plan,
+                hf_revision=args.revision,
+            )
+        )
+    elif args.command == "snapshots-publish":
+        from harness.web_scraper.pipeline import save_json
+        from harness.web_scraper.snapshots import publish
+
+        result = publish(
+            args.home,
+            json.loads(args.binding.read_text()),
+            json.loads(args.verification.read_text()),
+            revision=args.revision,
+        )
+        save_json(args.output, result, exclusive=True)
+        print(result)
+    elif args.command == "snapshots-index":
+        from harness.web_scraper.snapshots import build_index
+
+        build_index(json.loads(args.binding.read_text()), args.output)
+    elif args.command in ("snapshots-build", "snapshots-verify"):
+        from harness.web_scraper import snapshots
+
+        homes = {}
+        for item in args.dataset:
+            name, home = item.split("=", 1)
+            if name in homes:
+                raise ValueError("Duplicate snapshot dataset")
+            homes[name] = Path(home)
+        if args.command == "snapshots-build":
+            result = snapshots.build(homes, args.output, previous=args.previous)
+            print({name: len(item["cases"]) for name, item in result["datasets"].items()})
+        else:
+            result = snapshots.verify(homes, json.loads(args.binding.read_text()))
+            from harness.web_scraper.pipeline import save_json
+
+            save_json(args.output, result, exclusive=True)
+            print({"verified_pages": result["verified_pages"]})
+    elif args.command == "prepare":
         print(
             "Verified",
             prepare(args.home, benchmark=args.benchmark, source=args.source)["cases"],
@@ -91,7 +176,7 @@ def main(argv=None):
     elif args.command == "plan":
         from harness.web_scraper.certification import create_plan
 
-        print(create_plan(args.home, args.methods, args.output))
+        print(create_plan(args.home, args.methods, args.output, snapshots=args.snapshots))
     elif args.command == "serve":
         serve_fixtures(args.home, port=args.port)
     elif args.command == "repair-plan":
