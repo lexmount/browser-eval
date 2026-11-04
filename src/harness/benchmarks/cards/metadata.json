@@ -363,9 +363,10 @@
     ]
   },
   "web-scraper": {
-    "pretty_name": "Product extraction benchmark (Zyte)",
-    "repo_id": "Lexmount/zyte-product-extraction-benchmark",
+    "pretty_name": "LexBench-Zyte-Product-Extraction",
+    "repo_id": "Lexmount/LexBench-Zyte-Product-Extraction",
     "previous_repo_ids": [
+      "Lexmount/zyte-product-extraction-benchmark",
       "Lexmount/LexBench-Web-Scraper"
     ],
     "license": [
