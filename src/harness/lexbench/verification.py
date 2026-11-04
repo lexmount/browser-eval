@@ -1225,7 +1225,9 @@ def main(argv=None):
     parser.add_argument(
         "--release", action="store_true", help="Require the complete bound method matrix"
     )
-    parser.add_argument("--profile", type=pathlib.Path, help="External release profile")
+    parser.add_argument(
+        "--profile", type=pathlib.Path, help="External release profile"
+    )
     args = parser.parse_args(argv)
     if args.profile is not None and not args.release:
         parser.error("--profile requires --release")
