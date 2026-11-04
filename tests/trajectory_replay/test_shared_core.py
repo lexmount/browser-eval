@@ -10,7 +10,7 @@ import pytest
 
 from harness.trajectory_replay import runner as curated_runner
 from harness.trajectory_replay.core import docker_runner
-from harness.trajectory_replay.core.executor import judge_outputs, validate_outputs
+from harness.trajectory_replay.core.executor import body_text, judge_outputs, validate_outputs
 from harness.trajectory_replay.core.suite import BrowserTask
 from harness.trajectory_replay.metrics import summarize_attempts as summarize_curated
 from harness.trajectory_replay.public_webarena import runner as public_runner
@@ -553,6 +553,16 @@ def test_ground_truth_validation_records_exactly_the_declared_evidence_fields():
 
 def test_ground_truth_validation_stays_absent_without_evidence():
     assert docker_runner.ground_truth_validation(None) is None
+
+
+def test_body_text_truncates_to_the_limit_and_passes_the_timeout():
+    page = MagicMock()
+    inner_text = page.locator.return_value.first.inner_text
+    inner_text.return_value = "abcdef"
+
+    assert body_text(page, 250, 4) == "abcd"
+    page.locator.assert_called_once_with("body")
+    inner_text.assert_called_once_with(timeout=250)
 
 
 def test_only_the_public_environment_records_the_image_build_source():
