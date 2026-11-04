@@ -1842,9 +1842,9 @@ def _appendix_page(manifest: dict[str, Any]) -> str:
         suite_argument = _e('"$(uv run --frozen python -c ' + shlex.quote(expression) + ')"')
     else:
         suite_argument = '&lt;frozen-suite.json&gt;'
-    engine_arguments = ",".join(
+    engine_arguments = _e(",".join(
         (manifest.get("protocol") or {}).get("engines") or DEFAULT_BROWSER_IMAGES
-    )
+    ))
     run_command = (
         "uv run --frozen python -m harness.trajectory_replay.public_webarena.cli "
         f"--suite {suite_argument} "
