@@ -378,3 +378,82 @@ def test_final_accepts_uniform_historical_scoring_identity(tmp_path):
         source['results'] = write(path, record)
     output = build(tmp_path, spec).parent
     assert json.loads((output/'dataset.json').read_bytes())['comparison']['publication_state'] == 'final_saved_results'
+
+
+@pytest.mark.parametrize('field', [
+    'body_requirements', 'acceptance_contract', 'required_patterns', 'required_facts',
+    'expected_resources', 'resource_output_contract', 'composite_acceptance',
+    'forbidden_any', 'page_identity_required', 'reference_answer',
+    'mutable_body_policy', 'acceptance_policy_version',
+])
+def test_same_prompt_does_not_hide_a_changed_task_requirement(tmp_path, field):
+    from copy import deepcopy
+    from harness.web_fetch.report import generate_saved_matrix
+    from harness.web_fetch.report_saved_matrix import _require_final_selection
+    before = {'task_prompt': 'Keep the original task', field: 'original requirement'}
+    after = {**before, field: 'changed requirement'}
+    inputs = {'spec': {}, 'missing': {}, 'cases': {'suite': {'case': before}},
+              'revision': {'cases': {('suite', 'case'): after}}}
+    with pytest.raises(ValueError, match='Changed task contracts'):
+        _require_final_selection(inputs)
+    spec = matrix(tmp_path)
+    spec['presentation'] = 'audit'
+    output = build(tmp_path, spec).parent
+    model = json.loads((output/'matrix.json').read_bytes())
+    model['presentation'] = 'final'
+    row = model['rows'][0]
+    current = json.loads((output/row['case_path']).read_bytes())
+    original = deepcopy(current)
+    original[field] = 'different original requirement'
+    write(output/'before-case.json', original)
+    row['score_revision_history'] = {'before_case_path': 'before-case.json'}
+    with pytest.raises(ValueError, match='Changed task contracts'):
+        generate_saved_matrix(output, model)
+
+
+def test_diagnostic_annotations_do_not_change_task_acceptance():
+    from harness.web_fetch.report_saved_matrix import _require_final_selection, _same_task_rules
+    from lexbench_webfetch.scoring import score_attempt
+    before = {'id': 'case', 'name': 'Case', 'url': 'https://example.test/',
+              'category': 'web', 'expected_any': ['answer'], 'task_prompt': 'Return the answer'}
+    after = {**before, 'diagnostic_any': ['answer']}
+    assert _same_task_rules(before, after)
+    old_metrics = score_attempt(before, b'answer', ok=True)
+    new_metrics = score_attempt(after, b'answer', ok=True)
+    assert old_metrics['diagnostic_hits'] == [] and new_metrics['diagnostic_hits'] == ['answer']
+    assert old_metrics['content_pass'] == new_metrics['content_pass']
+    _require_final_selection({'spec': {}, 'missing': {}, 'cases': {'suite': {'case': before}},
+        'revision': {'cases': {('suite', 'case'): after}}})
+
+
+def test_uncommitted_first_call_counts_in_native_settings_coverage(tmp_path):
+    from bs4 import BeautifulSoup
+    spec, _ = split_matrix(tmp_path)
+    spec['presentation'] = 'audit'
+    entry = spec['retry_continuations'][0]
+    entry.pop('prior_source')
+    started = '2030-01-01T00:00:00+00:00'
+    event = {'event': 'http_request_started', 'call_id': 'method__case__r001', 'at': started}
+    log = write(tmp_path/'uncommitted-log.jsonl', event)
+    entry['prior_log'] = log
+    entry['prior_uncommitted'] = write(tmp_path/'uncommitted.json', {
+        'suite': 'first', 'provider': 'method', 'case_id': 'case',
+        'state': 'called_but_uncommitted', 'elapsed_ms': None})
+    entry['launch_contract'] = write(tmp_path/'uncommitted-launch.json', {
+        'started_at': '2030-01-01T00:00:01+00:00', 'case_ids': ['case'], 'provider': 'method',
+        'total_authorized_physical_calls_per_case': 2,
+        'first_uncommitted': {'case_id': 'case', 'sha256': log['sha256']}})
+    output = build(tmp_path, spec).parent
+    model = json.loads((output/'matrix.json').read_bytes())
+    settings = next(group for group in model['execution_settings'] if group['provider'] == 'method')
+    assert (settings['verified_calls'], settings['calls']) == (1, 2)
+    assert settings['collection_start'] == started
+    assert settings['errors'] and settings['uniform'] is False
+    row = next(row for row in model['rows'] if row['provider'] == 'method')
+    assert row['retry_continuation']['total_physical_calls'] == 2
+    assert row['retry_continuation']['execution_cost_ms'] is None
+    page = BeautifulSoup((output/'methodology/index.html').read_text(encoding='utf-8'), 'html.parser')
+    assert '1/2' in page.get_text()
+    spec['presentation'] = 'final'
+    with pytest.raises(ValueError, match='uniform settings'):
+        build(tmp_path, spec, 'final')

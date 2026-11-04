@@ -12,6 +12,48 @@ from lexbench_webfetch.scoring import score_attempt
 from tests.test_saved_matrix_evidence import fixture, write, assert_proof_mutations_rejected, assert_revision_document_mutation_rejected, assert_saved_receipt_mutation_rejected, assert_scoring_flags_rejected, assert_whitespace_record_rejected
 
 
+@pytest.mark.parametrize('kind', ['task_rules', 'scorer_only', 'diagnostic_only'])
+def test_final_admission_distinguishes_task_rules_from_scoring_code(tmp_path, kind):
+    from tests.test_saved_matrix_comparability import matrix
+    from tests.test_saved_matrix_evidence import build
+    spec = matrix(tmp_path)
+    spec['presentation'] = 'audit'
+    snapshot = build(tmp_path, spec, 'revision').parent
+    original_inputs = {source['results']['path']: Path(source['results']['path']).read_bytes()
+                       for source in spec['sources']}
+    dataset = json.loads((snapshot/'dataset.json').read_bytes())
+    changed = deepcopy(dataset['cases'][0])
+    if kind == 'task_rules':
+        changed['required_facts'] = [{'id': 'new-requirement', 'alternatives': ['not in the answer']}]
+    elif kind == 'diagnostic_only':
+        changed['diagnostic_any'] = ['answer']
+    records = [json.loads(line) for line in (snapshot/'results.jsonl').read_bytes().splitlines()]
+    config = snapshot/'revision-config.json'
+    write(config, {'cases': [] if kind == 'scorer_only' else [changed],
+        'rescore_attempt_ids': [record['attempt_id'] for record in records],
+        'rule_revision': kind != 'scorer_only',
+        'authority': {'description': 'Exercise separately disclosed rule and scorer corrections'},
+        'regression_ids': ['article-primary-scope-complete-without-shell',
+                           'article-primary-scope-shell-cannot-replace-body']})
+    revise_local_snapshot(snapshot, config)
+    receipt = next((snapshot/'local-evidence/offline-revisions').glob('*/receipt.json'))
+    spec['offline_revision'] = {'root': str(snapshot),
+        'receipt': {'path': str(receipt), 'sha256': hashlib.sha256(receipt.read_bytes()).hexdigest()}}
+    spec['presentation'] = 'final'
+    write(tmp_path/'spec.json', spec)
+    if kind == 'task_rules':
+        with pytest.raises(ValueError, match='Changed task contracts'):
+            build_saved_matrix(tmp_path/'spec.json', tmp_path/'final')
+        assert not (tmp_path/'final').exists()
+        spec['presentation'] = 'audit'
+        write(tmp_path/'spec.json', spec)
+        output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'audited').parent
+    else:
+        output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'final').parent
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+    assert all(Path(path).read_bytes() == raw for path, raw in original_inputs.items())
+
+
 def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalled=False, completion_note=False, answer=b'answer', title=None):
     spec, source, row, _ = fixture(tmp_path)
     if title is not None:

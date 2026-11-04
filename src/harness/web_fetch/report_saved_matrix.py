@@ -925,6 +925,10 @@ def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
         policies = []
         if continuation:
             if continuation[1] is None:
+                group['calls'] += 1
+                started = continuation[0]['_uncommitted_started_at']
+                group['collection_start'] = min(group['collection_start'] or started, started,
+                                                key=datetime.fromisoformat)
                 group['errors'].append('A physical call has no saved native settings')
             else:
                 calls.append(continuation[1][:2])
@@ -1014,6 +1018,14 @@ def _require_comparable_matrix(settings, expected_groups=None):
         raise ValueError('Final report requires equal DNS, timeout and retry budgets across methods')
 
 
+def _same_task_rules(before, after):
+    """Compare executable task requirements, not diagnostic-only annotations."""
+    from harness.web_fetch.scoring_revision import ALLOWED_FIELDS
+    # diagnostic_any produces diagnostic_hits only; it never changes acceptance.
+    fields = (ALLOWED_FIELDS | {'acceptance_policy_version'}) - {'diagnostic_any'}
+    return all(before.get(field) == after.get(field) for field in fields)
+
+
 def _require_final_selection(inputs):
     """Keep post-outcome tuning and changed task contracts out of a primary ranking."""
     spec = inputs['spec']
@@ -1028,7 +1040,7 @@ def _require_final_selection(inputs):
     if spec.get('parameter_reruns') or spec.get('adoptions'):
         raise ValueError('Post-outcome parameter selection belongs in a separate audit report')
     revision = inputs['revision']
-    if revision and any(case.get('task_prompt') != inputs['cases'][suite][cid].get('task_prompt')
+    if revision and any(not _same_task_rules(inputs['cases'][suite][cid], case)
                         for (suite, cid), case in revision['cases'].items()):
         raise ValueError('Changed task contracts belong in a separate audit report, not the primary ranking')
 
@@ -2338,7 +2350,7 @@ def _saved_renderer_projection(output, model):
                 raise ValueError('Final revised tasks require retained original task evidence')
             for proof in revision_proofs:
                 before = _json(contained_path(output, proof['before_case_path'], reject_symlinks=True))
-                if before.get('task_prompt') != case.get('task_prompt'):
+                if not _same_task_rules(before, case):
                     raise ValueError('Changed task contracts cannot enter a portable final report')
         if case['id'] != row['case_id']:
             raise ValueError('Saved case identity differs from matrix')

@@ -260,7 +260,7 @@ within each declared input class; DNS, timeout and retry budgets must also agree
 across methods in a family. Unknown settings and adapter-rejected positions block
 the final view. The methodology table exposes settings and collection dates;
 equal settings do not establish a shared measurement window. Post-outcome
-parameter selection and changed task prompts belong in separate audit reports,
+parameter selection and changed task or acceptance requirements belong in separate audit reports,
 not the primary original-contract ranking. Saved records are never rewritten to
 make historical cohorts comparable.
 
