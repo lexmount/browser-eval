@@ -60,22 +60,6 @@ def pin_vendor_assets(monkeypatch) -> None:
     monkeypatch.setattr(report, "bytes_sha256", lambda data: pinned.get(data) or actual(data))
 
 
-def write_charts_as_utf8(monkeypatch) -> None:
-    """Keep snapshots locale-independent until #208 decides on the published ``charts.py``."""
-    actual_chart = report.render_chart
-    actual_write = Path.write_text
-
-    def write_utf8(self, data, encoding="utf-8", errors=None, newline=None):
-        return actual_write(self, data, encoding, errors, newline)
-
-    def render_chart(*args, **kwargs):
-        with monkeypatch.context() as patch:
-            patch.setattr(Path, "write_text", write_utf8)
-            return actual_chart(*args, **kwargs)
-
-    monkeypatch.setattr(report, "render_chart", render_chart)
-
-
 def fold_per_call_routes(output: Path) -> None:
     """Join the 372-case and per-call directories so one snapshot stays reviewable."""
     for relative in ("data/cases", "data/fixed-cases", "data/evidence"):

@@ -17,13 +17,11 @@ MIGRATED = 'after_sha256 in harness/benchmarks/code-migration.json'
 SEARCH_SCORER = 'scoring_source_sha256 and collection_implementation of lexbench_websearch'
 COLLECTION = 'collection_implementation must match to resume a Search cohort'
 ORCHESTRATOR = 'orchestrator_sha256 is frozen in the resource protocol'
-PUBLISHED_COPY = 'copied byte for byte into the public reproduction directory'
 VISUAL = 'visual receipts bind checker_sources or producer_sources'
 NATIVE_POLICY = 'answer_selection_policy source_sha256 is in the frozen native route baseline'
 # Editing these moves a hash that frozen evidence compares with the current source.
 # The count is the number of calls left implicit, so the exemption cannot grow unseen.
 HASH_BOUND = {
-    'src/harness/lexbench/charts.py': (2, PUBLISHED_COPY),
     'src/harness/lexbench/resource_matrix.py': (5, ORCHESTRATOR),
     'src/harness/lexbench/resource_profiles.py': (7, ORCHESTRATOR),
     'src/harness/reporting/visual.py': (1, VISUAL),
@@ -38,6 +36,17 @@ HASH_BOUND = {
     'src/lexbench_websearch/relevance.py': (1, SEARCH_SCORER),
     'src/lexbench_websearch/rubric.py': (2, SEARCH_SCORER),
 }
+LEXBENCH_BUILD = '''
+import os, sys
+from pathlib import Path
+import pytest
+from harness.lexbench import report
+from tests.lexbench_report_fixture import build_report_inputs, pin_vendor_assets
+root = Path(sys.argv[1])
+os.chdir(root)
+pin_vendor_assets(pytest.MonkeyPatch())
+report.main(build_report_inputs(root, sys.argv[2]))
+'''
 TEMPORARY_FILES = {'NamedTemporaryFile', 'TemporaryFile', 'SpooledTemporaryFile'}
 # These are called as `open(path, mode)`, so the mode is the second argument.
 TEXT_BY_DEFAULT_MODULES = {None, 'io', 'builtins'}
@@ -216,3 +225,17 @@ def test_report_builds_are_byte_identical_under_an_ascii_locale(tmp_path):
         cwd=ROOT, env=ascii_locale_environment(),
         capture_output=True, encoding='utf-8', errors='replace', check=False)
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize('scenario', ['minimal', 'macos', 'linux'])
+def test_lexbench_report_builds_under_an_ascii_locale(tmp_path, scenario):
+    """The whole command succeeds with an ASCII stdout and writes non-ASCII chart text as UTF-8."""
+    result = subprocess.run(
+        [sys.executable, '-c', LEXBENCH_BUILD, str(tmp_path), scenario],
+        cwd=ROOT, env=ascii_locale_environment(),
+        capture_output=True, encoding='utf-8', errors='replace', check=False)
+    assert result.returncode == 0, result.stdout + result.stderr
+    charts = sorted((tmp_path / 'report/assets').glob('*-zh.svg'))
+    assert charts
+    for chart in charts:
+        assert not chart.read_text(encoding='utf-8').isascii()
