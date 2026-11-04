@@ -753,12 +753,10 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None):
     failure_without_metadata = ('dns_mode' not in metadata and not record.get('ok')
                                 and metadata.get('native_route_receipt', {}).get('failure_stage')
                                 == 'after_transport')
-    # Older hosted adapters did not duplicate system DNS in result metadata.
-    # The independently bound native configuration below still verifies it.
-    historical_system_dns = ('dns_mode' not in metadata and config.get('dns_mode', 'system') == 'system'
-                             and record.get('provider_type') in {
-                                 'cloudflare_markdown', 'cloudflare_content', 'exa_contents',
-                                 'tavily_extract', 'firecrawl'})
+    # A missing duplicate result field is not evidence of a DNS difference.
+    # Apply the same system-default rule to every adapter; the bound native
+    # configuration and request below must still prove the authorized settings.
+    historical_system_dns = ('dns_mode' not in metadata and config.get('dns_mode', 'system') == 'system')
     if (metadata.get('dns_mode') != config.get('dns_mode', 'system')
             and not failure_without_metadata and not historical_system_dns):
         raise ValueError('Parameter rerun DNS differs from authorization')
@@ -816,8 +814,8 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None):
             'max_failure_retries': contract.get('max_failure_retries')}
 
 
-def _uniform_execution_settings(calls, exceptions=()):
-    """Compare observed options, allowing only exact, independently bound exceptions."""
+def _uniform_execution_settings(calls):
+    """Compare observed options equally for every method and case."""
     def signature(value):
         def normalize(item):
             if isinstance(item, dict):
@@ -828,28 +826,14 @@ def _uniform_execution_settings(calls, exceptions=()):
                 return int(item)
             return item
         return json.dumps(normalize(value), sort_keys=True, allow_nan=False)
-    approved = {}
-    for entry in exceptions:
-        key = entry['suite'], entry['provider'], entry['case_id']
-        if key not in calls or key in approved or not str(entry.get('reason', '')).strip():
-            raise ValueError('Configuration exception is unscoped, duplicated, or unexplained')
-        if not isinstance(entry.get('expected'), dict) or not isinstance(entry.get('equivalent_to'), dict):
-            raise ValueError('Configuration exception requires exact observed and equivalent settings')
-        approved[key] = signature(entry['expected']), signature(entry['equivalent_to'])
     observed = set()
-    for key, attempts in calls.items():
+    for attempts in calls.values():
         if not attempts:
             raise ValueError('Whole-group selection lacks execution settings')
         for settings in attempts:
             if not isinstance(settings, dict) or not settings:
                 raise ValueError('Whole-group selection lacks execution settings')
-            value = signature(settings)
-            if key in approved:
-                expected, equivalent = approved[key]
-                if value != expected:
-                    raise ValueError('Configuration exception differs from observed settings')
-                value = equivalent
-            observed.add(value)
+            observed.add(signature(settings))
     return len(observed) == 1
 
 
@@ -1213,14 +1197,10 @@ def _adopted_groups(inputs, candidates):
                             'before_case': nested['cases'][suite][cid],
                             'attachments': nested['revision']['attachments'] if nested['revision'] else {},
                             'revision': nested['revision']['receipt'] if record != before_score else None}
-        exceptions = authority.get('configuration_exceptions', [])
-        exception_keys = {(entry['suite'], entry['provider'], entry['case_id']) for entry in exceptions}
-        if not exception_keys <= expected:
-            raise ValueError('Adoption configuration exception exceeds the selected population')
+        if authority.get('configuration_exceptions'):
+            raise ValueError('Configuration exceptions cannot establish uniform execution settings')
         for settings in settings_by_group.values():
-            scoped = [entry for entry in exceptions
-                      if (entry['suite'], entry['provider'], entry['case_id']) in settings]
-            if not _uniform_execution_settings(settings, scoped):
+            if not _uniform_execution_settings(settings):
                 raise ValueError('Adoption mixes native settings within a report family')
         for path, digest in nested['sources'].tracked.items():
             sources.bind(path, digest)

@@ -60,7 +60,7 @@ def test_environment_options_match_collection_and_reject_drift(tmp_path, monkeyp
 
 
 @pytest.mark.parametrize('kind', ['cloudflare_markdown', 'cloudflare_content', 'exa_contents',
-                                  'tavily_extract', 'firecrawl'])
+                                  'tavily_extract', 'firecrawl', 'browser_use_fetch'])
 def test_historical_system_dns_uses_bound_native_contract(tmp_path, kind):
     record, case, contract = execution(tmp_path, {
         'type': kind, 'uniform_native_parameters': True, 'account_id': 'fixture',

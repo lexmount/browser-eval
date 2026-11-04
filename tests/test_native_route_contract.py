@@ -1183,7 +1183,7 @@ def test_parameter_report_requires_authorized_native_execution(tmp_path, defect)
         contract.pop('provider_config_sha256')
     if defect in {'missing_bindings', 'missing_native'}:
         record['provider_metadata']['native_route_receipt'] = {'transport_state': 'started'}
-    if defect and defect != 'deadline_without_dns':
+    if defect and defect not in {'missing_dns', 'deadline_without_dns'}:
         with pytest.raises(ValueError, match='Parameter rerun'):
             _parameter_execution(tmp_path, record, asdict(case), contract, _SourceBindings(tmp_path))
     else:

@@ -1246,15 +1246,15 @@ def test_adoption_checks_observed_settings_across_cohorts(tmp_path, monkeypatch,
         'saved_matrix_spec': write(tmp_path/'candidate/spec.json', nested),
         'execution_contracts': [{'suite': 'first', 'provider': 'method', 'case_ids': [cid], 'contract': contract}
                                 for cid in ('same', 'second')]}]
-    if mode in {'output', 'wait', 'wrong_exception'}:
-        with pytest.raises(ValueError, match='mixes native settings|exception differs'):
+    if mode in {'output', 'wait', 'exception', 'wrong_exception'}:
+        with pytest.raises(ValueError, match='mixes native settings|exceptions cannot establish'):
             build(tmp_path, spec)
     else:
         output = build(tmp_path, spec).parent
         assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
 
 
-def test_uniform_settings_include_retries_and_reject_unscoped_exceptions():
+def test_uniform_settings_include_retries_without_identity_exceptions():
     from harness.web_fetch.report_saved_matrix import _uniform_execution_settings
     key = ('suite', 'method', 'case')
     first, second = {'request': {'wait': 'done'}}, {'request': {'wait': 'domstable'}}
@@ -1262,9 +1262,9 @@ def test_uniform_settings_include_retries_and_reject_unscoped_exceptions():
     assert not _uniform_execution_settings({key: [{'option': True}, {'option': 1}]})
     with pytest.raises(ValueError, match='lacks execution settings'):
         _uniform_execution_settings({key: [None]})
-    with pytest.raises(ValueError, match='unscoped'):
-        _uniform_execution_settings({key: [first]}, [{'suite': 'other', 'provider': 'method',
-            'case_id': 'case', 'reason': 'Outside scope.', 'expected': first, 'equivalent_to': first}])
+    for identity in (key, ('another-suite', 'another-method', 'another-case')):
+        assert _uniform_execution_settings({identity: [first, first]})
+        assert not _uniform_execution_settings({identity: [first, second]})
 @pytest.mark.parametrize('reverse', [False, True])
 @pytest.mark.parametrize('early_kind', ['blocked', 'skip'])
 @pytest.mark.parametrize('later_kind', ['uncommitted', 'started', 'event', 'inherited_event', 'diagnostic', 'scoped_diagnostic', 'nested_native', 'nested_event', 'conflicting_diagnostic'])
