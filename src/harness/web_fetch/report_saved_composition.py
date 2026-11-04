@@ -1,19 +1,15 @@
 """Combine validated saved comparisons without changing their measured records."""
 from copy import deepcopy
-import hashlib
 import json
 import shutil
 from pathlib import Path
 
 from lexbench_webfetch.paths import contained_path, safe_identifier
+from harness.record_io import file_sha256 as _hash
 
 
 def _read(path):
     return json.loads(path.read_bytes())
-
-
-def _hash(path):
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _project(value, paths):

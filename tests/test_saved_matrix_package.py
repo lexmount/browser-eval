@@ -18,8 +18,8 @@ def test_saved_matrix_packages_verified_outputs(tmp_path):
 def test_saved_matrix_rejects_tampered_output_before_packaging(tmp_path):
     spec, _, _, _ = fixture(tmp_path)
     output = build(tmp_path, spec).parent
-    matrix = json.loads((output / 'matrix.json').read_text())
-    (output / matrix['rows'][0]['answer_path']).write_text('invented answer')
+    matrix = json.loads((output / 'matrix.json').read_text(encoding='utf-8'))
+    (output / matrix['rows'][0]['answer_path']).write_text('invented answer', encoding='utf-8')
     with pytest.raises(ValueError):
         validate_release(output)
 
