@@ -100,8 +100,12 @@ REGEX = [
     (re.compile(r"^本报告包含 (\d+) 个任务、(\d+) 个逻辑结果，任务通过 (\d+)/(\d+)。结论仅适用于已登记的任务和规则。$"), r"This report contains \1 tasks and \2 logical results, with \3/\4 task passes. Conclusions apply only to the registered tasks and rules."),
     (re.compile(r"^的 F1 为 ([\d.]+%)，但没有满足该例任务规则。零通过表示没有一次满足全部任务门槛，不表示输出与参考毫无词语重合。这里的 F1 对照已保存的样本文本，只诊断文字重合，不承担实时事实核验。词频相似度允许部分文字得分，任务规则检查指定的内容或字段结构；二者应保留各自的含义。$"),
      r" has F1 \1 but does not satisfy its task rules. Zero passes means no call met every threshold, not zero textual overlap. This F1 compares saved sample text only and does not verify live facts. Token-frequency similarity can award partial text credit, while task rules check required content or field structure; the two retain distinct meanings."),
+    (re.compile(r"^目标资源已命中，但答案字段还返回了非目标资源：(.+)$"),
+     r"The target resource was found, but answer-bearing fields also returned unexpected resources: \1"),
     (re.compile(r"^未命中资源：(.+)；同时返回非目标资源：(.+)$"),
      r"Missing resources: \1; also returned unexpected resources: \2"),
+    (re.compile(r"^已找到目标资源，但答案字段还返回了非目标资源：(.+)$"),
+     r"The target resource was found, but answer-bearing fields also returned unexpected resources: \1"),
     (re.compile(r"^初始源文档审计进一步缩小了这批样本的解释范围：静态网站正文 (\d+) 例中，(\d+) 例的冻结参考，可以从已保存的初始 HTML 经参考提取与规范化后精确复现。这是对参考文本可恢复性的检查，既不意味着它们都是可见静态正文，也不意味着 CowAgent 使用了同样的提取器。嵌入脚本的载荷仍需要正确解析。高网页通过率因此不能直接外推到初始响应之外才到达的内容。$"), r"The initial-source audit further narrows how this sample can be interpreted: for \1 general-web body tasks, \2 frozen references can be reproduced exactly from the saved initial HTML after reference extraction and normalization. This checks reference-text recoverability; it neither means that all of the text was statically visible nor that CowAgent used the same extractor. Embedded script payloads still require correct parsing. High web pass rates therefore cannot be extrapolated to content that arrives only after the initial response."),
     (re.compile(r"^这组另有 (\d+)/(\d+) 条返回标题能按详情链接对应到独立名称参考，据此计算标题完整度、纯净度和 F1。例如一部电影从第三名移到第十名，只要仍返回同一详情链接，就比较这部电影的名称，不比较名次，也不要求旧榜单里的电影继续出现。只返回电影名称可能取得很高的标题分，却仍不足以完成至少三条结果的任务。因此这三个分数须与任务通过率和参考覆盖量一起读，不能当作整页正文质量。新条目没有独立名称参考时不计文字分；同一条目的标题也可能改写，重合度只是相对已记录名称的诊断，不认证当前内容真假。$"), r"For this group, \1/\2 returned titles can be joined by detail URL to independent name references, enabling title recall, precision, and F1. If a film moves from third to tenth while retaining the same detail URL, its name is compared without comparing rank or requiring old list membership. Returning names alone can score highly on title overlap while still failing the task's minimum of three complete records. Read these three diagnostics together with task pass rate and reference coverage; they are not whole-page body-quality metrics. New entries without independent name references are excluded, and titles may be rewritten, so overlap is only a diagnostic against recorded names, not proof that current content is true."),
     (re.compile(r"^获取原图：(.+)$"), lambda match: "Download original: " + translate_text(match.group(1))),
@@ -148,6 +152,7 @@ REGEX = [
     (re.compile(r"^(\d+)\s*类任务概览$"), r"\1 task families"),
     (re.compile(r"^(\d+)\s*类分榜$"), r"Rankings for \1 task families"),
     (re.compile(r"^(\d+)\s*类通过数$"), r"Passes across \1 task families"),
+    (re.compile(r"^供应商明确声明返回内容已截断：(.*)$"), r"The provider explicitly declares that the returned body is truncated: \1"),
     (re.compile(r"^当前报告共 (\d+) 个案例、(\d+) 种方法和 ([\d,]+) 条权威逻辑结果；其中其他 ([\d,]+) 条未被本次文件补测改写。$"), r"The current report contains \1 tasks, \2 methods, and \3 authoritative logical results; the other \4 results were not changed by this file-task rerun."),
     (re.compile(r"^至少 (\d+) 条不同记录$"), r"At least \1 distinct records"),
     (re.compile(r"^排除：(.+)$"), r"Exclude: \1"),
@@ -178,6 +183,7 @@ REGEX = [
     (re.compile(r"^(\d+) 个案例 · (\d+) 种方法 · 六类分榜与一个综合通过率总榜。$"), r"\1 tasks · \2 methods · six family rankings and one overall coverage ranking."),
     (re.compile(r"^(\d+) 个任务$"), r"\1 tasks"),
     (re.compile(r"^(\d+)/(\d+) · Codex 已核验$"), r"\1/\2 · reviewed by Codex"),
+    (re.compile(r"^方法：(.*)$"), r"Method: \1"),
     (re.compile(r"^任务 ID：(.*)$"), r"Task ID: \1"),
     (re.compile(r"^运行 ID：(.*)$"), r"Run ID: \1"),
     (re.compile(r"^第 (\d+) 轮$"), r"Round \1"),
@@ -220,6 +226,7 @@ REGEX = [
     (re.compile(r"^至少 (\d+) 条完整且不重复的记录$"), r"At least \1 complete, unique records"),
     (re.compile(r"^实际交付 (\d+) 个文件$"), r"\1 files delivered"),
     (re.compile(r"^实际交付 (\d+) 个文件 ·$"), r"\1 files delivered ·"),
+    (re.compile(r"^未命中资源：(.+)$"), r"Missing resource: \1"),
     (re.compile(r"^展开 (\d+) 个较早版本$"), r"Expand \1 earlier releases"),
     (re.compile(r"^(\d+) 个仓库$"), r"\1 repositories"),
     (re.compile(r"^(\d+)/(\d+) · (\d+)/(\d+) 例$"), r"\1/\2 · \3/\4 tasks"),
@@ -341,6 +348,14 @@ REGEX.insert(0, (
     r"Download physical call \1 record",
 ))
 REGEX.insert(0, (
+    re.compile(r"^最终输出确实为空。适配器记录的原因：(.+)$"),
+    r"The final output is genuinely empty. The adapter recorded this reason: \1",
+))
+REGEX.insert(0, (
+    re.compile(r"^最终输出确实为空。请求未成功，错误类型为 (.+)；历史记录没有保存更多错误文字。$"),
+    r"The final output is genuinely empty. The request failed with error type \1; the historical record retained no further error text.",
+))
+REGEX.insert(0, (
     re.compile(r"^(成功|失败) · HTTP (.+)$"),
     lambda match: (("Success" if match.group(1) == "成功" else "Failure") + " · HTTP "
                    + ("not provided" if match.group(2) == "未提供" else match.group(2))),
@@ -372,6 +387,10 @@ REGEX.insert(0, (
 REGEX.insert(0, (
     re.compile(r"^(?:Chromium|Lightpanda|Moli(?: \d+(?:\.\d+)*)?(?: · 独立资源批次)?|Obscura)(?:、(?:Chromium|Lightpanda|Moli(?: \d+(?:\.\d+)*)?(?: · 独立资源批次)?|Obscura))+$"),
     lambda match: match.group(0).replace("、", ", "),
+))
+REGEX.insert(0, (
+    re.compile(r"^(.+) 是本轮资源效率领先者，在 (\d+) 个可按低消耗比较的指标中取得 (\d+) 项最低。这里的资源领先不等于综合任务通过率领先。$"),
+    r"\1 is the resource-efficiency leader in this run, with the lowest use in \3 of \2 lower-is-better metrics. Resource leadership is not the same as leadership in overall task pass rate.",
 ))
 
 REGEX.insert(0, (
@@ -659,6 +678,9 @@ def localize_html(page: str, source: PurePosixPath, *, translations=None) -> str
     for index, block in enumerate(preserved):
         localized = localized.replace(f"<!--LOCALIZATION-PRESERVED-{index}-->", block)
     return _rewrite_links(localized, source, english)
+
+
+REGEX.insert(0, (re.compile(r"^源码提交：(.+)$"), r"Source commit: \1"))
 
 
 REGEX.insert(0, (re.compile('^每种方法均使用同一组 (\\d+) 个任务，包含通过、未通过、错误和超时。耗时是单次调用从输入到返回的时间，不包含调用之间的统一冷却间隔。每种方法内部按案例依次执行；方法之间的并发安排和限制见调用链检查。耗时仍受本地与远程环境、网络和产品内部限制影响。$'), 'Each method uses the same \\1 tasks, including passes, failures, errors, and timeouts. Latency runs from input to return and excludes the common cooldown between calls. Cases execute sequentially within each method; inter-method scheduling and limits are documented in the call-chain audit. Local and remote environments, networks, and product limits still affect latency.'))

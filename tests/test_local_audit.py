@@ -1124,12 +1124,17 @@ def test_renderer_identity_covers_loaded_assets(tmp_path, monkeypatch):
     from harness.web_fetch import report_build
     (tmp_path / 'assets').mkdir()
     (tmp_path / 'report.py').write_text('renderer', encoding='utf-8')
+    catalog = tmp_path / 'messages.json'
+    catalog.write_text('{}', encoding='utf-8')
     asset = tmp_path / 'assets/report.css'
     asset.write_text('body{}', encoding='utf-8')
     monkeypatch.setattr(report_build, '__file__', str(tmp_path / 'report_build.py'))
     before = report_build.renderer_sha256()
     asset.write_text('body{margin:0}', encoding='utf-8')
-    assert report_build.renderer_sha256() != before
+    after_asset = report_build.renderer_sha256()
+    assert after_asset != before
+    catalog.write_text('{"zh":{}}', encoding='utf-8')
+    assert report_build.renderer_sha256() != after_asset
 
 
 def test_full_current_refresh_requires_explicit_authority_and_changed_template(tmp_path):

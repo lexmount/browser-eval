@@ -552,7 +552,7 @@ def _render_current_browser_article(out, cases, records, binding):
                 +'" data-value="'+('' if value is None else str(value))+'"'
                 + (' data-winner="true" class="good"' if winner else '')+'>'+text+'</span>')
     def latency_table(population):
-        return _table([t('web_text', 'Web text'), '样本数', '平均总耗时 · ms', 'P50 · ms', 'P95 · ms'], [
+        return _table([t('browser', 'Browser'), '样本数', '平均总耗时 · ms', 'P50 · ms', 'P95 · ms'], [
             (label(name), str(stats[name][population]['n']), *(
                 metric(name, population+'_'+key, stats[name][population][key],
                        [stats[n][population][key] for n in names]) for key in ('mean','p50','p95')))
@@ -696,7 +696,7 @@ def _render_current_browser_article(out, cases, records, binding):
         raise ValueError('Reading comparison refers to an unregistered method')
     order=sorted(names,key=lambda name:(-stats[name]['passed'],name))
     family_titles={'web':'静态正文','dynamic':'动态正文','challenge':'热门正文','risk_control':'风控正文','document':t('document_text', 'Document text'),'web_media':t('embedded_webpage_media', 'Embedded webpage media'),'media_file':t('direct_media_files', 'Direct media files')}
-    combined=_table([t('web_text', 'Web text'),t('overall_task_pass_rate', 'Overall task pass rate'),*(family_titles.get(track,BROWSER_FAMILY_NAMES[track]) for track in model['tracks'])], [
+    combined=_table([t('browser', 'Browser'),t('overall_task_pass_rate', 'Overall task pass rate'),*(family_titles.get(track,BROWSER_FAMILY_NAMES[track]) for track in model['tracks'])], [
         (label(name),metric(name,'pass_rate',stats[name]['pass_rate'],[stats[n]['pass_rate'] for n in names],True)
          +f'<br>{stats[name]["passed"]}/{model["cases"]}',*(family_cell(name,track) for track in model['tracks'])) for name in order],
         '每种配置执行相同的 '+str(model['cases'])+' 题，每题等权。分项为通过数 / 本组题数；绿色只标记该列唯一最高值。')
