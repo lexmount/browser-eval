@@ -17,9 +17,7 @@ Include the task ID, method and versions, OS, command and sanitized error. Remov
 | New report instance | An external instance profile, evidence and report content; reuse its build and release commands |
 | Reusable logic | `src/harness/`; `scripts/` stays a thin command entry point |
 
-Use English for identifiers, comments and docstrings. Store report interface text
-in language catalogs, and select it through the existing report language contract.
-Keep original-language task text, source quotations and multilingual test fixtures. Keep measured counts, host facts and report-specific interpretation out
+Keep measured counts, host facts and report-specific interpretation out
 of shared renderers: read them from the selected profile and bound evidence.
 Published historical reports retain their own content and provenance.
 
@@ -29,12 +27,21 @@ module, avoiding a circular import or preserving test isolation.
 
 Test both accepted and rejected scenarios. Fix scoring rules rather than editing saved verdicts. Refactoring must preserve historical measurements and certificates.
 
-Write documentation in English. Keep the [Chinese README](docs/README.zh-CN.md) aligned when setup or usage changes; other docs do not need duplicate translations. Preserve original task text, quotations and frozen acceptance inputs. Reports follow their track's language settings.
+Keep the [Chinese README](docs/README.zh-CN.md) aligned when setup or usage changes; other docs do not need duplicate translations. Reports follow their track's language settings.
 
 Benchmark changes follow [benchmark editions](docs/benchmarks.md#benchmark-editions).
 Keep human-readable editions, immutable dataset/scorer hashes and the package
 commit together. A minor scoring correction requires common-edition rescoring;
 changed task populations or requests require a major edition.
+
+### Text language
+
+The test for any string: did the project write it, or did it come from the web or a dataset?
+
+- **The project wrote it.** Identifiers, comments, docs, logs, errors, catalog keys and report interface text have English as their source. The Chinese report edition comes from language catalogs, selected through the report language contract.
+- **It came from outside.** Dataset queries and tasks, frozen web pages, human references, measured responses and quotations keep their original language byte for byte. Never translate, normalize or re-punctuate them; language checks must exempt them.
+
+Test fixtures that stand in for outside text keep its language. Frozen acceptance and audit artifacts are hash-bound experiment inputs whoever wrote them; see [reference inputs](docs/reference-inputs.md).
 
 ## Update Web Fetch dependencies and methods
 
