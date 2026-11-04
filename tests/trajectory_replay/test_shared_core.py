@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from types import SimpleNamespace
 from unittest.mock import MagicMock
@@ -305,7 +306,13 @@ def _start_engine(runtime, playwright, reset_state, monkeypatch):
     start_container = MagicMock()
     client = MagicMock()
     monkeypatch.setattr(docker_runner, "start_browser_container", start_container)
-    monkeypatch.setattr(docker_runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
+
+    def published_endpoint(container, **kwargs):
+        # The published port comes from container attributes that only a reload refreshes.
+        container.reload.assert_called_once_with()
+        return "http://test.invalid"
+
+    monkeypatch.setattr(docker_runner, "published_endpoint", published_endpoint)
     monkeypatch.setattr(docker_runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
     monkeypatch.setattr(docker_runner, "DockerStatsResources", MagicMock())
     docker_runner.start_engine(
@@ -587,3 +594,91 @@ def test_only_the_public_environment_records_the_image_build_source():
         "tags": ["image:tag"],
         "build_source": {"lex.browser-eval.source": "commit"},
     }
+
+
+def _environment_client() -> MagicMock:
+    client = MagicMock()
+    client.info.return_value = {
+        "OperatingSystem": "Test OS",
+        "Architecture": "x86_64",
+        "NCPU": 8,
+        "MemTotal": 1024,
+        "CgroupVersion": "2",
+    }
+    client.version.return_value = {"Version": "27.0"}
+    return client
+
+
+def test_environment_receipt_records_the_host_docker_and_each_browser(monkeypatch):
+    monkeypatch.setattr(docker_runner.platform, "platform", lambda: "test-platform")
+    chromium = MagicMock()
+    chromium.exec_run.return_value = SimpleNamespace(output=b" Chromium 120\n", exit_code=0)
+    chromium.image.id = "sha256:chromium"
+    chromium.image.tags = ["chromium:tag"]
+    moli = MagicMock()
+    moli.exec_run.return_value = SimpleNamespace(output=b"Moli 1\n", exit_code=0)
+    moli.image.id = "sha256:moli"
+    moli.image.tags = []
+
+    environment = docker_runner.docker_environment(
+        _environment_client(), {"chromium": chromium, "moli": moli}
+    )
+
+    assert environment == {
+        "runner_platform": "test-platform",
+        "docker_server_version": "27.0",
+        "docker_os": "Test OS",
+        "docker_architecture": "x86_64",
+        "docker_cpus": 8,
+        "docker_memory_bytes": 1024,
+        "cgroup_version": "2",
+        "browser_versions": {"chromium": "Chromium 120", "moli": "Moli 1"},
+        "images": {
+            "chromium": {"id": "sha256:chromium", "tags": ["chromium:tag"]},
+            "moli": {"id": "sha256:moli", "tags": []},
+        },
+    }
+    chromium.exec_run.assert_called_once_with(["chromium", "--version"])
+    moli.exec_run.assert_called_once_with(["moli", "--version"])
+
+
+@pytest.mark.parametrize(
+    ("exec_result", "recorded"),
+    [
+        (SimpleNamespace(output=b" \n", exit_code=7), "exit 7, no output"),
+        (SimpleNamespace(output=b"\xff", exit_code=0), "\ufffd"),
+        (RuntimeError("exec failed"), "unavailable: RuntimeError"),
+    ],
+)
+def test_environment_receipt_keeps_a_browser_version_it_could_not_read(exec_result, recorded):
+    container = MagicMock()
+    container.exec_run.side_effect = [exec_result]
+
+    environment = docker_runner.docker_environment(_environment_client(), {"moli": container})
+
+    assert environment["browser_versions"] == {"moli": recorded}
+
+
+def test_run_artifacts_keep_non_ascii_text_and_hash_the_written_bytes(tmp_path):
+    rows = [{"title": "\u4efb\u52a1 1"}, {"title": "caf\u00e9"}]
+    summary = {"title": "\u6c47\u603b"}
+    manifest = {"title": "\u6e05\u5355"}
+
+    docker_runner.write_run_artifacts(tmp_path, rows, summary, manifest)
+
+    attempts = (tmp_path / "attempts.jsonl").read_bytes()
+    written_summary = (tmp_path / "summary.json").read_bytes()
+    assert attempts == '{"title": "\u4efb\u52a1 1"}\n{"title": "caf\u00e9"}\n'.encode()
+    assert written_summary == '{\n  "title": "\u6c47\u603b"\n}\n'.encode()
+    provenance = {
+        "artifact_directory": str(tmp_path),
+        "attempts_sha256": hashlib.sha256(attempts).hexdigest(),
+        "summary_sha256": hashlib.sha256(written_summary).hexdigest(),
+    }
+    assert manifest["artifact_provenance"] == provenance
+    expected_manifest = json.dumps(
+        {"title": "\u6e05\u5355", "artifact_provenance": provenance},
+        indent=2,
+        ensure_ascii=False,
+    )
+    assert (tmp_path / "manifest.json").read_bytes() == f"{expected_manifest}\n".encode()

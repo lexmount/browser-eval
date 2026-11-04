@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import MagicMock
 from urllib.request import ProxyHandler, build_opener
 
 import pytest
@@ -18,7 +19,7 @@ from harness.environments.webarena.config import SITES, verify_deployment_contra
 from harness.environments.webarena.topology import RECORDING_GATEWAYS
 from harness.record_io import canonical_json_sha256
 from harness.trajectory_replay import remote_runtime
-from harness.trajectory_replay.core.docker_runner import start_fixture_server
+from harness.trajectory_replay.core.docker_runner import start_fixture_server, stop_fixture_server
 from harness.trajectory_replay.public_webarena import webarena_environment
 from harness.trajectory_replay.remote_runtime import rebind_remote_calls
 
@@ -283,9 +284,11 @@ def test_deployment_contract_rejects_map_local_ports_that_leave_the_registry(
         verify_deployment_contract(tmp_path)
 
 
-def test_fixture_server_keeps_the_host_alias_origin(tmp_path: Path) -> None:
+def test_fixture_server_keeps_the_host_alias_origin_and_stops_cleanly(tmp_path: Path) -> None:
     (tmp_path / "fixture-root-marker.txt").write_text("fixture-root", encoding="utf-8")
     server, thread, origin = start_fixture_server(tmp_path)
+    # The thread can exit on its own after shutdown, so only a spy can show that stopping waits.
+    thread.join = MagicMock(wraps=thread.join)
     try:
         assert origin == f"http://host.docker.internal:{server.server_port}"
         assert server.server_address[0] == "0.0.0.0"
@@ -295,9 +298,10 @@ def test_fixture_server_keeps_the_host_alias_origin(tmp_path: Path) -> None:
         with opener.open(url, timeout=5) as response:
             assert response.read() == b"fixture-root"
     finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=5)
+        stop_fixture_server((server, thread, origin))
+    thread.join.assert_called_once_with(timeout=2)
+    assert not thread.is_alive()
+    assert server.socket.fileno() == -1
 
 
 def test_registry_rejects_shared_ports(tmp_path: Path) -> None:
