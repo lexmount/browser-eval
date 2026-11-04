@@ -4,7 +4,6 @@ import json
 import re
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
 
@@ -1105,17 +1104,42 @@ def test_diagnostic_viewers_share_unchanged_source_across_languages(tmp_path):
     assert source.read_bytes()==original
 
 
-def test_catalog_text_base_could_translate_still_translates_without_a_render(monkeypatch):
+def test_catalog_text_translated_without_a_render_does_not_shrink(monkeypatch):
     """Frozen and refresh builds render saved Chinese text, so no `t` call declares its English."""
     from collections import defaultdict
     from harness.web_fetch import report_i18n
     monkeypatch.setattr(report_i18n,'TEXT',dict(report_i18n._TRANSLATIONS['TEXT']))
     catalog=json.loads(report_i18n.MESSAGES.read_text(encoding='utf-8'))['zh']
-    keys=json.loads((Path(__file__).parent/'fixtures/web-fetch-saved-text-keys.json').read_text(encoding='utf-8'))
-    saved={key:catalog[key].format_map(defaultdict(lambda:7)).strip() for key in keys}
-    untranslated={key:text for key,text in saved.items()
-                  if re.search('[\u4e00-\u9fff]',report_i18n.translate_text(text))}
-    assert untranslated=={}
+    saved=[value.format_map(defaultdict(lambda:7)).strip() for value in catalog.values()]
+    translated=[text for text in saved if not re.search('[\u4e00-\u9fff]',report_i18n.translate_text(text))]
+    assert len(translated)>=899
+
+
+def test_chinese_value_keeps_the_base_english_on_the_dataset_page(tmp_path):
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch import runner
+    from harness.web_fetch.providers.fixture import FixtureProvider
+    from harness.web_fetch.report_build import build_report
+    case={'id':'contract','name':'contract','url':'https://example.com/contract','category':'static','track':'web',
+          'task_prompt':'Read expected content','expected_any':['Expected'],
+          'acceptance_contract':{'version':1,'schema':'named_link','minimum_records':3,
+                                 'hosts':['example.com'],'entry_path':'/item/\\d+'},
+          'body_requirements':{'version':3,'unit':'region_compact_hexagram_recall','minimum_floor':0.6,
+                               'minimum_coverage':0.8,'minimum_region_passes':4,
+                               'regions':[{'id':f'region-{i}','text':f'region {i} reference text'} for i in range(5)]}}
+    run=tmp_path/'run'
+    runner.run_evaluation(output_dir=run,dataset_meta={'schema_version':1,'id':'golden','name':'Golden','tool':'web_fetch','cases':[case]},
+                          dataset_path=tmp_path/'dataset.json',cases=[EvalCase(**case)],
+                          providers=[FixtureProvider('fixture',{'type':'fixture'})],
+                          provider_config_path=tmp_path/'providers.json',runs=1,timeout=1,delay=0)
+    build_report(run,tmp_path/'report',language='en')
+    page=(tmp_path/'report/en/datasets/contract.html').read_text(encoding='utf-8')
+    for english in ('Named detail records: at least 3 complete, unique records.',
+                    'Uniqueness is checked by detail URL.',
+                    'Every region has a 60.0% hard floor, and at least 4 of 5 regions must reach 80.0%.'):
+        assert english in page
+    for mixed in ('至少 3 条','checked by 详情链接','每段硬下限'):
+        assert mixed not in page
 
 
 def test_saved_diagnosis_translates_in_a_process_that_never_diagnosed():

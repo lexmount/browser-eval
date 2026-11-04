@@ -49,7 +49,7 @@ def report_text(language: str):
 def t(key: str, source: str, /, **values) -> str:
     """Render one Chinese text node and declare its English for the post-render pass."""
     chinese = translate(MESSAGES, key, "zh", **values)
-    TEXT[chinese.strip()] = source.format_map(values)
+    TEXT.setdefault(chinese.strip(), source.format_map(values))
     return chinese
 
 
