@@ -22,7 +22,8 @@ def test_comments_identifiers_and_docstrings_fail_but_source_text_survives(tmp_p
 
 
 @pytest.mark.parametrize("relative", [
-    "harness/lexbench/template/app.js", "harness/trajectory_replay/interpretation.py",
+    "harness/lexbench/template/app.js", "harness/trajectory_replay/failure_matrix.py",
+    "harness/trajectory_replay/interpretation.py",
     "harness/web_fetch/methods.py", "harness/web_fetch/report_interfaces.py",
 ])
 def test_catalog_renderer_rejects_inline_messages_without_banning_chinese_catalogs(tmp_path, relative):
