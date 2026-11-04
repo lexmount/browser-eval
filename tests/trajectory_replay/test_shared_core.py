@@ -206,9 +206,6 @@ def test_process_validation_needs_the_expected_actions_all_passing(actions, stat
 def test_tracks_keep_their_own_reset_scope(monkeypatch):
     cleared = {}
     monkeypatch.setattr(
-        docker_runner, "reset_browser_state", lambda page, origins: cleared.update(last=origins)
-    )
-    monkeypatch.setattr(
         curated_runner, "reset_browser_state", lambda page, origins: cleared.update(last=origins)
     )
     monkeypatch.setattr(
