@@ -193,7 +193,7 @@ WEBARENA_RAINBOND_SMOKE_URLS='{
   "reddit":"http://<reddit-domain>",
   "gitlab":"http://<gitlab-domain>"
 }' uv run --frozen python -m pytest \
-  tests/trajectory_replay/public_webarena/test_rainbond_live_smoke.py \
+  tests/environments/test_rainbond_live_smoke.py \
   -m real_smoke -q -s
 ```
 

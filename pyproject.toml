@@ -74,6 +74,7 @@ testpaths = ["tests"]
 addopts = ["--import-mode=importlib"]
 markers = [
   "real_smoke: accesses real containers or live deployment endpoints",
+  "slow: one call takes about eight seconds or more; deselect with -m 'not slow'",
 ]
 
 [tool.ruff]

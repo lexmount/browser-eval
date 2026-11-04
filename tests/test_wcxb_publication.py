@@ -7,7 +7,7 @@ import pytest
 
 from harness.reporting import publish as shared
 from harness.web_fetch import wcxb_publication as release
-from tests.wcxb_fixture import write_json
+from tests.helpers import write_json
 
 
 @pytest.fixture

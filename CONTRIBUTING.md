@@ -100,7 +100,8 @@ make test-python TEST_PATHS=tests/web_search
 make test-python TEST_PATHS=tests/test_scoring_regressions.py PYTEST_ARGS='-k reference'
 ```
 
-`TEST_PATHS` selects files or directories; `PYTEST_ARGS` adds pytest options.
+`TEST_PATHS` selects files or directories; `PYTEST_ARGS` adds pytest options;
+`PYTEST_ARGS='-m "not slow"'` skips the slowest tests while iterating, and CI still runs them.
 Without `TEST_PATHS`, Python tests cover the entire suite. `make docs-check`
 checks README navigation, citations, track naming and source-language policy;
 it needs neither Node.js nor downloaded benchmark data.

@@ -15,6 +15,7 @@ from pathlib import Path
 from harness.lexbench import report
 from harness.lexbench.resource_matrix import schedule
 from harness.lexbench.resource_summary import stats
+from tests import helpers
 from tests.test_resource_calibration import experiment
 
 CANDIDATE_114 = "v4_cdp_emulation_setdefaultbackgroundcoloroverride"
@@ -42,9 +43,7 @@ def sha(raw: bytes) -> str:
 
 
 def write_json(path: Path, value) -> str:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value, ensure_ascii=False) + "\n", encoding="utf-8")
-    return sha(path.read_bytes())
+    return sha(helpers.write_json(path, value).read_bytes())
 
 
 def write_jsonl(path: Path, rows: list[dict]) -> str:

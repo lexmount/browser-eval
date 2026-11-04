@@ -16,6 +16,7 @@ from harness.trajectory_replay.catalog_contracts import (
     validate_catalog_report_profile,
     validate_environment_preparation,
 )
+from tests.helpers import write_json
 
 
 def test_current_contracts_keep_historical_run_and_acceptance_schemas_readable():
@@ -135,12 +136,6 @@ def test_environment_preparation_rejects_unbound_receipts(tmp_path, path, key, v
         validate_environment_preparation(receipt, profile)
 
 
-def _write_json(path, value):
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value), encoding="utf-8")
-    return path
-
-
 def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path):
     repository = tmp_path / "repository"
     (repository / "pyproject.toml").parent.mkdir(parents=True)
@@ -158,7 +153,7 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
     )
     task_ids = [4, 11, 23]
     official_checksum = "official-data"
-    dataset = _write_json(
+    dataset = write_json(
         repository / "evaluation/full/dataset.json",
         {
             "schema": "lex_webarena_replay_dataset/1",
@@ -171,7 +166,7 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
             },
         },
     )
-    scope = _write_json(
+    scope = write_json(
         repository / "evaluation/full/scope.json",
         {
             "schema": "lex_webarena_replay_scope/1",
@@ -189,7 +184,7 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
         "physical_attempts": 854,
         "excluded_duplicate_attempts": 0,
     }
-    ledger = _write_json(
+    ledger = write_json(
         evidence / "ledger.json",
         {
             "schema": "lex_trajectory_replay_catalog_acceptance/1",
@@ -203,8 +198,8 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
         "suite.json": {"tasks": []},
     }
     for name, value in artifacts.items():
-        _write_json(evidence / name, value)
-    catalog = _write_json(
+        write_json(evidence / name, value)
+    catalog = write_json(
         evidence / "catalog.json",
         {
             "schema": "lex_webarena_replay_catalog/1",
@@ -212,7 +207,7 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
             "accepted_ledger_sha256": file_sha256(ledger),
         },
     )
-    profile = _write_json(
+    profile = write_json(
         repository / "evaluation/full/current-report.json",
         {
             "schema": "lex_webarena_replay_report_profile/1",
@@ -267,7 +262,7 @@ def test_report_profile_owns_accepted_counts_instead_of_validator_code(tmp_path)
 def test_comparison_release_binds_population_review_and_publication(tmp_path):
     data_home = tmp_path / "data"
     evidence = data_home / "trajectory-replay/comparison"
-    profile = _write_json(
+    profile = write_json(
         evidence / "profile.json",
         {
             "schema": "lex_webarena_trajectory_replay_profile/1",
@@ -284,7 +279,7 @@ def test_comparison_release_binds_population_review_and_publication(tmp_path):
             },
         },
     )
-    dataset = _write_json(
+    dataset = write_json(
         evidence / "dataset.json",
         {
             "schema": "lex_webarena_catalog_comparison_dataset/1",
@@ -292,14 +287,14 @@ def test_comparison_release_binds_population_review_and_publication(tmp_path):
             "trajectories": [{"task_id": 1}, {"task_id": 2}],
         },
     )
-    review = _write_json(evidence / "review.json", {"reviewed": 1})
+    review = write_json(evidence / "review.json", {"reviewed": 1})
     attempts = [
         {"participant_id": "moli", "engine": "moli", "task_id": 1, "status": "pass"},
         {"participant_id": "moli", "engine": "moli", "task_id": 2, "status": "pass"},
         {"participant_id": "other", "engine": "other", "task_id": 1, "status": "pass"},
         {"participant_id": "other", "engine": "other", "task_id": 2, "status": "fail"},
     ]
-    results = _write_json(
+    results = write_json(
         evidence / "results.json",
         {
             "schema": "lex_webarena_catalog_comparison_results/1",
@@ -311,7 +306,7 @@ def test_comparison_release_binds_population_review_and_publication(tmp_path):
             ],
         },
     )
-    manifest = _write_json(
+    manifest = write_json(
         evidence / "report/manifest.json",
         {
             "task_count": 2,
@@ -326,7 +321,7 @@ def test_comparison_release_binds_population_review_and_publication(tmp_path):
     )
     archive = evidence / "report.zip"
     archive.write_bytes(b"archive")
-    receipt = _write_json(
+    receipt = write_json(
         evidence / "receipt.json",
         {
             "verified": True,
@@ -336,7 +331,7 @@ def test_comparison_release_binds_population_review_and_publication(tmp_path):
             "archive_sha256": file_sha256(archive),
         },
     )
-    attestation = _write_json(
+    attestation = write_json(
         evidence / "attestation.json",
         {
             "archive_sha256": file_sha256(archive),
@@ -346,7 +341,7 @@ def test_comparison_release_binds_population_review_and_publication(tmp_path):
             "evidence_sha256": file_sha256(results),
         },
     )
-    metadata_revision = _write_json(
+    metadata_revision = write_json(
         evidence / "execution-metadata-revision.json",
         {
             "schema": "lex_trajectory_replay_metadata_revision/1",
@@ -381,7 +376,7 @@ def test_comparison_release_binds_population_review_and_publication(tmp_path):
         "publication_attestation": attestation,
         "publication_receipt": receipt,
     }
-    binding = _write_json(
+    binding = write_json(
         tmp_path / "current-comparison.json",
         {
             "schema": "lex_webarena_replay_comparison_release/1",

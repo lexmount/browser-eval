@@ -8,11 +8,7 @@ import pytest
 
 from harness.record_io import canonical_json_sha256, file_sha256
 from harness.trajectory_replay import webarena_report
-
-
-def _write_json(path: Path, value: dict) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value) + "\n", encoding="utf-8")
+from tests.helpers import write_json
 
 
 @pytest.mark.parametrize("hosted", [False, True])
@@ -72,10 +68,10 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
         "actual_response.json": {"task_type": "retrieve", "status": "SUCCESS"},
         "trace.json": {"events": []},
     }.items():
-        _write_json(run / "task-0" / name, value)
+        write_json(run / "task-0" / name, value)
 
     ledger = tmp_path / "ledger.json"
-    _write_json(
+    write_json(
         ledger,
         {
             "counts": {
@@ -122,7 +118,7 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
         },
     )
     catalog = tmp_path / "catalog.json"
-    _write_json(
+    write_json(
         catalog,
         {
             "task_ids": [0],
@@ -137,11 +133,11 @@ def test_build_catalog_report_keeps_setup_failures_out_of_physical_count(
         },
     )
     suite = tmp_path / "suite.json"
-    _write_json(suite, {"tasks": []})
+    write_json(suite, {"tasks": []})
     scope = tmp_path / "scope.json"
-    _write_json(scope, {"task_ids": [0], "official_dataset_sha256": "data"})
+    write_json(scope, {"task_ids": [0], "official_dataset_sha256": "data"})
     site_map = tmp_path / "sites.json"
-    _write_json(site_map, {"sites": {}})
+    write_json(site_map, {"sites": {}})
     monkeypatch.setattr(
         webarena_report,
         "_catalog_official_tasks",
@@ -257,9 +253,9 @@ def test_catalog_report_p95_uses_the_shared_nearest_rank_definition(
             "actual_response.json": {"task_type": "retrieve", "status": "SUCCESS"},
             "trace.json": {"events": []},
         }.items():
-            _write_json(run / f"task-{task_id}" / name, value)
+            write_json(run / f"task-{task_id}" / name, value)
     paths = {name: tmp_path / f"{name}.json" for name in ("ledger", "catalog", "suite", "scope")}
-    _write_json(
+    write_json(
         paths["ledger"],
         {
             "counts": {
@@ -283,7 +279,7 @@ def test_catalog_report_p95_uses_the_shared_nearest_rank_definition(
             ],
         },
     )
-    _write_json(
+    write_json(
         paths["catalog"],
         {
             "task_ids": task_ids,
@@ -298,8 +294,8 @@ def test_catalog_report_p95_uses_the_shared_nearest_rank_definition(
             ],
         },
     )
-    _write_json(paths["suite"], {"tasks": []})
-    _write_json(paths["scope"], {"task_ids": task_ids, "official_dataset_sha256": "data"})
+    write_json(paths["suite"], {"tasks": []})
+    write_json(paths["scope"], {"task_ids": task_ids, "official_dataset_sha256": "data"})
     monkeypatch.setattr(
         webarena_report,
         "_catalog_official_tasks",

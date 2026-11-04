@@ -231,7 +231,7 @@ public-webarena-report: runtime-check ## Build the public WebArena report: PROFI
 
 public-webarena-report-audit: runtime-check ## Test and build the public WebArena report: PROFILE
 	$(call require_profile)
-	$(TEST_PY) -m pytest tests/trajectory_replay/public_webarena -q
+	$(TEST_PY) -m pytest tests/trajectory_replay/public_webarena tests/environments/test_rainbond_slices.py -q
 	$(PY) scripts/release_webarena_trajectory_report.py --profile "$(PROFILE)" $(if $(FORMAL_ROOT),--formal-root "$(FORMAL_ROOT)",)
 
 public-webarena-report-release: runtime-check ## Publish the public WebArena report: PROFILE

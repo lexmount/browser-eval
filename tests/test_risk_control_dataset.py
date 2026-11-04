@@ -597,6 +597,7 @@ def test_report_rejects_self_consistent_but_incomplete_or_wrong_matrix(tmp_path,
         require_risk_control_certification(tmp_path, dataset, records)
 
 
+@pytest.mark.slow
 def test_every_contract_validates_and_body_has_positive_and_adjacent_negative(dataset):
     body_cases = 0
     for case in dataset["cases"]:
