@@ -342,3 +342,10 @@ and links category/site/field summaries to per-result filters, exact values,
 frozen inputs and lazy native evidence. Public projections bind original and
 public hashes separately and must reproduce every aggregate metric. The formal
 release gate requires all participants complete and a hash-bound visual receipt.
+
+An explicit report-scope omission sets `include_in_comparison: false` and supplies
+`exclusion_reason` on that participant. Its calls, progress, detail panels and
+timings remain available, while quality and speed leadership use only the declared
+comparison participants. Release checks require every compared participant to be
+complete and reject an omitted participant without a reason. Source execution
+plans and certificates are never rewritten to change this presentation scope.

@@ -118,3 +118,87 @@ def test_record_metrics_highlight_all_exact_ties_and_ignore_unavailable():
     assert len(soup.select(".comparison-winner")) == 2
     with pytest.raises(ValueError, match="highlight"):
         check_presentation(body.replace('class="comparison-winner"', 'class="ordinary"', 1))
+
+
+def test_explicit_omission_keeps_scope_and_requires_a_reason():
+    from harness.web_scraper.report import record_comparison_scope
+
+    participants = {
+        "complete": {"label": "Complete"},
+        "paused": {
+            "label": "Paused",
+            "include_in_comparison": False,
+            "exclusion_reason": "User omitted quota-blocked interface; calls unchanged",
+        },
+    }
+    assert record_comparison_scope(participants) == (
+        ["complete"],
+        {"paused": participants["paused"]["exclusion_reason"]},
+    )
+    participants["paused"].pop("exclusion_reason")
+    with pytest.raises(ValueError, match="requires its reason"):
+        record_comparison_scope(participants)
+    with pytest.raises(ValueError, match="at least one"):
+        record_comparison_scope(
+            {"paused": {"include_in_comparison": False, "exclusion_reason": "Not selected"}}
+        )
+
+
+def test_omission_does_not_remove_observations_or_pending_cases(tmp_path):
+    from harness.web_scraper.report import build
+
+    home = create(tmp_path / "initial", mode="field-extraction-cohort")
+    model = read_json(home / "content.json")
+    model["participants"]["fixture-b"].update(
+        include_in_comparison=False, exclusion_reason="User omitted the interrupted participant"
+    )
+    save_json(home / "content.json", model)
+    profile = read_json(home / "profile.json")
+    profile["research_report"]["content"]["sha256"] = digest((home / "content.json").read_bytes())
+    save_json(home / "profile.json", profile)
+    output = tmp_path / "report"
+    build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
+    manifest = check(output)
+    assert manifest["comparison_methods"] == ["fixture-a"]
+    assert manifest["skipped_methods"] == {"fixture-b": "User omitted the interrupted participant"}
+    assert manifest["observations"] == 4
+    assert (
+        len(
+            BeautifulSoup((output / "zh/results.html").read_text(), "html.parser").select(
+                "tr[data-status]"
+            )
+        )
+        == 6
+    )
+    manifest["skipped_methods"].clear()
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="comparison scope"):
+        check(output)
+
+
+def test_skipped_latency_is_retained_without_ranking_it_as_comparison_leader():
+    from harness.web_scraper.report import operating_metrics
+
+    methods = ["complete", "skipped"]
+    prices = {
+        m: {
+            "usd_per_1000": "$1",
+            "terms": {"en": "Synthetic"},
+            "verified_at": "2026-01-01",
+            "sources": ["https://example.org/pricing"],
+        }
+        for m in methods
+    }
+    rows = [
+        {"method": "complete", "elapsed_seconds": 5},
+        {"method": "skipped", "elapsed_seconds": 1},
+    ]
+    soup = check_presentation(
+        operating_metrics(
+            methods, rows, prices, "en", {m: m for m in methods}, compared=["complete"]
+        )
+    )
+    rendered = soup.select("tbody tr")
+    assert len(rendered[0].select(".comparison-winner")) == 3
+    assert not rendered[1].select(".comparison-winner")
+    assert rendered[1].select_one('[data-metric="home-mean"]').get_text() == "1.000"

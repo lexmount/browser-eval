@@ -661,9 +661,10 @@ def usage_table(methods, rows, lang, labels=None):
     )
 
 
-def operating_metrics(methods, rows, prices, lang, labels):
+def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
     """Home-page latency and price, with the measured population kept explicit."""
     price_table(methods, prices, lang, labels)
+    compared = set(methods if compared is None else compared)
     records = []
     for method in methods:
         selected = [r for r in rows if r["method"] == method]
@@ -728,10 +729,11 @@ def operating_metrics(methods, rows, prices, lang, labels):
                     {
                         "data-sort": str(value),
                         "data-metric": "home-" + metric,
-                        "data-metric-direction": "min",
+                        "data-metric-direction": "min" if method in compared else "neutral",
                     }
                 )
-                observed.append((value, cell))
+                if method in compared:
+                    observed.append((value, cell))
         if observed:
             low = min(v for v, _ in observed)
             for value, cell in observed:
@@ -2442,6 +2444,25 @@ def record_route(kind, *identities):
     return kind + "-" + digest("\0".join(identities).encode())[:24]
 
 
+def record_comparison_scope(participants):
+    """Keep explicit omissions separate from immutable collected evidence."""
+    compared, skipped = [], {}
+    for method, item in participants.items():
+        included = item.get("include_in_comparison", True)
+        if type(included) is not bool:
+            raise ValueError("Comparison inclusion must be an explicit boolean")
+        if included:
+            compared.append(method)
+        else:
+            reason = item.get("exclusion_reason", "")
+            if not isinstance(reason, str) or not reason.strip():
+                raise ValueError("A skipped participant requires its reason")
+            skipped[method] = reason.strip()
+    if not compared:
+        raise ValueError("A comparison requires at least one participant")
+    return compared, skipped
+
+
 def record_result_href(method, case_id):
     """One canonical case page, with an addressable panel for each participant."""
     return record_route("c", case_id) + ".html#" + method
@@ -2491,6 +2512,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         raise ValueError("Use an empty report directory")
     data = record_cohort_inputs(home, model, profile=profile)
     methods = list(model["participants"])
+    compared, skipped = record_comparison_scope(model["participants"])
     labels = {method: model["participants"][method]["label"] for method in methods}
     truth = data["cases"]
     stats = {method: data["methods"][method]["statistics"] for method in methods}
@@ -2590,7 +2612,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         return esc(json.dumps(value, ensure_ascii=False))
 
     def score(method, *keys):
-        current = stats[method]["scores"]
+        current = stats[method]["scores"] if method in compared else None
         for key in keys:
             current = current.get(key) if current is not None else None
         return current
@@ -2656,6 +2678,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         prices,
         language,
         labels,
+        compared=compared,
     )
     bodies = {route: model.get("pages", {}).get(route, {}).get("body", "") for route in PAGES}
     bodies["index"] = (
@@ -2704,7 +2727,9 @@ def build_record_cohort(output, content, *, home, language, profile):
     group_scores = {
         method: {
             (item["domain"], item["site"], item["field"]): item
-            for item in (stats[method]["scores"] or {}).get("site_fields", [])
+            for item in ((stats[method]["scores"] or {}) if method in compared else {}).get(
+                "site_fields", []
+            )
         }
         for method in methods
     }
@@ -3115,6 +3140,8 @@ def build_record_cohort(output, content, *, home, language, profile):
             "primary_language": "zh",
             "languages": ["zh"],
             "planned_methods": methods,
+            "comparison_methods": compared,
+            "skipped_methods": skipped,
             "method_labels": labels,
             "prices": prices,
             "case_count": len(truth),
@@ -3192,6 +3219,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             manifest["prices"],
             "zh",
             manifest["method_labels"],
+            compared=manifest["comparison_methods"],
         ),
         "html.parser",
     )
@@ -3211,7 +3239,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         for method, row in zip(manifest["planned_methods"], rendered, strict=True):
             cells = row.select("td")
             current = metrics[method]
-            scores = current["scores"]
+            scores = current["scores"] if method in manifest["comparison_methods"] else None
             expected = [
                 manifest["method_labels"][method],
                 str(current["executed"]) + " / " + str(len(truth)),
@@ -3263,8 +3291,18 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                 raise ValueError("Broken record evidence/navigation target: " + value)
     if release and manifest.get("local_example"):
         raise ValueError("Synthetic record evidence cannot be a formal release")
-    if release and set(manifest["complete_methods"]) != set(manifest["planned_methods"]):
-        raise ValueError("Formal record release requires every planned participant complete")
+    compared = manifest.get("comparison_methods", [])
+    skipped = manifest.get("skipped_methods", {})
+    if (
+        not compared
+        or len(set(compared)) != len(compared)
+        or set(compared) & set(skipped)
+        or set(compared) | set(skipped) != set(manifest["planned_methods"])
+        or any(not isinstance(reason, str) or not reason.strip() for reason in skipped.values())
+    ):
+        raise ValueError("Record comparison scope omits a participant or its reason")
+    if release and not set(compared).issubset(manifest["complete_methods"]):
+        raise ValueError("Formal record release requires every comparison participant complete")
     if release:
         check_visual_receipt(output, manifest, visual_receipt)
         observations = read_json(visual_receipt)["observations"]
