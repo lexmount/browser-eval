@@ -14,6 +14,7 @@ from lexbench_webfetch.paths import contained_path, safe_identifier
 
 from harness.record_io import file_sha256
 from harness.web_fetch.config import load_provider_config, load_runtime_env
+from harness.web_fetch.providers.headless import engine_definition
 from harness.web_fetch.webmainbench_evidence import read_jsonl, require_unique_attempt_ids
 from harness.web_fetch.webmainbench_runner import PROVIDERS, load_source
 from harness.web_fetch.webmainbench_scoring import verify_score
@@ -45,7 +46,7 @@ def _read_profile(path: Path) -> tuple[dict, str]:
             or type(profile.get("max_failure_retries")) is not int or profile["max_failure_retries"] < 0
             or not isinstance(versions, dict)
             or any(not isinstance(versions.get(name), str) or not versions[name].strip()
-                   for name in methods if name != "kitesurf")
+                   for name in methods if not engine_definition(name).hosted)
             or (profile.get("binary_sha256") and len(methods) != 1)):
         raise ValueError("Invalid complete WebMainBench profile or registered method scope")
     for name in methods:
@@ -196,7 +197,7 @@ def main(argv: list[str] | None = None) -> None:
             "--expected-dataset-sha256", profile["source_dataset_sha256"],
             "--official-scorer-commit", profile["official_scorer_commit"],
         ]
-        if provider != "kitesurf":
+        if not engine_definition(provider).hosted:
             version = profile["versions"][provider].split()[-1]
             command += ["--expected-version", version]
         if args.env_file is not None:

@@ -349,7 +349,7 @@ ENGINES = {
 _UNREGISTERED_ENGINE = HeadlessEngine()
 
 
-def _engine_definition(engine):
+def engine_definition(engine):
     """Unregistered names remain valid report labels but select no capability."""
     return ENGINES.get(engine, _UNREGISTERED_ENGINE) if isinstance(engine, str) else _UNREGISTERED_ENGINE
 
@@ -361,7 +361,7 @@ def _resolve_binary(engine, configured):
     if configured == '':
         return None
     resolved = shutil.which(configured or engine)
-    if (resolved or not _engine_definition(engine).playwright_launched
+    if (resolved or not engine_definition(engine).playwright_launched
             or configured not in (None, '', engine)):
         return resolved
     # Playwright owns the Chromium revision used by this adapter. Requiring a
@@ -376,7 +376,7 @@ def completion_metadata(engine, plan, output_mode):
     """Describe the exact native semantics used for one normalized plan."""
     if not plan:
         return None
-    semantics = _engine_definition(engine).completion_semantics
+    semantics = engine_definition(engine).completion_semantics
     if output_mode in {'document', 'file'}:
         metadata = {
             'strategy': 'raw_response',
@@ -436,7 +436,7 @@ def cli_command(
     detail_links=False,
     include_subdocuments=False,
 ):
-    definition = _engine_definition(engine)
+    definition = engine_definition(engine)
     slots = {
         _URL: [url],
         _TIMEOUT_MS: [str(max(1, math.ceil(timeout * 1000)))],
@@ -502,7 +502,7 @@ def cli_command(
 
 def output_mode_for_case(engine, provider_type, case):
     """Choose one product-native route for each task family."""
-    definition = _engine_definition(engine)
+    definition = engine_definition(engine)
     if engine in ENGINES and case.task_kind == 'file':
         return 'file'
     if definition.document_markdown and case.track == 'document':
@@ -548,14 +548,14 @@ class HeadlessProvider(Provider):
     @property
     def cancellation_cleanup_seconds(self):
         # Remote and resource-container calls retain their own boundaries.
-        local = (not _engine_definition(self.config.get('engine')).hosted
+        local = (not engine_definition(self.config.get('engine')).hosted
                  and self.config.get('resource_sample_interval_ms') is None)
         return 1.0 if local else 0.0
 
     def validate(self):
         errors = []
         engine = self.config.get('engine')
-        definition = _engine_definition(engine)
+        definition = engine_definition(engine)
         requires_credentials = definition.hosted and self.type == 'headless_markdown'
         if definition is _UNREGISTERED_ENGINE:
             errors.append('engine')
@@ -643,7 +643,7 @@ class HeadlessProvider(Provider):
         if not refresh and hasattr(self, '_implementation_identity'):
             return dict(self._implementation_identity)
         engine = self.config['engine']
-        definition = _engine_definition(engine)
+        definition = engine_definition(engine)
         hosted = definition.hosted
         version_args = list(definition.version_args) if definition.version_args else None
         if self.config.get('resource_sample_interval_ms') is not None:
@@ -716,7 +716,7 @@ class HeadlessProvider(Provider):
             return ProviderResult(False, '', error_type='configuration',
                                   error_message=str(error))
         engine = self.config['engine']
-        definition = _engine_definition(engine)
+        definition = engine_definition(engine)
         if definition is _UNREGISTERED_ENGINE:
             raise ValueError('unsupported headless engine: ' + str(engine))
         hosted = definition.hosted
@@ -1073,7 +1073,7 @@ def native_cdp_browser(playwright, request, deadline, metadata=None):
     fails the call, because the browser it was measuring is gone.
     """
     remaining = lambda: max(.001, deadline - time.monotonic())
-    definition = _engine_definition(request['engine'])
+    definition = engine_definition(request['engine'])
     if definition.cdp_server_arguments is None:
         raise ValueError('Unsupported native CDP server engine')
     command = _expand(definition.cdp_server_arguments, {
