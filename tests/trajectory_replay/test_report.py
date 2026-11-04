@@ -597,6 +597,12 @@ def test_report_renders_a_single_participant_without_comparisons(tmp_path):
     method = _route(reports, "-method.html")
     assert "计时外静置" in method
     assert "交替" not in method
+    appendix = _route(reports, "-appendix.html")
+    assert "所有 Provider 成功任务" in appendix
+    assert "所有分位数和均值均由仓库脚本计算" in appendix
+    for page in (home, method, appendix):
+        assert "比值" not in page
+        assert "优胜项" not in page
 
 
 def test_report_rejects_an_unsafe_participant_id():
