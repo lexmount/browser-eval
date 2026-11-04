@@ -18,9 +18,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--home", type=Path, default=data_home())
     sub = parser.add_subparsers(dest="command", required=True)
-    p = sub.add_parser("prepare")
-    p.add_argument("--benchmark", choices=("zyte", "swde"), default="zyte")
-    p.add_argument("--source", type=Path)
+    sub.add_parser("prepare")
     sub.add_parser("reproduce")
     p = sub.add_parser("plan")
     p.add_argument("--methods", nargs="+", required=True)
@@ -80,11 +78,7 @@ def main(argv=None):
     p.add_argument("--decisions", type=Path, help="Source-bound final reference decisions")
     args = parser.parse_args(argv)
     if args.command == "prepare":
-        print(
-            "Verified",
-            prepare(args.home, benchmark=args.benchmark, source=args.source)["cases"],
-            "frozen pages",
-        )
+        print("Verified", prepare(args.home)["cases"], "frozen pages")
     elif args.command == "reproduce":
         print(reproduce(args.home))
     elif args.command == "plan":

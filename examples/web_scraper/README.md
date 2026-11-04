@@ -1,4 +1,4 @@
-# Archived structured extraction
+# Archived product extraction
 
 Evaluate complete extraction APIs on the 140 archived product pages in
 [Zyte's product extraction benchmark](https://github.com/scrapinghub/product-extraction-benchmark).
@@ -97,50 +97,6 @@ Native input preflights use the internal collector exercised by the fixture test
 Only the certified entry point starts a publishable provider cohort. A changed
 implementation cannot resume an unfinished run; finish it on its original commit.
 Completed certificates remain readable without invoking the old runner.
-
-## SWDE multi-domain extraction
-
-The same preparation, certified runner and scorer support SWDE. The pinned
-[SWDE card](../../src/harness/benchmarks/cards/swde.json) selects ten pages per
-website across 80 websites and eight domains before any provider calls. This is
-an 800-page subset of the original 124,291-page collection. Its
-[public input distribution](https://huggingface.co/datasets/Lexmount/SWDE-800/tree/1a53107d865085d00458301abb8077dd01a2e651)
-contains unchanged HTML, original paths, checksums and source/license notices;
-reference answers and provider outputs are excluded. The original project
-license is Ms-RL; captured website content retains its publishers’ rights.
-
-Preparation takes the original archive identified by the card and uses `bsdtar`
-with 7-Zip support. It retains the upstream annotations and evaluator privately.
-Use a separate data directory for this benchmark:
-
-```sh
-uv run --frozen python -m harness.web_scraper.cli --home /absolute/data/swde \
-  prepare --benchmark swde --source /absolute/downloads/swde-source.tar.gz
-uv run --frozen python -m harness.web_scraper.cli --home /absolute/data/swde \
-  plan --methods zyte-custom firecrawl-parse-json scrapegraph-extract \
-  cloudflare-json browserbase-json oxylabs-json \
-  --output /absolute/data/swde/precall.json
-uv run --frozen python scripts/run_certified_benchmark.py --track web-scraper \
-  --home /absolute/data/swde --profile /absolute/data/swde/precall.json \
-  --method scrapegraph-extract --run-dir /absolute/data/swde/runs/scrapegraph
-```
-
-Each selected method receives the domain’s array-valued field schema and the same
-HTML. Zyte Custom, Firecrawl Parse and ScrapeGraph accept uploaded HTML;
-Cloudflare accepts HTML with its native schema endpoint. Browserbase and Oxylabs
-require a public HTTPS snapshot origin, passed through `--fixture-base`. The
-runner checks every remote page against the original hash before and after
-collection. Cloudflare’s optional native rendering controls must be frozen in the
-participant plan. Product-specific extractors are rejected for SWDE.
-
-The primary score reproduces MarkupLM’s page-hit precision, recall and F1
-arithmetic: a matching value makes a page-field hit even when other values are
-missing or extra. The subset fixes all 320 site-field groups in the macro
-population, including groups with no present values in the sample. This subset
-adaptation is not a reproduction of a full SWDE leaderboard. Value-level micro
-precision/recall/F1 and exact field-set rate expose partial lists and extra values.
-Schema validity is separate from field quality. Every completed API call retains
-latency and any native usage receipt; quota denials pause collection.
 
 ## Research and compatibility reports
 
