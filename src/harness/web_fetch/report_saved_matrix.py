@@ -973,6 +973,13 @@ def _require_final_selection(inputs):
         raise ValueError('Changed task contracts belong in a separate audit report, not the primary ranking')
 
 
+def _continuation_execution_cost(*records):
+    """Sum complete saved sequence costs, never just the last physical calls."""
+    from harness.web_fetch.report import logical_execution_cost_ms
+    costs = [logical_execution_cost_ms(record) for record in records]
+    return sum(costs) if all(cost is not None for cost in costs) else None
+
+
 def _parameter_scoring(before, record):
     """Require an explicit offline revision before comparing different scorers."""
     identities = [row['metrics'].get('scoring_source_sha256') for row in (before, record)]
@@ -1615,7 +1622,7 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
                         copies[old_path] = hashlib.sha256(old_line).hexdigest()
                         for relative, digest in artifact_bindings(old_record):
                             copy(contained_path(old_root, relative, reject_symlinks=True), history_prefix + '/' + relative)
-                        note['execution_cost_ms'] = old_record['elapsed_ms'] + record['elapsed_ms']
+                        note['execution_cost_ms'] = _continuation_execution_cost(old_record, record)
                         note['prior_record_path'] = old_path
                         note['prior_answer_path'] = history_prefix + '/' + old_record['artifact_path']
                     else:
@@ -1927,7 +1934,7 @@ def _validate_selection_proofs(output, row, inputs, candidates, decisions, adopt
         if prior:
             _, old, raw = prior
             relative = prefix+'/history/prior-call-'+hashlib.sha256(raw).hexdigest()[:16]
-            expected_retry.update(execution_cost_ms=old['elapsed_ms']+record['elapsed_ms'],
+            expected_retry.update(execution_cost_ms=_continuation_execution_cost(old, record),
                 prior_record_path=relative+'/record.json', prior_answer_path=relative+'/'+old['artifact_path'])
         else:
             expected_retry.update(prior_uncommitted_path=prefix+'/prior-uncommitted.json',

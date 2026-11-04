@@ -640,12 +640,19 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
         build(tmp_path,spec,'uninvoked-correction')
 
 @pytest.mark.parametrize('final_pass,prior_pass', [(True, False), (False, False), (False, True)])
-def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_pass, prior_pass, monkeypatch):
+@pytest.mark.parametrize('timing', ['plain', 'waits', 'incomplete'])
+def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_pass, prior_pass, monkeypatch, timing):
     spec, root, current, raw = fixture(tmp_path)
     old = deepcopy(current)
     old['ok'] = prior_pass
     old['metrics'].update(content_pass=prior_pass, request_ok=prior_pass)
     old['elapsed_ms'] = 8.0
+    if timing != 'plain':
+        old['provider_metadata'].update(retry_cleanup_wait_ms=100,
+                                        retry_pending={'remaining_physical_calls': 1})
+    if timing == 'waits':
+        old['provider_metadata']['call_sequence_elapsed_ms'] = 108
+        current['provider_metadata'].update(call_sequence_elapsed_ms=32, retry_throttle_wait_ms=20)
     old_raw = (json.dumps(old)+'\n').encode()
     old_results = root/'prior-results.jsonl'
     old_results.write_bytes(old_raw)
@@ -673,7 +680,8 @@ def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_
     assert_proof_mutations_rejected(entry.parent, tmp_path/'spec.json', 'retry_continuation',
                                     ['remove', 'total_physical_calls', 'execution_cost_ms'])
     continuation=row['retry_continuation']
-    assert continuation['total_physical_calls']==2 and continuation['execution_cost_ms']==20.0
+    assert continuation['total_physical_calls']==2
+    assert continuation['execution_cost_ms']=={'plain':20.0,'waits':140.0,'incomplete':None}[timing]
     assert (entry.parent/continuation['prior_record_path']).read_bytes()==old_raw
     assert (entry.parent/row['record_path']).read_bytes()==raw
     assert 'retry-continuation' in (entry.parent/'attempts/first--run-001.html').read_text(encoding='utf-8')

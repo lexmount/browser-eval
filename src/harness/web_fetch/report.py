@@ -2058,7 +2058,9 @@ def logical_execution_cost_ms(record):
  metadata=record.get('provider_metadata') or {}
  retry=metadata.get('retry')
  if retry is not None:return retry.get('execution_cost_ms')
- return metadata.get('call_sequence_elapsed_ms',record['elapsed_ms'])
+ if metadata.get('retry_pending') and 'call_sequence_elapsed_ms' not in metadata:return None
+ if 'call_sequence_elapsed_ms' in metadata:return metadata['call_sequence_elapsed_ms']
+ return record['elapsed_ms']+metadata.get('retry_cleanup_wait_ms',0)+metadata.get('retry_throttle_wait_ms',0)
 
 
 def successful_final_call_latency(records,cases):
