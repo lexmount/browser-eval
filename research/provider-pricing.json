@@ -4,6 +4,32 @@
   "scope": "公开 Web Fetch / Contents / Extract / Scrape / Markdown 与 Search 报价；不作为历史调用账单",
   "structured_extraction_products": [
     {
+      "id": "firecrawl-parse-json",
+      "verified_at": "2026-11-04",
+      "currency": "USD",
+      "billing_unit": "Uploaded document parse; native metadata.creditsUsed determines billed credits",
+      "rates_per_1000": {},
+      "conversion": "USD per 1,000 requests = mean native creditsUsed per request * monthly plan USD / included credits * 1,000. Monthly full-allocation unit rates: Hobby 3.8, Standard 0.99, Growth 0.798, Scale 0.749 USD per 1,000 credits. Annual commitments and top-ups differ.",
+      "commitment": "Shared plan allocations; public Parse documentation does not specify a separate flat credit rate. Retain native usage and do not infer invoice charges from advertised scrape pricing.",
+      "sources": [
+        "https://docs.firecrawl.dev/api-reference/endpoint/parse",
+        "https://www.firecrawl.dev/pricing"
+      ]
+    },
+    {
+      "id": "zyte-custom",
+      "verified_at": "2026-11-04",
+      "currency": "USD",
+      "billing_unit": "Custom-attribute input/output tokens plus automatic extraction data types",
+      "rates_per_1000": {},
+      "conversion": "Text extraction PAYG: USD 1.34/M input tokens plus USD 6.67/M output tokens; HTML-dependent schemas: USD 4.02/M input and USD 20.00/M output. Add applicable automatic extraction data-type charges of USD 0.27–1.07 per 1,000. Use native inputTokens/outputTokens to normalize per 1,000 requests.",
+      "commitment": "PAYG; commitment discounts differ. Uploaded userHtml avoids target fetching. The HTML/text tariff follows schema needs, not merely the fact that the input was HTML. Native tokens are not an invoice.",
+      "sources": [
+        "https://docs.zyte.com/zyte-api/pricing.html",
+        "https://docs.zyte.com/zyte-api/usage/extract/custom-attributes.html"
+      ]
+    },
+    {
       "id": "browserbase-json", "verified_at": "2026-11-03", "currency": "USD",
       "billing_unit": "JSON extraction request without proxies", "rates_per_1000": {"paid_overage": 4, "with_proxies": 7},
       "commitment": "Developer USD 20/month or Startup USD 99/month; included allocations precede overage. Free plan includes 1,000 Fetch calls; extraction access was independently tested.",
