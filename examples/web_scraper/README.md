@@ -68,7 +68,7 @@ are not archived, so browser rendering can still fetch those resources.
 ```sh
 uv run --frozen python -m harness.web_scraper.cli plan \
   --methods cloudflare-json firecrawl-json scrapegraph-extract scrapfly-product \
-  oxylabs-json zyte-product diffbot-product browserbase-json extruct \
+  oxylabs-json zyte-product diffbot-product browserbase-json \
   --output /absolute/data/full-cohort.json
 uv run --frozen python scripts/run_certified_benchmark.py --track web-scraper \
   --profile /absolute/data/full-cohort.json --method firecrawl-json \
@@ -76,6 +76,10 @@ uv run --frozen python scripts/run_certified_benchmark.py --track web-scraper \
   --fixture-base https://your-frozen-origin.example
 uv run --frozen python -m harness.web_scraper.cli score /absolute/data/runs/firecrawl
 ```
+
+The recommended comparison includes complete native APIs only. Upstream extruct
+code and earlier baseline predictions remain in the original distribution for
+reproduction; the baseline is excluded from new comparisons.
 
 Run each participant once across the complete 140-case population. The plan binds
 cases, input hashes, pacing and retry policy before calls. Calls within a provider
