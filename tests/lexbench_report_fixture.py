@@ -1,9 +1,10 @@
 """Synthetic retained evidence for complete Lexbench report builds; never runs a browser.
 
-Three scenarios cover every report branch: ``minimal`` has no candidate cohort,
+Three scenarios render every report stage: ``minimal`` has no candidate cohort,
 ``macos`` binds fixed-layout candidates to a serialized macOS resource matrix, and
-``linux`` binds them to saved Linux resource profiles. Evidence paths inside the
-inputs stay relative, so the rendered bytes do not depend on the build directory.
+``linux`` binds them to saved Linux resource profiles. Evidence-rejection guards and
+the ``--source`` and missing-template paths are not executed. Evidence paths inside
+the inputs stay relative, so the rendered bytes do not depend on the build directory.
 """
 
 import hashlib
