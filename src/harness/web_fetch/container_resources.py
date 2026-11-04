@@ -70,7 +70,7 @@ class ContainerResourceRunner:
         worker = Path(__file__).parent / 'providers/headless_worker.py'
         expected_worker = hashlib.sha256(worker.read_bytes()).hexdigest()
         observed = client.containers.run(
-            image.id, ['/workspace/harness/web_fetch/providers/headless_worker.py'],
+            image.id, ['/workspace/src/harness/web_fetch/providers/headless_worker.py'],
             entrypoint='sha256sum', network_disabled=True, remove=True,
         ).decode('utf-8', errors='replace')
         match = re.match(r'^([0-9a-f]{64})\s', observed)

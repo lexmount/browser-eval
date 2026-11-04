@@ -120,7 +120,8 @@ RUN find /opt/obscura -type f -name obscura -exec ln -s '{}' /usr/local/bin/obsc
 WORKDIR /workspace
 COPY pyproject.toml uv.lock package.json package-lock.json ./
 RUN uv sync --frozen --extra headless-eval --no-install-project && npm ci
-COPY harness ./harness
+COPY README.md LICENSE NOTICE THIRD_PARTY.md setup.py ./
+COPY src ./src
 COPY scripts ./scripts
 RUN uv sync --frozen --extra headless-eval \
     && chown -R evaluator:evaluator /workspace
