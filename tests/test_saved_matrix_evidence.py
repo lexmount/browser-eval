@@ -464,7 +464,9 @@ def test_nested_route_links_resolve_from_page_or_base(tmp_path, monkeypatch, bas
         nested.parent.mkdir(exist_ok=True)
         prefix = '' if base else '../'
         head = '<base href="../">' if base else ''
-        nested.write_text(head + '<a href="' + prefix + 'index.html?view=all#top">Home</a>'
+        disclosure = '<meta name="browser-eval-report" content="1">' + report.local_audit_banner(
+            json.loads((out/'dataset.json').read_bytes()))
+        nested.write_text(disclosure + head + '<a href="' + prefix + 'index.html?view=all#top">Home</a>'
                           + '<a href="https://external.invalid/missing">External</a>'
                           + '<a href="' + prefix + model['rows'][0]['answer_path'] + '">Answer</a>', encoding='utf-8')
         return entry
@@ -488,7 +490,9 @@ def test_nested_route_invalid_target_rejected(tmp_path, monkeypatch, markup, mes
         entry = original(out, model)
         nested = out / 'providers' / 'example.html'
         nested.parent.mkdir(exist_ok=True)
-        nested.write_text(markup, encoding='utf-8')
+        disclosure = '<meta name="browser-eval-report" content="1">' + report.local_audit_banner(
+            json.loads((out/'dataset.json').read_bytes()))
+        nested.write_text(disclosure + markup, encoding='utf-8')
         return entry
 
     monkeypatch.setattr(report, 'generate_saved_matrix', generate)
@@ -571,7 +575,7 @@ def test_superseded_evidence_preserved_without_double_counting(tmp_path, monkeyp
 
 @pytest.mark.parametrize('defect', [None, 'missing_policy', 'late_policy', 'wrong_config', 'budget',
                                      'missing_observations', 'missing_log', 'log_config', 'log_count',
-                                     'log_before_scope', 'receipt_chronology'])
+                                     'log_before_scope', 'receipt_chronology', 'two_calls'])
 def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, defect):
     spec, root, old, raw = fixture(tmp_path)
     spec['superseded_sources'] = spec.pop('sources')
@@ -606,6 +610,12 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
                  'provider_config_sha256': 'b'*64 if defect == 'log_config' else 'a'*64}
         log.write_text((json.dumps(event)+'\n')*(2 if defect == 'log_count' else 1), encoding='utf-8')
         value['execution_log'] = {'path': str(log), 'sha256': hashlib.sha256(log.read_bytes()).hexdigest()}
+    if defect == 'two_calls':
+        value['physical_attempts'] = 2
+        later = {**event, 'started_at': '2026-10-29T00:01:00Z', 'completed_at': '2026-10-29T00:02:00Z'}
+        log.write_text(json.dumps(event)+'\n'+json.dumps(later)+'\n', encoding='utf-8')
+        value['execution_log']['sha256'] = hashlib.sha256(log.read_bytes()).hexdigest()
+        spec['missing'][0]['diagnostic_sources'] = []
     if defect in {'log_before_scope', 'receipt_chronology'}:
         value['started_at'] = '2026-10-31T00:00:00Z'
     spec['missing'][0]['receipt'] = write(Path(receipt['path']), value)
@@ -614,7 +624,7 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
         value.update(provider_config_sha256='b'*64 if defect == 'wrong_config' else 'a'*64,
                      physical_attempts=3 if defect == 'budget' else 1)
         spec['missing'][0]['receipt'] = write(Path(receipt['path']), value)
-    if defect:
+    if defect and defect != 'two_calls':
         with pytest.raises(ValueError, match='execution authorization'):
             build(tmp_path, spec)
         return
@@ -622,12 +632,18 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
     model=json.loads((entry.parent/'matrix.json').read_text(encoding='utf-8'))
     assert model['totals']['saved']==model['totals']['failed']==model['totals']['passed']==0
     assert model['totals']['called']==model['totals']['uncommitted']==1
+    settings = model['execution_settings'][0]
+    assert settings['calls'] == (2 if defect == 'two_calls' else 1)
+    assert settings['collection_start'] == '2026-10-29T00:00:00Z'
+    if defect == 'two_calls':
+        assert settings['collection_end'] == '2026-10-29T00:02:00Z'
     row=model['rows'][0]
     assert row['passed'] is None and row['elapsed_ms'] is None
     assert (entry.parent/row['history'][0]['record_path']).read_bytes()==raw
     assert row['history'][0]['record_path'] in (entry.parent/'index.html').read_text(encoding='utf-8')
     assert check_saved_matrix(entry.parent)['valid']
-    Path(diagnostic['path']).write_text('{}', encoding='utf-8')
+    changed_source = log if defect == 'two_calls' else Path(diagnostic['path'])
+    changed_source.write_text('{}', encoding='utf-8')
     with pytest.raises(ValueError,match='source changed'):
         check_saved_matrix(entry.parent, spec_path=tmp_path / 'spec.json')
     spec['missing'][0]['status']='not_called'

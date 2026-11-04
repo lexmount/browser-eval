@@ -679,6 +679,7 @@ def _load_saved_matrix(spec_path):
             raise ValueError('Superseded result requires a current call or explicit uncommitted call')
     if set(selected) | set(missing) != expected:
         raise ValueError('Unexplained missing matrix cells')
+    uncommitted_execution = {}
     for key in historical:
         replacement = selected[key][1] if key in selected else _json(missing[key][1])
         physical = replacement.get('provider_metadata', {}).get('retry', {}).get('attempts') or [replacement]
@@ -722,6 +723,7 @@ def _load_saved_matrix(spec_path):
                     or any(datetime.fromisoformat(left['started_at']) > datetime.fromisoformat(right['started_at'])
                            for left, right in zip(starts, starts[1:]))):
                 raise ValueError('Uncommitted call chronology differs from execution authorization')
+            uncommitted_execution[key] = dict(physical_calls=count, events=events)
 
         else:
             root, record, _, _ = selected[key]
@@ -746,7 +748,7 @@ def _load_saved_matrix(spec_path):
                 raise ValueError('Completion fills an undeclared position')
     return dict(spec=spec, sources=sources, providers=providers, suites=suites, cases=cases,
                 selected=selected, historical=historical, continuations=continuations,
-                missing=missing, replacement_scope=replacement_scope,
+                missing=missing, uncommitted_execution=uncommitted_execution, replacement_scope=replacement_scope,
                 replacement_cells=cells if replacement_scope else [],
                 revision=_saved_revision(spec, sources, cases, selected, completed))
 
@@ -1000,6 +1002,9 @@ def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
             provider=provider, family=family, calls=0, verified_calls=0,
             settings=[], errors=[], collection_start=None, collection_end=None))
         evidence = [_json(receipt)]
+        validated = inputs['uncommitted_execution'].get((suite, provider, cid))
+        if validated:
+            evidence.append(dict(suite=suite, provider=provider, case_id=cid, **validated))
         for binding in entry.get('diagnostic_sources', []):
             raw = sources.binding(binding).read_bytes()
             try:
@@ -2376,6 +2381,7 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     routes = sorted(p for p in output.rglob('*.html')
                     if p.relative_to(output).parts[0] != 'evidence')
     from harness.web_fetch.report_check import VisibleLocalScope
+    from harness.report_languages import english_notice
     virtual_root = 'https://saved-matrix.invalid/__report__/'
     for page in routes:
         relative = page.relative_to(output).as_posix()
@@ -2384,7 +2390,8 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
         content = page.read_text(encoding='utf-8')
         disclosure = VisibleLocalScope()
         disclosure.feed(content)
-        if disclosure.is_report and not {'evidence', 'ranking'} <= disclosure.visible:
+        is_notice = relative == 'en/index.html' and content == english_notice()
+        if not is_notice and (not disclosure.is_report or not {'evidence', 'ranking'} <= disclosure.visible):
             raise ValueError('Saved-result evidence/ranking scope disclosure missing: ' + relative)
         parser = _Links()
         parser.feed(content)

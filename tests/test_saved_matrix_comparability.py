@@ -513,7 +513,7 @@ def test_uncommitted_first_call_counts_in_native_settings_coverage(tmp_path):
 
 @pytest.mark.parametrize('presentation', ['audit', 'final'])
 @pytest.mark.parametrize('route', ['index.html', 'providers/method.html', 'attempt'])
-@pytest.mark.parametrize('defect', ['remove', 'hide'])
+@pytest.mark.parametrize('defect', ['remove', 'hide', 'remove_marker_and_scope'])
 def test_saved_disclosure_is_required_on_home_and_detail_routes(tmp_path, presentation, route, defect):
     from bs4 import BeautifulSoup
     from harness.web_fetch.report_saved_matrix import check_saved_matrix
@@ -524,8 +524,10 @@ def test_saved_disclosure_is_required_on_home_and_detail_routes(tmp_path, presen
     page = BeautifulSoup(path.read_text(encoding='utf-8'), 'html.parser')
     scope = page.select_one('[data-ranking-scope="saved-task-pass-rate"]')
     assert scope and '认证' in scope.get_text()
-    if defect == 'remove':
+    if defect in {'remove', 'remove_marker_and_scope'}:
         scope.decompose()
+        if defect == 'remove_marker_and_scope':
+            page.select_one('meta[name="browser-eval-report"]').decompose()
     else:
         scope['hidden'] = ''
     path.write_text(str(page), encoding='utf-8')
