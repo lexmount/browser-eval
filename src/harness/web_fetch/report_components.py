@@ -12,7 +12,7 @@ from lexbench_webfetch.stable_tasks import SCHEMA_FIELDS, UNIQUE_FIELDS
 
 from harness.reporting.presentation import esc
 from harness.web_fetch.models import report_family
-from harness.web_fetch.report_i18n import TEXT
+from harness.web_fetch.report_i18n import TEXT, pair, t
 
 
 @dataclass(frozen=True)
@@ -42,16 +42,16 @@ def reference_text(case):
     reference=case.get('ground_truth_main_content') or case.get('reference_answer')
     if reference:return reference
     if case.get('task_kind','body')!='body':
-        return '本例按资源或结构规则评分，不以页面短摘要计算全文 F1。'
-    rules=[('最少字符数',case.get('min_content_chars',1))]
-    for key,label in [('expected_any','至少命中一项文字'),('required_facts','必需文字组'),
-                      ('required_patterns','格式与数量要求'),
-                      ('body_requirements','正文范围要求'),('acceptance_contract','验收契约')]:
+        return t('this_task_is_scored_by_resource_or', 'This task is scored by resource or structure rules; full-text F1 is not computed from a short page summary.')
+    rules=[(t('minimum_characters', 'Minimum characters'),case.get('min_content_chars',1))]
+    for key,label in [('expected_any',t('at_least_one_text_must_match', 'At least one text must match')),('required_facts',t('required_text_groups', 'Required text groups')),
+                      ('required_patterns',t('format_and_count_requirements', 'Format and count requirements')),
+                      ('body_requirements',t('body_scope_requirements', 'Body-scope requirements')),('acceptance_contract',t('acceptance_contract', 'Acceptance contract'))]:
         if case.get(key):rules.append((label,case[key]))
     if case.get('required_facts'):
-        rules.append(('必需文字组覆盖下限',case.get('fact_coverage_threshold',1.0)))
-    return '本任务没有全文参考，按以下规则验收：\n'+ '\n'.join(
-        label+'：'+json.dumps(value,ensure_ascii=False,indent=2) for label,value in rules)
+        rules.append((t('minimum_required_text_group_coverage', 'Minimum required-text-group coverage'),case.get('fact_coverage_threshold',1.0)))
+    return (t('this_task_has_no_full_text_reference', 'This task has no full-text reference and is accepted by these rules:') + f'''\n{"""
+""".join((label + '：' + json.dumps(value, ensure_ascii=False, indent=2) for label, value in rules))}''')
 
 
 def tabs(group, panels):
@@ -60,7 +60,7 @@ def tabs(group, panels):
         pid=f'{group}-{key}'
         buttons.append(f'<button type="button" role="tab" id="tab-{pid}" aria-controls="{pid}" aria-selected="{str(i==0).lower()}" tabindex="{0 if i==0 else -1}" data-tab="{key}" onclick="chooseTab(\'{group}\',\'{key}\')">{escape(label)}</button>')
         bodies.append(f'<div role="tabpanel" id="{pid}" aria-labelledby="tab-{pid}" data-panel="{key}"'+(' hidden' if i else '')+f'>{body}</div>')
-    return f'<div class="tabs" id="{group}"><div class="tab-bar" role="tablist" aria-label="内容选择" onkeydown="tabKeys(event,\'{group}\')">'+''.join(buttons)+'</div>'+''.join(bodies)+'</div>'
+    return (f'<div class="tabs" id="{group}"><div class="tab-bar" role="tablist" aria-label="' + t('content_selection', 'Content selection') + f"""" onkeydown="tabKeys(event,'{group}')">{''.join(buttons)}</div>{''.join(bodies)}</div>""")
 
 
 def cards(items):
@@ -68,59 +68,50 @@ def cards(items):
 
 
 def metric_guide():
-    return '<p>静态网站正文、动态网站正文、热门网站正文、风控网页正文和文档正文使用同一评分流程。页面来源与加载方式不同，改变的是案例要求，不改变指标定义。</p>'+cards([
-        ('统一验收流程','接口返回 → 检查目标内容是否为空 → 核对题目要求的文字和字段 → 检查列表数量、类型与唯一性 → 汇总任务结果。只执行该例适用的检查；失败详情保留具体未满足项。图片与视频沿用请求和交付检查，资源地址或文件字节另按格式核验。'),
-        ('任务通过率','满足该例全部验收规则的次数 ÷ 已有验收证据的任务。段落、列表、字段都属于内容要求；<strong>没有 F1 最低分门槛</strong>。请求失败计入分母；任何计划调用缺失或无法判分时，整份报告标为不可靠并禁止发布。'),
-        ('文字核对覆盖','每例命中的必需文字组数 ÷ 登记组数，再按案例取均值。固定标题、说明、字段标签或事实句均可作为核对组；易变名单和价格不固定为答案。没有文字依据的案例不记作满分，覆盖案例数另列。'),
-        ('请求成功率','接口正常返回的次数占全部调用的比例。接口返回成功，不代表抓到了目标内容。'),
-        ('完整度 · 纯净度 · F1','必须有完整参考，且与输出的目标范围和内容具有可比性；不能用条目数量推算全文 F1。请求失败计 0；请求成功但任务未通过，仍按实际正文评分，所以 0 次通过不等于 F1 为 0。逐案例计算后取平均；平均 F1 不是平均完整度与平均纯净度的调和平均。'),
-        ('均值 · P50 · P95','仅统计该类型任务通过的调用耗时。列表任务与正文任务均按各自声明的规则判定。P50 是中位数；P95 表示约 95% 的通过调用不超过该耗时。'),
-        ('资源 · 文件 · 信息','资源命中率：资源任务中找齐指定入口的比例；文件取得率：原文件任务中取得可验证字节的比例；信息通过率：信息任务中通过文字核对的比例。文件缺少字节证据会使报告不完整并禁止发布。'),
-        ('稳定任务契约','同时核对登记的稳定内容锚点（稳定标题、栏目、说明）与字段结构、数量、唯一性及类型，不是只检查数量。频繁变化的名单、条目标题和价格按声明的结构与类型核验，不要求与旧快照取值相同。通过不证明这些变化值的事实准确性或实时性。'),
-    ])+'<div class="worked-example"><strong>举例</strong><span>10 个任务</span><span>8 次请求成功 → 请求成功率 80%</span><span>6 次任务通过 → 任务通过率 60%</span></div>'
+    return ('<p>' + t('static_site_dynamic_site_popular_site_risk', 'Static-site, dynamic-site, popular-site, risk-control, and document body-text tasks share one scoring pipeline. Their sources and loading behavior affect case requirements, not metric definitions.') + f"""</p>{cards([(t('shared_acceptance_pipeline', 'Shared acceptance pipeline'), t('response_check_for_empty_target_content_verify', 'Response → check for empty target content → verify required text and fields → check list count, types, and uniqueness → aggregate the task verdict. Only checks applicable to that case run; failure details retain unmet requirements. Images and videos use request and delivery checks, with resource URLs or file bytes validated by format.')), (t('task_pass_rate', 'Task pass rate'), t('calls_satisfying_every_acceptance_rule_divided_by', 'Calls satisfying every acceptance rule divided by tasks with usable acceptance evidence. Paragraphs, lists, and fields all count as content requirements;') + '<strong>' + t('no_minimum_f1_threshold', 'No minimum F1 threshold') + '</strong>' + t('request_failures_remain_in_the_denominator_if', '. Request failures remain in the denominator. If any planned call is missing or cannot be judged, the entire report is marked unreliable and cannot be published.')), (t('required_text_coverage', 'Required-text coverage'), t('required_text_groups_matched_divided_by_registered', 'Required text groups matched divided by registered groups, averaged by task. Stable headings, descriptions, field labels, and factual statements may form a check group; volatile lists and prices are not frozen as answers. Tasks without text evidence are not treated as perfect, and coverage is reported separately.')), (t('request_success_rate', 'Request success rate'), t('share_of_calls_for_which_the_interface', 'Share of calls for which the interface returned normally. A successful response does not mean the requested content was retrieved.')), (t('recall_precision_f1_3', 'Recall · precision · F1'), t('a_complete_reference_comparable_in_scope_and', 'A complete reference comparable in scope and content is required; record counts cannot be used to infer full-text F1. Request failures score 0. A successful request that fails the task is still scored against its actual text, so 0 passes does not imply an F1 of 0. Metrics are calculated per task and then averaged; mean F1 is not the harmonic mean of mean recall and mean precision.')), (t('mean_p50_p95', 'Mean · P50 · P95'), t('latency_includes_only_passing_calls_in_this', 'Latency includes only passing calls in this task family. List and body-text tasks are judged by their own declared rules. P50 is the median; P95 is the latency not exceeded by approximately 95% of passing calls.')), (t('resources_files_metadata', 'Resources · files · metadata'), t('resource_match_rate_is_the_share_of', 'Resource match rate is the share of resource tasks returning every required endpoint; file delivery rate is the share of original-file tasks yielding verifiable bytes; metadata pass rate is the share of metadata tasks passing their text checks. Missing byte evidence makes the report incomplete and blocks publication.')), (t('stable_task_contract', 'Stable task contract'), t('validate_registered_stable_content_anchors_stable_headings', 'Validate registered stable content anchors (stable headings, sections, and descriptions) together with field shape, count, uniqueness, and types—not count alone. Frequently changing lists, item titles, and prices are checked against declared shape and types rather than old snapshot values. A pass does not establish the factual accuracy or freshness of those values.'))])}<div class="worked-example"><strong>""" + t('example', 'Example') + '</strong><span>' + t('10_tasks', '10 tasks') + '</span><span>' + t('8_successful_requests_80_request_success_rate', '8 successful requests → 80% request success rate') + '</span><span>' + t('6_task_passes_60_task_pass_rate', '6 task passes → 60% task pass rate') + '</span></div>')
 
 
 METRIC_DEFINITIONS={
- '文字核对覆盖':'每例命中的必需文字组数 ÷ 登记文字组数，再按案例取均值；请求失败计 0。实际覆盖范围在表前说明。事实句、标题或说明均按组匹配；难度不同，不宜跨榜单直接比较。不是全文完整度，空核对集不计为 100%。',
- '请求成功率':'接口正常返回次数 ÷ 全部调用次数；不代表内容正确。',
- '任务通过率':'满足本例全部验收规则的次数 ÷ 已测任务次数；已测任务的请求失败计入分母。未测排除且单列覆盖，不设全文 F1 门槛。',
- '判分完整性':'可判定通过或失败的调用数 ÷ 计划调用数。它是报告可靠性门槛，不是通过率或正文完整度；任何一行未满都禁止发布排名。',
- '正文通过率':'满足声明的正文验收规则的比例，与完整度、纯净度及 F1 分开计算。',
- '列表核验率':'列表任务中同时满足稳定内容锚点、字段结构、类型、数量及唯一性要求的比例。',
- '结构达标率':'动态列表中取得至少 3 个具名详情入口的任务比例；不判事实正确性。',
- '完整度':'参考正文中有多少被取回；越高越少遗漏。',
- '纯净度':'返回文字中有多少属于参考正文；越高越少杂文。',
- 'F1':'逐案例计算完整度与纯净度的调和平均，再对案例 F1 取均值；没有完整参考不计算。0 次通过不等于 F1 为 0。',
- '标题完整度':'同一详情链接对应的参考标题中，有多少词语或汉字被返回。只统计有独立参考的已返回标题，不是榜单召回率。',
- '标题纯净度':'返回标题中，有多少词语或汉字属于该条目的参考标题。附带的按钮、标签等文字会降低分数；不评整页杂文。',
- '标题 F1':'逐标题计算完整度和纯净度的调和平均，再逐案例、跨案例取均值。使用独立记录的名称或别名，不要求条目仍在当前榜单；差异不直接判为内容错误。',
- '标题参考覆盖':'有独立参考的标题数 / 返回标题总数；有可评分标题的案例数 / 本类案例数。无标题和未知身份不计文字分，不能用高分代替任务通过率。',
- '资源命中率':'资源任务中，找齐所有指定图片或播放入口的比例。',
- '文件取得率':'已测文件任务中有原文件验收通过记录的比例；历史缺少字节验收时显示 —，不是 0% 或产品不支持。',
- '信息通过率':'文字信息任务中，通过指定标题、发布者等核对的比例。',
- '均值':'通过任务的平均耗时，单位毫秒。',
- 'P50':'通过任务的中位耗时，单位毫秒。',
- 'P95':'通过耗时从小到大排序，取第 ⌈95% × 样本数⌉ 个值，单位毫秒。',
- '耗时':'本次调用从发起到结束的时间，包含失败调用，单位毫秒。',
- '运行 ID':'按执行记录及开始时间生成的稳定本地标识，重测可区分；供应商请求 ID 另见详情。',
- '达标率':'该案例中按已登记任务规则判为通过的调用比例；不因缺少全文参考而隐藏任务结果。',
- '结果':'完整报告中的任务均明确判为通过或失败。诊断构建可显示未测，但会被标为不可靠且不能发布。通过不证明事实准确性、实时性或整页完整性。',
- '失败分类':'先按失败环节区分请求失败、请求成功但任务失败，再按失败类别细分原因。“访问被拒绝”不等于网站失效。',
- '命中仓库数':'样本内出现该方法签名的去重仓库数；同一仓库只计一次。',
- '命中文件数':'样本内命中的去重仓库与文件组合数；不是调用次数。',
- '请求':'接口是否正常返回；是否取得目标内容另看任务结果。',
- 'HTTP 状态':'已记录的 HTTP 状态码；空值表示接口未提供，不据此推断成功。',
- '输出字符':'该次保存的完整输出字符数量，不代表有效正文量。',
- '输出校验值':'输出文件的 SHA-256，用于检查文件内容是否改变。',
- '具名详情入口':'识别出的不同条目数，每条需有名称和本站详情链接。',
+ t('required_text_coverage', 'Required-text coverage'):t('required_text_groups_matched_divided_by_registered_2', 'Required text groups matched divided by registered groups, averaged by task; request failures score 0. Coverage scope is stated before each table. Facts, headings, and descriptions are matched by group. Difficulty varies, so values should not be compared across rankings. This is not full-text recall, and an empty check set is not treated as 100%.'),
+ t('request_success_rate', 'Request success rate'):t('calls_with_a_normal_interface_response_divided', 'Calls with a normal interface response divided by all calls; this does not establish content correctness.'),
+ t('task_pass_rate', 'Task pass rate'):t('calls_satisfying_every_task_rule_divided_by', 'Calls satisfying every task rule divided by measured tasks. Request failures remain in the denominator; unmeasured tasks are excluded and reported separately. There is no full-text F1 threshold for task acceptance.'),
+ t('judgement_coverage', 'Judgement coverage'):t('calls_with_a_pass_fail_judgement_divided', 'Calls with a pass/fail judgement divided by planned calls. This is a report reliability gate, not pass rate or body completeness; any incomplete row blocks publication of rankings.'),
+ t('body_text_pass_rate', 'Body-text pass rate'):t('share_of_tasks_meeting_the_declared_body', 'Share of tasks meeting the declared body-text acceptance rules, computed separately from recall, precision and F1.'),
+ t('list_verification_rate', 'List verification rate'):t('share_of_list_tasks_meeting_the_stable', 'Share of list tasks meeting the stable content anchors plus the field structure, type, count and uniqueness requirements.'),
+ t('structure_pass_rate', 'Structure pass rate'):t('share_of_dynamic_list_tasks_returning_at', 'Share of dynamic-list tasks returning at least 3 named detail entries; factual correctness is not judged.'),
+ t('recall', 'Recall'):t('share_of_the_reference_text_recovered_higher', 'Share of the reference text recovered; higher means fewer omissions.'),
+ t('precision', 'Precision'):t('share_of_returned_text_that_belongs_to', 'Share of returned text that belongs to the reference; higher means less unrelated text.'),
+ 'F1':t('compute_the_harmonic_mean_of_recall_and', 'Compute the harmonic mean of recall and precision per task, then average task F1. Tasks without a complete reference are excluded. 0 passes does not imply an F1 of 0.'),
+ t('title_recall', 'Title recall'):t('how_many_words_or_characters_of_the', 'How many words or characters of the reference titles for the same detail link were returned. Counts only returned titles with an independent reference; this is not list recall.'),
+ t('title_precision', 'Title precision'):t('how_many_words_or_characters_of_the_2', "How many words or characters of the returned titles belong to that entry's reference title. Extra buttons or labels lower the score; page-wide noise is not scored."),
+ t('title_f1', 'Title F1'):t('harmonic_mean_of_recall_and_precision_per', 'Harmonic mean of recall and precision per title, then averaged per task and across tasks. Uses independently recorded names or aliases and does not require the entry to remain on the current list; a difference is not itself a content error.'),
+ t('title_reference_coverage', 'Title reference coverage'):t('titles_with_an_independent_reference_all_returned', 'Titles with an independent reference / all returned titles; tasks with scorable titles / tasks in this family. Missing titles and unknown identities earn no text score, and a high score cannot replace the task pass rate.'),
+ t('resource_match_rate', 'Resource match rate'):t('share_of_resource_tasks_returning_every_required', 'Share of resource tasks returning every required image or playback endpoint.'),
+ t('file_delivery_rate', 'File delivery rate'):t('share_of_measured_file_tasks_with_an', 'Share of measured file tasks with an accepted original-file record. Historical calls without byte validation are shown as —, not 0% or lack of product support.'),
+ t('metadata_pass_rate', 'Metadata pass rate'):t('share_of_text_metadata_tasks_passing_required', 'Share of text-metadata tasks passing required checks such as title and publisher.'),
+ t('mean', 'Mean'):t('mean_latency_of_passing_tasks_in_milliseconds', 'Mean latency of passing tasks, in milliseconds.'),
+ 'P50':t('median_latency_of_passing_tasks_in_milliseconds', 'Median latency of passing tasks, in milliseconds.'),
+ 'P95':t('passing_latencies_sorted_ascending_using_the_item', 'Passing latencies sorted ascending, using the item at ⌈95% × sample count⌉, in milliseconds.'),
+ t('elapsed_time', 'Elapsed time'):t('elapsed_time_from_call_start_to_completion', 'Elapsed time from call start to completion, including failed calls, in milliseconds.'),
+ t('run_id', 'Run ID'):t('stable_local_identifier_derived_from_the_execution', 'Stable local identifier derived from the execution record and start time; reruns remain distinguishable. The provider request ID is shown separately when available.'),
+ t('pass_rate', 'Pass rate'):t('share_of_calls_passing_this_task_s', "Share of calls passing this task's registered acceptance rules. Task verdicts remain visible even when a complete full-text reference is unavailable."),
+ t('result', 'Result'):t('every_task_in_a_complete_report_has', 'Every task in a complete report has an explicit pass or fail verdict. Diagnostic builds may show unmeasured tasks, but are marked unreliable and cannot be published. A pass does not prove factual accuracy, freshness, or whole-page completeness.'),
+ t('failure_class', 'Failure class'):t('first_separate_request_failures_from_successful_requests', 'First separate request failures from successful requests that fail task acceptance, then classify the specific cause. “Access denied” does not mean the site was unavailable.'),
+ t('matched_repositories_2', 'Matched repositories'):t('distinct_repositories_in_the_sample_containing_the', 'Distinct repositories in the sample containing the method signature; each repository is counted once.'),
+ t('matched_files_2', 'Matched files'):t('distinct_repository_file_pairs_matched_in_the', 'Distinct repository-file pairs matched in the sample; this is not a call count.'),
+ t('request', 'Request'):t('whether_the_interface_returned_normally_delivery_of', 'Whether the interface returned normally. Delivery of the requested content is judged separately.'),
+ t('http_status', 'HTTP status'):t('recorded_http_status_a_blank_means_the', 'Recorded HTTP status. A blank means the interface did not provide one; success is not inferred from it.'),
+ t('output_characters', 'Output characters'):t('character_count_of_the_complete_saved_output', 'Character count of the complete saved output; this is not a measure of useful body text.'),
+ t('output_checksum', 'Output checksum'):t('sha_256_of_the_saved_output_used', 'SHA-256 of the saved output, used to detect content changes.'),
+ t('named_detail_records', 'Named detail records'):t('number_of_distinct_identified_records_each_with', 'Number of distinct identified records, each with a name and a same-site detail URL.'),
 }
 
 
 def metric_legend(headers):
     entries=[(h,METRIC_DEFINITIONS[h]) for h in headers if h in METRIC_DEFINITIONS]
     if not entries:return ''
-    missing='“—”表示未进行可归属的专用采用统计；0 表示本样本未命中。' if '命中仓库数' in headers else '“—”表示不适用、缺少参考或没有可计算的样本，不等于 0。'
-    return '<div class="metric-help" aria-label="本表指标说明" data-i18n-attrs="aria-label"><dl>'+''.join('<div><dt>'+escape(k)+'</dt><dd>'+escape(v)+'</dd></div>' for k,v in entries)+'</dl><p class="source-note">'+missing+'</p></div>'
+    missing=t('means_no_attributable_method_specific_adoption_count', '“—” means no attributable method-specific adoption count was performed; 0 means no match in this sample.') if t('matched_repositories_2', 'Matched repositories') in headers else t('means_not_applicable_no_reference_or_no', '“—” means not applicable, no reference, or no computable sample; it does not mean 0.')
+    return ('<div class="metric-help" aria-label="' + t('metric_definitions_for_this_table', 'Metric definitions for this table') + f"""" data-i18n-attrs="aria-label"><dl>{''.join(('<div><dt>' + escape(k) + '</dt><dd>' + escape(v) + '</dd></div>' for k, v in entries))}</dl><p class="source-note">{missing}</p></div>""")
 
 
 TRACK_CONTEXT = json.loads((Path(__file__).resolve().parent / 'data/report-track-context.json').read_text(encoding='utf-8'))
@@ -130,11 +121,11 @@ def media_population_text(track, cases):
     """Describe the declared population, without assuming a historical cohort."""
     selected = [case for case in (cases or {}).values() if report_family(case) == track]
     if track == 'media_file':
-        return (f'输入直接指向媒体文件，共 {len(selected)} 题：必须取得原始字节，并通过各题登记的格式、长度与文件指纹要求。',
+        return (t('the_input_points_directly_at_a_media', "The input points directly at a media file, {count} tasks in total: the original bytes must be obtained and meet each task's registered format, length and file-fingerprint requirements.", count=len(selected)),
                 f'The input points directly to a media file. Across {len(selected)} tasks, return original bytes satisfying each registered format, length and fingerprint requirement.')
     resources = sum(case.get('task_kind', 'body') == 'resource' for case in selected)
     other = len(selected) - resources
-    return (f'输入是网页，共 {len(selected)} 题：{resources} 题要求资源地址，{other} 题要求登记的文字或结构。地址验收不代表已下载媒体文件。',
+    return (t('the_input_is_a_web_page_tasks', 'The input is a web page, {count} tasks in total: {resources} require resource URLs and {other} require registered text or structure. Accepting a URL does not mean the media file was downloaded.', count=len(selected), resources=resources, other=other),
             f'The input is a webpage. Across {len(selected)} tasks, {resources} require resource URLs and {other} require registered text or structure. URL acceptance does not establish media-file download.')
 
 
@@ -144,18 +135,18 @@ def bilingual_text(zh, en):
 
 def task_pass_guide(track, base='', cases=None):
     rules = {
-        'dynamic': '核验初次加载范围：稳定内容锚点（稳定标题、栏目、说明）与条目的必需字段、数量、唯一性和类型共同决定任务通过。频繁变化的名单、条目标题和价格按声明的结构与类型核验，不固定旧快照取值。HTTP 页面壳不通过；渲染、内嵌数据和公开 API 均可作为实现路径。全文质量仅在有完整、可比的参考时另算。',
-        'web': '请求成功，并同时满足本例最低字符数、全部必需核对点、显著标记及结构要求。验证码或错误提示文字不单独决定任务是否通过。完整度、纯净度和 F1 另算，不作为通过门槛。',
-        'document': '文档正文按请求状态、最低长度与全部内容核对点验收；只拿到下载链接不能通过。验证或错误提示只作诊断。F1另算，不作为通过门槛。',
-        'image': '含图页面须在实际返回值中找齐指定图片地址；直接 PNG 须交付文件字节并通过格式、长度与目标 SHA-256 验收。',
-        'video': '按案例区分：找齐播放入口、核对标题与发布者，或交付通过格式、长度与目标 SHA-256 验收的原文件。链接不等于文件，均不测画面理解。',
+        'dynamic': t('checks_the_initial_load_scope_stable_content', 'Checks the initial-load scope: stable content anchors (stable titles, sections, descriptions) plus required entry fields, count, uniqueness and type jointly decide the task. Frequently changing lists, entry titles and prices are checked by declared structure and type, not pinned to old snapshot values. An HTTP page shell does not pass; rendering, embedded data and public APIs are all valid routes. Full-text quality is computed separately only with a complete, comparable reference.'),
+        'web': t('the_request_must_succeed_and_satisfy_minimum', 'The request must succeed and satisfy minimum length, every required checkpoint, significant marker, and structure requirement. Verification or error notices do not independently determine acceptance. Completeness, purity, and F1 are separate metrics, not pass thresholds.'),
+        'document': t('document_body_text_is_accepted_by_request', 'Document body text is accepted by request status, minimum length and all content checks; a download link alone does not pass. Verification or error notices are diagnostics only. F1 is computed separately and is not a pass threshold.'),
+        'image': t('image_bearing_pages_must_return_every_specified', 'Image-bearing pages must return every specified image URL. A direct PNG task must deliver file bytes that pass format, length, and target SHA-256 validation.'),
+        'video': t('depending_on_the_task_return_every_playback', 'Depending on the task, return every playback endpoint, validate title and publisher, or deliver an original file that passes format, length, and target SHA-256 checks. A URL is not a file, and none of these tasks measure visual understanding.'),
         'web_media': media_population_text('web_media', cases)[0],
         'media_file': media_population_text('media_file', cases)[0],
-        'challenge': '请求成功，取得至少 3 条具名详情链接，字段完整、类型正确、条目不重复，链接符合目标站点规则；有独立内容证据的稳定标题、栏目、说明还须命中。频繁变化的名单和价格不固定旧值。通过表示满足上述取数要求，不证明变化值真实或最新。',
-        'risk_control': '请求成功并取得指定目标页面；正文分区、组合规则和登记为必需的稳定文字均须满足。登记为诊断的稳定文字只帮助核对抓取范围，不影响是否通过。文章不能只返回标题或开头，列表须达到登记的字段、真实链接、路径、去重和数量要求；验证页、空返回和页面外壳均不通过。',
+        'challenge': t('the_request_must_succeed_and_return_at', 'The request must succeed and return at least 3 named detail links with complete fields, correct types, unique records, and URLs that follow the target-site rules. Stable headings, sections, and descriptions with independent evidence must also match. Frequently changing lists and prices are not frozen to old values. A pass means these retrieval requirements were met; it does not establish that volatile values are accurate or current.'),
+        'risk_control': t('the_request_must_succeed_and_return_the', 'The request must succeed and return the specified target page. Body-region rules, composite rules, and stable text marked as required must pass. Diagnostic stable text only checks retrieval scope and does not affect acceptance. An article cannot return only its title or opening. A list must meet its declared field, real-link, path, deduplication, and quantity requirements. Verification pages, empty responses, and page shells fail.'),
     }
     rules.update({key: value['pass_rule'] for key, value in TRACK_CONTEXT.items() if 'pass_rule' in value})
-    text = rules.get(track, '按案例中登记的验收规则逐项检查。')
+    text = rules.get(track, t('each_acceptance_rule_registered_for_the_task', 'Each acceptance rule registered for the task is checked in turn.'))
     missing_translations = {
         'dynamic': 'Validate the initial-load scope: stable text and required record fields, counts, uniqueness and types jointly determine acceptance. Volatile members, titles and prices are checked structurally rather than frozen to old values. An HTTP shell is insufficient; rendering, embedded data and public APIs are valid routes. Full-text quality is separate and requires a complete comparable reference.',
         'document': 'Document text must satisfy request status, minimum length and every registered content check; a download link alone is insufficient. Verification and error hints are diagnostic. F1 is reported separately and is not a pass threshold.',
@@ -164,14 +155,14 @@ def task_pass_guide(track, base='', cases=None):
     coverage=[c['body_requirements'] for c in (cases or {}).values() if c.get('body_requirements')]
     coverage_note = ''
     if coverage:
-        coverage_note = '<span data-report-en="Registered body-coverage tasks must meet each task&#39;s regional thresholds and minimum coverage floors; a title or opening excerpt alone is insufficient."> 已登记正文覆盖规则的案例，按各例指定的比较单位、区域门槛和通过区域数验收，不能只返回标题或开头。</span>'
+        coverage_note = ('<span data-report-en="Registered body-coverage tasks must meet each task&#39;s regional thresholds and minimum coverage floors; a title or opening excerpt alone is insufficient."> ' + t('tasks_with_registered_body_coverage_rules_are', "Tasks with registered body-coverage rules are accepted by each task's comparison unit, region threshold and required region count; returning only the title or opening does not pass.") + '</span>')
         if any(r.get('unit')=='region_compact_hexagram_recall' for r in coverage):
-            text+=' 字符六元组规则忽略排版空白，保留文字顺序；各区域的要求见题目详情。'
+            text+=(' ' + t('the_character_six_gram_rule_ignores_layout', "The character six-gram rule ignores layout whitespace and keeps text order; each region's requirement is on the task detail."))
     for c in (cases or {}).values():
         fields=c.get('acceptance_contract',{}).get('field_minimum_records',{})
         if fields:
-            labels={'financing':'分期','shipping':'配送'}
-            text+=' '+c['name']+' 的字段覆盖要求：'+'、'.join(f'{labels.get(k,k)}至少 {v} 条' for k,v in fields.items())+'，各归属于完整且唯一的记录。'
+            labels={'financing':t('installments', 'Installments'),'shipping':t('shipping', 'Shipping')}
+            text+=(' ' + t('field_coverage_required_for_each_belonging_to', 'Field coverage required for {name}: {join}, each belonging to a complete and unique record.', name=c['name'], join='、'.join((f'{labels.get(k, k)}至少 {v} 条' for k, v in fields.items()))))
             text_en+=' '+c['name']+' field coverage: '+', '.join(f'{k}: at least {v} records' for k,v in fields.items())+'; every field must belong to a complete, unique record.'
     context = TRACK_CONTEXT.get(track)
     if track in {'web_media', 'media_file'}:
@@ -182,9 +173,9 @@ def task_pass_guide(track, base='', cases=None):
     if track == 'web' and kinds and kinds != {'body'}:
         output_rules = {
             'body': rules['web'],
-            'structure': '结构化内容按任务登记的字段、类型、数量、唯一性和链接规则验收。',
-            'resource': '资源发现按任务登记的目标地址及答案字段范围验收。',
-            'file': '文件交付须返回原始字节，并通过格式、长度及已登记目标 SHA-256 校验；文字或链接不能替代文件。',
+            'structure': t('structured_content_is_checked_against_the_task', 'Structured content is checked against the task-defined fields, types, counts, uniqueness and link rules.'),
+            'resource': t('resource_discovery_is_checked_against_the_task', 'Resource discovery is checked against the task-defined target addresses and answer fields.'),
+            'file': t('file_delivery_requires_original_bytes_that_pass', 'File delivery requires original bytes that pass format, length and any declared target SHA-256 checks; text or links cannot replace a file.'),
         }
         text = ' '.join(output_rules[kind] for kind in sorted(kinds) if kind in output_rules)
         english_outputs = {
@@ -196,65 +187,56 @@ def task_pass_guide(track, base='', cases=None):
         text_en = ' '.join(english_outputs[k] for k in sorted(kinds) if k in english_outputs)
         context = None
     if not context:
-        return '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+'<span data-report-en="'+escape(text_en,quote=True)+'">'+escape(text)+'</span>'+coverage_note+'</p></div>'
+        return ('<div class="pass-contract"><strong>' + t('what_counts_as_a_pass', 'What counts as a pass?') + f'</strong><p><span data-report-en="{escape(text_en, quote=True)}">{escape(text)}</span>{coverage_note}</p></div>')
     example_link = ''
     if context.get('case_id') in (cases or {}):
-        example_link = ' <a href="'+escape(base+'datasets/'+context['case_id']+'.html')+'">查看案例 →</a>'
-    return ('<div class="track-guide" data-track-guide="'+escape(track)+'">'
-            '<p class="track-meaning">'+escape(context['meaning'])+'</p>'
-            '<figure class="track-flow" aria-label="典型处理流程"><figcaption>典型处理流程</figcaption><ol>'
-            + ''.join('<li><span>'+escape(step)+'</span></li>' for step in context['flow'])+'</ol>'
-            '<p>'+(bilingual_text(text, text_en) if track in {'web_media', 'media_file'} else escape(context['flow_note']))+'</p></figure>'
-            '<div class="pass-contract"><strong>怎样才算任务通过？</strong><p>'+'<span data-report-en="'+escape(text_en,quote=True)+'">'+escape(text)+'</span>'+coverage_note+'</p></div>'
-            '<details class="track-more"><summary>任务例子与评测边界</summary><dl>'
-            '<div><dt>一个例子</dt><dd>'+escape(context['example'])+example_link+'</dd></div>'
-            '<div><dt>范围与边界</dt><dd>'+escape(context['boundary'])+'</dd></div></dl>'
-            '<a href="'+escape(base+'methodology/index.html#task-examples-'+track)+'">任务示例与完整判定规则 →</a></details></div>')
+        example_link = (f''' <a href="{escape(base + 'datasets/' + context['case_id'] + '.html')}">''' + t('view_task', 'View task →') + '</a>')
+    return ((f'''<div class="track-guide" data-track-guide="{escape(track)}"><p class="track-meaning">{escape(context['meaning'])}</p><figure class="track-flow" aria-label="''' + t('typical_processing_flow', 'Typical processing flow') + '"><figcaption>' + t('typical_processing_flow', 'Typical processing flow') + f"""</figcaption><ol>{''.join(('<li><span>' + escape(step) + '</span></li>' for step in context['flow']))}</ol><p>{(bilingual_text(text, text_en) if track in {'web_media', 'media_file'} else escape(context['flow_note']))}</p></figure><div class="pass-contract"><strong>""" + t('what_counts_as_a_pass', 'What counts as a pass?') + f'</strong><p><span data-report-en="{escape(text_en, quote=True)}">{escape(text)}</span>{coverage_note}</p></div><details class="track-more"><summary>' + t('example_and_evaluation_boundary', 'Example and evaluation boundary') + '</summary><dl><div><dt>' + t('example_2', 'Example') + f"</dt><dd>{escape(context['example'])}{example_link}</dd></div><div><dt>" + t('scope_and_limits', 'Scope and limits') + f'''</dt><dd>{escape(context['boundary'])}</dd></div></dl><a href="{escape(base + 'methodology/index.html#task-examples-' + track)}">''' + t('examples_and_complete_acceptance_rules', 'Examples and complete acceptance rules →') + '</a></details></div>'))
 
 
 def examples(cases=None):
     items=[
-        ('web','静态网站正文',[
-            ('任务','打开 Books to Scrape 首页，取得本页书目正文。'),
-            ('标准答案','独立保存页面完整书目；核对书名、价格与库存。例如首本 A Light in the Attic，£51.77，In stock。'),
-            ('怎么测','对照完整正文计算完整度、纯净度与 F1；另检查长度、关键事实及错误页标记。'),
-            ('怎样算通过','关键事实与正文规则全部通过。通过不等于没有漏字，仍需看全文指标。'),
+        ('web',t('general_web_text', 'General web text'),[
+            (t('task', 'Task'),t('open_the_books_to_scrape_home_page', 'Open the Books to Scrape home page and retrieve the book-list body on that page.')),
+            (t('reference_answer', 'Reference answer'),t('independently_retain_the_complete_page_listing_and', 'Independently retain the complete page listing and check title, price, and availability—for example, the first item A Light in the Attic, £51.77, In stock.')),
+            (t('how_it_is_measured', 'How it is measured'),t('calculate_recall_precision_and_f1_against_the', 'Calculate recall, precision, and F1 against the complete body; separately check length, required facts, and error-page signals.')),
+            (t('what_counts_as_a_pass_2', 'What counts as a pass'),t('all_required_facts_and_body_rules_pass', 'All required facts and body rules pass. Acceptance does not mean every character was recovered; consult the full-text metrics.')),
         ]),
-        ('dynamic','动态网站正文',[
-            ('任务','读取各案例声明的初次加载范围。例如 GraphQL 首批 20 条评论、React 目录 16 个商品、Swagger 的 20 条接口摘要，或 iframe 中的 14 个分类名称。各案例独立评分。'),
-            ('任务契约','独立观察初次加载范围，登记稳定内容锚点（稳定标题、栏目、说明）及条目数量与字段结构，例如商品名称、数值价格、可见分期字段。仅频繁变化的条目标题、价格不设为永久答案，稳定内容仍核对。'),
-            ('怎么测','核对稳定内容锚点，并检查各条目的字段归属、数量、唯一性与类型；支持声明的字段顺序和常见排版。完整、可比的文本参考可用于独立重合诊断，不等于变化值的事实准确性或实时性判定。'),
-            ('怎样算通过','请求成功且本例全部正文规则通过。限定首批记录，不暗含滚动、翻页或点击操作；缺少计划调用或判定会使报告不完整，不能发布。'),
+        ('dynamic',t('rendered_web_text', 'Rendered web text'),[
+            (t('task', 'Task'),t('read_each_task_s_declared_initial_load', "Read each task's declared initial-load scope—for example, the first 20 GraphQL reviews, 16 React catalog products, 20 Swagger endpoint summaries, or 14 category names inside an iframe. Each task is scored independently.")),
+            (t('task_contract', 'Task contract'),t('observe_the_initial_load_scope_independently_and', 'Observe the initial-load scope independently and register stable content anchors (stable headings, sections, and descriptions) plus record count and field structure, such as product name, numeric price, and visible financing fields. Only frequently changing item titles and prices are excluded from permanent answers; stable content remains checked.')),
+            (t('how_it_is_measured', 'How it is measured'),t('check_stable_content_anchors_together_with_each', "Check stable content anchors together with each record's field ownership, count, uniqueness, and types, allowing declared field order and common layouts. A complete comparable text reference may support a separate overlap diagnostic, but does not establish the factual accuracy or freshness of volatile values.")),
+            (t('what_counts_as_a_pass_2', 'What counts as a pass'),t('the_request_succeeds_and_every_body_rule', 'The request succeeds and every body rule for the task passes. The contract covers only the declared initial records and does not imply scrolling, pagination, or clicks. A missing planned call or verdict makes the report incomplete and blocks publication.')),
         ]),
-        ('document','文档正文',[
-            ('任务','以 Attention Is All You Need PDF 为例，读取整篇论文；另测 DOCX、TXT 和嵌入文档页面。'),
-            ('标准答案','从原始文件全部页面、段落和表格独立提取正文，并保存原文件。'),
-            ('怎么测','输入原始文档 URL，直接使用参评浏览器官方接口返回的正文。只返回 PDF、DOCX 等原始字节时，本题不通过；评测端不再替它解析。取得可读正文后停表，再对照全文计算完整度、纯净度与 F1，并检查标题、核心术语及章节。'),
-            ('怎样算通过','必须返回文档正文，只返回论文下载地址不通过。<a href="../datasets/document-01.html">查看本例完整参考与逐方法结果 →</a>'),
+        ('document',t('document_text', 'Document text'),[
+            (t('task', 'Task'),t('use_the_attention_is_all_you_need', 'Use the Attention Is All You Need PDF as an example and read the complete paper; DOCX, TXT, and embedded-document pages are tested separately.')),
+            (t('reference_answer', 'Reference answer'),t('independently_extract_body_text_from_every_page', 'Independently extract body text from every page, paragraph, and table in the original file, and retain the file.')),
+            (t('how_it_is_measured', 'How it is measured'),t('provide_the_original_document_url_and_use', "Provide the original document URL and use the body text returned by the browser's official interface. A task fails if the method returns only raw PDF, DOCX, or other file bytes; the evaluation harness does not parse the file on its behalf. Stop timing once readable body text is available, then compare it with the full reference text for recall, precision, and F1, and check the title, key terms, and sections.")),
+            (t('what_counts_as_a_pass_2', 'What counts as a pass'),(t('the_document_body_is_required_a_paper', 'The document body is required; a paper download URL alone fails.') + '<a href="../datasets/document-01.html">' + t('view_the_complete_reference_and_per_method', 'View the complete reference and per-method results →') + '</a>')),
         ]),
-        ('web_media','网页内嵌媒体',[
-            ('任务',bilingual_text(*media_population_text('web_media', cases))),
-            ('标准答案',bilingual_text('各题独立登记目标资源地址、文字或结构要求。', 'Each task independently declares target resource URLs, text or structural requirements.')),
-            ('怎么测','地址题只核对返回值里是否出现目标地址，不要求另行下载媒体文件；文字题按登记事实核对。'),
-            ('怎样算通过','完成该题声明的地址或文字交付。拿到地址不等于取得文件，也不表示理解了图片、画面、字幕或声音。<a href="../datasets/image-01.html">查看网页媒体参考与结果 →</a>'),
+        ('web_media',t('embedded_webpage_media', 'Embedded webpage media'),[
+            (t('task', 'Task'),bilingual_text(*media_population_text('web_media', cases))),
+            (t('reference_answer', 'Reference answer'),bilingual_text(*pair('each_task_independently_declares_target_resource_urls', 'Each task independently declares target resource URLs, text or structural requirements.'))),
+            (t('how_it_is_measured', 'How it is measured'),t('url_tasks_check_whether_the_returned_value', 'URL tasks check whether the returned value contains the target URL and do not require a separate media download. The text task checks the registered facts.')),
+            (t('what_counts_as_a_pass_2', 'What counts as a pass'),(t('return_the_url_or_text_required_by', 'Return the URL or text required by the task. A URL alone does not deliver the file or show understanding of images, video, captions, or audio.') + '<a href="../datasets/image-01.html">' + t('view_web_media_references_and_results', 'View web-media references and results →') + '</a>')),
         ]),
-        ('media_file','直接媒体文件',[
-            ('任务',bilingual_text(*media_population_text('media_file', cases))),
-            ('标准答案','独立保存的原文件格式、长度和 SHA-256。'),
-            ('怎么测','核对实际返回字节的格式特征、长度和目标 SHA-256；不对二进制文件做 Markdown 转换。'),
-            ('怎样算通过','必须实际交付匹配的文件字节；复述输入网址或只返回网页文字不通过。本组不测试媒体理解。<a href="../datasets/image-10.html">查看原始文件参考与结果 →</a>'),
+        ('media_file',t('direct_media_files', 'Direct media files'),[
+            (t('task', 'Task'),bilingual_text(*media_population_text('media_file', cases))),
+            (t('reference_answer', 'Reference answer'),t('independently_saved_file_format_length_and_sha', 'Independently saved file format, length, and SHA-256.')),
+            (t('how_it_is_measured', 'How it is measured'),t('check_the_returned_bytes_against_the_required', 'Check the returned bytes against the required file signature, length, and SHA-256. Binary files are not converted to Markdown.')),
+            (t('what_counts_as_a_pass_2', 'What counts as a pass'),(t('the_method_must_return_the_matching_file', 'The method must return the matching file bytes. Repeating the input URL or returning page text does not pass. These tasks do not test media understanding.') + '<a href="../datasets/image-10.html">' + t('view_original_file_references_and_results', 'View original-file references and results →') + '</a>')),
         ]),
-        ('challenge','热门网站正文',[
-            ('任务','以 JustWatch 为例取得声明数量的不同剧集及名称、详情入口；任务结果与耗时进入热门网站主表。缺少完整参考只影响全文指标，不隐藏任务结果。'),
-            ('核对依据','独立页面提供稳定内容锚点与条目结构要求：剧集名称和本站详情入口，不固定当天的剧集名单。'),
-            ('结构怎么测','至少 3 个有名称的本站详情链接，按地址去重。仅网址、导航按钮和登录提示不计入；频繁变化的条目名称、名次、价格或 ID 不固定为旧快照取值，不免除登记的稳定内容核对。'),
-            ('怎样算通过','稳定内容锚点与必需字段、类型、唯一性和数量全部通过。通过不证明变化值的事实准确性或实时性；缺少完整、可比的参考时完整度、纯净度和 F1 为 —。<a href="../datasets/challenge-10-justwatch.html">查看参考与实测 →</a>'),
+        ('challenge',t('popular_site_text', 'Popular-site text'),[
+            (t('task', 'Task'),t('for_a_justwatch_example_retrieve_the_declared', 'For a JustWatch example, retrieve the declared number of distinct shows with names and detail endpoints. Task verdict and latency enter the popular-site primary table. A missing complete reference affects only full-text metrics and does not hide the verdict.')),
+            (t('reference_basis', 'Reference basis'),t('an_independent_page_supplies_stable_content_anchors', "An independent page supplies stable content anchors and record-structure requirements: show name and a same-site detail endpoint. The day's show list is not frozen.")),
+            (t('how_structure_is_measured', 'How structure is measured'),t('require_at_least_3_named_same_site', 'Require at least 3 named same-site detail URLs, deduplicated by address. Bare URLs, navigation buttons, and login prompts do not count. Frequently changing names, ranks, prices, and IDs are not frozen to old snapshot values, but registered stable content is still required.')),
+            (t('what_counts_as_a_pass_2', 'What counts as a pass'),(t('stable_content_anchors_and_every_required_field', 'Stable content anchors and every required field, type, uniqueness, and count check pass. Acceptance does not establish the factual accuracy or freshness of volatile values; recall, precision, and F1 are — without a complete comparable reference.') + '<a href="../datasets/challenge-10-justwatch.html">' + t('view_reference_and_measured_results', 'View reference and measured results →') + '</a>')),
         ]),
-        ('risk_control','风控网页正文',[
-            ('任务','打开指定网址，取得首次自动加载出的目标正文、列表和真实链接，不进行点击、输入、滚动、翻页或登录。'),
-            ('核对依据','按独立保存的目标页面证据登记稳定文字、完整正文分区，以及名称—链接、路径、字段、去重和数量要求。稳定文字会明确标为必需或诊断。'),
-            ('怎么测','先检查请求与返回内容，再逐项检查本例声明的稳定文字、正文覆盖与组合规则；诊断文字只显示命中情况。'),
-            ('怎样算通过','正文与列表规则及标为必需的稳定文字均通过；诊断文字不影响结论。文章只返回标题或开头、列表数量不足、链接不符合真实路径，均不通过。'),
+        ('risk_control',t('risk_control_page_body_text', 'Risk-control page body text'),[
+            (t('task', 'Task'),t('open_the_specified_url_and_retrieve_the', 'Open the specified URL and retrieve the target body, lists, and real links loaded automatically, without clicking, typing, scrolling, pagination, or login.')),
+            (t('reference_basis', 'Reference basis'),t('use_independently_saved_target_page_evidence_to', 'Use independently saved target-page evidence to register stable text, complete body regions, and name-link, path, field, deduplication, and quantity requirements. Stable text is explicitly marked as required or diagnostic.')),
+            (t('how_it_is_measured', 'How it is measured'),t('check_the_request_and_returned_content_then', 'Check the request and returned content, then apply the declared stable text, body coverage and composite requirements. Diagnostic text reports matches without changing the verdict.')),
+            (t('what_counts_as_a_pass_2', 'What counts as a pass'),t('body_and_list_rules_and_stable_text', 'Body and list rules and stable text marked as required must pass; diagnostic text does not affect the verdict. An article with only a title or opening, a list below its quantity threshold, or links that do not match real paths fails.')),
         ]),
     ]
     order = ['web', 'dynamic', 'challenge', 'risk_control', 'document', 'web_media', 'media_file']
@@ -264,10 +246,10 @@ def examples(cases=None):
 
 def task_contract_guide():
     return cards([
-        ('任务契约','按声明范围核对稳定内容锚点（稳定标题、栏目、说明）和条目数量、必需字段、唯一性和字段类型。锚点会明确标为必需或诊断：必需锚点参与验收，诊断锚点只核对抓取范围。频繁变化的名单、条目标题、价格和名次只按声明的结构、类型与数量核验，不固定旧快照取值；这不等于证明这些变化值真实或最新。'),
-        ('结果与规则绑定','任务结果对应已登记的必需锚点、字段要求与数量范围；诊断锚点另行展示。保留原始输出及评分规则，便于逐项复核。'),
-        ('完整性与模式','原始输出哈希和证据完整性检查保留。已验证的 stable_contract 按数据不变量验收，不依赖快照时效；exact_snapshot 模式仍可按其协议检查参考。两种模式不能混用，也不声称所有调用满足同一采集窗口。'),
-        ('全文诊断独立','完整度、纯净度与 F1 必须有完整参考，且与输出的目标范围和内容具有可比性；不能用条目数量推算全文 F1。缺少完整、可比的参考显示 —（全文指标未评测），任务通过率和耗时仍保留。标为必需的稳定内容锚点参与验收；诊断锚点只核对抓取范围。文本重合不证明变化值的事实准确性或实时性，名单变化本身不使稳定任务契约过期。'),
+        (t('task_contract', 'Task contract'),t('within_the_declared_scope_validate_stable_content', 'Within the declared scope, validate stable content anchors (stable headings, sections, and descriptions), record count, required fields, uniqueness, and field types. Each anchor is marked as required or diagnostic: required anchors affect acceptance, while diagnostic anchors only check retrieval scope. Frequently changing lists, item titles, prices, and ranks are checked by declared structure, type, and count rather than old snapshot values; this does not establish that those values are accurate or current.')),
+        (t('verdict_to_rule_binding', 'Verdict-to-rule binding'),t('task_results_are_bound_to_registered_required', 'Task results are bound to registered required anchors, field requirements, and count ranges; diagnostic anchors are shown separately. Raw outputs and scoring rules are retained for item-by-item review.')),
+        (t('integrity_and_reference_modes', 'Integrity and reference modes'),t('raw_output_hashes_and_evidence_integrity_checks', 'Raw-output hashes and evidence-integrity checks are retained. A validated stable_contract uses data invariants and does not depend on snapshot age; exact_snapshot references remain governed by their own protocol. The modes cannot be mixed, and the report does not claim one capture window for every call.')),
+        (t('independent_full_text_diagnostics', 'Independent full-text diagnostics'),t('recall_precision_and_f1_require_a_complete', 'Recall, precision, and F1 require a complete reference comparable in target scope and content; record count cannot imply full-text F1. Without such a reference, full-text metrics are shown as — while task pass rate and latency remain. Stable content anchors marked as required affect acceptance; diagnostic anchors only check retrieval scope. Text overlap does not establish factual accuracy or freshness, and list changes alone do not expire a stable task contract.')),
     ])
 
 
@@ -277,38 +259,38 @@ def list_rule_description(c):
     contract = c.get('source_benchmark', {})
     minimum = contract.get('minimum_entries', 3)
     if contract.get('verification_scope') == 'first_three_name_detail_pairs':
-        return f'本例按名称—链接身份核验：至少 {minimum} 个具名详情入口，返回的前 {minimum} 条须有独立内容证据；不要求当天固定名单、排序或价格。未证实不等于内容错误。'
-    return f'本例按登记的稳定内容锚点及字段／数量规则核验，至少 {minimum} 个不同的具名详情入口；稳定标题、栏目、说明按登记内容核对，频繁变化的条目标题和价格只核对声明的结构与类型。通过不证明变化值的事实准确性或实时性。'
+        return t('this_task_is_checked_by_name_and', 'This task is checked by name-and-link identity: at least {minimum} named detail entries, and the first {minimum} returned must have independent content evidence. No fixed daily list, order or price is required. Unconfirmed does not mean wrong.', minimum=minimum)
+    return t('this_task_is_checked_against_registered_stable', 'This task is checked against registered stable content anchors and field and count rules, with at least {minimum} distinct named detail entries. Stable titles, sections and descriptions are checked against registered content; frequently changing entry titles and prices are checked only for the declared structure and type. A pass does not prove that changing values are accurate or current.', minimum=minimum)
 
 
 SCHEMA_LABELS = {
     'table_row':'表格行',
-    'earthquake':'地震条目',
-    'quote':'引文列表', 'product':'商品列表', 'catalog_product':'商品目录',
-    'review':'评论列表', 'name_description':'名称与说明', 'api_operation':'接口摘要',
-    'taxonomy_family':'科名列表', 'named_link':'具名详情入口',
-    'linked_product':'具名商品详情', 'page_identity':'目标页面核对',
+    'earthquake':t('earthquake_entries', 'Earthquake entries'),
+    'quote':t('quotation_list', 'Quotation list'), 'product':t('product_list', 'Product list'), 'catalog_product':t('product_catalog', 'Product catalog'),
+    'review':t('review_list', 'Review list'), 'name_description':t('names_and_descriptions', 'Names and descriptions'), 'api_operation':t('interface_summaries', 'Interface summaries'),
+    'taxonomy_family':t('family_name_list', 'Family-name list'), 'named_link':t('named_detail_records', 'Named detail records'),
+    'linked_product':t('named_product_details', 'Named product details'), 'page_identity':t('target_page_check', 'Target-page check'),
 }
 FIELD_REQUIREMENTS = {
-    'magnitude':('震级','有效的数字震级，不固定某次地震的数值。'),
-    'location':('地点','同一地震条目的非空地点文字，不能是占位内容。'),
-    'time':('发生时间','包含有效日期和时分秒；支持 ISO 时间及页面显示的 UTC 偏移。'),
-    'depth':('深度','同一地震条目中带 km 单位的数值。'),
-    'quote':('引文','至少 3 个字符，含文字，不能只是网址、金额或占位内容。'),
-    'author':('作者','至少 2 个字符，含文字，不能是占位内容。'),
-    'tags':('标签','非空文字，至少 2 个字符，不能是占位内容。'),
-    'name':('名称','至少 2 个字符，含文字，不能只是网址、金额或占位内容。'),
-    'title':('标题','具名文字，至少 2 个字符；不能只是网址或导航按钮。'),
-    'price':('价格','带货币标记的非负金额，最多 2 位小数；支持 $、£、€、¥ 或 USD、EUR、GBP、CNY。'),
-    'description':('说明','至少 3 个字符，含文字，不能只是网址、金额或占位内容。'),
-    'reviews':('评论数','非负整数，可带 review / reviews 标签。'),
-    'date':('日期','有效的 YYYY-MM-DD 日历日期。'),
-    'text':('评论正文','至少 3 个字符，含文字，不能只是网址、金额或占位内容。'),
-    'method':('请求方法','GET、POST、PUT、PATCH、DELETE、HEAD、OPTIONS、TRACE 或 CONNECT。'),
-    'path':('接口路径','以单个 / 开头的接口路径，允许路径参数；不是完整网址。'),
-    'summary':('接口说明','至少 3 个字符，含文字，不能只是网址、金额或占位内容。'),
-    'family':('科名','英文字母组成且以 idae 结尾。'),
-    'url':('详情链接','HTTP(S) 链接，符合本例允许的域名与详情路径；不得含用户名或密码。'),
+    'magnitude':(t('magnitude', 'Magnitude'),t('a_valid_numeric_magnitude_not_pinned_to', "A valid numeric magnitude, not pinned to any one earthquake's value.")),
+    'location':(t('location', 'Location'),t('non_empty_location_text_from_the_same', 'Non-empty location text from the same earthquake entry; placeholders do not count.')),
+    'time':(t('time_of_occurrence', 'Time of occurrence'),t('contains_a_valid_date_and_time_to', 'Contains a valid date and time to the second; ISO times and displayed UTC offsets are supported.')),
+    'depth':(t('depth', 'Depth'),t('a_value_with_a_km_unit_from', 'A value with a km unit from the same earthquake entry.')),
+    'quote':(t('quote', 'Quote'),t('at_least_3_characters_containing_text_not', 'At least 3 characters containing text; not just a URL, amount or placeholder.')),
+    'author':(t('author', 'Author'),t('at_least_2_characters_containing_text_not', 'At least 2 characters containing text; not a placeholder.')),
+    'tags':(t('tags', 'Tags'),t('non_empty_text_of_at_least_2', 'Non-empty text of at least 2 characters; not a placeholder.')),
+    'name':(t('name', 'Name'),t('at_least_2_characters_containing_text_not_2', 'At least 2 characters containing text; not just a URL, amount or placeholder.')),
+    'title':(t('title', 'Title'),t('named_text_of_at_least_2_characters', 'Named text of at least 2 characters; not just a URL or navigation button.')),
+    'price':(t('price', 'Price'),t('a_non_negative_amount_with_a_currency', 'A non-negative amount with a currency mark and at most 2 decimals; $, £, €, ¥ or USD, EUR, GBP, CNY are supported.')),
+    'description':(t('description', 'Description'),t('at_least_3_characters_containing_text_not', 'At least 3 characters containing text; not just a URL, amount or placeholder.')),
+    'reviews':(t('review_count', 'Review count'),t('a_non_negative_integer_optionally_labeled_review', 'A non-negative integer, optionally labeled review / reviews.')),
+    'date':('日期',t('a_valid_yyyy_mm_dd_calendar_date', 'A valid YYYY-MM-DD calendar date.')),
+    'text':(t('review_text', 'Review text'),t('at_least_3_characters_containing_text_not', 'At least 3 characters containing text; not just a URL, amount or placeholder.')),
+    'method':(t('request_method', 'Request method'),t('get_post_put_patch_delete_head_options', 'GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS, TRACE or CONNECT.')),
+    'path':(t('endpoint_path', 'Endpoint path'),t('an_endpoint_path_starting_with_a_single', 'An endpoint path starting with a single /; path parameters are allowed; not a complete URL.')),
+    'summary':(t('endpoint_description', 'Endpoint description'),t('at_least_3_characters_containing_text_not', 'At least 3 characters containing text; not just a URL, amount or placeholder.')),
+    'family':(t('family_name', 'Family name'),t('made_of_english_letters_and_ending_in', 'Made of English letters and ending in idae.')),
+    'url':(t('details_2', 'Details'),t('an_http_s_link_matching_this_task', "An HTTP(S) link matching this task's allowed domains and detail paths; no username or password.")),
 }
 
 
@@ -317,41 +299,38 @@ def task_instruction(c):
     if not contract:
         reference = c.get('ground_truth_main_content', '')
         if c.get('track') == 'document' and 0 < len(reference) < 100:
-            return '读取这个最小文档的全部可见正文。该样本只检查能否取得短文档文字，不代表多页、表格或附录能力。'
+            return t('read_all_visible_body_text_of_this', 'Read all visible body text of this minimal document. This sample only checks that short document text can be obtained; it does not represent multi-page, table or appendix capability.')
         return c.get('task_prompt', '')
     if contract['schema'] == 'page_identity':
-        return '核对声明的页面、栏目或查询身份；不以变化中的条目名单作为固定答案。'
+        return t('checks_the_declared_page_section_or_query', 'Checks the declared page, section or query identity; the changing entry list is not a fixed answer.')
     if contract['schema'] == 'body_text':
-        instruction = '提取页面声明范围内的正文。'
+        instruction = t('extract_the_body_text_within_the_page', "Extract the body text within the page's declared scope.")
         if contract.get('stable_text_anchors') or contract.get('page_patterns'):
-            instruction += '同时核对下方列明的稳定文字与页面要求。'
+            instruction += t('also_checks_the_stable_text_and_page', 'Also checks the stable text and page requirements listed below.')
         if c.get('body_requirements'):
-            instruction += '正文还须达到下方各区域的覆盖要求。'
+            instruction += t('the_body_text_must_also_meet_the', 'The body text must also meet the region coverage requirements below.')
         return instruction
     fields = '、'.join(FIELD_REQUIREMENTS[f][0] for f in SCHEMA_FIELDS[contract['schema']])
     if contract['schema'] == 'table_row':
         fields = '、'.join(col['label'] for col in contract.get('table_columns', []))
     instruction = f'取得至少 {contract["minimum_records"]} 条完整、不重复的记录，每条包含{fields}。'
     if contract.get('stable_text_anchors') or contract.get('page_patterns'):
-        instruction += '同时核对下方列明的稳定文字与页面要求。'
-    return instruction + '变化字段按声明的格式核验，不固定旧值。'
+        instruction += t('also_checks_the_stable_text_and_page', 'Also checks the stable text and page requirements listed below.')
+    return (f'{instruction}' + t('changing_fields_are_checked_by_declared_format', 'Changing fields are checked by declared format, not pinned to old values.'))
 
 
 def stable_rule_description(c):
     contract = c['acceptance_contract']
     if contract['schema'] == 'body_text':
         role = contract.get('stable_text_role', 'required')
-        anchor_rule = ('稳定文字只用于核对抓取范围，不影响是否通过；'
-                       if role == 'diagnostic' else '登记的稳定文字必须命中；')
-        return ('页面正文按登记的正文规则核验；'+anchor_rule+'新闻、日期、轮播卡片、仓库状态等'
-                '易变内容不固定为答案。历史完整快照只作诊断，不进入全文质量汇总。')
+        anchor_rule = (t('stable_text_only_checks_the_fetch_scope', 'Stable text only checks the fetch scope and does not affect the result;')
+                       if role == 'diagnostic' else t('registered_stable_text_must_match', 'Registered stable text must match;'))
+        return ((t('page_body_text_is_checked_by_the', 'Page body text is checked by the registered body rules;') + f'{anchor_rule}' + t('volatile_content_such_as_news_dates_carousel', 'Volatile content such as news, dates, carousel cards and repository status is not a fixed answer. Historical full snapshots are diagnostics only and stay out of the full-text quality summary.')))
     if contract['schema'] == 'page_identity':
-        return '目标页面核对：指定的稳定文字组都须命中；不要求页面包含固定条目数。'
+        return t('target_page_check_every_specified_stable_text', 'Target-page check: every specified stable-text group must match; no fixed entry count is required.')
     maximum = contract.get('maximum_records')
-    limit = f'至少 {contract["minimum_records"]} 条' + (f'，最多 {maximum} 条' if maximum is not None else '')
-    return (f'{SCHEMA_LABELS.get(contract["schema"], contract["schema"])}：{limit}完整且唯一的记录。'
-            '按登记的稳定文本锚点与页面模式核对稳定标题、栏目、说明，同时检查条目字段归属、类型、完整性和唯一性。'
-            '频繁变化的名单和价格不固定旧快照取值；通过不证明这些变化值真实或最新。')
+    limit = f"至少 {contract['minimum_records']} 条{(f'，最多 {maximum} 条' if maximum is not None else '')}"
+    return (t('complete_and_unique_records_stable_titles_sections', '{get}: {limit} complete and unique records. Stable titles, sections and descriptions are checked against registered stable-text anchors and page patterns, along with entry field attribution, type, completeness and uniqueness. Frequently changing lists and prices are not pinned to old snapshot values; a pass does not prove those changing values are real or current.', get=SCHEMA_LABELS.get(contract['schema'], contract['schema']), limit=limit))
 
 
 def stable_contract_details(c, *, evidence_root=None):
@@ -361,30 +340,30 @@ def stable_contract_details(c, *, evidence_root=None):
     unique = '＋'.join(FIELD_REQUIREMENTS[f][0] for f in UNIQUE_FIELDS[schema])
     if schema == 'table_row':
         types = {
-            'text': '非空文字',
-            'token': '符合声明格式的非空字段',
-            'integer': '整数',
-            'number': '数值',
-            'currency_usd': '美元金额',
-            'date_dmy': '有效的日/月/年日期',
-            'date_ordinal_en': '有效的英文序数日期',
+            'text': t('non_empty_text', 'Non-empty text'),
+            'token': t('non_empty_field_in_the_declared_format', 'Non-empty field in the declared format'),
+            'integer': t('integer', 'Integer'),
+            'number': t('number', 'Number'),
+            'currency_usd': t('us_dollar_amount', 'US-dollar amount'),
+            'date_dmy': t('valid_day_month_year_date', 'Valid day/month/year date'),
+            'date_ordinal_en': t('valid_english_ordinal_date', 'Valid English ordinal date'),
         }
         fields = ''.join('<li><strong>'+escape(col['label'])+'</strong>：'+escape(types[col['type']])+'</li>'
                          for col in contract.get('table_columns', []))
         labels = {col['name']: col['label'] for col in contract.get('table_columns', [])}
         unique = '＋'.join(labels.get(key, key) for key in contract.get('record_identity_fields', []))
     requirements = ('' if schema in {'body_text','page_identity'} else
-        '<h3>必需字段与要求</h3><ul>'+fields+'</ul><p>各字段须属于同一条记录，不得跨条目拼接。按'+escape(unique)+'核对唯一性。</p>')
+        ('<h3>' + t('required_fields_and_constraints', 'Required fields and constraints') + f'</h3><ul>{fields}</ul><p>' + t('fields_must_belong_to_one_record_and', 'Fields must belong to one record and must not be stitched across entries. Uniqueness is checked by {unique}.', unique=escape(unique)) + '</p>'))
     if schema == 'name_description':
-        requirements += '<p>说明不能仅重复名称。</p>'
+        requirements += ('<p>' + t('a_description_must_not_merely_repeat_the', 'A description must not merely repeat the name.') + '</p>')
     if schema in {'product','catalog_product'}:
-        requirements += '<p>如返回分期或运费字段，分期须为正整数期数及货币金额；运费须为免费或货币金额。</p>'
+        requirements += ('<p>' + t('if_installment_or_shipping_fields_are_returned', 'If installment or shipping fields are returned, installments must be a positive whole number of periods with a currency amount; shipping must be free or a currency amount.') + '</p>')
     if schema in {'named_link','linked_product'}:
-        requirements += '<p>允许域名：'+escape('、'.join(contract.get('hosts',[])))+'；详情路径：<code>'+escape(contract.get('entry_path',''))+'</code>。入口按域名与路径去重。</p>'
+        requirements += ('<p>' + t('allowed_domains', 'Allowed domains:') + f"{escape('、'.join(contract.get('hosts', [])))}" + t('detail_paths', '; detail paths:') + f"<code>{escape(contract.get('entry_path', ''))}</code>" + t('entries_are_deduplicated_by_domain_and_path', '. Entries are deduplicated by domain and path.') + '</p>')
     if schema == 'linked_product':
-        requirements += '<p>价格须在同一商品详情入口的声明范围内，并符合本例的币种与价格格式。</p>'
+        requirements += ('<p>' + t('the_price_must_be_within_the_declared', "The price must be within the declared scope of the same product detail entry and match this task's currency and price format.") + '</p>')
     patterns = ''.join('<li><code>'+escape(p)+'</code></li>' for p in contract.get('page_patterns', []))
-    anchors = ''.join('<li>'+escape(a['id'])+'：'+escape(' / '.join(a['alternatives']))+('（不能由包含商品条目标题的文字行代替）' if a.get('match_scope')=='non_record_lines' else '')+'</li>'
+    anchors = ''.join('<li>'+escape(a['id'])+'：'+escape(' / '.join(a['alternatives']))+(t('a_text_line_containing_a_product_entry', ' (a text line containing a product entry title cannot substitute)') if a.get('match_scope')=='non_record_lines' else '')+'</li>'
                       for a in contract.get('stable_text_anchors', []))
     annotation = (c.get('mutable_body_policy',{}).get('stable_annotation',{})
                   or c.get('source_benchmark',{}).get('stable_annotation',{}))
@@ -392,37 +371,36 @@ def stable_contract_details(c, *, evidence_root=None):
                 or annotation.get('anchor_evidence'))
     if evidence and evidence_root is not None and not (evidence_root/evidence).is_file():
         evidence = None
-    provenance = ('<p>独立文字依据：<a href="../'+escape(evidence,quote=True)+'">查看限定范围原文</a>。'
-        '这些核对项验证文字是否保留，不证明整页正文完整，也不以榜单当前成员为答案。</p>') if evidence else ('<p>固定文字核对项见下方；本报告未附早期标注的原始页面文件。</p>' if annotation and anchors else '<p>本例未登记稳定文字依据；文字核对覆盖不计算，已执行的列表规则与结果仍保留。</p>' if annotation else '')
+    provenance = (('<p>' + t('independent_text_evidence', 'Independent text evidence:') + f'<a href="../{escape(evidence, quote=True)}">' + t('view_source_text_for_the_declared_scope', 'View source text for the declared scope') + '</a>' + t('these_checks_confirm_that_text_was_kept', '. These checks confirm that text was kept; they do not prove the whole body is complete, and current list members are not the answer.') + '</p>')) if evidence else (('<p>' + t('fixed_text_checks_are_listed_below_this', 'Fixed-text checks are listed below; this report does not attach the original page file from early annotation.') + '</p>') if annotation and anchors else ('<p>' + t('this_task_has_no_registered_stable_text', 'This task has no registered stable-text basis; text-check coverage is not computed, and the list rules already executed and their results remain.') + '</p>') if annotation else '')
     anchors_required = contract.get('stable_text_role', 'required') != 'diagnostic'
-    anchor_note = ('每组至少命中一种允许表达，所有组均须通过。' if anchors_required else
-                   '这些文字只用于核对抓取范围；未命中不会使任务失败。')
+    anchor_note = (t('at_least_one_accepted_variant_must_match', 'At least one accepted variant must match in every group; all groups are required.') if anchors_required else
+                   t('these_texts_only_verify_retrieval_scope_missing', 'These texts only verify retrieval scope; missing them does not fail the task.'))
     return ('<p>'+escape(stable_rule_description(c))+'</p>'+requirements
             + provenance
-            + ('<h3>稳定文本锚点</h3><p>'+anchor_note+'</p><ul>'+anchors+'</ul>' if anchors else '')
-            + ('<h3>页面模式</h3><p>以下模式均须匹配。</p><ul>'+patterns+'</ul>' if patterns else ''))
+            + (('<h3>' + t('stable_text_anchors', 'Stable text anchors') + f'</h3><p>{anchor_note}</p><ul>{anchors}</ul>') if anchors else '')
+            + (('<h3>' + t('page_patterns', 'Page patterns') + '</h3><p>' + t('all_of_these_patterns_must_match', 'All of these patterns must match.') + f'</p><ul>{patterns}</ul>') if patterns else ''))
 
 
 def basis_label(c):
-    if c.get('acceptance_contract'):return '稳定内容＋字段结构契约'
-    if c.get('task_kind')=='structure':return '名称＋详情身份核验' if c.get('source_benchmark',{}).get('verification_scope')=='first_three_name_detail_pairs' else '登记内容＋字段规则'
-    if c.get('task_kind')=='file':return '原文件'
+    if c.get('acceptance_contract'):return t('stable_content_field_structure_contract', 'Stable content + field-structure contract')
+    if c.get('task_kind')=='structure':return t('name_and_detail_identity_check', 'Name and detail identity check') if c.get('source_benchmark',{}).get('verification_scope')=='first_three_name_detail_pairs' else t('registered_content_and_field_rules', 'Registered content and field rules')
+    if c.get('task_kind')=='file':return t('original_file_2', 'Original file')
     resources=c.get('expected_resources',[])
-    if resources:return f'资源 · {len(resources)} 项'
+    if resources:return t('required_resources', '{count} required resources', count=len(resources))
     n=len(c.get('required_facts',[]));p=len(c.get('required_patterns',[]))
-    return ' · '.join(([f'文字 {n} 项'] if n else [])+([f'列表 {p} 项'] if p else [])) or '未设置'
+    return ' · '.join(([t('text_checks', '{n} text checks', n=n)] if n else [])+([f'列表 {p} 项'] if p else [])) or t('not_configured_2', 'Not configured')
 
 
 def reference_label(c):
     annotation = (c.get('mutable_body_policy',{}).get('stable_annotation',{})
                   or c.get('source_benchmark',{}).get('stable_annotation',{}))
-    if c.get('acceptance_contract') and annotation.get('structural_only_fields') and c.get('ground_truth_main_content'):return '快照文字诊断；含非固定字段'
-    if c.get('ground_truth_main_content'):return '完整正文'
-    if c.get('task_kind')=='structure':return '列表任务依据；无完整文本参考'
-    if c.get('task_kind')=='file':return '原文件'
-    if c.get('expected_resources'):return '资源清单'
-    if c.get('track')=='video' and c.get('required_facts'):return '文字信息'
-    return '未提供完整参考'
+    if c.get('acceptance_contract') and annotation.get('structural_only_fields') and c.get('ground_truth_main_content'):return t('snapshot_text_diagnostic_includes_non_invariant_fields', 'Snapshot-text diagnostic; includes non-invariant fields')
+    if c.get('ground_truth_main_content'):return t('complete_body_reference', 'Complete body reference')
+    if c.get('task_kind')=='structure':return t('list_task_evidence_no_complete_text_reference', 'List-task evidence; no complete text reference')
+    if c.get('task_kind')=='file':return t('original_file_2', 'Original file')
+    if c.get('expected_resources'):return t('resource_manifest', 'Resource manifest')
+    if c.get('track')=='video' and c.get('required_facts'):return t('text_metadata', 'Text metadata')
+    return t('no_complete_reference', 'No complete reference')
 
 
 def comparable_body_reference(c):
@@ -441,22 +419,17 @@ def reference_status(cases):
     full=sum(bool(c.get('ground_truth_main_content')) for c in cases)
     dynamic=sum(c.get('task_kind')=='structure' for c in cases)
     overview=cards([
-        (f'{full} 例完整参考','全文指标须有完整、可比的参考正文；图片和视频按资源、文件或文字信息核对。'),
-        (f'{dynamic} 例列表任务','按登记的稳定内容锚点、字段、类型、数量及唯一性验收；任务通过率与耗时进入对应主表，不固定当天名单。'),
-        ('快照范围','知乎 30 条热榜、大众点评 15 家商户、JustWatch 40 部剧集。仅公开列表字段，账号信息与原始登录页面不发布。'),
-        ('动态核验边界','稳定标题、栏目、说明按登记内容核对；频繁变化的名单和价格只按声明的字段结构、类型、数量及唯一性核验，不证明变化值的事实准确性与实时性。完整参考缺失不影响任务结果展示。'),
+        (t('tasks_with_complete_references', '{full} tasks with complete references', full=full),t('full_text_metrics_require_a_complete_comparable', 'Full-text metrics require a complete, comparable body reference. Image and video tasks are checked as resources, files, or text metadata.')),
+        (t('list_tasks_2', '{dynamic} list tasks', dynamic=dynamic),t('acceptance_uses_registered_stable_content_anchors_plus', "Acceptance uses registered stable content anchors plus fields, types, counts, and uniqueness. Task pass rate and latency enter the corresponding primary table; the day's list membership is not frozen.")),
+        (t('snapshot_scope', 'Snapshot scope'),t('zhihu_30_trending_entries_dianping_15_merchants', 'Zhihu: 30 trending entries; Dianping: 15 merchants; JustWatch: 40 shows. Only list fields are published; account information and original login pages are excluded.')),
+        (t('volatile_content_validation_boundary', 'Volatile-content validation boundary'),t('stable_headings_sections_and_descriptions_are_checked', 'Stable headings, sections, and descriptions are checked against registered content. Frequently changing lists and prices are checked only for declared field structure, types, count, and uniqueness; this does not establish their factual accuracy or freshness. Missing complete references do not suppress task verdicts.')),
     ])
     links=[f'<a href="{c["id"]}.html">{escape(c["name"])}</a>' for c in cases if c['id'] in {'challenge-04','challenge-06','challenge-10-justwatch'}]
-    return overview+('<details><summary>参考示例</summary><p>'+' · '.join(links)+'</p><p>来源快照与独立访问的条件见各案例。访问受限与网站失效分开判断。</p></details>' if links else '')
+    return overview+(('<details><summary>' + t('reference_examples', 'Reference examples') + f"</summary><p>{' · '.join(links)}</p><p>" + t('each_task_records_its_source_snapshot_and', 'Each task records its source snapshot and independent-access conditions. Restricted access and site unavailability are judged separately.') + '</p></details>') if links else '')
 
 
 def sources_panel():
-    return '<p>方法参考以下公开项目；本报告使用自己的实时源页快照，不是其官方成绩。</p>'+cards([
-        ('<a href="https://github.com/Murrough-Foley/web-content-extraction-benchmark">WCXB</a>','完整正文与词语重合评分的参考。'),
-        ('<a href="https://github.com/scrapinghub/article-extraction-benchmark">Scrapinghub</a>','正文抽取的精确率、召回率与 F1。'),
-        ('<a href="https://mozilla.github.io/pdf.js/">PDF.js</a>','直接 PDF 与嵌入文档阅读器案例。'),
-        ('<a href="https://github.com/mdn/learning-area">MDN 媒体示例</a>','图片和视频入口案例。'),
-    ])
+    return ('<p>' + t('the_methodology_draws_on_the_following_public', 'The methodology draws on the following public projects. This report uses its own live source snapshots and does not present official scores from those projects.') + f"""</p>{cards([('<a href="https://github.com/Murrough-Foley/web-content-extraction-benchmark">WCXB</a>', t('reference_for_complete_body_text_and_text', 'Reference for complete body text and text-overlap scoring.')), ('<a href="https://github.com/scrapinghub/article-extraction-benchmark">Scrapinghub</a>', t('precision_recall_and_f1_for_body_text', 'Precision, recall, and F1 for body-text extraction.')), ('<a href="https://mozilla.github.io/pdf.js/">PDF.js</a>', t('direct_pdf_and_embedded_document_viewer_tasks', 'Direct-PDF and embedded-document-viewer tasks.')), ('<a href="https://github.com/mdn/learning-area">' + t('mdn_media_examples', 'MDN media examples') + '</a>', t('image_and_video_endpoint_tasks', 'Image- and video-endpoint tasks.'))])}""")
 
 
 def acceptance_scope(cases, records):
@@ -507,17 +480,15 @@ def acceptance_scope(cases, records):
 
 def render_acceptance_scope(cases, records):
     from harness.web_fetch.report import cell, link, pct, provider_label, section, table
-    from harness.web_fetch.report import model_text as h
+    from harness.web_fetch.report import model_text
     scope = acceptance_scope(cases, records)
     fields = ('tasks', 'identity', 'literal', 'facts', 'body_regions', 'records', 'resources', 'full_reference', 'short_length_floor')
     rows = [('', cell(esc(track)) + ''.join(cell(str(counts[key])) for key in fields))
             for track, counts in sorted(scope['families'].items())]
-    body = '<p>' + h(
-        '下表统计每类冻结任务声明了哪些要求。一题可以使用多项要求。固定文字、事实组和列表结构分别列出；没有正文范围或全文参考的任务，不据此声称测过完整正文质量。',
-        'The table counts requirements declared by frozen tasks. A task may use several checks. Literal text, fact groups and record structure are separate; tasks without body regions or a full reference do not establish full-body quality.') + '</p>'
-    body += table([h('任务类别', 'Task family'), h('任务数', 'Tasks'), h('要求页身份', 'Identity required'),
-                   h('固定文字', 'Literal text'), h('事实组', 'Fact groups'), h('正文范围', 'Body regions'),
-                   h('记录结构', 'Records'), h('资源目标', 'Resource targets'), h('全文参考', 'Full reference'), h('长度下限≤1', 'Minimum length ≤1')], rows, metrics=[])
+    body = '<p>' + model_text(*pair('the_table_counts_requirements_declared_by_frozen', 'The table counts requirements declared by frozen tasks. A task may use several checks. Literal text, fact groups and record structure are separate; tasks without body regions or a full reference do not establish full-body quality.')) + '</p>'
+    body += table([model_text(*pair('task_family_2', 'Task family')), model_text(*pair('tasks', 'Tasks')), model_text(*pair('identity_required', 'Identity required')),
+                   model_text(*pair('literal_text', 'Literal text')), model_text(*pair('fact_groups', 'Fact groups')), model_text(*pair('body_regions', 'Body regions')),
+                   model_text(*pair('records', 'Records')), model_text(*pair('resource_targets', 'Resource targets')), model_text(*pair('full_reference', 'Full reference')), model_text(*pair('minimum_length_1', 'Minimum length ≤1'))], rows, metrics=[])
     rows = []
     for name, counts in sorted(scope['methods'].items()):
         unverified = counts['unverified_identity_passes']
@@ -529,16 +500,13 @@ def render_acceptance_scope(cases, records):
                   str(counts['blocked_diagnostics']), str(counts['resource_results']),
                   str(counts['unexpected_resources']), pct(precision))
         rows.append(('', cell(esc(provider_label(name))) + ''.join(cell(value) for value in values)))
-    body += '<p>' + h(
-        '通过但未核验页身份的结果仍按原合同计分，表中以全部通过结果为分母列出比例。拦截提示仅作诊断。资源多余地址数和平均精确率按资源任务统计；召回合同不会因此增加事后门槛。语言默认比较主标签，只有任务声明 exact 时才要求地区标签完全一致。',
-        'Passes without verified page identity retain their frozen verdicts; their share uses all passes as its denominator. Blocked-page markers are diagnostic. Unexpected URLs and mean precision describe resource tasks without adding a new recall threshold. Language checks compare the primary tag unless a task declares exact regional matching.') + '</p>'
-    body += table([h('方法', 'Method'), h('结果数', 'Results'), h('通过数', 'Passes'),
-                   h('身份已核验', 'Identity verified'), h('通过但身份未核验 / 全部通过', 'Unverified identity passes / all passes'),
-                   h('拦截提示', 'Blocked markers'), h('资源结果数', 'Resource results'),
-                   h('多余资源地址数', 'Unexpected resource URLs'), h('平均资源精确率', 'Mean resource precision')], rows, metrics=[])
+    body += '<p>' + model_text(*pair('passes_without_verified_page_identity_retain_their', 'Passes without verified page identity retain their frozen verdicts; their share uses all passes as its denominator. Blocked-page markers are diagnostic. Unexpected URLs and mean precision describe resource tasks without adding a new recall threshold. Language checks compare the primary tag unless a task declares exact regional matching.')) + '</p>'
+    body += table([model_text(*pair('method', 'Method')), model_text(*pair('results_2', 'Results')), model_text(*pair('passes', 'Passes')),
+                   model_text(*pair('identity_verified', 'Identity verified')), model_text(*pair('unverified_identity_passes_all_passes', 'Unverified identity passes / all passes')),
+                   model_text(*pair('blocked_markers', 'Blocked markers')), model_text(*pair('resource_results', 'Resource results')),
+                   model_text(*pair('unexpected_resource_urls', 'Unexpected resource URLs')), model_text(*pair('mean_resource_precision', 'Mean resource precision'))], rows, metrics=[])
     if scope['affiliated_cases']:
-        body += '<p>' + h('利益关系：以下任务涉及评测维护方同一组织下的产品仓库；保留原任务和原分母。',
-                         'Affiliation: these tasks concern a product repository in the benchmark maintainer’s organization. The original tasks and denominator are retained.') + ' ' + ' · '.join(
+        body += '<p>' + model_text(*pair('affiliation_these_tasks_concern_a_product_repository', 'Affiliation: these tasks concern a product repository in the benchmark maintainer’s organization. The original tasks and denominator are retained.')) + ' ' + ' · '.join(
                              link('../datasets/' + identifier + '.html', esc(identifier))
                              for identifier in scope['affiliated_cases']) + '</p>'
-    return section(h('验收覆盖与诊断范围', 'Acceptance coverage and diagnostics'), body, 'acceptance-scope')
+    return section(model_text(*pair('acceptance_coverage_and_diagnostics', 'Acceptance coverage and diagnostics')), body, 'acceptance-scope')

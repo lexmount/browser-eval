@@ -1627,7 +1627,7 @@ def _presentation_detail_scope(records, selected, manifest, renderer_sha256):
 def renderer_sha256():
     """Identify the presentation: the renderer and the stylesheets and scripts it loads."""
     package = Path(__file__).parent
-    sources = [package / 'report.py', *sorted(
+    sources = [package / 'report.py', package / 'messages.json', *sorted(
         path for path in (package / 'assets').iterdir() if path.suffix in {'.css', '.js'})]
     return hashlib.sha256(b'\0'.join(path.read_bytes() for path in sources)).hexdigest()
 

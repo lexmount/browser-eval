@@ -52,11 +52,22 @@ def test_archived_html_cannot_import_active_content_or_global_styles():
     assert not rejected.img.get('src')
 
 
+def test_escaped_value_keeps_its_translated_prefix():
+    from pathlib import PurePosixPath
+    from harness.web_fetch.report import empty_output_reason
+    from harness.web_fetch.report_i18n import localize_html
+    from harness.reporting.presentation import esc
+    reason = empty_output_reason({'ok': False, 'error_message': "can't connect"}, {}, '')
+    english = localize_html('<p>' + esc(reason) + '</p>', PurePosixPath('attempts/example.html'))
+    assert 'The final output is genuinely empty' in english
+    assert 'can&#x27;t connect' in english
+
+
 def test_english_chrome_preserves_raw_evidence_and_filter_keys():
     from pathlib import PurePosixPath
-    from harness.web_fetch.report_i18n import localize_html
+    from harness.web_fetch.report_i18n import localize_html, t
     raw = '<pre data-original="true">验证码 &amp; 原始返回 26/26</pre>'
-    source = '<html lang="zh-CN"><body><input aria-label="搜索" placeholder="搜索案例、方法或原因"><p data-failure-category="规则不满足">任务规则未满足</p>' + raw + '</body></html>'
+    source = '<html lang="zh-CN"><body><input aria-label="搜索" placeholder="搜索案例、方法或原因"><p data-failure-category="规则不满足">' + t('task_requirements_not_met', 'Task requirements not met') + '</p>' + raw + '</body></html>'
     english = localize_html(source, PurePosixPath('analysis/index.html'))
     assert raw in english
     assert 'data-failure-category="规则不满足"' in english
@@ -84,7 +95,7 @@ def test_bound_report_translations_are_external_and_tamper_evident(tmp_path):
 
 def test_article_translation_cannot_override_other_routes_or_remove_status(tmp_path):
     from pathlib import PurePosixPath
-    from harness.web_fetch.report_i18n import localize_html, write_english_report
+    from harness.web_fetch.report_i18n import localize_html, t, write_english_report
     languages = {}
     for language in ('zh', 'en'):
         path = tmp_path / (language + '.txt')
@@ -95,7 +106,7 @@ def test_article_translation_cannot_override_other_routes_or_remove_status(tmp_p
     (tmp_path / 'archived-reading.json').write_text(json.dumps({'languages': languages,
         'translations': {'path': translation.name, 'sha256': hashlib.sha256(translation.read_bytes()).hexdigest()}}), encoding='utf-8')
     (tmp_path / 'guide').mkdir()
-    banner = '<div data-evidence-state="local_measurement">本地未认证诊断快照 · 不可用于排名</div>'
+    banner = '<div data-evidence-state="local_measurement">' + t('local_uncertified_diagnostic_snapshot_not_for_ranking', 'Local uncertified diagnostic snapshot · not for ranking') + '</div>'
     article = render_archived_reading(tmp_path)
     (tmp_path / 'guide/index.html').write_text('<html lang="zh-CN"><main>'+banner+article+'</main></html>', encoding='utf-8')
     root = '<html lang="zh-CN"><main><p>核验记录</p></main></html>'

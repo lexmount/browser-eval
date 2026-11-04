@@ -1,6 +1,9 @@
 from harness.web_fetch import adjudication_evidence, local_execution_contract
 import hashlib
 import json
+import re
+import subprocess
+import sys
 
 import pytest
 
@@ -1101,6 +1104,59 @@ def test_diagnostic_viewers_share_unchanged_source_across_languages(tmp_path):
     assert source.read_bytes()==original
 
 
+def test_catalog_text_translated_without_a_render_does_not_shrink(monkeypatch):
+    """Frozen and refresh builds render saved Chinese text, so no `t` call declares its English."""
+    from collections import defaultdict
+    from harness.web_fetch import report_i18n
+    monkeypatch.setattr(report_i18n,'TEXT',dict(report_i18n._TRANSLATIONS['TEXT']))
+    catalog=json.loads(report_i18n.MESSAGES.read_text(encoding='utf-8'))['zh']
+    saved=[value.format_map(defaultdict(lambda:7)).strip() for value in catalog.values()]
+    translated=[text for text in saved if not re.search('[\u4e00-\u9fff]',report_i18n.translate_text(text))]
+    assert len(translated)>=899
+
+
+def test_chinese_value_keeps_the_base_english_on_the_dataset_page(tmp_path):
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch import runner
+    from harness.web_fetch.providers.fixture import FixtureProvider
+    from harness.web_fetch.report_build import build_report
+    case={'id':'contract','name':'contract','url':'https://example.com/contract','category':'static','track':'web',
+          'task_prompt':'Read expected content','expected_any':['Expected'],
+          'acceptance_contract':{'version':1,'schema':'named_link','minimum_records':3,
+                                 'hosts':['example.com'],'entry_path':'/item/\\d+'},
+          'body_requirements':{'version':3,'unit':'region_compact_hexagram_recall','minimum_floor':0.6,
+                               'minimum_coverage':0.8,'minimum_region_passes':4,
+                               'regions':[{'id':f'region-{i}','text':f'region {i} reference text'} for i in range(5)]}}
+    run=tmp_path/'run'
+    runner.run_evaluation(output_dir=run,dataset_meta={'schema_version':1,'id':'golden','name':'Golden','tool':'web_fetch','cases':[case]},
+                          dataset_path=tmp_path/'dataset.json',cases=[EvalCase(**case)],
+                          providers=[FixtureProvider('fixture',{'type':'fixture'})],
+                          provider_config_path=tmp_path/'providers.json',runs=1,timeout=1,delay=0)
+    build_report(run,tmp_path/'report',language='en')
+    page=(tmp_path/'report/en/datasets/contract.html').read_text(encoding='utf-8')
+    for english in ('Named detail records: at least 3 complete, unique records.',
+                    'Uniqueness is checked by detail URL.',
+                    'Every region has a 60.0% hard floor, and at least 4 of 5 regions must reach 80.0%.'):
+        assert english in page
+    for mixed in ('至少 3 条','checked by 详情链接','每段硬下限'):
+        assert mixed not in page
+
+
+def test_saved_diagnosis_translates_in_a_process_that_never_diagnosed():
+    from harness.web_fetch.failure_diagnosis import diagnose
+    denied=diagnose({'ok':False,'status_code':403,'error_message':'HTTP 403 client error','metrics':{},'provider_metadata':{}},{},'')
+    missing=diagnose({'ok':True,'metrics':{'resource_pass':False},'provider_metadata':{}},{'task_kind':'resource'},'')
+    saved=[denied['category'],denied['stage'],denied['certainty'],missing['evidence']]
+    page='<html lang="zh-CN"><body>'+''.join('<p>'+text+'</p>' for text in saved)+'</body></html>'
+    script=('import sys;from pathlib import PurePosixPath;'
+            'from harness.web_fetch.report_i18n import localize_html;'
+            "sys.stdout.buffer.write(localize_html(sys.stdin.buffer.read().decode(),PurePosixPath('attempts/example.html')).encode())")
+    english=subprocess.run([sys.executable,'-c',script],input=page.encode(),capture_output=True,check=True).stdout.decode()
+    assert not re.search('[\u4e00-\u9fff]',english)
+    for text in ('Origin denied this request','Origin access','Direct-response basis','No registered target resource was found.'):
+        assert '<p>'+text+'</p>' in english
+
+
 def test_long_product_and_caller_logs_use_one_existing_source(tmp_path):
     from harness.web_fetch.report import run_log_section
     from bs4 import BeautifulSoup
@@ -1124,12 +1180,17 @@ def test_renderer_identity_covers_loaded_assets(tmp_path, monkeypatch):
     from harness.web_fetch import report_build
     (tmp_path / 'assets').mkdir()
     (tmp_path / 'report.py').write_text('renderer', encoding='utf-8')
+    catalog = tmp_path / 'messages.json'
+    catalog.write_text('{}', encoding='utf-8')
     asset = tmp_path / 'assets/report.css'
     asset.write_text('body{}', encoding='utf-8')
     monkeypatch.setattr(report_build, '__file__', str(tmp_path / 'report_build.py'))
     before = report_build.renderer_sha256()
     asset.write_text('body{margin:0}', encoding='utf-8')
-    assert report_build.renderer_sha256() != before
+    after_asset = report_build.renderer_sha256()
+    assert after_asset != before
+    catalog.write_text('{"zh":{}}', encoding='utf-8')
+    assert report_build.renderer_sha256() != after_asset
 
 
 def test_full_current_refresh_requires_explicit_authority_and_changed_template(tmp_path):

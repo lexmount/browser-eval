@@ -31,6 +31,7 @@ from harness.web_fetch.report_components import (
     comparable_body_reference,
     task_instruction,
 )
+from harness.web_fetch.report_i18n import pair, t
 from harness.web_fetch.report_interfaces import browser_task_interface_matrix, method_provenance
 from harness.web_fetch.report_resources import render_resource_comparison
 from harness.web_fetch.report_style import STYLE
@@ -42,14 +43,11 @@ def _mean(values):
 
 
 def _table(headers, rows, caption):
-    headers = ['序号'] + list(headers)
+    headers = [t('no', 'No.')] + list(headers)
     rows = [(str(index), *row) for index, row in enumerate(rows, 1)]
     head = ''.join('<th scope="col">'+(bilingual_text(*x) if isinstance(x,tuple) else escape(x))+'</th>' for x in headers)
     body = ''.join('<tr>' + ''.join(f'<td>{x}</td>' for x in row) + '</tr>' for row in rows)
-    return ('<p class="editorial-table-hint">表格可横向滚动查看全部列。</p>'
-            '<div class="editorial-table" role="region" tabindex="0" aria-label="' + escape(caption) + '">'
-            '<table><caption>' + escape(caption) + '</caption><thead><tr>' + head + '</tr></thead>'
-            '<tbody>' + body + '</tbody></table></div>')
+    return (('<p class="editorial-table-hint">' + t('scroll_horizontally_to_view_every_column', 'Scroll horizontally to view every column.') + f'</p><div class="editorial-table" role="region" tabindex="0" aria-label="{escape(caption)}"><table><caption>{escape(caption)}</caption><thead><tr>{head}</tr></thead><tbody>{body}</tbody></table></div>'))
 
 
 def _headless_article_input(cases, records, providers):
@@ -119,14 +117,12 @@ def _article_speed_population(cases, records, providers, *, execution_scope):
 
 def _render_article_resources(summary, selected):
     if summary is None:
-        return ('<p>当前证据没有独立的客户端资源测量；本文不从耗时反推 CPU 或内存。</p>',
-                '资源指标待独立同题测量后补充。')
+        return (('<p>' + t('the_current_evidence_has_no_independent_client_3', 'The current evidence has no independent client-side resource measurement; this article does not infer CPU or memory from latency.') + '</p>'),
+                t('resource_metrics_will_be_added_only_after', 'Resource metrics will be added only after an independent matched-task measurement.'))
     selected = summary.get('providers', selected)
     rendered, result = render_resource_comparison(summary, selected)
     interpretation = (
-        f'{result["winner_label"]} 是本轮资源效率领先者，在 '
-        f'{result["ranked_metric_count"]} 个可按低消耗比较的指标中取得 '
-        f'{result["winner_count"]} 项最低。这里的资源领先不等于综合任务通过率领先。'
+        t('is_the_resource_efficiency_leader_in_this', '{winner_label} is the resource-efficiency leader in this run, with the lowest use in {winner_count} of {ranked_metric_count} lower-is-better metrics. Resource leadership is not the same as leadership in overall task pass rate.', winner_label=result['winner_label'], ranked_metric_count=result['ranked_metric_count'], winner_count=result['winner_count'])
     )
     return rendered, interpretation
 
@@ -194,8 +190,8 @@ def browser_example_evidence(out, case, row, *, focus=None, reference_focus=None
     m = row['metrics']
     def text(value):
         if isinstance(value, str): return value
-        if isinstance(value, bool): return '是' if value else '否'
-        if isinstance(value, list): return ' / '.join(text(item) for item in value) or '未命中'
+        if isinstance(value, bool): return t('yes', 'Yes') if value else t('no_2', 'No')
+        if isinstance(value, list): return ' / '.join(text(item) for item in value) or t('not_matched', 'Not matched')
         return json.dumps(value, ensure_ascii=False, sort_keys=True)
     reference = case.get('ground_truth_main_content') or case.get('reference_answer')
     requirements = {key:case[key] for key in (
@@ -219,14 +215,14 @@ def browser_example_evidence(out, case, row, *, focus=None, reference_focus=None
     checks = []
     def add(key, title, expected, actual, verdict):
         checks.append({'key':key,'label':title,'expected':text(expected),'actual':text(actual),
-                       'verdict':'通过' if verdict is True else '未通过' if verdict is False else '未记录'})
+                       'verdict':t('pass_2', 'Pass') if verdict is True else t('fail_2', 'Fail') if verdict is False else t('not_recorded', 'Not recorded')})
     add('request','请求完成','成功返回','成功返回' if row['ok'] else '未成功返回',bool(row['ok']))
     if 'length_pass' in m:
-        add('length','正文长度',('至少 '+str(case['min_content_chars'])+' 字符') if 'min_content_chars' in case else '题目登记的最小长度',str(m.get('content_chars','未记录'))+' 字符',m['length_pass'])
-    for field,title in [('fact_results','事实组'),('stable_anchor_results','稳定文字'),
-                        ('pattern_results','字段模式'),('stable_page_pattern_results','页面模式'),
-                        ('body_region_results','正文分段'),('stable_field_results','记录字段'),
-                        ('resource_results','目标资源'),('composite_group_results','组合规则')]:
+        add('length',t('body_length', 'Body length'),(t('at_least_characters_2', 'At least {min_content_chars} characters', min_content_chars=str(case['min_content_chars']))) if 'min_content_chars' in case else '题目登记的最小长度',t('characters', '{get} characters', get=str(m.get('content_chars', t('not_recorded', 'Not recorded')))),m['length_pass'])
+    for field,title in [('fact_results','事实组'),('stable_anchor_results',t('stable_text_2', 'Stable text')),
+                        ('pattern_results','字段模式'),('stable_page_pattern_results',t('page_patterns', 'Page patterns')),
+                        ('body_region_results','正文分段'),('stable_field_results',t('record_fields', 'Record fields')),
+                        ('resource_results','目标资源'),('composite_group_results',t('combined_rule', 'Combined rule'))]:
         for index,item in enumerate(m.get(field, []),1):
             target = item.get('alternatives', item.get('minimum', item.get('pattern', item.get('expected'))))
             observed = item.get('matched', item.get('count', item.get('actual')))
@@ -440,7 +436,7 @@ def _offline_browser_article(body, out, cases, model):
         if target in referenced and target not in targets:
             evidence(target,'offline-failure-'+item['attempt_id'],'失败原因 · '+item['case_id'],
                      '<p>'+escape(item['category_label'])+'：'+escape(item['reason'])+'</p><p>'+escape(item['remediation_status'])+'</p>')
-    for route,title in (('../analysis/index.html','全部逐题结果'),('../methodology/index.html','评测方法'),('../adoption/index.html','方法介绍')):
+    for route,title in (('../analysis/index.html','全部逐题结果'),('../methodology/index.html',t('methodology', 'Methodology')),('../adoption/index.html',t('methods', 'Methods'))):
         evidence(route,'offline-'+route.split('/')[1],title,'<p>完整调用及逐题结果见报告的对应栏目；本文保留各类原因的代表证据。</p>')
     for image in document.select('img[data-browser-figure]'):
         relative = image['data-browser-figure']
@@ -506,7 +502,9 @@ def _browser_error_excerpt(row, has_failures, *, reviewed_error=None):
         for match in (matches[:2]+matches[-2:]):
             fragment=error[max(0,match.start()-80):min(len(error),match.end()+300)]
             if fragment not in fragments:fragments.append(fragment)
-        excerpt=('\n[…节选…]\n'.join(fragment[:450] for fragment in fragments)+'\n[…结尾…]\n'+error[-1800:])[:4000] if fragments else error[-4000:]
+        excerpt=(f'''{"""
+[…节选…]
+""".join((fragment[:450] for fragment in fragments))}\n[…结尾…]\n{error[-1800:]}''')[:4000] if fragments else error[-4000:]
         return '错误过长，仅节选关键错误及结尾；完整错误和日志见结果详情。\n'+excerpt
     return error
 
@@ -518,7 +516,7 @@ def _browser_wait_summary(records, name):
             'automatic raw response':'自动原始响应',
             'navigation response bytes':'导航响应字节',
             'browser response bytes or completed native download':'响应字节或原生下载完成'}
-    waits=Counter(str((row.get('provider_metadata') or {}).get('wait_until') or '未记录')
+    waits=Counter(str((row.get('provider_metadata') or {}).get('wait_until') or t('not_recorded', 'Not recorded'))
                   for row in records if row['provider']==name)
     return '；'.join(labels.get(wait,wait)+'：'+str(count)+' 题' for wait,count in waits.items())
 
@@ -554,7 +552,7 @@ def _render_current_browser_article(out, cases, records, binding):
                 +'" data-value="'+('' if value is None else str(value))+'"'
                 + (' data-winner="true" class="good"' if winner else '')+'>'+text+'</span>')
     def latency_table(population):
-        return _table(['浏览器', '样本数', '平均总耗时 · ms', 'P50 · ms', 'P95 · ms'], [
+        return _table([t('browser', 'Browser'), '样本数', '平均总耗时 · ms', 'P50 · ms', 'P95 · ms'], [
             (label(name), str(stats[name][population]['n']), *(
                 metric(name, population+'_'+key, stats[name][population][key],
                        [stats[n][population][key] for n in names]) for key in ('mean','p50','p95')))
@@ -586,7 +584,7 @@ def _render_current_browser_article(out, cases, records, binding):
                          + '<br><br>'.join('<span data-route-mode="'+escape(part['mode'])+'" data-case-count="'+str(part['count'])+'" data-report-en="'+escape(str(part['count'])+' tasks: '+english_part['description'],quote=True)+'">'
                            +str(part['count'])+' 题：'+escape(part['description'])+'</span>' for part,english_part in zip(parts,english_parts,strict=True))+'</div>')
         route_rows.append((escape(BROWSER_FAMILY_NAMES[row['track']])+f" · {row['count']} 题", *cells))
-    matrix = _table(['任务类型',*((browser_method_label(name),browser_method_label(name,language='en')) for name in names)], route_rows, '每格为实际请求的接口路线与目标交付物；调用失败或能力不足仍保留原路线，不代表已经成功交付。')
+    matrix = _table([t('task_family', 'Task family'),*((browser_method_label(name),browser_method_label(name,language='en')) for name in names)], route_rows, '每格为实际请求的接口路线与目标交付物；调用失败或能力不足仍保留原路线，不代表已经成功交付。')
     network_rows = _browser_network_rows(records, names)
     network_note = '<details><summary>网络执行位置与解析方式</summary>'+''.join(
         '<p data-network-method="'+escape(row['provider'])+'" data-network-mode="'
@@ -595,11 +593,7 @@ def _render_current_browser_article(out, cases, records, binding):
     for name in names:
         wait_rows.append((label(name),'<span data-browser-wait="'+escape(name)+'">'+escape(_browser_wait_summary(records,name))+'</span>'))
     body += section('七类任务分别用了什么接口',
-        '<p>下表列出实际获取方式与交付物。本轮网页和文档正文统一选择 Markdown 输出。Chromium 额外使用固定的 HTML 转换器；其余方法保留官方原生输出，不在评测端补正文。网页内嵌媒体主要验收指定地址，直接媒体文件验收原始字节。</p>'
-        +'<div class="browser-interface-matrix">'+matrix+'</div>'
-        +'<p>Moli 使用 fetch --dump markdown；动态正文整类启用 --layout 与 --with-frames。Lightpanda 使用 --dump markdown，JSON 外壳只用于读取同一次返回的 Markdown；Obscura 执行固定版本的官方 Markdown 脚本；Kitesurf 使用 Cloudflare Browser Run 的 /markdown 接口。完整命令、转换器版本和各题原始调用见<a href="../methodology/index.html">评测方法</a>及<a href="../adoption/index.html">方法介绍</a>。接口缺失的记录在表中单列，不推定它使用了什么路线。</p>'
-        +_table(['方法','原生等待条件及题数'],wait_rows,'等待条件来自保存的调用记录；文件字节路线不等待查看器绘制。')
-        +'<p>'+bilingual_text('调用预算和重试上限见评测方法中的执行配置。耗时包含启动、访问、等待、转换及实际发生的重试；评分在计时结束后执行。最终网址只用于诊断，不参与正文判分。评测端没有追加 PDF 或 DOCX 解析器。','Call budgets and retry limits are listed in the execution configuration on the methodology page. Timing includes startup, access, waiting, conversion and any recorded retries; scoring runs after timing ends. The final URL is diagnostic and does not affect body-text scoring. The harness adds no PDF or DOCX parser.')+'</p>'+network_note,'interfaces')
+        (f'<p>下表列出实际获取方式与交付物。本轮网页和文档正文统一选择 Markdown 输出。Chromium 额外使用固定的 HTML 转换器；其余方法保留官方原生输出，不在评测端补正文。网页内嵌媒体主要验收指定地址，直接媒体文件验收原始字节。</p><div class="browser-interface-matrix">{matrix}</div><p>Moli 使用 fetch --dump markdown；动态正文整类启用 --layout 与 --with-frames。Lightpanda 使用 --dump markdown，JSON 外壳只用于读取同一次返回的 Markdown；Obscura 执行固定版本的官方 Markdown 脚本；Kitesurf 使用 Cloudflare Browser Run 的 /markdown 接口。完整命令、转换器版本和各题原始调用见<a href="../methodology/index.html">' + t('methodology', 'Methodology') + '</a>及<a href="../adoption/index.html">' + t('methods', 'Methods') + f"</a>。接口缺失的记录在表中单列，不推定它使用了什么路线。</p>{_table([t('method', 'Method'), '原生等待条件及题数'], wait_rows, '等待条件来自保存的调用记录；文件字节路线不等待查看器绘制。')}<p>{bilingual_text(*pair('call_budgets_and_retry_limits_are_listed', 'Call budgets and retry limits are listed in the execution configuration on the methodology page. Timing includes startup, access, waiting, conversion and any recorded retries; scoring runs after timing ends. The final URL is diagnostic and does not affect body-text scoring. The harness adds no PDF or DOCX parser.'))}</p>{network_note}"),'interfaces')
     flow = 'flowchart LR\n A[同一目标网址与验收规则] --> B[各浏览器原生访问与提取]\n B --> C[保留完整输出与调用日志]\n C --> D[统一评分]\n D --> E[整体与专项结果]'
     fallback = ' → '.join('<span class="tag">'+x+'</span>' for x in ('目标网址与规则','浏览器原生访问','完整输出与日志','统一评分','整体与专项'))
     mechanism = '<div class="wmb-flow"><div data-wmb-flow-fallback>'+fallback+'</div><pre class="mermaid" hidden>'+escape(flow)+'</pre></div>'
@@ -610,16 +604,16 @@ def _render_current_browser_article(out, cases, records, binding):
             row = item['row']; case = cases[row['case_id']]
             examples += '<details'+(' open' if example_index==0 else '')+' data-browser-example="'+escape(row['attempt_id'])+'"><summary>'+escape(BROWSER_FAMILY_NAMES[report_family(case)])+' · '+escape(case.get('name',case['id']))+'</summary>'
             evidence = item['evidence']
-            examples += paragraph(item['explanation'])+'<p>方法：'+label(row['provider'])+' · 运行 ID：<code>'+escape(evidence['run_id'])+'</code> · 任务判定：<strong data-example-verdict="'+escape(row['attempt_id'])+'">'+('通过' if evidence['passed'] else '未通过')+'</strong></p>'
+            examples += (f"{paragraph(item['explanation'])}<p>" + t('method_3', 'Method: ') + f'''{label(row['provider'])} · 运行 ID：<code>{escape(evidence['run_id'])}</code> · 任务判定：<strong data-example-verdict="{escape(row['attempt_id'])}">{(t('pass_2', 'Pass') if evidence['passed'] else t('fail_2', 'Fail'))}</strong></p>''')
             examples += '<div class="evidence-compare" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:1rem"><article class="evidence-pane"><h4>题目要求与参考节选</h4><p>共 '+str(evidence['expected_chars'])+' 字符，节选 '+str(len(evidence['expected']))+' 字符。</p><pre style="max-height:28rem;overflow:auto;white-space:pre-wrap" data-example-expected="'+escape(row['attempt_id'])+'">'+escape(evidence['expected'])+'</pre></article><article class="evidence-pane"><h4>原始输出节选</h4><p>文件任务展示交付元数据；正文节选 '+str(len(evidence['actual']))+' 字符。</p><pre style="max-height:28rem;overflow:auto;white-space:pre-wrap" data-example-actual="'+escape(row['attempt_id'])+'">'+escape(evidence['actual'])+'</pre></article></div>'
-            examples += _table(['检查项目','题目要求','实际结果','判定'],[(escape(check['label']),escape(check['expected']),escape(check['actual']),'<span class="'+('good' if check['verdict']=='通过' else 'bad' if check['verdict']=='未通过' else 'neutral')+'" data-example-check="'+escape(row['attempt_id'])+'" data-check-key="'+escape(check['key'])+'">'+escape(check['verdict'])+'</span>') for check in evidence['checks']], '检查值来自本次保存的统一评分结果；完整输出和逐项证据见结果详情。')
+            examples += _table(['检查项目','题目要求',t('observed_result', 'Observed result'),t('verdict', 'Verdict')],[(escape(check['label']),escape(check['expected']),escape(check['actual']),'<span class="'+('good' if check['verdict']==t('pass_2', 'Pass') else 'bad' if check['verdict']==t('fail_2', 'Fail') else 'neutral')+'" data-example-check="'+escape(row['attempt_id'])+'" data-check-key="'+escape(check['key'])+'">'+escape(check['verdict'])+'</span>') for check in evidence['checks']], '检查值来自本次保存的统一评分结果；完整输出和逐项证据见结果详情。')
             examples += '<p><a href="../datasets/'+escape(case['id'],quote=True)+'.html">任务与验收规则</a> · <a href="../attempts/'+escape(row['attempt_id'],quote=True)+'.html">实际返回与判定证据</a></p></details>'
         body += section('同一任务怎样验收', examples, 'examples')
-    body += section('全部调用的耗时', '<p>P50 是中位数，P95 表示 95% 任务的累计耗时不超过该值。每行均为全部任务，包含成功、失败与自动重试的累计耗时。'+bilingual_text('发生重试时，累计耗时包含此前调用及重试等待；单次调用预算不等于整题总耗时。','When retries occur, total latency includes prior calls and retry waits; a per-call budget is not the total task duration.')+'评分时间不计入。调用分布在不同日期，不能把耗时差异直接归因于浏览器引擎或新版改进；耗时较短也不等于任务通过率更高。</p>'+latency_table('all'), 'all-latency')
+    body += section('全部调用的耗时', f"<p>P50 是中位数，P95 表示 95% 任务的累计耗时不超过该值。每行均为全部任务，包含成功、失败与自动重试的累计耗时。{bilingual_text(*pair('when_retries_occur_total_latency_includes_prior', 'When retries occur, total latency includes prior calls and retry waits; a per-call budget is not the total task duration.'))}评分时间不计入。调用分布在不同日期，不能把耗时差异直接归因于浏览器引擎或新版改进；耗时较短也不等于任务通过率更高。</p>{latency_table('all')}", 'all-latency')
     timing_rows=[(label(name),str(stats[name]['physical_calls']),
                   *(metric(name,key,stats[name][key],[stats[n][key] for n in names]) for key in ('final_call_mean_ms','prior_call_mean_ms'))) for name in names]
     body += section('重试与原生等待怎样影响耗时',
-        _table(['方法','实际调用数','末次调用平均耗时 · ms','此前调用及重试等待 · ms/题'],timing_rows,
+        _table([t('method', 'Method'),'实际调用数','末次调用平均耗时 · ms','此前调用及重试等待 · ms/题'],timing_rows,
                '每行均对应完整任务集；两项平均耗时相加等于上表平均总耗时。没有按成功与否筛选任务。')
         +paragraph(content.get('timing_explanation','原生完成条件决定何时交付。等待更多页面变化可能延长耗时，仍须同时检查交付内容；提前返回错误或空正文也会使平均耗时缩短。')),'timing-boundary')
     body += section('通过任务的耗时', '<p>只计各浏览器自己通过的任务。各行样本可能不同，须结合通过数阅读；这张表不改变任务范围或整体排名。</p>'+latency_table('successful'), 'successful-latency')
@@ -638,7 +632,7 @@ def _render_current_browser_article(out, cases, records, binding):
         body += section('客户端资源消耗', '<p>本轮未登记完整可比的 CPU、内存和网络资源测量，不据此作资源效率排名。</p>', 'resources')
     quality_n=max(stats[name]['quality']['reference_cases'] for name in names)
     if quality_n:
-        quality_table=_table(['方法','已计算 / 有参考','参考词语找回比例 · Recall','输出词语纯净度 · Precision','综合文字重合 · F1'],[
+        quality_table=_table([t('method', 'Method'),'已计算 / 有参考','参考词语找回比例 · Recall','输出词语纯净度 · Precision',t('combined_text_overlap_f1', 'Combined text overlap · F1')],[
             (label(name),str(stats[name]['quality']['n'])+'/'+str(quality_n),*(metric(name,'quality_'+key,stats[name]['quality'][key],[stats[n]['quality'][key] for n in names],True) for key in ('word_recall','word_precision','word_f1'))) for name in names],
             '仅使用有完整可比参考的静态网页，逐题算术平均，包含已测失败项；未提供参考的网页不记为零或满分。')
         qfocus=content.get('focus_provider') or max(names,key=lambda name:stats[name]['passed'])
@@ -656,8 +650,7 @@ def _render_current_browser_article(out, cases, records, binding):
             for category,count in sorted(counts.items(),key=lambda item:(-item[1],item[0]))],
             '每个失败结果只归入一个主要原因；程序错误分类单独保留。')
     if model['failure_review']:
-        body += section('失败集中在哪些环节', reviewed_distribution(list(model['failure_review'].values()), 'all')
-                        +'<p>每条失败只归入一个主要原因。验证码、登录和风控要求有明确返回证据；子资源报错不等于主导航失败。全部逐题原因、处理结论和原始日志保留在<a href="../analysis/index.html">结果分析</a>与结果详情。</p>', 'failure-summary')
+        body += section('失败集中在哪些环节', (f"""{reviewed_distribution(list(model['failure_review'].values()), 'all')}<p>每条失败只归入一个主要原因。验证码、登录和风控要求有明确返回证据；子资源报错不等于主导航失败。全部逐题原因、处理结论和原始日志保留在<a href="../analysis/index.html">""" + t('analysis', 'Analysis') + '</a>与结果详情。</p>'), 'failure-summary')
     errors = {'acceptance':'内容或交付验收未通过','timeout':'访问或提取超时',
               'browser_exit':'浏览器进程返回错误','browser_error':'浏览器访问或运行错误',
               'http_status':'网页返回错误状态','empty_response':'返回内容为空','tool_error':'工具执行错误','api_error':'服务接口错误'}
@@ -686,7 +679,7 @@ def _render_current_browser_article(out, cases, records, binding):
     review_path = contained_path(out,'result-review.json')
     review = json.loads(review_path.read_text(encoding='utf-8')) if review_path.is_file() else None
     body += section('结论与审查范围', paragraph(content['conclusions'])+
-                    ('<p>独立核验范围与修订见<a href="../review/index.html">核验记录</a>。逐题原因与原始证据可从结果分析打开。</p>' if review else
+                    (('<p>独立核验范围与修订见<a href="../review/index.html">' + t('review_record', 'Review record') + '</a>。逐题原因与原始证据可从结果分析打开。</p>') if review else
                      '<p>独立结果审查：0/'+str(model['results'])+'。未经独立复判的程序通过结果：'+str(sum(stats[n]['passed'] for n in names))+'。本轮报告使用统一评分器的原始验收结果。</p>'), 'conclusions')
     # Reuse the reference article's reading components with current measured data.
     article = BeautifulSoup(body, 'html.parser')
@@ -702,8 +695,8 @@ def _render_current_browser_article(out, cases, records, binding):
     if primary not in names or baseline not in names or (previous and previous not in names):
         raise ValueError('Reading comparison refers to an unregistered method')
     order=sorted(names,key=lambda name:(-stats[name]['passed'],name))
-    family_titles={'web':'静态正文','dynamic':'动态正文','challenge':'热门正文','risk_control':'风控正文','document':'文档正文','web_media':'网页内嵌媒体','media_file':'直接媒体文件'}
-    combined=_table(['浏览器','综合任务通过率',*(family_titles.get(track,BROWSER_FAMILY_NAMES[track]) for track in model['tracks'])], [
+    family_titles={'web':'静态正文','dynamic':'动态正文','challenge':'热门正文','risk_control':'风控正文','document':t('document_text', 'Document text'),'web_media':t('embedded_webpage_media', 'Embedded webpage media'),'media_file':t('direct_media_files', 'Direct media files')}
+    combined=_table([t('browser', 'Browser'),t('overall_task_pass_rate', 'Overall task pass rate'),*(family_titles.get(track,BROWSER_FAMILY_NAMES[track]) for track in model['tracks'])], [
         (label(name),metric(name,'pass_rate',stats[name]['pass_rate'],[stats[n]['pass_rate'] for n in names],True)
          +f'<br>{stats[name]["passed"]}/{model["cases"]}',*(family_cell(name,track) for track in model['tracks'])) for name in order],
         '每种配置执行相同的 '+str(model['cases'])+' 题，每题等权。分项为通过数 / 本组题数；绿色只标记该列唯一最高值。')
@@ -717,9 +710,9 @@ def _render_current_browser_article(out, cases, records, binding):
     else:
         cards+='<div><span>完整评测范围</span><b>'+str(model['results'])+' 个结果</b><p>'+str(len(names))+' 种配置 × '+str(model['cases'])+' 道相同任务</p></div>'
     fastest=min(names,key=lambda name:stats[name]['all']['mean'])
-    cards+='<div><span>全部任务 · 平均总耗时最短</span><b>'+f'{stats[fastest]["all"]["mean"]/1000:.2f}'+' 秒</b><p>'+label(fastest)+'<br>含成功、失败与重试，非纯内核测速</p></div>'
+    cards+=('<div><span>全部任务 · 平均总耗时最短</span><b>' + t('seconds_2', '{value:.2f} seconds', value=stats[fastest]['all']['mean'] / 1000) + f'</b><p>{label(fastest)}<br>含成功、失败与重试，非纯内核测速</p></div>')
     hero=reading.new_tag('header',attrs={'class':'m-hero'})
-    append_html(hero,'<div class="m-chips"><span>Web Fetch 实测</span><span>'+str(engine_count)+' 种浏览器 · '+str(len(names))+' 种配置</span><span>'+str(model['cases'])+' 道任务</span></div><h1 id="article-title">'+escape(content['title']).replace('：','：<br>',1)+'</h1><p class="m-deck">'+escape(content['intro'])+'</p><div class="m-hero-table" id="overall">'+combined+'</div><div class="m-ledger" data-reading-ledger="1">'+cards+'</div><p class="m-scope-note">正文与文档采用本轮登记的原生 Markdown 路线；Chromium 使用固定的 HTML 转换器。原始字节与媒体地址分别验收。'+escape(content.get('version_note',''))+'</p>')
+    append_html(hero,('<div class="m-chips"><span>' + t('web_fetch_benchmark', 'Web Fetch benchmark') + f"""</span><span>{str(engine_count)} 种浏览器 · {str(len(names))} 种配置</span><span>{str(model['cases'])} 道任务</span></div><h1 id="article-title">{escape(content['title']).replace('：', '：<br>', 1)}</h1><p class="m-deck">{escape(content['intro'])}</p><div class="m-hero-table" id="overall">{combined}</div><div class="m-ledger" data-reading-ledger="1">{cards}</div><p class="m-scope-note">正文与文档采用本轮登记的原生 Markdown 路线；Chromium 使用固定的 HTML 转换器。原始字节与媒体地址分别验收。{escape(content.get('version_note', ''))}</p>"""))
     owner.append(hero)
     # Figures are explanatory assets, never substitutes for measured charts.
     figures_by_section={key:[] for key in ('scope','method','conclusion')}
@@ -748,7 +741,7 @@ def _render_current_browser_article(out, cases, records, binding):
         parts['result-decomposition']=decomposition
     # One visual per latency statistic, with the full common task population.
     columns=[]
-    for key,title,meaning in [('mean','平均总耗时','每题累计耗时的算术平均'),('p50','P50 · 中位数','一半任务的耗时不超过此值'),('p95','P95 · 较慢一端','95% 任务的耗时不超过此值')]:
+    for key,title,meaning in [('mean','平均总耗时','每题累计耗时的算术平均'),('p50',t('p50_median', 'P50 · median'),'一半任务的耗时不超过此值'),('p95',t('p95_slower_end', 'P95 · slower end'),'95% 任务的耗时不超过此值')]:
         values=[stats[name]['all'][key] for name in names];maximum=max(values);minimum=min(values)
         rows=[]
         for name in order:
@@ -756,9 +749,9 @@ def _render_current_browser_article(out, cases, records, binding):
             rows.append('<div class="m-speed-row" data-reading-speed="'+escape(name)+'" data-statistic="'+key+'" data-value="'+str(value)+'"><span>'+label(name)+'</span><b'+(' class="good"' if winner else '')+'>'+f'{value/1000:.2f}'+' s</b><div class="m-speed-track"><i'+(' class="best"' if winner else '')+' style="width:'+f'{value/maximum*100:.4f}'+'%"></i></div></div>')
         columns.append('<div class="m-speed-column"><h4>'+title+'</h4><p>'+meaning+'</p>'+''.join(rows)+'</div>')
     latency=parts['all-latency'];latency_table_markup=''.join(str(node) for node in latency.contents if getattr(node,'name',None) not in {'h2','p'})
-    latency.clear();append_html(latency,'<h3>耗时的差距：等待策略与长尾</h3><p>以下每行使用全部 '+str(model['cases'])+' 题，包含成功、失败和重试。P50 是中位数，P95 是 95% 任务耗时不超过的值。调用来自不同日期，这些数值描述本轮交付路径，不能分离出纯浏览器内核的速度。</p><figure class="m-figure"><h3>全部任务的总耗时 · 秒</h3><div class="m-speed-grid">'+''.join(columns)+'</div><figcaption>从进程启动到交付结果，包含访问、原生等待、转换及该题重试；评分时间不计入。</figcaption></figure>'+paragraph(content.get('timing_explanation','不同方法的原生完成条件不同；等待成本需要和内容交付一同判断。'))+'<details class="m-details"><summary>精确耗时数值与样本范围</summary>'+latency_table_markup+'</details>')
+    latency.clear();append_html(latency,f"""<h3>耗时的差距：等待策略与长尾</h3><p>以下每行使用全部 {str(model['cases'])} 题，包含成功、失败和重试。P50 是中位数，P95 是 95% 任务耗时不超过的值。调用来自不同日期，这些数值描述本轮交付路径，不能分离出纯浏览器内核的速度。</p><figure class="m-figure"><h3>全部任务的总耗时 · 秒</h3><div class="m-speed-grid">{''.join(columns)}</div><figcaption>从进程启动到交付结果，包含访问、原生等待、转换及该题重试；评分时间不计入。</figcaption></figure>{paragraph(content.get('timing_explanation', '不同方法的原生完成条件不同；等待成本需要和内容交付一同判断。'))}<details class="m-details"><summary>精确耗时数值与样本范围</summary>{latency_table_markup}</details>""")
     retry=parts['timing-boundary'];retry_tables=''.join(str(node) for node in retry.contents if getattr(node,'name',None) not in {'h2','p'})
-    retry.clear();retry.name='details';retry['class']='m-details';append_html(retry,'<summary>重试增加了多少耗时</summary><p>'+bilingual_text('重试上限以执行配置为准，实际调用次数见下表。末次调用与此前调用及重试等待的平均耗时相加，等于平均总耗时。','The retry limit follows the execution configuration; the table shows actual call counts. Mean final-call latency plus mean prior-call and retry-wait time equals mean total latency.')+'</p>'+retry_tables)
+    retry.clear();retry.name='details';retry['class']='m-details';append_html(retry,f"<summary>重试增加了多少耗时</summary><p>{bilingual_text(*pair('the_retry_limit_follows_the_execution_configuration', 'The retry limit follows the execution configuration; the table shows actual call counts. Mean final-call latency plus mean prior-call and retry-wait time equals mean total latency.'))}</p>{retry_tables}")
     successful=parts['successful-latency'];heading=successful.find('h2');heading.name='summary';successful.name='details';successful['class']='m-details'
     # Reuse the case workbench: frozen reference, exact output and checks stay together.
     example_section=parts.get('examples')
@@ -768,7 +761,7 @@ def _render_current_browser_article(out, cases, records, binding):
             item=model['examples'][i-1];row=item['row'];case=cases[row['case_id']]
             title=node.summary.get_text();node.summary.decompose();node.name='section';node.attrs.pop('open',None);node['class']='case-panel';node['id']='article-panel-'+str(i);node['aria-labelledby']='article-label-'+str(i)
             heading=reading.new_tag('h3');heading.string=case.get('name',case['id']);node.insert(0,heading)
-            input_line=BeautifulSoup('<div class="case-input">输入：<a href="'+escape(case['url'],quote=True)+'">'+escape(case['url'])+'</a></div>','html.parser').div;node.insert(2,input_line)
+            input_line=BeautifulSoup(('<div class="case-input">' + t('input_2', 'Input: ') + f'''<a href="{escape(case['url'], quote=True)}">{escape(case['url'])}</a></div>'''),'html.parser').div;node.insert(2,input_line)
             compare=node.select_one('.evidence-compare');compare['class']='case-compare';compare.attrs.pop('style',None)
             for pane,klass in zip(compare.find_all('article',recursive=False),('case-reference','case-actual'),strict=True):
                 pane.name='div';pane['class']=klass
@@ -777,7 +770,7 @@ def _render_current_browser_article(out, cases, records, binding):
                     if item['evidence']['reference']:
                         existing=list(pane.contents);pane.clear()
                         reference_title=('目标文件要求' if case.get('task_kind')=='file' else '目标媒体与资源要求' if case.get('expected_resources') else '独立参考正文' if case.get('ground_truth_main_content') else '固定验收要求')
-                        append_html(pane,'<h4>'+reference_title+'</h4><p>'+('全文' if len(item['evidence']['reference'])==item['evidence']['reference_chars'] else '原文节选')+' · '+str(len(item['evidence']['reference']))+' 字符</p><pre class="case-excerpt" data-example-reference="'+escape(row['attempt_id'])+'">'+escape(item['evidence']['reference'])+'</pre>')
+                        append_html(pane,f'''<h4>{reference_title}</h4><p>{('全文' if len(item['evidence']['reference']) == item['evidence']['reference_chars'] else '原文节选')} · {str(len(item['evidence']['reference']))} 字符</p><pre class="case-excerpt" data-example-reference="{escape(row['attempt_id'])}">{escape(item['evidence']['reference'])}</pre>''')
                         rule=reading.new_tag('details',attrs={'class':'m-details'});summary=reading.new_tag('summary');summary.string='完整验收说明与要求';rule.append(summary)
                         for old_node in existing:rule.append(old_node.extract())
                         pane.append(rule)
@@ -786,14 +779,14 @@ def _render_current_browser_article(out, cases, records, binding):
                     pane.find('h4').string='本次真实返回'
                     if item['evidence']['actual_chars']==0:
                         pane.find('p').string='本次未交付正文 · 0 字符'
-                    else:pane.find('p').string=('原始文件交付元数据' if case.get('task_kind')=='file' else ('原始 Markdown 全文' if len(item['evidence']['actual'])==item['evidence']['actual_chars'] else '原始 Markdown 节选'))+' · '+str(len(item['evidence']['actual']))+' 字符'
-            meta=next((p for p in node.find_all('p',recursive=False) if '运行 ID：' in p.get_text()),None)
+                    else:pane.find('p').string=f"{('原始文件交付元数据' if case.get('task_kind') == 'file' else '原始 Markdown 全文' if len(item['evidence']['actual']) == item['evidence']['actual_chars'] else '原始 Markdown 节选')} · {str(len(item['evidence']['actual']))} 字符"
+            meta=next((p for p in node.find_all('p',recursive=False) if t('run_id_3', 'Run ID: ') in p.get_text()),None)
             if meta is not None:meta['class']='case-input'
             for table in node.select('table'):table['class']='case-checks'
             panels.append(str(node.extract()));tab=BROWSER_FAMILY_NAMES[report_family(case)]
             tabs.append('<label id="article-label-'+str(i)+'" for="article-case-'+str(i)+'">'+escape(tab)+'</label>')
             radios.append('<input class="case-choice" type="radio" name="article-case" id="article-case-'+str(i)+'" aria-labelledby="article-label-'+str(i)+'"'+(' checked' if i==1 else '')+'>')
-        example_section.clear();append_html(example_section,'<h3>各类任务的真实输入与输出</h3><p>每组一道实测，左右对照题目要求和原始返回，下面保留实际判定。示例用于解释验收边界，不代表各类失败的比例。</p><div class="m-rule-strip"><b>每题只记通过或失败</b><span>相同网址与要求</span><span>'+bilingual_text('预算见执行配置','See execution configuration for budgets')+'</span><span>失败计入总题数</span></div><div class="case-workbench">'+''.join(radios)+'<div class="case-tab-nav">'+''.join(tabs)+'</div><div class="case-panels">'+''.join(panels)+'</div></div>')
+        example_section.clear();append_html(example_section,('<h3>各类任务的真实输入与输出</h3><p>每组一道实测，左右对照题目要求和原始返回，下面保留实际判定。示例用于解释验收边界，不代表各类失败的比例。</p><div class="m-rule-strip"><b>' + t('each_task_is_pass_or_fail', 'Each task is pass or fail') + f"""</b><span>相同网址与要求</span><span>{bilingual_text(*pair('see_execution_configuration_for_budgets', 'See execution configuration for budgets'))}</span><span>失败计入总题数</span></div><div class="case-workbench">{''.join(radios)}<div class="case-tab-nav">{''.join(tabs)}</div><div class="case-panels">{''.join(panels)}</div></div>"""))
     # Charts explain frequency; the exact tables and canonical result links remain inspectable.
     for provider,node in [('all',parts.get('failure-summary'))]+[(name,parts['browser-'+name]) for name in names]:
         if node is None:continue
@@ -804,7 +797,7 @@ def _render_current_browser_article(out, cases, records, binding):
         for key in ordered:
             count=counts[key]
             bars.append('<div class="m-loss-row"><span>'+escape(labels[key])+'</span><div class="m-loss-track"><i data-reading-cause="'+escape(key)+'" data-count="'+str(count)+'" style="width:'+f'{count/total*100:.4f}'+'%"></i></div><b>'+str(count)+'</b></div>')
-        figure=BeautifulSoup('<figure class="m-figure" data-reading-failures="'+escape(provider)+'"><h4>'+('全部方法' if provider=='all' else label(provider))+' · '+str(total)+' 条失败结果</h4><div class="m-loss-bars">'+''.join(bars)+'</div><figcaption>横条按该方法全部失败结果的占比绘制；右侧为结果数，每条失败只归入一个主要原因。</figcaption></figure>','html.parser').figure
+        figure=BeautifulSoup(f'''<figure class="m-figure" data-reading-failures="{escape(provider)}"><h4>{('全部方法' if provider == 'all' else label(provider))} · {str(total)} 条失败结果</h4><div class="m-loss-bars">{''.join(bars)}</div><figcaption>横条按该方法全部失败结果的占比绘制；右侧为结果数，每条失败只归入一个主要原因。</figcaption></figure>''','html.parser').figure
         table=node.find('table');container=table.parent
         while container.parent!=node and container.parent.get('data-browser-chapter') is None:container=container.parent
         detail=reading.new_tag('details',attrs={'class':'m-details'});summary=reading.new_tag('summary');summary.string='完整原因分布与代表证据';detail.append(summary);container.replace_with(detail);detail.append(container)
@@ -812,16 +805,16 @@ def _render_current_browser_article(out, cases, records, binding):
             detail.insert(1,figure);summary.string='全部失败结果的合并分布与证据'
         else:detail.insert_before(figure)
         for item in node.select('[data-browser-specimen]'):item['class']='m-details'
-    versions=_table(['方法','实测版本'],[(label(name),escape(stats[name]['version'])) for name in order],'版本身份来自保存的物理调用；完整命令和版本依据见方法介绍。')
+    versions=_table([t('method', 'Method'),'实测版本'],[(label(name),escape(stats[name]['version'])) for name in order],'版本身份来自保存的物理调用；完整命令和版本依据见方法介绍。')
     append_html(parts['interfaces'],'<details class="m-details"><summary>本轮版本与构建身份</summary>'+versions+'</details>')
     if content.get('failure_mechanism'):
         append_html(parts['failure-summary'],'<div class="m-webfail"><div><h3>页面已返回，目标列表尚未出现</h3><div class="m-delay"><span>外层页面稳定</span><i>→</i><span>返回 Markdown</span></div><p>'+escape(content['failure_mechanism']['waiting'])+'</p></div><div><h3>页面里的子页面，需要独立交付</h3><div class="m-frame-map">外层网页<div>iframe 子页面：正文、表格或文档</div></div><p>'+escape(content['failure_mechanism']['frames'])+'</p></div></div>')
     for figure in figures_by_section['conclusion']:parts['conclusions'].insert(1,figure)
     if previous:
         both=sum(new[cid] and old[cid] for cid in cases);neither=sum(not new[cid] and not old[cid] for cid in cases)
-        changes=[('两种配置都通过',both),('仅'+label(primary)+'通过',gains),('仅'+label(previous)+'通过',losses),('两种配置都失败',neither)]
-        append_html(parts['conclusions'],'<figure class="m-figure" data-reading-version="'+escape(primary)+'"><h3>同一批题的两版结果 · '+str(model['cases'])+' 题</h3><div class="m-verdict-grid">'+''.join('<div data-version-relation="'+str(i)+'" data-count="'+str(count)+'"><h4>'+title+'</h4><div class="m-duel"><b>'+str(count)+'</b><small>题</small></div></div>' for i,(title,count) in enumerate(changes))+'</div><figcaption>同一验收标准，所有任务都保留在对照中；变化是在线调用的实际结果，不单独证明代码因果。</figcaption></figure>')
-    chapters=[('scope','01 这次测什么',['scope']),('results','02 通过率、耗时与资源',['result-decomposition','all-latency','timing-boundary','successful-latency','resources']),('method','03 测试方法与实例',['scoring','examples']),('configuration','04 浏览器与测试配置',['interfaces']),('failures','05 失败任务与正文缺失',['body-quality','failure-summary']+['browser-'+name for name in order]),('conclusion','06 结论与适用范围',['conclusions'])]
+        changes=[('两种配置都通过',both),((f'仅{label(primary)}' + t('pass_2', 'Pass')),gains),((f'仅{label(previous)}' + t('pass_2', 'Pass')),losses),('两种配置都失败',neither)]
+        append_html(parts['conclusions'],f'''<figure class="m-figure" data-reading-version="{escape(primary)}"><h3>同一批题的两版结果 · {str(model['cases'])} 题</h3><div class="m-verdict-grid">{''.join(('<div data-version-relation="' + str(i) + '" data-count="' + str(count) + '"><h4>' + title + '</h4><div class="m-duel"><b>' + str(count) + '</b><small>题</small></div></div>' for i, (title, count) in enumerate(changes)))}</div><figcaption>同一验收标准，所有任务都保留在对照中；变化是在线调用的实际结果，不单独证明代码因果。</figcaption></figure>''')
+    chapters=[('scope',t('01_what_was_tested', '01 What was tested'),['scope']),('results',t('02_pass_rates_latency_and_resources', '02 Pass rates, latency, and resources'),['result-decomposition','all-latency','timing-boundary','successful-latency','resources']),('method',t('03_methods_and_examples', '03 Methods and examples'),['scoring','examples']),('configuration',t('04_browsers_and_test_configurations', '04 Browsers and test configurations'),['interfaces']),('failures',t('05_failed_tasks_and_missing_text', '05 Failed tasks and missing text'),['body-quality','failure-summary']+['browser-'+name for name in order]),('conclusion','06 结论与适用范围',['conclusions'])]
     toc='<nav class="m-toc" aria-label="报告解读目录" data-reading-contents="1">'+''.join('<a href="#reading-'+anchor+'">'+title+'</a>' for anchor,title,_ in chapters)+'</nav>'
     append_html(hero,toc)
     for anchor,title,children in chapters:
@@ -847,7 +840,7 @@ def _render_current_browser_article(out, cases, records, binding):
     from harness.web_fetch.report import EXTRA
     standalone = _offline_browser_article(body,out,cases,model)
     (guide/'article.html').write_text('<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+escape(content['title'])+'</title><style>'+STYLE+EXTRA+'</style></head><body>'+standalone+'</body></html>', encoding='utf-8')
-    return body+'<aside class="wrap"><a href="article.html" download>下载独立 HTML</a> · <a href="interpretation-evidence.json">本文计算明细</a></aside>'
+    return (f'{body}<aside class="wrap"><a href="article.html" download>' + t('download_standalone_html', 'Download standalone HTML') + '</a> · <a href="interpretation-evidence.json">' + t('article_calculations', 'Article calculations') + '</a></aside>')
 
 
 @with_measured_method_labels
@@ -1017,14 +1010,14 @@ def check_current_browser_article(out, cases, records, binding):
                 raise ValueError('Browser example scoring checks are missing or wrong')
             for value in checks:
                 check = next(item for item in evidence['checks'] if item['key'] == value['data-check-key'])
-                expected_state = 'good' if check['verdict']=='通过' else 'bad' if check['verdict']=='未通过' else 'neutral'
+                expected_state = 'good' if check['verdict']==t('pass_2', 'Pass') else 'bad' if check['verdict']==t('fail_2', 'Fail') else 'neutral'
                 if value.get('class') != [expected_state]:
                     raise ValueError('Browser example check color contradicts its verdict')
                 cells = value.find_parent('tr').find_all('td')[1:]
                 if [cell.get_text() for cell in cells] != [check['label'],check['expected'],check['actual'],check['verdict']]:
                     raise ValueError('Browser example expected/actual check values differ')
             verdict = node.select_one('[data-example-verdict]')
-            if verdict is None or verdict.get_text() != ('通过' if evidence['passed'] else '未通过') or evidence['run_id'] not in node.get_text():
+            if verdict is None or verdict.get_text() != (t('pass_2', 'Pass') if evidence['passed'] else t('fail_2', 'Fail')) or evidence['run_id'] not in node.get_text():
                 raise ValueError('Browser example run identity or verdict is missing')
             row = item['row']
             target = '#offline-result-'+row['attempt_id'] if relative.endswith('article.html') else '../attempts/'+row['attempt_id']+'.html'
@@ -1111,12 +1104,10 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None, a
     passes = sum(task_passed(row['ok'], row['metrics'],
                  cases[row['case_id']].get('task_kind', 'body')) for row in records)
     return ('<section class="wrap"><h1>'
-            + bilingual_text('本报告的任务范围与验收规则', 'Task scope and acceptance rules')
-            + '</h1><p>' + bilingual_text(
-                f'本报告包含 {len(cases)} 个任务、{len(records)} 个逻辑结果，任务通过 {passes}/{len(records)}。结论仅适用于已登记的任务和规则。',
-                f'This report contains {len(cases)} tasks and {len(records)} logical results, with {passes}/{len(records)} passing. Findings apply only to the registered tasks and rules.')
+            + bilingual_text(*pair('task_scope_and_acceptance_rules', 'Task scope and acceptance rules'))
+            + '</h1><p>' + bilingual_text(*pair('this_report_contains_tasks_and_logical_results', 'This report contains {count} tasks and {count2} logical results, with {passes}/{count2} passing. Findings apply only to the registered tasks and rules.', count=len(cases), count2=len(records), passes=passes))
             + '</p><p><a href="../datasets/index.html">'
-            + bilingual_text('查看全部任务及验收规则', 'View all tasks and acceptance rules')
+            + bilingual_text(*pair('view_all_tasks_and_acceptance_rules', 'View all tasks and acceptance rules'))
             + '</a> · <a href="../analysis/index.html">'
-            + bilingual_text('查看结果、实际返回及失败证据', 'View results, actual responses and failure evidence')
+            + bilingual_text(*pair('view_results_actual_responses_and_failure_evidence', 'View results, actual responses and failure evidence'))
             + '</a></p></section>')
