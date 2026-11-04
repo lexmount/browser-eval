@@ -44,6 +44,7 @@ from harness.lexbench import report
 from tests.lexbench_report_fixture import build_report_inputs, pin_vendor_assets
 root = Path(sys.argv[1])
 os.chdir(root)
+os.environ.pop('LEXBENCH_REPORT_RUNNER_ROOT', None)
 pin_vendor_assets(pytest.MonkeyPatch())
 report.main(build_report_inputs(root, sys.argv[2]))
 '''
