@@ -25,18 +25,11 @@ uv run --frozen python scripts/run_certified_benchmark.py risk-control \
   --output "$BROWSER_EVAL_DATA_HOME/evidence/risk-control/<new-run-id>"
 ```
 
-输出目录必须是新的，并位于数据目录下。正式入口固定为
-`scripts/run_certified_benchmark.py risk-control`；直接对执行脚本使用 `--execute` 会被拒绝。
-当前 profile 的新正式运行恰有 100 个逻辑结果，且不自动重试，并为每次调用在 Git 外保留完整、
-哈希绑定的 debug stderr。保留的历史证据另有 3 个 DNS 失败后的用户授权补调，因此保留 103 次
-物理调用；每例固定采用最后一次响应，全部调用耗时均计入，不能择优。运行前后 Moli 身份必须
-一致；profile、已编译的数据集、规则和 provider 配置也会在调用前后核验。
-普通重跑不读取历史资格原文，也不重做入选审核；修改题目、参考或规则时，才由构建器
-核验相应来源。新运行生成 `frozen-input-verification.json` 和 v2 认证回执。
-生成报告前校验 `certification.json` 对 profile、dataset、results、manifest、execution、
-冻结输入核验回执和完整日志的绑定。历史 v1 回执继续按原证据契约读取，不改写或升级。
+The output directory must be new and under the data directory. The formal entry is fixed as `scripts/run_certified_benchmark.py risk-control`; using `--execute` directly on the execution script is rejected. A new formal run of the current profile has exactly 100 logical results, with no automatic retry, and keeps complete, hash-bound debug stderr outside Git for every call. The retained historical evidence has 3 additional user-authorized calls after DNS failures, so it retains 103 physical calls; each case uses its last response, every call's duration counts, and the best response cannot be selected.
 
-Moli identity must remain unchanged before and after calls. Each of the 100 declared references is checked before and after execution; missing, changed or incomplete scope stops certification. Report builds verify `certification.json` bindings to the profile, dataset, results, manifest, execution, reference-verification receipts and complete logs.
+Moli identity must remain unchanged before and after calls. The profile, compiled dataset, rules and provider configuration are also verified before and after calls. Each of the 100 declared references is checked before and after execution; missing, changed or incomplete scope stops certification.
+
+An ordinary rerun does not read historical qualification raw files or repeat admission review; only changing tasks, references or rules makes the builder verify the corresponding sources. A new run produces `frozen-input-verification.json` and a v2 certification receipt. Report builds verify `certification.json` bindings to the profile, dataset, results, manifest, execution, frozen-input verification receipt and complete logs. Historical v1 receipts are still read under their original evidence contract and are not rewritten or upgraded.
 
 This directory contains no measured Moli outputs, raw provider artifacts, debug logs or credentials. Use the existing report builder with complete certified evidence. Historical results lacking pre/post-call reference certification cannot be promoted by writing a receipt afterward.
 
