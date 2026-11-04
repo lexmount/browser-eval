@@ -61,7 +61,8 @@ def check_presentation(html):
         if detail['data-report-detail'] == 'failed':
             error_target = (
                 '#result-logs pre[data-kind="error"], #result-logs [data-log-unavailable], '
-                '[data-result-logs] pre[data-kind="error"], [data-result-logs] [data-log-unavailable]'
+                '[data-result-logs] pre[data-kind="error"], '
+                '[data-result-logs] [data-log-unavailable]'
             )
             if (detail.select_one('[data-failure-diagnosis]') is None
                     or detail.select_one(error_target) is None):
