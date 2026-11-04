@@ -124,6 +124,38 @@ def test_public_package_stops_while_a_site_password_is_unset(tmp_path, monkeypat
     assert not (tmp_path / "a.json").exists()
 
 
+def test_public_export_stops_while_a_site_password_is_unset(tmp_path, monkeypatch):
+    source, _ = write_report_fixture(tmp_path)
+    staged = tmp_path / "staged"
+    stage_report(source, staged)
+    page = staged / "reports/webarena-trajectory-replay-latest.html"
+    page.write_text(page.read_text(encoding="utf-8") + "secret-value", encoding="utf-8")
+    monkeypatch.setattr(env_file, "_repository_credentials_file", tmp_path / "absent.env")
+    monkeypatch.setenv("WEBARENA_REDDIT_PASSWORD", "secret-value")
+
+    with pytest.raises(ValueError, match="WEBARENA_"):
+        export_public_report_bundle(staged, tmp_path / "public")
+    assert not (tmp_path / "public").exists()
+
+
+@pytest.mark.parametrize(
+    "written", ["secret-value", "secret&#45;value"], ids=["plain", "html-escaped"]
+)
+def test_public_export_rejects_a_site_password_in_a_report_page(tmp_path, monkeypatch, written):
+    source, _ = write_report_fixture(tmp_path)
+    staged = tmp_path / "staged"
+    stage_report(source, staged)
+    page = staged / "reports/webarena-trajectory-replay-latest.html"
+    page.write_text(page.read_text(encoding="utf-8") + written, encoding="utf-8")
+    secrets = tmp_path / "repository.env"
+    write_site_logins(secrets, "secret-value")
+    monkeypatch.setattr(env_file, "_repository_credentials_file", secrets)
+
+    with pytest.raises(ValueError, match="site password in public report"):
+        export_public_report_bundle(staged, tmp_path / "public")
+    assert not (tmp_path / "public").exists()
+
+
 def test_public_bundle_contains_reports_and_minimal_binding(tmp_path):
     source, _ = write_report_fixture(tmp_path)
     manifest_path = source / "run/manifest.json"

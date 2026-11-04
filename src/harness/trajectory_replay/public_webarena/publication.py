@@ -49,9 +49,14 @@ def public_projection(value: Any) -> Any:
 
 def export_public_report_bundle(formal_root: Path, output_root: Path) -> Path:
     """Export reports plus only the binding fields needed by the site builder."""
+    # Like packaging, an export is public output that must be checked for every site password.
+    passwords = known_site_secrets()
     manifest = _read_json(contained_path(formal_root, "run/manifest.json", reject_symlinks=True))
     summary = _read_json(contained_path(formal_root, "run/summary.json", reject_symlinks=True))
     files = _report_files(formal_root, summary)
+    for source in files:
+        if _contains_site_password(source.read_text(encoding="utf-8", errors="ignore"), passwords):
+            raise ValueError(f"site password in public report: {source.name}")
     target = output_root / "formal/webarena-public-trajectories"
     reports_target = target / "reports"
     reports_target.mkdir(parents=True, exist_ok=False)
