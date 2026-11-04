@@ -430,7 +430,7 @@ def test_template_source_without_the_template_stops_before_reading_evidence(tmp_
     assert not (tmp_path / 'output').exists()
 
 
-def test_packaged_install_without_the_default_template_names_both_routes(tmp_path, monkeypatch, capsys):
+def test_a_missing_default_template_names_both_routes(tmp_path, monkeypatch, capsys):
     from harness.lexbench import report
     monkeypatch.setattr(report, 'TEMPLATE_DIRECTORY', tmp_path / 'absent-template')
     with pytest.raises(SystemExit) as stopped:

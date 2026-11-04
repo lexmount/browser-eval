@@ -129,7 +129,17 @@ names no variables or a variable that is empty. `--env-file` and exported variab
 exported value winning, and cannot change a login. Saved error text and evaluator output are
 scrubbed of the passwords that the runtime JSON names, and public reports of the passwords that the site registry names.
 Rebuilding a public WebArena report from saved evidence does not need them; a password that is
-unset on the rebuilding host is not checked.
+unset on the rebuilding host is not redacted. Exporting, packaging and publishing that report stop
+with the missing variable names while a registered site login is unset, so every public bundle and
+package is checked for all of those passwords.
+
+Two limits of this redaction are deliberate. The report and package steps do not have the runtime
+config, so a password under a variable name outside the site registry is scrubbed only at run time,
+from the attempt's error text, its `evaluate_result` trace step and its validation. The frozen
+trajectory's trace steps and the HAR are not scrubbed, because they must stay what the trajectory
+executed. Login happens before capture, so only a recording that types a password itself could put
+one there.
+
 The unmodified official evaluator reads the same credential-free JSON for URL rendering.
 
 Before qualification, the optional runtime smoke starts each browser image without a CPU limit,

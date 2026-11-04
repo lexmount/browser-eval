@@ -156,6 +156,38 @@ def test_public_replay_submission_recovers_without_second_activation(tmp_path, f
     assert profile.read_bytes() == before
 
 
+@pytest.mark.parametrize("saved_submission", [False, True])
+def test_public_replay_publication_stops_before_requests_while_a_site_login_is_unset(
+    tmp_path, monkeypatch, saved_submission
+):
+    from harness import env_file
+    from harness.trajectory_replay.public_webarena.publication import publish_current
+    from tests.test_webfetch_report_publish import Service
+
+    source, profile, staged, archive, proof, receipt, journal = publication_fixture(tmp_path)
+    if saved_submission:
+        receipt.write_text(
+            json.dumps(
+                {
+                    **json.loads(receipt.read_bytes()),
+                    "submission_state": "submitted_unverified",
+                    "archive_sha256": hashlib.sha256(archive.read_bytes()).hexdigest(),
+                }
+            ),
+            encoding="utf-8",
+        )
+    before = receipt.read_bytes()
+    monkeypatch.setattr(env_file, "_repository_credentials_file", tmp_path / "absent.env")
+    service = Service("")
+
+    with pytest.raises(ValueError, match="WEBARENA_"):
+        publish_current(profile, staged, archive, proof, receipt, journal, transport=service)
+
+    assert not service.requests
+    assert receipt.read_bytes() == before
+    assert not journal.exists()
+
+
 @pytest.mark.parametrize("damage", ["site", "share", "proof", "package"])
 def test_public_replay_preflight_rejects_wrong_authority_or_package_before_requests(
     tmp_path, damage
