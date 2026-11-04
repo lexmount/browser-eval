@@ -84,7 +84,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "84aa53c33882271c63ab49e4b1f1c3b4ef892b71f287325e4f7981f6e05db487"
+          "after_sha256": "0ba4d3b14f0a2a06f2e5ec361d4e30bd28d1b7ba9e35da062cdeaa627a42d145"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -3887,6 +3887,15 @@
             "mixed-unquoted-apostrophe-visible"
           ],
           "root_cause": "CommonMark tag rejection exposed browser-tolerated hidden and raw-text content; retain tolerant HTML tags while escaping comparisons without their own closing bracket."
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_mixed_markdown_comparisons.py"
+          ],
+          "root_cause": "The mixed-HTML fallback rejected less-than characters in browser-tolerated unquoted attribute values, exposing hidden and raw-text content. Preserve those tag openers before applying the shared visibility rules."
         }
       ]
     },
