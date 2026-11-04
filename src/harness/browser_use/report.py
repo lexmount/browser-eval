@@ -2668,7 +2668,6 @@ class ReportInputs:
     trajectory_replay_bridge: dict[str, Any] | None
     bundles: list[dict[str, Any]]
     source_attempts: list[dict[str, Any]]
-    manifest: dict[str, Any]
     config: dict[str, Any]
     review: dict[str, Any]
     protocol: dict[str, Any]
@@ -2852,7 +2851,6 @@ def _load_report_inputs(
         trajectory_replay_bridge=trajectory_replay_bridge,
         bundles=bundles,
         source_attempts=source_attempts,
-        manifest=manifest,
         config=config,
         review=review,
         protocol=protocol,
