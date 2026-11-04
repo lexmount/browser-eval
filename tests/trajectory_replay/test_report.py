@@ -526,6 +526,9 @@ def test_report_renders_every_registered_participant_of_a_larger_set(tmp_path):
 
     assert "Chromium、Obscura 与 Lightpanda 浏览器工具调用评测" in home
     assert "Moli" not in home and "1 Hz" not in home
+    assert "screencast" not in home and "验证方案" not in home
+    assert "尚不能确认渲染器或适配层中的具体根因" in home
+    assert ">查看逐任务证据</a>" in home
     # The only leader is named, every other participant is compared, none is hard-coded.
     assert "默认使用 Obscura：其结果正确任务数为 3，高于 Chromium 的 2、Lightpanda 的 1" in home
     assert '<th colspan="3">P50</th>' in home
@@ -546,6 +549,7 @@ def test_report_renders_every_registered_participant_of_a_larger_set(tmp_path):
     assert "['chromium','obscura','lightpanda'].includes(provider)" in analysis
     assert "__PROVIDER_LIST__" not in analysis
     assert "<option>moli</option>" not in analysis
+    assert "时序机制研究" not in analysis and "screencast" not in analysis
 
     method = _route(reports, "-method.html")
     assert "分别启动并预热 3 个浏览器" in method
@@ -573,7 +577,12 @@ def test_report_labels_each_duration_audit_when_several_pairs_exist(tmp_path):
 def test_report_states_a_partial_tie_among_more_than_two_participants(tmp_path):
     reports = tmp_path / "reports"
     build_curated_report(reports, ("chromium", "moli", "obscura"), {"obscura": ("modal-form",)})
-    assert "本轮 Chromium 与 Moli 的结果正确任务数相同（均为 3）" in _route(reports, ".html")
+    home = _route(reports, ".html")
+    assert "本轮 Chromium 与 Moli 的结果正确任务数相同（均为 3）" in home
+    # The screencast study follows Moli's participation, not the participant count.
+    assert "尚不能确认 screencast、渲染器或适配层中的具体根因" in home
+    assert ">查看逐任务证据与验证方案</a>" in home
+    assert "时序机制研究" in _route(reports, "-analysis.html")
 
 
 def test_report_renders_a_single_participant_without_comparisons(tmp_path):

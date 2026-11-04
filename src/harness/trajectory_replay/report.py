@@ -404,6 +404,7 @@ def _detail_filename(task_id: str, engine: str) -> str:
 
 MOLI_TIMING_FINDING = """<li><strong>时序边界：</strong>Moli 的 1 Hz 是 CDP screencast 下采样，不等于 JavaScript 或 <code>requestAnimationFrame</code> 只有 1 fps；源码中的 rAF 目标间隔为 16 ms。</li>
 """
+MOLI_TIMING_STUDY = """<section class="card"><h2>时序机制研究</h2><div class="hypothesis-grid"><div><strong>研究假设</strong><span>低频 screencast 或其触发的布局快照，可能放大动态 DOM 更新后几何、可见性或命中测试状态的滞后。</span></div><div><strong>对照设计</strong><span>固定页面、选择器和调用，比较立即显现、双 rAF、定时器、DOM 替换、动画与视口进入；延迟覆盖 16 ms 到 1 s。</span></div><div><strong>验证指标</strong><span>记录 DOM/rAF 完成时间与 actionability 恢复时间，检验其差值是否随 screencast 条件系统性变化。</span></div></div></section>"""
 
 
 def _recommendation(summary: dict[str, Any], engines: tuple[str, ...]) -> str:
@@ -458,6 +459,15 @@ def _ratio_finding(summary: dict[str, Any], engines: tuple[str, ...]) -> str:
     return f"<li><strong>速度与资源：</strong>{_all_parties(engines)}成功任务的{clauses}。</li>\n"
 
 
+def _root_cause_finding(engines: tuple[str, ...]) -> str:
+    layers, link = (
+        (" screencast、渲染器或适配层", "查看逐任务证据与验证方案")
+        if "moli" in engines
+        else ("渲染器或适配层", "查看逐任务证据")
+    )
+    return f"""<li><strong>根因边界：</strong>布局与 actionability 证据只能定位现象，尚不能确认{layers}中的具体根因。<a href="trajectory-replay-evaluation-latest-analysis.html">{link}</a>。</li>"""
+
+
 def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     task_count = len(manifest.get("suite") or [])
     engines = _engines(summary)
@@ -474,7 +484,7 @@ def _summary_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     return f"""<section class="card note"><h2>结论与产品建议</h2><p><strong>{recommendation}</strong></p><p>这是浏览器工具调用层的公网确定性微基准，不是 LLM Agent 排名。评测集包含 {task_count} 个结果唯一的任务。</p></section>
 <section class="card"><h2>任务正确率</h2>{correctness}</section>
 <section class="card" id="technical-findings"><h2>关键技术结论</h2><ul>
-{_ratio_finding(summary, engines)}{MOLI_TIMING_FINDING if "moli" in engines else ""}<li><strong>根因边界：</strong>布局与 actionability 证据只能定位现象，尚不能确认 screencast、渲染器或适配层中的具体根因。<a href="trajectory-replay-evaluation-latest-analysis.html">查看逐任务证据与验证方案</a>。</li></ul></section>
+{_ratio_finding(summary, engines)}{MOLI_TIMING_FINDING if "moli" in engines else ""}{_root_cause_finding(engines)}</ul></section>
 <section class="card" id="performance"><h2>{parties}成功任务的速度与资源</h2><p>统计范围：{parties}都成功的 {paired} 个同任务，不含失败与重试样本。绝对值优胜项为绿色粗体；配对比值低于 1 为绿色、高于 1 为红色，显示值相同保持中性。</p>{_metric_tables(summary)}{_duration_ratio_audit(summary)}</section>{smoke_html}"""
 
 
@@ -1190,7 +1200,8 @@ def _classify(error: str) -> str:
 def _analysis_page(
     manifest: dict[str, Any], summary: dict[str, Any], detail_pages: dict[str, str]
 ) -> str:
-    return f"""<section class="card"><h2>时序机制研究</h2><div class="hypothesis-grid"><div><strong>研究假设</strong><span>低频 screencast 或其触发的布局快照，可能放大动态 DOM 更新后几何、可见性或命中测试状态的滞后。</span></div><div><strong>对照设计</strong><span>固定页面、选择器和调用，比较立即显现、双 rAF、定时器、DOM 替换、动画与视口进入；延迟覆盖 16 ms 到 1 s。</span></div><div><strong>验证指标</strong><span>记录 DOM/rAF 完成时间与 actionability 恢复时间，检验其差值是否随 screencast 条件系统性变化。</span></div></div></section>{_execution_explorer(manifest, summary, detail_pages)}"""
+    timing_study = MOLI_TIMING_STUDY if "moli" in _engines(summary) else ""
+    return f"""{timing_study}{_execution_explorer(manifest, summary, detail_pages)}"""
 
 
 def _appendix_page(manifest: dict[str, Any], engines: tuple[str, ...]) -> str:
