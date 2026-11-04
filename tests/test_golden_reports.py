@@ -6,6 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from harness.lexbench import report as lexbench_report
 from harness.reporting import versions
 from harness.trajectory_replay.public_webarena.publication import stage_report
 from harness.web_fetch import call_boundary, runner
@@ -16,6 +17,12 @@ from harness.web_search.example import example as build_web_search_example
 from lexbench_webfetch.models import EvalCase
 from tests.browser_use.test_report import build_browser_use_fixture
 from tests.golden_snapshots import check_golden
+from tests.lexbench_report_fixture import (
+    build_report_inputs,
+    fold_per_call_routes,
+    pin_vendor_assets,
+    write_charts_as_utf8,
+)
 from tests.public_webarena_fixture import write_report_fixture
 from tests.test_webmainbench_full_report import render_full_report
 from tests.test_webmainbench_report import sample_report_inputs
@@ -50,6 +57,17 @@ def test_trajectory_replay_report(tmp_path: Path, monkeypatch, outcome: str) -> 
     check_golden(
         f"trajectory-replay-{outcome}", output, tmp_path, path_inputs=[files["results.json"]]
     )
+
+
+@pytest.mark.parametrize("scenario", ["minimal", "macos", "linux"])
+def test_lexbench_report(tmp_path: Path, monkeypatch, scenario: str) -> None:
+    monkeypatch.delenv("LEXBENCH_REPORT_RUNNER_ROOT", raising=False)
+    monkeypatch.chdir(tmp_path)
+    pin_vendor_assets(monkeypatch)
+    write_charts_as_utf8(monkeypatch)
+    lexbench_report.main(build_report_inputs(tmp_path, scenario))
+    fold_per_call_routes(tmp_path / "report")
+    check_golden(f"lexbench-{scenario}", tmp_path / "report", tmp_path)
 
 
 def test_public_webarena_report(tmp_path: Path) -> None:
