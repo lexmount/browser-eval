@@ -1,6 +1,8 @@
 """Final rankings require real native evidence, not only selection-path checks."""
 import hashlib
 import json
+from datetime import datetime
+from pathlib import Path
 
 import pytest
 
@@ -41,6 +43,9 @@ def test_unchanged_groups_get_verified_and_public_settings(tmp_path):
     assert len(model['execution_settings']) == 2
     assert all(group['uniform'] and group['verified_calls'] == 1 for group in model['execution_settings'])
     assert 'system' in (report/'methodology/index.html').read_text(encoding='utf-8')
+    for group in model['execution_settings']:
+        assert (datetime.fromisoformat(group['collection_end']) -
+                datetime.fromisoformat(group['collection_start'])).total_seconds() >= .012
 
 
 @pytest.mark.parametrize('same_method', [False, True])
@@ -79,7 +84,6 @@ def test_final_rejects_adapter_rejection_before_denominator_projection(tmp_path)
 def test_unchanged_groups_cannot_bypass_retry_policy(tmp_path, mutation):
     spec = matrix(tmp_path)
     for source in spec['sources']:
-        from pathlib import Path
         root = Path(source['root'])
         if mutation == 'negative_budget':
             manifest = json.loads((root/'manifest.json').read_bytes())
@@ -111,3 +115,52 @@ def test_portable_final_gate_rechecks_derived_settings(tmp_path, mutation):
         settings[0]['settings'].append(extra)
     with pytest.raises(ValueError, match='settings'):
         _require_comparable_matrix(settings, {('method', 'web'), ('other', 'web')})
+
+
+def test_collection_end_includes_an_earlier_longer_call(tmp_path):
+    spec = matrix(tmp_path, same_method=True)
+    for source, start, elapsed in zip(spec['sources'],
+            ['2030-01-01T00:00:00+00:00', '2030-01-01T00:00:01+00:00'], [30000, 1000]):
+        path = Path(source['results']['path'])
+        record = json.loads(path.read_bytes())
+        record.update(started_at=start, elapsed_ms=elapsed)
+        source['results'] = write(path, record)
+    report = build(tmp_path, spec).parent
+    model = json.loads((report/'matrix.json').read_bytes())
+    assert model['execution_settings'][0]['collection_end'] == '2030-01-01T00:00:30+00:00'
+
+
+@pytest.mark.parametrize('provenance', ['parameter_rerun', 'result_adoption', 'changed_prompt'])
+def test_public_renderer_cannot_promote_post_outcome_audit(tmp_path, provenance):
+    from harness.web_fetch.report import generate_saved_matrix
+    spec = matrix(tmp_path)
+    spec['presentation'] = 'audit'
+    report = build(tmp_path, spec).parent
+    model = json.loads((report/'matrix.json').read_bytes())
+    model['presentation'] = 'final'
+    row = model['rows'][0]
+    if provenance == 'changed_prompt':
+        case = json.loads((report/row['case_path']).read_bytes())
+        write(report/'original-case.json', {**case, 'task_prompt': 'different original task'})
+        row['score_revision'] = {'before_case_path': 'original-case.json'}
+    else:
+        row[provenance] = {'selected_new': True}
+    with pytest.raises(ValueError, match='portable final report'):
+        generate_saved_matrix(report, model)
+
+
+def test_audit_exposes_settings_and_counts_uncommitted_cost_evidence(tmp_path):
+    from bs4 import BeautifulSoup
+    spec = matrix(tmp_path, same_method=True)
+    spec['presentation'] = 'audit'
+    spec['sources'].pop()
+    receipt = write(tmp_path/'interrupted.json', dict(suite='second', provider='method',
+        case_id='case', state='called_but_uncommitted'))
+    spec['missing'] = [dict(suite='second', provider='method', case_id='case',
+        status='uncommitted', reason='Interrupted after dispatch', receipt=receipt)]
+    report = build(tmp_path, spec).parent
+    page = BeautifulSoup((report/'index.html').read_text(encoding='utf-8'), 'html.parser')
+    cost = page.select_one('#ranking-overall tbody tr').select('td')[-1]
+    assert '1/2' in cost.get_text()
+    methodology = BeautifulSoup((report/'methodology/index.html').read_text(encoding='utf-8'), 'html.parser')
+    assert methodology.select_one('#saved-execution-settings') is not None

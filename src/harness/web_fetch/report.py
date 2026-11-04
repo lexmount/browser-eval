@@ -2081,7 +2081,7 @@ def successful_final_call_latency(records,cases):
   table([model_text('方法','Method'),model_text('通过 / 已保存','Passed / saved'),model_text('均值','Mean'),'P50','P95'],rows,'successful-final-call-latency',metrics=[]))
 
 
-def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seconds=None,combined=True):
+def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seconds=None,combined=True,called_counts=None):
  excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
  records=[r for r in records if not r['metrics'].get('evaluation_excluded')]
  cases={k:c for k,c in cases.items() if k not in excluded}
@@ -2112,7 +2112,8 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
   values+=cell(ms(percentile(times,.95)),percentile(times,.95))
   costs=[value for r in called if (value:=logical_execution_cost_ms(r)) is not None]
   mean_cost=statistics.mean(costs) if costs else None
-  values+=cell(ms(mean_cost)+f'<br><small>{len(costs)}/{len(called)}</small>',mean_cost)
+  cost_population=(called_counts or {}).get(name,len(called))
+  values+=cell(ms(mean_cost)+f'<br><small>{len(costs)}/{cost_population}</small>',mean_cost)
   if audit:values+=review_cell(audit,rs)
   rows.append((passed/n if n else -1,name,('',values)))
  rows=[row for _,_,row in sorted(rows,key=lambda x:(-x[0],x[1]) if combined else (x[1],))]
@@ -2371,7 +2372,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  combined=dataset.get('comparison',{}).get('presentation',{}).get('combined_ranking',True)
  if score_audit or not combined:overall_title='任务通过情况'
  budgets={m['timeout_seconds'] for m in manifests if m.get('timeout_seconds') is not None}
- home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None,combined=combined),'overall-ranking')
+ called_counts={item['provider']:item['called'] for item in dataset.get('saved_matrix_scope',{}).get('providers',[])}
+ home+=section(overall_title,overall_ranking(records,cases,audit,diagnostic=diagnostic,call_budget_seconds=next(iter(budgets)) if len(budgets)==1 else None,combined=combined,called_counts=called_counts),'overall-ranking')
  home+=input_suite_comparison(dataset,cases,records)
  if diagnostic and not score_audit:
   home+=result_ledger_section(out,records)
@@ -3171,7 +3173,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
  if revision:
   methodology+=section('计分定义','<p>数据集：<code class="break">'+esc(dataset['id'])+'</code></p><p>定义版本：'+link('../'+revision['path'],revision['id'])+' · SHA-256：<code class="break">'+esc(revision['sha256'])+'</code></p><p>原始定义数据集：<code class="break">'+esc(revision['parent_dataset_id'])+'</code> · SHA-256：<code class="break">'+esc(revision['parent_dataset_sha256'])+'</code></p>')
 
- if dataset.get('saved_matrix_scope') and dataset.get('comparison',{}).get('publication_state') == 'final_saved_results':
+ if dataset.get('saved_matrix_scope'):
   methodology+=saved_matrix_scope_section(dataset['saved_matrix_scope'],show_completion=False)
  write(out,'methodology/index.html','评测方法',methodology)
  downloads=' · '.join(link('../'+path,label) for path,label in [('dataset.json','评测集与参考'),('results.jsonl','全部调用记录'),('summary.json','分类汇总'),('execution.json','执行批次')]+([('implementation-provenance.json','浏览器版本与二进制来源')] if (out/'implementation-provenance.json').is_file() else [])+([('reference-revisions.json','参考修订收据')] if (out/'reference-revisions.json').is_file() else [])+([('scoring-revisions.json','评分修订收据')] if (out/'scoring-revisions.json').is_file() else [])+([('latency-corrections.json','时延纠正收据')] if (out/'latency-corrections.json').is_file() else [])+([('request-status-corrections.json','请求状态纠正收据')] if (out/'request-status-corrections.json').is_file() else []))

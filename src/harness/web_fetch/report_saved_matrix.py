@@ -883,8 +883,15 @@ def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
                 if started:
                     group['collection_start'] = min(group['collection_start'] or started, started,
                                                     key=datetime.fromisoformat)
-                    group['collection_end'] = max(group['collection_end'] or started, started,
-                                                  key=datetime.fromisoformat)
+                    ends = []
+                    if isinstance(attempt.get('elapsed_ms'), (int, float)):
+                        ends.append(datetime.fromisoformat(started) + timedelta(milliseconds=attempt['elapsed_ms']))
+                    if attempt.get('completed_at'):
+                        ends.append(datetime.fromisoformat(attempt['completed_at']))
+                    if ends:
+                        end = max(ends).isoformat()
+                        group['collection_end'] = max(group['collection_end'] or end, end,
+                                                      key=datetime.fromisoformat)
             try:
                 manifest = _native_execution_manifest(call_root, call, sources)
                 policy = {'provider_config_sha256': manifest.get('provider_config_sha256'),
@@ -2255,6 +2262,8 @@ def _saved_renderer_projection(output, model):
         raise ValueError('Final report cannot exclude adapter rejections from its denominator')
     if final:
         _require_comparable_matrix(model.get('execution_settings', []))
+        if any(row.get('parameter_rerun') or row.get('result_adoption') for row in model['rows']):
+            raise ValueError('Post-outcome selection cannot enter a portable final report')
     cases, records, identities = {}, [], []
     attempt_routes = set()
     groups = model.get('report_families', model['suites'])
@@ -2262,6 +2271,15 @@ def _saved_renderer_projection(output, model):
     for row in model['rows']:
         route = safe_identifier(row['suite'] + '--' + row['case_id'])
         case = _json(contained_path(output, row['case_path']))
+        if final:
+            revision_proofs = [row[name] for name in ('score_revision', 'score_revision_history') if row.get(name)]
+            changed = route in model.get('offline_revision', {}).get('changed_cases', [])
+            if changed and not revision_proofs:
+                raise ValueError('Final revised tasks require retained original task evidence')
+            for proof in revision_proofs:
+                before = _json(contained_path(output, proof['before_case_path'], reject_symlinks=True))
+                if before.get('task_prompt') != case.get('task_prompt'):
+                    raise ValueError('Changed task contracts cannot enter a portable final report')
         if case['id'] != row['case_id']:
             raise ValueError('Saved case identity differs from matrix')
         if row.get('url') != case['url'] or row.get('name') != case.get('name', row['case_id']):
