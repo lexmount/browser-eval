@@ -22,7 +22,8 @@
     "archive_sha256": "20feb3e539184670b6678eabf8e38e701fe14fbf5e9ec9261089742f02ba4956",
     "scorer_url": "https://github.com/microsoft/unilm/blob/566958149f591bba214426940c81af54b8ad7d18/markuplm/examples/fine_tuning/run_swde/eval_utils.py",
     "scorer_sha256": "7575a05207eb9bba4b773476a520d60a908f41f311afc460fad9e709d90e6b7d",
-    "scorer_commit": "566958149f591bba214426940c81af54b8ad7d18"
+    "scorer_commit": "566958149f591bba214426940c81af54b8ad7d18",
+    "scorer_download_url": "https://raw.githubusercontent.com/microsoft/unilm/566958149f591bba214426940c81af54b8ad7d18/markuplm/examples/fine_tuning/run_swde/eval_utils.py"
   },
   "selection": {
     "kind": "predeclared_site_balanced_subset",

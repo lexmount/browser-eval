@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from harness.web_scraper import certification, pipeline, swde
+from harness.web_scraper import certification, dataset, pipeline, swde
 
 
 @pytest.fixture
@@ -70,6 +70,9 @@ def inputs(tmp_path, monkeypatch):
         },
     )
     monkeypatch.setattr(swde, "CARD", card)
+    monkeypatch.setitem(
+        dataset.BENCHMARKS, "swde", {"profile": str(card), "module": "harness.web_scraper.swde"}
+    )
     monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
     monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "test-account")
     monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "test-token-only")
@@ -318,3 +321,210 @@ def test_firecrawl_parse_upload_preserves_html_and_requests_native_json(monkeypa
     assert pipeline.normalize("firecrawl-parse-json", row["response"], schema=schema) == {
         "author": ["Ada"]
     }
+
+
+@pytest.mark.parametrize("method", ["zyte-custom", "firecrawl-parse-json"])
+def test_schema_only_interfaces_are_rejected_before_any_dispatch(tmp_path, monkeypatch, method):
+    from harness.web_scraper.example import create
+
+    home = create(tmp_path / "example")
+    call = Mock()
+    monkeypatch.setattr(pipeline, "provider_call", call)
+    with pytest.raises(ValueError, match="dataset-provided custom schema"):
+        certification.create_plan(home, [method], tmp_path / "plan.json")
+    with pytest.raises(ValueError, match="dataset-provided custom schema"):
+        pipeline.probe(home, [method], full=True, run_dir=tmp_path / "calls")
+    call.assert_not_called()
+
+
+def test_missing_schema_dependency_fails_before_paid_dispatch(inputs, monkeypatch, tmp_path):
+    import builtins
+
+    home, _ = inputs
+    original = builtins.__import__
+
+    def missing(name, *args, **kwargs):
+        if name == "jsonschema":
+            raise ModuleNotFoundError("jsonschema unavailable")
+        return original(name, *args, **kwargs)
+
+    call = Mock()
+    monkeypatch.setattr(pipeline, "provider_call", call)
+    monkeypatch.setattr(builtins, "__import__", missing)
+    with pytest.raises(ModuleNotFoundError, match="jsonschema unavailable"):
+        pipeline.probe(home, ["cloudflare-json"], full=True, run_dir=tmp_path / "execution")
+    call.assert_not_called()
+    assert not (tmp_path / "execution/inflight.json").exists()
+
+
+def test_registered_adapter_dispatch_does_not_depend_on_dataset_name(inputs, monkeypatch, tmp_path):
+    home, _ = inputs
+    manifest = pipeline.read_json(home / "dataset/manifest.json")
+    manifest["benchmark"] = "another-schema-cohort"
+    pipeline.save_json(home / "dataset/manifest.json", manifest)
+    monkeypatch.setitem(
+        dataset.BENCHMARKS, "another-schema-cohort", dict(dataset.BENCHMARKS["swde"])
+    )
+    plan = certification.create_plan(home, ["cloudflare-json"], tmp_path / "registered.json")
+    assert plan["case_count"] == 2
+    assert plan["dataset_registry_sha256"] == dataset.registry_sha256()
+    scores = pipeline.score_rows(
+        home,
+        pipeline.read_json(home / "dataset/dataset/ground-truth.json"),
+        [
+            {"method": "cloudflare-json", "case_id": cid, "http_status": 422}
+            for cid in pipeline.read_json(home / "dataset/dataset/ground-truth.json")
+        ],
+        ["cloudflare-json"],
+    )
+    assert "page_hit_macro" in scores["cloudflare-json"]
+
+
+def test_clean_prepare_downloads_pinned_scorer_and_recovers_after_partial_extraction(
+    tmp_path, monkeypatch
+):
+    import io
+    import tarfile
+
+    from harness.web_fetch.providers.http_client import HttpResponse
+
+    home = tmp_path / "clean"
+    archive = tmp_path / "source.tar.gz"
+    scorer = b"# synthetic original evaluator\n"
+    with tarfile.open(archive, "w:gz") as bundle:
+        for name in [
+            *[d + ".7z" for d in swde.DOMAINS],
+            "groundtruth.7z",
+            "readme.txt",
+            "license.json",
+        ]:
+            raw = b"synthetic"
+            item = tarfile.TarInfo("source/" + name)
+            item.size = len(raw)
+            bundle.addfile(item, io.BytesIO(raw))
+    card = tmp_path / "card.json"
+    pipeline.save_json(
+        card,
+        {
+            "source": {
+                "archive_sha256": pipeline.digest(archive.read_bytes()),
+                "scorer_sha256": pipeline.digest(scorer),
+                "scorer_download_url": "https://source.example/pinned-evaluator",
+            },
+            "dataset": {
+                "commit": "a" * 40,
+                "cases": 80,
+                "files": {"evaluate.py": pipeline.digest(scorer)},
+            },
+            "selection": {"pages_per_site": 1},
+        },
+    )
+    monkeypatch.setattr(swde, "CARD", card)
+    monkeypatch.setitem(
+        dataset.BENCHMARKS, "swde", {"profile": str(card), "module": "harness.web_scraper.swde"}
+    )
+    download = Mock(
+        return_value=HttpResponse(200, "https://source.example/pinned-evaluator", {}, scorer)
+    )
+    monkeypatch.setattr("harness.web_fetch.providers.http_client.request", download)
+    fail = [True]
+
+    def unpack(source, target):
+        if source.stem == "groundtruth":
+            for domain in swde.DOMAINS:
+                for i in range(10):
+                    path = target / "groundtruth" / f"{domain}-site{i}-value.txt"
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    path.write_text("header\nstats\n0001\t1\tA value\n", encoding="utf-8")
+        else:
+            if source.stem == "book" and fail[0]:
+                fail[0] = False
+                raise RuntimeError("Synthetic interrupted archive extraction")
+            for i in range(10):
+                path = target / f"{source.stem}-site{i}(1)" / "0001.htm"
+                path.parent.mkdir(parents=True)
+                path.write_text(
+                    f'<base href="https://{source.stem}.example/{i}"><p>A value</p>',
+                    encoding="utf-8",
+                )
+
+    monkeypatch.setattr(swde, "_extract", unpack)
+    with pytest.raises(RuntimeError, match="interrupted archive extraction"):
+        swde.prepare(home, archive)
+    assert not (home / "dataset").exists()
+    result = swde.prepare(home, archive)
+    assert result["cases"] == 80
+    assert len(list((home / "dataset/html").glob("*.html"))) == 80
+    assert (home / "dataset/evaluate.py").read_bytes() == scorer
+    assert swde.prepare(home, archive)["cases"] == 80
+    assert download.call_count == 1
+
+
+def test_clean_prepare_rejects_wrong_scorer_before_extracting(tmp_path, monkeypatch):
+    home = tmp_path / "clean"
+    source = tmp_path / "source.tar.gz"
+    source.write_bytes(b"archive")
+    scorer = home / "source/markuplm-eval.py"
+    scorer.parent.mkdir(parents=True)
+    scorer.write_bytes(b"wrong evaluator")
+    card = tmp_path / "card.json"
+    pipeline.save_json(
+        card,
+        {
+            "source": {
+                "archive_sha256": pipeline.digest(source.read_bytes()),
+                "scorer_sha256": pipeline.digest(b"expected"),
+            }
+        },
+    )
+    monkeypatch.setattr(swde, "CARD", card)
+    extract = Mock()
+    monkeypatch.setattr(swde, "_extract", extract)
+    with pytest.raises(ValueError, match="evaluator changed"):
+        swde.prepare(home, source)
+    extract.assert_not_called()
+    assert not (home / "dataset").exists()
+
+
+@pytest.mark.parametrize("interface", ["report", "review", "assemble"])
+def test_product_interfaces_reject_other_field_families_before_reading_artifacts(
+    inputs, tmp_path, interface
+):
+    from harness.web_scraper import report, review
+
+    home, _ = inputs
+    target = tmp_path / "not-created"
+    missing = tmp_path / "absent-input"
+    with pytest.raises(ValueError, match="requires product references"):
+        if interface == "report":
+            report.build(target, missing, home=home)
+        elif interface == "review":
+            review.prepare(home, missing, target)
+        else:
+            review.assemble(home, missing, missing, missing, missing, target, profile=missing)
+    assert not target.exists()
+
+
+def test_invalid_schema_is_rejected_before_any_paid_dispatch(inputs, monkeypatch, tmp_path):
+    from jsonschema.exceptions import SchemaError
+
+    home, schemas = inputs
+    schemas["book"]["properties"]["author"]["type"] = "invalid-type"
+    path = home / "dataset/schemas.json"
+    pipeline.save_json(path, schemas)
+    manifest = pipeline.read_json(home / "dataset/manifest.json")
+    manifest["files"]["schemas.json"] = {
+        "sha256": pipeline.digest(path.read_bytes()),
+        "bytes": path.stat().st_size,
+    }
+    pipeline.save_json(home / "dataset/manifest.json", manifest)
+    card = pipeline.read_json(swde.CARD)
+    card["dataset"]["inventory_sha256"] = pipeline.digest(
+        json.dumps(manifest["files"], sort_keys=True, separators=(",", ":")).encode()
+    )
+    pipeline.save_json(swde.CARD, card)
+    call = Mock()
+    monkeypatch.setattr(pipeline, "provider_call", call)
+    with pytest.raises(SchemaError):
+        pipeline.probe(home, ["cloudflare-json"], full=True, run_dir=tmp_path / "execution")
+    call.assert_not_called()

@@ -70,6 +70,7 @@ oss-eval = [
 ]
 
 web-scraper-eval = [
+  "jsonschema>=4.25,<5",
   "extruct==0.18.0",
   "price-parser==0.5.0",
   "requests>=2.32,<3",

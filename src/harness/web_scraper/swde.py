@@ -25,7 +25,7 @@ def generic_methods():
 
 def prepare(home: Path, source: Path):
     """Compile the predeclared site-balanced scope from an immutable source archive."""
-    from harness.web_scraper.pipeline import digest, read_json, require_external_output, save_json
+    from harness.web_scraper.pipeline import digest, read_json, require_external_output
 
     require_external_output(home)
     card = read_json(CARD)
@@ -35,8 +35,37 @@ def prepare(home: Path, source: Path):
         from harness.web_scraper.pipeline import validate_dataset
 
         return validate_dataset(home)
-    root = home / "dataset"
-    root.mkdir(parents=True)
+    target = home / "dataset"
+    if target.exists():
+        raise ValueError("Incomplete dataset exists; retain it and use a new destination")
+    home.mkdir(parents=True, exist_ok=True)
+    scorer = home / "source/markuplm-eval.py"
+    if scorer.exists():
+        scorer_bytes = scorer.read_bytes()
+    else:
+        from harness.web_fetch.providers.http_client import request
+
+        response = request(card["source"]["scorer_download_url"], timeout=60, max_bytes=5_000_000)
+        if response.status != 200:
+            raise ValueError("Cannot download the pinned original SWDE evaluator")
+        scorer_bytes = response.body
+    if digest(scorer_bytes) != card["source"]["scorer_sha256"]:
+        raise ValueError("Original SWDE evaluator changed")
+    if not scorer.exists():
+        scorer.parent.mkdir(parents=True, exist_ok=True)
+        scorer.write_bytes(scorer_bytes)
+    with tempfile.TemporaryDirectory(prefix=".swde-dataset-", dir=home) as temporary:
+        root = Path(temporary) / "dataset"
+        root.mkdir()
+        manifest = _compile(home, source, card, root, scorer_bytes)
+        root.rename(target)
+        return manifest
+
+
+def _compile(home, source, card, root, scorer_bytes):
+    """Write a complete staged input tree; preparation commits it atomically."""
+    from harness.web_scraper.pipeline import digest, save_json
+
     archives = home / "source/archives"
     archives.mkdir(parents=True, exist_ok=True)
     with tarfile.open(source) as bundle:
@@ -144,11 +173,7 @@ def prepare(home: Path, source: Path):
     save_json(root / "provenance.json", provenance)
     (root / "README.txt").write_bytes((archives / "readme.txt").read_bytes())
     (root / "LICENSE.json").write_bytes((archives / "license.json").read_bytes())
-    # Keep the inspected original page-hit evaluator separate from this API projection.
-    scorer = home / "source/markuplm-eval.py"
-    if digest(scorer.read_bytes()) != card["source"]["scorer_sha256"]:
-        raise ValueError("Original SWDE evaluator changed")
-    (root / "evaluate.py").write_bytes(scorer.read_bytes())
+    (root / "evaluate.py").write_bytes(scorer_bytes)
     files = {
         p.relative_to(root).as_posix(): {
             "sha256": digest(p.read_bytes()),

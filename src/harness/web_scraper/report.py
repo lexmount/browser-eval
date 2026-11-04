@@ -1154,7 +1154,10 @@ def public_risk(raw):
 
 
 def build(output: Path, content: Path, *, home: Path, run=None, language=None, profile=PROFILE):
+    from harness.web_scraper.dataset import require_product_reference
+
     require_external_output(output)
+    require_product_reference(home)
     validate_catalog()
     language = resolve_report_language(output, language)
     if language not in LABELS:

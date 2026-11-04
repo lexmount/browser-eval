@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from harness.reporting.templates import metric_contract
+from harness.web_scraper.dataset import adapter_sha256, benchmark_config, registry_sha256
 from harness.web_scraper.pipeline import (
     available_methods,
     data_home,
@@ -24,6 +25,10 @@ def create_plan(home, methods, output):
     registry = available_methods()
     if not methods or len(set(methods)) != len(methods) or any(m not in registry for m in methods):
         raise ValueError("Select distinct complete extraction interfaces or the extruct baseline")
+    if benchmark_config(home)["adapter"] is None and any(
+        registry[method].get("requires_custom_schema") for method in methods
+    ):
+        raise ValueError("Selected methods require a dataset-provided custom schema")
     validate_dataset(home)
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     plan = {
@@ -56,14 +61,13 @@ def create_plan(home, methods, output):
             "memory": "Remote memory unavailable; the local baseline is timed separately.",
         },
     }
-    if selected_profile(home).name == "swde.json":
-        from harness.web_scraper.swde import generic_methods
-
-        if any(method not in generic_methods() for method in methods):
-            raise ValueError("SWDE requires a complete arbitrary-schema extraction API")
+    if benchmark_config(home)["adapter"] is not None:
+        if any(not registry[method].get("custom_schema") for method in methods):
+            raise ValueError("This dataset requires a complete arbitrary-schema extraction API")
         plan["schema"] = "archived-extraction-full-cohort/1"
         plan["dataset_profile_sha256"] = digest(selected_profile(home).read_bytes())
-        plan["task_adapter_sha256"] = digest(Path(__file__).with_name("swde.py").read_bytes())
+        plan["task_adapter_sha256"] = adapter_sha256(home)
+        plan["dataset_registry_sha256"] = registry_sha256()
         for participant in plan["participants"].values():
             participant["maximum_physical_calls"] = len(truth) + 20
     save_json(output, plan, exclusive=True)
@@ -78,9 +82,11 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
 
         return repair_run(home, profile, method, run_dir)
     if plan.get("task_adapter_sha256"):
-        if plan["task_adapter_sha256"] != digest(
-            Path(__file__).with_name("swde.py").read_bytes()
-        ) or plan["dataset_profile_sha256"] != digest(selected_profile(home).read_bytes()):
+        if (
+            plan["task_adapter_sha256"] != adapter_sha256(home)
+            or plan.get("dataset_registry_sha256") != registry_sha256()
+            or plan["dataset_profile_sha256"] != digest(selected_profile(home).read_bytes())
+        ):
             raise ValueError("Frozen task adapter or dataset profile changed")
     participant = plan["participants"][method]
     policy = {"timeout_seconds": 120, "quality_retries": 0, "access_retries_after_repair": 1}
@@ -174,7 +180,8 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
     contract, rows = load_run(source)
     validate_dataset(home)
     if plan.get("task_adapter_sha256") and (
-        plan["task_adapter_sha256"] != digest(Path(__file__).with_name("swde.py").read_bytes())
+        plan["task_adapter_sha256"] != adapter_sha256(home)
+        or plan.get("dataset_registry_sha256") != registry_sha256()
         or plan["dataset_profile_sha256"] != digest(selected_profile(home).read_bytes())
     ):
         raise ValueError("Task adapter or dataset profile changed during collection")

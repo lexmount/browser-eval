@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from harness.report_languages import add_language_argument
+from harness.web_scraper.dataset import BENCHMARKS
 from harness.web_scraper.pipeline import (
     data_home,
     prepare,
@@ -19,7 +20,7 @@ def main(argv=None):
     parser.add_argument("--home", type=Path, default=data_home())
     sub = parser.add_subparsers(dest="command", required=True)
     p = sub.add_parser("prepare")
-    p.add_argument("--benchmark", choices=("zyte", "swde"), default="zyte")
+    p.add_argument("--benchmark", choices=tuple(BENCHMARKS), default="zyte")
     p.add_argument("--source", type=Path)
     sub.add_parser("reproduce")
     p = sub.add_parser("plan")

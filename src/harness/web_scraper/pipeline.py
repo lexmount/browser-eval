@@ -26,6 +26,7 @@ from harness.record_io import bytes_sha256 as digest
 from harness.record_io import read_json as shared_read_json
 from harness.web_fetch.config import load_runtime_env
 from harness.web_fetch.providers.http_client import request
+from harness.web_scraper.dataset import adapter_sha256, benchmark_config, registry_sha256
 
 ROOT = repository_root()
 PROFILE = Path(__file__).resolve().parents[1] / "benchmarks/cards/zyte-product-extraction.json"
@@ -157,14 +158,11 @@ def data_home() -> Path:
 
 
 def prepare(destination: Path, profile=PROFILE, *, benchmark="zyte", source=None):
-    if benchmark == "swde":
+    adapter = benchmark_config(name=benchmark)["adapter"]
+    if adapter:
         if source is None:
-            raise ValueError("SWDE preparation requires the pinned source archive")
-        from harness.web_scraper.swde import prepare as prepare_swde
-
-        return prepare_swde(destination, Path(source))
-    if benchmark != "zyte":
-        raise ValueError("Unknown extraction benchmark")
+            raise ValueError("This benchmark requires its pinned source archive")
+        return adapter.prepare(destination, Path(source))
     require_external_output(destination)
     contract = read_json(profile)
     pin = contract["dataset"]
@@ -183,15 +181,7 @@ def prepare(destination: Path, profile=PROFILE, *, benchmark="zyte", source=None
 
 def selected_profile(home):
     """Resolve only registered dataset adapters; old Zyte homes retain their identity."""
-    manifest = read_json(home / "dataset/manifest.json")
-    benchmark = manifest.get("benchmark", "zyte")
-    if benchmark == "zyte":
-        return PROFILE
-    if benchmark == "swde":
-        from harness.web_scraper.swde import CARD
-
-        return CARD
-    raise ValueError("Unknown extraction benchmark: " + str(benchmark))
+    return benchmark_config(home)["profile"]
 
 
 def validate_dataset(home: Path, profile=None):
@@ -757,6 +747,7 @@ METHODS = {
         "post_call_cooldown_seconds": 0,
         "options": [],
         "custom_schema": True,
+        "requires_custom_schema": True,
         "adapter": _firecrawl_parse_request,
     },
     "firecrawl-json": {
@@ -793,6 +784,7 @@ METHODS = {
         "post_call_cooldown_seconds": 0,
         "options": ["maxInputTokens", "maxOutputTokens"],
         "custom_schema": True,
+        "requires_custom_schema": True,
         "adapter": _zyte_request,
     },
     "zyte-product": {
@@ -1196,7 +1188,13 @@ def collect_calls(
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     dataset_manifest = read_json(home / "dataset/manifest.json")
     frozen_inputs = dataset_manifest["files"]
-    custom_schema = dataset_manifest.get("benchmark") == "swde"
+    adapter = benchmark_config(home)["adapter"]
+    custom_schema = adapter is not None
+    if custom_schema:
+        from jsonschema import Draft202012Validator
+
+        for schema in read_json(home / "dataset/schemas.json").values():
+            Draft202012Validator.check_schema(schema)
     prior = {}
     physical = []
     attempts = {}
@@ -1262,10 +1260,8 @@ def collect_calls(
                 raise ValueError("Frozen extraction HTML changed before dispatch")
             schema_options = {}
             if custom_schema:
-                from harness.web_scraper.swde import task_schema
-
                 schema_options = {
-                    "schema": task_schema(home, truth[case_id]),
+                    "schema": adapter.task_schema(home, truth[case_id]),
                     "prompt": (
                         "Extract all requested attributes of the main record. Copy text values "
                         "exactly, including units and punctuation. Return an empty array for "
@@ -1335,8 +1331,6 @@ def collect_calls(
                     )
                     row["normalized_fields"] = normalized
                     if custom_schema:
-                        from jsonschema import Draft202012Validator
-
                         errors = list(
                             Draft202012Validator(schema_options["schema"]).iter_errors(normalized)
                         )
@@ -1431,11 +1425,15 @@ def _probe_unlocked(
         raise ValueError("Minimum call interval must be between 0 and 3600 seconds")
     if not isinstance(post_call_cooldown, (int, float)) or not 0 <= post_call_cooldown <= 3600:
         raise ValueError("Post-call cooldown must be between 0 and 3600 seconds")
-    validate_dataset(home)
-    load_runtime_env()
     registry = available_methods()
     if not methods or len(set(methods)) != len(methods) or any(m not in registry for m in methods):
         raise ValueError("Select supported methods explicitly")
+    if benchmark_config(home)["adapter"] is None and any(
+        METHODS[method].get("requires_custom_schema") for method in methods
+    ):
+        raise ValueError("Selected methods require a dataset-provided custom schema")
+    validate_dataset(home)
+    load_runtime_env()
     if fixture_base and urlsplit(fixture_base).scheme != "https":
         raise ValueError("Remote frozen fixtures require HTTPS")
     if fixture_suffix not in (".html", ""):
@@ -1500,12 +1498,13 @@ def _probe_unlocked(
         if "extruct" in methods
         else None,
         "schema": read_json(home / "dataset/schemas.json")
-        if selected_profile(home).name == "swde.json"
+        if benchmark_config(home)["adapter"] is not None
         else SCHEMA,
         "remote_fixture_before": remote_before,
     }
-    if selected_profile(home).name == "swde.json":
-        requested["task_adapter_sha256"] = digest(Path(__file__).with_name("swde.py").read_bytes())
+    if benchmark_config(home)["adapter"] is not None:
+        requested["task_adapter_sha256"] = adapter_sha256(home)
+        requested["dataset_registry_sha256"] = registry_sha256()
         maximum = len(case_ids) + 20 if maximum_physical_calls is None else maximum_physical_calls
         if type(maximum) is not int or not len(case_ids) <= maximum <= len(case_ids) + 20:
             raise ValueError("Physical call budget must cover the cohort and at most 20 repairs")
@@ -1518,6 +1517,8 @@ def _probe_unlocked(
             raise ValueError("Resume native options changed")
         if contract.get("maximum_physical_calls") != requested.get("maximum_physical_calls"):
             raise ValueError("Resume physical call budget changed")
+        if contract.get("dataset_registry_sha256") != requested.get("dataset_registry_sha256"):
+            raise ValueError("Resume benchmark registry changed")
         if contract.get("task_adapter_sha256") != requested.get("task_adapter_sha256"):
             raise ValueError("Resume task adapter changed")
         for field in (
@@ -1799,8 +1800,8 @@ def score_rows(home, truth, rows, methods):
     """Use the same upstream scoring boundary for original and repaired views."""
     from decimal import InvalidOperation
 
-    if selected_profile(home).name == "swde.json":
-        from harness.web_scraper.swde import score
+    if benchmark_config(home)["adapter"] is not None:
+        score = benchmark_config(home)["adapter"].score
 
         return {
             method: score(

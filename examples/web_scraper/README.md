@@ -104,23 +104,27 @@ The same preparation, certified runner and scorer support SWDE. The pinned
 [SWDE card](../../src/harness/benchmarks/cards/swde.json) selects ten pages per
 website across 80 websites and eight domains before any provider calls. This is
 an 800-page subset of the original 124,291-page collection. Its
-[public input distribution](https://huggingface.co/datasets/Lexmount/SWDE-800/tree/1a53107d865085d00458301abb8077dd01a2e651)
+[public input distribution](https://huggingface.co/datasets/Lexmount/LexBench-SWDE/tree/1a53107d865085d00458301abb8077dd01a2e651)
 contains unchanged HTML, original paths, checksums and source/license notices;
 reference answers and provider outputs are excluded. The original project
 license is Ms-RL; captured website content retains its publishers’ rights.
 
 Preparation takes the original archive identified by the card and uses `bsdtar`
-with 7-Zip support. It retains the upstream annotations and evaluator privately.
+with 7-Zip support. On first use it downloads the evaluator from the pinned
+Microsoft source URL and verifies its SHA-256 before unpacking any pages. Later
+preparation can use the cached evaluator offline. An interrupted compilation
+leaves the final dataset directory absent, so the same command can be retried.
+Original annotations and evaluator stay in the local evidence directory.
 Use a separate data directory for this benchmark:
 
 ```sh
-uv run --frozen python -m harness.web_scraper.cli --home /absolute/data/swde \
+uv run --frozen --extra web-scraper-eval python -m harness.web_scraper.cli --home /absolute/data/swde \
   prepare --benchmark swde --source /absolute/downloads/swde-source.tar.gz
-uv run --frozen python -m harness.web_scraper.cli --home /absolute/data/swde \
+uv run --frozen --extra web-scraper-eval python -m harness.web_scraper.cli --home /absolute/data/swde \
   plan --methods zyte-custom firecrawl-parse-json scrapegraph-extract \
   cloudflare-json browserbase-json oxylabs-json \
   --output /absolute/data/swde/precall.json
-uv run --frozen python scripts/run_certified_benchmark.py --track web-scraper \
+uv run --frozen --extra web-scraper-eval python scripts/run_certified_benchmark.py --track web-scraper \
   --home /absolute/data/swde --profile /absolute/data/swde/precall.json \
   --method scrapegraph-extract --run-dir /absolute/data/swde/runs/scrapegraph
 ```
@@ -141,6 +145,10 @@ adaptation is not a reproduction of a full SWDE leaderboard. Value-level micro
 precision/recall/F1 and exact field-set rate expose partial lists and extra values.
 Schema validity is separate from field quality. Every completed API call retains
 latency and any native usage receipt; quota denials pause collection.
+
+This adapter currently supports certified collection and scoring. The product
+report and product reference-review interfaces require price/SKU/stock fields
+and are not used for SWDE’s domain-specific fields.
 
 ## Research and compatibility reports
 

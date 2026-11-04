@@ -136,7 +136,10 @@ def save_packet(path, value, root):
 def prepare(home, content, work, *, batch_size=4, prior=None):
     """Freeze all source pages and all selected outputs without machine verdicts."""
     validate_review_options(batch_size=batch_size)
+    from harness.web_scraper.dataset import require_product_reference
+
     require_external_output(Path(work))
+    require_product_reference(home)
     home, content, work = Path(home).resolve(), Path(content).resolve(), Path(work).resolve()
     work.mkdir(parents=True, exist_ok=True)
     model = read_json(content)
@@ -394,9 +397,11 @@ def assemble(
 ):
     """Bind complete reviews to current calls and retain official references separately."""
     from harness.web_scraper.analysis import check_reference_controls, field_results
+    from harness.web_scraper.dataset import require_product_reference
     from harness.web_scraper.repair import load_selection
 
     require_external_output(output)
+    require_product_reference(home)
     original_inputs, original_opinions, original_receipts = completed(initial)
     changed_inputs, changed_opinions, changed_receipts = completed(supplemental)
     adjudicated_inputs, adjudicated, adjudication_receipts = completed(adjudication)

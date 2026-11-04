@@ -3,11 +3,47 @@
 from __future__ import annotations
 
 import gzip
+import importlib
 import tempfile
 from pathlib import Path
 
 from harness.benchmarks.data import binding, definition_path
 from harness.record_io import bytes_sha256, read_json
+
+BENCHMARKS = {
+    "zyte": {"profile": "zyte-product-extraction.json", "module": None},
+    "swde": {"profile": "swde.json", "module": "harness.web_scraper.swde"},
+}
+
+
+def benchmark_config(home=None, *, name=None):
+    """Resolve preparation, schemas and scoring from one benchmark registry."""
+    if name is None:
+        name = read_json(Path(home) / "dataset/manifest.json").get("benchmark", "zyte")
+    if name not in BENCHMARKS:
+        raise ValueError("Unknown extraction benchmark: " + str(name))
+    item = BENCHMARKS[name]
+    return {
+        "profile": Path(__file__).resolve().parents[1] / "benchmarks/cards" / item["profile"],
+        "adapter": importlib.import_module(item["module"]) if item["module"] else None,
+    }
+
+
+def require_product_reference(home):
+    """Keep product-only report and review entries out of other schema families."""
+    if benchmark_config(home)["adapter"] is not None:
+        raise ValueError(
+            "This interface requires product references; use collection and scoring."
+        )
+
+
+def adapter_sha256(home):
+    adapter = benchmark_config(home)["adapter"]
+    return bytes_sha256(Path(adapter.__file__).read_bytes()) if adapter else None
+
+
+def registry_sha256():
+    return bytes_sha256(Path(__file__).read_bytes())
 
 
 def distribution_identity(home: Path, pin, selection):
