@@ -33,6 +33,9 @@ def test_mixed_markdown_comparison_keeps_following_prose(comparison):
     '<div hidden class="a"id="b">secret</div>',
     '<script/x>secret</script>', '<style/x>secret</style>',
     '<span style="display:none"id="b">secret</span>',
+    "<script x=a'b>secret</script>",
+    "<div hidden x=a'b>secret</div>",
+    "<span hidden x=a'b title=\"x<y\">secret</span>",
 ])
 def test_comparison_does_not_expose_hidden_html(hidden):
     result = visible_mixed_html_text(f'Prefix<sup>1</sup>\nx<y\n\n{hidden}\nVisible sentence.')

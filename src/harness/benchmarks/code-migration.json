@@ -84,7 +84,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "ed0a822e2c08c692df52c37a8e803bd5adea78a10527618d86b825fe9a914845"
+          "after_sha256": "84aa53c33882271c63ab49e4b1f1c3b4ef892b71f287325e4f7981f6e05db487"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -3881,7 +3881,10 @@
           "regression_ids": [
             "mixed-malformed-hidden-prose",
             "mixed-malformed-script-prose",
-            "mixed-malformed-visible-prose"
+            "mixed-malformed-visible-prose",
+            "mixed-unquoted-apostrophe-script",
+            "mixed-unquoted-apostrophe-hidden",
+            "mixed-unquoted-apostrophe-visible"
           ],
           "root_cause": "CommonMark tag rejection exposed browser-tolerated hidden and raw-text content; retain tolerant HTML tags while escaping comparisons without their own closing bracket."
         }
