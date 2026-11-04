@@ -322,3 +322,28 @@ def test_saved_presentation_does_not_rank_diagnostic_evidence(tmp_path, presenta
         assert '敏感性分析证据' in page.get_text()
         assert '本类最高' not in page.get_text()
         assert '本轮任务通过率排名' not in page.get_text()
+
+
+@pytest.mark.parametrize('presentation,source_check', [('audit', False), ('audit', True), ('final', True)])
+def test_checker_accepts_relative_report_root(tmp_path, monkeypatch, presentation, source_check):
+    from harness.web_fetch.report_saved_matrix import check_saved_matrix
+    spec = matrix(tmp_path)
+    spec['presentation'] = presentation
+    output = build(tmp_path, spec).parent
+    monkeypatch.chdir(tmp_path)
+    result = check_saved_matrix(Path(output.name),
+        spec_path=Path('spec.json') if source_check else None)
+    assert result['valid']
+
+
+@pytest.mark.parametrize('linked_parent', [False, True])
+def test_checker_rejects_symlinked_report_root(tmp_path, monkeypatch, linked_parent):
+    from harness.web_fetch.report_saved_matrix import check_saved_matrix
+    spec = matrix(tmp_path)
+    spec['presentation'] = 'audit'
+    output = build(tmp_path, spec).parent
+    link = tmp_path/'linked'
+    link.symlink_to(tmp_path if linked_parent else output, target_is_directory=True)
+    monkeypatch.chdir(tmp_path)
+    with pytest.raises(ValueError, match='Symlinked'):
+        check_saved_matrix(Path('linked')/output.name if linked_parent else Path('linked'))

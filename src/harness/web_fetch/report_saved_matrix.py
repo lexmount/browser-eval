@@ -2091,7 +2091,7 @@ def _validate_rendered_pages(output, model):
 def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     """Verify the portable registry, and its caller authority when supplied."""
     from harness.web_fetch.native_projection import approved_native_policies
-    output = Path(output)
+    output = _path(Path.cwd(), output).resolve()
     binding = _json(output / 'matrix.json').get('native_policy_registry')
     if binding is not None:
         contained_path(output, binding['path'], reject_symlinks=True)
@@ -2108,7 +2108,7 @@ def check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
 
 def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     """Check the complete portable tree and unchanged sources without rescoring."""
-    output = Path(output)
+    output = _path(Path.cwd(), output).resolve()
     audit = _json(output / 'saved-matrix-audit.json')
     source_count = 0
     inputs = None
