@@ -137,7 +137,6 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
         "fixture_base": fixture_base,
     }
     binding = run_dir / "certification-precall.json"
-    collector = probe
     if binding.exists():
         original = read_json(binding)
         if (run_dir / "contract.json").exists():
@@ -163,7 +162,7 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
     for key in ("native_options", "maximum_physical_calls"):
         if key in participant:
             pacing[key] = participant[key]
-    source = collector(
+    source = probe(
         home,
         [method],
         full=True,

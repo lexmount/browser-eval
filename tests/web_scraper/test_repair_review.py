@@ -103,7 +103,7 @@ def test_repair_calls_only_original_failures_and_resumes_without_new_calls(tmp_p
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.provider_call", return_value=response) as provider,
+        patch("harness.web_scraper.pipeline.provider_call", return_value=response) as provider,
     ):
         run(home, profile, "cloudflare-json", destination)
         run(home, profile, "cloudflare-json", destination)
@@ -134,7 +134,7 @@ def test_repair_cannot_replace_original_successes(tmp_path):
     save_json(profile, plan)
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
-        patch("harness.web_scraper.repair.provider_call") as provider,
+        patch("harness.web_scraper.pipeline.provider_call") as provider,
     ):
         with pytest.raises(ValueError, match="never successes"):
             run(home, profile, "cloudflare-json", tmp_path / "wrong")
@@ -148,7 +148,7 @@ def test_ambiguous_repair_dispatch_is_not_repeated(tmp_path):
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
         patch(
-            "harness.web_scraper.repair.provider_call", side_effect=KeyboardInterrupt
+            "harness.web_scraper.pipeline.provider_call", side_effect=KeyboardInterrupt
         ) as provider,
     ):
         with pytest.raises(KeyboardInterrupt):
@@ -164,7 +164,7 @@ def test_client_error_gets_a_timer_and_remains_a_failed_result(tmp_path):
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.provider_call", side_effect=TimeoutError("network")),
+        patch("harness.web_scraper.pipeline.provider_call", side_effect=TimeoutError("network")),
     ):
         run(home, profile, "cloudflare-json", target)
     row = read_json(next((target / "calls").glob("*.json")))
@@ -504,14 +504,13 @@ def test_cloudflare_url_repair_keeps_frozen_html_identity_and_declared_schema():
     assert result["request"]["input"] == "url"
 
 
-@pytest.mark.parametrize("boundary", ["contract.json", "fixture-before.json", "snapshot"])
+@pytest.mark.parametrize("boundary", ["contract.json", "fixture-before.json"])
 def test_repair_initialization_recovers_before_any_dispatch(tmp_path, boundary):
     import harness.web_scraper.repair as repair
 
     home, _, profile, _ = parent_inputs(tmp_path)
     target = tmp_path / "partial-init"
     save = repair.save_json
-    write = Path.write_bytes
     interrupted = False
 
     def checkpoint(path, value, **kwargs):
@@ -521,26 +520,16 @@ def test_repair_initialization_recovers_before_any_dispatch(tmp_path, boundary):
             interrupted = True
             raise KeyboardInterrupt
 
-    def snapshot(path, data):
-        nonlocal interrupted
-        value = write(path, data)
-        if boundary == "snapshot" and path.parent.name == "execution" and not interrupted:
-            interrupted = True
-            raise KeyboardInterrupt
-        return value
-
     with (
         patch.object(repair, "validate_dataset"),
         patch.object(repair, "load_runtime_env"),
-        patch.object(
-            repair,
-            "provider_call",
+        patch(
+            "harness.web_scraper.pipeline.provider_call",
             return_value={"http_status": 200, "response": {"result": {"sku": "ok"}}},
         ) as calls,
     ):
         with (
             patch.object(repair, "save_json", side_effect=checkpoint),
-            patch.object(Path, "write_bytes", snapshot),
         ):
             with pytest.raises(KeyboardInterrupt):
                 run(home, profile, "cloudflare-json", target)
@@ -559,7 +548,7 @@ def test_sibling_repair_cannot_supersede_current_success(tmp_path):
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.provider_call", return_value=response),
+        patch("harness.web_scraper.pipeline.provider_call", return_value=response),
     ):
         siblings = []
         for name in ["a", "b"]:
@@ -595,7 +584,7 @@ def test_repair_url_route_is_qualified_and_snapshot_bound(tmp_path, method):
         patch("harness.web_scraper.repair.load_runtime_env"),
         patch("harness.web_scraper.repair.fixture_check", return_value=fixture) as qualify,
         patch(
-            "harness.web_scraper.repair.provider_call",
+            "harness.web_scraper.pipeline.provider_call",
             return_value={"http_status": 200, "response": {"result": {"sku": "ok"}}},
         ) as call,
     ):
@@ -623,7 +612,7 @@ def test_repair_retains_preexisting_access_retry_time(tmp_path):
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
         patch(
-            "harness.web_scraper.repair.provider_call",
+            "harness.web_scraper.pipeline.provider_call",
             return_value={"http_status": 200, "response": {"result": {"sku": "ok"}}},
         ),
     ):
@@ -661,7 +650,7 @@ def test_repair_resumes_access_denial_with_one_new_call_and_keeps_usage(tmp_path
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.provider_call", side_effect=[denial, success]) as call,
+        patch("harness.web_scraper.pipeline.provider_call", side_effect=[denial, success]) as call,
     ):
         with pytest.raises(PermissionError, match="quota_or_payment"):
             run(home, profile, "cloudflare-json", target)
@@ -703,7 +692,7 @@ def test_repair_missing_credentials_never_consumes_a_call(tmp_path, monkeypatch)
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.provider_call") as call,
+        patch("harness.web_scraper.pipeline.provider_call") as call,
     ):
         for _ in range(3):
             with pytest.raises(PermissionError, match="Missing credentials"):
@@ -724,7 +713,7 @@ def test_repair_keeps_parent_fixture_suffix(tmp_path):
         patch("harness.web_scraper.repair.load_runtime_env"),
         patch("harness.web_scraper.repair.fixture_check", return_value=[]) as qualify,
         patch(
-            "harness.web_scraper.repair.provider_call",
+            "harness.web_scraper.pipeline.provider_call",
             return_value={"http_status": 200, "response": {"data": {"json": {"sku": "ok"}}}},
         ) as call,
     ):
@@ -758,7 +747,7 @@ def test_repair_rejects_changed_inputs_before_certification(tmp_path, change):
             side_effect=lambda path: validate_dataset(path, profile=home / "profile.json"),
         ),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.provider_call", side_effect=provider),
+        patch("harness.web_scraper.pipeline.provider_call", side_effect=provider),
     ):
         with pytest.raises(ValueError, match="changed|mismatch"):
             run(home, profile, "cloudflare-json", target)
@@ -778,7 +767,7 @@ def test_repair_does_not_dispatch_a_page_changed_before_its_turn(tmp_path):
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.provider_call", side_effect=provider) as calls,
+        patch("harness.web_scraper.pipeline.provider_call", side_effect=provider) as calls,
     ):
         with pytest.raises(ValueError, match="changed before dispatch"):
             run(home, profile, "cloudflare-json", target)
@@ -792,7 +781,7 @@ def test_local_baseline_repair_uses_selected_dataset_home(tmp_path):
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
         patch(
-            "harness.web_scraper.repair.provider_call",
+            "harness.web_scraper.pipeline.provider_call",
             return_value={"http_status": 200, "response": {"result": {"sku": "ok"}}},
         ) as call,
     ):
@@ -906,7 +895,7 @@ def test_repair_clock_can_cross_cooldown_deadline(tmp_path):
         patch("harness.web_scraper.pipeline.time.monotonic", side_effect=now),
         patch("harness.web_scraper.pipeline.time.sleep", side_effect=sleep),
         patch(
-            "harness.web_scraper.repair.provider_call",
+            "harness.web_scraper.pipeline.provider_call",
             return_value={
                 "state": "response_received",
                 "response": {"result": {"sku": "recovered"}},
@@ -954,7 +943,7 @@ def test_repair_composition_accepts_verified_field_projection(tmp_path):
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
         patch(
-            "harness.web_scraper.repair.provider_call",
+            "harness.web_scraper.pipeline.provider_call",
             return_value={
                 "state": "response_received",
                 "http_status": 200,
@@ -1021,7 +1010,7 @@ def test_initial_audit_can_start_with_already_repaired_results(tmp_path):
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
         patch(
-            "harness.web_scraper.repair.provider_call",
+            "harness.web_scraper.pipeline.provider_call",
             return_value={
                 "state": "response_received",
                 "http_status": 200,
@@ -1193,7 +1182,7 @@ def test_supplemental_review_selects_only_changed_repaired_call(tmp_path):
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
     ):
-        with patch("harness.web_scraper.repair.provider_call", side_effect=[success, failure]):
+        with patch("harness.web_scraper.pipeline.provider_call", side_effect=[success, failure]):
             run(home, profile, "cloudflare-json", first)
         revisions = [
             {"path": str(first), "sha256": digest((first / "certificate.json").read_bytes())}
@@ -1207,7 +1196,7 @@ def test_supplemental_review_selects_only_changed_repaired_call(tmp_path):
         second_profile = tmp_path / "second-plan.json"
         create_plan(home, content, second_profile, {}, "https://frozen.example")
         second = tmp_path / "second-repair"
-        with patch("harness.web_scraper.repair.provider_call", return_value=success) as extract:
+        with patch("harness.web_scraper.pipeline.provider_call", return_value=success) as extract:
             run(home, second_profile, "cloudflare-json", second)
         assert extract.call_count == 1
         revisions.append(
@@ -1339,7 +1328,7 @@ def test_repair_resume_validates_partial_history_before_dispatch(tmp_path, mutat
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
         patch(
-            "harness.web_scraper.repair.provider_call",
+            "harness.web_scraper.pipeline.provider_call",
             return_value={"http_status": 402, "response": {"error": "Insufficient credits"}},
         ),
         pytest.raises(PermissionError),
@@ -1360,7 +1349,7 @@ def test_repair_resume_validates_partial_history_before_dispatch(tmp_path, mutat
     with (
         patch("harness.web_scraper.repair.validate_dataset"),
         patch("harness.web_scraper.repair.load_runtime_env"),
-        patch("harness.web_scraper.repair.provider_call") as dispatch,
+        patch("harness.web_scraper.pipeline.provider_call") as dispatch,
         pytest.raises(ValueError, match="scope|journal"),
     ):
         run(home, profile, "cloudflare-json", target)
@@ -1515,7 +1504,7 @@ def test_repair_rejects_dangling_lock_before_creating_target_or_dispatch(tmp_pat
     destination.mkdir()
     target = tmp_path / "lock-target"
     (destination / "execution.lock").symlink_to(target)
-    with patch("harness.web_scraper.repair.provider_call") as dispatch:
+    with patch("harness.web_scraper.pipeline.provider_call") as dispatch:
         with pytest.raises(ValueError, match="[Ss]ymlink|Unsafe"):
             run(home, profile, "cloudflare-json", destination)
     dispatch.assert_not_called()
@@ -1547,3 +1536,179 @@ def test_review_bundle_can_move_without_rewriting_hash_bound_files(tmp_path):
     shutil.move(original, restored)
     assert completed(restored / "review")[2] == expected
     assert all(digest((restored / name).read_bytes()) == sha for name, sha in before.items())
+
+
+@pytest.mark.parametrize("evidence", ["journal", "inflight", "call"])
+def test_repair_cannot_adopt_dispatch_without_its_original_contract(tmp_path, evidence):
+    home, _, profile, _ = parent_inputs(tmp_path)
+    target = tmp_path / "unbound"
+    path = {
+        "journal": "calls.journal.jsonl",
+        "inflight": "inflight.json",
+        "call": "calls/attempt.json",
+    }[evidence]
+    save_json(target / path, {})
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.pipeline.provider_call") as dispatch,
+    ):
+        with pytest.raises(ValueError, match="contract is absent"):
+            run(home, profile, "cloudflare-json", target)
+    dispatch.assert_not_called()
+    assert not (target / "contract.json").exists()
+
+
+def test_adjudication_rules_follow_a_relocated_bundle(tmp_path):
+    import shutil
+
+    from harness.web_scraper.review import save_manifest, save_packet
+
+    root = tmp_path / "old"
+    root.mkdir()
+    rules = root / "rules.txt"
+    rules.write_text("frozen rules", encoding="utf-8")
+    for name in ["input.html", "outline.txt"]:
+        (root / name).write_text("source", encoding="utf-8")
+    work = root / "audit"
+    packet = work / "packets/000.json"
+    save_packet(
+        packet,
+        {
+            "cases": [
+                {
+                    "source_html": str(root / "input.html"),
+                    "source_outline": str(root / "outline.txt"),
+                    "benchmark_rules": str(rules),
+                }
+            ]
+        },
+        root,
+    )
+    save_manifest(
+        work,
+        {
+            "bindings": {str(rules): digest(rules.read_bytes())},
+            "packets": [{"path": str(packet), "sha256": digest(packet.read_bytes())}],
+        },
+        root,
+    )
+    moved = tmp_path / "moved"
+    shutil.move(root, moved)
+    case = read_packet(moved / "audit/packets/000.json")["cases"][0]
+    assert Path(case["benchmark_rules"]) == moved / "rules.txt"
+    assert Path(case["benchmark_rules"]).read_text(encoding="utf-8") == "frozen rules"
+
+
+def test_original_access_retry_usage_survives_a_later_repair(tmp_path):
+    import json
+
+    from harness.web_scraper.repair import load_selection
+
+    home, source, _, rows = parent_inputs(tmp_path)
+    contract = read_json(source / "contract.json")
+    contract["access_retry_limit"] = 1
+    save_json(source / "contract.json", contract)
+    manifest = read_json(source / "manifest.json")
+    winner_path = source / manifest["calls"][0]["path"]
+    winner = read_json(winner_path)
+    denied = {
+        **winner,
+        "physical_attempt": 1,
+        "http_status": 402,
+        "response": {"error": "Insufficient credits", "usage": 7},
+        "normalized_fields": None,
+        "compatibility": "no_structured_output",
+        "elapsed_seconds": 2,
+    }
+    denied_path = source / "calls/denied.json"
+    save_json(denied_path, denied)
+    winner.update(physical_attempt=2, retry_execution_seconds=2)
+    save_json(winner_path, winner)
+    manifest["calls"][0]["sha256"] = digest(winner_path.read_bytes())
+    manifest["physical_calls"] = [
+        {"path": "calls/denied.json", "sha256": digest(denied_path.read_bytes())},
+        *manifest["calls"],
+    ]
+    manifest["contract_sha256"] = digest((source / "contract.json").read_bytes())
+    save_json(source / "manifest.json", manifest)
+    (source / "calls.journal.jsonl").write_text(
+        "".join(json.dumps(e) + "\n" for e in manifest["physical_calls"]), encoding="utf-8"
+    )
+    save_json(
+        source / "certificate.json",
+        {"manifest_sha256": digest((source / "manifest.json").read_bytes())},
+    )
+    content = tmp_path / "selected.json"
+    save_json(content, {"evidence_runs": [{"run": str(source)}]})
+    profile = tmp_path / "retry-aware-plan.json"
+    create_plan(home, content, profile, {}, None)
+    repaired = tmp_path / "repaired"
+    with (
+        patch("harness.web_scraper.repair.validate_dataset"),
+        patch("harness.web_scraper.repair.load_runtime_env"),
+        patch(
+            "harness.web_scraper.pipeline.provider_call",
+            return_value={"http_status": 200, "response": {"result": {"sku": "new"}}},
+        ),
+    ):
+        run(home, profile, "cloudflare-json", repaired)
+    _, selected = load_selection(
+        home,
+        {
+            "run": str(source),
+            "repair": [
+                {
+                    "path": str(repaired),
+                    "sha256": digest((repaired / "certificate.json").read_bytes()),
+                }
+            ],
+        },
+    )
+    assert len(selected[0]["physical_attempts"]) == 2
+    assert selected[0]["physical_attempts"][0]["response"]["usage"] == 7
+    assert sum(len(row["physical_attempts"]) for row in selected) == 5
+
+
+@pytest.mark.parametrize("changed", ["html", "reference"])
+def test_reviews_of_another_dataset_cannot_amend_current_scores(tmp_path, changed):
+    import shutil
+
+    from harness.web_scraper.review import assemble
+
+    home = create(tmp_path / "report")
+    alternate = tmp_path / "alternate"
+    shutil.copytree(home, alternate)
+    if changed == "html":
+        source = next((alternate / "dataset/html").glob("*.html"))
+        source.write_text(
+            source.read_text(encoding="utf-8") + "<p>other record</p>", encoding="utf-8"
+        )
+    else:
+        path = alternate / "dataset/dataset/ground-truth.json"
+        truth = read_json(path)
+        truth[next(iter(truth))]["sku"] = ["another dataset value"]
+        save_json(path, truth)
+    initial = tmp_path / "review"
+    manifest = prepare(alternate, alternate / "content.json", initial)
+    for entry in manifest["packets"]:
+        save_json(
+            initial / "reviews" / Path(entry["path"]).name,
+            review_payload(read_packet(Path(entry["path"]))),
+        )
+    save_json(initial / "reviewer.json", {"model": "synthetic-test"})
+    for name in ["supplemental", "adjudication"]:
+        save_json(
+            tmp_path / name / "manifest.json",
+            {"bindings": {}, "packets": [], "case_count": 0, "result_count": 0},
+        )
+    with pytest.raises(ValueError, match="Reviewed dataset differs"):
+        assemble(
+            home,
+            home / "content.json",
+            initial,
+            tmp_path / "supplemental",
+            tmp_path / "adjudication",
+            tmp_path / "audit.json",
+            profile=home / "profile.json",
+        )
+    assert not (tmp_path / "audit.json").exists()

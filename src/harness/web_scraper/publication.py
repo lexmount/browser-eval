@@ -3,7 +3,7 @@
 from pathlib import Path
 
 from harness.record_io import json_bytes
-from harness.reporting.publication import PublicationClient, atomic_write
+from harness.reporting.publication import PublicationClient, archive_inventory, atomic_write
 from harness.reporting.publish import StagedUpdate, publish_staged_update
 from harness.web_scraper.pipeline import digest, read_json, require_external_output
 from harness.web_scraper.report import check, package
@@ -30,6 +30,13 @@ def publish(source, target, work, visual_receipt, *, transport=None):
             "report_manifest_sha256"
         ] != digest((source / "report-manifest.json").read_bytes()):
             raise ValueError("Retained publication package differs from this report")
+        manifest = read_json(source / "report-manifest.json")
+        expected = {
+            **manifest["files"],
+            "report-manifest.json": digest((source / "report-manifest.json").read_bytes()),
+        }
+        if archive_inventory(archive) != expected:
+            raise ValueError("Retained publication ZIP inventory differs from checked source")
     else:
         proof = package(source, archive, visual_receipt=visual_receipt)
 

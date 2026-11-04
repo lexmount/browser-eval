@@ -1,4 +1,5 @@
 import json
+import pytest
 import tempfile
 import unittest
 import zipfile
@@ -175,3 +176,24 @@ class UploadResumeTests(unittest.TestCase):
             retries = [c for c in calls if '/commit?' in c[0]]
             self.assertEqual(retries[0], retries[1])
             sleep.assert_called_once_with(2)
+
+
+@patch('harness.reporting.publish.time.sleep')
+def test_remote_advance_during_rate_limit_wait_prevents_second_commit(sleep, tmp_path):
+    archive = tmp_path / 'site.zip'
+    with zipfile.ZipFile(archive, 'w') as bundle:
+        bundle.writestr('index.html', 'checked')
+    versions = iter(['ver_old', 'ver_old', 'ver_advanced'])
+    commits = []
+
+    def request(path, data=None, content_type=None, **kwargs):
+        if path == '/api/sites/current':
+            return 200, json.dumps({'version': {'id': next(versions)}}).encode()
+        if '/commit?' in path:
+            commits.append(path)
+            raise HTTPError('https://reports.example' + path, 429, 'limited', {'Retry-After': '2'}, None)
+        return 200, b'{"versionId":"ver_stage"}'
+
+    with pytest.raises(RuntimeError, match='Remote version changed'):
+        upload_large_archive(request, archive, 'current', 'ver_old')
+    assert len(commits) == 1

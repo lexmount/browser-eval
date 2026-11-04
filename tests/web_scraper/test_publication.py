@@ -81,3 +81,44 @@ def test_tampered_resume_package_never_dispatches(tmp_path, monkeypatch):
     )
     with pytest.raises(ValueError, match="Retained publication package differs"):
         publication.publish(source, target, work, visual)
+
+
+@pytest.mark.parametrize("damage", ["stale-file", "extra-file", "missing-manifest"])
+def test_self_consistent_zip_hash_cannot_replace_checked_contents(tmp_path, monkeypatch, damage):
+    import zipfile
+
+    source, target, work, visual = setup_report(tmp_path)
+    (source / "index.html").write_text("checked", encoding="utf-8")
+    manifest = read_json(source / "report-manifest.json")
+    manifest["files"] = {
+        "index.html": digest(b"checked"),
+        "browser-eval-version.json": digest((source / "browser-eval-version.json").read_bytes()),
+    }
+    save_json(source / "report-manifest.json", manifest)
+    work.mkdir()
+    archive = work / "report.zip"
+    with zipfile.ZipFile(archive, "w") as bundle:
+        for path in source.iterdir():
+            if damage == "missing-manifest" and path.name == "report-manifest.json":
+                continue
+            bundle.writestr(
+                path.name,
+                b"stale"
+                if damage == "stale-file" and path.name == "index.html"
+                else path.read_bytes(),
+            )
+        if damage == "extra-file":
+            bundle.writestr("private.txt", "private")
+    save_json(
+        work / "report.receipt.json",
+        {
+            "archive_sha256": digest(archive.read_bytes()),
+            "report_manifest_sha256": digest((source / "report-manifest.json").read_bytes()),
+        },
+    )
+    monkeypatch.setattr(publication, "check", lambda *a, **k: None)
+    monkeypatch.setattr(
+        publication, "publish_staged_update", lambda *a, **k: pytest.fail("dispatched")
+    )
+    with pytest.raises(ValueError, match="ZIP inventory"):
+        publication.publish(source, target, work, visual)

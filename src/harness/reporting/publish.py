@@ -188,8 +188,8 @@ def upload_large_archive(request, archive, slug=None, expected=None, title=None,
         # The manual only guarantees atomic expected_version enforcement on
         # /versions and /edit. Also recheck before chunk commit; this read is
         # explicitly not claimed to be an atomic server-side lock.
-        check_baseline()
         for attempt in range(4):
+            check_baseline()
             try:
                 _, raw = request(endpoint + '/commit' + query, b'{}', 'application/json')
                 break

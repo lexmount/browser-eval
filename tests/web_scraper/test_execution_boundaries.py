@@ -553,7 +553,15 @@ def test_incomplete_direct_resume_rejects_damaged_snapshot_before_dispatch(tmp_p
         with pytest.raises(KeyboardInterrupt):
             probe(home, ["cloudflare-json"], full=True, run_dir=target)
     # The in-flight request is unresolved; the snapshot must fail first, without dispatch.
+    # Model an older retained run that explicitly binds a source snapshot.
+    import harness.web_scraper.pipeline as pipeline
+
+    contract = pipeline.read_json(target / "contract.json")
+    contract["pipeline_snapshot"] = "execution/pipeline.py"
+    pipeline.save_json(target / "contract.json", contract)
     snapshot = target / "execution/pipeline.py"
+    snapshot.parent.mkdir(exist_ok=True)
+    snapshot.write_bytes(Path(pipeline.__file__).read_bytes())
     snapshot.unlink() if damage == "missing" else snapshot.write_text(
         "# altered execution", encoding="utf-8"
     )
@@ -879,3 +887,25 @@ def test_short_active_credentials_are_redacted_without_corrupting_ids(monkeypatc
         "case_id": "1a2b3c",
         "state": "call_error",
     }
+
+
+@pytest.mark.parametrize(
+    "message,blocked",
+    [("Insufficient credits", True), ("Invalid API key", True), ("Rate limit", False)],
+)
+def test_plain_text_429_denials_pause_without_confusing_transient_limits(
+    tmp_path, message, blocked
+):
+    home = create(tmp_path / "example")
+    response = {"http_status": 429, "response": {"non_json_response": message}}
+    with (
+        collection_context(),
+        patch("harness.web_scraper.pipeline.provider_call", return_value=response) as call,
+    ):
+        if blocked:
+            with pytest.raises(PermissionError):
+                probe(home, ["cloudflare-json"], full=True)
+            assert call.call_count == 1
+        else:
+            probe(home, ["cloudflare-json"], full=True)
+            assert call.call_count == 3

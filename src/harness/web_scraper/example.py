@@ -100,6 +100,7 @@ def metrics_from_tp_fp_fns(rows):
             row = {
                 "method": method,
                 "case_id": cid,
+                "input_sha256": digest((root / "html" / (cid + ".html")).read_bytes()),
                 "state": "response_received" if good else "input_blocked",
                 "compatibility": "structured_output" if good else "no_structured_output",
                 "normalized_fields": {"sku": cid[0]} if good else None,

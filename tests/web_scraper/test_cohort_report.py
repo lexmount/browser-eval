@@ -762,3 +762,35 @@ def test_field_headers_count_both_nonempty_and_absent_references():
     assert len(counts) == 4
     assert all("Scored: 2 pages" in node.get_text() for node in counts)
     assert "positive 1, negative 1" in counts[-1].get_text()
+
+
+@pytest.mark.parametrize("completed", [False, True])
+def test_formal_release_requires_certification_even_for_complete_checkpoints(tmp_path, completed):
+    output = tmp_path / "report"
+    home = create(output, mode="full-cohort-progress")
+    if completed:
+        import json
+
+        model = read_json(home / "content.json")
+        for selection in model["evidence_runs"]:
+            source = home / "runs" / selection["run"]
+            method = read_json(source / "contract.json")["methods"][0]
+            entries = []
+            for cid in read_json(source / "contract.json")["case_ids"]:
+                original = home / "runs/example-v1/calls" / (method + "-" + cid + ".json")
+                path = source / "calls" / original.name
+                save_json(path, read_json(original))
+                entries.append({"path": "calls/" + path.name, "sha256": digest(path.read_bytes())})
+            (source / "calls.journal.jsonl").write_text(
+                "".join(json.dumps(e) + "\n" for e in entries), encoding="utf-8"
+            )
+        build(
+            tmp_path / "complete", home / "content.json", home=home, profile=home / "profile.json"
+        )
+        output = tmp_path / "complete"
+    manifest = read_json(output / "report-manifest.json")
+    manifest["dataset_kind"] = "published-upstream"
+    manifest["dataset_distribution"] = {"revision": "a" * 40}
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="complete certified cohort"):
+        check(output, release=True)

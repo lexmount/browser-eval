@@ -115,16 +115,18 @@ def read_packet(path):
     manifest = read_json(path.parent.parent / "manifest.json")
     root = manifest_root(path.parent.parent, manifest)
     for case in value["cases"]:
-        for key in ("source_html", "source_outline"):
-            case[key] = str((root / case[key]).resolve())
+        for key in ("source_html", "source_outline", "benchmark_rules"):
+            if key in case:
+                case[key] = str((root / case[key]).resolve())
     return value
 
 
 def save_packet(path, value, root):
     stored = copy.deepcopy(value)
     for case in stored["cases"]:
-        for key in ("source_html", "source_outline"):
-            case[key] = os.path.relpath(case[key], root)
+        for key in ("source_html", "source_outline", "benchmark_rules"):
+            if key in case:
+                case[key] = os.path.relpath(case[key], root)
     if path.exists() and read_json(path) != stored:
         raise ValueError("Frozen audit packet changed")
     if not path.exists():
@@ -400,11 +402,45 @@ def assemble(
     adjudicated_inputs, adjudicated, adjudication_receipts = completed(adjudication)
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     model = read_json(content)
+    truth_sha = digest((home / "dataset/dataset/ground-truth.json").read_bytes())
+    for work, cases in (
+        (initial, original_inputs),
+        (supplemental, changed_inputs),
+        (adjudication, adjudicated_inputs),
+    ):
+        if not cases:
+            continue
+        bindings = read_manifest(work)["bindings"]
+        reference_hashes = {
+            sha
+            for name, sha in bindings.items()
+            if name.endswith("/dataset/dataset/ground-truth.json")
+        }
+        if reference_hashes != {truth_sha}:
+            raise ValueError("Reviewed dataset differs from the scoring dataset")
+        for cid, case in cases.items():
+            source = home / "dataset/html" / (cid + ".html")
+            if (
+                cid not in truth
+                or digest(Path(case["source_html"]).read_bytes()) != digest(source.read_bytes())
+                or case["reference"] != {field: truth[cid].get(field, []) for field in FIELDS}
+            ):
+                raise ValueError("Reviewed dataset differs from the scoring dataset")
     rows, methods = [], []
     for selection in model["evidence_runs"]:
         source, records = load_selection(home, selection)
         contract = read_json(source / "contract.json")
         methods.extend(contract["methods"])
+        if contract.get("dataset_manifest_sha256") and contract[
+            "dataset_manifest_sha256"
+        ] != digest((home / "dataset/manifest.json").read_bytes()):
+            raise ValueError("Reviewed execution uses a different dataset")
+        if any(
+            row["input_sha256"]
+            != digest((home / "dataset/html" / (row["case_id"] + ".html")).read_bytes())
+            for row in records
+        ):
+            raise ValueError("Reviewed execution uses different HTML inputs")
         rows.extend(records)
     expected = {(method, cid) for method in methods for cid in truth}
     if len(rows) != len(expected) or {(r["method"], r["case_id"]) for r in rows} != expected:

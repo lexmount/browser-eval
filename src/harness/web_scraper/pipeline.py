@@ -1101,7 +1101,10 @@ def access_blocker(row):
     response = row.get("response")
     message = str(row.get("error", ""))
     if isinstance(response, dict):
-        message += " ".join(str(response.get(key, "")) for key in ("error", "errors", "message"))
+        message += " ".join(
+            str(response.get(key, ""))
+            for key in ("error", "errors", "message", "non_json_response")
+        )
     if status == 401:
         return "authentication"
     if status == 402:
@@ -1184,7 +1187,6 @@ def collect_calls(
     post_call_cooldown=0,
     native_options=None,
     repair=False,
-    dispatch=None,
 ):
     """Own dispatch, pacing, checkpoints and retry accounting for every native run."""
     journal = run / "calls.journal.jsonl"
@@ -1195,7 +1197,6 @@ def collect_calls(
     dataset_manifest = read_json(home / "dataset/manifest.json")
     frozen_inputs = dataset_manifest["files"]
     custom_schema = dataset_manifest.get("benchmark") == "swde"
-    dispatch = dispatch or provider_call
     prior = {}
     physical = []
     attempts = {}
@@ -1310,7 +1311,7 @@ def collect_calls(
                 try:
                     last_call_started = time.monotonic()
                     row.update(
-                        dispatch(
+                        provider_call(
                             method,
                             raw.decode("utf-8"),
                             truth[case_id]["url"],
@@ -1495,7 +1496,6 @@ def _probe_unlocked(
         "fixture_suffix": fixture_suffix,
         "dataset_manifest_sha256": digest((home / "dataset/manifest.json").read_bytes()),
         "pipeline_sha256": digest(Path(__file__).read_bytes()),
-        "pipeline_snapshot": "execution/pipeline.py",
         "baseline_extractor": read_json(PROFILE).get("baseline_extractor")
         if "extruct" in methods
         else None,
@@ -1540,11 +1540,9 @@ def _probe_unlocked(
             return run
     else:
         contract = requested
-        (run / "execution").mkdir(exist_ok=True)
         snapshot = run / "execution/pipeline.py"
         if snapshot.exists() and digest(snapshot.read_bytes()) != requested["pipeline_sha256"]:
             raise ValueError("Pre-dispatch pipeline snapshot changed")
-        snapshot.write_bytes(Path(__file__).read_bytes())
         save_json(run / "contract.json", contract, exclusive=True)
     records, physical = collect_calls(
         home,

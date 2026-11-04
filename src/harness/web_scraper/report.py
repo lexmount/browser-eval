@@ -1983,6 +1983,19 @@ def check(output: Path, *, release=False, visual_receipt=None):
     if release and manifest.get("dataset_kind") == "published-upstream":
         if manifest.get("mode") != "full-cohort-progress":
             raise ValueError("Formal releases require a complete certified cohort")
+        methods = manifest["planned_methods"]
+        sources = manifest["source_runs"]
+        if (
+            len(sources) != len(methods)
+            or not all(source.get("certified") for source in sources)
+            or {m for source in sources for m in source["contract"]["methods"]} != set(methods)
+            or manifest["observations"] != len(methods) * manifest["case_count"]
+            or any(
+                len(set(source["contract"]["case_ids"])) != manifest["case_count"]
+                for source in sources
+            )
+        ):
+            raise ValueError("Formal releases require a complete certified cohort")
         for value in manifest["prices"].values():
             if "usd_per_1000_range" not in value and not value.get("pricing_formula"):
                 raise ValueError(

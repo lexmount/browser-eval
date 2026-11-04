@@ -70,13 +70,12 @@ function node(tag, text) {
   return value;
 }
 function valueText(value) {
-  return value === null || value === undefined
-    ? tr("null")
-    : Array.isArray(value)
-      ? value.length
-        ? value.join(" / ")
-        : tr("no_accepted_value")
-      : String(value);
+  if (value === null || value === undefined) return tr("null");
+  if (Array.isArray(value)) {
+    if (value.length) return value.join(" / ");
+    return tr("no_accepted_value");
+  }
+  return String(value);
 }
 let opener = null;
 function show(dialog, button) {
@@ -252,7 +251,11 @@ for (const table of document.querySelectorAll("table[data-sortable]")) {
           (av === undefined && ac.dataset.metric !== undefined);
         const bm = bv === "" || bc.textContent === "—" ||
           (bv === undefined && bc.dataset.metric !== undefined);
-        if (am || bm) return am === bm ? a.index - b.index : am ? 1 : -1;
+        if (am || bm) {
+          if (am === bm) return a.index - b.index;
+          if (am) return 1;
+          return -1;
+        }
         const delta =
           av !== undefined && bv !== undefined
             ? Number(av) - Number(bv)

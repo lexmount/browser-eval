@@ -10,7 +10,6 @@ from harness.web_scraper.pipeline import (
     digest,
     execution_identity,
     load_run,
-    provider_call,
     qualify_fixture,
     read_json,
     require_external_output,
@@ -81,11 +80,12 @@ def verify_parent(home, participant):
         != participant["parent_certificate_sha256"]
     ):
         raise ValueError("Repair parent certificate changed")
-    contract, rows = load_run(source)
+    _, rows = load_selection(
+        home, {"run": str(source), "repair": participant.get("previous_repairs", [])}
+    )
+    contract = read_json(source / "contract.json")
     if contract["methods"] != [participant["method"]]:
         raise ValueError("Repair parent method differs")
-    for revision in participant.get("previous_repairs", []):
-        rows = compose(home, source, rows, revision)
     chosen = participant["case_ids"]
     failures = {r["case_id"] for r in rows if r.get("compatibility") != "structured_output"}
     if (
@@ -182,8 +182,14 @@ def collect(home, profile, method, destination):
         "participant": participant,
         "access_retry_limit": plan.get("access_retries_after_repair", 1),
         "code_sha256": code,
+        "code_snapshots": False,
     }
     target = destination / "contract.json"
+    if not target.exists() and (
+        any((destination / name).exists() for name in ("calls.journal.jsonl", "inflight.json"))
+        or any((destination / "calls").glob("*"))
+    ):
+        raise ValueError("Repair contract is absent from an already-started execution")
     if target.exists() and read_json(target) != contract:
         raise ValueError("Repair resume contract changed")
     needs_fixture = requires_fixture(method, participant["native_options"])
@@ -205,14 +211,6 @@ def collect(home, profile, method, destination):
             raise ValueError("Repair fixture receipt changed before dispatch")
     else:
         save_json(receipt, before, exclusive=True)
-    for name, expected in code.items():
-        snapshot = destination / "execution" / name
-        snapshot.parent.mkdir(exist_ok=True)
-        if snapshot.exists():
-            if snapshot.is_symlink() or digest(snapshot.read_bytes()) != expected:
-                raise ValueError("Repair execution snapshot changed before dispatch")
-        else:
-            snapshot.write_bytes(Path(__file__).with_name(name).read_bytes())
     load_runtime_env()
     entries_by_case, entries = collect_calls(
         home,
@@ -226,10 +224,8 @@ def collect(home, profile, method, destination):
         post_call_cooldown=participant["post_call_cooldown_seconds"],
         native_options=participant["native_options"],
         repair=True,
-        dispatch=provider_call,
     )
     logical_entries = {read_json(destination / e["path"])["case_id"]: e for e in entries_by_case}
-    completed = logical_entries
     after = (
         fixture_check(
             home,
@@ -265,11 +261,15 @@ def collect(home, profile, method, destination):
         "schema": "failed-extraction-repair-certificate/1",
         "profile_sha256": contract["profile_sha256"],
         "manifest_sha256": digest((destination / "manifest.json").read_bytes()),
-        "case_count": len(completed),
+        "case_count": len(logical_entries),
         "method": method,
     }
     save_json(destination / "certificate.json", certificate)
-    return {"method": method, "repaired_calls": len(completed), "physical_calls": len(entries)}
+    return {
+        "method": method,
+        "repaired_calls": len(logical_entries),
+        "physical_calls": len(entries),
+    }
 
 
 def verify_repair(home, source, repair):
@@ -302,7 +302,9 @@ def verify_repair(home, source, repair):
         if name not in ("repair.py", "pipeline.py"):
             raise ValueError("Unexpected repair execution source")
         snapshot = directory / "execution" / name
-        if snapshot.is_symlink() or digest(snapshot.read_bytes()) != expected:
+        if contract.get("code_snapshots", True) and (
+            snapshot.is_symlink() or digest(snapshot.read_bytes()) != expected
+        ):
             raise ValueError("Repair execution source changed")
     for name, expected in manifest.get("fixtures", {}).items():
         if name not in ("fixture-before.json", "fixture-after.json"):
@@ -374,6 +376,12 @@ def load_selection(home, selection):
     source = Path(selection["run"])
     source = source if source.is_absolute() else home / "runs" / source
     _, rows = load_run(source)
+    manifest = read_json(source / "manifest.json")
+    attempts = {}
+    for entry in manifest.get("physical_calls", manifest["calls"]):
+        row = artifact(source, entry)
+        attempts.setdefault((row["method"], row["case_id"]), []).append(row)
+    rows = [{**row, "physical_attempts": attempts[(row["method"], row["case_id"])]} for row in rows]
     chain = []
     for revision in selection.get("repair", []):
         participant, replacements, _, directory = verify_repair(home, source, revision)
