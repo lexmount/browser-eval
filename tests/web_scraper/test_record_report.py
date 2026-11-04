@@ -45,6 +45,106 @@ def test_navigation_rejects_missing_duplicate_or_unregistered_pages(routes):
         page("zh", "index", "Example", "", navigation=[{"route": r, "label": r} for r in routes])
 
 
+def test_external_docs_escape_the_preview_while_report_links_stay_inside():
+    from harness.web_scraper.report import page
+
+    soup = BeautifulSoup(
+        page(
+            "zh",
+            "protocol",
+            "Example",
+            '<a href="https://docs.example.org/page">Official</a>'
+            '<a href="//docs.example.org/page">Protocol relative</a>'
+            '<a href="results.html#case">Results</a>'
+            '<a href="#sample">Sample</a>',
+        ),
+        "html.parser",
+    )
+    for link in soup.select('a[href*="docs.example.org"]'):
+        assert link.get("target") == "_blank"
+        assert {"noopener", "noreferrer"}.issubset(link.get("rel", []))
+    for label in ["Results", "Sample"]:
+        link = soup.find("a", string=label)
+        assert not link.get("target")
+
+
+def test_grouped_navigation_keeps_secondary_pages_discoverable():
+    from harness.web_scraper.report import PAGES, page
+
+    entries = [
+        {"route": route, "label": route, "primary": route in {"index", "protocol", "results"}}
+        for route in PAGES
+    ]
+    soup = BeautifulSoup(page("zh", "research", "Example", "", navigation=entries), "html.parser")
+    assert len(soup.select("nav > a")) == 3
+    assert len(soup.select("nav details a")) == 6
+    assert soup.select_one("nav details[open] a[aria-current]").get_text() == "research"
+    assert soup.select_one(".report-tools a").get_text() == "English"
+
+
+def test_native_method_examples_keep_benchmarks_separate_and_reject_changed_outputs(tmp_path):
+    from harness.web_scraper.report import build
+
+    home = create(tmp_path / "initial", mode="field-extraction-cohort")
+    groups = []
+    for benchmark, native in [("products", {"price": 12}), ("books", {"author": ["Ada"]})]:
+        groups.append(
+            {
+                "id": benchmark,
+                "label": benchmark,
+                "description": "Synthetic evidence",
+                "methods": [
+                    {
+                        "id": "shared-provider",
+                        "label": "Shared provider",
+                        "implementation": "Hosted",
+                        "input_mode": "URL",
+                        "field_contract": "Caller fields",
+                        "custom_schema": True,
+                        "output_field": "data",
+                        "output_path": ["data"],
+                        "example": {
+                            "case_id": benchmark + "-one",
+                            "http_status": 200,
+                            "elapsed_seconds": 1,
+                            "request": {
+                                "endpoint": "https://example.org/extract",
+                                "fixture_url": "https://example.org/" + benchmark,
+                                "input": "url",
+                                "schema": {"type": "object"},
+                            },
+                            "response": {"data": native},
+                            "source": {"sha256": "a" * 64},
+                        },
+                    }
+                ],
+            }
+        )
+    save_json(home / "examples.json", {"benchmarks": groups})
+    binding = {
+        "path": "assets/examples.json",
+        "sha256": digest((home / "examples.json").read_bytes()),
+    }
+    model = read_json(home / "content.json")
+    model["method_examples"] = binding
+    model["assets"] = [{**binding, "source": "examples.json"}]
+    save_json(home / "content.json", model)
+    profile = read_json(home / "profile.json")
+    profile["research_report"]["content"]["sha256"] = digest((home / "content.json").read_bytes())
+    save_json(home / "profile.json", profile)
+    output = tmp_path / "report"
+    build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
+    check(output)
+    soup = BeautifulSoup((output / "zh/protocol.html").read_text(), "html.parser")
+    assert '"price": 12' in soup.select_one("#examples-products").get_text()
+    assert '"author"' in soup.select_one("#examples-books").get_text()
+    assert '"author"' not in soup.select_one("#examples-products").get_text()
+    assert len(soup.select("[data-method-example]")) == 2
+    rebind(output, "zh/protocol.html", lambda s: s.replace('"price": 12', '"price": 99'))
+    with pytest.raises(ValueError, match="native input/output evidence"):
+        check(output)
+
+
 def test_record_report_drills_to_source_output_native_error_and_pending(tmp_path):
     output = tmp_path / "report"
     create(output, mode="field-extraction-cohort")

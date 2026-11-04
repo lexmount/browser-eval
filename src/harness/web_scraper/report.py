@@ -209,19 +209,33 @@ def page(
         )
     ):
         raise ValueError("Navigation must name every report page exactly once")
-    nav = "".join(
-        f'<a href="{p}.html"'
-        + (' aria-current="page"' if route == p else "")
-        + ">"
-        + esc(entry["label"])
-        + "</a>"
-        for entry in entries
-        for p in [entry["route"]]
-    )
+
+    def nav_link(entry):
+        p = entry["route"]
+        return (
+            f'<a href="{p}.html"'
+            + (' aria-current="page"' if route == p else "")
+            + ">"
+            + esc(entry["label"])
+            + "</a>"
+        )
+
+    nav = "".join(nav_link(entry) for entry in entries if entry.get("primary", True))
+    secondary = [entry for entry in entries if not entry.get("primary", True)]
+    if secondary:
+        nav += (
+            '<details class="nav-more"'
+            + (" open" if route in {e["route"] for e in secondary} else "")
+            + "><summary>"
+            + ("辅助资料" if language == "zh" else "More resources")
+            + "</summary><div>"
+            + "".join(nav_link(entry) for entry in secondary)
+            + "</div></details>"
+        )
     other_route = route if not detail else "results"
     if other not in languages:
         other_route = "index"
-    html = '<!doctype html><html lang="{part0}"><head><base href="../"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{part1} · Web Scraper</title><link rel="stylesheet" href="../style.css"></head><body><header><div class="eyebrow">WEB SCRAPER / STRUCTURED EXTRACTION</div><h1>{part2}</h1><p class="notice" data-evidence-state="{part3}">{part4}</p><nav>{part5}<a href="../{part6}/{part7}.html">{part8}</a><button id="theme">{part9}</button></nav></header><main>{part10}</main><footer>Web Scraper · {part11} · <a href="../report-manifest.json">{part12}</a></footer><script src="../app.js"></script></body></html>'.format(
+    html = '<!doctype html><html lang="{part0}"><head><base href="../"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{part1} · Web Scraper</title><link rel="stylesheet" href="../style.css"></head><body><header><div class="eyebrow">WEB SCRAPER / STRUCTURED EXTRACTION</div><h1>{part2}</h1><p class="notice" data-evidence-state="{part3}">{part4}</p><div class="report-toolbar"><nav>{part5}</nav><div class="report-tools"><a href="../{part6}/{part7}.html">{part8}</a><button id="theme">{part9}</button></div></div></header><main>{part10}</main><footer>Web Scraper · {part11} · <a href="../report-manifest.json">{part12}</a></footer><script src="../app.js"></script></body></html>'.format(
         part0=language,
         part1=esc(title),
         part2=esc(title),
@@ -239,6 +253,11 @@ def page(
     # Artifact Site injects a site-root base even on nested pages. Use the same
     # root-relative references locally, where our own base supplies that root.
     soup = BeautifulSoup(html, "html.parser")
+    for anchor in soup.select("a[href]"):
+        parsed = urlsplit(anchor["href"])
+        if parsed.scheme in {"http", "https"} or parsed.netloc:
+            anchor["target"] = "_blank"
+            anchor["rel"] = ["noopener", "noreferrer"]
     for element in soup.select("a[href],link[href],script[src],img[src],[data-src]"):
         for attr in ("href", "src", "data-src"):
             value = element.get(attr)
@@ -609,7 +628,8 @@ def price_table(methods, prices, lang, labels=None):
                 esc(value["terms"][lang]),
                 esc(value["verified_at"]),
                 " · ".join(
-                    f'<a href="{esc(u, quote=True)}">{i}</a>' for i, u in enumerate(sources, 1)
+                    f'<a href="{esc(u, quote=True)}" target="_blank" rel="noopener noreferrer">{i}</a>'
+                    for i, u in enumerate(sources, 1)
                 ),
             ]
         )
@@ -1213,6 +1233,131 @@ def copy_report_assets(output, content, model):
             raise ValueError("Unsafe or changed report asset")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(source.read_bytes())
+
+
+def method_examples(output, binding):
+    """Render hash-bound native examples grouped by independently defined benchmarks."""
+    if not binding:
+        return ""
+    path = Path(binding["path"])
+    if path.is_absolute() or ".." in path.parts:
+        raise ValueError("Unsafe method example path")
+    raw = (output / path).read_bytes()
+    if digest(raw) != binding["sha256"]:
+        raise ValueError("Method example source changed")
+    groups = json.loads(raw)["benchmarks"]
+    if not groups or len({g["id"] for g in groups}) != len(groups):
+        raise ValueError("Method examples require distinct benchmarks")
+    parts = ["<section data-method-examples><h2>各数据集的方法与真实实例</h2>"]
+
+    def code(value):
+        return "<pre>" + esc(json.dumps(value, ensure_ascii=False, indent=2)) + "</pre>"
+
+    for group in groups:
+        entries = group["methods"]
+        if not entries or len({e["id"] for e in entries}) != len(entries):
+            raise ValueError("Method examples require distinct participants")
+        rows, cards = [], []
+        for entry in entries:
+            identifier = "example-" + digest((group["id"] + "/" + entry["id"]).encode())[:16]
+            example = entry.get("example")
+            if example is None:
+                if not entry.get("unavailable_reason"):
+                    raise ValueError("An unexecuted method requires its example limitation")
+                details = esc(entry["unavailable_reason"])
+            else:
+                if not example.get("case_id") or not isinstance(example.get("request"), dict):
+                    raise ValueError("Method example lacks a retained request or case identity")
+                if "response" not in example or not example.get("source", {}).get("sha256"):
+                    raise ValueError("Method example lacks its native response provenance")
+                native = example["response"]
+                try:
+                    for key in entry.get("output_path", []):
+                        native = native[key]
+                except (KeyError, IndexError, TypeError) as error:
+                    raise ValueError(
+                        "Example output path is not a native response field"
+                    ) from error
+                details = '<a href="#' + identifier + '">查看输入与输出</a>'
+                request = example["request"]
+                summary = {
+                    "endpoint": request.get("endpoint"),
+                    "input": request.get("input"),
+                    "snapshot_url": request.get("fixture_url"),
+                    "html_sha256": request.get("html_sha256"),
+                    "native_options": request.get("native_options", {}),
+                }
+                cards.append(
+                    '<details class="method-example" id="'
+                    + identifier
+                    + '" data-method-example="'
+                    + esc(group["id"] + "/" + entry["id"])
+                    + '"><summary>'
+                    + esc(entry["label"] + " · " + example["case_id"])
+                    + "</summary>"
+                    + '<div class="example-pair"><div><h4>真实输入记录</h4>'
+                    + code(summary)
+                    + "<p>"
+                    + esc(entry["field_contract"])
+                    + "</p>"
+                    + (
+                        "<details><summary>实际字段 Schema</summary>"
+                        + code(request["schema"])
+                        + "</details>"
+                        if entry.get("custom_schema") and request.get("schema")
+                        else ""
+                    )
+                    + '<a href="'
+                    + esc(
+                        request.get("fixture_url")
+                        or example.get("input_preview_url")
+                        or request.get("source_url")
+                        or "#"
+                    )
+                    + '">查看相同输入的快照</a></div><div><h4>原生响应中的提取结果</h4>'
+                    + code(native)
+                    + "<p>HTTP "
+                    + esc(str(example.get("http_status")))
+                    + " · "
+                    + esc(str(example.get("elapsed_seconds")))
+                    + " 秒</p></div></div>"
+                    + "<details><summary>完整保留请求记录与原生响应</summary>"
+                    + code(
+                        {
+                            "request": request,
+                            "response": example["response"],
+                            "source": example["source"],
+                        }
+                    )
+                    + "</details></details>"
+                )
+            rows.append(
+                [
+                    esc(entry[k])
+                    for k in (
+                        "label",
+                        "implementation",
+                        "input_mode",
+                        "field_contract",
+                        "output_field",
+                    )
+                ]
+                + [details]
+            )
+        parts.append(
+            '<section id="examples-'
+            + esc(group["id"])
+            + '"><h3>'
+            + esc(group["label"])
+            + "</h3><p>"
+            + esc(group["description"])
+            + "</p>"
+            + table(["方法", "提取方式", "实际输入", "字段要求", "返回对象", "实例"], rows)
+            + '<div class="method-examples">'
+            + "".join(cards)
+            + "</div></section>"
+        )
+    return "".join(parts) + "</section>"
 
 
 def build(output: Path, content: Path, *, home: Path, run=None, language=None, profile=PROFILE):
@@ -2708,6 +2853,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         compared=compared,
     )
     bodies = {route: model.get("pages", {}).get(route, {}).get("body", "") for route in PAGES}
+    bodies["protocol"] += method_examples(output, model.get("method_examples"))
     bodies["index"] = (
         "<section data-core-metrics>" + core + "</section>" + bodies["index"] + operations
     )
@@ -3174,6 +3320,7 @@ def build_record_cohort(output, content, *, home, language, profile):
             "skipped_methods": skipped,
             "method_labels": labels,
             "navigation": model.get("navigation"),
+            "method_examples": model.get("method_examples"),
             "prices": prices,
             "case_count": len(truth),
             "observations": sum(s["executed"] for s in stats.values()),
@@ -3205,13 +3352,32 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         path = output / name
         if path.is_symlink() or digest(path.read_bytes()) != expected:
             raise ValueError("Record report bytes changed: " + name)
+    if manifest.get("method_examples"):
+        expected = BeautifulSoup(
+            method_examples(output, manifest["method_examples"]), "html.parser"
+        )
+        actual_examples = BeautifulSoup(
+            (output / "zh/protocol.html").read_text(), "html.parser"
+        ).select_one("[data-method-examples]")
+        if actual_examples is not None:
+            for anchor in actual_examples.select("a"):
+                anchor.attrs.pop("target", None)
+                anchor.attrs.pop("rel", None)
+                if anchor.get("href", "").startswith("zh/protocol.html#"):
+                    anchor["href"] = "#" + anchor["href"].split("#", 1)[1]
+        if str(actual_examples) != str(expected.select_one("[data-method-examples]")):
+            raise ValueError("Method examples differ from their native input/output evidence")
     if manifest.get("navigation") is not None:
+        navigation = manifest["navigation"]
+        ordered = [e for e in navigation if e.get("primary", True)] + [
+            e for e in navigation if not e.get("primary", True)
+        ]
         expected_navigation = [
-            ("zh/" + entry["route"] + ".html", entry["label"]) for entry in manifest["navigation"]
+            ("zh/" + entry["route"] + ".html", entry["label"]) for entry in ordered
         ]
         for path in (output / "zh").glob("*.html"):
             soup = BeautifulSoup(path.read_text(), "html.parser")
-            actual_navigation = [(a.get("href"), a.get_text()) for a in soup.select("nav a")[:-1]]
+            actual_navigation = [(a.get("href"), a.get_text()) for a in soup.select("nav a")]
             if actual_navigation != expected_navigation:
                 raise ValueError("Record navigation differs from its declared reader routes")
     views = manifest.get("public_evidence_views", [])
@@ -3324,6 +3490,11 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         for node in soup.select("a[href],script[src],link[href]"):
             value = node.get("href", node.get("src", ""))
             parsed = urlsplit(value)
+            if node.name == "a" and (parsed.scheme in {"http", "https"} or parsed.netloc):
+                if node.get("target") != "_blank" or not {"noopener", "noreferrer"}.issubset(
+                    node.get("rel", [])
+                ):
+                    raise ValueError("External documentation must open outside the report preview")
             if parsed.scheme or parsed.netloc or not parsed.path:
                 continue
             target = output / unquote(parsed.path)

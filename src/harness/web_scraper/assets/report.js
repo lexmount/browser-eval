@@ -339,7 +339,7 @@ const revealResultPanel = () => {
   const id = location.hash.slice(1);
   if (!id) return;
   const panel = document.getElementById(id);
-  if (panel?.matches?.("details[data-result-panel]")) { panel.open = true; panel.scrollIntoView(); }
+  if (panel?.matches?.("details[data-result-panel], details[data-method-example]")) { panel.open = true; panel.scrollIntoView(); }
 };
 if (typeof window !== "undefined") {
   window.addEventListener("hashchange", revealResultPanel);
