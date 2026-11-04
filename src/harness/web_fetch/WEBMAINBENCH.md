@@ -86,6 +86,8 @@ directly for multiple bindings.
 
 ## Certify, score and assemble the complete comparison
 
+`evaluation/webmainbench-full/current-report.json` inside the selected external authority bundle is the immutable baseline pre-call profile bound by its cohort certificate. Independently certified variant cohorts are registered in `evaluation/webmainbench-full/`; discover the current variant registry and each variant's profile and certificate from that directory rather than hard-coding names. The method-binding file joins the baseline and all certified variant cohorts through locked profile hashes. Their `publication_state` records frozen pre-call state. The live site, share URL, and expected remote version are bound in `evaluation/webmainbench-full/publication-target.json` together with the baseline and all variant profile hashes; update this target after publication without changing or re-certifying historical calls.
+
 Install the `headless-eval` and `webmainbench-eval` extras, prepare the declared
 browser binaries and obtain the pinned scorer checkout. Evaluation credentials
 come only from the repository's local `.env`. Provider runs may incur charges.

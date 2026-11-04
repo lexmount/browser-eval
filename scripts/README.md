@@ -1,7 +1,6 @@
 # Command scripts
 
-Every file here is a thin command-line entry point. Parsing, validation,
-execution and publication rules live in the owning `src/harness/` module.
+Every file here is a thin command-line entry point; `AGENTS.md` owns that rule.
 Run Python entry points with `uv run --frozen python scripts/<name>.py` or the
 matching `make` target. Track stages run as
 `uv run --frozen python -m harness.<track> <command>`.
@@ -45,9 +44,9 @@ with other tracks.
 
 | Script | Reached from |
 | --- | --- |
-| `run_certified_benchmark.py` | `AGENTS.md`, `docs/provider-contract.md`, `evaluation/risk-control/run-profile.json`; runs reference freezing, postcheck, finalization, `risk-control`, `webmainbench-correction`, `wcxb` and `wcxb-latency` |
-| `run_benchmark.py` | `AGENTS.md`, `docs/provider-contract.md`, bound latency certifiers |
-| `build_report.py`, `check_report.py` | `make report`, `make report-check`, `configs/report-templates.json`, `AGENTS.md`, bound latency certifiers |
+| `run_certified_benchmark.py` | `src/harness/web_fetch/README.md`, `docs/provider-contract.md`, `evaluation/risk-control/run-profile.json`; runs reference freezing, postcheck, finalization, `risk-control`, `webmainbench-correction`, `wcxb` and `wcxb-latency` |
+| `run_benchmark.py` | `src/harness/web_fetch/README.md`, `docs/provider-contract.md`, bound latency certifiers |
+| `build_report.py`, `check_report.py` | `make report`, `make report-check`, `configs/report-templates.json`, `src/harness/web_fetch/README.md`, bound latency certifiers |
 | `check_report_links.py` | shared link check owned by `harness.reporting`: `make report-check`, `make browser-use-report-check`, bound latency certifiers |
 | `collect_source_evidence.py`, `audit_initial_references.py` | `research/initial-reference-audit.json` binds their hashes |
 | `restore_report_content.py` | shared content restore owned by `harness.reporting`: `docs/architecture.md` |

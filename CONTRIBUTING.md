@@ -29,12 +29,9 @@ module, avoiding a circular import or preserving test isolation.
 
 Test both accepted and rejected scenarios. Fix scoring rules rather than editing saved verdicts. Refactoring must preserve historical measurements and certificates.
 
-Keep the [Chinese README](docs/README.zh-CN.md) aligned when setup or usage changes; other docs do not need duplicate translations. Reports follow their track's language settings.
+Keep the [Chinese README](docs/README.zh-CN.md) aligned when setup or usage changes. Additional README translations are welcome; other docs do not need duplicate translations. Reports follow their track's language settings.
 
 Benchmark changes follow [benchmark editions](docs/benchmarks.md#benchmark-editions).
-Keep human-readable editions, immutable dataset/scorer hashes and the package
-commit together. A minor scoring correction requires common-edition rescoring;
-changed task populations or requests require a major edition.
 
 ### Text language
 
@@ -166,4 +163,4 @@ Contributions use the [Apache License 2.0](LICENSE). Contributors retain copyrig
 
 ## Software releases
 
-Follow the [release guide](docs/releases.md) for software compatibility, version changes and release checks. Benchmark editions and report builds have separate identities. Routine review fixes and report rebuilds retain the current version; bump versions and publish tags only for an explicitly requested release.
+Follow the [release guide](docs/releases.md) for software compatibility, version changes and release checks. Benchmark editions and report builds have separate identities. `AGENTS.md` owns when a version may change.

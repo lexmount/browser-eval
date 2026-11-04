@@ -48,6 +48,8 @@ uv run --frozen python -m harness.trajectory_replay.public_webarena.cli \
 
 ## Evidence and publication
 
+This human-recording replay is isolated under `src/harness/trajectory_replay/public_webarena/` with its own examples, tests, external report profile and release script. It must not change autonomous `src/harness/browser_use/` or share a report target or denominator with the repository-curated replay suite.
+
 Measured attempts, screenshots, HAR, and reports stay outside Git. The repository keeps
 the suite, qualification reasons, evaluator rules, source bindings, and a sanitized
 publication summary. Use `verify_metrics.py` to audit raw measurements and

@@ -166,10 +166,8 @@ receipts retain the binding hash, and upload snapshots protect it from changes.
 ### Optional release checks and publication
 
 Release checks cover evidence, links, semantic presentation and the declared
-languages. A focused reader pass renders each top-level navigation page once at
-the standard desktop width. Deterministic generation checks own routes, detail
-links, filters, pagination, dialogs and evidence loading; shared component tests
-own narrow-width and theme behavior. Packaging copies only declared public files,
+languages; [report and release](../.agents/skills/benchmark-report/references/report-and-release.md#release-gates)
+owns the reader pass and its scope. Packaging copies only declared public files,
 rejects symlinks and checks that source and authority bytes remain unchanged.
 
 For an explicitly requested and authorized publication, use the selected track's publisher after its release gates pass. Each
