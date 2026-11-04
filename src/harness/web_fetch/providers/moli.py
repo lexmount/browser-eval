@@ -169,6 +169,8 @@ class MoliWebFetchProvider(Provider):
         output = self.config.get("native_output")
         if output == "auto":
             default_route = _route_for_case(case, native_default=True)
+            # This interface ID is retained in frozen request receipts. It is
+            # not an observed format: automatic stdout may be any UTF-8 text.
             return default_route if default_route in {'raw_file', 'native_document_bytes'} else 'ordinary_html'
         if output == "html" and case.task_kind != 'file':
             return 'native_resource_html' if case.task_kind == 'resource' else 'ordinary_html'
@@ -617,6 +619,11 @@ class MoliWebFetchProvider(Provider):
             metadata['output'] = ('original_bytes' if raw_task else
                                   'html' if route in {'ordinary_html', 'native_resource_html'} else 'markdown')
             metadata['extractor'] = 'moli_native_' + metadata['output']
+            if self.config.get('native_output') == 'auto':
+                metadata['requested_output'] = 'auto'
+                metadata['output'] = 'original_bytes' if raw_task else 'unknown'
+                metadata['output_format_source'] = 'raw_byte_delivery' if raw_task else 'unobserved'
+                metadata['extractor'] = 'moli_native_stdout'
         try:
             if hasattr(self, "_binary_identity"):
                 stat = Path(binary).stat()
@@ -813,9 +820,14 @@ class MoliWebFetchProvider(Provider):
                 False,
                 "",
                 error_type="invalid_output",
-                error_message="Moli markdown output is not UTF-8",
+                error_message="Moli text output is not UTF-8",
                 metadata=metadata,
             )
+        if self._native_mode and self.config.get('native_output') == 'auto':
+            # Decoding proves text delivery, not whether the CLI selected HTML,
+            # Markdown or plain text. Do not infer that from the request route.
+            metadata['output'] = 'utf8_text'
+            metadata['output_format_source'] = 'decoded_stdout'
         self._retain_source(metadata, raw, case)
         http_context = (replay_native_http_error_context(raw, diagnostic_raw, case.url,
                         process.returncode, {'schema_version': 1, 'format': 'fetch_log_http_error'})

@@ -1592,7 +1592,16 @@ def test_saved_matrix_binds_external_policy_registry_and_rejects_substitution(tm
 
 
 def test_final_saved_report_preserves_results_without_audit_process_banners(tmp_path):
-    spec, _, _, raw = fixture(tmp_path)
+    from tests.test_saved_matrix_native_execution import execution, saved_answer
+    spec, root, old, _ = fixture(tmp_path)
+    native, case, _ = execution(root, {'type': 'tavily_extract',
+        'uniform_native_parameters': True, 'api_key': 'fixture'})
+    native.update({key: old[key] for key in ('attempt_id', 'elapsed_ms', 'artifact_path', 'metrics')})
+    saved_answer(root, native, case)
+    spec['suites'][0]['dataset'] = write(root/'dataset.json', {'cases': [case]})
+    spec['sources'][0]['case_ids'] = [case['id']]
+    spec['sources'][0]['results'] = write(root/'results.jsonl', native)
+    raw = (root/'results.jsonl').read_bytes()
     spec['presentation'] = 'final'
     report = build(tmp_path, spec).parent
     model = json.loads((report / 'matrix.json').read_text(encoding='utf-8'))

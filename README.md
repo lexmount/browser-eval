@@ -254,6 +254,16 @@ make ci
 
 Use `scripts/build_report.py --saved-matrix /absolute/input-spec.json --output /absolute/new-report --language zh` to display saved results across suites.
 
+Final presentation requires verified settings for every displayed method/family,
+including unchanged and completion-only groups. Request options must be uniform
+within each declared input class; DNS, timeout and retry budgets must also agree
+across methods in a family. Unknown settings and adapter-rejected positions block
+the final view. The methodology table exposes settings and collection dates;
+equal settings do not establish a shared measurement window. Post-outcome
+parameter selection and changed task prompts belong in separate audit reports,
+not the primary original-contract ranking. Saved records are never rewritten to
+make historical cohorts comparable.
+
 - The hash-bound specification declares datasets, providers, selected results and evidenced missing outcomes. Suite-qualified identities preserve original cases and scores. No provider calls, rescoring or certification are added.
 - This mode uses the existing Web Fetch renderer, including datasets, method pages and result/reference comparisons. Missing outcomes have a separate inventory. Keep the HTML pages and evidence directories together.
 - Optional `report_families` lists ordered `{id, label}` entries for every observed task family. It groups the presentation by task content (including embedded media versus direct files), while preserving suite-qualified evidence identities and all saved scores.

@@ -184,6 +184,12 @@ Text acceptance reads the visible prose of raw HTML embedded in Markdown. HTML
 attributes, scripts and explicitly hidden elements cannot supply body coverage
 or required facts. Literal HTML in code examples remains answer text. This
 projection runs inside the shared scorer and leaves provider artifacts unchanged.
+Unescaped angle-bracket text that matches an HTML tag is treated as markup,
+including `List<String>` and `x<y then z>w`. Technical notation must use code
+spans, fenced code or escaped brackets to be unambiguously literal. The parser
+does not guess from tag names whether prose was intended; custom hidden elements
+must remain hidden. A comparison opener without a closing bracket before the next
+tag is retained as text.
 `required_patterns` defaults to `match_scope: "text"`; a rule that checks serialized
 output structure, such as an HTML table tag, must declare `match_scope: "output"`.
 Unknown scopes are rejected. Use paired controls in `src/harness/benchmarks/scoring-regressions.json`
@@ -897,6 +903,11 @@ or `"html"`. Automatic output omits `--dump` and uses the declared wait policy,
 including for direct files. HTML passes `--dump html` and the declared wait
 policy for text and resource tasks; file tasks retain raw delivery without
 those flags. Automatic output does not promise document text extraction.
+Its saved `ordinary_html` interface identifier is a historical request-route
+name, not evidence of the returned format. Automatic calls record
+`requested_output: auto`; text output is `unknown` until decoded, then
+`utf8_text`, without guessing HTML versus Markdown. Raw-file delivery remains
+`original_bytes`. `output_format_source` records the basis for that label.
 Omitting this setting preserves the original native routing policy.
 
 Cloudflare accepts a nonempty `scrape_selectors` list to use the same `/scrape`

@@ -12,6 +12,7 @@ import hashlib
 import errno
 from html.parser import HTMLParser
 import json
+import math
 import os
 import re
 import shutil
@@ -837,6 +838,141 @@ def _uniform_execution_settings(calls):
     return len(observed) == 1
 
 
+def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
+    """Audit every displayed group, including unchanged and completion-only groups.
+
+    Native routes may differ by declared input class. Budgets and DNS must still
+    agree across methods in a family; product-specific request options need not.
+    Unknown historical settings remain unknown, never an implicit exemption.
+    """
+    spec, sources = inputs['spec'], inputs['sources']
+    groups = {}
+    for key, original in inputs['selected'].items():
+        suite, provider, cid = key
+        case = inputs['cases'][suite][cid]
+        family = (_presentation_family(case, suite, spec['report_families'])
+                  if spec.get('report_families') else suite)
+        if (provider in spec.get('excluded_report_providers', []) or
+                family in spec.get('excluded_report_families', [])):
+            continue
+        selected = original
+        continuation = inputs['continuations'].get(key)
+        if key in decisions and decisions[key]['selected_new']:
+            selected = candidates[key]
+            continuation = inputs.get('parameter_continuations', {}).get(key)
+        if key in adoptions:
+            selected = adoptions[key]['original']
+            case = adoptions[key]['before_case']
+            continuation = adoptions[key]['continuations'].get(key)
+        root, record = selected[:2]
+        group = groups.setdefault((provider, family), dict(
+            provider=provider, family=family, calls=0, verified_calls=0,
+            settings=[], errors=[], collection_start=None, collection_end=None))
+        calls = [(root, record)]
+        policies = []
+        if continuation:
+            if continuation[1] is None:
+                group['errors'].append('A physical call has no saved native settings')
+            else:
+                calls.append(continuation[1][:2])
+        for call_root, call in calls:
+            physical = call.get('provider_metadata', {}).get('retry', {}).get('attempts') or [call]
+            group['calls'] += len(physical)
+            for attempt in physical:
+                started = attempt.get('started_at')
+                if started:
+                    group['collection_start'] = min(group['collection_start'] or started, started,
+                                                    key=datetime.fromisoformat)
+                    group['collection_end'] = max(group['collection_end'] or started, started,
+                                                  key=datetime.fromisoformat)
+            try:
+                manifest = _native_execution_manifest(call_root, call, sources)
+                policy = {'provider_config_sha256': manifest.get('provider_config_sha256'),
+                          'created_at': manifest.get('created_at', manifest.get('started_at')),
+                          'timeout_seconds': manifest['parameters']['timeout'],
+                          'max_failure_retries': (1 if continuation else
+                              manifest['parameters'].get('max_failure_retries'))}
+                if (type(policy['max_failure_retries']) is not int or
+                        policy['max_failure_retries'] < 0 or not policy['created_at']):
+                    raise ValueError('Missing retry budget')
+                settings = _parameter_execution(call_root, call, case, policy, sources, call)
+                policies.append(policy)
+                settings['input_class'] = call['provider_metadata']['native_route_receipt']['cell'][1:]
+                group['verified_calls'] += len(physical)
+                if settings not in group['settings']:
+                    group['settings'].append(settings)
+            except (ValueError, KeyError, FileNotFoundError) as exc:
+                # Do not expose private paths or configuration values in the report.
+                error = 'Native execution settings could not be verified (' + type(exc).__name__ + ')'
+                if error not in group['errors']:
+                    group['errors'].append(error)
+        if len(policies) == len(calls):
+            policy = {**policies[0], 'created_at': min((p['created_at'] for p in policies),
+                                                     key=datetime.fromisoformat)}
+            try:
+                _validate_call_sequence(record, case, policy, continuation, require_saved_settings=True)
+            except (ValueError, KeyError):
+                group['errors'].append('Physical call sequence differs from its frozen retry policy')
+    for group in groups.values():
+        by_class = {}
+        common = []
+        for settings in group['settings']:
+            by_class.setdefault(tuple(settings['input_class']), []).append(settings)
+            common.append({key: settings[key] for key in
+                           ('dns_mode', 'timeout_seconds', 'max_failure_retries')})
+        group['uniform'] = bool(common) and not group['errors'] and all(
+            _uniform_execution_settings({'group': values}) for values in [common, *by_class.values()])
+    return list(groups.values())
+
+
+def _require_comparable_matrix(settings, expected_groups=None):
+    """A final comparison cannot hide unknown settings or unequal shared budgets."""
+    observed = {(group['provider'], group['family']) for group in settings}
+    if expected_groups is not None and (observed != expected_groups or len(observed) != len(settings)):
+        raise ValueError('Final report execution settings must cover every displayed method/family')
+    if not settings or any(not group['uniform'] or group['errors'] or
+                          group['verified_calls'] != group['calls'] or group['calls'] <= 0
+                          for group in settings):
+        raise ValueError('Final report requires verified uniform settings for every method/family')
+    families = {}
+    for group in settings:
+        by_class = {}
+        if not group['settings']:
+            raise ValueError('Final report lacks observed execution settings')
+        for value in group['settings']:
+            if (type(value.get('max_failure_retries')) is not int or value['max_failure_retries'] < 0
+                    or type(value.get('timeout_seconds')) not in (int, float)
+                    or not math.isfinite(value['timeout_seconds']) or value['timeout_seconds'] <= 0
+                    or not isinstance(value.get('dns_mode'), str) or not value['dns_mode']):
+                raise ValueError('Final report has invalid shared execution settings')
+            by_class.setdefault(tuple(value['input_class']), []).append(value)
+            families.setdefault(group['family'], []).append({key: value[key] for key in
+                ('dns_mode', 'timeout_seconds', 'max_failure_retries')})
+        if any(not _uniform_execution_settings({'class': values}) for values in by_class.values()):
+            raise ValueError('Final report has nonuniform native request settings')
+    if any(not _uniform_execution_settings({'family': values}) for values in families.values()):
+        raise ValueError('Final report requires equal DNS, timeout and retry budgets across methods')
+
+
+def _require_final_selection(inputs):
+    """Keep post-outcome tuning and changed task contracts out of a primary ranking."""
+    spec = inputs['spec']
+    def displayed(key):
+        suite, provider, cid = key
+        family = (_presentation_family(inputs['cases'][suite][cid], suite, spec['report_families'])
+                  if spec.get('report_families') else suite)
+        return (provider not in spec.get('excluded_report_providers', []) and
+                family not in spec.get('excluded_report_families', []))
+    if any(displayed(key) for key in inputs['missing']):
+        raise ValueError('Final report requires complete judged call evidence')
+    if spec.get('parameter_reruns') or spec.get('adoptions'):
+        raise ValueError('Post-outcome parameter selection belongs in a separate audit report')
+    revision = inputs['revision']
+    if revision and any(case.get('task_prompt') != inputs['cases'][suite][cid].get('task_prompt')
+                        for (suite, cid), case in revision['cases'].items()):
+        raise ValueError('Changed task contracts belong in a separate audit report, not the primary ranking')
+
+
 def _parameter_scoring(before, record):
     """Require an explicit offline revision before comparing different scorers."""
     identities = [row['metrics'].get('scoring_source_sha256') for row in (before, record)]
@@ -1250,6 +1386,10 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
     _validate_completion_retention(inputs, candidates, decisions)
     adoptions = _adopted_groups(inputs, candidates)
     spec = inputs['spec']
+    execution_settings = _matrix_execution_settings(inputs, candidates, decisions, adoptions)
+    if spec.get('presentation') == 'final':
+        _require_final_selection(inputs)
+        _require_comparable_matrix(execution_settings)
     sources = inputs['sources']
     bind, binding, tracked = sources.bind, sources.binding, sources.tracked
     spec_path = sources.base / Path(spec_path).name
@@ -1488,6 +1628,7 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
                          if x['id'] not in spec.get('excluded_report_providers', [])],
              'suites': [{'id': x['id'], 'label': x['label']} for x in spec['suites']],
              'rows': model_rows, 'totals': _totals(model_rows),
+             'execution_settings': execution_settings,
              'source_bindings': [{'sha256': digest, 'name': path.name} for path, digest in tracked.items()],
              'limitations': spec.get('limitations', [])}
     if spec.get('native_policy_registry'):
@@ -1914,6 +2055,10 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             decisions = _parameter_group_decisions(inputs, candidates)
             _validate_completion_retention(inputs, candidates, decisions)
             adoptions = _adopted_groups(inputs, candidates)
+            execution_settings = _matrix_execution_settings(inputs, candidates, decisions, adoptions)
+            if inputs['spec'].get('presentation') == 'final':
+                _require_final_selection(inputs)
+                _require_comparable_matrix(execution_settings)
         except ValueError as exc:
             raise ValueError('Original saved-matrix source changed or invalid') from exc
         actual = sorted((p.name, digest) for p, digest in inputs['sources'].tracked.items())
@@ -1933,6 +2078,8 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
         if _sha(contained_path(output, relative, reject_symlinks=True)) != digest:
             raise ValueError('Portable saved-matrix file changed')
     model = _json(output / 'matrix.json')
+    if inputs is not None and model.get('execution_settings') != execution_settings:
+        raise ValueError('Saved execution settings differ from validated sources')
     keys = [(r['suite'], r['provider'], r['case_id']) for r in model['rows']]
     if (len(keys) != len(set(keys)) or _totals(model['rows']) != audit['totals']
             or model['totals'] != audit['totals']):
@@ -2097,6 +2244,10 @@ def _saved_renderer_projection(output, model):
             not row['called'] or row['passed'] is None or not row['record_path']
             for row in model['rows'])):
         raise ValueError('Final report requires complete judged call evidence')
+    if final and any(row['status'] == 'adapter_rejected' for row in model['rows']):
+        raise ValueError('Final report cannot exclude adapter rejections from its denominator')
+    if final:
+        _require_comparable_matrix(model.get('execution_settings', []))
     cases, records, identities = {}, [], []
     attempt_routes = set()
     groups = model.get('report_families', model['suites'])
@@ -2148,6 +2299,7 @@ def _saved_renderer_projection(output, model):
                            'source_record': row['record_path'], 'source_case': row['case_path']})
     scope = {'providers': [], 'limitations': model.get('limitations', []), 'missing': [r for r in model['rows']
                                         if r['passed'] is None or not r['called']]}
+    scope['execution_settings'] = model.get('execution_settings', [])
     reruns = [r['parameter_rerun'] for r in model['rows'] if r.get('parameter_rerun')]
     if reruns:
         scope['parameter_reruns'] = {'family_selection': any(r['selection'] == 'replace_family_if_pass_count_improves' for r in reruns),
@@ -2177,6 +2329,8 @@ def _saved_renderer_projection(output, model):
         raise ValueError('Report suites must partition every case exactly once')
     if final:
         from harness.web_fetch.reliability import require_reliable
+        _require_comparable_matrix(model.get('execution_settings', []),
+            {(record['provider'], cases[record['case_id']]['report_family']) for record in records})
         require_reliable(dataset, records)
     return dataset, records, identities, scope
 

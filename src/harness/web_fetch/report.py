@@ -2051,6 +2051,34 @@ def input_suite_comparison(dataset, cases, records):
   'input-suite-comparison-section')
 
 
+def logical_execution_cost_ms(record):
+ """Return the saved complete-call cost, never a partial retry estimate."""
+ continuation=record.get('report_retry_continuation')
+ if continuation is not None:return continuation.get('execution_cost_ms')
+ metadata=record.get('provider_metadata') or {}
+ retry=metadata.get('retry')
+ if retry is not None:return retry.get('execution_cost_ms')
+ return metadata.get('call_sequence_elapsed_ms',record['elapsed_ms'])
+
+
+def successful_final_call_latency(records,cases):
+ """Show conditional task-passing latency separately from all-result costs."""
+ groups=defaultdict(list)
+ for record in records:groups[record['provider']].append(record)
+ rows=[]
+ for name,group in sorted(groups.items()):
+  times=[r['elapsed_ms'] for r in group if succeeded(r,cases[r['case_id']])]
+  values=cell(link(f'providers/{name}.html',provider_label(name)))+cell(f'{len(times)}/{len(group)}')
+  for value in (statistics.mean(times) if times else None,percentile(times,.5),percentile(times,.95)):
+   values+=cell(ms(value),value)
+  rows.append(('',values))
+ rows=comparative_rows(rows,{i:('successful_final_latency_'+str(i),'min') for i in (2,3,4)})
+ return ('<h3>'+model_text('任务通过项的最终调用耗时','Final-call latency of task-passing results')+'</h3><p>'+
+  model_text('仅统计各方法自身通过的任务；失败不参与最低耗时标记。各方法样本不同，标记只表示本列最小值，不代表同题速度排名。',
+   'Only each method’s task-passing results are included; failures cannot win latency highlights. Populations differ, so highlights identify column minima, not a same-task speed ranking.')+'</p>'+
+  table([model_text('方法','Method'),model_text('通过 / 已保存','Passed / saved'),model_text('均值','Mean'),'P50','P95'],rows,'successful-final-call-latency',metrics=[]))
+
+
 def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seconds=None,combined=True):
  excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
  records=[r for r in records if not r['metrics'].get('evaluation_excluded')]
@@ -2080,11 +2108,14 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
   values+=cell(ms(mean_time),mean_time)
   values+=cell(ms(percentile(times,.5)),percentile(times,.5))
   values+=cell(ms(percentile(times,.95)),percentile(times,.95))
+  costs=[value for r in called if (value:=logical_execution_cost_ms(r)) is not None]
+  mean_cost=statistics.mean(costs) if costs else None
+  values+=cell(ms(mean_cost)+f'<br><small>{len(costs)}/{len(called)}</small>',mean_cost)
   if audit:values+=review_cell(audit,rs)
   rows.append((passed/n if n else -1,name,('',values)))
  rows=[row for _,_,row in sorted(rows,key=lambda x:(-x[0],x[1]) if combined else (x[1],))]
  tracks=active_tracks(cases)
- timing_heads=SAVED_MATRIX_ZH['final_call_timing_headers']
+ timing_heads=SAVED_MATRIX_ZH['final_call_timing_headers']+[model_text('累计执行耗时均值（已知 / 调用）','Mean total execution cost (known / called)')]
  heads=['方法','请求成功率']+(['综合任务通过率'] if combined else [])+(['无法判定（含未调用）' if has_not_called else '无法判定'] if has_unknown else [])+[label for _,label in tracks]+timing_heads
  if audit:heads+=['审查结果']
  case_count=len(cases);track_count=len(tracks);track_label=track_count_label(track_count)
@@ -2106,7 +2137,6 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
        '</dl></div></details>')
  offset=2+int(combined)
  directions={i:('acceptance_'+str(i),'max') for i in range(1,offset+len(tracks)+int(has_unknown))}
- directions.update({i:('all_latency_'+str(i),'min') for i in range(offset+len(tracks)+int(has_unknown),offset+3+len(tracks)+int(has_unknown))})
  if has_unknown:directions.pop(offset,None)
  rows=comparative_rows(rows,directions)
  timing_note='<p>'+SAVED_MATRIX_ZH['final_call_timing_note']
@@ -2123,7 +2153,9 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
   intro='<p class="decision-lead">'+model_text('按各自冻结的任务组比较，不将不同组直接合成通过率总榜。跨组同网址案例保留原始身份；记录数量不等于独立网站数量。','Compare each frozen task group separately, without a combined pass-rate ranking. Cross-group cases retain their original identities; record counts are not unique-site counts.')+'</p>'
   help=''
  rendered=table(heads,rows,'ranking-overall',True,'ranking',metrics=[],include_index=not diagnostic and combined,default_sort=(2+int(not diagnostic),'desc') if combined else (0,'asc'))
- return intro+timing_note+help+rendered
+ cost_note='<p>'+model_text('累计执行耗时包含记录中的重试及等待；已知 / 调用表示成本证据覆盖数。缺失首轮耗时的结果不作部分估算。上表包含失败，不标记耗时优胜者；只有下方任务通过项的耗时标记列最小值。',
+  'Total execution cost includes recorded retries and waits; known / called shows cost-evidence coverage. Missing first-call timing is not estimated from a partial sequence. The table above includes failures and has no latency winners; only task-passing latency below highlights column minima.')+'</p>'
+ return intro+timing_note+help+rendered+cost_note+successful_final_call_latency(records,cases)
 
 def filter_controls(options,all_first=()):
  controls=''
@@ -4765,10 +4797,31 @@ def generate_saved_matrix(out: Path, model: dict) -> Path:
  return render_saved_with_standard_generator(out, model)
 
 
+def saved_execution_settings_section(settings):
+ """Expose measured settings without treating unlike environments as controls."""
+ if not settings:return ''
+ rows=[]
+ for item in settings:
+  status=model_text('一致','Uniform') if item['uniform'] else model_text('不一致或证据不足','Mixed or insufficient evidence')
+  details='<details><summary>'+model_text('查看设置','View settings')+'</summary><pre>'+esc(json.dumps(item['settings'],ensure_ascii=False,indent=2))+'</pre>'
+  if item.get('errors'):details+='<p>'+esc('; '.join(item['errors']))+'</p>'
+  details+='</details>'
+  values=cell(esc(provider_label(item['provider'])))+cell(esc(item['family']))+cell(f"{item['verified_calls']}/{item['calls']}")+cell(status)
+  values+=cell(esc(item.get('collection_start') or '—')+'<br>'+esc(item.get('collection_end') or '—'))+cell(details)
+  rows.append(('',values))
+ note=model_text('按方法和任务类型列出实际调用设置及采集时间。一致性只描述组内记录；不同方法的 DNS、预算、超时、采集日期或执行位置不同，不能视为同窗受控速度比较。',
+  'Actual settings and collection times are grouped by method and task family. Uniformity describes records within each group only. Differences in DNS, budgets, timeouts, collection dates or execution locations prevent a same-window controlled speed claim.')
+ return section(model_text('各方法与任务类型的执行设置','Execution settings by method and task family'),'<p>'+note+'</p>'+table([
+  model_text('方法','Method'),model_text('任务类型','Task family'),model_text('已验证 / 调用','Verified / calls'),model_text('组内设置','Within-group settings'),model_text('采集起止时间','Collection period'),model_text('配置证据','Configuration evidence')],rows,'saved-execution-settings',metrics=[]),'execution-settings')
+
+
 def saved_matrix_scope_section(scope,*,show_completion=True):
  limitations=section(SAVED_MATRIX_ZH['limitations'],'<ul>'+''.join('<li>'+esc(note)+'</li>' for note in scope.get('limitations',[]))+'</ul>','saved-limitations')
  if not show_completion:
-  return '<p data-saved-certification="not-conferred">'+esc(SAVED_MATRIX_ZH['certification_note'])+'</p>'+limitations
+  quality_note='<p data-acceptance-quality-limit>'+model_text('必需文字和结构检查衡量已声明目标是否出现，不是完整的噪声惩罚；返回内容通过任务，不代表没有导航、广告或无关文字。全文纯净度只在具有可比完整参考的任务上计算，不能替代其余任务的噪声测量。',
+   'Required-text and structure checks measure declared target coverage, not a complete noise penalty. Passing a task does not establish the absence of navigation, ads or irrelevant text. Full-text precision is computed only where a comparable complete reference exists and does not measure noise for the remaining tasks.')+'</p>'
+  status=section(model_text('报告状态与指标边界','Report status and metric limits'),'<p data-saved-certification="not-conferred">'+esc(SAVED_MATRIX_ZH['certification_note'])+'</p>'+quality_note)
+  return status+saved_execution_settings_section(scope.get('execution_settings',[]))+limitations
  rows=[]
  for item in scope['providers']:
   rows.append(('',cell(link('providers/'+item['provider']+'.html',provider_label(item['provider'])))+''.join(cell(str(item[k])) for k in ('planned','called','saved','normal','passed','rejected','uncommitted','not_called'))))

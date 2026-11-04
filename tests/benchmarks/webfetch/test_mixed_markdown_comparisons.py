@@ -52,3 +52,31 @@ def test_quoted_angle_in_valid_tag_remains_attribute():
     result = visible_mixed_html_text('Prefix<sup>1</sup><span title="x<y">Visible</span>')
     assert 'Visible' in result
     assert 'x<y' not in result
+
+
+@pytest.mark.parametrize('literal', [
+    'if x<y then keep this prose and z>w end', 'List<String>', 'Vec<u8>',
+])
+@pytest.mark.parametrize('representation', ['inline', 'fenced', 'escaped'])
+def test_explicit_technical_literals_survive_the_public_scorer(literal, representation):
+    from lexbench_webfetch.evaluation import evaluate_response
+    if representation == 'inline':
+        answer = f'`{literal}`'
+    elif representation == 'fenced':
+        answer = f'```text\n{literal}\n```'
+    else:
+        answer = literal.replace('<', '&lt;').replace('>', '&gt;')
+    case = {'id': 'technical-literal', 'name': 'Technical literal',
+            'url': 'https://example.com/technical', 'category': 'web',
+            'expected_any': [literal]}
+    assert evaluate_response(case, answer.encode())['passed']
+    assert not evaluate_response(case, b'Unrelated visible answer')['passed']
+
+
+def test_unknown_html_element_cannot_supply_hidden_facts():
+    from lexbench_webfetch.evaluation import evaluate_response
+    case = {'id': 'hidden-custom-element', 'name': 'Hidden custom element',
+            'url': 'https://example.com/technical', 'category': 'web',
+            'expected_any': ['secret fact']}
+    assert evaluate_response(case, b'<custom>secret fact</custom>')['passed']
+    assert not evaluate_response(case, b'x<custom hidden>secret fact</custom>')['passed']

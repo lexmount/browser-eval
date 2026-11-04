@@ -103,6 +103,12 @@ method. The narrower certified scoring-correction command does not authorize
 arbitrary prompt changes. A local re-evaluation does not establish that old calls
 executed the revised task or make changed input contracts directly comparable:
 a formal release requires a major edition and remains a separate comparison.
+Changed-prompt offline revisions cannot enter a saved matrix's final primary
+ranking. Keep original-contract results and revised-rule sensitivity analysis
+separate, including per-method effects and any counterfactual retry differences.
+All-method failure is a review trigger, not evidence that a requirement is wrong;
+scope corrections from method-independent task evidence and apply the same rule
+to equivalent tasks, including tasks that already passed.
 Neither a revision PR nor an export creates a release tag. Merge revision support
 first, then the reviewed dataset PR; select its verified merged commit in a
 separate `make pin-dataset DATASET=webfetch REV=<full-HF-commit>` change.

@@ -49,6 +49,14 @@ Use dependency impact, not convenience:
 
 Never overwrite old evidence or select a later response because it scores better. Assemble a new complete evidence view atomically, record inherited versus rerun attempts, and verify all downstream bindings.
 
+Audit execution comparability after final selection for every displayed method
+and task family, including unchanged and completion-only groups. Publish settings
+and collection windows. Compare common budgets and DNS across methods separately
+from native request options within each declared input class. Missing settings
+cannot silently qualify a group. Keep post-outcome tuning and changed-task
+counterfactuals separate from the primary original-contract comparison; report
+per-method sensitivity, exclusion effects and retry-policy differences.
+
 Before a cohort-wide offline recomputation, finish the paired controls and compare the known affected output family with its independent judgments. Cover equivalent serializers and adjacent invalid forms together, including visible text outside a link, image alternatives, and record ownership. Batch the shared corrections before the expensive sweep; do not rerun unchanged browser calls. Bound both worker count and queued payloads when saved outputs or logs are large.
 
 A partial impact cache must retain each inherited record's actual scoring-source identity. Never stamp unchanged cached metrics with the new source hash. Select candidates through the same normalized fields as the changed parser; raw substring searches can miss labels formed by nested markup. Before accepting a partial sweep, check the normalized full-population candidates against the selected scope and rescore any uncovered candidates through the public scorer.

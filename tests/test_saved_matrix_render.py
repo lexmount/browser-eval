@@ -10,9 +10,9 @@ from tests.test_saved_matrix_evidence import fixture, build, write
 
 
 @pytest.mark.parametrize('tie', [False, True])
-def test_final_ranking_reuses_pass_order_and_latency_extrema(tmp_path, tie):
+def test_saved_ranking_keeps_failed_call_latency_neutral(tmp_path, tie):
     spec, source, record, raw = fixture(tmp_path)
-    spec.update(presentation='final', combined_ranking=True)
+    spec.update(presentation='audit', combined_ranking=True)
     other = deepcopy(record)
     other.update(provider='alphabetic-first', attempt_id='other-run', elapsed_ms=12 if tie else 6)
     other['metrics']['content_pass'] = False
@@ -29,17 +29,17 @@ def test_final_ranking_reuses_pass_order_and_latency_extrema(tmp_path, tie):
     assert rows[1].select_one('a')['href'] == 'providers/alphabetic-first.html'
     assert len(ranking.select('thead button')) >= 6
     for row in rows:
-        timings = row.select('[data-metric-direction="min"]')
-        assert len(timings) == 3
-        assert all(float(cell['data-sort']) == (12 if row is rows[0] or tie else 6) for cell in timings)
-        assert len(row.select('[data-metric-direction="min"] .comparison-winner')) == (
-            3 if row is rows[1] and not tie else 0)
-    assert page.select_one('#completion') is None
-    assert page.select_one('#saved-limitations') is None
-    assert 'id="saved-limitations"' in (root/'methodology/index.html').read_text(encoding='utf-8')
-    methodology = BeautifulSoup((root/'methodology/index.html').read_text(encoding='utf-8'), 'html.parser')
-    certification = methodology.select_one('[data-saved-certification="not-conferred"]')
-    assert certification is not None and '不等于基准认证' in certification.get_text()
+        assert not row.select('[data-metric-direction="min"]')
+        values = row.select('td')[-4:-1]
+        assert all(float(cell['data-sort']) == (12 if row is rows[0] or tie else 6) for cell in values)
+        assert not any(cell.select('.comparison-winner') for cell in values)
+    successful = page.select_one('#successful-final-call-latency')
+    successful_rows = successful.select('tbody tr')
+    failed = next(row for row in successful_rows if 'alphabetic-first' in row.select_one('a')['href'])
+    assert not failed.select('.comparison-winner')
+    assert '0/1' in failed.get_text()
+    assert page.select_one('#completion') is not None
+    assert page.select_one('#saved-limitations') is not None
 
 
 @pytest.mark.parametrize('tie', [False, True])
@@ -269,7 +269,7 @@ def test_only_precall_rejections_have_no_latency_samples():
               'elapsed_ms': 9000, 'metrics': {'content_pass': False},
               'report_invocation_status': 'adapter_rejected'}
     soup = BeautifulSoup(overall_ranking([record], {'case': {'id': 'case'}}), 'html.parser')
-    assert [c.get_text() for c in soup.select('#ranking-overall tbody td')[-3:]] == ['—', '—', '—']
+    assert [c.get_text() for c in soup.select('#ranking-overall tbody td')[-4:-1]] == ['—', '—', '—']
 
 
 def test_instance_method_labels_reach_full_renderer_and_reset(tmp_path):
@@ -319,15 +319,15 @@ def test_saved_matrix_timing_labels_match_final_call_values(tmp_path):
     root=build(tmp_path,spec).parent
     page=BeautifulSoup((root/'index.html').read_text(encoding='utf-8'),'html.parser')
     heads=[x.get_text().removesuffix(' ↕') for x in page.select('#ranking-overall th')]
-    assert heads[-3:]==['最终调用耗时均值','最终调用耗时 P50','最终调用耗时 P95']
-    values=[x.get_text() for x in page.select('#ranking-overall tbody tr td')][-3:]
+    assert heads[-4:-1]==['最终调用耗时均值','最终调用耗时 P50','最终调用耗时 P95']
+    values=[x.get_text() for x in page.select('#ranking-overall tbody tr td')][-4:-1]
     assert values==['12 ms','12 ms','12 ms']
     assert '每个逻辑结果只取最终一次调用耗时' in page.get_text()
     assert '总耗时按每题所有物理调用累计' not in page.get_text()
     legacy=BeautifulSoup(overall_ranking([record],{'same':{'id':'same'}}),'html.parser')
-    assert [x.get_text().removesuffix(' ↕') for x in legacy.select('th')][-3:]==['最终调用耗时均值','最终调用耗时 P50','最终调用耗时 P95']
+    assert [x.get_text().removesuffix(' ↕') for x in legacy.select('#ranking-overall th')][-4:-1]==['最终调用耗时均值','最终调用耗时 P50','最终调用耗时 P95']
     assert '总耗时按每题所有物理调用累计' not in legacy.get_text()
-    assert [x.get_text() for x in legacy.select('tbody tr td')][-3:]==values
+    assert [x.get_text() for x in legacy.select('#ranking-overall tbody tr td')][-4:-1]==values
 
 
 def test_entirely_missing_method_stays_in_both_rankings(tmp_path):

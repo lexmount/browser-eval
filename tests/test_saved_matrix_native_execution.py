@@ -12,9 +12,31 @@ from lexbench_webfetch.models import EvalCase
 from tests.test_saved_matrix_evidence import write
 
 
-def execution(tmp_path, config, *, dns=None):
-    binding = write(tmp_path/'providers.json', {'providers': {'method': config}})
-    provider = build_provider('method', expand_env(config))
+def saved_answer(root, record, case):
+    """Retain a complete native payload and its real selection declaration."""
+    import hashlib
+    import json
+    from harness.web_fetch.native_projection import native_answer_projection, project_native_answer
+    payload = {'results': [{'url': case['url'], 'raw_content': 'answer'}]}
+    raw = json.dumps(payload).encode()
+    (root/'private_artifacts').mkdir(exist_ok=True)
+    (root/'private_artifacts/raw.json').write_bytes(raw)
+    (root/'answer.txt').write_text('answer', encoding='utf-8')
+    record.update(status_code=200, final_url=case['url'], artifact_path='answer.txt',
+                  metrics={'content_sha256': hashlib.sha256(b'answer').hexdigest(),
+                           'content_pass': True, 'request_ok': True,
+                           'scoring_source_sha256': 'a'*64})
+    record['provider_metadata'].update(raw_response_path='private_artifacts/raw.json',
+        raw_response_sha256=hashlib.sha256(raw).hexdigest(),
+        raw_response_bytes=len(raw),
+        native_answer_projection=native_answer_projection('tavily_extract', EvalCase(**case), payload, 200))
+    _, fields = project_native_answer(payload, record['provider_metadata']['native_answer_projection'])
+    record['provider_metadata'].update(fields)
+
+
+def execution(tmp_path, config, *, dns=None, name='method'):
+    binding = write(tmp_path/'providers.json', {'providers': {name: config}})
+    provider = build_provider(name, expand_env(config))
     case = EvalCase('case', 'Case', 'https://example.test/', 'control', [],
                     source_benchmark={'input_media_kind': 'html_page'})
     ledger = NativeRouteLedger([case], [provider], timeout_seconds=30)
@@ -23,14 +45,14 @@ def execution(tmp_path, config, *, dns=None):
     endpoint, arguments = provider.native_http_arguments(case, 30)
     provider.native_http_request(case, lambda *a, **kw: object(), endpoint,
                                  native_route_ledger=ledger, **arguments)
-    manifest = {'native_routes_required': True, 'native_route_contract': native,
+    manifest = {'created_at': started, 'native_routes_required': True, 'native_route_contract': native,
                 'dataset_sha256': 'dataset', 'runtime_source_sha256': 'runtime',
                 'provider_config_source': str(tmp_path/'providers.json'),
                 'provider_config_sha256': binding['sha256'],
                 'parameters': {'timeout': 30, 'max_failure_retries': 1},
-                'providers': [{'name': 'method', 'fixed_native_parameters': True}]}
+                'providers': [{'name': name, 'fixed_native_parameters': True}]}
     write(tmp_path/'manifest.json', manifest)
-    record = {'provider': 'method', 'provider_type': provider.type, 'case_id': case.id,
+    record = {'provider': name, 'provider_type': provider.type, 'case_id': case.id,
               'url': case.url, 'started_at': started, 'ok': True,
               'provider_metadata': {'native_route_receipt': ledger.receipt(provider, case)}}
     if dns is not None:
